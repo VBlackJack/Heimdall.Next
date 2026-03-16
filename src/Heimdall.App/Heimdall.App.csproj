@@ -1,0 +1,19 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Heimdall.Core\Heimdall.Core.csproj" />
+    <ProjectReference Include="..\Heimdall.Ssh\Heimdall.Ssh.csproj" />
+    <ProjectReference Include="..\Heimdall.Rdp\Heimdall.Rdp.csproj" />
+    <ProjectReference Include="..\Heimdall.Sftp\Heimdall.Sftp.csproj" />
+    <ProjectReference Include="..\Heimdall.Terminal\Heimdall.Terminal.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+  </PropertyGroup>
+
+</Project>

@@ -1,0 +1,14 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Heimdall.App/Heimdall.App.csproj" />
+    <Project Path="src/Heimdall.Core/Heimdall.Core.csproj" />
+    <Project Path="src/Heimdall.Rdp/Heimdall.Rdp.csproj" />
+    <Project Path="src/Heimdall.Sftp/Heimdall.Sftp.csproj" />
+    <Project Path="src/Heimdall.Ssh/Heimdall.Ssh.csproj" />
+    <Project Path="src/Heimdall.Terminal/Heimdall.Terminal.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Heimdall.Core.Tests/Heimdall.Core.Tests.csproj" />
+    <Project Path="tests/Heimdall.Ssh.Tests/Heimdall.Ssh.Tests.csproj" />
+  </Folder>
+</Solution>
