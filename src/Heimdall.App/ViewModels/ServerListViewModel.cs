@@ -196,6 +196,7 @@ public partial class ServerListViewModel : ObservableObject
             return;
         }
 
+        Core.Logging.FileLogger.Info($"ConnectAsync: {server.DisplayName} type={serverDto.ConnectionType} gateway={serverDto.SshGatewayId}");
         _connectionSm.TryTransition(server.Id, Core.Models.ConnectionState.Initializing);
 
         try

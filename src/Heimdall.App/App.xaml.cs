@@ -39,6 +39,11 @@ public partial class App : Application
     {
         base.OnStartup(e);
 
+        // Initialize file logger
+        var logDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logs");
+        Heimdall.Core.Logging.FileLogger.Initialize(logDir);
+        Heimdall.Core.Logging.FileLogger.Info("Heimdall.Next starting");
+
         var services = new ServiceCollection();
         ConfigureServices(services);
         _serviceProvider = services.BuildServiceProvider();
@@ -59,6 +64,7 @@ public partial class App : Application
         // Global exception handler for diagnostics
         DispatcherUnhandledException += (_, args) =>
         {
+            Heimdall.Core.Logging.FileLogger.Error("Unhandled exception", args.Exception);
             MessageBox.Show(
                 $"Unhandled error:\n\n{args.Exception.Message}\n\n{args.Exception.StackTrace}",
                 "Heimdall Error",

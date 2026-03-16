@@ -40,9 +40,12 @@ public partial class ServerDialog : Window
             return;
         }
 
-        // Transfer PasswordBox values (WPF PasswordBox cannot be databound)
-        vm.SshPassword = SshPasswordBox.Password;
-        vm.RdpPassword = RdpPasswordBox.Password;
+        // Transfer PasswordBox values if they exist in the visual tree
+        var sshPwBox = FindName("SshPasswordBox") as System.Windows.Controls.PasswordBox;
+        var rdpPwBox = FindName("RdpPasswordBox") as System.Windows.Controls.PasswordBox;
+
+        if (sshPwBox is not null) vm.SshPassword = sshPwBox.Password;
+        if (rdpPwBox is not null) vm.RdpPassword = rdpPwBox.Password;
 
         vm.ValidateCommand.Execute(null);
 
@@ -51,8 +54,8 @@ public partial class ServerDialog : Window
             DialogResult = true;
 
             // Clear passwords from UI memory (CWE-316)
-            SshPasswordBox.Clear();
-            RdpPasswordBox.Clear();
+            sshPwBox?.Clear();
+            rdpPwBox?.Clear();
         }
     }
 

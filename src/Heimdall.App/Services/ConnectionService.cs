@@ -63,6 +63,7 @@ public class ConnectionService
         ArgumentNullException.ThrowIfNull(server);
         ArgumentNullException.ThrowIfNull(settings);
 
+        Core.Logging.FileLogger.Info($"ConnectRdpAsync: {server.DisplayName} ({server.RemoteServer}:{server.RemotePort}) Gateway={server.SshGatewayId ?? "none"} Direct={server.UseDirectConnection}");
         _connectionSm.TryTransition(server.Id, Core.Models.ConnectionState.ValidatingConfig);
 
         // Resolve tunnel if gateway is configured and not a direct connection
@@ -258,6 +259,7 @@ public class ConnectionService
         AppSettings settings,
         CancellationToken ct)
     {
+        Core.Logging.FileLogger.Info($"EstablishTunnelAsync: serverId={serverId} gatewayId={gatewayId} target={remoteHost}:{remotePort} localPort={localPort}");
         _connectionSm.TryTransition(serverId, Core.Models.ConnectionState.EstablishingTunnel);
 
         List<SshConnectionParams> chain;
@@ -299,10 +301,12 @@ public class ConnectionService
 
         if (result.Success)
         {
+            Core.Logging.FileLogger.Info($"Tunnel established for {serverId} on port {localPort}");
             _connectionSm.TryTransition(serverId, Core.Models.ConnectionState.TunnelEstablished);
         }
         else
         {
+            Core.Logging.FileLogger.Error($"Tunnel failed for {serverId}: {result.ErrorMessage}");
             _connectionSm.SetError(serverId, result.ErrorMessage ?? _localizer["ErrorTunnelFailed"]);
         }
 
