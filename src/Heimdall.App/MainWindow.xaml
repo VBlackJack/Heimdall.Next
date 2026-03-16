@@ -94,7 +94,7 @@
             <!-- ============================================================ -->
             <!-- SERVERS TAB: TreeView left panel + detail/sessions right      -->
             <!-- ============================================================ -->
-            <Grid Visibility="{Binding IsServersTabSelected, Converter={StaticResource BoolToVisibilityConverter}}">
+            <Grid>
                 <Grid.ColumnDefinitions>
                     <!-- Left: TreeView panel -->
                     <ColumnDefinition x:Name="ServerTreeColumn" Width="260" MinWidth="180" MaxWidth="500"/>
@@ -104,11 +104,13 @@
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
 
-                <!-- LEFT PANEL: TreeView with filter -->
-                <Border Grid.Column="0"
+                <!-- LEFT PANEL: TreeView with filter (only on Servers tab) -->
+                <Border x:Name="TreeViewPanel" Grid.Column="0"
                         Background="{DynamicResource SurfaceBrush}"
                         BorderThickness="0,0,1,0"
-                        BorderBrush="{DynamicResource BorderBrush}">
+                        BorderBrush="{DynamicResource BorderBrush}"
+                        Visibility="{Binding IsServersTabSelected, Converter={StaticResource BoolToVisibilityConverter}}"
+                        >
                     <DockPanel>
                         <!-- Filter box at top of TreeView -->
                         <TextBox DockPanel.Dock="Top"
@@ -257,8 +259,8 @@
                               Background="{DynamicResource BorderBrush}"
                               ShowsPreview="True"/>
 
-                <!-- RIGHT PANEL: Active sessions or selected server details -->
-                <Grid Grid.Column="2">
+                <!-- RIGHT PANEL: Active sessions (always visible when sessions exist) or server details -->
+                <Grid Grid.Column="2" Panel.ZIndex="1">
                     <Border Visibility="{Binding Connection.HasActiveSessions, Converter={StaticResource BoolToVisibilityConverter}}"
                             Background="{DynamicResource BackgroundBrush}">
                         <TabControl x:Name="SessionTabControl"
