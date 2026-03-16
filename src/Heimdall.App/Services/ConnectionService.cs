@@ -157,7 +157,7 @@ public class ConnectionService
                     {
                         var filled = await Heimdall.Rdp.CredentialAutofill.WaitAndFillAsync(
                             mstscPid, rdpHost, rdpPassword,
-                            TimeSpan.FromSeconds(30), ct).ConfigureAwait(false);
+                            TimeSpan.FromSeconds(90), ct).ConfigureAwait(false);
                         if (!filled)
                             Core.Logging.FileLogger.Warn($"External RDP CredUI autofill timed out for {server.DisplayName}");
                     }
