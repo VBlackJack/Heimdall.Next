@@ -262,33 +262,8 @@
                                     Background="{DynamicResource BackgroundBrush}"
                                     BorderThickness="0"
                                     Style="{DynamicResource ThemedTabControlStyle}"
-                                    PreviewMouseRightButtonUp="OnSessionTabRightClick">
-                            <TabControl.ItemContainerStyle>
-                                <Style TargetType="TabItem" BasedOn="{StaticResource ThemedTabItemStyle}">
-                                    <Setter Property="ContextMenu">
-                                        <Setter.Value>
-                                            <ContextMenu>
-                                                <MenuItem Header="Disconnect"
-                                                          Command="{Binding DataContext.Connection.CloseSessionCommand, RelativeSource={RelativeSource AncestorType=ContextMenu, AncestorLevel=1}}"
-                                                          CommandParameter="{Binding}"/>
-                                                <Separator/>
-                                                <MenuItem Header="Aspect Ratio">
-                                                    <MenuItem Header="Stretch" Click="OnAspectRatioClick" Tag="Stretch"/>
-                                                    <MenuItem Header="Auto" Click="OnAspectRatioClick" Tag="Auto"/>
-                                                    <MenuItem Header="16:9" Click="OnAspectRatioClick" Tag="Ratio16x9"/>
-                                                    <MenuItem Header="4:3" Click="OnAspectRatioClick" Tag="Ratio4x3"/>
-                                                    <MenuItem Header="21:9" Click="OnAspectRatioClick" Tag="Ratio21x9"/>
-                                                </MenuItem>
-                                                <Separator/>
-                                                <MenuItem Header="Fullscreen (F11)" Click="OnToggleFullscreenClick"/>
-                                                <MenuItem Header="Close Session"
-                                                          Command="{Binding DataContext.Connection.CloseSessionCommand, RelativeSource={RelativeSource AncestorType=ContextMenu, AncestorLevel=1}}"
-                                                          CommandParameter="{Binding}"/>
-                                            </ContextMenu>
-                                        </Setter.Value>
-                                    </Setter>
-                                </Style>
-                            </TabControl.ItemContainerStyle>
+                                    PreviewMouseRightButtonDown="OnSessionTabRightClick"
+                                    ItemContainerStyle="{DynamicResource ThemedTabItemStyle}">
                             <TabControl.ItemTemplate>
                                 <DataTemplate DataType="{x:Type vm:SessionTabViewModel}">
                                     <DockPanel LastChildFill="True">
