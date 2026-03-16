@@ -44,7 +44,7 @@ public partial class ServerListViewModel : ObservableObject
     private ObservableCollection<ServerItemViewModel> _servers = [];
 
     [ObservableProperty]
-    private ObservableCollection<ServerGroupViewModel> _groupedServers = [];
+    private ObservableCollection<ServerProjectViewModel> _groupedServers = [];
 
     [ObservableProperty]
     private ObservableCollection<string> _projects = [];
@@ -428,27 +428,47 @@ public partial class ServerListViewModel : ObservableObject
     }
 
     /// <summary>
-    /// Rebuilds the hierarchical grouped view from the filtered server list.
-    /// Groups servers by their Group property and sorts alphabetically.
+    /// Rebuilds the hierarchical view: Project → Group → Server.
+    /// Servers without a project go under "No Project".
+    /// Servers without a group go under "Ungrouped" within their project.
     /// </summary>
     private void RebuildGroupedView(List<ServerItemViewModel> filteredServers)
     {
+        var noProjectLabel = "No Project";
         var ungroupedLabel = "Ungrouped";
 
-        var groups = filteredServers
-            .GroupBy(s => string.IsNullOrWhiteSpace(s.Group) ? ungroupedLabel : s.Group,
+        var projects = filteredServers
+            .GroupBy(s => string.IsNullOrWhiteSpace(s.ProjectName) ? noProjectLabel : s.ProjectName,
                      StringComparer.OrdinalIgnoreCase)
-            .OrderBy(g => string.Equals(g.Key, ungroupedLabel, StringComparison.Ordinal) ? 1 : 0)
-            .ThenBy(g => g.Key, StringComparer.OrdinalIgnoreCase)
-            .Select(g => new ServerGroupViewModel
+            .OrderBy(p => string.Equals(p.Key, noProjectLabel, StringComparison.Ordinal) ? 1 : 0)
+            .ThenBy(p => p.Key, StringComparer.OrdinalIgnoreCase)
+            .Select(projectGroup =>
             {
-                GroupName = g.Key,
-                Servers = new ObservableCollection<ServerItemViewModel>(
-                    g.OrderBy(s => s.SortOrder).ThenBy(s => s.DisplayName, StringComparer.OrdinalIgnoreCase))
+                var groups = projectGroup
+                    .GroupBy(s => string.IsNullOrWhiteSpace(s.Group) ? ungroupedLabel : s.Group,
+                             StringComparer.OrdinalIgnoreCase)
+                    .OrderBy(g => string.Equals(g.Key, ungroupedLabel, StringComparison.Ordinal) ? 1 : 0)
+                    .ThenBy(g => g.Key, StringComparer.OrdinalIgnoreCase)
+                    .Select(g => new ServerGroupViewModel
+                    {
+                        GroupName = g.Key,
+                        Servers = new ObservableCollection<ServerItemViewModel>(
+                            g.OrderBy(s => s.SortOrder).ThenBy(s => s.DisplayName, StringComparer.OrdinalIgnoreCase))
+                    })
+                    .ToList();
+
+                var projectColor = projectGroup.FirstOrDefault()?.ProjectColor ?? "";
+
+                return new ServerProjectViewModel
+                {
+                    ProjectName = projectGroup.Key,
+                    ProjectColor = projectColor,
+                    Groups = new ObservableCollection<ServerGroupViewModel>(groups)
+                };
             })
             .ToList();
 
-        GroupedServers = new ObservableCollection<ServerGroupViewModel>(groups);
+        GroupedServers = new ObservableCollection<ServerProjectViewModel>(projects);
     }
 
     private void OnConnectionStateChanged(
