@@ -50,6 +50,16 @@ public partial class MainWindow : Window
         KeyDown += OnKeyDown;
     }
 
+    private void OnAddButtonClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is System.Windows.Controls.Button btn && btn.ContextMenu != null)
+        {
+            btn.ContextMenu.PlacementTarget = btn;
+            btn.ContextMenu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
+            btn.ContextMenu.IsOpen = true;
+        }
+    }
+
     private void OnKeyDown(object sender, KeyEventArgs e)
     {
         if (DataContext is not MainViewModel vm)
