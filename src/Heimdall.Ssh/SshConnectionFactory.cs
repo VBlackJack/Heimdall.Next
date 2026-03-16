@@ -38,12 +38,6 @@ public static class SshConnectionFactory
         ArgumentNullException.ThrowIfNull(connectionParams);
 
         var authMethods = BuildAuthMethods(connectionParams);
-        if (authMethods.Count == 0)
-        {
-            throw new ArgumentException(
-                "At least one authentication method must be specified (KeyPath, Password, or AgentForwarding).",
-                nameof(connectionParams));
-        }
 
         var info = new ConnectionInfo(
             connectionParams.Host,
@@ -69,12 +63,6 @@ public static class SshConnectionFactory
         ArgumentNullException.ThrowIfNull(connectionParams);
 
         var authMethods = BuildAuthMethods(connectionParams);
-        if (authMethods.Count == 0)
-        {
-            throw new ArgumentException(
-                "At least one authentication method must be specified (KeyPath, Password, or AgentForwarding).",
-                nameof(connectionParams));
-        }
 
         var info = new ConnectionInfo(
             connectionParams.Host,
@@ -121,6 +109,14 @@ public static class SshConnectionFactory
             {
                 methods.Add(agentMethod);
             }
+        }
+
+        // Fallback: if no explicit auth method configured, add NoneAuthenticationMethod.
+        // SSH.NET will still attempt Pageant/agent-based auth via the SSH protocol
+        // negotiation even without an explicit agent method.
+        if (methods.Count == 0)
+        {
+            methods.Add(new NoneAuthenticationMethod(connectionParams.Username));
         }
 
         return methods;
