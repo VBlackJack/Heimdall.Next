@@ -745,8 +745,7 @@ public partial class ServerListViewModel : ObservableObject
 
     private void PopulateServerDialogOptions(ServerDialogViewModel dialogVm, AppSettings settings)
     {
-        dialogVm.AvailableGateways = new(settings.SshGateways.Select(
-            gateway => new GatewayOption(gateway.Id, $"{gateway.Name} ({gateway.Host})")));
+        dialogVm.AvailableGateways = new(BuildGatewayOptions(settings.SshGateways));
 
         dialogVm.AvailableProjects = new(settings.Projects.Select(
             project => new ProjectOption(project.Id, project.Name, project.Color ?? "#3B82F6")));
@@ -771,6 +770,49 @@ public partial class ServerListViewModel : ObservableObject
             .Where(project => !string.IsNullOrWhiteSpace(project.Id))
             .GroupBy(project => project.Id, StringComparer.Ordinal)
             .ToDictionary(group => group.Key, group => group.Last(), StringComparer.Ordinal);
+    }
+
+    private static IEnumerable<GatewayOption> BuildGatewayOptions(IEnumerable<SshGatewayDto> gateways)
+    {
+        var gatewayList = gateways.ToList();
+        var gatewayMap = gatewayList
+            .Where(gateway => !string.IsNullOrWhiteSpace(gateway.Id))
+            .ToDictionary(gateway => gateway.Id, gateway => gateway, StringComparer.Ordinal);
+
+        return gatewayList.Select(gateway => new GatewayOption(
+            gateway.Id,
+            FormatGatewayDisplayText(gateway),
+            gateway.Name,
+            gateway.Host,
+            gateway.Port,
+            BuildGatewayRouteText(gateway, gatewayMap)));
+    }
+
+    private static string BuildGatewayRouteText(
+        SshGatewayDto gateway,
+        IReadOnlyDictionary<string, SshGatewayDto> gatewayMap)
+    {
+        var route = new List<string>();
+        var visited = new HashSet<string>(StringComparer.Ordinal);
+        var current = gateway;
+
+        while (current is not null && !string.IsNullOrWhiteSpace(current.Id) && visited.Add(current.Id))
+        {
+            route.Insert(0, FormatGatewayDisplayText(current));
+
+            if (string.IsNullOrWhiteSpace(current.ParentGatewayId) ||
+                !gatewayMap.TryGetValue(current.ParentGatewayId, out current))
+            {
+                break;
+            }
+        }
+
+        return string.Join(" -> ", route);
+    }
+
+    private static string FormatGatewayDisplayText(SshGatewayDto gateway)
+    {
+        return $"{gateway.Name} ({gateway.Host}:{gateway.Port})";
     }
 
     private static ProjectDto? ResolveProject(IReadOnlyDictionary<string, ProjectDto> projectMap, string? projectId)

@@ -335,6 +335,442 @@
                     </StackPanel>
                 </ScrollViewer>
             </TabItem>
+
+            <TabItem Header="Tunneling" Style="{DynamicResource ThemedTabItemStyle}">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="8">
+                        <Border Style="{StaticResource SectionCardStyle}">
+                            <StackPanel>
+                                <TextBlock Text="How tunneling works" Style="{StaticResource SectionTitleStyle}"/>
+                                <TextBlock Text="A tunnel listens on a local port on your PC and forwards that traffic to the remote service through the selected SSH gateway."
+                                           Style="{StaticResource SectionDescriptionStyle}"/>
+                                <TextBlock Text="This is only used when a gateway is selected. Direct connections skip the local tunnel entirely."
+                                           Style="{StaticResource HintTextStyle}" Margin="0,10,0,0"/>
+                            </StackPanel>
+                        </Border>
+
+                        <Border>
+                            <Border.Style>
+                                <Style TargetType="Border" BasedOn="{StaticResource SectionCardStyle}">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding UsesGateway}" Value="False">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+                            <StackPanel>
+                                <TextBlock Text="Direct connection" Style="{StaticResource SectionTitleStyle}"/>
+                                <TextBlock Text="No tunnel will be created for this server. Heimdall connects straight to the destination host and service port."
+                                           Style="{StaticResource SectionDescriptionStyle}"/>
+                            </StackPanel>
+                        </Border>
+
+                        <Border>
+                            <Border.Style>
+                                <Style TargetType="Border" BasedOn="{StaticResource SectionCardStyle}">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding UsesGateway}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+                            <StackPanel>
+                                <TextBlock Text="Local tunnel port" Style="{StaticResource SectionTitleStyle}"/>
+                                <TextBlock Text="Heimdall uses this local port to reach the remote service through the SSH tunnel."
+                                           Style="{StaticResource SectionDescriptionStyle}"/>
+                                <CheckBox Content="Choose the tunnel port automatically"
+                                          IsChecked="{Binding UseAutomaticTunnelPort}"
+                                          Style="{StaticResource FormCheckBoxStyle}"
+                                          Margin="0,14,0,0"/>
+                                <TextBlock Text="{Binding LocalTunnelPortDisplay}" Style="{StaticResource HintTextStyle}" Margin="0,8,0,0"/>
+                                <Grid Margin="0,12,0,0" Style="{StaticResource ManualTunnelPortStyle}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="140"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="Manual local port" Style="{StaticResource LabelStyle}" Margin="0,6,0,0"/>
+                                    <TextBox Grid.Column="1"
+                                             Width="140"
+                                             HorizontalAlignment="Left"
+                                             Text="{Binding LocalPort, UpdateSourceTrigger=PropertyChanged}"
+                                             Style="{StaticResource FormTextBoxStyle}"/>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <Border>
+                            <Border.Style>
+                                <Style TargetType="Border" BasedOn="{StaticResource SectionCardStyle}">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding UsesGateway}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+                            <StackPanel>
+                                <TextBlock Text="Tunnel mapping" Style="{StaticResource SectionTitleStyle}"/>
+                                <TextBlock Text="{Binding TunnelSummary}" Style="{StaticResource SectionDescriptionStyle}"/>
+                                <Grid Margin="0,14,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="150"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Gateway chain" Style="{StaticResource LabelStyle}"/>
+                                    <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding GatewayRouteText}" Style="{StaticResource HintTextStyle}" Margin="0,0,0,0"/>
+                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Local endpoint" Style="{StaticResource LabelStyle}" Margin="0,12,0,0"/>
+                                    <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding ClientNodeCaption}" Style="{StaticResource HintTextStyle}" Margin="0,12,0,0"/>
+                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Remote destination" Style="{StaticResource LabelStyle}" Margin="0,12,0,0"/>
+                                    <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding DestinationNodeCaption}" Style="{StaticResource HintTextStyle}" Margin="0,12,0,0"/>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <TabItem Header="Authentication" Style="{DynamicResource ThemedTabItemStyle}">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="8">
+                        <Border>
+                            <Border.Style>
+                                <Style TargetType="Border" BasedOn="{StaticResource SectionCardStyle}">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ConnectionType}" Value="RDP">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+                            <StackPanel>
+                                <TextBlock Text="RDP credentials" Style="{StaticResource SectionTitleStyle}"/>
+                                <TextBlock Text="Credentials used by the Remote Desktop session after routing is complete."
+                                           Style="{StaticResource SectionDescriptionStyle}"/>
+                                <TextBlock Text="Username" Style="{StaticResource LabelStyle}" Margin="0,14,0,4"/>
+                                <TextBox Text="{Binding RdpUsername, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBoxStyle}"/>
+                                <TextBlock Text="Password" Style="{StaticResource LabelStyle}" Margin="0,12,0,4"/>
+                                <PasswordBox x:Name="RdpPasswordBox" Style="{StaticResource FormPasswordBoxStyle}"/>
+                            </StackPanel>
+                        </Border>
+
+                        <Border>
+                            <Border.Style>
+                                <Style TargetType="Border" BasedOn="{StaticResource SectionCardStyle}">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ConnectionType}" Value="SSH">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding ConnectionType}" Value="SFTP">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+                            <StackPanel>
+                                <TextBlock Text="SSH credentials" Style="{StaticResource SectionTitleStyle}"/>
+                                <TextBlock Text="These credentials are used for the SSH or SFTP session itself."
+                                           Style="{StaticResource SectionDescriptionStyle}"/>
+                                <TextBlock Text="Username" Style="{StaticResource LabelStyle}" Margin="0,14,0,4"/>
+                                <TextBox Text="{Binding SshUsername, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBoxStyle}"/>
+                                <TextBlock Text="SSH key" Style="{StaticResource LabelStyle}" Margin="0,12,0,4"/>
+                                <DockPanel>
+                                    <Button Content="Browse"
+                                            DockPanel.Dock="Right"
+                                            Command="{Binding BrowseSshKeyCommand}"
+                                            Style="{DynamicResource SecondaryButtonStyle}"
+                                            Margin="8,0,0,0"
+                                            Click="OnBrowseSshKeyClick"/>
+                                    <TextBox Text="{Binding SshKeyPath, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBoxStyle}"/>
+                                </DockPanel>
+                                <TextBlock Text="Password or passphrase" Style="{StaticResource LabelStyle}" Margin="0,12,0,4"/>
+                                <PasswordBox x:Name="SshPasswordBox" Style="{StaticResource FormPasswordBoxStyle}"/>
+                            </StackPanel>
+                        </Border>
+
+                        <Border>
+                            <Border.Style>
+                                <Style TargetType="Border" BasedOn="{StaticResource SectionCardStyle}">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding UsesGateway}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+                            <StackPanel>
+                                <TextBlock Text="Gateway authentication" Style="{StaticResource SectionTitleStyle}"/>
+                                <TextBlock Text="The selected SSH gateway uses the credentials stored in its own gateway profile."
+                                           Style="{StaticResource SectionDescriptionStyle}"/>
+                                <TextBlock Text="{Binding SelectedGatewayTitle}" Style="{StaticResource HintTextStyle}" Margin="0,10,0,0"/>
+                                <TextBlock Text="{Binding SelectedGatewayEndpoint}" Style="{StaticResource HintTextStyle}" Margin="0,4,0,0"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <TabItem Header="Options" Style="{DynamicResource ThemedTabItemStyle}">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="8">
+                        <Border>
+                            <Border.Style>
+                                <Style TargetType="Border" BasedOn="{StaticResource SectionCardStyle}">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ConnectionType}" Value="RDP">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+                            <StackPanel>
+                                <TextBlock Text="RDP session options" Style="{StaticResource SectionTitleStyle}"/>
+                                <TextBlock Text="Display, transport, and session mode settings for the Remote Desktop client."
+                                           Style="{StaticResource SectionDescriptionStyle}"/>
+                                <Grid Margin="0,16,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Session mode" Style="{StaticResource LabelStyle}"/>
+                                    <TextBlock Grid.Row="0" Grid.Column="1" Text="Aspect ratio" Style="{StaticResource LabelStyle}" Margin="12,0,0,4"/>
+                                    <ComboBox Grid.Row="1" Grid.Column="0"
+                                              SelectedValue="{Binding RdpMode}"
+                                              SelectedValuePath="Content"
+                                              Style="{StaticResource FormComboBoxStyle}">
+                                        <ComboBoxItem Content="Embedded"/>
+                                        <ComboBoxItem Content="External"/>
+                                    </ComboBox>
+                                    <ComboBox Grid.Row="1" Grid.Column="1"
+                                              Margin="12,0,0,0"
+                                              SelectedValue="{Binding RdpAspectRatio}"
+                                              SelectedValuePath="Content"
+                                              Style="{StaticResource FormComboBoxStyle}">
+                                        <ComboBoxItem Content="Stretch"/>
+                                        <ComboBoxItem Content="Preserve"/>
+                                    </ComboBox>
+                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Audio mode" Style="{StaticResource LabelStyle}" Margin="0,14,0,4"/>
+                                    <TextBlock Grid.Row="2" Grid.Column="1" Text="Color depth" Style="{StaticResource LabelStyle}" Margin="12,14,0,4"/>
+                                    <ComboBox Grid.Row="3" Grid.Column="0"
+                                              SelectedValue="{Binding RdpAudioMode}"
+                                              SelectedValuePath="Tag"
+                                              Style="{StaticResource FormComboBoxStyle}">
+                                        <ComboBoxItem Content="Disabled" Tag="0"/>
+                                        <ComboBoxItem Content="Local playback" Tag="1"/>
+                                        <ComboBoxItem Content="Remote playback" Tag="2"/>
+                                    </ComboBox>
+                                    <ComboBox Grid.Row="3" Grid.Column="1"
+                                              Margin="12,0,0,0"
+                                              SelectedValue="{Binding RdpColorDepth}"
+                                              SelectedValuePath="Tag"
+                                              Style="{StaticResource FormComboBoxStyle}">
+                                        <ComboBoxItem Content="16-bit" Tag="16"/>
+                                        <ComboBoxItem Content="24-bit" Tag="24"/>
+                                        <ComboBoxItem Content="32-bit" Tag="32"/>
+                                    </ComboBox>
+                                </Grid>
+                                <StackPanel Margin="0,14,0,0">
+                                    <CheckBox Content="Enable Network Level Authentication" IsChecked="{Binding RdpNla}" Style="{StaticResource FormCheckBoxStyle}"/>
+                                    <CheckBox Content="Use multiple monitors" IsChecked="{Binding RdpMultiMonitor}" Style="{StaticResource FormCheckBoxStyle}" Margin="0,6,0,0"/>
+                                    <CheckBox Content="Allow dynamic resolution updates" IsChecked="{Binding RdpDynamicResolution}" Style="{StaticResource FormCheckBoxStyle}" Margin="0,6,0,0"/>
+                                    <CheckBox Content="Capture local microphone" IsChecked="{Binding RdpAudioCapture}" Style="{StaticResource FormCheckBoxStyle}" Margin="0,6,0,0"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <Expander Header="Device redirection" IsExpanded="True">
+                            <Expander.Style>
+                                <Style TargetType="Expander" BasedOn="{DynamicResource ThemedExpanderStyle}">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ConnectionType}" Value="RDP">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Expander.Style>
+                            <StackPanel Margin="0,12,0,0">
+                                <CheckBox Content="Redirect clipboard" IsChecked="{Binding RedirectClipboard}" Style="{StaticResource FormCheckBoxStyle}"/>
+                                <CheckBox Content="Redirect drives" IsChecked="{Binding RedirectDrives}" Style="{StaticResource FormCheckBoxStyle}" Margin="0,6,0,0"/>
+                                <CheckBox Content="Redirect printers" IsChecked="{Binding RedirectPrinters}" Style="{StaticResource FormCheckBoxStyle}" Margin="0,6,0,0"/>
+                                <CheckBox Content="Redirect COM ports" IsChecked="{Binding RdpRedirectComPorts}" Style="{StaticResource FormCheckBoxStyle}" Margin="0,6,0,0"/>
+                                <CheckBox Content="Redirect smart cards" IsChecked="{Binding RdpRedirectSmartCards}" Style="{StaticResource FormCheckBoxStyle}" Margin="0,6,0,0"/>
+                                <CheckBox Content="Redirect webcam" IsChecked="{Binding RdpRedirectWebcam}" Style="{StaticResource FormCheckBoxStyle}" Margin="0,6,0,0"/>
+                                <CheckBox Content="Redirect USB devices" IsChecked="{Binding RdpRedirectUsb}" Style="{StaticResource FormCheckBoxStyle}" Margin="0,6,0,0"/>
+                            </StackPanel>
+                        </Expander>
+
+                        <Expander Header="Advanced RDP behavior" IsExpanded="False">
+                            <Expander.Style>
+                                <Style TargetType="Expander" BasedOn="{DynamicResource ThemedExpanderStyle}">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ConnectionType}" Value="RDP">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Expander.Style>
+                            <StackPanel Margin="0,12,0,0">
+                                <CheckBox Content="Use global RDP defaults" IsChecked="{Binding RdpUseGlobalDefaults}" Style="{StaticResource FormCheckBoxStyle}"/>
+                                <CheckBox Content="Enable anti-idle keepalive" IsChecked="{Binding RdpAntiIdle}" Style="{StaticResource FormCheckBoxStyle}" Margin="0,6,0,0"/>
+                                <CheckBox Content="Use bitmap caching" IsChecked="{Binding RdpBitmapCaching}" Style="{StaticResource FormCheckBoxStyle}" Margin="0,6,0,0"/>
+                                <CheckBox Content="Enable RDP compression" IsChecked="{Binding RdpCompression}" Style="{StaticResource FormCheckBoxStyle}" Margin="0,6,0,0"/>
+                                <CheckBox Content="Automatically reconnect" IsChecked="{Binding RdpAutoReconnect}" Style="{StaticResource FormCheckBoxStyle}" Margin="0,6,0,0"/>
+                            </StackPanel>
+                        </Expander>
+
+                        <Border>
+                            <Border.Style>
+                                <Style TargetType="Border" BasedOn="{StaticResource SectionCardStyle}">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ConnectionType}" Value="SSH">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding ConnectionType}" Value="SFTP">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+                            <StackPanel>
+                                <TextBlock Text="SSH options" Style="{StaticResource SectionTitleStyle}"/>
+                                <TextBlock Text="Session mode and SSH feature flags used by the shell or file transfer connection."
+                                           Style="{StaticResource SectionDescriptionStyle}"/>
+                                <Grid Margin="0,16,0,0">
+                                    <Grid.Style>
+                                        <Style TargetType="Grid">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding ConnectionType}" Value="SSH">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Grid.Style>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="140"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="SSH mode" Style="{StaticResource LabelStyle}" Margin="0,6,0,0"/>
+                                    <ComboBox Grid.Column="1"
+                                              SelectedValue="{Binding SshMode}"
+                                              SelectedValuePath="Content"
+                                              Style="{StaticResource FormComboBoxStyle}">
+                                        <ComboBoxItem Content="Embedded"/>
+                                        <ComboBoxItem Content="External"/>
+                                    </ComboBox>
+                                </Grid>
+                                <StackPanel Margin="0,14,0,0">
+                                    <CheckBox Content="Enable compression" IsChecked="{Binding SshCompression}" Style="{StaticResource FormCheckBoxStyle}"/>
+                                    <CheckBox Content="Forward SSH agent" IsChecked="{Binding SshAgentForwarding}" Style="{StaticResource FormCheckBoxStyle}" Margin="0,6,0,0"/>
+                                    <CheckBox Content="Enable X11 forwarding"
+                                              IsChecked="{Binding SshX11Forwarding}"
+                                              Margin="0,6,0,0">
+                                        <CheckBox.Style>
+                                            <Style TargetType="CheckBox" BasedOn="{StaticResource FormCheckBoxStyle}">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding ConnectionType}" Value="SSH">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </CheckBox.Style>
+                                    </CheckBox>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <TabItem Header="Info" Style="{DynamicResource ThemedTabItemStyle}">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="8">
+                        <Border Style="{StaticResource SectionCardStyle}">
+                            <StackPanel>
+                                <TextBlock Text="Organization" Style="{StaticResource SectionTitleStyle}"/>
+                                <TextBlock Text="Use grouping metadata to keep the server list organized."
+                                           Style="{StaticResource SectionDescriptionStyle}"/>
+                                <Grid Margin="0,16,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Group" Style="{StaticResource LabelStyle}"/>
+                                    <TextBlock Grid.Row="0" Grid.Column="1" Text="Project" Style="{StaticResource LabelStyle}" Margin="12,0,0,4"/>
+                                    <TextBox Grid.Row="1" Grid.Column="0"
+                                             Text="{Binding Group, UpdateSourceTrigger=PropertyChanged}"
+                                             Style="{StaticResource FormTextBoxStyle}"/>
+                                    <ComboBox Grid.Row="1" Grid.Column="1"
+                                              Margin="12,0,0,0"
+                                              ItemsSource="{Binding AvailableProjects}"
+                                              SelectedValue="{Binding SelectedProjectId}"
+                                              SelectedValuePath="Id"
+                                              DisplayMemberPath="Name"
+                                              Style="{StaticResource FormComboBoxStyle}"/>
+                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Environment" Style="{StaticResource LabelStyle}" Margin="0,14,0,4"/>
+                                    <TextBlock Grid.Row="2" Grid.Column="1" Text="Favorite" Style="{StaticResource LabelStyle}" Margin="12,14,0,4"/>
+                                    <ComboBox Grid.Row="3" Grid.Column="0"
+                                              SelectedValue="{Binding Environment}"
+                                              SelectedValuePath="Content"
+                                              Style="{StaticResource FormComboBoxStyle}">
+                                        <ComboBoxItem Content="None"/>
+                                        <ComboBoxItem Content="Production"/>
+                                        <ComboBoxItem Content="Staging"/>
+                                        <ComboBoxItem Content="Lab"/>
+                                        <ComboBoxItem Content="Personal"/>
+                                    </ComboBox>
+                                    <CheckBox Grid.Row="3" Grid.Column="1"
+                                              Margin="12,2,0,0"
+                                              Content="Mark as favorite"
+                                              IsChecked="{Binding IsFavorite}"
+                                              Style="{StaticResource FormCheckBoxStyle}"/>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Style="{StaticResource SectionCardStyle}">
+                            <StackPanel>
+                                <TextBlock Text="Metadata" Style="{StaticResource SectionTitleStyle}"/>
+                                <TextBlock Text="Optional tags and Wake-on-LAN metadata for this server entry."
+                                           Style="{StaticResource SectionDescriptionStyle}"/>
+                                <TextBlock Text="Tags" Style="{StaticResource LabelStyle}" Margin="0,14,0,4"/>
+                                <TextBox Text="{Binding Tags, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBoxStyle}"/>
+                                <TextBlock Text="MAC address" Style="{StaticResource LabelStyle}" Margin="0,12,0,4"/>
+                                <TextBox Text="{Binding MacAddress, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBoxStyle}"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
         </TabControl>
 
         <TextBlock Grid.Row="1"
