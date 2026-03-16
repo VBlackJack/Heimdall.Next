@@ -114,16 +114,22 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         CancelAutofill();
         _allowResolutionUpdates = false;
 
+        // CRITICAL: Hide the FormsHost FIRST to prevent WPF ArrangeOverride
+        // from trying to resize the COM control after it's been released
+        try
+        {
+            FormsHost.Visibility = System.Windows.Visibility.Collapsed;
+            FormsHost.Child = null;
+        }
+        catch { }
+
         if (_rdpHost is not null)
         {
             _rdpHost.Connected -= OnRdpConnected;
             _rdpHost.Disconnected -= OnRdpDisconnected;
             _rdpHost.FatalError -= OnRdpFatalError;
 
-            try
-            {
-                _rdpHost.Disconnect();
-            }
+            try { _rdpHost.Disconnect(); }
             catch (Exception ex)
             {
                 Core.Logging.FileLogger.Warn($"EmbeddedRDP Disconnect during dispose failed: {ex.Message}");
@@ -131,21 +137,20 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
 
             try
             {
-                if (_eventSinkAttached)
-                {
-                    _rdpHost.DetachEventSink();
-                }
+                if (_eventSinkAttached) _rdpHost.DetachEventSink();
             }
             catch (Exception ex)
             {
                 Core.Logging.FileLogger.Warn($"EmbeddedRDP DetachEventSink during dispose failed: {ex.Message}");
             }
 
-            _rdpHost.Dispose();
+            try { _rdpHost.Dispose(); }
+            catch (Exception ex)
+            {
+                Core.Logging.FileLogger.Warn($"EmbeddedRDP host dispose failed: {ex.Message}");
+            }
             _rdpHost = null;
         }
-
-        FormsHost.Child = null;
         _autofillCts?.Dispose();
         _autofillCts = null;
         Core.Logging.FileLogger.Info("EmbeddedRDP Dispose completed");
