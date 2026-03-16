@@ -15,11 +15,11 @@
     <Grid>
         <Grid.RowDefinitions>
             <!-- Toolbar -->
-            <RowDefinition Height="48"/>
+            <RowDefinition x:Name="ToolbarRow" Height="48"/>
             <!-- Main content -->
             <RowDefinition Height="*"/>
             <!-- Status bar -->
-            <RowDefinition Height="28"/>
+            <RowDefinition x:Name="StatusBarRow" Height="28"/>
         </Grid.RowDefinitions>
 
         <!-- TOOLBAR -->
@@ -92,9 +92,9 @@
             <Grid Visibility="{Binding IsServersTabSelected, Converter={StaticResource BoolToVisibilityConverter}}">
                 <Grid.ColumnDefinitions>
                     <!-- Left: TreeView panel -->
-                    <ColumnDefinition Width="260" MinWidth="180" MaxWidth="500"/>
+                    <ColumnDefinition x:Name="ServerTreeColumn" Width="260" MinWidth="180" MaxWidth="500"/>
                     <!-- Splitter -->
-                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition x:Name="SplitterColumn" Width="Auto"/>
                     <!-- Right: Detail / session content -->
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>

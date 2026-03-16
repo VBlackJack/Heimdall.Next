@@ -106,6 +106,16 @@ public partial class MainWindow : Window
                 SearchBox.SelectAll();
                 e.Handled = true;
                 break;
+
+            case Key.F11:
+                ToggleFullscreen();
+                e.Handled = true;
+                break;
+
+            case Key.Escape when _isFullscreen:
+                ToggleFullscreen();
+                e.Handled = true;
+                break;
         }
     }
 
@@ -451,15 +461,45 @@ public partial class MainWindow : Window
         // TODO: Apply aspect ratio to the embedded RDP session display
     }
 
+    private bool _isFullscreen;
+
     private void OnToggleFullscreenClick(object sender, RoutedEventArgs e)
     {
-        if (WindowState == WindowState.Maximized && WindowStyle == WindowStyle.None)
+        ToggleFullscreen();
+    }
+
+    private void ToggleFullscreen()
+    {
+        if (DataContext is not MainViewModel vm) return;
+
+        if (_isFullscreen)
         {
+            // Exit fullscreen — restore all UI elements
+            _isFullscreen = false;
             WindowStyle = WindowStyle.SingleBorderWindow;
             WindowState = WindowState.Normal;
+
+            // Show toolbar, TreeView, status bar
+            ToolbarRow.Height = new GridLength(48);
+            StatusBarRow.Height = new GridLength(28);
+            if (FindName("ServerTreeColumn") is ColumnDefinition treeCol)
+                treeCol.Width = new GridLength(260);
+            if (FindName("SplitterColumn") is ColumnDefinition splitCol)
+                splitCol.Width = GridLength.Auto;
         }
         else
         {
+            // Enter fullscreen — hide everything except the session content
+            _isFullscreen = true;
+
+            // Hide toolbar, TreeView, status bar
+            ToolbarRow.Height = new GridLength(0);
+            StatusBarRow.Height = new GridLength(0);
+            if (FindName("ServerTreeColumn") is ColumnDefinition treeCol)
+                treeCol.Width = new GridLength(0);
+            if (FindName("SplitterColumn") is ColumnDefinition splitCol)
+                splitCol.Width = new GridLength(0);
+
             WindowStyle = WindowStyle.None;
             WindowState = WindowState.Maximized;
         }
