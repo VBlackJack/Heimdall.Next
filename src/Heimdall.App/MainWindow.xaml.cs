@@ -398,6 +398,30 @@ public partial class MainWindow : Window
         };
     }
 
+    private static void HideTabStripPanel(System.Windows.Controls.TabControl tabControl, bool hide)
+    {
+        // Find the TabPanel in the TabControl's visual tree and collapse it
+        tabControl.ApplyTemplate();
+        for (int i = 0; i < VisualTreeHelper.GetChildrenCount(tabControl); i++)
+        {
+            var child = VisualTreeHelper.GetChild(tabControl, i);
+            HideTabStripPanelRecursive(child, hide);
+        }
+    }
+
+    private static void HideTabStripPanelRecursive(DependencyObject parent, bool hide)
+    {
+        if (parent is System.Windows.Controls.Primitives.TabPanel tabPanel)
+        {
+            tabPanel.Visibility = hide ? Visibility.Collapsed : Visibility.Visible;
+            return;
+        }
+        for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
+        {
+            HideTabStripPanelRecursive(VisualTreeHelper.GetChild(parent, i), hide);
+        }
+    }
+
     private static T? FindAncestor<T>(DependencyObject? current) where T : DependencyObject
     {
         while (current is not null)
@@ -570,23 +594,20 @@ public partial class MainWindow : Window
                 sshView.Visibility = Visibility.Visible; // SSH always visible
         }
 
-        // Hide/show tab strip via ItemContainerGenerator
-        for (int i = 0; i < SessionTabControl.Items.Count; i++)
+        // Hide/show entire tab strip by collapsing the TabPanel
+        // Single session fullscreen = no tab bar needed
+        if (isFullscreen && vm.Connection.ActiveSessions.Count <= 1)
         {
-            var container = SessionTabControl.ItemContainerGenerator
-                .ContainerFromIndex(i) as System.Windows.Controls.TabItem;
-            if (container is null) continue;
-
-            if (isFullscreen && vm.Connection.ActiveSessions.Count <= 1)
-            {
-                container.Height = 0;
-                container.Visibility = Visibility.Collapsed;
-            }
-            else
-            {
-                container.Height = double.NaN;
-                container.Visibility = Visibility.Visible;
-            }
+            SessionTabControl.Tag = "fullscreen-notabs";
+            // Use a style that hides the header panel
+            SessionTabControl.SetValue(System.Windows.Controls.Control.PaddingProperty, new Thickness(0));
+            // Walk the visual tree to find and hide the TabPanel
+            HideTabStripPanel(SessionTabControl, true);
+        }
+        else
+        {
+            SessionTabControl.Tag = null;
+            HideTabStripPanel(SessionTabControl, false);
         }
     }
 
