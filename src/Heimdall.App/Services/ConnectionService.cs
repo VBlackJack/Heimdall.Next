@@ -287,7 +287,7 @@ public class ConnectionService
 
         // Build plink arguments for interactive SSH
         var args = new System.Text.StringBuilder();
-        args.Append("-ssh ");
+        args.Append("-ssh -t ");
         if (!string.IsNullOrEmpty(server.SshKeyPath))
             args.Append($"-i \"{server.SshKeyPath}\" ");
         if (server.SshCompression)
