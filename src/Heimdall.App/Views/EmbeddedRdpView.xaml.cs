@@ -522,7 +522,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
                 Environment.ProcessId,
                 hostHint,
                 password,
-                TimeSpan.FromSeconds(30),
+                TimeSpan.FromSeconds(90),
                 cancellationToken).ConfigureAwait(false);
 
             if (!filled)
