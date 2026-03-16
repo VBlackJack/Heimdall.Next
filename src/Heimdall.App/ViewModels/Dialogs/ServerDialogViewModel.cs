@@ -16,6 +16,7 @@
 
 using System.Collections.ObjectModel;
 using System.ComponentModel.DataAnnotations;
+using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Heimdall.Core.Configuration;
@@ -23,11 +24,17 @@ using Heimdall.Core.Configuration;
 namespace Heimdall.App.ViewModels.Dialogs;
 
 /// <summary>
-/// ViewModel for the server add/edit dialog. Supports RDP, SSH, and SFTP
-/// connection types with full validation via data annotations.
+/// ViewModel for the redesigned server add/edit dialog.
+/// Keeps the persisted DTO model intact while exposing UX-friendly
+/// derived state for tunnel routing, authentication, and option grouping.
 /// </summary>
 public partial class ServerDialogViewModel : ObservableValidator
 {
+    private const int DefaultRdpPort = 3389;
+    private const int DefaultSshPort = 22;
+    private const int DefaultRdpTunnelPort = 33890;
+    private const int DefaultSshTunnelPort = 2222;
+
     // --- Dialog state ---
 
     [ObservableProperty]
@@ -53,12 +60,15 @@ public partial class ServerDialogViewModel : ObservableValidator
     [ObservableProperty]
     [NotifyDataErrorInfo]
     [Range(1, 65535, ErrorMessage = "Port must be between 1 and 65535.")]
-    private int _remotePort = 3389;
+    private int _remotePort = DefaultRdpPort;
 
     [ObservableProperty]
     [NotifyDataErrorInfo]
-    [Range(0, 65535, ErrorMessage = "Local port must be between 0 and 65535.")]
-    private int _localPort;
+    [Range(1, 65535, ErrorMessage = "Local tunnel port must be between 1 and 65535.")]
+    private int _localPort = DefaultRdpTunnelPort;
+
+    [ObservableProperty]
+    private bool _useAutomaticTunnelPort = true;
 
     [ObservableProperty]
     private string _group = "";
@@ -74,7 +84,7 @@ public partial class ServerDialogViewModel : ObservableValidator
     [ObservableProperty]
     [NotifyDataErrorInfo]
     [Range(1, 65535, ErrorMessage = "SSH port must be between 1 and 65535.")]
-    private int _sshPort = 22;
+    private int _sshPort = DefaultSshPort;
 
     [ObservableProperty]
     private string _sshKeyPath = "";
@@ -106,6 +116,12 @@ public partial class ServerDialogViewModel : ObservableValidator
     private string _rdpMode = "Embedded";
 
     [ObservableProperty]
+    private bool _rdpUseGlobalDefaults = true;
+
+    [ObservableProperty]
+    private bool _rdpAntiIdle;
+
+    [ObservableProperty]
     private bool _redirectClipboard = true;
 
     [ObservableProperty]
@@ -115,18 +131,53 @@ public partial class ServerDialogViewModel : ObservableValidator
     private bool _redirectPrinters;
 
     [ObservableProperty]
+    private bool _rdpRedirectComPorts;
+
+    [ObservableProperty]
+    private bool _rdpRedirectSmartCards;
+
+    [ObservableProperty]
+    private bool _rdpRedirectWebcam;
+
+    [ObservableProperty]
+    private bool _rdpRedirectUsb;
+
+    [ObservableProperty]
     [NotifyDataErrorInfo]
     [Range(0, 2, ErrorMessage = "Audio mode must be 0 (disabled), 1 (local), or 2 (remote).")]
     private int _rdpAudioMode;
 
     [ObservableProperty]
+    private bool _rdpAudioCapture;
+
+    [ObservableProperty]
     private bool _rdpMultiMonitor;
+
+    [ObservableProperty]
+    private bool _rdpDynamicResolution = true;
 
     [ObservableProperty]
     private bool _rdpNla = true;
 
     [ObservableProperty]
     private string _rdpAspectRatio = "Stretch";
+
+    [ObservableProperty]
+    [NotifyDataErrorInfo]
+    [Range(8, 32, ErrorMessage = "Color depth must be between 8 and 32.")]
+    private int _rdpColorDepth = 32;
+
+    [ObservableProperty]
+    private bool _rdpBitmapCaching = true;
+
+    [ObservableProperty]
+    private bool _rdpCompression = true;
+
+    [ObservableProperty]
+    private bool _rdpAutoReconnect = true;
+
+    [ObservableProperty]
+    private string _rdpGateway = "";
 
     // --- Gateway ---
 
@@ -138,6 +189,9 @@ public partial class ServerDialogViewModel : ObservableValidator
 
     [ObservableProperty]
     private ObservableCollection<GatewayOption> _availableGateways = [];
+
+    [ObservableProperty]
+    private string? _gatewayTestMessage;
 
     // --- Project ---
 
@@ -166,6 +220,98 @@ public partial class ServerDialogViewModel : ObservableValidator
     [ObservableProperty]
     private string? _validationError;
 
+    public bool IsRdpConnection => string.Equals(ConnectionType, "RDP", StringComparison.OrdinalIgnoreCase);
+
+    public bool IsSshConnection => string.Equals(ConnectionType, "SSH", StringComparison.OrdinalIgnoreCase);
+
+    public bool IsSftpConnection => string.Equals(ConnectionType, "SFTP", StringComparison.OrdinalIgnoreCase);
+
+    public bool IsSshFamilyConnection => IsSshConnection || IsSftpConnection;
+
+    public bool UsesGateway => !DirectConnection && !string.IsNullOrWhiteSpace(SelectedGatewayId);
+
+    public bool CanSelectGateway => !DirectConnection;
+
+    public bool CanEditTunnelPort => UsesGateway && !UseAutomaticTunnelPort;
+
+    public int EndpointPort
+    {
+        get => IsRdpConnection ? RemotePort : SshPort;
+        set
+        {
+            if (IsRdpConnection)
+            {
+                RemotePort = value;
+            }
+            else
+            {
+                SshPort = value;
+            }
+        }
+    }
+
+    public string EndpointPortLabel => IsRdpConnection ? "Remote RDP port" : "Remote SSH port";
+
+    public string EndpointPortHelpText => IsRdpConnection
+        ? "Remote desktop port on the destination server."
+        : "SSH service port on the destination server.";
+
+    public string LocalTunnelPortDisplay => UseAutomaticTunnelPort
+        ? string.Format(CultureInfo.InvariantCulture, "Auto ({0})", LocalPort)
+        : LocalPort.ToString(CultureInfo.InvariantCulture);
+
+    public string ConnectionPathHeadline => UsesGateway
+        ? "Heimdall will create an SSH tunnel before opening the session."
+        : "Heimdall will connect directly to the destination host.";
+
+    public string GatewayExplanation => UsesGateway
+        ? "Traffic will be routed through this SSH gateway."
+        : "Select a gateway if the server is only reachable through an SSH jump host.";
+
+    public string GatewayRouteText => SelectedGateway?.EffectiveRouteText ?? "No gateway selected";
+
+    public string SelectedGatewayTitle => SelectedGateway?.EffectiveName ?? "No gateway selected";
+
+    public string SelectedGatewayEndpoint => SelectedGateway?.EndpointText ?? "No SSH gateway selected";
+
+    public string SessionKindLabel => IsRdpConnection
+        ? "RDP session"
+        : IsSftpConnection
+            ? "SFTP session"
+            : "SSH session";
+
+    public string SessionModeSummary => IsRdpConnection
+        ? "Remote Desktop opens after tunnel setup completes."
+        : IsSftpConnection
+            ? "The SFTP browser reuses the SSH authentication settings below."
+            : "The SSH shell connects directly or through the tunnel shown above.";
+
+    public string TunnelSummary => UsesGateway
+        ? string.Format(
+            CultureInfo.InvariantCulture,
+            "Local port {0} forwards to {1}:{2} through {3}.",
+            LocalTunnelPortDisplay,
+            GetDestinationHost(),
+            EndpointPort,
+            SelectedGateway?.EffectiveName ?? "the selected gateway")
+        : "No SSH tunnel is required for this connection.";
+
+    public string ClientNodeCaption => UsesGateway
+        ? string.Format(CultureInfo.InvariantCulture, "Local tunnel on localhost:{0}", LocalTunnelPortDisplay)
+        : "Direct outbound connection";
+
+    public string GatewayNodeCaption => UsesGateway
+        ? string.Format(CultureInfo.InvariantCulture, "{0}", SelectedGateway?.EffectiveName ?? "Gateway")
+        : "Gateway not used";
+
+    public string DestinationNodeCaption => string.IsNullOrWhiteSpace(RemoteServer)
+        ? "Destination server"
+        : string.Format(CultureInfo.InvariantCulture, "{0}:{1}", RemoteServer, EndpointPort);
+
+    public string ClientToGatewayLabel => UsesGateway ? "SSH tunnel" : "Direct transport";
+
+    public string GatewayToServerLabel => SessionKindLabel;
+
     /// <summary>
     /// Triggers full validation of all annotated properties.
     /// Sets <see cref="ValidationError"/> to the first error found, or null if valid.
@@ -174,6 +320,13 @@ public partial class ServerDialogViewModel : ObservableValidator
     private void Validate()
     {
         ValidateAllProperties();
+
+        if (!HasErrors && UsesGateway && !UseAutomaticTunnelPort && LocalPort <= 0)
+        {
+            ValidationError = "Enter a local tunnel port or switch back to Auto.";
+            return;
+        }
+
         ValidationError = HasErrors ? GetFirstError() : null;
     }
 
@@ -184,8 +337,15 @@ public partial class ServerDialogViewModel : ObservableValidator
     [RelayCommand]
     private void BrowseSshKey()
     {
-        // Intentionally empty: the View subscribes to this command's CanExecuteChanged
-        // or binds via interaction trigger to open a file dialog and set SshKeyPath.
+        // Intentionally empty: the View handles the actual file picker interaction.
+    }
+
+    [RelayCommand]
+    private void TestGateway()
+    {
+        GatewayTestMessage = UsesGateway
+            ? "Gateway diagnostics are not wired in this prototype yet."
+            : "Select a gateway and disable direct connection to test tunneling.";
     }
 
     /// <summary>
@@ -210,13 +370,26 @@ public partial class ServerDialogViewModel : ObservableValidator
             SshMode = SshMode,
             RdpUsername = string.IsNullOrWhiteSpace(RdpUsername) ? null : RdpUsername,
             RdpMode = RdpMode,
+            RdpUseGlobalDefaults = RdpUseGlobalDefaults,
+            RdpAntiIdle = RdpAntiIdle,
             RdpRedirectClipboard = RedirectClipboard,
             RdpRedirectDrives = RedirectDrives,
             RdpRedirectPrinters = RedirectPrinters,
+            RdpRedirectComPorts = RdpRedirectComPorts,
+            RdpRedirectSmartCards = RdpRedirectSmartCards,
+            RdpRedirectWebcam = RdpRedirectWebcam,
+            RdpRedirectUsb = RdpRedirectUsb,
             RdpAudioMode = RdpAudioMode,
+            RdpAudioCapture = RdpAudioCapture,
             RdpMultiMonitor = RdpMultiMonitor,
+            RdpDynamicResolution = RdpDynamicResolution,
             RdpNla = RdpNla,
             RdpAspectRatio = RdpAspectRatio,
+            RdpColorDepth = RdpColorDepth,
+            RdpBitmapCaching = RdpBitmapCaching,
+            RdpCompression = RdpCompression,
+            RdpAutoReconnect = RdpAutoReconnect,
+            RdpGateway = string.IsNullOrWhiteSpace(RdpGateway) ? null : RdpGateway,
             SshGatewayId = string.IsNullOrWhiteSpace(SelectedGatewayId) ? null : SelectedGatewayId,
             UseDirectConnection = DirectConnection,
             ProjectId = string.IsNullOrWhiteSpace(SelectedProjectId) ? null : SelectedProjectId,
@@ -229,11 +402,13 @@ public partial class ServerDialogViewModel : ObservableValidator
     /// <summary>
     /// Creates a ViewModel pre-populated from an existing DTO (for edit mode).
     /// </summary>
-    /// <param name="dto">The server DTO to load values from.</param>
-    /// <returns>A populated ServerDialogViewModel in edit mode.</returns>
     public static ServerDialogViewModel FromDto(RdpServerDto dto)
     {
         ArgumentNullException.ThrowIfNull(dto);
+
+        var connectionType = string.IsNullOrWhiteSpace(dto.ConnectionType) ? "RDP" : dto.ConnectionType;
+        var suggestedTunnelPort = GetSuggestedTunnelPort(connectionType);
+        var storedLocalPort = dto.LocalPort <= 0 ? suggestedTunnelPort : dto.LocalPort;
 
         return new ServerDialogViewModel
         {
@@ -241,9 +416,10 @@ public partial class ServerDialogViewModel : ObservableValidator
             DisplayName = dto.DisplayName,
             RemoteServer = dto.RemoteServer,
             RemotePort = dto.RemotePort,
-            LocalPort = dto.LocalPort,
+            LocalPort = storedLocalPort,
+            UseAutomaticTunnelPort = dto.LocalPort <= 0 || dto.LocalPort == suggestedTunnelPort,
             Group = dto.Group ?? "",
-            ConnectionType = dto.ConnectionType,
+            ConnectionType = connectionType,
             SshUsername = dto.SshUsername ?? "",
             SshPort = dto.SshPort,
             SshKeyPath = dto.SshKeyPath ?? "",
@@ -253,13 +429,26 @@ public partial class ServerDialogViewModel : ObservableValidator
             SshMode = dto.SshMode,
             RdpUsername = dto.RdpUsername ?? "",
             RdpMode = dto.RdpMode,
+            RdpUseGlobalDefaults = dto.RdpUseGlobalDefaults,
+            RdpAntiIdle = dto.RdpAntiIdle,
             RedirectClipboard = dto.RdpRedirectClipboard,
             RedirectDrives = dto.RdpRedirectDrives,
             RedirectPrinters = dto.RdpRedirectPrinters,
+            RdpRedirectComPorts = dto.RdpRedirectComPorts,
+            RdpRedirectSmartCards = dto.RdpRedirectSmartCards,
+            RdpRedirectWebcam = dto.RdpRedirectWebcam,
+            RdpRedirectUsb = dto.RdpRedirectUsb,
             RdpAudioMode = dto.RdpAudioMode,
+            RdpAudioCapture = dto.RdpAudioCapture,
             RdpMultiMonitor = dto.RdpMultiMonitor,
+            RdpDynamicResolution = dto.RdpDynamicResolution,
             RdpNla = dto.RdpNla,
             RdpAspectRatio = dto.RdpAspectRatio,
+            RdpColorDepth = dto.RdpColorDepth,
+            RdpBitmapCaching = dto.RdpBitmapCaching,
+            RdpCompression = dto.RdpCompression,
+            RdpAutoReconnect = dto.RdpAutoReconnect,
+            RdpGateway = dto.RdpGateway ?? "",
             SelectedGatewayId = dto.SshGatewayId ?? "",
             DirectConnection = dto.UseDirectConnection,
             SelectedProjectId = dto.ProjectId ?? "",
@@ -268,6 +457,119 @@ public partial class ServerDialogViewModel : ObservableValidator
             Environment = dto.Environment ?? "None",
             IsFavorite = dto.IsFavorite
         };
+    }
+
+    partial void OnConnectionTypeChanged(string value)
+    {
+        EndpointPort = GetDefaultEndpointPort(value);
+
+        if (UseAutomaticTunnelPort)
+        {
+            LocalPort = GetSuggestedTunnelPort(value);
+        }
+
+        GatewayTestMessage = null;
+        RaiseDerivedStateChanged();
+    }
+
+    partial void OnRemotePortChanged(int value)
+    {
+        RaisePortDerivedStateChanged();
+    }
+
+    partial void OnSshPortChanged(int value)
+    {
+        RaisePortDerivedStateChanged();
+    }
+
+    partial void OnLocalPortChanged(int value)
+    {
+        RaiseDerivedStateChanged();
+    }
+
+    partial void OnUseAutomaticTunnelPortChanged(bool value)
+    {
+        if (value)
+        {
+            LocalPort = GetSuggestedTunnelPort(ConnectionType);
+        }
+
+        RaiseDerivedStateChanged();
+    }
+
+    partial void OnSelectedGatewayIdChanged(string value)
+    {
+        GatewayTestMessage = null;
+        RaiseDerivedStateChanged();
+    }
+
+    partial void OnDirectConnectionChanged(bool value)
+    {
+        GatewayTestMessage = null;
+        RaiseDerivedStateChanged();
+    }
+
+    partial void OnAvailableGatewaysChanged(ObservableCollection<GatewayOption> value)
+    {
+        RaiseDerivedStateChanged();
+    }
+
+    private GatewayOption? SelectedGateway =>
+        AvailableGateways.FirstOrDefault(gateway =>
+            string.Equals(gateway.Id, SelectedGatewayId, StringComparison.Ordinal));
+
+    private static int GetDefaultEndpointPort(string connectionType)
+    {
+        return string.Equals(connectionType, "RDP", StringComparison.OrdinalIgnoreCase)
+            ? DefaultRdpPort
+            : DefaultSshPort;
+    }
+
+    private static int GetSuggestedTunnelPort(string connectionType)
+    {
+        return string.Equals(connectionType, "RDP", StringComparison.OrdinalIgnoreCase)
+            ? DefaultRdpTunnelPort
+            : DefaultSshTunnelPort;
+    }
+
+    private string GetDestinationHost()
+    {
+        return string.IsNullOrWhiteSpace(RemoteServer) ? "destination server" : RemoteServer;
+    }
+
+    private void RaisePortDerivedStateChanged()
+    {
+        OnPropertyChanged(nameof(EndpointPort));
+        OnPropertyChanged(nameof(DestinationNodeCaption));
+        OnPropertyChanged(nameof(TunnelSummary));
+    }
+
+    private void RaiseDerivedStateChanged()
+    {
+        OnPropertyChanged(nameof(IsRdpConnection));
+        OnPropertyChanged(nameof(IsSshConnection));
+        OnPropertyChanged(nameof(IsSftpConnection));
+        OnPropertyChanged(nameof(IsSshFamilyConnection));
+        OnPropertyChanged(nameof(UsesGateway));
+        OnPropertyChanged(nameof(CanSelectGateway));
+        OnPropertyChanged(nameof(CanEditTunnelPort));
+        OnPropertyChanged(nameof(EndpointPort));
+        OnPropertyChanged(nameof(EndpointPortLabel));
+        OnPropertyChanged(nameof(EndpointPortHelpText));
+        OnPropertyChanged(nameof(LocalTunnelPortDisplay));
+        OnPropertyChanged(nameof(ConnectionPathHeadline));
+        OnPropertyChanged(nameof(GatewayExplanation));
+        OnPropertyChanged(nameof(GatewayRouteText));
+        OnPropertyChanged(nameof(SelectedGatewayTitle));
+        OnPropertyChanged(nameof(SelectedGatewayEndpoint));
+        OnPropertyChanged(nameof(SessionKindLabel));
+        OnPropertyChanged(nameof(SessionModeSummary));
+        OnPropertyChanged(nameof(TunnelSummary));
+        OnPropertyChanged(nameof(ClientNodeCaption));
+        OnPropertyChanged(nameof(GatewayNodeCaption));
+        OnPropertyChanged(nameof(DestinationNodeCaption));
+        OnPropertyChanged(nameof(ClientToGatewayLabel));
+        OnPropertyChanged(nameof(GatewayToServerLabel));
     }
 
     private string? GetFirstError()
@@ -281,23 +583,32 @@ public partial class ServerDialogViewModel : ObservableValidator
 }
 
 /// <summary>
-/// Represents an SSH gateway option in the server dialog's gateway dropdown.
+/// Represents an SSH gateway option in the dialog's gateway dropdown.
+/// Additional metadata is carried so the UX can explain the route.
 /// </summary>
-/// <param name="Id">The gateway identifier.</param>
-/// <param name="DisplayText">Human-readable gateway label (e.g., "user@host:port").</param>
-public record GatewayOption(string Id, string DisplayText);
+public record GatewayOption(
+    string Id,
+    string DisplayText,
+    string Name = "",
+    string Host = "",
+    int Port = 22,
+    string RouteText = "")
+{
+    public string EffectiveName => string.IsNullOrWhiteSpace(Name) ? DisplayText : Name;
+
+    public string EndpointText => string.IsNullOrWhiteSpace(Host)
+        ? DisplayText
+        : string.Format(CultureInfo.InvariantCulture, "{0}:{1}", Host, Port);
+
+    public string EffectiveRouteText => string.IsNullOrWhiteSpace(RouteText) ? DisplayText : RouteText;
+}
 
 /// <summary>
 /// Represents a project option in the server dialog's project dropdown.
 /// </summary>
-/// <param name="Id">The project identifier.</param>
-/// <param name="Name">Human-readable project name.</param>
-/// <param name="Color">Hex color code for visual identification.</param>
 public record ProjectOption(string Id, string Name, string Color);
 
 /// <summary>
 /// Immutable result returned by the server dialog on close.
 /// </summary>
-/// <param name="Server">The server DTO with user-entered values.</param>
-/// <param name="Saved">True if the user clicked Save, false if cancelled.</param>
 public record ServerDialogResult(RdpServerDto Server, bool Saved);

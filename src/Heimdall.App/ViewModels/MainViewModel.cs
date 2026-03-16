@@ -183,8 +183,9 @@ public partial class MainViewModel : ObservableObject
         tab.HostControl = session;
         tab.Status = "Connected";
 
-        // Switch to the connection tab view
-        SelectedTab = "Connections";
+        // Stay on Servers tab — the right panel will show the connected session info
+        // SelectedTab = "Connections" is removed because there's no separate Connections view
+        StatusText = _localizer.Format("StatusConnected", displayName);
     }
 
     private void OnApplicationStatusChanged(ApplicationStatus previous, ApplicationStatus current)
