@@ -26,7 +26,16 @@ namespace Heimdall.App.ViewModels;
 public partial class ServerGroupViewModel : ObservableObject
 {
     [ObservableProperty]
+    private string _projectId = "";
+
+    [ObservableProperty]
+    private string _projectName = "";
+
+    [ObservableProperty]
     private string _groupName = "";
+
+    [ObservableProperty]
+    private bool _isVirtualGroup;
 
     [ObservableProperty]
     private ObservableCollection<ServerItemViewModel> _servers = [];

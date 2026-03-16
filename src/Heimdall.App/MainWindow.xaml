@@ -69,6 +69,7 @@
                                          DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
                                 <MenuItem Header="Add Server" Command="{Binding ServerList.AddServerCommand}"/>
                                 <MenuItem Header="Add Gateway" Command="{Binding Settings.AddGatewayCommand}"/>
+                                <MenuItem Header="Add Project" Command="{Binding AddProjectCommand}"/>
                             </ContextMenu>
                         </Button.ContextMenu>
                     </Button>
@@ -91,7 +92,7 @@
             <Grid Visibility="{Binding IsServersTabSelected, Converter={StaticResource BoolToVisibilityConverter}}">
                 <Grid.ColumnDefinitions>
                     <!-- Left: TreeView panel -->
-                    <ColumnDefinition Width="260" MinWidth="180" MaxWidth="420"/>
+                    <ColumnDefinition Width="260" MinWidth="180" MaxWidth="500"/>
                     <!-- Splitter -->
                     <ColumnDefinition Width="Auto"/>
                     <!-- Right: Detail / session content -->
@@ -118,25 +119,40 @@
                                   Padding="0,4,0,0"
                                   SelectedItemChanged="OnTreeViewSelectedItemChanged"
                                   MouseDoubleClick="OnTreeViewDoubleClick"
+                                  PreviewMouseRightButtonDown="OnTreeViewPreviewMouseRightButtonDown"
+                                  ContextMenuOpening="OnTreeViewContextMenuOpening"
+                                  ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                                   VirtualizingPanel.IsVirtualizing="True">
                             <TreeView.Resources>
                                 <!-- Project node template (top level) -->
                                 <HierarchicalDataTemplate DataType="{x:Type vm:ServerProjectViewModel}"
                                                           ItemsSource="{Binding Groups}">
-                                    <StackPanel Orientation="Horizontal" Margin="0,2">
-                                        <Border Width="4" Height="14" CornerRadius="2" Margin="0,0,6,0"
-                                                VerticalAlignment="Center">
-                                            <Border.Style>
-                                                <Style TargetType="Border">
-                                                    <Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
-                                                </Style>
-                                            </Border.Style>
-                                        </Border>
-                                        <TextBlock Text="{Binding ProjectName}"
-                                                   FontWeight="Bold" FontSize="13"
-                                                   Foreground="{DynamicResource TextPrimaryBrush}"/>
-                                        <Border CornerRadius="7" MinWidth="18" Height="14"
-                                                Padding="4,0" Margin="6,0,0,0"
+                                    <Grid Margin="0,1" ToolTip="{Binding ProjectName}">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="4"/>
+                                            <ColumnDefinition Width="6"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Border Grid.Column="0"
+                                                Width="4"
+                                                Height="14"
+                                                CornerRadius="2"
+                                                VerticalAlignment="Center"
+                                                Background="{DynamicResource AccentBrush}"/>
+                                        <TextBlock Grid.Column="2"
+                                                   Text="{Binding ProjectName}"
+                                                   FontWeight="Bold"
+                                                   FontSize="12"
+                                                   TextTrimming="CharacterEllipsis"
+                                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                                   VerticalAlignment="Center"/>
+                                        <Border Grid.Column="3"
+                                                CornerRadius="7"
+                                                MinWidth="18"
+                                                Height="14"
+                                                Padding="4,0"
+                                                Margin="6,0,0,0"
                                                 Background="{DynamicResource CardBrush}"
                                                 VerticalAlignment="Center">
                                             <TextBlock Text="{Binding ServerCount}"
@@ -145,18 +161,30 @@
                                                        HorizontalAlignment="Center"
                                                        VerticalAlignment="Center"/>
                                         </Border>
-                                    </StackPanel>
+                                    </Grid>
                                 </HierarchicalDataTemplate>
 
                                 <!-- Group node template (mid level) -->
                                 <HierarchicalDataTemplate DataType="{x:Type vm:ServerGroupViewModel}"
                                                           ItemsSource="{Binding Servers}">
-                                    <StackPanel Orientation="Horizontal" Margin="0,2">
-                                        <TextBlock Text="{Binding GroupName}"
-                                                   FontWeight="SemiBold" FontSize="12"
-                                                   Foreground="{DynamicResource TextPrimaryBrush}"/>
-                                        <Border CornerRadius="7" MinWidth="18" Height="14"
-                                                Padding="4,0" Margin="6,0,0,0"
+                                    <Grid Margin="0,1" ToolTip="{Binding GroupName}">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0"
+                                                   Text="{Binding GroupName}"
+                                                   FontWeight="SemiBold"
+                                                   FontSize="12"
+                                                   TextTrimming="CharacterEllipsis"
+                                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                                   VerticalAlignment="Center"/>
+                                        <Border Grid.Column="1"
+                                                CornerRadius="7"
+                                                MinWidth="18"
+                                                Height="14"
+                                                Padding="4,0"
+                                                Margin="6,0,0,0"
                                                 Background="{DynamicResource CardBrush}"
                                                 VerticalAlignment="Center">
                                             <TextBlock Text="{Binding ServerCount}"
@@ -165,30 +193,42 @@
                                                        HorizontalAlignment="Center"
                                                        VerticalAlignment="Center"/>
                                         </Border>
-                                    </StackPanel>
+                                    </Grid>
                                 </HierarchicalDataTemplate>
 
                                 <!-- Server leaf node template -->
                                 <DataTemplate DataType="{x:Type vm:ServerItemViewModel}">
-                                    <StackPanel Orientation="Horizontal" Margin="0,2">
-                                        <!-- Connection type badge -->
-                                        <Border CornerRadius="2" Padding="4,1" Margin="0,0,6,0"
-                                                Background="{Binding ConnectionType,
-                                                    Converter={StaticResource ConnectionTypeToBrushConverter}}">
-                                            <TextBlock Text="{Binding ConnectionType}"
-                                                       FontSize="9" FontWeight="Bold"
-                                                       Foreground="White"/>
+                                    <Grid Margin="0,1" ToolTip="{Binding DisplayName}">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Border Grid.Column="0"
+                                                Width="16"
+                                                Height="16"
+                                                Margin="0,0,6,0"
+                                                CornerRadius="8"
+                                                Background="{Binding ConnectionType, Converter={StaticResource ConnectionTypeToBrushConverter}}"
+                                                VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding ConnectionTypeBadge}"
+                                                       FontSize="8"
+                                                       FontWeight="Bold"
+                                                       Foreground="White"
+                                                       HorizontalAlignment="Center"
+                                                       VerticalAlignment="Center"/>
                                         </Border>
-                                        <!-- Server display name -->
-                                        <TextBlock Text="{Binding DisplayName}"
+                                        <TextBlock Grid.Column="1"
+                                                   Text="{Binding DisplayName}"
+                                                   TextTrimming="CharacterEllipsis"
                                                    Foreground="{DynamicResource TextPrimaryBrush}"
                                                    VerticalAlignment="Center"/>
-                                        <!-- Connection status indicator -->
-                                        <Ellipse Width="6" Height="6" Margin="6,0,0,0"
+                                        <Ellipse Grid.Column="2"
+                                                 Width="6" Height="6" Margin="6,0,0,0"
                                                  VerticalAlignment="Center"
                                                  Fill="{Binding ConnectionState,
                                                      Converter={StaticResource ConnectionStateToBrushConverter}}"/>
-                                    </StackPanel>
+                                    </Grid>
                                 </DataTemplate>
                             </TreeView.Resources>
 
@@ -200,24 +240,6 @@
                                 </Style>
                             </TreeView.ItemContainerStyle>
 
-                            <!-- Context menu for server items -->
-                            <TreeView.ContextMenu>
-                                <ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
-                                    <MenuItem Header="Connect"
-                                              Command="{Binding ServerList.ConnectCommand}"
-                                              CommandParameter="{Binding ServerList.SelectedServer}"/>
-                                    <MenuItem Header="Edit"
-                                              Command="{Binding ServerList.EditServerCommand}"
-                                              CommandParameter="{Binding ServerList.SelectedServer}"/>
-                                    <MenuItem Header="Duplicate"
-                                              Command="{Binding ServerList.DuplicateServerCommand}"
-                                              CommandParameter="{Binding ServerList.SelectedServer}"/>
-                                    <Separator/>
-                                    <MenuItem Header="Delete"
-                                              Command="{Binding ServerList.DeleteServerCommand}"
-                                              CommandParameter="{Binding ServerList.SelectedServer}"/>
-                                </ContextMenu>
-                            </TreeView.ContextMenu>
                         </TreeView>
                     </DockPanel>
                 </Border>

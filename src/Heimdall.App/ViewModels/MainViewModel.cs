@@ -17,6 +17,8 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Heimdall.App.Services;
+using Heimdall.App.ViewModels.Dialogs;
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Models;
@@ -37,6 +39,7 @@ public partial class MainViewModel : ObservableObject
     private readonly ApplicationStatusMachine _appStatus;
     private readonly TunnelManager _tunnelManager;
     private readonly HostKeyStore _hostKeyStore;
+    private readonly IDialogService _dialogService;
 
     [ObservableProperty]
     private string _windowTitle = "Heimdall";
@@ -108,6 +111,7 @@ public partial class MainViewModel : ObservableObject
         ApplicationStatusMachine appStatus,
         TunnelManager tunnelManager,
         HostKeyStore hostKeyStore,
+        IDialogService dialogService,
         ServerListViewModel serverList,
         ConnectionViewModel connection,
         SettingsViewModel settings)
@@ -118,6 +122,7 @@ public partial class MainViewModel : ObservableObject
         _appStatus = appStatus;
         _tunnelManager = tunnelManager;
         _hostKeyStore = hostKeyStore;
+        _dialogService = dialogService;
         ServerList = serverList;
         Connection = connection;
         Settings = settings;
@@ -128,6 +133,7 @@ public partial class MainViewModel : ObservableObject
 
         // Wire server list session events to the connection tab manager
         ServerList.SessionReady += OnSessionReady;
+        ServerList.StatusMessageRequested += message => StatusText = message;
     }
 
     /// <summary>
@@ -204,5 +210,141 @@ public partial class MainViewModel : ObservableObject
     {
         var tunnels = _tunnelManager.GetActiveTunnels();
         TunnelList = new ObservableCollection<TunnelInfo>(tunnels);
+    }
+
+    [RelayCommand]
+    private async Task AddProjectAsync(CancellationToken cancellationToken)
+    {
+        var dialogVm = new ProjectDialogViewModel
+        {
+            DialogTitle = _localizer["ProjectDialogTitleAdd"]
+        };
+
+        var result = await _dialogService.ShowProjectDialogAsync(dialogVm);
+        if (result is not { Saved: true })
+        {
+            return;
+        }
+
+        var settings = await _configManager.LoadSettingsAsync();
+        result.Project.Id = Guid.NewGuid().ToString();
+        settings.Projects.Add(result.Project);
+
+        await _configManager.SaveSettingsAsync(settings);
+        await ReloadConfigurationAsync(settings);
+
+        StatusText = _localizer.Format("StatusProjectAdded", result.Project.Name);
+    }
+
+    [RelayCommand]
+    private async Task EditProjectAsync(ServerProjectViewModel? project, CancellationToken cancellationToken)
+    {
+        if (project is null || project.IsVirtualProject)
+        {
+            return;
+        }
+
+        var settings = await _configManager.LoadSettingsAsync();
+        var projectDto = settings.Projects.FirstOrDefault(
+            candidate => string.Equals(candidate.Id, project.ProjectId, StringComparison.Ordinal));
+
+        if (projectDto is null)
+        {
+            return;
+        }
+
+        var dialogVm = ProjectDialogViewModel.FromDto(projectDto);
+        dialogVm.DialogTitle = _localizer["ProjectDialogTitleEdit"];
+
+        var result = await _dialogService.ShowProjectDialogAsync(dialogVm);
+        if (result is not { Saved: true })
+        {
+            return;
+        }
+
+        result.Project.Id = projectDto.Id;
+
+        var index = settings.Projects.FindIndex(
+            candidate => string.Equals(candidate.Id, projectDto.Id, StringComparison.Ordinal));
+
+        if (index < 0)
+        {
+            return;
+        }
+
+        settings.Projects[index] = result.Project;
+        await _configManager.SaveSettingsAsync(settings);
+        await ReloadConfigurationAsync(settings);
+
+        StatusText = _localizer.Format("StatusProjectUpdated", result.Project.Name);
+    }
+
+    [RelayCommand]
+    private async Task DeleteProjectAsync(ServerProjectViewModel? project, CancellationToken cancellationToken)
+    {
+        if (project is null || project.IsVirtualProject)
+        {
+            return;
+        }
+
+        var settings = await _configManager.LoadSettingsAsync();
+        var servers = await _configManager.LoadServersAsync();
+        var projectDto = settings.Projects.FirstOrDefault(
+            candidate => string.Equals(candidate.Id, project.ProjectId, StringComparison.Ordinal));
+
+        if (projectDto is null)
+        {
+            return;
+        }
+
+        var usageCount = servers.Count(
+            server => string.Equals(server.ProjectId, project.ProjectId, StringComparison.Ordinal));
+
+        var confirmationMessage = _localizer.Format("ConfirmDeleteProjectMessage", project.ProjectName);
+        if (usageCount > 0)
+        {
+            confirmationMessage += Environment.NewLine + Environment.NewLine
+                + _localizer.Format("ConfirmDeleteProjectInUse", usageCount);
+        }
+
+        var confirmed = await _dialogService.ShowConfirmAsync(
+            _localizer["ConfirmDeleteProjectTitle"],
+            confirmationMessage,
+            "warning");
+
+        if (!confirmed)
+        {
+            return;
+        }
+
+        settings.Projects.RemoveAll(
+            candidate => string.Equals(candidate.Id, project.ProjectId, StringComparison.Ordinal));
+
+        foreach (var server in servers.Where(
+                     candidate => string.Equals(candidate.ProjectId, project.ProjectId, StringComparison.Ordinal)))
+        {
+            server.ProjectId = null;
+        }
+
+        await _configManager.SaveSettingsAsync(settings);
+        await _configManager.SaveServersAsync(servers);
+        await ReloadConfigurationAsync(settings, servers);
+
+        StatusText = _localizer.Format("StatusProjectDeleted", project.ProjectName);
+    }
+
+    public string Localize(string key)
+    {
+        return _localizer[key];
+    }
+
+    private async Task ReloadConfigurationAsync(AppSettings settings, List<RdpServerDto>? servers = null)
+    {
+        var currentServers = servers ?? await _configManager.LoadServersAsync();
+
+        ServerCount = currentServers.Count;
+        ServerList.LoadServers(currentServers, settings);
+        Settings.LoadFromSettings(settings);
+        WindowTitle = _localizer.Format("WindowTitle", ServerCount);
     }
 }

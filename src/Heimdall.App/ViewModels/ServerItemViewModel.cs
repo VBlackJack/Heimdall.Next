@@ -59,15 +59,28 @@ public partial class ServerItemViewModel : ObservableObject
     private string _projectColor = "";
 
     [ObservableProperty]
+    private string _username = "";
+
+    [ObservableProperty]
     private bool _isFavorite;
 
     [ObservableProperty]
     private int _sortOrder;
 
+    public string ConnectionTypeBadge => ConnectionType.ToUpperInvariant() switch
+    {
+        "SSH" => "S",
+        "SFTP" => "F",
+        _ => "R"
+    };
+
     /// <summary>
     /// Creates a <see cref="ServerItemViewModel"/> from a <see cref="RdpServerDto"/>.
     /// </summary>
-    public static ServerItemViewModel FromDto(RdpServerDto dto)
+    public static ServerItemViewModel FromDto(
+        RdpServerDto dto,
+        ProjectDto? project = null,
+        string connectionState = "Disconnected")
     {
         return new ServerItemViewModel
         {
@@ -77,9 +90,12 @@ public partial class ServerItemViewModel : ObservableObject
             RemotePort = dto.RemotePort,
             Group = dto.Group ?? "",
             ConnectionType = dto.ConnectionType,
-            ConnectionState = "Disconnected",
+            ConnectionState = connectionState,
             Environment = dto.Environment ?? "",
             ProjectId = dto.ProjectId ?? "",
+            ProjectName = project?.Name ?? "",
+            ProjectColor = project?.Color ?? "",
+            Username = GetUsername(dto),
             IsFavorite = dto.IsFavorite,
             SortOrder = dto.SortOrder,
         };
@@ -88,7 +104,7 @@ public partial class ServerItemViewModel : ObservableObject
     /// <summary>
     /// Applies updated values from a <see cref="RdpServerDto"/> to this ViewModel.
     /// </summary>
-    public void UpdateFromDto(RdpServerDto dto)
+    public void UpdateFromDto(RdpServerDto dto, ProjectDto? project = null)
     {
         DisplayName = dto.DisplayName;
         RemoteServer = dto.RemoteServer;
@@ -97,7 +113,25 @@ public partial class ServerItemViewModel : ObservableObject
         ConnectionType = dto.ConnectionType;
         Environment = dto.Environment ?? "";
         ProjectId = dto.ProjectId ?? "";
+        ProjectName = project?.Name ?? "";
+        ProjectColor = project?.Color ?? "";
+        Username = GetUsername(dto);
         IsFavorite = dto.IsFavorite;
         SortOrder = dto.SortOrder;
+    }
+
+    partial void OnConnectionTypeChanged(string value)
+    {
+        OnPropertyChanged(nameof(ConnectionTypeBadge));
+    }
+
+    private static string GetUsername(RdpServerDto dto)
+    {
+        if (!string.IsNullOrWhiteSpace(dto.SshUsername))
+        {
+            return dto.SshUsername;
+        }
+
+        return dto.RdpUsername ?? "";
     }
 }
