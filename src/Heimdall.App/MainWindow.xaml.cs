@@ -570,24 +570,22 @@ public partial class MainWindow : Window
                 sshView.Visibility = Visibility.Visible; // SSH always visible
         }
 
-        // Hide tab headers when only one session in fullscreen
-        if (isFullscreen && vm.Connection.ActiveSessions.Count <= 1)
+        // Hide/show tab strip via ItemContainerGenerator
+        for (int i = 0; i < SessionTabControl.Items.Count; i++)
         {
-            SessionTabControl.SetValue(System.Windows.Controls.TabControl.TabStripPlacementProperty,
-                System.Windows.Controls.Dock.Bottom);
-            // Just hide the tab strip by making it tiny
-            foreach (System.Windows.Controls.TabItem tab in SessionTabControl.Items)
+            var container = SessionTabControl.ItemContainerGenerator
+                .ContainerFromIndex(i) as System.Windows.Controls.TabItem;
+            if (container is null) continue;
+
+            if (isFullscreen && vm.Connection.ActiveSessions.Count <= 1)
             {
-                tab.Height = 0;
-                tab.Visibility = Visibility.Collapsed;
+                container.Height = 0;
+                container.Visibility = Visibility.Collapsed;
             }
-        }
-        else if (!isFullscreen)
-        {
-            foreach (System.Windows.Controls.TabItem tab in SessionTabControl.Items)
+            else
             {
-                tab.Height = double.NaN;
-                tab.Visibility = Visibility.Visible;
+                container.Height = double.NaN;
+                container.Visibility = Visibility.Visible;
             }
         }
     }
