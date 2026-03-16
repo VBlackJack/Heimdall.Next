@@ -397,4 +397,37 @@ public partial class MainWindow : Window
 
         return null;
     }
+
+    // ── Session tab context menu handlers ──────────────────────────────
+
+    private void OnSessionTabRightClick(object sender, MouseButtonEventArgs e)
+    {
+        // Context menu is handled via the TabItem.ContextMenu setter in XAML
+    }
+
+    private void OnAspectRatioClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is not System.Windows.Controls.MenuItem menuItem) return;
+        if (DataContext is not MainViewModel vm) return;
+        var session = vm.Connection.ActiveSession;
+        if (session?.HostControl is not Views.EmbeddedRdpView rdpView) return;
+
+        var ratioName = menuItem.Tag?.ToString() ?? "Stretch";
+        Heimdall.Core.Logging.FileLogger.Info($"Aspect ratio changed to {ratioName}");
+        // TODO: Apply aspect ratio to the embedded RDP session display
+    }
+
+    private void OnToggleFullscreenClick(object sender, RoutedEventArgs e)
+    {
+        if (WindowState == WindowState.Maximized && WindowStyle == WindowStyle.None)
+        {
+            WindowStyle = WindowStyle.SingleBorderWindow;
+            WindowState = WindowState.Normal;
+        }
+        else
+        {
+            WindowStyle = WindowStyle.None;
+            WindowState = WindowState.Maximized;
+        }
+    }
 }
