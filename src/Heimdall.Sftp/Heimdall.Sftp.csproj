@@ -1,7 +1,12 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
     <ProjectReference Include="..\Heimdall.Core\Heimdall.Core.csproj" />
+    <ProjectReference Include="..\Heimdall.Ssh\Heimdall.Ssh.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="SSH.NET" Version="*" />
   </ItemGroup>
 
   <PropertyGroup>

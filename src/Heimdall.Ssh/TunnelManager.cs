@@ -1,0 +1,457 @@
+/*
+ * Copyright 2026 Julien Bombled
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+using System.Collections.Concurrent;
+using System.Net.Sockets;
+using Renci.SshNet;
+using Renci.SshNet.Common;
+
+namespace Heimdall.Ssh;
+
+/// <summary>
+/// Manages the lifecycle of SSH port-forwarding tunnels. Thread-safe.
+/// Replaces the legacy plink-based tunnel management with in-process SSH.NET tunnels.
+/// </summary>
+public sealed class TunnelManager : IDisposable
+{
+    private readonly ConcurrentDictionary<int, TunnelSession> _activeTunnels = new();
+    private bool _disposed;
+
+    /// <summary>Raised when a tunnel is successfully opened.</summary>
+    public event Action<TunnelInfo>? TunnelOpened;
+
+    /// <summary>Raised when a tunnel is closed (localPort, optional error message).</summary>
+    public event Action<int, string?>? TunnelClosed;
+
+    /// <summary>
+    /// Opens a single-hop SSH port-forwarding tunnel through the specified gateway.
+    /// Binds <paramref name="localPort"/> on localhost and forwards traffic to
+    /// <paramref name="remoteHost"/>:<paramref name="remotePort"/> via the gateway.
+    /// </summary>
+    /// <param name="gatewayParams">SSH connection parameters for the gateway.</param>
+    /// <param name="remoteHost">Target host on the remote network.</param>
+    /// <param name="remotePort">Target port on the remote network.</param>
+    /// <param name="localPort">Local port to bind for forwarding.</param>
+    /// <param name="cancellationToken">Cancellation support.</param>
+    /// <returns>Result indicating success or structured failure.</returns>
+    public async Task<TunnelResult> OpenTunnelAsync(
+        SshConnectionParams gatewayParams,
+        string remoteHost,
+        int remotePort,
+        int localPort,
+        CancellationToken cancellationToken = default)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        ArgumentNullException.ThrowIfNull(gatewayParams);
+
+        if (_activeTunnels.ContainsKey(localPort))
+        {
+            return new TunnelResult(false, null, $"Local port {localPort} is already in use by an existing tunnel.", SshFailureCode.PortInUse);
+        }
+
+        SshClient? client = null;
+        ForwardedPortLocal? forwardedPort = null;
+
+        try
+        {
+            var connectionInfo = SshConnectionFactory.CreateForTunnel(gatewayParams);
+            client = new SshClient(connectionInfo);
+
+            await Task.Run(() =>
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                client.Connect();
+            }, cancellationToken).ConfigureAwait(false);
+
+            cancellationToken.ThrowIfCancellationRequested();
+
+            forwardedPort = new ForwardedPortLocal("127.0.0.1", (uint)localPort, remoteHost, (uint)remotePort);
+            client.AddForwardedPort(forwardedPort);
+            forwardedPort.Start();
+
+            var info = new TunnelInfo(
+                gatewayParams.Host,
+                localPort,
+                remoteHost,
+                remotePort,
+                DateTime.UtcNow,
+                IsAlive: true);
+
+            var session = new TunnelSession(client, forwardedPort, info);
+
+            if (!_activeTunnels.TryAdd(localPort, session))
+            {
+                session.Dispose();
+                return new TunnelResult(false, null, $"Local port {localPort} was claimed concurrently.", SshFailureCode.PortInUse);
+            }
+
+            TunnelOpened?.Invoke(info);
+            return new TunnelResult(true, info, null, null);
+        }
+        catch (OperationCanceledException)
+        {
+            CleanupPartial(client, forwardedPort);
+            return new TunnelResult(false, null, "Tunnel establishment was cancelled.", SshFailureCode.Cancelled);
+        }
+        catch (SshAuthenticationException ex)
+        {
+            CleanupPartial(client, forwardedPort);
+            return new TunnelResult(false, null, ex.Message, SshFailureCode.AuthRejected);
+        }
+        catch (SocketException ex)
+        {
+            CleanupPartial(client, forwardedPort);
+            var code = ClassifySocketException(ex);
+            return new TunnelResult(false, null, ex.Message, code);
+        }
+        catch (SshConnectionException ex)
+        {
+            CleanupPartial(client, forwardedPort);
+            return new TunnelResult(false, null, ex.Message, SshFailureCode.NetworkRefused);
+        }
+        catch (SshException ex) when (ex.Message.Contains("port", StringComparison.OrdinalIgnoreCase))
+        {
+            CleanupPartial(client, forwardedPort);
+            return new TunnelResult(false, null, ex.Message, SshFailureCode.PortInUse);
+        }
+        catch (Exception ex)
+        {
+            CleanupPartial(client, forwardedPort);
+            return new TunnelResult(false, null, ex.Message, SshFailureCode.Unknown);
+        }
+    }
+
+    /// <summary>
+    /// Opens a multi-hop (chained) tunnel through a sequence of gateways.
+    /// Each gateway in the chain forwards to the next, with the final gateway
+    /// forwarding to <paramref name="remoteHost"/>:<paramref name="remotePort"/>.
+    /// </summary>
+    /// <param name="gatewayChain">Ordered list of gateways from root to target.</param>
+    /// <param name="remoteHost">Final target host on the remote network.</param>
+    /// <param name="remotePort">Final target port on the remote network.</param>
+    /// <param name="localPort">Local port to bind for the outermost forwarding.</param>
+    /// <param name="cancellationToken">Cancellation support.</param>
+    /// <returns>Result indicating success or structured failure.</returns>
+    public async Task<TunnelResult> OpenChainedTunnelAsync(
+        IReadOnlyList<SshConnectionParams> gatewayChain,
+        string remoteHost,
+        int remotePort,
+        int localPort,
+        CancellationToken cancellationToken = default)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        ArgumentNullException.ThrowIfNull(gatewayChain);
+
+        if (gatewayChain.Count == 0)
+        {
+            return new TunnelResult(false, null, "Gateway chain must contain at least one gateway.", SshFailureCode.Unknown);
+        }
+
+        // Single gateway: delegate to simple tunnel
+        if (gatewayChain.Count == 1)
+        {
+            return await OpenTunnelAsync(gatewayChain[0], remoteHost, remotePort, localPort, cancellationToken)
+                .ConfigureAwait(false);
+        }
+
+        if (_activeTunnels.ContainsKey(localPort))
+        {
+            return new TunnelResult(false, null, $"Local port {localPort} is already in use by an existing tunnel.", SshFailureCode.PortInUse);
+        }
+
+        var intermediateClients = new List<SshClient>();
+        var intermediatePorts = new List<ForwardedPortLocal>();
+        SshClient? finalClient = null;
+        ForwardedPortLocal? finalPort = null;
+
+        try
+        {
+            // Build the chain: each hop connects to the next via a local port forward
+            // Hop 0: connect to gateway[0] directly
+            // Hop 1: forward through gateway[0] to gateway[1], connect to gateway[1] via local forward
+            // ...
+            // Final: forward through last intermediate to remoteHost:remotePort
+
+            int nextLocalPort = GetEphemeralPort();
+
+            // Connect to the first (root) gateway directly
+            var rootInfo = SshConnectionFactory.CreateForTunnel(gatewayChain[0]);
+            var rootClient = new SshClient(rootInfo);
+            await Task.Run(() =>
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                rootClient.Connect();
+            }, cancellationToken).ConfigureAwait(false);
+
+            intermediateClients.Add(rootClient);
+            SshClient currentClient = rootClient;
+
+            // Set up intermediate hops
+            for (int i = 1; i < gatewayChain.Count; i++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                var nextGateway = gatewayChain[i];
+                int intermediateLocalPort = nextLocalPort;
+                nextLocalPort = (i < gatewayChain.Count - 1) ? GetEphemeralPort() : localPort;
+
+                // Forward through current client to the next gateway's SSH port
+                var intermediatePort = new ForwardedPortLocal(
+                    "127.0.0.1",
+                    (uint)intermediateLocalPort,
+                    nextGateway.Host,
+                    (uint)nextGateway.Port);
+                currentClient.AddForwardedPort(intermediatePort);
+                intermediatePort.Start();
+                intermediatePorts.Add(intermediatePort);
+
+                // Connect to the next gateway through the forwarded port
+                var hopParams = new SshConnectionParams
+                {
+                    Host = "127.0.0.1",
+                    Port = intermediateLocalPort,
+                    Username = nextGateway.Username,
+                    KeyPath = nextGateway.KeyPath,
+                    Password = nextGateway.Password,
+                    AgentForwarding = nextGateway.AgentForwarding,
+                    Compression = nextGateway.Compression,
+                    ConnectTimeout = nextGateway.ConnectTimeout
+                };
+                var hopInfo = SshConnectionFactory.CreateForTunnel(hopParams);
+                var hopClient = new SshClient(hopInfo);
+                await Task.Run(() =>
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    hopClient.Connect();
+                }, cancellationToken).ConfigureAwait(false);
+
+                if (i < gatewayChain.Count - 1)
+                {
+                    intermediateClients.Add(hopClient);
+                    currentClient = hopClient;
+                }
+                else
+                {
+                    // This is the final gateway
+                    finalClient = hopClient;
+                }
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
+
+            // The final forwarded port goes from localPort to remoteHost:remotePort
+            finalPort = new ForwardedPortLocal("127.0.0.1", (uint)localPort, remoteHost, (uint)remotePort);
+            finalClient!.AddForwardedPort(finalPort);
+            finalPort.Start();
+
+            var tunnelInfo = new TunnelInfo(
+                gatewayChain[^1].Host,
+                localPort,
+                remoteHost,
+                remotePort,
+                DateTime.UtcNow,
+                IsAlive: true);
+
+            var session = new TunnelSession(
+                finalClient,
+                finalPort,
+                tunnelInfo,
+                intermediateClients,
+                intermediatePorts);
+
+            if (!_activeTunnels.TryAdd(localPort, session))
+            {
+                session.Dispose();
+                return new TunnelResult(false, null, $"Local port {localPort} was claimed concurrently.", SshFailureCode.PortInUse);
+            }
+
+            TunnelOpened?.Invoke(tunnelInfo);
+            return new TunnelResult(true, tunnelInfo, null, null);
+        }
+        catch (OperationCanceledException)
+        {
+            CleanupChainPartial(finalClient, finalPort, intermediateClients, intermediatePorts);
+            return new TunnelResult(false, null, "Chained tunnel establishment was cancelled.", SshFailureCode.Cancelled);
+        }
+        catch (SshAuthenticationException ex)
+        {
+            CleanupChainPartial(finalClient, finalPort, intermediateClients, intermediatePorts);
+            return new TunnelResult(false, null, ex.Message, SshFailureCode.AuthRejected);
+        }
+        catch (SocketException ex)
+        {
+            CleanupChainPartial(finalClient, finalPort, intermediateClients, intermediatePorts);
+            var code = ClassifySocketException(ex);
+            return new TunnelResult(false, null, ex.Message, code);
+        }
+        catch (Exception ex)
+        {
+            CleanupChainPartial(finalClient, finalPort, intermediateClients, intermediatePorts);
+            return new TunnelResult(false, null, ex.Message, SshFailureCode.Unknown);
+        }
+    }
+
+    /// <summary>Closes and removes the tunnel bound to the specified local port.</summary>
+    /// <param name="localPort">Local port of the tunnel to close.</param>
+    public void CloseTunnel(int localPort)
+    {
+        if (_activeTunnels.TryRemove(localPort, out var session))
+        {
+            string? error = null;
+            try
+            {
+                session.Dispose();
+            }
+            catch (Exception ex)
+            {
+                error = ex.Message;
+            }
+
+            TunnelClosed?.Invoke(localPort, error);
+        }
+    }
+
+    /// <summary>Closes all active tunnels.</summary>
+    public void CloseAllTunnels()
+    {
+        foreach (var localPort in _activeTunnels.Keys.ToList())
+        {
+            CloseTunnel(localPort);
+        }
+    }
+
+    /// <summary>Returns true if a tunnel is active on the specified local port.</summary>
+    public bool HasTunnel(int localPort) => _activeTunnels.ContainsKey(localPort);
+
+    /// <summary>Returns tunnel info for the specified local port, or null if not found.</summary>
+    public TunnelInfo? GetTunnel(int localPort)
+    {
+        if (_activeTunnels.TryGetValue(localPort, out var session))
+        {
+            // Return a fresh snapshot with current alive status
+            return session.Info with { IsAlive = session.Client.IsConnected };
+        }
+
+        return null;
+    }
+
+    /// <summary>Returns snapshots of all active tunnels.</summary>
+    public IReadOnlyList<TunnelInfo> GetActiveTunnels()
+    {
+        return _activeTunnels.Values
+            .Select(s => s.Info with { IsAlive = s.Client.IsConnected })
+            .ToList()
+            .AsReadOnly();
+    }
+
+    public void Dispose()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _disposed = true;
+        CloseAllTunnels();
+    }
+
+    /// <summary>Finds an available ephemeral port by briefly binding to port 0.</summary>
+    private static int GetEphemeralPort()
+    {
+        using var listener = new TcpListener(System.Net.IPAddress.Loopback, 0);
+        listener.Start();
+        int port = ((System.Net.IPEndPoint)listener.LocalEndpoint).Port;
+        listener.Stop();
+        return port;
+    }
+
+    /// <summary>Classifies a SocketException into a structured failure code.</summary>
+    private static SshFailureCode ClassifySocketException(SocketException ex)
+    {
+        return ex.SocketErrorCode switch
+        {
+            SocketError.ConnectionRefused => SshFailureCode.NetworkRefused,
+            SocketError.TimedOut => SshFailureCode.NetworkTimedOut,
+            SocketError.HostNotFound or SocketError.HostUnreachable => SshFailureCode.NetworkUnreachable,
+            SocketError.AddressAlreadyInUse => SshFailureCode.PortInUse,
+            _ => SshFailureCode.Unknown
+        };
+    }
+
+    /// <summary>Safely cleans up a partially constructed single-hop tunnel.</summary>
+    private static void CleanupPartial(SshClient? client, ForwardedPortLocal? port)
+    {
+        try
+        {
+            if (port is { IsStarted: true })
+            {
+                port.Stop();
+            }
+
+            port?.Dispose();
+        }
+        catch (ObjectDisposedException) { }
+
+        try
+        {
+            if (client is { IsConnected: true })
+            {
+                client.Disconnect();
+            }
+
+            client?.Dispose();
+        }
+        catch (ObjectDisposedException) { }
+    }
+
+    /// <summary>Safely cleans up a partially constructed chained tunnel.</summary>
+    private static void CleanupChainPartial(
+        SshClient? finalClient,
+        ForwardedPortLocal? finalPort,
+        List<SshClient> intermediateClients,
+        List<ForwardedPortLocal> intermediatePorts)
+    {
+        CleanupPartial(finalClient, finalPort);
+
+        for (int i = intermediatePorts.Count - 1; i >= 0; i--)
+        {
+            try
+            {
+                if (intermediatePorts[i].IsStarted)
+                {
+                    intermediatePorts[i].Stop();
+                }
+
+                intermediatePorts[i].Dispose();
+            }
+            catch (ObjectDisposedException) { }
+        }
+
+        for (int i = intermediateClients.Count - 1; i >= 0; i--)
+        {
+            try
+            {
+                if (intermediateClients[i].IsConnected)
+                {
+                    intermediateClients[i].Disconnect();
+                }
+
+                intermediateClients[i].Dispose();
+            }
+            catch (ObjectDisposedException) { }
+        }
+    }
+}

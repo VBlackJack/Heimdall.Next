@@ -1,0 +1,52 @@
+/*
+ * Copyright 2026 Julien Bombled
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+namespace Heimdall.Ssh;
+
+/// <summary>
+/// Parameters for establishing an SSH connection.
+/// Callers are responsible for decrypting secrets (e.g., via DPAPI) before
+/// populating <see cref="Password"/>; this class never touches encrypted storage.
+/// </summary>
+public class SshConnectionParams
+{
+    /// <summary>SSH server hostname or IP address.</summary>
+    public required string Host { get; init; }
+
+    /// <summary>SSH server port (default 22).</summary>
+    public int Port { get; init; } = 22;
+
+    /// <summary>SSH username for authentication.</summary>
+    public required string Username { get; init; }
+
+    /// <summary>Path to a private key file (PEM or OpenSSH format). Optional.</summary>
+    public string? KeyPath { get; init; }
+
+    /// <summary>
+    /// Plaintext password for password authentication or private key passphrase.
+    /// The caller must decrypt from DPAPI before supplying this value.
+    /// </summary>
+    public string? Password { get; init; }
+
+    /// <summary>Whether to enable SSH agent forwarding (Pageant on Windows).</summary>
+    public bool AgentForwarding { get; init; }
+
+    /// <summary>Whether to enable zlib compression on the SSH transport.</summary>
+    public bool Compression { get; init; }
+
+    /// <summary>TCP connection timeout. Defaults to 15 seconds.</summary>
+    public TimeSpan ConnectTimeout { get; init; } = TimeSpan.FromSeconds(15);
+}
