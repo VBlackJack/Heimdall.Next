@@ -286,7 +286,7 @@ public partial class EmbeddedSshView : UserControl, IDisposable
 
     private void OnTerminalKeyDown(object sender, KeyEventArgs e)
     {
-        if (_session is null || !_session.IsConnected)
+        if (!IsSessionConnected)
         {
             return;
         }
@@ -371,7 +371,7 @@ public partial class EmbeddedSshView : UserControl, IDisposable
     /// </summary>
     private void OnTerminalTextInput(object sender, TextCompositionEventArgs e)
     {
-        if (_session is null || !_session.IsConnected)
+        if (!IsSessionConnected)
         {
             return;
         }
