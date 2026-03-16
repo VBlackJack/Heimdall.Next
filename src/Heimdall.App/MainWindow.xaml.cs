@@ -40,10 +40,10 @@ public partial class MainWindow : Window
         WindowThemeHelper.ApplyCurrentTheme(this);
         DataContext = viewModel;
 
-        TabServers.Checked += (_, _) => viewModel.SelectedTab = "Servers";
-        TabTunnels.Checked += (_, _) => viewModel.SelectedTab = "Tunnels";
-        TabScheduled.Checked += (_, _) => viewModel.SelectedTab = "Scheduled";
-        TabSettings.Checked += (_, _) => viewModel.SelectedTab = "Settings";
+        TabServers.Checked += (_, _) => { viewModel.SelectedTab = "Servers"; UpdateTabVisibility(viewModel); };
+        TabTunnels.Checked += (_, _) => { viewModel.SelectedTab = "Tunnels"; UpdateTabVisibility(viewModel); };
+        TabScheduled.Checked += (_, _) => { viewModel.SelectedTab = "Scheduled"; UpdateTabVisibility(viewModel); };
+        TabSettings.Checked += (_, _) => { viewModel.SelectedTab = "Settings"; UpdateTabVisibility(viewModel); };
 
         Loaded += async (_, _) =>
         {
@@ -607,6 +607,39 @@ public partial class MainWindow : Window
 
             // Hide the session header bar inside embedded views
             NotifyEmbeddedViewsFullscreen(true);
+        }
+    }
+
+    /// <summary>
+    /// When switching to Tunnels/Scheduled/Settings while sessions are active,
+    /// the Servers Grid must stay visible (for sessions) but TreeView hides.
+    /// When returning to Servers, TreeView restores.
+    /// </summary>
+    private void UpdateTabVisibility(MainViewModel vm)
+    {
+        var isServers = vm.SelectedTab == "Servers";
+        var hasSessions = vm.Connection.HasActiveSessions;
+
+        // If not on Servers but sessions active, show sessions full-width
+        if (!isServers && hasSessions)
+        {
+            // Hide TreeView temporarily
+            if (!_sidebarHidden)
+            {
+                _savedSidebarWidth = ServerTreeColumn.ActualWidth;
+                ServerTreeColumn.MinWidth = 0;
+                ServerTreeColumn.MaxWidth = 0;
+                ServerTreeColumn.Width = new GridLength(0);
+                SplitterColumn.Width = new GridLength(0);
+            }
+        }
+        else if (isServers && !_sidebarHidden)
+        {
+            // Restore TreeView
+            ServerTreeColumn.MinWidth = 180;
+            ServerTreeColumn.MaxWidth = 500;
+            ServerTreeColumn.Width = new GridLength(_savedSidebarWidth > 0 ? _savedSidebarWidth : 260);
+            SplitterColumn.Width = GridLength.Auto;
         }
     }
 
