@@ -15,6 +15,7 @@
  */
 
 using System.Windows;
+using Heimdall.App.Theming;
 using Heimdall.App.ViewModels.Dialogs;
 using Microsoft.Win32;
 
@@ -29,6 +30,7 @@ public partial class ServerDialog : Window
     public ServerDialog()
     {
         InitializeComponent();
+        WindowThemeHelper.ApplyCurrentTheme(this);
     }
 
     private void OnSaveClick(object sender, RoutedEventArgs e)

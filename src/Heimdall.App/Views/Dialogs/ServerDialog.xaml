@@ -25,42 +25,23 @@
         </Style>
 
         <!-- Standard form TextBox style -->
-        <Style x:Key="FormTextBoxStyle" TargetType="TextBox">
-            <Setter Property="Background" Value="{DynamicResource CardBrush}"/>
-            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
-            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Padding" Value="8,4"/>
+        <Style x:Key="FormTextBoxStyle" TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
             <Setter Property="FontSize" Value="12"/>
-            <Setter Property="CaretBrush" Value="{DynamicResource TextPrimaryBrush}"/>
-            <Setter Property="SelectionBrush" Value="{DynamicResource AccentBrush}"/>
         </Style>
 
         <!-- Standard form ComboBox style -->
-        <Style x:Key="FormComboBoxStyle" TargetType="ComboBox">
-            <Setter Property="Background" Value="{DynamicResource CardBrush}"/>
-            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
-            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Padding" Value="8,4"/>
+        <Style x:Key="FormComboBoxStyle" TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
             <Setter Property="FontSize" Value="12"/>
         </Style>
 
         <!-- Standard form CheckBox style -->
-        <Style x:Key="FormCheckBoxStyle" TargetType="CheckBox">
-            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+        <Style x:Key="FormCheckBoxStyle" TargetType="CheckBox" BasedOn="{StaticResource {x:Type CheckBox}}">
             <Setter Property="FontSize" Value="12"/>
         </Style>
 
         <!-- Standard form PasswordBox style -->
-        <Style x:Key="FormPasswordBoxStyle" TargetType="PasswordBox">
-            <Setter Property="Background" Value="{DynamicResource CardBrush}"/>
-            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
-            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Padding" Value="8,4"/>
+        <Style x:Key="FormPasswordBoxStyle" TargetType="PasswordBox" BasedOn="{StaticResource {x:Type PasswordBox}}">
             <Setter Property="FontSize" Value="12"/>
-            <Setter Property="CaretBrush" Value="{DynamicResource TextPrimaryBrush}"/>
         </Style>
     </Window.Resources>
 

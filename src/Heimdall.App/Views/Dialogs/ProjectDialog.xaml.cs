@@ -15,6 +15,7 @@
  */
 
 using System.Windows;
+using Heimdall.App.Theming;
 using Heimdall.App.ViewModels.Dialogs;
 
 namespace Heimdall.App.Views.Dialogs;
@@ -27,6 +28,7 @@ public partial class ProjectDialog : Window
     public ProjectDialog()
     {
         InitializeComponent();
+        WindowThemeHelper.ApplyCurrentTheme(this);
     }
 
     private void OnSaveClick(object sender, RoutedEventArgs e)

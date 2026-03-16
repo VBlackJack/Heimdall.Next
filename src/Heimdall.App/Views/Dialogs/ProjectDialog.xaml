@@ -23,23 +23,11 @@
             <Setter Property="Margin" Value="0,0,0,4"/>
         </Style>
 
-        <Style x:Key="FormTextBoxStyle" TargetType="TextBox">
-            <Setter Property="Background" Value="{DynamicResource CardBrush}"/>
-            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
-            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Padding" Value="8,4"/>
+        <Style x:Key="FormTextBoxStyle" TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
             <Setter Property="FontSize" Value="12"/>
-            <Setter Property="CaretBrush" Value="{DynamicResource TextPrimaryBrush}"/>
-            <Setter Property="SelectionBrush" Value="{DynamicResource AccentBrush}"/>
         </Style>
 
-        <Style x:Key="FormComboBoxStyle" TargetType="ComboBox">
-            <Setter Property="Background" Value="{DynamicResource CardBrush}"/>
-            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
-            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Padding" Value="8,4"/>
+        <Style x:Key="FormComboBoxStyle" TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
             <Setter Property="FontSize" Value="12"/>
         </Style>
 

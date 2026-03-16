@@ -17,6 +17,7 @@
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Input;
+using Heimdall.App.Theming;
 using Heimdall.App.ViewModels.Dialogs;
 
 namespace Heimdall.App.Views.Dialogs;
@@ -30,6 +31,7 @@ public partial class PinDialog : Window
     public PinDialog()
     {
         InitializeComponent();
+        WindowThemeHelper.ApplyCurrentTheme(this);
 
         Loaded += (_, _) => PinBox.Focus();
 

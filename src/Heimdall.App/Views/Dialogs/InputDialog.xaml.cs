@@ -15,6 +15,7 @@
  */
 
 using System.Windows;
+using Heimdall.App.Theming;
 
 namespace Heimdall.App.Views.Dialogs;
 
@@ -44,6 +45,7 @@ public partial class InputDialog : Window
     public InputDialog()
     {
         InitializeComponent();
+        WindowThemeHelper.ApplyCurrentTheme(this);
         Loaded += (_, _) =>
         {
             InputTextBox.Focus();
