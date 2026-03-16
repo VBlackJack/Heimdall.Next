@@ -402,7 +402,41 @@ public partial class MainWindow : Window
 
     private void OnSessionTabRightClick(object sender, MouseButtonEventArgs e)
     {
-        // Context menu is handled via the TabItem.ContextMenu setter in XAML
+        if (DataContext is not MainViewModel vm) return;
+        var session = vm.Connection.ActiveSession;
+        if (session is null) return;
+
+        var menu = new System.Windows.Controls.ContextMenu();
+
+        var disconnectItem = new System.Windows.Controls.MenuItem { Header = "Disconnect" };
+        disconnectItem.Click += (_, _) => vm.Connection.CloseSessionCommand.Execute(session);
+        menu.Items.Add(disconnectItem);
+
+        menu.Items.Add(new System.Windows.Controls.Separator());
+
+        var aspectMenu = new System.Windows.Controls.MenuItem { Header = "Aspect Ratio" };
+        foreach (var (label, tag) in new[] { ("Stretch", "Stretch"), ("Auto", "Auto"), ("16:9", "Ratio16x9"), ("4:3", "Ratio4x3"), ("21:9", "Ratio21x9") })
+        {
+            var item = new System.Windows.Controls.MenuItem { Header = label, Tag = tag };
+            item.Click += OnAspectRatioClick;
+            aspectMenu.Items.Add(item);
+        }
+        menu.Items.Add(aspectMenu);
+
+        menu.Items.Add(new System.Windows.Controls.Separator());
+
+        var fullscreenItem = new System.Windows.Controls.MenuItem { Header = "Fullscreen (F11)" };
+        fullscreenItem.Click += OnToggleFullscreenClick;
+        menu.Items.Add(fullscreenItem);
+
+        var closeItem = new System.Windows.Controls.MenuItem { Header = "Close Session" };
+        closeItem.Click += (_, _) => vm.Connection.CloseSessionCommand.Execute(session);
+        menu.Items.Add(closeItem);
+
+        menu.PlacementTarget = SessionTabControl;
+        menu.Placement = System.Windows.Controls.Primitives.PlacementMode.MousePoint;
+        menu.IsOpen = true;
+        e.Handled = true;
     }
 
     private void OnAspectRatioClick(object sender, RoutedEventArgs e)
