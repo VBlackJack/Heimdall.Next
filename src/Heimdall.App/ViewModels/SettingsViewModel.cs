@@ -14,8 +14,11 @@
  * limitations under the License.
  */
 
+using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Heimdall.App.Services;
+using Heimdall.App.ViewModels.Dialogs;
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Localization;
 
@@ -29,6 +32,7 @@ public partial class SettingsViewModel : ObservableObject
 {
     private readonly ConfigManager _configManager;
     private readonly LocalizationManager _localizer;
+    private readonly IDialogService _dialogService;
 
     [ObservableProperty]
     private string _plinkPath = "";
@@ -57,12 +61,20 @@ public partial class SettingsViewModel : ObservableObject
     [ObservableProperty]
     private bool _isDirty;
 
+    [ObservableProperty]
+    private ObservableCollection<GatewayItemViewModel> _gateways = new();
+
+    [ObservableProperty]
+    private GatewayItemViewModel? _selectedGateway;
+
     public SettingsViewModel(
         ConfigManager configManager,
-        LocalizationManager localizer)
+        LocalizationManager localizer,
+        IDialogService dialogService)
     {
         _configManager = configManager;
         _localizer = localizer;
+        _dialogService = dialogService;
     }
 
     /// <summary>
@@ -79,6 +91,19 @@ public partial class SettingsViewModel : ObservableObject
         MaxEmbeddedSessions = settings.MaxEmbeddedSessions;
         ExternalEditorPath = settings.ExternalEditorPath;
         SftpAutoOpenOnSsh = settings.SftpAutoOpenOnSsh;
+
+        Gateways = new ObservableCollection<GatewayItemViewModel>(
+            settings.SshGateways.Select(g => new GatewayItemViewModel
+            {
+                Id = g.Id,
+                Name = g.Name,
+                Host = g.Host,
+                Port = g.Port,
+                User = g.User,
+                HasKey = !string.IsNullOrEmpty(g.KeyPath),
+                HasPassword = !string.IsNullOrEmpty(g.SshPasswordEncrypted),
+                ParentGatewayId = g.ParentGatewayId
+            }));
 
         IsDirty = false;
     }
@@ -128,6 +153,90 @@ public partial class SettingsViewModel : ObservableObject
     {
         // Import file dialog requires XAML view (Phase 5B)
         await Task.CompletedTask;
+    }
+
+    [RelayCommand]
+    private async Task AddGatewayAsync(CancellationToken cancellationToken)
+    {
+        var vm = new GatewayDialogViewModel();
+        // Populate parent gateway options (exclude self)
+        var settings = await _configManager.LoadSettingsAsync();
+        vm.AvailableParents = new ObservableCollection<GatewayOption>(
+            settings.SshGateways.Select(g => new GatewayOption(g.Id, $"{g.Name} ({g.Host})")));
+
+        var result = await _dialogService.ShowGatewayDialogAsync(vm);
+        if (result?.Saved == true)
+        {
+            result.Gateway.Id = Guid.NewGuid().ToString();
+            settings.SshGateways.Add(result.Gateway);
+            await _configManager.SaveSettingsAsync(settings);
+
+            Gateways.Add(new GatewayItemViewModel
+            {
+                Id = result.Gateway.Id,
+                Name = result.Gateway.Name,
+                Host = result.Gateway.Host,
+                Port = result.Gateway.Port,
+                User = result.Gateway.User,
+                HasKey = !string.IsNullOrEmpty(result.Gateway.KeyPath),
+                HasPassword = !string.IsNullOrEmpty(result.Gateway.SshPasswordEncrypted)
+            });
+        }
+    }
+
+    [RelayCommand]
+    private async Task EditGatewayAsync(CancellationToken cancellationToken)
+    {
+        if (SelectedGateway == null) return;
+
+        var settings = await _configManager.LoadSettingsAsync();
+        var gwDto = settings.SshGateways.FirstOrDefault(g => g.Id == SelectedGateway.Id);
+        if (gwDto == null) return;
+
+        var vm = GatewayDialogViewModel.FromDto(gwDto);
+        vm.AvailableParents = new ObservableCollection<GatewayOption>(
+            settings.SshGateways
+                .Where(g => g.Id != gwDto.Id)
+                .Select(g => new GatewayOption(g.Id, $"{g.Name} ({g.Host})")));
+
+        var result = await _dialogService.ShowGatewayDialogAsync(vm);
+        if (result?.Saved == true)
+        {
+            var idx = settings.SshGateways.FindIndex(g => g.Id == gwDto.Id);
+            if (idx >= 0)
+            {
+                result.Gateway.Id = gwDto.Id;
+                settings.SshGateways[idx] = result.Gateway;
+                await _configManager.SaveSettingsAsync(settings);
+
+                SelectedGateway.Name = result.Gateway.Name;
+                SelectedGateway.Host = result.Gateway.Host;
+                SelectedGateway.Port = result.Gateway.Port;
+                SelectedGateway.User = result.Gateway.User;
+                SelectedGateway.HasKey = !string.IsNullOrEmpty(result.Gateway.KeyPath);
+                SelectedGateway.HasPassword = !string.IsNullOrEmpty(result.Gateway.SshPasswordEncrypted);
+            }
+        }
+    }
+
+    [RelayCommand]
+    private async Task DeleteGatewayAsync(CancellationToken cancellationToken)
+    {
+        if (SelectedGateway == null) return;
+
+        var confirmed = await _dialogService.ShowConfirmAsync(
+            "Delete Gateway",
+            $"Delete gateway '{SelectedGateway.Name}'? Servers using this gateway will lose their tunnel configuration.",
+            "danger");
+
+        if (!confirmed) return;
+
+        var settings = await _configManager.LoadSettingsAsync();
+        settings.SshGateways.RemoveAll(g => g.Id == SelectedGateway.Id);
+        await _configManager.SaveSettingsAsync(settings);
+
+        Gateways.Remove(SelectedGateway);
+        SelectedGateway = null;
     }
 
     protected override void OnPropertyChanged(System.ComponentModel.PropertyChangedEventArgs e)

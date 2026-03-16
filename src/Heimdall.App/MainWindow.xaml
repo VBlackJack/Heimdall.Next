@@ -360,6 +360,47 @@
                     <TextBlock Text="Max embedded sessions" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,12,0,4"/>
                     <TextBox Text="{Binding Settings.MaxEmbeddedSessions}" Width="100" HorizontalAlignment="Left"/>
 
+                    <!-- SSH Gateways -->
+                    <TextBlock Text="SSH Gateways" FontSize="16" FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,24,0,12"/>
+
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                        <Button Content="+ Add Gateway" Command="{Binding Settings.AddGatewayCommand}"
+                                Style="{DynamicResource PrimaryButtonStyle}" Margin="0,0,8,0"/>
+                        <Button Content="Edit" Command="{Binding Settings.EditGatewayCommand}"
+                                Style="{DynamicResource SecondaryButtonStyle}" Margin="0,0,8,0"/>
+                        <Button Content="Delete" Command="{Binding Settings.DeleteGatewayCommand}"
+                                Style="{DynamicResource SecondaryButtonStyle}"/>
+                    </StackPanel>
+
+                    <ListBox ItemsSource="{Binding Settings.Gateways}"
+                             SelectedItem="{Binding Settings.SelectedGateway}"
+                             MinHeight="100" MaxHeight="250"
+                             Background="{DynamicResource CardBrush}"
+                             BorderBrush="{DynamicResource BorderBrush}"
+                             BorderThickness="1">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal" Margin="4,2">
+                                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold"
+                                               Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,8,0"/>
+                                    <TextBlock Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11"
+                                               VerticalAlignment="Center">
+                                        <Run Text="{Binding User, Mode=OneWay}"/>
+                                        <Run Text="@"/>
+                                        <Run Text="{Binding Host, Mode=OneWay}"/>
+                                        <Run Text=":"/>
+                                        <Run Text="{Binding Port, Mode=OneWay}"/>
+                                    </TextBlock>
+                                    <TextBlock Text=" [KEY]" FontSize="9" Foreground="{DynamicResource SshBadgeBrush}"
+                                               VerticalAlignment="Center"
+                                               Visibility="{Binding HasKey, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+
+                    <!-- Save / Reset -->
                     <StackPanel Orientation="Horizontal" Margin="0,24,0,0">
                         <Button Content="Save Settings" Command="{Binding Settings.SaveCommand}"
                                 Style="{DynamicResource PrimaryButtonStyle}"
