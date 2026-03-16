@@ -206,13 +206,13 @@
                                     <Grid Margin="0,1" ToolTip="{Binding DisplayName}">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="Auto"/>
-                                            <ColumnDefinition Width="*"/>
                                             <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
                                         </Grid.ColumnDefinitions>
                                         <Border Grid.Column="0"
                                                 Width="16"
                                                 Height="16"
-                                                Margin="0,0,6,0"
+                                                Margin="0,0,4,0"
                                                 CornerRadius="8"
                                                 Background="{Binding ConnectionType, Converter={StaticResource ConnectionTypeToBrushConverter}}"
                                                 VerticalAlignment="Center">
@@ -223,16 +223,16 @@
                                                        HorizontalAlignment="Center"
                                                        VerticalAlignment="Center"/>
                                         </Border>
-                                        <TextBlock Grid.Column="1"
+                                        <Ellipse Grid.Column="1"
+                                                 Width="6" Height="6" Margin="0,0,4,0"
+                                                 VerticalAlignment="Center"
+                                                 Fill="{Binding ConnectionState,
+                                                     Converter={StaticResource ConnectionStateToBrushConverter}}"/>
+                                        <TextBlock Grid.Column="2"
                                                    Text="{Binding DisplayName}"
                                                    TextTrimming="CharacterEllipsis"
                                                    Foreground="{DynamicResource TextPrimaryBrush}"
                                                    VerticalAlignment="Center"/>
-                                        <Ellipse Grid.Column="2"
-                                                 Width="6" Height="6" Margin="6,0,0,0"
-                                                 VerticalAlignment="Center"
-                                                 Fill="{Binding ConnectionState,
-                                                     Converter={StaticResource ConnectionStateToBrushConverter}}"/>
                                     </Grid>
                                 </DataTemplate>
                             </TreeView.Resources>
