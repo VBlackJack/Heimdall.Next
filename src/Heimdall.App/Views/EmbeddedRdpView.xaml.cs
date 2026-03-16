@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -31,14 +30,17 @@ namespace Heimdall.App.Views;
 
 /// <summary>
 /// WPF host for the MsTscAx ActiveX control used by embedded RDP sessions.
-/// Owns the WindowsFormsHost, event sink lifecycle, password injection, and
-/// dynamic resolution updates on resize.
+/// Applies the proven WPF/WinForms layout flush pattern before Connect()
+/// and delays dynamic resolution reconnects until the session is stable.
 /// </summary>
 public partial class EmbeddedRdpView : UserControl, IDisposable
 {
-    private readonly DispatcherTimer _resizeTimer;
-    private CancellationTokenSource? _autofillCts;
+    private static readonly TimeSpan InitialResizeEnableDelay = TimeSpan.FromSeconds(5);
+    private static readonly TimeSpan BeginConnectRetryDelay = TimeSpan.FromMilliseconds(120);
 
+    private readonly DispatcherTimer _resizeTimer;
+
+    private CancellationTokenSource? _autofillCts;
     private RdpActiveXHost? _rdpHost;
     private RdpServerDto? _server;
     private SessionTabViewModel? _sessionTab;
@@ -47,6 +49,11 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
     private bool _connectStarted;
     private bool _eventSinkAttached;
     private bool _disposed;
+    private bool _allowResolutionUpdates;
+    private int _beginConnectAttempt;
+    private int _lastAppliedWidth;
+    private int _lastAppliedHeight;
+    private DateTime _connectedAtUtc;
 
     public EmbeddedRdpView()
     {
@@ -99,11 +106,13 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         }
 
         _disposed = true;
+        Core.Logging.FileLogger.Info("EmbeddedRDP Dispose started");
 
         Loaded -= OnLoaded;
         SurfaceContainer.SizeChanged -= OnSurfaceContainerSizeChanged;
         _resizeTimer.Stop();
         CancelAutofill();
+        _allowResolutionUpdates = false;
 
         if (_rdpHost is not null)
         {
@@ -115,9 +124,9 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
             {
                 _rdpHost.Disconnect();
             }
-            catch
+            catch (Exception ex)
             {
-                // Best-effort shutdown only.
+                Core.Logging.FileLogger.Warn($"EmbeddedRDP Disconnect during dispose failed: {ex.Message}");
             }
 
             try
@@ -127,9 +136,9 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
                     _rdpHost.DetachEventSink();
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                // Best-effort shutdown only.
+                Core.Logging.FileLogger.Warn($"EmbeddedRDP DetachEventSink during dispose failed: {ex.Message}");
             }
 
             _rdpHost.Dispose();
@@ -139,6 +148,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         FormsHost.Child = null;
         _autofillCts?.Dispose();
         _autofillCts = null;
+        Core.Logging.FileLogger.Info("EmbeddedRDP Dispose completed");
     }
 
     private void OnLoaded(object sender, RoutedEventArgs e)
@@ -149,7 +159,10 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         }
 
         _connectStarted = true;
-        Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new Action(BeginConnect));
+        Core.Logging.FileLogger.Info(
+            $"EmbeddedRDP Loaded: isVisible={IsVisible} formsVisible={FormsHost.IsVisible} formsSize={FormsHost.ActualWidth:0.##}x{FormsHost.ActualHeight:0.##} surfaceSize={SurfaceContainer.ActualWidth:0.##}x{SurfaceContainer.ActualHeight:0.##}");
+
+        _ = Dispatcher.BeginInvoke(DispatcherPriority.Render, new Action(BeginConnect));
     }
 
     private void OnDisconnectClick(object sender, RoutedEventArgs e)
@@ -161,6 +174,8 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
 
         try
         {
+            Core.Logging.FileLogger.Info("EmbeddedRDP Disconnect requested by user");
+            _allowResolutionUpdates = false;
             UpdateSessionState("Disconnecting", "Closing the embedded Remote Desktop session.");
             _rdpHost.Disconnect();
         }
@@ -176,6 +191,9 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         {
             return;
         }
+
+        Core.Logging.FileLogger.Info(
+            $"EmbeddedRDP SizeChanged: old={e.PreviousSize.Width:0.##}x{e.PreviousSize.Height:0.##} new={e.NewSize.Width:0.##}x{e.NewSize.Height:0.##} connected={_rdpHost?.IsConnected == true} allowResize={_allowResolutionUpdates}");
 
         _resizeTimer.Stop();
         _resizeTimer.Start();
@@ -196,14 +214,34 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
             return;
         }
 
+        if (!_rdpHost.IsConnected)
+        {
+            Core.Logging.FileLogger.Info(
+                $"EmbeddedRDP Resize skipped while not connected: target={width}x{height}");
+            return;
+        }
+
+        if (!_allowResolutionUpdates)
+        {
+            Core.Logging.FileLogger.Info(
+                $"EmbeddedRDP Resize deferred until post-connect stabilization: target={width}x{height}");
+            return;
+        }
+
+        if (_lastAppliedWidth == width && _lastAppliedHeight == height)
+        {
+            Core.Logging.FileLogger.Info(
+                $"EmbeddedRDP Resize skipped because size is unchanged: {width}x{height}");
+            return;
+        }
+
         try
         {
-            if (_rdpHost.IsConnected)
-            {
-                _rdpHost.UpdateResolution(width, height);
-            }
-            // Only set display before connection starts — skip during connecting phase
-            // SetDisplay after Connect() causes COM errors
+            Core.Logging.FileLogger.Info(
+                $"EmbeddedRDP UpdateResolution requested: {width}x{height} connectedFor={(DateTime.UtcNow - _connectedAtUtc).TotalSeconds:0.0}s");
+            _rdpHost.UpdateResolution(width, height);
+            _lastAppliedWidth = width;
+            _lastAppliedHeight = height;
         }
         catch (Exception ex)
         {
@@ -220,7 +258,46 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
 
         try
         {
+            _beginConnectAttempt++;
+            Core.Logging.FileLogger.Info(
+                $"EmbeddedRDP BeginConnect attempt={_beginConnectAttempt} viewVisible={IsVisible} formsVisible={FormsHost.IsVisible} formsSize={FormsHost.ActualWidth:0.##}x{FormsHost.ActualHeight:0.##} surfaceSize={SurfaceContainer.ActualWidth:0.##}x{SurfaceContainer.ActualHeight:0.##}");
+
+            if (!IsVisualSurfaceReady())
+            {
+                if (_beginConnectAttempt <= 10)
+                {
+                    Core.Logging.FileLogger.Warn("EmbeddedRDP visual surface is not ready; retrying after render pass.");
+                    RetryBeginConnectAsync();
+                    return;
+                }
+
+                Core.Logging.FileLogger.Warn("EmbeddedRDP continuing even though the visual surface did not report as ready.");
+            }
+
+            FlushLayoutPipeline("pre-connect");
             EnsureHostHandle();
+            FlushLayoutPipeline("post-handle");
+
+            var connectHost = ResolveConnectHost(_server);
+            var connectPort = ResolveConnectPort(_server);
+            var (username, domain) = SplitUsername(_server.RdpUsername);
+            var password = TryDecryptPassword(_server);
+            var (width, height) = GetDisplayDimensions();
+
+            Core.Logging.FileLogger.Info(
+                $"EmbeddedRDP BeginConnect: host={connectHost}:{connectPort} user={username} domain={domain} hasPassword={!string.IsNullOrEmpty(password)} size={width}x{height} handle=0x{_rdpHost.HostHandle.ToInt64():X} clsid={_rdpHost.ActiveXClsid}");
+
+            _rdpHost.SetServer(connectHost, connectPort);
+            if (!string.IsNullOrWhiteSpace(username))
+            {
+                _rdpHost.SetCredentials(username, password, domain);
+                Core.Logging.FileLogger.Info($"EmbeddedRDP SetCredentials called for user={username}");
+            }
+
+            _rdpHost.SetDisplay(width, height, NormalizeColorDepth(_server.RdpColorDepth));
+            _lastAppliedWidth = width;
+            _lastAppliedHeight = height;
+            _rdpHost.SetRedirections(BuildRedirections(_server));
 
             if (!_eventSinkAttached)
             {
@@ -233,27 +310,10 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
                 _eventSinkAttached = true;
             }
 
-            var connectHost = ResolveConnectHost(_server);
-            var connectPort = ResolveConnectPort(_server);
-            var (username, domain) = SplitUsername(_server.RdpUsername);
-            var password = TryDecryptPassword(_server);
-            var (width, height) = GetDisplayDimensions();
-
-            Core.Logging.FileLogger.Info($"EmbeddedRDP BeginConnect: host={connectHost}:{connectPort} user={username} domain={domain} hasPassword={!string.IsNullOrEmpty(password)} size={width}x{height}");
-
-            _rdpHost.SetServer(connectHost, connectPort);
-            if (!string.IsNullOrWhiteSpace(username))
-            {
-                _rdpHost.SetCredentials(username, password, domain);
-                Core.Logging.FileLogger.Info($"EmbeddedRDP SetCredentials called for user={username}");
-            }
-
-            _rdpHost.SetDisplay(width, height, NormalizeColorDepth(_server.RdpColorDepth));
-            _rdpHost.SetRedirections(BuildRedirections(_server));
-
             Core.Logging.FileLogger.Info("EmbeddedRDP calling Connect()...");
             _rdpHost.Connect();
 
+            FlushLayoutPipeline("post-connect");
             UpdateSessionState("Connecting", "Waiting for the Remote Desktop control to connect.");
 
             if (!string.IsNullOrWhiteSpace(password))
@@ -265,6 +325,25 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         {
             HandleFailure("Unable to start the embedded Remote Desktop session.", ex);
         }
+    }
+
+    private async void RetryBeginConnectAsync()
+    {
+        try
+        {
+            await Task.Delay(BeginConnectRetryDelay);
+        }
+        catch
+        {
+            return;
+        }
+
+        if (_disposed)
+        {
+            return;
+        }
+
+        _ = Dispatcher.BeginInvoke(DispatcherPriority.Render, new Action(BeginConnect));
     }
 
     private void OnRdpConnected()
@@ -285,18 +364,39 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
             }
             catch (Exception ex)
             {
-                Heimdall.Core.Logging.FileLogger.Warn(
-                    $"Embedded RDP ClearPassword failed: {ex.Message}");
+                Core.Logging.FileLogger.Warn($"Embedded RDP ClearPassword failed: {ex.Message}");
             }
 
+            _connectedAtUtc = DateTime.UtcNow;
+            _allowResolutionUpdates = false;
             UpdateSessionState("Connected", "The embedded Remote Desktop session is active.");
+            FlushLayoutPipeline("on-connected");
 
             if (_server is not null && _server.RdpDynamicResolution)
             {
-                _resizeTimer.Stop();
-                _resizeTimer.Start();
+                EnableResolutionUpdatesAsync();
             }
         });
+    }
+
+    private async void EnableResolutionUpdatesAsync()
+    {
+        try
+        {
+            await Task.Delay(InitialResizeEnableDelay);
+        }
+        catch
+        {
+            return;
+        }
+
+        if (_disposed || _rdpHost is null || !_rdpHost.IsConnected)
+        {
+            return;
+        }
+
+        _allowResolutionUpdates = true;
+        Core.Logging.FileLogger.Info("EmbeddedRDP dynamic resolution is now enabled.");
     }
 
     private void OnRdpDisconnected(int reason)
@@ -310,6 +410,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         Dispatcher.Invoke(() =>
         {
             CancelAutofill();
+            _allowResolutionUpdates = false;
             UpdateSessionState(
                 "Disconnected",
                 string.Format("Remote Desktop disconnected with code {0}.", reason));
@@ -318,6 +419,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
 
     private void OnRdpFatalError(int errorCode)
     {
+        Core.Logging.FileLogger.Warn($"EmbeddedRDP OnFatalError fired: errorCode={errorCode}");
         if (_disposed)
         {
             return;
@@ -326,10 +428,10 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         Dispatcher.Invoke(() =>
         {
             CancelAutofill();
+            _allowResolutionUpdates = false;
             UpdateSessionState(
                 "Error",
                 string.Format("Remote Desktop reported a fatal error ({0}).", errorCode));
-            StatusTextBlock.Foreground = GetBrush("ErrorBrush", Brushes.IndianRed);
         });
     }
 
@@ -345,6 +447,9 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         _rdpHost.FatalError += OnRdpFatalError;
 
         FormsHost.Child = _rdpHost.GetHostControl();
+
+        Core.Logging.FileLogger.Info(
+            $"EmbeddedRDP host created: clsid={_rdpHost.ActiveXClsid} childType={FormsHost.Child?.GetType().FullName ?? "null"}");
     }
 
     private void EnsureHostHandle()
@@ -357,7 +462,11 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         if (!_rdpHost.IsHandleCreated)
         {
             _ = _rdpHost.Handle;
+            WinForms.Application.DoEvents();
         }
+
+        Core.Logging.FileLogger.Info(
+            $"EmbeddedRDP EnsureHostHandle: handle=0x{_rdpHost.HostHandle.ToInt64():X} handleCreated={_rdpHost.IsHandleCreated}");
     }
 
     private void StartCredentialAutofill(string password, string hostHint)
@@ -365,6 +474,9 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         CancelAutofill();
         _autofillCts = new CancellationTokenSource();
         var token = _autofillCts.Token;
+
+        Core.Logging.FileLogger.Info(
+            $"EmbeddedRDP starting CredUI autofill watcher for hostHint={hostHint}");
 
         _ = TryAutofillCredentialsAsync(password, hostHint, token);
     }
@@ -386,7 +498,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         }
         catch (Exception ex)
         {
-            Heimdall.Core.Logging.FileLogger.Warn(
+            Core.Logging.FileLogger.Warn(
                 $"Embedded RDP credential autofill failed: {ex.Message}");
         }
     }
@@ -424,20 +536,22 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
 
         StatusTextBlock.Text = status;
         DetailTextBlock.Text = detail;
-        DisconnectButton.IsEnabled = !_disposed && !string.Equals(status, "Disconnected", StringComparison.OrdinalIgnoreCase);
+        DisconnectButton.IsEnabled = !_disposed
+            && !string.Equals(status, "Disconnected", StringComparison.OrdinalIgnoreCase);
         StatusTextBlock.Foreground = GetBrush(
-            string.Equals(status, "Error", StringComparison.OrdinalIgnoreCase) ? "ErrorBrush" : "TextPrimaryBrush",
-            string.Equals(status, "Error", StringComparison.OrdinalIgnoreCase) ? Brushes.IndianRed : Brushes.White);
+            string.Equals(status, "Error", StringComparison.OrdinalIgnoreCase)
+                ? "ErrorBrush"
+                : "TextPrimaryBrush",
+            string.Equals(status, "Error", StringComparison.OrdinalIgnoreCase)
+                ? Brushes.IndianRed
+                : Brushes.White);
     }
 
-    private void HandleFailure(string message, Exception ex, bool updateStatus = true)
+    private void HandleFailure(string message, Exception ex)
     {
-        Heimdall.Core.Logging.FileLogger.Error(message, ex);
-
-        if (updateStatus)
-        {
-            UpdateSessionState("Error", string.Format("{0} {1}", message, ex.Message));
-        }
+        Core.Logging.FileLogger.Error(message, ex);
+        _allowResolutionUpdates = false;
+        UpdateSessionState("Error", string.Format("{0} {1}", message, ex.Message));
     }
 
     private (int Width, int Height) GetDisplayDimensions()
@@ -459,6 +573,39 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
             width,
             height,
             ParseAspectRatio(_server.RdpAspectRatio));
+    }
+
+    private bool IsVisualSurfaceReady()
+    {
+        return IsLoaded
+            && IsVisible
+            && FormsHost.IsVisible
+            && SurfaceContainer.ActualWidth >= 64
+            && SurfaceContainer.ActualHeight >= 64;
+    }
+
+    private void FlushLayoutPipeline(string stage)
+    {
+        Core.Logging.FileLogger.Info(
+            $"EmbeddedRDP layout flush ({stage}): viewVisible={IsVisible} formsVisible={FormsHost.IsVisible} formsSize={FormsHost.ActualWidth:0.##}x{FormsHost.ActualHeight:0.##} surfaceSize={SurfaceContainer.ActualWidth:0.##}x{SurfaceContainer.ActualHeight:0.##}");
+
+        UpdateLayout();
+        SurfaceContainer.UpdateLayout();
+        FormsHost.UpdateLayout();
+
+        if (FormsHost.Child is WinForms.Control control)
+        {
+            if (!control.IsHandleCreated)
+            {
+                control.CreateControl();
+            }
+
+            control.PerformLayout();
+            control.Refresh();
+        }
+
+        WinForms.Application.DoEvents();
+        Dispatcher.Invoke(DispatcherPriority.Render, new Action(delegate { }));
     }
 
     private static string ResolveConnectHost(RdpServerDto server)
@@ -520,7 +667,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         }
         catch (Exception ex)
         {
-            Heimdall.Core.Logging.FileLogger.Warn(
+            Core.Logging.FileLogger.Warn(
                 $"Embedded RDP password decrypt failed for {server.DisplayName}: {ex.Message}");
             return null;
         }
