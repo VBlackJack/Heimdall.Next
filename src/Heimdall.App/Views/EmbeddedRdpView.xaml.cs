@@ -202,14 +202,12 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
             {
                 _rdpHost.UpdateResolution(width, height);
             }
-            else
-            {
-                _rdpHost.SetDisplay(width, height, NormalizeColorDepth(_server.RdpColorDepth));
-            }
+            // Only set display before connection starts — skip during connecting phase
+            // SetDisplay after Connect() causes COM errors
         }
         catch (Exception ex)
         {
-            HandleFailure("Failed to update the embedded RDP resolution.", ex, updateStatus: false);
+            Core.Logging.FileLogger.Warn($"Resize during RDP session: {ex.Message}");
         }
     }
 
