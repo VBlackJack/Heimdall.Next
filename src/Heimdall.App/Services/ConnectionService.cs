@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+using System.IO;
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Security;
@@ -82,9 +83,80 @@ public class ConnectionService
 
         _connectionSm.TryTransition(server.Id, Core.Models.ConnectionState.LaunchingRdp);
 
-        // The actual RDP host creation is handled by the View layer (ActiveX/mstsc).
-        // Return success so the ViewModel can create the session tab.
-        return new ConnectionResult(true, null, server);
+        var rdpMode = server.RdpMode ?? "External";
+        Core.Logging.FileLogger.Info($"RDP mode: {rdpMode}");
+
+        if (string.Equals(rdpMode, "Embedded", StringComparison.OrdinalIgnoreCase))
+        {
+            // Embedded RDP will be handled by the View layer (ActiveX in WindowsFormsHost).
+            // Return the server DTO so the ViewModel can create an embedded session tab.
+            return new ConnectionResult(true, null, server);
+        }
+
+        // External mode: launch mstsc.exe
+        try
+        {
+            var rdpHost = server.UseDirectConnection ? server.RemoteServer : "127.0.0.1";
+            var rdpPort = server.UseDirectConnection ? server.RemotePort : server.LocalPort;
+
+            // Store credentials in Windows Credential Manager for mstsc auto-login
+            if (!string.IsNullOrEmpty(server.RdpUsername) && !string.IsNullOrEmpty(server.RdpPasswordEncrypted))
+            {
+                try
+                {
+                    var password = DpapiProvider.Unprotect(server.RdpPasswordEncrypted);
+                    var credTarget = $"TERMSRV/{rdpHost}";
+                    Heimdall.Rdp.CredentialManagerHelper.WriteDomainCredential(credTarget, server.RdpUsername, password, out _);
+                    Core.Logging.FileLogger.Info($"RDP credentials stored for {credTarget}");
+                }
+                catch (Exception credEx)
+                {
+                    Core.Logging.FileLogger.Warn($"Failed to store RDP credentials: {credEx.Message}");
+                }
+            }
+
+            // Generate and launch .rdp file
+            var rdpFile = Path.Combine(Path.GetTempPath(), $"heimdall_{server.Id}_{Guid.NewGuid():N}.rdp");
+            var rdpContent = Heimdall.Rdp.RdpFileGenerator.Generate(new Heimdall.Rdp.RdpFileOptions
+            {
+                Host = rdpHost,
+                Port = rdpPort,
+                Username = server.RdpUsername,
+                FullScreen = false,
+                AdminMode = false,
+                Redirections = new Heimdall.Rdp.RdpRedirectionOptions
+                {
+                    Clipboard = server.RdpRedirectClipboard,
+                    Drives = server.RdpRedirectDrives,
+                    Printers = server.RdpRedirectPrinters,
+                    Nla = server.RdpNla
+                }
+            });
+            await File.WriteAllTextAsync(rdpFile, rdpContent, ct).ConfigureAwait(false);
+
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = "mstsc.exe",
+                Arguments = $"\"{rdpFile}\"",
+                UseShellExecute = true
+            });
+
+            Core.Logging.FileLogger.Info($"Launched mstsc.exe for {server.DisplayName} ({rdpHost}:{rdpPort})");
+            _connectionSm.TryTransition(server.Id, Core.Models.ConnectionState.Connected);
+
+            // Clean up .rdp file after delay
+            _ = Task.Delay(5000, ct).ContinueWith(_ =>
+            {
+                try { File.Delete(rdpFile); } catch { }
+            }, TaskScheduler.Default);
+
+            return new ConnectionResult(true, null, null);
+        }
+        catch (Exception ex)
+        {
+            Core.Logging.FileLogger.Error("RDP launch failed", ex);
+            return new ConnectionResult(false, ex.Message, null);
+        }
     }
 
     /// <summary>
