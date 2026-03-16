@@ -409,6 +409,59 @@ public partial class MainWindow : Window
         }
     }
 
+    // ── Tab drag & drop reordering ───────────────────────────────────
+
+    private System.Windows.Point _tabDragStartPoint;
+    private SessionTabViewModel? _tabDragItem;
+
+    private void OnTabDragStart(object sender, MouseButtonEventArgs e)
+    {
+        _tabDragStartPoint = e.GetPosition(SessionTabControl);
+        var tabItem = FindAncestor<System.Windows.Controls.TabItem>(e.OriginalSource as DependencyObject);
+        _tabDragItem = tabItem?.DataContext as SessionTabViewModel;
+    }
+
+    private void OnTabDragMove(object sender, System.Windows.Input.MouseEventArgs e)
+    {
+        if (_tabDragItem is null || e.LeftButton != MouseButtonState.Pressed)
+            return;
+
+        var currentPos = e.GetPosition(SessionTabControl);
+        var diff = _tabDragStartPoint - currentPos;
+
+        if (Math.Abs(diff.X) > SystemParameters.MinimumHorizontalDragDistance ||
+            Math.Abs(diff.Y) > SystemParameters.MinimumVerticalDragDistance)
+        {
+            var data = new System.Windows.DataObject("SessionTab", _tabDragItem);
+            DragDrop.DoDragDrop(SessionTabControl, data, System.Windows.DragDropEffects.Move);
+            _tabDragItem = null;
+        }
+    }
+
+    private void OnTabDrop(object sender, System.Windows.DragEventArgs e)
+    {
+        if (DataContext is not MainViewModel vm) return;
+        if (!e.Data.GetDataPresent("SessionTab")) return;
+
+        var draggedItem = e.Data.GetData("SessionTab") as SessionTabViewModel;
+        if (draggedItem is null) return;
+
+        // Find the drop target tab
+        var dropTarget = FindAncestor<System.Windows.Controls.TabItem>(e.OriginalSource as DependencyObject);
+        var targetItem = dropTarget?.DataContext as SessionTabViewModel;
+
+        if (targetItem is null || targetItem == draggedItem) return;
+
+        var sessions = vm.Connection.ActiveSessions;
+        int oldIndex = sessions.IndexOf(draggedItem);
+        int newIndex = sessions.IndexOf(targetItem);
+
+        if (oldIndex >= 0 && newIndex >= 0 && oldIndex != newIndex)
+        {
+            sessions.Move(oldIndex, newIndex);
+        }
+    }
+
     private static void HideTabStripPanelRecursive(DependencyObject parent, bool hide)
     {
         if (parent is System.Windows.Controls.Primitives.TabPanel tabPanel)
