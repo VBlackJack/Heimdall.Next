@@ -32,12 +32,14 @@ namespace Heimdall.Rdp.ActiveX;
 public class RdpActiveXHost : AxHost, IRdpSession
 {
     // MsTscAx ActiveX control CLSID — Terminal Services Client 8.0+
-    private const string MsTscAxClsid = "7cacbd7b-0d99-468f-ac33-22e495c0afe5";
+    public const string DefaultMsTscAxClsid = "7cacbd7b-0d99-468f-ac33-22e495c0afe5";
+    public const string NotSafeForScriptingClsid = "A0F46F0A-3B66-4B79-A7A1-1C70A6BF37E1";
 
     private object? _activeX;
     private bool _disposed;
     private ConnectionPointCookie? _cookie;
     private MsTscAxEventSink? _sink;
+    private readonly string _activeXClsid;
 
     // Pending configuration applied before the ActiveX handle is created
     private string _pendingHost = string.Empty;
@@ -65,7 +67,17 @@ public class RdpActiveXHost : AxHost, IRdpSession
     /// <inheritdoc />
     public bool IsConnected { get; private set; }
 
-    public RdpActiveXHost() : base(MsTscAxClsid) { }
+    /// <summary>The ActiveX CLSID used to instantiate this control.</summary>
+    public string ActiveXClsid => _activeXClsid;
+
+    /// <summary>Current host window handle, or <see cref="IntPtr.Zero"/> when not created.</summary>
+    public IntPtr HostHandle => IsHandleCreated ? Handle : IntPtr.Zero;
+
+    public RdpActiveXHost(string? activeXClsid = null)
+        : base(activeXClsid ?? DefaultMsTscAxClsid)
+    {
+        _activeXClsid = activeXClsid ?? DefaultMsTscAxClsid;
+    }
 
     /// <summary>
     /// Returns the raw ActiveX COM object obtained via <see cref="AxHost.GetOcx"/>.
@@ -75,6 +87,8 @@ public class RdpActiveXHost : AxHost, IRdpSession
         if (_activeX is null && IsHandleCreated)
         {
             _activeX = GetOcx();
+            Core.Logging.FileLogger.Info(
+                $"RdpActiveXHost.GetActiveXInstance: handle=0x{HostHandle.ToInt64():X} ocxType={_activeX?.GetType().FullName ?? "null"} clsid={_activeXClsid}");
         }
         return _activeX;
     }
@@ -86,6 +100,8 @@ public class RdpActiveXHost : AxHost, IRdpSession
     protected override void AttachInterfaces()
     {
         _activeX = GetOcx();
+        Core.Logging.FileLogger.Info(
+            $"RdpActiveXHost.AttachInterfaces: handle=0x{HostHandle.ToInt64():X} ocxType={_activeX?.GetType().FullName ?? "null"} clsid={_activeXClsid}");
     }
 
     /// <inheritdoc />
@@ -94,6 +110,8 @@ public class RdpActiveXHost : AxHost, IRdpSession
         ArgumentException.ThrowIfNullOrWhiteSpace(host);
         _pendingHost = host;
         _pendingPort = port;
+        Core.Logging.FileLogger.Info(
+            $"RdpActiveXHost.SetServer: host={host} port={port} handleCreated={IsHandleCreated} clsid={_activeXClsid}");
 
         var ocx = GetActiveXInstance();
         if (ocx is not null)
@@ -109,6 +127,8 @@ public class RdpActiveXHost : AxHost, IRdpSession
         _pendingUsername = username;
         _pendingPassword = password;
         _pendingDomain = domain;
+        Core.Logging.FileLogger.Info(
+            $"RdpActiveXHost.SetCredentials: user={username} domain={domain ?? string.Empty} hasPassword={!string.IsNullOrEmpty(password)} handleCreated={IsHandleCreated}");
 
         var ocx = GetActiveXInstance();
         if (ocx is not null)
@@ -123,6 +143,8 @@ public class RdpActiveXHost : AxHost, IRdpSession
         _pendingWidth = width;
         _pendingHeight = height;
         _pendingColorDepth = colorDepth;
+        Core.Logging.FileLogger.Info(
+            $"RdpActiveXHost.SetDisplay: width={width} height={height} colorDepth={colorDepth} handleCreated={IsHandleCreated}");
 
         var ocx = GetActiveXInstance();
         if (ocx is not null)
@@ -136,6 +158,8 @@ public class RdpActiveXHost : AxHost, IRdpSession
     {
         ArgumentNullException.ThrowIfNull(redirections);
         _pendingRedirections = redirections;
+        Core.Logging.FileLogger.Info(
+            $"RdpActiveXHost.SetRedirections: clipboard={redirections.Clipboard} drives={redirections.Drives} printers={redirections.Printers} dynamicResolution={redirections.DynamicResolution}");
 
         var ocx = GetActiveXInstance();
         if (ocx is not null)
@@ -149,6 +173,9 @@ public class RdpActiveXHost : AxHost, IRdpSession
     {
         var ocx = GetActiveXInstance()
             ?? throw new InvalidOperationException("ActiveX control is not initialized. Ensure the host control handle is created first.");
+
+        Core.Logging.FileLogger.Info(
+            $"RdpActiveXHost.Connect: handle=0x{HostHandle.ToInt64():X} clsid={_activeXClsid} ocxType={ocx.GetType().FullName ?? "unknown"} size={_pendingWidth}x{_pendingHeight}");
 
         // Apply all pending settings before connecting
         ApplyServerSettings(ocx);
@@ -182,11 +209,15 @@ public class RdpActiveXHost : AxHost, IRdpSession
         var ocx = GetActiveXInstance();
         if (ocx is null)
         {
+            Core.Logging.FileLogger.Warn(
+                $"RdpActiveXHost.UpdateResolution skipped: no ActiveX instance for {width}x{height}");
             return;
         }
 
         try
         {
+            Core.Logging.FileLogger.Info(
+                $"RdpActiveXHost.UpdateResolution: handle=0x{HostHandle.ToInt64():X} width={width} height={height}");
             // Reconnect(width, height) is available on IMsRdpClient7+ (RDP 7.1+)
             ocx.GetType().InvokeMember(
                 "Reconnect",
@@ -198,6 +229,8 @@ public class RdpActiveXHost : AxHost, IRdpSession
         catch (Exception ex)
         {
             LastError = ex.Message;
+            Core.Logging.FileLogger.Warn(
+                $"RdpActiveXHost.UpdateResolution failed: {ex.Message}");
         }
     }
 
@@ -210,21 +243,26 @@ public class RdpActiveXHost : AxHost, IRdpSession
     {
         try
         {
+            Core.Logging.FileLogger.Info(
+                $"RdpActiveXHost.AttachEventSink: handle=0x{HostHandle.ToInt64():X} handleCreated={IsHandleCreated} clsid={_activeXClsid}");
             var ocx = GetOcx();
             if (ocx is null)
             {
                 LastError = "GetOcx() returned null — connection point not available for event sink";
+                Core.Logging.FileLogger.Warn("RdpActiveXHost.AttachEventSink failed: GetOcx returned null");
                 return false;
             }
 
             _sink = new MsTscAxEventSink(this);
             _cookie = new ConnectionPointCookie(ocx, _sink, typeof(IMsTscAxEvents));
+            Core.Logging.FileLogger.Info("RdpActiveXHost.AttachEventSink succeeded");
 
             return true;
         }
         catch (Exception ex)
         {
             LastError = ex.Message;
+            Core.Logging.FileLogger.Warn($"RdpActiveXHost.AttachEventSink failed: {ex.Message}");
             return false;
         }
     }
@@ -270,11 +308,13 @@ public class RdpActiveXHost : AxHost, IRdpSession
             var nonScriptable = (IMsTscNonScriptable)ocx;
             nonScriptable.put_ClearTextPassword(password);
             LastError = null;
+            Core.Logging.FileLogger.Info("RdpActiveXHost.SetClearTextPassword: success=True");
             return true;
         }
         catch (Exception ex)
         {
             LastError = ex.Message;
+            Core.Logging.FileLogger.Warn($"RdpActiveXHost.SetClearTextPassword: success=False error={ex.Message}");
             return false;
         }
     }
@@ -349,7 +389,9 @@ public class RdpActiveXHost : AxHost, IRdpSession
         // Password must be set via IMsTscNonScriptable, not via IDispatch
         if (_pendingPassword is not null)
         {
-            SetClearTextPassword(_pendingPassword);
+            var passwordInjected = SetClearTextPassword(_pendingPassword);
+            Core.Logging.FileLogger.Info(
+                $"RdpActiveXHost.ApplyCredentialSettings: passwordInjected={passwordInjected}");
         }
     }
 
