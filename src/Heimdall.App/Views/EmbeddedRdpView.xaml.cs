@@ -72,6 +72,13 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         SurfaceContainer.SizeChanged += OnSurfaceContainerSizeChanged;
     }
 
+    public void SetFullscreen(bool isFullscreen)
+    {
+        SessionHeaderBar.Visibility = isFullscreen
+            ? System.Windows.Visibility.Collapsed
+            : System.Windows.Visibility.Visible;
+    }
+
     public void InitializeSession(RdpServerDto server, SessionTabViewModel sessionTab)
     {
         ArgumentNullException.ThrowIfNull(server);

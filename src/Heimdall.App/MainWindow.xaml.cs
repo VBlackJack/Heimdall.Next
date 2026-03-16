@@ -486,6 +486,7 @@ public partial class MainWindow : Window
             // Exit fullscreen
             _isFullscreen = false;
             FullscreenBar.Visibility = Visibility.Collapsed;
+            NotifyEmbeddedViewsFullscreen(false);
 
             // Show toolbar, TreeView, status bar
             ToolbarRow.Height = new GridLength(48);
@@ -523,9 +524,12 @@ public partial class MainWindow : Window
             WindowState = WindowState.Maximized;
             FullscreenBar.Visibility = Visibility.Visible;
 
-            // Compact session tabs in fullscreen
+            // Hide session tab headers in fullscreen (session fills the screen)
             SessionTabControl.Padding = new Thickness(0);
             SessionTabControl.Margin = new Thickness(0);
+
+            // Hide the session header bar inside embedded views
+            NotifyEmbeddedViewsFullscreen(true);
         }
     }
 
@@ -552,6 +556,39 @@ public partial class MainWindow : Window
             ServerTreeColumn.MaxWidth = 0;
             ServerTreeColumn.Width = new GridLength(0);
             SplitterColumn.Width = new GridLength(0);
+        }
+    }
+
+    private void NotifyEmbeddedViewsFullscreen(bool isFullscreen)
+    {
+        if (DataContext is not MainViewModel vm) return;
+        foreach (var session in vm.Connection.ActiveSessions)
+        {
+            if (session.HostControl is Views.EmbeddedRdpView rdpView)
+                rdpView.SetFullscreen(isFullscreen);
+            else if (session.HostControl is Views.EmbeddedSshView sshView)
+                sshView.Visibility = Visibility.Visible; // SSH always visible
+        }
+
+        // Hide tab headers when only one session in fullscreen
+        if (isFullscreen && vm.Connection.ActiveSessions.Count <= 1)
+        {
+            SessionTabControl.SetValue(System.Windows.Controls.TabControl.TabStripPlacementProperty,
+                System.Windows.Controls.Dock.Bottom);
+            // Just hide the tab strip by making it tiny
+            foreach (System.Windows.Controls.TabItem tab in SessionTabControl.Items)
+            {
+                tab.Height = 0;
+                tab.Visibility = Visibility.Collapsed;
+            }
+        }
+        else if (!isFullscreen)
+        {
+            foreach (System.Windows.Controls.TabItem tab in SessionTabControl.Items)
+            {
+                tab.Height = double.NaN;
+                tab.Visibility = Visibility.Visible;
+            }
         }
     }
 
