@@ -1,0 +1,193 @@
+/*
+ * Copyright 2026 Julien Bombled
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+using System.Collections.Frozen;
+using System.Text.RegularExpressions;
+
+namespace Heimdall.Core.Security;
+
+/// <summary>
+/// Validates user inputs against predefined security patterns to prevent
+/// injection attacks (CWE-78 prevention). All patterns are compiled regexes
+/// for optimal performance.
+/// </summary>
+public static class InputValidator
+{
+    /// <summary>Minimum valid port number.</summary>
+    private const int MinPort = 1;
+
+    /// <summary>Maximum valid port number.</summary>
+    private const int MaxPort = 65535;
+
+    /// <summary>Maximum FQDN length per DNS RFC.</summary>
+    private const int MaxFqdnLength = 255;
+
+    /// <summary>Maximum DNS label length per RFC.</summary>
+    private const int MaxDnsLabelLength = 63;
+
+    /// <summary>
+    /// Pre-compiled validation patterns indexed by name.
+    /// </summary>
+    private static readonly FrozenDictionary<string, Regex> ValidationPatterns =
+        new Dictionary<string, Regex>(StringComparer.OrdinalIgnoreCase)
+        {
+            // FQDN or hostname: alphanumeric, dots, hyphens
+            ["SshGateway"] = CompilePattern(@"^[a-zA-Z0-9]([a-zA-Z0-9\-\.]*[a-zA-Z0-9])?$"),
+
+            // SSH username: alphanumeric, underscore, hyphen, dot, at, backslash
+            ["SshUser"] = CompilePattern(@"^[a-zA-Z0-9._@\\-]+$"),
+
+            // RDP username: user, DOMAIN\user, or user@domain.com
+            ["Username"] = CompilePattern(@"^[a-zA-Z0-9_\-\.]+([\\@][a-zA-Z0-9_\-\.]+)?$"),
+
+            // TunnelTarget: hostname:port format
+            ["TunnelTarget"] = CompilePattern(@"^[a-zA-Z0-9\.\-]+:\d{1,5}$"),
+
+            // IP Address (IPv4)
+            ["IPv4"] = CompilePattern(
+                @"^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$"),
+
+            // Hostname: alphanumeric with dots and hyphens
+            ["Hostname"] = CompilePattern(@"^[a-zA-Z0-9]([a-zA-Z0-9\-\.]*[a-zA-Z0-9])?$"),
+
+            // Address: IP or hostname
+            ["Address"] = CompilePattern(
+                @"^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$|^[a-zA-Z][a-zA-Z0-9\-]*(\.[a-zA-Z0-9][a-zA-Z0-9\-]*)*$"),
+
+            // Port numbers (used for LocalPort, RemotePort, etc.)
+            ["LocalPort"] = CompilePattern(@"^\d{1,5}$"),
+            ["RemotePort"] = CompilePattern(@"^\d{1,5}$"),
+            ["Port"] = CompilePattern(@"^\d{1,5}$"),
+        }.ToFrozenDictionary();
+
+    /// <summary>
+    /// Pattern names that require additional DNS validation (consecutive dots/hyphens,
+    /// label lengths, total FQDN length).
+    /// </summary>
+    private static readonly FrozenSet<string> DnsValidatedPatterns =
+        new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "SshGateway",
+            "Hostname",
+            "Address"
+        }.ToFrozenSet(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Compiled regex for detecting invalid DNS sequences.
+    /// </summary>
+    private static readonly Regex InvalidDnsSequence =
+        new(@"(\.\.|--|\.-|-\.)", RegexOptions.Compiled);
+
+    /// <summary>
+    /// Validate a value against a named security pattern.
+    /// </summary>
+    /// <param name="value">The value to validate.</param>
+    /// <param name="patternName">
+    /// Name of the pattern: SshGateway, SshUser, Username, Hostname, IPv4, Address,
+    /// TunnelTarget, LocalPort, RemotePort, Port.
+    /// </param>
+    /// <returns>True if the value passes validation; false otherwise.</returns>
+    public static bool Validate(string? value, string patternName)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return false;
+
+        var trimmed = value.Trim();
+
+        if (!ValidationPatterns.TryGetValue(patternName, out var regex))
+            return false;
+
+        if (!regex.IsMatch(trimmed))
+            return false;
+
+        // Additional DNS validation for hostname-type patterns
+        if (DnsValidatedPatterns.Contains(patternName))
+        {
+            if (!ValidateDns(trimmed))
+                return false;
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Validate that a port number is in the valid TCP/UDP range (1-65535).
+    /// </summary>
+    /// <param name="port">The port number to validate.</param>
+    /// <returns>True if the port is valid.</returns>
+    public static bool ValidatePortRange(int port)
+    {
+        return port >= MinPort && port <= MaxPort;
+    }
+
+    /// <summary>
+    /// Get the regex pattern string for a named validation pattern.
+    /// </summary>
+    /// <param name="patternName">Name of the pattern.</param>
+    /// <returns>The regex pattern string, or null if the pattern name is unknown.</returns>
+    public static string? GetPattern(string patternName)
+    {
+        return ValidationPatterns.TryGetValue(patternName, out var regex)
+            ? regex.ToString()
+            : null;
+    }
+
+    /// <summary>
+    /// Get all available pattern names.
+    /// </summary>
+    /// <returns>An enumerable of pattern names.</returns>
+    public static IEnumerable<string> GetPatternNames()
+    {
+        return ValidationPatterns.Keys;
+    }
+
+    /// <summary>
+    /// Additional DNS validation that the base regex patterns cannot express cleanly:
+    /// consecutive dots/hyphens, label length limits, total FQDN length.
+    /// </summary>
+    private static bool ValidateDns(string value)
+    {
+        // Check total length (max 255 for FQDN)
+        if (value.Length > MaxFqdnLength)
+            return false;
+
+        // Check for consecutive dots or hyphens (invalid DNS)
+        if (InvalidDnsSequence.IsMatch(value))
+            return false;
+
+        // Check individual label lengths and edge constraints
+        var labels = value.Split('.');
+        foreach (var label in labels)
+        {
+            if (label.Length > MaxDnsLabelLength)
+                return false;
+
+            // Labels cannot start or end with a hyphen
+            if (label.StartsWith('-') || label.EndsWith('-'))
+                return false;
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Compile a regex pattern with timeout protection against ReDoS.
+    /// </summary>
+    private static Regex CompilePattern(string pattern)
+    {
+        return new Regex(pattern, RegexOptions.Compiled, TimeSpan.FromMilliseconds(250));
+    }
+}
