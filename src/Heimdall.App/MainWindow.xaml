@@ -77,244 +77,299 @@
 
         <!-- MAIN CONTENT -->
         <Grid Grid.Row="1">
-            <Grid.ColumnDefinitions>
-                <!-- Sidebar -->
-                <ColumnDefinition Width="240" MinWidth="160" MaxWidth="400"/>
-                <!-- Splitter -->
-                <ColumnDefinition Width="Auto"/>
-                <!-- Content -->
-                <ColumnDefinition Width="*"/>
-            </Grid.ColumnDefinitions>
 
-            <!-- SIDEBAR: Projects, groups, filters -->
-            <Border Grid.Column="0"
-                    Background="{DynamicResource SurfaceBrush}">
-                <ScrollViewer VerticalScrollBarVisibility="Auto">
-                    <StackPanel Margin="8">
-                        <!-- Projects section -->
-                        <TextBlock Text="PROJECTS"
-                                   FontSize="11" FontWeight="SemiBold"
-                                   Foreground="{DynamicResource TextSecondaryBrush}"
-                                   Margin="0,8,0,4"/>
-                        <ItemsControl x:Name="ProjectList">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <Border Padding="8,4" Cursor="Hand" Margin="0,1">
-                                        <TextBlock Text="{Binding Name}"
-                                                   Foreground="{DynamicResource TextPrimaryBrush}"
-                                                   FontSize="12"/>
-                                    </Border>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
+            <!-- ============================================================ -->
+            <!-- SERVERS TAB: TreeView left panel + detail/sessions right      -->
+            <!-- ============================================================ -->
+            <Grid Visibility="{Binding IsServersTabSelected, Converter={StaticResource BoolToVisibilityConverter}}">
+                <Grid.ColumnDefinitions>
+                    <!-- Left: TreeView panel -->
+                    <ColumnDefinition Width="260" MinWidth="180" MaxWidth="420"/>
+                    <!-- Splitter -->
+                    <ColumnDefinition Width="Auto"/>
+                    <!-- Right: Detail / session content -->
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
 
-                        <!-- Groups section -->
-                        <TextBlock Text="GROUPS"
-                                   FontSize="11" FontWeight="SemiBold"
-                                   Foreground="{DynamicResource TextSecondaryBrush}"
-                                   Margin="0,16,0,4"/>
-                        <TreeView x:Name="GroupTree"
+                <!-- LEFT PANEL: TreeView with filter -->
+                <Border Grid.Column="0"
+                        Background="{DynamicResource SurfaceBrush}"
+                        BorderThickness="0,0,1,0"
+                        BorderBrush="{DynamicResource BorderBrush}">
+                    <DockPanel>
+                        <!-- Filter box at top of TreeView -->
+                        <TextBox DockPanel.Dock="Top"
+                                 Text="{Binding ServerList.SearchText, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{DynamicResource SearchTextBoxStyle}"
+                                 Tag="Filter servers..."
+                                 Margin="8,8,8,4"/>
+
+                        <!-- Hierarchical TreeView -->
+                        <TreeView x:Name="ServerTreeView"
+                                  ItemsSource="{Binding ServerList.GroupedServers}"
                                   Style="{DynamicResource ThemedTreeViewStyle}"
-                                  ItemContainerStyle="{DynamicResource ThemedTreeViewItemStyle}"/>
-
-                        <!-- Connection type filters -->
-                        <TextBlock Text="TYPE"
-                                   FontSize="11" FontWeight="SemiBold"
-                                   Foreground="{DynamicResource TextSecondaryBrush}"
-                                   Margin="0,16,0,4"/>
-                        <StackPanel Margin="0,2">
-                            <CheckBox Content="RDP" IsChecked="True" Margin="8,2"
-                                      Foreground="{DynamicResource TextPrimaryBrush}"/>
-                            <CheckBox Content="SSH" IsChecked="True" Margin="8,2"
-                                      Foreground="{DynamicResource TextPrimaryBrush}"/>
-                            <CheckBox Content="SFTP" IsChecked="True" Margin="8,2"
-                                      Foreground="{DynamicResource TextPrimaryBrush}"/>
-                        </StackPanel>
-                    </StackPanel>
-                </ScrollViewer>
-            </Border>
-
-            <!-- SPLITTER -->
-            <GridSplitter Grid.Column="1"
-                          Width="3"
-                          HorizontalAlignment="Center"
-                          VerticalAlignment="Stretch"
-                          Background="{DynamicResource BorderBrush}"
-                          ShowsPreview="True"/>
-
-            <!-- CONTENT AREA -->
-            <Grid Grid.Column="2">
-
-                <!-- Servers view -->
-                <Grid Visibility="{Binding IsServersTabSelected, Converter={StaticResource BoolToVisibilityConverter}}">
-                    <DataGrid x:Name="ServerGrid"
-                              ItemsSource="{Binding ServerList.Servers}"
-                              SelectedItem="{Binding ServerList.SelectedServer}"
-                              AutoGenerateColumns="False"
-                              IsReadOnly="True"
-                              SelectionMode="Single"
-                              Style="{DynamicResource ThemedDataGridStyle}"
-                              ColumnHeaderStyle="{DynamicResource ThemedDataGridColumnHeaderStyle}"
-                              CellStyle="{DynamicResource ThemedDataGridCellStyle}"
-                              RowStyle="{DynamicResource ThemedDataGridRowStyle}"
-                              MouseDoubleClick="OnServerDoubleClick">
-                        <DataGrid.ContextMenu>
-                            <ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
-                                <MenuItem Header="Connect"
-                                          Command="{Binding ServerList.ConnectCommand}"
-                                          CommandParameter="{Binding ServerList.SelectedServer}"/>
-                                <MenuItem Header="Edit"
-                                          Command="{Binding ServerList.EditServerCommand}"
-                                          CommandParameter="{Binding ServerList.SelectedServer}"/>
-                                <MenuItem Header="Duplicate"
-                                          Command="{Binding ServerList.DuplicateServerCommand}"
-                                          CommandParameter="{Binding ServerList.SelectedServer}"/>
-                                <Separator/>
-                                <MenuItem Header="Delete"
-                                          Command="{Binding ServerList.DeleteServerCommand}"
-                                          CommandParameter="{Binding ServerList.SelectedServer}"/>
-                            </ContextMenu>
-                        </DataGrid.ContextMenu>
-                        <DataGrid.Columns>
-                            <DataGridTextColumn Header="Name" Binding="{Binding DisplayName}" Width="*"/>
-                            <DataGridTextColumn Header="Server" Binding="{Binding RemoteServer}" Width="*"/>
-                            <DataGridTemplateColumn Header="Type" Width="80">
-                                <DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <Border CornerRadius="3"
-                                                Padding="6,2"
-                                                HorizontalAlignment="Left"
-                                                Background="{Binding ConnectionType,
-                                                    Converter={StaticResource ConnectionTypeToBrushConverter},
-                                                    FallbackValue={StaticResource InfoBrush}}">
-                                            <TextBlock Text="{Binding ConnectionType}"
+                                  Padding="0,4,0,0"
+                                  SelectedItemChanged="OnTreeViewSelectedItemChanged"
+                                  MouseDoubleClick="OnTreeViewDoubleClick"
+                                  VirtualizingPanel.IsVirtualizing="True">
+                            <TreeView.Resources>
+                                <!-- Group node template -->
+                                <HierarchicalDataTemplate DataType="{x:Type vm:ServerGroupViewModel}"
+                                                          ItemsSource="{Binding Servers}">
+                                    <StackPanel Orientation="Horizontal" Margin="0,2">
+                                        <TextBlock Text="{Binding GroupName}"
+                                                   FontWeight="SemiBold" FontSize="12"
+                                                   Foreground="{DynamicResource TextPrimaryBrush}"/>
+                                        <Border CornerRadius="7" MinWidth="18" Height="14"
+                                                Padding="4,0" Margin="6,0,0,0"
+                                                Background="{DynamicResource CardBrush}"
+                                                VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding ServerCount}"
                                                        FontSize="10" FontWeight="SemiBold"
+                                                       Foreground="{DynamicResource TextSecondaryBrush}"
+                                                       HorizontalAlignment="Center"
+                                                       VerticalAlignment="Center"/>
+                                        </Border>
+                                    </StackPanel>
+                                </HierarchicalDataTemplate>
+
+                                <!-- Server leaf node template -->
+                                <DataTemplate DataType="{x:Type vm:ServerItemViewModel}">
+                                    <StackPanel Orientation="Horizontal" Margin="0,2">
+                                        <!-- Connection type badge -->
+                                        <Border CornerRadius="2" Padding="4,1" Margin="0,0,6,0"
+                                                Background="{Binding ConnectionType,
+                                                    Converter={StaticResource ConnectionTypeToBrushConverter}}">
+                                            <TextBlock Text="{Binding ConnectionType}"
+                                                       FontSize="9" FontWeight="Bold"
                                                        Foreground="White"/>
                                         </Border>
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellTemplate>
-                            </DataGridTemplateColumn>
-                            <DataGridTextColumn Header="Group" Binding="{Binding Group}" Width="120"/>
-                            <DataGridTemplateColumn Header="Status" Width="100">
-                                <DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <StackPanel Orientation="Horizontal">
-                                            <Ellipse Width="8" Height="8" Margin="0,0,6,0"
-                                                     Fill="{Binding ConnectionState,
-                                                         Converter={StaticResource ConnectionStateToBrushConverter},
-                                                         FallbackValue={StaticResource TextSecondaryBrush}}"/>
-                                            <TextBlock Text="{Binding ConnectionState}"
-                                                       Foreground="{DynamicResource TextSecondaryBrush}"
-                                                       FontSize="11"/>
-                                        </StackPanel>
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellTemplate>
-                            </DataGridTemplateColumn>
-                        </DataGrid.Columns>
-                    </DataGrid>
+                                        <!-- Server display name -->
+                                        <TextBlock Text="{Binding DisplayName}"
+                                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                                   VerticalAlignment="Center"/>
+                                        <!-- Connection status indicator -->
+                                        <Ellipse Width="6" Height="6" Margin="6,0,0,0"
+                                                 VerticalAlignment="Center"
+                                                 Fill="{Binding ConnectionState,
+                                                     Converter={StaticResource ConnectionStateToBrushConverter}}"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </TreeView.Resources>
 
-                    <!-- Empty state overlay -->
-                    <StackPanel Visibility="{Binding ServerList.IsEmpty, Converter={StaticResource BoolToVisibilityConverter}}"
+                            <!-- TreeViewItem container style: groups expanded by default -->
+                            <TreeView.ItemContainerStyle>
+                                <Style TargetType="TreeViewItem"
+                                       BasedOn="{StaticResource ThemedTreeViewItemStyle}">
+                                    <Setter Property="IsExpanded" Value="True"/>
+                                </Style>
+                            </TreeView.ItemContainerStyle>
+
+                            <!-- Context menu for server items -->
+                            <TreeView.ContextMenu>
+                                <ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
+                                    <MenuItem Header="Connect"
+                                              Command="{Binding ServerList.ConnectCommand}"
+                                              CommandParameter="{Binding ServerList.SelectedServer}"/>
+                                    <MenuItem Header="Edit"
+                                              Command="{Binding ServerList.EditServerCommand}"
+                                              CommandParameter="{Binding ServerList.SelectedServer}"/>
+                                    <MenuItem Header="Duplicate"
+                                              Command="{Binding ServerList.DuplicateServerCommand}"
+                                              CommandParameter="{Binding ServerList.SelectedServer}"/>
+                                    <Separator/>
+                                    <MenuItem Header="Delete"
+                                              Command="{Binding ServerList.DeleteServerCommand}"
+                                              CommandParameter="{Binding ServerList.SelectedServer}"/>
+                                </ContextMenu>
+                            </TreeView.ContextMenu>
+                        </TreeView>
+                    </DockPanel>
+                </Border>
+
+                <!-- SPLITTER -->
+                <GridSplitter Grid.Column="1"
+                              Width="3"
+                              HorizontalAlignment="Center"
+                              VerticalAlignment="Stretch"
+                              Background="{DynamicResource BorderBrush}"
+                              ShowsPreview="True"/>
+
+                <!-- RIGHT PANEL: Detail view / sessions -->
+                <Grid Grid.Column="2">
+                    <!-- Server detail panel (shown when a server is selected) -->
+                    <Border Visibility="{Binding ServerList.HasSelection, Converter={StaticResource BoolToVisibilityConverter}}"
+                            Padding="24">
+                        <StackPanel VerticalAlignment="Top">
+                            <TextBlock Text="{Binding ServerList.SelectedServer.DisplayName}"
+                                       FontSize="20" FontWeight="Bold"
+                                       Foreground="{DynamicResource TextPrimaryBrush}"/>
+
+                            <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                                <Border CornerRadius="3" Padding="6,2" Margin="0,0,8,0"
+                                        Background="{Binding ServerList.SelectedServer.ConnectionType,
+                                            Converter={StaticResource ConnectionTypeToBrushConverter}}">
+                                    <TextBlock Text="{Binding ServerList.SelectedServer.ConnectionType}"
+                                               FontSize="10" FontWeight="SemiBold"
+                                               Foreground="White"/>
+                                </Border>
+                                <Ellipse Width="8" Height="8" Margin="0,0,6,0"
+                                         VerticalAlignment="Center"
+                                         Fill="{Binding ServerList.SelectedServer.ConnectionState,
+                                             Converter={StaticResource ConnectionStateToBrushConverter}}"/>
+                                <TextBlock Text="{Binding ServerList.SelectedServer.ConnectionState}"
+                                           FontSize="11"
+                                           Foreground="{DynamicResource TextSecondaryBrush}"
+                                           VerticalAlignment="Center"/>
+                            </StackPanel>
+
+                            <TextBlock Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,12,0,0"
+                                       FontSize="13">
+                                <Run Text="{Binding ServerList.SelectedServer.RemoteServer, Mode=OneWay}"/>
+                                <Run Text=" : "/>
+                                <Run Text="{Binding ServerList.SelectedServer.RemotePort, Mode=OneWay}"/>
+                            </TextBlock>
+
+                            <TextBlock Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,4,0,0"
+                                       FontSize="12"
+                                       Visibility="{Binding ServerList.SelectedServer.Group, Converter={StaticResource NullToVisibilityConverter}}">
+                                <Run Text="Group: "/>
+                                <Run Text="{Binding ServerList.SelectedServer.Group, Mode=OneWay}"/>
+                            </TextBlock>
+
+                            <TextBlock Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,4,0,0"
+                                       FontSize="12"
+                                       Visibility="{Binding ServerList.SelectedServer.Environment, Converter={StaticResource NullToVisibilityConverter}}">
+                                <Run Text="Environment: "/>
+                                <Run Text="{Binding ServerList.SelectedServer.Environment, Mode=OneWay}"/>
+                            </TextBlock>
+
+                            <Button Content="Connect"
+                                    Command="{Binding ServerList.ConnectCommand}"
+                                    CommandParameter="{Binding ServerList.SelectedServer}"
+                                    Style="{DynamicResource PrimaryButtonStyle}"
+                                    Width="120" HorizontalAlignment="Left"
+                                    Margin="0,20,0,0"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Empty state when nothing selected -->
+                    <StackPanel Visibility="{Binding ServerList.HasSelection, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=Invert}"
                                 VerticalAlignment="Center" HorizontalAlignment="Center"
                                 IsHitTestVisible="True">
-                        <TextBlock Text="No servers configured" FontSize="18"
-                                   Foreground="{DynamicResource TextSecondaryBrush}"
-                                   HorizontalAlignment="Center"/>
-                        <TextBlock Text="Click '+ Add' or press Ctrl+N to add your first server"
-                                   Foreground="{DynamicResource TextSecondaryBrush}"
-                                   HorizontalAlignment="Center" Margin="0,8,0,16"/>
-                        <Button Content="+ Add Server"
-                                Command="{Binding ServerList.AddServerCommand}"
-                                Style="{DynamicResource PrimaryButtonStyle}"
-                                HorizontalAlignment="Center"/>
+                        <!-- Show empty state overlay when no servers exist -->
+                        <StackPanel Visibility="{Binding ServerList.IsEmpty, Converter={StaticResource BoolToVisibilityConverter}}">
+                            <TextBlock Text="No servers configured" FontSize="18"
+                                       Foreground="{DynamicResource TextSecondaryBrush}"
+                                       HorizontalAlignment="Center"/>
+                            <TextBlock Text="Click '+ Add' or press Ctrl+N to add your first server"
+                                       Foreground="{DynamicResource TextSecondaryBrush}"
+                                       HorizontalAlignment="Center" Margin="0,8,0,16"/>
+                            <Button Content="+ Add Server"
+                                    Command="{Binding ServerList.AddServerCommand}"
+                                    Style="{DynamicResource PrimaryButtonStyle}"
+                                    HorizontalAlignment="Center"/>
+                        </StackPanel>
+
+                        <!-- Show hint when servers exist but none selected -->
+                        <TextBlock Text="Select a server to view details"
+                                   Visibility="{Binding ServerList.IsEmpty, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=Invert}"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center"
+                                   Foreground="{DynamicResource TextSecondaryBrush}" FontSize="14"/>
                     </StackPanel>
                 </Grid>
-
-                <!-- Tunnels view -->
-                <DataGrid Visibility="{Binding IsTunnelsTabSelected, Converter={StaticResource BoolToVisibilityConverter}}"
-                          ItemsSource="{Binding TunnelList}"
-                          AutoGenerateColumns="False"
-                          IsReadOnly="True"
-                          SelectionMode="Single"
-                          Style="{DynamicResource ThemedDataGridStyle}"
-                          ColumnHeaderStyle="{DynamicResource ThemedDataGridColumnHeaderStyle}"
-                          CellStyle="{DynamicResource ThemedDataGridCellStyle}"
-                          RowStyle="{DynamicResource ThemedDataGridRowStyle}">
-                    <DataGrid.Columns>
-                        <DataGridTextColumn Header="Server" Binding="{Binding ServerName}" Width="*"/>
-                        <DataGridTextColumn Header="Local Port" Binding="{Binding LocalPort}" Width="100"/>
-                        <DataGridTextColumn Header="Remote" Binding="{Binding RemoteHost}" Width="*"/>
-                        <DataGridTextColumn Header="Remote Port" Binding="{Binding RemotePort}" Width="100"/>
-                        <DataGridTextColumn Header="Started" Binding="{Binding StartedAt, StringFormat=HH:mm:ss}" Width="100"/>
-                    </DataGrid.Columns>
-                </DataGrid>
-
-                <!-- Scheduled view -->
-                <StackPanel Visibility="{Binding IsScheduledTabSelected, Converter={StaticResource BoolToVisibilityConverter}}"
-                            VerticalAlignment="Center" HorizontalAlignment="Center">
-                    <TextBlock Text="Scheduled connections"
-                               FontSize="18" FontWeight="SemiBold"
-                               Foreground="{DynamicResource TextSecondaryBrush}"
-                               HorizontalAlignment="Center" Margin="0,0,0,8"/>
-                    <TextBlock Text="No scheduled tasks configured."
-                               FontSize="13"
-                               Foreground="{DynamicResource TextSecondaryBrush}"
-                               HorizontalAlignment="Center"/>
-                </StackPanel>
-
-                <!-- Settings view -->
-                <ScrollViewer Visibility="{Binding IsSettingsTabSelected, Converter={StaticResource BoolToVisibilityConverter}}"
-                              VerticalScrollBarVisibility="Auto">
-                    <StackPanel Margin="24" MaxWidth="600" HorizontalAlignment="Left">
-                        <TextBlock Text="General" FontSize="16" FontWeight="SemiBold"
-                                   Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,12"/>
-
-                        <TextBlock Text="Language" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,4"/>
-                        <ComboBox SelectedValue="{Binding Settings.DefaultLocale}"
-                                  SelectedValuePath="Content" Width="200" HorizontalAlignment="Left">
-                            <ComboBoxItem Content="en"/>
-                            <ComboBoxItem Content="fr"/>
-                        </ComboBox>
-
-                        <TextBlock Text="Theme" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,12,0,4"/>
-                        <ComboBox SelectedValue="{Binding Settings.DefaultTheme}"
-                                  SelectedValuePath="Content" Width="200" HorizontalAlignment="Left">
-                            <ComboBoxItem Content="Dark"/>
-                            <ComboBoxItem Content="Light"/>
-                        </ComboBox>
-
-                        <TextBlock Text="Connections" FontSize="16" FontWeight="SemiBold"
-                                   Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,24,0,12"/>
-
-                        <TextBlock Text="PuTTY/Plink Path" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,4"/>
-                        <TextBox Text="{Binding Settings.PlinkPath}" Width="400" HorizontalAlignment="Left"/>
-
-                        <TextBlock Text="External Editor Path" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,12,0,4"/>
-                        <TextBox Text="{Binding Settings.ExternalEditorPath}" Width="400" HorizontalAlignment="Left"/>
-
-                        <CheckBox Content="Enable logging" IsChecked="{Binding Settings.EnableLogging}" Margin="0,12,0,0"
-                                  Foreground="{DynamicResource TextPrimaryBrush}"/>
-
-                        <CheckBox Content="Auto-open SFTP on SSH" IsChecked="{Binding Settings.SftpAutoOpenOnSsh}" Margin="0,8,0,0"
-                                  Foreground="{DynamicResource TextPrimaryBrush}"/>
-
-                        <TextBlock Text="Anti-idle interval (seconds)" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,12,0,4"/>
-                        <TextBox Text="{Binding Settings.AntiIdleInterval}" Width="100" HorizontalAlignment="Left"/>
-
-                        <TextBlock Text="Max embedded sessions" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,12,0,4"/>
-                        <TextBox Text="{Binding Settings.MaxEmbeddedSessions}" Width="100" HorizontalAlignment="Left"/>
-
-                        <StackPanel Orientation="Horizontal" Margin="0,24,0,0">
-                            <Button Content="Save Settings" Command="{Binding Settings.SaveCommand}"
-                                    Style="{DynamicResource PrimaryButtonStyle}"
-                                    Width="120" Margin="0,0,8,0"/>
-                            <Button Content="Reset Defaults" Command="{Binding Settings.ResetToDefaultsCommand}"
-                                    Style="{DynamicResource SecondaryButtonStyle}"
-                                    Width="120"/>
-                        </StackPanel>
-                    </StackPanel>
-                </ScrollViewer>
             </Grid>
+
+            <!-- ============================================================ -->
+            <!-- TUNNELS TAB: Full-width DataGrid                              -->
+            <!-- ============================================================ -->
+            <DataGrid Visibility="{Binding IsTunnelsTabSelected, Converter={StaticResource BoolToVisibilityConverter}}"
+                      ItemsSource="{Binding TunnelList}"
+                      AutoGenerateColumns="False"
+                      IsReadOnly="True"
+                      SelectionMode="Single"
+                      Style="{DynamicResource ThemedDataGridStyle}"
+                      ColumnHeaderStyle="{DynamicResource ThemedDataGridColumnHeaderStyle}"
+                      CellStyle="{DynamicResource ThemedDataGridCellStyle}"
+                      RowStyle="{DynamicResource ThemedDataGridRowStyle}">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Server" Binding="{Binding ServerName}" Width="*"/>
+                    <DataGridTextColumn Header="Local Port" Binding="{Binding LocalPort}" Width="100"/>
+                    <DataGridTextColumn Header="Remote" Binding="{Binding RemoteHost}" Width="*"/>
+                    <DataGridTextColumn Header="Remote Port" Binding="{Binding RemotePort}" Width="100"/>
+                    <DataGridTextColumn Header="Started" Binding="{Binding StartedAt, StringFormat=HH:mm:ss}" Width="100"/>
+                </DataGrid.Columns>
+            </DataGrid>
+
+            <!-- ============================================================ -->
+            <!-- SCHEDULED TAB: Placeholder                                    -->
+            <!-- ============================================================ -->
+            <StackPanel Visibility="{Binding IsScheduledTabSelected, Converter={StaticResource BoolToVisibilityConverter}}"
+                        VerticalAlignment="Center" HorizontalAlignment="Center">
+                <TextBlock Text="Scheduled connections"
+                           FontSize="18" FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextSecondaryBrush}"
+                           HorizontalAlignment="Center" Margin="0,0,0,8"/>
+                <TextBlock Text="No scheduled tasks configured."
+                           FontSize="13"
+                           Foreground="{DynamicResource TextSecondaryBrush}"
+                           HorizontalAlignment="Center"/>
+            </StackPanel>
+
+            <!-- ============================================================ -->
+            <!-- SETTINGS TAB: Full-width form                                 -->
+            <!-- ============================================================ -->
+            <ScrollViewer Visibility="{Binding IsSettingsTabSelected, Converter={StaticResource BoolToVisibilityConverter}}"
+                          VerticalScrollBarVisibility="Auto">
+                <StackPanel Margin="24" MaxWidth="600" HorizontalAlignment="Left">
+                    <TextBlock Text="General" FontSize="16" FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,12"/>
+
+                    <TextBlock Text="Language" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,4"/>
+                    <ComboBox SelectedValue="{Binding Settings.DefaultLocale}"
+                              SelectedValuePath="Content" Width="200" HorizontalAlignment="Left">
+                        <ComboBoxItem Content="en"/>
+                        <ComboBoxItem Content="fr"/>
+                    </ComboBox>
+
+                    <TextBlock Text="Theme" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,12,0,4"/>
+                    <ComboBox SelectedValue="{Binding Settings.DefaultTheme}"
+                              SelectedValuePath="Content" Width="200" HorizontalAlignment="Left">
+                        <ComboBoxItem Content="Dark"/>
+                        <ComboBoxItem Content="Light"/>
+                    </ComboBox>
+
+                    <TextBlock Text="Connections" FontSize="16" FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,24,0,12"/>
+
+                    <TextBlock Text="PuTTY/Plink Path" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,4"/>
+                    <TextBox Text="{Binding Settings.PlinkPath}" Width="400" HorizontalAlignment="Left"/>
+
+                    <TextBlock Text="External Editor Path" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,12,0,4"/>
+                    <TextBox Text="{Binding Settings.ExternalEditorPath}" Width="400" HorizontalAlignment="Left"/>
+
+                    <CheckBox Content="Enable logging" IsChecked="{Binding Settings.EnableLogging}" Margin="0,12,0,0"
+                              Foreground="{DynamicResource TextPrimaryBrush}"/>
+
+                    <CheckBox Content="Auto-open SFTP on SSH" IsChecked="{Binding Settings.SftpAutoOpenOnSsh}" Margin="0,8,0,0"
+                              Foreground="{DynamicResource TextPrimaryBrush}"/>
+
+                    <TextBlock Text="Anti-idle interval (seconds)" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,12,0,4"/>
+                    <TextBox Text="{Binding Settings.AntiIdleInterval}" Width="100" HorizontalAlignment="Left"/>
+
+                    <TextBlock Text="Max embedded sessions" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,12,0,4"/>
+                    <TextBox Text="{Binding Settings.MaxEmbeddedSessions}" Width="100" HorizontalAlignment="Left"/>
+
+                    <StackPanel Orientation="Horizontal" Margin="0,24,0,0">
+                        <Button Content="Save Settings" Command="{Binding Settings.SaveCommand}"
+                                Style="{DynamicResource PrimaryButtonStyle}"
+                                Width="120" Margin="0,0,8,0"/>
+                        <Button Content="Reset Defaults" Command="{Binding Settings.ResetToDefaultsCommand}"
+                                Style="{DynamicResource SecondaryButtonStyle}"
+                                Width="120"/>
+                    </StackPanel>
+                </StackPanel>
+            </ScrollViewer>
         </Grid>
 
         <!-- STATUS BAR -->

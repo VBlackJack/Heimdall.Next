@@ -22,7 +22,7 @@ namespace Heimdall.App;
 
 /// <summary>
 /// Main application window. All logic lives in <see cref="MainViewModel"/>.
-/// Code-behind is limited to keyboard shortcut routing, double-click, and window lifecycle.
+/// Code-behind is limited to keyboard shortcut routing, TreeView interaction, and window lifecycle.
 /// </summary>
 public partial class MainWindow : Window
 {
@@ -92,17 +92,38 @@ public partial class MainWindow : Window
     }
 
     /// <summary>
-    /// Handles double-click on a server row to initiate a connection.
-    /// Ensures the click target is a DataGrid row (not a header or empty area).
+    /// Handles TreeView selection changes. Only updates the ViewModel when a
+    /// server item (leaf node) is selected, ignoring group node selections.
     /// </summary>
-    private void OnServerDoubleClick(object sender, MouseButtonEventArgs e)
+    private void OnTreeViewSelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
     {
         if (DataContext is not MainViewModel vm)
         {
             return;
         }
 
-        // Only connect if a row is selected (ignore header/empty clicks)
+        if (e.NewValue is ServerItemViewModel server)
+        {
+            vm.ServerList.SelectedServer = server;
+        }
+        else
+        {
+            // Group node selected or nothing selected; clear server selection
+            vm.ServerList.SelectedServer = null;
+        }
+    }
+
+    /// <summary>
+    /// Handles double-click on a server item in the TreeView to initiate a connection.
+    /// Ensures only server leaf nodes trigger a connection (not group headers).
+    /// </summary>
+    private void OnTreeViewDoubleClick(object sender, MouseButtonEventArgs e)
+    {
+        if (DataContext is not MainViewModel vm)
+        {
+            return;
+        }
+
         if (vm.ServerList.SelectedServer is not null &&
             vm.ServerList.ConnectCommand.CanExecute(vm.ServerList.SelectedServer))
         {

@@ -44,6 +44,9 @@ public partial class ServerListViewModel : ObservableObject
     private ObservableCollection<ServerItemViewModel> _servers = [];
 
     [ObservableProperty]
+    private ObservableCollection<ServerGroupViewModel> _groupedServers = [];
+
+    [ObservableProperty]
     private ObservableCollection<string> _projects = [];
 
     [ObservableProperty]
@@ -56,6 +59,7 @@ public partial class ServerListViewModel : ObservableObject
     private string _selectedProject = "";
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasSelection))]
     private ServerItemViewModel? _selectedServer;
 
     [ObservableProperty]
@@ -65,6 +69,11 @@ public partial class ServerListViewModel : ObservableObject
     /// True when the server list contains no entries, used to show the empty state overlay.
     /// </summary>
     public bool IsEmpty => Servers.Count == 0;
+
+    /// <summary>
+    /// True when a server is selected in the TreeView, used to toggle the detail panel.
+    /// </summary>
+    public bool HasSelection => SelectedServer is not null;
 
     /// <summary>
     /// Raised when a connection result is ready and a session tab should be created.
@@ -409,8 +418,37 @@ public partial class ServerListViewModel : ObservableObject
                 string.Equals(s.ProjectName, SelectedProject, StringComparison.OrdinalIgnoreCase));
         }
 
-        Servers = new ObservableCollection<ServerItemViewModel>(
-            filtered.OrderBy(s => s.SortOrder).ThenBy(s => s.DisplayName, StringComparer.OrdinalIgnoreCase));
+        var filteredList = filtered
+            .OrderBy(s => s.SortOrder)
+            .ThenBy(s => s.DisplayName, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        Servers = new ObservableCollection<ServerItemViewModel>(filteredList);
+        RebuildGroupedView(filteredList);
+    }
+
+    /// <summary>
+    /// Rebuilds the hierarchical grouped view from the filtered server list.
+    /// Groups servers by their Group property and sorts alphabetically.
+    /// </summary>
+    private void RebuildGroupedView(List<ServerItemViewModel> filteredServers)
+    {
+        var ungroupedLabel = "Ungrouped";
+
+        var groups = filteredServers
+            .GroupBy(s => string.IsNullOrWhiteSpace(s.Group) ? ungroupedLabel : s.Group,
+                     StringComparer.OrdinalIgnoreCase)
+            .OrderBy(g => string.Equals(g.Key, ungroupedLabel, StringComparison.Ordinal) ? 1 : 0)
+            .ThenBy(g => g.Key, StringComparer.OrdinalIgnoreCase)
+            .Select(g => new ServerGroupViewModel
+            {
+                GroupName = g.Key,
+                Servers = new ObservableCollection<ServerItemViewModel>(
+                    g.OrderBy(s => s.SortOrder).ThenBy(s => s.DisplayName, StringComparer.OrdinalIgnoreCase))
+            })
+            .ToList();
+
+        GroupedServers = new ObservableCollection<ServerGroupViewModel>(groups);
     }
 
     private void OnConnectionStateChanged(
