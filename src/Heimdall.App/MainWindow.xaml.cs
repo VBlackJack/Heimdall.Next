@@ -522,6 +522,10 @@ public partial class MainWindow : Window
             WindowStyle = WindowStyle.None;
             WindowState = WindowState.Maximized;
             FullscreenBar.Visibility = Visibility.Visible;
+
+            // Compact session tabs in fullscreen
+            SessionTabControl.Padding = new Thickness(0);
+            SessionTabControl.Margin = new Thickness(0);
         }
     }
 
