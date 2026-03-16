@@ -34,6 +34,13 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
+    <AssemblyName>Heimdall.Next</AssemblyName>
+    <RootNamespace>Heimdall.App</RootNamespace>
+    <Version>2026.031601</Version>
+    <Authors>Julien Bombled</Authors>
+    <Product>Heimdall.Next</Product>
+    <Description>Secure Connection Manager — RDP, SSH, SFTP</Description>
+    <Copyright>Copyright 2026 Julien Bombled</Copyright>
   </PropertyGroup>
 
 </Project>
