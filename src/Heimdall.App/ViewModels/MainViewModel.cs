@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Heimdall.Core.Configuration;
@@ -54,6 +55,36 @@ public partial class MainViewModel : ObservableObject
 
     [ObservableProperty]
     private string _selectedTab = "Servers";
+
+    /// <summary>Active tunnel snapshots for the Tunnels tab.</summary>
+    [ObservableProperty]
+    private ObservableCollection<TunnelInfo> _tunnelList = [];
+
+    /// <summary>True when the Servers tab is selected.</summary>
+    public bool IsServersTabSelected => string.Equals(SelectedTab, "Servers", StringComparison.Ordinal);
+
+    /// <summary>True when the Tunnels tab is selected.</summary>
+    public bool IsTunnelsTabSelected => string.Equals(SelectedTab, "Tunnels", StringComparison.Ordinal);
+
+    /// <summary>True when the Scheduled tab is selected.</summary>
+    public bool IsScheduledTabSelected => string.Equals(SelectedTab, "Scheduled", StringComparison.Ordinal);
+
+    /// <summary>True when the Settings tab is selected.</summary>
+    public bool IsSettingsTabSelected => string.Equals(SelectedTab, "Settings", StringComparison.Ordinal);
+
+    partial void OnSelectedTabChanged(string value)
+    {
+        OnPropertyChanged(nameof(IsServersTabSelected));
+        OnPropertyChanged(nameof(IsTunnelsTabSelected));
+        OnPropertyChanged(nameof(IsScheduledTabSelected));
+        OnPropertyChanged(nameof(IsSettingsTabSelected));
+
+        // Refresh tunnel list when switching to Tunnels tab
+        if (IsTunnelsTabSelected)
+        {
+            RefreshTunnelList();
+        }
+    }
 
     /// <summary>
     /// Child ViewModel for the server list and filtering.
@@ -160,10 +191,18 @@ public partial class MainViewModel : ObservableObject
     private void OnTunnelOpened(TunnelInfo info)
     {
         TunnelCount = _tunnelManager.GetActiveTunnels().Count;
+        RefreshTunnelList();
     }
 
     private void OnTunnelClosed(int localPort, string? error)
     {
         TunnelCount = _tunnelManager.GetActiveTunnels().Count;
+        RefreshTunnelList();
+    }
+
+    private void RefreshTunnelList()
+    {
+        var tunnels = _tunnelManager.GetActiveTunnels();
+        TunnelList = new ObservableCollection<TunnelInfo>(tunnels);
     }
 }

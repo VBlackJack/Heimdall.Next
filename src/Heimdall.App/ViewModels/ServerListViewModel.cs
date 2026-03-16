@@ -40,6 +40,7 @@ public partial class ServerListViewModel : ObservableObject
     private List<ServerItemViewModel> _allServers = [];
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsEmpty))]
     private ObservableCollection<ServerItemViewModel> _servers = [];
 
     [ObservableProperty]
@@ -59,6 +60,11 @@ public partial class ServerListViewModel : ObservableObject
 
     [ObservableProperty]
     private bool _isSidebarVisible = true;
+
+    /// <summary>
+    /// True when the server list contains no entries, used to show the empty state overlay.
+    /// </summary>
+    public bool IsEmpty => Servers.Count == 0;
 
     /// <summary>
     /// Raised when a connection result is ready and a session tab should be created.
@@ -236,6 +242,7 @@ public partial class ServerListViewModel : ObservableObject
         _allServers.Add(newItem);
         ApplyFilter();
         OnPropertyChanged(nameof(Servers));
+        OnPropertyChanged(nameof(IsEmpty));
     }
 
     [RelayCommand]
@@ -322,6 +329,7 @@ public partial class ServerListViewModel : ObservableObject
         _connectionSm.Remove(server.Id);
         ApplyFilter();
         OnPropertyChanged(nameof(Servers));
+        OnPropertyChanged(nameof(IsEmpty));
     }
 
     [RelayCommand]
@@ -363,6 +371,7 @@ public partial class ServerListViewModel : ObservableObject
         _allServers.Add(newItem);
         ApplyFilter();
         OnPropertyChanged(nameof(Servers));
+        OnPropertyChanged(nameof(IsEmpty));
     }
 
     [RelayCommand]
