@@ -239,14 +239,19 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
             var password = TryDecryptPassword(_server);
             var (width, height) = GetDisplayDimensions();
 
+            Core.Logging.FileLogger.Info($"EmbeddedRDP BeginConnect: host={connectHost}:{connectPort} user={username} domain={domain} hasPassword={!string.IsNullOrEmpty(password)} size={width}x{height}");
+
             _rdpHost.SetServer(connectHost, connectPort);
             if (!string.IsNullOrWhiteSpace(username))
             {
                 _rdpHost.SetCredentials(username, password, domain);
+                Core.Logging.FileLogger.Info($"EmbeddedRDP SetCredentials called for user={username}");
             }
 
             _rdpHost.SetDisplay(width, height, NormalizeColorDepth(_server.RdpColorDepth));
             _rdpHost.SetRedirections(BuildRedirections(_server));
+
+            Core.Logging.FileLogger.Info("EmbeddedRDP calling Connect()...");
             _rdpHost.Connect();
 
             UpdateSessionState("Connecting", "Waiting for the Remote Desktop control to connect.");
@@ -264,6 +269,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
 
     private void OnRdpConnected()
     {
+        Core.Logging.FileLogger.Info("EmbeddedRDP OnConnected fired");
         if (_disposed)
         {
             return;
@@ -295,6 +301,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
 
     private void OnRdpDisconnected(int reason)
     {
+        Core.Logging.FileLogger.Info($"EmbeddedRDP OnDisconnected fired: reason={reason}");
         if (_disposed)
         {
             return;
