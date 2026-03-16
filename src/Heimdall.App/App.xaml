@@ -15,6 +15,7 @@
             <converters:ConnectionTypeToBrushConverter x:Key="ConnectionTypeToBrushConverter"/>
             <converters:ConnectionStateToBrushConverter x:Key="ConnectionStateToBrushConverter"/>
             <converters:NullToVisibilityConverter x:Key="NullToVisibilityConverter"/>
+            <converters:ServerStatusToColorConverter x:Key="ServerStatusToColorConverter"/>
 
             <!-- Toolbar navigation tab style (RadioButton as flat tab) -->
             <Style x:Key="ToolbarTabStyle" TargetType="RadioButton">

@@ -139,39 +139,26 @@
                                 <!-- Project node template (top level) -->
                                 <HierarchicalDataTemplate DataType="{x:Type vm:ServerProjectViewModel}"
                                                           ItemsSource="{Binding Groups}">
-                                    <Grid Margin="0,1" ToolTip="{Binding ProjectName}">
+                                    <Grid Margin="0,6,0,0" ToolTip="{Binding ProjectName}">
                                         <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="4"/>
-                                            <ColumnDefinition Width="6"/>
+                                            <ColumnDefinition Width="Auto"/>
                                             <ColumnDefinition Width="*"/>
                                             <ColumnDefinition Width="Auto"/>
                                         </Grid.ColumnDefinitions>
-                                        <Border Grid.Column="0"
-                                                Width="4"
-                                                Height="14"
-                                                CornerRadius="2"
-                                                VerticalAlignment="Center"
-                                                Background="{DynamicResource AccentBrush}"/>
-                                        <TextBlock Grid.Column="2"
-                                                   Text="{Binding ProjectName}"
-                                                   FontWeight="Bold"
-                                                   FontSize="12"
-                                                   TextTrimming="CharacterEllipsis"
+                                        <Border Grid.Column="0" Width="4" Height="16" CornerRadius="2"
+                                                Background="{DynamicResource AccentBrush}" Margin="0,0,8,0"
+                                                VerticalAlignment="Center"/>
+                                        <TextBlock Grid.Column="1" Text="{Binding ProjectName}"
+                                                   FontSize="13" FontWeight="Bold"
                                                    Foreground="{DynamicResource TextPrimaryBrush}"
-                                                   VerticalAlignment="Center"/>
-                                        <Border Grid.Column="3"
-                                                CornerRadius="7"
-                                                MinWidth="18"
-                                                Height="14"
-                                                Padding="4,0"
-                                                Margin="6,0,0,0"
+                                                   VerticalAlignment="Center"
+                                                   TextTrimming="CharacterEllipsis"/>
+                                        <Border Grid.Column="2" Padding="6,1" CornerRadius="8" Margin="6,0,0,0"
                                                 Background="{DynamicResource CardBrush}"
                                                 VerticalAlignment="Center">
-                                            <TextBlock Text="{Binding ServerCount}"
-                                                       FontSize="10" FontWeight="SemiBold"
+                                            <TextBlock Text="{Binding ServerCount}" FontSize="10"
                                                        Foreground="{DynamicResource TextSecondaryBrush}"
-                                                       HorizontalAlignment="Center"
-                                                       VerticalAlignment="Center"/>
+                                                       HorizontalAlignment="Center"/>
                                         </Border>
                                     </Grid>
                                 </HierarchicalDataTemplate>
@@ -179,68 +166,36 @@
                                 <!-- Group node template (mid level) -->
                                 <HierarchicalDataTemplate DataType="{x:Type vm:ServerGroupViewModel}"
                                                           ItemsSource="{Binding Servers}">
-                                    <Grid Margin="0,1" ToolTip="{Binding GroupName}">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="Auto"/>
-                                        </Grid.ColumnDefinitions>
-                                        <TextBlock Grid.Column="0"
-                                                   Text="{Binding GroupName}"
-                                                   FontWeight="SemiBold"
-                                                   FontSize="12"
-                                                   TextTrimming="CharacterEllipsis"
+                                    <StackPanel Orientation="Horizontal" Margin="0,2,0,0"
+                                                ToolTip="{Binding GroupName}">
+                                        <TextBlock Text="{Binding GroupName}" FontSize="12" FontWeight="SemiBold"
                                                    Foreground="{DynamicResource TextPrimaryBrush}"
-                                                   VerticalAlignment="Center"/>
-                                        <Border Grid.Column="1"
-                                                CornerRadius="7"
-                                                MinWidth="18"
-                                                Height="14"
-                                                Padding="4,0"
-                                                Margin="6,0,0,0"
-                                                Background="{DynamicResource CardBrush}"
-                                                VerticalAlignment="Center">
-                                            <TextBlock Text="{Binding ServerCount}"
-                                                       FontSize="10" FontWeight="SemiBold"
-                                                       Foreground="{DynamicResource TextSecondaryBrush}"
-                                                       HorizontalAlignment="Center"
-                                                       VerticalAlignment="Center"/>
-                                        </Border>
-                                    </Grid>
+                                                   VerticalAlignment="Center"
+                                                   TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock Text="{Binding ServerCount}" FontSize="10" Margin="6,0,0,0"
+                                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                                   VerticalAlignment="Center" Opacity="0.7"/>
+                                    </StackPanel>
                                 </HierarchicalDataTemplate>
 
                                 <!-- Server leaf node template -->
                                 <DataTemplate DataType="{x:Type vm:ServerItemViewModel}">
-                                    <Grid Margin="0,1" ToolTip="{Binding DisplayName}">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="Auto"/>
-                                            <ColumnDefinition Width="Auto"/>
-                                            <ColumnDefinition Width="*"/>
-                                        </Grid.ColumnDefinitions>
-                                        <Border Grid.Column="0"
-                                                Width="16"
-                                                Height="16"
-                                                Margin="0,0,4,0"
-                                                CornerRadius="8"
-                                                Background="{Binding ConnectionType, Converter={StaticResource ConnectionTypeToBrushConverter}}"
-                                                VerticalAlignment="Center">
-                                            <TextBlock Text="{Binding ConnectionTypeBadge}"
-                                                       FontSize="8"
-                                                       FontWeight="Bold"
-                                                       Foreground="White"
-                                                       HorizontalAlignment="Center"
-                                                       VerticalAlignment="Center"/>
-                                        </Border>
-                                        <Ellipse Grid.Column="1"
-                                                 Width="6" Height="6" Margin="0,0,4,0"
-                                                 VerticalAlignment="Center"
-                                                 Fill="{Binding ConnectionState,
-                                                     Converter={StaticResource ConnectionStateToBrushConverter}}"/>
-                                        <TextBlock Grid.Column="2"
-                                                   Text="{Binding DisplayName}"
-                                                   TextTrimming="CharacterEllipsis"
+                                    <StackPanel Orientation="Horizontal" Margin="0,1"
+                                                ToolTip="{Binding DisplayName}">
+                                        <Ellipse Width="7" Height="7" Margin="2,0,8,0"
+                                                 VerticalAlignment="Center">
+                                            <Ellipse.Fill>
+                                                <MultiBinding Converter="{StaticResource ServerStatusToColorConverter}">
+                                                    <Binding Path="ConnectionType"/>
+                                                    <Binding Path="ConnectionState"/>
+                                                </MultiBinding>
+                                            </Ellipse.Fill>
+                                        </Ellipse>
+                                        <TextBlock Text="{Binding DisplayName}" FontSize="12"
                                                    Foreground="{DynamicResource TextPrimaryBrush}"
-                                                   VerticalAlignment="Center"/>
-                                    </Grid>
+                                                   VerticalAlignment="Center"
+                                                   TextTrimming="CharacterEllipsis"/>
+                                    </StackPanel>
                                 </DataTemplate>
                             </TreeView.Resources>
 
