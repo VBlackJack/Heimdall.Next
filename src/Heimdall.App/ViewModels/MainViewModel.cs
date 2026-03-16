@@ -35,6 +35,7 @@ public partial class MainViewModel : ObservableObject
     private readonly ConnectionStateMachine _connectionSm;
     private readonly ApplicationStatusMachine _appStatus;
     private readonly TunnelManager _tunnelManager;
+    private readonly HostKeyStore _hostKeyStore;
 
     [ObservableProperty]
     private string _windowTitle = "Heimdall";
@@ -75,6 +76,7 @@ public partial class MainViewModel : ObservableObject
         ConnectionStateMachine connectionSm,
         ApplicationStatusMachine appStatus,
         TunnelManager tunnelManager,
+        HostKeyStore hostKeyStore,
         ServerListViewModel serverList,
         ConnectionViewModel connection,
         SettingsViewModel settings)
@@ -84,6 +86,7 @@ public partial class MainViewModel : ObservableObject
         _connectionSm = connectionSm;
         _appStatus = appStatus;
         _tunnelManager = tunnelManager;
+        _hostKeyStore = hostKeyStore;
         ServerList = serverList;
         Connection = connection;
         Settings = settings;
@@ -91,6 +94,9 @@ public partial class MainViewModel : ObservableObject
         _appStatus.StatusChanged += OnApplicationStatusChanged;
         _tunnelManager.TunnelOpened += OnTunnelOpened;
         _tunnelManager.TunnelClosed += OnTunnelClosed;
+
+        // Wire server list session events to the connection tab manager
+        ServerList.SessionReady += OnSessionReady;
     }
 
     /// <summary>
@@ -110,16 +116,38 @@ public partial class MainViewModel : ObservableObject
             ServerCount = servers.Count;
             TunnelCount = _tunnelManager.GetActiveTunnels().Count;
 
+            // Load host keys from gateway configurations into the TOFU store
+            var hostKeyEntries = settings.SshGateways
+                .Where(g => !string.IsNullOrEmpty(g.HostKeyFingerprint))
+                .Select(g => (g.Host, g.Port, (string?)g.HostKeyFingerprint));
+
+            _hostKeyStore.LoadFromConfig(hostKeyEntries);
+
             ServerList.LoadServers(servers, settings);
             Settings.LoadFromSettings(settings);
 
             _appStatus.TryTransition(ApplicationStatus.Ready);
             StatusText = _localizer["StatusReady"];
+            WindowTitle = _localizer.Format("WindowTitle", ServerCount);
         }
         finally
         {
             IsBusy = false;
         }
+    }
+
+    /// <summary>
+    /// Handles the session-ready event from ServerListViewModel by creating
+    /// a session tab in the ConnectionViewModel.
+    /// </summary>
+    private void OnSessionReady(string serverId, string displayName, string connectionType, object? session)
+    {
+        var tab = Connection.AddSession(serverId, displayName, connectionType);
+        tab.HostControl = session;
+        tab.Status = "Connected";
+
+        // Switch to the connection tab view
+        SelectedTab = "Connections";
     }
 
     private void OnApplicationStatusChanged(ApplicationStatus previous, ApplicationStatus current)

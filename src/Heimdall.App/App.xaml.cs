@@ -53,6 +53,9 @@ public partial class App : Application
             Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "locales"),
             settings.DefaultLocale);
 
+        // Check for legacy Heimdall installation and offer migration on first run
+        await TryMigrateLegacyAsync(configManager, localization);
+
         var mainWindow = _serviceProvider.GetRequiredService<MainWindow>();
         mainWindow.Show();
     }
@@ -73,6 +76,8 @@ public partial class App : Application
 
         // Application services
         services.AddSingleton<NavigationService>();
+        services.AddSingleton<ConnectionService>();
+        services.AddSingleton<IDialogService, WpfDialogService>();
 
         // ViewModels
         services.AddTransient<MainViewModel>();
@@ -84,8 +89,62 @@ public partial class App : Application
         services.AddTransient<MainWindow>();
     }
 
+    /// <summary>
+    /// Detects a legacy Heimdall (PowerShell) installation in the sibling
+    /// RDPManager directory and offers to import its configuration.
+    /// </summary>
+    private static async Task TryMigrateLegacyAsync(
+        ConfigManager configManager, LocalizationManager localization)
+    {
+        var legacyPath = Path.GetFullPath(
+            Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "RDPManager"));
+
+        if (!MigrationService.DetectLegacyInstallation(legacyPath))
+        {
+            return;
+        }
+
+        var prompt = MessageBox.Show(
+            localization["MigrationDetectedPrompt"],
+            localization["MigrationTitle"],
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Question);
+
+        if (prompt != MessageBoxResult.Yes)
+        {
+            return;
+        }
+
+        var migrationService = new MigrationService(configManager, localization);
+        var result = await migrationService.ImportFromLegacyAsync(legacyPath);
+
+        if (result.Success)
+        {
+            MessageBox.Show(
+                localization.Format("MigrationSuccess", result.ServersImported),
+                localization["MigrationTitle"],
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+        }
+        else
+        {
+            MessageBox.Show(
+                localization.Format("MigrationFailed", result.Error ?? ""),
+                localization["MigrationTitle"],
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+        }
+    }
+
     protected override void OnExit(ExitEventArgs e)
     {
+        // Dispose tunnel manager to close all active tunnels
+        if (_serviceProvider is not null)
+        {
+            var tunnelManager = _serviceProvider.GetService<TunnelManager>();
+            tunnelManager?.Dispose();
+        }
+
         _serviceProvider?.Dispose();
         base.OnExit(e);
     }

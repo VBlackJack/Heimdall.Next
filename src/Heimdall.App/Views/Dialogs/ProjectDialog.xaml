@@ -1,0 +1,199 @@
+<Window x:Class="Heimdall.App.Views.Dialogs.ProjectDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:converters="clr-namespace:Heimdall.App.Converters"
+        xmlns:vm="clr-namespace:Heimdall.App.ViewModels.Dialogs"
+        d:DataContext="{d:DesignInstance Type=vm:ProjectDialogViewModel}"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="{Binding DialogTitle}"
+        Width="460" Height="480"
+        WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource BackgroundBrush}"
+        ResizeMode="NoResize"
+        ShowInTaskbar="False">
+
+    <Window.Resources>
+        <converters:NullToVisibilityConverter x:Key="NullToVisibilityConverter"/>
+
+        <Style x:Key="LabelStyle" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Margin" Value="0,0,0,4"/>
+        </Style>
+
+        <Style x:Key="FormTextBoxStyle" TargetType="TextBox">
+            <Setter Property="Background" Value="{DynamicResource CardBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="8,4"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="CaretBrush" Value="{DynamicResource TextPrimaryBrush}"/>
+            <Setter Property="SelectionBrush" Value="{DynamicResource AccentBrush}"/>
+        </Style>
+
+        <Style x:Key="FormComboBoxStyle" TargetType="ComboBox">
+            <Setter Property="Background" Value="{DynamicResource CardBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="8,4"/>
+            <Setter Property="FontSize" Value="12"/>
+        </Style>
+
+        <!-- Color swatch radio button style -->
+        <Style x:Key="ColorSwatchStyle" TargetType="RadioButton">
+            <Setter Property="Width" Value="32"/>
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="Margin" Value="4"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Grid>
+                            <Ellipse x:Name="SwatchBorder"
+                                     Width="32" Height="32"
+                                     StrokeThickness="2"
+                                     Stroke="Transparent"
+                                     Fill="{TemplateBinding Background}"/>
+                            <Ellipse x:Name="CheckMark"
+                                     Width="12" Height="12"
+                                     Fill="White"
+                                     Visibility="Collapsed"/>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="SwatchBorder" Property="Stroke"
+                                        Value="{DynamicResource TextPrimaryBrush}"/>
+                                <Setter TargetName="CheckMark" Property="Visibility"
+                                        Value="Visible"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="SwatchBorder" Property="Opacity" Value="0.8"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0">
+            <TextBlock Text="Name" Style="{StaticResource LabelStyle}"/>
+            <TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}"
+                     Style="{StaticResource FormTextBoxStyle}"
+                     MaxLength="50"
+                     AutomationProperties.Name="Project Name"/>
+            <TextBlock Foreground="{DynamicResource TextDisabledBrush}" FontSize="10"
+                       HorizontalAlignment="Right" Margin="0,2,0,0">
+                <TextBlock.Text>
+                    <MultiBinding StringFormat="{}{0}/50">
+                        <Binding Path="Name.Length"/>
+                    </MultiBinding>
+                </TextBlock.Text>
+            </TextBlock>
+
+            <TextBlock Text="Description" Style="{StaticResource LabelStyle}" Margin="0,8,0,4"/>
+            <TextBox Text="{Binding Description, UpdateSourceTrigger=PropertyChanged}"
+                     Style="{StaticResource FormTextBoxStyle}"
+                     MaxLength="200"
+                     TextWrapping="Wrap"
+                     AcceptsReturn="False"
+                     Height="60"
+                     VerticalContentAlignment="Top"
+                     AutomationProperties.Name="Description"/>
+            <TextBlock Foreground="{DynamicResource TextDisabledBrush}" FontSize="10"
+                       HorizontalAlignment="Right" Margin="0,2,0,0">
+                <TextBlock.Text>
+                    <MultiBinding StringFormat="{}{0}/200">
+                        <Binding Path="Description.Length"/>
+                    </MultiBinding>
+                </TextBlock.Text>
+            </TextBlock>
+
+            <TextBlock Text="Color" Style="{StaticResource LabelStyle}" Margin="0,8,0,4"/>
+            <WrapPanel>
+                <RadioButton GroupName="ProjectColor" Tag="#3B82F6"
+                             Background="#3B82F6" Style="{StaticResource ColorSwatchStyle}"
+                             IsChecked="{Binding Color, Converter={x:Static converters:ColorRadioConverter.Instance}, ConverterParameter=#3B82F6}"
+                             AutomationProperties.Name="Blue"/>
+                <RadioButton GroupName="ProjectColor" Tag="#22C55E"
+                             Background="#22C55E" Style="{StaticResource ColorSwatchStyle}"
+                             IsChecked="{Binding Color, Converter={x:Static converters:ColorRadioConverter.Instance}, ConverterParameter=#22C55E}"
+                             AutomationProperties.Name="Green"/>
+                <RadioButton GroupName="ProjectColor" Tag="#EF4444"
+                             Background="#EF4444" Style="{StaticResource ColorSwatchStyle}"
+                             IsChecked="{Binding Color, Converter={x:Static converters:ColorRadioConverter.Instance}, ConverterParameter=#EF4444}"
+                             AutomationProperties.Name="Red"/>
+                <RadioButton GroupName="ProjectColor" Tag="#F59E0B"
+                             Background="#F59E0B" Style="{StaticResource ColorSwatchStyle}"
+                             IsChecked="{Binding Color, Converter={x:Static converters:ColorRadioConverter.Instance}, ConverterParameter=#F59E0B}"
+                             AutomationProperties.Name="Amber"/>
+                <RadioButton GroupName="ProjectColor" Tag="#8B5CF6"
+                             Background="#8B5CF6" Style="{StaticResource ColorSwatchStyle}"
+                             IsChecked="{Binding Color, Converter={x:Static converters:ColorRadioConverter.Instance}, ConverterParameter=#8B5CF6}"
+                             AutomationProperties.Name="Purple"/>
+                <RadioButton GroupName="ProjectColor" Tag="#EC4899"
+                             Background="#EC4899" Style="{StaticResource ColorSwatchStyle}"
+                             IsChecked="{Binding Color, Converter={x:Static converters:ColorRadioConverter.Instance}, ConverterParameter=#EC4899}"
+                             AutomationProperties.Name="Pink"/>
+                <RadioButton GroupName="ProjectColor" Tag="#06B6D4"
+                             Background="#06B6D4" Style="{StaticResource ColorSwatchStyle}"
+                             IsChecked="{Binding Color, Converter={x:Static converters:ColorRadioConverter.Instance}, ConverterParameter=#06B6D4}"
+                             AutomationProperties.Name="Cyan"/>
+                <RadioButton GroupName="ProjectColor" Tag="#F97316"
+                             Background="#F97316" Style="{StaticResource ColorSwatchStyle}"
+                             IsChecked="{Binding Color, Converter={x:Static converters:ColorRadioConverter.Instance}, ConverterParameter=#F97316}"
+                             AutomationProperties.Name="Orange"/>
+            </WrapPanel>
+
+            <TextBlock Text="SSH Defaults" Style="{StaticResource LabelStyle}"
+                       FontWeight="SemiBold" Margin="0,16,0,4"/>
+
+            <TextBlock Text="Default SSH Username" Style="{StaticResource LabelStyle}" Margin="0,4,0,4"/>
+            <TextBox Text="{Binding DefaultSshUsername}"
+                     Style="{StaticResource FormTextBoxStyle}"
+                     AutomationProperties.Name="Default SSH Username"/>
+
+            <TextBlock Text="Default SSH Key Path" Style="{StaticResource LabelStyle}" Margin="0,12,0,4"/>
+            <TextBox Text="{Binding DefaultSshKeyPath}"
+                     Style="{StaticResource FormTextBoxStyle}"
+                     AutomationProperties.Name="Default SSH Key Path"/>
+        </StackPanel>
+
+        <!-- Validation error -->
+        <TextBlock Grid.Row="1"
+                   Text="{Binding ValidationError}"
+                   Foreground="{DynamicResource ErrorBrush}"
+                   FontSize="12"
+                   Margin="0,8,0,0"
+                   TextWrapping="Wrap"
+                   Visibility="{Binding ValidationError, Converter={StaticResource NullToVisibilityConverter}}"/>
+
+        <!-- Buttons -->
+        <StackPanel Grid.Row="2"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Right"
+                    Margin="0,16,0,0">
+            <Button Content="Cancel"
+                    IsCancel="True"
+                    Width="80"
+                    Margin="0,0,8,0"
+                    Style="{DynamicResource SecondaryButtonStyle}"/>
+            <Button Content="Save"
+                    IsDefault="True"
+                    Width="80"
+                    Click="OnSaveClick"
+                    Style="{DynamicResource PrimaryButtonStyle}"/>
+        </StackPanel>
+    </Grid>
+</Window>

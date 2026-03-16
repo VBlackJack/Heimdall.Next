@@ -1,0 +1,148 @@
+<Window x:Class="Heimdall.App.Views.Dialogs.GatewayDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:converters="clr-namespace:Heimdall.App.Converters"
+        xmlns:vm="clr-namespace:Heimdall.App.ViewModels.Dialogs"
+        d:DataContext="{d:DesignInstance Type=vm:GatewayDialogViewModel}"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="{Binding DialogTitle}"
+        Width="500" Height="520"
+        WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource BackgroundBrush}"
+        ResizeMode="NoResize"
+        ShowInTaskbar="False">
+
+    <Window.Resources>
+        <converters:NullToVisibilityConverter x:Key="NullToVisibilityConverter"/>
+
+        <Style x:Key="LabelStyle" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Margin" Value="0,0,0,4"/>
+        </Style>
+
+        <Style x:Key="FormTextBoxStyle" TargetType="TextBox">
+            <Setter Property="Background" Value="{DynamicResource CardBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="8,4"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="CaretBrush" Value="{DynamicResource TextPrimaryBrush}"/>
+            <Setter Property="SelectionBrush" Value="{DynamicResource AccentBrush}"/>
+        </Style>
+
+        <Style x:Key="FormComboBoxStyle" TargetType="ComboBox">
+            <Setter Property="Background" Value="{DynamicResource CardBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="8,4"/>
+            <Setter Property="FontSize" Value="12"/>
+        </Style>
+
+        <Style x:Key="FormPasswordBoxStyle" TargetType="PasswordBox">
+            <Setter Property="Background" Value="{DynamicResource CardBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="8,4"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="CaretBrush" Value="{DynamicResource TextPrimaryBrush}"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto">
+            <StackPanel Margin="0,0,8,0">
+                <TextBlock Text="Name" Style="{StaticResource LabelStyle}"/>
+                <TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}"
+                         Style="{StaticResource FormTextBoxStyle}"
+                         AutomationProperties.Name="Gateway Name"/>
+
+                <TextBlock Text="Host" Style="{StaticResource LabelStyle}" Margin="0,12,0,4"/>
+                <TextBox Text="{Binding Host, UpdateSourceTrigger=PropertyChanged}"
+                         Style="{StaticResource FormTextBoxStyle}"
+                         AutomationProperties.Name="Host"/>
+
+                <TextBlock Text="Port" Style="{StaticResource LabelStyle}" Margin="0,12,0,4"/>
+                <TextBox Text="{Binding Port}"
+                         Style="{StaticResource FormTextBoxStyle}"
+                         Width="100" HorizontalAlignment="Left"
+                         MaxLength="5"
+                         AutomationProperties.Name="Port"/>
+
+                <TextBlock Text="Username" Style="{StaticResource LabelStyle}" Margin="0,12,0,4"/>
+                <TextBox Text="{Binding User, UpdateSourceTrigger=PropertyChanged}"
+                         Style="{StaticResource FormTextBoxStyle}"
+                         AutomationProperties.Name="Username"/>
+
+                <TextBlock Text="Key Path" Style="{StaticResource LabelStyle}" Margin="0,12,0,4"/>
+                <DockPanel>
+                    <Button Content="Browse"
+                            DockPanel.Dock="Right"
+                            Command="{Binding BrowseKeyCommand}"
+                            Style="{DynamicResource SecondaryButtonStyle}"
+                            Margin="4,0,0,0"
+                            Click="OnBrowseKeyClick"/>
+                    <TextBox Text="{Binding KeyPath}"
+                             Style="{StaticResource FormTextBoxStyle}"
+                             AutomationProperties.Name="Key Path"/>
+                </DockPanel>
+
+                <TextBlock Text="Password" Style="{StaticResource LabelStyle}" Margin="0,12,0,4"/>
+                <PasswordBox x:Name="PasswordBox"
+                             Style="{StaticResource FormPasswordBoxStyle}"
+                             AutomationProperties.Name="Gateway Password"/>
+
+                <TextBlock Text="Parent Gateway" Style="{StaticResource LabelStyle}" Margin="0,12,0,4"/>
+                <ComboBox ItemsSource="{Binding AvailableParents}"
+                          SelectedValue="{Binding SelectedParentGatewayId}"
+                          SelectedValuePath="Id"
+                          DisplayMemberPath="DisplayText"
+                          Style="{StaticResource FormComboBoxStyle}"
+                          AutomationProperties.Name="Parent Gateway"/>
+
+                <TextBlock Text="Host Key Fingerprint" Style="{StaticResource LabelStyle}" Margin="0,12,0,4"/>
+                <TextBox Text="{Binding HostKeyFingerprint, Mode=OneWay}"
+                         Style="{StaticResource FormTextBoxStyle}"
+                         IsReadOnly="True"
+                         AutomationProperties.Name="Host Key Fingerprint"/>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Validation error -->
+        <TextBlock Grid.Row="1"
+                   Text="{Binding ValidationError}"
+                   Foreground="{DynamicResource ErrorBrush}"
+                   FontSize="12"
+                   Margin="0,8,0,0"
+                   TextWrapping="Wrap"
+                   Visibility="{Binding ValidationError, Converter={StaticResource NullToVisibilityConverter}}"/>
+
+        <!-- Buttons -->
+        <StackPanel Grid.Row="2"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Right"
+                    Margin="0,16,0,0">
+            <Button Content="Cancel"
+                    IsCancel="True"
+                    Width="80"
+                    Margin="0,0,8,0"
+                    Style="{DynamicResource SecondaryButtonStyle}"/>
+            <Button Content="Save"
+                    IsDefault="True"
+                    Width="80"
+                    Click="OnSaveClick"
+                    Style="{DynamicResource PrimaryButtonStyle}"/>
+        </StackPanel>
+    </Grid>
+</Window>
