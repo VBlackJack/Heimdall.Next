@@ -53,6 +53,12 @@ public sealed class EmbeddedSessionManager
             return CreateSshView(sessionTab, sshSession, displayName);
         }
 
+        if (string.Equals(connectionType, "SSH", StringComparison.OrdinalIgnoreCase) &&
+            session is Heimdall.Terminal.ITerminalSession terminalSession)
+        {
+            return CreateTerminalSshView(sessionTab, terminalSession, displayName);
+        }
+
         if (session is UIElement element)
         {
             return element;
@@ -68,6 +74,16 @@ public sealed class EmbeddedSessionManager
     {
         var view = new EmbeddedSshView();
         view.InitializeSession(session, tab, displayName, string.Empty);
+        return view;
+    }
+
+    private static EmbeddedSshView CreateTerminalSshView(
+        SessionTabViewModel tab,
+        Heimdall.Terminal.ITerminalSession terminalSession,
+        string displayName)
+    {
+        var view = new EmbeddedSshView();
+        view.InitializeTerminalSession(terminalSession, tab, displayName);
         return view;
     }
 

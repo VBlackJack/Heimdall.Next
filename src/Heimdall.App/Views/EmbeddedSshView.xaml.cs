@@ -44,8 +44,24 @@ public partial class EmbeddedSshView : UserControl, IDisposable
     private readonly StringBuilder _outputBuffer = new();
 
     private SshShellSession? _session;
+    private Heimdall.Terminal.ITerminalSession? _terminalSession;
     private SessionTabViewModel? _sessionTab;
     private bool _disposed;
+
+    private void WriteToSession(byte[] data)
+    {
+        if (_session is not null) WriteToSession(data);
+        else _terminalSession?.Write(data);
+    }
+
+    private void WriteToSession(string text)
+    {
+        if (_session is not null) WriteToSession(text);
+        else _terminalSession?.Write(text);
+    }
+
+    private bool IsSessionConnected =>
+        (_session?.IsConnected ?? false) || (_terminalSession?.IsRunning ?? false);
 
     public EmbeddedSshView()
     {
@@ -87,6 +103,31 @@ public partial class EmbeddedSshView : UserControl, IDisposable
 
         _session.DataReceived += OnDataReceived;
         _session.Disconnected += OnDisconnected;
+    }
+
+    /// <summary>
+    /// Initialize with a ConPTY/Plink terminal session (ITerminalSession).
+    /// Adapts the different event signatures.
+    /// </summary>
+    public void InitializeTerminalSession(
+        Heimdall.Terminal.ITerminalSession terminalSession,
+        SessionTabViewModel sessionTab,
+        string displayName)
+    {
+        ArgumentNullException.ThrowIfNull(terminalSession);
+        ArgumentNullException.ThrowIfNull(sessionTab);
+
+        if (_disposed) throw new ObjectDisposedException(nameof(EmbeddedSshView));
+
+        _terminalSession = terminalSession;
+        _sessionTab = sessionTab;
+
+        SessionTitleText.Text = displayName;
+        EndpointTextBlock.Text = "via Plink";
+        UpdateStatus("Connected");
+
+        _terminalSession.DataReceived += data => OnDataReceived(data.ToArray());
+        _terminalSession.ProcessExited += code => OnDisconnected($"Process exited with code {code}");
     }
 
     public void Dispose()
@@ -131,6 +172,13 @@ public partial class EmbeddedSshView : UserControl, IDisposable
             }
 
             _session = null;
+        }
+
+        if (_terminalSession is not null)
+        {
+            try { _terminalSession.Kill(); } catch { }
+            try { _terminalSession.Dispose(); } catch { }
+            _terminalSession = null;
         }
 
         Core.Logging.FileLogger.Info("EmbeddedSSH Dispose completed");
@@ -257,7 +305,7 @@ public partial class EmbeddedSshView : UserControl, IDisposable
 
             if (controlByte is not null)
             {
-                _session.Write(new byte[] { controlByte.Value });
+                WriteToSession(new byte[] { controlByte.Value });
                 e.Handled = true;
                 return;
             }
@@ -271,7 +319,7 @@ public partial class EmbeddedSshView : UserControl, IDisposable
                 var pasteText = Clipboard.GetText();
                 if (!string.IsNullOrEmpty(pasteText))
                 {
-                    _session.Write(pasteText);
+                    WriteToSession(pasteText);
                 }
             }
 
@@ -313,7 +361,7 @@ public partial class EmbeddedSshView : UserControl, IDisposable
 
         if (sequence is not null)
         {
-            _session.Write(sequence);
+            WriteToSession(sequence);
             e.Handled = true;
         }
     }
@@ -330,7 +378,7 @@ public partial class EmbeddedSshView : UserControl, IDisposable
 
         if (!string.IsNullOrEmpty(e.Text))
         {
-            _session.Write(e.Text);
+            WriteToSession(e.Text);
             e.Handled = true;
         }
     }
