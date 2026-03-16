@@ -19,7 +19,6 @@ using System.IO;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Input;
 using System.Windows.Media;
 using Heimdall.App.ViewModels;
 using Heimdall.Ssh;
@@ -53,6 +52,7 @@ public partial class EmbeddedSshView : UserControl, IDisposable
     private bool _webViewInitialized;
     private bool _terminalReady;
     private bool _webViewUnavailable;
+    private bool _initialTerminalFocusApplied;
 
     private bool IsSessionConnected =>
         (_session?.IsConnected ?? false) || (_terminalSession?.IsRunning ?? false);
@@ -62,8 +62,6 @@ public partial class EmbeddedSshView : UserControl, IDisposable
         InitializeComponent();
 
         Loaded += OnLoaded;
-        GotFocus += OnGotFocus;
-        PreviewMouseDown += OnPreviewMouseDown;
     }
 
     /// <summary>
@@ -135,8 +133,6 @@ public partial class EmbeddedSshView : UserControl, IDisposable
         _disposed = true;
 
         Loaded -= OnLoaded;
-        GotFocus -= OnGotFocus;
-        PreviewMouseDown -= OnPreviewMouseDown;
 
         if (_webViewInitialized && TerminalWebView.CoreWebView2 is not null)
         {
@@ -211,27 +207,6 @@ public partial class EmbeddedSshView : UserControl, IDisposable
     private async void OnLoaded(object sender, RoutedEventArgs e)
     {
         await InitializeWebView2Async();
-        FocusTerminal();
-    }
-
-    private void OnGotFocus(object sender, RoutedEventArgs e)
-    {
-        if (_disposed)
-        {
-            return;
-        }
-
-        FocusTerminal();
-    }
-
-    private void OnPreviewMouseDown(object sender, MouseButtonEventArgs e)
-    {
-        if (_disposed)
-        {
-            return;
-        }
-
-        FocusTerminal();
     }
 
     private void OnDisconnectClick(object sender, RoutedEventArgs e)
@@ -341,7 +316,7 @@ public partial class EmbeddedSshView : UserControl, IDisposable
             }
 
             FlushPendingTerminalMessages();
-            FocusTerminal();
+            ApplyInitialTerminalFocus();
             return;
         }
 
@@ -513,15 +488,17 @@ public partial class EmbeddedSshView : UserControl, IDisposable
         }
     }
 
-    private void FocusTerminal()
+    private void ApplyInitialTerminalFocus()
     {
-        if (_disposed || _webViewUnavailable)
+        if (_disposed || _webViewUnavailable || _initialTerminalFocusApplied)
         {
             return;
         }
 
         if (_terminalReady)
         {
+            _initialTerminalFocusApplied = true;
+            Core.Logging.FileLogger.Info("EmbeddedSSH applying initial terminal focus");
             TerminalWebView.Focus();
             PostTerminalMessage("focus:");
         }
