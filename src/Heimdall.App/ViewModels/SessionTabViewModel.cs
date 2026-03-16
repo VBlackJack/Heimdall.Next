@@ -45,9 +45,9 @@ public partial class SessionTabViewModel : ObservableObject
     private bool _isActive;
 
     /// <summary>
-    /// The native host control for this session (RDP ActiveX, terminal, SFTP panel).
+    /// The visual host control for this session (embedded RDP view, terminal, SFTP panel).
     /// Typed as object to keep the ViewModel free of WPF dependencies.
-    /// Set by the View layer after control creation.
     /// </summary>
-    public object? HostControl { get; set; }
+    [ObservableProperty]
+    private object? _hostControl;
 }
