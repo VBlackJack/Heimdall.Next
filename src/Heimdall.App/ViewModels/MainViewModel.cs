@@ -78,6 +78,8 @@ public partial class MainViewModel : ObservableObject
 
     partial void OnSelectedTabChanged(string value)
     {
+        Heimdall.Core.Logging.FileLogger.Info($"MainViewModel SelectedTab changed to {value}");
+
         OnPropertyChanged(nameof(IsServersTabSelected));
         OnPropertyChanged(nameof(IsTunnelsTabSelected));
         OnPropertyChanged(nameof(IsScheduledTabSelected));

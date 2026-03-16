@@ -40,10 +40,19 @@ public partial class MainWindow : Window
         WindowThemeHelper.ApplyCurrentTheme(this);
         DataContext = viewModel;
 
-        TabServers.Checked += (_, _) => { viewModel.SelectedTab = "Servers"; UpdateTabVisibility(viewModel); };
-        TabTunnels.Checked += (_, _) => { viewModel.SelectedTab = "Tunnels"; UpdateTabVisibility(viewModel); };
-        TabScheduled.Checked += (_, _) => { viewModel.SelectedTab = "Scheduled"; UpdateTabVisibility(viewModel); };
-        TabSettings.Checked += (_, _) => { viewModel.SelectedTab = "Settings"; UpdateTabVisibility(viewModel); };
+        TabServers.Checked += OnServersTabChecked;
+        TabTunnels.Checked += OnTunnelsTabChecked;
+        TabScheduled.Checked += OnScheduledTabChecked;
+        TabSettings.Checked += OnSettingsTabChecked;
+        viewModel.Connection.PropertyChanged += (_, e) =>
+        {
+            if (string.Equals(e.PropertyName, nameof(ConnectionViewModel.HasActiveSessions), StringComparison.Ordinal))
+            {
+                Heimdall.Core.Logging.FileLogger.Info(
+                    $"Navigation session state changed: hasSessions={viewModel.Connection.HasActiveSessions}, selectedTab={viewModel.SelectedTab}");
+                UpdateTabVisibility(viewModel);
+            }
+        };
 
         Loaded += async (_, _) =>
         {
@@ -54,6 +63,43 @@ public partial class MainWindow : Window
         };
 
         KeyDown += OnKeyDown;
+    }
+
+    private void OnServersTabChecked(object sender, RoutedEventArgs e)
+    {
+        SwitchToTab("Servers");
+    }
+
+    private void OnTunnelsTabChecked(object sender, RoutedEventArgs e)
+    {
+        SwitchToTab("Tunnels");
+    }
+
+    private void OnScheduledTabChecked(object sender, RoutedEventArgs e)
+    {
+        SwitchToTab("Scheduled");
+    }
+
+    private void OnSettingsTabChecked(object sender, RoutedEventArgs e)
+    {
+        SwitchToTab("Settings");
+    }
+
+    private void SwitchToTab(string tabName)
+    {
+        if (DataContext is not MainViewModel vm)
+        {
+            return;
+        }
+
+        Heimdall.Core.Logging.FileLogger.Info(
+            $"Navigation request: tab={tabName}, current={vm.SelectedTab}, hasSessions={vm.Connection.HasActiveSessions}");
+
+        vm.SelectedTab = tabName;
+        UpdateTabVisibility(vm);
+
+        Heimdall.Core.Logging.FileLogger.Info(
+            $"Navigation applied: tab={vm.SelectedTab}, serversVisible={vm.IsServersTabSelected}, tunnelsVisible={vm.IsTunnelsTabSelected}, scheduledVisible={vm.IsScheduledTabSelected}, settingsVisible={vm.IsSettingsTabSelected}");
     }
 
     private void OnAddButtonClick(object sender, RoutedEventArgs e)
@@ -619,6 +665,9 @@ public partial class MainWindow : Window
     {
         var isServers = vm.SelectedTab == "Servers";
         var hasSessions = vm.Connection.HasActiveSessions;
+
+        Heimdall.Core.Logging.FileLogger.Info(
+            $"UpdateTabVisibility: selectedTab={vm.SelectedTab}, isServers={isServers}, hasSessions={hasSessions}, sidebarHidden={_sidebarHidden}");
 
         // If not on Servers but sessions active, show sessions full-width
         if (!isServers && hasSessions)
