@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    Build script for Heimdall.Next — produces portable distributions.
+    Build script for Heimdall.Next -produces portable distributions.
 
 .PARAMETER Mode
     Build mode: 'Debug' (default) or 'Release'.
@@ -129,7 +129,7 @@ if ($Mode -eq 'Release') {
     Write-Host "  Portable: $outputDir" -ForegroundColor White
     Write-Host "  Archive:  $zipPath" -ForegroundColor White
 } else {
-    Write-Host "[5/5] Debug build — no archive" -ForegroundColor DarkYellow
+    Write-Host "[5/5] Debug build -no archive" -ForegroundColor DarkYellow
 }
 
 # ── Summary ─────────────────────────────────────────────────────────────────

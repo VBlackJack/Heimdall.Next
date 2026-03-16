@@ -56,6 +56,17 @@ public partial class App : Application
         // Check for legacy Heimdall installation and offer migration on first run
         await TryMigrateLegacyAsync(configManager, localization);
 
+        // Global exception handler for diagnostics
+        DispatcherUnhandledException += (_, args) =>
+        {
+            MessageBox.Show(
+                $"Unhandled error:\n\n{args.Exception.Message}\n\n{args.Exception.StackTrace}",
+                "Heimdall Error",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+            args.Handled = true;
+        };
+
         var mainWindow = _serviceProvider.GetRequiredService<MainWindow>();
         mainWindow.Show();
     }
