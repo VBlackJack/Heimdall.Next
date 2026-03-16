@@ -1,0 +1,28 @@
+## .NET
+bin/
+obj/
+*.user
+*.suo
+*.cache
+*.vs/
+.vs/
+
+## IDE
+.idea/
+*.sln.DotSettings.user
+
+## Build
+publish/
+artifacts/
+
+## OS
+Thumbs.db
+.DS_Store
+
+## Claude Code
+.claude/
+
+## User config (runtime)
+config/settings.json
+config/servers.json
+logs/
