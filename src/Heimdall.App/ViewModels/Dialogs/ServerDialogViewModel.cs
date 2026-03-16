@@ -477,6 +477,11 @@ public partial class ServerDialogViewModel : ObservableValidator
         RaisePortDerivedStateChanged();
     }
 
+    partial void OnRemoteServerChanged(string value)
+    {
+        RaiseDerivedStateChanged();
+    }
+
     partial void OnSshPortChanged(int value)
     {
         RaisePortDerivedStateChanged();
