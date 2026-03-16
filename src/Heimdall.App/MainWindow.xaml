@@ -587,27 +587,45 @@
             </ScrollViewer>
         </Grid>
 
-        <!-- FULLSCREEN EXIT BAR (thin bar at very top, hidden by default) -->
-        <Border x:Name="FullscreenBar"
+        <!-- FULLSCREEN EXIT ICON (small icon top-right, hidden by default) -->
+        <Button x:Name="FullscreenBar"
                 Grid.Row="0" Grid.RowSpan="3"
+                HorizontalAlignment="Right"
                 VerticalAlignment="Top"
-                Height="24"
-                Background="{DynamicResource SurfaceBrush}"
+                Margin="0,2,4,0"
+                Width="24" Height="24"
+                Content="⛶"
+                FontSize="14"
+                ToolTip="Exit Fullscreen (Esc)"
+                Click="OnExitFullscreenClick"
                 Visibility="Collapsed"
-                Panel.ZIndex="999">
-            <DockPanel Margin="8,0">
-                <Button DockPanel.Dock="Right"
-                        Content="Exit Fullscreen"
-                        Click="OnExitFullscreenClick"
-                        Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="8,1" FontSize="10"
-                        VerticalAlignment="Center"/>
-                <TextBlock Text="Press Esc or click to exit fullscreen"
-                           Foreground="{DynamicResource TextSecondaryBrush}"
-                           FontSize="10"
-                           VerticalAlignment="Center"/>
-            </DockPanel>
-        </Border>
+                Panel.ZIndex="999"
+                Opacity="0.6"
+                Cursor="Hand">
+            <Button.Style>
+                <Style TargetType="Button">
+                    <Setter Property="Background" Value="Transparent"/>
+                    <Setter Property="BorderThickness" Value="0"/>
+                    <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="Button">
+                                <Border Background="{TemplateBinding Background}"
+                                        CornerRadius="4" Padding="2">
+                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
+                                        <Setter Property="Opacity" Value="1"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
+            </Button.Style>
+        </Button>
 
         <!-- STATUS BAR -->
         <Border Grid.Row="2"
