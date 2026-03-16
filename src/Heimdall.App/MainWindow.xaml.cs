@@ -480,7 +480,7 @@ public partial class MainWindow : Window
         {
             // Exit fullscreen
             _isFullscreen = false;
-            ExitFullscreenButton.Visibility = Visibility.Collapsed;
+            FullscreenBar.Visibility = Visibility.Collapsed;
 
             // Show toolbar, TreeView, status bar
             ToolbarRow.Height = new GridLength(48);
@@ -516,13 +516,13 @@ public partial class MainWindow : Window
 
             WindowStyle = WindowStyle.None;
             WindowState = WindowState.Maximized;
-            ExitFullscreenButton.Visibility = Visibility.Visible;
+            FullscreenBar.Visibility = Visibility.Visible;
         }
     }
 
     private void OnExitFullscreenClick(object sender, RoutedEventArgs e)
     {
-        ExitFullscreenButton.Visibility = Visibility.Collapsed;
+        FullscreenBar.Visibility = Visibility.Collapsed;
         if (_isFullscreen) ToggleFullscreen();
     }
 }
