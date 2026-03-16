@@ -61,6 +61,11 @@
                 <!-- Right: Quick actions -->
                 <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" HorizontalAlignment="Right"
                             VerticalAlignment="Center">
+                    <Button x:Name="ToggleSidebarButton" Content="&#x2630;"
+                            ToolTip="Toggle sidebar (Ctrl+B)"
+                            Click="OnToggleSidebarClick"
+                            Style="{DynamicResource SecondaryButtonStyle}"
+                            Padding="6,2" FontSize="14" Width="32" Margin="4,0"/>
                     <Button x:Name="AddButton" Content="+ Add"
                             Style="{DynamicResource PrimaryButtonStyle}"
                             Margin="4,0" Click="OnAddButtonClick">
