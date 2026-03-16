@@ -58,10 +58,18 @@ Write-Host ""
 
 # ── Update version in csproj ────────────────────────────────────────────────
 
+# Use InformationalVersion for our YYYY.MMDDxx format (no Win32 limit)
+# AssemblyVersion uses a compatible 1.0.MMDD.xx format
+$assemblyVer = "1.0.$($today.ToString('MMdd')).$sequence"
 $csprojContent = Get-Content $AppProject -Raw
-$csprojContent = $csprojContent -replace '<Version>[^<]+</Version>', "<Version>${buildNumber}</Version>"
+$csprojContent = $csprojContent -replace '<Version>[^<]+</Version>', "<Version>${assemblyVer}</Version>"
+if ($csprojContent -match '<InformationalVersion>') {
+    $csprojContent = $csprojContent -replace '<InformationalVersion>[^<]+</InformationalVersion>', "<InformationalVersion>${buildNumber}</InformationalVersion>"
+} else {
+    $csprojContent = $csprojContent -replace '</Version>', "</Version>`n    <InformationalVersion>${buildNumber}</InformationalVersion>"
+}
 [System.IO.File]::WriteAllText($AppProject, $csprojContent, [System.Text.UTF8Encoding]::new($false))
-Write-Host "[1/5] Version set to $buildNumber" -ForegroundColor Green
+Write-Host "[1/5] Version set to $buildNumber (assembly: $assemblyVer)" -ForegroundColor Green
 
 # ── Run tests ───────────────────────────────────────────────────────────────
 
