@@ -21,6 +21,8 @@ using Heimdall.Core.Security;
 using Heimdall.Core.StateMachine;
 using Heimdall.Sftp;
 using Heimdall.Ssh;
+using Heimdall.Ssh.Pageant;
+using Heimdall.Ssh.Plink;
 
 namespace Heimdall.App.Services;
 
@@ -356,6 +358,22 @@ public class ConnectionService
             return new TunnelResult(false, null, msg, preflight.FailureCode);
         }
 
+        if (chain.Count == 1 && SshConnectionFactory.RequiresPageantFallback(chain[0]))
+        {
+            Core.Logging.FileLogger.Info(
+                $"EstablishTunnelAsync: using plink fallback for {serverId} via {chain[0].Host}:{chain[0].Port}");
+
+            return await EstablishPlinkTunnelAsync(
+                    serverId,
+                    chain[0],
+                    remoteHost,
+                    remotePort,
+                    localPort,
+                    settings,
+                    ct)
+                .ConfigureAwait(false);
+        }
+
         // Open tunnel (single-hop or chained)
         TunnelResult result;
         if (chain.Count == 1)
@@ -371,9 +389,29 @@ public class ConnectionService
                 .ConfigureAwait(false);
         }
 
+        if (!result.Success
+            && chain.Count == 1
+            && result.FailureCode is SshFailureCode.AuthRejected or SshFailureCode.KeyRejected
+            && PageantClient.IsAvailable())
+        {
+            Core.Logging.FileLogger.Info(
+                $"SSH.NET auth failed, falling back to Plink: {result.ErrorMessage}");
+
+            return await EstablishPlinkTunnelAsync(
+                    serverId,
+                    chain[0],
+                    remoteHost,
+                    remotePort,
+                    localPort,
+                    settings,
+                    ct)
+                .ConfigureAwait(false);
+        }
+
         if (result.Success)
         {
             Core.Logging.FileLogger.Info($"Tunnel established for {serverId} on port {localPort}");
+            _connectionSm.SetTunnelInfo(serverId, localPort, 0);
             _connectionSm.TryTransition(serverId, Core.Models.ConnectionState.TunnelEstablished);
         }
         else
@@ -383,6 +421,68 @@ public class ConnectionService
         }
 
         return result;
+    }
+
+    private async Task<TunnelResult> EstablishPlinkTunnelAsync(
+        string serverId,
+        SshConnectionParams gatewayParams,
+        string remoteHost,
+        int remotePort,
+        int localPort,
+        AppSettings settings,
+        CancellationToken ct)
+    {
+        var plinkPath = settings.PlinkPath;
+        if (string.IsNullOrWhiteSpace(plinkPath) || !File.Exists(plinkPath))
+        {
+            var message = "Plink not found. Set the path in Settings.";
+            _connectionSm.SetError(serverId, message);
+            return new TunnelResult(false, null, message, SshFailureCode.Unknown);
+        }
+
+        var runner = new PlinkTunnelRunner();
+        var result = await runner.StartAsync(
+                plinkPath,
+                gatewayParams.Host,
+                gatewayParams.Port,
+                gatewayParams.Username,
+                gatewayParams.KeyPath,
+                gatewayParams.Password,
+                remoteHost,
+                remotePort,
+                localPort,
+                ct)
+            .ConfigureAwait(false);
+
+        if (!result.Success)
+        {
+            _connectionSm.SetError(serverId, result.ErrorMessage ?? _localizer["ErrorTunnelFailed"]);
+            runner.Dispose();
+            return new TunnelResult(false, null, result.ErrorMessage, result.FailureCode);
+        }
+
+        var tunnelInfo = new TunnelInfo(
+            gatewayParams.Host,
+            localPort,
+            remoteHost,
+            remotePort,
+            DateTime.UtcNow,
+            IsAlive: true);
+
+        if (!_tunnelManager.TryRegisterExternalTunnel(tunnelInfo, runner, () => runner.IsRunning))
+        {
+            runner.Dispose();
+            const string duplicateMessage = "The tunnel local port was claimed concurrently.";
+            _connectionSm.SetError(serverId, duplicateMessage);
+            return new TunnelResult(false, null, duplicateMessage, SshFailureCode.PortInUse);
+        }
+
+        _connectionSm.SetTunnelInfo(serverId, localPort, runner.ProcessId ?? 0);
+        _connectionSm.TryTransition(serverId, Core.Models.ConnectionState.TunnelEstablished);
+        Core.Logging.FileLogger.Info(
+            $"Plink tunnel established for {serverId} on port {localPort} (pid={runner.ProcessId?.ToString() ?? "unknown"})");
+
+        return new TunnelResult(true, tunnelInfo, null, null);
     }
 
     /// <summary>

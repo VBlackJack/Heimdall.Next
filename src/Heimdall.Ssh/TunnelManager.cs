@@ -28,6 +28,8 @@ namespace Heimdall.Ssh;
 public sealed class TunnelManager : IDisposable
 {
     private readonly ConcurrentDictionary<int, TunnelSession> _activeTunnels = new();
+    private readonly ConcurrentDictionary<int, ExternalTunnelSession> _externalTunnels = new();
+    private readonly object _registryLock = new();
     private bool _disposed;
 
     /// <summary>Raised when a tunnel is successfully opened.</summary>
@@ -57,7 +59,7 @@ public sealed class TunnelManager : IDisposable
         ObjectDisposedException.ThrowIf(_disposed, this);
         ArgumentNullException.ThrowIfNull(gatewayParams);
 
-        if (_activeTunnels.ContainsKey(localPort))
+        if (IsPortTracked(localPort))
         {
             return new TunnelResult(false, null, $"Local port {localPort} is already in use by an existing tunnel.", SshFailureCode.PortInUse);
         }
@@ -92,10 +94,13 @@ public sealed class TunnelManager : IDisposable
 
             var session = new TunnelSession(client, forwardedPort, info);
 
-            if (!_activeTunnels.TryAdd(localPort, session))
+            lock (_registryLock)
             {
-                session.Dispose();
-                return new TunnelResult(false, null, $"Local port {localPort} was claimed concurrently.", SshFailureCode.PortInUse);
+                if (IsPortTracked(localPort) || !_activeTunnels.TryAdd(localPort, session))
+                {
+                    session.Dispose();
+                    return new TunnelResult(false, null, $"Local port {localPort} was claimed concurrently.", SshFailureCode.PortInUse);
+                }
             }
 
             TunnelOpened?.Invoke(info);
@@ -167,7 +172,7 @@ public sealed class TunnelManager : IDisposable
                 .ConfigureAwait(false);
         }
 
-        if (_activeTunnels.ContainsKey(localPort))
+        if (IsPortTracked(localPort))
         {
             return new TunnelResult(false, null, $"Local port {localPort} is already in use by an existing tunnel.", SshFailureCode.PortInUse);
         }
@@ -272,10 +277,13 @@ public sealed class TunnelManager : IDisposable
                 intermediateClients,
                 intermediatePorts);
 
-            if (!_activeTunnels.TryAdd(localPort, session))
+            lock (_registryLock)
             {
-                session.Dispose();
-                return new TunnelResult(false, null, $"Local port {localPort} was claimed concurrently.", SshFailureCode.PortInUse);
+                if (IsPortTracked(localPort) || !_activeTunnels.TryAdd(localPort, session))
+                {
+                    session.Dispose();
+                    return new TunnelResult(false, null, $"Local port {localPort} was claimed concurrently.", SshFailureCode.PortInUse);
+                }
             }
 
             TunnelOpened?.Invoke(tunnelInfo);
@@ -321,20 +329,36 @@ public sealed class TunnelManager : IDisposable
             }
 
             TunnelClosed?.Invoke(localPort, error);
+            return;
+        }
+
+        if (_externalTunnels.TryRemove(localPort, out var externalSession))
+        {
+            string? error = null;
+            try
+            {
+                externalSession.Dispose();
+            }
+            catch (Exception ex)
+            {
+                error = ex.Message;
+            }
+
+            TunnelClosed?.Invoke(localPort, error);
         }
     }
 
     /// <summary>Closes all active tunnels.</summary>
     public void CloseAllTunnels()
     {
-        foreach (var localPort in _activeTunnels.Keys.ToList())
+        foreach (var localPort in _activeTunnels.Keys.Concat(_externalTunnels.Keys).Distinct().ToList())
         {
             CloseTunnel(localPort);
         }
     }
 
     /// <summary>Returns true if a tunnel is active on the specified local port.</summary>
-    public bool HasTunnel(int localPort) => _activeTunnels.ContainsKey(localPort);
+    public bool HasTunnel(int localPort) => IsPortTracked(localPort);
 
     /// <summary>Returns tunnel info for the specified local port, or null if not found.</summary>
     public TunnelInfo? GetTunnel(int localPort)
@@ -345,6 +369,11 @@ public sealed class TunnelManager : IDisposable
             return session.Info with { IsAlive = session.Client.IsConnected };
         }
 
+        if (_externalTunnels.TryGetValue(localPort, out var externalSession))
+        {
+            return externalSession.Info with { IsAlive = externalSession.IsAlive };
+        }
+
         return null;
     }
 
@@ -353,8 +382,39 @@ public sealed class TunnelManager : IDisposable
     {
         return _activeTunnels.Values
             .Select(s => s.Info with { IsAlive = s.Client.IsConnected })
+            .Concat(_externalTunnels.Values.Select(
+                s => s.Info with { IsAlive = s.IsAlive }))
             .ToList()
             .AsReadOnly();
+    }
+
+    /// <summary>
+    /// Registers an externally managed tunnel, such as a plink.exe process,
+    /// so it participates in normal tunnel listing and cleanup.
+    /// </summary>
+    public bool TryRegisterExternalTunnel(
+        TunnelInfo info,
+        IDisposable tunnelHandle,
+        Func<bool> isAlive)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        ArgumentNullException.ThrowIfNull(info);
+        ArgumentNullException.ThrowIfNull(tunnelHandle);
+        ArgumentNullException.ThrowIfNull(isAlive);
+
+        var session = new ExternalTunnelSession(info, tunnelHandle, isAlive);
+
+        lock (_registryLock)
+        {
+            if (IsPortTracked(info.LocalPort) || !_externalTunnels.TryAdd(info.LocalPort, session))
+            {
+                session.Dispose();
+                return false;
+            }
+        }
+
+        TunnelOpened?.Invoke(info);
+        return true;
     }
 
     public void Dispose()
@@ -366,6 +426,11 @@ public sealed class TunnelManager : IDisposable
 
         _disposed = true;
         CloseAllTunnels();
+    }
+
+    private bool IsPortTracked(int localPort)
+    {
+        return _activeTunnels.ContainsKey(localPort) || _externalTunnels.ContainsKey(localPort);
     }
 
     /// <summary>Finds an available ephemeral port by briefly binding to port 0.</summary>
@@ -452,6 +517,41 @@ public sealed class TunnelManager : IDisposable
                 intermediateClients[i].Dispose();
             }
             catch (ObjectDisposedException) { }
+        }
+    }
+
+    private sealed class ExternalTunnelSession : IDisposable
+    {
+        private readonly IDisposable _tunnelHandle;
+        private readonly Func<bool> _isAlive;
+
+        public ExternalTunnelSession(TunnelInfo info, IDisposable tunnelHandle, Func<bool> isAlive)
+        {
+            Info = info;
+            _tunnelHandle = tunnelHandle;
+            _isAlive = isAlive;
+        }
+
+        public TunnelInfo Info { get; }
+
+        public bool IsAlive
+        {
+            get
+            {
+                try
+                {
+                    return _isAlive();
+                }
+                catch
+                {
+                    return false;
+                }
+            }
+        }
+
+        public void Dispose()
+        {
+            _tunnelHandle.Dispose();
         }
     }
 }
