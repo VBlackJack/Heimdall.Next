@@ -252,88 +252,134 @@
                               Background="{DynamicResource BorderBrush}"
                               ShowsPreview="True"/>
 
-                <!-- RIGHT PANEL: Detail view / sessions -->
+                <!-- RIGHT PANEL: Active sessions or selected server details -->
                 <Grid Grid.Column="2">
-                    <!-- Server detail panel (shown when a server is selected) -->
-                    <Border Visibility="{Binding ServerList.HasSelection, Converter={StaticResource BoolToVisibilityConverter}}"
-                            Padding="24">
-                        <StackPanel VerticalAlignment="Top">
-                            <TextBlock Text="{Binding ServerList.SelectedServer.DisplayName}"
-                                       FontSize="20" FontWeight="Bold"
-                                       Foreground="{DynamicResource TextPrimaryBrush}"/>
+                    <Border Visibility="{Binding Connection.HasActiveSessions, Converter={StaticResource BoolToVisibilityConverter}}"
+                            Background="{DynamicResource BackgroundBrush}">
+                        <TabControl ItemsSource="{Binding Connection.ActiveSessions}"
+                                    SelectedItem="{Binding Connection.ActiveSession}"
+                                    Background="{DynamicResource BackgroundBrush}"
+                                    BorderThickness="0"
+                                    ItemContainerStyle="{DynamicResource ThemedTabItemStyle}"
+                                    Style="{DynamicResource ThemedTabControlStyle}">
+                            <TabControl.ItemTemplate>
+                                <DataTemplate DataType="{x:Type vm:SessionTabViewModel}">
+                                    <DockPanel LastChildFill="True">
+                                        <Button DockPanel.Dock="Right"
+                                                Width="18"
+                                                Height="18"
+                                                Margin="8,0,0,0"
+                                                Padding="0"
+                                                Focusable="False"
+                                                Content="×"
+                                                Command="{Binding DataContext.Connection.CloseSessionCommand, RelativeSource={RelativeSource AncestorType=TabControl}}"
+                                                CommandParameter="{Binding}"
+                                                Style="{DynamicResource SecondaryButtonStyle}"/>
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding Title}"
+                                                       FontSize="12"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="{DynamicResource TextPrimaryBrush}"
+                                                       TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock Text="{Binding Status}"
+                                                       FontSize="10"
+                                                       Foreground="{DynamicResource TextSecondaryBrush}"
+                                                       TextTrimming="CharacterEllipsis"/>
+                                        </StackPanel>
+                                    </DockPanel>
+                                </DataTemplate>
+                            </TabControl.ItemTemplate>
 
-                            <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                                <Border CornerRadius="3" Padding="6,2" Margin="0,0,8,0"
-                                        Background="{Binding ServerList.SelectedServer.ConnectionType,
-                                            Converter={StaticResource ConnectionTypeToBrushConverter}}">
-                                    <TextBlock Text="{Binding ServerList.SelectedServer.ConnectionType}"
-                                               FontSize="10" FontWeight="SemiBold"
-                                               Foreground="White"/>
-                                </Border>
-                                <Ellipse Width="8" Height="8" Margin="0,0,6,0"
-                                         VerticalAlignment="Center"
-                                         Fill="{Binding ServerList.SelectedServer.ConnectionState,
-                                             Converter={StaticResource ConnectionStateToBrushConverter}}"/>
-                                <TextBlock Text="{Binding ServerList.SelectedServer.ConnectionState}"
-                                           FontSize="11"
-                                           Foreground="{DynamicResource TextSecondaryBrush}"
-                                           VerticalAlignment="Center"/>
-                            </StackPanel>
-
-                            <TextBlock Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,12,0,0"
-                                       FontSize="13">
-                                <Run Text="{Binding ServerList.SelectedServer.RemoteServer, Mode=OneWay}"/>
-                                <Run Text=" : "/>
-                                <Run Text="{Binding ServerList.SelectedServer.RemotePort, Mode=OneWay}"/>
-                            </TextBlock>
-
-                            <TextBlock Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,4,0,0"
-                                       FontSize="12"
-                                       Visibility="{Binding ServerList.SelectedServer.Group, Converter={StaticResource NullToVisibilityConverter}}">
-                                <Run Text="Group: "/>
-                                <Run Text="{Binding ServerList.SelectedServer.Group, Mode=OneWay}"/>
-                            </TextBlock>
-
-                            <TextBlock Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,4,0,0"
-                                       FontSize="12"
-                                       Visibility="{Binding ServerList.SelectedServer.Environment, Converter={StaticResource NullToVisibilityConverter}}">
-                                <Run Text="Environment: "/>
-                                <Run Text="{Binding ServerList.SelectedServer.Environment, Mode=OneWay}"/>
-                            </TextBlock>
-
-                            <Button Content="Connect"
-                                    Command="{Binding ServerList.ConnectCommand}"
-                                    CommandParameter="{Binding ServerList.SelectedServer}"
-                                    Style="{DynamicResource PrimaryButtonStyle}"
-                                    Width="120" HorizontalAlignment="Left"
-                                    Margin="0,20,0,0"/>
-                        </StackPanel>
+                            <TabControl.ContentTemplate>
+                                <DataTemplate DataType="{x:Type vm:SessionTabViewModel}">
+                                    <ContentControl Content="{Binding HostControl}"/>
+                                </DataTemplate>
+                            </TabControl.ContentTemplate>
+                        </TabControl>
                     </Border>
 
-                    <!-- Empty state when nothing selected -->
-                    <StackPanel Visibility="{Binding ServerList.HasSelection, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=Invert}"
-                                VerticalAlignment="Center" HorizontalAlignment="Center"
-                                IsHitTestVisible="True">
-                        <!-- Show empty state overlay when no servers exist -->
-                        <StackPanel Visibility="{Binding ServerList.IsEmpty, Converter={StaticResource BoolToVisibilityConverter}}">
-                            <TextBlock Text="No servers configured" FontSize="18"
-                                       Foreground="{DynamicResource TextSecondaryBrush}"
-                                       HorizontalAlignment="Center"/>
-                            <TextBlock Text="Click '+ Add' or press Ctrl+N to add your first server"
-                                       Foreground="{DynamicResource TextSecondaryBrush}"
-                                       HorizontalAlignment="Center" Margin="0,8,0,16"/>
-                            <Button Content="+ Add Server"
-                                    Command="{Binding ServerList.AddServerCommand}"
-                                    Style="{DynamicResource PrimaryButtonStyle}"
-                                    HorizontalAlignment="Center"/>
-                        </StackPanel>
+                    <Grid Visibility="{Binding Connection.HasActiveSessions, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=Invert}">
+                        <!-- Server detail panel (shown when a server is selected) -->
+                        <Border Visibility="{Binding ServerList.HasSelection, Converter={StaticResource BoolToVisibilityConverter}}"
+                                Padding="24">
+                            <StackPanel VerticalAlignment="Top">
+                                <TextBlock Text="{Binding ServerList.SelectedServer.DisplayName}"
+                                           FontSize="20" FontWeight="Bold"
+                                           Foreground="{DynamicResource TextPrimaryBrush}"/>
 
-                        <!-- Show hint when servers exist but none selected -->
-                        <TextBlock Text="Select a server to view details"
-                                   Visibility="{Binding ServerList.IsEmpty, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=Invert}"
-                                   HorizontalAlignment="Center" VerticalAlignment="Center"
-                                   Foreground="{DynamicResource TextSecondaryBrush}" FontSize="14"/>
-                    </StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                                    <Border CornerRadius="3" Padding="6,2" Margin="0,0,8,0"
+                                            Background="{Binding ServerList.SelectedServer.ConnectionType,
+                                                Converter={StaticResource ConnectionTypeToBrushConverter}}">
+                                        <TextBlock Text="{Binding ServerList.SelectedServer.ConnectionType}"
+                                                   FontSize="10" FontWeight="SemiBold"
+                                                   Foreground="White"/>
+                                    </Border>
+                                    <Ellipse Width="8" Height="8" Margin="0,0,6,0"
+                                             VerticalAlignment="Center"
+                                             Fill="{Binding ServerList.SelectedServer.ConnectionState,
+                                                 Converter={StaticResource ConnectionStateToBrushConverter}}"/>
+                                    <TextBlock Text="{Binding ServerList.SelectedServer.ConnectionState}"
+                                               FontSize="11"
+                                               Foreground="{DynamicResource TextSecondaryBrush}"
+                                               VerticalAlignment="Center"/>
+                                </StackPanel>
+
+                                <TextBlock Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,12,0,0"
+                                           FontSize="13">
+                                    <Run Text="{Binding ServerList.SelectedServer.RemoteServer, Mode=OneWay}"/>
+                                    <Run Text=" : "/>
+                                    <Run Text="{Binding ServerList.SelectedServer.RemotePort, Mode=OneWay}"/>
+                                </TextBlock>
+
+                                <TextBlock Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,4,0,0"
+                                           FontSize="12"
+                                           Visibility="{Binding ServerList.SelectedServer.Group, Converter={StaticResource NullToVisibilityConverter}}">
+                                    <Run Text="Group: "/>
+                                    <Run Text="{Binding ServerList.SelectedServer.Group, Mode=OneWay}"/>
+                                </TextBlock>
+
+                                <TextBlock Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,4,0,0"
+                                           FontSize="12"
+                                           Visibility="{Binding ServerList.SelectedServer.Environment, Converter={StaticResource NullToVisibilityConverter}}">
+                                    <Run Text="Environment: "/>
+                                    <Run Text="{Binding ServerList.SelectedServer.Environment, Mode=OneWay}"/>
+                                </TextBlock>
+
+                                <Button Content="Connect"
+                                        Command="{Binding ServerList.ConnectCommand}"
+                                        CommandParameter="{Binding ServerList.SelectedServer}"
+                                        Style="{DynamicResource PrimaryButtonStyle}"
+                                        Width="120" HorizontalAlignment="Left"
+                                        Margin="0,20,0,0"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Empty state when nothing selected -->
+                        <StackPanel Visibility="{Binding ServerList.HasSelection, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=Invert}"
+                                    VerticalAlignment="Center" HorizontalAlignment="Center"
+                                    IsHitTestVisible="True">
+                            <!-- Show empty state overlay when no servers exist -->
+                            <StackPanel Visibility="{Binding ServerList.IsEmpty, Converter={StaticResource BoolToVisibilityConverter}}">
+                                <TextBlock Text="No servers configured" FontSize="18"
+                                           Foreground="{DynamicResource TextSecondaryBrush}"
+                                           HorizontalAlignment="Center"/>
+                                <TextBlock Text="Click '+ Add' or press Ctrl+N to add your first server"
+                                           Foreground="{DynamicResource TextSecondaryBrush}"
+                                           HorizontalAlignment="Center" Margin="0,8,0,16"/>
+                                <Button Content="+ Add Server"
+                                        Command="{Binding ServerList.AddServerCommand}"
+                                        Style="{DynamicResource PrimaryButtonStyle}"
+                                        HorizontalAlignment="Center"/>
+                            </StackPanel>
+
+                            <!-- Show hint when servers exist but none selected -->
+                            <TextBlock Text="Select a server to view details"
+                                       Visibility="{Binding ServerList.IsEmpty, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=Invert}"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"
+                                       Foreground="{DynamicResource TextSecondaryBrush}" FontSize="14"/>
+                        </StackPanel>
+                    </Grid>
                 </Grid>
             </Grid>
 
