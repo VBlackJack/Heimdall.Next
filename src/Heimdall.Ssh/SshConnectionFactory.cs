@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+using Heimdall.Ssh.Pageant;
 using Renci.SshNet;
 
 namespace Heimdall.Ssh;
@@ -21,7 +22,7 @@ namespace Heimdall.Ssh;
 /// <summary>
 /// Builds SSH.NET <see cref="ConnectionInfo"/> instances from Heimdall connection
 /// parameters. Supports password authentication, private key authentication
-/// (with optional passphrase), and Pageant SSH agent forwarding.
+/// (with optional passphrase), and Pageant SSH agent key authentication.
 /// </summary>
 public static class SshConnectionFactory
 {
@@ -77,6 +78,37 @@ public static class SshConnectionFactory
     }
 
     /// <summary>
+    /// Determines whether the given connection parameters require Pageant agent
+    /// authentication, meaning the tunnel cannot be handled by SSH.NET alone and
+    /// must fall back to plink.exe via <see cref="Plink.PlinkTunnelRunner"/>.
+    /// </summary>
+    /// <param name="connectionParams">SSH connection parameters to evaluate.</param>
+    /// <returns>
+    /// True if Pageant is running and either agent forwarding is enabled,
+    /// or no key file and no password are configured (agent is the sole auth source).
+    /// </returns>
+    public static bool RequiresPageantFallback(SshConnectionParams connectionParams)
+    {
+        ArgumentNullException.ThrowIfNull(connectionParams);
+
+        // Explicit agent forwarding requested
+        if (connectionParams.AgentForwarding && PageantClient.IsAvailable())
+        {
+            return true;
+        }
+
+        // No key and no password: Pageant is the only viable auth source
+        if (string.IsNullOrEmpty(connectionParams.KeyPath)
+            && string.IsNullOrEmpty(connectionParams.Password)
+            && PageantClient.IsAvailable())
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
     /// Assembles the list of authentication methods from connection parameters.
     /// Order: key file, password, agent. SSH.NET tries them in order.
     /// </summary>
@@ -101,7 +133,7 @@ public static class SshConnectionFactory
             methods.Add(new PasswordAuthenticationMethod(connectionParams.Username, connectionParams.Password));
         }
 
-        // Pageant agent forwarding (Windows SSH agent)
+        // Pageant agent key authentication (Windows SSH agent)
         if (connectionParams.AgentForwarding)
         {
             var agentMethod = TryCreateAgentAuth(connectionParams.Username);
@@ -111,9 +143,18 @@ public static class SshConnectionFactory
             }
         }
 
-        // Fallback: if no explicit auth method configured, add NoneAuthenticationMethod.
-        // SSH.NET will still attempt Pageant/agent-based auth via the SSH protocol
-        // negotiation even without an explicit agent method.
+        // When no key/password configured but Pageant is available,
+        // try agent-based auth as primary method
+        if (methods.Count == 0)
+        {
+            var agentMethod = TryCreateAgentAuth(connectionParams.Username);
+            if (agentMethod is not null)
+            {
+                methods.Add(agentMethod);
+            }
+        }
+
+        // Fallback: if still no auth method, add NoneAuthenticationMethod.
         if (methods.Count == 0)
         {
             methods.Add(new NoneAuthenticationMethod(connectionParams.Username));
@@ -124,20 +165,39 @@ public static class SshConnectionFactory
 
     /// <summary>
     /// Attempts to create a Pageant-based agent authentication method.
+    /// Queries Pageant for loaded keys and wraps the first available key
+    /// into a <see cref="PrivateKeyAuthenticationMethod"/> via a
+    /// <see cref="PageantKeyWrapper"/> that delegates signing to the agent.
     /// Returns null if Pageant is not running or no keys are loaded.
     /// </summary>
     private static AuthenticationMethod? TryCreateAgentAuth(string username)
     {
         try
         {
-            // TODO: SSH.NET 2025.1.0 does not expose a public PageantProtocol type.
-            // Agent forwarding requires a custom IAgentProtocol implementation or
-            // waiting for SSH.NET to ship Pageant support. Return null for now.
-            return null;
+            if (!PageantClient.IsAvailable())
+            {
+                return null;
+            }
+
+            using var client = new PageantClient();
+            var keys = client.GetIdentities();
+
+            if (keys.Count == 0)
+            {
+                return null;
+            }
+
+            // Wrap each Pageant key as an IPrivateKeySource for SSH.NET
+            var keyWrappers = keys
+                .Select(k => new PageantKeyWrapper(k))
+                .Cast<IPrivateKeySource>()
+                .ToArray();
+
+            return new PrivateKeyAuthenticationMethod(username, keyWrappers);
         }
         catch
         {
-            // Pageant not running or not accessible
+            // Pageant communication failure is non-fatal
             return null;
         }
     }
