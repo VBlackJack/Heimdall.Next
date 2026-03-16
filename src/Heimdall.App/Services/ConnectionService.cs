@@ -231,8 +231,15 @@ public class ConnectionService
             Compression = server.SshCompression
         };
 
-        var session = new SshShellSession();
+        // Check if we need Plink fallback (Pageant-only auth)
+        if (SshConnectionFactory.RequiresPageantFallback(sshParams))
+        {
+            Core.Logging.FileLogger.Info($"SSH using Plink fallback (Pageant) for {server.DisplayName}");
+            return await ConnectSshViaPlinkAsync(server, settings, targetHost, targetPort, ct);
+        }
 
+        // Try SSH.NET first
+        var session = new SshShellSession();
         try
         {
             await session.ConnectAsync(sshParams, cancellationToken: ct).ConfigureAwait(false);
@@ -241,12 +248,75 @@ public class ConnectionService
         {
             session.Dispose();
             var failure = FailureClassifier.Classify(ex, sshParams);
+
+            // Fallback to Plink if auth failed and Pageant is available
+            if (failure.Code is SshFailureCode.AuthRejected or SshFailureCode.KeyRejected
+                && Heimdall.Ssh.Pageant.PageantClient.IsAvailable())
+            {
+                Core.Logging.FileLogger.Info($"SSH.NET auth failed, falling back to Plink: {failure.Message}");
+                return await ConnectSshViaPlinkAsync(server, settings, targetHost, targetPort, ct);
+            }
+
             _connectionSm.SetError(server.Id, failure.Message);
             return new ConnectionResult(false, failure.Message, null);
         }
 
         _connectionSm.TryTransition(server.Id, Core.Models.ConnectionState.Connected);
         return new ConnectionResult(true, null, session);
+    }
+
+    /// <summary>
+    /// Launches plink.exe as an interactive SSH session via ConPTY.
+    /// Used when SSH.NET cannot authenticate (Pageant-only auth).
+    /// Returns an ITerminalSession that the embedded SSH view can use.
+    /// </summary>
+    private async Task<ConnectionResult> ConnectSshViaPlinkAsync(
+        RdpServerDto server,
+        AppSettings settings,
+        string targetHost,
+        int targetPort,
+        CancellationToken ct)
+    {
+        var plinkPath = settings.PlinkPath;
+        if (string.IsNullOrWhiteSpace(plinkPath) || !File.Exists(plinkPath))
+        {
+            var msg = "Plink not found. Set the path in Settings.";
+            _connectionSm.SetError(server.Id, msg);
+            return new ConnectionResult(false, msg, null);
+        }
+
+        // Build plink arguments for interactive SSH
+        var args = new System.Text.StringBuilder();
+        args.Append("-ssh ");
+        if (!string.IsNullOrEmpty(server.SshKeyPath))
+            args.Append($"-i \"{server.SshKeyPath}\" ");
+        if (server.SshCompression)
+            args.Append("-C ");
+        if (server.SshAgentForwarding)
+            args.Append("-A ");
+        args.Append($"-P {targetPort} ");
+        if (!string.IsNullOrEmpty(server.SshUsername))
+            args.Append($"{server.SshUsername}@");
+        args.Append(targetHost);
+
+        Core.Logging.FileLogger.Info($"SSH via Plink: {plinkPath} {args}");
+
+        var terminal = new Heimdall.Terminal.ConPty.ConPtySession();
+        try
+        {
+            await terminal.StartAsync(plinkPath, args.ToString(), 120, 40);
+            Core.Logging.FileLogger.Info($"Plink SSH session started: PID={terminal.ProcessId}");
+        }
+        catch (Exception ex)
+        {
+            terminal.Dispose();
+            Core.Logging.FileLogger.Error("Plink SSH launch failed", ex);
+            _connectionSm.SetError(server.Id, ex.Message);
+            return new ConnectionResult(false, ex.Message, null);
+        }
+
+        _connectionSm.TryTransition(server.Id, Core.Models.ConnectionState.Connected);
+        return new ConnectionResult(true, null, terminal);
     }
 
     /// <summary>
