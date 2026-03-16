@@ -794,7 +794,7 @@
                                         Grid.Row="1"
                                         Grid.Column="1"
                                         Grid.ColumnSpan="2"
-                                        Margin="8,1,0,0"/>
+                                        Margin="2,1,0,0"/>
                     </Grid>
                     <ControlTemplate.Triggers>
                         <Trigger Property="HasItems" Value="False">
