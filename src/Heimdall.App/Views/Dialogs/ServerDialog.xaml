@@ -599,7 +599,7 @@
 
                         <Expander Header="Device redirection" IsExpanded="True">
                             <Expander.Style>
-                                <Style TargetType="Expander" BasedOn="{DynamicResource ThemedExpanderStyle}">
+                                <Style TargetType="Expander" BasedOn="{StaticResource ThemedExpanderStyle}">
                                     <Setter Property="Visibility" Value="Collapsed"/>
                                     <Style.Triggers>
                                         <DataTrigger Binding="{Binding ConnectionType}" Value="RDP">
@@ -621,7 +621,7 @@
 
                         <Expander Header="Advanced RDP behavior" IsExpanded="False">
                             <Expander.Style>
-                                <Style TargetType="Expander" BasedOn="{DynamicResource ThemedExpanderStyle}">
+                                <Style TargetType="Expander" BasedOn="{StaticResource ThemedExpanderStyle}">
                                     <Setter Property="Visibility" Value="Collapsed"/>
                                     <Style.Triggers>
                                         <DataTrigger Binding="{Binding ConnectionType}" Value="RDP">
