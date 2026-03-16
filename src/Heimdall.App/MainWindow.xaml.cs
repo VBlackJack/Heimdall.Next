@@ -16,6 +16,7 @@
 
 using System.Windows;
 using System.Windows.Input;
+using Heimdall.App.Theming;
 using Heimdall.App.ViewModels;
 
 namespace Heimdall.App;
@@ -29,6 +30,7 @@ public partial class MainWindow : Window
     public MainWindow(MainViewModel viewModel)
     {
         InitializeComponent();
+        WindowThemeHelper.ApplyCurrentTheme(this);
         DataContext = viewModel;
 
         // Wire toolbar navigation tabs to ViewModel.SelectedTab
