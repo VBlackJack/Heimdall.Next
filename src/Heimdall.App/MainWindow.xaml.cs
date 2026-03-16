@@ -15,12 +15,14 @@
  */
 
 using System.Windows;
+using System.Windows.Input;
 using Heimdall.App.ViewModels;
 
 namespace Heimdall.App;
 
 /// <summary>
 /// Main application window. All logic lives in <see cref="MainViewModel"/>.
+/// Code-behind is limited to keyboard shortcut routing, double-click, and window lifecycle.
 /// </summary>
 public partial class MainWindow : Window
 {
@@ -29,6 +31,12 @@ public partial class MainWindow : Window
         InitializeComponent();
         DataContext = viewModel;
 
+        // Wire toolbar navigation tabs to ViewModel.SelectedTab
+        TabServers.Checked += (_, _) => viewModel.SelectedTab = "Servers";
+        TabTunnels.Checked += (_, _) => viewModel.SelectedTab = "Tunnels";
+        TabScheduled.Checked += (_, _) => viewModel.SelectedTab = "Scheduled";
+        TabSettings.Checked += (_, _) => viewModel.SelectedTab = "Settings";
+
         Loaded += async (_, _) =>
         {
             if (viewModel.LoadCommand.CanExecute(null))
@@ -36,5 +44,69 @@ public partial class MainWindow : Window
                 await viewModel.LoadCommand.ExecuteAsync(null);
             }
         };
+
+        KeyDown += OnKeyDown;
+    }
+
+    private void OnKeyDown(object sender, KeyEventArgs e)
+    {
+        if (DataContext is not MainViewModel vm)
+        {
+            return;
+        }
+
+        switch (e.Key)
+        {
+            case Key.N when Keyboard.Modifiers == ModifierKeys.Control:
+                if (vm.ServerList.AddServerCommand.CanExecute(null))
+                {
+                    vm.ServerList.AddServerCommand.Execute(null);
+                }
+                e.Handled = true;
+                break;
+
+            case Key.Delete:
+                if (vm.ServerList.SelectedServer is not null &&
+                    vm.ServerList.DeleteServerCommand.CanExecute(vm.ServerList.SelectedServer))
+                {
+                    vm.ServerList.DeleteServerCommand.Execute(vm.ServerList.SelectedServer);
+                }
+                e.Handled = true;
+                break;
+
+            case Key.E when Keyboard.Modifiers == ModifierKeys.Control:
+                if (vm.ServerList.SelectedServer is not null &&
+                    vm.ServerList.EditServerCommand.CanExecute(vm.ServerList.SelectedServer))
+                {
+                    vm.ServerList.EditServerCommand.Execute(vm.ServerList.SelectedServer);
+                }
+                e.Handled = true;
+                break;
+
+            case Key.F when Keyboard.Modifiers == ModifierKeys.Control:
+                SearchBox.Focus();
+                SearchBox.SelectAll();
+                e.Handled = true;
+                break;
+        }
+    }
+
+    /// <summary>
+    /// Handles double-click on a server row to initiate a connection.
+    /// Ensures the click target is a DataGrid row (not a header or empty area).
+    /// </summary>
+    private void OnServerDoubleClick(object sender, MouseButtonEventArgs e)
+    {
+        if (DataContext is not MainViewModel vm)
+        {
+            return;
+        }
+
+        // Only connect if a row is selected (ignore header/empty clicks)
+        if (vm.ServerList.SelectedServer is not null &&
+            vm.ServerList.ConnectCommand.CanExecute(vm.ServerList.SelectedServer))
+        {
+            vm.ServerList.ConnectCommand.Execute(vm.ServerList.SelectedServer);
+        }
     }
 }

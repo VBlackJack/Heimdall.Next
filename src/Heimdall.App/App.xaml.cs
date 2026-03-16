@@ -101,16 +101,44 @@ public partial class App : Application
     }
 
     /// <summary>
-    /// Detects a legacy Heimdall (PowerShell) installation in the sibling
-    /// RDPManager directory and offers to import its configuration.
+    /// Detects a legacy Heimdall (PowerShell) installation by searching
+    /// for an RDPManager sibling directory up the directory tree.
+    /// Only prompts on first run (when servers.json does not yet contain data).
     /// </summary>
     private static async Task TryMigrateLegacyAsync(
         ConfigManager configManager, LocalizationManager localization)
     {
-        var legacyPath = Path.GetFullPath(
-            Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "RDPManager"));
+        // Only offer migration when servers.json is empty or missing (first run)
+        var existingServers = await configManager.LoadServersAsync();
+        if (existingServers.Count > 0)
+        {
+            return;
+        }
 
-        if (!MigrationService.DetectLegacyInstallation(legacyPath))
+        // Walk up from the base directory looking for a sibling RDPManager folder
+        var searchDir = new DirectoryInfo(AppDomain.CurrentDomain.BaseDirectory);
+        string? legacyPath = null;
+
+        while (searchDir?.Parent != null)
+        {
+            var candidate = Path.Combine(searchDir.Parent.FullName, "RDPManager");
+            if (MigrationService.DetectLegacyInstallation(candidate))
+            {
+                legacyPath = candidate;
+                break;
+            }
+
+            candidate = Path.Combine(searchDir.FullName, "RDPManager");
+            if (MigrationService.DetectLegacyInstallation(candidate))
+            {
+                legacyPath = candidate;
+                break;
+            }
+
+            searchDir = searchDir.Parent;
+        }
+
+        if (legacyPath is null)
         {
             return;
         }
