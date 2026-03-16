@@ -94,7 +94,7 @@
             <!-- ============================================================ -->
             <!-- SERVERS TAB: TreeView left panel + detail/sessions right      -->
             <!-- ============================================================ -->
-            <Grid>
+            <Grid Visibility="{Binding IsServersTabSelected, Converter={StaticResource BoolToVisibilityConverter}}">
                 <Grid.ColumnDefinitions>
                     <!-- Left: TreeView panel -->
                     <ColumnDefinition x:Name="ServerTreeColumn" Width="260" MinWidth="180" MaxWidth="500"/>
@@ -109,7 +109,6 @@
                         Background="{DynamicResource SurfaceBrush}"
                         BorderThickness="0,0,1,0"
                         BorderBrush="{DynamicResource BorderBrush}"
-                        Visibility="{Binding IsServersTabSelected, Converter={StaticResource BoolToVisibilityConverter}}"
                         >
                     <DockPanel>
                         <!-- Filter box at top of TreeView -->
@@ -244,6 +243,7 @@
                                 <Style TargetType="TreeViewItem"
                                        BasedOn="{StaticResource ThemedTreeViewItemStyle}">
                                     <Setter Property="IsExpanded" Value="True"/>
+                                    <Setter Property="Padding" Value="1,1"/>
                                 </Style>
                             </TreeView.ItemContainerStyle>
 
