@@ -40,6 +40,7 @@ public partial class MainViewModel : ObservableObject
     private readonly TunnelManager _tunnelManager;
     private readonly HostKeyStore _hostKeyStore;
     private readonly IDialogService _dialogService;
+    private readonly EmbeddedSessionManager _embeddedSessionManager;
 
     [ObservableProperty]
     private string _windowTitle = "Heimdall";
@@ -112,6 +113,7 @@ public partial class MainViewModel : ObservableObject
         TunnelManager tunnelManager,
         HostKeyStore hostKeyStore,
         IDialogService dialogService,
+        EmbeddedSessionManager embeddedSessionManager,
         ServerListViewModel serverList,
         ConnectionViewModel connection,
         SettingsViewModel settings)
@@ -123,6 +125,7 @@ public partial class MainViewModel : ObservableObject
         _tunnelManager = tunnelManager;
         _hostKeyStore = hostKeyStore;
         _dialogService = dialogService;
+        _embeddedSessionManager = embeddedSessionManager;
         ServerList = serverList;
         Connection = connection;
         Settings = settings;
@@ -179,13 +182,25 @@ public partial class MainViewModel : ObservableObject
     /// </summary>
     private void OnSessionReady(string serverId, string displayName, string connectionType, object? session)
     {
-        var tab = Connection.AddSession(serverId, displayName, connectionType);
-        tab.HostControl = session;
-        tab.Status = "Connected";
+        if (session is null)
+        {
+            StatusText = _localizer.Format("StatusConnected", displayName);
+            return;
+        }
 
-        // Stay on Servers tab — the right panel will show the connected session info
-        // SelectedTab = "Connections" is removed because there's no separate Connections view
-        StatusText = _localizer.Format("StatusConnected", displayName);
+        var tab = Connection.AddSession(serverId, displayName, connectionType);
+        tab.HostControl = _embeddedSessionManager.CreateHostControl(
+            tab,
+            displayName,
+            connectionType,
+            session);
+        tab.Status = string.Equals(connectionType, "RDP", StringComparison.OrdinalIgnoreCase)
+            ? "Connecting"
+            : "Connected";
+
+        StatusText = string.Equals(connectionType, "RDP", StringComparison.OrdinalIgnoreCase)
+            ? string.Format("Opening embedded RDP session for {0}.", displayName)
+            : _localizer.Format("StatusConnected", displayName);
     }
 
     private void OnApplicationStatusChanged(ApplicationStatus previous, ApplicationStatus current)

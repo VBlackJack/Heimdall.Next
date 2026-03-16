@@ -31,7 +31,7 @@ namespace Heimdall.App;
 /// Application entry point. Configures dependency injection
 /// and initializes core services before showing the main window.
 /// </summary>
-public partial class App : Application
+public partial class App : System.Windows.Application
 {
     private ServiceProvider? _serviceProvider;
 
@@ -94,6 +94,7 @@ public partial class App : Application
         // Application services
         services.AddSingleton<NavigationService>();
         services.AddSingleton<ConnectionService>();
+        services.AddSingleton<EmbeddedSessionManager>();
         services.AddSingleton<IDialogService, WpfDialogService>();
 
         // ViewModels
