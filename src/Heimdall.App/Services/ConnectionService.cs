@@ -299,24 +299,27 @@ public class ConnectionService
             args.Append($"{server.SshUsername}@");
         args.Append(targetHost);
 
-        Core.Logging.FileLogger.Info($"SSH via Plink: {plinkPath} {args}");
+        Core.Logging.FileLogger.Info($"SSH via Plink (pipe mode): {plinkPath} {args}");
 
-        var terminal = new Heimdall.Terminal.ConPty.ConPtySession();
+        // Use pipe mode (NOT ConPTY) — raw stdin/stdout redirection.
+        // ConPTY converts VT input to Windows key events, breaking arrow keys.
+        // Pipe mode passes VT sequences through raw. The -t flag forces remote PTY.
+        var pipeSession = new Heimdall.Terminal.PipeModeSession();
         try
         {
-            await terminal.StartAsync(plinkPath, args.ToString(), 120, 40);
-            Core.Logging.FileLogger.Info($"Plink SSH session started: PID={terminal.ProcessId}");
+            await pipeSession.StartAsync(plinkPath, args.ToString());
+            Core.Logging.FileLogger.Info($"Plink SSH pipe session started: PID={pipeSession.ProcessId}");
         }
         catch (Exception ex)
         {
-            terminal.Dispose();
+            pipeSession.Dispose();
             Core.Logging.FileLogger.Error("Plink SSH launch failed", ex);
             _connectionSm.SetError(server.Id, ex.Message);
             return new ConnectionResult(false, ex.Message, null);
         }
 
         _connectionSm.TryTransition(server.Id, Core.Models.ConnectionState.Connected);
-        return new ConnectionResult(true, null, terminal);
+        return new ConnectionResult(true, null, pipeSession);
     }
 
     /// <summary>
