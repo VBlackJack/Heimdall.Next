@@ -62,9 +62,11 @@
                 <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" HorizontalAlignment="Right"
                             VerticalAlignment="Center">
                     <Button Content="+ Add"
+                            Command="{Binding ServerList.AddServerCommand}"
                             Style="{DynamicResource PrimaryButtonStyle}"
                             Margin="4,0"/>
                     <TextBox Width="200"
+                             Text="{Binding ServerList.SearchText, UpdateSourceTrigger=PropertyChanged}"
                              Style="{DynamicResource SearchTextBoxStyle}"
                              Tag="Search servers... (Ctrl+F)"
                              Margin="4,0"/>
@@ -151,8 +153,11 @@
                             <TextBlock Text="Servers"/>
                         </TabItem.Header>
                         <DataGrid x:Name="ServerGrid"
+                                  ItemsSource="{Binding ServerList.Servers}"
+                                  SelectedItem="{Binding ServerList.SelectedServer}"
                                   AutoGenerateColumns="False"
                                   IsReadOnly="True"
+                                  SelectionMode="Single"
                                   Style="{DynamicResource ThemedDataGridStyle}"
                                   ColumnHeaderStyle="{DynamicResource ThemedDataGridColumnHeaderStyle}"
                                   CellStyle="{DynamicResource ThemedDataGridCellStyle}"
