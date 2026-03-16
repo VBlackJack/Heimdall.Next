@@ -259,8 +259,49 @@
                               Background="{DynamicResource BorderBrush}"
                               ShowsPreview="True"/>
 
-                <!-- RIGHT PANEL: server details (when no sessions) -->
+                <!-- RIGHT PANEL: sessions OR server details -->
                 <Grid Grid.Column="2">
+
+                    <!-- SESSIONS (visible when active) -->
+                    <TabControl x:Name="SessionTabControl"
+                                ItemsSource="{Binding Connection.ActiveSessions}"
+                                SelectedItem="{Binding Connection.ActiveSession}"
+                                Visibility="{Binding Connection.HasActiveSessions, Converter={StaticResource BoolToVisibilityConverter}}"
+                                Background="{DynamicResource BackgroundBrush}"
+                                BorderThickness="0"
+                                Style="{DynamicResource ThemedTabControlStyle}"
+                                PreviewMouseRightButtonDown="OnSessionTabRightClick"
+                                PreviewMouseLeftButtonDown="OnTabDragStart"
+                                PreviewMouseMove="OnTabDragMove"
+                                Drop="OnTabDrop"
+                                AllowDrop="True"
+                                ItemContainerStyle="{DynamicResource ThemedTabItemStyle}">
+                        <TabControl.ItemTemplate>
+                            <DataTemplate DataType="{x:Type vm:SessionTabViewModel}">
+                                <DockPanel LastChildFill="True">
+                                    <Button DockPanel.Dock="Right"
+                                            Width="18" Height="18" Margin="8,0,0,0" Padding="0"
+                                            Focusable="False" Content="x"
+                                            Command="{Binding DataContext.Connection.CloseSessionCommand, RelativeSource={RelativeSource AncestorType=TabControl}}"
+                                            CommandParameter="{Binding}"
+                                            Style="{DynamicResource SecondaryButtonStyle}"/>
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding Title}" FontSize="12" FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource TextPrimaryBrush}" TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock Text="{Binding Status}" FontSize="10"
+                                                   Foreground="{DynamicResource TextSecondaryBrush}" TextTrimming="CharacterEllipsis"/>
+                                    </StackPanel>
+                                </DockPanel>
+                            </DataTemplate>
+                        </TabControl.ItemTemplate>
+                        <TabControl.ContentTemplate>
+                            <DataTemplate DataType="{x:Type vm:SessionTabViewModel}">
+                                <ContentControl Content="{Binding HostControl}"/>
+                            </DataTemplate>
+                        </TabControl.ContentTemplate>
+                    </TabControl>
+
+                    <!-- SERVER DETAILS (visible when no sessions) -->
                     <Grid Visibility="{Binding Connection.HasActiveSessions, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=Invert}">
                         <!-- Server detail panel (shown when a server is selected) -->
                         <Border Visibility="{Binding ServerList.HasSelection, Converter={StaticResource BoolToVisibilityConverter}}"
@@ -542,49 +583,7 @@
                 </StackPanel>
             </ScrollViewer>
 
-            <!-- ============================================================ -->
-            <!-- ACTIVE SESSIONS: Overlays all tabs when sessions are open    -->
-            <!-- ============================================================ -->
-            <Border Visibility="{Binding Connection.HasActiveSessions, Converter={StaticResource BoolToVisibilityConverter}}"
-                    Background="{DynamicResource BackgroundBrush}"
-                    Panel.ZIndex="10">
-                <TabControl x:Name="SessionTabControl"
-                            ItemsSource="{Binding Connection.ActiveSessions}"
-                            SelectedItem="{Binding Connection.ActiveSession}"
-                            Background="{DynamicResource BackgroundBrush}"
-                            BorderThickness="0"
-                            Style="{DynamicResource ThemedTabControlStyle}"
-                            PreviewMouseRightButtonDown="OnSessionTabRightClick"
-                            PreviewMouseLeftButtonDown="OnTabDragStart"
-                            PreviewMouseMove="OnTabDragMove"
-                            Drop="OnTabDrop"
-                            AllowDrop="True"
-                            ItemContainerStyle="{DynamicResource ThemedTabItemStyle}">
-                    <TabControl.ItemTemplate>
-                        <DataTemplate DataType="{x:Type vm:SessionTabViewModel}">
-                            <DockPanel LastChildFill="True">
-                                <Button DockPanel.Dock="Right"
-                                        Width="18" Height="18" Margin="8,0,0,0" Padding="0"
-                                        Focusable="False" Content="x"
-                                        Command="{Binding DataContext.Connection.CloseSessionCommand, RelativeSource={RelativeSource AncestorType=TabControl}}"
-                                        CommandParameter="{Binding}"
-                                        Style="{DynamicResource SecondaryButtonStyle}"/>
-                                <StackPanel>
-                                    <TextBlock Text="{Binding Title}" FontSize="12" FontWeight="SemiBold"
-                                               Foreground="{DynamicResource TextPrimaryBrush}" TextTrimming="CharacterEllipsis"/>
-                                    <TextBlock Text="{Binding Status}" FontSize="10"
-                                               Foreground="{DynamicResource TextSecondaryBrush}" TextTrimming="CharacterEllipsis"/>
-                                </StackPanel>
-                            </DockPanel>
-                        </DataTemplate>
-                    </TabControl.ItemTemplate>
-                    <TabControl.ContentTemplate>
-                        <DataTemplate DataType="{x:Type vm:SessionTabViewModel}">
-                            <ContentControl Content="{Binding HostControl}"/>
-                        </DataTemplate>
-                    </TabControl.ContentTemplate>
-                </TabControl>
-            </Border>
+            <!-- Sessions overlay removed — now inside Servers Grid Column 2 -->
         </Grid>
 
         <!-- FULLSCREEN EXIT ICON (small icon top-right, hidden by default) -->
