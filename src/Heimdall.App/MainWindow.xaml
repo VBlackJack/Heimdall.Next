@@ -582,6 +582,21 @@
             </ScrollViewer>
         </Grid>
 
+        <!-- FULLSCREEN EXIT BUTTON (floating overlay, hidden by default) -->
+        <Button x:Name="ExitFullscreenButton"
+                Grid.Row="0" Grid.RowSpan="3"
+                Content="Exit Fullscreen (Esc)"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Top"
+                Margin="0,4,0,0"
+                Padding="12,4"
+                FontSize="11"
+                Visibility="Collapsed"
+                Click="OnExitFullscreenClick"
+                Style="{DynamicResource PrimaryButtonStyle}"
+                Panel.ZIndex="999"
+                Opacity="0.8"/>
+
         <!-- STATUS BAR -->
         <Border Grid.Row="2"
                 Background="{DynamicResource SurfaceBrush}"

@@ -468,40 +468,61 @@ public partial class MainWindow : Window
         ToggleFullscreen();
     }
 
+    private WindowState _preFullscreenState;
+    private double _preFullscreenWidth;
+    private double _preFullscreenHeight;
+
     private void ToggleFullscreen()
     {
         if (DataContext is not MainViewModel vm) return;
 
         if (_isFullscreen)
         {
-            // Exit fullscreen — restore all UI elements
+            // Exit fullscreen
             _isFullscreen = false;
-            WindowStyle = WindowStyle.SingleBorderWindow;
-            WindowState = WindowState.Normal;
+            ExitFullscreenButton.Visibility = Visibility.Collapsed;
 
             // Show toolbar, TreeView, status bar
             ToolbarRow.Height = new GridLength(48);
             StatusBarRow.Height = new GridLength(28);
-            if (FindName("ServerTreeColumn") is ColumnDefinition treeCol)
-                treeCol.Width = new GridLength(260);
-            if (FindName("SplitterColumn") is ColumnDefinition splitCol)
-                splitCol.Width = GridLength.Auto;
+            ServerTreeColumn.Width = new GridLength(260);
+            ServerTreeColumn.MinWidth = 180;
+            ServerTreeColumn.MaxWidth = 500;
+            SplitterColumn.Width = GridLength.Auto;
+
+            WindowStyle = WindowStyle.SingleBorderWindow;
+            WindowState = _preFullscreenState;
+            if (_preFullscreenState == WindowState.Normal)
+            {
+                Width = _preFullscreenWidth;
+                Height = _preFullscreenHeight;
+            }
         }
         else
         {
-            // Enter fullscreen — hide everything except the session content
+            // Enter fullscreen
             _isFullscreen = true;
+            _preFullscreenState = WindowState;
+            _preFullscreenWidth = ActualWidth;
+            _preFullscreenHeight = ActualHeight;
 
             // Hide toolbar, TreeView, status bar
             ToolbarRow.Height = new GridLength(0);
             StatusBarRow.Height = new GridLength(0);
-            if (FindName("ServerTreeColumn") is ColumnDefinition treeCol)
-                treeCol.Width = new GridLength(0);
-            if (FindName("SplitterColumn") is ColumnDefinition splitCol)
-                splitCol.Width = new GridLength(0);
+            ServerTreeColumn.MinWidth = 0;
+            ServerTreeColumn.MaxWidth = 0;
+            ServerTreeColumn.Width = new GridLength(0);
+            SplitterColumn.Width = new GridLength(0);
 
             WindowStyle = WindowStyle.None;
             WindowState = WindowState.Maximized;
+            ExitFullscreenButton.Visibility = Visibility.Visible;
         }
+    }
+
+    private void OnExitFullscreenClick(object sender, RoutedEventArgs e)
+    {
+        ExitFullscreenButton.Visibility = Visibility.Collapsed;
+        if (_isFullscreen) ToggleFullscreen();
     }
 }
