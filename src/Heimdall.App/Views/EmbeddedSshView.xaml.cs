@@ -20,6 +20,7 @@ using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using Heimdall.App.Services;
 using Heimdall.App.ViewModels;
 using Heimdall.Ssh;
 using Microsoft.Web.WebView2.Core;
@@ -40,11 +41,14 @@ public partial class EmbeddedSshView : UserControl, IDisposable
         ("<script src=\"./Terminal/addon-webgl.min.js\"></script>", Path.Combine("Terminal", "addon-webgl.min.js"), "<script>", "</script>")
     ];
 
+    private static readonly byte[] KeepAliveCr = [0x0D];
+
     private readonly ConcurrentQueue<string> _pendingTerminalMessages = new();
 
     private SshShellSession? _session;
     private Heimdall.Terminal.ITerminalSession? _terminalSession;
     private SessionTabViewModel? _sessionTab;
+    private System.Threading.Timer? _keepAliveTimer;
     private Action<ReadOnlyMemory<byte>>? _terminalDataHandler;
     private Action<int>? _terminalExitHandler;
     private bool _disposed;
@@ -53,6 +57,7 @@ public partial class EmbeddedSshView : UserControl, IDisposable
     private bool _terminalReady;
     private bool _webViewUnavailable;
     private bool _initialTerminalFocusApplied;
+    private bool _sleepPreventionActive;
 
     private bool IsSessionConnected =>
         (_session?.IsConnected ?? false) || (_terminalSession?.IsRunning ?? false);
@@ -72,7 +77,8 @@ public partial class EmbeddedSshView : UserControl, IDisposable
         SshShellSession session,
         SessionTabViewModel sessionTab,
         string displayName,
-        string endpoint)
+        string endpoint,
+        int keepAliveIntervalSeconds = 240)
     {
         ArgumentNullException.ThrowIfNull(session);
         ArgumentNullException.ThrowIfNull(sessionTab);
@@ -91,6 +97,9 @@ public partial class EmbeddedSshView : UserControl, IDisposable
 
         _session.DataReceived += OnDataReceived;
         _session.Disconnected += OnDisconnected;
+
+        StartKeepAliveTimer(keepAliveIntervalSeconds);
+        AcquireSleepPrevention();
     }
 
     /// <summary>
@@ -99,7 +108,8 @@ public partial class EmbeddedSshView : UserControl, IDisposable
     public void InitializeTerminalSession(
         Heimdall.Terminal.ITerminalSession terminalSession,
         SessionTabViewModel sessionTab,
-        string displayName)
+        string displayName,
+        int keepAliveIntervalSeconds = 240)
     {
         ArgumentNullException.ThrowIfNull(terminalSession);
         ArgumentNullException.ThrowIfNull(sessionTab);
@@ -121,6 +131,9 @@ public partial class EmbeddedSshView : UserControl, IDisposable
 
         _terminalSession.DataReceived += _terminalDataHandler;
         _terminalSession.ProcessExited += _terminalExitHandler;
+
+        StartKeepAliveTimer(keepAliveIntervalSeconds);
+        AcquireSleepPrevention();
     }
 
     public void Dispose()
@@ -131,6 +144,9 @@ public partial class EmbeddedSshView : UserControl, IDisposable
         }
 
         _disposed = true;
+
+        StopKeepAliveTimer();
+        ReleaseSleepPrevention();
 
         Loaded -= OnLoaded;
 
@@ -523,6 +539,70 @@ public partial class EmbeddedSshView : UserControl, IDisposable
         FallbackPanel.Visibility = System.Windows.Visibility.Visible;
         FallbackMessageText.Text = message;
         UpdateStatus("Error");
+    }
+
+    private void StartKeepAliveTimer(int intervalSeconds)
+    {
+        if (intervalSeconds <= 0)
+        {
+            return;
+        }
+
+        _keepAliveTimer = new System.Threading.Timer(
+            _ => SendKeepAlive(),
+            null,
+            TimeSpan.FromSeconds(intervalSeconds),
+            TimeSpan.FromSeconds(intervalSeconds));
+        Core.Logging.FileLogger.Info(
+            $"SSH keepalive timer started ({intervalSeconds}s interval)");
+    }
+
+    private void StopKeepAliveTimer()
+    {
+        if (_keepAliveTimer is null)
+        {
+            return;
+        }
+
+        _keepAliveTimer.Dispose();
+        _keepAliveTimer = null;
+        Core.Logging.FileLogger.Info("SSH keepalive timer stopped");
+    }
+
+    private void SendKeepAlive()
+    {
+        if (_disposed || !IsSessionConnected)
+        {
+            return;
+        }
+
+        try
+        {
+            WriteToSession(KeepAliveCr);
+            Core.Logging.FileLogger.Info("SSH keepalive CR sent");
+        }
+        catch (Exception ex)
+        {
+            Core.Logging.FileLogger.Warn($"SSH keepalive failed: {ex.Message}");
+        }
+    }
+
+    private void AcquireSleepPrevention()
+    {
+        if (!_sleepPreventionActive)
+        {
+            _sleepPreventionActive = true;
+            SleepPrevention.SessionStarted();
+        }
+    }
+
+    private void ReleaseSleepPrevention()
+    {
+        if (_sleepPreventionActive)
+        {
+            _sleepPreventionActive = false;
+            SleepPrevention.SessionEnded();
+        }
     }
 
     private void UpdateStatus(string status)

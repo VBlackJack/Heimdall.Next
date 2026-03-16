@@ -34,29 +34,33 @@ public sealed class EmbeddedSessionManager
         SessionTabViewModel sessionTab,
         string displayName,
         string connectionType,
-        object session)
+        object session,
+        AppSettings? settings = null)
     {
         ArgumentNullException.ThrowIfNull(sessionTab);
         ArgumentNullException.ThrowIfNull(session);
+
+        var antiIdleInterval = settings?.AntiIdleIntervalSeconds ?? 60;
+        var sshKeepAliveInterval = settings?.SshTmoutResetIntervalSeconds ?? 240;
 
         if (string.Equals(connectionType, "RDP", StringComparison.OrdinalIgnoreCase) &&
             session is RdpServerDto server)
         {
             var view = new EmbeddedRdpView();
-            view.InitializeSession(server, sessionTab);
+            view.InitializeSession(server, sessionTab, antiIdleInterval);
             return view;
         }
 
         if (string.Equals(connectionType, "SSH", StringComparison.OrdinalIgnoreCase) &&
             session is SshShellSession sshSession)
         {
-            return CreateSshView(sessionTab, sshSession, displayName);
+            return CreateSshView(sessionTab, sshSession, displayName, sshKeepAliveInterval);
         }
 
         if (string.Equals(connectionType, "SSH", StringComparison.OrdinalIgnoreCase) &&
             session is Heimdall.Terminal.ITerminalSession terminalSession)
         {
-            return CreateTerminalSshView(sessionTab, terminalSession, displayName);
+            return CreateTerminalSshView(sessionTab, terminalSession, displayName, sshKeepAliveInterval);
         }
 
         if (session is UIElement element)
@@ -70,20 +74,22 @@ public sealed class EmbeddedSessionManager
     private static EmbeddedSshView CreateSshView(
         SessionTabViewModel tab,
         SshShellSession session,
-        string displayName)
+        string displayName,
+        int keepAliveIntervalSeconds)
     {
         var view = new EmbeddedSshView();
-        view.InitializeSession(session, tab, displayName, string.Empty);
+        view.InitializeSession(session, tab, displayName, string.Empty, keepAliveIntervalSeconds);
         return view;
     }
 
     private static EmbeddedSshView CreateTerminalSshView(
         SessionTabViewModel tab,
         Heimdall.Terminal.ITerminalSession terminalSession,
-        string displayName)
+        string displayName,
+        int keepAliveIntervalSeconds)
     {
         var view = new EmbeddedSshView();
-        view.InitializeTerminalSession(terminalSession, tab, displayName);
+        view.InitializeTerminalSession(terminalSession, tab, displayName, keepAliveIntervalSeconds);
         return view;
     }
 
