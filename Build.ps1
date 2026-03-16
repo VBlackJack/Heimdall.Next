@@ -121,6 +121,21 @@ if (Test-Path (Join-Path $ProjectRoot 'locales\fr.json')) {
     Copy-Item (Join-Path $ProjectRoot 'locales\fr.json') $localesDest -Force
 }
 
+# Copy WebView2 native loader (not copied by dotnet publish)
+$wv2Loader = Join-Path $ProjectRoot 'src\Heimdall.App\lib\webview2\WebView2Loader.dll'
+if (Test-Path $wv2Loader) {
+    Copy-Item $wv2Loader $outputDir -Force
+    Write-Host "  Copied WebView2Loader.dll" -ForegroundColor DarkGray
+}
+
+# Copy terminal assets
+$assetsSrc = Join-Path $ProjectRoot 'src\Heimdall.App\Assets'
+$assetsDest = Join-Path $outputDir 'Assets'
+if (Test-Path $assetsSrc) {
+    Copy-Item $assetsSrc $assetsDest -Recurse -Force
+    Write-Host "  Copied terminal assets" -ForegroundColor DarkGray
+}
+
 Write-Host "[4/5] Portable published" -ForegroundColor Green
 
 # ── Release extras ──────────────────────────────────────────────────────────
