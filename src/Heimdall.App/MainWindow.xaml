@@ -268,6 +268,10 @@
                                     BorderThickness="0"
                                     Style="{DynamicResource ThemedTabControlStyle}"
                                     PreviewMouseRightButtonDown="OnSessionTabRightClick"
+                                    PreviewMouseLeftButtonDown="OnTabDragStart"
+                                    PreviewMouseMove="OnTabDragMove"
+                                    Drop="OnTabDrop"
+                                    AllowDrop="True"
                                     ItemContainerStyle="{DynamicResource ThemedTabItemStyle}">
                             <TabControl.ItemTemplate>
                                 <DataTemplate DataType="{x:Type vm:SessionTabViewModel}">
