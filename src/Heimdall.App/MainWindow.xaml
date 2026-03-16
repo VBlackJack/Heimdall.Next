@@ -24,6 +24,7 @@
 
         <!-- TOOLBAR -->
         <Border Grid.Row="0"
+                Panel.ZIndex="100"
                 Background="{DynamicResource SurfaceBrush}"
                 BorderThickness="0,0,0,1"
                 BorderBrush="{DynamicResource BorderBrush}">
@@ -40,21 +41,25 @@
                                  Content="Servers"
                                  GroupName="NavTabs"
                                  IsChecked="True"
+                                 Focusable="True"
                                  Style="{DynamicResource ToolbarTabStyle}"
                                  Margin="0,0,4,0"/>
                     <RadioButton x:Name="TabTunnels"
                                  Content="Tunnels"
                                  GroupName="NavTabs"
+                                 Focusable="True"
                                  Style="{DynamicResource ToolbarTabStyle}"
                                  Margin="0,0,4,0"/>
                     <RadioButton x:Name="TabScheduled"
                                  Content="Scheduled"
                                  GroupName="NavTabs"
+                                 Focusable="True"
                                  Style="{DynamicResource ToolbarTabStyle}"
                                  Margin="0,0,4,0"/>
                     <RadioButton x:Name="TabSettings"
                                  Content="Settings"
                                  GroupName="NavTabs"
+                                 Focusable="True"
                                  Style="{DynamicResource ToolbarTabStyle}"/>
                 </StackPanel>
 
@@ -89,7 +94,8 @@
         </Border>
 
         <!-- MAIN CONTENT -->
-        <Grid Grid.Row="1">
+        <Grid Grid.Row="1"
+              ClipToBounds="True">
 
             <!-- ============================================================ -->
             <!-- SERVERS TAB: TreeView left panel + detail/sessions right      -->
@@ -260,7 +266,8 @@
                               ShowsPreview="True"/>
 
                 <!-- RIGHT PANEL: sessions OR server details -->
-                <Grid Grid.Column="2">
+                <Grid Grid.Column="2"
+                      ClipToBounds="True">
 
                     <!-- SESSIONS (visible when active) -->
                     <TabControl x:Name="SessionTabControl"
@@ -269,6 +276,7 @@
                                 Visibility="{Binding Connection.HasActiveSessions, Converter={StaticResource BoolToVisibilityConverter}}"
                                 Background="{DynamicResource BackgroundBrush}"
                                 BorderThickness="0"
+                                ClipToBounds="True"
                                 Style="{DynamicResource ThemedTabControlStyle}"
                                 PreviewMouseRightButtonDown="OnSessionTabRightClick"
                                 PreviewMouseLeftButtonDown="OnTabDragStart"

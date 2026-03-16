@@ -11,6 +11,7 @@
             --terminal-cursor: #7C3AED;
             --terminal-selection: rgba(124, 58, 237, 0.24);
             --terminal-border: #2D2D44;
+            --terminal-cursor-blink: 1.2s;
         }
 
         * {
@@ -60,6 +61,11 @@
         .xterm {
             height: 100%;
             padding: 8px;
+        }
+
+        .xterm .xterm-cursor.xterm-cursor-blink {
+            animation-duration: var(--terminal-cursor-blink) !important;
+            animation-timing-function: step-end !important;
         }
     </style>
     <link rel="stylesheet" href="./Terminal/xterm.min.css" />
