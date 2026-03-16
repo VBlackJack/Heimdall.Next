@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
              mc:Ignorable="d"
              d:DesignHeight="540"
              d:DesignWidth="900"
@@ -57,32 +58,30 @@
                 CornerRadius="14"
                 ClipToBounds="True">
             <Grid>
-                <!-- Terminal output -->
-                <ScrollViewer x:Name="TerminalScroll"
-                              VerticalScrollBarVisibility="Auto"
-                              HorizontalScrollBarVisibility="Disabled"
-                              Background="#1E1E2E"
-                              Focusable="False">
-                    <TextBlock x:Name="TerminalOutput"
-                               FontFamily="Consolas, Courier New, monospace"
-                               FontSize="13"
-                               Foreground="#CDD6F4"
-                               Background="#1E1E2E"
-                               Padding="8"
-                               TextWrapping="Wrap"
-                               xml:space="preserve"/>
-                </ScrollViewer>
+                <wv2:WebView2 x:Name="TerminalWebView"
+                              Focusable="True"
+                              DefaultBackgroundColor="#1E1E2E" />
 
-                <!-- Invisible TextBox to capture keyboard input -->
-                <TextBox x:Name="InputCapture"
-                         Opacity="0"
-                         Width="0"
-                         Height="0"
-                         Focusable="True"
-                         AcceptsReturn="False"
-                         AcceptsTab="False"
-                         PreviewKeyDown="OnTerminalKeyDown"
-                         PreviewTextInput="OnTerminalTextInput"/>
+                <Border x:Name="FallbackPanel"
+                        Visibility="Collapsed"
+                        Background="#1E1E2E"
+                        Padding="28">
+                    <StackPanel VerticalAlignment="Center"
+                                HorizontalAlignment="Center"
+                                MaxWidth="420">
+                        <TextBlock Text="Embedded SSH terminal unavailable"
+                                   FontSize="20"
+                                   FontWeight="SemiBold"
+                                   TextAlignment="Center"
+                                   Foreground="{DynamicResource TextPrimaryBrush}" />
+                        <TextBlock x:Name="FallbackMessageText"
+                                   Margin="0,12,0,0"
+                                   Text="WebView2 could not be initialized on this machine."
+                                   TextWrapping="Wrap"
+                                   TextAlignment="Center"
+                                   Foreground="{DynamicResource TextSecondaryBrush}" />
+                    </StackPanel>
+                </Border>
             </Grid>
         </Border>
     </Grid>

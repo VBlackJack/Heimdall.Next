@@ -14,51 +14,45 @@
  * limitations under the License.
  */
 
+using System.Collections.Concurrent;
+using System.IO;
 using System.Text;
-using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using Heimdall.App.ViewModels;
 using Heimdall.Ssh;
+using Microsoft.Web.WebView2.Core;
 
 namespace Heimdall.App.Views;
 
 /// <summary>
-/// WPF host for an interactive SSH shell session. Displays output in a
-/// monospace TextBlock with ANSI escape sequence stripping and captures
-/// keyboard input via a hidden TextBox for forwarding to the remote shell.
-/// This is an intentionally simple implementation; a full xterm.js or
-/// Microsoft.Terminal.Control upgrade can replace this view later.
+/// WPF host for an interactive SSH shell session rendered through WebView2 + xterm.js.
+/// The browser surface handles VT parsing, ANSI colors, cursor movement, and scrollback.
 /// </summary>
 public partial class EmbeddedSshView : UserControl, IDisposable
 {
-    private static readonly int MaxOutputLength = 50_000;
-    private static readonly int TrimTargetLength = 40_000;
+    private static readonly (string Tag, string RelativePath, string WrapperStart, string WrapperEnd)[] InlineAssets =
+    [
+        ("<link rel=\"stylesheet\" href=\"./Terminal/xterm.min.css\" />", Path.Combine("Terminal", "xterm.min.css"), "<style>", "</style>"),
+        ("<script src=\"./Terminal/xterm.min.js\"></script>", Path.Combine("Terminal", "xterm.min.js"), "<script>", "</script>"),
+        ("<script src=\"./Terminal/addon-fit.min.js\"></script>", Path.Combine("Terminal", "addon-fit.min.js"), "<script>", "</script>"),
+        ("<script src=\"./Terminal/addon-webgl.min.js\"></script>", Path.Combine("Terminal", "addon-webgl.min.js"), "<script>", "</script>")
+    ];
 
-    private static readonly Regex AnsiEscapePattern = new(
-        @"\x1b\[[0-9;]*[a-zA-Z]|\x1b\][^\x07]*\x07|\x1b\(B",
-        RegexOptions.Compiled);
-
-    private readonly StringBuilder _outputBuffer = new();
+    private readonly ConcurrentQueue<string> _pendingTerminalMessages = new();
 
     private SshShellSession? _session;
     private Heimdall.Terminal.ITerminalSession? _terminalSession;
     private SessionTabViewModel? _sessionTab;
+    private Action<ReadOnlyMemory<byte>>? _terminalDataHandler;
+    private Action<int>? _terminalExitHandler;
     private bool _disposed;
-
-    private void WriteToSession(byte[] data)
-    {
-        if (_session is not null) WriteToSession(data);
-        else _terminalSession?.Write(data);
-    }
-
-    private void WriteToSession(string text)
-    {
-        if (_session is not null) WriteToSession(text);
-        else _terminalSession?.Write(text);
-    }
+    private bool _webViewInitializationStarted;
+    private bool _webViewInitialized;
+    private bool _terminalReady;
+    private bool _webViewUnavailable;
 
     private bool IsSessionConnected =>
         (_session?.IsConnected ?? false) || (_terminalSession?.IsRunning ?? false);
@@ -76,10 +70,6 @@ public partial class EmbeddedSshView : UserControl, IDisposable
     /// Wires the view to a connected SSH shell session. Must be called
     /// exactly once, immediately after construction.
     /// </summary>
-    /// <param name="session">A connected <see cref="SshShellSession"/>.</param>
-    /// <param name="sessionTab">The tab ViewModel for status updates.</param>
-    /// <param name="displayName">Server display name for the header.</param>
-    /// <param name="endpoint">Endpoint description (host:port) for the header.</param>
     public void InitializeSession(
         SshShellSession session,
         SessionTabViewModel sessionTab,
@@ -106,8 +96,7 @@ public partial class EmbeddedSshView : UserControl, IDisposable
     }
 
     /// <summary>
-    /// Initialize with a ConPTY/Plink terminal session (ITerminalSession).
-    /// Adapts the different event signatures.
+    /// Initializes the view with a terminal session backed by Plink/ConPTY.
     /// </summary>
     public void InitializeTerminalSession(
         Heimdall.Terminal.ITerminalSession terminalSession,
@@ -117,7 +106,10 @@ public partial class EmbeddedSshView : UserControl, IDisposable
         ArgumentNullException.ThrowIfNull(terminalSession);
         ArgumentNullException.ThrowIfNull(sessionTab);
 
-        if (_disposed) throw new ObjectDisposedException(nameof(EmbeddedSshView));
+        if (_disposed)
+        {
+            throw new ObjectDisposedException(nameof(EmbeddedSshView));
+        }
 
         _terminalSession = terminalSession;
         _sessionTab = sessionTab;
@@ -126,8 +118,11 @@ public partial class EmbeddedSshView : UserControl, IDisposable
         EndpointTextBlock.Text = "via Plink";
         UpdateStatus("Connected");
 
-        _terminalSession.DataReceived += data => OnDataReceived(data.ToArray());
-        _terminalSession.ProcessExited += code => OnDisconnected($"Process exited with code {code}");
+        _terminalDataHandler = OnTerminalDataReceived;
+        _terminalExitHandler = OnTerminalProcessExited;
+
+        _terminalSession.DataReceived += _terminalDataHandler;
+        _terminalSession.ProcessExited += _terminalExitHandler;
     }
 
     public void Dispose()
@@ -142,6 +137,12 @@ public partial class EmbeddedSshView : UserControl, IDisposable
         Loaded -= OnLoaded;
         GotFocus -= OnGotFocus;
         PreviewMouseDown -= OnPreviewMouseDown;
+
+        if (_webViewInitialized && TerminalWebView.CoreWebView2 is not null)
+        {
+            TerminalWebView.CoreWebView2.WebMessageReceived -= OnWebMessageReceived;
+            TerminalWebView.CoreWebView2.ProcessFailed -= OnWebViewProcessFailed;
+        }
 
         if (_session is not null)
         {
@@ -176,39 +177,66 @@ public partial class EmbeddedSshView : UserControl, IDisposable
 
         if (_terminalSession is not null)
         {
+            if (_terminalDataHandler is not null)
+            {
+                _terminalSession.DataReceived -= _terminalDataHandler;
+            }
+
+            if (_terminalExitHandler is not null)
+            {
+                _terminalSession.ProcessExited -= _terminalExitHandler;
+            }
+
             try { _terminalSession.Kill(); } catch { }
             try { _terminalSession.Dispose(); } catch { }
             _terminalSession = null;
         }
 
+        _terminalDataHandler = null;
+        _terminalExitHandler = null;
+
+        if (TerminalWebView is IDisposable disposableWebView)
+        {
+            try { disposableWebView.Dispose(); } catch { }
+        }
+
+        while (_pendingTerminalMessages.TryDequeue(out _))
+        {
+            // Drain pending messages to release buffers.
+        }
+
         Core.Logging.FileLogger.Info("EmbeddedSSH Dispose completed");
     }
 
-    // ------------------------------------------------------------------
-    // Event handlers
-    // ------------------------------------------------------------------
-
-    private void OnLoaded(object sender, RoutedEventArgs e)
+    private async void OnLoaded(object sender, RoutedEventArgs e)
     {
-        InputCapture.Focus();
+        await InitializeWebView2Async();
+        FocusTerminal();
     }
 
     private void OnGotFocus(object sender, RoutedEventArgs e)
     {
-        if (!ReferenceEquals(e.OriginalSource, InputCapture))
+        if (_disposed)
         {
-            InputCapture.Focus();
+            return;
         }
+
+        FocusTerminal();
     }
 
     private void OnPreviewMouseDown(object sender, MouseButtonEventArgs e)
     {
-        InputCapture.Focus();
+        if (_disposed)
+        {
+            return;
+        }
+
+        FocusTerminal();
     }
 
     private void OnDisconnectClick(object sender, RoutedEventArgs e)
     {
-        if (_disposed || _session is null)
+        if (_disposed)
         {
             return;
         }
@@ -217,7 +245,15 @@ public partial class EmbeddedSshView : UserControl, IDisposable
         {
             Core.Logging.FileLogger.Info("EmbeddedSSH Disconnect requested by user");
             UpdateStatus("Disconnected");
-            _session.Disconnect();
+
+            if (_session is not null)
+            {
+                _session.Disconnect();
+            }
+            else
+            {
+                _terminalSession?.Kill();
+            }
         }
         catch (Exception ex)
         {
@@ -227,165 +263,290 @@ public partial class EmbeddedSshView : UserControl, IDisposable
         }
     }
 
-    /// <summary>
-    /// Receives raw bytes from the SSH shell read loop (background thread)
-    /// and marshals the update to the WPF dispatcher.
-    /// </summary>
-    private void OnDataReceived(byte[] data)
+    private async Task InitializeWebView2Async()
     {
-        var text = Encoding.UTF8.GetString(data);
-
-        Dispatcher.BeginInvoke(() =>
+        if (_disposed || _webViewInitializationStarted)
         {
-            if (_disposed)
+            return;
+        }
+
+        _webViewInitializationStarted = true;
+
+        try
+        {
+            Core.Logging.FileLogger.Info("EmbeddedSSH initializing WebView2 terminal surface");
+
+            await TerminalWebView.EnsureCoreWebView2Async();
+            if (_disposed || TerminalWebView.CoreWebView2 is null)
             {
                 return;
             }
 
-            var cleaned = AnsiEscapePattern.Replace(text, string.Empty);
-            _outputBuffer.Append(cleaned);
+            var core = TerminalWebView.CoreWebView2;
+            core.Settings.AreDefaultContextMenusEnabled = false;
+            core.Settings.AreDevToolsEnabled = false;
+            core.Settings.AreBrowserAcceleratorKeysEnabled = true;
+            core.Settings.AreDefaultScriptDialogsEnabled = false;
+            core.Settings.IsStatusBarEnabled = false;
+            core.Settings.IsZoomControlEnabled = false;
+            core.Settings.IsPinchZoomEnabled = false;
+            core.WebMessageReceived += OnWebMessageReceived;
+            core.ProcessFailed += OnWebViewProcessFailed;
 
-            if (_outputBuffer.Length > MaxOutputLength)
-            {
-                _outputBuffer.Remove(0, _outputBuffer.Length - TrimTargetLength);
-            }
+            core.NavigateToString(GetTerminalHtml());
+            _webViewInitialized = true;
 
-            TerminalOutput.Text = _outputBuffer.ToString();
-            TerminalScroll.ScrollToEnd();
-        });
+            Core.Logging.FileLogger.Info("EmbeddedSSH WebView2 NavigateToString issued");
+        }
+        catch (Exception ex)
+        {
+            ShowWebViewUnavailable($"WebView2 could not be initialized. {ex.Message}");
+            Core.Logging.FileLogger.Warn($"EmbeddedSSH WebView2 initialization failed: {ex.Message}");
+        }
     }
 
-    /// <summary>
-    /// Handles unexpected disconnects from the SSH read loop.
-    /// </summary>
+    private void OnWebViewProcessFailed(object? sender, CoreWebView2ProcessFailedEventArgs e)
+    {
+        Core.Logging.FileLogger.Warn($"EmbeddedSSH WebView2 process failed: {e.ProcessFailedKind}");
+        ShowWebViewUnavailable("The embedded terminal renderer crashed.");
+    }
+
+    private void OnWebMessageReceived(object? sender, CoreWebView2WebMessageReceivedEventArgs args)
+    {
+        string message;
+
+        try
+        {
+            message = args.TryGetWebMessageAsString();
+        }
+        catch (Exception ex)
+        {
+            Core.Logging.FileLogger.Warn($"EmbeddedSSH invalid WebView2 message: {ex.Message}");
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(message))
+        {
+            return;
+        }
+
+        if (message.StartsWith("ready:", StringComparison.Ordinal))
+        {
+            _terminalReady = true;
+            Core.Logging.FileLogger.Info($"EmbeddedSSH terminal ready: {message}");
+
+            if (TryParseSize(message.AsSpan("ready:".Length), out var readyCols, out var readyRows))
+            {
+                ResizeSession(readyCols, readyRows);
+            }
+
+            FlushPendingTerminalMessages();
+            FocusTerminal();
+            return;
+        }
+
+        if (message.StartsWith("resize:", StringComparison.Ordinal))
+        {
+            if (TryParseSize(message.AsSpan("resize:".Length), out var cols, out var rows))
+            {
+                ResizeSession(cols, rows);
+            }
+            return;
+        }
+
+        if (message.StartsWith("input:", StringComparison.Ordinal))
+        {
+            var base64 = message["input:".Length..];
+
+            try
+            {
+                var bytes = Convert.FromBase64String(base64);
+                WriteToSession(bytes);
+            }
+            catch (FormatException ex)
+            {
+                Core.Logging.FileLogger.Warn($"EmbeddedSSH invalid input payload: {ex.Message}");
+            }
+            return;
+        }
+
+        WriteToSession(message);
+    }
+
+    private void OnDataReceived(byte[] data)
+    {
+        QueueOutput(data);
+    }
+
+    private void OnTerminalDataReceived(ReadOnlyMemory<byte> data)
+    {
+        QueueOutput(data.Span);
+    }
+
+    private void QueueOutput(ReadOnlySpan<byte> data)
+    {
+        if (_disposed || _webViewUnavailable || data.IsEmpty)
+        {
+            return;
+        }
+
+        var message = "data:" + Convert.ToBase64String(data);
+        PostTerminalMessage(message);
+    }
+
     private void OnDisconnected(string? errorMessage)
     {
-        Dispatcher.BeginInvoke(() =>
+        _ = Dispatcher.BeginInvoke(() =>
         {
             if (_disposed)
             {
                 return;
             }
 
-            if (errorMessage is not null)
+            if (!string.IsNullOrWhiteSpace(errorMessage))
             {
-                _outputBuffer.Append("\r\n[Session disconnected: ");
-                _outputBuffer.Append(errorMessage);
-                _outputBuffer.Append("]\r\n");
-                TerminalOutput.Text = _outputBuffer.ToString();
-                TerminalScroll.ScrollToEnd();
+                var disconnectText = $"\r\n\x1b[90m[Session disconnected: {errorMessage}]\x1b[0m\r\n";
+                QueueOutput(Encoding.UTF8.GetBytes(disconnectText));
             }
 
+            PostTerminalMessage("session-ended:");
             UpdateStatus("Disconnected");
         });
     }
 
-    // ------------------------------------------------------------------
-    // Keyboard input
-    // ------------------------------------------------------------------
-
-    private void OnTerminalKeyDown(object sender, KeyEventArgs e)
+    private void OnTerminalProcessExited(int exitCode)
     {
-        if (!IsSessionConnected)
+        OnDisconnected($"Process exited with code {exitCode}");
+    }
+
+    private void ResizeSession(int columns, int rows)
+    {
+        if (_disposed || columns <= 0 || rows <= 0)
         {
             return;
         }
 
-        // Ctrl+C / Ctrl+D / Ctrl+Z / Ctrl+L
-        if (Keyboard.Modifiers == ModifierKeys.Control)
+        try
         {
-            byte? controlByte = e.Key switch
+            if (_session is not null)
             {
-                Key.C => 0x03,
-                Key.D => 0x04,
-                Key.Z => 0x1A,
-                Key.L => 0x0C,
-                _ => null
-            };
-
-            if (controlByte is not null)
+                _session.Resize(columns, rows);
+            }
+            else
             {
-                WriteToSession(new byte[] { controlByte.Value });
-                e.Handled = true;
-                return;
+                _terminalSession?.Resize(columns, rows);
             }
         }
-
-        // Ctrl+V paste
-        if (e.Key == Key.V && Keyboard.Modifiers == ModifierKeys.Control)
+        catch (Exception ex)
         {
-            if (Clipboard.ContainsText())
-            {
-                var pasteText = Clipboard.GetText();
-                if (!string.IsNullOrEmpty(pasteText))
-                {
-                    WriteToSession(pasteText);
-                }
-            }
-
-            e.Handled = true;
-            return;
-        }
-
-        // Special keys mapped to VT escape sequences
-        byte[]? sequence = e.Key switch
-        {
-            Key.Enter => [(byte)'\r'],
-            Key.Back => [0x7F],
-            Key.Tab => [0x09],
-            Key.Escape => [0x1B],
-            Key.Up => Encoding.UTF8.GetBytes("\x1b[A"),
-            Key.Down => Encoding.UTF8.GetBytes("\x1b[B"),
-            Key.Right => Encoding.UTF8.GetBytes("\x1b[C"),
-            Key.Left => Encoding.UTF8.GetBytes("\x1b[D"),
-            Key.Home => Encoding.UTF8.GetBytes("\x1b[H"),
-            Key.End => Encoding.UTF8.GetBytes("\x1b[F"),
-            Key.Delete => Encoding.UTF8.GetBytes("\x1b[3~"),
-            Key.Insert => Encoding.UTF8.GetBytes("\x1b[2~"),
-            Key.PageUp => Encoding.UTF8.GetBytes("\x1b[5~"),
-            Key.PageDown => Encoding.UTF8.GetBytes("\x1b[6~"),
-            Key.F1 => Encoding.UTF8.GetBytes("\x1bOP"),
-            Key.F2 => Encoding.UTF8.GetBytes("\x1bOQ"),
-            Key.F3 => Encoding.UTF8.GetBytes("\x1bOR"),
-            Key.F4 => Encoding.UTF8.GetBytes("\x1bOS"),
-            Key.F5 => Encoding.UTF8.GetBytes("\x1b[15~"),
-            Key.F6 => Encoding.UTF8.GetBytes("\x1b[17~"),
-            Key.F7 => Encoding.UTF8.GetBytes("\x1b[18~"),
-            Key.F8 => Encoding.UTF8.GetBytes("\x1b[19~"),
-            Key.F9 => Encoding.UTF8.GetBytes("\x1b[20~"),
-            Key.F10 => Encoding.UTF8.GetBytes("\x1b[21~"),
-            Key.F11 => Encoding.UTF8.GetBytes("\x1b[23~"),
-            Key.F12 => Encoding.UTF8.GetBytes("\x1b[24~"),
-            _ => null
-        };
-
-        if (sequence is not null)
-        {
-            WriteToSession(sequence);
-            e.Handled = true;
+            Core.Logging.FileLogger.Warn(
+                $"EmbeddedSSH resize failed for {columns}x{rows}: {ex.Message}");
         }
     }
 
-    /// <summary>
-    /// Handles printable character input forwarded by the hidden TextBox.
-    /// </summary>
-    private void OnTerminalTextInput(object sender, TextCompositionEventArgs e)
+    private void WriteToSession(byte[] data)
     {
-        if (!IsSessionConnected)
+        if (_disposed || data.Length == 0)
         {
             return;
         }
 
-        if (!string.IsNullOrEmpty(e.Text))
+        if (_session is not null)
         {
-            WriteToSession(e.Text);
-            e.Handled = true;
+            _session.Write(data);
+        }
+        else
+        {
+            _terminalSession?.Write(data);
         }
     }
 
-    // ------------------------------------------------------------------
-    // Helpers
-    // ------------------------------------------------------------------
+    private void WriteToSession(string text)
+    {
+        if (_disposed || string.IsNullOrEmpty(text))
+        {
+            return;
+        }
+
+        if (_session is not null)
+        {
+            _session.Write(text);
+        }
+        else
+        {
+            _terminalSession?.Write(text);
+        }
+    }
+
+    private void PostTerminalMessage(string message)
+    {
+        if (_disposed || _webViewUnavailable)
+        {
+            return;
+        }
+
+        if (!Dispatcher.CheckAccess())
+        {
+            _ = Dispatcher.BeginInvoke(() => PostTerminalMessage(message));
+            return;
+        }
+
+        if (_terminalReady && TerminalWebView.CoreWebView2 is not null)
+        {
+            TerminalWebView.CoreWebView2.PostWebMessageAsString(message);
+            return;
+        }
+
+        _pendingTerminalMessages.Enqueue(message);
+    }
+
+    private void FlushPendingTerminalMessages()
+    {
+        if (_disposed || !_terminalReady || TerminalWebView.CoreWebView2 is null)
+        {
+            return;
+        }
+
+        while (_pendingTerminalMessages.TryDequeue(out var message))
+        {
+            TerminalWebView.CoreWebView2.PostWebMessageAsString(message);
+        }
+    }
+
+    private void FocusTerminal()
+    {
+        if (_disposed || _webViewUnavailable)
+        {
+            return;
+        }
+
+        if (_terminalReady)
+        {
+            TerminalWebView.Focus();
+            PostTerminalMessage("focus:");
+        }
+    }
+
+    private void ShowWebViewUnavailable(string message)
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _webViewUnavailable = true;
+        _terminalReady = false;
+
+        while (_pendingTerminalMessages.TryDequeue(out _))
+        {
+            // Drop buffered output when no renderer is available.
+        }
+
+        TerminalWebView.Visibility = System.Windows.Visibility.Collapsed;
+        FallbackPanel.Visibility = System.Windows.Visibility.Visible;
+        FallbackMessageText.Text = message;
+        UpdateStatus("Error");
+    }
 
     private void UpdateStatus(string status)
     {
@@ -406,5 +567,49 @@ public partial class EmbeddedSshView : UserControl, IDisposable
     private Brush GetBrush(string resourceKey, Brush fallback)
     {
         return TryFindResource(resourceKey) as Brush ?? fallback;
+    }
+
+    private static bool TryParseSize(ReadOnlySpan<char> payload, out int columns, out int rows)
+    {
+        columns = 0;
+        rows = 0;
+
+        var separatorIndex = payload.IndexOf(',');
+        if (separatorIndex <= 0 || separatorIndex >= payload.Length - 1)
+        {
+            return false;
+        }
+
+        return int.TryParse(payload[..separatorIndex], out columns)
+            && int.TryParse(payload[(separatorIndex + 1)..], out rows)
+            && columns > 0
+            && rows > 0;
+    }
+
+    private static string GetTerminalHtml()
+    {
+        var html = ReadTerminalAsset("terminal.html");
+
+        foreach (var asset in InlineAssets)
+        {
+            var content = ReadTerminalAsset(asset.RelativePath);
+            html = html.Replace(
+                asset.Tag,
+                asset.WrapperStart + content + asset.WrapperEnd,
+                StringComparison.Ordinal);
+        }
+
+        return html;
+    }
+
+    private static string ReadTerminalAsset(string relativePath)
+    {
+        var fullPath = Path.Combine(AppContext.BaseDirectory, "Assets", relativePath);
+        if (!File.Exists(fullPath))
+        {
+            throw new FileNotFoundException($"Terminal asset not found: {fullPath}", fullPath);
+        }
+
+        return File.ReadAllText(fullPath);
     }
 }
