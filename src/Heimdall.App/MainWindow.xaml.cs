@@ -107,6 +107,11 @@ public partial class MainWindow : Window
                 e.Handled = true;
                 break;
 
+            case Key.B when Keyboard.Modifiers == ModifierKeys.Control:
+                ToggleSidebar();
+                e.Handled = true;
+                break;
+
             case Key.F11:
                 ToggleFullscreen();
                 e.Handled = true;
@@ -517,6 +522,32 @@ public partial class MainWindow : Window
             WindowStyle = WindowStyle.None;
             WindowState = WindowState.Maximized;
             FullscreenBar.Visibility = Visibility.Visible;
+        }
+    }
+
+    private bool _sidebarHidden;
+    private double _savedSidebarWidth = 260;
+
+    private void OnToggleSidebarClick(object sender, RoutedEventArgs e) => ToggleSidebar();
+
+    private void ToggleSidebar()
+    {
+        if (_sidebarHidden)
+        {
+            _sidebarHidden = false;
+            ServerTreeColumn.MinWidth = 180;
+            ServerTreeColumn.MaxWidth = 500;
+            ServerTreeColumn.Width = new GridLength(_savedSidebarWidth);
+            SplitterColumn.Width = GridLength.Auto;
+        }
+        else
+        {
+            _sidebarHidden = true;
+            _savedSidebarWidth = ServerTreeColumn.ActualWidth;
+            ServerTreeColumn.MinWidth = 0;
+            ServerTreeColumn.MaxWidth = 0;
+            ServerTreeColumn.Width = new GridLength(0);
+            SplitterColumn.Width = new GridLength(0);
         }
     }
 
