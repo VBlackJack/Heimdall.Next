@@ -20,6 +20,7 @@ using CommunityToolkit.Mvvm.Input;
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Localization;
 using Heimdall.Core.StateMachine;
+using Heimdall.Ssh;
 
 namespace Heimdall.App.ViewModels;
 
@@ -31,6 +32,7 @@ public partial class ConnectionViewModel : ObservableObject
     private readonly ConnectionStateMachine _connectionSm;
     private readonly LocalizationManager _localizer;
     private readonly ConfigManager _configManager;
+    private readonly TunnelManager _tunnelManager;
 
     [ObservableProperty]
     private ObservableCollection<SessionTabViewModel> _activeSessions = [];
@@ -44,11 +46,13 @@ public partial class ConnectionViewModel : ObservableObject
     public ConnectionViewModel(
         ConnectionStateMachine connectionSm,
         LocalizationManager localizer,
-        ConfigManager configManager)
+        ConfigManager configManager,
+        TunnelManager tunnelManager)
     {
         _connectionSm = connectionSm;
         _localizer = localizer;
         _configManager = configManager;
+        _tunnelManager = tunnelManager;
     }
 
     /// <summary>
@@ -79,6 +83,26 @@ public partial class ConnectionViewModel : ObservableObject
             return;
         }
 
+        // Close tunnel if the server has one bound to a local port
+        var stateData = _connectionSm.GetStateData(session.ServerId);
+        if (stateData?.TunnelLocalPort is int localPort)
+        {
+            _tunnelManager.CloseTunnel(localPort);
+        }
+
+        // Dispose the host control if it implements IDisposable
+        if (session.HostControl is IDisposable disposable)
+        {
+            try
+            {
+                disposable.Dispose();
+            }
+            catch (ObjectDisposedException)
+            {
+                // Already disposed; safe to ignore
+            }
+        }
+
         ActiveSessions.Remove(session);
         _connectionSm.Reset(session.ServerId);
 
@@ -95,6 +119,26 @@ public partial class ConnectionViewModel : ObservableObject
     {
         foreach (var session in ActiveSessions.ToList())
         {
+            // Close tunnels
+            var stateData = _connectionSm.GetStateData(session.ServerId);
+            if (stateData?.TunnelLocalPort is int localPort)
+            {
+                _tunnelManager.CloseTunnel(localPort);
+            }
+
+            // Dispose host controls
+            if (session.HostControl is IDisposable disposable)
+            {
+                try
+                {
+                    disposable.Dispose();
+                }
+                catch (ObjectDisposedException)
+                {
+                    // Already disposed; safe to ignore
+                }
+            }
+
             _connectionSm.Reset(session.ServerId);
         }
 
@@ -106,6 +150,6 @@ public partial class ConnectionViewModel : ObservableObject
     [RelayCommand]
     private void ToggleFullscreen()
     {
-        // Fullscreen toggle will be implemented in Phase 4B with the view layer
+        // Fullscreen toggle will be implemented in Phase 5B with the view layer
     }
 }

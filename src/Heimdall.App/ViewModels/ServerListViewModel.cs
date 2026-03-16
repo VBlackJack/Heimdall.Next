@@ -17,8 +17,11 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Heimdall.App.Services;
+using Heimdall.App.ViewModels.Dialogs;
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Localization;
+using Heimdall.Core.Security;
 using Heimdall.Core.StateMachine;
 
 namespace Heimdall.App.ViewModels;
@@ -31,6 +34,8 @@ public partial class ServerListViewModel : ObservableObject
     private readonly ConfigManager _configManager;
     private readonly LocalizationManager _localizer;
     private readonly ConnectionStateMachine _connectionSm;
+    private readonly ConnectionService _connectionService;
+    private readonly IDialogService _dialogService;
 
     private List<ServerItemViewModel> _allServers = [];
 
@@ -55,14 +60,24 @@ public partial class ServerListViewModel : ObservableObject
     [ObservableProperty]
     private bool _isSidebarVisible = true;
 
+    /// <summary>
+    /// Raised when a connection result is ready and a session tab should be created.
+    /// Parameters: serverId, displayName, connectionType, session object.
+    /// </summary>
+    public event Action<string, string, string, object?>? SessionReady;
+
     public ServerListViewModel(
         ConfigManager configManager,
         LocalizationManager localizer,
-        ConnectionStateMachine connectionSm)
+        ConnectionStateMachine connectionSm,
+        ConnectionService connectionService,
+        IDialogService dialogService)
     {
         _configManager = configManager;
         _localizer = localizer;
         _connectionSm = connectionSm;
+        _connectionService = connectionService;
+        _dialogService = dialogService;
 
         _connectionSm.StateChanged += OnConnectionStateChanged;
     }
@@ -107,15 +122,120 @@ public partial class ServerListViewModel : ObservableObject
             return;
         }
 
-        // Connection orchestration will be implemented in Phase 4B
-        await Task.CompletedTask;
+        // Load full server DTO
+        var servers = await _configManager.LoadServersAsync();
+        var serverDto = servers.FirstOrDefault(
+            s => string.Equals(s.Id, server.Id, StringComparison.Ordinal));
+
+        if (serverDto is null)
+        {
+            return;
+        }
+
+        var settings = await _configManager.LoadSettingsAsync();
+
+        // Preflight checks
+        var preflight = _connectionService.RunPreflight(serverDto, settings);
+        if (!preflight.Success)
+        {
+            server.ConnectionState = "Error";
+            _dialogService.ShowError(
+                _localizer["ErrorPreflightTitle"],
+                preflight.Message ?? _localizer["ErrorPreflightFailed"]);
+            return;
+        }
+
+        _connectionSm.TryTransition(server.Id, Core.Models.ConnectionState.Initializing);
+
+        try
+        {
+            ConnectionResult result;
+
+            switch (serverDto.ConnectionType?.ToUpperInvariant())
+            {
+                case "RDP":
+                    result = await _connectionService.ConnectRdpAsync(
+                        serverDto, settings, cancellationToken);
+                    break;
+
+                case "SSH":
+                    result = await _connectionService.ConnectSshAsync(
+                        serverDto, settings, cancellationToken);
+                    break;
+
+                case "SFTP":
+                    result = await _connectionService.ConnectSftpAsync(
+                        serverDto, settings, cancellationToken);
+                    break;
+
+                default:
+                    _connectionSm.SetError(server.Id,
+                        _localizer.Format("ErrorUnsupportedConnectionType", serverDto.ConnectionType ?? ""));
+                    server.ConnectionState = "Error";
+                    return;
+            }
+
+            if (result.Success)
+            {
+                SessionReady?.Invoke(
+                    server.Id, server.DisplayName,
+                    serverDto.ConnectionType, result.Session);
+            }
+            else
+            {
+                server.ConnectionState = "Error";
+                _dialogService.ShowError(
+                    _localizer["ErrorConnectionTitle"],
+                    result.ErrorMessage ?? _localizer["ErrorConnectionFailed"]);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            _connectionSm.Reset(server.Id);
+        }
+        catch (Exception ex)
+        {
+            var failure = Ssh.FailureClassifier.Classify(ex);
+            _connectionSm.SetError(server.Id, failure.Message);
+            server.ConnectionState = "Error";
+            _dialogService.ShowError(
+                _localizer["ErrorConnectionTitle"], failure.Message);
+        }
     }
 
     [RelayCommand]
     private async Task AddServerAsync(CancellationToken cancellationToken)
     {
-        // Server dialog will be implemented in Phase 4B
-        await Task.CompletedTask;
+        var dialogVm = new ServerDialogViewModel
+        {
+            DialogTitle = _localizer["DialogTitleAddServer"]
+        };
+
+        // Populate available gateways and projects from config
+        var settings = await _configManager.LoadSettingsAsync();
+
+        dialogVm.AvailableGateways = new(settings.SshGateways.Select(
+            g => new GatewayOption(g.Id, $"{g.Name} ({g.Host})")));
+
+        dialogVm.AvailableProjects = new(settings.Projects.Select(
+            p => new ProjectOption(p.Id, p.Name, p.Color ?? "#3B82F6")));
+
+        var result = await _dialogService.ShowServerDialogAsync(dialogVm);
+
+        if (result is not { Saved: true })
+        {
+            return;
+        }
+
+        var servers = await _configManager.LoadServersAsync();
+        result.Server.Id = Guid.NewGuid().ToString();
+        servers.Add(result.Server);
+        await _configManager.SaveServersAsync(servers);
+
+        var newItem = ServerItemViewModel.FromDto(result.Server);
+        _allServers.Add(newItem);
+        ApplyFilter();
+        OnPropertyChanged(nameof(Servers));
     }
 
     [RelayCommand]
@@ -126,8 +246,51 @@ public partial class ServerListViewModel : ObservableObject
             return;
         }
 
-        // Server edit dialog will be implemented in Phase 4B
-        await Task.CompletedTask;
+        // Load the full DTO for editing
+        var servers = await _configManager.LoadServersAsync();
+        var serverDto = servers.FirstOrDefault(
+            s => string.Equals(s.Id, server.Id, StringComparison.Ordinal));
+
+        if (serverDto is null)
+        {
+            return;
+        }
+
+        var dialogVm = ServerDialogViewModel.FromDto(serverDto);
+        dialogVm.DialogTitle = _localizer["DialogTitleEditServer"];
+
+        // Populate available gateways and projects
+        var settings = await _configManager.LoadSettingsAsync();
+
+        dialogVm.AvailableGateways = new(settings.SshGateways.Select(
+            g => new GatewayOption(g.Id, $"{g.Name} ({g.Host})")));
+
+        dialogVm.AvailableProjects = new(settings.Projects.Select(
+            p => new ProjectOption(p.Id, p.Name, p.Color ?? "#3B82F6")));
+
+        var result = await _dialogService.ShowServerDialogAsync(dialogVm);
+
+        if (result is not { Saved: true })
+        {
+            return;
+        }
+
+        // Preserve the original ID
+        result.Server.Id = serverDto.Id;
+
+        // Update the DTO in the list
+        var index = servers.FindIndex(
+            s => string.Equals(s.Id, serverDto.Id, StringComparison.Ordinal));
+
+        if (index >= 0)
+        {
+            servers[index] = result.Server;
+            await _configManager.SaveServersAsync(servers);
+        }
+
+        // Update the ViewModel item in place
+        server.UpdateFromDto(result.Server);
+        ApplyFilter();
     }
 
     [RelayCommand]
@@ -138,8 +301,27 @@ public partial class ServerListViewModel : ObservableObject
             return;
         }
 
-        // Delete confirmation and persistence will be implemented in Phase 4B
-        await Task.CompletedTask;
+        var confirmed = await _dialogService.ShowConfirmAsync(
+            _localizer["DialogTitleDeleteServer"],
+            _localizer.Format("ConfirmDeleteServer", server.DisplayName),
+            "warning");
+
+        if (!confirmed)
+        {
+            return;
+        }
+
+        var servers = await _configManager.LoadServersAsync();
+        servers.RemoveAll(
+            s => string.Equals(s.Id, server.Id, StringComparison.Ordinal));
+        await _configManager.SaveServersAsync(servers);
+
+        _allServers.RemoveAll(
+            s => string.Equals(s.Id, server.Id, StringComparison.Ordinal));
+
+        _connectionSm.Remove(server.Id);
+        ApplyFilter();
+        OnPropertyChanged(nameof(Servers));
     }
 
     [RelayCommand]
@@ -150,8 +332,37 @@ public partial class ServerListViewModel : ObservableObject
             return;
         }
 
-        // Duplication logic will be implemented in Phase 4B
-        await Task.CompletedTask;
+        var servers = await _configManager.LoadServersAsync();
+        var sourceDto = servers.FirstOrDefault(
+            s => string.Equals(s.Id, server.Id, StringComparison.Ordinal));
+
+        if (sourceDto is null)
+        {
+            return;
+        }
+
+        // Deep copy by serializing and deserializing
+        var json = System.Text.Json.JsonSerializer.Serialize(sourceDto);
+        var clone = System.Text.Json.JsonSerializer.Deserialize<RdpServerDto>(json);
+
+        if (clone is null)
+        {
+            return;
+        }
+
+        clone.Id = Guid.NewGuid().ToString();
+        clone.DisplayName = $"{sourceDto.DisplayName} ({_localizer["LabelCopy"]})";
+
+        // Clear encrypted credentials from the copy for security
+        clone.RdpPasswordEncrypted = null;
+
+        servers.Add(clone);
+        await _configManager.SaveServersAsync(servers);
+
+        var newItem = ServerItemViewModel.FromDto(clone);
+        _allServers.Add(newItem);
+        ApplyFilter();
+        OnPropertyChanged(nameof(Servers));
     }
 
     [RelayCommand]

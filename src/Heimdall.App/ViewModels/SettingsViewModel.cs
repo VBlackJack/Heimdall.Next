@@ -108,24 +108,25 @@ public partial class SettingsViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private async Task ResetToDefaultsAsync(CancellationToken cancellationToken)
+    private Task ResetToDefaultsAsync(CancellationToken cancellationToken)
     {
         var defaults = new AppSettings();
         LoadFromSettings(defaults);
         IsDirty = true;
+        return Task.CompletedTask;
     }
 
     [RelayCommand]
     private async Task ExportConfigAsync(CancellationToken cancellationToken)
     {
-        // Export dialog will be implemented in Phase 4B
+        // Export file dialog requires XAML view (Phase 5B)
         await Task.CompletedTask;
     }
 
     [RelayCommand]
     private async Task ImportConfigAsync(CancellationToken cancellationToken)
     {
-        // Import dialog will be implemented in Phase 4B
+        // Import file dialog requires XAML view (Phase 5B)
         await Task.CompletedTask;
     }
 
