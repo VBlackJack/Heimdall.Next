@@ -43,6 +43,10 @@ public static partial class CredentialAutofill
 
     [LibraryImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
+    private static partial bool EnumThreadWindows(uint dwThreadId, EnumWindowsDelegate lpfn, IntPtr lParam);
+
+    [LibraryImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
     private static partial bool IsWindowVisible(IntPtr hWnd);
 
     [LibraryImport("user32.dll", StringMarshalling = StringMarshalling.Utf16)]
@@ -580,7 +584,9 @@ public static partial class CredentialAutofill
     private static List<WindowInfo> GetVisibleWindows()
     {
         var result = new List<WindowInfo>();
+        var currentPid = Environment.ProcessId;
 
+        // 1. EnumWindows for top-level windows
         EnumWindows((hWnd, _) =>
         {
             if (!IsWindowVisible(hWnd))
@@ -604,6 +610,35 @@ public static partial class CredentialAutofill
 
             return true;
         }, IntPtr.Zero);
+
+        // 2. Also scan all threads of the current process for child/owned dialogs
+        // The CredUI dialog from embedded ActiveX may not be a top-level window
+        var existingHandles = new HashSet<IntPtr>(result.Select(w => w.Handle));
+        try
+        {
+            var process = System.Diagnostics.Process.GetCurrentProcess();
+            foreach (System.Diagnostics.ProcessThread thread in process.Threads)
+            {
+                EnumThreadWindows((uint)thread.Id, (hWnd, _) =>
+                {
+                    if (existingHandles.Contains(hWnd) || !IsWindowVisible(hWnd))
+                        return true;
+
+                    GetWindowThreadProcessId(hWnd, out var pid);
+                    var title = GetWindowText(hWnd);
+                    var className = GetClassName(hWnd);
+
+                    if (!string.IsNullOrWhiteSpace(title) || CredentialDialogClassNames.Any(cn =>
+                        className.Contains(cn, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        result.Add(new WindowInfo(hWnd, title, className, pid, GetProcessName(pid)));
+                        existingHandles.Add(hWnd);
+                    }
+                    return true;
+                }, IntPtr.Zero);
+            }
+        }
+        catch { /* best-effort thread enumeration */ }
 
         return result;
     }
