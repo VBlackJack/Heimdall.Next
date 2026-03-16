@@ -1,0 +1,68 @@
+/*
+ * Copyright 2026 Julien Bombled
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+namespace Heimdall.Rdp;
+
+/// <summary>
+/// Configuration options for RDP device and feature redirections.
+/// </summary>
+public class RdpRedirectionOptions
+{
+    /// <summary>Redirect clipboard contents between local and remote sessions.</summary>
+    public bool Clipboard { get; set; } = true;
+
+    /// <summary>Redirect local drives to the remote session.</summary>
+    public bool Drives { get; set; }
+
+    /// <summary>Redirect local printers to the remote session.</summary>
+    public bool Printers { get; set; }
+
+    /// <summary>Redirect COM (serial) ports to the remote session.</summary>
+    public bool ComPorts { get; set; }
+
+    /// <summary>Redirect smart card readers to the remote session.</summary>
+    public bool SmartCards { get; set; }
+
+    /// <summary>Redirect USB devices to the remote session.</summary>
+    public bool Usb { get; set; }
+
+    /// <summary>Redirect webcam to the remote session.</summary>
+    public bool Webcam { get; set; }
+
+    /// <summary>Redirect audio capture (microphone) to the remote session.</summary>
+    public bool AudioCapture { get; set; }
+
+    /// <summary>Audio playback mode: 0 = disabled, 1 = play locally, 2 = play on remote.</summary>
+    public int AudioMode { get; set; }
+
+    /// <summary>Enable multi-monitor spanning.</summary>
+    public bool MultiMonitor { get; set; }
+
+    /// <summary>Enable dynamic resolution updates when the window is resized.</summary>
+    public bool DynamicResolution { get; set; }
+
+    /// <summary>Require Network Level Authentication before connecting.</summary>
+    public bool Nla { get; set; } = true;
+
+    /// <summary>Enable bitmap caching for improved rendering performance.</summary>
+    public bool BitmapCaching { get; set; } = true;
+
+    /// <summary>Enable RDP data compression.</summary>
+    public bool Compression { get; set; } = true;
+
+    /// <summary>Enable automatic reconnection on network interruption.</summary>
+    public bool AutoReconnect { get; set; } = true;
+}

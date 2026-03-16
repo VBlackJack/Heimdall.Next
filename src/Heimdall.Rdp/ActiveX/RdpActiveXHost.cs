@@ -1,0 +1,463 @@
+/*
+ * Copyright 2026 Julien Bombled
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+using System.Reflection;
+using System.Runtime.InteropServices;
+using System.Windows.Forms;
+
+namespace Heimdall.Rdp.ActiveX;
+
+/// <summary>
+/// Hosts the Microsoft Terminal Services ActiveX control (MsTscAx).
+/// Inherits from <see cref="AxHost"/> to create the COM object and implements
+/// <see cref="IRdpSession"/> for a clean abstraction layer.
+///
+/// IMPORTANT: Do NOT call <see cref="AttachEventSink"/> from the
+/// <see cref="AxHost.CreateSink"/> override — this causes hangs in non-STA
+/// contexts (e.g., unit tests). Call it explicitly after the handle is created.
+/// </summary>
+public class RdpActiveXHost : AxHost, IRdpSession
+{
+    // MsTscAx ActiveX control CLSID — Terminal Services Client 8.0+
+    private const string MsTscAxClsid = "7cacbd7b-0d99-468f-ac33-22e495c0afe5";
+
+    private object? _activeX;
+    private bool _disposed;
+    private ConnectionPointCookie? _cookie;
+    private MsTscAxEventSink? _sink;
+
+    // Pending configuration applied before the ActiveX handle is created
+    private string _pendingHost = string.Empty;
+    private int _pendingPort = 3389;
+    private string _pendingUsername = string.Empty;
+    private string? _pendingPassword;
+    private string? _pendingDomain;
+    private int _pendingWidth = 1024;
+    private int _pendingHeight = 768;
+    private int _pendingColorDepth = 32;
+    private RdpRedirectionOptions _pendingRedirections = new();
+
+    /// <inheritdoc />
+    public event Action? Connected;
+
+    /// <inheritdoc />
+    public event Action<int>? Disconnected;
+
+    /// <inheritdoc />
+    public event Action<int>? FatalError;
+
+    /// <summary>Stores the last error message for diagnostics.</summary>
+    public string? LastError { get; private set; }
+
+    /// <inheritdoc />
+    public bool IsConnected { get; private set; }
+
+    public RdpActiveXHost() : base(MsTscAxClsid) { }
+
+    /// <summary>
+    /// Returns the raw ActiveX COM object obtained via <see cref="AxHost.GetOcx"/>.
+    /// </summary>
+    public object? GetActiveXInstance()
+    {
+        if (_activeX is null && IsHandleCreated)
+        {
+            _activeX = GetOcx();
+        }
+        return _activeX;
+    }
+
+    /// <summary>
+    /// Called by <see cref="AxHost"/> after the underlying COM object is created.
+    /// Caches the ActiveX reference for later use.
+    /// </summary>
+    protected override void AttachInterfaces()
+    {
+        _activeX = GetOcx();
+    }
+
+    /// <inheritdoc />
+    public void SetServer(string host, int port = 3389)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(host);
+        _pendingHost = host;
+        _pendingPort = port;
+
+        var ocx = GetActiveXInstance();
+        if (ocx is not null)
+        {
+            ApplyServerSettings(ocx);
+        }
+    }
+
+    /// <inheritdoc />
+    public void SetCredentials(string username, string? password = null, string? domain = null)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(username);
+        _pendingUsername = username;
+        _pendingPassword = password;
+        _pendingDomain = domain;
+
+        var ocx = GetActiveXInstance();
+        if (ocx is not null)
+        {
+            ApplyCredentialSettings(ocx);
+        }
+    }
+
+    /// <inheritdoc />
+    public void SetDisplay(int width, int height, int colorDepth = 32)
+    {
+        _pendingWidth = width;
+        _pendingHeight = height;
+        _pendingColorDepth = colorDepth;
+
+        var ocx = GetActiveXInstance();
+        if (ocx is not null)
+        {
+            ApplyDisplaySettings(ocx);
+        }
+    }
+
+    /// <inheritdoc />
+    public void SetRedirections(RdpRedirectionOptions redirections)
+    {
+        ArgumentNullException.ThrowIfNull(redirections);
+        _pendingRedirections = redirections;
+
+        var ocx = GetActiveXInstance();
+        if (ocx is not null)
+        {
+            ApplyRedirectionSettings(ocx);
+        }
+    }
+
+    /// <inheritdoc />
+    public void Connect()
+    {
+        var ocx = GetActiveXInstance()
+            ?? throw new InvalidOperationException("ActiveX control is not initialized. Ensure the host control handle is created first.");
+
+        // Apply all pending settings before connecting
+        ApplyServerSettings(ocx);
+        ApplyCredentialSettings(ocx);
+        ApplyDisplaySettings(ocx);
+        ApplyRedirectionSettings(ocx);
+
+        ((dynamic)ocx).Connect();
+    }
+
+    /// <inheritdoc />
+    public void Disconnect()
+    {
+        var ocx = GetActiveXInstance();
+        if (ocx is not null)
+        {
+            try
+            {
+                ((dynamic)ocx).Disconnect();
+            }
+            catch (Exception ex)
+            {
+                LastError = ex.Message;
+            }
+        }
+    }
+
+    /// <inheritdoc />
+    public void UpdateResolution(int width, int height)
+    {
+        var ocx = GetActiveXInstance();
+        if (ocx is null)
+        {
+            return;
+        }
+
+        try
+        {
+            // Reconnect(width, height) is available on IMsRdpClient7+ (RDP 7.1+)
+            ocx.GetType().InvokeMember(
+                "Reconnect",
+                BindingFlags.InvokeMethod,
+                null,
+                ocx,
+                [(uint)width, (uint)height]);
+        }
+        catch (Exception ex)
+        {
+            LastError = ex.Message;
+        }
+    }
+
+    /// <summary>
+    /// Attach the COM event sink via connection point.
+    /// Must be called explicitly after the control handle is created, on the STA thread.
+    /// Returns true if the event sink was successfully connected.
+    /// </summary>
+    public bool AttachEventSink()
+    {
+        try
+        {
+            var ocx = GetOcx();
+            if (ocx is null)
+            {
+                LastError = "GetOcx() returned null — connection point not available for event sink";
+                return false;
+            }
+
+            _sink = new MsTscAxEventSink(this);
+            _cookie = new ConnectionPointCookie(ocx, _sink, typeof(IMsTscAxEvents));
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            LastError = ex.Message;
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Detach the COM event sink. Call during cleanup before Dispose.
+    /// </summary>
+    public void DetachEventSink()
+    {
+        if (_cookie is not null)
+        {
+            try
+            {
+                _cookie.Disconnect();
+            }
+            catch (Exception ex)
+            {
+                LastError = ex.Message;
+            }
+            _cookie = null;
+        }
+        _sink = null;
+    }
+
+    /// <inheritdoc />
+    public Control GetHostControl() => this;
+
+    /// <summary>
+    /// Inject password via the IMsTscNonScriptable COM interface (QueryInterface).
+    /// Returns true on success.
+    /// </summary>
+    public bool SetClearTextPassword(string password)
+    {
+        try
+        {
+            var ocx = GetOcx();
+            if (ocx is null)
+            {
+                LastError = "GetOcx() returned null";
+                return false;
+            }
+
+            var nonScriptable = (IMsTscNonScriptable)ocx;
+            nonScriptable.put_ClearTextPassword(password);
+            LastError = null;
+            return true;
+        }
+        catch (Exception ex)
+        {
+            LastError = ex.Message;
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Best-effort clearing of the COM-side password after the connection handoff.
+    /// Should be called in the OnConnected event handler.
+    /// </summary>
+    public void ClearPassword()
+    {
+        try
+        {
+            var ocx = GetOcx();
+            if (ocx is null) return;
+
+            var nonScriptable = (IMsTscNonScriptable)ocx;
+            nonScriptable.put_ClearTextPassword(string.Empty);
+        }
+        catch (Exception ex)
+        {
+            LastError = ex.Message;
+        }
+    }
+
+    #region Internal event raisers (called by MsTscAxEventSink)
+
+    internal void RaiseConnected()
+    {
+        IsConnected = true;
+        Connected?.Invoke();
+    }
+
+    internal void RaiseDisconnected(int discReason)
+    {
+        IsConnected = false;
+        Disconnected?.Invoke(discReason);
+    }
+
+    internal void RaiseFatalError(int errorCode)
+    {
+        IsConnected = false;
+        FatalError?.Invoke(errorCode);
+    }
+
+    #endregion
+
+    #region Private apply methods (late-bound COM property access)
+
+    private void ApplyServerSettings(object ocx)
+    {
+        if (string.IsNullOrWhiteSpace(_pendingHost)) return;
+
+        dynamic ax = ocx;
+        ax.Server = _pendingHost;
+        ax.AdvancedSettings2.RDPPort = _pendingPort;
+    }
+
+    private void ApplyCredentialSettings(object ocx)
+    {
+        dynamic ax = ocx;
+
+        if (!string.IsNullOrWhiteSpace(_pendingUsername))
+        {
+            ax.UserName = _pendingUsername;
+        }
+
+        if (!string.IsNullOrWhiteSpace(_pendingDomain))
+        {
+            ax.Domain = _pendingDomain;
+        }
+
+        // Password must be set via IMsTscNonScriptable, not via IDispatch
+        if (_pendingPassword is not null)
+        {
+            SetClearTextPassword(_pendingPassword);
+        }
+    }
+
+    private void ApplyDisplaySettings(object ocx)
+    {
+        dynamic ax = ocx;
+        ax.DesktopWidth = _pendingWidth;
+        ax.DesktopHeight = _pendingHeight;
+        ax.ColorDepth = _pendingColorDepth;
+    }
+
+    private void ApplyRedirectionSettings(object ocx)
+    {
+        dynamic ax = ocx;
+        var adv = ax.AdvancedSettings9;
+
+        // Clipboard
+        adv.RedirectClipboard = _pendingRedirections.Clipboard;
+
+        // Drives
+        adv.RedirectDrives = _pendingRedirections.Drives;
+
+        // Printers
+        adv.RedirectPrinters = _pendingRedirections.Printers;
+
+        // COM ports
+        adv.RedirectPorts = _pendingRedirections.ComPorts;
+
+        // Smart cards
+        adv.RedirectSmartCards = _pendingRedirections.SmartCards;
+
+        // Audio mode: 0 = redirect to client, 1 = play at remote, 2 = disable
+        // Map our enum: 0 = disabled, 1 = local, 2 = remote
+        adv.AudioRedirectionMode = _pendingRedirections.AudioMode switch
+        {
+            1 => 0, // Local playback = redirect to client
+            2 => 1, // Remote playback = play at remote
+            _ => 2  // Disabled
+        };
+
+        // Audio capture
+        adv.AudioCaptureRedirectionMode = _pendingRedirections.AudioCapture;
+
+        // NLA
+        adv.EnableCredSspSupport = _pendingRedirections.Nla;
+
+        // Bitmap caching
+        adv.BitmapPersistence = _pendingRedirections.BitmapCaching ? 1 : 0;
+
+        // Compression
+        adv.Compress = _pendingRedirections.Compression ? 1 : 0;
+
+        // Auto-reconnect
+        adv.EnableAutoReconnect = _pendingRedirections.AutoReconnect;
+
+        // Multi-monitor (requires IMsRdpClientNonScriptable5)
+        if (_pendingRedirections.MultiMonitor)
+        {
+            try
+            {
+                adv.UseMultimon = true;
+            }
+            catch
+            {
+                // Not supported on this RDP version — ignore
+            }
+        }
+    }
+
+    #endregion
+
+    #region Cleanup
+
+    private void ReleaseActiveX()
+    {
+        if (_activeX is not null)
+        {
+            try
+            {
+                Marshal.ReleaseComObject(_activeX);
+            }
+            catch (Exception ex)
+            {
+                LastError = ex.Message;
+            }
+            _activeX = null;
+        }
+    }
+
+    /// <inheritdoc />
+    protected override void Dispose(bool disposing)
+    {
+        if (!_disposed)
+        {
+            _disposed = true;
+
+            if (disposing)
+            {
+                try { DetachEventSink(); }
+                catch { /* already captured in LastError by DetachEventSink */ }
+            }
+
+            try { ReleaseActiveX(); }
+            catch { /* already captured in LastError by ReleaseActiveX */ }
+        }
+
+        base.Dispose(disposing);
+    }
+
+    #endregion
+}
