@@ -497,12 +497,18 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
     {
         try
         {
-            await CredentialAutofill.WaitAndFillAsync(
+            var filled = await CredentialAutofill.WaitAndFillAsync(
                 Environment.ProcessId,
                 hostHint,
                 password,
-                TimeSpan.FromSeconds(12),
+                TimeSpan.FromSeconds(30),
                 cancellationToken).ConfigureAwait(false);
+
+            if (!filled)
+            {
+                Core.Logging.FileLogger.Warn(
+                    $"EmbeddedRDP CredUI autofill timed out for hostHint={hostHint}");
+            }
         }
         catch (OperationCanceledException)
         {
