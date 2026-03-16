@@ -42,6 +42,7 @@ public class RdpServerDto
     public string SshMode { get; set; } = "External";
     public bool SshAgentForwarding { get; set; }
     public string? SshKeyPath { get; set; }
+    public string? SshPasswordEncrypted { get; set; }
     public bool SshCompression { get; set; }
     public bool SshX11Forwarding { get; set; }
 

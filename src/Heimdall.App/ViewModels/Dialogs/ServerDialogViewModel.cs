@@ -92,6 +92,10 @@ public partial class ServerDialogViewModel : ObservableValidator
     [ObservableProperty]
     private string _sshPassword = "";
 
+    // Existing encrypted passwords (preserved on edit if user doesn't change them)
+    public string? ExistingSshPasswordEncrypted { get; set; }
+    public string? ExistingRdpPasswordEncrypted { get; set; }
+
     [ObservableProperty]
     private bool _sshCompression;
 
@@ -364,11 +368,17 @@ public partial class ServerDialogViewModel : ObservableValidator
             SshUsername = string.IsNullOrWhiteSpace(SshUsername) ? null : SshUsername,
             SshPort = SshPort,
             SshKeyPath = string.IsNullOrWhiteSpace(SshKeyPath) ? null : SshKeyPath,
+            SshPasswordEncrypted = string.IsNullOrEmpty(SshPassword)
+                ? ExistingSshPasswordEncrypted
+                : Heimdall.Core.Security.DpapiProvider.Protect(SshPassword),
             SshCompression = SshCompression,
             SshX11Forwarding = SshX11Forwarding,
             SshAgentForwarding = SshAgentForwarding,
             SshMode = SshMode,
             RdpUsername = string.IsNullOrWhiteSpace(RdpUsername) ? null : RdpUsername,
+            RdpPasswordEncrypted = string.IsNullOrEmpty(RdpPassword)
+                ? ExistingRdpPasswordEncrypted
+                : Heimdall.Core.Security.DpapiProvider.Protect(RdpPassword),
             RdpMode = RdpMode,
             RdpUseGlobalDefaults = RdpUseGlobalDefaults,
             RdpAntiIdle = RdpAntiIdle,
@@ -428,6 +438,8 @@ public partial class ServerDialogViewModel : ObservableValidator
             SshAgentForwarding = dto.SshAgentForwarding,
             SshMode = dto.SshMode,
             RdpUsername = dto.RdpUsername ?? "",
+            ExistingRdpPasswordEncrypted = dto.RdpPasswordEncrypted,
+            ExistingSshPasswordEncrypted = dto.SshPasswordEncrypted,
             RdpMode = dto.RdpMode,
             RdpUseGlobalDefaults = dto.RdpUseGlobalDefaults,
             RdpAntiIdle = dto.RdpAntiIdle,
