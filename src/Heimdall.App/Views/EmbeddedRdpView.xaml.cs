@@ -14,10 +14,13 @@
  * limitations under the License.
  */
 
+using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Threading;
+using Heimdall.App.Services;
 using Heimdall.App.ViewModels;
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Models;
@@ -41,6 +44,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
     private readonly DispatcherTimer _resizeTimer;
 
     private CancellationTokenSource? _autofillCts;
+    private DispatcherTimer? _antiIdleTimer;
     private RdpActiveXHost? _rdpHost;
     private RdpServerDto? _server;
     private SessionTabViewModel? _sessionTab;
@@ -50,6 +54,8 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
     private bool _eventSinkAttached;
     private bool _disposed;
     private bool _allowResolutionUpdates;
+    private bool _sleepPreventionActive;
+    private int _antiIdleIntervalSeconds;
     private int _beginConnectAttempt;
     private int _lastAppliedWidth;
     private int _lastAppliedHeight;
@@ -79,7 +85,10 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
             : System.Windows.Visibility.Visible;
     }
 
-    public void InitializeSession(RdpServerDto server, SessionTabViewModel sessionTab)
+    public void InitializeSession(
+        RdpServerDto server,
+        SessionTabViewModel sessionTab,
+        int antiIdleIntervalSeconds = 60)
     {
         ArgumentNullException.ThrowIfNull(server);
         ArgumentNullException.ThrowIfNull(sessionTab);
@@ -96,6 +105,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
 
         _server = server;
         _sessionTab = sessionTab;
+        _antiIdleIntervalSeconds = antiIdleIntervalSeconds;
         _initialized = true;
 
         SessionTitleText.Text = server.DisplayName;
@@ -118,6 +128,8 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         Loaded -= OnLoaded;
         SurfaceContainer.SizeChanged -= OnSurfaceContainerSizeChanged;
         _resizeTimer.Stop();
+        StopAntiIdleTimer();
+        ReleaseSleepPrevention();
         CancelAutofill();
         _allowResolutionUpdates = false;
 
@@ -384,6 +396,13 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
             UpdateSessionState("Connected", "The embedded Remote Desktop session is active.");
             FlushLayoutPipeline("on-connected");
 
+            if (_server is not null && _server.RdpAntiIdle && _antiIdleIntervalSeconds > 0)
+            {
+                StartAntiIdleTimer(_antiIdleIntervalSeconds);
+            }
+
+            AcquireSleepPrevention();
+
             if (_server is not null && _server.RdpDynamicResolution)
             {
                 EnableResolutionUpdatesAsync();
@@ -422,6 +441,8 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         Dispatcher.Invoke(() =>
         {
             CancelAutofill();
+            StopAntiIdleTimer();
+            ReleaseSleepPrevention();
             _allowResolutionUpdates = false;
             UpdateSessionState(
                 "Disconnected",
@@ -626,6 +647,72 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         Dispatcher.Invoke(DispatcherPriority.Render, new Action(delegate { }));
     }
 
+    private void StartAntiIdleTimer(int intervalSeconds)
+    {
+        StopAntiIdleTimer();
+
+        _antiIdleTimer = new DispatcherTimer(
+            TimeSpan.FromSeconds(intervalSeconds),
+            DispatcherPriority.Background,
+            OnAntiIdleTick,
+            Dispatcher);
+        _antiIdleTimer.Start();
+        Core.Logging.FileLogger.Info(
+            $"RDP anti-idle timer started ({intervalSeconds}s interval)");
+    }
+
+    private void StopAntiIdleTimer()
+    {
+        if (_antiIdleTimer is null)
+        {
+            return;
+        }
+
+        _antiIdleTimer.Stop();
+        _antiIdleTimer = null;
+        Core.Logging.FileLogger.Info("RDP anti-idle timer stopped");
+    }
+
+    [SupportedOSPlatform("windows")]
+    private void OnAntiIdleTick(object? sender, EventArgs e)
+    {
+        if (_disposed || _rdpHost is null || !_rdpHost.IsConnected)
+        {
+            StopAntiIdleTimer();
+            return;
+        }
+
+        try
+        {
+            // Prevent Windows/RDP from detecting idle by signaling display activity
+            NativeMethods.SetThreadExecutionState(
+                NativeMethods.ES_CONTINUOUS |
+                NativeMethods.ES_DISPLAY_REQUIRED);
+        }
+        catch (Exception ex)
+        {
+            Core.Logging.FileLogger.Warn($"RDP anti-idle tick failed: {ex.Message}");
+        }
+    }
+
+    private void AcquireSleepPrevention()
+    {
+        if (!_sleepPreventionActive)
+        {
+            _sleepPreventionActive = true;
+            SleepPrevention.SessionStarted();
+        }
+    }
+
+    private void ReleaseSleepPrevention()
+    {
+        if (_sleepPreventionActive)
+        {
+            _sleepPreventionActive = false;
+            SleepPrevention.SessionEnded();
+        }
+    }
+
     private static string ResolveConnectHost(RdpServerDto server)
     {
         return server.UseDirectConnection || string.IsNullOrWhiteSpace(server.SshGatewayId)
@@ -744,5 +831,15 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
     private Brush GetBrush(string resourceKey, Brush fallback)
     {
         return TryFindResource(resourceKey) as Brush ?? fallback;
+    }
+
+    [SupportedOSPlatform("windows")]
+    private static class NativeMethods
+    {
+        internal const uint ES_CONTINUOUS = 0x80000000;
+        internal const uint ES_DISPLAY_REQUIRED = 0x00000002;
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        internal static extern uint SetThreadExecutionState(uint esFlags);
     }
 }

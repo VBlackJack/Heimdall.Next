@@ -42,6 +42,8 @@ public partial class MainViewModel : ObservableObject
     private readonly IDialogService _dialogService;
     private readonly EmbeddedSessionManager _embeddedSessionManager;
 
+    private AppSettings? _currentSettings;
+
     [ObservableProperty]
     private string _windowTitle = "Heimdall";
 
@@ -165,6 +167,7 @@ public partial class MainViewModel : ObservableObject
 
             _hostKeyStore.LoadFromConfig(hostKeyEntries);
 
+            _currentSettings = settings;
             ServerList.LoadServers(servers, settings);
             Settings.LoadFromSettings(settings);
 
@@ -195,7 +198,8 @@ public partial class MainViewModel : ObservableObject
             tab,
             displayName,
             connectionType,
-            session);
+            session,
+            _currentSettings);
         tab.Status = string.Equals(connectionType, "RDP", StringComparison.OrdinalIgnoreCase)
             ? "Connecting"
             : "Connected";
@@ -358,6 +362,7 @@ public partial class MainViewModel : ObservableObject
 
     private async Task ReloadConfigurationAsync(AppSettings settings, List<RdpServerDto>? servers = null)
     {
+        _currentSettings = settings;
         var currentServers = servers ?? await _configManager.LoadServersAsync();
 
         ServerCount = currentServers.Count;
