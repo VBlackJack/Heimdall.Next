@@ -20,6 +20,7 @@ using System.Windows.Media;
 using Heimdall.App.ViewModels;
 using Heimdall.App.Views;
 using Heimdall.Core.Configuration;
+using Heimdall.Ssh;
 
 namespace Heimdall.App.Services;
 
@@ -46,12 +47,28 @@ public sealed class EmbeddedSessionManager
             return view;
         }
 
+        if (string.Equals(connectionType, "SSH", StringComparison.OrdinalIgnoreCase) &&
+            session is SshShellSession sshSession)
+        {
+            return CreateSshView(sessionTab, sshSession, displayName);
+        }
+
         if (session is UIElement element)
         {
             return element;
         }
 
         return new DisposablePlaceholderView(displayName, connectionType, session);
+    }
+
+    private static EmbeddedSshView CreateSshView(
+        SessionTabViewModel tab,
+        SshShellSession session,
+        string displayName)
+    {
+        var view = new EmbeddedSshView();
+        view.InitializeSession(session, tab, displayName, string.Empty);
+        return view;
     }
 
     private static Brush GetBrush(string resourceKey, Brush fallback)
