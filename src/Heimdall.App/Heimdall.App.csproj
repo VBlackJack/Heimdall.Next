@@ -36,10 +36,10 @@
     <UseWPF>true</UseWPF>
     <AssemblyName>Heimdall.Next</AssemblyName>
     <RootNamespace>Heimdall.App</RootNamespace>
-    <Version>2026.031604</Version>
+    <Version>2026.031605</Version>
     <Authors>Julien Bombled</Authors>
     <Product>Heimdall.Next</Product>
-    <Description>Secure Connection Manager ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â RDP, SSH, SFTP</Description>
+    <Description>Secure Connection Manager ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â RDP, SSH, SFTP</Description>
     <Copyright>Copyright 2026 Julien Bombled</Copyright>
   </PropertyGroup>
 

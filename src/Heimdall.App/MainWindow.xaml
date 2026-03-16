@@ -61,10 +61,17 @@
                 <!-- Right: Quick actions -->
                 <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" HorizontalAlignment="Right"
                             VerticalAlignment="Center">
-                    <Button Content="+ Add"
-                            Command="{Binding ServerList.AddServerCommand}"
+                    <Button x:Name="AddButton" Content="+ Add"
                             Style="{DynamicResource PrimaryButtonStyle}"
-                            Margin="4,0"/>
+                            Margin="4,0" Click="OnAddButtonClick">
+                        <Button.ContextMenu>
+                            <ContextMenu x:Name="AddMenu"
+                                         DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
+                                <MenuItem Header="Add Server" Command="{Binding ServerList.AddServerCommand}"/>
+                                <MenuItem Header="Add Gateway" Command="{Binding Settings.AddGatewayCommand}"/>
+                            </ContextMenu>
+                        </Button.ContextMenu>
+                    </Button>
                     <TextBox x:Name="SearchBox"
                              Width="200"
                              Text="{Binding ServerList.SearchText, UpdateSourceTrigger=PropertyChanged}"
@@ -281,25 +288,89 @@
             </Grid>
 
             <!-- ============================================================ -->
-            <!-- TUNNELS TAB: Full-width DataGrid                              -->
+            <!-- TUNNELS TAB: Active tunnels + Gateway management              -->
             <!-- ============================================================ -->
-            <DataGrid Visibility="{Binding IsTunnelsTabSelected, Converter={StaticResource BoolToVisibilityConverter}}"
-                      ItemsSource="{Binding TunnelList}"
-                      AutoGenerateColumns="False"
-                      IsReadOnly="True"
-                      SelectionMode="Single"
-                      Style="{DynamicResource ThemedDataGridStyle}"
-                      ColumnHeaderStyle="{DynamicResource ThemedDataGridColumnHeaderStyle}"
-                      CellStyle="{DynamicResource ThemedDataGridCellStyle}"
-                      RowStyle="{DynamicResource ThemedDataGridRowStyle}">
-                <DataGrid.Columns>
-                    <DataGridTextColumn Header="Server" Binding="{Binding ServerName}" Width="*"/>
-                    <DataGridTextColumn Header="Local Port" Binding="{Binding LocalPort}" Width="100"/>
-                    <DataGridTextColumn Header="Remote" Binding="{Binding RemoteHost}" Width="*"/>
-                    <DataGridTextColumn Header="Remote Port" Binding="{Binding RemotePort}" Width="100"/>
-                    <DataGridTextColumn Header="Started" Binding="{Binding StartedAt, StringFormat=HH:mm:ss}" Width="100"/>
-                </DataGrid.Columns>
-            </DataGrid>
+            <Grid Visibility="{Binding IsTunnelsTabSelected, Converter={StaticResource BoolToVisibilityConverter}}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <!-- Active Tunnels -->
+                <DockPanel Grid.Row="0">
+                    <TextBlock DockPanel.Dock="Top" Text="Active Tunnels" FontSize="14" FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextPrimaryBrush}" Margin="16,12,16,8"/>
+                    <DataGrid ItemsSource="{Binding TunnelList}"
+                              AutoGenerateColumns="False"
+                              IsReadOnly="True"
+                              SelectionMode="Single"
+                              Style="{DynamicResource ThemedDataGridStyle}"
+                              ColumnHeaderStyle="{DynamicResource ThemedDataGridColumnHeaderStyle}"
+                              CellStyle="{DynamicResource ThemedDataGridCellStyle}"
+                              RowStyle="{DynamicResource ThemedDataGridRowStyle}">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Server" Binding="{Binding ServerName}" Width="*"/>
+                            <DataGridTextColumn Header="Local Port" Binding="{Binding LocalPort}" Width="100"/>
+                            <DataGridTextColumn Header="Remote" Binding="{Binding RemoteHost}" Width="*"/>
+                            <DataGridTextColumn Header="Remote Port" Binding="{Binding RemotePort}" Width="100"/>
+                            <DataGridTextColumn Header="Started" Binding="{Binding StartedAt, StringFormat=HH:mm:ss}" Width="100"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </DockPanel>
+
+                <!-- Separator -->
+                <Border Grid.Row="1" Height="1" Background="{DynamicResource BorderBrush}" Margin="16,8"/>
+
+                <!-- SSH Gateways -->
+                <DockPanel Grid.Row="2" MinHeight="180" MaxHeight="300">
+                    <DockPanel DockPanel.Dock="Top" Margin="16,4,16,8">
+                        <TextBlock Text="SSH Gateways" FontSize="14" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                            <Button Content="+ Add" Command="{Binding Settings.AddGatewayCommand}"
+                                    Style="{DynamicResource PrimaryButtonStyle}" Padding="8,3" FontSize="11" Margin="0,0,4,0"/>
+                            <Button Content="Edit" Command="{Binding Settings.EditGatewayCommand}"
+                                    Style="{DynamicResource SecondaryButtonStyle}" Padding="8,3" FontSize="11" Margin="0,0,4,0"/>
+                            <Button Content="Delete" Command="{Binding Settings.DeleteGatewayCommand}"
+                                    Style="{DynamicResource SecondaryButtonStyle}" Padding="8,3" FontSize="11"/>
+                        </StackPanel>
+                    </DockPanel>
+
+                    <DataGrid ItemsSource="{Binding Settings.Gateways}"
+                              SelectedItem="{Binding Settings.SelectedGateway}"
+                              AutoGenerateColumns="False"
+                              IsReadOnly="True"
+                              SelectionMode="Single"
+                              Margin="16,0,16,12"
+                              Style="{DynamicResource ThemedDataGridStyle}"
+                              ColumnHeaderStyle="{DynamicResource ThemedDataGridColumnHeaderStyle}"
+                              CellStyle="{DynamicResource ThemedDataGridCellStyle}"
+                              RowStyle="{DynamicResource ThemedDataGridRowStyle}">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="*"/>
+                            <DataGridTextColumn Header="Host" Binding="{Binding Host}" Width="*"/>
+                            <DataGridTextColumn Header="Port" Binding="{Binding Port}" Width="60"/>
+                            <DataGridTextColumn Header="User" Binding="{Binding User}" Width="120"/>
+                            <DataGridTemplateColumn Header="Auth" Width="80">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="KEY" FontSize="9" FontWeight="Bold"
+                                                       Foreground="{DynamicResource SshBadgeBrush}"
+                                                       Visibility="{Binding HasKey, Converter={StaticResource BoolToVisibilityConverter}}"
+                                                       Margin="0,0,4,0"/>
+                                            <TextBlock Text="PWD" FontSize="9" FontWeight="Bold"
+                                                       Foreground="{DynamicResource WarningBrush}"
+                                                       Visibility="{Binding HasPassword, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </DockPanel>
+            </Grid>
 
             <!-- ============================================================ -->
             <!-- SCHEDULED TAB: Placeholder                                    -->
