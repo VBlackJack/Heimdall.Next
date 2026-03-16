@@ -100,15 +100,16 @@ public class ConnectionService
         {
             var rdpHost = server.UseDirectConnection ? server.RemoteServer : "127.0.0.1";
             var rdpPort = server.UseDirectConnection ? server.RemotePort : server.LocalPort;
+            string? rdpPassword = null;
 
             // Store credentials in Windows Credential Manager for mstsc auto-login
             if (!string.IsNullOrEmpty(server.RdpUsername) && !string.IsNullOrEmpty(server.RdpPasswordEncrypted))
             {
                 try
                 {
-                    var password = DpapiProvider.Unprotect(server.RdpPasswordEncrypted);
+                    rdpPassword = DpapiProvider.Unprotect(server.RdpPasswordEncrypted);
                     var credTarget = $"TERMSRV/{rdpHost}";
-                    Heimdall.Rdp.CredentialManagerHelper.WriteDomainCredential(credTarget, server.RdpUsername, password, out _);
+                    Heimdall.Rdp.CredentialManagerHelper.WriteDomainCredential(credTarget, server.RdpUsername, rdpPassword, out _);
                     Core.Logging.FileLogger.Info($"RDP credentials stored for {credTarget}");
                 }
                 catch (Exception credEx)
@@ -136,18 +137,40 @@ public class ConnectionService
             });
             await File.WriteAllTextAsync(rdpFile, rdpContent, ct).ConfigureAwait(false);
 
-            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+            var mstscProcess = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
             {
                 FileName = "mstsc.exe",
                 Arguments = $"\"{rdpFile}\"",
-                UseShellExecute = true
+                UseShellExecute = false
             });
 
-            Core.Logging.FileLogger.Info($"Launched mstsc.exe for {server.DisplayName} ({rdpHost}:{rdpPort})");
+            var mstscPid = mstscProcess?.Id ?? 0;
+            Core.Logging.FileLogger.Info($"Launched mstsc.exe PID={mstscPid} for {server.DisplayName} ({rdpHost}:{rdpPort})");
             _connectionSm.TryTransition(server.Id, Core.Models.ConnectionState.Connected);
 
+            // Start CredUI autofill watcher for the external mstsc process
+            if (!string.IsNullOrEmpty(rdpPassword) && mstscPid > 0)
+            {
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        var filled = await Heimdall.Rdp.CredentialAutofill.WaitAndFillAsync(
+                            mstscPid, rdpHost, rdpPassword,
+                            TimeSpan.FromSeconds(30), ct).ConfigureAwait(false);
+                        if (!filled)
+                            Core.Logging.FileLogger.Warn($"External RDP CredUI autofill timed out for {server.DisplayName}");
+                    }
+                    catch (OperationCanceledException) { }
+                    catch (Exception ex)
+                    {
+                        Core.Logging.FileLogger.Warn($"External RDP CredUI autofill failed: {ex.Message}");
+                    }
+                }, ct);
+            }
+
             // Clean up .rdp file after delay
-            _ = Task.Delay(5000, ct).ContinueWith(_ =>
+            _ = Task.Delay(10000, ct).ContinueWith(_ =>
             {
                 try { File.Delete(rdpFile); } catch { }
             }, TaskScheduler.Default);
