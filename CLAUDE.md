@@ -63,10 +63,31 @@ Heimdall.Next/
 ## Build & Test
 
 ```bash
+# Development
 dotnet build
 dotnet test
 dotnet run --project src/Heimdall.App
+
+# Debug build (portable) — auto-increments build number
+powershell -File Build.ps1
+
+# Release build (portable + zip archive)
+powershell -File Build.ps1 -Mode Release
+
+# Skip tests
+powershell -File Build.ps1 -SkipTests
 ```
+
+### Build Conventions
+
+- **Build number format**: `YYYY.MMDDxx` (xx = sequential within day, starting at 01)
+- **Debug builds**: `Dist/debug/Heimdall.Next_build.YYYY.MMDDxx/`
+- **Release builds**: `Dist/release/Heimdall.Next_build.YYYY.MMDDxx/` + `.zip` archive
+- **When user says "build"**: run `Build.ps1` (Debug mode, increments build number)
+- **When user says "release"**: run `Build.ps1 -Mode Release` (Release mode + archive)
+- Build script runs tests before build (use `-SkipTests` to bypass)
+- Build number is written to `Heimdall.App.csproj` `<Version>` property
+- `Dist/` is gitignored
 
 ## Code Standards
 

@@ -11,9 +11,10 @@ obj/
 .idea/
 *.sln.DotSettings.user
 
-## Build
+## Build output
 publish/
 artifacts/
+Dist/
 
 ## OS
 Thumbs.db
