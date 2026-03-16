@@ -93,7 +93,7 @@ Write-Host "[3/5] Build succeeded" -ForegroundColor Green
 # ── Publish portable ────────────────────────────────────────────────────────
 
 Write-Host "[4/5] Publishing portable to $buildFolder..." -ForegroundColor Yellow
-dotnet publish $AppProject -c $Mode -o $outputDir --nologo --verbosity quiet --self-contained false
+dotnet publish $AppProject -c $Mode -o $outputDir --nologo --verbosity quiet --self-contained true -r win-x64 -p:PublishSingleFile=false
 if ($LASTEXITCODE -ne 0) {
     Write-Host "Publish FAILED." -ForegroundColor Red
     exit 1
