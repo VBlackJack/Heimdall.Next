@@ -15,6 +15,7 @@
  */
 
 using System.Collections.ObjectModel;
+using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Heimdall.App.Services;
@@ -38,6 +39,7 @@ public partial class ServerListViewModel : ObservableObject
     private readonly IDialogService _dialogService;
 
     private List<ServerItemViewModel> _allServers = [];
+    private List<ProjectTarget> _projectTargets = [];
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsEmpty))]
@@ -81,6 +83,11 @@ public partial class ServerListViewModel : ObservableObject
     /// </summary>
     public event Action<string, string, string, object?>? SessionReady;
 
+    /// <summary>
+    /// Raised when a non-modal status message should be surfaced in the shell.
+    /// </summary>
+    public event Action<string>? StatusMessageRequested;
+
     public ServerListViewModel(
         ConfigManager configManager,
         LocalizationManager localizer,
@@ -102,31 +109,62 @@ public partial class ServerListViewModel : ObservableObject
     /// </summary>
     public void LoadServers(List<RdpServerDto> serverDtos, AppSettings settings)
     {
+        var selectedServerId = SelectedServer?.Id;
+        var projectMap = BuildProjectMap(settings);
+
         _allServers = serverDtos
-            .Select(ServerItemViewModel.FromDto)
+            .Select(dto => ServerItemViewModel.FromDto(
+                dto,
+                ResolveProject(projectMap, dto.ProjectId),
+                _connectionSm.GetState(dto.Id).ToString()))
             .ToList();
 
-        // Extract distinct projects from settings
-        var projectNames = settings.Projects
-            .Where(p => !string.IsNullOrWhiteSpace(p.Name))
-            .Select(p => p.Name)
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .OrderBy(n => n, StringComparer.OrdinalIgnoreCase);
+        RefreshLookupCollections(settings);
+        IsSidebarVisible = !settings.SidebarCollapsed;
+        ApplyFilter(selectedServerId);
+    }
 
-        Projects = new ObservableCollection<string>(projectNames);
+    public IReadOnlyList<ProjectTarget> GetProjectTargets(bool includeNoProject)
+    {
+        var targets = new List<ProjectTarget>();
 
-        // Extract distinct groups from servers
-        var groupNames = _allServers
+        if (includeNoProject)
+        {
+            targets.Add(new ProjectTarget(
+                string.Empty,
+                _localizer["TreeNodeNoProject"],
+                string.Empty,
+                IsVirtualProject: true));
+        }
+
+        targets.AddRange(_projectTargets);
+        return targets;
+    }
+
+    public IReadOnlyList<GroupTarget> GetGroupTargets(string? projectId, bool includeNoGroup)
+    {
+        var normalizedProjectId = projectId ?? string.Empty;
+        var targets = new List<GroupTarget>();
+
+        if (includeNoGroup)
+        {
+            targets.Add(new GroupTarget(
+                string.Empty,
+                _localizer["TreeNodeNoGroup"],
+                IsVirtualGroup: true));
+        }
+
+        var groupTargets = _allServers
+            .Where(s => string.Equals(s.ProjectId, normalizedProjectId, StringComparison.Ordinal))
             .Where(s => !string.IsNullOrWhiteSpace(s.Group))
             .Select(s => s.Group)
             .Distinct(StringComparer.OrdinalIgnoreCase)
-            .OrderBy(n => n, StringComparer.OrdinalIgnoreCase);
+            .OrderBy(name => name, StringComparer.OrdinalIgnoreCase)
+            .Select(name => new GroupTarget(name, name))
+            .ToList();
 
-        Groups = new ObservableCollection<string>(groupNames);
-
-        IsSidebarVisible = !settings.SidebarCollapsed;
-
-        ApplyFilter();
+        targets.AddRange(groupTargets);
+        return targets;
     }
 
     [RelayCommand]
@@ -137,7 +175,6 @@ public partial class ServerListViewModel : ObservableObject
             return;
         }
 
-        // Load full server DTO
         var servers = await _configManager.LoadServersAsync();
         var serverDto = servers.FirstOrDefault(
             s => string.Equals(s.Id, server.Id, StringComparison.Ordinal));
@@ -149,7 +186,6 @@ public partial class ServerListViewModel : ObservableObject
 
         var settings = await _configManager.LoadSettingsAsync();
 
-        // Preflight checks
         var preflight = _connectionService.RunPreflight(serverDto, settings);
         if (!preflight.Success)
         {
@@ -219,21 +255,17 @@ public partial class ServerListViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private async Task AddServerAsync(CancellationToken cancellationToken)
+    private async Task AddServerAsync(ServerDialogSeed? seed, CancellationToken cancellationToken)
     {
         var dialogVm = new ServerDialogViewModel
         {
-            DialogTitle = _localizer["DialogTitleAddServer"]
+            DialogTitle = _localizer["DialogTitleAddServer"],
+            Group = seed?.GroupName ?? string.Empty,
+            SelectedProjectId = seed?.ProjectId ?? string.Empty
         };
 
-        // Populate available gateways and projects from config
         var settings = await _configManager.LoadSettingsAsync();
-
-        dialogVm.AvailableGateways = new(settings.SshGateways.Select(
-            g => new GatewayOption(g.Id, $"{g.Name} ({g.Host})")));
-
-        dialogVm.AvailableProjects = new(settings.Projects.Select(
-            p => new ProjectOption(p.Id, p.Name, p.Color ?? "#3B82F6")));
+        PopulateServerDialogOptions(dialogVm, settings);
 
         var result = await _dialogService.ShowServerDialogAsync(dialogVm);
 
@@ -247,9 +279,13 @@ public partial class ServerListViewModel : ObservableObject
         servers.Add(result.Server);
         await _configManager.SaveServersAsync(servers);
 
-        var newItem = ServerItemViewModel.FromDto(result.Server);
-        _allServers.Add(newItem);
-        ApplyFilter();
+        _allServers.Add(ServerItemViewModel.FromDto(
+            result.Server,
+            ResolveProject(BuildProjectMap(settings), result.Server.ProjectId),
+            _connectionSm.GetState(result.Server.Id).ToString()));
+
+        RefreshLookupCollections(settings);
+        ApplyFilter(result.Server.Id);
         OnPropertyChanged(nameof(Servers));
         OnPropertyChanged(nameof(IsEmpty));
     }
@@ -262,7 +298,6 @@ public partial class ServerListViewModel : ObservableObject
             return;
         }
 
-        // Load the full DTO for editing
         var servers = await _configManager.LoadServersAsync();
         var serverDto = servers.FirstOrDefault(
             s => string.Equals(s.Id, server.Id, StringComparison.Ordinal));
@@ -275,14 +310,8 @@ public partial class ServerListViewModel : ObservableObject
         var dialogVm = ServerDialogViewModel.FromDto(serverDto);
         dialogVm.DialogTitle = _localizer["DialogTitleEditServer"];
 
-        // Populate available gateways and projects
         var settings = await _configManager.LoadSettingsAsync();
-
-        dialogVm.AvailableGateways = new(settings.SshGateways.Select(
-            g => new GatewayOption(g.Id, $"{g.Name} ({g.Host})")));
-
-        dialogVm.AvailableProjects = new(settings.Projects.Select(
-            p => new ProjectOption(p.Id, p.Name, p.Color ?? "#3B82F6")));
+        PopulateServerDialogOptions(dialogVm, settings);
 
         var result = await _dialogService.ShowServerDialogAsync(dialogVm);
 
@@ -291,22 +320,25 @@ public partial class ServerListViewModel : ObservableObject
             return;
         }
 
-        // Preserve the original ID
         result.Server.Id = serverDto.Id;
 
-        // Update the DTO in the list
         var index = servers.FindIndex(
             s => string.Equals(s.Id, serverDto.Id, StringComparison.Ordinal));
 
-        if (index >= 0)
+        if (index < 0)
         {
-            servers[index] = result.Server;
-            await _configManager.SaveServersAsync(servers);
+            return;
         }
 
-        // Update the ViewModel item in place
-        server.UpdateFromDto(result.Server);
-        ApplyFilter();
+        servers[index] = result.Server;
+        await _configManager.SaveServersAsync(servers);
+
+        server.UpdateFromDto(
+            result.Server,
+            ResolveProject(BuildProjectMap(settings), result.Server.ProjectId));
+
+        RefreshLookupCollections(settings);
+        ApplyFilter(server.Id);
     }
 
     [RelayCommand]
@@ -336,6 +368,7 @@ public partial class ServerListViewModel : ObservableObject
             s => string.Equals(s.Id, server.Id, StringComparison.Ordinal));
 
         _connectionSm.Remove(server.Id);
+        RefreshLookupCollections(await _configManager.LoadSettingsAsync());
         ApplyFilter();
         OnPropertyChanged(nameof(Servers));
         OnPropertyChanged(nameof(IsEmpty));
@@ -358,7 +391,7 @@ public partial class ServerListViewModel : ObservableObject
             return;
         }
 
-        // Deep copy by serializing and deserializing
+        var settings = await _configManager.LoadSettingsAsync();
         var json = System.Text.Json.JsonSerializer.Serialize(sourceDto);
         var clone = System.Text.Json.JsonSerializer.Deserialize<RdpServerDto>(json);
 
@@ -368,19 +401,227 @@ public partial class ServerListViewModel : ObservableObject
         }
 
         clone.Id = Guid.NewGuid().ToString();
-        clone.DisplayName = $"{sourceDto.DisplayName} ({_localizer["LabelCopy"]})";
-
-        // Clear encrypted credentials from the copy for security
+        clone.DisplayName = sourceDto.DisplayName + _localizer["ServerDuplicateSuffix"];
         clone.RdpPasswordEncrypted = null;
 
         servers.Add(clone);
         await _configManager.SaveServersAsync(servers);
 
-        var newItem = ServerItemViewModel.FromDto(clone);
-        _allServers.Add(newItem);
-        ApplyFilter();
+        _allServers.Add(ServerItemViewModel.FromDto(
+            clone,
+            ResolveProject(BuildProjectMap(settings), clone.ProjectId),
+            _connectionSm.GetState(clone.Id).ToString()));
+
+        RefreshLookupCollections(settings);
+        ApplyFilter(clone.Id);
         OnPropertyChanged(nameof(Servers));
         OnPropertyChanged(nameof(IsEmpty));
+    }
+
+    [RelayCommand]
+    private async Task MoveToProjectAsync(ServerMoveToProjectRequest? request, CancellationToken cancellationToken)
+    {
+        if (request is null)
+        {
+            return;
+        }
+
+        var normalizedProjectId = request.ProjectId ?? string.Empty;
+        if (string.Equals(request.Server.ProjectId, normalizedProjectId, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        var servers = await _configManager.LoadServersAsync();
+        var serverDto = servers.FirstOrDefault(
+            s => string.Equals(s.Id, request.Server.Id, StringComparison.Ordinal));
+
+        if (serverDto is null)
+        {
+            return;
+        }
+
+        serverDto.ProjectId = string.IsNullOrWhiteSpace(request.ProjectId) ? null : request.ProjectId;
+        await _configManager.SaveServersAsync(servers);
+
+        var settings = await _configManager.LoadSettingsAsync();
+        request.Server.ProjectId = normalizedProjectId;
+        ApplyProjectMetadata(request.Server, ResolveProject(BuildProjectMap(settings), request.ProjectId));
+
+        RefreshLookupCollections(settings);
+        ApplyFilter(request.Server.Id);
+    }
+
+    [RelayCommand]
+    private async Task MoveToGroupAsync(ServerMoveToGroupRequest? request, CancellationToken cancellationToken)
+    {
+        if (request is null)
+        {
+            return;
+        }
+
+        var normalizedGroupName = request.GroupName ?? string.Empty;
+        if (string.Equals(request.Server.Group, normalizedGroupName, StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        var servers = await _configManager.LoadServersAsync();
+        var serverDto = servers.FirstOrDefault(
+            s => string.Equals(s.Id, request.Server.Id, StringComparison.Ordinal));
+
+        if (serverDto is null)
+        {
+            return;
+        }
+
+        serverDto.Group = string.IsNullOrWhiteSpace(request.GroupName) ? null : request.GroupName;
+        await _configManager.SaveServersAsync(servers);
+
+        request.Server.Group = normalizedGroupName;
+        RefreshLookupCollections(await _configManager.LoadSettingsAsync());
+        ApplyFilter(request.Server.Id);
+    }
+
+    [RelayCommand]
+    private void CopyHostname(ServerItemViewModel? server)
+    {
+        if (server is null || string.IsNullOrWhiteSpace(server.RemoteServer))
+        {
+            return;
+        }
+
+        Clipboard.SetText(server.RemoteServer);
+        StatusMessageRequested?.Invoke(
+            _localizer.Format("StatusCopiedToClipboard", server.RemoteServer));
+    }
+
+    [RelayCommand]
+    private void CopyUsername(ServerItemViewModel? server)
+    {
+        if (server is null || string.IsNullOrWhiteSpace(server.Username))
+        {
+            return;
+        }
+
+        Clipboard.SetText(server.Username);
+        StatusMessageRequested?.Invoke(
+            _localizer.Format("StatusCopiedToClipboard", server.Username));
+    }
+
+    [RelayCommand]
+    private async Task AddServerToGroupAsync(ServerGroupContext? group, CancellationToken cancellationToken)
+    {
+        if (group is null)
+        {
+            return;
+        }
+
+        await AddServerAsync(
+            new ServerDialogSeed(group.ProjectId, group.IsVirtualGroup ? string.Empty : group.GroupName),
+            cancellationToken);
+    }
+
+    [RelayCommand]
+    private async Task AddGroupAsync(ServerProjectViewModel? project, CancellationToken cancellationToken)
+    {
+        if (project is null)
+        {
+            return;
+        }
+
+        var groupName = await _dialogService.ShowInputAsync(
+            _localizer["TreeCtxNewGroup"],
+            _localizer["ServerFieldGroup"]);
+
+        if (string.IsNullOrWhiteSpace(groupName))
+        {
+            return;
+        }
+
+        await AddServerAsync(
+            new ServerDialogSeed(
+                project.IsVirtualProject ? string.Empty : project.ProjectId,
+                groupName.Trim()),
+            cancellationToken);
+    }
+
+    [RelayCommand]
+    private async Task RenameGroupAsync(ServerGroupContext? group, CancellationToken cancellationToken)
+    {
+        if (group is null || group.IsVirtualGroup)
+        {
+            return;
+        }
+
+        var newName = await _dialogService.ShowInputAsync(
+            _localizer["RenameGroupDialogTitle"],
+            _localizer["ServerFieldGroup"],
+            group.GroupName);
+
+        if (string.IsNullOrWhiteSpace(newName))
+        {
+            return;
+        }
+
+        newName = newName.Trim();
+        if (string.Equals(group.GroupName, newName, StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        var servers = await _configManager.LoadServersAsync();
+
+        foreach (var serverDto in servers.Where(dto => MatchesGroup(dto, group.ProjectId, group.GroupName)))
+        {
+            serverDto.Group = newName;
+        }
+
+        await _configManager.SaveServersAsync(servers);
+
+        foreach (var server in _allServers.Where(item => MatchesGroup(item, group.ProjectId, group.GroupName)))
+        {
+            server.Group = newName;
+        }
+
+        RefreshLookupCollections(await _configManager.LoadSettingsAsync());
+        ApplyFilter(SelectedServer?.Id);
+    }
+
+    [RelayCommand]
+    private async Task DeleteGroupAsync(ServerGroupContext? group, CancellationToken cancellationToken)
+    {
+        if (group is null || group.IsVirtualGroup)
+        {
+            return;
+        }
+
+        var confirmed = await _dialogService.ShowConfirmAsync(
+            _localizer["TreeCtxDeleteGroup"],
+            _localizer.Format("TreeCtxDeleteGroupConfirm", group.GroupName),
+            "warning");
+
+        if (!confirmed)
+        {
+            return;
+        }
+
+        var servers = await _configManager.LoadServersAsync();
+
+        foreach (var serverDto in servers.Where(dto => MatchesGroup(dto, group.ProjectId, group.GroupName)))
+        {
+            serverDto.Group = null;
+        }
+
+        await _configManager.SaveServersAsync(servers);
+
+        foreach (var server in _allServers.Where(item => MatchesGroup(item, group.ProjectId, group.GroupName)))
+        {
+            server.Group = string.Empty;
+        }
+
+        RefreshLookupCollections(await _configManager.LoadSettingsAsync());
+        ApplyFilter(SelectedServer?.Id);
     }
 
     [RelayCommand]
@@ -399,7 +640,7 @@ public partial class ServerListViewModel : ObservableObject
         ApplyFilter();
     }
 
-    private void ApplyFilter()
+    private void ApplyFilter(string? preferredSelectedServerId = null)
     {
         var filtered = _allServers.AsEnumerable();
 
@@ -425,50 +666,154 @@ public partial class ServerListViewModel : ObservableObject
 
         Servers = new ObservableCollection<ServerItemViewModel>(filteredList);
         RebuildGroupedView(filteredList);
+        SynchronizeSelection(preferredSelectedServerId);
     }
 
     /// <summary>
     /// Rebuilds the hierarchical view: Project → Group → Server.
-    /// Servers without a project go under "No Project".
-    /// Servers without a group go under "Ungrouped" within their project.
+    /// Servers without a project go under the localized "No Project" node.
+    /// Servers without a group go under the localized "No Group" node.
     /// </summary>
     private void RebuildGroupedView(List<ServerItemViewModel> filteredServers)
     {
-        var noProjectLabel = "No Project";
-        var ungroupedLabel = "Ungrouped";
+        var noProjectId = "__no-project__";
+        var noGroupName = "__no-group__";
+        var noProjectLabel = _localizer["TreeNodeNoProject"];
+        var noGroupLabel = _localizer["TreeNodeNoGroup"];
 
         var projects = filteredServers
-            .GroupBy(s => string.IsNullOrWhiteSpace(s.ProjectName) ? noProjectLabel : s.ProjectName,
-                     StringComparer.OrdinalIgnoreCase)
-            .OrderBy(p => string.Equals(p.Key, noProjectLabel, StringComparison.Ordinal) ? 1 : 0)
-            .ThenBy(p => p.Key, StringComparer.OrdinalIgnoreCase)
+            .GroupBy(
+                s => string.IsNullOrWhiteSpace(s.ProjectId) ? noProjectId : s.ProjectId,
+                StringComparer.OrdinalIgnoreCase)
+            .OrderBy(p => string.Equals(p.Key, noProjectId, StringComparison.Ordinal) ? 1 : 0)
+            .ThenBy(p => ResolveProjectNodeName(p, noProjectLabel), StringComparer.OrdinalIgnoreCase)
             .Select(projectGroup =>
             {
+                var isVirtualProject = string.Equals(projectGroup.Key, noProjectId, StringComparison.Ordinal);
+                var projectName = ResolveProjectNodeName(projectGroup, noProjectLabel);
+                var projectColor = projectGroup.FirstOrDefault()?.ProjectColor ?? string.Empty;
+
                 var groups = projectGroup
-                    .GroupBy(s => string.IsNullOrWhiteSpace(s.Group) ? ungroupedLabel : s.Group,
-                             StringComparer.OrdinalIgnoreCase)
-                    .OrderBy(g => string.Equals(g.Key, ungroupedLabel, StringComparison.Ordinal) ? 1 : 0)
-                    .ThenBy(g => g.Key, StringComparer.OrdinalIgnoreCase)
-                    .Select(g => new ServerGroupViewModel
+                    .GroupBy(
+                        s => string.IsNullOrWhiteSpace(s.Group) ? noGroupName : s.Group,
+                        StringComparer.OrdinalIgnoreCase)
+                    .OrderBy(g => string.Equals(g.Key, noGroupName, StringComparison.Ordinal) ? 1 : 0)
+                    .ThenBy(g => ResolveGroupNodeName(g, noGroupLabel), StringComparer.OrdinalIgnoreCase)
+                    .Select(group => new ServerGroupViewModel
                     {
-                        GroupName = g.Key,
+                        ProjectId = isVirtualProject ? string.Empty : projectGroup.Key,
+                        ProjectName = projectName,
+                        GroupName = ResolveGroupNodeName(group, noGroupLabel),
+                        IsVirtualGroup = string.Equals(group.Key, noGroupName, StringComparison.Ordinal),
                         Servers = new ObservableCollection<ServerItemViewModel>(
-                            g.OrderBy(s => s.SortOrder).ThenBy(s => s.DisplayName, StringComparer.OrdinalIgnoreCase))
+                            group.OrderBy(s => s.SortOrder).ThenBy(s => s.DisplayName, StringComparer.OrdinalIgnoreCase))
                     })
                     .ToList();
 
-                var projectColor = projectGroup.FirstOrDefault()?.ProjectColor ?? "";
-
                 return new ServerProjectViewModel
                 {
-                    ProjectName = projectGroup.Key,
+                    ProjectId = isVirtualProject ? string.Empty : projectGroup.Key,
+                    ProjectName = projectName,
                     ProjectColor = projectColor,
+                    IsVirtualProject = isVirtualProject,
                     Groups = new ObservableCollection<ServerGroupViewModel>(groups)
                 };
             })
             .ToList();
 
         GroupedServers = new ObservableCollection<ServerProjectViewModel>(projects);
+    }
+
+    private void RefreshLookupCollections(AppSettings settings)
+    {
+        _projectTargets = settings.Projects
+            .Where(project => !string.IsNullOrWhiteSpace(project.Id) && !string.IsNullOrWhiteSpace(project.Name))
+            .OrderBy(project => project.Name, StringComparer.OrdinalIgnoreCase)
+            .Select(project => new ProjectTarget(project.Id, project.Name, project.Color ?? string.Empty))
+            .ToList();
+
+        Projects = new ObservableCollection<string>(_projectTargets.Select(project => project.Name));
+
+        Groups = new ObservableCollection<string>(
+            _allServers
+                .Where(server => !string.IsNullOrWhiteSpace(server.Group))
+                .Select(server => server.Group)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(name => name, StringComparer.OrdinalIgnoreCase));
+    }
+
+    private void PopulateServerDialogOptions(ServerDialogViewModel dialogVm, AppSettings settings)
+    {
+        dialogVm.AvailableGateways = new(settings.SshGateways.Select(
+            gateway => new GatewayOption(gateway.Id, $"{gateway.Name} ({gateway.Host})")));
+
+        dialogVm.AvailableProjects = new(settings.Projects.Select(
+            project => new ProjectOption(project.Id, project.Name, project.Color ?? "#3B82F6")));
+    }
+
+    private void SynchronizeSelection(string? preferredSelectedServerId)
+    {
+        var targetId = preferredSelectedServerId ?? SelectedServer?.Id;
+        if (string.IsNullOrWhiteSpace(targetId))
+        {
+            SelectedServer = null;
+            return;
+        }
+
+        SelectedServer = Servers.FirstOrDefault(
+            server => string.Equals(server.Id, targetId, StringComparison.Ordinal));
+    }
+
+    private static Dictionary<string, ProjectDto> BuildProjectMap(AppSettings settings)
+    {
+        return settings.Projects
+            .Where(project => !string.IsNullOrWhiteSpace(project.Id))
+            .GroupBy(project => project.Id, StringComparer.Ordinal)
+            .ToDictionary(group => group.Key, group => group.Last(), StringComparer.Ordinal);
+    }
+
+    private static ProjectDto? ResolveProject(IReadOnlyDictionary<string, ProjectDto> projectMap, string? projectId)
+    {
+        if (string.IsNullOrWhiteSpace(projectId))
+        {
+            return null;
+        }
+
+        return projectMap.TryGetValue(projectId, out var project) ? project : null;
+    }
+
+    private static void ApplyProjectMetadata(ServerItemViewModel server, ProjectDto? project)
+    {
+        server.ProjectName = project?.Name ?? string.Empty;
+        server.ProjectColor = project?.Color ?? string.Empty;
+    }
+
+    private static bool MatchesGroup(RdpServerDto server, string? projectId, string groupName)
+    {
+        return string.Equals(server.ProjectId ?? string.Empty, projectId ?? string.Empty, StringComparison.Ordinal)
+            && string.Equals(server.Group ?? string.Empty, groupName, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool MatchesGroup(ServerItemViewModel server, string? projectId, string groupName)
+    {
+        return string.Equals(server.ProjectId, projectId ?? string.Empty, StringComparison.Ordinal)
+            && string.Equals(server.Group, groupName, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string ResolveProjectNodeName(
+        IGrouping<string, ServerItemViewModel> projectGroup,
+        string noProjectLabel)
+    {
+        var projectName = projectGroup.FirstOrDefault()?.ProjectName;
+        return string.IsNullOrWhiteSpace(projectName) ? noProjectLabel : projectName;
+    }
+
+    private static string ResolveGroupNodeName(
+        IGrouping<string, ServerItemViewModel> group,
+        string noGroupLabel)
+    {
+        var groupName = group.FirstOrDefault()?.Group;
+        return string.IsNullOrWhiteSpace(groupName) ? noGroupLabel : groupName;
     }
 
     private void OnConnectionStateChanged(
@@ -486,3 +831,26 @@ public partial class ServerListViewModel : ObservableObject
         }
     }
 }
+
+public sealed record ServerDialogSeed(string? ProjectId, string? GroupName);
+
+public sealed record ServerMoveToProjectRequest(ServerItemViewModel Server, string? ProjectId);
+
+public sealed record ServerMoveToGroupRequest(ServerItemViewModel Server, string? GroupName);
+
+public sealed record ServerGroupContext(
+    string? ProjectId,
+    string ProjectName,
+    string GroupName,
+    bool IsVirtualGroup);
+
+public sealed record ProjectTarget(
+    string Id,
+    string Name,
+    string Color,
+    bool IsVirtualProject = false);
+
+public sealed record GroupTarget(
+    string GroupName,
+    string DisplayName,
+    bool IsVirtualGroup = false);

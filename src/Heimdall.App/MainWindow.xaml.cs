@@ -15,7 +15,10 @@
  */
 
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
+using System.Windows.Media;
 using Heimdall.App.Theming;
 using Heimdall.App.ViewModels;
 
@@ -27,13 +30,16 @@ namespace Heimdall.App;
 /// </summary>
 public partial class MainWindow : Window
 {
+    private object? _treeContextTarget;
+    private bool _treeContextTargetFromPointer;
+    private bool _treeContextPointerHitEmptyArea;
+
     public MainWindow(MainViewModel viewModel)
     {
         InitializeComponent();
         WindowThemeHelper.ApplyCurrentTheme(this);
         DataContext = viewModel;
 
-        // Wire toolbar navigation tabs to ViewModel.SelectedTab
         TabServers.Checked += (_, _) => viewModel.SelectedTab = "Servers";
         TabTunnels.Checked += (_, _) => viewModel.SelectedTab = "Tunnels";
         TabScheduled.Checked += (_, _) => viewModel.SelectedTab = "Scheduled";
@@ -52,10 +58,10 @@ public partial class MainWindow : Window
 
     private void OnAddButtonClick(object sender, RoutedEventArgs e)
     {
-        if (sender is System.Windows.Controls.Button btn && btn.ContextMenu != null)
+        if (sender is Button btn && btn.ContextMenu != null)
         {
             btn.ContextMenu.PlacementTarget = btn;
-            btn.ContextMenu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
+            btn.ContextMenu.Placement = PlacementMode.Bottom;
             btn.ContextMenu.IsOpen = true;
         }
     }
@@ -120,7 +126,6 @@ public partial class MainWindow : Window
         }
         else
         {
-            // Group node selected or nothing selected; clear server selection
             vm.ServerList.SelectedServer = null;
         }
     }
@@ -141,5 +146,255 @@ public partial class MainWindow : Window
         {
             vm.ServerList.ConnectCommand.Execute(vm.ServerList.SelectedServer);
         }
+    }
+
+    private void OnTreeViewPreviewMouseRightButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        var treeViewItem = FindAncestor<TreeViewItem>(e.OriginalSource as DependencyObject);
+
+        _treeContextTargetFromPointer = true;
+        _treeContextPointerHitEmptyArea = treeViewItem is null;
+        _treeContextTarget = treeViewItem?.DataContext;
+
+        if (treeViewItem is not null)
+        {
+            treeViewItem.IsSelected = true;
+            treeViewItem.Focus();
+        }
+    }
+
+    private void OnTreeViewContextMenuOpening(object sender, ContextMenuEventArgs e)
+    {
+        if (DataContext is not MainViewModel vm || sender is not TreeView treeView)
+        {
+            return;
+        }
+
+        object? target;
+        if (_treeContextTargetFromPointer)
+        {
+            target = _treeContextPointerHitEmptyArea ? null : _treeContextTarget;
+        }
+        else
+        {
+            target = treeView.SelectedItem;
+        }
+
+        _treeContextTargetFromPointer = false;
+        _treeContextPointerHitEmptyArea = false;
+        _treeContextTarget = target;
+
+        var menu = CreateTreeContextMenu(vm, target);
+        menu.PlacementTarget = treeView;
+        menu.Placement = PlacementMode.MousePoint;
+        treeView.ContextMenu = menu;
+    }
+
+    private ContextMenu CreateTreeContextMenu(MainViewModel vm, object? target)
+    {
+        return target switch
+        {
+            ServerItemViewModel server => CreateServerContextMenu(vm, server),
+            ServerGroupViewModel group => CreateGroupContextMenu(vm, group),
+            ServerProjectViewModel project => CreateProjectContextMenu(vm, project),
+            _ => CreateEmptyAreaContextMenu(vm)
+        };
+    }
+
+    private ContextMenu CreateServerContextMenu(MainViewModel vm, ServerItemViewModel server)
+    {
+        var menu = CreateContextMenu();
+
+        menu.Items.Add(CreateMenuItem(
+            vm.Localize("TreeCtxConnect"),
+            vm.ServerList.ConnectCommand,
+            server));
+        menu.Items.Add(CreateMenuItem(
+            vm.Localize("TreeCtxEdit"),
+            vm.ServerList.EditServerCommand,
+            server));
+        menu.Items.Add(CreateMenuItem(
+            vm.Localize("TreeCtxDuplicate"),
+            vm.ServerList.DuplicateServerCommand,
+            server));
+        menu.Items.Add(new Separator());
+        menu.Items.Add(CreateMoveToProjectMenu(vm, server));
+        menu.Items.Add(CreateMoveToGroupMenu(vm, server));
+        menu.Items.Add(new Separator());
+        menu.Items.Add(CreateMenuItem(
+            vm.Localize("TreeCtxCopyHostname"),
+            vm.ServerList.CopyHostnameCommand,
+            server));
+        menu.Items.Add(CreateMenuItem(
+            vm.Localize("TreeCtxCopyUsername"),
+            vm.ServerList.CopyUsernameCommand,
+            server,
+            !string.IsNullOrWhiteSpace(server.Username)));
+        menu.Items.Add(new Separator());
+        menu.Items.Add(CreateMenuItem(
+            vm.Localize("TreeCtxDelete"),
+            vm.ServerList.DeleteServerCommand,
+            server));
+
+        return menu;
+    }
+
+    private ContextMenu CreateGroupContextMenu(MainViewModel vm, ServerGroupViewModel group)
+    {
+        var menu = CreateContextMenu();
+        var context = new ServerGroupContext(
+            group.ProjectId,
+            group.ProjectName,
+            group.GroupName,
+            group.IsVirtualGroup);
+
+        menu.Items.Add(CreateMenuItem(
+            vm.Localize("DialogTitleAddServer"),
+            vm.ServerList.AddServerToGroupCommand,
+            context));
+        menu.Items.Add(CreateMenuItem(
+            vm.Localize("TreeCtxRenameGroup"),
+            vm.ServerList.RenameGroupCommand,
+            context,
+            !group.IsVirtualGroup));
+        menu.Items.Add(new Separator());
+        menu.Items.Add(CreateMenuItem(
+            vm.Localize("TreeCtxDeleteGroup"),
+            vm.ServerList.DeleteGroupCommand,
+            context,
+            !group.IsVirtualGroup));
+
+        return menu;
+    }
+
+    private ContextMenu CreateProjectContextMenu(MainViewModel vm, ServerProjectViewModel project)
+    {
+        var menu = CreateContextMenu();
+
+        if (!project.IsVirtualProject)
+        {
+            menu.Items.Add(CreateMenuItem(
+                vm.Localize("TreeCtxEditProject"),
+                vm.EditProjectCommand,
+                project));
+        }
+
+        menu.Items.Add(CreateMenuItem(
+            vm.Localize("TreeCtxNewGroup"),
+            vm.ServerList.AddGroupCommand,
+            project));
+        menu.Items.Add(new Separator());
+
+        if (project.IsVirtualProject)
+        {
+            menu.Items.Add(CreateMenuItem(
+                vm.Localize("TreeCtxNewProject"),
+                vm.AddProjectCommand));
+        }
+        else
+        {
+            menu.Items.Add(CreateMenuItem(
+                vm.Localize("TreeCtxDeleteProject"),
+                vm.DeleteProjectCommand,
+                project));
+        }
+
+        return menu;
+    }
+
+    private ContextMenu CreateEmptyAreaContextMenu(MainViewModel vm)
+    {
+        var menu = CreateContextMenu();
+
+        menu.Items.Add(CreateMenuItem(
+            vm.Localize("DialogTitleAddServer"),
+            vm.ServerList.AddServerCommand));
+        menu.Items.Add(CreateMenuItem(
+            vm.Localize("BtnAddGateway"),
+            vm.Settings.AddGatewayCommand));
+        menu.Items.Add(CreateMenuItem(
+            vm.Localize("TreeCtxNewProject"),
+            vm.AddProjectCommand));
+
+        return menu;
+    }
+
+    private MenuItem CreateMoveToProjectMenu(MainViewModel vm, ServerItemViewModel server)
+    {
+        var item = new MenuItem
+        {
+            Header = vm.Localize("TreeCtxMoveToProject")
+        };
+
+        foreach (var project in vm.ServerList.GetProjectTargets(includeNoProject: true))
+        {
+            var targetProjectId = string.IsNullOrWhiteSpace(project.Id) ? null : project.Id;
+            var child = CreateMenuItem(
+                project.Name,
+                vm.ServerList.MoveToProjectCommand,
+                new ServerMoveToProjectRequest(server, targetProjectId),
+                !string.Equals(server.ProjectId, project.Id, StringComparison.Ordinal));
+
+            item.Items.Add(child);
+        }
+
+        return item;
+    }
+
+    private MenuItem CreateMoveToGroupMenu(MainViewModel vm, ServerItemViewModel server)
+    {
+        var item = new MenuItem
+        {
+            Header = vm.Localize("TreeCtxMoveToGroup")
+        };
+
+        foreach (var group in vm.ServerList.GetGroupTargets(server.ProjectId, includeNoGroup: true))
+        {
+            var targetGroupName = string.IsNullOrWhiteSpace(group.GroupName) ? null : group.GroupName;
+            var child = CreateMenuItem(
+                group.DisplayName,
+                vm.ServerList.MoveToGroupCommand,
+                new ServerMoveToGroupRequest(server, targetGroupName),
+                !string.Equals(server.Group, group.GroupName, StringComparison.OrdinalIgnoreCase));
+
+            item.Items.Add(child);
+        }
+
+        return item;
+    }
+
+    private static ContextMenu CreateContextMenu()
+    {
+        return new ContextMenu();
+    }
+
+    private static MenuItem CreateMenuItem(
+        string header,
+        ICommand command,
+        object? parameter = null,
+        bool isEnabled = true)
+    {
+        return new MenuItem
+        {
+            Header = header,
+            Command = command,
+            CommandParameter = parameter,
+            IsEnabled = isEnabled
+        };
+    }
+
+    private static T? FindAncestor<T>(DependencyObject? current) where T : DependencyObject
+    {
+        while (current is not null)
+        {
+            if (current is T typed)
+            {
+                return typed;
+            }
+
+            current = VisualTreeHelper.GetParent(current);
+        }
+
+        return null;
     }
 }

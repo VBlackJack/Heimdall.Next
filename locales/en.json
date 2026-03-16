@@ -530,6 +530,8 @@
   "TreeCtxDelete": "Delete",
   "TreeCtxRename": "Rename (F2)",
   "TreeCtxMoveTo": "Move to...",
+  "TreeCtxMoveToProject": "Move to project",
+  "TreeCtxMoveToGroup": "Move to group",
   "TreeCtxCopyHostname": "Copy hostname",
   "TreeCtxCopyUsername": "Copy username",
   "TreeCtxConnectAll": "Connect all",

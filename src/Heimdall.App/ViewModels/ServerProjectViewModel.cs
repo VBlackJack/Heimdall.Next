@@ -26,10 +26,16 @@ namespace Heimdall.App.ViewModels;
 public partial class ServerProjectViewModel : ObservableObject
 {
     [ObservableProperty]
+    private string _projectId = "";
+
+    [ObservableProperty]
     private string _projectName = "";
 
     [ObservableProperty]
     private string _projectColor = "";
+
+    [ObservableProperty]
+    private bool _isVirtualProject;
 
     [ObservableProperty]
     private ObservableCollection<ServerGroupViewModel> _groups = [];
