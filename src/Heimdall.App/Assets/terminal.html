@@ -6,12 +6,11 @@
     <title>Heimdall Terminal</title>
     <style>
         :root {
-            --terminal-bg: #1E1E2E;
-            --terminal-fg: #F0F0F0;
-            --terminal-cursor: #7C3AED;
-            --terminal-selection: rgba(124, 58, 237, 0.24);
-            --terminal-border: #2D2D44;
-            --terminal-cursor-blink: 1.2s;
+            --terminal-bg: #282A36;
+            --terminal-fg: #F8F8F2;
+            --terminal-cursor: #BD93F9;
+            --terminal-selection: rgba(68, 71, 90, 0.7);
+            --terminal-border: #44475A;
         }
 
         * {
@@ -47,9 +46,58 @@
             align-items: center;
             justify-content: center;
             background: var(--terminal-bg);
-            color: rgba(240, 240, 240, 0.72);
+            color: rgba(248, 248, 242, 0.72);
             font-size: 13px;
             letter-spacing: 0.02em;
+        }
+
+        /* Search bar overlay */
+        #search-bar {
+            display: none;
+            position: absolute;
+            top: 4px;
+            right: 12px;
+            z-index: 100;
+            background: #44475A;
+            border: 1px solid #6272A4;
+            border-radius: 6px;
+            padding: 4px 8px;
+            align-items: center;
+            gap: 4px;
+        }
+
+        #search-bar.visible {
+            display: flex;
+        }
+
+        #search-input {
+            background: #282A36;
+            color: #F8F8F2;
+            border: 1px solid #6272A4;
+            border-radius: 4px;
+            padding: 3px 8px;
+            font-size: 12px;
+            font-family: Consolas, monospace;
+            width: 220px;
+            outline: none;
+        }
+
+        #search-input:focus {
+            border-color: #BD93F9;
+        }
+
+        .search-btn {
+            background: #44475A;
+            color: #F8F8F2;
+            border: 1px solid #6272A4;
+            border-radius: 4px;
+            padding: 2px 6px;
+            font-size: 11px;
+            cursor: pointer;
+        }
+
+        .search-btn:hover {
+            background: #6272A4;
         }
 
         .xterm,
@@ -60,12 +108,22 @@
 
         .xterm {
             height: 100%;
-            padding: 8px;
+            padding: 4px;
         }
 
-        .xterm .xterm-cursor.xterm-cursor-blink {
-            animation-duration: var(--terminal-cursor-blink) !important;
-            animation-timing-function: step-end !important;
+        /* Dracula-themed scrollbar for xterm viewport */
+        .xterm .xterm-viewport::-webkit-scrollbar {
+            width: 10px;
+        }
+        .xterm .xterm-viewport::-webkit-scrollbar-track {
+            background: #282A36;
+        }
+        .xterm .xterm-viewport::-webkit-scrollbar-thumb {
+            background: #44475A;
+            border-radius: 5px;
+        }
+        .xterm .xterm-viewport::-webkit-scrollbar-thumb:hover {
+            background: #6272A4;
         }
     </style>
     <link rel="stylesheet" href="./Terminal/xterm.min.css" />
@@ -74,7 +132,13 @@
     <script src="./Terminal/addon-webgl.min.js"></script>
 </head>
 <body>
-    <div id="loading">Initializing terminal…</div>
+    <div id="loading">Initializing terminal&#x2026;</div>
+    <div id="search-bar">
+        <input id="search-input" type="text" placeholder="Search..." />
+        <button class="search-btn" id="search-prev">&#x25B2;</button>
+        <button class="search-btn" id="search-next">&#x25BC;</button>
+        <button class="search-btn" id="search-close">&#x2715;</button>
+    </div>
     <div id="terminal"></div>
     <script>
         (function () {
@@ -82,11 +146,16 @@
 
             var terminalElement = document.getElementById('terminal');
             var loadingElement = document.getElementById('loading');
+            var searchBar = document.getElementById('search-bar');
+            var searchInput = document.getElementById('search-input');
             var term = null;
             var fitAddon = null;
+            var searchAddon = null;
             var ready = false;
             var pendingHostMessages = [];
             var pendingResizeHandle = 0;
+            var baseFontSize = 13;
+            var currentFontSize = 13;
 
             function postMessage(message) {
                 if (window.chrome && window.chrome.webview) {
@@ -99,7 +168,6 @@
                 for (var index = 0; index < bytes.length; index++) {
                     binary += String.fromCharCode(bytes[index]);
                 }
-
                 return btoa(binary);
             }
 
@@ -109,7 +177,6 @@
                 for (var index = 0; index < binary.length; index++) {
                     bytes[index] = binary.charCodeAt(index);
                 }
-
                 return bytes;
             }
 
@@ -121,11 +188,60 @@
                 if (!fitAddon || !term) {
                     return;
                 }
-
                 fitAddon.fit();
                 postMessage('resize:' + term.cols + ',' + term.rows);
             }
 
+            function setFontSize(size) {
+                size = Math.max(8, Math.min(28, size));
+                currentFontSize = size;
+                term.options.fontSize = size;
+                fitTerminal();
+            }
+
+            // ── Search ──────────────────────────────────────────────
+            function toggleSearch() {
+                if (searchBar.classList.contains('visible')) {
+                    closeSearch();
+                } else {
+                    searchBar.classList.add('visible');
+                    searchInput.focus();
+                    searchInput.select();
+                }
+            }
+
+            function closeSearch() {
+                searchBar.classList.remove('visible');
+                if (searchAddon) {
+                    searchAddon.clearDecorations();
+                }
+                term.focus();
+            }
+
+            function doSearch(direction) {
+                if (!term || !searchInput.value) return;
+                // Use the browser's built-in find for scrollback search
+                // xterm.js exposes buffer contents that we can search through
+                var query = searchInput.value.toLowerCase();
+                var buffer = term.buffer.active;
+                var found = false;
+                var startLine = direction === 'prev' ? buffer.viewportY - 1 : buffer.viewportY + 1;
+                var step = direction === 'prev' ? -1 : 1;
+                for (var i = startLine; i >= 0 && i < buffer.length; i += step) {
+                    var line = buffer.getLine(i);
+                    if (line && line.translateToString().toLowerCase().indexOf(query) >= 0) {
+                        term.scrollToLine(Math.max(0, i - 5));
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) {
+                    searchInput.style.borderColor = '#FF5555';
+                    setTimeout(function() { searchInput.style.borderColor = '#6272A4'; }, 1000);
+                }
+            }
+
+            // ── Host message handling ────────────────────────────────
             function handleHostMessage(message) {
                 if (!term || typeof message !== 'string') {
                     return;
@@ -133,6 +249,15 @@
 
                 if (message.indexOf('data:') === 0) {
                     window.writeTerminal(message.substring(5));
+                    return;
+                }
+
+                if (message.indexOf('clipboard-paste:') === 0) {
+                    var pasteB64 = message.substring('clipboard-paste:'.length);
+                    if (pasteB64) {
+                        var pasteText = new TextDecoder().decode(base64ToBytes(pasteB64));
+                        postMessage('input:' + stringToBase64(pasteText));
+                    }
                     return;
                 }
 
@@ -151,31 +276,56 @@
                 if (!ready) {
                     return;
                 }
-
                 while (pendingHostMessages.length > 0) {
                     handleHostMessage(pendingHostMessages.shift());
                 }
             }
 
+            // ── Terminal initialization ──────────────────────────────
             function initializeTerminal() {
                 term = new Terminal({
                     allowProposedApi: true,
                     cursorBlink: true,
                     cursorStyle: 'block',
                     fontFamily: 'Consolas, "Courier New", monospace',
-                    fontSize: 13,
+                    fontSize: baseFontSize,
                     scrollback: 10000,
+                    linkHandler: {
+                        activate: function (event, uri) {
+                            postMessage('open-url:' + uri);
+                        }
+                    },
                     theme: {
-                        background: '#1E1E2E',
-                        foreground: '#F0F0F0',
-                        cursor: '#7C3AED',
-                        cursorAccent: '#1E1E2E',
-                        selectionBackground: 'rgba(124, 58, 237, 0.24)'
+                        background: '#282A36',
+                        foreground: '#F8F8F2',
+                        cursor: '#BD93F9',
+                        cursorAccent: '#282A36',
+                        selectionBackground: 'rgba(68, 71, 90, 0.7)',
+                        selectionForeground: '#F8F8F2',
+                        black: '#21222C',
+                        red: '#FF5555',
+                        green: '#50FA7B',
+                        yellow: '#F1FA8C',
+                        blue: '#BD93F9',
+                        magenta: '#FF79C6',
+                        cyan: '#8BE9FD',
+                        white: '#F8F8F2',
+                        brightBlack: '#6272A4',
+                        brightRed: '#FF6E6E',
+                        brightGreen: '#69FF94',
+                        brightYellow: '#FFFFA5',
+                        brightBlue: '#D6ACFF',
+                        brightMagenta: '#FF92DF',
+                        brightCyan: '#A4FFFF',
+                        brightWhite: '#FFFFFF'
                     }
                 });
 
                 fitAddon = new FitAddon.FitAddon();
                 term.loadAddon(fitAddon);
+
+                // Search: use xterm.js built-in findNext/findPrevious if available
+                searchAddon = term;
 
                 try {
                     var webglAddon = new WebglAddon.WebglAddon();
@@ -192,6 +342,7 @@
                 fitTerminal();
                 loadingElement.style.display = 'none';
 
+                // ── Input handling ───────────────────────────────────
                 term.onData(function (data) {
                     postMessage('input:' + stringToBase64(data));
                 });
@@ -200,11 +351,87 @@
                     postMessage('resize:' + size.cols + ',' + size.rows);
                 });
 
+                // ── Selection auto-copy (via C# host for clipboard access) ──
+                term.onSelectionChange(function () {
+                    var selection = term.getSelection();
+                    if (selection && selection.length > 0) {
+                        postMessage('clipboard-write:' + stringToBase64(selection));
+                    }
+                });
+
+                // ── Keyboard shortcuts ──────────────────────────────
+                term.attachCustomKeyEventHandler(function (event) {
+                    if (event.type !== 'keydown') return true;
+
+                    // Tab: prevent browser focus navigation, let xterm.js send \t to terminal
+                    // This is critical for PowerShell/bash tab completion
+                    if (event.key === 'Tab') {
+                        event.preventDefault();
+                        return true;
+                    }
+
+                    // Ctrl+Shift+C: explicit copy
+                    if (event.ctrlKey && event.shiftKey && event.code === 'KeyC') {
+                        var sel = term.getSelection();
+                        if (sel) postMessage('clipboard-write:' + stringToBase64(sel));
+                        return false;
+                    }
+
+                    // Ctrl+Shift+V or Ctrl+V: paste from host clipboard
+                    if (event.ctrlKey && (event.code === 'KeyV')) {
+                        postMessage('clipboard-read:');
+                        return false;
+                    }
+
+                    // Ctrl+Shift+F: search
+                    if (event.ctrlKey && event.shiftKey && event.code === 'KeyF') {
+                        toggleSearch();
+                        return false;
+                    }
+
+                    // Ctrl++ / Ctrl+-: font zoom
+                    if (event.ctrlKey && !event.shiftKey && (event.key === '+' || event.key === '=')) {
+                        setFontSize(currentFontSize + 1);
+                        return false;
+                    }
+                    if (event.ctrlKey && !event.shiftKey && event.key === '-') {
+                        setFontSize(currentFontSize - 1);
+                        return false;
+                    }
+                    if (event.ctrlKey && event.key === '0') {
+                        setFontSize(baseFontSize);
+                        return false;
+                    }
+
+                    return true;
+                });
+
+                // ── Mouse wheel zoom (Ctrl+Scroll) ─────────────────
+                terminalElement.addEventListener('wheel', function (event) {
+                    if (event.ctrlKey) {
+                        event.preventDefault();
+                        if (event.deltaY < 0) {
+                            setFontSize(currentFontSize + 1);
+                        } else {
+                            setFontSize(currentFontSize - 1);
+                        }
+                    }
+                }, { passive: false });
+
+                // ── Right-click paste (via C# host clipboard) ─────
+                terminalElement.addEventListener('contextmenu', function (event) {
+                    event.preventDefault();
+                    postMessage('clipboard-read:');
+                });
+
+                // ── URL detection (basic regex) ─────────────────────
+                // xterm.js 5.x has built-in link detection via registerLinkProvider
+                // but we also handle via the linkHandler in options above
+
                 window.writeTerminal = function (base64data) {
                     if (!term || !base64data) {
                         return;
                     }
-
                     term.write(base64ToBytes(base64data));
                 };
 
@@ -217,20 +444,34 @@
                     if (pendingResizeHandle) {
                         window.clearTimeout(pendingResizeHandle);
                     }
-
                     pendingResizeHandle = window.setTimeout(function () {
                         fitTerminal();
                     }, 60);
                 }).observe(terminalElement);
             }
 
+            // ── Search bar events ───────────────────────────────────
+            document.getElementById('search-next').addEventListener('click', function () { doSearch('next'); });
+            document.getElementById('search-prev').addEventListener('click', function () { doSearch('prev'); });
+            document.getElementById('search-close').addEventListener('click', closeSearch);
+            searchInput.addEventListener('keydown', function (event) {
+                if (event.key === 'Enter') {
+                    doSearch(event.shiftKey ? 'prev' : 'next');
+                    event.preventDefault();
+                }
+                if (event.key === 'Escape') {
+                    closeSearch();
+                    event.preventDefault();
+                }
+            });
+
+            // ── WebView2 message handler ────────────────────────────
             if (window.chrome && window.chrome.webview) {
                 window.chrome.webview.addEventListener('message', function (event) {
                     if (!ready) {
                         pendingHostMessages.push(event.data);
                         return;
                     }
-
                     handleHostMessage(event.data);
                 });
             }

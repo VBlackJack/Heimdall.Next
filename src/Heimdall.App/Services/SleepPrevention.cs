@@ -60,6 +60,16 @@ public static class SleepPrevention
         }
     }
 
+    /// <summary>
+    /// Unconditionally clears sleep prevention regardless of session count.
+    /// Called during application shutdown.
+    /// </summary>
+    public static void ForceRelease()
+    {
+        Interlocked.Exchange(ref _activeSessionCount, 0);
+        SetThreadExecutionState(ES_CONTINUOUS);
+    }
+
     [DllImport("kernel32.dll", SetLastError = true)]
     private static extern uint SetThreadExecutionState(uint esFlags);
 }

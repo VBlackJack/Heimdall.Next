@@ -48,13 +48,15 @@ public sealed class TunnelManager : IDisposable
     /// <param name="remotePort">Target port on the remote network.</param>
     /// <param name="localPort">Local port to bind for forwarding.</param>
     /// <param name="cancellationToken">Cancellation support.</param>
+    /// <param name="hostKeyStore">Optional TOFU host key store for server verification.</param>
     /// <returns>Result indicating success or structured failure.</returns>
     public async Task<TunnelResult> OpenTunnelAsync(
         SshConnectionParams gatewayParams,
         string remoteHost,
         int remotePort,
         int localPort,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        HostKeyStore? hostKeyStore = null)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         ArgumentNullException.ThrowIfNull(gatewayParams);
@@ -71,6 +73,12 @@ public sealed class TunnelManager : IDisposable
         {
             var connectionInfo = SshConnectionFactory.CreateForTunnel(gatewayParams);
             client = new SshClient(connectionInfo);
+
+            if (hostKeyStore is not null)
+            {
+                SshConnectionFactory.AttachHostKeyVerification(
+                    client, gatewayParams.Host, gatewayParams.Port, hostKeyStore);
+            }
 
             await Task.Run(() =>
             {
@@ -149,13 +157,15 @@ public sealed class TunnelManager : IDisposable
     /// <param name="remotePort">Final target port on the remote network.</param>
     /// <param name="localPort">Local port to bind for the outermost forwarding.</param>
     /// <param name="cancellationToken">Cancellation support.</param>
+    /// <param name="hostKeyStore">Optional TOFU host key store for server verification.</param>
     /// <returns>Result indicating success or structured failure.</returns>
     public async Task<TunnelResult> OpenChainedTunnelAsync(
         IReadOnlyList<SshConnectionParams> gatewayChain,
         string remoteHost,
         int remotePort,
         int localPort,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        HostKeyStore? hostKeyStore = null)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         ArgumentNullException.ThrowIfNull(gatewayChain);
@@ -168,7 +178,7 @@ public sealed class TunnelManager : IDisposable
         // Single gateway: delegate to simple tunnel
         if (gatewayChain.Count == 1)
         {
-            return await OpenTunnelAsync(gatewayChain[0], remoteHost, remotePort, localPort, cancellationToken)
+            return await OpenTunnelAsync(gatewayChain[0], remoteHost, remotePort, localPort, cancellationToken, hostKeyStore)
                 .ConfigureAwait(false);
         }
 
@@ -195,6 +205,13 @@ public sealed class TunnelManager : IDisposable
             // Connect to the first (root) gateway directly
             var rootInfo = SshConnectionFactory.CreateForTunnel(gatewayChain[0]);
             var rootClient = new SshClient(rootInfo);
+
+            if (hostKeyStore is not null)
+            {
+                SshConnectionFactory.AttachHostKeyVerification(
+                    rootClient, gatewayChain[0].Host, gatewayChain[0].Port, hostKeyStore);
+            }
+
             await Task.Run(() =>
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -237,6 +254,14 @@ public sealed class TunnelManager : IDisposable
                 };
                 var hopInfo = SshConnectionFactory.CreateForTunnel(hopParams);
                 var hopClient = new SshClient(hopInfo);
+
+                if (hostKeyStore is not null)
+                {
+                    // Verify against the real gateway host, not 127.0.0.1
+                    SshConnectionFactory.AttachHostKeyVerification(
+                        hopClient, nextGateway.Host, nextGateway.Port, hostKeyStore);
+                }
+
                 await Task.Run(() =>
                 {
                     cancellationToken.ThrowIfCancellationRequested();

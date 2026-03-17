@@ -30,6 +30,16 @@ Index of all issues encountered during development and their solutions.
 15. [Build — Ambiguous Type References](#build-ambiguous-type-references)
 16. [TOFU — HostKeyFingerprint on PSCustomObject](#tofu-hostkeyfingerprint-on-pscustomobject)
 17. [Passwords — Not Saved After Edit](#passwords-not-saved-after-edit)
+18. [Pageant — AGENT_COPYDATA_ID Wrong Value](#pageant-agent_copydata_id-wrong-value)
+19. [Pageant — RSA-SHA2 Algorithm Registration](#pageant-rsa-sha2-algorithm-registration)
+20. [Pageant — Sign() Returns Raw Bytes Instead of Blob](#pageant-sign-returns-raw-bytes-instead-of-blob)
+21. [SFTP — CheckBox Fires During XAML Parse](#sftp-checkbox-fires-during-xaml-parse)
+22. [SFTP — Context Menu Intercepted by MainWindow](#sftp-context-menu-intercepted-by-mainwindow)
+23. [Citrix — storebrowse.exe Not Found](#citrix-storebrowseexe-not-found)
+24. [Theme Switching — Light Theme Looks Wrong](#theme-switching-light-theme-looks-wrong)
+25. [Multi-Exec — Broadcast Sends to Wrong Terminals](#multi-exec-broadcast-sends-to-wrong-terminals)
+26. [Quick Connect — Ad-Hoc SSH Fails](#quick-connect-ad-hoc-ssh-fails)
+27. [RDP Resize — Still Reconnecting (Delta/Debounce Tuning)](#rdp-resize-still-reconnecting-deltadebounce-tuning)
 
 ---
 
@@ -312,3 +322,164 @@ $gateway.HostKeyFingerprint = $fingerprint
 3. Store `ExistingRdpPasswordEncrypted`/`ExistingSshPasswordEncrypted` in ViewModel
 
 **Files**: `ServerDialogViewModel.cs`
+
+---
+
+## Pageant — AGENT_COPYDATA_ID Wrong Value
+
+**Symptom**: `PageantClient` sends a request to Pageant but receives no response. Pageant appears running with keys loaded, but SSH.NET authentication fails with "no suitable method found".
+
+**Root Cause**: The `COPYDATASTRUCT.dwData` field must be set to the exact value `0x804e50ba` (`AGENT_COPYDATA_ID`). Any other value causes Pageant to silently ignore the `WM_COPYDATA` message.
+
+**Solution**: Ensure the constant is correct:
+```csharp
+private const uint AGENT_COPYDATA_ID = 0x804e50ba;
+```
+
+**Files**: `Pageant/PageantClient.cs`
+
+---
+
+## Pageant — RSA-SHA2 Algorithm Registration
+
+**Symptom**: Pageant keys are loaded into SSH.NET but the server rejects authentication. Server logs show "no matching host key type found" or similar.
+
+**Root Cause**: Modern SSH servers disable legacy `ssh-rsa` (SHA-1) and require `rsa-sha2-256` or `rsa-sha2-512`. SSH.NET does not automatically register these algorithms when using custom `IPrivateKeySource` implementations.
+
+**Solution**: Register RSA-SHA2 algorithms on the `ConnectionInfo` before connecting:
+```csharp
+connectionInfo.HostKeyAlgorithms["rsa-sha2-256"] = ...;
+connectionInfo.HostKeyAlgorithms["rsa-sha2-512"] = ...;
+```
+
+**Files**: `SshConnectionFactory.cs`, `Pageant/PageantHostAlgorithm.cs`
+
+---
+
+## Pageant — Sign() Returns Raw Bytes Instead of Blob
+
+**Symptom**: SSH authentication starts (key is offered) but fails during the signature exchange. Server rejects the signature.
+
+**Root Cause**: `PageantHostAlgorithm.Sign()` was returning just the raw signature bytes from Pageant. SSH.NET expects the full SSH wire-format signature blob: `[4 bytes: algorithm name length][algorithm name][4 bytes: signature length][signature bytes]`.
+
+**Solution**: Wrap the raw signature in the SSH blob format:
+```csharp
+// Build SSH signature blob: algo_len + algo + sig_len + sig
+byte[] algoBytes = Encoding.ASCII.GetBytes(algorithmName);
+// ... assemble full blob
+```
+
+**Files**: `Pageant/PageantHostAlgorithm.cs`
+
+---
+
+## SFTP — CheckBox Fires During XAML Parse
+
+**Symptom**: `NullReferenceException` on startup when `EmbeddedSftpView` is loaded, originating from a `CheckBox.Checked` event handler.
+
+**Root Cause**: A XAML `CheckBox` with `IsChecked="True"` fires the `Checked` event during `InitializeComponent()`, before class fields and other controls are initialized.
+
+**Solution**: Guard event handlers with null checks on fields that may not be initialized yet:
+```csharp
+private void OnShowHiddenChecked(object sender, RoutedEventArgs e)
+{
+    if (_sftpClient == null) return; // Not yet initialized
+    RefreshDirectory();
+}
+```
+
+**Files**: `EmbeddedSftpView.xaml.cs`
+
+---
+
+## SFTP — Context Menu Intercepted by MainWindow
+
+**Symptom**: Right-clicking an SFTP session tab opens the generic session context menu (disconnect/close) instead of the SFTP-specific context menu, or causes unexpected behavior.
+
+**Root Cause**: `MainWindow.OnSessionTabRightClick()` intercepts right-click on all session tabs and builds a generic context menu. SFTP tabs have their own context menu (with file operations), but the MainWindow handler fires first and overrides it.
+
+**Solution**: In `OnSessionTabRightClick()`, check the session type and skip context menu creation for SFTP tabs:
+```csharp
+if (sessionTab.ConnectionType == ConnectionType.Sftp)
+    return; // SFTP view handles its own context menu
+```
+
+**Files**: `MainWindow.xaml.cs` — `OnSessionTabRightClick()`
+
+---
+
+## Citrix — storebrowse.exe Not Found
+
+**Symptom**: Citrix connection fails immediately with an error indicating `storebrowse.exe` cannot be located.
+
+**Root Cause**: Citrix Workspace App is either not installed or installed in a non-standard location. The default detection path is `%ProgramFiles(x86)%\Citrix\ICA Client\SelfServicePlugin\storebrowse.exe`.
+
+**Solution**:
+1. Verify Citrix Workspace App is installed (download from Citrix)
+2. If installed in a custom location, set the `CitrixStoreBrowsePath` in Settings > Paths to the full path of `storebrowse.exe`
+3. Ensure the Citrix Workspace App version is current — older versions may lack the `storebrowse.exe` CLI
+
+**Files**: `ConnectionService.Citrix.cs`
+
+---
+
+## Theme Switching — Light Theme Looks Wrong
+
+**Symptom**: After switching to the Light theme at runtime, some controls appear with incorrect colors, missing borders, or unstyled backgrounds.
+
+**Root Cause**: WPF `ResourceDictionary` merge order matters. If a custom control style uses `BasedOn="{StaticResource ...}"` referencing a key from `CommonControls.xaml`, and the theme dictionary is swapped AFTER the control is already loaded, the `StaticResource` reference is not re-evaluated (only `DynamicResource` responds to runtime changes).
+
+**Solution**:
+1. Ensure all theme-dependent styles in `CommonControls.xaml` use `DynamicResource` for color brushes
+2. `BasedOn` must always use `StaticResource` (WPF limitation), but the referenced style itself should use `DynamicResource` for its brush properties
+3. If a specific control still renders incorrectly after theme switch, force a visual tree refresh by toggling its `Visibility`
+
+**Files**: `Themes/CommonControls.xaml`, `Themes/DarkTheme.xaml`, `Themes/LightTheme.xaml`, `Theming/WindowThemeHelper.cs`
+
+---
+
+## Multi-Exec — Broadcast Sends to Wrong Terminals
+
+**Symptom**: Broadcast keystrokes appear in terminals that should not be receiving them, or do not appear in terminals that are opted in.
+
+**Root Cause**: The broadcast subscription list is keyed by session ID. If a session tab is closed and a new one is opened, the old session ID may linger in the broadcast list, or the new session may not be registered.
+
+**Solution**:
+1. Verify each terminal's broadcast toggle state in the session toolbar (broadcast icon should be highlighted when active)
+2. On session close, the `EmbeddedSessionManager` must remove the session from the broadcast subscriber list
+3. On session open, broadcast opt-in defaults to OFF — the user must explicitly enable it
+4. Check that `PostWebMessageAsString` targets the correct `WebView2` instance by session ID, not by tab index
+
+**Files**: `EmbeddedSessionManager.cs`, `EmbeddedSshView.xaml.cs`
+
+---
+
+## Quick Connect — Ad-Hoc SSH Fails
+
+**Symptom**: Quick Connect (Ctrl+K) opens the overlay and parses the connection string, but the SSH connection fails with authentication errors or "no suitable method found".
+
+**Root Cause**: Ad-hoc connections via Quick Connect create a transient `ServerProfileDto` without saved credentials. If the target server requires key-based authentication and no default key is configured, the connection has no viable auth method.
+
+**Solution**:
+1. Ensure Pageant is running with the appropriate keys loaded (Quick Connect uses Pageant as the default auth method for SSH)
+2. Alternatively, specify credentials in the connection string or configure a default SSH key in Settings > Authentication
+3. For password-based auth, the Quick Connect parser supports `user:password@host` format (credentials are not persisted)
+4. Check that `AuthPreflightChecker` has valid auth sources before the connection attempt
+
+**Files**: `ConnectionService.Ssh.cs`, `QuickConnectOverlay.xaml.cs`
+
+---
+
+## RDP Resize — Still Reconnecting (Delta/Debounce Tuning)
+
+**Symptom**: Resizing the application window causes the embedded RDP session to briefly disconnect and reconnect, producing a visible flicker or momentary black screen.
+
+**Root Cause**: The `UpdateResolution()` call triggers an RDP reconnect when the resolution delta exceeds the threshold. If the debounce timer is too short or the delta threshold is too low, rapid window resizing causes repeated reconnects.
+
+**Solution**:
+1. Increase the resize debounce interval (default: 500ms). A value of 800-1000ms reduces reconnects during active resizing
+2. Increase the minimum resolution delta threshold — small changes (under 50px in either dimension) should be skipped entirely
+3. Ensure `_allowResolutionUpdates` is still gated by the 5-second post-connect stabilization guard
+4. If the issue persists, check that `OnResizeTimerTick` compares against the LAST APPLIED resolution, not the last requested one
+
+**Files**: `EmbeddedRdpView.xaml.cs` — `OnResizeTimerTick()`, `UpdateResolution()`

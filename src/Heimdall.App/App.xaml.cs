@@ -34,6 +34,7 @@ namespace Heimdall.App;
 public partial class App : System.Windows.Application
 {
     private ServiceProvider? _serviceProvider;
+    private MainViewModel? _mainViewModel;
 
     protected override async void OnStartup(StartupEventArgs e)
     {
@@ -58,6 +59,9 @@ public partial class App : System.Windows.Application
             Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "locales"),
             settings.DefaultLocale);
 
+        // Apply the saved theme before showing any window
+        ApplyThemeFromSettings(settings.DefaultTheme);
+
         // Check for legacy Heimdall installation and offer migration on first run
         await TryMigrateLegacyAsync(configManager, localization);
 
@@ -74,6 +78,7 @@ public partial class App : System.Windows.Application
         };
 
         var mainWindow = _serviceProvider.GetRequiredService<MainWindow>();
+        _mainViewModel = mainWindow.DataContext as MainViewModel;
         mainWindow.Show();
     }
 
@@ -182,16 +187,62 @@ public partial class App : System.Windows.Application
         }
     }
 
+    /// <summary>
+    /// Replaces the default theme dictionary loaded from App.xaml with the
+    /// one selected in the user's saved settings (Light or Dark).
+    /// </summary>
+    private void ApplyThemeFromSettings(string themeName)
+    {
+        if (string.Equals(themeName, "Dark", StringComparison.OrdinalIgnoreCase))
+        {
+            // App.xaml already loads DarkTheme.xaml by default.
+            return;
+        }
+
+        var themeUri = new Uri("Themes/LightTheme.xaml", UriKind.Relative);
+        var newTheme = new ResourceDictionary { Source = themeUri };
+
+        var existing = Resources.MergedDictionaries
+            .FirstOrDefault(d => d.Source?.OriginalString.Contains("Theme") == true);
+
+        if (existing is not null)
+        {
+            Resources.MergedDictionaries.Remove(existing);
+        }
+
+        Resources.MergedDictionaries.Add(newTheme);
+    }
+
     protected override void OnExit(ExitEventArgs e)
     {
-        // Dispose tunnel manager to close all active tunnels
         if (_serviceProvider is not null)
         {
-            var tunnelManager = _serviceProvider.GetService<TunnelManager>();
-            tunnelManager?.Dispose();
+            // Close all active sessions (SSH, SFTP, RDP, Local — disposes host controls + kills processes)
+            try
+            {
+                _mainViewModel?.Connection.CloseAllSessionsCommand.Execute(null);
+            }
+            catch { }
+
+            // Close all active tunnels (Plink tunnel processes)
+            try
+            {
+                var tunnelManager = _serviceProvider.GetService<TunnelManager>();
+                tunnelManager?.Dispose();
+            }
+            catch { }
+
+            // Release sleep prevention
+            try
+            {
+                SleepPrevention.ForceRelease();
+            }
+            catch { }
         }
 
         _serviceProvider?.Dispose();
+
+        Core.Logging.FileLogger.Info("Heimdall.Next shutdown complete");
         base.OnExit(e);
     }
 }

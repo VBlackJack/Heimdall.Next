@@ -52,9 +52,6 @@ public partial class ServerDialogViewModel : ObservableValidator
     private string _displayName = "";
 
     [ObservableProperty]
-    [NotifyDataErrorInfo]
-    [Required(ErrorMessage = "Remote server address is required.")]
-    [MinLength(1, ErrorMessage = "Remote server address cannot be empty.")]
     private string _remoteServer = "";
 
     [ObservableProperty]
@@ -107,6 +104,37 @@ public partial class ServerDialogViewModel : ObservableValidator
 
     [ObservableProperty]
     private string _sshMode = "Embedded";
+
+    // --- Local Shell settings ---
+
+    [ObservableProperty]
+    private string _localShellExecutable = "powershell.exe";
+
+    [ObservableProperty]
+    private string _localShellArguments = "";
+
+    [ObservableProperty]
+    private string _localShellWorkingDirectory = "";
+
+    [ObservableProperty]
+    private bool _localShellElevated;
+
+    // --- Citrix settings ---
+
+    [ObservableProperty]
+    private string _citrixStoreFrontUrl = "";
+
+    [ObservableProperty]
+    private string _citrixAppName = "";
+
+    [ObservableProperty]
+    private string _citrixIcaFilePath = "";
+
+    [ObservableProperty]
+    private bool _citrixSeamlessMode = true;
+
+    [ObservableProperty]
+    private bool _citrixUseSso = true;
 
     // --- RDP settings ---
 
@@ -229,6 +257,8 @@ public partial class ServerDialogViewModel : ObservableValidator
     public bool IsSshConnection => string.Equals(ConnectionType, "SSH", StringComparison.OrdinalIgnoreCase);
 
     public bool IsSftpConnection => string.Equals(ConnectionType, "SFTP", StringComparison.OrdinalIgnoreCase);
+
+    public bool IsCitrixConnection => string.Equals(ConnectionType, "Citrix", StringComparison.OrdinalIgnoreCase);
 
     public bool IsSshFamilyConnection => IsSshConnection || IsSftpConnection;
 
@@ -355,9 +385,9 @@ public partial class ServerDialogViewModel : ObservableValidator
     /// <summary>
     /// Maps the current ViewModel state to a flat DTO for persistence.
     /// </summary>
-    public RdpServerDto ToDto()
+    public ServerProfileDto ToDto()
     {
-        return new RdpServerDto
+        return new ServerProfileDto
         {
             DisplayName = DisplayName,
             RemoteServer = RemoteServer,
@@ -375,6 +405,15 @@ public partial class ServerDialogViewModel : ObservableValidator
             SshX11Forwarding = SshX11Forwarding,
             SshAgentForwarding = SshAgentForwarding,
             SshMode = SshMode,
+            LocalShellExecutable = string.IsNullOrWhiteSpace(LocalShellExecutable) ? null : LocalShellExecutable,
+            LocalShellArguments = string.IsNullOrWhiteSpace(LocalShellArguments) ? null : LocalShellArguments,
+            LocalShellWorkingDirectory = string.IsNullOrWhiteSpace(LocalShellWorkingDirectory) ? null : LocalShellWorkingDirectory,
+            LocalShellElevated = LocalShellElevated,
+            CitrixStoreFrontUrl = string.IsNullOrWhiteSpace(CitrixStoreFrontUrl) ? null : CitrixStoreFrontUrl,
+            CitrixAppName = string.IsNullOrWhiteSpace(CitrixAppName) ? null : CitrixAppName,
+            CitrixIcaFilePath = string.IsNullOrWhiteSpace(CitrixIcaFilePath) ? null : CitrixIcaFilePath,
+            CitrixSeamlessMode = CitrixSeamlessMode,
+            CitrixUseSso = CitrixUseSso,
             RdpUsername = string.IsNullOrWhiteSpace(RdpUsername) ? null : RdpUsername,
             RdpPasswordEncrypted = string.IsNullOrEmpty(RdpPassword)
                 ? ExistingRdpPasswordEncrypted
@@ -402,7 +441,7 @@ public partial class ServerDialogViewModel : ObservableValidator
             RdpGateway = string.IsNullOrWhiteSpace(RdpGateway) ? null : RdpGateway,
             SshGatewayId = string.IsNullOrWhiteSpace(SelectedGatewayId) ? null : SelectedGatewayId,
             UseDirectConnection = DirectConnection,
-            ProjectId = string.IsNullOrWhiteSpace(SelectedProjectId) ? null : SelectedProjectId,
+            ProjectId = null,
             Tags = string.IsNullOrWhiteSpace(Tags) ? null : Tags,
             Environment = Environment == "None" ? null : Environment,
             IsFavorite = IsFavorite
@@ -412,7 +451,7 @@ public partial class ServerDialogViewModel : ObservableValidator
     /// <summary>
     /// Creates a ViewModel pre-populated from an existing DTO (for edit mode).
     /// </summary>
-    public static ServerDialogViewModel FromDto(RdpServerDto dto)
+    public static ServerDialogViewModel FromDto(ServerProfileDto dto)
     {
         ArgumentNullException.ThrowIfNull(dto);
 
@@ -437,6 +476,15 @@ public partial class ServerDialogViewModel : ObservableValidator
             SshX11Forwarding = dto.SshX11Forwarding,
             SshAgentForwarding = dto.SshAgentForwarding,
             SshMode = dto.SshMode,
+            LocalShellExecutable = dto.LocalShellExecutable ?? "powershell.exe",
+            LocalShellArguments = dto.LocalShellArguments ?? "",
+            LocalShellWorkingDirectory = dto.LocalShellWorkingDirectory ?? "",
+            LocalShellElevated = dto.LocalShellElevated,
+            CitrixStoreFrontUrl = dto.CitrixStoreFrontUrl ?? "",
+            CitrixAppName = dto.CitrixAppName ?? "",
+            CitrixIcaFilePath = dto.CitrixIcaFilePath ?? "",
+            CitrixSeamlessMode = dto.CitrixSeamlessMode,
+            CitrixUseSso = dto.CitrixUseSso,
             RdpUsername = dto.RdpUsername ?? "",
             ExistingRdpPasswordEncrypted = dto.RdpPasswordEncrypted,
             ExistingSshPasswordEncrypted = dto.SshPasswordEncrypted,
@@ -566,6 +614,7 @@ public partial class ServerDialogViewModel : ObservableValidator
         OnPropertyChanged(nameof(IsRdpConnection));
         OnPropertyChanged(nameof(IsSshConnection));
         OnPropertyChanged(nameof(IsSftpConnection));
+        OnPropertyChanged(nameof(IsCitrixConnection));
         OnPropertyChanged(nameof(IsSshFamilyConnection));
         OnPropertyChanged(nameof(UsesGateway));
         OnPropertyChanged(nameof(CanSelectGateway));
@@ -628,4 +677,4 @@ public record ProjectOption(string Id, string Name, string Color);
 /// <summary>
 /// Immutable result returned by the server dialog on close.
 /// </summary>
-public record ServerDialogResult(RdpServerDto Server, bool Saved);
+public record ServerDialogResult(ServerProfileDto Server, bool Saved);

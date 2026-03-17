@@ -20,6 +20,9 @@ using System.Windows.Media;
 using Heimdall.App.ViewModels;
 using Heimdall.App.Views;
 using Heimdall.Core.Configuration;
+using Heimdall.Core.Localization;
+using Heimdall.Core.Models;
+using Heimdall.Sftp;
 using Heimdall.Ssh;
 
 namespace Heimdall.App.Services;
@@ -30,11 +33,52 @@ namespace Heimdall.App.Services;
 /// </summary>
 public sealed class EmbeddedSessionManager
 {
+    private readonly LocalizationManager _localizer;
+    private readonly IDialogService _dialogService;
+    private readonly HostKeyStore _hostKeyStore;
+
+    /// <summary>
+    /// Optional callback invoked when a terminal view broadcasts input.
+    /// Parameters: (byte[] data, object? senderView).
+    /// Wired by MainViewModel to relay keystrokes to all other terminals.
+    /// </summary>
+    public Action<byte[], object?>? BroadcastCallback { get; set; }
+
+    /// <summary>
+    /// Optional callback invoked when an embedded view's Split button is clicked.
+    /// Parameters: (SessionTabViewModel session).
+    /// Wired by MainWindow code-behind to show the split picker context menu.
+    /// </summary>
+    public Action<SessionTabViewModel>? SplitRequestedCallback { get; set; }
+
+    /// <summary>
+    /// Func that returns the current broadcast mode state.
+    /// Wired by MainViewModel so newly created views show the badge immediately.
+    /// </summary>
+    public Func<bool>? IsBroadcastActive { get; set; }
+
+    /// <summary>
+    /// Optional callback invoked when an embedded SSH view requests reconnection.
+    /// Parameters: (SessionTabViewModel session, string serverId, string connectionType).
+    /// Wired by MainViewModel to restart the connection using the original server.
+    /// </summary>
+    public Action<SessionTabViewModel, string, string>? ReconnectRequestedCallback { get; set; }
+
+    public EmbeddedSessionManager(
+        LocalizationManager localizer,
+        IDialogService dialogService,
+        HostKeyStore hostKeyStore)
+    {
+        _localizer = localizer;
+        _dialogService = dialogService;
+        _hostKeyStore = hostKeyStore;
+    }
+
     public object CreateHostControl(
         SessionTabViewModel sessionTab,
         string displayName,
         string connectionType,
-        object session,
+        ISessionResult session,
         AppSettings? settings = null)
     {
         ArgumentNullException.ThrowIfNull(sessionTab);
@@ -44,34 +88,88 @@ public sealed class EmbeddedSessionManager
         var sshKeepAliveInterval = settings?.SshTmoutResetIntervalSeconds ?? 240;
 
         if (string.Equals(connectionType, "RDP", StringComparison.OrdinalIgnoreCase) &&
-            session is RdpServerDto server)
+            session is RdpSessionResult rdp)
         {
             var view = new EmbeddedRdpView();
-            view.InitializeSession(server, sessionTab, antiIdleInterval);
+            view.InitializeSession(rdp.Server, sessionTab, antiIdleInterval);
+            WireSplitRequested(view, sessionTab);
             return view;
         }
 
         if (string.Equals(connectionType, "SSH", StringComparison.OrdinalIgnoreCase) &&
-            session is SshShellSession sshSession)
+            session is SshSessionResult sshResult)
         {
-            return CreateSshView(sessionTab, sshSession, displayName, sshKeepAliveInterval);
+            return CreateSshView(sessionTab, sshResult.Session, displayName, sshKeepAliveInterval);
         }
 
         if (string.Equals(connectionType, "SSH", StringComparison.OrdinalIgnoreCase) &&
-            session is Heimdall.Terminal.ITerminalSession terminalSession)
+            session is TerminalSessionResult termResult)
         {
-            return CreateTerminalSshView(sessionTab, terminalSession, displayName, sshKeepAliveInterval);
+            return CreateTerminalSshView(sessionTab, termResult.Session, displayName, sshKeepAliveInterval);
         }
 
-        if (session is UIElement element)
+        if (string.Equals(connectionType, "LOCAL", StringComparison.OrdinalIgnoreCase) &&
+            session is LocalShellBundle localBundle)
         {
-            return element;
+            var termView = CreateTerminalSshView(sessionTab, localBundle.Session, displayName, 0);
+
+            // Auto-attach local file browser panel in a vertical split
+            var fileBrowser = new Views.LocalFileBrowserView(
+                localBundle.WorkingDirectory, _localizer, settings?.ExternalEditorPath);
+
+            fileBrowser.NavigateToPathRequested += (path) =>
+            {
+                var cdCommand = FormatCdCommand(localBundle.ShellExecutable, path);
+                localBundle.Session.Write(System.Text.Encoding.UTF8.GetBytes(cdCommand));
+            };
+
+            fileBrowser.RunInShellRequested += (path) =>
+            {
+                var command = FormatRunCommand(localBundle.ShellExecutable, path);
+                localBundle.Session.Write(System.Text.Encoding.UTF8.GetBytes(command));
+            };
+
+            // Edit in embedded editor: swap file browser with AvalonEdit editor
+            fileBrowser.EditInEditorRequested += (path) =>
+            {
+                var editorView = new Views.EmbeddedEditorView();
+                editorView.OpenFile(path);
+
+                // When editor closes, restore the file browser
+                editorView.CloseRequested += () =>
+                {
+                    sessionTab.SecondaryHostControl = fileBrowser;
+                    fileBrowser.RefreshCurrentDirectory();
+                };
+
+                sessionTab.SecondaryHostControl = editorView;
+            };
+
+            sessionTab.SecondaryHostControl = fileBrowser;
+            sessionTab.SplitOrientation = Heimdall.Core.Models.SplitOrientation.Vertical;
+            sessionTab.IsSplit = true;
+
+            return termView;
+        }
+
+        if (string.Equals(connectionType, "SFTP", StringComparison.OrdinalIgnoreCase) &&
+            session is SftpSessionBundle bundle)
+        {
+            return CreateSftpView(sessionTab, bundle.Browser, displayName, bundle.SshParams);
+        }
+
+        if (string.Equals(connectionType, "CITRIX", StringComparison.OrdinalIgnoreCase)
+            && session is CitrixSessionResult citrix)
+        {
+            var view = new EmbeddedCitrixView();
+            view.InitializeSession(citrix, sessionTab, displayName);
+            return view;
         }
 
         return new DisposablePlaceholderView(displayName, connectionType, session);
     }
 
-    private static EmbeddedSshView CreateSshView(
+    private EmbeddedSshView CreateSshView(
         SessionTabViewModel tab,
         SshShellSession session,
         string displayName,
@@ -79,10 +177,13 @@ public sealed class EmbeddedSessionManager
     {
         var view = new EmbeddedSshView();
         view.InitializeSession(session, tab, displayName, string.Empty, keepAliveIntervalSeconds);
+        WireBroadcast(view);
+        WireSplitRequested(view, tab);
+        WireReconnectRequested(view, tab);
         return view;
     }
 
-    private static EmbeddedSshView CreateTerminalSshView(
+    private EmbeddedSshView CreateTerminalSshView(
         SessionTabViewModel tab,
         Heimdall.Terminal.ITerminalSession terminalSession,
         string displayName,
@@ -90,7 +191,114 @@ public sealed class EmbeddedSessionManager
     {
         var view = new EmbeddedSshView();
         view.InitializeTerminalSession(terminalSession, tab, displayName, keepAliveIntervalSeconds);
+        WireBroadcast(view);
+        WireSplitRequested(view, tab);
+        WireReconnectRequested(view, tab);
         return view;
+    }
+
+    private void WireBroadcast(EmbeddedSshView view)
+    {
+        var callback = BroadcastCallback;
+        if (callback is not null)
+        {
+            view.BroadcastInput += (bytes) => callback(bytes, view);
+        }
+
+        // Show broadcast badge if broadcast mode is already active
+        if (IsBroadcastActive?.Invoke() == true)
+        {
+            view.SetBroadcastIndicator(true);
+        }
+    }
+
+    private EmbeddedSftpView CreateSftpView(
+        SessionTabViewModel tab,
+        SftpBrowser browser,
+        string displayName,
+        SshConnectionParams? sshParams)
+    {
+        var view = new EmbeddedSftpView();
+        view.InitializeSession(
+            browser, tab, displayName, string.Empty,
+            _localizer, _dialogService, sshParams, _hostKeyStore);
+
+        // Wire "Open in Terminal" to send a cd command to the SSH session
+        // sharing the same tab (primary host is an SSH terminal).
+        view.OpenInTerminalRequested += (path) =>
+        {
+            // Check both primary and secondary host for a terminal
+            if (tab.HostControl is EmbeddedSshView primarySsh)
+            {
+                primarySsh.WriteCommand($"cd \"{path}\"");
+            }
+            else if (tab.SecondaryHostControl is EmbeddedSshView secondarySsh)
+            {
+                secondarySsh.WriteCommand($"cd \"{path}\"");
+            }
+        };
+
+        WireSplitRequested(view, tab);
+        return view;
+    }
+
+    private void WireReconnectRequested(EmbeddedSshView view, SessionTabViewModel tab)
+    {
+        view.ReconnectRequested += () =>
+            ReconnectRequestedCallback?.Invoke(tab, tab.ServerId, tab.ConnectionType);
+    }
+
+    private void WireSplitRequested(EmbeddedSshView view, SessionTabViewModel tab)
+    {
+        view.SplitRequested += () => SplitRequestedCallback?.Invoke(tab);
+    }
+
+    private void WireSplitRequested(EmbeddedRdpView view, SessionTabViewModel tab)
+    {
+        view.SplitRequested += () => SplitRequestedCallback?.Invoke(tab);
+    }
+
+    private void WireSplitRequested(EmbeddedSftpView view, SessionTabViewModel tab)
+    {
+        view.SplitRequested += () => SplitRequestedCallback?.Invoke(tab);
+    }
+
+    /// <summary>
+    /// Builds the correct <c>cd</c> command for the detected shell type.
+    /// PowerShell uses <c>cd "path"</c>, cmd uses <c>cd /d "path"</c>,
+    /// and bash/wsl uses <c>cd 'path'</c>.
+    /// </summary>
+    private static string FormatCdCommand(string shellExecutable, string path)
+    {
+        var shellExe = (shellExecutable ?? "powershell.exe").ToLowerInvariant();
+
+        if (shellExe.Contains("cmd"))
+            return $"cd /d \"{path}\"\n";
+
+        if (shellExe.Contains("wsl") || shellExe.Contains("bash"))
+            return $"cd '{path}'\n";
+
+        // PowerShell (powershell.exe, pwsh.exe) is the default
+        return $"cd \"{path}\"\n";
+    }
+
+    /// <summary>
+    /// Builds the correct run/execute command for the detected shell type.
+    /// PowerShell uses <c>&amp; "path"</c>, cmd uses <c>"path"</c>,
+    /// and bash/wsl uses <c>'path'</c>.
+    /// </summary>
+    private static string FormatRunCommand(string shellExecutable, string path)
+    {
+        var shellExe = (shellExecutable ?? "powershell.exe").ToLowerInvariant();
+
+        if (shellExe.Contains("cmd"))
+            return $"\"{path}\"\n";
+
+        if (shellExe.Contains("wsl") || shellExe.Contains("bash"))
+            return $"'{path}'\n";
+
+        // PowerShell (powershell.exe, pwsh.exe) is the default
+        return $"& \"{path}\"\n";
     }
 
     private static Brush GetBrush(string resourceKey, Brush fallback)
@@ -103,7 +311,7 @@ public sealed class EmbeddedSessionManager
         private readonly IDisposable? _session;
         private bool _disposed;
 
-        public DisposablePlaceholderView(string displayName, string connectionType, object session)
+        public DisposablePlaceholderView(string displayName, string connectionType, ISessionResult session)
         {
             _session = session as IDisposable;
 

@@ -26,23 +26,41 @@ namespace Heimdall.Ssh.Pageant;
 /// </summary>
 internal sealed class PageantHostAlgorithm : HostAlgorithm
 {
+    /// <summary>SSH agent protocol flag for RSA-SHA2-256 signatures.</summary>
+    internal const uint AgentRsaSha2_256 = 0x02;
+
+    /// <summary>SSH agent protocol flag for RSA-SHA2-512 signatures.</summary>
+    internal const uint AgentRsaSha2_512 = 0x04;
+
     private readonly byte[] _publicKeyBlob;
     private readonly PageantClient _pageantClient;
+    private readonly uint _signFlags;
 
     /// <summary>
     /// Initializes a new Pageant-backed host algorithm.
     /// </summary>
-    /// <param name="algorithmName">SSH algorithm name (e.g., "ssh-rsa", "ssh-ed25519").</param>
+    /// <param name="algorithmName">SSH algorithm name (e.g., "rsa-sha2-256", "ssh-ed25519").</param>
     /// <param name="publicKeyBlob">Full public key blob as returned by the agent.</param>
     /// <param name="pageantClient">
     /// Pageant client instance used for sign requests.
     /// The caller retains ownership and must keep it alive for the duration of the auth.
     /// </param>
-    public PageantHostAlgorithm(string algorithmName, byte[] publicKeyBlob, PageantClient pageantClient)
+    /// <param name="signFlags">
+    /// Agent signature flags passed to Pageant during signing.
+    /// Use <see cref="AgentRsaSha2_256"/> (0x02) for rsa-sha2-256,
+    /// <see cref="AgentRsaSha2_512"/> (0x04) for rsa-sha2-512,
+    /// or 0 for default (ssh-rsa / non-RSA keys).
+    /// </param>
+    public PageantHostAlgorithm(
+        string algorithmName,
+        byte[] publicKeyBlob,
+        PageantClient pageantClient,
+        uint signFlags = 0)
         : base(algorithmName)
     {
         _publicKeyBlob = publicKeyBlob ?? throw new ArgumentNullException(nameof(publicKeyBlob));
         _pageantClient = pageantClient ?? throw new ArgumentNullException(nameof(pageantClient));
+        _signFlags = signFlags;
     }
 
     /// <summary>
@@ -56,11 +74,21 @@ internal sealed class PageantHostAlgorithm : HostAlgorithm
     /// Pageant performs the cryptographic operation using the private key
     /// it holds in memory; the private key never leaves the agent.
     /// </summary>
+    /// <remarks>
+    /// Pageant returns the full SSH signature blob: [algo_len:4][algo][sig_len:4][sig].
+    /// SSH.NET expects only the raw signature bytes (it wraps them internally),
+    /// so we strip the algorithm name prefix before returning.
+    /// </remarks>
     /// <param name="data">Data to sign (session hash + auth request from SSH.NET).</param>
-    /// <returns>Raw signature bytes from the agent.</returns>
+    /// <returns>Raw signature bytes (without algorithm name prefix).</returns>
     public override byte[] Sign(byte[] data)
     {
-        return _pageantClient.SignData(_publicKeyBlob, data);
+        // Pageant returns the full SSH signature blob:
+        //   [algo_name_len:4][algo_name][raw_sig_len:4][raw_sig]
+        // SSH.NET's PrivateKeyAuthenticationMethod expects Sign() to return
+        // this exact format (matching KeyHostAlgorithm.Sign() which wraps
+        // via SignatureData). The blob is sent directly to the server.
+        return _pageantClient.SignData(_publicKeyBlob, data, _signFlags);
     }
 
     /// <summary>

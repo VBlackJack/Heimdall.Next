@@ -114,7 +114,7 @@ public class ConfigManager
             }
             else
             {
-                await SaveServersAsync(new List<RdpServerDto>());
+                await SaveServersAsync(new List<ServerProfileDto>());
             }
         }
 
@@ -147,33 +147,35 @@ public class ConfigManager
 
         var json = JsonSerializer.Serialize(settings, JsonOptions);
         await WriteTextAsync(_settingsPath, json);
+        ApplyFileAcl(_settingsPath);
     }
 
     /// <summary>
     /// Loads and deserializes the server inventory from servers.json.
     /// </summary>
-    public async Task<List<RdpServerDto>> LoadServersAsync()
+    public async Task<List<ServerProfileDto>> LoadServersAsync()
     {
         if (!File.Exists(_serversPath))
         {
-            return new List<RdpServerDto>();
+            return new List<ServerProfileDto>();
         }
 
         var json = await File.ReadAllTextAsync(_serversPath, Utf8NoBom);
-        var servers = JsonSerializer.Deserialize<List<RdpServerDto>>(json, ReadOptions);
+        var servers = JsonSerializer.Deserialize<List<ServerProfileDto>>(json, ReadOptions);
 
-        return servers ?? new List<RdpServerDto>();
+        return servers ?? new List<ServerProfileDto>();
     }
 
     /// <summary>
     /// Serializes and saves the server inventory to servers.json (UTF-8 without BOM).
     /// </summary>
-    public async Task SaveServersAsync(List<RdpServerDto> servers)
+    public async Task SaveServersAsync(List<ServerProfileDto> servers)
     {
         ArgumentNullException.ThrowIfNull(servers);
 
         var json = JsonSerializer.Serialize(servers, JsonOptions);
         await WriteTextAsync(_serversPath, json);
+        ApplyFileAcl(_serversPath);
     }
 
     /// <summary>

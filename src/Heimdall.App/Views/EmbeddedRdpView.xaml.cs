@@ -38,7 +38,7 @@ namespace Heimdall.App.Views;
 /// </summary>
 public partial class EmbeddedRdpView : UserControl, IDisposable
 {
-    private static readonly TimeSpan InitialResizeEnableDelay = TimeSpan.FromSeconds(5);
+    private static readonly TimeSpan InitialResizeEnableDelay = TimeSpan.FromSeconds(10);
     private static readonly TimeSpan BeginConnectRetryDelay = TimeSpan.FromMilliseconds(120);
 
     private readonly DispatcherTimer _resizeTimer;
@@ -46,7 +46,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
     private CancellationTokenSource? _autofillCts;
     private DispatcherTimer? _antiIdleTimer;
     private RdpActiveXHost? _rdpHost;
-    private RdpServerDto? _server;
+    private ServerProfileDto? _server;
     private SessionTabViewModel? _sessionTab;
 
     private bool _initialized;
@@ -61,12 +61,18 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
     private int _lastAppliedHeight;
     private DateTime _connectedAtUtc;
 
+    /// <summary>
+    /// Raised when the user clicks the Split button in the header strip.
+    /// The subscriber (EmbeddedSessionManager) shows the split picker context menu.
+    /// </summary>
+    public event Action? SplitRequested;
+
     public EmbeddedRdpView()
     {
         InitializeComponent();
 
         _resizeTimer = new DispatcherTimer(
-            TimeSpan.FromMilliseconds(250),
+            TimeSpan.FromMilliseconds(1000),
             DispatcherPriority.Background,
             OnResizeTimerTick,
             Dispatcher)
@@ -86,7 +92,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
     }
 
     public void InitializeSession(
-        RdpServerDto server,
+        ServerProfileDto server,
         SessionTabViewModel sessionTab,
         int antiIdleIntervalSeconds = 60)
     {
@@ -209,6 +215,11 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         }
     }
 
+    private void OnSplitClick(object sender, RoutedEventArgs e)
+    {
+        SplitRequested?.Invoke();
+    }
+
     private void OnSurfaceContainerSizeChanged(object sender, SizeChangedEventArgs e)
     {
         if (_disposed || _server is null || !_server.RdpDynamicResolution)
@@ -216,8 +227,14 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
             return;
         }
 
-        Core.Logging.FileLogger.Info(
-            $"EmbeddedRDP SizeChanged: old={e.PreviousSize.Width:0.##}x{e.PreviousSize.Height:0.##} new={e.NewSize.Width:0.##}x{e.NewSize.Height:0.##} connected={_rdpHost?.IsConnected == true} allowResize={_allowResolutionUpdates}");
+        // Only log significant size changes to avoid polluting logs
+        double dw = Math.Abs(e.NewSize.Width - e.PreviousSize.Width);
+        double dh = Math.Abs(e.NewSize.Height - e.PreviousSize.Height);
+        if (dw > 50 || dh > 50)
+        {
+            Core.Logging.FileLogger.Info(
+                $"EmbeddedRDP SizeChanged: {e.PreviousSize.Width:0}x{e.PreviousSize.Height:0} -> {e.NewSize.Width:0}x{e.NewSize.Height:0}");
+        }
 
         _resizeTimer.Stop();
         _resizeTimer.Start();
@@ -252,10 +269,13 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
             return;
         }
 
-        if (_lastAppliedWidth == width && _lastAppliedHeight == height)
+        // Skip resizes under 50px delta — these are caused by tab hover, panel toggle,
+        // scrollbar toggling, etc. Only reconnect on intentional resizes (window resize,
+        // fullscreen toggle, split pane drag).
+        int deltaW = Math.Abs(width - _lastAppliedWidth);
+        int deltaH = Math.Abs(height - _lastAppliedHeight);
+        if (deltaW < 50 && deltaH < 50)
         {
-            Core.Logging.FileLogger.Info(
-                $"EmbeddedRDP Resize skipped because size is unchanged: {width}x{height}");
             return;
         }
 
@@ -291,7 +311,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
                 if (_beginConnectAttempt <= 10)
                 {
                     Core.Logging.FileLogger.Warn("EmbeddedRDP visual surface is not ready; retrying after render pass.");
-                    RetryBeginConnectAsync();
+                    _ = RetryBeginConnectAsync();
                     return;
                 }
 
@@ -351,7 +371,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         }
     }
 
-    private async void RetryBeginConnectAsync()
+    private async Task RetryBeginConnectAsync()
     {
         try
         {
@@ -405,12 +425,12 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
 
             if (_server is not null && _server.RdpDynamicResolution)
             {
-                EnableResolutionUpdatesAsync();
+                _ = EnableResolutionUpdatesAsync();
             }
         });
     }
 
-    private async void EnableResolutionUpdatesAsync()
+    private async Task EnableResolutionUpdatesAsync()
     {
         try
         {
@@ -684,7 +704,28 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
 
         try
         {
-            // Prevent Windows/RDP from detecting idle by signaling display activity
+            // Send a Shift key press/release to the RDP ActiveX inner rendering window.
+            // PostMessage places the input directly into the target window's message queue.
+            // With allowBackgroundInput=1, the RDP control processes it and relays to the
+            // remote server, resetting the server-side idle timer (GetLastInputInfo).
+            // Shift key has no visible effect on the remote desktop.
+            IntPtr hwnd = _rdpHost.HostHandle;
+            if (hwnd != IntPtr.Zero)
+            {
+                // Drill to the deepest child window (the ActiveX rendering surface)
+                IntPtr target = hwnd;
+                IntPtr child = NativeMethods.FindWindowEx(hwnd, IntPtr.Zero, null, null);
+                while (child != IntPtr.Zero)
+                {
+                    target = child;
+                    child = NativeMethods.FindWindowEx(target, IntPtr.Zero, null, null);
+                }
+
+                NativeMethods.PostMessage(target, NativeMethods.WM_KEYDOWN, NativeMethods.VK_SHIFT, IntPtr.Zero);
+                NativeMethods.PostMessage(target, NativeMethods.WM_KEYUP, NativeMethods.VK_SHIFT, IntPtr.Zero);
+            }
+
+            // Also keep the local display alive
             NativeMethods.SetThreadExecutionState(
                 NativeMethods.ES_CONTINUOUS |
                 NativeMethods.ES_DISPLAY_REQUIRED);
@@ -713,21 +754,21 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         }
     }
 
-    private static string ResolveConnectHost(RdpServerDto server)
+    private static string ResolveConnectHost(ServerProfileDto server)
     {
         return server.UseDirectConnection || string.IsNullOrWhiteSpace(server.SshGatewayId)
             ? server.RemoteServer
             : "127.0.0.1";
     }
 
-    private static int ResolveConnectPort(RdpServerDto server)
+    private static int ResolveConnectPort(ServerProfileDto server)
     {
         return server.UseDirectConnection || string.IsNullOrWhiteSpace(server.SshGatewayId)
             ? server.RemotePort
             : server.LocalPort;
     }
 
-    private static string BuildEndpointText(RdpServerDto server)
+    private static string BuildEndpointText(ServerProfileDto server)
     {
         if (server.UseDirectConnection || string.IsNullOrWhiteSpace(server.SshGatewayId))
         {
@@ -759,7 +800,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         return (username, null);
     }
 
-    private static string? TryDecryptPassword(RdpServerDto server)
+    private static string? TryDecryptPassword(ServerProfileDto server)
     {
         if (string.IsNullOrWhiteSpace(server.RdpPasswordEncrypted))
         {
@@ -806,7 +847,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         };
     }
 
-    private static RdpRedirectionOptions BuildRedirections(RdpServerDto server)
+    private static RdpRedirectionOptions BuildRedirections(ServerProfileDto server)
     {
         return new RdpRedirectionOptions
         {
@@ -839,7 +880,18 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         internal const uint ES_CONTINUOUS = 0x80000000;
         internal const uint ES_DISPLAY_REQUIRED = 0x00000002;
 
+        internal const uint WM_KEYDOWN = 0x0100;
+        internal const uint WM_KEYUP = 0x0101;
+        internal static readonly IntPtr VK_SHIFT = new(0x10);
+
         [DllImport("kernel32.dll", SetLastError = true)]
         internal static extern uint SetThreadExecutionState(uint esFlags);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        internal static extern bool PostMessage(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        internal static extern IntPtr FindWindowEx(IntPtr hwndParent, IntPtr hwndChildAfter, string? lpszClass, string? lpszWindow);
     }
 }

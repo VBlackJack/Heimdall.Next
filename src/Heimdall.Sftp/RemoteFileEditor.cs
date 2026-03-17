@@ -33,6 +33,7 @@ public class RemoteFileEditor : IDisposable
 
     private readonly SftpBrowser _browser;
     private readonly string _editorPath;
+    private readonly HostKeyStore? _hostKeyStore;
     private readonly ConcurrentDictionary<string, EditSession> _activeSessions = new();
     private bool _disposed;
 
@@ -48,11 +49,18 @@ public class RemoteFileEditor : IDisposable
     /// <param name="editorPath">
     /// Path to the external editor executable (defaults to <c>notepad.exe</c>).
     /// </param>
-    public RemoteFileEditor(SftpBrowser browser, string editorPath = "notepad.exe")
+    /// <param name="hostKeyStore">
+    /// Optional TOFU host key store for server verification on sudo SSH connections.
+    /// </param>
+    public RemoteFileEditor(
+        SftpBrowser browser,
+        string editorPath = "notepad.exe",
+        HostKeyStore? hostKeyStore = null)
     {
         ArgumentNullException.ThrowIfNull(browser);
         _browser = browser;
         _editorPath = editorPath;
+        _hostKeyStore = hostKeyStore;
     }
 
     /// <summary>
@@ -69,11 +77,8 @@ public class RemoteFileEditor : IDisposable
         ObjectDisposedException.ThrowIf(_disposed, this);
         ArgumentException.ThrowIfNullOrWhiteSpace(remotePath);
 
-        if (_activeSessions.ContainsKey(remotePath))
-        {
-            throw new InvalidOperationException(
-                $"File is already being edited: {remotePath}");
-        }
+        // Close previous edit session for this file if one exists
+        CloseEdit(remotePath);
 
         string localPath = CreateTempFilePath(remotePath);
 
@@ -89,11 +94,8 @@ public class RemoteFileEditor : IDisposable
 
         if (!_activeSessions.TryAdd(remotePath, session))
         {
-            // Race: another thread opened the same file. Clean up and throw.
             session.Dispose();
             CleanupTempFile(localPath);
-            throw new InvalidOperationException(
-                $"File is already being edited: {remotePath}");
         }
 
         StartWatcher(session);
@@ -116,11 +118,8 @@ public class RemoteFileEditor : IDisposable
         ArgumentException.ThrowIfNullOrWhiteSpace(remotePath);
         ArgumentNullException.ThrowIfNull(sshParams);
 
-        if (_activeSessions.ContainsKey(remotePath))
-        {
-            throw new InvalidOperationException(
-                $"File is already being edited: {remotePath}");
-        }
+        // Close previous edit session for this file if one exists
+        CloseEdit(remotePath);
 
         string localPath = CreateTempFilePath(remotePath);
         string escapedPath = PathEscaper.EscapeForShell(remotePath);
@@ -128,6 +127,12 @@ public class RemoteFileEditor : IDisposable
         // Download with sudo via SSH command
         var connectionInfo = SshConnectionFactory.Create(sshParams);
         using var sshClient = new SshClient(connectionInfo);
+
+        if (_hostKeyStore is not null)
+        {
+            SshConnectionFactory.AttachHostKeyVerification(
+                sshClient, sshParams.Host, sshParams.Port, _hostKeyStore);
+        }
 
         await Task.Run(() =>
         {
@@ -166,6 +171,7 @@ public class RemoteFileEditor : IDisposable
             LocalPath = localPath,
             IsSudo = true,
             SshParams = sshParams,
+            HostKeyStore = _hostKeyStore,
             LastUploadTime = DateTime.UtcNow
         };
 
@@ -173,8 +179,6 @@ public class RemoteFileEditor : IDisposable
         {
             session.Dispose();
             CleanupTempFile(localPath);
-            throw new InvalidOperationException(
-                $"File is already being edited: {remotePath}");
         }
 
         StartWatcher(session);
@@ -335,6 +339,14 @@ public class RemoteFileEditor : IDisposable
         using var sftpClient = new SftpClient(connectionInfo);
         using var sshClient = new SshClient(connectionInfo);
 
+        if (session.HostKeyStore is not null)
+        {
+            SshConnectionFactory.AttachHostKeyVerification(
+                sftpClient, session.SshParams.Host, session.SshParams.Port, session.HostKeyStore);
+            SshConnectionFactory.AttachHostKeyVerification(
+                sshClient, session.SshParams.Host, session.SshParams.Port, session.HostKeyStore);
+        }
+
         await Task.Run(() =>
         {
             sftpClient.Connect();
@@ -362,27 +374,45 @@ public class RemoteFileEditor : IDisposable
                     throw new InvalidOperationException(
                         $"sudo tee failed (exit {result.ExitStatus}): {result.Error}");
                 }
-
-                // Clean up temp file
-                sshClient.RunCommand($"sudo rm -f {escapedTemp}");
             }).ConfigureAwait(false);
         }
         finally
         {
+            // Always clean up temp file, even if tee failed
+            try
+            {
+                string escapedTemp2 = PathEscaper.EscapeForShell(tempRemotePath);
+                sshClient.RunCommand($"sudo rm -f {escapedTemp2}");
+            }
+            catch { }
+
             sftpClient.Disconnect();
             sshClient.Disconnect();
         }
     }
 
-    private static void LaunchEditor(string localPath)
+    private void LaunchEditor(string localPath)
     {
-        // Use Process.Start with UseShellExecute to open the file in its
-        // associated editor. This respects the OS file association.
-        Process.Start(new ProcessStartInfo
+        if (!string.IsNullOrWhiteSpace(_editorPath) &&
+            !string.Equals(_editorPath, "notepad.exe", StringComparison.OrdinalIgnoreCase))
         {
-            FileName = localPath,
-            UseShellExecute = true
-        });
+            // Use the configured external editor
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = _editorPath,
+                Arguments = $"\"{localPath}\"",
+                UseShellExecute = false
+            });
+        }
+        else
+        {
+            // Fallback to OS file association
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = localPath,
+                UseShellExecute = true
+            });
+        }
     }
 }
 
@@ -402,6 +432,9 @@ internal class EditSession : IDisposable
 
     /// <summary>SSH connection parameters for sudo operations. Null for non-sudo edits.</summary>
     public SshConnectionParams? SshParams { get; init; }
+
+    /// <summary>TOFU host key store for server verification on sudo connections.</summary>
+    public HostKeyStore? HostKeyStore { get; init; }
 
     /// <summary>File system watcher for auto-upload on save.</summary>
     public FileSystemWatcher? Watcher { get; set; }

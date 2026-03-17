@@ -5,22 +5,22 @@
         <ResourceDictionary Source="CommonControls.xaml"/>
     </ResourceDictionary.MergedDictionaries>
 
-    <!-- Colors -->
-    <Color x:Key="PrimaryColor">#1E1E2E</Color>
-    <Color x:Key="SecondaryColor">#2D2D44</Color>
-    <Color x:Key="SurfaceColor">#363652</Color>
-    <Color x:Key="AccentColor">#7C3AED</Color>
-    <Color x:Key="AccentHoverColor">#6D28D9</Color>
-    <Color x:Key="AccentPressedColor">#5B21B6</Color>
-    <Color x:Key="TextPrimaryColor">#F0F0F0</Color>
-    <Color x:Key="TextSecondaryColor">#A0A0B0</Color>
-    <Color x:Key="TextDisabledColor">#606070</Color>
-    <Color x:Key="SuccessColor">#22C55E</Color>
-    <Color x:Key="WarningColor">#F59E0B</Color>
-    <Color x:Key="ErrorColor">#EF4444</Color>
-    <Color x:Key="InfoColor">#3B82F6</Color>
-    <Color x:Key="BorderColor">#404060</Color>
-    <Color x:Key="HighlightColor">#3A3A5C</Color>
+    <!-- Dracula Theme — https://draculatheme.com/contribute -->
+    <Color x:Key="PrimaryColor">#282A36</Color>
+    <Color x:Key="SecondaryColor">#21222C</Color>
+    <Color x:Key="SurfaceColor">#44475A</Color>
+    <Color x:Key="AccentColor">#BD93F9</Color>
+    <Color x:Key="AccentHoverColor">#D6ACFF</Color>
+    <Color x:Key="AccentPressedColor">#A87AF7</Color>
+    <Color x:Key="TextPrimaryColor">#F8F8F2</Color>
+    <Color x:Key="TextSecondaryColor">#6272A4</Color>
+    <Color x:Key="TextDisabledColor">#44475A</Color>
+    <Color x:Key="SuccessColor">#50FA7B</Color>
+    <Color x:Key="WarningColor">#FFB86C</Color>
+    <Color x:Key="ErrorColor">#FF5555</Color>
+    <Color x:Key="InfoColor">#8BE9FD</Color>
+    <Color x:Key="BorderColor">#6272A4</Color>
+    <Color x:Key="HighlightColor">#343746</Color>
 
     <!-- Brushes -->
     <SolidColorBrush x:Key="BackgroundBrush" Color="{StaticResource PrimaryColor}"/>
@@ -39,13 +39,13 @@
     <SolidColorBrush x:Key="ErrorBrush" Color="{StaticResource ErrorColor}"/>
     <SolidColorBrush x:Key="InfoBrush" Color="{StaticResource InfoColor}"/>
 
-    <!-- Connection type badge colors -->
-    <SolidColorBrush x:Key="RdpBadgeBrush" Color="#3B82F6"/>
-    <SolidColorBrush x:Key="SshBadgeBrush" Color="#22C55E"/>
-    <SolidColorBrush x:Key="SftpBadgeBrush" Color="#F59E0B"/>
+    <!-- Connection type badge colors (Dracula palette) -->
+    <SolidColorBrush x:Key="RdpBadgeBrush" Color="#8BE9FD"/>
+    <SolidColorBrush x:Key="SshBadgeBrush" Color="#50FA7B"/>
+    <SolidColorBrush x:Key="SftpBadgeBrush" Color="#FFB86C"/>
 
-    <!-- Scrollbar colors -->
-    <SolidColorBrush x:Key="ScrollBarThumbBrush" Color="#505070"/>
-    <SolidColorBrush x:Key="ScrollBarTrackBrush" Color="{StaticResource PrimaryColor}"/>
+    <!-- Scrollbar (Dracula) -->
+    <SolidColorBrush x:Key="ScrollBarThumbBrush" Color="#44475A"/>
+    <SolidColorBrush x:Key="ScrollBarTrackBrush" Color="#282A36"/>
 
 </ResourceDictionary>
