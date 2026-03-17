@@ -67,6 +67,9 @@ public partial class GatewayDialogViewModel : ObservableValidator
     [ObservableProperty]
     private string _password = "";
 
+    // Existing encrypted password (preserved on edit if user doesn't change it)
+    public string? ExistingSshPasswordEncrypted { get; set; }
+
     /// <summary>
     /// Optional parent gateway for chained SSH tunnels.
     /// Empty string means no parent (direct connection).
@@ -123,6 +126,9 @@ public partial class GatewayDialogViewModel : ObservableValidator
             Port = Port,
             User = User,
             KeyPath = string.IsNullOrWhiteSpace(KeyPath) ? null : KeyPath,
+            SshPasswordEncrypted = string.IsNullOrEmpty(Password)
+                ? ExistingSshPasswordEncrypted
+                : Heimdall.Core.Security.DpapiProvider.Protect(Password),
             ParentGatewayId = string.IsNullOrWhiteSpace(SelectedParentGatewayId)
                 ? null
                 : SelectedParentGatewayId,
@@ -150,7 +156,8 @@ public partial class GatewayDialogViewModel : ObservableValidator
             User = dto.User,
             KeyPath = dto.KeyPath ?? "",
             SelectedParentGatewayId = dto.ParentGatewayId ?? "",
-            HostKeyFingerprint = dto.HostKeyFingerprint ?? ""
+            HostKeyFingerprint = dto.HostKeyFingerprint ?? "",
+            ExistingSshPasswordEncrypted = dto.SshPasswordEncrypted
         };
     }
 

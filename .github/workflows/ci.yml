@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore
+        run: dotnet restore Heimdall.slnx
+
+      - name: Build
+        run: dotnet build Heimdall.slnx --no-restore -c Release
+
+      - name: Test
+        run: dotnet test Heimdall.slnx --no-build -c Release --verbosity normal
+
+      - name: Validate JSON locales
+        shell: pwsh
+        run: |
+          $en = Get-Content locales/en.json -Raw | ConvertFrom-Json
+          $fr = Get-Content locales/fr.json -Raw | ConvertFrom-Json
+          $enKeys = ($en.PSObject.Properties | Measure-Object).Count
+          $frKeys = ($fr.PSObject.Properties | Measure-Object).Count
+          Write-Host "EN: $enKeys keys, FR: $frKeys keys"
+          if ($enKeys -ne $frKeys) { throw "i18n key parity mismatch: EN=$enKeys FR=$frKeys" }
+          Write-Host "i18n parity OK"

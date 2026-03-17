@@ -36,17 +36,20 @@ public partial class ServerListViewModel : ObservableObject
     private readonly LocalizationManager _localizer;
     private readonly ConnectionStateMachine _connectionSm;
     private readonly ConnectionService _connectionService;
+
+    internal ConnectionService ConnectionService => _connectionService;
     private readonly IDialogService _dialogService;
 
     private List<ServerItemViewModel> _allServers = [];
     private List<ProjectTarget> _projectTargets = [];
+    private AppSettings? _currentSettings;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsEmpty))]
     private ObservableCollection<ServerItemViewModel> _servers = [];
 
     [ObservableProperty]
-    private ObservableCollection<ServerProjectViewModel> _groupedServers = [];
+    private ObservableCollection<FolderViewModel> _groupedServers = [];
 
     [ObservableProperty]
     private ObservableCollection<string> _projects = [];
@@ -79,9 +82,9 @@ public partial class ServerListViewModel : ObservableObject
 
     /// <summary>
     /// Raised when a connection result is ready and a session tab should be created.
-    /// Parameters: serverId, displayName, connectionType, session object.
+    /// Parameters: serverId, displayName, connectionType, session result.
     /// </summary>
-    public event Action<string, string, string, object?>? SessionReady;
+    public event Action<string, string, string, Core.Models.ISessionResult?>? SessionReady;
 
     /// <summary>
     /// Raised when a non-modal status message should be surfaced in the shell.
@@ -107,8 +110,9 @@ public partial class ServerListViewModel : ObservableObject
     /// <summary>
     /// Populates the server list from loaded DTOs and settings.
     /// </summary>
-    public void LoadServers(List<RdpServerDto> serverDtos, AppSettings settings)
+    public void LoadServers(List<ServerProfileDto> serverDtos, AppSettings settings)
     {
+        _currentSettings = settings;
         var selectedServerId = SelectedServer?.Id;
         var projectMap = BuildProjectMap(settings);
 
@@ -164,6 +168,19 @@ public partial class ServerListViewModel : ObservableObject
             .ToList();
 
         targets.AddRange(groupTargets);
+
+        // Also include empty folders from settings
+        if (_currentSettings?.EmptyGroups is not null)
+        {
+            foreach (var path in _currentSettings.EmptyGroups)
+            {
+                if (!string.IsNullOrWhiteSpace(path))
+                {
+                    targets.Add(new GroupTarget(path, path));
+                }
+            }
+        }
+
         return targets;
     }
 
@@ -217,6 +234,16 @@ public partial class ServerListViewModel : ObservableObject
 
                 case "SFTP":
                     result = await _connectionService.ConnectSftpAsync(
+                        serverDto, settings, cancellationToken);
+                    break;
+
+                case "LOCAL":
+                    result = await _connectionService.ConnectLocalShellAsync(
+                        serverDto, settings, cancellationToken);
+                    break;
+
+                case "CITRIX":
+                    result = await _connectionService.ConnectCitrixAsync(
                         serverDto, settings, cancellationToken);
                     break;
 
@@ -394,7 +421,7 @@ public partial class ServerListViewModel : ObservableObject
 
         var settings = await _configManager.LoadSettingsAsync();
         var json = System.Text.Json.JsonSerializer.Serialize(sourceDto);
-        var clone = System.Text.Json.JsonSerializer.Deserialize<RdpServerDto>(json);
+        var clone = System.Text.Json.JsonSerializer.Deserialize<ServerProfileDto>(json);
 
         if (clone is null)
         {
@@ -523,29 +550,6 @@ public partial class ServerListViewModel : ObservableObject
             cancellationToken);
     }
 
-    [RelayCommand]
-    private async Task AddGroupAsync(ServerProjectViewModel? project, CancellationToken cancellationToken)
-    {
-        if (project is null)
-        {
-            return;
-        }
-
-        var groupName = await _dialogService.ShowInputAsync(
-            _localizer["TreeCtxNewGroup"],
-            _localizer["ServerFieldGroup"]);
-
-        if (string.IsNullOrWhiteSpace(groupName))
-        {
-            return;
-        }
-
-        await AddServerAsync(
-            new ServerDialogSeed(
-                project.IsVirtualProject ? string.Empty : project.ProjectId,
-                groupName.Trim()),
-            cancellationToken);
-    }
 
     [RelayCommand]
     private async Task RenameGroupAsync(ServerGroupContext? group, CancellationToken cancellationToken)
@@ -671,58 +675,133 @@ public partial class ServerListViewModel : ObservableObject
     }
 
     /// <summary>
-    /// Rebuilds the hierarchical view: Project → Group → Server.
-    /// Servers without a project go under the localized "No Project" node.
-    /// Servers without a group go under the localized "No Group" node.
+    /// Rebuilds the hierarchical folder tree from server Group paths.
+    /// The Group field is the full folder path (e.g., "ADSEC/Gateway/Linux").
+    /// Servers without a Group appear at the tree root.
+    /// Empty folders from settings are included even without servers.
     /// </summary>
     private void RebuildGroupedView(List<ServerItemViewModel> filteredServers)
     {
-        var noProjectId = "__no-project__";
-        var noGroupName = "__no-group__";
-        var noProjectLabel = _localizer["TreeNodeNoProject"];
-        var noGroupLabel = _localizer["TreeNodeNoGroup"];
+        // Build the folder tree from server Group paths
+        var root = new FolderViewModel { Name = "__root__", FullPath = "" };
 
-        var projects = filteredServers
-            .GroupBy(
-                s => string.IsNullOrWhiteSpace(s.ProjectId) ? noProjectId : s.ProjectId,
-                StringComparer.OrdinalIgnoreCase)
-            .OrderBy(p => string.Equals(p.Key, noProjectId, StringComparison.Ordinal) ? 1 : 0)
-            .ThenBy(p => ResolveProjectNodeName(p, noProjectLabel), StringComparer.OrdinalIgnoreCase)
-            .Select(projectGroup =>
+        foreach (var server in filteredServers)
+        {
+            string folderPath = (server.Group?.Trim() ?? "").Replace('\\', '/');
+            if (string.IsNullOrEmpty(folderPath))
             {
-                var isVirtualProject = string.Equals(projectGroup.Key, noProjectId, StringComparison.Ordinal);
-                var projectName = ResolveProjectNodeName(projectGroup, noProjectLabel);
-                var projectColor = projectGroup.FirstOrDefault()?.ProjectColor ?? string.Empty;
+                // Server at tree root (no folder)
+                root.Servers.Add(server);
+            }
+            else
+            {
+                var folder = EnsureFolderPath(root, folderPath);
+                folder.Servers.Add(server);
+            }
+        }
 
-                var groups = projectGroup
-                    .GroupBy(
-                        s => string.IsNullOrWhiteSpace(s.Group) ? noGroupName : s.Group,
-                        StringComparer.OrdinalIgnoreCase)
-                    .OrderBy(g => string.Equals(g.Key, noGroupName, StringComparison.Ordinal) ? 1 : 0)
-                    .ThenBy(g => ResolveGroupNodeName(g, noGroupLabel), StringComparer.OrdinalIgnoreCase)
-                    .Select(group => new ServerGroupViewModel
-                    {
-                        ProjectId = isVirtualProject ? string.Empty : projectGroup.Key,
-                        ProjectName = projectName,
-                        GroupName = ResolveGroupNodeName(group, noGroupLabel),
-                        IsVirtualGroup = string.Equals(group.Key, noGroupName, StringComparison.Ordinal),
-                        Servers = new ObservableCollection<ServerItemViewModel>(
-                            group.OrderBy(s => s.SortOrder).ThenBy(s => s.DisplayName, StringComparer.OrdinalIgnoreCase))
-                    })
-                    .ToList();
-
-                return new ServerProjectViewModel
+        // Add empty folders from settings
+        if (_currentSettings?.EmptyGroups is not null)
+        {
+            foreach (var path in _currentSettings.EmptyGroups)
+            {
+                if (!string.IsNullOrWhiteSpace(path))
                 {
-                    ProjectId = isVirtualProject ? string.Empty : projectGroup.Key,
-                    ProjectName = projectName,
-                    ProjectColor = projectColor,
-                    IsVirtualProject = isVirtualProject,
-                    Groups = new ObservableCollection<ServerGroupViewModel>(groups)
-                };
-            })
-            .ToList();
+                    EnsureFolderPath(root, path);
+                }
+            }
+        }
 
-        GroupedServers = new ObservableCollection<ServerProjectViewModel>(projects);
+        // Sort all levels: folders first (alphabetical), then servers (by SortOrder, then name)
+        SortFolderRecursive(root);
+
+        // The top-level children become GroupedServers
+        // Root servers go into a virtual "(root)" folder only if there are also named folders
+        var topFolders = root.SubFolders.ToList();
+        var rootServers = root.Servers.ToList();
+
+        if (rootServers.Count > 0 && topFolders.Count > 0)
+        {
+            // Add root servers as a virtual folder at the end
+            var rootFolder = new FolderViewModel
+            {
+                Name = _localizer["TreeNodeNoGroup"],
+                FullPath = "",
+                Servers = new ObservableCollection<ServerItemViewModel>(rootServers)
+            };
+            topFolders.Add(rootFolder);
+        }
+        else if (rootServers.Count > 0)
+        {
+            // Only root servers, no folders — put them in a single virtual root
+            var rootFolder = new FolderViewModel
+            {
+                Name = _localizer["TreeNodeNoGroup"],
+                FullPath = "",
+                Servers = new ObservableCollection<ServerItemViewModel>(rootServers)
+            };
+            topFolders.Add(rootFolder);
+        }
+
+        GroupedServers = new ObservableCollection<FolderViewModel>(topFolders);
+    }
+
+    /// <summary>
+    /// Ensures a folder path exists in the tree, creating intermediate folders as needed.
+    /// "ADSEC/Gateway/Linux" creates ADSEC → Gateway → Linux.
+    /// </summary>
+    private static FolderViewModel EnsureFolderPath(FolderViewModel root, string path)
+    {
+        var segments = path.Replace('\\', '/').Split('/', StringSplitOptions.RemoveEmptyEntries);
+        var current = root;
+        var pathSoFar = "";
+
+        foreach (var segment in segments)
+        {
+            pathSoFar = string.IsNullOrEmpty(pathSoFar) ? segment : $"{pathSoFar}/{segment}";
+
+            var existing = current.SubFolders.FirstOrDefault(
+                f => string.Equals(f.Name, segment, StringComparison.OrdinalIgnoreCase));
+
+            if (existing is not null)
+            {
+                current = existing;
+            }
+            else
+            {
+                var newFolder = new FolderViewModel
+                {
+                    Name = segment,
+                    FullPath = pathSoFar
+                };
+                current.SubFolders.Add(newFolder);
+                current = newFolder;
+            }
+        }
+
+        return current;
+    }
+
+    private static void SortFolderRecursive(FolderViewModel folder)
+    {
+        // Sort sub-folders alphabetically
+        var sortedFolders = folder.SubFolders
+            .OrderBy(f => f.Name, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        folder.SubFolders = new ObservableCollection<FolderViewModel>(sortedFolders);
+
+        // Sort servers by SortOrder then name
+        var sortedServers = folder.Servers
+            .OrderBy(s => s.SortOrder)
+            .ThenBy(s => s.DisplayName, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        folder.Servers = new ObservableCollection<ServerItemViewModel>(sortedServers);
+
+        // Recurse
+        foreach (var sub in folder.SubFolders)
+        {
+            SortFolderRecursive(sub);
+        }
     }
 
     private void RefreshLookupCollections(AppSettings settings)
@@ -746,9 +825,6 @@ public partial class ServerListViewModel : ObservableObject
     private void PopulateServerDialogOptions(ServerDialogViewModel dialogVm, AppSettings settings)
     {
         dialogVm.AvailableGateways = new(BuildGatewayOptions(settings.SshGateways));
-
-        dialogVm.AvailableProjects = new(settings.Projects.Select(
-            project => new ProjectOption(project.Id, project.Name, project.Color ?? "#3B82F6")));
     }
 
     private void SynchronizeSelection(string? preferredSelectedServerId)
@@ -831,7 +907,7 @@ public partial class ServerListViewModel : ObservableObject
         server.ProjectColor = project?.Color ?? string.Empty;
     }
 
-    private static bool MatchesGroup(RdpServerDto server, string? projectId, string groupName)
+    private static bool MatchesGroup(ServerProfileDto server, string? projectId, string groupName)
     {
         return string.Equals(server.ProjectId ?? string.Empty, projectId ?? string.Empty, StringComparison.Ordinal)
             && string.Equals(server.Group ?? string.Empty, groupName, StringComparison.OrdinalIgnoreCase);

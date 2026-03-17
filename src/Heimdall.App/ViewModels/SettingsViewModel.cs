@@ -15,12 +15,16 @@
  */
 
 using System.Collections.ObjectModel;
+using System.IO;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Heimdall.App.Services;
 using Heimdall.App.ViewModels.Dialogs;
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Localization;
+using Heimdall.Core.Logging;
 
 namespace Heimdall.App.ViewModels;
 
@@ -30,6 +34,18 @@ namespace Heimdall.App.ViewModels;
 /// </summary>
 public partial class SettingsViewModel : ObservableObject
 {
+    private static readonly JsonSerializerOptions ExportJsonOptions = new()
+    {
+        WriteIndented = true,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+    };
+
+    private static readonly JsonSerializerOptions ImportJsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true
+    };
+
     private readonly ConfigManager _configManager;
     private readonly LocalizationManager _localizer;
     private readonly IDialogService _dialogService;
@@ -66,6 +82,18 @@ public partial class SettingsViewModel : ObservableObject
 
     [ObservableProperty]
     private GatewayItemViewModel? _selectedGateway;
+
+    /// <summary>
+    /// Raised after a server import completes so the main shell can reload
+    /// the server list and related UI state.
+    /// </summary>
+    public event Action? ConfigurationChanged;
+
+    /// <summary>
+    /// Raised when the user changes the theme selection so the shell can
+    /// swap the active <see cref="System.Windows.ResourceDictionary"/> at runtime.
+    /// </summary>
+    public event Action<string>? ThemeChanged;
 
     public SettingsViewModel(
         ConfigManager configManager,
@@ -144,15 +172,128 @@ public partial class SettingsViewModel : ObservableObject
     [RelayCommand]
     private async Task ExportConfigAsync(CancellationToken cancellationToken)
     {
-        // Export file dialog requires XAML view (Phase 5B)
-        await Task.CompletedTask;
+        try
+        {
+            var dialog = new Microsoft.Win32.SaveFileDialog
+            {
+                Title = _localizer["ExportDialogTitle"],
+                Filter = _localizer["ExportDialogFilter"],
+                DefaultExt = ".json",
+                FileName = "servers.json"
+            };
+
+            if (dialog.ShowDialog() != true)
+            {
+                return;
+            }
+
+            var servers = await _configManager.LoadServersAsync();
+            var json = JsonSerializer.Serialize(servers, ExportJsonOptions);
+            await File.WriteAllTextAsync(dialog.FileName, json, new System.Text.UTF8Encoding(false), cancellationToken);
+
+            var count = servers.Count;
+            FileLogger.Info($"Exported {count} server(s) to {dialog.FileName}");
+            _dialogService.ShowInfo(
+                _localizer["ExportDialogTitle"],
+                _localizer.Format("StatusExportSuccess", count));
+        }
+        catch (Exception ex)
+        {
+            FileLogger.Error("Export failed", ex);
+            _dialogService.ShowError(
+                _localizer["ExportDialogTitle"],
+                _localizer.Format("StatusExportFailed", ex.Message));
+        }
     }
 
     [RelayCommand]
     private async Task ImportConfigAsync(CancellationToken cancellationToken)
     {
-        // Import file dialog requires XAML view (Phase 5B)
-        await Task.CompletedTask;
+        try
+        {
+            var dialog = new OpenFileDialog
+            {
+                Title = _localizer["ImportDialogTitle"],
+                Filter = _localizer["ImportDialogFilter"]
+            };
+
+            if (dialog.ShowDialog() != true)
+            {
+                return;
+            }
+
+            var json = await File.ReadAllTextAsync(dialog.FileName, cancellationToken);
+            var imported = JsonSerializer.Deserialize<List<ServerProfileDto>>(json, ImportJsonOptions);
+
+            if (imported is null || imported.Count == 0)
+            {
+                _dialogService.ShowInfo(
+                    _localizer["ImportDialogTitle"],
+                    _localizer.Format("StatusImportSuccess", 0));
+                return;
+            }
+
+            var confirmed = await _dialogService.ShowConfirmAsync(
+                _localizer["ConfirmImportTitle"],
+                _localizer.Format("ConfirmImportMessage", imported.Count));
+
+            if (!confirmed)
+            {
+                return;
+            }
+
+            var existing = await _configManager.LoadServersAsync();
+            var existingIds = new HashSet<string>(existing.Select(s => s.Id), StringComparer.OrdinalIgnoreCase);
+
+            var newCount = 0;
+            var updatedCount = 0;
+
+            foreach (var server in imported)
+            {
+                if (string.IsNullOrEmpty(server.Id))
+                {
+                    server.Id = Guid.NewGuid().ToString();
+                }
+
+                var existingIndex = existing.FindIndex(
+                    s => string.Equals(s.Id, server.Id, StringComparison.OrdinalIgnoreCase));
+
+                if (existingIndex >= 0)
+                {
+                    existing[existingIndex] = server;
+                    updatedCount++;
+                }
+                else
+                {
+                    existing.Add(server);
+                    newCount++;
+                }
+            }
+
+            await _configManager.SaveServersAsync(existing);
+
+            var totalImported = newCount + updatedCount;
+            FileLogger.Info($"Imported {totalImported} server(s) from {dialog.FileName} ({newCount} new, {updatedCount} updated)");
+            _dialogService.ShowInfo(
+                _localizer["ImportDialogTitle"],
+                _localizer.Format("StatusImportBreakdown", totalImported, newCount, updatedCount));
+
+            ConfigurationChanged?.Invoke();
+        }
+        catch (JsonException ex)
+        {
+            FileLogger.Error("Import failed: invalid JSON", ex);
+            _dialogService.ShowError(
+                _localizer["ImportDialogTitle"],
+                _localizer.Format("StatusImportFailed", ex.Message));
+        }
+        catch (Exception ex)
+        {
+            FileLogger.Error("Import failed", ex);
+            _dialogService.ShowError(
+                _localizer["ImportDialogTitle"],
+                _localizer.Format("StatusImportFailed", ex.Message));
+        }
     }
 
     [RelayCommand]
@@ -237,6 +378,11 @@ public partial class SettingsViewModel : ObservableObject
 
         Gateways.Remove(SelectedGateway);
         SelectedGateway = null;
+    }
+
+    partial void OnDefaultThemeChanged(string value)
+    {
+        ThemeChanged?.Invoke(value);
     }
 
     protected override void OnPropertyChanged(System.ComponentModel.PropertyChangedEventArgs e)

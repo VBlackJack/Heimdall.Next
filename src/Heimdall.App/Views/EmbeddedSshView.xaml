@@ -15,56 +15,90 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <!-- Header strip -->
+        <!-- Header strip (compact, matches RDP pattern) -->
         <Border Grid.Row="0"
-                Margin="16,16,16,10"
-                Padding="14,10"
+                Padding="8,3"
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
-                BorderThickness="1"
-                CornerRadius="12">
+                BorderThickness="0,0,0,1">
             <DockPanel LastChildFill="True">
                 <Button x:Name="DisconnectButton"
                         DockPanel.Dock="Right"
                         Content="Disconnect"
                         Click="OnDisconnectClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="12,6"
-                        Margin="12,0,0,0"/>
+                        Padding="8,2"
+                        FontSize="11"
+                        Margin="8,0,0,0"/>
 
-                <StackPanel>
+                <Button x:Name="ReconnectButton"
+                        DockPanel.Dock="Right"
+                        Content="Reconnect"
+                        Click="OnReconnectClick"
+                        Style="{DynamicResource PrimaryButtonStyle}"
+                        Padding="8,2"
+                        FontSize="11"
+                        Margin="8,0,0,0"
+                        Visibility="Collapsed"/>
+
+                <Button x:Name="SplitButton"
+                        DockPanel.Dock="Right"
+                        Content="&#xE8A9;"
+                        FontFamily="Segoe MDL2 Assets"
+                        ToolTip="Split pane"
+                        Click="OnSplitClick"
+                        Style="{DynamicResource ToolbarGhostButtonStyle}"
+                        Padding="6,2" FontSize="12" Margin="4,0"/>
+
+                <!-- Broadcast mode indicator -->
+                <Border x:Name="BroadcastBadge"
+                        DockPanel.Dock="Right"
+                        Visibility="Collapsed"
+                        Background="#44FF5555"
+                        CornerRadius="3"
+                        Padding="6,1"
+                        Margin="8,0,0,0"
+                        VerticalAlignment="Center">
+                    <TextBlock Text="BROADCAST"
+                               FontSize="9"
+                               FontWeight="Bold"
+                               Foreground="{DynamicResource ErrorBrush}"/>
+                </Border>
+
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <TextBlock x:Name="SessionTitleText"
-                               FontSize="16"
+                               FontSize="12"
                                FontWeight="SemiBold"
-                               Foreground="{DynamicResource TextPrimaryBrush}"/>
+                               Foreground="{DynamicResource TextPrimaryBrush}"
+                               VerticalAlignment="Center"/>
                     <TextBlock x:Name="EndpointTextBlock"
-                               Margin="0,4,0,0"
-                               FontSize="12"
-                               Foreground="{DynamicResource TextSecondaryBrush}"/>
+                               Margin="8,0,0,0"
+                               FontSize="11"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               VerticalAlignment="Center"/>
+                    <TextBlock Text=" - " Foreground="{DynamicResource TextSecondaryBrush}"
+                               FontSize="11" VerticalAlignment="Center"/>
                     <TextBlock x:Name="StatusTextBlock"
-                               Margin="0,6,0,0"
-                               FontSize="12"
-                               Foreground="{DynamicResource TextPrimaryBrush}"/>
+                               FontSize="11"
+                               Foreground="{DynamicResource TextPrimaryBrush}"
+                               VerticalAlignment="Center"/>
                 </StackPanel>
             </DockPanel>
         </Border>
 
         <!-- Terminal surface -->
         <Border Grid.Row="1"
-                Margin="16,0,16,16"
-                Background="#1E1E2E"
-                BorderBrush="{DynamicResource BorderBrush}"
-                BorderThickness="1"
-                CornerRadius="14"
+                Background="{DynamicResource BackgroundBrush}"
+                BorderThickness="0"
                 ClipToBounds="True">
             <Grid>
                 <wv2:WebView2 x:Name="TerminalWebView"
                               Focusable="True"
-                              DefaultBackgroundColor="#1E1E2E" />
+                              DefaultBackgroundColor="#282A36" />
 
                 <Border x:Name="FallbackPanel"
                         Visibility="Collapsed"
-                        Background="#1E1E2E"
+                        Background="{DynamicResource BackgroundBrush}"
                         Padding="28">
                     <StackPanel VerticalAlignment="Center"
                                 HorizontalAlignment="Center"

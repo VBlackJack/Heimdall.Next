@@ -109,7 +109,7 @@ public class MigrationService
             return;
         }
 
-        var servers = new List<RdpServerDto>();
+        var servers = new List<ServerProfileDto>();
         foreach (var legacySrv in legacyServers)
         {
             try
@@ -241,9 +241,9 @@ public class MigrationService
 
     // -- Server mapping ----------------------------------------------------
 
-    private static RdpServerDto MapLegacyServer(JsonElement legacy)
+    private static ServerProfileDto MapLegacyServer(JsonElement legacy)
     {
-        var dto = new RdpServerDto();
+        var dto = new ServerProfileDto();
 
         // Identity
         MapString(legacy, "Id", v => dto.Id = v);
@@ -270,7 +270,7 @@ public class MigrationService
         MapBool(legacy, "SshCompression", v => dto.SshCompression = v);
         MapBool(legacy, "SshX11Forwarding", v => dto.SshX11Forwarding = v);
         MapNullableString(legacy, "SshPasswordEncrypted",
-            v => { /* SshPasswordEncrypted not in RdpServerDto; skip */ });
+            v => { /* SshPasswordEncrypted not in ServerProfileDto; skip */ });
 
         // RDP display settings
         MapBool(legacy, "RdpAntiIdle", v => dto.RdpAntiIdle = v);
@@ -304,7 +304,7 @@ public class MigrationService
         MapNullableString(legacy, "Environment", v => dto.Environment = v);
         MapNullableString(legacy, "MacAddress", v =>
         {
-            /* MacAddress not in RdpServerDto; skip gracefully */
+            /* MacAddress not in ServerProfileDto; skip gracefully */
         });
 
         return dto;

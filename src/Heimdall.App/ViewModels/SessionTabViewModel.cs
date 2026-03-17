@@ -15,14 +15,13 @@
  */
 
 using CommunityToolkit.Mvvm.ComponentModel;
+using Heimdall.Core.Models;
 
 namespace Heimdall.App.ViewModels;
 
 /// <summary>
-/// ViewModel for a single embedded session tab (RDP, SSH, or SFTP).
-/// The <see cref="HostControl"/> property holds the native control reference
-/// and is intentionally typed as <see cref="object"/> to avoid WPF type
-/// dependencies in the ViewModel layer.
+/// ViewModel for a single embedded session tab (RDP, SSH, SFTP, Local).
+/// Supports split pane layout with a primary and optional secondary host control.
 /// </summary>
 public partial class SessionTabViewModel : ObservableObject
 {
@@ -45,9 +44,29 @@ public partial class SessionTabViewModel : ObservableObject
     private bool _isActive;
 
     /// <summary>
-    /// The visual host control for this session (embedded RDP view, terminal, SFTP panel).
+    /// The primary visual host control for this session.
     /// Typed as object to keep the ViewModel free of WPF dependencies.
     /// </summary>
     [ObservableProperty]
     private object? _hostControl;
+
+    // ── Split pane support ───────────────────────────────────────
+
+    [ObservableProperty]
+    private bool _isSplit;
+
+    [ObservableProperty]
+    private SplitOrientation _splitOrientation;
+
+    /// <summary>
+    /// The secondary pane host control (visible only when <see cref="IsSplit"/> is true).
+    /// </summary>
+    [ObservableProperty]
+    private object? _secondaryHostControl;
+
+    [ObservableProperty]
+    private string _secondaryServerId = "";
+
+    [ObservableProperty]
+    private string _secondaryConnectionType = "";
 }

@@ -4,9 +4,9 @@ This file provides guidance to Claude Code when working with code in this reposi
 
 ## Project Overview
 
-**Heimdall.Next** is a ground-up rewrite of Heimdall (PowerShell 5.1 + WPF) as a modern .NET 10 + WPF application. It is a secure Windows RDP/SSH/SFTP connection manager designed to be a MobaXterm alternative with superior security and modern UX.
+**Heimdall.Next** is a ground-up rewrite of Heimdall (PowerShell 5.1 + WPF) as a modern .NET 10 + WPF application. It is a secure Windows RDP/SSH/SFTP/Citrix connection manager designed to be a MobaXterm alternative with superior security and modern UX.
 
-**Current build**: v2026.031647 (2026-03-16)
+**Current build**: v2026.031703 (Release)
 
 ## Repository Layout
 
@@ -16,10 +16,10 @@ This file provides guidance to Claude Code when working with code in this reposi
 
 ## Codebase Size
 
-- **97 C# source files** (~18,600 LOC)
-- **12 XAML files** (~3,800 LOC)
-- **6 test files** (~1,860 LOC), 218 xUnit tests
-- **1,412 i18n keys** per locale (EN/FR)
+- **~120 C# source files** (~26,000 LOC)
+- **~18 XAML files** (~6,000 LOC)
+- **12 test files** (~3,500 LOC), 385 xUnit tests
+- **~1,730 i18n keys** per locale (EN/FR)
 - **1,700+ lines** of theme XAML (CommonControls + Dark/Light)
 
 ## Architecture (6 Projects)
@@ -28,10 +28,10 @@ This file provides guidance to Claude Code when working with code in this reposi
 Heimdall.slnx
 ├── src/
 │   ├── Heimdall.Core/          # Shared foundation (net10.0)
-│   │   ├── Configuration/      # AppSettings, ConfigManager, SchemaValidator, DTOs
+│   │   ├── Configuration/      # AppSettings, ConfigManager, SchemaValidator, ServerProfileDto
 │   │   ├── Localization/       # LocalizationManager (JSON-based i18n)
 │   │   ├── Logging/            # FileLogger (daily rotation)
-│   │   ├── Models/             # RdpServer, SshGateway, Project, TunnelSession, Enums
+│   │   ├── Models/             # RdpServer, SshGateway, Project, TunnelSession, ISessionResult, ServerProfileDto, Enums
 │   │   ├── Security/           # DpapiProvider, HmacIntegrity, PinManager, InputValidator, AclEnforcer
 │   │   └── StateMachine/       # ConnectionStateMachine, ApplicationStatusMachine
 │   │
@@ -42,8 +42,9 @@ Heimdall.slnx
 │   │   ├── TunnelManager, GatewayChainResolver, HostKeyStore (TOFU)
 │   │   └── SshShellSession, SshFailureCode (25 codes), TunnelInfo/Result/Session
 │   │
-│   ├── Heimdall.Rdp/           # RDP engine (net10.0-windows, WPF+WinForms)
+│   ├── Heimdall.Rdp/           # RDP + Citrix engine (net10.0-windows, WPF+WinForms)
 │   │   ├── ActiveX/            # RdpActiveXHost, ComInterfaces (IMsTscAx, IMsTscNonScriptable)
+│   │   ├── Citrix/             # ConnectionService.Citrix.cs, EmbeddedCitrixView
 │   │   ├── CredentialAutofill  # EnumWindows + EnumThreadWindows + UI Automation
 │   │   ├── AspectRatioManager, RdpFileGenerator, RdpRedirectionOptions
 │   │   └── IRdpSession, CredentialManagerHelper
@@ -62,12 +63,13 @@ Heimdall.slnx
 │   └── Heimdall.App/           # WPF application (net10.0-windows)
 │       ├── ViewModels/         # MainViewModel, ServerListVM, ConnectionVM, SettingsVM, SessionTabVM
 │       │   └── Dialogs/        # ServerDialogVM, GatewayDialogVM, ProjectDialogVM, PinDialogVM
-│       ├── Views/              # MainWindow, EmbeddedRdpView, EmbeddedSshView
+│       ├── Views/              # MainWindow, EmbeddedRdpView, EmbeddedSshView, EmbeddedSftpView, EmbeddedCitrixView
 │       │   └── Dialogs/        # ServerDialog, GatewayDialog, ProjectDialog, PinDialog, InputDialog
-│       ├── Services/           # ConnectionService, EmbeddedSessionManager, MigrationService
-│       │                       # DialogService, NavigationService, SleepPrevention
-│       ├── Converters/         # BoolToVisibility, ConnectionState/Type brushes, etc.
-│       ├── Themes/             # CommonControls.xaml (1,599 lines), DarkTheme, LightTheme
+│       ├── Services/           # ConnectionService (6 partial files: .Rdp, .Ssh, .Sftp, .Citrix, .Local, .Tunnel),
+│       │                       # EmbeddedSessionManager, MigrationService, DialogService,
+│       │                       # NavigationService, SleepPrevention
+│       ├── Converters/         # BoolToVisibility, ConnectionState/Type brushes, FileSizeConverter, etc.
+│       ├── Themes/             # CommonControls.xaml (1,700+ lines, incl. GridViewColumnHeader), DarkTheme, LightTheme
 │       └── Theming/            # WindowThemeHelper (DWM dark mode API)
 │
 ├── tests/
@@ -75,7 +77,7 @@ Heimdall.slnx
 │   └── Heimdall.Ssh.Tests/     # FailureClassifier, AuthPreflight, HostKeyStore, Pageant, PlinkTunnel
 │
 ├── config/                     # Factory defaults (settings.default.json, servers.default.json)
-├── locales/                    # en.json, fr.json (1,412 keys each)
+├── locales/                    # en.json, fr.json (~1,730 keys each)
 ├── docs/                       # TROUBLESHOOTING.md, ARCHITECTURE.md
 ├── Build.ps1                   # Portable build script (YYYY.MMDDxx versioning)
 └── Dist/                       # Build output (gitignored)
@@ -124,6 +126,14 @@ powershell -File Build.ps1 -SkipTests
 - Version is written to `Heimdall.App.csproj`: `<Version>` (Win32-safe) and `<InformationalVersion>` (display)
 - `Dist/` is gitignored
 
+### CI/CD Pipeline
+
+GitHub Actions (`.github/workflows/ci.yml`) runs on push to main/develop and PRs to main:
+1. **Build**: `dotnet build` in Release configuration
+2. **Test**: `dotnet test` (xUnit, 385 tests)
+3. **Validate JSON locales**: Checks i18n key parity between en.json and fr.json (~1,730 keys)
+4. **Lint**: Code quality checks
+
 ## Code Standards
 
 - **License header**: Apache 2.0 with author "Julien Bombled" on all new files
@@ -166,6 +176,49 @@ powershell -File Build.ps1 -SkipTests
 - `EnumWindows` + `EnumThreadWindows` (CredUI dialogs from embedded ActiveX are thread-owned, not top-level)
 - UI Automation for modern XAML dialogs, Win32 `SendMessage`/`BM_CLICK` fallback for classic
 - `IMsTscNonScriptable` COM interface for embedded password injection + `ClearPassword()` after connect
+
+### SFTP Embedded Panel
+- SSH.NET native `SftpClient` (not psftp process) for file browsing and transfer
+- Sudo fallback: standard SFTP first; on permission denied, falls back to `sudo cat` / `sudo tee` via SSH exec channel
+- Pageant integration: `AGENT_COPYDATA_ID` must be `0x804e50ba`, RSA-SHA2 algorithm registration for modern servers, `Sign()` must return full SSH blob (not raw signature bytes)
+- `RemoteFileEditor`: `FileSystemWatcher` + 2-second debounce for auto-upload on save; re-editing a file closes the previous editor session
+- XAML gotcha: `CheckBox IsChecked="True"` fires the `Checked` event during `InitializeComponent()` — guard handlers with null checks on uninitialized fields
+- Session tab right-click: SFTP tabs skip `MainWindow.OnSessionTabRightClick` context menu (SFTP view has its own dedicated context menu)
+
+### Citrix: StoreBrowse Integration
+- Citrix sessions use `storebrowse.exe` from the Citrix Workspace App to enumerate and launch published applications/desktops
+- `ConnectionService.Citrix.cs` handles StoreFront authentication and ICA file generation
+- `EmbeddedCitrixView` hosts the Citrix session in a similar tab pattern to RDP
+- StoreBrowse path is auto-detected from `%ProgramFiles(x86)%\Citrix\ICA Client\SelfServicePlugin\` or configurable in settings
+
+### Multi-Exec Broadcast
+- Sends keystrokes simultaneously to multiple active SSH terminal sessions
+- Broadcast mode toggled per-session via toolbar button
+- Input is relayed from a single source terminal to all opted-in sessions via `PostWebMessageAsString`
+- Each terminal can independently opt in/out of broadcast reception
+
+### Quick Connect (Ctrl+K)
+- Command palette overlay for ad-hoc connections without saving a server profile
+- Supports RDP, SSH, SFTP, and Citrix connection strings
+- Parses `user@host:port` format with optional protocol prefix
+- Recent connections persisted for quick re-use
+
+### Tunnel Panel (Retractable)
+- Dedicated side panel showing all active SSH tunnels with real-time status
+- Retractable via toggle button to save screen space
+- Displays local port, remote target, gateway chain, and traffic indicators
+- Allows manual tunnel teardown without disconnecting the parent session
+
+### Theme Switching (Runtime Dark/Light)
+- Runtime theme switching without application restart
+- `WindowThemeHelper` uses DWM API (`DwmSetWindowAttribute`) for title bar dark mode
+- Theme resources merged via `ResourceDictionary` swap at runtime
+- CommonControls.xaml provides 1,700+ lines of shared control styles
+
+### AvalonEdit Embedded Editor
+- AvalonEdit control embedded for viewing and editing remote files via SFTP
+- Syntax highlighting for common file types
+- Integrates with `RemoteFileEditor` for auto-upload on save
 
 ### Version Number
 - Win32 version fields limited to 65535; `<Version>1.0.MMDD.xx</Version>` for assembly

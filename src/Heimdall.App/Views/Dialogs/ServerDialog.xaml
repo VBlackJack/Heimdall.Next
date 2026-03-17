@@ -126,6 +126,19 @@
             </Style.Triggers>
         </Style>
 
+        <!-- Gateway/routing sections: hidden for Local shell and Citrix -->
+        <Style x:Key="NetworkSectionStyle" TargetType="FrameworkElement">
+            <Setter Property="Visibility" Value="Visible"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding ConnectionType}" Value="Local">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding ConnectionType}" Value="Citrix">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
         <Style x:Key="GatewaySectionStyle" TargetType="FrameworkElement">
             <Setter Property="Visibility" Value="Collapsed"/>
             <Style.Triggers>
@@ -198,24 +211,102 @@
                                         <ComboBoxItem Content="RDP"/>
                                         <ComboBoxItem Content="SSH"/>
                                         <ComboBoxItem Content="SFTP"/>
+                                        <ComboBoxItem Content="Local"/>
+                                        <ComboBoxItem Content="Citrix"/>
                                     </ComboBox>
-                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Server" Style="{StaticResource LabelStyle}" Margin="0,14,0,4"/>
-                                    <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding EndpointPortLabel}" Style="{StaticResource LabelStyle}" Margin="12,14,0,4"/>
+                                    <!-- Server/Port row: hidden for Local shell and Citrix -->
+                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Server" Margin="0,14,0,4">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock" BasedOn="{StaticResource LabelStyle}">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding ConnectionType}" Value="Local">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding ConnectionType}" Value="Citrix">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                    <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding EndpointPortLabel}" Margin="12,14,0,4">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock" BasedOn="{StaticResource LabelStyle}">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding ConnectionType}" Value="Local">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding ConnectionType}" Value="Citrix">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
                                     <TextBox Grid.Row="3" Grid.Column="0"
-                                             Text="{Binding RemoteServer, UpdateSourceTrigger=PropertyChanged}"
-                                             Style="{StaticResource FormTextBoxStyle}"/>
+                                             Text="{Binding RemoteServer, UpdateSourceTrigger=PropertyChanged}">
+                                        <TextBox.Style>
+                                            <Style TargetType="TextBox" BasedOn="{StaticResource FormTextBoxStyle}">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding ConnectionType}" Value="Local">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding ConnectionType}" Value="Citrix">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBox.Style>
+                                    </TextBox>
                                     <TextBox Grid.Row="3" Grid.Column="1"
                                              Margin="12,0,0,0"
                                              Width="120"
                                              HorizontalAlignment="Left"
-                                             Text="{Binding EndpointPort, UpdateSourceTrigger=PropertyChanged}"
-                                             Style="{StaticResource FormTextBoxStyle}"/>
+                                             Text="{Binding EndpointPort, UpdateSourceTrigger=PropertyChanged}">
+                                        <TextBox.Style>
+                                            <Style TargetType="TextBox" BasedOn="{StaticResource FormTextBoxStyle}">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding ConnectionType}" Value="Local">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding ConnectionType}" Value="Citrix">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBox.Style>
+                                    </TextBox>
                                 </Grid>
-                                <TextBlock Text="{Binding EndpointPortHelpText}" Style="{StaticResource HintTextStyle}"/>
+                                <TextBlock Text="{Binding EndpointPortHelpText}">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock" BasedOn="{StaticResource HintTextStyle}">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding ConnectionType}" Value="Local">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding ConnectionType}" Value="Citrix">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
                             </StackPanel>
                         </Border>
 
-                        <Border Style="{StaticResource SectionCardStyle}">
+                        <Border>
+                            <Border.Style>
+                                <Style TargetType="Border" BasedOn="{StaticResource SectionCardStyle}">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ConnectionType}" Value="Local">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding ConnectionType}" Value="Citrix">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
                             <StackPanel>
                                 <TextBlock Text="Gateway routing" Style="{StaticResource SectionTitleStyle}"/>
                                 <TextBlock Text="Use an SSH gateway when the target server is only reachable through a bastion or jump host."
@@ -701,6 +792,117 @@
                                 </StackPanel>
                             </StackPanel>
                         </Border>
+
+                        <!-- Local Shell settings (visible only for Local type) -->
+                        <Border>
+                            <Border.Style>
+                                <Style TargetType="Border" BasedOn="{StaticResource SectionCardStyle}">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ConnectionType}" Value="Local">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+                            <StackPanel>
+                                <TextBlock Text="Local shell" Style="{StaticResource SectionTitleStyle}"/>
+                                <TextBlock Text="Configure the shell executable and startup arguments."
+                                           Style="{StaticResource SectionDescriptionStyle}"/>
+                                <Grid Margin="0,16,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="140"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Executable" Style="{StaticResource LabelStyle}"/>
+                                    <ComboBox Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
+                                              IsEditable="True"
+                                              Text="{Binding LocalShellExecutable, UpdateSourceTrigger=PropertyChanged}"
+                                              Style="{StaticResource FormComboBoxStyle}">
+                                        <ComboBoxItem Content="powershell.exe"/>
+                                        <ComboBoxItem Content="pwsh.exe"/>
+                                        <ComboBoxItem Content="cmd.exe"/>
+                                        <ComboBoxItem Content="bash"/>
+                                        <ComboBoxItem Content="wsl.exe"/>
+                                    </ComboBox>
+                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Arguments" Style="{StaticResource LabelStyle}" Margin="0,14,0,4"/>
+                                    <TextBox Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2"
+                                             Text="{Binding LocalShellArguments, UpdateSourceTrigger=PropertyChanged}"
+                                             Style="{StaticResource FormTextBoxStyle}"/>
+                                    <TextBlock Grid.Row="4" Grid.Column="0" Text="Working directory" Style="{StaticResource LabelStyle}" Margin="0,14,0,4"/>
+                                    <TextBox Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="2"
+                                             Text="{Binding LocalShellWorkingDirectory, UpdateSourceTrigger=PropertyChanged}"
+                                             Style="{StaticResource FormTextBoxStyle}"/>
+                                </Grid>
+                                <CheckBox Content="Run as Administrator (requires gsudo or Windows 11 sudo)"
+                                          IsChecked="{Binding LocalShellElevated}"
+                                          Foreground="{DynamicResource TextPrimaryBrush}"
+                                          Margin="0,12,0,0"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Citrix settings (visible only for Citrix type) -->
+                        <Border>
+                            <Border.Style>
+                                <Style TargetType="Border" BasedOn="{StaticResource SectionCardStyle}">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ConnectionType}" Value="Citrix">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+                            <StackPanel>
+                                <TextBlock Text="Citrix Workspace" Style="{StaticResource SectionTitleStyle}"/>
+                                <TextBlock Text="Configure the StoreFront URL and application name, or provide a direct ICA file."
+                                           Style="{StaticResource SectionDescriptionStyle}"/>
+                                <Grid Margin="0,16,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="140"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="StoreFront URL" Style="{StaticResource LabelStyle}"/>
+                                    <TextBox Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
+                                             Text="{Binding CitrixStoreFrontUrl, UpdateSourceTrigger=PropertyChanged}"
+                                             Style="{StaticResource FormTextBoxStyle}"/>
+                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Application name" Style="{StaticResource LabelStyle}" Margin="0,14,0,4"/>
+                                    <TextBox Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2"
+                                             Text="{Binding CitrixAppName, UpdateSourceTrigger=PropertyChanged}"
+                                             Style="{StaticResource FormTextBoxStyle}"/>
+                                    <TextBlock Grid.Row="4" Grid.Column="0" Text="ICA file path" Style="{StaticResource LabelStyle}" Margin="0,14,0,4"/>
+                                    <TextBox Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="2"
+                                             Text="{Binding CitrixIcaFilePath, UpdateSourceTrigger=PropertyChanged}"
+                                             Style="{StaticResource FormTextBoxStyle}"/>
+                                </Grid>
+                                <TextBlock Text="Provide either a StoreFront URL + application name, or a direct ICA file path."
+                                           Style="{StaticResource HintTextStyle}"/>
+                                <CheckBox Content="Seamless mode"
+                                          IsChecked="{Binding CitrixSeamlessMode}"
+                                          Foreground="{DynamicResource TextPrimaryBrush}"
+                                          Margin="0,12,0,0"/>
+                                <CheckBox Content="Use SSO (Kerberos)"
+                                          IsChecked="{Binding CitrixUseSso}"
+                                          Foreground="{DynamicResource TextPrimaryBrush}"
+                                          Margin="0,8,0,0"/>
+                            </StackPanel>
+                        </Border>
                     </StackPanel>
                 </ScrollViewer>
             </TabItem>
@@ -724,18 +926,10 @@
                                         <RowDefinition Height="Auto"/>
                                         <RowDefinition Height="Auto"/>
                                     </Grid.RowDefinitions>
-                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Group" Style="{StaticResource LabelStyle}"/>
-                                    <TextBlock Grid.Row="0" Grid.Column="1" Text="Project" Style="{StaticResource LabelStyle}" Margin="12,0,0,4"/>
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Folder" Style="{StaticResource LabelStyle}"/>
                                     <TextBox Grid.Row="1" Grid.Column="0"
                                              Text="{Binding Group, UpdateSourceTrigger=PropertyChanged}"
                                              Style="{StaticResource FormTextBoxStyle}"/>
-                                    <ComboBox Grid.Row="1" Grid.Column="1"
-                                              Margin="12,0,0,0"
-                                              ItemsSource="{Binding AvailableProjects}"
-                                              SelectedValue="{Binding SelectedProjectId}"
-                                              SelectedValuePath="Id"
-                                              DisplayMemberPath="Name"
-                                              Style="{StaticResource FormComboBoxStyle}"/>
                                     <TextBlock Grid.Row="2" Grid.Column="0" Text="Environment" Style="{StaticResource LabelStyle}" Margin="0,14,0,4"/>
                                     <TextBlock Grid.Row="2" Grid.Column="1" Text="Favorite" Style="{StaticResource LabelStyle}" Margin="12,14,0,4"/>
                                     <ComboBox Grid.Row="3" Grid.Column="0"

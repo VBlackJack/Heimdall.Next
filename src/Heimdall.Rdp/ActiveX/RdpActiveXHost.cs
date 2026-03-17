@@ -447,6 +447,11 @@ public class RdpActiveXHost : AxHost, IRdpSession
         // Auto-reconnect
         adv.EnableAutoReconnect = _pendingRedirections.AutoReconnect;
 
+        // Allow background input — CRITICAL for anti-idle on background tabs.
+        // Without this, the RDP ActiveX control discards PostMessage input
+        // when it does not have focus, silently breaking anti-idle.
+        try { adv.allowBackgroundInput = 1; } catch { }
+
         // Multi-monitor (requires IMsRdpClientNonScriptable5)
         if (_pendingRedirections.MultiMonitor)
         {

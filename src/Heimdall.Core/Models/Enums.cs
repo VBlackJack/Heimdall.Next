@@ -16,7 +16,7 @@
 
 namespace Heimdall.Core.Models;
 
-public enum ConnectionType { Rdp, Ssh, Sftp }
+public enum ConnectionType { Rdp, Ssh, Sftp, Local, Citrix }
 
 public enum ConnectionState
 {
@@ -28,6 +28,7 @@ public enum ConnectionState
     LaunchingRdp,
     LaunchingSsh,
     LaunchingSftp,
+    LaunchingLocal,
     Connected,
     Disconnecting,
     Error
@@ -41,6 +42,8 @@ public enum ApplicationStatus
     Error,
     Shutdown
 }
+
+public enum SplitOrientation { Horizontal, Vertical }
 
 public enum RdpAudioMode
 {

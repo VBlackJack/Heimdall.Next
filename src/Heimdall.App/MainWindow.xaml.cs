@@ -44,6 +44,7 @@ public partial class MainWindow : Window
         TabTunnels.Checked += OnTunnelsTabChecked;
         TabScheduled.Checked += OnScheduledTabChecked;
         TabSettings.Checked += OnSettingsTabChecked;
+        TabAbout.Checked += OnAboutTabChecked;
         viewModel.Connection.PropertyChanged += (_, e) =>
         {
             if (string.Equals(e.PropertyName, nameof(ConnectionViewModel.HasActiveSessions), StringComparison.Ordinal))
@@ -54,15 +55,49 @@ public partial class MainWindow : Window
             }
         };
 
+        // Wire split button callback from embedded views
+        viewModel.EmbeddedSessionManager.SplitRequestedCallback = OnEmbeddedSplitRequested;
+
         Loaded += async (_, _) =>
         {
             if (viewModel.LoadCommand.CanExecute(null))
             {
                 await viewModel.LoadCommand.ExecuteAsync(null);
             }
+
+            PopulateAboutSection();
         };
 
         KeyDown += OnKeyDown;
+    }
+
+    /// <summary>
+    /// Handles split requests from embedded view header buttons by showing the
+    /// split picker context menu with a default vertical orientation.
+    /// </summary>
+    private void OnEmbeddedSplitRequested(SessionTabViewModel session)
+    {
+        if (session.IsSplit)
+        {
+            UnsplitSession(session);
+        }
+        else
+        {
+            RequestSplitSession(session, Heimdall.Core.Models.SplitOrientation.Vertical);
+        }
+    }
+
+    private void PopulateAboutSection()
+    {
+        var asm = System.Reflection.Assembly.GetExecutingAssembly();
+        var infoVersion = System.Reflection.CustomAttributeExtensions.GetCustomAttribute<System.Reflection.AssemblyInformationalVersionAttribute>(asm)
+            ?.InformationalVersion ?? "unknown";
+        if (DataContext is MainViewModel aboutVm)
+            AboutVersionText.Text = string.Format(aboutVm.Localize("AboutVersion"), infoVersion);
+        else
+            AboutVersionText.Text = $"Version {infoVersion}";
+        AboutRuntimeText.Text = System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription;
+        AboutPlatformText.Text = $"{System.Runtime.InteropServices.RuntimeInformation.OSDescription} ({System.Runtime.InteropServices.RuntimeInformation.OSArchitecture})";
     }
 
     private void OnServersTabChecked(object sender, RoutedEventArgs e)
@@ -83,6 +118,33 @@ public partial class MainWindow : Window
     private void OnSettingsTabChecked(object sender, RoutedEventArgs e)
     {
         SwitchToTab("Settings");
+    }
+
+    private async void OnAddFolderFromMenu(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is not MainViewModel vm) return;
+
+        var name = await vm.DialogService.ShowInputAsync(
+            vm.Localize("TreeCtxNewGroup"),
+            vm.Localize("ServerFieldGroup"));
+
+        if (!string.IsNullOrWhiteSpace(name))
+        {
+            var settings = await vm.ConfigManager.LoadSettingsAsync();
+            var path = name.Trim();
+            if (!settings.EmptyGroups.Contains(path, StringComparer.OrdinalIgnoreCase))
+            {
+                settings.EmptyGroups.Add(path);
+                await vm.ConfigManager.SaveSettingsAsync(settings);
+                var servers = await vm.ConfigManager.LoadServersAsync();
+                vm.ServerList.LoadServers(servers, settings);
+            }
+        }
+    }
+
+    private void OnAboutTabChecked(object sender, RoutedEventArgs e)
+    {
+        SwitchToTab("About");
     }
 
     private void SwitchToTab(string tabName)
@@ -158,6 +220,15 @@ public partial class MainWindow : Window
                 e.Handled = true;
                 break;
 
+            case Key.K when Keyboard.Modifiers == ModifierKeys.Control:
+                if (DataContext is MainViewModel vm2)
+                {
+                    vm2.OpenCommandPaletteCommand.Execute(null);
+                    PaletteInput.Focus();
+                }
+                e.Handled = true;
+                break;
+
             case Key.F11:
                 ToggleFullscreen();
                 e.Handled = true;
@@ -224,6 +295,102 @@ public partial class MainWindow : Window
         }
     }
 
+    // ── TreeView drag-drop: move servers between groups/projects ──
+
+    private System.Windows.Point _treeDragStartPoint;
+    private bool _treeDragInProgress;
+
+    private void OnTreeViewDragStart(object sender, MouseButtonEventArgs e)
+    {
+        _treeDragStartPoint = e.GetPosition(null);
+        _treeDragInProgress = false;
+    }
+
+    private void OnTreeViewDragMove(object sender, System.Windows.Input.MouseEventArgs e)
+    {
+        if (e.LeftButton != MouseButtonState.Pressed || _treeDragInProgress)
+        {
+            return;
+        }
+
+        var pos = e.GetPosition(null);
+        var diff = pos - _treeDragStartPoint;
+
+        if (Math.Abs(diff.X) < SystemParameters.MinimumHorizontalDragDistance &&
+            Math.Abs(diff.Y) < SystemParameters.MinimumVerticalDragDistance)
+        {
+            return;
+        }
+
+        // Find the ServerItemViewModel being dragged
+        var treeViewItem = FindAncestor<TreeViewItem>(e.OriginalSource as DependencyObject);
+        if (treeViewItem?.DataContext is not ServerItemViewModel serverItem)
+        {
+            return;
+        }
+
+        _treeDragInProgress = true;
+        var data = new System.Windows.DataObject("HeimdallServer", serverItem);
+        DragDrop.DoDragDrop(treeViewItem, data, System.Windows.DragDropEffects.Move);
+        _treeDragInProgress = false;
+    }
+
+    private void OnTreeViewDragOver(object sender, System.Windows.DragEventArgs e)
+    {
+        e.Effects = System.Windows.DragDropEffects.None;
+
+        if (!e.Data.GetDataPresent("HeimdallServer"))
+        {
+            e.Handled = true;
+            return;
+        }
+
+        var target = FindAncestor<TreeViewItem>(e.OriginalSource as DependencyObject);
+        if (target?.DataContext is FolderViewModel)
+        {
+            e.Effects = System.Windows.DragDropEffects.Move;
+        }
+
+        e.Handled = true;
+    }
+
+    private async void OnTreeViewDrop(object sender, System.Windows.DragEventArgs e)
+    {
+        if (!e.Data.GetDataPresent("HeimdallServer"))
+        {
+            return;
+        }
+
+        var serverItem = e.Data.GetData("HeimdallServer") as ServerItemViewModel;
+        if (serverItem is null || DataContext is not MainViewModel vm)
+        {
+            return;
+        }
+
+        var target = FindAncestor<TreeViewItem>(e.OriginalSource as DependencyObject);
+        if (target?.DataContext is FolderViewModel folder)
+        {
+            string targetGroup = folder.FullPath;
+
+            if (!string.Equals(serverItem.Group, targetGroup, StringComparison.OrdinalIgnoreCase))
+            {
+                var servers = await vm.ConfigManager.LoadServersAsync();
+                var dto = servers.FirstOrDefault(
+                    s => string.Equals(s.Id, serverItem.Id, StringComparison.Ordinal));
+
+                if (dto is not null)
+                {
+                    dto.Group = string.IsNullOrWhiteSpace(targetGroup) ? null : targetGroup;
+                    // Preserve ProjectId during folder moves (backward compatibility)
+                    await vm.ConfigManager.SaveServersAsync(servers);
+                    var settings = await vm.ConfigManager.LoadSettingsAsync();
+                    vm.ServerList.LoadServers(servers, settings);
+                    vm.StatusText = string.Format(vm.Localize("StatusMovedToGroup"), serverItem.DisplayName, folder.Name);
+                }
+            }
+        }
+    }
+
     private void OnTreeViewContextMenuOpening(object sender, ContextMenuEventArgs e)
     {
         if (DataContext is not MainViewModel vm || sender is not TreeView treeView)
@@ -256,8 +423,7 @@ public partial class MainWindow : Window
         return target switch
         {
             ServerItemViewModel server => CreateServerContextMenu(vm, server),
-            ServerGroupViewModel group => CreateGroupContextMenu(vm, group),
-            ServerProjectViewModel project => CreateProjectContextMenu(vm, project),
+            FolderViewModel folder => CreateFolderContextMenu(vm, folder),
             _ => CreateEmptyAreaContextMenu(vm)
         };
     }
@@ -300,64 +466,185 @@ public partial class MainWindow : Window
         return menu;
     }
 
-    private ContextMenu CreateGroupContextMenu(MainViewModel vm, ServerGroupViewModel group)
+    /// <summary>
+    /// Recursively collects all <see cref="ServerItemViewModel"/> instances from a folder and its sub-folders.
+    /// </summary>
+    private static List<ServerItemViewModel> GetAllServersRecursive(FolderViewModel folder)
     {
-        var menu = CreateContextMenu();
-        var context = new ServerGroupContext(
-            group.ProjectId,
-            group.ProjectName,
-            group.GroupName,
-            group.IsVirtualGroup);
-
-        menu.Items.Add(CreateMenuItem(
-            vm.Localize("DialogTitleAddServer"),
-            vm.ServerList.AddServerToGroupCommand,
-            context));
-        menu.Items.Add(CreateMenuItem(
-            vm.Localize("TreeCtxRenameGroup"),
-            vm.ServerList.RenameGroupCommand,
-            context,
-            !group.IsVirtualGroup));
-        menu.Items.Add(new Separator());
-        menu.Items.Add(CreateMenuItem(
-            vm.Localize("TreeCtxDeleteGroup"),
-            vm.ServerList.DeleteGroupCommand,
-            context,
-            !group.IsVirtualGroup));
-
-        return menu;
+        var result = new List<ServerItemViewModel>(folder.Servers);
+        foreach (var sub in folder.SubFolders)
+        {
+            result.AddRange(GetAllServersRecursive(sub));
+        }
+        return result;
     }
 
-    private ContextMenu CreateProjectContextMenu(MainViewModel vm, ServerProjectViewModel project)
+    private ContextMenu CreateFolderContextMenu(MainViewModel vm, FolderViewModel folder)
     {
         var menu = CreateContextMenu();
 
-        if (!project.IsVirtualProject)
+        // Connect all servers in this folder (recursively)
+        var allServers = GetAllServersRecursive(folder);
+        var connectAllItem = new MenuItem
         {
-            menu.Items.Add(CreateMenuItem(
-                vm.Localize("TreeCtxEditProject"),
-                vm.EditProjectCommand,
-                project));
-        }
+            Header = string.Format(vm.Localize("TreeCtxConnectAllCount"), allServers.Count),
+            IsEnabled = allServers.Count > 0
+        };
+        connectAllItem.Click += async (_, _) =>
+        {
+            var confirmed = await vm.DialogService.ShowConfirmAsync(
+                vm.Localize("ConfirmConnectAllTitle"),
+                string.Format(vm.Localize("ConfirmConnectAllMessage"), allServers.Count));
 
-        menu.Items.Add(CreateMenuItem(
-            vm.Localize("TreeCtxNewGroup"),
-            vm.ServerList.AddGroupCommand,
-            project));
+            if (!confirmed) return;
+
+            for (int i = 0; i < allServers.Count; i++)
+            {
+                var server = allServers[i];
+                vm.StatusText = string.Format(
+                    vm.Localize("StatusConnectAllProgress"),
+                    i + 1, allServers.Count, server.DisplayName);
+
+                if (vm.ServerList.ConnectCommand.CanExecute(server))
+                {
+                    vm.ServerList.ConnectCommand.Execute(server);
+                    if (i < allServers.Count - 1)
+                    {
+                        await Task.Delay(500);
+                    }
+                }
+            }
+            vm.StatusText = string.Format(
+                vm.Localize("StatusConnectedAllCount"), allServers.Count);
+        };
+        menu.Items.Add(connectAllItem);
+
         menu.Items.Add(new Separator());
 
-        if (project.IsVirtualProject)
+        // Add server to this folder
+        var seed = new ServerDialogSeed(null, folder.FullPath);
+        menu.Items.Add(CreateMenuItem(
+            vm.Localize("DialogTitleAddServer"),
+            vm.ServerList.AddServerCommand,
+            seed));
+
+        // Add sub-folder (via input dialog)
+        var addSubItem = new MenuItem { Header = vm.Localize("TreeCtxNewGroup") };
+        addSubItem.Click += async (_, _) =>
         {
-            menu.Items.Add(CreateMenuItem(
-                vm.Localize("TreeCtxNewProject"),
-                vm.AddProjectCommand));
-        }
-        else
+            var name = await vm.DialogService.ShowInputAsync(
+                vm.Localize("TreeCtxNewGroup"),
+                vm.Localize("ServerFieldGroup"));
+
+            if (!string.IsNullOrWhiteSpace(name))
+            {
+                string newPath = string.IsNullOrEmpty(folder.FullPath)
+                    ? name.Trim()
+                    : $"{folder.FullPath}/{name.Trim()}";
+
+                var settings = await vm.ConfigManager.LoadSettingsAsync();
+                if (!settings.EmptyGroups.Contains(newPath, StringComparer.OrdinalIgnoreCase))
+                {
+                    settings.EmptyGroups.Add(newPath);
+                    await vm.ConfigManager.SaveSettingsAsync(settings);
+                    var servers = await vm.ConfigManager.LoadServersAsync();
+                    vm.ServerList.LoadServers(servers, settings);
+                }
+            }
+        };
+        menu.Items.Add(addSubItem);
+
+        menu.Items.Add(new Separator());
+
+        // Rename folder
+        if (!string.IsNullOrEmpty(folder.FullPath))
         {
-            menu.Items.Add(CreateMenuItem(
-                vm.Localize("TreeCtxDeleteProject"),
-                vm.DeleteProjectCommand,
-                project));
+            var renameItem = new MenuItem { Header = vm.Localize("TreeCtxRenameGroup") };
+            renameItem.Click += async (_, _) =>
+            {
+                var newName = await vm.DialogService.ShowInputAsync(
+                    vm.Localize("TreeCtxRenameGroup"),
+                    vm.Localize("ServerFieldGroup"),
+                    folder.Name);
+
+                if (!string.IsNullOrWhiteSpace(newName) &&
+                    !string.Equals(newName.Trim(), folder.Name, StringComparison.Ordinal))
+                {
+                    var servers = await vm.ConfigManager.LoadServersAsync();
+                    string oldPath = folder.FullPath;
+                    string parentPath = oldPath.Contains('/')
+                        ? oldPath[..oldPath.LastIndexOf('/')]
+                        : "";
+                    string newPath = string.IsNullOrEmpty(parentPath)
+                        ? newName.Trim()
+                        : $"{parentPath}/{newName.Trim()}";
+
+                    // Rename in server Group paths
+                    foreach (var dto in servers)
+                    {
+                        if (dto.Group is not null &&
+                            (dto.Group.Equals(oldPath, StringComparison.OrdinalIgnoreCase) ||
+                             dto.Group.StartsWith(oldPath + "/", StringComparison.OrdinalIgnoreCase)))
+                        {
+                            dto.Group = newPath + dto.Group[oldPath.Length..];
+                        }
+                    }
+
+                    // Rename in EmptyGroups
+                    var settings = await vm.ConfigManager.LoadSettingsAsync();
+                    for (int i = 0; i < settings.EmptyGroups.Count; i++)
+                    {
+                        var eg = settings.EmptyGroups[i];
+                        if (eg.Equals(oldPath, StringComparison.OrdinalIgnoreCase) ||
+                            eg.StartsWith(oldPath + "/", StringComparison.OrdinalIgnoreCase))
+                        {
+                            settings.EmptyGroups[i] = newPath + eg[oldPath.Length..];
+                        }
+                    }
+
+                    await vm.ConfigManager.SaveSettingsAsync(settings);
+                    await vm.ConfigManager.SaveServersAsync(servers);
+                    vm.ServerList.LoadServers(servers, settings);
+                }
+            };
+            menu.Items.Add(renameItem);
+
+            // Delete folder (move servers to root)
+            var deleteItem = new MenuItem
+            {
+                Header = vm.Localize("TreeCtxDeleteGroup"),
+                Foreground = Application.Current.TryFindResource("ErrorBrush") as Brush
+                    ?? new System.Windows.Media.SolidColorBrush(Colors.Red)
+            };
+            deleteItem.Click += async (_, _) =>
+            {
+                var confirmed = await vm.DialogService.ShowConfirmAsync(
+                    vm.Localize("TreeCtxDeleteGroup"),
+                    string.Format(vm.Localize("TreeCtxDeleteGroupConfirm"), folder.Name),
+                    "warning");
+
+                if (!confirmed) return;
+
+                var servers = await vm.ConfigManager.LoadServersAsync();
+                foreach (var dto in servers)
+                {
+                    if (dto.Group is not null &&
+                        (dto.Group.Equals(folder.FullPath, StringComparison.OrdinalIgnoreCase) ||
+                         dto.Group.StartsWith(folder.FullPath + "/", StringComparison.OrdinalIgnoreCase)))
+                    {
+                        dto.Group = null;
+                    }
+                }
+
+                var settings = await vm.ConfigManager.LoadSettingsAsync();
+                settings.EmptyGroups.RemoveAll(p =>
+                    p.Equals(folder.FullPath, StringComparison.OrdinalIgnoreCase) ||
+                    p.StartsWith(folder.FullPath + "/", StringComparison.OrdinalIgnoreCase));
+                await vm.ConfigManager.SaveSettingsAsync(settings);
+                await vm.ConfigManager.SaveServersAsync(servers);
+                vm.ServerList.LoadServers(servers, settings);
+            };
+            menu.Items.Add(deleteItem);
         }
 
         return menu;
@@ -373,9 +660,29 @@ public partial class MainWindow : Window
         menu.Items.Add(CreateMenuItem(
             vm.Localize("BtnAddGateway"),
             vm.Settings.AddGatewayCommand));
-        menu.Items.Add(CreateMenuItem(
-            vm.Localize("TreeCtxNewProject"),
-            vm.AddProjectCommand));
+
+        // New root folder
+        var newFolderItem = new MenuItem { Header = vm.Localize("TreeCtxNewGroup") };
+        newFolderItem.Click += async (_, _) =>
+        {
+            var name = await vm.DialogService.ShowInputAsync(
+                vm.Localize("TreeCtxNewGroup"),
+                vm.Localize("ServerFieldGroup"));
+
+            if (!string.IsNullOrWhiteSpace(name))
+            {
+                var settings = await vm.ConfigManager.LoadSettingsAsync();
+                var path = name.Trim();
+                if (!settings.EmptyGroups.Contains(path, StringComparer.OrdinalIgnoreCase))
+                {
+                    settings.EmptyGroups.Add(path);
+                    await vm.ConfigManager.SaveSettingsAsync(settings);
+                    var servers = await vm.ConfigManager.LoadServersAsync();
+                    vm.ServerList.LoadServers(servers, settings);
+                }
+            }
+        };
+        menu.Items.Add(newFolderItem);
 
         return menu;
     }
@@ -544,15 +851,36 @@ public partial class MainWindow : Window
         var session = vm.Connection.ActiveSession;
         if (session is null) return;
 
+        // SFTP, local file browser, and their ListViews have their own context menus.
+        // Check the visual tree source to avoid overriding them.
+        var clickSource = e.OriginalSource as DependencyObject;
+        if (clickSource is not null)
+        {
+            // Check for any ancestor that has its own context menu
+            if (FindAncestor<Views.EmbeddedSftpView>(clickSource) is not null
+                || FindAncestor<Views.LocalFileBrowserView>(clickSource) is not null)
+            {
+                return;
+            }
+
+            // Also check for ListViewItem inside a split pane (the view might not
+            // be a direct ancestor due to ContentPresenter wrapping)
+            var listViewItem = FindAncestor<System.Windows.Controls.ListViewItem>(clickSource);
+            if (listViewItem is not null && session.IsSplit)
+            {
+                return;
+            }
+        }
+
         var menu = new System.Windows.Controls.ContextMenu();
 
-        var disconnectItem = new System.Windows.Controls.MenuItem { Header = "Disconnect" };
+        var disconnectItem = new System.Windows.Controls.MenuItem { Header = vm.Localize("SessionDisconnect") };
         disconnectItem.Click += (_, _) => vm.Connection.CloseSessionCommand.Execute(session);
         menu.Items.Add(disconnectItem);
 
         menu.Items.Add(new System.Windows.Controls.Separator());
 
-        var aspectMenu = new System.Windows.Controls.MenuItem { Header = "Aspect Ratio" };
+        var aspectMenu = new System.Windows.Controls.MenuItem { Header = vm.Localize("SessionAspectRatio") };
         foreach (var (label, tag) in new[] { ("Stretch", "Stretch"), ("Auto", "Auto"), ("16:9", "Ratio16x9"), ("4:3", "Ratio4x3"), ("21:9", "Ratio21x9") })
         {
             var item = new System.Windows.Controls.MenuItem { Header = label, Tag = tag };
@@ -563,18 +891,184 @@ public partial class MainWindow : Window
 
         menu.Items.Add(new System.Windows.Controls.Separator());
 
-        var fullscreenItem = new System.Windows.Controls.MenuItem { Header = "Fullscreen (F11)" };
+        var fullscreenItem = new System.Windows.Controls.MenuItem { Header = vm.Localize("SessionFullscreen") };
         fullscreenItem.Click += OnToggleFullscreenClick;
         menu.Items.Add(fullscreenItem);
 
-        var closeItem = new System.Windows.Controls.MenuItem { Header = "Close Session" };
+        // Duplicate tab (reconnect same server in new tab)
+        var duplicateItem = new System.Windows.Controls.MenuItem { Header = vm.Localize("SessionDuplicateTab") };
+        duplicateItem.Click += async (_, _) =>
+        {
+            if (!string.IsNullOrEmpty(session.ServerId) && vm.ServerList.ConnectCommand is not null)
+            {
+                var serverVm = vm.ServerList.Servers.FirstOrDefault(
+                    s => string.Equals(s.Id, session.ServerId, StringComparison.Ordinal));
+                if (serverVm is not null)
+                {
+                    vm.ServerList.ConnectCommand.Execute(serverVm);
+                }
+            }
+        };
+        menu.Items.Add(duplicateItem);
+
+        var closeItem = new System.Windows.Controls.MenuItem { Header = vm.Localize("SessionCloseSession") };
         closeItem.Click += (_, _) => vm.Connection.CloseSessionCommand.Execute(session);
         menu.Items.Add(closeItem);
+
+        menu.Items.Add(new System.Windows.Controls.Separator());
+
+        if (!session.IsSplit)
+        {
+            var splitH = new System.Windows.Controls.MenuItem { Header = vm.Localize("SplitHorizontal") };
+            splitH.Click += (_, _) => RequestSplitSession(session, Heimdall.Core.Models.SplitOrientation.Horizontal);
+            menu.Items.Add(splitH);
+
+            var splitV = new System.Windows.Controls.MenuItem { Header = vm.Localize("SplitVertical") };
+            splitV.Click += (_, _) => RequestSplitSession(session, Heimdall.Core.Models.SplitOrientation.Vertical);
+            menu.Items.Add(splitV);
+        }
+        else
+        {
+            var unsplit = new System.Windows.Controls.MenuItem { Header = vm.Localize("SplitUnsplit") };
+            unsplit.Click += (_, _) => UnsplitSession(session);
+            menu.Items.Add(unsplit);
+        }
 
         menu.PlacementTarget = SessionTabControl;
         menu.Placement = System.Windows.Controls.Primitives.PlacementMode.MousePoint;
         menu.IsOpen = true;
         e.Handled = true;
+    }
+
+    private void RequestSplitSession(
+        SessionTabViewModel session,
+        Heimdall.Core.Models.SplitOrientation orientation)
+    {
+        if (DataContext is not MainViewModel vm) return;
+
+        // Build a picker context menu with two sections:
+        // 1. Open sessions (already connected — move to split pane)
+        // 2. Servers from TreeView (new connection)
+        var menu = new System.Windows.Controls.ContextMenu();
+
+        // Section: existing open sessions
+        var openSessions = vm.Connection.ActiveSessions
+            .Where(s => s != session && !s.IsSplit)
+            .ToList();
+
+        if (openSessions.Count > 0)
+        {
+            var header = new System.Windows.Controls.MenuItem
+            {
+                Header = vm.Localize("SplitMoveOpenSession"),
+                IsEnabled = false,
+                FontWeight = FontWeights.SemiBold
+            };
+            menu.Items.Add(header);
+
+            foreach (var openSession in openSessions)
+            {
+                var item = new System.Windows.Controls.MenuItem
+                {
+                    Header = $"{openSession.Title} ({openSession.ConnectionType})",
+                    Tag = openSession
+                };
+                item.Click += (_, _) =>
+                {
+                    // Move the open session's host control to the secondary pane
+                    vm.Connection.ActiveSessions.Remove(openSession);
+                    session.SecondaryHostControl = openSession.HostControl;
+                    session.SecondaryServerId = openSession.ServerId;
+                    session.SecondaryConnectionType = openSession.ConnectionType;
+                    session.SplitOrientation = orientation;
+                    session.IsSplit = true;
+                    vm.Connection.HasActiveSessions = vm.Connection.ActiveSessions.Count > 0;
+                };
+                menu.Items.Add(item);
+            }
+
+            menu.Items.Add(new System.Windows.Controls.Separator());
+        }
+
+        // Section: new connection from server list
+        var newConnHeader = new System.Windows.Controls.MenuItem
+        {
+            Header = vm.Localize("SplitNewConnection"),
+            IsEnabled = false,
+            FontWeight = FontWeights.SemiBold
+        };
+        menu.Items.Add(newConnHeader);
+
+        // Flatten the folder tree: collect all servers recursively
+        void AddFolderServers(FolderViewModel folder)
+        {
+            AddServersToSplitMenu(menu, folder.Servers, session, orientation, vm, "", folder.FullPath);
+            foreach (var sub in folder.SubFolders)
+            {
+                AddFolderServers(sub);
+            }
+        }
+
+        foreach (var folder in vm.ServerList.GroupedServers)
+        {
+            AddFolderServers(folder);
+        }
+
+        menu.PlacementTarget = SessionTabControl;
+        menu.Placement = System.Windows.Controls.Primitives.PlacementMode.MousePoint;
+        menu.IsOpen = true;
+    }
+
+    private void AddServersToSplitMenu(
+        System.Windows.Controls.ContextMenu menu,
+        System.Collections.ObjectModel.ObservableCollection<ServerItemViewModel> servers,
+        SessionTabViewModel session,
+        Heimdall.Core.Models.SplitOrientation orientation,
+        MainViewModel vm,
+        string projectName,
+        string? groupName)
+    {
+        foreach (var server in servers)
+        {
+            string label = string.IsNullOrWhiteSpace(groupName)
+                ? $"{server.DisplayName} ({server.ConnectionType})"
+                : $"{server.DisplayName} ({server.ConnectionType}) — {groupName}";
+
+            var item = new System.Windows.Controls.MenuItem { Header = label };
+            var capturedServer = server;
+            item.Click += async (_, _) =>
+            {
+                await vm.SplitSessionWithServerAsync(session, capturedServer.Id, orientation);
+            };
+            menu.Items.Add(item);
+        }
+    }
+
+    private void UnsplitSession(SessionTabViewModel session)
+    {
+        if (!session.IsSplit) return;
+        if (DataContext is not MainViewModel vm) return;
+
+        var secondaryControl = session.SecondaryHostControl;
+        var secondaryServerId = session.SecondaryServerId;
+        var secondaryType = session.SecondaryConnectionType;
+
+        // Remove from split
+        session.SecondaryHostControl = null;
+        session.SecondaryServerId = "";
+        session.SecondaryConnectionType = "";
+        session.IsSplit = false;
+
+        // Restore as independent tab (instead of disposing)
+        if (secondaryControl is not null && !string.IsNullOrEmpty(secondaryServerId))
+        {
+            var restoredTab = vm.Connection.AddSession(
+                secondaryServerId,
+                $"Restored ({secondaryType})",
+                secondaryType);
+            restoredTab.HostControl = secondaryControl;
+            restoredTab.Status = "Connected";
+        }
     }
 
     private void OnAspectRatioClick(object sender, RoutedEventArgs e)
@@ -706,6 +1200,7 @@ public partial class MainWindow : Window
             ServerTreeColumn.MaxWidth = 500;
             ServerTreeColumn.Width = new GridLength(_savedSidebarWidth);
             SplitterColumn.Width = GridLength.Auto;
+            ShowSidebarButton.Visibility = Visibility.Collapsed;
         }
         else
         {
@@ -715,6 +1210,7 @@ public partial class MainWindow : Window
             ServerTreeColumn.MaxWidth = 0;
             ServerTreeColumn.Width = new GridLength(0);
             SplitterColumn.Width = new GridLength(0);
+            ShowSidebarButton.Visibility = Visibility.Visible;
         }
     }
 
@@ -750,5 +1246,61 @@ public partial class MainWindow : Window
     {
         FullscreenBar.Visibility = Visibility.Collapsed;
         if (_isFullscreen) ToggleFullscreen();
+    }
+
+    // --- Command Palette event handlers ---
+
+    private void OnPaletteKeyDown(object sender, KeyEventArgs e)
+    {
+        if (DataContext is not MainViewModel vm) return;
+
+        if (e.Key == Key.Escape)
+        {
+            vm.CloseCommandPaletteCommand.Execute(null);
+            e.Handled = true;
+        }
+        else if (e.Key == Key.Enter && Keyboard.Modifiers == ModifierKeys.Control)
+        {
+            // Ctrl+Enter = connect in split pane
+            var target = vm.SelectedPaletteItem ?? vm.PaletteResults.FirstOrDefault();
+            _ = vm.ConnectSplitFromPaletteCommand.ExecuteAsync(target);
+            e.Handled = true;
+        }
+        else if (e.Key == Key.Enter)
+        {
+            _ = vm.ConnectFromPaletteCommand.ExecuteAsync(
+                vm.SelectedPaletteItem ?? vm.PaletteResults.FirstOrDefault());
+            e.Handled = true;
+        }
+        else if (e.Key == Key.Down)
+        {
+            if (PaletteResultsList.SelectedIndex < PaletteResultsList.Items.Count - 1)
+                PaletteResultsList.SelectedIndex++;
+            e.Handled = true;
+        }
+        else if (e.Key == Key.Up)
+        {
+            if (PaletteResultsList.SelectedIndex > 0)
+                PaletteResultsList.SelectedIndex--;
+            e.Handled = true;
+        }
+    }
+
+    private void OnPaletteBackdropClick(object sender, MouseButtonEventArgs e)
+    {
+        if (DataContext is MainViewModel vm)
+            vm.CloseCommandPaletteCommand.Execute(null);
+    }
+
+    private void OnPaletteBorderClick(object sender, MouseButtonEventArgs e)
+    {
+        // Prevent closing when clicking inside the palette
+        e.Handled = true;
+    }
+
+    private void OnPaletteItemDoubleClick(object sender, MouseButtonEventArgs e)
+    {
+        if (DataContext is MainViewModel vm && vm.SelectedPaletteItem is not null)
+            _ = vm.ConnectFromPaletteCommand.ExecuteAsync(vm.SelectedPaletteItem);
     }
 }

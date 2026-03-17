@@ -33,6 +33,13 @@ public sealed class PageantClient : IDisposable
     private const int WM_COPYDATA = 0x004A;
     private const int AgentMaxMessageLength = 262144;
 
+    /// <summary>
+    /// Magic value required by Pageant in COPYDATASTRUCT.dwData.
+    /// Defined as AGENT_COPYDATA_ID in the PuTTY source (windows/utils/agent_named_pipe.c).
+    /// Pageant silently rejects WM_COPYDATA messages that don't carry this value.
+    /// </summary>
+    private static readonly IntPtr AgentCopyDataId = new(0x804e50ba);
+
     private bool _disposed;
 
     /// <summary>
@@ -167,7 +174,7 @@ public sealed class PageantClient : IDisposable
 
                 var copyData = new NativeMethods.COPYDATASTRUCT
                 {
-                    dwData = IntPtr.Zero,
+                    dwData = AgentCopyDataId,
                     cbData = mapNameBytes.Length,
                     lpData = lpData
                 };

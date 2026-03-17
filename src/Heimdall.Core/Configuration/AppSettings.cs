@@ -98,4 +98,13 @@ public class AppSettings
     // Collections
     public List<SshGatewayDto> SshGateways { get; set; } = new();
     public List<ProjectDto> Projects { get; set; } = new();
+
+    /// <summary>
+    /// Empty groups persisted so they remain visible in the TreeView even without servers.
+    /// Each entry is "projectId|groupPath" (e.g., "abc123|Infrastructure/Linux").
+    /// </summary>
+    public List<string> EmptyGroups { get; set; } = new();
+
+    // Scheduled connections
+    public List<ScheduledTaskDto> ScheduledTasks { get; set; } = new();
 }

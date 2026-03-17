@@ -47,7 +47,7 @@ public interface ITerminalSession : IDisposable
     /// Launches the child process inside a pseudo-console with the given
     /// initial terminal dimensions.
     /// </summary>
-    Task StartAsync(string executable, string arguments, int columns = 80, int rows = 24);
+    Task StartAsync(string executable, string arguments, int columns = 80, int rows = 24, string? workingDirectory = null);
 
     /// <summary>
     /// Writes raw bytes to the process stdin (keyboard input, escape sequences).

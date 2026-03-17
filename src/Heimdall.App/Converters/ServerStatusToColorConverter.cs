@@ -29,13 +29,13 @@ namespace Heimdall.App.Converters;
 /// </summary>
 public sealed class ServerStatusToColorConverter : IMultiValueConverter
 {
-    private static readonly SolidColorBrush ConnectedBrush = CreateFrozen("#22C55E");
-    private static readonly SolidColorBrush ConnectingBrush = CreateFrozen("#F59E0B");
-    private static readonly SolidColorBrush ErrorBrush = CreateFrozen("#EF4444");
-    private static readonly SolidColorBrush RdpBrush = CreateFrozen("#3B82F6");
-    private static readonly SolidColorBrush SshBrush = CreateFrozen("#22C55E");
-    private static readonly SolidColorBrush SftpBrush = CreateFrozen("#F59E0B");
-    private static readonly SolidColorBrush DefaultBrush = CreateFrozen("#A0A0B0");
+    private static readonly SolidColorBrush ConnectedBrush = CreateFrozen("#50FA7B");
+    private static readonly SolidColorBrush ConnectingBrush = CreateFrozen("#FFB86C");
+    private static readonly SolidColorBrush ErrorBrush = CreateFrozen("#FF5555");
+    private static readonly SolidColorBrush RdpBrush = CreateFrozen("#8BE9FD");
+    private static readonly SolidColorBrush SshBrush = CreateFrozen("#50FA7B");
+    private static readonly SolidColorBrush SftpBrush = CreateFrozen("#FFB86C");
+    private static readonly SolidColorBrush DefaultBrush = CreateFrozen("#6272A4");
 
     public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
     {

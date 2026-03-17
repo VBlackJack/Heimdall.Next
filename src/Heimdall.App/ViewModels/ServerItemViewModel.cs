@@ -21,7 +21,7 @@ namespace Heimdall.App.ViewModels;
 
 /// <summary>
 /// ViewModel representing a single server item in the server list.
-/// Maps from <see cref="RdpServerDto"/> for UI binding.
+/// Maps from <see cref="ServerProfileDto"/> for UI binding.
 /// </summary>
 public partial class ServerItemViewModel : ObservableObject
 {
@@ -75,10 +75,10 @@ public partial class ServerItemViewModel : ObservableObject
     };
 
     /// <summary>
-    /// Creates a <see cref="ServerItemViewModel"/> from a <see cref="RdpServerDto"/>.
+    /// Creates a <see cref="ServerItemViewModel"/> from a <see cref="ServerProfileDto"/>.
     /// </summary>
     public static ServerItemViewModel FromDto(
-        RdpServerDto dto,
+        ServerProfileDto dto,
         ProjectDto? project = null,
         string connectionState = "Disconnected")
     {
@@ -102,9 +102,9 @@ public partial class ServerItemViewModel : ObservableObject
     }
 
     /// <summary>
-    /// Applies updated values from a <see cref="RdpServerDto"/> to this ViewModel.
+    /// Applies updated values from a <see cref="ServerProfileDto"/> to this ViewModel.
     /// </summary>
-    public void UpdateFromDto(RdpServerDto dto, ProjectDto? project = null)
+    public void UpdateFromDto(ServerProfileDto dto, ProjectDto? project = null)
     {
         DisplayName = dto.DisplayName;
         RemoteServer = dto.RemoteServer;
@@ -125,7 +125,7 @@ public partial class ServerItemViewModel : ObservableObject
         OnPropertyChanged(nameof(ConnectionTypeBadge));
     }
 
-    private static string GetUsername(RdpServerDto dto)
+    private static string GetUsername(ServerProfileDto dto)
     {
         if (!string.IsNullOrWhiteSpace(dto.SshUsername))
         {

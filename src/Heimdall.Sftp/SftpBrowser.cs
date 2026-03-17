@@ -28,6 +28,7 @@ public class SftpBrowser : IDisposable
 {
     private SftpClient? _client;
     private bool _disposed;
+    private readonly SemaphoreSlim _clientLock = new(1, 1);
 
     /// <summary>Raised when the current working directory changes.</summary>
     public event Action<string>? DirectoryChanged;
@@ -51,10 +52,14 @@ public class SftpBrowser : IDisposable
     /// Connects to the remote host using the supplied SSH connection parameters.
     /// </summary>
     /// <param name="connectionParams">SSH connection parameters (host, credentials, etc.).</param>
+    /// <param name="hostKeyStore">Optional TOFU host key store for server verification.</param>
     /// <param name="ct">Cancellation token.</param>
     /// <exception cref="ObjectDisposedException">This instance has been disposed.</exception>
     /// <exception cref="InvalidOperationException">Already connected.</exception>
-    public async Task ConnectAsync(SshConnectionParams connectionParams, CancellationToken ct = default)
+    public async Task ConnectAsync(
+        SshConnectionParams connectionParams,
+        HostKeyStore? hostKeyStore = null,
+        CancellationToken ct = default)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
@@ -65,6 +70,12 @@ public class SftpBrowser : IDisposable
 
         var connectionInfo = SshConnectionFactory.Create(connectionParams);
         _client = new SftpClient(connectionInfo);
+
+        if (hostKeyStore is not null)
+        {
+            SshConnectionFactory.AttachHostKeyVerification(
+                _client, connectionParams.Host, connectionParams.Port, hostKeyStore);
+        }
 
         await Task.Run(() =>
         {
@@ -92,24 +103,32 @@ public class SftpBrowser : IDisposable
         var client = GetConnectedClient();
         string targetPath = path ?? CurrentDirectory;
 
-        var entries = await Task.Run(() =>
+        await _clientLock.WaitAsync(ct).ConfigureAwait(false);
+        try
         {
-            ct.ThrowIfCancellationRequested();
-            return client.ListDirectory(targetPath);
-        }, ct).ConfigureAwait(false);
-
-        var result = new List<SftpFileInfo>();
-        foreach (ISftpFile entry in entries)
-        {
-            if (entry.Name is "." or "..")
+            var entries = await Task.Run(() =>
             {
-                continue;
+                ct.ThrowIfCancellationRequested();
+                return client.ListDirectory(targetPath);
+            }, ct).ConfigureAwait(false);
+
+            var result = new List<SftpFileInfo>();
+            foreach (ISftpFile entry in entries)
+            {
+                if (entry.Name is "." or "..")
+                {
+                    continue;
+                }
+
+                result.Add(ToSftpFileInfo(entry));
             }
 
-            result.Add(ToSftpFileInfo(entry));
+            return result;
         }
-
-        return result;
+        finally
+        {
+            _clientLock.Release();
+        }
     }
 
     /// <summary>Returns the current remote working directory path.</summary>
@@ -138,14 +157,22 @@ public class SftpBrowser : IDisposable
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         var client = GetConnectedClient();
 
-        await Task.Run(() =>
+        await _clientLock.WaitAsync(ct).ConfigureAwait(false);
+        try
         {
-            ct.ThrowIfCancellationRequested();
-            client.ChangeDirectory(path);
-        }, ct).ConfigureAwait(false);
+            await Task.Run(() =>
+            {
+                ct.ThrowIfCancellationRequested();
+                client.ChangeDirectory(path);
+            }, ct).ConfigureAwait(false);
 
-        CurrentDirectory = client.WorkingDirectory ?? "/";
-        DirectoryChanged?.Invoke(CurrentDirectory);
+            CurrentDirectory = client.WorkingDirectory ?? "/";
+            DirectoryChanged?.Invoke(CurrentDirectory);
+        }
+        finally
+        {
+            _clientLock.Release();
+        }
     }
 
     /// <summary>
@@ -167,34 +194,42 @@ public class SftpBrowser : IDisposable
         string fileName = Path.GetFileName(remotePath);
         long totalBytes = 0;
 
-        // Retrieve file size for progress reporting
-        await Task.Run(() =>
+        await _clientLock.WaitAsync(ct).ConfigureAwait(false);
+        try
         {
-            ct.ThrowIfCancellationRequested();
-            var attrs = client.GetAttributes(remotePath);
-            totalBytes = attrs.Size;
-        }, ct).ConfigureAwait(false);
-
-        await using var fileStream = new FileStream(
-            localPath,
-            FileMode.Create,
-            FileAccess.Write,
-            FileShare.None,
-            bufferSize: 81920,
-            useAsync: true);
-
-        await Task.Run(() =>
-        {
-            ct.ThrowIfCancellationRequested();
-            client.DownloadFile(remotePath, fileStream, bytesTransferred =>
+            // Retrieve file size for progress reporting
+            await Task.Run(() =>
             {
-                TransferProgress?.Invoke(new SftpTransferProgress(
-                    fileName,
-                    (long)bytesTransferred,
-                    totalBytes,
-                    IsUpload: false));
-            });
-        }, ct).ConfigureAwait(false);
+                ct.ThrowIfCancellationRequested();
+                var attrs = client.GetAttributes(remotePath);
+                totalBytes = attrs.Size;
+            }, ct).ConfigureAwait(false);
+
+            await using var fileStream = new FileStream(
+                localPath,
+                FileMode.Create,
+                FileAccess.Write,
+                FileShare.None,
+                bufferSize: 81920,
+                useAsync: true);
+
+            await Task.Run(() =>
+            {
+                ct.ThrowIfCancellationRequested();
+                client.DownloadFile(remotePath, fileStream, bytesTransferred =>
+                {
+                    TransferProgress?.Invoke(new SftpTransferProgress(
+                        fileName,
+                        (long)bytesTransferred,
+                        totalBytes,
+                        IsUpload: false));
+                });
+            }, ct).ConfigureAwait(false);
+        }
+        finally
+        {
+            _clientLock.Release();
+        }
     }
 
     /// <summary>
@@ -217,26 +252,34 @@ public class SftpBrowser : IDisposable
         var fileInfo = new FileInfo(localPath);
         long totalBytes = fileInfo.Length;
 
-        await using var fileStream = new FileStream(
-            localPath,
-            FileMode.Open,
-            FileAccess.Read,
-            FileShare.Read,
-            bufferSize: 81920,
-            useAsync: true);
-
-        await Task.Run(() =>
+        await _clientLock.WaitAsync(ct).ConfigureAwait(false);
+        try
         {
-            ct.ThrowIfCancellationRequested();
-            client.UploadFile(fileStream, remotePath, bytesTransferred =>
+            await using var fileStream = new FileStream(
+                localPath,
+                FileMode.Open,
+                FileAccess.Read,
+                FileShare.Read,
+                bufferSize: 81920,
+                useAsync: true);
+
+            await Task.Run(() =>
             {
-                TransferProgress?.Invoke(new SftpTransferProgress(
-                    fileName,
-                    (long)bytesTransferred,
-                    totalBytes,
-                    IsUpload: true));
-            });
-        }, ct).ConfigureAwait(false);
+                ct.ThrowIfCancellationRequested();
+                client.UploadFile(fileStream, remotePath, bytesTransferred =>
+                {
+                    TransferProgress?.Invoke(new SftpTransferProgress(
+                        fileName,
+                        (long)bytesTransferred,
+                        totalBytes,
+                        IsUpload: true));
+                });
+            }, ct).ConfigureAwait(false);
+        }
+        finally
+        {
+            _clientLock.Release();
+        }
     }
 
     /// <summary>Creates a directory on the remote host.</summary>
@@ -247,11 +290,19 @@ public class SftpBrowser : IDisposable
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         var client = GetConnectedClient();
 
-        await Task.Run(() =>
+        await _clientLock.WaitAsync(ct).ConfigureAwait(false);
+        try
         {
-            ct.ThrowIfCancellationRequested();
-            client.CreateDirectory(path);
-        }, ct).ConfigureAwait(false);
+            await Task.Run(() =>
+            {
+                ct.ThrowIfCancellationRequested();
+                client.CreateDirectory(path);
+            }, ct).ConfigureAwait(false);
+        }
+        finally
+        {
+            _clientLock.Release();
+        }
     }
 
     /// <summary>
@@ -264,20 +315,66 @@ public class SftpBrowser : IDisposable
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         var client = GetConnectedClient();
 
-        await Task.Run(() =>
+        await _clientLock.WaitAsync(ct).ConfigureAwait(false);
+        try
         {
-            ct.ThrowIfCancellationRequested();
-            var attrs = client.GetAttributes(path);
+            await Task.Run(() =>
+            {
+                ct.ThrowIfCancellationRequested();
+                var attrs = client.GetAttributes(path);
 
-            if (attrs.IsDirectory)
+                if (attrs.IsDirectory)
+                {
+                    DeleteDirectoryRecursive(client, path, ct);
+                }
+                else
+                {
+                    client.DeleteFile(path);
+                }
+            }, ct).ConfigureAwait(false);
+        }
+        finally
+        {
+            _clientLock.Release();
+        }
+    }
+
+    /// <summary>
+    /// Changes the POSIX permissions of a remote file or directory.
+    /// </summary>
+    /// <param name="path">Full remote path.</param>
+    /// <param name="mode">Permission mode as a short (e.g., 0x1ED for 755 octal).</param>
+    /// <param name="ct">Cancellation token.</param>
+    public async Task ChmodAsync(string path, short mode, CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        var client = GetConnectedClient();
+
+        await _clientLock.WaitAsync(ct).ConfigureAwait(false);
+        try
+        {
+            await Task.Run(() =>
             {
-                DeleteDirectoryRecursive(client, path, ct);
-            }
-            else
-            {
-                client.DeleteFile(path);
-            }
-        }, ct).ConfigureAwait(false);
+                ct.ThrowIfCancellationRequested();
+                var attrs = client.GetAttributes(path);
+
+                attrs.OwnerCanRead = (mode & 0x100) != 0;
+                attrs.OwnerCanWrite = (mode & 0x080) != 0;
+                attrs.OwnerCanExecute = (mode & 0x040) != 0;
+                attrs.GroupCanRead = (mode & 0x020) != 0;
+                attrs.GroupCanWrite = (mode & 0x010) != 0;
+                attrs.GroupCanExecute = (mode & 0x008) != 0;
+                attrs.OthersCanRead = (mode & 0x004) != 0;
+                attrs.OthersCanWrite = (mode & 0x002) != 0;
+                attrs.OthersCanExecute = (mode & 0x001) != 0;
+
+                client.SetAttributes(path, attrs);
+            }, ct).ConfigureAwait(false);
+        }
+        finally
+        {
+            _clientLock.Release();
+        }
     }
 
     /// <summary>Renames (moves) a remote file or directory.</summary>
@@ -293,11 +390,19 @@ public class SftpBrowser : IDisposable
         ArgumentException.ThrowIfNullOrWhiteSpace(newPath);
         var client = GetConnectedClient();
 
-        await Task.Run(() =>
+        await _clientLock.WaitAsync(ct).ConfigureAwait(false);
+        try
         {
-            ct.ThrowIfCancellationRequested();
-            client.RenameFile(oldPath, newPath);
-        }, ct).ConfigureAwait(false);
+            await Task.Run(() =>
+            {
+                ct.ThrowIfCancellationRequested();
+                client.RenameFile(oldPath, newPath);
+            }, ct).ConfigureAwait(false);
+        }
+        finally
+        {
+            _clientLock.Release();
+        }
     }
 
     /// <summary>Disconnects from the remote host and releases the SFTP client.</summary>
@@ -338,6 +443,7 @@ public class SftpBrowser : IDisposable
 
         _disposed = true;
         Disconnect();
+        _clientLock.Dispose();
         GC.SuppressFinalize(this);
     }
 

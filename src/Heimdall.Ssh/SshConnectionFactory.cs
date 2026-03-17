@@ -78,6 +78,39 @@ public static class SshConnectionFactory
     }
 
     /// <summary>
+    /// Attaches TOFU (Trust On First Use) host key verification to an SSH.NET client.
+    /// Call this on <see cref="Renci.SshNet.SshClient"/> or <see cref="Renci.SshNet.SftpClient"/>
+    /// BEFORE calling <c>Connect()</c>.
+    /// </summary>
+    public static void AttachHostKeyVerification(
+        Renci.SshNet.BaseClient client,
+        string host,
+        int port,
+        HostKeyStore hostKeyStore)
+    {
+        ArgumentNullException.ThrowIfNull(client);
+        ArgumentNullException.ThrowIfNull(hostKeyStore);
+
+        client.HostKeyReceived += (sender, e) =>
+        {
+            var result = hostKeyStore.Verify(host, port, e.HostKey);
+            e.CanTrust = result.Trusted;
+
+            if (result.FirstUse)
+            {
+                hostKeyStore.Trust(host, port, result.Fingerprint);
+                Heimdall.Core.Logging.FileLogger.Info(
+                    $"TOFU: stored host key for {host}:{port} fingerprint={result.Fingerprint}");
+            }
+            else if (!result.Trusted)
+            {
+                Heimdall.Core.Logging.FileLogger.Warn(
+                    $"HOST KEY MISMATCH for {host}:{port}! Expected={result.StoredFingerprint} Got={result.Fingerprint}");
+            }
+        };
+    }
+
+    /// <summary>
     /// Determines whether the given connection parameters require Pageant agent
     /// authentication, meaning the tunnel cannot be handled by SSH.NET alone and
     /// must fall back to plink.exe via <see cref="Plink.PlinkTunnelRunner"/>.
@@ -176,6 +209,7 @@ public static class SshConnectionFactory
         {
             if (!PageantClient.IsAvailable())
             {
+                Heimdall.Core.Logging.FileLogger.Info("Pageant: not available");
                 return null;
             }
 
@@ -184,8 +218,12 @@ public static class SshConnectionFactory
 
             if (keys.Count == 0)
             {
+                Heimdall.Core.Logging.FileLogger.Info("Pageant: no keys loaded");
                 return null;
             }
+
+            Heimdall.Core.Logging.FileLogger.Info(
+                $"Pageant: {keys.Count} key(s) loaded: {string.Join(", ", keys.Select(k => $"{k.KeyType} ({k.Comment})"))}");
 
             // Wrap each Pageant key as an IPrivateKeySource for SSH.NET
             var keyWrappers = keys
@@ -195,9 +233,9 @@ public static class SshConnectionFactory
 
             return new PrivateKeyAuthenticationMethod(username, keyWrappers);
         }
-        catch
+        catch (Exception ex)
         {
-            // Pageant communication failure is non-fatal
+            Heimdall.Core.Logging.FileLogger.Warn($"Pageant auth setup failed: {ex.Message}");
             return null;
         }
     }

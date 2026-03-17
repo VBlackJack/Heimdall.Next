@@ -29,6 +29,7 @@ public class PipeModeSession : ITerminalSession
 {
     private Process? _process;
     private Task? _readLoop;
+    private Task? _stderrLoop;
     private CancellationTokenSource? _cts;
     private bool _disposed;
 
@@ -38,7 +39,7 @@ public class PipeModeSession : ITerminalSession
     public bool IsRunning => _process is not null && !_process.HasExited;
     public int? ProcessId => _process?.Id;
 
-    public Task StartAsync(string executable, string arguments, int columns = 80, int rows = 24)
+    public Task StartAsync(string executable, string arguments, int columns = 80, int rows = 24, string? workingDirectory = null)
     {
         if (_disposed) throw new ObjectDisposedException(nameof(PipeModeSession));
         if (_process is not null) throw new InvalidOperationException("Session already started.");
@@ -54,8 +55,9 @@ public class PipeModeSession : ITerminalSession
             RedirectStandardInput = true,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
-            StandardOutputEncoding = null,  // Binary mode
-            StandardErrorEncoding = Encoding.UTF8
+            StandardOutputEncoding = null,  // Binary mode — no internal StreamReader
+            StandardErrorEncoding = null,  // Binary mode — allows direct BaseStream read
+            WorkingDirectory = workingDirectory ?? string.Empty
         };
 
         _process = new Process { StartInfo = psi, EnableRaisingEvents = true };
@@ -66,8 +68,11 @@ public class PipeModeSession : ITerminalSession
             throw new InvalidOperationException($"Failed to start process: {executable}");
         }
 
-        // Background read loop for stdout (raw bytes → DataReceived events)
-        _readLoop = Task.Run(() => ReadOutputLoop(_cts.Token), _cts.Token);
+        // Background read loops for stdout + stderr (both → DataReceived events)
+        // Stderr must be merged so Plink host key prompts and error messages
+        // are visible in the terminal.
+        _readLoop = Task.Run(() => ReadStreamLoop(_process.StandardOutput.BaseStream, _cts.Token), _cts.Token);
+        _stderrLoop = Task.Run(() => ReadStreamLoop(_process.StandardError.BaseStream, _cts.Token), _cts.Token);
 
         return Task.CompletedTask;
     }
@@ -126,18 +131,19 @@ public class PipeModeSession : ITerminalSession
         _cts = null;
     }
 
-    private async Task ReadOutputLoop(CancellationToken ct)
+    private async Task ReadStreamLoop(System.IO.Stream stream, CancellationToken ct)
     {
         var buffer = new byte[4096];
         try
         {
-            var stream = _process!.StandardOutput.BaseStream;
             while (!ct.IsCancellationRequested)
             {
                 var bytesRead = await stream.ReadAsync(buffer, ct).ConfigureAwait(false);
                 if (bytesRead <= 0) break;
 
-                DataReceived?.Invoke(new ReadOnlyMemory<byte>(buffer, 0, bytesRead));
+                var copy = new byte[bytesRead];
+                Buffer.BlockCopy(buffer, 0, copy, 0, bytesRead);
+                DataReceived?.Invoke(new ReadOnlyMemory<byte>(copy, 0, bytesRead));
             }
         }
         catch (OperationCanceledException) { }

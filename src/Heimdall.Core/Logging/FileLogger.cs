@@ -16,6 +16,7 @@
 
 using System.Collections.Concurrent;
 using System.Text;
+using Heimdall.Core.Security;
 
 namespace Heimdall.Core.Logging;
 
@@ -31,6 +32,7 @@ public sealed class FileLogger : IDisposable
     private readonly Timer _flushTimer;
     private readonly object _writeLock = new();
     private bool _disposed;
+    private bool _aclApplied;
 
     private FileLogger(string logDirectory)
     {
@@ -82,6 +84,12 @@ public sealed class FileLogger : IDisposable
             try
             {
                 File.AppendAllText(_logPath, sb.ToString(), Encoding.UTF8);
+
+                if (!_aclApplied && OperatingSystem.IsWindows())
+                {
+                    AclEnforcer.SetFileAcl(_logPath);
+                    _aclApplied = true;
+                }
             }
             catch
             {

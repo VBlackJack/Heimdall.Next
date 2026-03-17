@@ -90,17 +90,20 @@ public partial class ConnectionViewModel : ObservableObject
             _tunnelManager.CloseTunnel(localPort);
         }
 
-        // Dispose the host control if it implements IDisposable
+        // Dispose secondary pane first if split
+        if (session.IsSplit && session.SecondaryHostControl is IDisposable secondaryDisposable)
+        {
+            try { secondaryDisposable.Dispose(); }
+            catch (ObjectDisposedException) { }
+            session.SecondaryHostControl = null;
+            session.IsSplit = false;
+        }
+
+        // Dispose the primary host control
         if (session.HostControl is IDisposable disposable)
         {
-            try
-            {
-                disposable.Dispose();
-            }
-            catch (ObjectDisposedException)
-            {
-                // Already disposed; safe to ignore
-            }
+            try { disposable.Dispose(); }
+            catch (ObjectDisposedException) { }
         }
 
         ActiveSessions.Remove(session);
@@ -126,17 +129,20 @@ public partial class ConnectionViewModel : ObservableObject
                 _tunnelManager.CloseTunnel(localPort);
             }
 
-            // Dispose host controls
+            // Dispose secondary pane first if split
+            if (session.IsSplit && session.SecondaryHostControl is IDisposable secondaryDisposable)
+            {
+                try { secondaryDisposable.Dispose(); }
+                catch (ObjectDisposedException) { }
+                session.SecondaryHostControl = null;
+                session.IsSplit = false;
+            }
+
+            // Dispose primary host control
             if (session.HostControl is IDisposable disposable)
             {
-                try
-                {
-                    disposable.Dispose();
-                }
-                catch (ObjectDisposedException)
-                {
-                    // Already disposed; safe to ignore
-                }
+                try { disposable.Dispose(); }
+                catch (ObjectDisposedException) { }
             }
 
             _connectionSm.Reset(session.ServerId);
