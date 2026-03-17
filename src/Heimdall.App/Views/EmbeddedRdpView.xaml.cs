@@ -807,16 +807,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
             return null;
         }
 
-        try
-        {
-            return DpapiProvider.Unprotect(server.RdpPasswordEncrypted);
-        }
-        catch (Exception ex)
-        {
-            Core.Logging.FileLogger.Warn(
-                $"Embedded RDP password decrypt failed for {server.DisplayName}: {ex.Message}");
-            return null;
-        }
+        return CredentialProtector.Unprotect(server.RdpPasswordEncrypted);
     }
 
     private static int NormalizeColorDepth(int colorDepth)

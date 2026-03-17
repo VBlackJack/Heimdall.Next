@@ -128,23 +128,12 @@ public partial class ConnectionService
     }
 
     /// <summary>
-    /// Decrypts a DPAPI-encrypted password string. Returns null on failure.
+    /// Decrypts a credential string. Supports both HMAC-protected and
+    /// legacy DPAPI-only formats via <see cref="CredentialProtector"/>.
     /// </summary>
-    private static string? DecryptPassword(string? encryptedBase64)
+    private static string? DecryptPassword(string? encryptedValue)
     {
-        if (string.IsNullOrWhiteSpace(encryptedBase64))
-        {
-            return null;
-        }
-
-        try
-        {
-            return DpapiProvider.Unprotect(encryptedBase64);
-        }
-        catch
-        {
-            return null;
-        }
+        return CredentialProtector.Unprotect(encryptedValue);
     }
 
     [System.Runtime.InteropServices.DllImport("user32.dll")]

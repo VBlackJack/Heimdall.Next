@@ -1793,5 +1793,31 @@
   "CitrixBringToFront": "Mettre au premier plan",
   "CitrixTerminate": "Terminer",
   "StatusCitrixLaunching": "Lancement de la session Citrix...",
-  "StatusCitrixConnected": "Session Citrix active"
+  "StatusCitrixConnected": "Session Citrix active",
+
+  "TunnelPanelColLocal": "Local",
+  "TunnelPanelColRemote": "Distant",
+  "TunnelPanelColPort": "Port",
+  "TooltipCloseTunnel": "Fermer le tunnel",
+  "SettingsBtnExportServers": "Exporter les serveurs",
+  "SettingsBtnImportServers": "Importer des serveurs",
+  "QuickConnectNoResults": "Aucun r\u00e9sultat. Essayez ssh user@host pour une connexion ad-hoc.",
+  "QuickConnectHints": "Entr\u00e9e = connecter \u00b7 Ctrl+Entr\u00e9e = scinder \u00b7 ssh user@host = ad-hoc \u00b7 \u00c9chap = fermer",
+
+  "ServerDialogCitrixWorkspace": "Citrix Workspace",
+  "ServerDialogCitrixWorkspaceDesc": "Configurez l'URL StoreFront et le nom de l'application, ou fournissez un fichier ICA.",
+  "ServerDialogLabelStoreFrontUrl": "URL StoreFront",
+  "ServerDialogLabelAppName": "Nom de l'application",
+  "ServerDialogLabelIcaFilePath": "Chemin du fichier ICA",
+  "ServerDialogCitrixHint": "Fournissez une URL StoreFront + nom d'application, ou un chemin direct vers un fichier ICA.",
+  "ServerDialogCitrixSeamless": "Mode transparent",
+  "ServerDialogCitrixSso": "Utiliser le SSO (Kerberos)",
+  "ServerDialogRunAsAdmin": "Ex\u00e9cuter en tant qu'administrateur (n\u00e9cessite gsudo ou sudo Windows 11)",
+  "ServerDialogBtnCancel": "Annuler",
+  "ServerDialogBtnSave": "Enregistrer",
+  "ServerDialogColor16": "16 bits",
+  "ServerDialogColor24": "24 bits",
+  "ServerDialogColor32": "32 bits",
+  "ServerDialogBrowseKeyTitle": "S\u00e9lectionner la cl\u00e9 SSH",
+  "ServerDialogBrowseKeyFilter": "Fichiers PPK (*.ppk)|*.ppk|Fichiers PEM (*.pem)|*.pem|Tous les fichiers (*.*)|*.*"
 }

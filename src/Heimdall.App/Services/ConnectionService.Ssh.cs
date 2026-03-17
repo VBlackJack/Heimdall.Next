@@ -17,6 +17,7 @@
 using System.IO;
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Models;
+using Heimdall.Core.Security;
 using Heimdall.Ssh;
 
 namespace Heimdall.App.Services;
@@ -125,19 +126,41 @@ public partial class ConnectionService
             return new ConnectionResult(false, msg, null);
         }
 
-        // Build plink arguments for interactive SSH
-        var args = new System.Text.StringBuilder();
-        args.Append("-ssh -t -no-antispoof ");
+        // Validate user-supplied fields before building the command line (CWE-78)
+        if (!string.IsNullOrEmpty(server.SshUsername) &&
+            !InputValidator.Validate(server.SshUsername, "SshUser"))
+        {
+            var msg = "Invalid SSH username (rejected by input validation).";
+            _connectionSm.SetError(server.Id, msg);
+            return new ConnectionResult(false, msg, null);
+        }
+
+        if (!InputValidator.Validate(targetHost, "Address"))
+        {
+            var msg = "Invalid target host (rejected by input validation).";
+            _connectionSm.SetError(server.Id, msg);
+            return new ConnectionResult(false, msg, null);
+        }
+
+        // Build plink arguments as a structured list to prevent argument injection
+        var argParts = new List<string> { "-ssh", "-t", "-no-antispoof" };
         if (!string.IsNullOrEmpty(server.SshKeyPath))
-            args.Append($"-i \"{server.SshKeyPath}\" ");
+        {
+            argParts.Add("-i");
+            argParts.Add($"\"{server.SshKeyPath}\"");
+        }
         if (server.SshCompression)
-            args.Append("-C ");
+            argParts.Add("-C");
         if (server.SshAgentForwarding)
-            args.Append("-A ");
-        args.Append($"-P {targetPort} ");
-        if (!string.IsNullOrEmpty(server.SshUsername))
-            args.Append($"{server.SshUsername}@");
-        args.Append(targetHost);
+            argParts.Add("-A");
+        argParts.Add("-P");
+        argParts.Add(targetPort.ToString());
+        var target = !string.IsNullOrEmpty(server.SshUsername)
+            ? $"{server.SshUsername}@{targetHost}"
+            : targetHost;
+        argParts.Add(target);
+
+        var args = new System.Text.StringBuilder(string.Join(' ', argParts));
 
         // Probe host key fingerprint: Plink writes the host key prompt to CONOUT$
         // (not stderr), so pipe mode hangs if the key isn't cached. We run a quick
@@ -195,10 +218,22 @@ public partial class ConnectionService
     {
         try
         {
+            // Validate inputs before building probe command (CWE-78)
+            if (!string.IsNullOrWhiteSpace(username) &&
+                !InputValidator.Validate(username, "SshUser"))
+            {
+                return null;
+            }
+            if (!InputValidator.Validate(host, "Address"))
+            {
+                return null;
+            }
+
             var userPrefix = string.IsNullOrWhiteSpace(username) ? "" : $"{username}@";
             // -v forces verbose output to stderr (including fingerprint)
             // -batch prevents CONOUT$ prompts (fails fast if key not cached)
-            var probeArgs = $"-v -batch -ssh -P {port} {userPrefix}{host}";
+            var probeParts = new List<string> { "-v", "-batch", "-ssh", "-P", port.ToString(), $"{userPrefix}{host}" };
+            var probeArgs = string.Join(' ', probeParts);
 
             Core.Logging.FileLogger.Info($"Host key probe: {plinkPath} {probeArgs}");
 

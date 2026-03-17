@@ -40,6 +40,27 @@ public partial class App : System.Windows.Application
     {
         base.OnStartup(e);
 
+        // Register global exception handlers BEFORE any awaits — async void
+        // resumes on the dispatcher, so unhandled exceptions from awaited calls
+        // must already be caught at this point.
+        DispatcherUnhandledException += (_, args) =>
+        {
+            Heimdall.Core.Logging.FileLogger.Error("Unhandled exception", args.Exception);
+            MessageBox.Show(
+                $"Unhandled error:\n\n{args.Exception.Message}\n\n{args.Exception.StackTrace}",
+                "Heimdall Error",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+            args.Handled = true;
+        };
+
+        TaskScheduler.UnobservedTaskException += (_, args) =>
+        {
+            Heimdall.Core.Logging.FileLogger.Error(
+                "Unobserved task exception", args.Exception.InnerException ?? args.Exception);
+            args.SetObserved();
+        };
+
         // Initialize file logger
         var logDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logs");
         Heimdall.Core.Logging.FileLogger.Initialize(logDir);
@@ -59,23 +80,46 @@ public partial class App : System.Windows.Application
             Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "locales"),
             settings.DefaultLocale);
 
+        // Initialize HMAC key for credential protection
+        await InitializeHmacKeyAsync(configManager, settings);
+
+        // Load trusted SSH host keys into the TOFU store
+        var hostKeyStore = _serviceProvider.GetRequiredService<HostKeyStore>();
+        if (settings.TrustedHostKeys.Count > 0)
+        {
+            var entries = settings.TrustedHostKeys.Select(kvp =>
+            {
+                var parts = kvp.Key.Split(':');
+                var host = parts[0];
+                var port = parts.Length > 1 && int.TryParse(parts[1], out var p) ? p : 22;
+                return (host, port, (string?)kvp.Value);
+            });
+            hostKeyStore.LoadFromConfig(entries);
+        }
+
+        // Persist newly trusted host keys back to settings
+        hostKeyStore.HostKeyEvent += (key, fingerprint, trusted) =>
+        {
+            if (trusted && !settings.TrustedHostKeys.ContainsKey(key))
+            {
+                settings.TrustedHostKeys[key] = fingerprint;
+                _ = Task.Run(async () =>
+                {
+                    try { await configManager.SaveSettingsAsync(settings); }
+                    catch (Exception ex)
+                    {
+                        Heimdall.Core.Logging.FileLogger.Warn(
+                            $"Failed to persist host key for {key}: {ex.Message}");
+                    }
+                });
+            }
+        };
+
         // Apply the saved theme before showing any window
         ApplyThemeFromSettings(settings.DefaultTheme);
 
         // Check for legacy Heimdall installation and offer migration on first run
         await TryMigrateLegacyAsync(configManager, localization);
-
-        // Global exception handler for diagnostics
-        DispatcherUnhandledException += (_, args) =>
-        {
-            Heimdall.Core.Logging.FileLogger.Error("Unhandled exception", args.Exception);
-            MessageBox.Show(
-                $"Unhandled error:\n\n{args.Exception.Message}\n\n{args.Exception.StackTrace}",
-                "Heimdall Error",
-                MessageBoxButton.OK,
-                MessageBoxImage.Error);
-            args.Handled = true;
-        };
 
         var mainWindow = _serviceProvider.GetRequiredService<MainWindow>();
         _mainViewModel = mainWindow.DataContext as MainViewModel;
@@ -110,6 +154,37 @@ public partial class App : System.Windows.Application
 
         // Windows
         services.AddTransient<MainWindow>();
+    }
+
+    /// <summary>
+    /// Ensures an HMAC key exists in settings and initializes the
+    /// <see cref="CredentialProtector"/> for use across the application.
+    /// Generates a new key on first run.
+    /// </summary>
+    private static async Task InitializeHmacKeyAsync(
+        ConfigManager configManager, AppSettings settings)
+    {
+        if (string.IsNullOrWhiteSpace(settings.HmacKey))
+        {
+            // First run: generate and persist an HMAC key
+            settings.HmacKey = HmacIntegrity.GenerateKey();
+            settings.HmacKeyCreatedAt = DateTime.UtcNow;
+            await configManager.SaveSettingsAsync(settings);
+            Heimdall.Core.Logging.FileLogger.Info("HMAC key generated for credential integrity");
+        }
+
+        // Decrypt the DPAPI-protected HMAC key to raw form for CredentialProtector
+        try
+        {
+            var rawKey = DpapiProvider.Unprotect(settings.HmacKey);
+            CredentialProtector.Initialize(rawKey);
+        }
+        catch (Exception ex)
+        {
+            Heimdall.Core.Logging.FileLogger.Error(
+                "Failed to initialize HMAC key — credentials will use plain DPAPI", ex);
+            CredentialProtector.Initialize(null);
+        }
     }
 
     /// <summary>

@@ -400,7 +400,7 @@ public partial class ServerDialogViewModel : ObservableValidator
             SshKeyPath = string.IsNullOrWhiteSpace(SshKeyPath) ? null : SshKeyPath,
             SshPasswordEncrypted = string.IsNullOrEmpty(SshPassword)
                 ? ExistingSshPasswordEncrypted
-                : Heimdall.Core.Security.DpapiProvider.Protect(SshPassword),
+                : Heimdall.Core.Security.CredentialProtector.Protect(SshPassword),
             SshCompression = SshCompression,
             SshX11Forwarding = SshX11Forwarding,
             SshAgentForwarding = SshAgentForwarding,
@@ -417,7 +417,7 @@ public partial class ServerDialogViewModel : ObservableValidator
             RdpUsername = string.IsNullOrWhiteSpace(RdpUsername) ? null : RdpUsername,
             RdpPasswordEncrypted = string.IsNullOrEmpty(RdpPassword)
                 ? ExistingRdpPasswordEncrypted
-                : Heimdall.Core.Security.DpapiProvider.Protect(RdpPassword),
+                : Heimdall.Core.Security.CredentialProtector.Protect(RdpPassword),
             RdpMode = RdpMode,
             RdpUseGlobalDefaults = RdpUseGlobalDefaults,
             RdpAntiIdle = RdpAntiIdle,

@@ -1793,5 +1793,32 @@
   "CitrixBringToFront": "Bring to Front",
   "CitrixTerminate": "Terminate",
   "StatusCitrixLaunching": "Launching Citrix session...",
-  "StatusCitrixConnected": "Citrix session active"
+  "StatusCitrixConnected": "Citrix session active",
+
+  "TunnelPanelColLocal": "Local",
+
+  "TunnelPanelColRemote": "Remote",
+  "TunnelPanelColPort": "Port",
+  "TooltipCloseTunnel": "Close tunnel",
+  "SettingsBtnExportServers": "Export Servers",
+  "SettingsBtnImportServers": "Import Servers",
+  "QuickConnectNoResults": "No results found. Try ssh user@host for ad-hoc connections.",
+  "QuickConnectHints": "Enter = connect \u00b7 Ctrl+Enter = split \u00b7 ssh user@host = ad-hoc \u00b7 Esc = close",
+
+  "ServerDialogCitrixWorkspace": "Citrix Workspace",
+  "ServerDialogCitrixWorkspaceDesc": "Configure the StoreFront URL and application name, or provide a direct ICA file.",
+  "ServerDialogLabelStoreFrontUrl": "StoreFront URL",
+  "ServerDialogLabelAppName": "Application name",
+  "ServerDialogLabelIcaFilePath": "ICA file path",
+  "ServerDialogCitrixHint": "Provide either a StoreFront URL + application name, or a direct ICA file path.",
+  "ServerDialogCitrixSeamless": "Seamless mode",
+  "ServerDialogCitrixSso": "Use SSO (Kerberos)",
+  "ServerDialogRunAsAdmin": "Run as Administrator (requires gsudo or Windows 11 sudo)",
+  "ServerDialogBtnCancel": "Cancel",
+  "ServerDialogBtnSave": "Save",
+  "ServerDialogColor16": "16-bit",
+  "ServerDialogColor24": "24-bit",
+  "ServerDialogColor32": "32-bit",
+  "ServerDialogBrowseKeyTitle": "Select SSH Key",
+  "ServerDialogBrowseKeyFilter": "PPK Files (*.ppk)|*.ppk|PEM Files (*.pem)|*.pem|All Files (*.*)|*.*"
 }

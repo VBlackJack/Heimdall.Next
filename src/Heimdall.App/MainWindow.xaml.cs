@@ -39,6 +39,7 @@ public partial class MainWindow : Window
         InitializeComponent();
         WindowThemeHelper.ApplyCurrentTheme(this);
         DataContext = viewModel;
+        ApplyLocalization();
 
         TabServers.Checked += OnServersTabChecked;
         TabTunnels.Checked += OnTunnelsTabChecked;
@@ -98,6 +99,168 @@ public partial class MainWindow : Window
             AboutVersionText.Text = $"Version {infoVersion}";
         AboutRuntimeText.Text = System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription;
         AboutPlatformText.Text = $"{System.Runtime.InteropServices.RuntimeInformation.OSDescription} ({System.Runtime.InteropServices.RuntimeInformation.OSArchitecture})";
+    }
+
+    /// <summary>
+    /// Sets all user-facing strings from locale resources.
+    /// Called once after DataContext is assigned.
+    /// </summary>
+    private void ApplyLocalization()
+    {
+        if (DataContext is not MainViewModel vm) return;
+
+        // App title
+        Mw_AppTitle.Text = vm.Localize("AppName");
+
+        // Navigation tabs
+        TabServers.Content = vm.Localize("NavTabServers");
+        TabTunnels.Content = vm.Localize("NavTabTunnels");
+        TabScheduled.Content = vm.Localize("NavTabScheduled");
+        TabSettings.Content = vm.Localize("NavTabSettings");
+        TabAbout.Content = vm.Localize("NavTabAbout");
+
+        // Search / filter
+        SearchBox.Tag = vm.Localize("SearchPlaceholder");
+        Mw_FilterBox.Tag = vm.Localize("FilterServersPlaceholder");
+
+        // Sidebar toggle
+        ToggleSidebarButton.ToolTip = vm.Localize("TooltipHideSidebar");
+        ShowSidebarButton.ToolTip = vm.Localize("TooltipShowSidebar");
+        AddButton.ToolTip = vm.Localize("TooltipAddMenu");
+
+        // Add menu
+        Mw_AddMenuServer.Header = vm.Localize("AddMenuServer");
+        Mw_AddMenuGateway.Header = vm.Localize("AddMenuGateway");
+        Mw_AddMenuFolder.Header = vm.Localize("AddMenuFolder");
+
+        // Server detail panel
+        Mw_DetailGroupLabel.Text = vm.Localize("DetailLabelGroup");
+        Mw_DetailEnvLabel.Text = vm.Localize("DetailLabelEnvironment");
+        Mw_DetailConnectBtn.Content = vm.Localize("DetailBtnConnect");
+
+        // Empty state (no servers)
+        Mw_EmptyNoServers.Text = vm.Localize("EmptyStateNoServers");
+        Mw_EmptyAddHint.Text = vm.Localize("EmptyStateAddHint");
+        Mw_EmptyAddServerBtn.Content = vm.Localize("EmptyStateAddServerButton");
+        Mw_EmptyImportBtn.Content = vm.Localize("EmptyStateImportButton");
+        Mw_EmptySelectServer.Text = vm.Localize("EmptyStateSelectServer");
+
+        // Tunnel bottom panel
+        Mw_TunnelPanelCollapseBtn.ToolTip = vm.Localize("TunnelPanelCollapse");
+        Mw_TunnelPanelCloseAllBtn.Content = vm.Localize("TunnelsBtnCloseAll");
+        Mw_TunnelPanelEmpty.Text = vm.Localize("TunnelsEmptyState");
+
+        // Tunnel panel header: "Tunnels ({0})" split around the dynamic count
+        var tunnelHeader = vm.Localize("TunnelPanelHeader");
+        var placeholderIdx = tunnelHeader.IndexOf("{0}", StringComparison.Ordinal);
+        if (placeholderIdx >= 0)
+        {
+            Mw_TunnelPanelHeaderPrefix.Text = tunnelHeader[..placeholderIdx];
+            Mw_TunnelPanelHeaderSuffix.Text = tunnelHeader[(placeholderIdx + 3)..];
+        }
+        else
+        {
+            Mw_TunnelPanelHeaderPrefix.Text = tunnelHeader;
+        }
+
+        // Tunnel bottom panel columns
+        Mw_TpColGateway.Header = vm.Localize("TunnelsColGateway");
+        Mw_TpColLocal.Header = vm.Localize("TunnelPanelColLocal");
+        Mw_TpColRemote.Header = vm.Localize("TunnelPanelColRemote");
+        Mw_TpColPort.Header = vm.Localize("TunnelPanelColPort");
+
+        // Tunnels tab
+        Mw_TunnelsTitle.Text = vm.Localize("TunnelsSectionTitle");
+        Mw_TunnelsCloseSelectedBtn.Content = vm.Localize("TunnelsBtnCloseSelected");
+        Mw_TunnelsCloseAllBtn.Content = vm.Localize("TunnelsBtnCloseAll");
+        Mw_TunnelsEmpty.Text = vm.Localize("TunnelsEmptyState");
+
+        // Tunnels tab columns
+        Mw_TunnelsColGateway.Header = vm.Localize("TunnelsColGateway");
+        Mw_TunnelsColLocalPort.Header = vm.Localize("TunnelsColLocalPort");
+        Mw_TunnelsColRemoteHost.Header = vm.Localize("TunnelsColRemoteHost");
+        Mw_TunnelsColRemotePort.Header = vm.Localize("TunnelsColRemotePort");
+        Mw_TunnelsColStarted.Header = vm.Localize("TunnelsColStarted");
+
+        // Gateways section (Tunnels tab)
+        Mw_GatewaysTitle.Text = vm.Localize("GatewaysSectionTitle");
+        Mw_GatewaysAddBtn.Content = vm.Localize("GatewaysBtnAdd");
+        Mw_GatewaysEditBtn.Content = vm.Localize("GatewaysBtnEdit");
+        Mw_GatewaysDeleteBtn.Content = vm.Localize("GatewaysBtnDelete");
+
+        // Gateways columns
+        Mw_GatewaysColName.Header = vm.Localize("GatewaysColName");
+        Mw_GatewaysColHost.Header = vm.Localize("GatewaysColHost");
+        Mw_GatewaysColPort.Header = vm.Localize("GatewaysColPort");
+        Mw_GatewaysColUser.Header = vm.Localize("GatewaysColUser");
+        Mw_GatewaysColAuth.Header = vm.Localize("GatewaysColAuth");
+
+        // Scheduled tab
+        Mw_ScheduledTitle.Text = vm.Localize("ScheduledSectionTitle");
+        Mw_ScheduledAddBtn.Content = vm.Localize("ScheduledBtnAdd");
+        Mw_ScheduledDeleteBtn.Content = vm.Localize("ScheduledBtnDelete");
+        Mw_ScheduledEmpty.Text = vm.Localize("ScheduledEmptyState");
+        Mw_ScheduledCreateBtn.Content = vm.Localize("ScheduledEmptyAddButton");
+
+        // Scheduled columns
+        Mw_ScheduledColServer.Header = vm.Localize("ScheduledColServer");
+        Mw_ScheduledColType.Header = vm.Localize("ScheduledColType");
+        Mw_ScheduledColSchedule.Header = vm.Localize("ScheduledColSchedule");
+        Mw_ScheduledColLastRun.Header = vm.Localize("ScheduledColLastRun");
+        Mw_ScheduledColNextRun.Header = vm.Localize("ScheduledColNextRun");
+
+        // Settings tab
+        Mw_SettingsAppearanceTitle.Text = vm.Localize("SettingsSectionAppearance");
+        Mw_SettingsLanguageLabel.Text = vm.Localize("SettingsLabelLanguage");
+        Mw_SettingsThemeLabel.Text = vm.Localize("SettingsLabelTheme");
+        Mw_SettingsExternalToolsTitle.Text = vm.Localize("SettingsSectionExternalTools");
+        Mw_SettingsPlinkPathLabel.Text = vm.Localize("SettingsLabelPlinkPath");
+        Mw_SettingsEditorPathLabel.Text = vm.Localize("SettingsLabelEditorPath");
+        Mw_SettingsSessionTitle.Text = vm.Localize("SettingsSectionSessionBehavior");
+        Mw_SettingsEnableLogging.Content = vm.Localize("SettingsLabelEnableLogging");
+        Mw_SettingsAutoOpenSftp.Content = vm.Localize("SettingsLabelAutoOpenSftp");
+        Mw_SettingsAntiIdleLabel.Text = vm.Localize("SettingsLabelAntiIdleInterval");
+        Mw_SettingsMaxSessionsLabel.Text = vm.Localize("SettingsLabelMaxEmbeddedSessions");
+
+        // Settings - SSH Gateways section
+        Mw_SettingsGatewaysTitle.Text = vm.Localize("GatewaysSectionTitle");
+        Mw_SettingsGatewaysAddBtn.Content = vm.Localize("GatewaysBtnAdd");
+        Mw_SettingsGatewaysEditBtn.Content = vm.Localize("GatewaysBtnEdit");
+        Mw_SettingsGatewaysDeleteBtn.Content = vm.Localize("GatewaysBtnDelete");
+
+        // Settings - Save / Reset / Import / Export
+        Mw_SettingsSaveBtn.Content = vm.Localize("SettingsBtnSaveSettings");
+        Mw_SettingsResetBtn.Content = vm.Localize("SettingsBtnResetDefaults");
+        Mw_SettingsExportBtn.Content = vm.Localize("SettingsBtnExportServers");
+        Mw_SettingsImportBtn.Content = vm.Localize("SettingsBtnImportServers");
+
+        // About tab
+        Mw_AboutAppName.Text = vm.Localize("AppName");
+        Mw_AboutTagline.Text = vm.Localize("AboutTagline");
+        Mw_AboutAuthorLabel.Text = vm.Localize("AboutLabelAuthor");
+        Mw_AboutLicenseLabel.Text = vm.Localize("AboutLabelLicense");
+        Mw_AboutLicenseValue.Text = vm.Localize("AboutLicenseValue");
+        Mw_AboutRuntimeLabel.Text = vm.Localize("AboutLabelRuntime");
+        Mw_AboutPlatformLabel.Text = vm.Localize("AboutLabelPlatform");
+        Mw_AboutFeaturesTitle.Text = vm.Localize("AboutLabelFeatures");
+        Mw_AboutFeature1.Text = "\u2022 " + vm.Localize("AboutFeatureEmbedded");
+        Mw_AboutFeature2.Text = "\u2022 " + vm.Localize("AboutFeatureDpapi");
+        Mw_AboutFeature3.Text = "\u2022 " + vm.Localize("AboutFeatureTunneling");
+        Mw_AboutFeature4.Text = "\u2022 " + vm.Localize("AboutFeatureSftp");
+        Mw_AboutFeature5.Text = "\u2022 " + vm.Localize("AboutFeatureBilingual");
+        Mw_AboutFeature6.Text = "\u2022 " + vm.Localize("AboutFeatureTheme");
+
+        // Fullscreen exit
+        FullscreenBar.ToolTip = vm.Localize("TooltipExitFullscreenEsc");
+
+        // Status bar
+        Mw_StatusTunnelToggle.ToolTip = vm.Localize("TunnelPanelToggle");
+        Mw_StatusBarServersLabel.Text = " " + vm.Localize("StatusBarServers") + " " + vm.Localize("StatusBarSeparator");
+        Mw_StatusBarTunnelsLabel.Text = " " + vm.Localize("StatusBarTunnels");
+
+        // Quick Connect palette
+        Mw_PaletteNoResults.Text = vm.Localize("QuickConnectNoResults");
+        Mw_PaletteHints.Text = vm.Localize("QuickConnectHints");
     }
 
     private void OnServersTabChecked(object sender, RoutedEventArgs e)
