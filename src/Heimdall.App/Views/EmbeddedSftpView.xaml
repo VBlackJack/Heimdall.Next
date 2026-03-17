@@ -57,7 +57,7 @@
                         DockPanel.Dock="Right"
                         Content="&#xE8A9;"
                         FontFamily="Segoe MDL2 Assets"
-                        ToolTip="Split pane"
+                        ToolTip=""
                         Click="OnSplitClick"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
                         Padding="6,2" FontSize="12" Margin="4,0"/>
@@ -399,13 +399,14 @@
         <!-- Row 3 overlay: Drag-drop feedback -->
         <Border x:Name="DragOverlay"
                 Grid.Row="3"
-                Background="#66282A36"
+                Background="{DynamicResource DragDropOverlayBackground}"
                 BorderBrush="{DynamicResource AccentBrush}"
                 BorderThickness="2"
                 CornerRadius="4"
                 IsHitTestVisible="False"
                 Visibility="Collapsed">
-            <TextBlock Text="Drop files to upload"
+            <TextBlock x:Name="DragDropOverlayText"
+                       Text=""
                        FontSize="16" FontWeight="SemiBold"
                        Foreground="{DynamicResource TextPrimaryBrush}"
                        HorizontalAlignment="Center" VerticalAlignment="Center"/>

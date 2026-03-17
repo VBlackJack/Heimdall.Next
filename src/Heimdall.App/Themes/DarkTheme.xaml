@@ -44,6 +44,11 @@
     <SolidColorBrush x:Key="SshBadgeBrush" Color="#50FA7B"/>
     <SolidColorBrush x:Key="SftpBadgeBrush" Color="#FFB86C"/>
 
+    <!-- Overlay and feedback brushes -->
+    <SolidColorBrush x:Key="OverlayBackground" Color="#A0000000"/>
+    <SolidColorBrush x:Key="DragDropOverlayBackground" Color="#66282A36"/>
+    <SolidColorBrush x:Key="BroadcastActiveBrush" Color="#44FF5555"/>
+
     <!-- Scrollbar (Dracula) -->
     <SolidColorBrush x:Key="ScrollBarThumbBrush" Color="#44475A"/>
     <SolidColorBrush x:Key="ScrollBarTrackBrush" Color="#282A36"/>

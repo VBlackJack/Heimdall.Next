@@ -224,6 +224,14 @@ public sealed class PlinkTunnelRunner : IDisposable
             CleanupPasswordFile();
             _pwFilePath = Path.Combine(Path.GetTempPath(), $"heimdall_pw_{Guid.NewGuid():N}");
             File.WriteAllText(_pwFilePath, password);
+
+            // Restrict file ACL to current user + Administrators + SYSTEM
+            if (OperatingSystem.IsWindows())
+            {
+                try { Heimdall.Core.Security.AclEnforcer.SetFileAcl(_pwFilePath); }
+                catch { /* Best-effort — file is in user-owned %TEMP% */ }
+            }
+
             args.Add("-pwfile");
             args.Add($"\"{_pwFilePath}\"");
         }

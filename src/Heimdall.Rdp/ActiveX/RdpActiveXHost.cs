@@ -183,6 +183,9 @@ public class RdpActiveXHost : AxHost, IRdpSession
         ApplyDisplaySettings(ocx);
         ApplyRedirectionSettings(ocx);
 
+        // Clear plaintext password from managed memory after COM handoff
+        _pendingPassword = null;
+
         ((dynamic)ocx).Connect();
     }
 

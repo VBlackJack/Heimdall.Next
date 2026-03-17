@@ -49,12 +49,15 @@ public partial class ConnectionService
             var elevationWrapper = ResolveElevationWrapper();
             if (elevationWrapper is not null)
             {
+                // Use structured quoting — executable is resolved from PATH or config,
+                // arguments are passed through as-is (user-configurable shell args)
+                var quotedExe = $"\"{executable}\"";
                 arguments = string.IsNullOrWhiteSpace(arguments)
-                    ? $"\"{executable}\""
-                    : $"\"{executable}\" {arguments}";
+                    ? quotedExe
+                    : $"{quotedExe} {arguments}";
                 executable = elevationWrapper;
                 Core.Logging.FileLogger.Info(
-                    $"Elevation via {elevationWrapper}: {executable} {arguments}");
+                    $"Elevation via {Path.GetFileName(elevationWrapper)}: {executable} {arguments}");
             }
             else
             {

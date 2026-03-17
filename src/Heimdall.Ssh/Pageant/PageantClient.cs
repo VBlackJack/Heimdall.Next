@@ -113,7 +113,14 @@ public sealed class PageantClient : IDisposable
     }
 
     /// <summary>
+    /// Known legitimate Pageant host process names (case-insensitive).
+    /// </summary>
+    private static readonly string[] TrustedPageantProcessNames =
+        ["pageant", "putty", "plink", "pscp", "psftp", "kitty", "winscp", "keepassxc-proxy", "keepassxc"];
+
+    /// <summary>
     /// Sends a message to Pageant via shared memory IPC and returns the response.
+    /// Validates that the Pageant window is owned by a trusted process before IPC.
     /// </summary>
     /// <param name="request">Raw SSH agent protocol request bytes.</param>
     /// <returns>Raw response bytes from Pageant.</returns>
@@ -123,6 +130,28 @@ public sealed class PageantClient : IDisposable
         if (hwnd == IntPtr.Zero)
         {
             throw new InvalidOperationException("Pageant is not running.");
+        }
+
+        // Verify the owning process is a legitimate Pageant host to prevent
+        // IPC spoofing via a malicious window with the same class/title
+        NativeMethods.GetWindowThreadProcessId(hwnd, out var pageantPid);
+        if (pageantPid > 0)
+        {
+            try
+            {
+                using var proc = System.Diagnostics.Process.GetProcessById(pageantPid);
+                var processName = proc.ProcessName;
+                if (!TrustedPageantProcessNames.Contains(processName, StringComparer.OrdinalIgnoreCase))
+                {
+                    throw new InvalidOperationException(
+                        $"Pageant window owned by untrusted process '{processName}' (PID {pageantPid}). " +
+                        "Aborting IPC to prevent credential theft.");
+                }
+            }
+            catch (ArgumentException)
+            {
+                throw new InvalidOperationException("Pageant process exited before identity verification.");
+            }
         }
 
         if (request.Length > AgentMaxMessageLength)

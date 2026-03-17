@@ -77,11 +77,12 @@ public static class CredentialManagerHelper
     /// <summary>
     /// Store a DOMAIN_PASSWORD credential (CRED_TYPE=2) recognized by mstsc.exe / RDP.
     /// Target must follow the TERMSRV/host format for RDP auto-login.
-    /// Persist is set to Enterprise so the credential survives session lock/unlock.
+    /// Persist is set to Session — credential lives only until logoff and is cleaned
+    /// up by the caller after the RDP session launches (defense-in-depth).
     /// </summary>
     public static bool WriteDomainCredential(string targetName, string username, string password, out string? error)
     {
-        return WriteCredential(targetName, username, password, CredTypeDomainPassword, CredPersistEnterprise, out error);
+        return WriteCredential(targetName, username, password, CredTypeDomainPassword, CredPersistSession, out error);
     }
 
     /// <summary>

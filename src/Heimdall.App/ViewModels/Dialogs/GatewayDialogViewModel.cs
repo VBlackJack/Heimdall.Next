@@ -128,7 +128,7 @@ public partial class GatewayDialogViewModel : ObservableValidator
             KeyPath = string.IsNullOrWhiteSpace(KeyPath) ? null : KeyPath,
             SshPasswordEncrypted = string.IsNullOrEmpty(Password)
                 ? ExistingSshPasswordEncrypted
-                : Heimdall.Core.Security.DpapiProvider.Protect(Password),
+                : Heimdall.Core.Security.CredentialProtector.Protect(Password),
             ParentGatewayId = string.IsNullOrWhiteSpace(SelectedParentGatewayId)
                 ? null
                 : SelectedParentGatewayId,
