@@ -6,21 +6,21 @@
     </ResourceDictionary.MergedDictionaries>
 
     <!-- Colors -->
-    <Color x:Key="PrimaryColor">#F8F9FA</Color>
+    <Color x:Key="PrimaryColor">#F5F5F5</Color>
     <Color x:Key="SecondaryColor">#FFFFFF</Color>
-    <Color x:Key="SurfaceColor">#F0F1F3</Color>
+    <Color x:Key="SurfaceColor">#FAFAFA</Color>
     <Color x:Key="AccentColor">#7C3AED</Color>
     <Color x:Key="AccentHoverColor">#6D28D9</Color>
     <Color x:Key="AccentPressedColor">#5B21B6</Color>
     <Color x:Key="TextPrimaryColor">#1A1A2E</Color>
     <Color x:Key="TextSecondaryColor">#6B7280</Color>
-    <Color x:Key="TextDisabledColor">#9CA3AF</Color>
+    <Color x:Key="TextDisabledColor">#B0B0B0</Color>
     <Color x:Key="SuccessColor">#16A34A</Color>
     <Color x:Key="WarningColor">#D97706</Color>
     <Color x:Key="ErrorColor">#DC2626</Color>
     <Color x:Key="InfoColor">#2563EB</Color>
-    <Color x:Key="BorderColor">#D1D5DB</Color>
-    <Color x:Key="HighlightColor">#E5E7EB</Color>
+    <Color x:Key="BorderColor">#E0E0E0</Color>
+    <Color x:Key="HighlightColor">#F0F0F0</Color>
 
     <!-- Brushes -->
     <SolidColorBrush x:Key="BackgroundBrush" Color="{StaticResource PrimaryColor}"/>
@@ -40,12 +40,12 @@
     <SolidColorBrush x:Key="InfoBrush" Color="{StaticResource InfoColor}"/>
 
     <!-- Connection type badge colors -->
-    <SolidColorBrush x:Key="RdpBadgeBrush" Color="#2563EB"/>
+    <SolidColorBrush x:Key="RdpBadgeBrush" Color="#3B82F6"/>
     <SolidColorBrush x:Key="SshBadgeBrush" Color="#16A34A"/>
     <SolidColorBrush x:Key="SftpBadgeBrush" Color="#D97706"/>
 
     <!-- Scrollbar colors -->
-    <SolidColorBrush x:Key="ScrollBarThumbBrush" Color="#B0B8C4"/>
-    <SolidColorBrush x:Key="ScrollBarTrackBrush" Color="{StaticResource PrimaryColor}"/>
+    <SolidColorBrush x:Key="ScrollBarThumbBrush" Color="#C0C0C0"/>
+    <SolidColorBrush x:Key="ScrollBarTrackBrush" Color="#F5F5F5"/>
 
 </ResourceDictionary>

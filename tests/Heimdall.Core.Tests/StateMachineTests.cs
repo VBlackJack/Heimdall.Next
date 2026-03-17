@@ -393,6 +393,94 @@ public class ConnectionStateMachineTests
         Assert.True(_sm.TryTransition("srv", ConnectionState.Disconnected));
         Assert.True(_sm.TryTransition("srv", ConnectionState.Initializing));
     }
+
+    // ── LaunchingLocal state transitions ────────────────────────────────
+
+    [Fact]
+    public void ValidatingConfig_CanTransitionToLaunchingLocal()
+    {
+        Assert.True(_sm.TryTransition("srv", ConnectionState.Initializing));
+        Assert.True(_sm.TryTransition("srv", ConnectionState.ValidatingConfig));
+        Assert.True(_sm.TryTransition("srv", ConnectionState.LaunchingLocal));
+
+        Assert.Equal(ConnectionState.LaunchingLocal, _sm.GetState("srv"));
+    }
+
+    [Fact]
+    public void LaunchingLocal_CanTransitionToConnected()
+    {
+        _sm.TryTransition("srv", ConnectionState.Initializing);
+        _sm.TryTransition("srv", ConnectionState.ValidatingConfig);
+        _sm.TryTransition("srv", ConnectionState.LaunchingLocal);
+
+        Assert.True(_sm.TryTransition("srv", ConnectionState.Connected));
+    }
+
+    [Fact]
+    public void LaunchingLocal_CanTransitionToError()
+    {
+        _sm.TryTransition("srv", ConnectionState.Initializing);
+        _sm.TryTransition("srv", ConnectionState.ValidatingConfig);
+        _sm.TryTransition("srv", ConnectionState.LaunchingLocal);
+
+        Assert.True(_sm.SetError("srv", "Local shell failed"));
+        Assert.Equal(ConnectionState.Error, _sm.GetState("srv"));
+    }
+
+    [Fact]
+    public void LaunchingLocal_CanTransitionToDisconnecting()
+    {
+        _sm.TryTransition("srv", ConnectionState.Initializing);
+        _sm.TryTransition("srv", ConnectionState.ValidatingConfig);
+        _sm.TryTransition("srv", ConnectionState.LaunchingLocal);
+
+        Assert.True(_sm.TryTransition("srv", ConnectionState.Disconnecting));
+    }
+
+    [Fact]
+    public void LaunchingLocal_CannotTransitionToDisconnectedDirectly()
+    {
+        _sm.TryTransition("srv", ConnectionState.Initializing);
+        _sm.TryTransition("srv", ConnectionState.ValidatingConfig);
+        _sm.TryTransition("srv", ConnectionState.LaunchingLocal);
+
+        Assert.False(_sm.TryTransition("srv", ConnectionState.Disconnected));
+    }
+
+    [Fact]
+    public void FullLocalShellWorkflow_Succeeds()
+    {
+        Assert.True(_sm.TryTransition("srv", ConnectionState.Initializing));
+        Assert.True(_sm.TryTransition("srv", ConnectionState.ValidatingConfig));
+        Assert.True(_sm.TryTransition("srv", ConnectionState.LaunchingLocal));
+        Assert.True(_sm.TryTransition("srv", ConnectionState.Connected));
+        Assert.True(_sm.TryTransition("srv", ConnectionState.Disconnecting));
+        Assert.True(_sm.TryTransition("srv", ConnectionState.Disconnected));
+    }
+
+    [Theory]
+    [InlineData(ConnectionState.ValidatingConfig, ConnectionState.LaunchingLocal, true)]
+    [InlineData(ConnectionState.LaunchingLocal, ConnectionState.Connected, true)]
+    [InlineData(ConnectionState.LaunchingLocal, ConnectionState.Error, true)]
+    [InlineData(ConnectionState.LaunchingLocal, ConnectionState.Disconnecting, true)]
+    [InlineData(ConnectionState.LaunchingLocal, ConnectionState.Disconnected, false)]
+    [InlineData(ConnectionState.LaunchingLocal, ConnectionState.Initializing, false)]
+    public void LaunchingLocal_TransitionTable(ConnectionState from, ConnectionState to, bool expected)
+    {
+        Assert.Equal(expected, ConnectionStateMachine.IsValidTransition(from, to));
+    }
+
+    [Fact]
+    public void LaunchingLocal_Metadata_IsProgressState()
+    {
+        var metadata = ConnectionStateMachine.GetMetadata(ConnectionState.LaunchingLocal);
+
+        Assert.Equal("StatusLaunchingLocal", metadata.DisplayKey);
+        Assert.Equal("LogLocalShellLaunching", metadata.LogKey);
+        Assert.False(metadata.IsTerminal);
+        Assert.False(metadata.AllowsUserAction);
+        Assert.True(metadata.IsProgress);
+    }
 }
 
 public class ApplicationStatusMachineTests

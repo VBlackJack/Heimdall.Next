@@ -4,6 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="clr-namespace:Heimdall.App.ViewModels"
+        xmlns:views="clr-namespace:Heimdall.App.Views"
         mc:Ignorable="d"
         d:DataContext="{d:DesignInstance Type=vm:MainViewModel}"
         Title="{Binding WindowTitle}"
@@ -60,29 +61,18 @@
                                  Content="Settings"
                                  GroupName="NavTabs"
                                  Focusable="True"
+                                 Style="{DynamicResource ToolbarTabStyle}"
+                                 Margin="0,0,4,0"/>
+                    <RadioButton x:Name="TabAbout"
+                                 Content="About"
+                                 GroupName="NavTabs"
+                                 Focusable="True"
                                  Style="{DynamicResource ToolbarTabStyle}"/>
                 </StackPanel>
 
-                <!-- Right: Quick actions -->
+                <!-- Right: Search box -->
                 <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" HorizontalAlignment="Right"
                             VerticalAlignment="Center">
-                    <Button x:Name="ToggleSidebarButton" Content="&#x2630;"
-                            ToolTip="Toggle sidebar (Ctrl+B)"
-                            Click="OnToggleSidebarClick"
-                            Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="6,2" FontSize="14" Width="32" Margin="4,0"/>
-                    <Button x:Name="AddButton" Content="+ Add"
-                            Style="{DynamicResource PrimaryButtonStyle}"
-                            Margin="4,0" Click="OnAddButtonClick">
-                        <Button.ContextMenu>
-                            <ContextMenu x:Name="AddMenu"
-                                         DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
-                                <MenuItem Header="Add Server" Command="{Binding ServerList.AddServerCommand}"/>
-                                <MenuItem Header="Add Gateway" Command="{Binding Settings.AddGatewayCommand}"/>
-                                <MenuItem Header="Add Project" Command="{Binding AddProjectCommand}"/>
-                            </ContextMenu>
-                        </Button.ContextMenu>
-                    </Button>
                     <TextBox x:Name="SearchBox"
                              Width="200"
                              Text="{Binding ServerList.SearchText, UpdateSourceTrigger=PropertyChanged}"
@@ -117,71 +107,96 @@
                         BorderBrush="{DynamicResource BorderBrush}"
                         >
                     <DockPanel>
-                        <!-- Filter box at top of TreeView -->
-                        <TextBox DockPanel.Dock="Top"
-                                 Text="{Binding ServerList.SearchText, UpdateSourceTrigger=PropertyChanged}"
-                                 Style="{DynamicResource SearchTextBoxStyle}"
-                                 Tag="Filter servers..."
-                                 Margin="8,8,8,4"/>
+                        <!-- Filter + collapse button at top of TreeView -->
+                        <DockPanel DockPanel.Dock="Top" Margin="8,8,8,4">
+                            <Button x:Name="ToggleSidebarButton"
+                                    DockPanel.Dock="Right"
+                                    Content="&#xE89F;"
+                                    FontFamily="Segoe MDL2 Assets"
+                                    ToolTip="Hide sidebar (Ctrl+B)"
+                                    Click="OnToggleSidebarClick"
+                                    Style="{DynamicResource SecondaryButtonStyle}"
+                                    Padding="4,4" FontSize="12"
+                                    Width="28" Height="28"
+                                    Margin="4,0,0,0"/>
+                            <Button x:Name="AddButton"
+                                    DockPanel.Dock="Right"
+                                    ToolTip="Add server, folder, or gateway"
+                                    Click="OnAddButtonClick"
+                                    Style="{DynamicResource ToolbarGhostButtonStyle}"
+                                    Padding="4,4" FontSize="12"
+                                    Width="28" Height="28"
+                                    Margin="4,0,0,0">
+                                <TextBlock Text="&#xE710;" FontFamily="Segoe MDL2 Assets" FontSize="12"/>
+                                <Button.ContextMenu>
+                                    <ContextMenu x:Name="AddMenu"
+                                                 DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
+                                        <MenuItem Header="Add Server" Command="{Binding ServerList.AddServerCommand}"/>
+                                        <MenuItem Header="Add Gateway" Command="{Binding Settings.AddGatewayCommand}"/>
+                                        <MenuItem Header="New Folder" Click="OnAddFolderFromMenu"/>
+                                    </ContextMenu>
+                                </Button.ContextMenu>
+                            </Button>
+                            <TextBox Text="{Binding ServerList.SearchText, UpdateSourceTrigger=PropertyChanged}"
+                                     Style="{DynamicResource SearchTextBoxStyle}"
+                                     Tag="Filter servers..."/>
+                        </DockPanel>
 
                         <!-- Hierarchical TreeView -->
                         <TreeView x:Name="ServerTreeView"
                                   ItemsSource="{Binding ServerList.GroupedServers}"
                                   Style="{DynamicResource ThemedTreeViewStyle}"
                                   Padding="0,4,0,0"
+                                  AllowDrop="True"
                                   SelectedItemChanged="OnTreeViewSelectedItemChanged"
                                   MouseDoubleClick="OnTreeViewDoubleClick"
+                                  PreviewMouseLeftButtonDown="OnTreeViewDragStart"
+                                  PreviewMouseMove="OnTreeViewDragMove"
+                                  DragOver="OnTreeViewDragOver"
+                                  Drop="OnTreeViewDrop"
                                   PreviewMouseRightButtonDown="OnTreeViewPreviewMouseRightButtonDown"
                                   ContextMenuOpening="OnTreeViewContextMenuOpening"
                                   ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                                   VirtualizingPanel.IsVirtualizing="True">
                             <TreeView.Resources>
-                                <!-- Project node template (top level) -->
-                                <HierarchicalDataTemplate DataType="{x:Type vm:ServerProjectViewModel}"
-                                                          ItemsSource="{Binding Groups}">
-                                    <Grid Margin="0,6,0,0" ToolTip="{Binding ProjectName}">
+                                <!-- Folder node template (recursive — unlimited nesting) -->
+                                <HierarchicalDataTemplate DataType="{x:Type vm:FolderViewModel}"
+                                                          ItemsSource="{Binding Children}">
+                                    <Grid Margin="0,2,0,0" ToolTip="{Binding FullPath}">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="Auto"/>
                                             <ColumnDefinition Width="*"/>
                                             <ColumnDefinition Width="Auto"/>
                                         </Grid.ColumnDefinitions>
-                                        <Border Grid.Column="0" Width="4" Height="16" CornerRadius="2"
-                                                Background="{DynamicResource AccentBrush}" Margin="0,0,8,0"
-                                                VerticalAlignment="Center"/>
-                                        <TextBlock Grid.Column="1" Text="{Binding ProjectName}"
-                                                   FontSize="13" FontWeight="Bold"
+                                        <TextBlock Grid.Column="0" Text="&#xE8B7;"
+                                                   FontFamily="Segoe MDL2 Assets" FontSize="13"
+                                                   Foreground="{DynamicResource InfoBrush}" Margin="0,0,6,0"
+                                                   VerticalAlignment="Center"/>
+                                        <TextBlock Grid.Column="1" Text="{Binding Name}"
+                                                   FontSize="12" FontWeight="SemiBold"
                                                    Foreground="{DynamicResource TextPrimaryBrush}"
                                                    VerticalAlignment="Center"
                                                    TextTrimming="CharacterEllipsis"/>
-                                        <Border Grid.Column="2" Padding="6,1" CornerRadius="8" Margin="6,0,0,0"
+                                        <Border Grid.Column="2" Padding="6,2" CornerRadius="8" Margin="6,0,0,0"
                                                 Background="{DynamicResource CardBrush}"
                                                 VerticalAlignment="Center">
-                                            <TextBlock Text="{Binding ServerCount}" FontSize="10"
+                                            <TextBlock Text="{Binding ServerCount}" FontSize="11"
                                                        Foreground="{DynamicResource TextSecondaryBrush}"
                                                        HorizontalAlignment="Center"/>
                                         </Border>
                                     </Grid>
                                 </HierarchicalDataTemplate>
 
-                                <!-- Group node template (mid level) -->
-                                <HierarchicalDataTemplate DataType="{x:Type vm:ServerGroupViewModel}"
-                                                          ItemsSource="{Binding Servers}">
-                                    <StackPanel Orientation="Horizontal" Margin="0,2,0,0"
-                                                ToolTip="{Binding GroupName}">
-                                        <TextBlock Text="{Binding GroupName}" FontSize="12" FontWeight="SemiBold"
-                                                   Foreground="{DynamicResource TextPrimaryBrush}"
-                                                   VerticalAlignment="Center"
-                                                   TextTrimming="CharacterEllipsis"/>
-                                        <TextBlock Text="{Binding ServerCount}" FontSize="10" Margin="6,0,0,0"
-                                                   Foreground="{DynamicResource TextSecondaryBrush}"
-                                                   VerticalAlignment="Center" Opacity="0.7"/>
-                                    </StackPanel>
-                                </HierarchicalDataTemplate>
-
                                 <!-- Server leaf node template -->
                                 <DataTemplate DataType="{x:Type vm:ServerItemViewModel}">
                                     <StackPanel Orientation="Horizontal" Margin="0,1"
                                                 ToolTip="{Binding DisplayName}">
+                                        <!-- Connection type icon -->
+                                        <TextBlock x:Name="TypeIcon" Text="&#xE7F4;"
+                                                   FontFamily="Segoe MDL2 Assets" FontSize="10"
+                                                   Foreground="{DynamicResource InfoBrush}"
+                                                   VerticalAlignment="Center" Margin="0,0,4,0"/>
+                                        <!-- Status dot -->
                                         <Ellipse Width="7" Height="7" Margin="2,0,8,0"
                                                  VerticalAlignment="Center">
                                             <Ellipse.Fill>
@@ -191,11 +206,30 @@
                                                 </MultiBinding>
                                             </Ellipse.Fill>
                                         </Ellipse>
+                                        <!-- Server name -->
                                         <TextBlock Text="{Binding DisplayName}" FontSize="12"
                                                    Foreground="{DynamicResource TextPrimaryBrush}"
                                                    VerticalAlignment="Center"
                                                    TextTrimming="CharacterEllipsis"/>
                                     </StackPanel>
+                                    <DataTemplate.Triggers>
+                                        <DataTrigger Binding="{Binding ConnectionType}" Value="SSH">
+                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE756;"/>
+                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource SuccessBrush}"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding ConnectionType}" Value="SFTP">
+                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE8B7;"/>
+                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource WarningBrush}"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding ConnectionType}" Value="Local">
+                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE756;"/>
+                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource AccentBrush}"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding ConnectionType}" Value="Citrix">
+                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE753;"/>
+                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource InfoBrush}"/>
+                                        </DataTrigger>
+                                    </DataTemplate.Triggers>
                                 </DataTemplate>
                             </TreeView.Resources>
 
@@ -214,18 +248,42 @@
 
                 <!-- SPLITTER -->
                 <GridSplitter Grid.Column="1"
-                              Width="3"
+                              Width="4"
                               HorizontalAlignment="Center"
                               VerticalAlignment="Stretch"
-                              Background="{DynamicResource BorderBrush}"
+                              Background="{DynamicResource CardBrush}"
                               ShowsPreview="True"/>
 
-                <!-- RIGHT PANEL: sessions OR server details -->
+                <!-- Show sidebar button (visible only when sidebar is hidden) -->
+                <Button x:Name="ShowSidebarButton"
+                        Grid.Column="2"
+                        HorizontalAlignment="Left"
+                        VerticalAlignment="Top"
+                        Content="&#xE76C;"
+                        FontFamily="Segoe MDL2 Assets"
+                        ToolTip="Show sidebar (Ctrl+B)"
+                        Click="OnToggleSidebarClick"
+                        Style="{DynamicResource SecondaryButtonStyle}"
+                        Padding="4,6" FontSize="11"
+                        Margin="4,8,0,0"
+                        Panel.ZIndex="10"
+                        Visibility="Collapsed"/>
+
+                <!-- RIGHT PANEL: sessions + tunnel bottom panel -->
                 <Grid Grid.Column="2"
                       ClipToBounds="True">
+                    <Grid.RowDefinitions>
+                        <!-- Row 0: Sessions / server details -->
+                        <RowDefinition Height="*"/>
+                        <!-- Row 1: GridSplitter (visible when tunnel panel open) -->
+                        <RowDefinition Height="Auto"/>
+                        <!-- Row 2: Retractable tunnel panel -->
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
 
                     <!-- SESSIONS (visible when active) -->
                     <TabControl x:Name="SessionTabControl"
+                                Grid.Row="0"
                                 ItemsSource="{Binding Connection.ActiveSessions}"
                                 SelectedItem="{Binding Connection.ActiveSession}"
                                 Visibility="{Binding Connection.HasActiveSessions, Converter={StaticResource BoolToVisibilityConverter}}"
@@ -241,31 +299,66 @@
                                 ItemContainerStyle="{DynamicResource ThemedTabItemStyle}">
                         <TabControl.ItemTemplate>
                             <DataTemplate DataType="{x:Type vm:SessionTabViewModel}">
-                                <DockPanel LastChildFill="True">
-                                    <Button DockPanel.Dock="Right"
-                                            Width="18" Height="18" Margin="8,0,0,0" Padding="0"
-                                            Focusable="False" Content="x"
-                                            Command="{Binding DataContext.Connection.CloseSessionCommand, RelativeSource={RelativeSource AncestorType=TabControl}}"
-                                            CommandParameter="{Binding}"
-                                            Style="{DynamicResource SecondaryButtonStyle}"/>
-                                    <StackPanel>
-                                        <TextBlock Text="{Binding Title}" FontSize="12" FontWeight="SemiBold"
-                                                   Foreground="{DynamicResource TextPrimaryBrush}" TextTrimming="CharacterEllipsis"/>
-                                        <TextBlock Text="{Binding Status}" FontSize="10"
-                                                   Foreground="{DynamicResource TextSecondaryBrush}" TextTrimming="CharacterEllipsis"/>
-                                    </StackPanel>
-                                </DockPanel>
+                                <Border x:Name="TabHeaderBorder" Padding="10,6">
+                                    <DockPanel LastChildFill="True">
+                                        <Button x:Name="TabCloseButton" DockPanel.Dock="Right"
+                                                Width="18" Height="18" Margin="6,0,0,0" Padding="0"
+                                                Focusable="False" Content="x" FontSize="10"
+                                                Visibility="Collapsed"
+                                                Command="{Binding DataContext.Connection.CloseSessionCommand, RelativeSource={RelativeSource AncestorType=TabControl}}"
+                                                CommandParameter="{Binding}"
+                                                Style="{DynamicResource SecondaryButtonStyle}"/>
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                            <TextBlock x:Name="TabTypeIcon" Text="&#xE7F4;"
+                                                       FontFamily="Segoe MDL2 Assets" FontSize="10"
+                                                       Foreground="{DynamicResource InfoBrush}"
+                                                       VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                            <TextBlock Text="{Binding Title}" FontSize="12" FontWeight="SemiBold"
+                                                       Foreground="{DynamicResource TextPrimaryBrush}"
+                                                       VerticalAlignment="Center"
+                                                       TextTrimming="CharacterEllipsis" MaxWidth="160"/>
+                                        </StackPanel>
+                                    </DockPanel>
+                                </Border>
+                                <DataTemplate.Triggers>
+                                    <!-- Show close button on hover -->
+                                    <Trigger SourceName="TabHeaderBorder" Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="TabCloseButton" Property="Visibility" Value="Visible"/>
+                                    </Trigger>
+                                    <!-- Connection type icons -->
+                                    <DataTrigger Binding="{Binding ConnectionType}" Value="SSH">
+                                        <Setter TargetName="TabTypeIcon" Property="Text" Value="&#xE756;"/>
+                                        <Setter TargetName="TabTypeIcon" Property="Foreground" Value="{DynamicResource SuccessBrush}"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding ConnectionType}" Value="SFTP">
+                                        <Setter TargetName="TabTypeIcon" Property="Text" Value="&#xE8B7;"/>
+                                        <Setter TargetName="TabTypeIcon" Property="Foreground" Value="{DynamicResource WarningBrush}"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding ConnectionType}" Value="LOCAL">
+                                        <Setter TargetName="TabTypeIcon" Property="Text" Value="&#xE756;"/>
+                                        <Setter TargetName="TabTypeIcon" Property="Foreground" Value="{DynamicResource AccentBrush}"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding ConnectionType}" Value="CITRIX">
+                                        <Setter TargetName="TabTypeIcon" Property="Text" Value="&#xE753;"/>
+                                        <Setter TargetName="TabTypeIcon" Property="Foreground" Value="{DynamicResource InfoBrush}"/>
+                                    </DataTrigger>
+                                </DataTemplate.Triggers>
                             </DataTemplate>
                         </TabControl.ItemTemplate>
                         <TabControl.ContentTemplate>
                             <DataTemplate DataType="{x:Type vm:SessionTabViewModel}">
-                                <ContentControl Content="{Binding HostControl}"/>
+                                <views:SplitPaneHost
+                                    PrimaryContent="{Binding HostControl}"
+                                    SecondaryContent="{Binding SecondaryHostControl}"
+                                    IsSplit="{Binding IsSplit}"
+                                    Orientation="{Binding SplitOrientation}"/>
                             </DataTemplate>
                         </TabControl.ContentTemplate>
                     </TabControl>
 
                     <!-- SERVER DETAILS (visible when no sessions) -->
-                    <Grid Visibility="{Binding Connection.HasActiveSessions, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=Invert}">
+                    <Grid Grid.Row="0"
+                          Visibility="{Binding Connection.HasActiveSessions, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=Invert}">
                         <!-- Server detail panel (shown when a server is selected) -->
                         <Border Visibility="{Binding ServerList.HasSelection, Converter={StaticResource BoolToVisibilityConverter}}"
                                 Padding="24">
@@ -279,8 +372,8 @@
                                             Background="{Binding ServerList.SelectedServer.ConnectionType,
                                                 Converter={StaticResource ConnectionTypeToBrushConverter}}">
                                         <TextBlock Text="{Binding ServerList.SelectedServer.ConnectionType}"
-                                                   FontSize="10" FontWeight="SemiBold"
-                                                   Foreground="White"/>
+                                                   FontSize="11" FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource BackgroundBrush}"/>
                                     </Border>
                                     <Ellipse Width="8" Height="8" Margin="0,0,6,0"
                                              VerticalAlignment="Center"
@@ -338,6 +431,11 @@
                                         Command="{Binding ServerList.AddServerCommand}"
                                         Style="{DynamicResource PrimaryButtonStyle}"
                                         HorizontalAlignment="Center"/>
+                                <Button Content="Import from JSON"
+                                        Command="{Binding Settings.ImportConfigCommand}"
+                                        Style="{DynamicResource SecondaryButtonStyle}"
+                                        Padding="12,6" FontSize="12"
+                                        HorizontalAlignment="Center" Margin="0,8,0,0"/>
                             </StackPanel>
 
                             <!-- Show hint when servers exist but none selected -->
@@ -347,11 +445,135 @@
                                        Foreground="{DynamicResource TextSecondaryBrush}" FontSize="14"/>
                         </StackPanel>
                     </Grid>
+
+                    <!-- TUNNEL BOTTOM PANEL: GridSplitter + compact active tunnels -->
+                    <GridSplitter Grid.Row="1"
+                                  Height="4"
+                                  HorizontalAlignment="Stretch"
+                                  VerticalAlignment="Center"
+                                  Background="{DynamicResource CardBrush}"
+                                  ShowsPreview="True"
+                                  Visibility="{Binding IsTunnelPanelOpen, Converter={StaticResource BoolToVisibilityConverter}}"/>
+
+                    <Border Grid.Row="2"
+                            Height="180"
+                            Background="{DynamicResource SurfaceBrush}"
+                            BorderBrush="{DynamicResource BorderBrush}"
+                            BorderThickness="0,1,0,0"
+                            Visibility="{Binding IsTunnelPanelOpen, Converter={StaticResource BoolToVisibilityConverter}}">
+                        <DockPanel>
+                            <!-- Header: "Tunnels (N)" + collapse button -->
+                            <Border DockPanel.Dock="Top"
+                                    Padding="8,4"
+                                    Background="{DynamicResource SurfaceBrush}"
+                                    BorderBrush="{DynamicResource BorderBrush}"
+                                    BorderThickness="0,0,0,1">
+                                <DockPanel>
+                                    <Button DockPanel.Dock="Right"
+                                            Content="&#xE70D;"
+                                            FontFamily="Segoe MDL2 Assets"
+                                            FontSize="10"
+                                            ToolTip="Collapse tunnel panel"
+                                            Command="{Binding ToggleTunnelPanelCommand}"
+                                            Style="{DynamicResource ToolbarGhostButtonStyle}"
+                                            Padding="6,2" Margin="4,0,0,0"/>
+                                    <Button DockPanel.Dock="Right"
+                                            Content="Close All"
+                                            Command="{Binding CloseAllTunnelsCommand}"
+                                            Style="{DynamicResource SecondaryButtonStyle}"
+                                            Foreground="{DynamicResource ErrorBrush}"
+                                            Padding="6,2" FontSize="10" Margin="4,0,0,0"/>
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <TextBlock Text="&#xE945;" FontFamily="Segoe MDL2 Assets"
+                                                   FontSize="12" Margin="0,0,6,0"
+                                                   Foreground="{DynamicResource AccentBrush}"
+                                                   VerticalAlignment="Center"/>
+                                        <TextBlock FontSize="12" FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                                   VerticalAlignment="Center">
+                                            <Run Text="Tunnels ("/>
+                                            <Run Text="{Binding TunnelCount, Mode=OneWay}"/>
+                                            <Run Text=")"/>
+                                        </TextBlock>
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
+
+                            <!-- Content: compact tunnel DataGrid -->
+                            <Grid>
+                                <DataGrid ItemsSource="{Binding TunnelList}"
+                                          SelectedItem="{Binding SelectedTunnel}"
+                                          AutoGenerateColumns="False"
+                                          IsReadOnly="True"
+                                          SelectionMode="Single"
+                                          Margin="0"
+                                          Style="{DynamicResource ThemedDataGridStyle}"
+                                          ColumnHeaderStyle="{DynamicResource ThemedDataGridColumnHeaderStyle}"
+                                          CellStyle="{DynamicResource ThemedDataGridCellStyle}"
+                                          RowStyle="{DynamicResource ThemedDataGridRowStyle}"
+                                          HeadersVisibility="Column"
+                                          GridLinesVisibility="None"
+                                          RowHeight="24"
+                                          FontSize="11">
+                                    <DataGrid.Columns>
+                                        <DataGridTemplateColumn Header="" Width="24">
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <Ellipse Width="7" Height="7"
+                                                             HorizontalAlignment="Center"
+                                                             VerticalAlignment="Center">
+                                                        <Ellipse.Style>
+                                                            <Style TargetType="Ellipse">
+                                                                <Setter Property="Fill" Value="{DynamicResource SuccessBrush}"/>
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding IsAlive}" Value="False">
+                                                                        <Setter Property="Fill" Value="{DynamicResource ErrorBrush}"/>
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </Ellipse.Style>
+                                                    </Ellipse>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+                                        <DataGridTextColumn Header="Gateway" Binding="{Binding ServerName}" Width="*"/>
+                                        <DataGridTextColumn Header="Local" Binding="{Binding LocalPort}" Width="60"/>
+                                        <DataGridTextColumn Header="Remote" Binding="{Binding RemoteHost}" Width="*"/>
+                                        <DataGridTextColumn Header="Port" Binding="{Binding RemotePort}" Width="50"/>
+                                        <DataGridTemplateColumn Header="" Width="28">
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <Button Content="&#xE711;"
+                                                            FontFamily="Segoe MDL2 Assets"
+                                                            FontSize="10"
+                                                            Command="{Binding DataContext.CloseTunnelCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                            CommandParameter="{Binding}"
+                                                            Style="{DynamicResource ToolbarGhostButtonStyle}"
+                                                            Padding="2" Margin="0"
+                                                            ToolTip="Close tunnel"
+                                                            VerticalAlignment="Center"
+                                                            HorizontalAlignment="Center"/>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+
+                                <!-- Empty state -->
+                                <TextBlock Text="No active tunnels"
+                                           FontSize="11"
+                                           Foreground="{DynamicResource TextSecondaryBrush}"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center"
+                                           Visibility="{Binding HasNoTunnels, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                            </Grid>
+                        </DockPanel>
+                    </Border>
                 </Grid>
             </Grid>
 
             <!-- ============================================================ -->
-            <!-- TUNNELS TAB: Active tunnels + Gateway management              -->
+            <!-- TUNNELS TAB: Visual tunnel editor + Gateway management        -->
             <!-- ============================================================ -->
             <Grid Visibility="{Binding IsTunnelsTabSelected, Converter={StaticResource BoolToVisibilityConverter}}">
                 <Grid.RowDefinitions>
@@ -362,28 +584,76 @@
 
                 <!-- Active Tunnels -->
                 <DockPanel Grid.Row="0">
-                    <TextBlock DockPanel.Dock="Top" Text="Active Tunnels" FontSize="14" FontWeight="SemiBold"
-                               Foreground="{DynamicResource TextPrimaryBrush}" Margin="16,12,16,8"/>
-                    <DataGrid ItemsSource="{Binding TunnelList}"
-                              AutoGenerateColumns="False"
-                              IsReadOnly="True"
-                              SelectionMode="Single"
-                              Style="{DynamicResource ThemedDataGridStyle}"
-                              ColumnHeaderStyle="{DynamicResource ThemedDataGridColumnHeaderStyle}"
-                              CellStyle="{DynamicResource ThemedDataGridCellStyle}"
-                              RowStyle="{DynamicResource ThemedDataGridRowStyle}">
-                        <DataGrid.Columns>
-                            <DataGridTextColumn Header="Server" Binding="{Binding ServerName}" Width="*"/>
-                            <DataGridTextColumn Header="Local Port" Binding="{Binding LocalPort}" Width="100"/>
-                            <DataGridTextColumn Header="Remote" Binding="{Binding RemoteHost}" Width="*"/>
-                            <DataGridTextColumn Header="Remote Port" Binding="{Binding RemotePort}" Width="100"/>
-                            <DataGridTextColumn Header="Started" Binding="{Binding StartedAt, StringFormat=HH:mm:ss}" Width="100"/>
-                        </DataGrid.Columns>
-                    </DataGrid>
+                    <DockPanel DockPanel.Dock="Top" Margin="16,12,16,8">
+                        <TextBlock Text="Active Tunnels" FontSize="14" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                            <Button Content="Close Selected"
+                                    Command="{Binding CloseTunnelCommand}"
+                                    CommandParameter="{Binding SelectedTunnel}"
+                                    Style="{DynamicResource SecondaryButtonStyle}"
+                                    Padding="8,3" FontSize="11" Margin="0,0,4,0"/>
+                            <Button Content="Close All"
+                                    Command="{Binding CloseAllTunnelsCommand}"
+                                    Style="{DynamicResource SecondaryButtonStyle}"
+                                    Foreground="{DynamicResource ErrorBrush}"
+                                    Padding="8,3" FontSize="11"/>
+                        </StackPanel>
+                    </DockPanel>
+
+                    <Grid>
+                        <!-- Tunnel DataGrid -->
+                        <DataGrid ItemsSource="{Binding TunnelList}"
+                                  SelectedItem="{Binding SelectedTunnel}"
+                                  AutoGenerateColumns="False"
+                                  IsReadOnly="True"
+                                  SelectionMode="Single"
+                                  Margin="16,0,16,8"
+                                  Style="{DynamicResource ThemedDataGridStyle}"
+                                  ColumnHeaderStyle="{DynamicResource ThemedDataGridColumnHeaderStyle}"
+                                  CellStyle="{DynamicResource ThemedDataGridCellStyle}"
+                                  RowStyle="{DynamicResource ThemedDataGridRowStyle}">
+                            <DataGrid.Columns>
+                                <DataGridTemplateColumn Header="" Width="28">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Ellipse Width="8" Height="8"
+                                                     HorizontalAlignment="Center"
+                                                     VerticalAlignment="Center">
+                                                <Ellipse.Style>
+                                                    <Style TargetType="Ellipse">
+                                                        <Setter Property="Fill" Value="{DynamicResource SuccessBrush}"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsAlive}" Value="False">
+                                                                <Setter Property="Fill" Value="{DynamicResource ErrorBrush}"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Ellipse.Style>
+                                            </Ellipse>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTextColumn Header="Gateway" Binding="{Binding ServerName}" Width="*"/>
+                                <DataGridTextColumn Header="Local Port" Binding="{Binding LocalPort}" Width="90"/>
+                                <DataGridTextColumn Header="Remote Host" Binding="{Binding RemoteHost}" Width="*"/>
+                                <DataGridTextColumn Header="Remote Port" Binding="{Binding RemotePort}" Width="90"/>
+                                <DataGridTextColumn Header="Started" Binding="{Binding StartedAt, StringFormat=HH:mm:ss}" Width="80"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
+
+                        <!-- Empty state -->
+                        <TextBlock Text="No active tunnels"
+                                   FontSize="13"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"
+                                   Visibility="{Binding HasNoTunnels, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                    </Grid>
                 </DockPanel>
 
                 <!-- Separator -->
-                <Border Grid.Row="1" Height="1" Background="{DynamicResource BorderBrush}" Margin="16,8"/>
+                <Border Grid.Row="1" Height="1" Background="{DynamicResource BorderBrush}" Margin="16,4"/>
 
                 <!-- SSH Gateways -->
                 <DockPanel Grid.Row="2" MinHeight="180" MaxHeight="300">
@@ -419,11 +689,11 @@
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <StackPanel Orientation="Horizontal">
-                                            <TextBlock Text="KEY" FontSize="9" FontWeight="Bold"
+                                            <TextBlock Text="KEY" FontSize="10" FontWeight="Bold"
                                                        Foreground="{DynamicResource SshBadgeBrush}"
                                                        Visibility="{Binding HasKey, Converter={StaticResource BoolToVisibilityConverter}}"
                                                        Margin="0,0,4,0"/>
-                                            <TextBlock Text="PWD" FontSize="9" FontWeight="Bold"
+                                            <TextBlock Text="PWD" FontSize="10" FontWeight="Bold"
                                                        Foreground="{DynamicResource WarningBrush}"
                                                        Visibility="{Binding HasPassword, Converter={StaticResource BoolToVisibilityConverter}}"/>
                                         </StackPanel>
@@ -436,113 +706,302 @@
             </Grid>
 
             <!-- ============================================================ -->
-            <!-- SCHEDULED TAB: Placeholder                                    -->
+            <!-- SCHEDULED TAB: Scheduled connection management               -->
             <!-- ============================================================ -->
-            <StackPanel Visibility="{Binding IsScheduledTabSelected, Converter={StaticResource BoolToVisibilityConverter}}"
-                        VerticalAlignment="Center" HorizontalAlignment="Center">
-                <TextBlock Text="Scheduled connections"
-                           FontSize="18" FontWeight="SemiBold"
-                           Foreground="{DynamicResource TextSecondaryBrush}"
-                           HorizontalAlignment="Center" Margin="0,0,0,8"/>
-                <TextBlock Text="No scheduled tasks configured."
-                           FontSize="13"
-                           Foreground="{DynamicResource TextSecondaryBrush}"
-                           HorizontalAlignment="Center"/>
-            </StackPanel>
+            <DockPanel Visibility="{Binding IsScheduledTabSelected, Converter={StaticResource BoolToVisibilityConverter}}">
+                <!-- Header bar -->
+                <DockPanel DockPanel.Dock="Top" Margin="16,12,16,8">
+                    <TextBlock Text="Scheduled Connections" FontSize="14" FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button Content="+ Add"
+                                Command="{Binding AddScheduledTaskCommand}"
+                                Style="{DynamicResource PrimaryButtonStyle}"
+                                Padding="8,3" FontSize="11" Margin="0,0,4,0"/>
+                        <Button Content="Delete"
+                                Command="{Binding DeleteScheduledTaskCommand}"
+                                Style="{DynamicResource SecondaryButtonStyle}"
+                                Padding="8,3" FontSize="11"/>
+                    </StackPanel>
+                </DockPanel>
+
+                <Grid>
+                    <!-- Scheduled tasks DataGrid -->
+                    <DataGrid ItemsSource="{Binding ScheduledTasks}"
+                              SelectedItem="{Binding SelectedScheduledTask}"
+                              AutoGenerateColumns="False"
+                              SelectionMode="Single"
+                              Margin="16,0,16,8"
+                              Style="{DynamicResource ThemedDataGridStyle}"
+                              ColumnHeaderStyle="{DynamicResource ThemedDataGridColumnHeaderStyle}"
+                              CellStyle="{DynamicResource ThemedDataGridCellStyle}"
+                              RowStyle="{DynamicResource ThemedDataGridRowStyle}">
+                        <DataGrid.Columns>
+                            <DataGridCheckBoxColumn Header="" Binding="{Binding Enabled, UpdateSourceTrigger=PropertyChanged}" Width="32"/>
+                            <DataGridTextColumn Header="Server" Binding="{Binding ServerName}" Width="*" IsReadOnly="True"/>
+                            <DataGridTextColumn Header="Type" Binding="{Binding ConnectionType}" Width="70" IsReadOnly="True"/>
+                            <DataGridTextColumn Header="Schedule" Binding="{Binding Schedule}" Width="*" IsReadOnly="True"/>
+                            <DataGridTextColumn Header="Last Run" Binding="{Binding LastRun, StringFormat=yyyy-MM-dd HH:mm}" Width="130" IsReadOnly="True"/>
+                            <DataGridTextColumn Header="Next Run" Binding="{Binding NextRun, StringFormat=yyyy-MM-dd HH:mm}" Width="130" IsReadOnly="True"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+
+                    <!-- Empty state -->
+                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center"
+                                Visibility="{Binding HasNoScheduledTasks, Converter={StaticResource BoolToVisibilityConverter}}">
+                        <TextBlock Text="No scheduled tasks configured."
+                                   FontSize="13"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                   HorizontalAlignment="Center" Margin="0,0,0,8"/>
+                        <Button Content="Create Task"
+                                Command="{Binding AddScheduledTaskCommand}"
+                                Style="{DynamicResource PrimaryButtonStyle}"
+                                Padding="12,6" FontSize="12"
+                                HorizontalAlignment="Center"/>
+                    </StackPanel>
+                </Grid>
+            </DockPanel>
 
             <!-- ============================================================ -->
-            <!-- SETTINGS TAB: Full-width form                                 -->
+            <!-- SETTINGS TAB: Organized with card sections                    -->
             <!-- ============================================================ -->
             <ScrollViewer Visibility="{Binding IsSettingsTabSelected, Converter={StaticResource BoolToVisibilityConverter}}"
                           VerticalScrollBarVisibility="Auto">
-                <StackPanel Margin="24" MaxWidth="600" HorizontalAlignment="Left">
-                    <TextBlock Text="General" FontSize="16" FontWeight="SemiBold"
-                               Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,12"/>
+                <StackPanel Margin="24" MaxWidth="640" HorizontalAlignment="Left">
 
-                    <TextBlock Text="Language" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,4"/>
-                    <ComboBox SelectedValue="{Binding Settings.DefaultLocale}"
-                              SelectedValuePath="Content" Width="200" HorizontalAlignment="Left">
-                        <ComboBoxItem Content="en"/>
-                        <ComboBoxItem Content="fr"/>
-                    </ComboBox>
-
-                    <TextBlock Text="Theme" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,12,0,4"/>
-                    <ComboBox SelectedValue="{Binding Settings.DefaultTheme}"
-                              SelectedValuePath="Content" Width="200" HorizontalAlignment="Left">
-                        <ComboBoxItem Content="Dark"/>
-                        <ComboBoxItem Content="Light"/>
-                    </ComboBox>
-
-                    <TextBlock Text="Connections" FontSize="16" FontWeight="SemiBold"
-                               Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,24,0,12"/>
-
-                    <TextBlock Text="PuTTY/Plink Path" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,4"/>
-                    <TextBox Text="{Binding Settings.PlinkPath}" Width="400" HorizontalAlignment="Left"/>
-
-                    <TextBlock Text="External Editor Path" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,12,0,4"/>
-                    <TextBox Text="{Binding Settings.ExternalEditorPath}" Width="400" HorizontalAlignment="Left"/>
-
-                    <CheckBox Content="Enable logging" IsChecked="{Binding Settings.EnableLogging}" Margin="0,12,0,0"
-                              Foreground="{DynamicResource TextPrimaryBrush}"/>
-
-                    <CheckBox Content="Auto-open SFTP on SSH" IsChecked="{Binding Settings.SftpAutoOpenOnSsh}" Margin="0,8,0,0"
-                              Foreground="{DynamicResource TextPrimaryBrush}"/>
-
-                    <TextBlock Text="Anti-idle interval (seconds)" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,12,0,4"/>
-                    <TextBox Text="{Binding Settings.AntiIdleInterval}" Width="100" HorizontalAlignment="Left"/>
-
-                    <TextBlock Text="Max embedded sessions" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,12,0,4"/>
-                    <TextBox Text="{Binding Settings.MaxEmbeddedSessions}" Width="100" HorizontalAlignment="Left"/>
-
-                    <!-- SSH Gateways -->
-                    <TextBlock Text="SSH Gateways" FontSize="16" FontWeight="SemiBold"
-                               Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,24,0,12"/>
-
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                        <Button Content="+ Add Gateway" Command="{Binding Settings.AddGatewayCommand}"
-                                Style="{DynamicResource PrimaryButtonStyle}" Margin="0,0,8,0"/>
-                        <Button Content="Edit" Command="{Binding Settings.EditGatewayCommand}"
-                                Style="{DynamicResource SecondaryButtonStyle}" Margin="0,0,8,0"/>
-                        <Button Content="Delete" Command="{Binding Settings.DeleteGatewayCommand}"
-                                Style="{DynamicResource SecondaryButtonStyle}"/>
-                    </StackPanel>
-
-                    <ListBox ItemsSource="{Binding Settings.Gateways}"
-                             SelectedItem="{Binding Settings.SelectedGateway}"
-                             MinHeight="100" MaxHeight="250"
-                             Background="{DynamicResource CardBrush}"
-                             BorderBrush="{DynamicResource BorderBrush}"
-                             BorderThickness="1">
-                        <ListBox.ItemTemplate>
-                            <DataTemplate>
-                                <StackPanel Orientation="Horizontal" Margin="4,2">
-                                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold"
-                                               Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,8,0"/>
-                                    <TextBlock Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11"
-                                               VerticalAlignment="Center">
-                                        <Run Text="{Binding User, Mode=OneWay}"/>
-                                        <Run Text="@"/>
-                                        <Run Text="{Binding Host, Mode=OneWay}"/>
-                                        <Run Text=":"/>
-                                        <Run Text="{Binding Port, Mode=OneWay}"/>
-                                    </TextBlock>
-                                    <TextBlock Text=" [KEY]" FontSize="9" Foreground="{DynamicResource SshBadgeBrush}"
-                                               VerticalAlignment="Center"
-                                               Visibility="{Binding HasKey, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                    <!-- Section: Appearance -->
+                    <Border Padding="16" Background="{DynamicResource CardBrush}"
+                            BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="10"
+                            Margin="0,0,0,16">
+                        <StackPanel>
+                            <TextBlock Text="Appearance" FontSize="14" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,12"/>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                                    <TextBlock Text="Language" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" Margin="0,0,0,4"/>
+                                    <ComboBox SelectedValue="{Binding Settings.DefaultLocale}" SelectedValuePath="Content">
+                                        <ComboBoxItem Content="en"/>
+                                        <ComboBoxItem Content="fr"/>
+                                    </ComboBox>
                                 </StackPanel>
-                            </DataTemplate>
-                        </ListBox.ItemTemplate>
-                    </ListBox>
+                                <StackPanel Grid.Column="1" Margin="8,0,0,0">
+                                    <TextBlock Text="Theme" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" Margin="0,0,0,4"/>
+                                    <ComboBox SelectedValue="{Binding Settings.DefaultTheme}" SelectedValuePath="Content">
+                                        <ComboBoxItem Content="Dark"/>
+                                        <ComboBoxItem Content="Light"/>
+                                    </ComboBox>
+                                </StackPanel>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Section: Paths -->
+                    <Border Padding="16" Background="{DynamicResource CardBrush}"
+                            BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="10"
+                            Margin="0,0,0,16">
+                        <StackPanel>
+                            <TextBlock Text="External tools" FontSize="14" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,12"/>
+                            <TextBlock Text="PuTTY/Plink path" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" Margin="0,0,0,4"/>
+                            <TextBox Text="{Binding Settings.PlinkPath}"/>
+                            <TextBlock Text="External editor path" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" Margin="0,12,0,4"/>
+                            <TextBox Text="{Binding Settings.ExternalEditorPath}"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Section: Session behavior -->
+                    <Border Padding="16" Background="{DynamicResource CardBrush}"
+                            BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="10"
+                            Margin="0,0,0,16">
+                        <StackPanel>
+                            <TextBlock Text="Session behavior" FontSize="14" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,12"/>
+                            <CheckBox Content="Enable logging" IsChecked="{Binding Settings.EnableLogging}"
+                                      Foreground="{DynamicResource TextPrimaryBrush}"/>
+                            <CheckBox Content="Auto-open SFTP panel on SSH connection" IsChecked="{Binding Settings.SftpAutoOpenOnSsh}"
+                                      Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,8,0,0"/>
+                            <Grid Margin="0,12,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                                    <TextBlock Text="Anti-idle interval (seconds)" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" Margin="0,0,0,4"/>
+                                    <TextBox Text="{Binding Settings.AntiIdleInterval}" Width="100" HorizontalAlignment="Left"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" Margin="8,0,0,0">
+                                    <TextBlock Text="Max embedded sessions" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" Margin="0,0,0,4"/>
+                                    <TextBox Text="{Binding Settings.MaxEmbeddedSessions}" Width="100" HorizontalAlignment="Left"/>
+                                </StackPanel>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Section: SSH Gateways -->
+                    <Border Padding="16" Background="{DynamicResource CardBrush}"
+                            BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="10"
+                            Margin="0,0,0,16">
+                        <StackPanel>
+                            <DockPanel Margin="0,0,0,12">
+                                <TextBlock Text="SSH Gateways" FontSize="14" FontWeight="SemiBold"
+                                           Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
+                                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right">
+                                    <Button Content="+ Add" Command="{Binding Settings.AddGatewayCommand}"
+                                            Style="{DynamicResource PrimaryButtonStyle}" Padding="8,3" FontSize="11" Margin="0,0,4,0"/>
+                                    <Button Content="Edit" Command="{Binding Settings.EditGatewayCommand}"
+                                            Style="{DynamicResource SecondaryButtonStyle}" Padding="8,3" FontSize="11" Margin="0,0,4,0"/>
+                                    <Button Content="Delete" Command="{Binding Settings.DeleteGatewayCommand}"
+                                            Style="{DynamicResource SecondaryButtonStyle}" Padding="8,3" FontSize="11"/>
+                                </StackPanel>
+                            </DockPanel>
+                            <ListBox ItemsSource="{Binding Settings.Gateways}"
+                                     SelectedItem="{Binding Settings.SelectedGateway}"
+                                     MinHeight="80" MaxHeight="200"
+                                     Background="{DynamicResource BackgroundBrush}"
+                                     BorderBrush="{DynamicResource BorderBrush}"
+                                     BorderThickness="1">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal" Margin="4,2">
+                                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold"
+                                                       Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,8,0"/>
+                                            <TextBlock Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11"
+                                                       VerticalAlignment="Center">
+                                                <Run Text="{Binding User, Mode=OneWay}"/>
+                                                <Run Text="@"/>
+                                                <Run Text="{Binding Host, Mode=OneWay}"/>
+                                                <Run Text=":"/>
+                                                <Run Text="{Binding Port, Mode=OneWay}"/>
+                                            </TextBlock>
+                                            <TextBlock Text=" [KEY]" FontSize="10" Foreground="{DynamicResource SshBadgeBrush}"
+                                                       VerticalAlignment="Center"
+                                                       Visibility="{Binding HasKey, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </StackPanel>
+                    </Border>
 
                     <!-- Save / Reset -->
-                    <StackPanel Orientation="Horizontal" Margin="0,24,0,0">
+                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
                         <Button Content="Save Settings" Command="{Binding Settings.SaveCommand}"
                                 Style="{DynamicResource PrimaryButtonStyle}"
-                                Width="120" Margin="0,0,8,0"/>
+                                Width="130" Margin="0,0,8,0"/>
                         <Button Content="Reset Defaults" Command="{Binding Settings.ResetToDefaultsCommand}"
                                 Style="{DynamicResource SecondaryButtonStyle}"
-                                Width="120"/>
+                                Width="130"/>
                     </StackPanel>
+
+                    <!-- Import / Export -->
+                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                        <Button Content="Export Servers" Command="{Binding Settings.ExportConfigCommand}"
+                                Style="{DynamicResource SecondaryButtonStyle}"
+                                Width="130" Margin="0,0,8,0"/>
+                        <Button Content="Import Servers" Command="{Binding Settings.ImportConfigCommand}"
+                                Style="{DynamicResource SecondaryButtonStyle}"
+                                Width="130"/>
+                    </StackPanel>
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- ============================================================ -->
+            <!-- ABOUT TAB: Application info                                   -->
+            <!-- ============================================================ -->
+            <ScrollViewer Visibility="{Binding IsAboutTabSelected, Converter={StaticResource BoolToVisibilityConverter}}"
+                          VerticalScrollBarVisibility="Auto">
+                <StackPanel Margin="24" MaxWidth="500"
+                            HorizontalAlignment="Center" VerticalAlignment="Center">
+
+                    <Border Padding="28"
+                            Background="{DynamicResource CardBrush}"
+                            BorderBrush="{DynamicResource BorderBrush}"
+                            BorderThickness="1"
+                            CornerRadius="14">
+                        <StackPanel>
+                            <!-- Logo + Title -->
+                            <StackPanel HorizontalAlignment="Center" Margin="0,0,0,20">
+                                <TextBlock Text="&#xE7F4;"
+                                           FontFamily="Segoe MDL2 Assets"
+                                           FontSize="48"
+                                           Foreground="{DynamicResource AccentBrush}"
+                                           HorizontalAlignment="Center"
+                                           Margin="0,0,0,10"/>
+                                <TextBlock Text="Heimdall"
+                                           FontSize="28" FontWeight="Bold"
+                                           Foreground="{DynamicResource TextPrimaryBrush}"
+                                           HorizontalAlignment="Center"/>
+                                <TextBlock x:Name="AboutVersionText"
+                                           FontSize="13"
+                                           Foreground="{DynamicResource TextSecondaryBrush}"
+                                           HorizontalAlignment="Center"
+                                           Margin="0,4,0,0"/>
+                                <TextBlock Text="Secure Windows RDP/SSH/SFTP connection manager"
+                                           FontSize="12"
+                                           Foreground="{DynamicResource TextSecondaryBrush}"
+                                           HorizontalAlignment="Center"
+                                           Margin="0,8,0,0"/>
+                            </StackPanel>
+
+                            <Border Height="1" Background="{DynamicResource BorderBrush}" Margin="0,0,0,16"/>
+
+                            <!-- Info grid -->
+                            <Grid HorizontalAlignment="Center">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="100"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Author"
+                                           FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                                <TextBlock Grid.Row="0" Grid.Column="1" Text="Julien Bombled"
+                                           FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,6"/>
+                                <TextBlock Grid.Row="1" Grid.Column="0" Text="License"
+                                           FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                                <TextBlock Grid.Row="1" Grid.Column="1" Text="Apache License 2.0"
+                                           FontSize="12" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,6"/>
+                                <TextBlock Grid.Row="2" Grid.Column="0" Text="Runtime"
+                                           FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                                <TextBlock x:Name="AboutRuntimeText"
+                                           Grid.Row="2" Grid.Column="1"
+                                           FontSize="12" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,6"/>
+                                <TextBlock Grid.Row="3" Grid.Column="0" Text="Platform"
+                                           FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                                <TextBlock x:Name="AboutPlatformText"
+                                           Grid.Row="3" Grid.Column="1"
+                                           FontSize="12" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,6"/>
+                            </Grid>
+
+                            <Border Height="1" Background="{DynamicResource BorderBrush}" Margin="0,16,0,16"/>
+
+                            <!-- Features -->
+                            <TextBlock Text="Features" FontSize="13" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,8"/>
+                            <StackPanel Margin="8,0,0,0">
+                                <TextBlock FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,3"
+                                           Text="&#x2022; Embedded RDP, SSH, SFTP, and local shell sessions"/>
+                                <TextBlock FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,3"
+                                           Text="&#x2022; DPAPI-encrypted credential storage with HMAC integrity"/>
+                                <TextBlock FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,3"
+                                           Text="&#x2022; Multi-gateway SSH tunneling via Plink and Pageant"/>
+                                <TextBlock FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,3"
+                                           Text="&#x2022; SFTP file browser with sudo edit, drag-drop, and chmod"/>
+                                <TextBlock FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,3"
+                                           Text="&#x2022; Bilingual interface (English / French)"/>
+                                <TextBlock FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,3"
+                                           Text="&#x2022; Dark theme with modern WPF controls"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
                 </StackPanel>
             </ScrollViewer>
 
@@ -602,6 +1061,41 @@
                             DockPanel.Dock="Right"
                             HorizontalAlignment="Right"
                             VerticalAlignment="Center">
+                    <!-- Tunnel panel toggle badge -->
+                    <Button Command="{Binding ToggleTunnelPanelCommand}"
+                            ToolTip="Toggle tunnel panel"
+                            Padding="4,2" FontSize="11" Margin="0,0,8,0"
+                            VerticalAlignment="Center"
+                            Style="{DynamicResource ToolbarGhostButtonStyle}">
+                        <Button.Content>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE945;" FontFamily="Segoe MDL2 Assets"
+                                           FontSize="10" VerticalAlignment="Center" Margin="0,0,3,0"/>
+                                <TextBlock VerticalAlignment="Center">
+                                    <Run Text="{Binding TunnelCount, Mode=OneWay}"/>
+                                </TextBlock>
+                            </StackPanel>
+                        </Button.Content>
+                    </Button>
+                    <!-- Broadcast mode toggle -->
+                    <Button Command="{Binding ToggleBroadcastCommand}"
+                            ToolTip="{Binding DataContext.BroadcastToggleTooltip, RelativeSource={RelativeSource AncestorType=Window}, FallbackValue='Toggle Broadcast Mode'}"
+                            Padding="4,2" FontSize="14" Margin="0,0,8,0"
+                            VerticalAlignment="Center">
+                        <Button.Content>
+                            <TextBlock Text="B" FontWeight="Bold" FontSize="11"/>
+                        </Button.Content>
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource ToolbarGhostButtonStyle}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsBroadcastMode}" Value="True">
+                                        <Setter Property="Background" Value="#33FF5555"/>
+                                        <Setter Property="Foreground" Value="{DynamicResource ErrorBrush}"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
                     <TextBlock FontSize="11"
                                Foreground="{DynamicResource TextSecondaryBrush}">
                         <Run Text="{Binding ServerCount, Mode=OneWay}"/>
@@ -612,5 +1106,82 @@
                 </StackPanel>
             </DockPanel>
         </Border>
+        <!-- Quick Connect Command Palette (Ctrl+K) -->
+        <Grid x:Name="CommandPaletteOverlay"
+              Visibility="{Binding IsCommandPaletteOpen, Converter={StaticResource BoolToVisibilityConverter}}"
+              Background="#A0000000"
+              Panel.ZIndex="9999"
+              MouseDown="OnPaletteBackdropClick">
+            <Border Width="550" VerticalAlignment="Top" Margin="0,80,0,0"
+                    HorizontalAlignment="Center"
+                    Background="{DynamicResource SurfaceBrush}"
+                    BorderBrush="{DynamicResource BorderBrush}"
+                    BorderThickness="1" CornerRadius="10"
+                    MouseDown="OnPaletteBorderClick">
+                <StackPanel>
+                    <TextBox x:Name="PaletteInput"
+                             Text="{Binding PaletteSearchText, UpdateSourceTrigger=PropertyChanged}"
+                             FontSize="15" Padding="14,10"
+                             BorderThickness="0"
+                             Background="Transparent"
+                             Foreground="{DynamicResource TextPrimaryBrush}"
+                             KeyDown="OnPaletteKeyDown"/>
+                    <Border Height="1" Background="{DynamicResource BorderBrush}"/>
+                    <ListBox x:Name="PaletteResultsList"
+                             ItemsSource="{Binding PaletteResults}"
+                             SelectedItem="{Binding SelectedPaletteItem}"
+                             MaxHeight="350"
+                             Background="Transparent"
+                             BorderThickness="0"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                             MouseDoubleClick="OnPaletteItemDoubleClick">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <DockPanel Margin="8,4">
+                                    <TextBlock DockPanel.Dock="Right"
+                                               Text="{Binding Group}"
+                                               FontSize="11"
+                                               Foreground="{DynamicResource TextSecondaryBrush}"
+                                               VerticalAlignment="Center"/>
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="{Binding ConnectionType}" FontSize="9"
+                                                   FontWeight="Bold" Margin="0,0,6,0"
+                                                   VerticalAlignment="Center"
+                                                   Foreground="{DynamicResource AccentBrush}"/>
+                                        <TextBlock Text="{Binding DisplayName}" FontSize="13"
+                                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                                   VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </DockPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                        <ListBox.ItemContainerStyle>
+                            <Style TargetType="ListBoxItem">
+                                <Setter Property="Padding" Value="4,2"/>
+                                <Setter Property="Background" Value="Transparent"/>
+                                <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+                                <Style.Triggers>
+                                    <Trigger Property="IsSelected" Value="True">
+                                        <Setter Property="Background" Value="{DynamicResource CardBrush}"/>
+                                    </Trigger>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter Property="Background" Value="{DynamicResource HighlightBrush}"/>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </ListBox.ItemContainerStyle>
+                    </ListBox>
+                    <TextBlock Text="No results found. Try ssh user@host for ad-hoc connections."
+                               FontSize="12" Padding="14,10"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               HorizontalAlignment="Center"
+                               Visibility="{Binding HasNoPaletteResults, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                    <TextBlock Text="Enter = connect · Ctrl+Enter = split · ssh user@host = ad-hoc · Esc = close"
+                               FontSize="11" Padding="14,6"
+                               Foreground="{DynamicResource TextSecondaryBrush}"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+
     </Grid>
 </Window>

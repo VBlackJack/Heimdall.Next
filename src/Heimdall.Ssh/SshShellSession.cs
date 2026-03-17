@@ -54,11 +54,13 @@ public sealed class SshShellSession : IDisposable
     /// <param name="connectionParams">SSH connection parameters.</param>
     /// <param name="terminalColumns">Initial terminal width in columns.</param>
     /// <param name="terminalRows">Initial terminal height in rows.</param>
+    /// <param name="hostKeyStore">Optional TOFU host key store for server verification.</param>
     /// <param name="cancellationToken">Cancellation support.</param>
     public async Task ConnectAsync(
         SshConnectionParams connectionParams,
         int terminalColumns = 80,
         int terminalRows = 24,
+        HostKeyStore? hostKeyStore = null,
         CancellationToken cancellationToken = default)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
@@ -71,6 +73,12 @@ public sealed class SshShellSession : IDisposable
 
         var connectionInfo = SshConnectionFactory.Create(connectionParams);
         _client = new SshClient(connectionInfo);
+
+        if (hostKeyStore is not null)
+        {
+            SshConnectionFactory.AttachHostKeyVerification(
+                _client, connectionParams.Host, connectionParams.Port, hostKeyStore);
+        }
 
         await Task.Run(() =>
         {

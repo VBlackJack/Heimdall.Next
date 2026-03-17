@@ -1,0 +1,472 @@
+<UserControl x:Class="Heimdall.App.Views.EmbeddedSftpView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:conv="clr-namespace:Heimdall.App.Converters"
+             mc:Ignorable="d"
+             d:DesignHeight="540"
+             d:DesignWidth="900"
+             Background="{DynamicResource BackgroundBrush}"
+             AllowDrop="True"
+             Drop="OnDrop"
+             DragOver="OnDragOver"
+             DragLeave="OnDragLeave"
+             KeyDown="OnViewKeyDown">
+    <UserControl.Resources>
+        <conv:FileSizeConverter x:Key="FileSizeConverter"/>
+        <conv:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+    </UserControl.Resources>
+
+    <Grid Background="{DynamicResource BackgroundBrush}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Row 0: Header strip -->
+        <Border Grid.Row="0"
+                Padding="10,5"
+                Background="{DynamicResource SurfaceBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="0,0,0,1">
+            <DockPanel LastChildFill="True">
+                <Button x:Name="DisconnectButton"
+                        DockPanel.Dock="Right"
+                        Content="Disconnect"
+                        Click="OnDisconnectClick"
+                        Style="{DynamicResource SecondaryButtonStyle}"
+                        Foreground="{DynamicResource ErrorBrush}"
+                        Padding="8,2"
+                        FontSize="11"
+                        Margin="8,0,0,0"/>
+                <Button x:Name="ReconnectButton"
+                        DockPanel.Dock="Right"
+                        Content="Reconnect"
+                        Click="OnReconnectClick"
+                        Style="{DynamicResource PrimaryButtonStyle}"
+                        Padding="8,2"
+                        FontSize="11"
+                        Margin="8,0,0,0"
+                        Visibility="Collapsed"/>
+                <Button x:Name="SplitButton"
+                        DockPanel.Dock="Right"
+                        Content="&#xE8A9;"
+                        FontFamily="Segoe MDL2 Assets"
+                        ToolTip="Split pane"
+                        Click="OnSplitClick"
+                        Style="{DynamicResource ToolbarGhostButtonStyle}"
+                        Padding="6,2" FontSize="12" Margin="4,0"/>
+
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock x:Name="SessionTitleText"
+                               FontSize="13"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextPrimaryBrush}"
+                               VerticalAlignment="Center"/>
+                    <TextBlock x:Name="EndpointTextBlock"
+                               Margin="8,0,0,0"
+                               FontSize="11"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               VerticalAlignment="Center"/>
+                    <TextBlock Text=" - " Foreground="{DynamicResource TextSecondaryBrush}"
+                               FontSize="11" VerticalAlignment="Center"/>
+                    <TextBlock x:Name="StatusTextBlock"
+                               FontSize="11"
+                               Foreground="{DynamicResource TextPrimaryBrush}"
+                               VerticalAlignment="Center"/>
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <!-- Row 1: Toolbar -->
+        <Border Grid.Row="1"
+                Padding="8,4"
+                Background="{DynamicResource SurfaceBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="0,0,0,1">
+            <DockPanel LastChildFill="True">
+                <!-- Right side: filter + hidden toggle -->
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                    <TextBox x:Name="FilterTextBox"
+                             Width="160"
+                             Style="{DynamicResource SearchTextBoxStyle}"
+                             Tag="Filter..."
+                             FontSize="11"
+                             VerticalContentAlignment="Center"
+                             Margin="8,0,0,0"
+                             TextChanged="OnFilterTextChanged"/>
+                    <CheckBox x:Name="ToggleHiddenCheckBox"
+                              Content=".*"
+                              VerticalAlignment="Center"
+                              Foreground="{DynamicResource TextSecondaryBrush}"
+                              FontSize="11"
+                              Margin="8,0,0,0"
+                              ToolTip="Show hidden files"
+                              IsChecked="True"
+                              Checked="OnToggleHiddenChanged"
+                              Unchecked="OnToggleHiddenChanged"/>
+                </StackPanel>
+
+                <!-- Left side: navigation + actions (Segoe MDL2 Assets icons) -->
+                <StackPanel Orientation="Horizontal">
+                    <Button x:Name="BtnBack"
+                            Content="&#xE72B;"
+                            FontFamily="Segoe MDL2 Assets"
+                            Click="OnBackClick"
+                            Style="{DynamicResource ToolbarGhostButtonStyle}"
+                            Padding="8,2" FontSize="12"
+                            ToolTip="Back"
+                            IsEnabled="False"/>
+                    <Button x:Name="BtnUp"
+                            Content="&#xE74A;"
+                            FontFamily="Segoe MDL2 Assets"
+                            Click="OnUpClick"
+                            Style="{DynamicResource ToolbarGhostButtonStyle}"
+                            Padding="8,2" FontSize="12" Margin="4,0,0,0"
+                            ToolTip="Parent folder"/>
+                    <Button x:Name="BtnHome"
+                            Content="&#xE80F;"
+                            FontFamily="Segoe MDL2 Assets"
+                            Click="OnHomeClick"
+                            Style="{DynamicResource ToolbarGhostButtonStyle}"
+                            Padding="8,2" FontSize="12" Margin="4,0,0,0"
+                            ToolTip="Home directory"/>
+                    <Button x:Name="BtnRefresh"
+                            Content="&#xE72C;"
+                            FontFamily="Segoe MDL2 Assets"
+                            Click="OnRefreshClick"
+                            Style="{DynamicResource ToolbarGhostButtonStyle}"
+                            Padding="8,2" FontSize="12" Margin="4,0,0,0"
+                            ToolTip="Refresh (F5)"/>
+
+                    <Border Width="1" Margin="8,2" Background="{DynamicResource BorderBrush}"/>
+
+                    <Button x:Name="BtnUpload"
+                            Click="OnUploadClick"
+                            Style="{DynamicResource SecondaryButtonStyle}"
+                            Padding="8,2" FontSize="11" Margin="0,0,4,0">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE898;" FontFamily="Segoe MDL2 Assets" FontSize="12"
+                                       VerticalAlignment="Center" Margin="0,0,4,0"/>
+                            <TextBlock x:Name="BtnUploadText" Text="Upload" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <Button x:Name="BtnNewFolder"
+                            Click="OnNewFolderClick"
+                            Style="{DynamicResource SecondaryButtonStyle}"
+                            Padding="8,2" FontSize="11">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE8F4;" FontFamily="Segoe MDL2 Assets" FontSize="12"
+                                       VerticalAlignment="Center" Margin="0,0,4,0"/>
+                            <TextBlock x:Name="BtnNewFolderText" Text="New Folder" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+
+                    <Border Width="1" Margin="8,2" Background="{DynamicResource BorderBrush}"/>
+
+                    <Button x:Name="BtnBookmark"
+                            Content="&#xE734;"
+                            FontFamily="Segoe MDL2 Assets"
+                            Click="OnBookmarkClick"
+                            Style="{DynamicResource ToolbarGhostButtonStyle}"
+                            Padding="8,2" FontSize="12"
+                            ToolTip="Bookmark this path"/>
+                    <Button x:Name="BtnBookmarks"
+                            Content="&#xE735;"
+                            FontFamily="Segoe MDL2 Assets"
+                            Click="OnBookmarksClick"
+                            Style="{DynamicResource ToolbarGhostButtonStyle}"
+                            Padding="8,2" FontSize="12" Margin="4,0,0,0"
+                            ToolTip="Bookmarks"/>
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <!-- Row 2: Path bar -->
+        <Border Grid.Row="2"
+                Padding="8,4"
+                Background="{DynamicResource BackgroundBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="0,0,0,1">
+            <DockPanel>
+                <Button x:Name="BtnGoPath"
+                        DockPanel.Dock="Right"
+                        Content="&#xE76C;"
+                        FontFamily="Segoe MDL2 Assets"
+                        Click="OnGoPathClick"
+                        Style="{DynamicResource ToolbarGhostButtonStyle}"
+                        Padding="8,2" FontSize="12"
+                        Margin="4,0,0,0"/>
+                <TextBox x:Name="PathTextBox"
+                         Style="{DynamicResource ThemedTextBoxStyle}"
+                         FontSize="12"
+                         FontFamily="Consolas"
+                         VerticalContentAlignment="Center"
+                         KeyDown="OnPathKeyDown"/>
+            </DockPanel>
+        </Border>
+
+        <!-- Row 3: File list -->
+        <ListView x:Name="FileListView"
+                  Grid.Row="3"
+                  Margin="0"
+                  Background="{DynamicResource BackgroundBrush}"
+                  Foreground="{DynamicResource TextPrimaryBrush}"
+                  BorderThickness="0"
+                  SelectionMode="Extended"
+                  AlternationCount="2"
+                  MouseDoubleClick="OnFileDoubleClick"
+                  SelectionChanged="OnSelectionChanged"
+                  GridViewColumnHeader.Click="OnColumnHeaderClick"
+                  SizeChanged="OnFileListSizeChanged"
+                  VirtualizingPanel.IsVirtualizing="True"
+                  VirtualizingPanel.VirtualizationMode="Recycling">
+            <ListView.View>
+                <GridView>
+                    <GridViewColumn Header="Name" Width="320">
+                        <GridViewColumn.CellTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock x:Name="FileIcon"
+                                               Text="&#xE7C3;"
+                                               FontFamily="Segoe MDL2 Assets"
+                                               FontSize="13"
+                                               Foreground="{DynamicResource TextSecondaryBrush}"
+                                               Margin="0,0,6,0"
+                                               VerticalAlignment="Center"/>
+                                    <TextBlock Text="{Binding Name}" VerticalAlignment="Center"/>
+                                </StackPanel>
+                                <DataTemplate.Triggers>
+                                    <DataTrigger Binding="{Binding IsDirectory}" Value="True">
+                                        <Setter TargetName="FileIcon" Property="Text" Value="&#xE8B7;"/>
+                                        <Setter TargetName="FileIcon" Property="Foreground" Value="{DynamicResource InfoBrush}"/>
+                                    </DataTrigger>
+                                </DataTemplate.Triggers>
+                            </DataTemplate>
+                        </GridViewColumn.CellTemplate>
+                    </GridViewColumn>
+                    <GridViewColumn Header="Size" Width="100">
+                        <GridViewColumn.CellTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Size, Converter={StaticResource FileSizeConverter}, ConverterParameter=dir}"
+                                           TextAlignment="Right" HorizontalAlignment="Right"/>
+                            </DataTemplate>
+                        </GridViewColumn.CellTemplate>
+                    </GridViewColumn>
+                    <GridViewColumn Header="Modified" Width="160"
+                                    DisplayMemberBinding="{Binding LastModified, StringFormat='{}{0:yyyy-MM-dd HH:mm}'}"/>
+                    <GridViewColumn Header="Permissions" Width="100"
+                                    DisplayMemberBinding="{Binding Permissions}"/>
+                    <GridViewColumn Header="Owner" Width="60"
+                                    DisplayMemberBinding="{Binding Owner}"/>
+                </GridView>
+            </ListView.View>
+
+            <ListView.ItemContainerStyle>
+                <Style TargetType="ListViewItem">
+                    <Setter Property="Background" Value="Transparent"/>
+                    <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+                    <Setter Property="Padding" Value="4,4"/>
+                    <Setter Property="MinHeight" Value="26"/>
+                    <Setter Property="BorderBrush" Value="Transparent"/>
+                    <Setter Property="BorderThickness" Value="1"/>
+                    <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                    <Setter Property="ToolTip">
+                        <Setter.Value>
+                            <ToolTip>
+                                <StackPanel>
+                                    <TextBlock Text="{Binding FullPath}" FontWeight="SemiBold"/>
+                                    <TextBlock Text="{Binding Size, Converter={StaticResource FileSizeConverter}}"/>
+                                    <TextBlock Text="{Binding LastModified, StringFormat='{}{0:yyyy-MM-dd HH:mm:ss}'}"/>
+                                    <TextBlock Text="{Binding Permissions}"/>
+                                </StackPanel>
+                            </ToolTip>
+                        </Setter.Value>
+                    </Setter>
+                    <Style.Triggers>
+                        <!-- Hover: flat Dracula Current Line -->
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="IsMouseOver" Value="True"/>
+                                <Condition Property="IsSelected" Value="False"/>
+                            </MultiTrigger.Conditions>
+                            <Setter Property="Background" Value="{DynamicResource CardBrush}"/>
+                        </MultiTrigger>
+                        <!-- Selected: Current Line + left accent border (VS Code style) -->
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter Property="Background" Value="{DynamicResource CardBrush}"/>
+                            <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                            <Setter Property="BorderThickness" Value="3,0,0,0"/>
+                        </Trigger>
+                        <!-- Keyboard focus -->
+                        <Trigger Property="IsFocused" Value="True">
+                            <Setter Property="Background" Value="{DynamicResource CardBrush}"/>
+                            <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                            <Setter Property="BorderThickness" Value="3,0,0,0"/>
+                        </Trigger>
+                    </Style.Triggers>
+                </Style>
+            </ListView.ItemContainerStyle>
+
+            <ListView.ContextMenu>
+                <ContextMenu x:Name="FileContextMenu"
+                             Opened="OnContextMenuOpened">
+                    <MenuItem x:Name="CtxOpen" Header="Open" Click="OnCtxOpenClick" InputGestureText="Enter">
+                        <MenuItem.Icon>
+                            <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE8E5;" FontSize="14"/>
+                        </MenuItem.Icon>
+                    </MenuItem>
+                    <MenuItem x:Name="CtxEdit" Header="Edit" Click="OnCtxEditClick">
+                        <MenuItem.Icon>
+                            <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE70F;" FontSize="14"/>
+                        </MenuItem.Icon>
+                    </MenuItem>
+                    <MenuItem x:Name="CtxDownload" Header="Download" Click="OnCtxDownloadClick">
+                        <MenuItem.Icon>
+                            <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE896;" FontSize="14"/>
+                        </MenuItem.Icon>
+                    </MenuItem>
+                    <Separator/>
+                    <MenuItem x:Name="CtxRename" Header="Rename" Click="OnCtxRenameClick" InputGestureText="F2">
+                        <MenuItem.Icon>
+                            <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE8AC;" FontSize="14"/>
+                        </MenuItem.Icon>
+                    </MenuItem>
+                    <MenuItem x:Name="CtxDelete" Header="Delete" Click="OnCtxDeleteClick" InputGestureText="Del">
+                        <MenuItem.Icon>
+                            <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE74D;" FontSize="14"
+                                       Foreground="{DynamicResource ErrorBrush}"/>
+                        </MenuItem.Icon>
+                    </MenuItem>
+                    <MenuItem x:Name="CtxChmod" Header="Change permissions..." Click="OnCtxChmodClick">
+                        <MenuItem.Icon>
+                            <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE8D7;" FontSize="14"/>
+                        </MenuItem.Icon>
+                    </MenuItem>
+                    <Separator/>
+                    <MenuItem x:Name="CtxCopyPath" Header="Copy path" Click="OnCtxCopyPathClick" InputGestureText="Ctrl+C">
+                        <MenuItem.Icon>
+                            <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE8C8;" FontSize="14"/>
+                        </MenuItem.Icon>
+                    </MenuItem>
+                    <MenuItem x:Name="CtxProperties" Header="Properties" Click="OnCtxPropertiesClick">
+                        <MenuItem.Icon>
+                            <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE946;" FontSize="14"/>
+                        </MenuItem.Icon>
+                    </MenuItem>
+                    <Separator/>
+                    <MenuItem x:Name="CtxUploadHere" Header="Upload here..." Click="OnUploadClick">
+                        <MenuItem.Icon>
+                            <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE898;" FontSize="14"/>
+                        </MenuItem.Icon>
+                    </MenuItem>
+                    <MenuItem x:Name="CtxOpenInTerminal" Header="Open in terminal" Click="OnCtxOpenInTerminalClick">
+                        <MenuItem.Icon>
+                            <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE756;" FontSize="14"/>
+                        </MenuItem.Icon>
+                    </MenuItem>
+                </ContextMenu>
+            </ListView.ContextMenu>
+        </ListView>
+
+        <!-- Row 3 overlay: Loading indicator -->
+        <ProgressBar x:Name="LoadingBar"
+                     Grid.Row="3"
+                     VerticalAlignment="Top"
+                     Height="2"
+                     IsIndeterminate="True"
+                     Foreground="{DynamicResource AccentBrush}"
+                     Background="Transparent"
+                     BorderThickness="0"
+                     IsHitTestVisible="False"
+                     Visibility="Collapsed"/>
+
+        <!-- Row 3 overlay: Empty directory message -->
+        <TextBlock x:Name="EmptyDirectoryText"
+                   Grid.Row="3"
+                   VerticalAlignment="Center"
+                   HorizontalAlignment="Center"
+                   FontSize="13"
+                   Foreground="{DynamicResource TextSecondaryBrush}"
+                   IsHitTestVisible="False"
+                   Visibility="Collapsed"/>
+
+        <!-- Row 3 overlay: Drag-drop feedback -->
+        <Border x:Name="DragOverlay"
+                Grid.Row="3"
+                Background="#66282A36"
+                BorderBrush="{DynamicResource AccentBrush}"
+                BorderThickness="2"
+                CornerRadius="4"
+                IsHitTestVisible="False"
+                Visibility="Collapsed">
+            <TextBlock Text="Drop files to upload"
+                       FontSize="16" FontWeight="SemiBold"
+                       Foreground="{DynamicResource TextPrimaryBrush}"
+                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+        </Border>
+
+        <!-- Row 4: Transfer progress bar -->
+        <Border x:Name="TransferPanel"
+                Grid.Row="4"
+                Padding="8,4"
+                Background="{DynamicResource SurfaceBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="0,1,0,0"
+                Visibility="Collapsed">
+            <DockPanel>
+                <Button x:Name="BtnCancelTransfer"
+                        DockPanel.Dock="Right"
+                        Content="Cancel"
+                        Click="OnCancelTransferClick"
+                        Style="{DynamicResource SecondaryButtonStyle}"
+                        Padding="8,2" FontSize="11"
+                        Margin="8,0,0,0"/>
+                <StackPanel>
+                    <TextBlock x:Name="TransferText"
+                               FontSize="11"
+                               Foreground="{DynamicResource TextPrimaryBrush}"/>
+                    <ProgressBar x:Name="TransferProgressBar"
+                                 Height="6" Margin="0,4,0,0"
+                                 Minimum="0" Maximum="100"
+                                 Foreground="{DynamicResource AccentBrush}"
+                                 Background="{DynamicResource HighlightBrush}"/>
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <!-- Row 5: Status bar -->
+        <Border Grid.Row="5"
+                Padding="8,3"
+                Background="{DynamicResource SurfaceBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="0,1,0,0">
+            <DockPanel>
+                <TextBlock x:Name="ItemCountText"
+                           DockPanel.Dock="Right"
+                           FontSize="11"
+                           Foreground="{DynamicResource TextSecondaryBrush}"/>
+                <TextBlock x:Name="SelectionInfoText"
+                           DockPanel.Dock="Right"
+                           FontSize="11"
+                           Margin="0,0,12,0"
+                           Foreground="{DynamicResource TextSecondaryBrush}"/>
+                <!-- Connection health dot -->
+                <Ellipse x:Name="HealthDot"
+                         Width="8" Height="8"
+                         Margin="0,0,6,0"
+                         Fill="{DynamicResource SuccessBrush}"
+                         VerticalAlignment="Center"/>
+                <TextBlock x:Name="StatusBarText"
+                           FontSize="11"
+                           Foreground="{DynamicResource TextSecondaryBrush}"
+                           TextTrimming="CharacterEllipsis"/>
+            </DockPanel>
+        </Border>
+    </Grid>
+</UserControl>

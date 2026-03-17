@@ -34,6 +34,7 @@ public sealed class ConnectionTypeToBrushConverter : IValueConverter
             "RDP" => "RdpBadgeBrush",
             "SSH" => "SshBadgeBrush",
             "SFTP" => "SftpBadgeBrush",
+            "LOCAL" => "AccentBrush",
             _ => "InfoBrush"
         };
 

@@ -21,7 +21,7 @@ namespace Heimdall.Core.Configuration;
 /// Compatible with legacy servers.json format.
 /// The ViewModel layer converts these to ObservableObject models.
 /// </summary>
-public class RdpServerDto
+public class ServerProfileDto
 {
     public string Id { get; set; } = string.Empty;
     public string DisplayName { get; set; } = string.Empty;
@@ -74,4 +74,17 @@ public class RdpServerDto
     public bool RdpAutoReconnect { get; set; } = true;
     public string? RdpGateway { get; set; }
     public string? Environment { get; set; }
+
+    // Local shell settings
+    public string? LocalShellExecutable { get; set; }
+    public string? LocalShellArguments { get; set; }
+    public string? LocalShellWorkingDirectory { get; set; }
+    public bool LocalShellElevated { get; set; }
+
+    // Citrix settings
+    public string? CitrixStoreFrontUrl { get; set; }
+    public string? CitrixAppName { get; set; }
+    public string? CitrixIcaFilePath { get; set; }
+    public bool CitrixSeamlessMode { get; set; } = true;
+    public bool CitrixUseSso { get; set; } = true;
 }

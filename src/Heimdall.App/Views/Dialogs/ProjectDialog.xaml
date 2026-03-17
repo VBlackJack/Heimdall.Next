@@ -81,7 +81,7 @@
                      Style="{StaticResource FormTextBoxStyle}"
                      MaxLength="50"
                      AutomationProperties.Name="Project Name"/>
-            <TextBlock Foreground="{DynamicResource TextDisabledBrush}" FontSize="10"
+            <TextBlock Foreground="{DynamicResource TextDisabledBrush}" FontSize="11"
                        HorizontalAlignment="Right" Margin="0,2,0,0">
                 <TextBlock.Text>
                     <MultiBinding StringFormat="{}{0}/50">
@@ -99,7 +99,7 @@
                      Height="60"
                      VerticalContentAlignment="Top"
                      AutomationProperties.Name="Description"/>
-            <TextBlock Foreground="{DynamicResource TextDisabledBrush}" FontSize="10"
+            <TextBlock Foreground="{DynamicResource TextDisabledBrush}" FontSize="11"
                        HorizontalAlignment="Right" Margin="0,2,0,0">
                 <TextBlock.Text>
                     <MultiBinding StringFormat="{}{0}/200">

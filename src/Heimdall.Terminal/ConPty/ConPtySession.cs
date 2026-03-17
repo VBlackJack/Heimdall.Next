@@ -94,7 +94,7 @@ public sealed class ConPtySession : ITerminalSession
     }
 
     /// <inheritdoc />
-    public Task StartAsync(string executable, string arguments, int columns = 80, int rows = 24)
+    public Task StartAsync(string executable, string arguments, int columns = 80, int rows = 24, string? workingDirectory = null)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         ArgumentException.ThrowIfNullOrWhiteSpace(executable);
@@ -119,7 +119,7 @@ public sealed class ConPtySession : ITerminalSession
             _inputWriter = new FileStream(inputWrite, FileAccess.Write, bufferSize);
             _outputReader = new FileStream(outputRead, FileAccess.Read, bufferSize);
 
-            LaunchProcess(executable, arguments);
+            LaunchProcess(executable, arguments, workingDirectory);
             StartReadLoop();
         }
         catch
@@ -295,7 +295,7 @@ public sealed class ConPtySession : ITerminalSession
         }
     }
 
-    private void LaunchProcess(string executable, string arguments)
+    private void LaunchProcess(string executable, string arguments, string? workingDirectory = null)
     {
         string cmdLine = string.IsNullOrEmpty(arguments)
             ? $"\"{executable}\""
@@ -310,9 +310,11 @@ public sealed class ConPtySession : ITerminalSession
         uint flags = NativeMethods.EXTENDED_STARTUPINFO_PRESENT
                    | NativeMethods.CREATE_UNICODE_ENVIRONMENT;
 
+        string? cwd = !string.IsNullOrWhiteSpace(workingDirectory) ? workingDirectory : null;
+
         if (!NativeMethods.CreateProcessW(
             null, cmdLine, IntPtr.Zero, IntPtr.Zero,
-            false, flags, IntPtr.Zero, null,
+            false, flags, IntPtr.Zero, cwd,
             ref si, out NativeMethods.PROCESS_INFORMATION pi))
         {
             throw new Win32Exception(Marshal.GetLastWin32Error(), "CreateProcessW failed.");

@@ -111,9 +111,9 @@ public static partial class SchemaValidator
     }
 
     /// <summary>
-    /// Validates an <see cref="RdpServerDto"/> instance against expected constraints.
+    /// Validates an <see cref="ServerProfileDto"/> instance against expected constraints.
     /// </summary>
-    public static ValidationResult ValidateServer(RdpServerDto server)
+    public static ValidationResult ValidateServer(ServerProfileDto server)
     {
         ArgumentNullException.ThrowIfNull(server);
 

@@ -40,6 +40,8 @@ internal sealed class PageantKeyWrapper : IPrivateKeySource, IDisposable
     /// Creates a wrapper for the specified Pageant key.
     /// A dedicated <see cref="PageantClient"/> instance is created for signing
     /// operations during the authentication handshake.
+    /// For RSA keys, registers rsa-sha2-256 and rsa-sha2-512 algorithms
+    /// (preferred by modern servers) in addition to the legacy ssh-rsa.
     /// </summary>
     /// <param name="key">Pageant key identity (blob, comment, type).</param>
     public PageantKeyWrapper(PageantKey key)
@@ -47,9 +49,29 @@ internal sealed class PageantKeyWrapper : IPrivateKeySource, IDisposable
         ArgumentNullException.ThrowIfNull(key);
 
         _client = new PageantClient();
+        _algorithms = BuildAlgorithms(key, _client);
+    }
 
-        var algorithm = new PageantHostAlgorithm(key.KeyType, key.Blob, _client);
-        _algorithms = new[] { (HostAlgorithm)algorithm };
+    private static IReadOnlyCollection<HostAlgorithm> BuildAlgorithms(
+        PageantKey key,
+        PageantClient client)
+    {
+        // For RSA keys, modern servers require rsa-sha2-256 or rsa-sha2-512.
+        // Register SHA-2 variants first (preferred), then legacy ssh-rsa as fallback.
+        // The agent protocol flags (0x02, 0x04) tell Pageant which hash to use.
+        if (string.Equals(key.KeyType, "ssh-rsa", StringComparison.Ordinal))
+        {
+            return
+            [
+                new PageantHostAlgorithm("rsa-sha2-256", key.Blob, client,
+                    PageantHostAlgorithm.AgentRsaSha2_256),
+                new PageantHostAlgorithm("rsa-sha2-512", key.Blob, client,
+                    PageantHostAlgorithm.AgentRsaSha2_512),
+                new PageantHostAlgorithm("ssh-rsa", key.Blob, client, 0),
+            ];
+        }
+
+        return [new PageantHostAlgorithm(key.KeyType, key.Blob, client, 0)];
     }
 
     /// <inheritdoc/>

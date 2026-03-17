@@ -74,6 +74,40 @@ public class HostKeyStoreTests
         Assert.True(result.FirstUse);
     }
 
+    [Fact]
+    public void Verify_CaseInsensitiveHost_TreatedAsSeparateEntries()
+    {
+        // MakeKey is case-sensitive: "Server.Example.com:22" != "server.example.com:22"
+        var fingerprint = HostKeyStore.ComputeFingerprint(_sampleKey);
+        _store.Trust("Server.Example.COM", 22, fingerprint);
+
+        // Lowercase lookup should not find the uppercase entry (TOFU = first use)
+        var result = _store.Verify("server.example.com", 22, _sampleKey);
+
+        Assert.True(result.Trusted);
+        Assert.True(result.FirstUse);
+    }
+
+    [Fact]
+    public void LoadFromConfig_EmptyCollection_DoesNotThrow()
+    {
+        var entries = new List<(string host, int port, string? fingerprint)>();
+
+        _store.LoadFromConfig(entries);
+
+        Assert.Empty(_store.GetAllTrusted());
+    }
+
+    [Fact]
+    public void Trust_SameHostDifferentPort_StoresBoth()
+    {
+        _store.Trust("myhost", 22, "SHA256:first");
+        _store.Trust("myhost", 2222, "SHA256:second");
+
+        Assert.Equal("SHA256:first", _store.GetFingerprint("myhost", 22));
+        Assert.Equal("SHA256:second", _store.GetFingerprint("myhost", 2222));
+    }
+
     // ── HostKeyEvent ───────────────────────────────────────────────────
 
     [Fact]

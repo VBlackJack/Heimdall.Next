@@ -19,10 +19,11 @@ Heimdall.slnx (8 projects)
 ├── src/
 │   ├── Heimdall.Core          net10.0         Models, security, config, state machine, i18n
 │   ├── Heimdall.Ssh           net10.0         SSH engine, tunnels, Pageant, TOFU, failure classifier
-│   ├── Heimdall.Rdp           net10.0-windows RDP engine (ActiveX), credential autofill
+│   ├── Heimdall.Rdp           net10.0-windows RDP + Citrix engine (ActiveX, StoreBrowse), credential autofill
 │   ├── Heimdall.Sftp          net10.0         SFTP browser (SSH.NET), remote file editing
 │   ├── Heimdall.Terminal      net10.0-windows Terminal sessions (pipe mode, ConPTY)
 │   └── Heimdall.App           net10.0-windows WPF application (MVVM, views, themes, DI)
+│       └── Views: MainWindow, EmbeddedRdpView, EmbeddedSshView, EmbeddedSftpView, EmbeddedCitrixView
 └── tests/
     ├── Heimdall.Core.Tests    State machine tests
     └── Heimdall.Ssh.Tests     SSH engine tests (failure classifier, preflight, TOFU, Pageant, Plink)
@@ -50,8 +51,8 @@ Heimdall.slnx (8 projects)
 
 - **Heimdall.Core** has zero internal project dependencies (only NuGet: CommunityToolkit.Mvvm, ProtectedData, DI abstractions)
 - **Heimdall.Ssh** depends on Core + SSH.NET
-- **Heimdall.Rdp** depends on Core (uses WPF + WinForms for ActiveX hosting)
-- **Heimdall.Sftp** depends on Core + Ssh (reuses SSH.NET connection factory)
+- **Heimdall.Rdp** depends on Core (uses WPF + WinForms for ActiveX hosting; includes Citrix StoreBrowse integration)
+- **Heimdall.Sftp** depends on Core + Ssh (reuses SSH.NET connection factory). `SftpSessionBundle` in ConnectionService bundles SftpClient + SshClient for sudo operations
 - **Heimdall.Terminal** depends on Core (uses Win32 APIs for ConPTY + pipe mode)
 - **Heimdall.App** references all five libraries and owns the DI composition root
 
@@ -66,6 +67,11 @@ Heimdall.slnx (8 projects)
 1. **SSH.NET (primary)**: Programmatic auth with password, private key file, or keyboard-interactive. Custom `PageantClient` communicates with Pageant via Win32 shared memory (`CreateFileMapping` + `WM_COPYDATA`) and wraps keys as `IPrivateKeySource` for SSH.NET.
 
 2. **Plink fallback**: When `AuthPreflightChecker.RequiresPageantFallback()` detects that the only viable auth method is Pageant, `PlinkTunnelRunner` handles tunnels and `PipeModeSession` handles interactive SSH. Plink communicates with Pageant natively.
+
+**Pageant integration fixes** (3 critical bugs resolved):
+- `AGENT_COPYDATA_ID` must be `0x804e50ba` — any other value causes Pageant to silently ignore the request
+- RSA-SHA2 algorithms (`rsa-sha2-256`, `rsa-sha2-512`) must be registered on the `ConnectionInfo` for modern servers that reject legacy `ssh-rsa`
+- `PageantHostAlgorithm.Sign()` must return the full SSH signature blob (algorithm name length + algorithm name + signature length + signature), not just the raw signature bytes — SSH.NET expects the wire-format blob
 
 ### 2. Pipe Mode for SSH Terminals (NOT ConPTY)
 
@@ -120,6 +126,37 @@ SSH host key fingerprints are persisted in a local store (`HostKeyStore`). On fi
 
 `FailureClassifier` maps SSH.NET exceptions (and Plink stderr patterns) to 25 structured `SshFailureCode` values. This enables the UI to display targeted, localized error messages (e.g., `ErrorSshKeyRejected`, `ErrorSshNetworkTimedOut`) instead of raw exception text.
 
+### 8. Citrix StoreBrowse Integration
+
+**Problem**: Citrix published applications and desktops require StoreFront authentication and ICA file generation before launching a session.
+
+**Solution**: `ConnectionService.Citrix.cs` uses the `storebrowse.exe` CLI from Citrix Workspace App:
+1. Auto-detects `storebrowse.exe` in `%ProgramFiles(x86)%\Citrix\ICA Client\SelfServicePlugin\`
+2. Authenticates against StoreFront to enumerate published resources
+3. Generates ICA file for the selected resource
+4. `EmbeddedCitrixView` hosts the session in a tab, following the same lifecycle as RDP sessions
+
+### 9. ISessionResult Type Hierarchy
+
+All connection operations return an `ISessionResult` (defined in `Heimdall.Core/Models/`). Concrete implementations carry protocol-specific session state:
+- `RdpSessionResult` — ActiveX handle, resolution info
+- `SshSessionResult` — shell stream or pipe mode session reference
+- `SftpSessionResult` — `SftpSessionBundle` (SftpClient + SshClient for sudo)
+- `CitrixSessionResult` — ICA session handle
+- `LocalSessionResult` — ConPTY session reference
+
+### 10. Multi-Exec Broadcast
+
+**Data flow**: The broadcast source terminal captures user input at the xterm.js `onData` level. When broadcast is active, the input event is relayed via `PostWebMessageAsString` to every opted-in terminal's WebView2 instance, which forwards it to the respective stdin pipe. Each terminal independently echoes the input through its own remote PTY, so output remains per-session.
+
+### 11. Quick Connect (Ctrl+K)
+
+**Architecture**: A modal overlay (`QuickConnectOverlay`) parses connection strings of the form `[protocol://]user@host[:port]`. The parser infers protocol from port if omitted (22=SSH, 3389=RDP, 1494=Citrix). A `ServerProfileDto` is created transiently (not persisted) and passed to `ConnectionService.ConnectAsync()`. Recent connections are stored in `settings.json` for quick re-use.
+
+### 12. Tunnel Panel (Retractable)
+
+**Architecture**: A `GridSplitter`-based side panel bound to `TunnelPanelViewModel`. The panel observes `TunnelManager.ActiveTunnels` (an `ObservableCollection<TunnelSession>`) and displays real-time status. Tunnel teardown sends a cancel request to the specific `TunnelSession` without affecting other tunnels or the parent SSH connection. Panel visibility is toggled via a toolbar button and persisted in user settings.
+
 ## Connection Flow
 
 ```
@@ -149,14 +186,22 @@ ConnectionService.ConnectAsync(server)
         |               +-- OR SshShellSession: SSH.NET shell stream
         |
         +-- SFTP?
-                +-- SftpBrowser: SSH.NET SftpClient
+        |       +-- EmbeddedSftpView: file browser panel
+        |               +-- SftpSessionBundle: SftpClient (file ops) + SshClient (sudo exec)
+        |               +-- RemoteFileEditor: FileSystemWatcher auto-upload (2s debounce)
+        |               +-- Sudo fallback: permission denied -> sudo cat/sudo tee via SSH exec
+        |
+        +-- Citrix?
+                +-- EmbeddedCitrixView: StoreBrowse session tab
+                        +-- storebrowse.exe: StoreFront auth + resource enumeration
+                        +-- ICA file generation -> Citrix Workspace launch
 ```
 
 ## State Machines
 
 ### Connection State Machine
 
-States: `Disconnected` -> `Initializing` -> `ValidatingConfig` -> `EstablishingTunnel` -> `TunnelEstablished` -> `LaunchingRdp` / `LaunchingSsh` / `LaunchingSftp` -> `Connected` -> `Disconnecting` -> `Disconnected`
+States: `Disconnected` -> `Initializing` -> `ValidatingConfig` -> `EstablishingTunnel` -> `TunnelEstablished` -> `LaunchingRdp` / `LaunchingSsh` / `LaunchingSftp` / `LaunchingCitrix` -> `Connected` -> `Disconnecting` -> `Disconnected`
 
 Error state reachable from any active state. Transitions validated before application.
 

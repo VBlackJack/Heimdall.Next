@@ -62,11 +62,31 @@ public partial class EmbeddedSshView : UserControl, IDisposable
     private bool IsSessionConnected =>
         (_session?.IsConnected ?? false) || (_terminalSession?.IsRunning ?? false);
 
+    /// <summary>
+    /// Raised when the user clicks the Split button in the header strip.
+    /// The subscriber (EmbeddedSessionManager) shows the split picker context menu.
+    /// </summary>
+    public event Action? SplitRequested;
+
+    /// <summary>
+    /// Raised when the user types input and broadcast mode may be active.
+    /// The subscriber (MainViewModel) decides whether to relay to other terminals.
+    /// </summary>
+    public event Action<byte[]>? BroadcastInput;
+
+    /// <summary>
+    /// Raised when the user clicks the Reconnect button after a disconnection.
+    /// The subscriber (EmbeddedSessionManager) re-establishes the connection
+    /// using the original server parameters.
+    /// </summary>
+    public event Action? ReconnectRequested;
+
     public EmbeddedSshView()
     {
         InitializeComponent();
 
         Loaded += OnLoaded;
+        IsVisibleChanged += OnVisibilityChanged;
     }
 
     /// <summary>
@@ -149,6 +169,7 @@ public partial class EmbeddedSshView : UserControl, IDisposable
         ReleaseSleepPrevention();
 
         Loaded -= OnLoaded;
+        IsVisibleChanged -= OnVisibilityChanged;
 
         if (_webViewInitialized && TerminalWebView.CoreWebView2 is not null)
         {
@@ -220,6 +241,22 @@ public partial class EmbeddedSshView : UserControl, IDisposable
         Core.Logging.FileLogger.Info("EmbeddedSSH Dispose completed");
     }
 
+    private void OnVisibilityChanged(object sender, DependencyPropertyChangedEventArgs e)
+    {
+        if (e.NewValue is true && _terminalReady && !_disposed)
+        {
+            // Re-focus terminal when tab becomes visible (tab switch)
+            _ = Dispatcher.BeginInvoke(() =>
+            {
+                if (!_disposed && _terminalReady)
+                {
+                    TerminalWebView.Focus();
+                    PostTerminalMessage("focus:");
+                }
+            }, System.Windows.Threading.DispatcherPriority.Input);
+        }
+    }
+
     private async void OnLoaded(object sender, RoutedEventArgs e)
     {
         await InitializeWebView2Async();
@@ -254,6 +291,22 @@ public partial class EmbeddedSshView : UserControl, IDisposable
         }
     }
 
+    private void OnSplitClick(object sender, RoutedEventArgs e)
+    {
+        SplitRequested?.Invoke();
+    }
+
+    private void OnReconnectClick(object sender, RoutedEventArgs e)
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        Core.Logging.FileLogger.Info("EmbeddedSSH Reconnect requested by user");
+        ReconnectRequested?.Invoke();
+    }
+
     private async Task InitializeWebView2Async()
     {
         if (_disposed || _webViewInitializationStarted)
@@ -276,7 +329,7 @@ public partial class EmbeddedSshView : UserControl, IDisposable
             var core = TerminalWebView.CoreWebView2;
             core.Settings.AreDefaultContextMenusEnabled = false;
             core.Settings.AreDevToolsEnabled = false;
-            core.Settings.AreBrowserAcceleratorKeysEnabled = true;
+            core.Settings.AreBrowserAcceleratorKeysEnabled = false;
             core.Settings.AreDefaultScriptDialogsEnabled = false;
             core.Settings.IsStatusBarEnabled = false;
             core.Settings.IsZoomControlEnabled = false;
@@ -321,6 +374,29 @@ public partial class EmbeddedSshView : UserControl, IDisposable
             return;
         }
 
+        // Open URL: terminal requests to open a link in the default browser
+        if (message.StartsWith("open-url:", StringComparison.Ordinal))
+        {
+            var url = message["open-url:".Length..];
+            if (Uri.TryCreate(url, UriKind.Absolute, out var uri)
+                && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps))
+            {
+                try
+                {
+                    System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                    {
+                        FileName = uri.AbsoluteUri,
+                        UseShellExecute = true
+                    });
+                }
+                catch (Exception ex)
+                {
+                    Core.Logging.FileLogger.Warn($"EmbeddedSSH open-url failed: {ex.Message}");
+                }
+            }
+            return;
+        }
+
         if (message.StartsWith("ready:", StringComparison.Ordinal))
         {
             _terminalReady = true;
@@ -353,10 +429,89 @@ public partial class EmbeddedSshView : UserControl, IDisposable
             {
                 var bytes = Convert.FromBase64String(base64);
                 WriteToSession(bytes);
+
+                // Broadcast to other terminals when broadcast mode is active
+                BroadcastInput?.Invoke(bytes);
             }
             catch (FormatException ex)
             {
                 Core.Logging.FileLogger.Warn($"EmbeddedSSH invalid input payload: {ex.Message}");
+            }
+            return;
+        }
+
+        // Clipboard write: terminal wants to copy text to system clipboard
+        if (message.StartsWith("clipboard-write:", StringComparison.Ordinal))
+        {
+            try
+            {
+                var base64 = message["clipboard-write:".Length..];
+                var text = Encoding.UTF8.GetString(Convert.FromBase64String(base64));
+                if (!string.IsNullOrEmpty(text))
+                {
+                    Clipboard.SetText(text);
+                }
+            }
+            catch (Exception ex)
+            {
+                Core.Logging.FileLogger.Warn($"EmbeddedSSH clipboard-write failed: {ex.Message}");
+            }
+            return;
+        }
+
+        // Clipboard read: terminal requests paste from system clipboard
+        // Protected by SmartPasteGuard to prevent dangerous multi-line or destructive pastes.
+        if (message.StartsWith("clipboard-read:", StringComparison.Ordinal))
+        {
+            try
+            {
+                if (Clipboard.ContainsText())
+                {
+                    var text = Clipboard.GetText();
+                    if (!string.IsNullOrEmpty(text))
+                    {
+                        var risk = Heimdall.Terminal.SmartPasteGuard.Evaluate(text);
+
+                        var owner = Window.GetWindow(this);
+
+                        if (risk == Heimdall.Terminal.SmartPasteGuard.PasteRisk.Dangerous)
+                        {
+                            var proceed = System.Windows.MessageBox.Show(
+                                owner,
+                                "The clipboard contains a potentially dangerous command.\n\nPaste anyway?",
+                                "Paste Warning",
+                                MessageBoxButton.YesNo,
+                                MessageBoxImage.Warning);
+
+                            if (proceed != MessageBoxResult.Yes)
+                            {
+                                return;
+                            }
+                        }
+                        else if (risk == Heimdall.Terminal.SmartPasteGuard.PasteRisk.MultiLine)
+                        {
+                            int lineCount = text.Split('\n').Length;
+                            var proceed = System.Windows.MessageBox.Show(
+                                owner,
+                                $"Paste {lineCount} lines into terminal?\n\nMulti-line paste executes commands automatically.",
+                                "Multi-line Paste",
+                                MessageBoxButton.YesNo,
+                                MessageBoxImage.Question);
+
+                            if (proceed != MessageBoxResult.Yes)
+                            {
+                                return;
+                            }
+                        }
+
+                        var base64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(text));
+                        PostTerminalMessage("clipboard-paste:" + base64);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Core.Logging.FileLogger.Warn($"EmbeddedSSH clipboard-read failed: {ex.Message}");
             }
             return;
         }
@@ -450,6 +605,39 @@ public partial class EmbeddedSshView : UserControl, IDisposable
         {
             _terminalSession?.Write(data);
         }
+    }
+
+    /// <summary>
+    /// Sends a command string followed by a newline to the active session.
+    /// Intended for external callers (e.g. SFTP "Open in Terminal").
+    /// </summary>
+    public void WriteCommand(string command)
+    {
+        WriteToSession(command + "\n");
+    }
+
+    /// <summary>
+    /// Sends raw bytes to the active session without triggering broadcast.
+    /// Used by the broadcast relay to avoid infinite loops.
+    /// </summary>
+    public void WriteBytes(byte[] data) => WriteToSession(data);
+
+    /// <summary>
+    /// Shows or hides the broadcast mode indicator badge in the header strip.
+    /// </summary>
+    public void SetBroadcastIndicator(bool active)
+    {
+        if (_disposed) return;
+
+        if (!Dispatcher.CheckAccess())
+        {
+            _ = Dispatcher.BeginInvoke(() => SetBroadcastIndicator(active));
+            return;
+        }
+
+        BroadcastBadge.Visibility = active
+            ? Visibility.Visible
+            : Visibility.Collapsed;
     }
 
     private void WriteToSession(string text)
@@ -571,15 +759,21 @@ public partial class EmbeddedSshView : UserControl, IDisposable
 
     private void SendKeepAlive()
     {
-        if (_disposed || !IsSessionConnected)
+        if (_disposed)
         {
+            return;
+        }
+
+        if (!IsSessionConnected)
+        {
+            Core.Logging.FileLogger.Warn("SSH keepalive skipped: session not connected");
+            StopKeepAliveTimer();
             return;
         }
 
         try
         {
             WriteToSession(KeepAliveCr);
-            Core.Logging.FileLogger.Info("SSH keepalive CR sent");
         }
         catch (Exception ex)
         {
@@ -613,8 +807,13 @@ public partial class EmbeddedSshView : UserControl, IDisposable
         }
 
         StatusTextBlock.Text = status;
-        DisconnectButton.IsEnabled = !_disposed
-            && !string.Equals(status, "Disconnected", StringComparison.OrdinalIgnoreCase);
+
+        var isDisconnected = string.Equals(status, "Disconnected", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(status, "Error", StringComparison.OrdinalIgnoreCase);
+
+        DisconnectButton.IsEnabled = !_disposed && !isDisconnected;
+        DisconnectButton.Visibility = isDisconnected ? Visibility.Collapsed : Visibility.Visible;
+        ReconnectButton.Visibility = isDisconnected ? Visibility.Visible : Visibility.Collapsed;
 
         StatusTextBlock.Foreground = string.Equals(status, "Error", StringComparison.OrdinalIgnoreCase)
             ? GetBrush("ErrorBrush", Brushes.IndianRed)
