@@ -41,7 +41,7 @@ Built with .NET 10 and WPF. Designed as a modern, high-performance alternative t
 - Pipe mode transport for correct arrow keys, colors, and escape sequences
 - Pageant agent integration (native Win32 IPC via shared memory)
 - SSH keepalive heartbeat (prevents TMOUT disconnects)
-- TOFU host key verification with persistent fingerprint store
+- TOFU host key verification with persistent fingerprint store (survives restarts)
 - Multi-gateway tunnel chaining with circular dependency detection
 - 25 structured failure codes with localized error messages
 
@@ -79,10 +79,15 @@ Built with .NET 10 and WPF. Designed as a modern, high-performance alternative t
 - Bilingual interface: English and French (~1,730 i18n keys)
 
 ### Security
-- DPAPI encryption + HMAC-SHA256 integrity for stored credentials
-- PBKDF2-SHA256 PIN hashing (100,000 iterations)
-- Windows ACL enforcement on config and log files
-- Input validation against injection patterns (CWE-78)
+- DPAPI encryption + HMAC-SHA256 integrity via unified `CredentialProtector` (auto-migrates legacy blobs)
+- PBKDF2-SHA256 PIN hashing (100,000 iterations) with lockout mechanics
+- Windows ACL enforcement on config directories, log files, and temp files (fail-closed)
+- Input validation against injection patterns (CWE-78) on all Plink/gsudo command construction
+- WebView2 Content Security Policy (CSP) and navigation blocking on terminal pages
+- Pageant IPC identity verification (process owner validation before shared memory access)
+- Credential autofill scoped to process lineage and host hint matching
+- TOFU host key fingerprints persisted across restarts
+- Session-scoped CredMan entries with deterministic cleanup
 - Secure file writes (UTF-8 without BOM)
 
 ### Import and Migration
@@ -146,7 +151,7 @@ Build output goes to `Dist/debug/` or `Dist/release/` with versioned folder name
 | RDP | ActiveX MsTscAx (WindowsFormsHost) |
 | Citrix | StoreBrowse CLI integration |
 | Crypto | System.Security.Cryptography.ProtectedData (DPAPI) |
-| Testing | xUnit + Moq + FluentAssertions (385 tests) |
+| Testing | xUnit + Moq + FluentAssertions (461 tests) |
 | Serialization | System.Text.Json |
 
 ---
