@@ -25,7 +25,7 @@ Heimdall.slnx (8 projects)
 │   └── Heimdall.App           net10.0-windows WPF application (MVVM, views, themes, DI)
 │       └── Views: MainWindow, EmbeddedRdpView, EmbeddedSshView, EmbeddedSftpView, EmbeddedCitrixView
 └── tests/
-    ├── Heimdall.Core.Tests    State machine tests
+    ├── Heimdall.Core.Tests    State machine, HMAC integrity, input validation, PIN manager, config manager tests
     └── Heimdall.Ssh.Tests     SSH engine tests (failure classifier, preflight, TOFU, Pageant, Plink)
 ```
 
@@ -98,6 +98,15 @@ ConPTY (`ConPtySession`) is kept for local shell scenarios only.
 - xterm.js handles all VT100/xterm rendering: colors, cursor, scrollback, mouse, selection
 - CSS cursor blink rate set to 1.2s to avoid WPF/WebView2 focus fight
 
+#### WebView2 Security Model
+
+The terminal page (`terminal.html`) is loaded via `NavigateToString` (no external origin). Security hardening:
+
+- **CSP**: `default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'none'; frame-src 'none'` — all scripts are inlined, no external resource loading permitted
+- **Navigation blocking**: `NavigationStarting` handler cancels any navigation away from `about:` or `data:` origins
+- **Message origin validation**: `OnWebMessageReceived` rejects messages from unexpected sources
+- **URL opening**: Only `http://` and `https://` URIs are passed to `Process.Start` with `UseShellExecute`
+
 ### 4. RDP ActiveX with Layout Flush Protocol
 
 **Problem**: WPF's `WindowsFormsHost` has an "airspace" issue where the rendering surface is not properly bound to the visible HWND if layout hasn't been flushed before `Connect()`.
@@ -120,7 +129,7 @@ Additional guards:
 
 ### 6. TOFU Host Key Verification
 
-SSH host key fingerprints are persisted in a local store (`HostKeyStore`). On first connection, the fingerprint is recorded. On subsequent connections, mismatches trigger `SshFailureCode.HostKeyMismatch` with a user-facing warning.
+SSH host key fingerprints are persisted in `HostKeyStore` and saved to `settings.json` (`TrustedHostKeys` dictionary). On first connection, the fingerprint is recorded and persisted via the `HostKeyEvent` callback. On subsequent connections (including after app restart), mismatches trigger `SshFailureCode.HostKeyMismatch` with a user-facing warning. Fingerprints are loaded from config at startup via `LoadFromConfig()`.
 
 ### 7. SSH Failure Classification
 
@@ -215,10 +224,20 @@ Error state reachable from Ready or Busy.
 
 | Layer | Mechanism |
 |---|---|
-| Credential storage | DPAPI (user-scope) via `DpapiProvider` |
-| Integrity | HMAC-SHA256 on encrypted blobs via `HmacIntegrity` |
-| PIN protection | PBKDF2-SHA256, 100,000 iterations via `PinManager` |
-| File protection | Windows ACLs (user + Admins + SYSTEM) via `AclEnforcer` |
-| Input validation | Regex patterns against injection (CWE-78) via `InputValidator` |
+| Credential storage | DPAPI (user-scope) + HMAC-SHA256 integrity via unified `CredentialProtector` |
+| Legacy migration | `CredentialProtector.Unprotect` accepts both HMAC-protected and plain DPAPI blobs |
+| HMAC key management | Auto-generated on first run, DPAPI-protected, stored in `settings.json` |
+| PIN protection | PBKDF2-SHA256, 100,000 iterations, 128-bit salt via `PinManager` |
+| File protection | Windows ACLs (user + Admins + SYSTEM) via `AclEnforcer` on config dirs, logs, temp files |
+| Input validation | Compiled regex patterns against injection (CWE-78) via `InputValidator` |
+| Command construction | Structured argument lists for Plink/gsudo (no string concatenation of user input) |
+| WebView2 hardening | CSP (`default-src 'none'`), navigation blocking, `WebMessage` source validation |
+| Pageant IPC | Process owner identity verification before shared memory access |
+| Credential autofill | Scoped to mstsc process lineage + host hint matching, `#32770` class excluded |
+| RDP CredMan | Session-scoped persistence, deterministic cleanup after session launch |
+| Temp file security | ACL enforcement on .rdp files, Plink -pwfile, SFTP edit directories |
+| SSH host trust | TOFU fingerprints persisted to `settings.json`, loaded at startup |
 | File writes | UTF-8 without BOM via `SecureFileWriter` |
-| Memory | Credentials handled as `SecureString`, disposed after use |
+| Memory | Credentials cleared after COM injection, `SecureString` for handoff paths |
+| Exception handling | Global handlers registered before first await, unobserved task exceptions caught |
+| Logging | `FileLogger.Dispose()` flushes before marking disposed (no lost diagnostics) |
