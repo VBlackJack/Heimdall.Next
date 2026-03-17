@@ -91,9 +91,13 @@ public static partial class CredentialAutofill
     private static readonly string[] CredentialBrokerProcessNames =
         ["CredentialUIBroker", "LogonUI", "consent"];
 
-    /// <summary>Known top-level classes used by classic and modern CredUI hosts.</summary>
+    /// <summary>
+    /// Known top-level classes used by modern CredUI hosts.
+    /// Note: "#32770" (generic Win32 dialog) is intentionally excluded to avoid
+    /// matching unrelated dialogs (e.g., Open File, Save As, confirmation prompts).
+    /// </summary>
     private static readonly string[] CredentialDialogClassNames =
-        ["Credential Dialog Xaml Host", "Windows Security", "#32770"];
+        ["Credential Dialog Xaml Host", "Windows Security"];
 
     /// <summary>
     /// Regex pattern matching credential dialog titles across supported locales.
@@ -213,11 +217,23 @@ public static partial class CredentialAutofill
             return SelectBestMatch(ownedByTarget, hostHintPattern);
         }
 
-        // Fall back to known credential broker processes.
-        var brokerMatches = candidates.Where(w => IsCredentialBroker(w.ProcessId, w.ProcessName)).ToList();
+        // Fall back to known credential broker processes, but only if their title
+        // matches the host hint (prevents injecting into the wrong dialog when
+        // multiple Windows Security prompts are open simultaneously).
+        var brokerMatches = candidates
+            .Where(w => IsCredentialBroker(w.ProcessId, w.ProcessName))
+            .ToList();
         if (brokerMatches.Count > 0)
         {
-            return SelectBestMatch(brokerMatches, hostHintPattern);
+            if (hostHintPattern is not null)
+            {
+                var hostMatched = brokerMatches.Where(w => hostHintPattern.IsMatch(w.Title)).ToList();
+                if (hostMatched.Count > 0)
+                    return SelectBestMatch(hostMatched, hostHintPattern);
+            }
+            // Only fall back to unmatched brokers if there's exactly one candidate
+            if (brokerMatches.Count == 1)
+                return brokerMatches[0];
         }
 
         FileLogger.Warn(

@@ -193,6 +193,7 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
         BtnBookmark.ToolTip = _localizer["SftpBtnBookmark"];
         BtnBookmarks.ToolTip = _localizer["SftpBtnBookmarks"];
         ToggleHiddenCheckBox.ToolTip = _localizer["SftpToggleHidden"];
+        SplitButton.ToolTip = _localizer["ToolTipSplitPane"];
 
         FilterTextBox.Tag = _localizer["SftpFilterPlaceholder"];
 
@@ -208,6 +209,7 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
         CtxOpenInTerminal.Header = _localizer["SftpCtxOpenInTerminal"];
 
         EmptyDirectoryText.Text = _localizer["SftpEmptyDirectory"];
+        DragDropOverlayText.Text = _localizer["SftpDragDropOverlay"];
 
         if (FileListView.View is GridView gridView && gridView.Columns.Count >= 5)
         {

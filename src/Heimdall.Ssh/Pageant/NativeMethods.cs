@@ -60,6 +60,9 @@ internal static class NativeMethods
     [return: MarshalAs(UnmanagedType.Bool)]
     internal static extern bool UnmapViewOfFile(IntPtr lpBaseAddress);
 
+    [DllImport("user32.dll", SetLastError = true)]
+    internal static extern uint GetWindowThreadProcessId(IntPtr hWnd, out int lpdwProcessId);
+
     [StructLayout(LayoutKind.Sequential)]
     internal struct COPYDATASTRUCT
     {

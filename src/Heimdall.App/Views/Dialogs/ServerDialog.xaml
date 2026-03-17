@@ -179,13 +179,13 @@
         </Grid.RowDefinitions>
 
         <TabControl Grid.Row="0" Style="{DynamicResource ThemedTabControlStyle}">
-            <TabItem Header="Connection" Style="{DynamicResource ThemedTabItemStyle}">
+            <TabItem x:Name="DlgSrv_TabConnection" Style="{DynamicResource ThemedTabItemStyle}">
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <StackPanel Margin="8">
                         <Border Style="{StaticResource SectionCardStyle}">
                             <StackPanel>
-                                <TextBlock Text="Connection basics" Style="{StaticResource SectionTitleStyle}"/>
-                                <TextBlock Text="Choose the protocol, destination host, and service port Heimdall should open."
+                                <TextBlock x:Name="DlgSrv_ConnectionBasicsTitle" Style="{StaticResource SectionTitleStyle}"/>
+                                <TextBlock x:Name="DlgSrv_ConnectionBasicsDesc"
                                            Style="{StaticResource SectionDescriptionStyle}"/>
                                 <Grid Margin="0,16,0,0">
                                     <Grid.ColumnDefinitions>
@@ -198,8 +198,8 @@
                                         <RowDefinition Height="Auto"/>
                                         <RowDefinition Height="Auto"/>
                                     </Grid.RowDefinitions>
-                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Display name" Style="{StaticResource LabelStyle}"/>
-                                    <TextBlock Grid.Row="0" Grid.Column="1" Text="Connection type" Style="{StaticResource LabelStyle}" Margin="12,0,0,4"/>
+                                    <TextBlock x:Name="DlgSrv_DisplayNameLabel" Grid.Row="0" Grid.Column="0" Style="{StaticResource LabelStyle}"/>
+                                    <TextBlock x:Name="DlgSrv_ConnectionTypeLabel" Grid.Row="0" Grid.Column="1" Style="{StaticResource LabelStyle}" Margin="12,0,0,4"/>
                                     <TextBox Grid.Row="1" Grid.Column="0"
                                              Text="{Binding DisplayName, UpdateSourceTrigger=PropertyChanged}"
                                              Style="{StaticResource FormTextBoxStyle}"/>
@@ -215,7 +215,7 @@
                                         <ComboBoxItem Content="Citrix"/>
                                     </ComboBox>
                                     <!-- Server/Port row: hidden for Local shell and Citrix -->
-                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Server" Margin="0,14,0,4">
+                                    <TextBlock x:Name="DlgSrv_ServerLabel" Grid.Row="2" Grid.Column="0" Margin="0,14,0,4">
                                         <TextBlock.Style>
                                             <Style TargetType="TextBlock" BasedOn="{StaticResource LabelStyle}">
                                                 <Style.Triggers>
@@ -308,10 +308,10 @@
                                 </Style>
                             </Border.Style>
                             <StackPanel>
-                                <TextBlock Text="Gateway routing" Style="{StaticResource SectionTitleStyle}"/>
-                                <TextBlock Text="Use an SSH gateway when the target server is only reachable through a bastion or jump host."
+                                <TextBlock x:Name="DlgSrv_GatewayRoutingTitle" Style="{StaticResource SectionTitleStyle}"/>
+                                <TextBlock x:Name="DlgSrv_GatewayRoutingDesc"
                                            Style="{StaticResource SectionDescriptionStyle}"/>
-                                <CheckBox Content="Connect directly without an SSH gateway"
+                                <CheckBox x:Name="DlgSrv_DirectConnectCb"
                                           IsChecked="{Binding DirectConnection}"
                                           Style="{StaticResource FormCheckBoxStyle}"
                                           Margin="0,14,0,0"/>
@@ -330,7 +330,7 @@
                                     <Button Grid.Column="1"
                                             Margin="8,0,0,0"
                                             Padding="12,6"
-                                            Content="Test connection"
+                                            x:Name="DlgSrv_TestConnectionBtn"
                                             Command="{Binding TestGatewayCommand}"
                                             Style="{DynamicResource SecondaryButtonStyle}"/>
                                 </Grid>
@@ -366,7 +366,7 @@
 
                         <Border Style="{StaticResource SectionCardStyle}">
                             <StackPanel>
-                                <TextBlock Text="Connection path" Style="{StaticResource SectionTitleStyle}"/>
+                                <TextBlock x:Name="DlgSrv_ConnectionPathTitle" Style="{StaticResource SectionTitleStyle}"/>
                                 <TextBlock Text="{Binding ConnectionPathHeadline}" Style="{StaticResource SectionDescriptionStyle}"/>
                                 <StackPanel Margin="0,16,0,0"
                                             Orientation="Horizontal"
@@ -374,7 +374,7 @@
                                             Style="{StaticResource DirectSectionStyle}">
                                     <Border Style="{StaticResource DiagramNodeStyle}">
                                         <StackPanel>
-                                            <TextBlock Text="Your PC" Foreground="{DynamicResource TextPrimaryBrush}" FontWeight="SemiBold"/>
+                                            <TextBlock x:Name="DlgSrv_DirectYourPc" Foreground="{DynamicResource TextPrimaryBrush}" FontWeight="SemiBold"/>
                                             <TextBlock Text="{Binding ClientNodeCaption}" Style="{StaticResource HintTextStyle}"/>
                                         </StackPanel>
                                     </Border>
@@ -384,7 +384,7 @@
                                     </StackPanel>
                                     <Border Style="{StaticResource DiagramNodeStyle}">
                                         <StackPanel>
-                                            <TextBlock Text="Destination" Foreground="{DynamicResource TextPrimaryBrush}" FontWeight="SemiBold"/>
+                                            <TextBlock x:Name="DlgSrv_DirectDestination" Foreground="{DynamicResource TextPrimaryBrush}" FontWeight="SemiBold"/>
                                             <TextBlock Text="{Binding DestinationNodeCaption}" Style="{StaticResource HintTextStyle}"/>
                                         </StackPanel>
                                     </Border>
@@ -395,7 +395,7 @@
                                             Style="{StaticResource GatewaySectionStyle}">
                                     <Border Style="{StaticResource DiagramNodeStyle}">
                                         <StackPanel>
-                                            <TextBlock Text="Your PC" Foreground="{DynamicResource TextPrimaryBrush}" FontWeight="SemiBold"/>
+                                            <TextBlock x:Name="DlgSrv_GatewayYourPc" Foreground="{DynamicResource TextPrimaryBrush}" FontWeight="SemiBold"/>
                                             <TextBlock Text="{Binding ClientNodeCaption}" Style="{StaticResource HintTextStyle}"/>
                                         </StackPanel>
                                     </Border>
@@ -405,7 +405,7 @@
                                     </StackPanel>
                                     <Border Style="{StaticResource DiagramNodeStyle}">
                                         <StackPanel>
-                                            <TextBlock Text="Gateway" Foreground="{DynamicResource TextPrimaryBrush}" FontWeight="SemiBold"/>
+                                            <TextBlock x:Name="DlgSrv_GatewayNode" Foreground="{DynamicResource TextPrimaryBrush}" FontWeight="SemiBold"/>
                                             <TextBlock Text="{Binding SelectedGatewayTitle}" Style="{StaticResource HintTextStyle}"/>
                                             <TextBlock Text="{Binding SelectedGatewayEndpoint}" Style="{StaticResource HintTextStyle}" Margin="0,4,0,0"/>
                                         </StackPanel>
@@ -416,7 +416,7 @@
                                     </StackPanel>
                                     <Border Style="{StaticResource DiagramNodeStyle}">
                                         <StackPanel>
-                                            <TextBlock Text="Destination" Foreground="{DynamicResource TextPrimaryBrush}" FontWeight="SemiBold"/>
+                                            <TextBlock x:Name="DlgSrv_GatewayDestination" Foreground="{DynamicResource TextPrimaryBrush}" FontWeight="SemiBold"/>
                                             <TextBlock Text="{Binding DestinationNodeCaption}" Style="{StaticResource HintTextStyle}"/>
                                         </StackPanel>
                                     </Border>
@@ -427,15 +427,15 @@
                 </ScrollViewer>
             </TabItem>
 
-            <TabItem Header="Tunneling" Style="{DynamicResource ThemedTabItemStyle}">
+            <TabItem x:Name="DlgSrv_TabTunneling" Style="{DynamicResource ThemedTabItemStyle}">
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <StackPanel Margin="8">
                         <Border Style="{StaticResource SectionCardStyle}">
                             <StackPanel>
-                                <TextBlock Text="How tunneling works" Style="{StaticResource SectionTitleStyle}"/>
-                                <TextBlock Text="A tunnel listens on a local port on your PC and forwards that traffic to the remote service through the selected SSH gateway."
+                                <TextBlock x:Name="DlgSrv_TunnelingTitle" Style="{StaticResource SectionTitleStyle}"/>
+                                <TextBlock x:Name="DlgSrv_TunnelingDesc"
                                            Style="{StaticResource SectionDescriptionStyle}"/>
-                                <TextBlock Text="This is only used when a gateway is selected. Direct connections skip the local tunnel entirely."
+                                <TextBlock x:Name="DlgSrv_TunnelingHint"
                                            Style="{StaticResource HintTextStyle}" Margin="0,10,0,0"/>
                             </StackPanel>
                         </Border>
@@ -452,8 +452,8 @@
                                 </Style>
                             </Border.Style>
                             <StackPanel>
-                                <TextBlock Text="Direct connection" Style="{StaticResource SectionTitleStyle}"/>
-                                <TextBlock Text="No tunnel will be created for this server. Heimdall connects straight to the destination host and service port."
+                                <TextBlock x:Name="DlgSrv_DirectConnTitle" Style="{StaticResource SectionTitleStyle}"/>
+                                <TextBlock x:Name="DlgSrv_DirectConnDesc"
                                            Style="{StaticResource SectionDescriptionStyle}"/>
                             </StackPanel>
                         </Border>
@@ -470,10 +470,10 @@
                                 </Style>
                             </Border.Style>
                             <StackPanel>
-                                <TextBlock Text="Local tunnel port" Style="{StaticResource SectionTitleStyle}"/>
-                                <TextBlock Text="Heimdall uses this local port to reach the remote service through the SSH tunnel."
+                                <TextBlock x:Name="DlgSrv_LocalTunnelPortTitle" Style="{StaticResource SectionTitleStyle}"/>
+                                <TextBlock x:Name="DlgSrv_LocalTunnelPortDesc"
                                            Style="{StaticResource SectionDescriptionStyle}"/>
-                                <CheckBox Content="Choose the tunnel port automatically"
+                                <CheckBox x:Name="DlgSrv_AutoTunnelPortCb"
                                           IsChecked="{Binding UseAutomaticTunnelPort}"
                                           Style="{StaticResource FormCheckBoxStyle}"
                                           Margin="0,14,0,0"/>
@@ -483,7 +483,7 @@
                                         <ColumnDefinition Width="140"/>
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Grid.Column="0" Text="Manual local port" Style="{StaticResource LabelStyle}" Margin="0,6,0,0"/>
+                                    <TextBlock x:Name="DlgSrv_ManualPortLabel" Grid.Column="0" Style="{StaticResource LabelStyle}" Margin="0,6,0,0"/>
                                     <TextBox Grid.Column="1"
                                              Width="140"
                                              HorizontalAlignment="Left"
@@ -505,7 +505,7 @@
                                 </Style>
                             </Border.Style>
                             <StackPanel>
-                                <TextBlock Text="Tunnel mapping" Style="{StaticResource SectionTitleStyle}"/>
+                                <TextBlock x:Name="DlgSrv_TunnelMappingTitle" Style="{StaticResource SectionTitleStyle}"/>
                                 <TextBlock Text="{Binding TunnelSummary}" Style="{StaticResource SectionDescriptionStyle}"/>
                                 <Grid Margin="0,14,0,0">
                                     <Grid.ColumnDefinitions>
@@ -517,11 +517,11 @@
                                         <RowDefinition Height="Auto"/>
                                         <RowDefinition Height="Auto"/>
                                     </Grid.RowDefinitions>
-                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Gateway chain" Style="{StaticResource LabelStyle}"/>
+                                    <TextBlock x:Name="DlgSrv_ChainLabel" Grid.Row="0" Grid.Column="0" Style="{StaticResource LabelStyle}"/>
                                     <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding GatewayRouteText}" Style="{StaticResource HintTextStyle}" Margin="0,0,0,0"/>
-                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Local endpoint" Style="{StaticResource LabelStyle}" Margin="0,12,0,0"/>
+                                    <TextBlock x:Name="DlgSrv_LocalEndpointLabel" Grid.Row="1" Grid.Column="0" Style="{StaticResource LabelStyle}" Margin="0,12,0,0"/>
                                     <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding ClientNodeCaption}" Style="{StaticResource HintTextStyle}" Margin="0,12,0,0"/>
-                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Remote destination" Style="{StaticResource LabelStyle}" Margin="0,12,0,0"/>
+                                    <TextBlock x:Name="DlgSrv_RemoteDestLabel" Grid.Row="2" Grid.Column="0" Style="{StaticResource LabelStyle}" Margin="0,12,0,0"/>
                                     <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding DestinationNodeCaption}" Style="{StaticResource HintTextStyle}" Margin="0,12,0,0"/>
                                 </Grid>
                             </StackPanel>
@@ -530,7 +530,7 @@
                 </ScrollViewer>
             </TabItem>
 
-            <TabItem Header="Authentication" Style="{DynamicResource ThemedTabItemStyle}">
+            <TabItem x:Name="DlgSrv_TabAuthentication" Style="{DynamicResource ThemedTabItemStyle}">
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <StackPanel Margin="8">
                         <Border>
@@ -545,12 +545,12 @@
                                 </Style>
                             </Border.Style>
                             <StackPanel>
-                                <TextBlock Text="RDP credentials" Style="{StaticResource SectionTitleStyle}"/>
-                                <TextBlock Text="Credentials used by the Remote Desktop session after routing is complete."
+                                <TextBlock x:Name="DlgSrv_RdpCredentialsTitle" Style="{StaticResource SectionTitleStyle}"/>
+                                <TextBlock x:Name="DlgSrv_RdpCredentialsDesc"
                                            Style="{StaticResource SectionDescriptionStyle}"/>
-                                <TextBlock Text="Username" Style="{StaticResource LabelStyle}" Margin="0,14,0,4"/>
+                                <TextBlock x:Name="DlgSrv_RdpUsernameLabel" Style="{StaticResource LabelStyle}" Margin="0,14,0,4"/>
                                 <TextBox Text="{Binding RdpUsername, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBoxStyle}"/>
-                                <TextBlock Text="Password" Style="{StaticResource LabelStyle}" Margin="0,12,0,4"/>
+                                <TextBlock x:Name="DlgSrv_RdpPasswordLabel" Style="{StaticResource LabelStyle}" Margin="0,12,0,4"/>
                                 <PasswordBox x:Name="RdpPasswordBox" Style="{StaticResource FormPasswordBoxStyle}"/>
                             </StackPanel>
                         </Border>
@@ -570,14 +570,14 @@
                                 </Style>
                             </Border.Style>
                             <StackPanel>
-                                <TextBlock Text="SSH credentials" Style="{StaticResource SectionTitleStyle}"/>
-                                <TextBlock Text="These credentials are used for the SSH or SFTP session itself."
+                                <TextBlock x:Name="DlgSrv_SshCredentialsTitle" Style="{StaticResource SectionTitleStyle}"/>
+                                <TextBlock x:Name="DlgSrv_SshCredentialsDesc"
                                            Style="{StaticResource SectionDescriptionStyle}"/>
-                                <TextBlock Text="Username" Style="{StaticResource LabelStyle}" Margin="0,14,0,4"/>
+                                <TextBlock x:Name="DlgSrv_SshUsernameLabel" Style="{StaticResource LabelStyle}" Margin="0,14,0,4"/>
                                 <TextBox Text="{Binding SshUsername, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBoxStyle}"/>
-                                <TextBlock Text="SSH key" Style="{StaticResource LabelStyle}" Margin="0,12,0,4"/>
+                                <TextBlock x:Name="DlgSrv_SshKeyLabel" Style="{StaticResource LabelStyle}" Margin="0,12,0,4"/>
                                 <DockPanel>
-                                    <Button Content="Browse"
+                                    <Button x:Name="DlgSrv_BrowseBtn"
                                             DockPanel.Dock="Right"
                                             Command="{Binding BrowseSshKeyCommand}"
                                             Style="{DynamicResource SecondaryButtonStyle}"
@@ -585,7 +585,7 @@
                                             Click="OnBrowseSshKeyClick"/>
                                     <TextBox Text="{Binding SshKeyPath, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBoxStyle}"/>
                                 </DockPanel>
-                                <TextBlock Text="Password or passphrase" Style="{StaticResource LabelStyle}" Margin="0,12,0,4"/>
+                                <TextBlock x:Name="DlgSrv_PassphraseLabel" Style="{StaticResource LabelStyle}" Margin="0,12,0,4"/>
                                 <PasswordBox x:Name="SshPasswordBox" Style="{StaticResource FormPasswordBoxStyle}"/>
                             </StackPanel>
                         </Border>
@@ -602,8 +602,8 @@
                                 </Style>
                             </Border.Style>
                             <StackPanel>
-                                <TextBlock Text="Gateway authentication" Style="{StaticResource SectionTitleStyle}"/>
-                                <TextBlock Text="The selected SSH gateway uses the credentials stored in its own gateway profile."
+                                <TextBlock x:Name="DlgSrv_GatewayAuthTitle" Style="{StaticResource SectionTitleStyle}"/>
+                                <TextBlock x:Name="DlgSrv_GatewayAuthDesc"
                                            Style="{StaticResource SectionDescriptionStyle}"/>
                                 <TextBlock Text="{Binding SelectedGatewayTitle}" Style="{StaticResource HintTextStyle}" Margin="0,10,0,0"/>
                                 <TextBlock Text="{Binding SelectedGatewayEndpoint}" Style="{StaticResource HintTextStyle}" Margin="0,4,0,0"/>
@@ -613,7 +613,7 @@
                 </ScrollViewer>
             </TabItem>
 
-            <TabItem Header="Options" Style="{DynamicResource ThemedTabItemStyle}">
+            <TabItem x:Name="DlgSrv_TabOptions" Style="{DynamicResource ThemedTabItemStyle}">
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <StackPanel Margin="8">
                         <Border>
@@ -628,8 +628,8 @@
                                 </Style>
                             </Border.Style>
                             <StackPanel>
-                                <TextBlock Text="RDP session options" Style="{StaticResource SectionTitleStyle}"/>
-                                <TextBlock Text="Display, transport, and session mode settings for the Remote Desktop client."
+                                <TextBlock x:Name="DlgSrv_RdpOptionsTitle" Style="{StaticResource SectionTitleStyle}"/>
+                                <TextBlock x:Name="DlgSrv_RdpOptionsDesc"
                                            Style="{StaticResource SectionDescriptionStyle}"/>
                                 <Grid Margin="0,16,0,0">
                                     <Grid.ColumnDefinitions>
@@ -642,8 +642,8 @@
                                         <RowDefinition Height="Auto"/>
                                         <RowDefinition Height="Auto"/>
                                     </Grid.RowDefinitions>
-                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Session mode" Style="{StaticResource LabelStyle}"/>
-                                    <TextBlock Grid.Row="0" Grid.Column="1" Text="Aspect ratio" Style="{StaticResource LabelStyle}" Margin="12,0,0,4"/>
+                                    <TextBlock x:Name="DlgSrv_SessionModeLabel" Grid.Row="0" Grid.Column="0" Style="{StaticResource LabelStyle}"/>
+                                    <TextBlock x:Name="DlgSrv_AspectRatioLabel" Grid.Row="0" Grid.Column="1" Style="{StaticResource LabelStyle}" Margin="12,0,0,4"/>
                                     <ComboBox Grid.Row="1" Grid.Column="0"
                                               SelectedValue="{Binding RdpMode}"
                                               SelectedValuePath="Content"
@@ -659,36 +659,36 @@
                                         <ComboBoxItem Content="Stretch"/>
                                         <ComboBoxItem Content="Preserve"/>
                                     </ComboBox>
-                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Audio mode" Style="{StaticResource LabelStyle}" Margin="0,14,0,4"/>
-                                    <TextBlock Grid.Row="2" Grid.Column="1" Text="Color depth" Style="{StaticResource LabelStyle}" Margin="12,14,0,4"/>
+                                    <TextBlock x:Name="DlgSrv_AudioModeLabel" Grid.Row="2" Grid.Column="0" Style="{StaticResource LabelStyle}" Margin="0,14,0,4"/>
+                                    <TextBlock x:Name="DlgSrv_ColorDepthLabel" Grid.Row="2" Grid.Column="1" Style="{StaticResource LabelStyle}" Margin="12,14,0,4"/>
                                     <ComboBox Grid.Row="3" Grid.Column="0"
                                               SelectedValue="{Binding RdpAudioMode}"
                                               SelectedValuePath="Tag"
                                               Style="{StaticResource FormComboBoxStyle}">
-                                        <ComboBoxItem Content="Disabled" Tag="0"/>
-                                        <ComboBoxItem Content="Local playback" Tag="1"/>
-                                        <ComboBoxItem Content="Remote playback" Tag="2"/>
+                                        <ComboBoxItem x:Name="DlgSrv_AudioDisabled" Tag="0"/>
+                                        <ComboBoxItem x:Name="DlgSrv_AudioLocal" Tag="1"/>
+                                        <ComboBoxItem x:Name="DlgSrv_AudioRemote" Tag="2"/>
                                     </ComboBox>
                                     <ComboBox Grid.Row="3" Grid.Column="1"
                                               Margin="12,0,0,0"
                                               SelectedValue="{Binding RdpColorDepth}"
                                               SelectedValuePath="Tag"
                                               Style="{StaticResource FormComboBoxStyle}">
-                                        <ComboBoxItem Content="16-bit" Tag="16"/>
-                                        <ComboBoxItem Content="24-bit" Tag="24"/>
-                                        <ComboBoxItem Content="32-bit" Tag="32"/>
+                                        <ComboBoxItem x:Name="DlgSrv_Color16" Tag="16"/>
+                                        <ComboBoxItem x:Name="DlgSrv_Color24" Tag="24"/>
+                                        <ComboBoxItem x:Name="DlgSrv_Color32" Tag="32"/>
                                     </ComboBox>
                                 </Grid>
                                 <StackPanel Margin="0,14,0,0">
-                                    <CheckBox Content="Enable Network Level Authentication" IsChecked="{Binding RdpNla}" Style="{StaticResource FormCheckBoxStyle}"/>
-                                    <CheckBox Content="Use multiple monitors" IsChecked="{Binding RdpMultiMonitor}" Style="{StaticResource FormCheckBoxStyle}" Margin="0,6,0,0"/>
-                                    <CheckBox Content="Allow dynamic resolution updates" IsChecked="{Binding RdpDynamicResolution}" Style="{StaticResource FormCheckBoxStyle}" Margin="0,6,0,0"/>
-                                    <CheckBox Content="Capture local microphone" IsChecked="{Binding RdpAudioCapture}" Style="{StaticResource FormCheckBoxStyle}" Margin="0,6,0,0"/>
+                                    <CheckBox x:Name="DlgSrv_NlaCb" IsChecked="{Binding RdpNla}" Style="{StaticResource FormCheckBoxStyle}"/>
+                                    <CheckBox x:Name="DlgSrv_MultiMonitorCb" IsChecked="{Binding RdpMultiMonitor}" Style="{StaticResource FormCheckBoxStyle}" Margin="0,6,0,0"/>
+                                    <CheckBox x:Name="DlgSrv_DynamicResCb" IsChecked="{Binding RdpDynamicResolution}" Style="{StaticResource FormCheckBoxStyle}" Margin="0,6,0,0"/>
+                                    <CheckBox x:Name="DlgSrv_AudioCaptureCb" IsChecked="{Binding RdpAudioCapture}" Style="{StaticResource FormCheckBoxStyle}" Margin="0,6,0,0"/>
                                 </StackPanel>
                             </StackPanel>
                         </Border>
 
-                        <Expander Header="Device redirection" IsExpanded="True">
+                        <Expander x:Name="DlgSrv_DeviceRedirExpander" IsExpanded="True">
                             <Expander.Style>
                                 <Style TargetType="Expander" BasedOn="{StaticResource ThemedExpanderStyle}">
                                     <Setter Property="Visibility" Value="Collapsed"/>
@@ -700,17 +700,17 @@
                                 </Style>
                             </Expander.Style>
                             <StackPanel Margin="0,12,0,0">
-                                <CheckBox Content="Redirect clipboard" IsChecked="{Binding RedirectClipboard}" Style="{StaticResource FormCheckBoxStyle}"/>
-                                <CheckBox Content="Redirect drives" IsChecked="{Binding RedirectDrives}" Style="{StaticResource FormCheckBoxStyle}" Margin="0,6,0,0"/>
-                                <CheckBox Content="Redirect printers" IsChecked="{Binding RedirectPrinters}" Style="{StaticResource FormCheckBoxStyle}" Margin="0,6,0,0"/>
-                                <CheckBox Content="Redirect COM ports" IsChecked="{Binding RdpRedirectComPorts}" Style="{StaticResource FormCheckBoxStyle}" Margin="0,6,0,0"/>
-                                <CheckBox Content="Redirect smart cards" IsChecked="{Binding RdpRedirectSmartCards}" Style="{StaticResource FormCheckBoxStyle}" Margin="0,6,0,0"/>
-                                <CheckBox Content="Redirect webcam" IsChecked="{Binding RdpRedirectWebcam}" Style="{StaticResource FormCheckBoxStyle}" Margin="0,6,0,0"/>
-                                <CheckBox Content="Redirect USB devices" IsChecked="{Binding RdpRedirectUsb}" Style="{StaticResource FormCheckBoxStyle}" Margin="0,6,0,0"/>
+                                <CheckBox x:Name="DlgSrv_RedirClipboardCb" IsChecked="{Binding RedirectClipboard}" Style="{StaticResource FormCheckBoxStyle}"/>
+                                <CheckBox x:Name="DlgSrv_RedirDrivesCb" IsChecked="{Binding RedirectDrives}" Style="{StaticResource FormCheckBoxStyle}" Margin="0,6,0,0"/>
+                                <CheckBox x:Name="DlgSrv_RedirPrintersCb" IsChecked="{Binding RedirectPrinters}" Style="{StaticResource FormCheckBoxStyle}" Margin="0,6,0,0"/>
+                                <CheckBox x:Name="DlgSrv_RedirComPortsCb" IsChecked="{Binding RdpRedirectComPorts}" Style="{StaticResource FormCheckBoxStyle}" Margin="0,6,0,0"/>
+                                <CheckBox x:Name="DlgSrv_RedirSmartCardsCb" IsChecked="{Binding RdpRedirectSmartCards}" Style="{StaticResource FormCheckBoxStyle}" Margin="0,6,0,0"/>
+                                <CheckBox x:Name="DlgSrv_RedirWebcamCb" IsChecked="{Binding RdpRedirectWebcam}" Style="{StaticResource FormCheckBoxStyle}" Margin="0,6,0,0"/>
+                                <CheckBox x:Name="DlgSrv_RedirUsbCb" IsChecked="{Binding RdpRedirectUsb}" Style="{StaticResource FormCheckBoxStyle}" Margin="0,6,0,0"/>
                             </StackPanel>
                         </Expander>
 
-                        <Expander Header="Advanced RDP behavior" IsExpanded="False">
+                        <Expander x:Name="DlgSrv_AdvancedRdpExpander" IsExpanded="False">
                             <Expander.Style>
                                 <Style TargetType="Expander" BasedOn="{StaticResource ThemedExpanderStyle}">
                                     <Setter Property="Visibility" Value="Collapsed"/>
@@ -722,11 +722,11 @@
                                 </Style>
                             </Expander.Style>
                             <StackPanel Margin="0,12,0,0">
-                                <CheckBox Content="Use global RDP defaults" IsChecked="{Binding RdpUseGlobalDefaults}" Style="{StaticResource FormCheckBoxStyle}"/>
-                                <CheckBox Content="Enable anti-idle keepalive" IsChecked="{Binding RdpAntiIdle}" Style="{StaticResource FormCheckBoxStyle}" Margin="0,6,0,0"/>
-                                <CheckBox Content="Use bitmap caching" IsChecked="{Binding RdpBitmapCaching}" Style="{StaticResource FormCheckBoxStyle}" Margin="0,6,0,0"/>
-                                <CheckBox Content="Enable RDP compression" IsChecked="{Binding RdpCompression}" Style="{StaticResource FormCheckBoxStyle}" Margin="0,6,0,0"/>
-                                <CheckBox Content="Automatically reconnect" IsChecked="{Binding RdpAutoReconnect}" Style="{StaticResource FormCheckBoxStyle}" Margin="0,6,0,0"/>
+                                <CheckBox x:Name="DlgSrv_GlobalDefaultsCb" IsChecked="{Binding RdpUseGlobalDefaults}" Style="{StaticResource FormCheckBoxStyle}"/>
+                                <CheckBox x:Name="DlgSrv_AntiIdleCb" IsChecked="{Binding RdpAntiIdle}" Style="{StaticResource FormCheckBoxStyle}" Margin="0,6,0,0"/>
+                                <CheckBox x:Name="DlgSrv_BitmapCacheCb" IsChecked="{Binding RdpBitmapCaching}" Style="{StaticResource FormCheckBoxStyle}" Margin="0,6,0,0"/>
+                                <CheckBox x:Name="DlgSrv_RdpCompressionCb" IsChecked="{Binding RdpCompression}" Style="{StaticResource FormCheckBoxStyle}" Margin="0,6,0,0"/>
+                                <CheckBox x:Name="DlgSrv_AutoReconnectCb" IsChecked="{Binding RdpAutoReconnect}" Style="{StaticResource FormCheckBoxStyle}" Margin="0,6,0,0"/>
                             </StackPanel>
                         </Expander>
 
@@ -745,8 +745,8 @@
                                 </Style>
                             </Border.Style>
                             <StackPanel>
-                                <TextBlock Text="SSH options" Style="{StaticResource SectionTitleStyle}"/>
-                                <TextBlock Text="Session mode and SSH feature flags used by the shell or file transfer connection."
+                                <TextBlock x:Name="DlgSrv_SshOptionsTitle" Style="{StaticResource SectionTitleStyle}"/>
+                                <TextBlock x:Name="DlgSrv_SshOptionsDesc"
                                            Style="{StaticResource SectionDescriptionStyle}"/>
                                 <Grid Margin="0,16,0,0">
                                     <Grid.Style>
@@ -763,7 +763,7 @@
                                         <ColumnDefinition Width="140"/>
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Grid.Column="0" Text="SSH mode" Style="{StaticResource LabelStyle}" Margin="0,6,0,0"/>
+                                    <TextBlock x:Name="DlgSrv_SshModeLabel" Grid.Column="0" Style="{StaticResource LabelStyle}" Margin="0,6,0,0"/>
                                     <ComboBox Grid.Column="1"
                                               SelectedValue="{Binding SshMode}"
                                               SelectedValuePath="Content"
@@ -773,9 +773,9 @@
                                     </ComboBox>
                                 </Grid>
                                 <StackPanel Margin="0,14,0,0">
-                                    <CheckBox Content="Enable compression" IsChecked="{Binding SshCompression}" Style="{StaticResource FormCheckBoxStyle}"/>
-                                    <CheckBox Content="Forward SSH agent" IsChecked="{Binding SshAgentForwarding}" Style="{StaticResource FormCheckBoxStyle}" Margin="0,6,0,0"/>
-                                    <CheckBox Content="Enable X11 forwarding"
+                                    <CheckBox x:Name="DlgSrv_SshCompressionCb" IsChecked="{Binding SshCompression}" Style="{StaticResource FormCheckBoxStyle}"/>
+                                    <CheckBox x:Name="DlgSrv_SshAgentFwdCb" IsChecked="{Binding SshAgentForwarding}" Style="{StaticResource FormCheckBoxStyle}" Margin="0,6,0,0"/>
+                                    <CheckBox x:Name="DlgSrv_SshX11Cb"
                                               IsChecked="{Binding SshX11Forwarding}"
                                               Margin="0,6,0,0">
                                         <CheckBox.Style>
@@ -806,8 +806,8 @@
                                 </Style>
                             </Border.Style>
                             <StackPanel>
-                                <TextBlock Text="Local shell" Style="{StaticResource SectionTitleStyle}"/>
-                                <TextBlock Text="Configure the shell executable and startup arguments."
+                                <TextBlock x:Name="DlgSrv_LocalShellTitle" Style="{StaticResource SectionTitleStyle}"/>
+                                <TextBlock x:Name="DlgSrv_LocalShellDesc"
                                            Style="{StaticResource SectionDescriptionStyle}"/>
                                 <Grid Margin="0,16,0,0">
                                     <Grid.ColumnDefinitions>
@@ -822,7 +822,7 @@
                                         <RowDefinition Height="Auto"/>
                                         <RowDefinition Height="Auto"/>
                                     </Grid.RowDefinitions>
-                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Executable" Style="{StaticResource LabelStyle}"/>
+                                    <TextBlock x:Name="DlgSrv_ExecutableLabel" Grid.Row="0" Grid.Column="0" Style="{StaticResource LabelStyle}"/>
                                     <ComboBox Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
                                               IsEditable="True"
                                               Text="{Binding LocalShellExecutable, UpdateSourceTrigger=PropertyChanged}"
@@ -833,16 +833,16 @@
                                         <ComboBoxItem Content="bash"/>
                                         <ComboBoxItem Content="wsl.exe"/>
                                     </ComboBox>
-                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Arguments" Style="{StaticResource LabelStyle}" Margin="0,14,0,4"/>
+                                    <TextBlock x:Name="DlgSrv_ArgumentsLabel" Grid.Row="2" Grid.Column="0" Style="{StaticResource LabelStyle}" Margin="0,14,0,4"/>
                                     <TextBox Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2"
                                              Text="{Binding LocalShellArguments, UpdateSourceTrigger=PropertyChanged}"
                                              Style="{StaticResource FormTextBoxStyle}"/>
-                                    <TextBlock Grid.Row="4" Grid.Column="0" Text="Working directory" Style="{StaticResource LabelStyle}" Margin="0,14,0,4"/>
+                                    <TextBlock x:Name="DlgSrv_WorkingDirLabel" Grid.Row="4" Grid.Column="0" Style="{StaticResource LabelStyle}" Margin="0,14,0,4"/>
                                     <TextBox Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="2"
                                              Text="{Binding LocalShellWorkingDirectory, UpdateSourceTrigger=PropertyChanged}"
                                              Style="{StaticResource FormTextBoxStyle}"/>
                                 </Grid>
-                                <CheckBox Content="Run as Administrator (requires gsudo or Windows 11 sudo)"
+                                <CheckBox x:Name="DlgSrv_RunAsAdminCb"
                                           IsChecked="{Binding LocalShellElevated}"
                                           Foreground="{DynamicResource TextPrimaryBrush}"
                                           Margin="0,12,0,0"/>
@@ -862,8 +862,8 @@
                                 </Style>
                             </Border.Style>
                             <StackPanel>
-                                <TextBlock Text="Citrix Workspace" Style="{StaticResource SectionTitleStyle}"/>
-                                <TextBlock Text="Configure the StoreFront URL and application name, or provide a direct ICA file."
+                                <TextBlock x:Name="DlgSrv_CitrixTitle" Style="{StaticResource SectionTitleStyle}"/>
+                                <TextBlock x:Name="DlgSrv_CitrixDesc"
                                            Style="{StaticResource SectionDescriptionStyle}"/>
                                 <Grid Margin="0,16,0,0">
                                     <Grid.ColumnDefinitions>
@@ -878,26 +878,26 @@
                                         <RowDefinition Height="Auto"/>
                                         <RowDefinition Height="Auto"/>
                                     </Grid.RowDefinitions>
-                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="StoreFront URL" Style="{StaticResource LabelStyle}"/>
+                                    <TextBlock x:Name="DlgSrv_StoreFrontLabel" Grid.Row="0" Grid.Column="0" Style="{StaticResource LabelStyle}"/>
                                     <TextBox Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
                                              Text="{Binding CitrixStoreFrontUrl, UpdateSourceTrigger=PropertyChanged}"
                                              Style="{StaticResource FormTextBoxStyle}"/>
-                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Application name" Style="{StaticResource LabelStyle}" Margin="0,14,0,4"/>
+                                    <TextBlock x:Name="DlgSrv_AppNameLabel" Grid.Row="2" Grid.Column="0" Style="{StaticResource LabelStyle}" Margin="0,14,0,4"/>
                                     <TextBox Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2"
                                              Text="{Binding CitrixAppName, UpdateSourceTrigger=PropertyChanged}"
                                              Style="{StaticResource FormTextBoxStyle}"/>
-                                    <TextBlock Grid.Row="4" Grid.Column="0" Text="ICA file path" Style="{StaticResource LabelStyle}" Margin="0,14,0,4"/>
+                                    <TextBlock x:Name="DlgSrv_IcaFileLabel" Grid.Row="4" Grid.Column="0" Style="{StaticResource LabelStyle}" Margin="0,14,0,4"/>
                                     <TextBox Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="2"
                                              Text="{Binding CitrixIcaFilePath, UpdateSourceTrigger=PropertyChanged}"
                                              Style="{StaticResource FormTextBoxStyle}"/>
                                 </Grid>
-                                <TextBlock Text="Provide either a StoreFront URL + application name, or a direct ICA file path."
+                                <TextBlock x:Name="DlgSrv_CitrixHint"
                                            Style="{StaticResource HintTextStyle}"/>
-                                <CheckBox Content="Seamless mode"
+                                <CheckBox x:Name="DlgSrv_SeamlessCb"
                                           IsChecked="{Binding CitrixSeamlessMode}"
                                           Foreground="{DynamicResource TextPrimaryBrush}"
                                           Margin="0,12,0,0"/>
-                                <CheckBox Content="Use SSO (Kerberos)"
+                                <CheckBox x:Name="DlgSrv_SsoCb"
                                           IsChecked="{Binding CitrixUseSso}"
                                           Foreground="{DynamicResource TextPrimaryBrush}"
                                           Margin="0,8,0,0"/>
@@ -907,13 +907,13 @@
                 </ScrollViewer>
             </TabItem>
 
-            <TabItem Header="Info" Style="{DynamicResource ThemedTabItemStyle}">
+            <TabItem x:Name="DlgSrv_TabInfo" Style="{DynamicResource ThemedTabItemStyle}">
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <StackPanel Margin="8">
                         <Border Style="{StaticResource SectionCardStyle}">
                             <StackPanel>
-                                <TextBlock Text="Organization" Style="{StaticResource SectionTitleStyle}"/>
-                                <TextBlock Text="Use grouping metadata to keep the server list organized."
+                                <TextBlock x:Name="DlgSrv_OrgTitle" Style="{StaticResource SectionTitleStyle}"/>
+                                <TextBlock x:Name="DlgSrv_OrgDesc"
                                            Style="{StaticResource SectionDescriptionStyle}"/>
                                 <Grid Margin="0,16,0,0">
                                     <Grid.ColumnDefinitions>
@@ -926,12 +926,12 @@
                                         <RowDefinition Height="Auto"/>
                                         <RowDefinition Height="Auto"/>
                                     </Grid.RowDefinitions>
-                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Folder" Style="{StaticResource LabelStyle}"/>
+                                    <TextBlock x:Name="DlgSrv_FolderLabel" Grid.Row="0" Grid.Column="0" Style="{StaticResource LabelStyle}"/>
                                     <TextBox Grid.Row="1" Grid.Column="0"
                                              Text="{Binding Group, UpdateSourceTrigger=PropertyChanged}"
                                              Style="{StaticResource FormTextBoxStyle}"/>
-                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Environment" Style="{StaticResource LabelStyle}" Margin="0,14,0,4"/>
-                                    <TextBlock Grid.Row="2" Grid.Column="1" Text="Favorite" Style="{StaticResource LabelStyle}" Margin="12,14,0,4"/>
+                                    <TextBlock x:Name="DlgSrv_EnvironmentLabel" Grid.Row="2" Grid.Column="0" Style="{StaticResource LabelStyle}" Margin="0,14,0,4"/>
+                                    <TextBlock x:Name="DlgSrv_FavoriteLabel" Grid.Row="2" Grid.Column="1" Style="{StaticResource LabelStyle}" Margin="12,14,0,4"/>
                                     <ComboBox Grid.Row="3" Grid.Column="0"
                                               SelectedValue="{Binding Environment}"
                                               SelectedValuePath="Content"
@@ -944,7 +944,7 @@
                                     </ComboBox>
                                     <CheckBox Grid.Row="3" Grid.Column="1"
                                               Margin="12,2,0,0"
-                                              Content="Mark as favorite"
+                                              x:Name="DlgSrv_MarkFavoriteCb"
                                               IsChecked="{Binding IsFavorite}"
                                               Style="{StaticResource FormCheckBoxStyle}"/>
                                 </Grid>
@@ -953,12 +953,12 @@
 
                         <Border Style="{StaticResource SectionCardStyle}">
                             <StackPanel>
-                                <TextBlock Text="Metadata" Style="{StaticResource SectionTitleStyle}"/>
-                                <TextBlock Text="Optional tags and Wake-on-LAN metadata for this server entry."
+                                <TextBlock x:Name="DlgSrv_MetadataTitle" Style="{StaticResource SectionTitleStyle}"/>
+                                <TextBlock x:Name="DlgSrv_MetadataDesc"
                                            Style="{StaticResource SectionDescriptionStyle}"/>
-                                <TextBlock Text="Tags" Style="{StaticResource LabelStyle}" Margin="0,14,0,4"/>
+                                <TextBlock x:Name="DlgSrv_TagsLabel" Style="{StaticResource LabelStyle}" Margin="0,14,0,4"/>
                                 <TextBox Text="{Binding Tags, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBoxStyle}"/>
-                                <TextBlock Text="MAC address" Style="{StaticResource LabelStyle}" Margin="0,12,0,4"/>
+                                <TextBlock x:Name="DlgSrv_MacAddressLabel" Style="{StaticResource LabelStyle}" Margin="0,12,0,4"/>
                                 <TextBox Text="{Binding MacAddress, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBoxStyle}"/>
                             </StackPanel>
                         </Border>
@@ -979,12 +979,12 @@
                     Orientation="Horizontal"
                     HorizontalAlignment="Right"
                     Margin="0,16,0,0">
-            <Button Content="Cancel"
+            <Button x:Name="DlgSrv_CancelBtn"
                     IsCancel="True"
                     Width="90"
                     Margin="0,0,8,0"
                     Style="{DynamicResource SecondaryButtonStyle}"/>
-            <Button Content="Save"
+            <Button x:Name="DlgSrv_SaveBtn"
                     IsDefault="True"
                     Width="90"
                     Click="OnSaveClick"

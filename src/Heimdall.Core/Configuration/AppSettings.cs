@@ -105,6 +105,10 @@ public class AppSettings
     /// </summary>
     public List<string> EmptyGroups { get; set; } = new();
 
+    // SSH host key trust store (TOFU — persisted across restarts)
+    // Key: "host:port", Value: "SHA256:<base64-no-padding>"
+    public Dictionary<string, string> TrustedHostKeys { get; set; } = new();
+
     // Scheduled connections
     public List<ScheduledTaskDto> ScheduledTasks { get; set; } = new();
 }

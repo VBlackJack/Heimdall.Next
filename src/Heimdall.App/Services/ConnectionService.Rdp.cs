@@ -77,7 +77,9 @@ public partial class ConnectionService
             {
                 try
                 {
-                    rdpPassword = DpapiProvider.Unprotect(server.RdpPasswordEncrypted);
+                    rdpPassword = CredentialProtector.Unprotect(server.RdpPasswordEncrypted);
+                    if (rdpPassword is null)
+                        throw new InvalidOperationException("Failed to decrypt RDP password.");
                     var credTarget = $"TERMSRV/{rdpHost}";
                     Heimdall.Rdp.CredentialManagerHelper.WriteDomainCredential(credTarget, server.RdpUsername, rdpPassword, out _);
                     Core.Logging.FileLogger.Info($"RDP credentials stored for {credTarget}");
@@ -88,7 +90,7 @@ public partial class ConnectionService
                 }
             }
 
-            // Generate and launch .rdp file
+            // Generate and launch .rdp file with restrictive ACL
             var rdpFile = Path.Combine(Path.GetTempPath(), $"heimdall_{server.Id}_{Guid.NewGuid():N}.rdp");
             var rdpContent = Heimdall.Rdp.RdpFileGenerator.Generate(new Heimdall.Rdp.RdpFileOptions
             {
@@ -106,6 +108,14 @@ public partial class ConnectionService
                 }
             });
             await File.WriteAllTextAsync(rdpFile, rdpContent, ct).ConfigureAwait(false);
+
+            // Restrict .rdp file ACL — contains connection metadata (no password,
+            // but host/user/redirections are sensitive in enterprise environments)
+            try { AclEnforcer.SetFileAcl(rdpFile); }
+            catch (Exception aclEx)
+            {
+                Core.Logging.FileLogger.Warn($"Failed to set ACL on .rdp file: {aclEx.Message}");
+            }
 
             var mstscProcess = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
             {
@@ -139,11 +149,21 @@ public partial class ConnectionService
                 }, ct);
             }
 
-            // Clean up .rdp file after delay
-            _ = Task.Delay(10000, ct).ContinueWith(_ =>
+            // Clean up .rdp file and CredMan entry after delay
+            var credCleanupTarget = !string.IsNullOrEmpty(server.RdpUsername) && !string.IsNullOrEmpty(server.RdpPasswordEncrypted)
+                ? $"TERMSRV/{rdpHost}" : null;
+            _ = Task.Delay(10000, ct).ContinueWith(task =>
             {
                 try { File.Delete(rdpFile); } catch { }
+                if (credCleanupTarget is not null)
+                {
+                    Heimdall.Rdp.CredentialManagerHelper.DeleteCredential(credCleanupTarget, out var credErr);
+                    Core.Logging.FileLogger.Info($"RDP CredMan entry cleaned: {credCleanupTarget}");
+                }
             }, TaskScheduler.Default);
+
+            // Clear plaintext password from managed memory
+            rdpPassword = null;
 
             return new ConnectionResult(true, null, null);
         }

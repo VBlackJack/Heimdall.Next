@@ -54,7 +54,7 @@
                 <Border x:Name="BroadcastBadge"
                         DockPanel.Dock="Right"
                         Visibility="Collapsed"
-                        Background="#44FF5555"
+                        Background="{DynamicResource BroadcastActiveBrush}"
                         CornerRadius="3"
                         Padding="6,1"
                         Margin="8,0,0,0"

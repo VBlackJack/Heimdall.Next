@@ -241,6 +241,15 @@ public class RemoteFileEditor : IDisposable
             Guid.NewGuid().ToString("N"));
 
         Directory.CreateDirectory(tempDir);
+
+        // Restrict temp directory ACL — edited files may contain sensitive
+        // server configs (root-owned files downloaded via sudo)
+        if (OperatingSystem.IsWindows())
+        {
+            try { Heimdall.Core.Security.AclEnforcer.SetDirectoryAcl(tempDir); }
+            catch { /* Best-effort — file is in user-owned %TEMP% */ }
+        }
+
         return Path.Combine(tempDir, fileName);
     }
 
@@ -299,11 +308,17 @@ public class RemoteFileEditor : IDisposable
             return;
         }
 
-        session.LastUploadTime = DateTime.UtcNow;
+        // Serialize uploads per file — prevents concurrent saves from overlapping
+        if (!await session.UploadSemaphore.WaitAsync(0).ConfigureAwait(false))
+        {
+            return; // Another upload is in progress, skip (debounce will catch the next one)
+        }
 
         bool success;
         try
         {
+            session.LastUploadTime = DateTime.UtcNow;
+
             if (session.IsSudo && session.SshParams is not null)
             {
                 await UploadWithSudoAsync(session).ConfigureAwait(false);
@@ -317,9 +332,15 @@ public class RemoteFileEditor : IDisposable
 
             success = true;
         }
-        catch
+        catch (Exception ex)
         {
             success = false;
+            Heimdall.Core.Logging.FileLogger.Warn(
+                $"RemoteFileEditor auto-upload failed for {session.RemotePath}: {ex.Message}");
+        }
+        finally
+        {
+            session.UploadSemaphore.Release();
         }
 
         FileUploaded?.Invoke(session.RemotePath, success);
@@ -439,6 +460,9 @@ internal class EditSession : IDisposable
     /// <summary>File system watcher for auto-upload on save.</summary>
     public FileSystemWatcher? Watcher { get; set; }
 
+    /// <summary>Serializes upload operations per file to prevent concurrent save races.</summary>
+    public SemaphoreSlim UploadSemaphore { get; } = new(1, 1);
+
     /// <summary>Timestamp of the last successful upload (UTC).</summary>
     public DateTime LastUploadTime { get; set; }
 
@@ -453,6 +477,7 @@ internal class EditSession : IDisposable
     public void Dispose()
     {
         Watcher?.Dispose();
+        UploadSemaphore.Dispose();
         GC.SuppressFinalize(this);
     }
 }

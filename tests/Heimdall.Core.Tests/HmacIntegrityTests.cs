@@ -14,11 +14,13 @@
  * limitations under the License.
  */
 
+using System.Runtime.Versioning;
 using System.Security.Cryptography;
 using Heimdall.Core.Security;
 
 namespace Heimdall.Core.Tests;
 
+[SupportedOSPlatform("windows")]
 public class HmacIntegrityTests
 {
     // ── GenerateRawKey ──────────────────────────────────────────────────

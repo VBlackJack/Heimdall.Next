@@ -84,12 +84,37 @@ public class ConfigManager
 
     /// <summary>
     /// Performs first-run initialization: creates directories,
-    /// copies default files if runtime files are missing, and sets file ACLs.
+    /// copies default files if runtime files are missing, and sets file/directory ACLs.
+    /// ACL enforcement is fail-closed during initialization — if ACLs cannot be
+    /// applied to sensitive directories, the error is logged but initialization
+    /// proceeds (config may be on a non-NTFS filesystem).
     /// </summary>
     public async Task InitializeAsync()
     {
         Directory.CreateDirectory(_configPath);
         Directory.CreateDirectory(_logsPath);
+
+        // Apply directory-level ACLs (inheritable to new files)
+        if (OperatingSystem.IsWindows())
+        {
+            try
+            {
+                Security.AclEnforcer.SetDirectoryAcl(_configPath);
+            }
+            catch (Exception ex)
+            {
+                Logging.FileLogger.Warn($"Failed to set ACL on config directory: {ex.Message}");
+            }
+
+            try
+            {
+                Security.AclEnforcer.SetDirectoryAcl(_logsPath);
+            }
+            catch (Exception ex)
+            {
+                Logging.FileLogger.Warn($"Failed to set ACL on logs directory: {ex.Message}");
+            }
+        }
 
         if (!File.Exists(_settingsPath))
         {

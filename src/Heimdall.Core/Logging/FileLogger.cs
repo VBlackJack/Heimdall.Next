@@ -101,8 +101,12 @@ public sealed class FileLogger : IDisposable
     public void Dispose()
     {
         if (_disposed) return;
-        _disposed = true;
+
+        // Order matters: stop timer first, then flush remaining entries,
+        // then mark disposed. Setting _disposed before Flush() would
+        // cause the final flush to skip (Flush checks _disposed).
         _flushTimer.Dispose();
-        Flush(); // Final flush
+        Flush();
+        _disposed = true;
     }
 }

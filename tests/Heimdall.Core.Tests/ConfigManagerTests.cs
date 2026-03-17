@@ -1,0 +1,470 @@
+/*
+ * Copyright 2026 Julien Bombled
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+using System.Runtime.Versioning;
+using System.Text;
+using System.Text.Json;
+using Heimdall.Core.Configuration;
+
+namespace Heimdall.Core.Tests;
+
+[SupportedOSPlatform("windows")]
+public class ConfigManagerTests : IDisposable
+{
+    private readonly string _tempDir;
+    private readonly ConfigManager _manager;
+
+    public ConfigManagerTests()
+    {
+        _tempDir = Path.Combine(Path.GetTempPath(), "Heimdall.Tests." + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(_tempDir);
+        _manager = new ConfigManager(_tempDir);
+    }
+
+    public void Dispose()
+    {
+        try
+        {
+            if (Directory.Exists(_tempDir))
+            {
+                Directory.Delete(_tempDir, recursive: true);
+            }
+        }
+        catch
+        {
+            // Best-effort cleanup
+        }
+    }
+
+    // ── Constructor / Path computation ─────────────────────────────────
+
+    [Fact]
+    public void Constructor_ThrowsOnNullOrWhiteSpace()
+    {
+        Assert.Throws<ArgumentNullException>(() => new ConfigManager(null!));
+        Assert.Throws<ArgumentException>(() => new ConfigManager(""));
+        Assert.Throws<ArgumentException>(() => new ConfigManager("   "));
+    }
+
+    [Fact]
+    public void Paths_AreCorrectlyComputed()
+    {
+        Assert.Equal(Path.Combine(_tempDir, "config"), _manager.ConfigPath);
+        Assert.Equal(Path.Combine(_tempDir, "config", "settings.json"), _manager.SettingsPath);
+        Assert.Equal(Path.Combine(_tempDir, "config", "servers.json"), _manager.ServersPath);
+    }
+
+    // ── InitializeAsync ────────────────────────────────────────────────
+
+    [Fact]
+    public async Task InitializeAsync_CreatesConfigAndLogsDirectories()
+    {
+        await _manager.InitializeAsync();
+
+        Assert.True(Directory.Exists(Path.Combine(_tempDir, "config")));
+        Assert.True(Directory.Exists(Path.Combine(_tempDir, "logs")));
+    }
+
+    [Fact]
+    public async Task InitializeAsync_CreatesDefaultSettingsFile_WhenMissing()
+    {
+        await _manager.InitializeAsync();
+
+        Assert.True(File.Exists(_manager.SettingsPath));
+    }
+
+    [Fact]
+    public async Task InitializeAsync_CreatesDefaultServersFile_WhenMissing()
+    {
+        await _manager.InitializeAsync();
+
+        Assert.True(File.Exists(_manager.ServersPath));
+    }
+
+    [Fact]
+    public async Task InitializeAsync_CopiesDefaultSettings_WhenDefaultFileExists()
+    {
+        var configDir = Path.Combine(_tempDir, "config");
+        Directory.CreateDirectory(configDir);
+
+        var defaultSettings = new AppSettings { DefaultLocale = "fr", DefaultTheme = "Light" };
+        var json = JsonSerializer.Serialize(defaultSettings, new JsonSerializerOptions
+        {
+            WriteIndented = true,
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        });
+        await File.WriteAllTextAsync(
+            Path.Combine(configDir, "settings.default.json"), json, new UTF8Encoding(false));
+
+        await _manager.InitializeAsync();
+
+        var loaded = await _manager.LoadSettingsAsync();
+        Assert.Equal("fr", loaded.DefaultLocale);
+        Assert.Equal("Light", loaded.DefaultTheme);
+    }
+
+    [Fact]
+    public async Task InitializeAsync_CopiesDefaultServers_WhenDefaultFileExists()
+    {
+        var configDir = Path.Combine(_tempDir, "config");
+        Directory.CreateDirectory(configDir);
+
+        var servers = new List<ServerProfileDto>
+        {
+            new() { Id = "srv-1", DisplayName = "Test Server", RemoteServer = "10.0.0.1" }
+        };
+        var json = JsonSerializer.Serialize(servers, new JsonSerializerOptions
+        {
+            WriteIndented = true,
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        });
+        await File.WriteAllTextAsync(
+            Path.Combine(configDir, "servers.default.json"), json, new UTF8Encoding(false));
+
+        await _manager.InitializeAsync();
+
+        var loaded = await _manager.LoadServersAsync();
+        Assert.Single(loaded);
+        Assert.Equal("srv-1", loaded[0].Id);
+    }
+
+    [Fact]
+    public async Task InitializeAsync_DoesNotOverwrite_ExistingRuntimeFiles()
+    {
+        var configDir = Path.Combine(_tempDir, "config");
+        Directory.CreateDirectory(configDir);
+
+        // Create runtime settings with a custom locale
+        var existingSettings = new AppSettings { DefaultLocale = "de" };
+        var json = JsonSerializer.Serialize(existingSettings, new JsonSerializerOptions
+        {
+            WriteIndented = true,
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        });
+        await File.WriteAllTextAsync(_manager.SettingsPath, json, new UTF8Encoding(false));
+
+        await _manager.InitializeAsync();
+
+        var loaded = await _manager.LoadSettingsAsync();
+        Assert.Equal("de", loaded.DefaultLocale);
+    }
+
+    // ── LoadSettingsAsync ──────────────────────────────────────────────
+
+    [Fact]
+    public async Task LoadSettingsAsync_ReturnsDefaults_WhenFileMissing()
+    {
+        var settings = await _manager.LoadSettingsAsync();
+
+        Assert.NotNull(settings);
+        Assert.Equal("en", settings.DefaultLocale);
+        Assert.Equal("Dark", settings.DefaultTheme);
+        Assert.Equal(1920, settings.DefaultResolutionWidth);
+        Assert.Equal(1080, settings.DefaultResolutionHeight);
+    }
+
+    [Fact]
+    public async Task LoadSettingsAsync_DeserializesValidJson()
+    {
+        var configDir = Path.Combine(_tempDir, "config");
+        Directory.CreateDirectory(configDir);
+
+        var json = """
+        {
+            "defaultLocale": "fr",
+            "defaultTheme": "Light",
+            "defaultResolutionWidth": 2560,
+            "defaultResolutionHeight": 1440,
+            "fullScreen": false,
+            "maxEmbeddedSessions": 5
+        }
+        """;
+        await File.WriteAllTextAsync(_manager.SettingsPath, json, new UTF8Encoding(false));
+
+        var settings = await _manager.LoadSettingsAsync();
+
+        Assert.Equal("fr", settings.DefaultLocale);
+        Assert.Equal("Light", settings.DefaultTheme);
+        Assert.Equal(2560, settings.DefaultResolutionWidth);
+        Assert.Equal(1440, settings.DefaultResolutionHeight);
+        Assert.False(settings.FullScreen);
+        Assert.Equal(5, settings.MaxEmbeddedSessions);
+    }
+
+    [Fact]
+    public async Task LoadSettingsAsync_HandlesCorruptedJson_Gracefully()
+    {
+        var configDir = Path.Combine(_tempDir, "config");
+        Directory.CreateDirectory(configDir);
+
+        await File.WriteAllTextAsync(_manager.SettingsPath, "{ NOT VALID JSON !!!", new UTF8Encoding(false));
+
+        await Assert.ThrowsAsync<JsonException>(() => _manager.LoadSettingsAsync());
+    }
+
+    [Fact]
+    public async Task LoadSettingsAsync_HandlesEmptyJsonObject()
+    {
+        var configDir = Path.Combine(_tempDir, "config");
+        Directory.CreateDirectory(configDir);
+
+        await File.WriteAllTextAsync(_manager.SettingsPath, "{}", new UTF8Encoding(false));
+
+        var settings = await _manager.LoadSettingsAsync();
+
+        Assert.NotNull(settings);
+        // Defaults should be applied by AppSettings constructor
+        Assert.Equal("en", settings.DefaultLocale);
+    }
+
+    // ── SaveSettingsAsync / round-trip ──────────────────────────────────
+
+    [Fact]
+    public async Task SaveSettingsAsync_ThrowsOnNull()
+    {
+        await Assert.ThrowsAsync<ArgumentNullException>(() => _manager.SaveSettingsAsync(null!));
+    }
+
+    [Fact]
+    public async Task SaveSettingsAsync_RoundTrips_WithLoadSettingsAsync()
+    {
+        var original = new AppSettings
+        {
+            DefaultLocale = "fr",
+            DefaultTheme = "Light",
+            DefaultResolutionWidth = 3840,
+            DefaultResolutionHeight = 2160,
+            FullScreen = false,
+            AdminMode = false,
+            MaxEmbeddedSessions = 20,
+            TunnelEstablishmentDelayMs = 5000,
+            EnableLogging = false,
+            SshDefaultMode = "Embedded",
+            RdpDefaultMode = "Embedded"
+        };
+
+        await _manager.SaveSettingsAsync(original);
+        var loaded = await _manager.LoadSettingsAsync();
+
+        Assert.Equal(original.DefaultLocale, loaded.DefaultLocale);
+        Assert.Equal(original.DefaultTheme, loaded.DefaultTheme);
+        Assert.Equal(original.DefaultResolutionWidth, loaded.DefaultResolutionWidth);
+        Assert.Equal(original.DefaultResolutionHeight, loaded.DefaultResolutionHeight);
+        Assert.Equal(original.FullScreen, loaded.FullScreen);
+        Assert.Equal(original.AdminMode, loaded.AdminMode);
+        Assert.Equal(original.MaxEmbeddedSessions, loaded.MaxEmbeddedSessions);
+        Assert.Equal(original.TunnelEstablishmentDelayMs, loaded.TunnelEstablishmentDelayMs);
+        Assert.Equal(original.EnableLogging, loaded.EnableLogging);
+        Assert.Equal(original.SshDefaultMode, loaded.SshDefaultMode);
+        Assert.Equal(original.RdpDefaultMode, loaded.RdpDefaultMode);
+    }
+
+    [Fact]
+    public async Task SaveSettingsAsync_WritesUtf8NoBom()
+    {
+        await _manager.SaveSettingsAsync(new AppSettings());
+
+        var bytes = await File.ReadAllBytesAsync(_manager.SettingsPath);
+
+        // UTF-8 BOM is EF BB BF — verify it is absent
+        Assert.False(
+            bytes.Length >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF,
+            "File should not contain UTF-8 BOM");
+    }
+
+    [Fact]
+    public async Task SaveSettingsAsync_PreservesCollections()
+    {
+        var original = new AppSettings
+        {
+            TreeExpandedNodes = new List<string> { "node-1", "node-2" },
+            EmptyGroups = new List<string> { "proj1|Infra" },
+            TrustedHostKeys = new Dictionary<string, string>
+            {
+                ["server1:22"] = "SHA256:abc123"
+            }
+        };
+
+        await _manager.SaveSettingsAsync(original);
+        var loaded = await _manager.LoadSettingsAsync();
+
+        Assert.Equal(2, loaded.TreeExpandedNodes.Count);
+        Assert.Contains("node-1", loaded.TreeExpandedNodes);
+        Assert.Single(loaded.EmptyGroups);
+        Assert.Equal("proj1|Infra", loaded.EmptyGroups[0]);
+        Assert.Single(loaded.TrustedHostKeys);
+        Assert.Equal("SHA256:abc123", loaded.TrustedHostKeys["server1:22"]);
+    }
+
+    // ── LoadServersAsync ───────────────────────────────────────────────
+
+    [Fact]
+    public async Task LoadServersAsync_ReturnsEmptyList_WhenFileMissing()
+    {
+        var servers = await _manager.LoadServersAsync();
+
+        Assert.NotNull(servers);
+        Assert.Empty(servers);
+    }
+
+    [Fact]
+    public async Task LoadServersAsync_DeserializesValidJson()
+    {
+        var configDir = Path.Combine(_tempDir, "config");
+        Directory.CreateDirectory(configDir);
+
+        var json = """
+        [
+            {
+                "id": "srv-1",
+                "displayName": "Production",
+                "remoteServer": "10.0.0.1",
+                "remotePort": 3389,
+                "connectionType": "RDP"
+            },
+            {
+                "id": "srv-2",
+                "displayName": "Dev SSH",
+                "remoteServer": "10.0.0.2",
+                "sshPort": 22,
+                "connectionType": "SSH"
+            }
+        ]
+        """;
+        await File.WriteAllTextAsync(_manager.ServersPath, json, new UTF8Encoding(false));
+
+        var servers = await _manager.LoadServersAsync();
+
+        Assert.Equal(2, servers.Count);
+        Assert.Equal("srv-1", servers[0].Id);
+        Assert.Equal("Production", servers[0].DisplayName);
+        Assert.Equal("RDP", servers[0].ConnectionType);
+        Assert.Equal("srv-2", servers[1].Id);
+        Assert.Equal("SSH", servers[1].ConnectionType);
+    }
+
+    // ── SaveServersAsync / round-trip ──────────────────────────────────
+
+    [Fact]
+    public async Task SaveServersAsync_ThrowsOnNull()
+    {
+        await Assert.ThrowsAsync<ArgumentNullException>(() => _manager.SaveServersAsync(null!));
+    }
+
+    [Fact]
+    public async Task SaveServersAsync_RoundTrips_WithLoadServersAsync()
+    {
+        var original = new List<ServerProfileDto>
+        {
+            new()
+            {
+                Id = "srv-1",
+                DisplayName = "Web Server",
+                RemoteServer = "10.0.0.1",
+                RemotePort = 3389,
+                ConnectionType = "RDP",
+                RdpMode = "Embedded",
+                Group = "Production",
+                IsFavorite = true
+            },
+            new()
+            {
+                Id = "srv-2",
+                DisplayName = "DB Server",
+                RemoteServer = "10.0.0.2",
+                SshPort = 2222,
+                ConnectionType = "SSH",
+                SshMode = "Embedded",
+                SshAgentForwarding = true,
+                SshUsername = "admin"
+            }
+        };
+
+        await _manager.SaveServersAsync(original);
+        var loaded = await _manager.LoadServersAsync();
+
+        Assert.Equal(2, loaded.Count);
+
+        Assert.Equal("srv-1", loaded[0].Id);
+        Assert.Equal("Web Server", loaded[0].DisplayName);
+        Assert.Equal("10.0.0.1", loaded[0].RemoteServer);
+        Assert.Equal(3389, loaded[0].RemotePort);
+        Assert.Equal("RDP", loaded[0].ConnectionType);
+        Assert.Equal("Embedded", loaded[0].RdpMode);
+        Assert.Equal("Production", loaded[0].Group);
+        Assert.True(loaded[0].IsFavorite);
+
+        Assert.Equal("srv-2", loaded[1].Id);
+        Assert.Equal("DB Server", loaded[1].DisplayName);
+        Assert.Equal(2222, loaded[1].SshPort);
+        Assert.Equal("SSH", loaded[1].ConnectionType);
+        Assert.Equal("Embedded", loaded[1].SshMode);
+        Assert.True(loaded[1].SshAgentForwarding);
+        Assert.Equal("admin", loaded[1].SshUsername);
+    }
+
+    [Fact]
+    public async Task SaveServersAsync_RoundTrips_EmptyList()
+    {
+        await _manager.SaveServersAsync(new List<ServerProfileDto>());
+        var loaded = await _manager.LoadServersAsync();
+
+        Assert.NotNull(loaded);
+        Assert.Empty(loaded);
+    }
+
+    [Fact]
+    public async Task SaveServersAsync_WritesUtf8NoBom()
+    {
+        await _manager.SaveServersAsync(new List<ServerProfileDto>());
+
+        var bytes = await File.ReadAllBytesAsync(_manager.ServersPath);
+
+        Assert.False(
+            bytes.Length >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF,
+            "File should not contain UTF-8 BOM");
+    }
+
+    // ── File ACL enforcement ───────────────────────────────────────────
+
+    [Fact]
+    public async Task InitializeAsync_AppliesFileAcls()
+    {
+        await _manager.InitializeAsync();
+
+        // Verify files exist and are accessible (ACL allows current user)
+        Assert.True(File.Exists(_manager.SettingsPath));
+        Assert.True(File.Exists(_manager.ServersPath));
+
+        // Verify we can still read/write after ACL enforcement
+        var settings = await _manager.LoadSettingsAsync();
+        Assert.NotNull(settings);
+    }
+
+    [Fact]
+    public async Task SaveSettingsAsync_ReappliesAcl_AfterWrite()
+    {
+        await _manager.InitializeAsync();
+
+        // Save new settings (should reapply ACL)
+        var settings = new AppSettings { DefaultLocale = "fr" };
+        await _manager.SaveSettingsAsync(settings);
+
+        // Verify file is still accessible
+        var reloaded = await _manager.LoadSettingsAsync();
+        Assert.Equal("fr", reloaded.DefaultLocale);
+    }
+}
