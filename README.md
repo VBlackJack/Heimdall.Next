@@ -120,10 +120,11 @@ Built with .NET 10 and WPF. Designed as a modern, high-performance alternative t
 - Configurable tools (ping, tracert, nslookup) in server context menu
 - Variable substitution: `{Host}`, `{Port}`, `{User}`
 
-### Ephemeral File Server
-- One-click "Share Folder" for temporary HTTP and TFTP serving
+### Quick File Server
+- One-click HTTP + TFTP server for transferring files to servers without SFTP (hardened servers, containers, network equipment)
+- Displays ready-to-use `wget`/`curl`/`tftp` commands, auto-copies URL to clipboard
 - HTTP: directory listing, MIME types, path traversal protection
-- TFTP: RFC 1350 read-only implementation for firmware flashing
+- TFTP: RFC 1350 read-only implementation
 
 ### Session Management
 - Tabbed sessions with drag-to-reorder

@@ -243,11 +243,11 @@ All connection operations return an `ISessionResult` (defined in `Heimdall.Core/
 
 **Solution**: `NetworkScanner` (in `Heimdall.Core.Security`) accepts a CIDR subnet (e.g., `192.168.1.0/24`), performs parallel ICMP ping sweeps with a 1-second timeout, then probes common ports (22, 3389, 80, 443, 5900) on responsive hosts with a 500ms timeout. Results include IP address, hostname (reverse DNS), round-trip time, and open ports. A progress callback enables UI updates during the scan.
 
-### 24. Ephemeral TFTP/HTTP File Server
+### 24. Quick File Server (Ephemeral HTTP/TFTP)
 
-**Problem**: Network devices (switches, routers, IP phones) need to pull firmware or config files from a TFTP or HTTP server during provisioning.
+**Problem**: Some servers have no SFTP or SCP (hardened servers, minimal containers, network equipment). Users need a quick way to make local files available for `wget`/`curl`/`tftp` from a remote SSH session.
 
-**Solution**: `EphemeralFileServer` provides dual read-only servers: an HTTP server (via `HttpListener` with directory listing and GET serving) and a TFTP server (minimal RFC 1350 RRQ implementation over `UdpClient`). Both serve files from a user-selected directory, listen on configurable ports, and run on background tasks that are disposed when no longer needed.
+**Solution**: `EphemeralFileServer` provides dual read-only servers: HTTP (via `HttpListener` with directory listing) and TFTP (minimal RFC 1350 RRQ over `UdpClient`). On activation, a helper dialog displays ready-to-use download commands (`wget`, `curl`, `tftp`) and auto-copies the server URL to clipboard for pasting into the active SSH terminal. Both servers are disposed when the user clicks "Stop File Server".
 
 ### 25. X11 Server Auto-Detection and Management
 
