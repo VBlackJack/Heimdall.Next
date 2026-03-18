@@ -232,10 +232,6 @@ public partial class MainWindow : Window
         Mw_SettingsMaxSessionsLabel.Text = vm.Localize("SettingsLabelMaxEmbeddedSessions");
         Mw_SettingsPreventSleep.Content = vm.Localize("SettingsLabelPreventSleep");
         Mw_SettingsEditorPathLabel.Text = vm.Localize("SettingsLabelEditorPath");
-        Mw_SettingsProjectsTitle.Text = vm.Localize("SettingsSectionProjects");
-        Mw_SettingsProjectsAddBtn.Content = vm.Localize("BtnAddProject");
-        Mw_SettingsProjectsEditBtn.Content = vm.Localize("BtnEditProject");
-        Mw_SettingsProjectsDeleteBtn.Content = vm.Localize("BtnDeleteProject");
 
         // Settings - Terminal
         Mw_SettingsTerminalTitle.Text = vm.Localize("SettingsSectionTerminal");
