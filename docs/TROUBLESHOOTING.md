@@ -46,8 +46,13 @@ Index of all issues encountered during development and their solutions.
 31. [FTP — Passive Mode Failures](#ftp-passive-mode)
 32. [Tab Detach — WebView2 Session Lost](#tab-detach-webview2)
 33. [Ephemeral Server — Port 69 Access Denied](#tftp-port-access-denied)
-26. [Quick Connect — Ad-Hoc SSH Fails](#quick-connect-ad-hoc-ssh-fails)
-27. [RDP Resize — Still Reconnecting (Delta/Debounce Tuning)](#rdp-resize-still-reconnecting-deltadebounce-tuning)
+34. [Quick Connect — Ad-Hoc SSH Fails](#quick-connect-ad-hoc-ssh-fails)
+35. [RDP Resize — Still Reconnecting (Delta/Debounce Tuning)](#rdp-resize-still-reconnecting-deltadebounce-tuning)
+36. [SFTP — Sudo Fallback Permission Denied (Auth Failure)](#sftp-sudo-fallback-auth-failure)
+37. [SFTP — Sudo ls Parser Shows Empty Directory](#sftp-sudo-ls-parser-empty)
+38. [SFTP — SshException("Failure") Not Caught as Permission Denied](#sftp-sshexception-failure-not-caught)
+39. [WebView2 — Side-by-Side Configuration Error (0x800736B1)](#webview2-sxs-error)
+40. [HTTP Traversal — Sibling Prefix Bypass](#http-traversal-sibling-prefix)
 
 ---
 
@@ -592,5 +597,88 @@ if (sessionTab.ConnectionType == ConnectionType.Sftp)
 1. Run Heimdall as Administrator if TFTP is needed
 2. The HTTP server (port 8080) works without elevation
 3. For non-elevated usage, TFTP is not available (this is a Windows security restriction)
+
+**Files**: `Services/EphemeralFileServer.cs`
+
+---
+
+## 36. SFTP — Sudo Fallback Permission Denied (Auth Failure) {#sftp-sudo-fallback-auth-failure}
+
+**Symptom**: SFTP operations on root-owned files show "Permission denied" even though sudo fallback should trigger. Log shows `SshAuthenticationException: Permission denied (publickey,password)`.
+
+**Root cause**: The sudo helper methods (`DownloadViaSudoAsync`, `UploadViaSudoAsync`) were creating a raw `new SshClient(connInfo)` without Pageant/SSH agent integration or TOFU host key verification. The SSH connection itself failed before the sudo command could execute.
+
+**Solution**:
+1. Create a shared `CreateSudoSshClientAsync()` factory that uses `SshConnectionFactory.Create()` (same auth as main session: Pageant, keys, password)
+2. Attach host key verification via `SshConnectionFactory.AttachHostKeyVerification()` using the stored `_hostKeyStore`
+3. Store `_hostKeyStore` field in `EmbeddedSftpView` (was only passed to `RemoteFileEditor`)
+
+**Key lesson**: Any secondary SSH connection (for sudo, health monitoring, etc.) MUST use the same factory and auth chain as the primary connection. Raw `SshClient` instances bypass Pageant, keyboard-interactive prompts, and TOFU verification.
+
+**Files**: `Views/EmbeddedSftpView.xaml.cs`, `Ssh/SshConnectionFactory.cs`
+
+---
+
+## 37. SFTP — Sudo ls Parser Shows Empty Directory {#sftp-sudo-ls-parser-empty}
+
+**Symptom**: Enabling "Browse as root" (sudo mode) shows an empty or nearly-empty directory listing. Only symlinks (like `/bin -> usr/bin`) appear.
+
+**Root cause**: `ls -la --time-style=long-iso` produces **8 columns** per line:
+```
+drwxr-xr-x 2 root root 4096 2026-03-18 14:30 dirname
+```
+The parser used `Split(null, 9)` and checked `parts.Length < 9`, which skipped ALL entries with simple filenames (they only produced 8 tokens). Symlinks like `bin -> usr/bin` produced enough tokens to pass.
+
+**Solution**: Changed to `Split(null, 8)` so the filename (which may contain spaces) stays intact as `parts[7]`. Check `parts.Length < 8`.
+
+**Key lesson**: Always verify the actual column count of command output before writing a parser. Test with real server output, not assumptions.
+
+**Files**: `Views/EmbeddedSftpView.xaml.cs` (`ParseLsOutput` method)
+
+---
+
+## 38. SFTP — SshException("Failure") Not Caught as Permission Denied {#sftp-sshexception-failure-not-caught}
+
+**Symptom**: Uploading/downloading root-owned files shows a generic error instead of triggering sudo fallback. Log shows `SshException: Failure` but the `when` filter doesn't match.
+
+**Root cause**: Many SSH servers return `SSH_FX_FAILURE` (status code 4) instead of `SSH_FX_PERMISSION_DENIED` (status code 3) for permission errors. SSH.NET surfaces this as `SshException("Failure")` — the `IsPermissionDenied()` classifier only checked `SftpPermissionDeniedException` by type name and `Sftp*` types for the "Failure" string.
+
+**Solution**: Broadened `IsPermissionDenied()` to match any `Ssh*` or `Sftp*` exception type containing "Failure" in the message, not just `Sftp*`-prefixed types.
+
+**Key lesson**: SSH.NET exception hierarchy is not always intuitive. `SshException` is the base for many SFTP errors, not just `Sftp*` types. Always log the full exception type name and message for debugging.
+
+**Files**: `Views/EmbeddedSftpView.xaml.cs` (`IsPermissionDenied` method)
+
+---
+
+## 39. WebView2 — Side-by-Side Configuration Error (0x800736B1) {#webview2-sxs-error}
+
+**Symptom**: Embedded SSH terminal shows "WebView2 initialization failed: The application has failed to start because its side-by-side configuration is incorrect (0x800736B1)".
+
+**Root cause**: The bundled WebView2 Fixed Version Runtime was an incomplete subset of files (cherry-picked DLLs). The `msedgewebview2.exe` manifest references specific VC++ runtime versions and SxS assemblies that must be present in the same directory.
+
+**Solution**: Copy the FULL runtime directory from `C:\Program Files (x86)\Microsoft\EdgeWebView\Application\{version}\` instead of cherry-picking files. Trim only non-essential Edge bloat (Copilot, identity, extensions) but keep manifests, EBWebView, and all DLLs.
+
+**Key lesson**: WebView2 Fixed Version Runtime is not a simple collection of DLLs. It requires SxS manifests and a specific directory structure. Always copy the complete runtime and trim conservatively.
+
+**Files**: `Services/WebView2Helper.cs`, `Build.ps1`, `runtimes/webview2/`
+
+---
+
+## 40. HTTP Traversal — Sibling Prefix Bypass {#http-traversal-sibling-prefix}
+
+**Symptom**: Security audit found that the EphemeralFileServer `StartsWith` check could be bypassed with sibling directory names. E.g., serving `/data` would also allow access to `/data-other/secret.txt`.
+
+**Root cause**: `fullPath.StartsWith(_servingDirectory)` matches any path that starts with the same prefix, including sibling directories with similar names.
+
+**Solution**: Append a trailing `Path.DirectorySeparatorChar` to the comparison base, and add an exact-root match fallback:
+```csharp
+var safeBase = _servingDirectory.EndsWith(Path.DirectorySeparatorChar)
+    ? _servingDirectory
+    : _servingDirectory + Path.DirectorySeparatorChar;
+if (!fullPath.StartsWith(safeBase) && !string.Equals(fullPath, _servingDirectory))
+```
+
+Applied to both HTTP and TFTP handlers.
 
 **Files**: `Services/EphemeralFileServer.cs`
