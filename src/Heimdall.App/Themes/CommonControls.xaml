@@ -47,7 +47,9 @@
                             <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="{DynamicResource AccentPressedBrush}"/>
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
-                            <Setter TargetName="ButtonBorder" Property="Opacity" Value="0.5"/>
+                            <Setter TargetName="ButtonBorder" Property="Background" Value="{DynamicResource CardBrush}"/>
+                            <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="{DynamicResource CardBrush}"/>
+                            <Setter Property="Foreground" Value="{DynamicResource TextDisabledBrush}"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -125,7 +127,9 @@
                             <Setter TargetName="ButtonBorder" Property="Background" Value="{DynamicResource SurfaceBrush}"/>
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
-                            <Setter TargetName="ButtonBorder" Property="Opacity" Value="0.5"/>
+                            <Setter TargetName="ButtonBorder" Property="Background" Value="{DynamicResource SurfaceBrush}"/>
+                            <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="{DynamicResource SurfaceBrush}"/>
+                            <Setter Property="Foreground" Value="{DynamicResource TextDisabledBrush}"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -134,9 +138,23 @@
     </Style>
 
     <!-- ========================================================= -->
+    <!-- Validation Error Template                                -->
+    <!-- ========================================================= -->
+    <ControlTemplate x:Key="ValidationErrorTemplate">
+        <StackPanel>
+            <AdornedElementPlaceholder x:Name="AdornedElement"/>
+            <TextBlock Text="{Binding ElementName=AdornedElement, Path=AdornedElement.(Validation.Errors)/ErrorContent}"
+                       Foreground="{DynamicResource ErrorBrush}"
+                       FontSize="11"
+                       Margin="4,2,0,0"/>
+        </StackPanel>
+    </ControlTemplate>
+
+    <!-- ========================================================= -->
     <!-- TextBox                                                   -->
     <!-- ========================================================= -->
     <Style x:Key="ThemedTextBoxStyle" TargetType="{x:Type TextBox}">
+        <Setter Property="Validation.ErrorTemplate" Value="{StaticResource ValidationErrorTemplate}"/>
         <Setter Property="Background" Value="{DynamicResource CardBrush}"/>
         <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
         <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
@@ -166,6 +184,10 @@
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
                             <Setter TargetName="TextBoxBorder" Property="Opacity" Value="0.55"/>
+                        </Trigger>
+                        <Trigger Property="Validation.HasError" Value="True">
+                            <Setter TargetName="TextBoxBorder" Property="BorderBrush" Value="{DynamicResource ErrorBrush}"/>
+                            <Setter TargetName="TextBoxBorder" Property="BorderThickness" Value="2"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>

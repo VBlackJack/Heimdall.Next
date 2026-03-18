@@ -1499,6 +1499,8 @@
   "SessionAspectRatio": "Aspect Ratio",
   "SessionFullscreen": "Fullscreen (F11)",
   "SessionCloseSession": "Close Session",
+  "ConfirmCloseSessionTitle": "Close Active Session",
+  "ConfirmCloseSessionMessage": "The session \"{0}\" is still connected. Close it?",
   "SplitHorizontal": "Split Horizontal",
   "SplitVertical": "Split Vertical",
   "SplitUnsplit": "Unsplit",
@@ -2068,5 +2070,9 @@
 
   "ConnectionTypeTelnet": "Telnet",
   "StatusTelnetConnecting": "Connecting via Telnet...",
-  "LogTelnetLaunching": "Launching Telnet session"
+  "LogTelnetLaunching": "Launching Telnet session",
+
+  "QuickConnectShortcut": "Quick Connect (Ctrl+K)",
+  "BtnYes": "Yes",
+  "BtnNo": "No"
 }

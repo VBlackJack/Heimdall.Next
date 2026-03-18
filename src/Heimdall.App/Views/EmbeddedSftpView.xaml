@@ -37,7 +37,6 @@
             <DockPanel LastChildFill="True">
                 <Button x:Name="DisconnectButton"
                         DockPanel.Dock="Right"
-                        Content="Disconnect"
                         Click="OnDisconnectClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Foreground="{DynamicResource ErrorBrush}"
@@ -46,7 +45,6 @@
                         Margin="8,0,0,0"/>
                 <Button x:Name="ReconnectButton"
                         DockPanel.Dock="Right"
-                        Content="Reconnect"
                         Click="OnReconnectClick"
                         Style="{DynamicResource PrimaryButtonStyle}"
                         Padding="8,2"
@@ -106,7 +104,6 @@
                               Foreground="{DynamicResource TextSecondaryBrush}"
                               FontSize="11"
                               Margin="8,0,0,0"
-                              ToolTip="Show hidden files"
                               IsChecked="True"
                               Checked="OnToggleHiddenChanged"
                               Unchecked="OnToggleHiddenChanged"/>
@@ -120,29 +117,27 @@
                             Click="OnBackClick"
                             Style="{DynamicResource ToolbarGhostButtonStyle}"
                             Padding="8,2" FontSize="12"
-                            ToolTip="Back"
                             IsEnabled="False"/>
                     <Button x:Name="BtnUp"
                             Content="&#xE74A;"
                             FontFamily="Segoe MDL2 Assets"
                             Click="OnUpClick"
                             Style="{DynamicResource ToolbarGhostButtonStyle}"
-                            Padding="8,2" FontSize="12" Margin="4,0,0,0"
-                            ToolTip="Parent folder"/>
+                            Padding="8,2" FontSize="12" Margin="4,0,0,0"/>
                     <Button x:Name="BtnHome"
                             Content="&#xE80F;"
                             FontFamily="Segoe MDL2 Assets"
                             Click="OnHomeClick"
                             Style="{DynamicResource ToolbarGhostButtonStyle}"
                             Padding="8,2" FontSize="12" Margin="4,0,0,0"
-                            ToolTip="Home directory"/>
+                            />
                     <Button x:Name="BtnRefresh"
                             Content="&#xE72C;"
                             FontFamily="Segoe MDL2 Assets"
                             Click="OnRefreshClick"
                             Style="{DynamicResource ToolbarGhostButtonStyle}"
                             Padding="8,2" FontSize="12" Margin="4,0,0,0"
-                            ToolTip="Refresh (F5)"/>
+                            />
 
                     <Border Width="1" Margin="8,2" Background="{DynamicResource BorderBrush}"/>
 
@@ -172,7 +167,6 @@
                     <ToggleButton x:Name="BtnSudoMode"
                                   Click="OnSudoModeToggle"
                                   Padding="8,2" FontSize="11"
-                                  ToolTip="Browse as root (sudo)"
                                   Foreground="{DynamicResource TextPrimaryBrush}"
                                   Background="Transparent"
                                   BorderThickness="1"
@@ -193,14 +187,14 @@
                             Click="OnBookmarkClick"
                             Style="{DynamicResource ToolbarGhostButtonStyle}"
                             Padding="8,2" FontSize="12"
-                            ToolTip="Bookmark this path"/>
+                            />
                     <Button x:Name="BtnBookmarks"
                             Content="&#xE735;"
                             FontFamily="Segoe MDL2 Assets"
                             Click="OnBookmarksClick"
                             Style="{DynamicResource ToolbarGhostButtonStyle}"
                             Padding="8,2" FontSize="12" Margin="4,0,0,0"
-                            ToolTip="Bookmarks"/>
+                            />
                 </StackPanel>
             </DockPanel>
         </Border>

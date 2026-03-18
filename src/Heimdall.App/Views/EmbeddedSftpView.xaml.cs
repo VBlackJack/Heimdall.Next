@@ -203,6 +203,7 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
         BtnBookmarks.ToolTip = _localizer["SftpBtnBookmarks"];
         ToggleHiddenCheckBox.ToolTip = _localizer["SftpToggleHidden"];
         SplitButton.ToolTip = _localizer["ToolTipSplitPane"];
+        BtnSudoMode.ToolTip = _localizer["SftpSudoModeTooltip"];
 
         FilterTextBox.Tag = _localizer["SftpFilterPlaceholder"];
 
@@ -221,11 +222,13 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
         EmptyDirectoryText.Text = _localizer["SftpEmptyDirectory"];
         DragDropOverlayText.Text = _localizer["SftpDragDropOverlay"];
 
-        if (FileListView.View is GridView gridView && gridView.Columns.Count >= 5)
+        if (FileListView.View is GridView gridView)
         {
-            gridView.Columns[0].Header = _localizer["SftpColName"];
-            gridView.Columns[1].Header = _localizer["SftpColSize"];
-            gridView.Columns[2].Header = _localizer["SftpColModified"];
+            if (gridView.Columns.Count > 0) gridView.Columns[0].Header = _localizer["SftpColName"];
+            if (gridView.Columns.Count > 1) gridView.Columns[1].Header = _localizer["SftpColSize"];
+            if (gridView.Columns.Count > 2) gridView.Columns[2].Header = _localizer["SftpColModified"];
+            if (gridView.Columns.Count > 3) gridView.Columns[3].Header = _localizer["SftpColPermissions"];
+            if (gridView.Columns.Count > 4) gridView.Columns[4].Header = _localizer["SftpColOwner"];
         }
     }
 

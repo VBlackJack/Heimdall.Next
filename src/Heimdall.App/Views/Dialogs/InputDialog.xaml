@@ -5,7 +5,9 @@
         Width="480" Height="200"
         WindowStartupLocation="CenterOwner"
         Background="{DynamicResource BackgroundBrush}"
-        ResizeMode="NoResize"
+        ResizeMode="CanResizeWithGrip"
+        MinWidth="350"
+        MinHeight="160"
         ShowInTaskbar="False"
         WindowStyle="ToolWindow">
 

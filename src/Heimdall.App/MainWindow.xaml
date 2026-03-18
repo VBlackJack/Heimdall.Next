@@ -87,6 +87,22 @@
                                        VerticalAlignment="Center"/>
                         </StackPanel>
                     </Button>
+                    <!-- Quick Connect shortcut button -->
+                    <Button x:Name="QuickConnectButton"
+                            Click="OnQuickConnectButtonClick"
+                            Style="{DynamicResource ToolbarGhostButtonStyle}"
+                            Padding="8,4" FontSize="11"
+                            Margin="0,0,8,0"
+                            VerticalAlignment="Center"
+                            AutomationProperties.Name="Quick Connect">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE71E;" FontFamily="Segoe MDL2 Assets"
+                                       FontSize="12" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                            <TextBlock x:Name="Mw_QuickConnectLabel" Text=""
+                                       FontSize="11" VerticalAlignment="Center"
+                                       Foreground="{DynamicResource TextSecondaryBrush}"/>
+                        </StackPanel>
+                    </Button>
                     <TextBox x:Name="SearchBox"
                              Width="200"
                              Text="{Binding ServerList.SearchText, UpdateSourceTrigger=PropertyChanged}"
@@ -96,6 +112,18 @@
                 </StackPanel>
             </DockPanel>
         </Border>
+
+        <!-- Global busy indicator -->
+        <ProgressBar Grid.Row="1"
+                     VerticalAlignment="Top"
+                     Panel.ZIndex="10"
+                     Height="2"
+                     IsIndeterminate="True"
+                     Foreground="{DynamicResource AccentBrush}"
+                     Background="Transparent"
+                     BorderThickness="0"
+                     IsHitTestVisible="False"
+                     Visibility="{Binding IsBusy, Converter={StaticResource BoolToVisibilityConverter}}"/>
 
         <!-- MAIN CONTENT -->
         <Grid Grid.Row="1"
@@ -253,6 +281,7 @@
                                        BasedOn="{StaticResource ThemedTreeViewItemStyle}">
                                     <Setter Property="IsExpanded" Value="True"/>
                                     <Setter Property="Padding" Value="1,1"/>
+                                    <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
                                 </Style>
                             </TreeView.ItemContainerStyle>
 

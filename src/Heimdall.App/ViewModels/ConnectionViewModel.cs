@@ -17,6 +17,7 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Heimdall.App.Services;
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Localization;
 using Heimdall.Core.StateMachine;
@@ -33,6 +34,7 @@ public partial class ConnectionViewModel : ObservableObject
     private readonly LocalizationManager _localizer;
     private readonly ConfigManager _configManager;
     private readonly TunnelManager _tunnelManager;
+    private readonly IDialogService _dialogService;
 
     [ObservableProperty]
     private ObservableCollection<SessionTabViewModel> _activeSessions = [];
@@ -47,12 +49,14 @@ public partial class ConnectionViewModel : ObservableObject
         ConnectionStateMachine connectionSm,
         LocalizationManager localizer,
         ConfigManager configManager,
-        TunnelManager tunnelManager)
+        TunnelManager tunnelManager,
+        IDialogService dialogService)
     {
         _connectionSm = connectionSm;
         _localizer = localizer;
         _configManager = configManager;
         _tunnelManager = tunnelManager;
+        _dialogService = dialogService;
     }
 
     /// <summary>
@@ -76,13 +80,33 @@ public partial class ConnectionViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private void CloseSession(SessionTabViewModel? session)
+    private async Task CloseSession(SessionTabViewModel? session)
     {
         if (session is null)
         {
             return;
         }
 
+        if (string.Equals(session.Status, "Connected", StringComparison.Ordinal))
+        {
+            var title = _localizer["ConfirmCloseSessionTitle"];
+            var message = _localizer.Format("ConfirmCloseSessionMessage", session.Title);
+            var confirmed = await _dialogService.ShowConfirmAsync(title, message, "warning");
+            if (!confirmed)
+            {
+                return;
+            }
+        }
+
+        CloseSessionInternal(session);
+    }
+
+    /// <summary>
+    /// Closes a session without showing a confirmation dialog.
+    /// Used by <see cref="CloseAllSessions"/> to avoid multiple prompts.
+    /// </summary>
+    private void CloseSessionInternal(SessionTabViewModel session)
+    {
         var historyId = !string.IsNullOrEmpty(session.OriginalServerId)
             ? session.OriginalServerId : session.ServerId;
         Core.Logging.ConnectionHistory.RecordDisconnect(
@@ -142,8 +166,23 @@ public partial class ConnectionViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private void CloseAllSessions()
+    private async Task CloseAllSessions()
     {
+        // Count connected sessions to decide whether to prompt
+        var connectedCount = ActiveSessions.Count(s =>
+            string.Equals(s.Status, "Connected", StringComparison.Ordinal));
+
+        if (connectedCount > 0)
+        {
+            var title = _localizer["ConfirmCloseAllTabs"];
+            var message = _localizer.Format("ConfirmCloseAllTabsMessage", connectedCount);
+            var confirmed = await _dialogService.ShowConfirmAsync(title, message, "warning");
+            if (!confirmed)
+            {
+                return;
+            }
+        }
+
         foreach (var session in ActiveSessions.ToList())
         {
             // Record disconnect for the primary session (use original server ID for history)

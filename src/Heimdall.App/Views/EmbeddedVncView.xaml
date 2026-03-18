@@ -51,6 +51,18 @@
             </DockPanel>
         </Border>
 
+        <!-- Connection progress indicator -->
+        <ProgressBar x:Name="VncLoadingBar"
+                     Grid.Row="1"
+                     VerticalAlignment="Top"
+                     Panel.ZIndex="1"
+                     Height="2"
+                     IsIndeterminate="True"
+                     Foreground="{DynamicResource AccentBrush}"
+                     Background="Transparent"
+                     BorderThickness="0"
+                     IsHitTestVisible="False"/>
+
         <!-- VNC surface -->
         <Grid Grid.Row="1" ClipToBounds="True">
             <wv2:WebView2 x:Name="VncWebView"
