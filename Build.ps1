@@ -150,7 +150,7 @@ if (Test-Path (Join-Path $wv2Runtime 'msedgewebview2.exe')) {
     Copy-Item $wv2Runtime $wv2Dest -Recurse -Force
     Write-Host "  Bundled WebView2 Fixed Version Runtime" -ForegroundColor DarkGray
 } else {
-    Write-Host "  [!] WebView2 Fixed Version Runtime not found in runtimes/webview2/ — app will require system Evergreen Runtime" -ForegroundColor DarkYellow
+    Write-Host "  [!] WebView2 Fixed Version Runtime not found in runtimes/webview2/ - app will require system Evergreen Runtime" -ForegroundColor DarkYellow
 }
 
 Write-Host "[4/5] Portable published" -ForegroundColor Green
