@@ -2037,11 +2037,15 @@
   "ExternalToolPromptPath": "Executable path",
   "ExternalToolPromptArguments": "Arguments template ({Host}, {Port}, {User} are supported)",
 
-  "ToolsShareFolder": "Share Folder",
-  "ToolsStopSharing": "Stop Sharing",
+  "ToolsShareFolder": "Quick File Server",
+  "ToolsStopSharing": "Stop File Server",
   "ToolsSharingActive": "Sharing {0} on HTTP:{1} TFTP:{2}",
   "ToolsSharingStarted": "File server started",
   "ToolsSharingStopped": "File server stopped",
+  "ToolsSharingReady": "File server ready at {0} (URL copied to clipboard)",
+  "ToolsSharingServed": "Served: {0} via {1}",
+  "ToolsSharingHelpTitle": "Quick File Server",
+  "ToolsSharingHelp": "Sharing folder: {0}\n\nServer URL: {1}\n\nUse these commands on the remote server to download files:\n\n  wget {2}\n  curl {3}\n  tftp {4}\n\nThe URL has been copied to your clipboard.\nPaste it in your SSH terminal to download files.\n\nClick 'Stop File Server' to stop sharing.",
 
   "X11ServerNotFound": "No X11 server found. Install VcXsrv or Xming for X11 forwarding support.",
   "X11ServerStarted": "X11 server started: {0}",

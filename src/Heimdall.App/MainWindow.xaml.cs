@@ -2044,18 +2044,35 @@ public partial class MainWindow : Window
 
         var localIp = EphemeralFileServer.GetLocalIpAddress();
         var folderName = System.IO.Path.GetFileName(directory);
-        var statusText = string.Format(vm.Localize("ToolsSharingActive"), folderName, httpPort, tftpPort);
-        Mw_SharingStatus.Text = $"{statusText} ({localIp})";
+        var baseUrl = $"http://{localIp}:{httpPort}";
+
+        Mw_SharingStatus.Text = baseUrl;
         Mw_SharingStatus.Visibility = Visibility.Visible;
 
-        vm.StatusText = vm.Localize("ToolsSharingStarted");
+        // Show a helper dialog with ready-to-use commands
+        var wgetCmd = $"wget {baseUrl}/<filename>";
+        var curlCmd = $"curl -O {baseUrl}/<filename>";
+        var tftpCmd = $"tftp {localIp} -c get <filename>";
+
+        // Copy the base URL to clipboard for convenience
+        try { Clipboard.SetText(baseUrl); } catch { /* clipboard may fail in some RDP sessions */ }
+
+        var helpMessage = string.Format(vm.Localize("ToolsSharingHelp"),
+            folderName, baseUrl, wgetCmd, curlCmd, tftpCmd);
+
+        vm.StatusText = string.Format(vm.Localize("ToolsSharingReady"), baseUrl);
+
+        MessageBox.Show(helpMessage,
+            vm.Localize("ToolsSharingHelpTitle"),
+            MessageBoxButton.OK,
+            MessageBoxImage.Information);
 
         _fileServer.FileServed += fileName =>
         {
             Dispatcher.Invoke(() =>
             {
                 if (DataContext is MainViewModel mvm)
-                    mvm.StatusText = $"{vm.Localize("ToolsSharingStarted")} — {fileName}";
+                    mvm.StatusText = string.Format(vm.Localize("ToolsSharingServed"), fileName, baseUrl);
             });
         };
     }
