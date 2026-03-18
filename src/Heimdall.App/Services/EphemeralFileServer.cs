@@ -229,7 +229,13 @@ public sealed class EphemeralFileServer : IDisposable
         requestPath = requestPath.Replace('/', Path.DirectorySeparatorChar).TrimStart(Path.DirectorySeparatorChar);
         var fullPath = Path.GetFullPath(Path.Combine(_servingDirectory, requestPath));
 
-        if (!fullPath.StartsWith(_servingDirectory, StringComparison.OrdinalIgnoreCase))
+        // Ensure trailing separator to prevent sibling-prefix bypass (e.g. /data vs /data-other)
+        var safeBase = _servingDirectory.EndsWith(Path.DirectorySeparatorChar)
+            ? _servingDirectory
+            : _servingDirectory + Path.DirectorySeparatorChar;
+
+        if (!fullPath.StartsWith(safeBase, StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(fullPath, _servingDirectory, StringComparison.OrdinalIgnoreCase))
         {
             response.StatusCode = 403;
             response.Close();
@@ -365,7 +371,14 @@ public sealed class EphemeralFileServer : IDisposable
         var safeName = Path.GetFileName(filename);
         var filePath = Path.GetFullPath(Path.Combine(_servingDirectory, safeName));
 
-        if (!filePath.StartsWith(_servingDirectory, StringComparison.OrdinalIgnoreCase) || !File.Exists(filePath))
+        // Ensure trailing separator to prevent sibling-prefix bypass (same as HTTP handler)
+        var tftpSafeBase = _servingDirectory.EndsWith(Path.DirectorySeparatorChar)
+            ? _servingDirectory
+            : _servingDirectory + Path.DirectorySeparatorChar;
+
+        if ((!filePath.StartsWith(tftpSafeBase, StringComparison.OrdinalIgnoreCase)
+             && !string.Equals(filePath, _servingDirectory, StringComparison.OrdinalIgnoreCase))
+            || !File.Exists(filePath))
         {
             using var errorClient = new UdpClient();
             await SendTftpError(errorClient, clientEndpoint, 1, "File not found");

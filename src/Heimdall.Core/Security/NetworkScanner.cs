@@ -144,9 +144,19 @@ public static class NetworkScanner
 
     private static (string Network, int PrefixLength) ParseCidr(string cidr)
     {
-        var parts = cidr.Trim().Split('/');
-        if (parts.Length != 2 || !int.TryParse(parts[1], out var prefix) || prefix < 16 || prefix > 30)
-            throw new ArgumentException($"Invalid CIDR notation: {cidr}. Use format like 192.168.1.0/24 (prefix 16-30).");
+        var trimmed = cidr.Trim();
+
+        // Support single IP without CIDR prefix (e.g. "192.168.1.1")
+        if (!trimmed.Contains('/'))
+        {
+            if (!IPAddress.TryParse(trimmed, out _))
+                throw new ArgumentException($"Invalid IP address: {trimmed}.");
+            return (trimmed, 32);
+        }
+
+        var parts = trimmed.Split('/');
+        if (parts.Length != 2 || !int.TryParse(parts[1], out var prefix) || prefix < 16 || prefix > 32)
+            throw new ArgumentException($"Invalid CIDR notation: {cidr}. Use format like 192.168.1.0/24 (prefix 16-32).");
 
         return (parts[0], prefix);
     }
@@ -156,6 +166,21 @@ public static class NetworkScanner
         var ip = IPAddress.Parse(network);
         var bytes = ip.GetAddressBytes();
         var networkInt = (uint)(bytes[0] << 24 | bytes[1] << 16 | bytes[2] << 8 | bytes[3]);
+
+        // /32 = single host, /31 = point-to-point (2 hosts, no broadcast)
+        if (prefixLength == 32)
+        {
+            return [$"{(networkInt >> 24) & 0xFF}.{(networkInt >> 16) & 0xFF}.{(networkInt >> 8) & 0xFF}.{networkInt & 0xFF}"];
+        }
+
+        if (prefixLength == 31)
+        {
+            return
+            [
+                $"{(networkInt >> 24) & 0xFF}.{(networkInt >> 16) & 0xFF}.{(networkInt >> 8) & 0xFF}.{networkInt & 0xFF}",
+                $"{((networkInt + 1) >> 24) & 0xFF}.{((networkInt + 1) >> 16) & 0xFF}.{((networkInt + 1) >> 8) & 0xFF}.{(networkInt + 1) & 0xFF}"
+            ];
+        }
 
         var hostBits = 32 - prefixLength;
         var hostCount = (1u << hostBits) - 2; // exclude network and broadcast

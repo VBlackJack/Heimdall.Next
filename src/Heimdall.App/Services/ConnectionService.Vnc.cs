@@ -51,9 +51,11 @@ public partial class ConnectionService
             password = DecryptPassword(server.VncPassword);
         }
 
-        _connectionSm.TryTransition(server.Id, ConnectionState.Connected);
+        // Do NOT transition to Connected here — the actual VNC connection is established
+        // asynchronously by the WebSocket proxy + noVNC in EmbeddedVncView.
+        // The view will report connection success/failure via SessionConnected/SessionError events.
 
-        var session = new VncSessionResult(server.RemoteServer, vncPort, password);
+        var session = new VncSessionResult(server.Id, server.RemoteServer, vncPort, password);
         return Task.FromResult(new ConnectionResult(true, null, session));
     }
 }
@@ -63,6 +65,7 @@ public partial class ConnectionService
 /// The proxy and WebView2 rendering are managed by <see cref="Views.EmbeddedVncView"/>.
 /// </summary>
 public record VncSessionResult(
+    string ServerId,
     string Host,
     int Port,
     string? Password = null) : ISessionResult;

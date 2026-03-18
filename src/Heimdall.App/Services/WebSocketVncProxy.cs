@@ -65,7 +65,14 @@ public sealed class WebSocketVncProxy : IDisposable
     public void Start()
     {
         _httpListener.Start();
-        _ = AcceptLoopAsync(_cts.Token);
+        _ = AcceptLoopAsync(_cts.Token).ContinueWith(t =>
+        {
+            if (t.IsFaulted)
+            {
+                Core.Logging.FileLogger.Error(
+                    $"VNC proxy accept loop failed: {t.Exception?.InnerException?.Message}");
+            }
+        }, TaskContinuationOptions.OnlyOnFaulted);
     }
 
     private async Task AcceptLoopAsync(CancellationToken ct)

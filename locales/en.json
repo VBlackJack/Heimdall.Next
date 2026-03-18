@@ -142,6 +142,7 @@
   "FilterAllGroups": "All groups",
   "WarnActiveTunnelMessage": "This server has an active tunnel. Changes may require reconnection.",
   "StatusConnectingProgress": "Connecting...",
+  "StatusEmbeddedRdpOpening": "Opening embedded RDP session for {0}.",
   "LoadingConnecting": "Connecting...",
   "LoadingEstablishingTunnel": "Establishing SSH tunnel...",
   "StatusConnectionCancelled": "Connection cancelled.",
@@ -1943,6 +1944,9 @@
   "VncFallbackTitle": "Embedded VNC viewer unavailable",
   "VncFallbackMessage": "WebView2 could not be initialized on this machine.",
 
+  "VncViewerNotFound": "VNC viewer HTML not found.",
+  "StatusCitrixConnecting": "Connecting to Citrix...",
+  "LogCitrixLaunching": "Launching Citrix session",
   "CitrixStatusConnected": "Connected",
   "CitrixStatusDisconnected": "Disconnected",
 
