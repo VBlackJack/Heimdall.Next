@@ -20,6 +20,9 @@
     "lastDpapiUser": null,
     "requireCredentialGuard": false,
     "enableEventLog": false,
+    "terminalFontFamily": "Consolas",
+    "terminalFontSize": 14,
+    "terminalColorScheme": "Dracula",
     "sshDefaultMode": "External",
     "antiIdleIntervalSeconds": 60,
     "sshTmoutResetIntervalSeconds": 240,
@@ -54,6 +57,34 @@
     "sidebarWidth": 220,
     "treeExpandedNodes": [],
     "tunnelGridColumnWidths": null,
+    "emptyGroups": [],
+    "scheduledTasks": [],
+    "groupDefaults": {},
     "sshGateways": [],
-    "projects": []
+    "projects": [],
+    "useExternalCredentialProvider": false,
+    "credentialProviderCommand": "",
+    "credentialProviderDatabase": "",
+    "x11ServerPath": null,
+    "x11AutoStart": true,
+    "externalTools": [
+        {
+            "name": "Ping",
+            "executablePath": "ping.exe",
+            "arguments": "{Host}",
+            "iconGlyph": ""
+        },
+        {
+            "name": "Traceroute",
+            "executablePath": "tracert.exe",
+            "arguments": "{Host}",
+            "iconGlyph": ""
+        },
+        {
+            "name": "Nslookup",
+            "executablePath": "nslookup.exe",
+            "arguments": "{Host}",
+            "iconGlyph": ""
+        }
+    ]
 }

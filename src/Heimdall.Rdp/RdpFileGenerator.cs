@@ -100,8 +100,9 @@ public static class RdpFileGenerator
             sb.AppendLine("dynamic resolution:i:1");
         }
 
-        // RD Gateway
-        if (!string.IsNullOrWhiteSpace(options.GatewayHostname))
+        // RD Gateway — validate hostname before writing to .rdp file
+        if (!string.IsNullOrWhiteSpace(options.GatewayHostname)
+            && Core.Security.InputValidator.Validate(options.GatewayHostname, "Address"))
         {
             sb.AppendLine("gatewayusagemethod:i:1");
             sb.AppendLine("gatewayprofileusagemethod:i:1");

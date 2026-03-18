@@ -75,6 +75,42 @@ public partial class SettingsViewModel : ObservableObject
     private bool _sftpAutoOpenOnSsh = true;
 
     [ObservableProperty]
+    private string _terminalFontFamily = "Consolas";
+
+    [ObservableProperty]
+    private int _terminalFontSize = 14;
+
+    [ObservableProperty]
+    private string _terminalColorScheme = "Dracula";
+
+    [ObservableProperty]
+    private bool _sessionLoggingEnabled;
+
+    [ObservableProperty]
+    private string _sessionLogDirectory = @"logs\sessions";
+
+    [ObservableProperty]
+    private bool _useExternalCredentialProvider;
+
+    [ObservableProperty]
+    private string _credentialProviderCommand = "";
+
+    [ObservableProperty]
+    private string _credentialProviderDatabase = "";
+
+    [ObservableProperty]
+    private ObservableCollection<ExternalToolItemViewModel> _externalTools = new();
+
+    [ObservableProperty]
+    private ExternalToolItemViewModel? _selectedExternalTool;
+
+    [ObservableProperty]
+    private int _defaultResolutionWidth = 1920;
+
+    [ObservableProperty]
+    private int _defaultResolutionHeight = 1080;
+
+    [ObservableProperty]
     private bool _isDirty;
 
     [ObservableProperty]
@@ -82,6 +118,12 @@ public partial class SettingsViewModel : ObservableObject
 
     [ObservableProperty]
     private GatewayItemViewModel? _selectedGateway;
+
+    [ObservableProperty]
+    private ObservableCollection<ProjectItemViewModel> _projects = new();
+
+    [ObservableProperty]
+    private ProjectItemViewModel? _selectedProject;
 
     /// <summary>
     /// Raised after a server import completes so the main shell can reload
@@ -119,6 +161,24 @@ public partial class SettingsViewModel : ObservableObject
         MaxEmbeddedSessions = settings.MaxEmbeddedSessions;
         ExternalEditorPath = settings.ExternalEditorPath;
         SftpAutoOpenOnSsh = settings.SftpAutoOpenOnSsh;
+        TerminalFontFamily = settings.TerminalFontFamily;
+        TerminalFontSize = settings.TerminalFontSize;
+        TerminalColorScheme = settings.TerminalColorScheme;
+        SessionLoggingEnabled = settings.SessionLoggingEnabled;
+        SessionLogDirectory = settings.SessionLogDirectory;
+        UseExternalCredentialProvider = settings.UseExternalCredentialProvider;
+        CredentialProviderCommand = settings.CredentialProviderCommand ?? "";
+        CredentialProviderDatabase = settings.CredentialProviderDatabase ?? "";
+        DefaultResolutionWidth = settings.DefaultResolutionWidth;
+        DefaultResolutionHeight = settings.DefaultResolutionHeight;
+
+        ExternalTools = new ObservableCollection<ExternalToolItemViewModel>(
+            settings.ExternalTools.Select(t => new ExternalToolItemViewModel
+            {
+                Name = t.Name,
+                ExecutablePath = t.ExecutablePath,
+                Arguments = t.Arguments
+            }));
 
         Gateways = new ObservableCollection<GatewayItemViewModel>(
             settings.SshGateways.Select(g => new GatewayItemViewModel
@@ -131,6 +191,15 @@ public partial class SettingsViewModel : ObservableObject
                 HasKey = !string.IsNullOrEmpty(g.KeyPath),
                 HasPassword = !string.IsNullOrEmpty(g.SshPasswordEncrypted),
                 ParentGatewayId = g.ParentGatewayId
+            }));
+
+        Projects = new ObservableCollection<ProjectItemViewModel>(
+            settings.Projects.Select(p => new ProjectItemViewModel
+            {
+                Id = p.Id,
+                Name = p.Name,
+                Color = p.Color ?? "#3B82F6",
+                Description = p.Description ?? ""
             }));
 
         IsDirty = false;
@@ -149,6 +218,23 @@ public partial class SettingsViewModel : ObservableObject
         settings.MaxEmbeddedSessions = MaxEmbeddedSessions;
         settings.ExternalEditorPath = ExternalEditorPath;
         settings.SftpAutoOpenOnSsh = SftpAutoOpenOnSsh;
+        settings.TerminalFontFamily = TerminalFontFamily;
+        settings.TerminalFontSize = TerminalFontSize;
+        settings.TerminalColorScheme = TerminalColorScheme;
+        settings.SessionLoggingEnabled = SessionLoggingEnabled;
+        settings.SessionLogDirectory = SessionLogDirectory;
+        settings.UseExternalCredentialProvider = UseExternalCredentialProvider;
+        settings.CredentialProviderCommand = CredentialProviderCommand;
+        settings.CredentialProviderDatabase = CredentialProviderDatabase;
+        settings.DefaultResolutionWidth = DefaultResolutionWidth;
+        settings.DefaultResolutionHeight = DefaultResolutionHeight;
+
+        settings.ExternalTools = ExternalTools.Select(t => new ExternalToolDefinition
+        {
+            Name = t.Name,
+            ExecutablePath = t.ExecutablePath,
+            Arguments = t.Arguments
+        }).ToList();
 
         await _configManager.SaveSettingsAsync(settings);
 
@@ -378,6 +464,145 @@ public partial class SettingsViewModel : ObservableObject
 
         Gateways.Remove(SelectedGateway);
         SelectedGateway = null;
+    }
+
+    [RelayCommand]
+    private async Task AddProjectAsync(CancellationToken cancellationToken)
+    {
+        var vm = new ProjectDialogViewModel
+        {
+            DialogTitle = _localizer["ProjectDialogTitleAdd"]
+        };
+
+        var result = await _dialogService.ShowProjectDialogAsync(vm);
+        if (result is not { Saved: true })
+        {
+            return;
+        }
+
+        var settings = await _configManager.LoadSettingsAsync();
+        result.Project.Id = Guid.NewGuid().ToString();
+        settings.Projects.Add(result.Project);
+        await _configManager.SaveSettingsAsync(settings);
+
+        Projects.Add(new ProjectItemViewModel
+        {
+            Id = result.Project.Id,
+            Name = result.Project.Name,
+            Color = result.Project.Color ?? "#3B82F6",
+            Description = result.Project.Description ?? ""
+        });
+
+        ConfigurationChanged?.Invoke();
+    }
+
+    [RelayCommand]
+    private async Task EditProjectAsync(CancellationToken cancellationToken)
+    {
+        if (SelectedProject is null) return;
+
+        var settings = await _configManager.LoadSettingsAsync();
+        var projectDto = settings.Projects.FirstOrDefault(p => p.Id == SelectedProject.Id);
+        if (projectDto is null) return;
+
+        var vm = ProjectDialogViewModel.FromDto(projectDto);
+        vm.DialogTitle = _localizer["ProjectDialogTitleEdit"];
+
+        var result = await _dialogService.ShowProjectDialogAsync(vm);
+        if (result is not { Saved: true }) return;
+
+        var idx = settings.Projects.FindIndex(p => p.Id == projectDto.Id);
+        if (idx >= 0)
+        {
+            result.Project.Id = projectDto.Id;
+            settings.Projects[idx] = result.Project;
+            await _configManager.SaveSettingsAsync(settings);
+
+            SelectedProject.Name = result.Project.Name;
+            SelectedProject.Color = result.Project.Color ?? "#3B82F6";
+            SelectedProject.Description = result.Project.Description ?? "";
+        }
+
+        ConfigurationChanged?.Invoke();
+    }
+
+    [RelayCommand]
+    private async Task DeleteProjectAsync(CancellationToken cancellationToken)
+    {
+        if (SelectedProject is null) return;
+
+        var settings = await _configManager.LoadSettingsAsync();
+        var servers = await _configManager.LoadServersAsync();
+        var usageCount = servers.Count(s =>
+            string.Equals(s.ProjectId, SelectedProject.Id, StringComparison.Ordinal));
+
+        var message = usageCount > 0
+            ? _localizer.Format("ConfirmDeleteProjectInUse", usageCount)
+                + "\n" + _localizer.Format("ConfirmDeleteProjectMessage", SelectedProject.Name)
+            : _localizer.Format("ConfirmDeleteProjectMessage", SelectedProject.Name);
+
+        var confirmed = await _dialogService.ShowConfirmAsync(
+            _localizer["ConfirmDeleteProjectTitle"],
+            message,
+            "danger");
+
+        if (!confirmed) return;
+
+        settings.Projects.RemoveAll(p => p.Id == SelectedProject.Id);
+
+        // Unassign servers from the deleted project
+        foreach (var server in servers.Where(s =>
+            string.Equals(s.ProjectId, SelectedProject.Id, StringComparison.Ordinal)))
+        {
+            server.ProjectId = null;
+        }
+
+        await _configManager.SaveSettingsAsync(settings);
+        await _configManager.SaveServersAsync(servers);
+
+        Projects.Remove(SelectedProject);
+        SelectedProject = null;
+
+        ConfigurationChanged?.Invoke();
+    }
+
+    [RelayCommand]
+    private async Task AddExternalToolAsync(CancellationToken cancellationToken)
+    {
+        var name = await _dialogService.ShowInputAsync(
+            _localizer["ExternalToolDialogTitle"],
+            _localizer["ExternalToolPromptName"]);
+        if (string.IsNullOrWhiteSpace(name)) return;
+
+        var executablePath = await _dialogService.ShowInputAsync(
+            _localizer["ExternalToolDialogTitle"],
+            _localizer["ExternalToolPromptPath"]);
+        if (string.IsNullOrWhiteSpace(executablePath)) return;
+
+        var arguments = await _dialogService.ShowInputAsync(
+            _localizer["ExternalToolDialogTitle"],
+            _localizer["ExternalToolPromptArguments"],
+            "{Host} {Port} {User}");
+
+        ExternalTools.Add(new ExternalToolItemViewModel
+        {
+            Name = name,
+            ExecutablePath = executablePath,
+            Arguments = arguments ?? ""
+        });
+
+        IsDirty = true;
+    }
+
+    [RelayCommand]
+    private Task RemoveExternalToolAsync(CancellationToken cancellationToken)
+    {
+        if (SelectedExternalTool is null) return Task.CompletedTask;
+
+        ExternalTools.Remove(SelectedExternalTool);
+        SelectedExternalTool = null;
+        IsDirty = true;
+        return Task.CompletedTask;
     }
 
     partial void OnDefaultThemeChanged(string value)

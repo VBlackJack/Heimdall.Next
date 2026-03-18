@@ -14,11 +14,14 @@
  * limitations under the License.
  */
 
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
+using Heimdall.App.Services;
 using Heimdall.App.Theming;
 using Heimdall.App.ViewModels;
 
@@ -33,6 +36,7 @@ public partial class MainWindow : Window
     private object? _treeContextTarget;
     private bool _treeContextTargetFromPointer;
     private bool _treeContextPointerHitEmptyArea;
+    private EphemeralFileServer? _fileServer;
 
     public MainWindow(MainViewModel viewModel)
     {
@@ -133,16 +137,19 @@ public partial class MainWindow : Window
         Mw_AddMenuGateway.Header = vm.Localize("AddMenuGateway");
         Mw_AddMenuFolder.Header = vm.Localize("AddMenuFolder");
 
+        // Share folder button
+        Mw_ShareFolderLabel.Text = vm.Localize("ToolsShareFolder");
+
         // Server detail panel
         Mw_DetailGroupLabel.Text = vm.Localize("DetailLabelGroup");
         Mw_DetailEnvLabel.Text = vm.Localize("DetailLabelEnvironment");
         Mw_DetailConnectBtn.Content = vm.Localize("DetailBtnConnect");
 
         // Empty state (no servers)
-        Mw_EmptyNoServers.Text = vm.Localize("EmptyStateNoServers");
-        Mw_EmptyAddHint.Text = vm.Localize("EmptyStateAddHint");
-        Mw_EmptyAddServerBtn.Content = vm.Localize("EmptyStateAddServerButton");
-        Mw_EmptyImportBtn.Content = vm.Localize("EmptyStateImportButton");
+        Mw_EmptyStateTitle.Text = vm.Localize("EmptyStateTitle");
+        Mw_EmptyStateSubtitle.Text = vm.Localize("EmptyStateSubtitle");
+        Mw_EmptyBtnAddServer.Content = vm.Localize("EmptyStateBtnAddServer");
+        Mw_EmptyBtnImport.Content = vm.Localize("EmptyStateBtnImport");
         Mw_EmptySelectServer.Text = vm.Localize("EmptyStateSelectServer");
 
         // Tunnel bottom panel
@@ -203,6 +210,7 @@ public partial class MainWindow : Window
         Mw_ScheduledCreateBtn.Content = vm.Localize("ScheduledEmptyAddButton");
 
         // Scheduled columns
+        Mw_ScheduledColEnabled.Header = vm.Localize("ScheduledColEnabled");
         Mw_ScheduledColServer.Header = vm.Localize("ScheduledColServer");
         Mw_ScheduledColType.Header = vm.Localize("ScheduledColType");
         Mw_ScheduledColSchedule.Header = vm.Localize("ScheduledColSchedule");
@@ -222,11 +230,44 @@ public partial class MainWindow : Window
         Mw_SettingsAntiIdleLabel.Text = vm.Localize("SettingsLabelAntiIdleInterval");
         Mw_SettingsMaxSessionsLabel.Text = vm.Localize("SettingsLabelMaxEmbeddedSessions");
 
+        // Settings - Terminal appearance section
+        Mw_SettingsTerminalTitle.Text = vm.Localize("SettingsSectionTerminal");
+        Mw_SettingsTerminalFontLabel.Text = vm.Localize("SettingsLabelTerminalFont");
+        Mw_SettingsTerminalFontSizeLabel.Text = vm.Localize("SettingsLabelTerminalFontSize");
+        Mw_SettingsTerminalColorSchemeLabel.Text = vm.Localize("SettingsLabelTerminalColorScheme");
+
+        // Settings - RDP defaults section
+        Mw_SettingsRdpDefaultsTitle.Text = vm.Localize("SettingsSectionRdpDefaults");
+        Mw_SettingsRdpWidthLabel.Text = vm.Localize("SettingsLabelRdpWidth");
+        Mw_SettingsRdpHeightLabel.Text = vm.Localize("SettingsLabelRdpHeight");
+
+        // Settings - Session logging section
+        Mw_SettingsSessionLoggingTitle.Text = vm.Localize("SettingsSectionSessionLogging");
+        Mw_SettingsSessionLoggingEnabled.Content = vm.Localize("SettingsLabelSessionLoggingEnabled");
+        Mw_SettingsSessionLogDirLabel.Text = vm.Localize("SettingsLabelSessionLogDirectory");
+
+        // Settings - External credential provider section
+        Mw_SettingsCredProviderTitle.Text = vm.Localize("SettingsSectionCredentialProvider");
+        Mw_SettingsCredProviderEnabled.Content = vm.Localize("SettingsLabelCredProviderEnabled");
+        Mw_SettingsCredProviderCmdLabel.Text = vm.Localize("SettingsLabelCredProviderCommand");
+        Mw_SettingsCredProviderDbLabel.Text = vm.Localize("SettingsLabelCredProviderDatabase");
+
+        // Settings - External tools section
+        Mw_SettingsExtToolsTitle.Text = vm.Localize("SettingsSectionExternalToolsList");
+        Mw_SettingsExtToolsAddBtn.Content = vm.Localize("BtnAdd");
+        Mw_SettingsExtToolsRemoveBtn.Content = vm.Localize("BtnRemove");
+
         // Settings - SSH Gateways section
         Mw_SettingsGatewaysTitle.Text = vm.Localize("GatewaysSectionTitle");
         Mw_SettingsGatewaysAddBtn.Content = vm.Localize("GatewaysBtnAdd");
         Mw_SettingsGatewaysEditBtn.Content = vm.Localize("GatewaysBtnEdit");
         Mw_SettingsGatewaysDeleteBtn.Content = vm.Localize("GatewaysBtnDelete");
+
+        // Settings - Projects section
+        Mw_SettingsProjectsTitle.Text = vm.Localize("SettingsSectionProjects");
+        Mw_SettingsProjectsAddBtn.Content = vm.Localize("BtnAddProject");
+        Mw_SettingsProjectsEditBtn.Content = vm.Localize("BtnEditProject");
+        Mw_SettingsProjectsDeleteBtn.Content = vm.Localize("BtnDeleteProject");
 
         // Settings - Save / Reset / Import / Export
         Mw_SettingsSaveBtn.Content = vm.Localize("SettingsBtnSaveSettings");
@@ -392,6 +433,16 @@ public partial class MainWindow : Window
                 e.Handled = true;
                 break;
 
+            case Key.S when Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift):
+                CaptureActiveSessionScreenshot(vm);
+                e.Handled = true;
+                break;
+
+            case Key.N when Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift):
+                _ = LaunchNetworkScannerAsync(vm);
+                e.Handled = true;
+                break;
+
             case Key.F11:
                 ToggleFullscreen();
                 e.Handled = true;
@@ -401,6 +452,122 @@ public partial class MainWindow : Window
                 ToggleFullscreen();
                 e.Handled = true;
                 break;
+        }
+    }
+
+    /// <summary>
+    /// Captures the active session tab content as an image and copies it to the clipboard.
+    /// </summary>
+    private void CaptureActiveSessionScreenshot(MainViewModel vm)
+    {
+        try
+        {
+            var session = vm.Connection.ActiveSession;
+            if (session?.HostControl is not UIElement element)
+            {
+                return;
+            }
+
+            var bounds = new System.Windows.Size(element.RenderSize.Width, element.RenderSize.Height);
+            if (bounds.Width <= 0 || bounds.Height <= 0)
+            {
+                return;
+            }
+
+            var dpi = VisualTreeHelper.GetDpi(element);
+            var bitmap = new RenderTargetBitmap(
+                (int)(bounds.Width * dpi.DpiScaleX),
+                (int)(bounds.Height * dpi.DpiScaleY),
+                dpi.PixelsPerInchX,
+                dpi.PixelsPerInchY,
+                PixelFormats.Pbgra32);
+
+            bitmap.Render(element);
+            Clipboard.SetImage(bitmap);
+            vm.StatusText = vm.Localize("ScreenshotCaptured");
+        }
+        catch
+        {
+            vm.StatusText = vm.Localize("ScreenshotFailed");
+        }
+    }
+
+    private async Task LaunchNetworkScannerAsync(MainViewModel vm)
+    {
+        var cidr = await vm.DialogService.ShowInputAsync(
+            vm.Localize("NetworkScannerTitle"),
+            vm.Localize("NetworkScannerCidrPrompt"),
+            "192.168.1.0/24");
+
+        if (string.IsNullOrWhiteSpace(cidr)) return;
+
+        vm.StatusText = string.Format(vm.Localize("NetworkScannerScanning"), cidr, 0, "...");
+
+        try
+        {
+            var results = await Core.Security.NetworkScanner.ScanSubnetAsync(
+                cidr,
+                (done, total) => Dispatcher.InvokeAsync(() =>
+                    vm.StatusText = string.Format(
+                        vm.Localize("NetworkScannerScanning"), cidr, done, total)));
+
+            if (results.Count == 0)
+            {
+                vm.StatusText = string.Format(vm.Localize("NetworkScannerNoHosts"), cidr);
+                return;
+            }
+
+            vm.StatusText = string.Format(vm.Localize("NetworkScannerComplete"), results.Count);
+
+            // Build a summary and offer to add discovered hosts
+            var summary = string.Join("\n", results.Select(r =>
+            {
+                var ports = r.OpenPorts.Count > 0 ? string.Join(", ", r.OpenPorts) : "-";
+                var host = r.Hostname ?? r.IpAddress;
+                return $"{r.IpAddress}  {host}  [{ports}]  {r.RoundtripMs}ms";
+            }));
+
+            var addServers = await vm.DialogService.ShowConfirmAsync(
+                string.Format(vm.Localize("NetworkScannerComplete"), results.Count),
+                summary + "\n\n" + vm.Localize("NetworkScannerAddServer"),
+                "info");
+
+            if (addServers)
+            {
+                var existingServers = await vm.ConfigManager.LoadServersAsync();
+
+                foreach (var result in results)
+                {
+                    var connType = result.OpenPorts.Contains(3389) ? "RDP"
+                        : result.OpenPorts.Contains(22) ? "SSH"
+                        : result.OpenPorts.Contains(5900) ? "VNC"
+                        : "SSH";
+                    var port = connType switch
+                    {
+                        "RDP" => 3389,
+                        "VNC" => 5900,
+                        _ => 22
+                    };
+
+                    existingServers.Add(new Core.Configuration.ServerProfileDto
+                    {
+                        Id = Guid.NewGuid().ToString(),
+                        DisplayName = result.Hostname ?? result.IpAddress,
+                        RemoteServer = result.IpAddress,
+                        RemotePort = port,
+                        ConnectionType = connType,
+                        Group = "Discovered"
+                    });
+                }
+
+                await vm.ConfigManager.SaveServersAsync(existingServers);
+                // Reload the full configuration to refresh the TreeView
+                await vm.ReloadConfigurationAsync(await vm.ConfigManager.LoadSettingsAsync());
+            }
+        }
+        catch (Exception ex)
+        {
+            vm.StatusText = string.Format(vm.Localize("NetworkScannerError"), ex.Message);
         }
     }
 
@@ -620,6 +787,29 @@ public partial class MainWindow : Window
             vm.ServerList.CopyUsernameCommand,
             server,
             !string.IsNullOrWhiteSpace(server.Username)));
+
+        // Wake-on-LAN (only shown when MAC address is configured)
+        if (Core.Security.WakeOnLan.IsValidMac(server.MacAddress))
+        {
+            var wolItem = new MenuItem { Header = vm.Localize("TreeCtxWakeOnLan") };
+            wolItem.Click += async (_, _) =>
+            {
+                var sent = await Core.Security.WakeOnLan.SendAsync(server.MacAddress);
+                vm.StatusText = sent
+                    ? vm.Localize("WolSent")
+                    : vm.Localize("WolFailed");
+            };
+            menu.Items.Add(wolItem);
+        }
+
+        // External tools submenu
+        var externalToolsMenu = CreateExternalToolsMenu(vm, server);
+        if (externalToolsMenu is not null)
+        {
+            menu.Items.Add(new Separator());
+            menu.Items.Add(externalToolsMenu);
+        }
+
         menu.Items.Add(new Separator());
         menu.Items.Add(CreateMenuItem(
             vm.Localize("TreeCtxDelete"),
@@ -627,6 +817,77 @@ public partial class MainWindow : Window
             server));
 
         return menu;
+    }
+
+    /// <summary>
+    /// Builds the "External Tools" submenu for a server context menu.
+    /// Returns null if no external tools are configured.
+    /// </summary>
+    private MenuItem? CreateExternalToolsMenu(MainViewModel vm, ServerItemViewModel server)
+    {
+        var tools = vm.CurrentSettings?.ExternalTools;
+        if (tools is null || tools.Count == 0)
+        {
+            return null;
+        }
+
+        var submenu = new MenuItem
+        {
+            Header = vm.Localize("TreeCtxExternalTools")
+        };
+
+        foreach (var tool in tools)
+        {
+            var toolItem = new MenuItem
+            {
+                Header = tool.Name
+            };
+
+            // Capture for closure
+            var capturedTool = tool;
+            toolItem.Click += (_, _) => LaunchExternalTool(vm, capturedTool, server);
+            submenu.Items.Add(toolItem);
+        }
+
+        return submenu;
+    }
+
+    /// <summary>
+    /// Launches an external tool in a visible console window with variable placeholders resolved.
+    /// </summary>
+    private static void LaunchExternalTool(
+        MainViewModel vm,
+        Core.Configuration.ExternalToolDefinition tool,
+        ServerItemViewModel server)
+    {
+        try
+        {
+            var arguments = tool.ResolveArguments(
+                server.RemoteServer,
+                server.RemotePort,
+                server.Username);
+
+            var psi = new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = tool.ExecutablePath,
+                Arguments = arguments,
+                UseShellExecute = true
+            };
+
+            System.Diagnostics.Process.Start(psi);
+
+            Core.Logging.FileLogger.Info(
+                $"External tool launched: {tool.ExecutablePath} {arguments}");
+        }
+        catch (Exception ex)
+        {
+            Core.Logging.FileLogger.Error($"External tool launch failed: {tool.Name}", ex);
+            MessageBox.Show(
+                string.Format(vm.Localize("ExternalToolLaunchError"), tool.Name, ex.Message),
+                "Heimdall",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+        }
     }
 
     /// <summary>
@@ -932,6 +1193,12 @@ public partial class MainWindow : Window
 
     private void OnTabDragStart(object sender, MouseButtonEventArgs e)
     {
+        _tabDragItem = null;
+
+        // Do not initiate drag when clicking the close button
+        if (FindAncestor<Button>(e.OriginalSource as DependencyObject) is not null)
+            return;
+
         _tabDragStartPoint = e.GetPosition(SessionTabControl);
         var tabItem = FindAncestor<System.Windows.Controls.TabItem>(e.OriginalSource as DependencyObject);
         _tabDragItem = tabItem?.DataContext as SessionTabViewModel;
@@ -948,10 +1215,31 @@ public partial class MainWindow : Window
         if (Math.Abs(diff.X) > SystemParameters.MinimumHorizontalDragDistance ||
             Math.Abs(diff.Y) > SystemParameters.MinimumVerticalDragDistance)
         {
-            var data = new System.Windows.DataObject("SessionTab", _tabDragItem);
-            DragDrop.DoDragDrop(SessionTabControl, data, System.Windows.DragDropEffects.Move);
+            var draggedSession = _tabDragItem;
+            var data = new System.Windows.DataObject("SessionTab", draggedSession);
+            var result = DragDrop.DoDragDrop(SessionTabControl, data, System.Windows.DragDropEffects.Move);
             _tabDragItem = null;
+
+            // If the drop landed outside the TabControl (no target accepted it),
+            // detach the tab to a floating window
+            if (result == System.Windows.DragDropEffects.None && draggedSession is not null)
+            {
+                DetachSessionToFloatingWindow(draggedSession);
+            }
         }
+    }
+
+    private void OnTabDragOver(object sender, System.Windows.DragEventArgs e)
+    {
+        if (e.Data.GetDataPresent("SessionTab"))
+        {
+            e.Effects = System.Windows.DragDropEffects.Move;
+        }
+        else
+        {
+            e.Effects = System.Windows.DragDropEffects.None;
+        }
+        e.Handled = true;
     }
 
     private void OnTabDrop(object sender, System.Windows.DragEventArgs e)
@@ -1006,17 +1294,65 @@ public partial class MainWindow : Window
         return null;
     }
 
+    // ── Tab detachment ─────────────────────────────────────────────────
+
+    /// <summary>
+    /// Detaches a session tab from the main window into a standalone floating window.
+    /// The host control is removed from the TabControl and re-parented to the new window.
+    /// </summary>
+    private void DetachSessionToFloatingWindow(SessionTabViewModel session)
+    {
+        if (DataContext is not MainViewModel vm) return;
+        if (!vm.Connection.ActiveSessions.Contains(session)) return;
+
+        // Detach the host control from the tab (UIElement single-parent rule)
+        var hostControl = session.HostControl;
+        session.HostControl = null;
+
+        // Remove the session from the main window's collection
+        vm.Connection.ActiveSessions.Remove(session);
+        if (vm.Connection.ActiveSession == session)
+        {
+            vm.Connection.ActiveSession = vm.Connection.ActiveSessions.LastOrDefault();
+        }
+        vm.Connection.HasActiveSessions = vm.Connection.ActiveSessions.Count > 0;
+
+        // Re-assign the host control so the floating window can pick it up
+        session.HostControl = hostControl;
+
+        // Spawn the floating window
+        var localizer = vm.GetLocalizer();
+        var floatingWindow = new Views.FloatingSessionWindow(session, localizer)
+        {
+            Owner = null // Independent top-level window
+        };
+        floatingWindow.Show();
+
+        Heimdall.Core.Logging.FileLogger.Info(
+            string.Format(localizer["LogSessionDetached"], session.Title));
+    }
+
     // ── Session tab context menu handlers ──────────────────────────────
 
     private void OnSessionTabRightClick(object sender, MouseButtonEventArgs e)
     {
         if (DataContext is not MainViewModel vm) return;
-        var session = vm.Connection.ActiveSession;
+
+        // Resolve the tab that was actually right-clicked by walking the visual tree
+        var clickSource = e.OriginalSource as DependencyObject;
+        var clickedTabItem = FindAncestor<TabItem>(clickSource);
+        var session = clickedTabItem?.DataContext as SessionTabViewModel
+                      ?? vm.Connection.ActiveSession;
         if (session is null) return;
+
+        // Select the right-clicked tab so it becomes active
+        if (clickedTabItem is not null)
+        {
+            vm.Connection.ActiveSession = session;
+        }
 
         // SFTP, local file browser, and their ListViews have their own context menus.
         // Check the visual tree source to avoid overriding them.
-        var clickSource = e.OriginalSource as DependencyObject;
         if (clickSource is not null)
         {
             // Check for any ancestor that has its own context menu
@@ -1062,10 +1398,16 @@ public partial class MainWindow : Window
         var duplicateItem = new System.Windows.Controls.MenuItem { Header = vm.Localize("SessionDuplicateTab") };
         duplicateItem.Click += async (_, _) =>
         {
-            if (!string.IsNullOrEmpty(session.ServerId) && vm.ServerList.ConnectCommand is not null)
+            // Use OriginalServerId for inventory lookup; fall back to ServerId for
+            // sessions that predate the split (e.g. ad-hoc connections)
+            var lookupId = !string.IsNullOrEmpty(session.OriginalServerId)
+                ? session.OriginalServerId
+                : session.ServerId;
+
+            if (!string.IsNullOrEmpty(lookupId) && vm.ServerList.ConnectCommand is not null)
             {
                 var serverVm = vm.ServerList.Servers.FirstOrDefault(
-                    s => string.Equals(s.Id, session.ServerId, StringComparison.Ordinal));
+                    s => string.Equals(s.Id, lookupId, StringComparison.Ordinal));
                 if (serverVm is not null)
                 {
                     vm.ServerList.ConnectCommand.Execute(serverVm);
@@ -1073,6 +1415,133 @@ public partial class MainWindow : Window
             }
         };
         menu.Items.Add(duplicateItem);
+
+        // Detach to floating window
+        if (!session.IsSplit)
+        {
+            var detachItem = new System.Windows.Controls.MenuItem { Header = vm.Localize("SessionCtxDetach") };
+            detachItem.Click += (_, _) => DetachSessionToFloatingWindow(session);
+            menu.Items.Add(detachItem);
+        }
+
+        // Transcript toggle for SSH sessions
+        if (session.HostControl is Views.EmbeddedSshView sshView)
+        {
+            var isRecording = sshView.IsTranscriptActive;
+            var transcriptItem = new System.Windows.Controls.MenuItem
+            {
+                Header = isRecording
+                    ? vm.Localize("SessionStopTranscript")
+                    : vm.Localize("SessionStartTranscript")
+            };
+            transcriptItem.Click += (_, _) =>
+            {
+                if (sshView.IsTranscriptActive)
+                {
+                    sshView.StopTranscript();
+                    vm.StatusText = vm.Localize("SessionTranscriptStopped");
+                }
+                else
+                {
+                    var logDir = vm.CurrentSettings?.SessionLogDirectory ?? @"logs\sessions";
+                    if (!System.IO.Path.IsPathRooted(logDir))
+                    {
+                        logDir = System.IO.Path.Combine(AppContext.BaseDirectory, logDir);
+                    }
+
+                    var invalidChars = System.IO.Path.GetInvalidFileNameChars();
+                    var serverName = string.Concat(
+                        session.Title.Select(c => Array.IndexOf(invalidChars, c) >= 0 ? '_' : c));
+                    var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+                    var logFile = System.IO.Path.Combine(logDir, $"transcript_{serverName}_{timestamp}.log");
+
+                    sshView.StartTranscript(logFile);
+                    vm.StatusText = string.Format(vm.Localize("SessionTranscriptStarted"), logFile);
+                }
+            };
+            menu.Items.Add(transcriptItem);
+
+            // Macro recording toggle
+            var isMacroRecording = sshView.IsRecordingMacro;
+            var macroRecordItem = new System.Windows.Controls.MenuItem
+            {
+                Header = isMacroRecording
+                    ? vm.Localize("MacroStopRecording")
+                    : vm.Localize("MacroStartRecording")
+            };
+            macroRecordItem.Click += async (_, _) =>
+            {
+                if (sshView.IsRecordingMacro)
+                {
+                    var entries = sshView.StopRecording();
+                    if (entries.Count > 0)
+                    {
+                        var name = await vm.DialogService.ShowInputAsync(
+                            vm.Localize("MacroNameTitle"),
+                            vm.Localize("MacroNamePrompt"));
+
+                        if (!string.IsNullOrWhiteSpace(name))
+                        {
+                            var macro = new Heimdall.Core.Models.TerminalMacro
+                            {
+                                Name = name,
+                                Entries = entries
+                            };
+                            Services.MacroService.SaveMacro(macro);
+                            vm.StatusText = string.Format(vm.Localize("MacroRecordingStopped"), name);
+                        }
+                    }
+                }
+                else
+                {
+                    sshView.StartRecording();
+                    vm.StatusText = vm.Localize("MacroRecordingStarted");
+                }
+            };
+            menu.Items.Add(macroRecordItem);
+
+            // Play macro submenu
+            var playMenu = new System.Windows.Controls.MenuItem
+            {
+                Header = vm.Localize("MacroPlaySubmenu")
+            };
+
+            var macros = Services.MacroService.LoadMacros();
+            if (macros.Count == 0)
+            {
+                var emptyItem = new System.Windows.Controls.MenuItem
+                {
+                    Header = vm.Localize("MacroNoMacros"),
+                    IsEnabled = false
+                };
+                playMenu.Items.Add(emptyItem);
+            }
+            else
+            {
+                foreach (var macro in macros)
+                {
+                    var macroItem = new System.Windows.Controls.MenuItem { Header = macro.Name, Tag = macro };
+                    macroItem.Click += async (s, _) =>
+                    {
+                        if (s is System.Windows.Controls.MenuItem { Tag: Heimdall.Core.Models.TerminalMacro m })
+                        {
+                            vm.StatusText = string.Format(vm.Localize("MacroPlaying"), m.Name);
+                            try
+                            {
+                                await sshView.PlayMacro(m, CancellationToken.None);
+                            }
+                            catch (Exception ex)
+                            {
+                                Heimdall.Core.Logging.FileLogger.Warn(
+                                    $"Macro playback failed: {ex.Message}");
+                            }
+                        }
+                    };
+                    playMenu.Items.Add(macroItem);
+                }
+            }
+            menu.Items.Add(playMenu);
+        }
 
         var closeItem = new System.Windows.Controls.MenuItem { Header = vm.Localize("SessionCloseSession") };
         closeItem.Click += (_, _) => vm.Connection.CloseSessionCommand.Execute(session);
@@ -1138,11 +1607,21 @@ public partial class MainWindow : Window
                 };
                 item.Click += (_, _) =>
                 {
-                    // Move the open session's host control to the secondary pane
-                    vm.Connection.ActiveSessions.Remove(openSession);
+                    // Move the open session's host control to the secondary pane,
+                    // preserving ALL original metadata for proper unsplit restoration
                     session.SecondaryHostControl = openSession.HostControl;
                     session.SecondaryServerId = openSession.ServerId;
+                    session.SecondaryOriginalServerId = openSession.OriginalServerId;
                     session.SecondaryConnectionType = openSession.ConnectionType;
+                    session.SecondaryTitle = openSession.Title;
+                    session.SecondaryStatus = openSession.Status;
+                    session.SecondaryTunnelRoute = openSession.TunnelRoute;
+                    session.SecondaryEnvironmentColor = openSession.EnvironmentColor;
+
+                    // Detach the host control from the source tab before removing it
+                    openSession.HostControl = null;
+                    vm.Connection.ActiveSessions.Remove(openSession);
+
                     session.SplitOrientation = orientation;
                     session.IsSplit = true;
                     vm.Connection.HasActiveSessions = vm.Connection.ActiveSessions.Count > 0;
@@ -1212,25 +1691,44 @@ public partial class MainWindow : Window
         if (!session.IsSplit) return;
         if (DataContext is not MainViewModel vm) return;
 
+        // Capture all secondary metadata before clearing
         var secondaryControl = session.SecondaryHostControl;
         var secondaryServerId = session.SecondaryServerId;
+        var secondaryOriginalServerId = session.SecondaryOriginalServerId;
         var secondaryType = session.SecondaryConnectionType;
+        var secondaryTitle = session.SecondaryTitle;
+        var secondaryStatus = session.SecondaryStatus;
+        var secondaryTunnelRoute = session.SecondaryTunnelRoute;
+        var secondaryEnvironmentColor = session.SecondaryEnvironmentColor;
 
-        // Remove from split
+        // Clear split state
         session.SecondaryHostControl = null;
         session.SecondaryServerId = "";
+        session.SecondaryOriginalServerId = "";
         session.SecondaryConnectionType = "";
+        session.SecondaryTitle = "";
+        session.SecondaryStatus = "";
+        session.SecondaryTunnelRoute = "";
+        session.SecondaryEnvironmentColor = "";
         session.IsSplit = false;
 
-        // Restore as independent tab (instead of disposing)
+        // Restore as independent tab with original metadata (not synthetic values)
         if (secondaryControl is not null && !string.IsNullOrEmpty(secondaryServerId))
         {
+            // Use the preserved original title, falling back to a generated one only if empty
+            var title = !string.IsNullOrEmpty(secondaryTitle)
+                ? secondaryTitle
+                : secondaryServerId;
+
             var restoredTab = vm.Connection.AddSession(
                 secondaryServerId,
-                $"Restored ({secondaryType})",
+                title,
                 secondaryType);
+            restoredTab.OriginalServerId = secondaryOriginalServerId;
             restoredTab.HostControl = secondaryControl;
-            restoredTab.Status = "Connected";
+            restoredTab.Status = !string.IsNullOrEmpty(secondaryStatus) ? secondaryStatus : "Connected";
+            restoredTab.TunnelRoute = secondaryTunnelRoute;
+            restoredTab.EnvironmentColor = secondaryEnvironmentColor;
         }
     }
 
@@ -1243,7 +1741,7 @@ public partial class MainWindow : Window
 
         var ratioName = menuItem.Tag?.ToString() ?? "Stretch";
         Heimdall.Core.Logging.FileLogger.Info($"Aspect ratio changed to {ratioName}");
-        // TODO: Apply aspect ratio to the embedded RDP session display
+        rdpView.UpdateAspectRatio(ratioName);
     }
 
     private bool _isFullscreen;
@@ -1465,5 +1963,98 @@ public partial class MainWindow : Window
     {
         if (DataContext is MainViewModel vm && vm.SelectedPaletteItem is not null)
             _ = vm.ConnectFromPaletteCommand.ExecuteAsync(vm.SelectedPaletteItem);
+    }
+
+    // ── Ephemeral File Server ─────────────────────────────────────────
+
+    private void OnShareFolderClick(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is not MainViewModel vm) return;
+
+        if (_fileServer is { IsHttpRunning: true } or { IsTftpRunning: true })
+        {
+            StopFileServer();
+            return;
+        }
+
+        using var dialog = new System.Windows.Forms.FolderBrowserDialog
+        {
+            ShowNewFolderButton = false
+        };
+
+        if (dialog.ShowDialog() != System.Windows.Forms.DialogResult.OK) return;
+
+        var directory = dialog.SelectedPath;
+        _fileServer = new EphemeralFileServer();
+
+        const int httpPort = 8080;
+        const int tftpPort = 69;
+
+        try
+        {
+            _fileServer.StartHttpServer(directory, httpPort);
+        }
+        catch (Exception ex)
+        {
+            Core.Logging.FileLogger.Error($"Failed to start HTTP server: {ex.Message}");
+        }
+
+        try
+        {
+            _fileServer.StartTftpServer(directory, tftpPort);
+        }
+        catch (Exception ex)
+        {
+            Core.Logging.FileLogger.Error($"Failed to start TFTP server: {ex.Message}");
+        }
+
+        if (!_fileServer.IsHttpRunning && !_fileServer.IsTftpRunning)
+        {
+            _fileServer.Dispose();
+            _fileServer = null;
+            return;
+        }
+
+        // Update UI to show Stop Sharing state
+        Mw_ShareFolderLabel.Text = vm.Localize("ToolsStopSharing");
+
+        var localIp = EphemeralFileServer.GetLocalIpAddress();
+        var folderName = System.IO.Path.GetFileName(directory);
+        var statusText = string.Format(vm.Localize("ToolsSharingActive"), folderName, httpPort, tftpPort);
+        Mw_SharingStatus.Text = $"{statusText} ({localIp})";
+        Mw_SharingStatus.Visibility = Visibility.Visible;
+
+        vm.StatusText = vm.Localize("ToolsSharingStarted");
+
+        _fileServer.FileServed += fileName =>
+        {
+            Dispatcher.Invoke(() =>
+            {
+                if (DataContext is MainViewModel mvm)
+                    mvm.StatusText = $"{vm.Localize("ToolsSharingStarted")} — {fileName}";
+            });
+        };
+    }
+
+    private void StopFileServer()
+    {
+        _fileServer?.Dispose();
+        _fileServer = null;
+
+        Mw_SharingStatus.Visibility = Visibility.Collapsed;
+        Mw_SharingStatus.Text = string.Empty;
+
+        if (DataContext is MainViewModel vm)
+        {
+            Mw_ShareFolderLabel.Text = vm.Localize("ToolsShareFolder");
+            vm.StatusText = vm.Localize("ToolsSharingStopped");
+        }
+    }
+
+    /// <inheritdoc />
+    protected override void OnClosed(EventArgs e)
+    {
+        StopFileServer();
+        base.OnClosed(e);
     }
 }

@@ -15,13 +15,18 @@
  */
 
 using System.Collections.Concurrent;
+using System.Collections.Frozen;
+using System.Diagnostics;
 using System.IO;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using Heimdall.App.Services;
 using Heimdall.App.ViewModels;
+using Heimdall.Core.Configuration;
+using Heimdall.Core.Models;
 using Heimdall.Ssh;
 using Microsoft.Web.WebView2.Core;
 
@@ -43,14 +48,142 @@ public partial class EmbeddedSshView : UserControl, IDisposable
 
     private static readonly byte[] KeepAliveCr = [0x0D];
 
-    private readonly ConcurrentQueue<string> _pendingTerminalMessages = new();
+    /// <summary>
+    /// Maps color scheme names to xterm.js theme JSON object literals.
+    /// Keys must match the values stored in <see cref="AppSettings.TerminalColorScheme"/>.
+    /// </summary>
+    private static readonly FrozenDictionary<string, string> ColorSchemes =
+        new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["Dracula"] = """
+                {
+                    background: '#282A36',
+                    foreground: '#F8F8F2',
+                    cursor: '#BD93F9',
+                    cursorAccent: '#282A36',
+                    selectionBackground: 'rgba(68, 71, 90, 0.7)',
+                    selectionForeground: '#F8F8F2',
+                    black: '#21222C',
+                    red: '#FF5555',
+                    green: '#50FA7B',
+                    yellow: '#F1FA8C',
+                    blue: '#BD93F9',
+                    magenta: '#FF79C6',
+                    cyan: '#8BE9FD',
+                    white: '#F8F8F2',
+                    brightBlack: '#6272A4',
+                    brightRed: '#FF6E6E',
+                    brightGreen: '#69FF94',
+                    brightYellow: '#FFFFA5',
+                    brightBlue: '#D6ACFF',
+                    brightMagenta: '#FF92DF',
+                    brightCyan: '#A4FFFF',
+                    brightWhite: '#FFFFFF'
+                }
+                """,
+            ["Solarized Dark"] = """
+                {
+                    background: '#002B36',
+                    foreground: '#839496',
+                    cursor: '#93A1A1',
+                    cursorAccent: '#002B36',
+                    selectionBackground: 'rgba(7, 54, 66, 0.7)',
+                    selectionForeground: '#93A1A1',
+                    black: '#073642',
+                    red: '#DC322F',
+                    green: '#859900',
+                    yellow: '#B58900',
+                    blue: '#268BD2',
+                    magenta: '#D33682',
+                    cyan: '#2AA198',
+                    white: '#EEE8D5',
+                    brightBlack: '#586E75',
+                    brightRed: '#CB4B16',
+                    brightGreen: '#586E75',
+                    brightYellow: '#657B83',
+                    brightBlue: '#839496',
+                    brightMagenta: '#6C71C4',
+                    brightCyan: '#93A1A1',
+                    brightWhite: '#FDF6E3'
+                }
+                """,
+            ["Monokai"] = """
+                {
+                    background: '#272822',
+                    foreground: '#F8F8F2',
+                    cursor: '#F8F8F0',
+                    cursorAccent: '#272822',
+                    selectionBackground: 'rgba(73, 72, 62, 0.7)',
+                    selectionForeground: '#F8F8F2',
+                    black: '#272822',
+                    red: '#F92672',
+                    green: '#A6E22E',
+                    yellow: '#F4BF75',
+                    blue: '#66D9EF',
+                    magenta: '#AE81FF',
+                    cyan: '#A1EFE4',
+                    white: '#F8F8F2',
+                    brightBlack: '#75715E',
+                    brightRed: '#F92672',
+                    brightGreen: '#A6E22E',
+                    brightYellow: '#F4BF75',
+                    brightBlue: '#66D9EF',
+                    brightMagenta: '#AE81FF',
+                    brightCyan: '#A1EFE4',
+                    brightWhite: '#F9F8F5'
+                }
+                """,
+            ["Nord"] = """
+                {
+                    background: '#2E3440',
+                    foreground: '#D8DEE9',
+                    cursor: '#D8DEE9',
+                    cursorAccent: '#2E3440',
+                    selectionBackground: 'rgba(67, 76, 94, 0.7)',
+                    selectionForeground: '#ECEFF4',
+                    black: '#3B4252',
+                    red: '#BF616A',
+                    green: '#A3BE8C',
+                    yellow: '#EBCB8B',
+                    blue: '#81A1C1',
+                    magenta: '#B48EAD',
+                    cyan: '#88C0D0',
+                    white: '#E5E9F0',
+                    brightBlack: '#4C566A',
+                    brightRed: '#BF616A',
+                    brightGreen: '#A3BE8C',
+                    brightYellow: '#EBCB8B',
+                    brightBlue: '#81A1C1',
+                    brightMagenta: '#B48EAD',
+                    brightCyan: '#8FBCBB',
+                    brightWhite: '#ECEFF4'
+                }
+                """,
+            ["Default"] = "{}"
+        }.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
 
+    /// <summary>Regex to strip ANSI/VT escape sequences from terminal output for transcript logging.</summary>
+    private static readonly Regex AnsiEscapeRegex = new(
+        @"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~]|\].*?(?:\x07|\x1B\\))",
+        RegexOptions.Compiled);
+
+    private readonly ConcurrentQueue<string> _pendingTerminalMessages = new();
+    private readonly object _logLock = new();
+
+    private StreamWriter? _logStream;
+    private string? _logFilePath;
     private SshShellSession? _session;
     private Heimdall.Terminal.ITerminalSession? _terminalSession;
     private SessionTabViewModel? _sessionTab;
     private System.Threading.Timer? _keepAliveTimer;
     private Action<ReadOnlyMemory<byte>>? _terminalDataHandler;
     private Action<int>? _terminalExitHandler;
+    private Core.Localization.LocalizationManager? _localizer;
+    private ServerHealthMonitor? _healthMonitor;
+    private readonly List<MacroEntry> _macroEntries = [];
+    private readonly Stopwatch _macroStopwatch = new();
+
+    private bool _healthPanelVisible;
     private bool _disposed;
     private bool _webViewInitializationStarted;
     private bool _webViewInitialized;
@@ -58,6 +191,18 @@ public partial class EmbeddedSshView : UserControl, IDisposable
     private bool _webViewUnavailable;
     private bool _initialTerminalFocusApplied;
     private bool _sleepPreventionActive;
+    private bool _userInitiatedDisconnect;
+    private bool _isRecording;
+
+    /// <summary>Localizer for translating user-facing strings. Set by EmbeddedSessionManager.</summary>
+    public Core.Localization.LocalizationManager? Localizer
+    {
+        get => _localizer;
+        set => _localizer = value;
+    }
+
+    /// <summary>Terminal appearance settings (font, color scheme). Set by EmbeddedSessionManager before Loaded fires.</summary>
+    public AppSettings? TerminalSettings { get; set; }
 
     private bool IsSessionConnected =>
         (_session?.IsConnected ?? false) || (_terminalSession?.IsRunning ?? false);
@@ -111,6 +256,7 @@ public partial class EmbeddedSshView : UserControl, IDisposable
         _session = session;
         _sessionTab = sessionTab;
 
+        LocalizeButtons();
         SessionTitleText.Text = displayName;
         EndpointTextBlock.Text = endpoint;
         UpdateStatus("Connected");
@@ -142,6 +288,7 @@ public partial class EmbeddedSshView : UserControl, IDisposable
         _terminalSession = terminalSession;
         _sessionTab = sessionTab;
 
+        LocalizeButtons();
         SessionTitleText.Text = displayName;
         EndpointTextBlock.Text = "via Plink";
         UpdateStatus("Connected");
@@ -165,6 +312,8 @@ public partial class EmbeddedSshView : UserControl, IDisposable
 
         _disposed = true;
 
+        StopHealthMonitor();
+        StopTranscript();
         StopKeepAliveTimer();
         ReleaseSleepPrevention();
 
@@ -271,6 +420,7 @@ public partial class EmbeddedSshView : UserControl, IDisposable
 
         try
         {
+            _userInitiatedDisconnect = true;
             Core.Logging.FileLogger.Info("EmbeddedSSH Disconnect requested by user");
             UpdateStatus("Disconnected");
 
@@ -296,6 +446,97 @@ public partial class EmbeddedSshView : UserControl, IDisposable
         SplitRequested?.Invoke();
     }
 
+    private void OnHealthToggleClick(object sender, RoutedEventArgs e)
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _healthPanelVisible = !_healthPanelVisible;
+
+        if (_healthPanelVisible)
+        {
+            ShowHealthPanel();
+        }
+        else
+        {
+            HideHealthPanel();
+        }
+    }
+
+    private void ShowHealthPanel()
+    {
+        HealthPanel.Visibility = Visibility.Visible;
+        HealthColumnDef.Width = new GridLength(180);
+        LocalizeHealthLabels();
+
+        var client = _session?.Client;
+        if (client is null || !client.IsConnected)
+        {
+            Core.Logging.FileLogger.Warn(
+                "ServerHealthMonitor: no connected SSH client available for health monitoring");
+            return;
+        }
+
+        StopHealthMonitor();
+
+        _healthMonitor = new ServerHealthMonitor();
+        _healthMonitor.HealthUpdated += OnHealthDataReceived;
+        _ = _healthMonitor.StartAsync(client);
+
+        Core.Logging.FileLogger.Info("ServerHealthMonitor started");
+    }
+
+    private void HideHealthPanel()
+    {
+        HealthPanel.Visibility = Visibility.Collapsed;
+        HealthColumnDef.Width = new GridLength(0);
+        StopHealthMonitor();
+    }
+
+    private void StopHealthMonitor()
+    {
+        if (_healthMonitor is not null)
+        {
+            _healthMonitor.HealthUpdated -= OnHealthDataReceived;
+            _healthMonitor.Dispose();
+            _healthMonitor = null;
+            Core.Logging.FileLogger.Info("ServerHealthMonitor stopped");
+        }
+    }
+
+    private void OnHealthDataReceived(ServerHealthData data)
+    {
+        _ = Dispatcher.BeginInvoke(() =>
+        {
+            if (_disposed || !_healthPanelVisible)
+            {
+                return;
+            }
+
+            CpuProgressBar.Value = data.CpuPercent;
+            CpuPercentText.Text = $"{data.CpuPercent:F1}%";
+
+            double ramPercent = data.MemTotalMb > 0
+                ? (double)data.MemUsedMb / data.MemTotalMb * 100.0
+                : 0;
+            RamProgressBar.Value = ramPercent;
+            RamDetailText.Text = $"{data.MemUsedMb} / {data.MemTotalMb} MB";
+
+            DiskProgressBar.Value = data.DiskPercent;
+            DiskDetailText.Text = $"{data.DiskUsed} / {data.DiskTotal}";
+        });
+    }
+
+    private void LocalizeHealthLabels()
+    {
+        HealthCpuLabel.Text = L("HealthPanelCpu");
+        HealthRamLabel.Text = L("HealthPanelRam");
+        HealthDiskLabel.Text = L("HealthPanelDisk");
+        HealthToggleButton.ToolTip = L("HealthPanelToggle");
+    }
+
     private void OnReconnectClick(object sender, RoutedEventArgs e)
     {
         if (_disposed)
@@ -305,6 +546,33 @@ public partial class EmbeddedSshView : UserControl, IDisposable
 
         Core.Logging.FileLogger.Info("EmbeddedSSH Reconnect requested by user");
         ReconnectRequested?.Invoke();
+    }
+
+    private void OnOverlayReconnectClick(object sender, RoutedEventArgs e)
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        HideReconnectOverlay();
+        Core.Logging.FileLogger.Info("EmbeddedSSH Reconnect requested via overlay");
+        ReconnectRequested?.Invoke();
+    }
+
+    private void OnOverlayCloseClick(object sender, RoutedEventArgs e)
+    {
+        HideReconnectOverlay();
+    }
+
+    private void ShowReconnectOverlay()
+    {
+        ReconnectOverlay.Visibility = Visibility.Visible;
+    }
+
+    private void HideReconnectOverlay()
+    {
+        ReconnectOverlay.Visibility = Visibility.Collapsed;
     }
 
     private async Task InitializeWebView2Async()
@@ -503,8 +771,8 @@ public partial class EmbeddedSshView : UserControl, IDisposable
                         {
                             var proceed = System.Windows.MessageBox.Show(
                                 owner,
-                                "The clipboard contains a potentially dangerous command.\n\nPaste anyway?",
-                                "Paste Warning",
+                                L("PasteWarningMessage"),
+                                L("PasteWarningTitle"),
                                 MessageBoxButton.YesNo,
                                 MessageBoxImage.Warning);
 
@@ -518,8 +786,8 @@ public partial class EmbeddedSshView : UserControl, IDisposable
                             int lineCount = text.Split('\n').Length;
                             var proceed = System.Windows.MessageBox.Show(
                                 owner,
-                                $"Paste {lineCount} lines into terminal?\n\nMulti-line paste executes commands automatically.",
-                                "Multi-line Paste",
+                                string.Format(L("PasteMultiLineMessage"), lineCount),
+                                L("PasteMultiLineTitle"),
                                 MessageBoxButton.YesNo,
                                 MessageBoxImage.Question);
 
@@ -561,6 +829,8 @@ public partial class EmbeddedSshView : UserControl, IDisposable
             return;
         }
 
+        WriteToTranscript(data);
+
         var message = "data:" + Convert.ToBase64String(data);
         PostTerminalMessage(message);
     }
@@ -582,6 +852,11 @@ public partial class EmbeddedSshView : UserControl, IDisposable
 
             PostTerminalMessage("session-ended:");
             UpdateStatus("Disconnected");
+
+            if (!_userInitiatedDisconnect)
+            {
+                ShowReconnectOverlay();
+            }
         });
     }
 
@@ -620,6 +895,18 @@ public partial class EmbeddedSshView : UserControl, IDisposable
         if (_disposed || data.Length == 0)
         {
             return;
+        }
+
+        if (_isRecording)
+        {
+            var delayMs = (int)_macroStopwatch.ElapsedMilliseconds;
+            _macroStopwatch.Restart();
+
+            _macroEntries.Add(new MacroEntry
+            {
+                Input = Encoding.UTF8.GetString(data),
+                DelayMs = delayMs
+            });
         }
 
         if (_session is not null)
@@ -663,6 +950,99 @@ public partial class EmbeddedSshView : UserControl, IDisposable
         BroadcastBadge.Visibility = active
             ? Visibility.Visible
             : Visibility.Collapsed;
+
+        BroadcastBorder.BorderThickness = active
+            ? new Thickness(2)
+            : new Thickness(0);
+    }
+
+    /// <summary>Whether a transcript recording is currently active.</summary>
+    public bool IsTranscriptActive
+    {
+        get { lock (_logLock) { return _logStream is not null; } }
+    }
+
+    /// <summary>
+    /// Starts recording terminal output to a log file.
+    /// If a transcript is already active, it is stopped first.
+    /// </summary>
+    public void StartTranscript(string logFilePath)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(logFilePath);
+
+        lock (_logLock)
+        {
+            StopTranscriptInternal();
+
+            var dir = Path.GetDirectoryName(logFilePath);
+            if (!string.IsNullOrEmpty(dir))
+            {
+                Directory.CreateDirectory(dir);
+            }
+
+            _logStream = new StreamWriter(logFilePath, append: true, Encoding.UTF8)
+            {
+                AutoFlush = true
+            };
+            _logFilePath = logFilePath;
+
+            Core.Logging.FileLogger.Info($"Transcript started: {logFilePath}");
+        }
+    }
+
+    /// <summary>Stops the active transcript recording, if any.</summary>
+    public void StopTranscript()
+    {
+        lock (_logLock)
+        {
+            StopTranscriptInternal();
+        }
+    }
+
+    private void StopTranscriptInternal()
+    {
+        if (_logStream is not null)
+        {
+            try
+            {
+                _logStream.Flush();
+                _logStream.Dispose();
+            }
+            catch (Exception ex)
+            {
+                Core.Logging.FileLogger.Warn($"Transcript close error: {ex.Message}");
+            }
+
+            Core.Logging.FileLogger.Info($"Transcript stopped: {_logFilePath}");
+            _logStream = null;
+            _logFilePath = null;
+        }
+    }
+
+    /// <summary>Writes raw terminal data to the transcript file, stripping ANSI escape sequences.</summary>
+    private void WriteToTranscript(ReadOnlySpan<byte> data)
+    {
+        lock (_logLock)
+        {
+            if (_logStream is null)
+            {
+                return;
+            }
+
+            try
+            {
+                var text = Encoding.UTF8.GetString(data);
+                var clean = AnsiEscapeRegex.Replace(text, string.Empty);
+                if (clean.Length > 0)
+                {
+                    _logStream.Write(clean);
+                }
+            }
+            catch (Exception ex)
+            {
+                Core.Logging.FileLogger.Warn($"Transcript write error: {ex.Message}");
+            }
+        }
     }
 
     private void WriteToSession(string text)
@@ -680,6 +1060,70 @@ public partial class EmbeddedSshView : UserControl, IDisposable
         {
             _terminalSession?.Write(text);
         }
+    }
+
+    /// <summary>Whether a macro recording is currently in progress.</summary>
+    public bool IsRecordingMacro => _isRecording;
+
+    /// <summary>Clears any previous recording state and begins capturing terminal input.</summary>
+    public void StartRecording()
+    {
+        _macroEntries.Clear();
+        _macroStopwatch.Restart();
+        _isRecording = true;
+        Core.Logging.FileLogger.Info("Macro recording started");
+    }
+
+    /// <summary>
+    /// Stops recording and returns the captured entries.
+    /// Returns an empty list if recording was not active.
+    /// </summary>
+    public List<MacroEntry> StopRecording()
+    {
+        _isRecording = false;
+        _macroStopwatch.Stop();
+        Core.Logging.FileLogger.Info($"Macro recording stopped ({_macroEntries.Count} entries)");
+        return new List<MacroEntry>(_macroEntries);
+    }
+
+    /// <summary>
+    /// Replays a previously recorded macro by sending each entry to the terminal
+    /// with the recorded inter-input delays.
+    /// </summary>
+    public async Task PlayMacro(TerminalMacro macro, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(macro);
+
+        Core.Logging.FileLogger.Info($"Macro playback started: {macro.Name} ({macro.Entries.Count} entries)");
+
+        foreach (var entry in macro.Entries)
+        {
+            ct.ThrowIfCancellationRequested();
+
+            if (entry.DelayMs > 0)
+            {
+                await Task.Delay(entry.DelayMs, ct);
+            }
+
+            var bytes = Encoding.UTF8.GetBytes(entry.Input);
+            WriteToSession(bytes);
+        }
+
+        Core.Logging.FileLogger.Info($"Macro playback completed: {macro.Name}");
+    }
+
+    /// <summary>Resolves a locale key, falling back to the key name if no localizer is set.</summary>
+    private string L(string key) => _localizer?[key] ?? key;
+
+    private void LocalizeButtons()
+    {
+        if (_localizer is null) return;
+        DisconnectButton.Content = L("BtnDisconnectSession");
+        ReconnectButton.Content = L("BtnReconnectSession");
+        FallbackMessageText.Text = L("EmbeddedSshFallbackMessage");
+        OverlayReconnectButton.Content = L("BtnReconnectSession");
+        OverlayCloseButton.Content = L("BtnCloseOverlay");
+        ReconnectMessageText.Text = L("SshDisconnectedMessage");
     }
 
     private void PostTerminalMessage(string message)
@@ -867,7 +1311,7 @@ public partial class EmbeddedSshView : UserControl, IDisposable
             && rows > 0;
     }
 
-    private static string GetTerminalHtml()
+    private string GetTerminalHtml()
     {
         var html = ReadTerminalAsset("terminal.html");
 
@@ -880,7 +1324,46 @@ public partial class EmbeddedSshView : UserControl, IDisposable
                 StringComparison.Ordinal);
         }
 
+        // Inject terminal appearance settings from AppSettings
+        var fontFamily = TerminalSettings?.TerminalFontFamily ?? "Consolas";
+        var fontSize = TerminalSettings?.TerminalFontSize ?? 14;
+        var schemeName = TerminalSettings?.TerminalColorScheme ?? "Dracula";
+
+        if (!ColorSchemes.TryGetValue(schemeName, out var themeJson))
+        {
+            themeJson = ColorSchemes["Dracula"];
+        }
+
+        // Sanitize font family to prevent injection (allow alphanumeric, spaces, commas, quotes, hyphens)
+        var safeFontFamily = System.Text.RegularExpressions.Regex.Replace(
+            fontFamily, @"[^a-zA-Z0-9\s,'""\-]", "");
+
+        var safeFontSize = Math.Clamp(fontSize, 8, 28);
+
+        html = html.Replace("/*{{TERMINAL_FONT_FAMILY}}*/", safeFontFamily, StringComparison.Ordinal);
+        html = html.Replace("/*{{TERMINAL_FONT_SIZE}}*/", safeFontSize.ToString(), StringComparison.Ordinal);
+        html = html.Replace("/*{{TERMINAL_THEME}}*/", themeJson, StringComparison.Ordinal);
+
+        // Extract background color from the theme for CSS variables
+        var bgColor = ExtractThemeColor(themeJson, "background", "#282A36");
+        var fgColor = ExtractThemeColor(themeJson, "foreground", "#F8F8F2");
+        var cursorColor = ExtractThemeColor(themeJson, "cursor", "#BD93F9");
+        var selectionColor = ExtractThemeColor(themeJson, "selectionBackground", "rgba(68, 71, 90, 0.7)");
+
+        html = html.Replace("/*{{CSS_BG}}*/", bgColor, StringComparison.Ordinal);
+        html = html.Replace("/*{{CSS_FG}}*/", fgColor, StringComparison.Ordinal);
+        html = html.Replace("/*{{CSS_CURSOR}}*/", cursorColor, StringComparison.Ordinal);
+        html = html.Replace("/*{{CSS_SELECTION}}*/", selectionColor, StringComparison.Ordinal);
+
         return html;
+    }
+
+    /// <summary>Extracts a color value from the xterm.js theme JS object literal.</summary>
+    private static string ExtractThemeColor(string themeJson, string key, string fallback)
+    {
+        // Match pattern like: background: '#282A36' or background: 'rgba(...)'
+        var match = Regex.Match(themeJson, $@"{key}:\s*'([^']+)'");
+        return match.Success ? match.Groups[1].Value : fallback;
     }
 
     private static string ReadTerminalAsset(string relativePath)

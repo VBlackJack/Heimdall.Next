@@ -10,9 +10,9 @@
 
 # Heimdall.Next
 
-**The secure, all-in-one Windows connection manager for RDP, SSH, SFTP, Citrix, and local terminals.**
+**The secure, all-in-one Windows connection manager for RDP, SSH, SFTP, VNC, Telnet, FTP, Citrix, and local terminals.**
 
-Built with .NET 10 and WPF. Designed as a modern, high-performance alternative to MobaXterm with enterprise-grade security.
+Built with .NET 10 and WPF. Designed as a modern, high-performance alternative to MobaXterm and mRemoteNG with enterprise-grade security.
 
 <!-- Screenshot placeholder: ![Heimdall.Next](docs/screenshot.png) -->
 
@@ -20,8 +20,9 @@ Built with .NET 10 and WPF. Designed as a modern, high-performance alternative t
 
 ## Why Heimdall.Next?
 
-- **5 protocols, one interface** --- RDP, SSH, SFTP, Citrix, and local shell sessions in a single tabbed window
+- **8 protocols, one interface** --- RDP, SSH, SFTP, VNC, Telnet, FTP, Citrix, and local shell sessions in a single tabbed window
 - **Zero-trust credential storage** --- DPAPI encryption + HMAC-SHA256 integrity, PBKDF2 PIN protection, Windows ACL enforcement
+- **External vault integration** --- KeePassXC, Bitwarden CLI, 1Password CLI, or any command-line password manager
 - **Pageant-native** --- Direct IPC with PuTTY Pageant via shared memory (no agent forwarding hacks)
 - **Portable** --- Self-contained build with no installer required
 
@@ -33,17 +34,33 @@ Built with .NET 10 and WPF. Designed as a modern, high-performance alternative t
 - Embedded sessions via ActiveX MsTscAx in a tabbed interface
 - External sessions via mstsc.exe with credential autofill
 - Dynamic resolution resize with stabilization guard
-- Aspect ratio management and anti-idle prevention
+- Aspect ratio management (Stretch, 16:9, 4:3, 21:9) and anti-idle prevention
+- Full redirection surface: clipboard, drives, printers, COM ports, smart cards, webcam, USB, audio
 - Credential autofill for CredUI dialogs (EnumThreadWindows + UI Automation)
 
 ### SSH Terminal
 - Embedded terminal via WebView2 + xterm.js (full VT100/xterm rendering)
 - Pipe mode transport for correct arrow keys, colors, and escape sequences
-- Pageant agent integration (native Win32 IPC via shared memory)
+- Pageant agent integration (native Win32 IPC with identity count verification)
 - SSH keepalive heartbeat (prevents TMOUT disconnects)
-- TOFU host key verification with persistent fingerprint store (survives restarts)
+- TOFU host key verification with persistent fingerprint store
 - Multi-gateway tunnel chaining with circular dependency detection
+- Dynamic tunnel port allocation (no more port conflicts)
+- Tunnel ref-counting (shared tunnels survive individual session close)
+- Terminal resize via SSH window-change request
+- X11 forwarding with automatic X server detection and auto-start
 - 25 structured failure codes with localized error messages
+- Auto-reconnect overlay on unexpected disconnect
+
+### VNC
+- Embedded VNC viewer via noVNC + WebView2
+- WebSocket-to-TCP proxy for seamless integration
+- Clipboard sync, scaling modes, quality/compression settings
+
+### Telnet
+- Raw TCP Telnet with IAC negotiation
+- NAWS (window size) subnegotiation support
+- Rendered in the same xterm.js terminal as SSH
 
 ### SFTP Browser
 - Embedded file browser panel with directory tree and file list
@@ -52,14 +69,19 @@ Built with .NET 10 and WPF. Designed as a modern, high-performance alternative t
 - Drag-and-drop upload and download
 - Chmod dialog, path bookmarks, filename filter
 
+### FTP Browser
+- FTP client using built-in .NET (no external dependencies)
+- Reuses the full SFTP browser UI via `IRemoteBrowser` interface
+- Unix and DOS directory listing format support
+
 ### Citrix
 - StoreBrowse integration for published applications and desktops
-- StoreFront authentication and ICA file generation
+- SSO (Kerberos) authentication support
 - Embedded session tabs with the same UX as RDP
 
 ### Multi-Exec Broadcast
 - Send keystrokes simultaneously to multiple active SSH sessions
-- Per-session opt-in/opt-out broadcast control
+- Visual indicators: colored border and BROADCAST badge on receiving terminals
 
 ### Quick Connect (Ctrl+K)
 - Command palette for ad-hoc connections without saving a server profile
@@ -69,26 +91,66 @@ Built with .NET 10 and WPF. Designed as a modern, high-performance alternative t
 ### Tunnel Panel
 - Retractable side panel showing all active SSH tunnels
 - Real-time status, local port, remote target, and gateway chain display
-- Manual tunnel teardown without disconnecting the parent session
+- Tunnel chain visualization in session tab headers (via GatewayA -> GatewayB)
+- Dynamic port allocation with ref-counting for shared tunnels
+
+### Server Health Monitoring
+- Collapsible sidebar panel showing CPU, RAM, and Disk usage
+- Multiplexed SSH channel (doesn't interfere with the terminal session)
+- Polls `top`, `free`, `df` every 5 seconds with progress bars
+
+### Macro Recorder
+- Record terminal input with timing between keystrokes
+- Save macros to JSON files, replay with original delays
+- Accessible from session context menu
+
+### Network Scanner
+- ICMP ping sweep on CIDR subnets (Ctrl+Shift+N)
+- TCP port probe on responsive hosts (SSH, RDP, VNC, HTTP, HTTPS)
+- One-click "Add to Servers" for discovered hosts with auto-detected connection type
+
+### Scheduled Tasks
+- Daily or interval-based automatic connection scheduler
+- Background timer with proper async dispatch and semaphore-guarded ticks
+
+### External Tools
+- Configurable tools (ping, tracert, nslookup) in server context menu
+- Variable substitution: `{Host}`, `{Port}`, `{User}`
+
+### Ephemeral File Server
+- One-click "Share Folder" for temporary HTTP and TFTP serving
+- HTTP: directory listing, MIME types, path traversal protection
+- TFTP: RFC 1350 read-only implementation for firmware flashing
+
+### Session Management
+- Tabbed sessions with drag-to-reorder
+- Tab detach to floating window (Chrome-style drag-out or context menu)
+- Split pane with full metadata preservation across split/unsplit
+- Session transcript logging with ANSI code stripping
+- Connection history log (JSONL with auto-rotation)
+- Screenshot capture to clipboard (Ctrl+Shift+S)
 
 ### User Interface
 - Runtime Dark and Light theme switching (1,700+ lines of WPF control styles)
+- 5 terminal color schemes: Dracula, Solarized Dark, Monokai, Nord, Default
+- Configurable terminal font family and size
 - TreeView hierarchy: Project > Group > Server with merged status dots
-- Tabbed session management with drag-and-drop reordering
+- Connection inheritance: group-level defaults for gateway, SSH username, key path
+- Empty state with welcome panel and import call-to-action
 - Fullscreen mode (F11), toggle sidebar (Ctrl+B), filter (Ctrl+F)
-- Bilingual interface: English and French (~1,730 i18n keys)
+- Bilingual interface: English and French (~1,936 i18n keys)
 
 ### Security
-- DPAPI encryption + HMAC-SHA256 integrity via unified `CredentialProtector` (auto-migrates legacy blobs)
+- DPAPI encryption + HMAC-SHA256 integrity via unified `CredentialProtector`
+- External credential provider: KeePassXC CLI, Bitwarden CLI, 1Password CLI, or any CLI tool
 - PBKDF2-SHA256 PIN hashing (100,000 iterations) with lockout mechanics
-- Windows ACL enforcement on config directories, log files, and temp files (fail-closed)
-- Input validation against injection patterns (CWE-78) on all Plink/gsudo command construction
-- WebView2 Content Security Policy (CSP) and navigation blocking on terminal pages
-- Pageant IPC identity verification (process owner validation before shared memory access)
-- Credential autofill scoped to process lineage and host hint matching
+- Windows ACL enforcement on config directories, log files, and temp files
+- Input validation against injection patterns (CWE-78) on all process argument construction
+- WebView2 Content Security Policy (CSP) and navigation blocking
+- Pageant IPC identity verification with empty-agent preflight check
+- Wake-on-LAN via UDP magic packet (right-click context menu)
 - TOFU host key fingerprints persisted across restarts
 - Session-scoped CredMan entries with deterministic cleanup
-- Secure file writes (UTF-8 without BOM)
 
 ### Import and Migration
 - Migration from Heimdall v1 (DPAPI-encrypted credentials preserved)
@@ -102,15 +164,33 @@ Built with .NET 10 and WPF. Designed as a modern, high-performance alternative t
 |---|---|
 | Windows | 10 / 11 |
 | .NET Runtime | 10.0 (bundled in portable build) |
-| WebView2 Runtime | Evergreen (for SSH terminal) |
-| PuTTY (Plink + Pageant) | 0.81+ |
-| Citrix Workspace App | Latest (for Citrix connections only) |
+| WebView2 Runtime | Evergreen (for SSH/VNC terminal) |
+| PuTTY (Plink + Pageant) | 0.81+ (optional, for Pageant-only auth fallback) |
+| X11 Server | VcXsrv / Xming / X410 (optional, for X11 forwarding) |
+| Citrix Workspace App | Latest (optional, for Citrix connections) |
 
 ---
 
 ## Quick Start
 
 Download the latest portable build from the [Releases](../../releases) page, extract, and run `Heimdall.Next.exe`. No installation required.
+
+---
+
+## Keyboard Shortcuts
+
+| Shortcut | Action |
+|----------|--------|
+| Ctrl+K | Quick Connect palette |
+| Ctrl+N | Add new server |
+| Ctrl+Shift+N | Network Scanner |
+| Ctrl+Shift+S | Screenshot to clipboard |
+| Ctrl+B | Toggle sidebar |
+| Ctrl+F | Focus search/filter |
+| F11 | Toggle fullscreen |
+| Escape | Exit fullscreen / clear selection |
+| F2 | Rename (SFTP/local file browser) |
+| F5 | Refresh directory |
 
 ---
 
@@ -147,6 +227,7 @@ Build output goes to `Dist/debug/` or `Dist/release/` with versioned folder name
 | Dependency Injection | Microsoft.Extensions.DependencyInjection |
 | SSH/SFTP | SSH.NET 2025.1.0 |
 | Terminal Rendering | WebView2 + xterm.js |
+| VNC | noVNC (HTML5 VNC client in WebView2) |
 | Code Editor | AvalonEdit |
 | RDP | ActiveX MsTscAx (WindowsFormsHost) |
 | Citrix | StoreBrowse CLI integration |
@@ -165,8 +246,8 @@ Heimdall.App          WPF application (MVVM, views, themes, services)
   +-- Heimdall.Core     Models, security (DPAPI, HMAC, PIN), config, state machine, i18n
   +-- Heimdall.Ssh      SSH engine (SSH.NET), tunnels, Pageant IPC, TOFU, failure classifier
   +-- Heimdall.Rdp      RDP + Citrix engine (ActiveX MsTscAx), credential autofill, StoreBrowse
-  +-- Heimdall.Sftp     SFTP browser (SSH.NET), remote file editing, sudo fallback
-  +-- Heimdall.Terminal  Terminal sessions (pipe mode, ConPTY), smart paste guard
+  +-- Heimdall.Sftp     SFTP/FTP browser (SSH.NET + FtpWebRequest), remote file editing
+  +-- Heimdall.Terminal  Terminal sessions (pipe mode, ConPTY, Telnet), smart paste guard
 ```
 
 Test projects: `Heimdall.Core.Tests`, `Heimdall.Ssh.Tests`.

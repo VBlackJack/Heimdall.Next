@@ -44,13 +44,15 @@ public partial class MainViewModel : ObservableObject
     private readonly HostKeyStore _hostKeyStore;
     private readonly IDialogService _dialogService;
     private readonly EmbeddedSessionManager _embeddedSessionManager;
+    private readonly TaskSchedulerService _taskScheduler;
 
     private AppSettings? _currentSettings;
 
-    // Exposed for split pane session creation from code-behind
+    // Exposed for split pane session creation and context menu building from code-behind
     internal ConfigManager ConfigManager => _configManager;
     internal IDialogService DialogService => _dialogService;
     internal EmbeddedSessionManager EmbeddedSessionManager => _embeddedSessionManager;
+    internal AppSettings? CurrentSettings => _currentSettings;
 
     [ObservableProperty]
     private string _windowTitle = "Heimdall";
@@ -211,9 +213,19 @@ public partial class MainViewModel : ObservableObject
         Connection = connection;
         Settings = settings;
 
+        _taskScheduler = new TaskSchedulerService
+        {
+            TasksProvider = () => ScheduledTasks.ToList(),
+            TaskDueCallback = OnScheduledTaskDueAsync,
+            PersistCallback = SaveScheduledTasksAsync
+        };
+
         _appStatus.StatusChanged += OnApplicationStatusChanged;
         _tunnelManager.TunnelOpened += OnTunnelOpened;
         _tunnelManager.TunnelClosed += OnTunnelClosed;
+
+        // Keep _currentSettings in sync when settings are saved elsewhere
+        _configManager.SettingsChanged += OnSettingsChanged;
 
         // Reload server list after a config import
         Settings.ConfigurationChanged += async () =>
@@ -263,6 +275,18 @@ public partial class MainViewModel : ObservableObject
             Settings.LoadFromSettings(settings);
             LoadScheduledTasks(settings);
 
+            // Compute NextRun for any tasks that lack it (e.g., migrated from old format)
+            var now = DateTime.Now;
+            foreach (var task in ScheduledTasks)
+            {
+                if (task.NextRun is null && task.Enabled)
+                {
+                    TaskSchedulerService.ComputeNextRun(task, now);
+                }
+            }
+
+            _taskScheduler.Start();
+
             _appStatus.TryTransition(ApplicationStatus.Ready);
             StatusText = _localizer["StatusReady"];
             WindowTitle = _localizer.Format("WindowTitle", ServerCount);
@@ -277,15 +301,18 @@ public partial class MainViewModel : ObservableObject
     /// Handles the session-ready event from ServerListViewModel by creating
     /// a session tab in the ConnectionViewModel.
     /// </summary>
-    private void OnSessionReady(string serverId, string displayName, string connectionType, Core.Models.ISessionResult? session)
+    private void OnSessionReady(string sessionId, string originalServerId, string displayName, string connectionType, Core.Models.ISessionResult? session)
     {
+        Core.Logging.ConnectionHistory.RecordConnect(originalServerId, displayName, connectionType);
+
         if (session is null)
         {
             StatusText = _localizer.Format("StatusConnected", displayName);
             return;
         }
 
-        var tab = Connection.AddSession(serverId, displayName, connectionType);
+        var tab = Connection.AddSession(sessionId, displayName, connectionType);
+        tab.OriginalServerId = originalServerId;
         tab.HostControl = _embeddedSessionManager.CreateHostControl(
             tab,
             displayName,
@@ -296,15 +323,19 @@ public partial class MainViewModel : ObservableObject
             ? "Connecting"
             : "Connected";
 
+        // Resolve tunnel chain route for visual display in session header
+        // (uses sessionId — correct for state machine lookup)
+        tab.TunnelRoute = ResolveTunnelRoute(sessionId);
+
         StatusText = string.Equals(connectionType, "RDP", StringComparison.OrdinalIgnoreCase)
             ? string.Format("Opening embedded RDP session for {0}.", displayName)
             : _localizer.Format("StatusConnected", displayName);
 
-        // Auto-open SFTP alongside SSH
+        // Auto-open SFTP alongside SSH — use original server ID for inventory lookup
         if (string.Equals(connectionType, "SSH", StringComparison.OrdinalIgnoreCase)
             && _currentSettings?.SftpAutoOpenOnSsh == true)
         {
-            _ = AutoOpenSftpAsync(tab, serverId);
+            _ = AutoOpenSftpAsync(tab, originalServerId);
         }
     }
 
@@ -384,7 +415,10 @@ public partial class MainViewModel : ObservableObject
                     _currentSettings);
 
                 tab.SecondaryServerId = serverId;
+                tab.SecondaryOriginalServerId = tab.OriginalServerId;
                 tab.SecondaryConnectionType = "SFTP";
+                tab.SecondaryTitle = tab.Title;
+                tab.SecondaryStatus = "Connected";
                 tab.SplitOrientation = Core.Models.SplitOrientation.Vertical;
                 tab.IsSplit = true;
             });
@@ -397,6 +431,11 @@ public partial class MainViewModel : ObservableObject
             Core.Logging.FileLogger.Warn(
                 $"SFTP auto-open error for {serverId}: {ex.Message}");
         }
+    }
+
+    private void OnSettingsChanged(AppSettings settings)
+    {
+        _currentSettings = settings;
     }
 
     private void OnApplicationStatusChanged(ApplicationStatus previous, ApplicationStatus current)
@@ -485,33 +524,9 @@ public partial class MainViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private async Task AddProjectAsync(CancellationToken cancellationToken)
-    {
-        var dialogVm = new ProjectDialogViewModel
-        {
-            DialogTitle = _localizer["ProjectDialogTitleAdd"]
-        };
-
-        var result = await _dialogService.ShowProjectDialogAsync(dialogVm);
-        if (result is not { Saved: true })
-        {
-            return;
-        }
-
-        var settings = await _configManager.LoadSettingsAsync();
-        result.Project.Id = Guid.NewGuid().ToString();
-        settings.Projects.Add(result.Project);
-
-        await _configManager.SaveSettingsAsync(settings);
-        await ReloadConfigurationAsync(settings);
-
-        StatusText = _localizer.Format("StatusProjectAdded", result.Project.Name);
-    }
-
-
-    [RelayCommand]
     private async Task AddScheduledTaskAsync(CancellationToken cancellationToken)
     {
+        // Step 1: Ask for server name (ideally from existing servers)
         var serverName = await _dialogService.ShowInputAsync(
             _localizer["ScheduledTaskDialogTitleAdd"],
             _localizer["ScheduledTaskFieldServer"]);
@@ -521,12 +536,21 @@ public partial class MainViewModel : ObservableObject
             return;
         }
 
-        var schedule = await _dialogService.ShowInputAsync(
+        // Resolve server ID and connection type from the server inventory
+        var servers = await _configManager.LoadServersAsync();
+        var serverDto = servers.FirstOrDefault(
+            s => string.Equals(s.DisplayName, serverName, StringComparison.OrdinalIgnoreCase));
+
+        var serverId = serverDto?.Id ?? string.Empty;
+        var connectionType = serverDto?.ConnectionType ?? "SSH";
+
+        // Step 2: Ask for schedule type ("Daily HH:mm" or "Every N min")
+        var scheduleInput = await _dialogService.ShowInputAsync(
             _localizer["ScheduledTaskDialogTitleAdd"],
             _localizer["ScheduledTaskFieldTime"],
             "Daily 08:00");
 
-        if (string.IsNullOrWhiteSpace(schedule))
+        if (string.IsNullOrWhiteSpace(scheduleInput))
         {
             return;
         }
@@ -534,16 +558,71 @@ public partial class MainViewModel : ObservableObject
         var task = new ScheduledTaskDto
         {
             Id = Guid.NewGuid().ToString(),
-            ServerName = serverName,
-            Schedule = schedule,
-            Enabled = true,
-            NextRun = DateTime.Today.AddDays(1).AddHours(8)
+            ServerId = serverId,
+            ServerName = serverDto?.DisplayName ?? serverName,
+            ConnectionType = connectionType,
+            Enabled = true
         };
+
+        // Parse the schedule input to determine type and parameters
+        ParseScheduleInput(scheduleInput, task);
+        TaskSchedulerService.ComputeNextRun(task, DateTime.Now);
 
         ScheduledTasks.Add(task);
         OnPropertyChanged(nameof(HasNoScheduledTasks));
         await SaveScheduledTasksAsync();
-        StatusText = _localizer.Format("StatusScheduledTaskAdded", serverName);
+        StatusText = _localizer.Format("StatusScheduledTaskAdded", task.ServerName);
+    }
+
+    /// <summary>
+    /// Parses user input like "Daily 08:00" or "Every 30 min" into structured DTO fields.
+    /// </summary>
+    private static void ParseScheduleInput(string input, ScheduledTaskDto task)
+    {
+        var trimmed = input.Trim();
+
+        // Check for interval pattern: "Every N min" or just a number
+        if (trimmed.StartsWith("Every ", StringComparison.OrdinalIgnoreCase))
+        {
+            var parts = trimmed.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length >= 2 && int.TryParse(parts[1], out var minutes) && minutes > 0)
+            {
+                task.ScheduleType = nameof(Core.Models.ScheduleType.Interval);
+                task.IntervalMinutes = minutes;
+                task.Schedule = $"Every {minutes} min";
+                return;
+            }
+        }
+
+        if (int.TryParse(trimmed, out var intervalOnly) && intervalOnly > 0)
+        {
+            task.ScheduleType = nameof(Core.Models.ScheduleType.Interval);
+            task.IntervalMinutes = intervalOnly;
+            task.Schedule = $"Every {intervalOnly} min";
+            return;
+        }
+
+        // Default: Daily schedule — extract time part
+        task.ScheduleType = nameof(Core.Models.ScheduleType.Daily);
+
+        // Try "Daily HH:mm" format
+        if (trimmed.StartsWith("Daily ", StringComparison.OrdinalIgnoreCase))
+        {
+            task.TimeOfDay = trimmed[6..].Trim();
+        }
+        else
+        {
+            // Assume the input is just HH:mm
+            task.TimeOfDay = trimmed;
+        }
+
+        // Validate the time format; default to 08:00 if invalid
+        if (!TimeSpan.TryParse(task.TimeOfDay, System.Globalization.CultureInfo.InvariantCulture, out _))
+        {
+            task.TimeOfDay = "08:00";
+        }
+
+        task.Schedule = $"Daily {task.TimeOfDay}";
     }
 
     [RelayCommand]
@@ -556,8 +635,8 @@ public partial class MainViewModel : ObservableObject
 
         var taskName = SelectedScheduledTask.ServerName;
         var confirmed = await _dialogService.ShowConfirmAsync(
-            _localizer["ConfirmDeleteProjectTitle"],
-            _localizer.Format("StatusScheduledTaskDeleted", taskName),
+            _localizer["ConfirmDeleteScheduledTaskTitle"],
+            _localizer.Format("ConfirmDeleteScheduledTaskMessage", taskName),
             "warning");
 
         if (!confirmed)
@@ -581,6 +660,56 @@ public partial class MainViewModel : ObservableObject
         var settings = await _configManager.LoadSettingsAsync();
         settings.ScheduledTasks = [.. ScheduledTasks];
         await _configManager.SaveSettingsAsync(settings);
+    }
+
+    /// <summary>
+    /// Called by <see cref="TaskSchedulerService"/> when a scheduled task is due.
+    /// Resolves the target server and triggers the standard connection flow.
+    /// </summary>
+    private async Task OnScheduledTaskDueAsync(ScheduledTaskDto task)
+    {
+        Core.Logging.FileLogger.Info(
+            $"Executing scheduled task '{task.ServerName}' (serverId={task.ServerId}, type={task.ConnectionType}).");
+
+        StatusText = _localizer.Format("StatusScheduledTaskTriggered", task.ServerName, task.ConnectionType);
+
+        // Find the server in the current server list by ID or name fallback
+        var server = ServerList.Servers.FirstOrDefault(
+            s => !string.IsNullOrEmpty(task.ServerId)
+                 && string.Equals(s.Id, task.ServerId, StringComparison.Ordinal))
+            ?? ServerList.Servers.FirstOrDefault(
+                s => string.Equals(s.DisplayName, task.ServerName, StringComparison.OrdinalIgnoreCase));
+
+        if (server is null)
+        {
+            Core.Logging.FileLogger.Warn(
+                $"Scheduled task '{task.ServerName}': server not found in inventory. Skipping.");
+            StatusText = _localizer.Format("ErrorScheduledTaskFailed",
+                $"Server '{task.ServerName}' not found");
+            return;
+        }
+
+        try
+        {
+            ServerList.ConnectCommand.Execute(server);
+        }
+        catch (Exception ex)
+        {
+            Core.Logging.FileLogger.Error(
+                $"Scheduled task '{task.ServerName}' connection failed: {ex.Message}");
+            StatusText = _localizer.Format("ErrorScheduledTaskFailed", ex.Message);
+        }
+
+        await Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Stops the scheduler. Called during application shutdown.
+    /// </summary>
+    public void StopScheduler()
+    {
+        _taskScheduler.Stop();
+        _taskScheduler.Dispose();
     }
 
     /// <summary>
@@ -613,6 +742,9 @@ public partial class MainViewModel : ObservableObject
             case "LOCAL":
                 result = await connService.ConnectLocalShellAsync(serverDto, settings);
                 break;
+            case "TELNET":
+                result = await connService.ConnectTelnetAsync(serverDto, settings);
+                break;
             default:
                 result = await connService.ConnectRdpAsync(serverDto, settings);
                 break;
@@ -630,7 +762,10 @@ public partial class MainViewModel : ObservableObject
 
         session.SecondaryHostControl = hostControl;
         session.SecondaryServerId = serverDto.Id;
+        session.SecondaryOriginalServerId = serverDto.Id;
         session.SecondaryConnectionType = serverDto.ConnectionType ?? "";
+        session.SecondaryTitle = serverDto.DisplayName;
+        session.SecondaryStatus = "Connected";
         session.SplitOrientation = orientation;
         session.IsSplit = true;
     }
@@ -852,6 +987,53 @@ public partial class MainViewModel : ObservableObject
         return _localizer[key];
     }
 
+    /// <summary>
+    /// Provides access to the localization manager for components that need
+    /// to resolve i18n keys outside the view model (e.g., floating windows).
+    /// </summary>
+    public LocalizationManager GetLocalizer() => _localizer;
+
+    /// <summary>
+    /// Resolves the tunnel chain route for a server, returning a display string
+    /// like "via GatewayA" or "via GatewayA → GatewayB" for chained tunnels.
+    /// Returns empty string for direct connections.
+    /// </summary>
+    private string ResolveTunnelRoute(string serverId)
+    {
+        if (_currentSettings is null) return "";
+
+        var stateData = _connectionSm.GetStateData(serverId);
+        if (stateData?.TunnelLocalPort is null) return "";
+
+        // Find which gateway hosts this tunnel by matching the tunnel's ServerName
+        var tunnels = _tunnelManager.GetActiveTunnels();
+        var tunnel = tunnels.FirstOrDefault(t => t.LocalPort == stateData.TunnelLocalPort);
+        if (tunnel is null) return "";
+
+        var gatewayId = _currentSettings.SshGateways
+            .FirstOrDefault(g => string.Equals(g.Host, tunnel.ServerName, StringComparison.OrdinalIgnoreCase))?.Id;
+
+        if (string.IsNullOrEmpty(gatewayId))
+            return $"via {tunnel.ServerName}";
+
+        // Walk the gateway chain to build the full route
+        var names = new List<string>();
+        var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        while (!string.IsNullOrEmpty(gatewayId) && visited.Add(gatewayId))
+        {
+            var gw = _currentSettings.SshGateways.FirstOrDefault(
+                g => string.Equals(g.Id, gatewayId, StringComparison.OrdinalIgnoreCase));
+            if (gw is null) break;
+            names.Add(string.IsNullOrWhiteSpace(gw.Name) ? gw.Host : gw.Name);
+            gatewayId = gw.ParentGatewayId;
+        }
+
+        if (names.Count == 0) return "";
+        names.Reverse();
+        return "via " + string.Join(" \u2192 ", names);
+    }
+
     // --- Broadcast mode ---
 
     partial void OnIsBroadcastModeChanged(bool value)
@@ -924,7 +1106,7 @@ public partial class MainViewModel : ObservableObject
         }
     }
 
-    private async Task ReloadConfigurationAsync(AppSettings settings, List<ServerProfileDto>? servers = null)
+    internal async Task ReloadConfigurationAsync(AppSettings settings, List<ServerProfileDto>? servers = null)
     {
         _currentSettings = settings;
         var currentServers = servers ?? await _configManager.LoadServersAsync();

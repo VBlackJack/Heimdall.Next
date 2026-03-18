@@ -146,14 +146,14 @@ public class PipeModeSession : ITerminalSession
                 DataReceived?.Invoke(new ReadOnlyMemory<byte>(copy, 0, bytesRead));
             }
         }
-        catch (OperationCanceledException) { }
-        catch (Exception) { }
+        catch (OperationCanceledException) { /* Expected when session is disposed or cancelled */ }
+        catch (Exception) { /* Process may have exited; stream read is best-effort */ }
     }
 
     private void OnProcessExited(object? sender, EventArgs e)
     {
         var exitCode = 0;
-        try { exitCode = _process?.ExitCode ?? -1; } catch { }
+        try { exitCode = _process?.ExitCode ?? -1; } catch { /* Process may not have started */ }
         ProcessExited?.Invoke(exitCode);
     }
 }

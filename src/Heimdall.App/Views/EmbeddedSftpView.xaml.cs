@@ -37,7 +37,9 @@ namespace Heimdall.App.Views;
 /// </summary>
 public partial class EmbeddedSftpView : UserControl, IDisposable
 {
-    private SftpBrowser? _browser;
+    private static readonly TimeSpan SftpOperationTimeout = TimeSpan.FromSeconds(30);
+
+    private IRemoteBrowser? _browser;
     private RemoteFileEditor? _editor;
     private SessionTabViewModel? _sessionTab;
     private LocalizationManager? _localizer;
@@ -82,7 +84,7 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
     /// Must be called exactly once, immediately after construction.
     /// </summary>
     public void InitializeSession(
-        SftpBrowser browser,
+        IRemoteBrowser browser,
         SessionTabViewModel sessionTab,
         string displayName,
         string endpoint,
@@ -154,7 +156,7 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
             _browser.Disconnected -= OnBrowserDisconnected;
 
             try { _browser.Disconnect(); }
-            catch (ObjectDisposedException) { }
+            catch (ObjectDisposedException) { /* Expected when disposing already-closed connection */ }
             catch (Exception ex)
             {
                 Core.Logging.FileLogger.Warn(
@@ -162,7 +164,7 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
             }
 
             try { _browser.Dispose(); }
-            catch (ObjectDisposedException) { }
+            catch (ObjectDisposedException) { /* Expected when disposing already-closed browser */ }
 
             _browser = null;
         }
@@ -1084,7 +1086,7 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
                 var remotePath = file.FullPath;
 
                 // Open in embedded AvalonEdit editor
-                var editorView = new EmbeddedEditorView();
+                var editorView = new EmbeddedEditorView(_localizer);
                 editorView.OpenContent(file.Name, content);
 
                 // Track whether an upload is in progress to prevent close during save
@@ -1419,8 +1421,8 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
     {
         _healthTimer = new System.Threading.Timer(
             _ => CheckHealth(), null,
-            TimeSpan.FromSeconds(30),
-            TimeSpan.FromSeconds(30));
+            SftpOperationTimeout,
+            SftpOperationTimeout);
     }
 
     private void StopHealthTimer()

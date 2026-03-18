@@ -10,20 +10,24 @@
 
 # Architecture
 
-Heimdall.Next is a .NET 10 WPF application organized as a multi-project solution with strict dependency boundaries.
+Heimdall.Next is a .NET 10 WPF application organized as a multi-project solution with strict dependency boundaries. Supports RDP, SSH, SFTP, FTP, VNC, Telnet, and Citrix connection types with ~1,936 i18n keys per locale (EN/FR).
 
 ## Solution Structure
 
 ```
 Heimdall.slnx (8 projects)
 ├── src/
-│   ├── Heimdall.Core          net10.0         Models, security, config, state machine, i18n
-│   ├── Heimdall.Ssh           net10.0         SSH engine, tunnels, Pageant, TOFU, failure classifier
+│   ├── Heimdall.Core          net10.0         Models, security, config, state machine, i18n, network scanner
+│   ├── Heimdall.Ssh           net10.0         SSH engine, tunnels, Pageant, TOFU, failure classifier, health monitor
 │   ├── Heimdall.Rdp           net10.0-windows RDP + Citrix engine (ActiveX, StoreBrowse), credential autofill
-│   ├── Heimdall.Sftp          net10.0         SFTP browser (SSH.NET), remote file editing
-│   ├── Heimdall.Terminal      net10.0-windows Terminal sessions (pipe mode, ConPTY)
+│   ├── Heimdall.Sftp          net10.0         SFTP/FTP browser (SSH.NET + FtpWebRequest), remote file editing
+│   ├── Heimdall.Terminal      net10.0-windows Terminal sessions (pipe mode, ConPTY, Telnet)
 │   └── Heimdall.App           net10.0-windows WPF application (MVVM, views, themes, DI)
-│       └── Views: MainWindow, EmbeddedRdpView, EmbeddedSshView, EmbeddedSftpView, EmbeddedCitrixView
+│       ├── Views: MainWindow, EmbeddedRdpView, EmbeddedSshView, EmbeddedSftpView,
+│       │          EmbeddedCitrixView, EmbeddedVncView, FloatingSessionWindow
+│       └── Services: ConnectionService (.Rdp/.Ssh/.Sftp/.Ftp/.Vnc/.Telnet/.Citrix/.Local/.Tunnel),
+│                     EmbeddedSessionManager, TaskSchedulerService, MacroService,
+│                     EphemeralFileServer, X11ServerManager, WebSocketVncProxy
 └── tests/
     ├── Heimdall.Core.Tests    State machine, HMAC integrity, input validation, PIN manager, config manager tests
     └── Heimdall.Ssh.Tests     SSH engine tests (failure classifier, preflight, TOFU, Pageant, Plink)
@@ -50,10 +54,10 @@ Heimdall.slnx (8 projects)
 ```
 
 - **Heimdall.Core** has zero internal project dependencies (only NuGet: CommunityToolkit.Mvvm, ProtectedData, DI abstractions)
-- **Heimdall.Ssh** depends on Core + SSH.NET
+- **Heimdall.Ssh** depends on Core + SSH.NET; includes `ServerHealthMonitor` for multiplexed health polling
 - **Heimdall.Rdp** depends on Core (uses WPF + WinForms for ActiveX hosting; includes Citrix StoreBrowse integration)
-- **Heimdall.Sftp** depends on Core + Ssh (reuses SSH.NET connection factory). `SftpSessionBundle` in ConnectionService bundles SftpClient + SshClient for sudo operations
-- **Heimdall.Terminal** depends on Core (uses Win32 APIs for ConPTY + pipe mode)
+- **Heimdall.Sftp** depends on Core + Ssh (reuses SSH.NET connection factory). `SftpSessionBundle` in ConnectionService bundles SftpClient + SshClient for sudo operations. `FtpBrowser` implements `IRemoteBrowser` for FTP connections
+- **Heimdall.Terminal** depends on Core (uses Win32 APIs for ConPTY + pipe mode + Telnet raw TCP)
 - **Heimdall.App** references all five libraries and owns the DI composition root
 
 ## Key Design Decisions
@@ -153,6 +157,9 @@ All connection operations return an `ISessionResult` (defined in `Heimdall.Core/
 - `SftpSessionResult` — `SftpSessionBundle` (SftpClient + SshClient for sudo)
 - `CitrixSessionResult` — ICA session handle
 - `LocalSessionResult` — ConPTY session reference
+- `VncSessionResult` — WebSocket proxy handle, noVNC connection info
+- `TelnetSessionResult` — `TelnetSession` reference (raw TCP)
+- `FtpSessionResult` — `FtpBrowser` (IRemoteBrowser) reference
 
 ### 10. Multi-Exec Broadcast
 
@@ -160,11 +167,89 @@ All connection operations return an `ISessionResult` (defined in `Heimdall.Core/
 
 ### 11. Quick Connect (Ctrl+K)
 
-**Architecture**: A modal overlay (`QuickConnectOverlay`) parses connection strings of the form `[protocol://]user@host[:port]`. The parser infers protocol from port if omitted (22=SSH, 3389=RDP, 1494=Citrix). A `ServerProfileDto` is created transiently (not persisted) and passed to `ConnectionService.ConnectAsync()`. Recent connections are stored in `settings.json` for quick re-use.
+**Architecture**: A modal overlay (`QuickConnectOverlay`) parses connection strings of the form `[protocol://]user@host[:port]`. The parser infers protocol from port if omitted (22=SSH, 3389=RDP, 1494=Citrix, 5900=VNC, 23=Telnet, 21=FTP). A `ServerProfileDto` is created transiently (not persisted) and passed to `ConnectionService.ConnectAsync()`. Recent connections are stored in `settings.json` for quick re-use.
 
 ### 12. Tunnel Panel (Retractable)
 
 **Architecture**: A `GridSplitter`-based side panel bound to `TunnelPanelViewModel`. The panel observes `TunnelManager.ActiveTunnels` (an `ObservableCollection<TunnelSession>`) and displays real-time status. Tunnel teardown sends a cancel request to the specific `TunnelSession` without affecting other tunnels or the parent SSH connection. Panel visibility is toggled via a toolbar button and persisted in user settings.
+
+### 13. VNC via noVNC WebView2 + WebSocket Proxy
+
+**Problem**: WPF has no native VNC control. VNC (RFB protocol) operates over raw TCP, but noVNC requires a WebSocket transport.
+
+**Solution**: `WebSocketVncProxy` is a lightweight in-process proxy that listens on a random local port, accepts a single WebSocket connection from noVNC, and bidirectionally pipes binary frames to the VNC server's TCP socket. `EmbeddedVncView` hosts noVNC inside a WebView2 control pointing at `ws://localhost:{ListenPort}`. This reuses the same WebView2 infrastructure as the terminal views.
+
+### 14. Telnet Raw TCP with IAC Negotiation
+
+**Problem**: Legacy network devices (switches, routers, serial consoles) require Telnet access.
+
+**Solution**: `TelnetSession` in `Heimdall.Terminal` implements `ITerminalSession` over a raw TCP socket with minimal Telnet IAC negotiation (WILL/WONT/DO/DONT handling, NAWS sub-negotiation for terminal size). It plugs into the same WebView2 + xterm.js rendering pipeline used by SSH pipe mode, so the user experience is identical. No external Telnet client is required.
+
+### 15. FTP via IRemoteBrowser Abstraction
+
+**Problem**: Some servers expose FTP instead of SFTP. The file browser UI should work identically regardless of protocol.
+
+**Solution**: `IRemoteBrowser` defines the common surface (`Connect`, `ListDirectory`, `Upload`, `Download`, `Disconnect`, events). `SftpBrowser` (SSH.NET) and `FtpBrowser` (`FtpWebRequest`) both implement this interface. `EmbeddedSftpView` binds to `IRemoteBrowser` without knowing the underlying protocol. `RemoteFileEditor` works with both via the same interface.
+
+### 16. Tab Detach to Floating Window
+
+**Problem**: Users need to view multiple sessions side by side, or move a session to a second monitor.
+
+**Solution**: `FloatingSessionWindow` hosts a single detached `SessionTabViewModel`. The session's view (RDP, SSH, SFTP, VNC, etc.) is reparented from the main tab control to the floating window. The window applies the current theme via `WindowThemeHelper`, displays session metadata (title, tunnel route), and provides a reattach button. On close, if not explicitly reattached, the session is returned to the main window.
+
+### 17. Tunnel Ref-Counting for Shared Tunnels
+
+**Problem**: Multiple connections may traverse the same SSH tunnel (e.g., two RDP sessions through the same gateway). Tearing down a tunnel when one connection closes would kill the others.
+
+**Solution**: `TunnelManager` maintains a `ConcurrentDictionary<int, int>` of reference counts keyed by local port. `AddReference()` increments the count when a new connection uses an existing tunnel. `ReleaseReference()` decrements it, and only calls `CloseTunnel()` when the count reaches zero. `CloseTunnel()` itself checks the ref count before tearing down, providing a double guard.
+
+### 18. Connection Inheritance (GroupDefaultsDto)
+
+**Problem**: Enterprises organize hundreds of servers into groups that share the same gateway, SSH user, key path, or connection type. Configuring each server individually is tedious.
+
+**Solution**: `GroupDefaultsDto` defines default connection settings (gateway, SSH username, key path, port, connection type) at the group/folder level. Servers inherit these values when their own fields are null or empty. Resolution is hierarchical: a server in `PROD/Linux` inherits from `PROD/Linux` first, then falls back to `PROD` if the nested group does not override the field.
+
+### 19. External Credential Provider (CommandCredentialProvider)
+
+**Problem**: Security-conscious environments store credentials in external password managers (KeePassXC, Bitwarden CLI, 1Password CLI, `pass`), not in the application's DPAPI vault.
+
+**Solution**: `CommandCredentialProvider` implements `ICredentialProvider` by executing a user-configured CLI command template. Placeholders `{Host}`, `{Port}`, `{User}`, `{Title}`, `{Database}` are substituted at runtime. The command's stdout is captured and trimmed as the password. A 10-second timeout prevents hangs. This enables zero-knowledge credential retrieval where Heimdall never persists the password.
+
+### 20. Scheduled Tasks Engine (TaskSchedulerService)
+
+**Problem**: Automated connections (e.g., daily SSH backup scripts, maintenance windows) need to run on a schedule without manual intervention.
+
+**Solution**: `TaskSchedulerService` runs a background `System.Threading.Timer` that ticks every 60 seconds. On each tick, it evaluates `ScheduledTaskDto` entries (provided via `TasksProvider` callback) against the current time, fires `TaskDueCallback` for due tasks, and calls `PersistCallback` to save last-run timestamps. The timer is guarded by a `SemaphoreSlim` to prevent overlapping ticks.
+
+### 21. Server Health Monitoring (Multiplexed SSH Channel)
+
+**Problem**: Sysadmins want at-a-glance health data (CPU, RAM, disk) for connected servers without opening a separate monitoring tool.
+
+**Solution**: `ServerHealthMonitor` in `Heimdall.Ssh` reuses the existing `SshClient` from an active shell session to run lightweight monitoring commands (`top -bn1`, `free -m`, `df -h /`) on a multiplexed SSH channel at a configurable interval (default 5 seconds). Results are parsed via compiled regex into a `ServerHealthData` record and surfaced in the UI.
+
+### 22. Macro Recorder (Keystroke Capture with Delays)
+
+**Problem**: Repetitive terminal workflows (login sequences, config commands) should be recordable and replayable.
+
+**Solution**: `TerminalMacro` (in `Heimdall.Core.Models`) stores a sequence of `MacroEntry` records, each containing the input text and the delay (in milliseconds) since the previous entry. `MacroService` persists macros as individual JSON files in a `macros/` directory. During playback, entries are sent to the terminal session with their recorded inter-keystroke delays preserved.
+
+### 23. Network Scanner (ICMP Sweep + Port Probe)
+
+**Problem**: Sysadmins need to discover hosts on a subnet before adding them to the server inventory.
+
+**Solution**: `NetworkScanner` (in `Heimdall.Core.Security`) accepts a CIDR subnet (e.g., `192.168.1.0/24`), performs parallel ICMP ping sweeps with a 1-second timeout, then probes common ports (22, 3389, 80, 443, 5900) on responsive hosts with a 500ms timeout. Results include IP address, hostname (reverse DNS), round-trip time, and open ports. A progress callback enables UI updates during the scan.
+
+### 24. Ephemeral TFTP/HTTP File Server
+
+**Problem**: Network devices (switches, routers, IP phones) need to pull firmware or config files from a TFTP or HTTP server during provisioning.
+
+**Solution**: `EphemeralFileServer` provides dual read-only servers: an HTTP server (via `HttpListener` with directory listing and GET serving) and a TFTP server (minimal RFC 1350 RRQ implementation over `UdpClient`). Both serve files from a user-selected directory, listen on configurable ports, and run on background tasks that are disposed when no longer needed.
+
+### 25. X11 Server Auto-Detection and Management
+
+**Problem**: X11 forwarding over SSH requires a local X server (VcXsrv, Xming, X410, XWin). Users forget to start one, or the `DISPLAY` variable is misconfigured.
+
+**Solution**: `X11ServerManager` detects running X server processes by scanning known process names. If none is found, it searches known installation paths and starts the first available server automatically. The `DISPLAY` environment variable is set to `localhost:0.0` for the SSH session. The manager disposes the started process on shutdown.
 
 ## Connection Flow
 
@@ -201,16 +286,29 @@ ConnectionService.ConnectAsync(server)
         |               +-- Sudo fallback: permission denied -> sudo cat/sudo tee via SSH exec
         |
         +-- Citrix?
-                +-- EmbeddedCitrixView: StoreBrowse session tab
-                        +-- storebrowse.exe: StoreFront auth + resource enumeration
-                        +-- ICA file generation -> Citrix Workspace launch
+        |       +-- EmbeddedCitrixView: StoreBrowse session tab
+        |               +-- storebrowse.exe: StoreFront auth + resource enumeration
+        |               +-- ICA file generation -> Citrix Workspace launch
+        |
+        +-- VNC?
+        |       +-- EmbeddedVncView: WebView2 + noVNC
+        |               +-- WebSocketVncProxy: WS-to-TCP bridge on random local port
+        |               +-- noVNC connects to ws://localhost:{port}
+        |
+        +-- Telnet?
+        |       +-- EmbeddedSshView (reused): WebView2 + xterm.js
+        |               +-- TelnetSession: raw TCP + IAC negotiation
+        |
+        +-- FTP?
+                +-- EmbeddedSftpView (reused): file browser panel
+                        +-- FtpBrowser: IRemoteBrowser over FtpWebRequest
 ```
 
 ## State Machines
 
 ### Connection State Machine
 
-States: `Disconnected` -> `Initializing` -> `ValidatingConfig` -> `EstablishingTunnel` -> `TunnelEstablished` -> `LaunchingRdp` / `LaunchingSsh` / `LaunchingSftp` / `LaunchingCitrix` -> `Connected` -> `Disconnecting` -> `Disconnected`
+States: `Disconnected` -> `Initializing` -> `ValidatingConfig` -> `EstablishingTunnel` -> `TunnelEstablished` -> `LaunchingRdp` / `LaunchingSsh` / `LaunchingSftp` / `LaunchingCitrix` / `LaunchingVnc` / `LaunchingTelnet` / `LaunchingFtp` -> `Connected` -> `Disconnecting` -> `Disconnected`
 
 Error state reachable from any active state. Transitions validated before application.
 
@@ -240,4 +338,5 @@ Error state reachable from Ready or Busy.
 | File writes | UTF-8 without BOM via `SecureFileWriter` |
 | Memory | Credentials cleared after COM injection, `SecureString` for handoff paths |
 | Exception handling | Global handlers registered before first await, unobserved task exceptions caught |
+| External credentials | `CommandCredentialProvider` executes CLI password managers (KeePassXC, Bitwarden, 1Password) with 10s timeout |
 | Logging | `FileLogger.Dispose()` flushes before marking disposed (no lost diagnostics) |

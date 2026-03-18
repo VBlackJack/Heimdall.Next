@@ -54,9 +54,15 @@ public partial class ConnectionService
                 return new ConnectionResult(false, tunnelResult.ErrorMessage, null);
             }
 
-            // Connect through the tunnel
+            // Connect through the tunnel (use dynamically allocated port)
             targetHost = "127.0.0.1";
-            targetPort = server.LocalPort;
+            targetPort = tunnelResult.Tunnel?.LocalPort ?? server.LocalPort;
+        }
+
+        // Ensure X11 server is available when X11 forwarding is requested
+        if (server.SshX11Forwarding)
+        {
+            await _x11ServerManager.EnsureRunningAsync().ConfigureAwait(false);
         }
 
         _connectionSm.TryTransition(server.Id, Core.Models.ConnectionState.LaunchingSsh);
@@ -69,7 +75,8 @@ public partial class ConnectionService
             Password = DecryptPassword(server.SshPasswordEncrypted),
             KeyPath = string.IsNullOrWhiteSpace(server.SshKeyPath) ? null : server.SshKeyPath,
             AgentForwarding = server.SshAgentForwarding,
-            Compression = server.SshCompression
+            Compression = server.SshCompression,
+            X11Forwarding = server.SshX11Forwarding
         };
 
         // Check if we need Plink fallback (Pageant-only auth)
@@ -121,7 +128,7 @@ public partial class ConnectionService
         var plinkPath = ResolvePlinkPath(settings.PlinkPath);
         if (string.IsNullOrWhiteSpace(plinkPath) || !File.Exists(plinkPath))
         {
-            var msg = "Plink not found. Set the path in Settings.";
+            var msg = _localizer["ErrorPlinkNotConfigured"];
             _connectionSm.SetError(server.Id, msg);
             return new ConnectionResult(false, msg, null);
         }
@@ -130,14 +137,14 @@ public partial class ConnectionService
         if (!string.IsNullOrEmpty(server.SshUsername) &&
             !InputValidator.Validate(server.SshUsername, "SshUser"))
         {
-            var msg = "Invalid SSH username (rejected by input validation).";
+            var msg = _localizer["ErrorInvalidSshUsername"];
             _connectionSm.SetError(server.Id, msg);
             return new ConnectionResult(false, msg, null);
         }
 
         if (!InputValidator.Validate(targetHost, "Address"))
         {
-            var msg = "Invalid target host (rejected by input validation).";
+            var msg = _localizer["ErrorInvalidTargetHost"];
             _connectionSm.SetError(server.Id, msg);
             return new ConnectionResult(false, msg, null);
         }
@@ -153,6 +160,8 @@ public partial class ConnectionService
             argParts.Add("-C");
         if (server.SshAgentForwarding)
             argParts.Add("-A");
+        if (server.SshX11Forwarding)
+            argParts.Add("-X");
         argParts.Add("-P");
         argParts.Add(targetPort.ToString());
         var target = !string.IsNullOrEmpty(server.SshUsername)
@@ -251,7 +260,7 @@ public partial class ConnectionService
             using var process = new System.Diagnostics.Process { StartInfo = psi };
             process.Start();
 
-            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(8));
+            using var timeout = new CancellationTokenSource(HostKeyProbeTimeout);
             using var linked = CancellationTokenSource.CreateLinkedTokenSource(ct, timeout.Token);
 
             string stderr;

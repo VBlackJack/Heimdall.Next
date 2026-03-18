@@ -26,4 +26,7 @@ public class ProjectDto
     public string Name { get; set; } = string.Empty;
     public string? Description { get; set; }
     public string? Color { get; set; }
+    public string? DefaultSshUsername { get; set; }
+    public string? DefaultSshKeyPath { get; set; }
+    public string? DefaultGatewayId { get; set; }
 }

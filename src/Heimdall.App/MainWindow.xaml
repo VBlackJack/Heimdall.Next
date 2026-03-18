@@ -70,9 +70,23 @@
                                  Style="{DynamicResource ToolbarTabStyle}"/>
                 </StackPanel>
 
-                <!-- Right: Search box -->
+                <!-- Right: Search box + Share Folder -->
                 <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" HorizontalAlignment="Right"
                             VerticalAlignment="Center">
+                    <!-- Share Folder toggle -->
+                    <Button x:Name="ShareFolderButton"
+                            Click="OnShareFolderClick"
+                            Style="{DynamicResource ToolbarGhostButtonStyle}"
+                            Padding="6,4" FontSize="12"
+                            Margin="0,0,4,0"
+                            VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE72D;" FontFamily="Segoe MDL2 Assets"
+                                       FontSize="13" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                            <TextBlock x:Name="Mw_ShareFolderLabel" Text="" FontSize="12"
+                                       VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
                     <TextBox x:Name="SearchBox"
                              Width="200"
                              Text="{Binding ServerList.SearchText, UpdateSourceTrigger=PropertyChanged}"
@@ -294,6 +308,7 @@
                                 PreviewMouseRightButtonDown="OnSessionTabRightClick"
                                 PreviewMouseLeftButtonDown="OnTabDragStart"
                                 PreviewMouseMove="OnTabDragMove"
+                                DragOver="OnTabDragOver"
                                 Drop="OnTabDrop"
                                 AllowDrop="True"
                                 ItemContainerStyle="{DynamicResource ThemedTabItemStyle}">
@@ -301,10 +316,13 @@
                             <DataTemplate DataType="{x:Type vm:SessionTabViewModel}">
                                 <Border x:Name="TabHeaderBorder" Padding="10,6">
                                     <DockPanel LastChildFill="True">
+                                        <!-- Close button always occupies layout space (Hidden, not Collapsed)
+                                             so the tab width stays constant on hover. Only opacity toggles. -->
                                         <Button x:Name="TabCloseButton" DockPanel.Dock="Right"
                                                 Width="18" Height="18" Margin="6,0,0,0" Padding="0"
-                                                Focusable="False" Content="x" FontSize="10"
-                                                Visibility="Collapsed"
+                                                Focusable="False" Content="&#xE711;"
+                                                FontFamily="Segoe MDL2 Assets" FontSize="9"
+                                                Opacity="0" IsHitTestVisible="False"
                                                 Command="{Binding DataContext.Connection.CloseSessionCommand, RelativeSource={RelativeSource AncestorType=TabControl}}"
                                                 CommandParameter="{Binding}"
                                                 Style="{DynamicResource SecondaryButtonStyle}"/>
@@ -317,13 +335,17 @@
                                                        Foreground="{DynamicResource TextPrimaryBrush}"
                                                        VerticalAlignment="Center"
                                                        TextTrimming="CharacterEllipsis" MaxWidth="160"/>
+                                            <TextBlock x:Name="TunnelRouteText" Text="{Binding TunnelRoute}" FontSize="9"
+                                                       Foreground="{DynamicResource TextSecondaryBrush}"
+                                                       VerticalAlignment="Center" Margin="5,0,0,0"/>
                                         </StackPanel>
                                     </DockPanel>
                                 </Border>
                                 <DataTemplate.Triggers>
-                                    <!-- Show close button on hover -->
+                                    <!-- Fade in close button on hover — no layout shift -->
                                     <Trigger SourceName="TabHeaderBorder" Property="IsMouseOver" Value="True">
-                                        <Setter TargetName="TabCloseButton" Property="Visibility" Value="Visible"/>
+                                        <Setter TargetName="TabCloseButton" Property="Opacity" Value="1"/>
+                                        <Setter TargetName="TabCloseButton" Property="IsHitTestVisible" Value="True"/>
                                     </Trigger>
                                     <!-- Connection type icons -->
                                     <DataTrigger Binding="{Binding ConnectionType}" Value="SSH">
@@ -421,21 +443,32 @@
                                     IsHitTestVisible="True">
                             <!-- Show empty state overlay when no servers exist -->
                             <StackPanel Visibility="{Binding ServerList.IsEmpty, Converter={StaticResource BoolToVisibilityConverter}}">
-                                <TextBlock x:Name="Mw_EmptyNoServers" Text="" FontSize="18"
+                                <TextBlock Text="&#xE774;"
+                                           FontFamily="Segoe MDL2 Assets" FontSize="64"
                                            Foreground="{DynamicResource TextSecondaryBrush}"
+                                           HorizontalAlignment="Center" Opacity="0.5"
+                                           Margin="0,0,0,16"/>
+                                <TextBlock x:Name="Mw_EmptyStateTitle" Text="" FontSize="22"
+                                           FontWeight="SemiBold"
+                                           Foreground="{DynamicResource TextPrimaryBrush}"
                                            HorizontalAlignment="Center"/>
-                                <TextBlock x:Name="Mw_EmptyAddHint" Text=""
+                                <TextBlock x:Name="Mw_EmptyStateSubtitle" Text=""
+                                           FontSize="13"
                                            Foreground="{DynamicResource TextSecondaryBrush}"
-                                           HorizontalAlignment="Center" Margin="0,8,0,16"/>
-                                <Button x:Name="Mw_EmptyAddServerBtn" Content=""
-                                        Command="{Binding ServerList.AddServerCommand}"
-                                        Style="{DynamicResource PrimaryButtonStyle}"
-                                        HorizontalAlignment="Center"/>
-                                <Button x:Name="Mw_EmptyImportBtn" Content=""
-                                        Command="{Binding Settings.ImportConfigCommand}"
-                                        Style="{DynamicResource SecondaryButtonStyle}"
-                                        Padding="12,6" FontSize="12"
-                                        HorizontalAlignment="Center" Margin="0,8,0,0"/>
+                                           HorizontalAlignment="Center" Margin="0,8,0,24"
+                                           TextWrapping="Wrap" MaxWidth="400"
+                                           TextAlignment="Center"/>
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                    <Button x:Name="Mw_EmptyBtnAddServer" Content=""
+                                            Command="{Binding ServerList.AddServerCommand}"
+                                            Style="{DynamicResource PrimaryButtonStyle}"
+                                            Padding="16,8" FontSize="13"/>
+                                    <Button x:Name="Mw_EmptyBtnImport" Content=""
+                                            Command="{Binding Settings.ImportConfigCommand}"
+                                            Style="{DynamicResource SecondaryButtonStyle}"
+                                            Padding="16,8" FontSize="13"
+                                            Margin="12,0,0,0"/>
+                                </StackPanel>
                             </StackPanel>
 
                             <!-- Show hint when servers exist but none selected -->
@@ -737,7 +770,7 @@
                               CellStyle="{DynamicResource ThemedDataGridCellStyle}"
                               RowStyle="{DynamicResource ThemedDataGridRowStyle}">
                         <DataGrid.Columns>
-                            <DataGridCheckBoxColumn Header="" Binding="{Binding Enabled, UpdateSourceTrigger=PropertyChanged}" Width="32"/>
+                            <DataGridCheckBoxColumn x:Name="Mw_ScheduledColEnabled" Header="" Binding="{Binding Enabled, UpdateSourceTrigger=PropertyChanged}" Width="40"/>
                             <DataGridTextColumn x:Name="Mw_ScheduledColServer" Header="" Binding="{Binding ServerName}" Width="*" IsReadOnly="True"/>
                             <DataGridTextColumn x:Name="Mw_ScheduledColType" Header="" Binding="{Binding ConnectionType}" Width="70" IsReadOnly="True"/>
                             <DataGridTextColumn x:Name="Mw_ScheduledColSchedule" Header="" Binding="{Binding Schedule}" Width="*" IsReadOnly="True"/>
@@ -880,6 +913,176 @@
                                             <TextBlock Text=" [KEY]" FontSize="10" Foreground="{DynamicResource SshBadgeBrush}"
                                                        VerticalAlignment="Center"
                                                        Visibility="{Binding HasKey, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Section: Terminal Appearance -->
+                    <Border Padding="16" Background="{DynamicResource CardBrush}"
+                            BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="10"
+                            Margin="0,0,0,16">
+                        <StackPanel>
+                            <TextBlock x:Name="Mw_SettingsTerminalTitle" Text="" FontSize="14" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,12"/>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                                    <TextBlock x:Name="Mw_SettingsTerminalFontLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" Margin="0,0,0,4"/>
+                                    <TextBox Text="{Binding Settings.TerminalFontFamily}" Width="200" HorizontalAlignment="Left"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" Margin="8,0,0,0">
+                                    <TextBlock x:Name="Mw_SettingsTerminalFontSizeLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" Margin="0,0,0,4"/>
+                                    <TextBox Text="{Binding Settings.TerminalFontSize}" Width="80" HorizontalAlignment="Left"/>
+                                </StackPanel>
+                            </Grid>
+                            <StackPanel Margin="0,12,0,0">
+                                <TextBlock x:Name="Mw_SettingsTerminalColorSchemeLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" Margin="0,0,0,4"/>
+                                <ComboBox SelectedValue="{Binding Settings.TerminalColorScheme}" SelectedValuePath="Content"
+                                          Width="200" HorizontalAlignment="Left">
+                                    <ComboBoxItem Content="Default"/>
+                                    <ComboBoxItem Content="Dracula"/>
+                                    <ComboBoxItem Content="Solarized Dark"/>
+                                    <ComboBoxItem Content="Monokai"/>
+                                    <ComboBoxItem Content="Nord"/>
+                                </ComboBox>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Section: RDP Defaults -->
+                    <Border Padding="16" Background="{DynamicResource CardBrush}"
+                            BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="10"
+                            Margin="0,0,0,16">
+                        <StackPanel>
+                            <TextBlock x:Name="Mw_SettingsRdpDefaultsTitle" Text="" FontSize="14" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,12"/>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                                    <TextBlock x:Name="Mw_SettingsRdpWidthLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" Margin="0,0,0,4"/>
+                                    <TextBox Text="{Binding Settings.DefaultResolutionWidth}" Width="100" HorizontalAlignment="Left"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" Margin="8,0,0,0">
+                                    <TextBlock x:Name="Mw_SettingsRdpHeightLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" Margin="0,0,0,4"/>
+                                    <TextBox Text="{Binding Settings.DefaultResolutionHeight}" Width="100" HorizontalAlignment="Left"/>
+                                </StackPanel>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Section: Session Logging -->
+                    <Border Padding="16" Background="{DynamicResource CardBrush}"
+                            BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="10"
+                            Margin="0,0,0,16">
+                        <StackPanel>
+                            <TextBlock x:Name="Mw_SettingsSessionLoggingTitle" Text="" FontSize="14" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,12"/>
+                            <CheckBox x:Name="Mw_SettingsSessionLoggingEnabled" Content="" IsChecked="{Binding Settings.SessionLoggingEnabled}"
+                                      Foreground="{DynamicResource TextPrimaryBrush}"/>
+                            <StackPanel Margin="0,12,0,0">
+                                <TextBlock x:Name="Mw_SettingsSessionLogDirLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" Margin="0,0,0,4"/>
+                                <TextBox Text="{Binding Settings.SessionLogDirectory}"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Section: External Credential Provider -->
+                    <Border Padding="16" Background="{DynamicResource CardBrush}"
+                            BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="10"
+                            Margin="0,0,0,16">
+                        <StackPanel>
+                            <TextBlock x:Name="Mw_SettingsCredProviderTitle" Text="" FontSize="14" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,12"/>
+                            <CheckBox x:Name="Mw_SettingsCredProviderEnabled" Content="" IsChecked="{Binding Settings.UseExternalCredentialProvider}"
+                                      Foreground="{DynamicResource TextPrimaryBrush}"/>
+                            <StackPanel Margin="0,12,0,0">
+                                <TextBlock x:Name="Mw_SettingsCredProviderCmdLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" Margin="0,0,0,4"/>
+                                <TextBox Text="{Binding Settings.CredentialProviderCommand}"
+                                         Tag="keepassxc-cli show -s -a Password &quot;{Database}&quot; &quot;{Title}&quot;"/>
+                            </StackPanel>
+                            <StackPanel Margin="0,12,0,0">
+                                <TextBlock x:Name="Mw_SettingsCredProviderDbLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" Margin="0,0,0,4"/>
+                                <TextBox Text="{Binding Settings.CredentialProviderDatabase}"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Section: External Tools -->
+                    <Border Padding="16" Background="{DynamicResource CardBrush}"
+                            BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="10"
+                            Margin="0,0,0,16">
+                        <StackPanel>
+                            <DockPanel Margin="0,0,0,12">
+                                <TextBlock x:Name="Mw_SettingsExtToolsTitle" Text="" FontSize="14" FontWeight="SemiBold"
+                                           Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
+                                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right">
+                                    <Button x:Name="Mw_SettingsExtToolsAddBtn" Content="" Command="{Binding Settings.AddExternalToolCommand}"
+                                            Style="{DynamicResource PrimaryButtonStyle}" Padding="8,3" FontSize="11" Margin="0,0,4,0"/>
+                                    <Button x:Name="Mw_SettingsExtToolsRemoveBtn" Content="" Command="{Binding Settings.RemoveExternalToolCommand}"
+                                            Style="{DynamicResource SecondaryButtonStyle}" Padding="8,3" FontSize="11"/>
+                                </StackPanel>
+                            </DockPanel>
+                            <ListBox ItemsSource="{Binding Settings.ExternalTools}"
+                                     SelectedItem="{Binding Settings.SelectedExternalTool}"
+                                     MinHeight="60" MaxHeight="180"
+                                     Background="{DynamicResource BackgroundBrush}"
+                                     BorderBrush="{DynamicResource BorderBrush}"
+                                     BorderThickness="1">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal" Margin="4,2">
+                                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold"
+                                                       Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,8,0"/>
+                                            <TextBlock Text="{Binding ExecutablePath}" Foreground="{DynamicResource TextSecondaryBrush}"
+                                                       FontSize="11" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Section: Projects -->
+                    <Border Padding="16" Background="{DynamicResource CardBrush}"
+                            BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="10"
+                            Margin="0,0,0,16">
+                        <StackPanel>
+                            <DockPanel Margin="0,0,0,12">
+                                <TextBlock x:Name="Mw_SettingsProjectsTitle" Text="" FontSize="14" FontWeight="SemiBold"
+                                           Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
+                                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right">
+                                    <Button x:Name="Mw_SettingsProjectsAddBtn" Content="" Command="{Binding Settings.AddProjectCommand}"
+                                            Style="{DynamicResource PrimaryButtonStyle}" Padding="8,3" FontSize="11" Margin="0,0,4,0"/>
+                                    <Button x:Name="Mw_SettingsProjectsEditBtn" Content="" Command="{Binding Settings.EditProjectCommand}"
+                                            Style="{DynamicResource SecondaryButtonStyle}" Padding="8,3" FontSize="11" Margin="0,0,4,0"/>
+                                    <Button x:Name="Mw_SettingsProjectsDeleteBtn" Content="" Command="{Binding Settings.DeleteProjectCommand}"
+                                            Style="{DynamicResource SecondaryButtonStyle}" Padding="8,3" FontSize="11"/>
+                                </StackPanel>
+                            </DockPanel>
+                            <ListBox ItemsSource="{Binding Settings.Projects}"
+                                     SelectedItem="{Binding Settings.SelectedProject}"
+                                     MinHeight="80" MaxHeight="200"
+                                     Background="{DynamicResource BackgroundBrush}"
+                                     BorderBrush="{DynamicResource BorderBrush}"
+                                     BorderThickness="1">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal" Margin="4,2">
+                                            <Border Width="10" Height="10" CornerRadius="5" Margin="0,0,8,0"
+                                                    VerticalAlignment="Center" Background="{Binding Color}"/>
+                                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold"
+                                                       Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,8,0"/>
+                                            <TextBlock Text="{Binding Description}" Foreground="{DynamicResource TextSecondaryBrush}"
+                                                       FontSize="11" VerticalAlignment="Center"/>
                                         </StackPanel>
                                     </DataTemplate>
                                 </ListBox.ItemTemplate>
@@ -1061,6 +1264,12 @@
                             DockPanel.Dock="Right"
                             HorizontalAlignment="Right"
                             VerticalAlignment="Center">
+                    <!-- File sharing status -->
+                    <TextBlock x:Name="Mw_SharingStatus"
+                               FontSize="11" Margin="0,0,12,0"
+                               VerticalAlignment="Center"
+                               Foreground="{DynamicResource SuccessBrush}"
+                               Visibility="Collapsed"/>
                     <!-- Tunnel panel toggle badge -->
                     <Button x:Name="Mw_StatusTunnelToggle" Command="{Binding ToggleTunnelPanelCommand}"
                             ToolTip=""

@@ -83,28 +83,52 @@ public partial class ConnectionViewModel : ObservableObject
             return;
         }
 
+        var historyId = !string.IsNullOrEmpty(session.OriginalServerId)
+            ? session.OriginalServerId : session.ServerId;
+        Core.Logging.ConnectionHistory.RecordDisconnect(
+            historyId, session.Title, session.ConnectionType);
+
         // Close tunnel if the server has one bound to a local port
         var stateData = _connectionSm.GetStateData(session.ServerId);
         if (stateData?.TunnelLocalPort is int localPort)
         {
-            _tunnelManager.CloseTunnel(localPort);
+            _tunnelManager.ReleaseReference(localPort);
         }
 
         // Dispose secondary pane first if split
-        if (session.IsSplit && session.SecondaryHostControl is IDisposable secondaryDisposable)
+        if (session.IsSplit)
         {
-            try { secondaryDisposable.Dispose(); }
-            catch (ObjectDisposedException) { }
+            // Record disconnect and clean up state for the secondary session
+            if (!string.IsNullOrEmpty(session.SecondaryServerId))
+            {
+                var secondaryHistoryId = !string.IsNullOrEmpty(session.SecondaryOriginalServerId)
+                    ? session.SecondaryOriginalServerId : session.SecondaryServerId;
+                Core.Logging.ConnectionHistory.RecordDisconnect(
+                    secondaryHistoryId,
+                    session.SecondaryTitle,
+                    session.SecondaryConnectionType);
+
+                var secondaryStateData = _connectionSm.GetStateData(session.SecondaryServerId);
+                if (secondaryStateData?.TunnelLocalPort is int secondaryPort)
+                {
+                    _tunnelManager.ReleaseReference(secondaryPort);
+                }
+
+                _connectionSm.Reset(session.SecondaryServerId);
+            }
+
+            SafeDispose(session.SecondaryHostControl as IDisposable);
             session.SecondaryHostControl = null;
+            session.SecondaryServerId = "";
+            session.SecondaryConnectionType = "";
+            session.SecondaryTitle = "";
+            session.SecondaryStatus = "";
+            session.SecondaryTunnelRoute = "";
+            session.SecondaryEnvironmentColor = "";
             session.IsSplit = false;
         }
 
-        // Dispose the primary host control
-        if (session.HostControl is IDisposable disposable)
-        {
-            try { disposable.Dispose(); }
-            catch (ObjectDisposedException) { }
-        }
+        SafeDispose(session.HostControl as IDisposable);
 
         ActiveSessions.Remove(session);
         _connectionSm.Reset(session.ServerId);
@@ -122,35 +146,63 @@ public partial class ConnectionViewModel : ObservableObject
     {
         foreach (var session in ActiveSessions.ToList())
         {
+            // Record disconnect for the primary session (use original server ID for history)
+            var primaryHistoryId = !string.IsNullOrEmpty(session.OriginalServerId)
+                ? session.OriginalServerId : session.ServerId;
+            Core.Logging.ConnectionHistory.RecordDisconnect(
+                primaryHistoryId, session.Title, session.ConnectionType);
+
             // Close tunnels
             var stateData = _connectionSm.GetStateData(session.ServerId);
             if (stateData?.TunnelLocalPort is int localPort)
             {
-                _tunnelManager.CloseTunnel(localPort);
+                _tunnelManager.ReleaseReference(localPort);
             }
 
             // Dispose secondary pane first if split
-            if (session.IsSplit && session.SecondaryHostControl is IDisposable secondaryDisposable)
+            if (session.IsSplit)
             {
-                try { secondaryDisposable.Dispose(); }
-                catch (ObjectDisposedException) { }
+                if (!string.IsNullOrEmpty(session.SecondaryServerId))
+                {
+                    var secHistoryId = !string.IsNullOrEmpty(session.SecondaryOriginalServerId)
+                        ? session.SecondaryOriginalServerId : session.SecondaryServerId;
+                    Core.Logging.ConnectionHistory.RecordDisconnect(
+                        secHistoryId,
+                        session.SecondaryTitle,
+                        session.SecondaryConnectionType);
+
+                    var secondaryStateData = _connectionSm.GetStateData(session.SecondaryServerId);
+                    if (secondaryStateData?.TunnelLocalPort is int secondaryPort)
+                    {
+                        _tunnelManager.ReleaseReference(secondaryPort);
+                    }
+
+                    _connectionSm.Reset(session.SecondaryServerId);
+                }
+
+                SafeDispose(session.SecondaryHostControl as IDisposable);
                 session.SecondaryHostControl = null;
                 session.IsSplit = false;
             }
 
-            // Dispose primary host control
-            if (session.HostControl is IDisposable disposable)
-            {
-                try { disposable.Dispose(); }
-                catch (ObjectDisposedException) { }
-            }
-
+            SafeDispose(session.HostControl as IDisposable);
             _connectionSm.Reset(session.ServerId);
         }
 
         ActiveSessions.Clear();
         ActiveSession = null;
         HasActiveSessions = false;
+    }
+
+    /// <summary>
+    /// Safely disposes a host control, ignoring ObjectDisposedException
+    /// which is expected when tearing down already-closed controls.
+    /// </summary>
+    private static void SafeDispose(IDisposable? disposable)
+    {
+        if (disposable is null) return;
+        try { disposable.Dispose(); }
+        catch (ObjectDisposedException) { /* Expected when disposing already-closed host controls */ }
     }
 
     [RelayCommand]

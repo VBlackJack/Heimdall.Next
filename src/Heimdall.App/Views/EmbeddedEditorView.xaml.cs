@@ -31,6 +31,7 @@ public partial class EmbeddedEditorView : UserControl
     private string? _filePath;
     private bool _isModified;
     private bool _isRemote;
+    private Core.Localization.LocalizationManager? _localizer;
 
     /// <summary>Raised when the user saves the file.</summary>
     public event Action<string, string>? FileSaved;
@@ -38,10 +39,15 @@ public partial class EmbeddedEditorView : UserControl
     /// <summary>Raised when the user closes the editor.</summary>
     public event Action? CloseRequested;
 
-    public EmbeddedEditorView()
+    public EmbeddedEditorView(Core.Localization.LocalizationManager? localizer = null)
     {
+        _localizer = localizer;
         InitializeComponent();
         ApplyDraculaTheme();
+
+        // Localize button labels
+        BtnSave.Content = L("EditorBtnSave");
+        BtnClose.Content = L("EditorBtnClose");
 
         Editor.TextChanged += (_, _) =>
         {
@@ -137,8 +143,8 @@ public partial class EmbeddedEditorView : UserControl
         catch (Exception ex)
         {
             MessageBox.Show(Window.GetWindow(this),
-                $"Failed to save: {ex.Message}",
-                "Save Error",
+                string.Format(L("EditorSaveErrorMessage"), ex.Message),
+                L("EditorSaveErrorTitle"),
                 MessageBoxButton.OK,
                 MessageBoxImage.Error);
         }
@@ -149,8 +155,8 @@ public partial class EmbeddedEditorView : UserControl
         if (_isModified)
         {
             var result = MessageBox.Show(Window.GetWindow(this),
-                "File has unsaved changes. Close anyway?",
-                "Unsaved Changes",
+                L("EditorUnsavedMessage"),
+                L("EditorUnsavedTitle"),
                 MessageBoxButton.YesNo,
                 MessageBoxImage.Question);
 
@@ -174,6 +180,9 @@ public partial class EmbeddedEditorView : UserControl
         var caret = Editor.TextArea.Caret;
         CursorPositionText.Text = $"Ln {caret.Line}, Col {caret.Column}";
     }
+
+    /// <summary>Resolves a locale key, falling back to the key name if no localizer is set.</summary>
+    private string L(string key) => _localizer?[key] ?? key;
 
     private static ICSharpCode.AvalonEdit.Highlighting.IHighlightingDefinition? ResolveSyntax(string? ext)
     {

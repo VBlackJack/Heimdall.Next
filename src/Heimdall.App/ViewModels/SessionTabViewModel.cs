@@ -28,6 +28,14 @@ public partial class SessionTabViewModel : ObservableObject
     [ObservableProperty]
     private string _serverId = "";
 
+    /// <summary>
+    /// The original server inventory ID, used for server lookups (reconnect,
+    /// duplicate-tab, auto-SFTP). <see cref="ServerId"/> holds the session-
+    /// scoped ID used for state machine keying.
+    /// </summary>
+    [ObservableProperty]
+    private string _originalServerId = "";
+
     [ObservableProperty]
     private string _title = "";
 
@@ -39,6 +47,13 @@ public partial class SessionTabViewModel : ObservableObject
 
     [ObservableProperty]
     private string _environmentColor = "";
+
+    /// <summary>
+    /// Visual tunnel chain route text, e.g. "via GatewayA → GatewayB".
+    /// Empty string when using a direct connection.
+    /// </summary>
+    [ObservableProperty]
+    private string _tunnelRoute = "";
 
     [ObservableProperty]
     private bool _isActive;
@@ -67,6 +82,36 @@ public partial class SessionTabViewModel : ObservableObject
     [ObservableProperty]
     private string _secondaryServerId = "";
 
+    /// <summary>
+    /// Original server inventory ID for the secondary session (for reconnect/duplicate).
+    /// </summary>
+    [ObservableProperty]
+    private string _secondaryOriginalServerId = "";
+
     [ObservableProperty]
     private string _secondaryConnectionType = "";
+
+    /// <summary>
+    /// Original display title of the secondary session (preserved across split/unsplit).
+    /// </summary>
+    [ObservableProperty]
+    private string _secondaryTitle = "";
+
+    /// <summary>
+    /// Connection status of the secondary session (preserved across split/unsplit).
+    /// </summary>
+    [ObservableProperty]
+    private string _secondaryStatus = "";
+
+    /// <summary>
+    /// Tunnel route text of the secondary session (preserved across split/unsplit).
+    /// </summary>
+    [ObservableProperty]
+    private string _secondaryTunnelRoute = "";
+
+    /// <summary>
+    /// Environment color of the secondary session (preserved across split/unsplit).
+    /// </summary>
+    [ObservableProperty]
+    private string _secondaryEnvironmentColor = "";
 }

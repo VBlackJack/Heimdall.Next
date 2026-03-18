@@ -91,7 +91,7 @@ public sealed class EmbeddedSessionManager
             session is RdpSessionResult rdp)
         {
             var view = new EmbeddedRdpView();
-            view.InitializeSession(rdp.Server, sessionTab, antiIdleInterval);
+            view.InitializeSession(rdp.Server, sessionTab, antiIdleInterval, _localizer);
             WireSplitRequested(view, sessionTab);
             return view;
         }
@@ -99,19 +99,19 @@ public sealed class EmbeddedSessionManager
         if (string.Equals(connectionType, "SSH", StringComparison.OrdinalIgnoreCase) &&
             session is SshSessionResult sshResult)
         {
-            return CreateSshView(sessionTab, sshResult.Session, displayName, sshKeepAliveInterval);
+            return CreateSshView(sessionTab, sshResult.Session, displayName, sshKeepAliveInterval, settings);
         }
 
         if (string.Equals(connectionType, "SSH", StringComparison.OrdinalIgnoreCase) &&
             session is TerminalSessionResult termResult)
         {
-            return CreateTerminalSshView(sessionTab, termResult.Session, displayName, sshKeepAliveInterval);
+            return CreateTerminalSshView(sessionTab, termResult.Session, displayName, sshKeepAliveInterval, settings);
         }
 
         if (string.Equals(connectionType, "LOCAL", StringComparison.OrdinalIgnoreCase) &&
             session is LocalShellBundle localBundle)
         {
-            var termView = CreateTerminalSshView(sessionTab, localBundle.Session, displayName, 0);
+            var termView = CreateTerminalSshView(sessionTab, localBundle.Session, displayName, 0, settings);
 
             // Auto-attach local file browser panel in a vertical split
             var fileBrowser = new Views.LocalFileBrowserView(
@@ -158,12 +158,33 @@ public sealed class EmbeddedSessionManager
             return CreateSftpView(sessionTab, bundle.Browser, displayName, bundle.SshParams);
         }
 
+        if (string.Equals(connectionType, "FTP", StringComparison.OrdinalIgnoreCase) &&
+            session is FtpSessionBundle ftpBundle)
+        {
+            return CreateSftpView(sessionTab, ftpBundle.Browser, displayName, null);
+        }
+
         if (string.Equals(connectionType, "CITRIX", StringComparison.OrdinalIgnoreCase)
             && session is CitrixSessionResult citrix)
         {
             var view = new EmbeddedCitrixView();
-            view.InitializeSession(citrix, sessionTab, displayName);
+            view.InitializeSession(citrix, sessionTab, displayName, _localizer);
+            view.SetConnectionInfo(citrix.StoreFrontUrl, citrix.AppName);
             return view;
+        }
+
+        if (string.Equals(connectionType, "VNC", StringComparison.OrdinalIgnoreCase)
+            && session is VncSessionResult vnc)
+        {
+            var view = new EmbeddedVncView();
+            view.InitializeSession(vnc, sessionTab, displayName, _localizer);
+            return view;
+        }
+
+        if (string.Equals(connectionType, "TELNET", StringComparison.OrdinalIgnoreCase)
+            && session is TerminalSessionResult telnetResult)
+        {
+            return CreateTerminalSshView(sessionTab, telnetResult.Session, displayName, 0, settings);
         }
 
         return new DisposablePlaceholderView(displayName, connectionType, session);
@@ -173,9 +194,10 @@ public sealed class EmbeddedSessionManager
         SessionTabViewModel tab,
         SshShellSession session,
         string displayName,
-        int keepAliveIntervalSeconds)
+        int keepAliveIntervalSeconds,
+        AppSettings? settings = null)
     {
-        var view = new EmbeddedSshView();
+        var view = new EmbeddedSshView { Localizer = _localizer, TerminalSettings = settings };
         view.InitializeSession(session, tab, displayName, string.Empty, keepAliveIntervalSeconds);
         WireBroadcast(view);
         WireSplitRequested(view, tab);
@@ -187,9 +209,10 @@ public sealed class EmbeddedSessionManager
         SessionTabViewModel tab,
         Heimdall.Terminal.ITerminalSession terminalSession,
         string displayName,
-        int keepAliveIntervalSeconds)
+        int keepAliveIntervalSeconds,
+        AppSettings? settings = null)
     {
-        var view = new EmbeddedSshView();
+        var view = new EmbeddedSshView { Localizer = _localizer, TerminalSettings = settings };
         view.InitializeTerminalSession(terminalSession, tab, displayName, keepAliveIntervalSeconds);
         WireBroadcast(view);
         WireSplitRequested(view, tab);
@@ -214,7 +237,7 @@ public sealed class EmbeddedSessionManager
 
     private EmbeddedSftpView CreateSftpView(
         SessionTabViewModel tab,
-        SftpBrowser browser,
+        IRemoteBrowser browser,
         string displayName,
         SshConnectionParams? sshParams)
     {
@@ -245,7 +268,10 @@ public sealed class EmbeddedSessionManager
     private void WireReconnectRequested(EmbeddedSshView view, SessionTabViewModel tab)
     {
         view.ReconnectRequested += () =>
-            ReconnectRequestedCallback?.Invoke(tab, tab.ServerId, tab.ConnectionType);
+            ReconnectRequestedCallback?.Invoke(
+                tab,
+                !string.IsNullOrEmpty(tab.OriginalServerId) ? tab.OriginalServerId : tab.ServerId,
+                tab.ConnectionType);
     }
 
     private void WireSplitRequested(EmbeddedSshView view, SessionTabViewModel tab)

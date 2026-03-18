@@ -16,6 +16,7 @@
 
 using System.Windows;
 using Heimdall.App.Theming;
+using Heimdall.Core.Localization;
 
 namespace Heimdall.App.Views.Dialogs;
 
@@ -24,6 +25,7 @@ namespace Heimdall.App.Views.Dialogs;
 /// </summary>
 public partial class InputDialog : Window
 {
+    private readonly LocalizationManager? _localizer;
     /// <summary>
     /// Gets or sets the prompt text displayed above the input field.
     /// </summary>
@@ -42,14 +44,20 @@ public partial class InputDialog : Window
         set => InputTextBox.Text = value;
     }
 
-    public InputDialog()
+    public InputDialog(LocalizationManager? localizer = null)
     {
+        _localizer = localizer;
         InitializeComponent();
         WindowThemeHelper.ApplyCurrentTheme(this);
         Loaded += (_, _) =>
         {
             InputTextBox.Focus();
             InputTextBox.SelectAll();
+            if (_localizer is not null)
+            {
+                CancelBtn.Content = _localizer["BtnCancel"];
+                OkBtn.Content = _localizer["BtnOk"];
+            }
         };
     }
 
