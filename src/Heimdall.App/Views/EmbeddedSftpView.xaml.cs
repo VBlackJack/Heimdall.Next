@@ -1248,11 +1248,13 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
             || msg.Contains("SSH_FX_PERMISSION_DENIED", StringComparison.OrdinalIgnoreCase))
             return true;
 
-        // SSH.NET sometimes wraps permission-denied as generic "Failure" (SSH_FX_FAILURE)
-        // when the server doesn't distinguish between error codes.
-        // SftpStatusCode.Failure with write/create operations is usually permission-related.
-        if (typeName.Contains("Sftp", StringComparison.OrdinalIgnoreCase)
-            && msg.Contains("Failure", StringComparison.Ordinal))
+        // SSH.NET surfaces SSH_FX_FAILURE as SshException("Failure") or
+        // SftpStatusException("Failure") when the server doesn't distinguish
+        // SSH_FX_PERMISSION_DENIED (3) from SSH_FX_FAILURE (4).
+        // This is the most common pattern for root-owned file operations.
+        if (msg.Contains("Failure", StringComparison.Ordinal)
+            && (typeName.Contains("Sftp", StringComparison.OrdinalIgnoreCase)
+                || typeName.Contains("Ssh", StringComparison.OrdinalIgnoreCase)))
             return true;
 
         return false;
