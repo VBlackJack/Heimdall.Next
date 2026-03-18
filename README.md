@@ -12,7 +12,7 @@
 
 **The secure, all-in-one Windows connection manager for RDP, SSH, SFTP, VNC, Telnet, FTP, Citrix, and local terminals.**
 
-Built with .NET 10 and WPF. Designed as a modern, high-performance alternative to MobaXterm and mRemoteNG with enterprise-grade security.
+Built with .NET 10 and WPF. Secure, feature-rich Windows connection manager with enterprise-grade encryption and modern UX.
 
 <!-- Screenshot placeholder: ![Heimdall.Next](docs/screenshot.png) -->
 
