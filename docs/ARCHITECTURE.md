@@ -329,6 +329,9 @@ Error state reachable from Ready or Busy.
 | File protection | Windows ACLs (user + Admins + SYSTEM) via `AclEnforcer` on config dirs, logs, temp files |
 | Input validation | Compiled regex patterns against injection (CWE-78) via `InputValidator` |
 | Command construction | Structured argument lists for Plink/gsudo (no string concatenation of user input) |
+| Placeholder sanitization | Shell metacharacter stripping in ExternalToolDefinition and CommandCredentialProvider |
+| HTTP/TFTP traversal | Trailing-separator + exact-root check in EphemeralFileServer |
+| Config concurrency | SemaphoreSlim write lock in ConfigManager prevents last-writer-wins |
 | WebView2 hardening | CSP (`default-src 'none'`), navigation blocking, `WebMessage` source validation |
 | Pageant IPC | Process owner identity verification before shared memory access |
 | Credential autofill | Scoped to mstsc process lineage + host hint matching, `#32770` class excluded |
@@ -340,3 +343,37 @@ Error state reachable from Ready or Busy.
 | Exception handling | Global handlers registered before first await, unobserved task exceptions caught |
 | External credentials | `CommandCredentialProvider` executes CLI password managers (KeePassXC, Bitwarden, 1Password) with 10s timeout |
 | Logging | `FileLogger.Dispose()` flushes before marking disposed (no lost diagnostics) |
+
+## Settings Panel Architecture
+
+The Settings panel uses a left-navigation `TabControl` with 6 sub-tabs:
+
+| Sub-tab | Settings |
+|---------|----------|
+| **General** | Language, theme, max sessions, prevent sleep, external editor, projects |
+| **Terminal** | Font family, font size, color scheme |
+| **SSH & SFTP** | Plink path, default mode, anti-idle, TMOUT reset, SFTP auto-open, X11, gateways |
+| **RDP** | Default mode, resolution, color depth, audio, NLA, dynamic res, multi-monitor, device redirection, caching |
+| **Security** | External credential provider (command/database), Credential Guard |
+| **Advanced** | Logging, session logging, timeouts (tunnel/RDP), external tools |
+
+Action buttons (Save / Reset / Export / Import) are pinned at the bottom, always visible regardless of sub-tab.
+
+Settings persistence: ViewModel -> AppSettings -> ConfigManager -> settings.json (UTF-8 no BOM). ConfigManager writes are protected by a `SemaphoreSlim` to prevent concurrent save corruption.
+
+## WebView2 Portable Deployment
+
+WebView2 is required for embedded SSH terminals (xterm.js) and VNC sessions (noVNC). `WebView2Helper` centralizes runtime detection:
+
+1. **Bundled Fixed Version Runtime** in `runtimes/webview2/` (fully portable, ~436 MB)
+2. **System Evergreen Runtime** via Edge or standalone installer
+3. **Unavailable** — shows localized error message, no crash
+
+Build variants:
+
+| Variant | Size | Target |
+|---------|------|--------|
+| **Light** | ~185 MB | Standard PCs with Edge |
+| **Portable** | ~620 MB | Isolated servers without Edge |
+
+`Build.ps1 -Variant Both` produces both variants. `Setup-WebView2.ps1` automates Evergreen Runtime installation on machines with internet access.
