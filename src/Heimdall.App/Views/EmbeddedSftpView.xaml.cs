@@ -1070,7 +1070,16 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
             UpdateStatus(_localizer?.Format("SftpStatusEditing", file.Name)
                 ?? $"Editing: {file.Name}");
 
-            await _editor.EditFileAsync(file.FullPath);
+            try
+            {
+                await _editor.EditFileAsync(file.FullPath);
+            }
+            catch (Exception ex) when (_sshParams is not null && IsPermissionDenied(ex))
+            {
+                Core.Logging.FileLogger.Info(
+                    $"EmbeddedSFTP external edit permission denied, falling back to sudo for {file.Name}");
+                await _editor.EditFileSudoAsync(file.FullPath, _sshParams);
+            }
         }
         catch (Exception ex)
         {
