@@ -847,7 +847,15 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
         try
         {
             string remotePath = CombineRemotePath(_currentPath, folderName);
-            await _browser.CreateDirectoryAsync(remotePath);
+            try
+            {
+                await _browser.CreateDirectoryAsync(remotePath);
+            }
+            catch (Exception ex) when (_sshParams is not null && IsPermissionDenied(ex))
+            {
+                Core.Logging.FileLogger.Info($"EmbeddedSFTP mkdir permission denied, falling back to sudo");
+                await RunSudoCommandAsync($"sudo mkdir -p {Heimdall.Sftp.PathEscaper.EscapeForShell(remotePath)}");
+            }
             UpdateStatus(_localizer?["SftpSuccessMkdir"] ?? "Folder created.");
             _ = LoadDirectoryAsync(_currentPath);
         }
@@ -879,7 +887,16 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
         try
         {
             string newPath = CombineRemotePath(_currentPath, newName);
-            await _browser.RenameAsync(file.FullPath, newPath);
+            try
+            {
+                await _browser.RenameAsync(file.FullPath, newPath);
+            }
+            catch (Exception ex) when (_sshParams is not null && IsPermissionDenied(ex))
+            {
+                Core.Logging.FileLogger.Info($"EmbeddedSFTP rename permission denied, falling back to sudo");
+                await RunSudoCommandAsync(
+                    $"sudo mv {Heimdall.Sftp.PathEscaper.EscapeForShell(file.FullPath)} {Heimdall.Sftp.PathEscaper.EscapeForShell(newPath)}");
+            }
             UpdateStatus(_localizer?["SftpSuccessRename"] ?? "Renamed.");
             _ = LoadDirectoryAsync(_currentPath);
         }
@@ -915,7 +932,17 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
         {
             foreach (var file in selected)
             {
-                await _browser.DeleteAsync(file.FullPath);
+                try
+                {
+                    await _browser.DeleteAsync(file.FullPath);
+                }
+                catch (Exception ex) when (_sshParams is not null && IsPermissionDenied(ex))
+                {
+                    Core.Logging.FileLogger.Info($"EmbeddedSFTP delete permission denied, falling back to sudo for {file.Name}");
+                    string flag = file.IsDirectory ? "-rf" : "-f";
+                    await RunSudoCommandAsync(
+                        $"sudo rm {flag} {Heimdall.Sftp.PathEscaper.EscapeForShell(file.FullPath)}");
+                }
             }
 
             UpdateStatus(_localizer?["SftpSuccessDelete"] ?? "Deleted.");
@@ -962,7 +989,16 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
 
         try
         {
-            await _browser.ChmodAsync(file.FullPath, Convert.ToInt16(newPerms, 8));
+            try
+            {
+                await _browser.ChmodAsync(file.FullPath, Convert.ToInt16(newPerms, 8));
+            }
+            catch (Exception ex) when (_sshParams is not null && IsPermissionDenied(ex))
+            {
+                Core.Logging.FileLogger.Info($"EmbeddedSFTP chmod permission denied, falling back to sudo");
+                await RunSudoCommandAsync(
+                    $"sudo chmod {newPerms} {Heimdall.Sftp.PathEscaper.EscapeForShell(file.FullPath)}");
+            }
             UpdateStatus(_localizer?["SftpChmodSuccess"] ?? "Permissions changed.");
             _ = LoadDirectoryAsync(_currentPath);
         }
@@ -1291,6 +1327,24 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
             .ConfigureAwait(false);
 
         return ssh;
+    }
+
+    /// <summary>
+    /// Executes a single sudo command over SSH (chmod, mv, rm, mkdir, etc.).
+    /// </summary>
+    private async Task RunSudoCommandAsync(string command, CancellationToken ct = default)
+    {
+        using var ssh = await CreateSudoSshClientAsync(ct);
+        try
+        {
+            var cmd = await Task.Run(() => ssh.RunCommand(command), ct).ConfigureAwait(false);
+            if (cmd.ExitStatus != 0)
+                throw new InvalidOperationException($"Command failed (exit {cmd.ExitStatus}): {cmd.Error}");
+        }
+        finally
+        {
+            ssh.Disconnect();
+        }
     }
 
     /// <summary>
