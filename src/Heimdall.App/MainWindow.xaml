@@ -314,15 +314,17 @@
                                 ItemContainerStyle="{DynamicResource ThemedTabItemStyle}">
                         <TabControl.ItemTemplate>
                             <DataTemplate DataType="{x:Type vm:SessionTabViewModel}">
-                                <Border x:Name="TabHeaderBorder" Padding="10,6">
+                                <Border x:Name="TabHeaderBorder" Padding="10,6" Background="Transparent">
                                     <DockPanel LastChildFill="True">
                                         <!-- Close button always occupies layout space (Hidden, not Collapsed)
-                                             so the tab width stays constant on hover. Only opacity toggles. -->
+                                             so the tab width stays constant on hover. Only opacity toggles.
+                                             IsHitTestVisible stays True; the Border's Background="Transparent"
+                                             ensures IsMouseOver persists when hovering over child elements. -->
                                         <Button x:Name="TabCloseButton" DockPanel.Dock="Right"
                                                 Width="18" Height="18" Margin="6,0,0,0" Padding="0"
                                                 Focusable="False" Content="&#xE711;"
                                                 FontFamily="Segoe MDL2 Assets" FontSize="9"
-                                                Opacity="0" IsHitTestVisible="False"
+                                                Opacity="0" IsHitTestVisible="True"
                                                 Command="{Binding DataContext.Connection.CloseSessionCommand, RelativeSource={RelativeSource AncestorType=TabControl}}"
                                                 CommandParameter="{Binding}"
                                                 Style="{DynamicResource SecondaryButtonStyle}"/>
@@ -345,7 +347,6 @@
                                     <!-- Fade in close button on hover — no layout shift -->
                                     <Trigger SourceName="TabHeaderBorder" Property="IsMouseOver" Value="True">
                                         <Setter TargetName="TabCloseButton" Property="Opacity" Value="1"/>
-                                        <Setter TargetName="TabCloseButton" Property="IsHitTestVisible" Value="True"/>
                                     </Trigger>
                                     <!-- Connection type icons -->
                                     <DataTrigger Binding="{Binding ConnectionType}" Value="SSH">

@@ -722,7 +722,16 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
                     "SftpStatusUploadingProgress", fileName,
                     $"{i + 1}", $"{localPaths.Length}") ?? $"Uploading {fileName}...";
 
-                await _browser.UploadFileAsync(localPath, remotePath, ct);
+                try
+                {
+                    await _browser.UploadFileAsync(localPath, remotePath, ct);
+                }
+                catch (Exception ex) when (_sshParams is not null && IsPermissionDenied(ex))
+                {
+                    Core.Logging.FileLogger.Info(
+                        $"EmbeddedSFTP upload permission denied, falling back to sudo for {fileName}");
+                    await UploadViaSudoAsync(localPath, remotePath, ct);
+                }
             }
 
             UpdateStatus(_localizer?["SftpStatusTransferComplete"] ?? "Transfer complete");
@@ -785,7 +794,16 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
                     "SftpStatusDownloadingFile", file.Name,
                     $"{i + 1}/{selected.Count}") ?? $"Downloading {file.Name}...";
 
-                await _browser.DownloadFileAsync(file.FullPath, localPath, ct);
+                try
+                {
+                    await _browser.DownloadFileAsync(file.FullPath, localPath, ct);
+                }
+                catch (Exception ex) when (_sshParams is not null && IsPermissionDenied(ex))
+                {
+                    Core.Logging.FileLogger.Info(
+                        $"EmbeddedSFTP download permission denied, falling back to sudo for {file.Name}");
+                    await DownloadViaSudoAsync(file.FullPath, localPath, ct);
+                }
             }
 
             UpdateStatus(_localizer?["SftpStatusTransferComplete"] ?? "Transfer complete");
@@ -1209,6 +1227,68 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
         return msg.Contains("permission denied", StringComparison.OrdinalIgnoreCase)
             || msg.Contains("access denied", StringComparison.OrdinalIgnoreCase)
             || msg.Contains("not permitted", StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// Downloads a file via <c>sudo cat</c> over a direct SSH exec channel,
+    /// bypassing SFTP permission restrictions.
+    /// </summary>
+    private async Task DownloadViaSudoAsync(string remotePath, string localPath, CancellationToken ct)
+    {
+        if (_sshParams is null) throw new InvalidOperationException("SSH params not available for sudo.");
+
+        var escaped = Heimdall.Sftp.PathEscaper.EscapeForShell(remotePath);
+        var connInfo = Heimdall.Ssh.SshConnectionFactory.Create(_sshParams);
+        using var ssh = new Renci.SshNet.SshClient(connInfo);
+
+        await Task.Run(() => { ct.ThrowIfCancellationRequested(); ssh.Connect(); }, ct).ConfigureAwait(false);
+        try
+        {
+            var cmd = await Task.Run(() => ssh.RunCommand($"sudo cat {escaped}"), ct).ConfigureAwait(false);
+            if (cmd.ExitStatus != 0)
+                throw new InvalidOperationException($"sudo cat failed (exit {cmd.ExitStatus}): {cmd.Error}");
+
+            await File.WriteAllTextAsync(localPath, cmd.Result ?? "", System.Text.Encoding.UTF8, ct).ConfigureAwait(false);
+        }
+        finally
+        {
+            ssh.Disconnect();
+        }
+    }
+
+    /// <summary>
+    /// Uploads a file via SFTP to a temp path, then moves it to the target
+    /// location using <c>sudo tee</c> over SSH.
+    /// </summary>
+    private async Task UploadViaSudoAsync(string localPath, string remotePath, CancellationToken ct)
+    {
+        if (_sshParams is null || _browser is null) throw new InvalidOperationException("SSH params not available for sudo.");
+
+        var escaped = Heimdall.Sftp.PathEscaper.EscapeForShell(remotePath);
+        string tempRemote = $"/tmp/.heimdall_upload_{Guid.NewGuid():N}";
+
+        // Upload to temp path (writable by current user)
+        await _browser.UploadFileAsync(localPath, tempRemote, ct).ConfigureAwait(false);
+
+        // Move to final location via sudo
+        var connInfo = Heimdall.Ssh.SshConnectionFactory.Create(_sshParams);
+        using var ssh = new Renci.SshNet.SshClient(connInfo);
+
+        await Task.Run(() => { ct.ThrowIfCancellationRequested(); ssh.Connect(); }, ct).ConfigureAwait(false);
+        try
+        {
+            var escapedTemp = Heimdall.Sftp.PathEscaper.EscapeForShell(tempRemote);
+            var cmd = await Task.Run(() =>
+                ssh.RunCommand($"cat {escapedTemp} | sudo tee -- {escaped} > /dev/null && sudo rm -f {escapedTemp}"),
+                ct).ConfigureAwait(false);
+
+            if (cmd.ExitStatus != 0)
+                throw new InvalidOperationException($"sudo tee failed (exit {cmd.ExitStatus}): {cmd.Error}");
+        }
+        finally
+        {
+            ssh.Disconnect();
+        }
     }
 
     // ------------------------------------------------------------------
