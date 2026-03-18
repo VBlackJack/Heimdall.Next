@@ -241,7 +241,8 @@ public partial class EmbeddedVncView : UserControl, IDisposable
         var connectParams = new
         {
             wsUrl = $"ws://127.0.0.1:{_proxy.ListenPort}",
-            password = _session?.Password
+            password = _session?.Password,
+            viewOnly = _session?.ViewOnly ?? false
         };
 
         var json = JsonSerializer.Serialize(connectParams);

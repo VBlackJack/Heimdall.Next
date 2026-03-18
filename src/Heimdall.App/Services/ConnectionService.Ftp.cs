@@ -55,7 +55,8 @@ public partial class ConnectionService
 
         try
         {
-            await browser.ConnectAsync(host, port, username, password, ct)
+            await browser.ConnectAsync(host, port, username, password,
+                    server.FtpPassiveMode, server.FtpUseSsl, ct)
                 .ConfigureAwait(false);
         }
         catch (Exception ex)

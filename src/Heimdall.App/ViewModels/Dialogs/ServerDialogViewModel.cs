@@ -159,6 +159,24 @@ public partial class ServerDialogViewModel : ObservableValidator
     // Existing encrypted FTP password (preserved on edit if user doesn't change it)
     public string? ExistingFtpPasswordEncrypted { get; set; }
 
+    // --- Telnet settings ---
+
+    [ObservableProperty]
+    private string _telnetUsername = "";
+
+    [ObservableProperty]
+    private string _telnetPassword = "";
+
+    public string? ExistingTelnetPasswordEncrypted { get; set; }
+
+    // --- FTP options ---
+
+    [ObservableProperty]
+    private bool _ftpPassiveMode = true;
+
+    [ObservableProperty]
+    private bool _ftpUseSsl;
+
     // --- VNC settings ---
 
     [ObservableProperty]
@@ -166,6 +184,12 @@ public partial class ServerDialogViewModel : ObservableValidator
 
     [ObservableProperty]
     private string _vncPassword = "";
+
+    [ObservableProperty]
+    private bool _vncViewOnly;
+
+    // Existing encrypted VNC password (preserved on edit if user doesn't change it)
+    public string? ExistingVncPasswordEncrypted { get; set; }
 
     // --- RDP settings ---
 
@@ -477,10 +501,18 @@ public partial class ServerDialogViewModel : ObservableValidator
             FtpPasswordEncrypted = string.IsNullOrEmpty(FtpPassword)
                 ? ExistingFtpPasswordEncrypted
                 : Heimdall.Core.Security.CredentialProtector.Protect(FtpPassword),
+            FtpPassiveMode = FtpPassiveMode,
+            FtpUseSsl = FtpUseSsl,
             VncPort = VncPort,
-            VncPassword = string.IsNullOrWhiteSpace(VncPassword) ? null
+            VncPassword = string.IsNullOrEmpty(VncPassword)
+                ? ExistingVncPasswordEncrypted
                 : Heimdall.Core.Security.CredentialProtector.Protect(VncPassword),
+            VncViewOnly = VncViewOnly,
             TelnetPort = IsTelnetConnection ? RemotePort : 23,
+            TelnetUsername = string.IsNullOrWhiteSpace(TelnetUsername) ? null : TelnetUsername,
+            TelnetPasswordEncrypted = string.IsNullOrEmpty(TelnetPassword)
+                ? ExistingTelnetPasswordEncrypted
+                : Heimdall.Core.Security.CredentialProtector.Protect(TelnetPassword),
             RdpUsername = string.IsNullOrWhiteSpace(RdpUsername) ? null : RdpUsername,
             RdpPasswordEncrypted = string.IsNullOrEmpty(RdpPassword)
                 ? ExistingRdpPasswordEncrypted
@@ -556,7 +588,13 @@ public partial class ServerDialogViewModel : ObservableValidator
             FtpPort = dto.FtpPort > 0 ? dto.FtpPort : 21,
             FtpUsername = dto.FtpUsername ?? "",
             ExistingFtpPasswordEncrypted = dto.FtpPasswordEncrypted,
+            FtpPassiveMode = dto.FtpPassiveMode,
+            FtpUseSsl = dto.FtpUseSsl,
             VncPort = dto.VncPort > 0 ? dto.VncPort : 5900,
+            VncViewOnly = dto.VncViewOnly,
+            ExistingVncPasswordEncrypted = dto.VncPassword,
+            TelnetUsername = dto.TelnetUsername ?? "",
+            ExistingTelnetPasswordEncrypted = dto.TelnetPasswordEncrypted,
             RdpUsername = dto.RdpUsername ?? "",
             ExistingRdpPasswordEncrypted = dto.RdpPasswordEncrypted,
             ExistingSshPasswordEncrypted = dto.SshPasswordEncrypted,

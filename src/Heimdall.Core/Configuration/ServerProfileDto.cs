@@ -100,6 +100,15 @@ public class ServerProfileDto
     public int VncPort { get; set; } = 5900;
     public string? VncPassword { get; set; }
 
+    // FTP options
+    public bool FtpPassiveMode { get; set; } = true;
+    public bool FtpUseSsl { get; set; }
+
+    // VNC options
+    public bool VncViewOnly { get; set; }
+
     // Telnet settings
     public int TelnetPort { get; set; } = 23;
+    public string? TelnetUsername { get; set; }
+    public string? TelnetPasswordEncrypted { get; set; }
 }

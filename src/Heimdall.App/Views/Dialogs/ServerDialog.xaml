@@ -437,7 +437,28 @@
                 </ScrollViewer>
             </TabItem>
 
-            <TabItem x:Name="DlgSrv_TabTunneling" Style="{DynamicResource ThemedTabItemStyle}">
+            <TabItem x:Name="DlgSrv_TabTunneling">
+                <TabItem.Style>
+                    <Style TargetType="TabItem" BasedOn="{DynamicResource ThemedTabItemStyle}">
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding ConnectionType}" Value="FTP">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding ConnectionType}" Value="VNC">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding ConnectionType}" Value="Telnet">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding ConnectionType}" Value="Citrix">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding ConnectionType}" Value="Local">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TabItem.Style>
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <StackPanel Margin="8">
                         <Border Style="{StaticResource SectionCardStyle}">
@@ -540,7 +561,19 @@
                 </ScrollViewer>
             </TabItem>
 
-            <TabItem x:Name="DlgSrv_TabAuthentication" Style="{DynamicResource ThemedTabItemStyle}">
+            <TabItem x:Name="DlgSrv_TabAuthentication">
+                <TabItem.Style>
+                    <Style TargetType="TabItem" BasedOn="{DynamicResource ThemedTabItemStyle}">
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding ConnectionType}" Value="Citrix">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding ConnectionType}" Value="Local">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TabItem.Style>
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <StackPanel Margin="8">
                         <Border>
@@ -597,6 +630,76 @@
                                 </DockPanel>
                                 <TextBlock x:Name="DlgSrv_PassphraseLabel" Style="{StaticResource LabelStyle}" Margin="0,12,0,4"/>
                                 <PasswordBox x:Name="SshPasswordBox" Style="{StaticResource FormPasswordBoxStyle}"/>
+                                <TextBlock x:Name="DlgSrv_SshAuthHint"
+                                           Style="{StaticResource HintTextStyle}" Margin="0,8,0,0"
+                                           TextWrapping="Wrap"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- FTP credentials (visible only for FTP type) -->
+                        <Border>
+                            <Border.Style>
+                                <Style TargetType="Border" BasedOn="{StaticResource SectionCardStyle}">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ConnectionType}" Value="FTP">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+                            <StackPanel>
+                                <TextBlock x:Name="DlgSrv_FtpCredentialsTitle" Style="{StaticResource SectionTitleStyle}"/>
+                                <TextBlock x:Name="DlgSrv_FtpCredentialsDesc"
+                                           Style="{StaticResource SectionDescriptionStyle}"/>
+                                <TextBlock x:Name="DlgSrv_FtpUsernameLabel" Style="{StaticResource LabelStyle}" Margin="0,14,0,4"/>
+                                <TextBox Text="{Binding FtpUsername, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBoxStyle}"/>
+                                <TextBlock x:Name="DlgSrv_FtpPasswordLabel" Style="{StaticResource LabelStyle}" Margin="0,12,0,4"/>
+                                <PasswordBox x:Name="FtpPasswordBox" Style="{StaticResource FormPasswordBoxStyle}"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- VNC credentials (visible only for VNC type) -->
+                        <Border>
+                            <Border.Style>
+                                <Style TargetType="Border" BasedOn="{StaticResource SectionCardStyle}">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ConnectionType}" Value="VNC">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+                            <StackPanel>
+                                <TextBlock x:Name="DlgSrv_VncCredentialsTitle" Style="{StaticResource SectionTitleStyle}"/>
+                                <TextBlock x:Name="DlgSrv_VncCredentialsDesc"
+                                           Style="{StaticResource SectionDescriptionStyle}"/>
+                                <TextBlock x:Name="DlgSrv_VncPasswordLabel" Style="{StaticResource LabelStyle}" Margin="0,14,0,4"/>
+                                <PasswordBox x:Name="VncPasswordBox" Style="{StaticResource FormPasswordBoxStyle}"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Telnet credentials (visible only for Telnet type) -->
+                        <Border>
+                            <Border.Style>
+                                <Style TargetType="Border" BasedOn="{StaticResource SectionCardStyle}">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ConnectionType}" Value="Telnet">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+                            <StackPanel>
+                                <TextBlock x:Name="DlgSrv_TelnetCredentialsTitle" Style="{StaticResource SectionTitleStyle}"/>
+                                <TextBlock x:Name="DlgSrv_TelnetCredentialsDesc"
+                                           Style="{StaticResource SectionDescriptionStyle}"/>
+                                <TextBlock x:Name="DlgSrv_TelnetUsernameLabel" Style="{StaticResource LabelStyle}" Margin="0,14,0,4"/>
+                                <TextBox Text="{Binding TelnetUsername, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBoxStyle}"/>
+                                <TextBlock x:Name="DlgSrv_TelnetPasswordLabel" Style="{StaticResource LabelStyle}" Margin="0,12,0,4"/>
+                                <PasswordBox x:Name="TelnetPasswordBox" Style="{StaticResource FormPasswordBoxStyle}"/>
                             </StackPanel>
                         </Border>
 
@@ -914,7 +1017,7 @@
                             </StackPanel>
                         </Border>
 
-                        <!-- FTP settings (visible only for FTP type) -->
+                        <!-- FTP options (visible only for FTP type) -->
                         <Border>
                             <Border.Style>
                                 <Style TargetType="Border" BasedOn="{StaticResource SectionCardStyle}">
@@ -927,32 +1030,21 @@
                                 </Style>
                             </Border.Style>
                             <StackPanel>
-                                <TextBlock x:Name="DlgSrv_FtpTitle" Style="{StaticResource SectionTitleStyle}"/>
-                                <TextBlock x:Name="DlgSrv_FtpDesc"
+                                <TextBlock x:Name="DlgSrv_FtpOptionsTitle" Style="{StaticResource SectionTitleStyle}"/>
+                                <TextBlock x:Name="DlgSrv_FtpOptionsDesc"
                                            Style="{StaticResource SectionDescriptionStyle}"/>
-                                <Grid Margin="0,16,0,0">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="140"/>
-                                        <ColumnDefinition Width="*"/>
-                                    </Grid.ColumnDefinitions>
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="Auto"/>
-                                    </Grid.RowDefinitions>
-                                    <TextBlock x:Name="DlgSrv_FtpUsernameLabel" Grid.Row="0" Grid.Column="0" Style="{StaticResource LabelStyle}"/>
-                                    <TextBox Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
-                                             Text="{Binding FtpUsername, UpdateSourceTrigger=PropertyChanged}"
-                                             Style="{StaticResource FormTextBoxStyle}"/>
-                                    <TextBlock x:Name="DlgSrv_FtpPasswordLabel" Grid.Row="2" Grid.Column="0" Style="{StaticResource LabelStyle}" Margin="0,8,0,4"/>
-                                    <PasswordBox x:Name="FtpPasswordBox" Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2"
-                                                 Style="{StaticResource FormPasswordBoxStyle}"/>
-                                </Grid>
+                                <CheckBox x:Name="DlgSrv_FtpPassiveCb"
+                                          IsChecked="{Binding FtpPassiveMode}"
+                                          Foreground="{DynamicResource TextPrimaryBrush}"
+                                          Margin="0,14,0,0"/>
+                                <CheckBox x:Name="DlgSrv_FtpSslCb"
+                                          IsChecked="{Binding FtpUseSsl}"
+                                          Foreground="{DynamicResource TextPrimaryBrush}"
+                                          Margin="0,8,0,0"/>
                             </StackPanel>
                         </Border>
 
-                        <!-- VNC settings (visible only for VNC type) -->
+                        <!-- VNC options (visible only for VNC type) -->
                         <Border>
                             <Border.Style>
                                 <Style TargetType="Border" BasedOn="{StaticResource SectionCardStyle}">
@@ -965,22 +1057,36 @@
                                 </Style>
                             </Border.Style>
                             <StackPanel>
-                                <TextBlock x:Name="DlgSrv_VncTitle" Style="{StaticResource SectionTitleStyle}"/>
-                                <TextBlock x:Name="DlgSrv_VncDesc"
+                                <TextBlock x:Name="DlgSrv_VncOptionsTitle" Style="{StaticResource SectionTitleStyle}"/>
+                                <TextBlock x:Name="DlgSrv_VncOptionsDesc"
                                            Style="{StaticResource SectionDescriptionStyle}"/>
-                                <Grid Margin="0,16,0,0">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="140"/>
-                                        <ColumnDefinition Width="*"/>
-                                    </Grid.ColumnDefinitions>
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="Auto"/>
-                                    </Grid.RowDefinitions>
-                                    <TextBlock x:Name="DlgSrv_VncPasswordLabel" Grid.Row="0" Grid.Column="0" Style="{StaticResource LabelStyle}"/>
-                                    <PasswordBox x:Name="VncPasswordBox" Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
-                                                 Style="{StaticResource FormPasswordBoxStyle}"/>
-                                </Grid>
+                                <CheckBox x:Name="DlgSrv_VncViewOnlyCb"
+                                          IsChecked="{Binding VncViewOnly}"
+                                          Foreground="{DynamicResource TextPrimaryBrush}"
+                                          Margin="0,14,0,0"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Telnet options (visible only for Telnet type) -->
+                        <Border>
+                            <Border.Style>
+                                <Style TargetType="Border" BasedOn="{StaticResource SectionCardStyle}">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ConnectionType}" Value="Telnet">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+                            <StackPanel>
+                                <TextBlock x:Name="DlgSrv_TelnetOptionsTitle" Style="{StaticResource SectionTitleStyle}"/>
+                                <TextBlock x:Name="DlgSrv_TelnetOptionsDesc"
+                                           Style="{StaticResource SectionDescriptionStyle}"/>
+                                <TextBlock x:Name="DlgSrv_TelnetSecurityWarning"
+                                           Foreground="{DynamicResource WarningBrush}"
+                                           TextWrapping="Wrap"
+                                           Margin="0,14,0,0"/>
                             </StackPanel>
                         </Border>
                     </StackPanel>

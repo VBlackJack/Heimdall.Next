@@ -55,7 +55,7 @@ public partial class ConnectionService
         // asynchronously by the WebSocket proxy + noVNC in EmbeddedVncView.
         // The view will report connection success/failure via SessionConnected/SessionError events.
 
-        var session = new VncSessionResult(server.Id, server.RemoteServer, vncPort, password);
+        var session = new VncSessionResult(server.Id, server.RemoteServer, vncPort, password, server.VncViewOnly);
         return Task.FromResult(new ConnectionResult(true, null, session));
     }
 }
@@ -68,4 +68,5 @@ public record VncSessionResult(
     string ServerId,
     string Host,
     int Port,
-    string? Password = null) : ISessionResult;
+    string? Password = null,
+    bool ViewOnly = false) : ISessionResult;

@@ -56,11 +56,13 @@ public partial class ServerDialog : Window
         var rdpPwBox = FindName("RdpPasswordBox") as System.Windows.Controls.PasswordBox;
         var vncPwBox = FindName("VncPasswordBox") as System.Windows.Controls.PasswordBox;
         var ftpPwBox = FindName("FtpPasswordBox") as System.Windows.Controls.PasswordBox;
+        var telnetPwBox = FindName("TelnetPasswordBox") as System.Windows.Controls.PasswordBox;
 
         if (sshPwBox is not null) vm.SshPassword = sshPwBox.Password;
         if (rdpPwBox is not null) vm.RdpPassword = rdpPwBox.Password;
         if (vncPwBox is not null) vm.VncPassword = vncPwBox.Password;
         if (ftpPwBox is not null) vm.FtpPassword = ftpPwBox.Password;
+        if (telnetPwBox is not null) vm.TelnetPassword = telnetPwBox.Password;
 
         vm.ValidateCommand.Execute(null);
 
@@ -73,6 +75,7 @@ public partial class ServerDialog : Window
             rdpPwBox?.Clear();
             vncPwBox?.Clear();
             ftpPwBox?.Clear();
+            telnetPwBox?.Clear();
         }
     }
 
@@ -83,6 +86,7 @@ public partial class ServerDialog : Window
         (FindName("RdpPasswordBox") as System.Windows.Controls.PasswordBox)?.Clear();
         (FindName("VncPasswordBox") as System.Windows.Controls.PasswordBox)?.Clear();
         (FindName("FtpPasswordBox") as System.Windows.Controls.PasswordBox)?.Clear();
+        (FindName("TelnetPasswordBox") as System.Windows.Controls.PasswordBox)?.Clear();
     }
 
     private void OnBrowseSshKeyClick(object sender, RoutedEventArgs e)
@@ -179,6 +183,7 @@ public partial class ServerDialog : Window
         DlgSrv_SshKeyLabel.Text = _localizer["ServerDialogLabelSshKey"];
         DlgSrv_BrowseBtn.Content = _localizer["ServerDialogBtnBrowse"];
         DlgSrv_PassphraseLabel.Text = _localizer["ServerDialogLabelPassphrase"];
+        DlgSrv_SshAuthHint.Text = _localizer["ServerDialogSshAuthHint"];
         DlgSrv_GatewayAuthTitle.Text = _localizer["ServerDialogGatewayAuth"];
         DlgSrv_GatewayAuthDesc.Text = _localizer["ServerDialogGatewayAuthDesc"];
 
@@ -250,16 +255,38 @@ public partial class ServerDialog : Window
         DlgSrv_SeamlessCb.Content = _localizer["ServerDialogCitrixSeamless"];
         DlgSrv_SsoCb.Content = _localizer["ServerDialogCitrixSso"];
 
-        // FTP
-        DlgSrv_FtpTitle.Text = _localizer["ServerDialogFtpTitle"];
-        DlgSrv_FtpDesc.Text = _localizer["ServerDialogFtpDesc"];
+        // FTP (Authentication tab)
+        DlgSrv_FtpCredentialsTitle.Text = _localizer["ServerDialogFtpCredentials"];
+        DlgSrv_FtpCredentialsDesc.Text = _localizer["ServerDialogFtpCredentialsDesc"];
         DlgSrv_FtpUsernameLabel.Text = _localizer["ServerDialogFtpUsername"];
         DlgSrv_FtpPasswordLabel.Text = _localizer["ServerDialogFtpPassword"];
 
-        // VNC
-        DlgSrv_VncTitle.Text = _localizer["ServerDialogVncTitle"];
-        DlgSrv_VncDesc.Text = _localizer["ServerDialogVncDesc"];
+        // VNC (Authentication tab)
+        DlgSrv_VncCredentialsTitle.Text = _localizer["ServerDialogVncCredentials"];
+        DlgSrv_VncCredentialsDesc.Text = _localizer["ServerDialogVncCredentialsDesc"];
         DlgSrv_VncPasswordLabel.Text = _localizer["ServerDialogVncPassword"];
+
+        // Telnet (Authentication tab)
+        DlgSrv_TelnetCredentialsTitle.Text = _localizer["ServerDialogTelnetCredentials"];
+        DlgSrv_TelnetCredentialsDesc.Text = _localizer["ServerDialogTelnetCredentialsDesc"];
+        DlgSrv_TelnetUsernameLabel.Text = _localizer["ServerDialogLabelUsername"];
+        DlgSrv_TelnetPasswordLabel.Text = _localizer["ServerDialogLabelPassword"];
+
+        // FTP options
+        DlgSrv_FtpOptionsTitle.Text = _localizer["ServerDialogFtpOptions"];
+        DlgSrv_FtpOptionsDesc.Text = _localizer["ServerDialogFtpOptionsDesc"];
+        DlgSrv_FtpPassiveCb.Content = _localizer["ServerDialogFtpPassiveMode"];
+        DlgSrv_FtpSslCb.Content = _localizer["ServerDialogFtpSsl"];
+
+        // VNC options
+        DlgSrv_VncOptionsTitle.Text = _localizer["ServerDialogVncOptions"];
+        DlgSrv_VncOptionsDesc.Text = _localizer["ServerDialogVncOptionsDesc"];
+        DlgSrv_VncViewOnlyCb.Content = _localizer["ServerDialogVncViewOnly"];
+
+        // Telnet options
+        DlgSrv_TelnetOptionsTitle.Text = _localizer["ServerDialogTelnetOptions"];
+        DlgSrv_TelnetOptionsDesc.Text = _localizer["ServerDialogTelnetOptionsDesc"];
+        DlgSrv_TelnetSecurityWarning.Text = _localizer["ServerDialogTelnetSecurityWarning"];
 
         // Organization
         DlgSrv_OrgTitle.Text = _localizer["ServerDialogOrganization"];

@@ -35,6 +35,8 @@ public sealed partial class FtpBrowser : IRemoteBrowser
     private NetworkCredential? _credential;
     private bool _disposed;
     private bool _connected;
+    private bool _passiveMode = true;
+    private bool _useSsl;
     private readonly SemaphoreSlim _opLock = new(1, 1);
 
     /// <inheritdoc/>
@@ -60,6 +62,8 @@ public sealed partial class FtpBrowser : IRemoteBrowser
         int port,
         string? username,
         string? password,
+        bool passiveMode = true,
+        bool useSsl = false,
         CancellationToken ct = default)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
@@ -71,6 +75,8 @@ public sealed partial class FtpBrowser : IRemoteBrowser
 
         _host = host;
         _port = port > 0 ? port : 21;
+        _passiveMode = passiveMode;
+        _useSsl = useSsl;
         _credential = new NetworkCredential(
             string.IsNullOrEmpty(username) ? "anonymous" : username,
             password ?? string.Empty);
@@ -399,7 +405,8 @@ public sealed partial class FtpBrowser : IRemoteBrowser
         request.Method = method;
         request.Credentials = _credential!;
         request.UseBinary = true;
-        request.UsePassive = true;
+        request.UsePassive = _passiveMode;
+        request.EnableSsl = _useSsl;
         request.KeepAlive = false;
         request.Timeout = 30_000;
 
