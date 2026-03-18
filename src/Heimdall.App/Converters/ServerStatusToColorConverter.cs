@@ -54,13 +54,14 @@ public sealed class ServerStatusToColorConverter : IMultiValueConverter
             "error" => ErrorBrush,
             "initializing" or "validatingconfig" or "establishingtunnel"
                 or "tunnelestablished" or "launchingrdp" or "launchingssh"
-                or "launchingsftp" or "disconnecting" => ConnectingBrush,
+                or "launchingsftp" or "launchingftp" or "disconnecting" => ConnectingBrush,
             // Disconnected or unknown: color by connection type
             _ => connectionType switch
             {
                 "RDP" => RdpBrush,
                 "SSH" => SshBrush,
                 "SFTP" => SftpBrush,
+                "FTP" => SftpBrush,
                 _ => DefaultBrush
             }
         };

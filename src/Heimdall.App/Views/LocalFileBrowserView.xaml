@@ -37,23 +37,19 @@
                 <Button Content="&#xE72B;" FontFamily="Segoe MDL2 Assets"
                         x:Name="BtnBack" Click="OnBackClick"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
-                        Padding="6,2" FontSize="11" IsEnabled="False"
-                        ToolTip="Back"/>
-                <Button Content="&#xE74A;" FontFamily="Segoe MDL2 Assets"
+                        Padding="6,2" FontSize="11" IsEnabled="False"/>
+                <Button x:Name="BtnUp" Content="&#xE74A;" FontFamily="Segoe MDL2 Assets"
                         Click="OnUpClick"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
-                        Padding="6,2" FontSize="11" Margin="3,0,0,0"
-                        ToolTip="Up"/>
-                <Button Content="&#xE80F;" FontFamily="Segoe MDL2 Assets"
+                        Padding="6,2" FontSize="11" Margin="3,0,0,0"/>
+                <Button x:Name="BtnHome" Content="&#xE80F;" FontFamily="Segoe MDL2 Assets"
                         Click="OnHomeClick"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
-                        Padding="6,2" FontSize="11" Margin="3,0,0,0"
-                        ToolTip="Home"/>
-                <Button Content="&#xE72C;" FontFamily="Segoe MDL2 Assets"
+                        Padding="6,2" FontSize="11" Margin="3,0,0,0"/>
+                <Button x:Name="BtnRefresh" Content="&#xE72C;" FontFamily="Segoe MDL2 Assets"
                         Click="OnRefreshClick"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
-                        Padding="6,2" FontSize="11" Margin="3,0,0,0"
-                        ToolTip="Refresh"/>
+                        Padding="6,2" FontSize="11" Margin="3,0,0,0"/>
             </StackPanel>
             </DockPanel>
         </Border>

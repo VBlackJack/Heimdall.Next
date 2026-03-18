@@ -18,6 +18,7 @@ using System.ComponentModel.DataAnnotations;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Heimdall.Core.Configuration;
+using Heimdall.Core.Localization;
 
 namespace Heimdall.App.ViewModels.Dialogs;
 
@@ -35,6 +36,11 @@ public partial class ProjectDialogViewModel : ObservableValidator
         "#3B82F6", "#22C55E", "#EF4444", "#F59E0B",
         "#8B5CF6", "#EC4899", "#06B6D4", "#F97316"
     ];
+
+    /// <summary>
+    /// Localizer for translating validation error messages. Set by the dialog service.
+    /// </summary>
+    public LocalizationManager? Localizer { get; set; }
 
     // --- Dialog state ---
 
@@ -96,7 +102,10 @@ public partial class ProjectDialogViewModel : ObservableValidator
         {
             Name = Name,
             Description = string.IsNullOrWhiteSpace(Description) ? null : Description,
-            Color = Color
+            Color = Color,
+            DefaultSshUsername = string.IsNullOrWhiteSpace(DefaultSshUsername) ? null : DefaultSshUsername,
+            DefaultSshKeyPath = string.IsNullOrWhiteSpace(DefaultSshKeyPath) ? null : DefaultSshKeyPath,
+            DefaultGatewayId = string.IsNullOrWhiteSpace(DefaultGatewayId) ? null : DefaultGatewayId
         };
     }
 
@@ -114,9 +123,20 @@ public partial class ProjectDialogViewModel : ObservableValidator
             IsEditMode = true,
             Name = dto.Name,
             Description = dto.Description ?? "",
-            Color = dto.Color ?? "#3B82F6"
+            Color = dto.Color ?? "#3B82F6",
+            DefaultSshUsername = dto.DefaultSshUsername ?? "",
+            DefaultSshKeyPath = dto.DefaultSshKeyPath ?? "",
+            DefaultGatewayId = dto.DefaultGatewayId ?? ""
         };
     }
+
+    private static readonly Dictionary<string, string> ValidationKeyMap = new(StringComparer.Ordinal)
+    {
+        ["Project name is required."] = "ValidationProjectNameRequired",
+        ["Project name cannot be empty."] = "ValidationProjectNameEmpty",
+        ["Project name must not exceed 50 characters."] = "ValidationProjectNameMaxLength",
+        ["Description must not exceed 200 characters."] = "ValidationProjectDescMaxLength",
+    };
 
     private string? GetFirstError()
     {
@@ -124,7 +144,14 @@ public partial class ProjectDialogViewModel : ObservableValidator
             .OfType<System.ComponentModel.DataAnnotations.ValidationResult>()
             .FirstOrDefault();
 
-        return firstProperty?.ErrorMessage;
+        var message = firstProperty?.ErrorMessage;
+        if (message is not null && Localizer is not null
+            && ValidationKeyMap.TryGetValue(message, out var key))
+        {
+            return Localizer[key];
+        }
+
+        return message;
     }
 }
 

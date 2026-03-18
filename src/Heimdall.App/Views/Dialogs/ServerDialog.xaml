@@ -13,7 +13,8 @@
         WindowStartupLocation="CenterOwner"
         Background="{DynamicResource BackgroundBrush}"
         ResizeMode="NoResize"
-        ShowInTaskbar="False">
+        ShowInTaskbar="False"
+        Closing="OnWindowClosing">
 
     <Window.Resources>
         <converters:NullToVisibilityConverter x:Key="NullToVisibilityConverter"/>
@@ -126,7 +127,7 @@
             </Style.Triggers>
         </Style>
 
-        <!-- Gateway/routing sections: hidden for Local shell and Citrix -->
+        <!-- Gateway/routing sections: hidden for Local shell, Citrix, and VNC -->
         <Style x:Key="NetworkSectionStyle" TargetType="FrameworkElement">
             <Setter Property="Visibility" Value="Visible"/>
             <Style.Triggers>
@@ -134,6 +135,12 @@
                     <Setter Property="Visibility" Value="Collapsed"/>
                 </DataTrigger>
                 <DataTrigger Binding="{Binding ConnectionType}" Value="Citrix">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding ConnectionType}" Value="VNC">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding ConnectionType}" Value="FTP">
                     <Setter Property="Visibility" Value="Collapsed"/>
                 </DataTrigger>
             </Style.Triggers>
@@ -211,8 +218,11 @@
                                         <ComboBoxItem Content="RDP"/>
                                         <ComboBoxItem Content="SSH"/>
                                         <ComboBoxItem Content="SFTP"/>
+                                        <ComboBoxItem Content="FTP"/>
                                         <ComboBoxItem Content="Local"/>
                                         <ComboBoxItem Content="Citrix"/>
+                                        <ComboBoxItem Content="VNC"/>
+                                        <ComboBoxItem Content="Telnet"/>
                                     </ComboBox>
                                     <!-- Server/Port row: hidden for Local shell and Citrix -->
                                     <TextBlock x:Name="DlgSrv_ServerLabel" Grid.Row="2" Grid.Column="0" Margin="0,14,0,4">
@@ -901,6 +911,76 @@
                                           IsChecked="{Binding CitrixUseSso}"
                                           Foreground="{DynamicResource TextPrimaryBrush}"
                                           Margin="0,8,0,0"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- FTP settings (visible only for FTP type) -->
+                        <Border>
+                            <Border.Style>
+                                <Style TargetType="Border" BasedOn="{StaticResource SectionCardStyle}">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ConnectionType}" Value="FTP">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+                            <StackPanel>
+                                <TextBlock x:Name="DlgSrv_FtpTitle" Style="{StaticResource SectionTitleStyle}"/>
+                                <TextBlock x:Name="DlgSrv_FtpDesc"
+                                           Style="{StaticResource SectionDescriptionStyle}"/>
+                                <Grid Margin="0,16,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="140"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+                                    <TextBlock x:Name="DlgSrv_FtpUsernameLabel" Grid.Row="0" Grid.Column="0" Style="{StaticResource LabelStyle}"/>
+                                    <TextBox Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
+                                             Text="{Binding FtpUsername, UpdateSourceTrigger=PropertyChanged}"
+                                             Style="{StaticResource FormTextBoxStyle}"/>
+                                    <TextBlock x:Name="DlgSrv_FtpPasswordLabel" Grid.Row="2" Grid.Column="0" Style="{StaticResource LabelStyle}" Margin="0,8,0,4"/>
+                                    <PasswordBox x:Name="FtpPasswordBox" Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2"
+                                                 Style="{StaticResource FormPasswordBoxStyle}"/>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- VNC settings (visible only for VNC type) -->
+                        <Border>
+                            <Border.Style>
+                                <Style TargetType="Border" BasedOn="{StaticResource SectionCardStyle}">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ConnectionType}" Value="VNC">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+                            <StackPanel>
+                                <TextBlock x:Name="DlgSrv_VncTitle" Style="{StaticResource SectionTitleStyle}"/>
+                                <TextBlock x:Name="DlgSrv_VncDesc"
+                                           Style="{StaticResource SectionDescriptionStyle}"/>
+                                <Grid Margin="0,16,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="140"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+                                    <TextBlock x:Name="DlgSrv_VncPasswordLabel" Grid.Row="0" Grid.Column="0" Style="{StaticResource LabelStyle}"/>
+                                    <PasswordBox x:Name="VncPasswordBox" Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
+                                                 Style="{StaticResource FormPasswordBoxStyle}"/>
+                                </Grid>
                             </StackPanel>
                         </Border>
                     </StackPanel>

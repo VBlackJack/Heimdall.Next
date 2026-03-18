@@ -31,7 +31,7 @@ public class RemoteFileEditor : IDisposable
     /// <summary>Minimum interval between consecutive auto-uploads for the same file.</summary>
     private static readonly TimeSpan DebounceInterval = TimeSpan.FromSeconds(2);
 
-    private readonly SftpBrowser _browser;
+    private readonly IRemoteBrowser _browser;
     private readonly string _editorPath;
     private readonly HostKeyStore? _hostKeyStore;
     private readonly ConcurrentDictionary<string, EditSession> _activeSessions = new();
@@ -53,7 +53,7 @@ public class RemoteFileEditor : IDisposable
     /// Optional TOFU host key store for server verification on sudo SSH connections.
     /// </param>
     public RemoteFileEditor(
-        SftpBrowser browser,
+        IRemoteBrowser browser,
         string editorPath = "notepad.exe",
         HostKeyStore? hostKeyStore = null)
     {
@@ -224,7 +224,6 @@ public class RemoteFileEditor : IDisposable
         }
 
         _activeSessions.Clear();
-        GC.SuppressFinalize(this);
     }
 
     // ------------------------------------------------------------------
@@ -247,7 +246,11 @@ public class RemoteFileEditor : IDisposable
         if (OperatingSystem.IsWindows())
         {
             try { Heimdall.Core.Security.AclEnforcer.SetDirectoryAcl(tempDir); }
-            catch { /* Best-effort — file is in user-owned %TEMP% */ }
+            catch (Exception ex)
+            {
+                Heimdall.Core.Logging.FileLogger.Warn(
+                    $"Failed to restrict temp directory ACL for SFTP editor: {ex.Message}");
+            }
         }
 
         return Path.Combine(tempDir, fileName);
@@ -405,7 +408,11 @@ public class RemoteFileEditor : IDisposable
                 string escapedTemp2 = PathEscaper.EscapeForShell(tempRemotePath);
                 sshClient.RunCommand($"sudo rm -f {escapedTemp2}");
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Heimdall.Core.Logging.FileLogger.Warn(
+                    $"RemoteFileEditor failed to clean up temp file {tempRemotePath}: {ex.Message}");
+            }
 
             sftpClient.Disconnect();
             sshClient.Disconnect();
@@ -478,6 +485,5 @@ internal class EditSession : IDisposable
     {
         Watcher?.Dispose();
         UploadSemaphore.Dispose();
-        GC.SuppressFinalize(this);
     }
 }

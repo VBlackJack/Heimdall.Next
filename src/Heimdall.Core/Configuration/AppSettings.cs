@@ -53,6 +53,11 @@ public class AppSettings
     public bool RequireCredentialGuard { get; set; }
     public bool EnableEventLog { get; set; }
 
+    // Terminal appearance
+    public string TerminalFontFamily { get; set; } = "Consolas";
+    public int TerminalFontSize { get; set; } = 14;
+    public string TerminalColorScheme { get; set; } = "Dracula";
+
     // SSH defaults
     public string SshDefaultMode { get; set; } = "External";
     public int AntiIdleIntervalSeconds { get; set; } = 60;
@@ -100,6 +105,14 @@ public class AppSettings
     public List<ProjectDto> Projects { get; set; } = new();
 
     /// <summary>
+    /// Group-level default settings for connection inheritance.
+    /// Key: group path (e.g., "Production/Linux"). Servers in this group
+    /// inherit these values when their own fields are null/empty.
+    /// Hierarchical: "PROD/Linux" inherits from "PROD".
+    /// </summary>
+    public Dictionary<string, GroupDefaultsDto> GroupDefaults { get; set; } = new();
+
+    /// <summary>
     /// Empty groups persisted so they remain visible in the TreeView even without servers.
     /// Each entry is "projectId|groupPath" (e.g., "abc123|Infrastructure/Linux").
     /// </summary>
@@ -111,4 +124,16 @@ public class AppSettings
 
     // Scheduled connections
     public List<ScheduledTaskDto> ScheduledTasks { get; set; } = new();
+
+    // External credential provider (KeePassXC, Bitwarden CLI, 1Password CLI, etc.)
+    public bool UseExternalCredentialProvider { get; set; }
+    public string? CredentialProviderCommand { get; set; }
+    public string? CredentialProviderDatabase { get; set; }
+
+    // External tools (launched from server context menu)
+    public List<ExternalToolDefinition> ExternalTools { get; set; } = new();
+
+    // X11 forwarding
+    public string? X11ServerPath { get; set; }
+    public bool X11AutoStart { get; set; } = true;
 }

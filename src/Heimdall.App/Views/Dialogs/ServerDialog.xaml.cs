@@ -54,9 +54,13 @@ public partial class ServerDialog : Window
         // Transfer PasswordBox values if they exist in the visual tree
         var sshPwBox = FindName("SshPasswordBox") as System.Windows.Controls.PasswordBox;
         var rdpPwBox = FindName("RdpPasswordBox") as System.Windows.Controls.PasswordBox;
+        var vncPwBox = FindName("VncPasswordBox") as System.Windows.Controls.PasswordBox;
+        var ftpPwBox = FindName("FtpPasswordBox") as System.Windows.Controls.PasswordBox;
 
         if (sshPwBox is not null) vm.SshPassword = sshPwBox.Password;
         if (rdpPwBox is not null) vm.RdpPassword = rdpPwBox.Password;
+        if (vncPwBox is not null) vm.VncPassword = vncPwBox.Password;
+        if (ftpPwBox is not null) vm.FtpPassword = ftpPwBox.Password;
 
         vm.ValidateCommand.Execute(null);
 
@@ -67,7 +71,18 @@ public partial class ServerDialog : Window
             // Clear passwords from UI memory (CWE-316)
             sshPwBox?.Clear();
             rdpPwBox?.Clear();
+            vncPwBox?.Clear();
+            ftpPwBox?.Clear();
         }
+    }
+
+    private void OnWindowClosing(object? sender, System.ComponentModel.CancelEventArgs e)
+    {
+        // Clear all password boxes from UI memory on close (CWE-316)
+        (FindName("SshPasswordBox") as System.Windows.Controls.PasswordBox)?.Clear();
+        (FindName("RdpPasswordBox") as System.Windows.Controls.PasswordBox)?.Clear();
+        (FindName("VncPasswordBox") as System.Windows.Controls.PasswordBox)?.Clear();
+        (FindName("FtpPasswordBox") as System.Windows.Controls.PasswordBox)?.Clear();
     }
 
     private void OnBrowseSshKeyClick(object sender, RoutedEventArgs e)
@@ -234,6 +249,17 @@ public partial class ServerDialog : Window
         DlgSrv_CitrixHint.Text = _localizer["ServerDialogCitrixHint"];
         DlgSrv_SeamlessCb.Content = _localizer["ServerDialogCitrixSeamless"];
         DlgSrv_SsoCb.Content = _localizer["ServerDialogCitrixSso"];
+
+        // FTP
+        DlgSrv_FtpTitle.Text = _localizer["ServerDialogFtpTitle"];
+        DlgSrv_FtpDesc.Text = _localizer["ServerDialogFtpDesc"];
+        DlgSrv_FtpUsernameLabel.Text = _localizer["ServerDialogFtpUsername"];
+        DlgSrv_FtpPasswordLabel.Text = _localizer["ServerDialogFtpPassword"];
+
+        // VNC
+        DlgSrv_VncTitle.Text = _localizer["ServerDialogVncTitle"];
+        DlgSrv_VncDesc.Text = _localizer["ServerDialogVncDesc"];
+        DlgSrv_VncPasswordLabel.Text = _localizer["ServerDialogVncPassword"];
 
         // Organization
         DlgSrv_OrgTitle.Text = _localizer["ServerDialogOrganization"];

@@ -79,7 +79,44 @@ public partial class LocalFileBrowserView : UserControl
             : Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         _sessionRoot = _currentPath;
         FileListView.ItemsSource = _files;
+        ApplyLocalization();
         LoadDirectory(_currentPath);
+    }
+
+    /// <summary>
+    /// Applies localized strings to toolbar tooltips, column headers, and context menu items.
+    /// </summary>
+    private void ApplyLocalization()
+    {
+        // Toolbar tooltips
+        BtnBack.ToolTip = L10n("FileBrowserToolTipBack");
+        BtnUp.ToolTip = L10n("FileBrowserToolTipUp");
+        BtnHome.ToolTip = L10n("FileBrowserToolTipHome");
+        BtnRefresh.ToolTip = L10n("FileBrowserToolTipRefresh");
+
+        // Column headers
+        if (FileListView.View is GridView gridView && gridView.Columns.Count >= 3)
+        {
+            gridView.Columns[0].Header = L10n("FileBrowserColName");
+            gridView.Columns[1].Header = L10n("FileBrowserColSize");
+            gridView.Columns[2].Header = L10n("FileBrowserColModified");
+        }
+
+        // Context menu items
+        CtxOpen.Header = L10n("FileBrowserCtxOpen");
+        CtxOpenWith.Header = L10n("FileBrowserCtxOpenWith");
+        CtxOpenInExplorer.Header = L10n("FileBrowserCtxOpenInExplorer");
+        CtxOpenInTerminal.Header = L10n("FileBrowserCtxOpenInTerminal");
+        CtxOpenInEditor.Header = L10n("FileBrowserCtxOpenInEditor");
+        CtxRunInShell.Header = L10n("FileBrowserCtxRunInShell");
+        CtxCopy.Header = L10n("FileBrowserCtxCopy");
+        CtxPaste.Header = L10n("FileBrowserCtxPaste");
+        CtxCopyPath.Header = L10n("FileBrowserCtxCopyPath");
+        CtxRename.Header = L10n("FileBrowserCtxRename");
+        CtxDelete.Header = L10n("FileBrowserCtxDelete");
+        CtxNewFolder.Header = L10n("FileBrowserCtxNewFolder");
+        CtxProperties.Header = L10n("FileBrowserCtxProperties");
+        CtxRefresh.Header = L10n("FileBrowserCtxRefresh");
     }
 
     private void LoadDirectory(string path)
@@ -97,7 +134,7 @@ public partial class LocalFileBrowserView : UserControl
                     var info = new DirectoryInfo(dir);
                     entries.Add(new LocalFileEntry(info.Name, info.FullName, true, 0, info.LastWriteTime));
                 }
-                catch { }
+                catch { /* Skip inaccessible directories (permissions, broken symlinks) */ }
             }
 
             foreach (var file in Directory.EnumerateFiles(path))
@@ -107,7 +144,7 @@ public partial class LocalFileBrowserView : UserControl
                     var info = new FileInfo(file);
                     entries.Add(new LocalFileEntry(info.Name, info.FullName, false, info.Length, info.LastWriteTime));
                 }
-                catch { }
+                catch { /* Skip inaccessible files (permissions, in-use locks) */ }
             }
 
             if (!string.Equals(path, _currentPath, StringComparison.OrdinalIgnoreCase))
@@ -289,7 +326,7 @@ public partial class LocalFileBrowserView : UserControl
             {
                 Process.Start(new ProcessStartInfo { FileName = entry.FullPath, UseShellExecute = true });
             }
-            catch { }
+            catch { /* Best-effort launch via OS file association */ }
         }
     }
 
@@ -343,7 +380,7 @@ public partial class LocalFileBrowserView : UserControl
                     Process.Start(new ProcessStartInfo { FileName = "explorer.exe", Arguments = $"\"{entry.FullPath}\"" });
                 }
             }
-            catch { }
+            catch { /* Best-effort launch of Explorer */ }
         }
         else
         {
@@ -351,7 +388,7 @@ public partial class LocalFileBrowserView : UserControl
             {
                 Process.Start(new ProcessStartInfo { FileName = "explorer.exe", Arguments = $"\"{_currentPath}\"" });
             }
-            catch { }
+            catch { /* Best-effort launch of Explorer */ }
         }
     }
 

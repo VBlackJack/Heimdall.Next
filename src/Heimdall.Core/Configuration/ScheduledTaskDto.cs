@@ -29,9 +29,25 @@ public class ScheduledTaskDto
     public bool Enabled { get; set; } = true;
 
     /// <summary>
-    /// Human-readable schedule descriptor (e.g., "Daily 08:00", "Weekdays 09:00").
+    /// Human-readable schedule descriptor (e.g., "Daily 08:00", "Every 30 min").
+    /// Kept for display and backward compatibility with existing persisted tasks.
     /// </summary>
     public string Schedule { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Schedule type: Daily (time-of-day) or Interval (every N minutes).
+    /// </summary>
+    public string ScheduleType { get; set; } = "Daily";
+
+    /// <summary>
+    /// Time of day for Daily schedule (HH:mm format, 24-hour).
+    /// </summary>
+    public string? TimeOfDay { get; set; }
+
+    /// <summary>
+    /// Interval in minutes for Interval schedule type.
+    /// </summary>
+    public int IntervalMinutes { get; set; }
 
     public DateTime? LastRun { get; set; }
     public DateTime? NextRun { get; set; }

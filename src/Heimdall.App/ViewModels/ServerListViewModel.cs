@@ -82,9 +82,9 @@ public partial class ServerListViewModel : ObservableObject
 
     /// <summary>
     /// Raised when a connection result is ready and a session tab should be created.
-    /// Parameters: serverId, displayName, connectionType, session result.
+    /// Parameters: sessionId, originalServerId, displayName, connectionType, session result.
     /// </summary>
-    public event Action<string, string, string, Core.Models.ISessionResult?>? SessionReady;
+    public event Action<string, string, string, string, Core.Models.ISessionResult?>? SessionReady;
 
     /// <summary>
     /// Raised when a non-modal status message should be surfaced in the shell.
@@ -203,6 +203,21 @@ public partial class ServerListViewModel : ObservableObject
 
         var settings = await _configManager.LoadSettingsAsync();
 
+        // Apply group-level inherited defaults (gateway, SSH username, key path)
+        // before preflight and connection. Server's own values take priority.
+        if (settings.GroupDefaults.Count > 0 && !string.IsNullOrEmpty(serverDto.Group))
+        {
+            var groupDefaults = Core.Configuration.GroupDefaultsDto.Resolve(
+                serverDto.Group, settings.GroupDefaults);
+            groupDefaults.ApplyTo(serverDto);
+        }
+
+        // Resolve credentials from external provider if configured and server
+        // has no stored password. The retrieved password is DPAPI-encrypted into
+        // the DTO so all downstream code (ConnectionService, EmbeddedRdpView) works
+        // without modification.
+        await TryResolveExternalCredentialsAsync(serverDto, settings, cancellationToken);
+
         var preflight = _connectionService.RunPreflight(serverDto, settings);
         if (!preflight.Success)
         {
@@ -213,8 +228,17 @@ public partial class ServerListViewModel : ObservableObject
             return;
         }
 
-        Core.Logging.FileLogger.Info($"ConnectAsync: {server.DisplayName} type={serverDto.ConnectionType} gateway={serverDto.SshGatewayId}");
-        _connectionSm.TryTransition(server.Id, Core.Models.ConnectionState.Initializing);
+        // Generate a unique session ID so duplicate connections to the same server
+        // get independent state tracking (tunnel lifecycle, error recovery)
+        var sessionId = $"{server.Id}_{Guid.NewGuid().ToString("N")[..8]}";
+
+        Core.Logging.FileLogger.Info($"ConnectAsync: {server.DisplayName} type={serverDto.ConnectionType} gateway={serverDto.SshGatewayId} sessionId={sessionId}");
+
+        // Use sessionId for state machine keying — allows duplicate connections
+        // to the same server without sharing state or tunnels
+        var originalId = serverDto.Id;
+        serverDto.Id = sessionId;
+        _connectionSm.TryTransition(sessionId, Core.Models.ConnectionState.Initializing);
 
         try
         {
@@ -237,6 +261,11 @@ public partial class ServerListViewModel : ObservableObject
                         serverDto, settings, cancellationToken);
                     break;
 
+                case "FTP":
+                    result = await _connectionService.ConnectFtpAsync(
+                        serverDto, settings, cancellationToken);
+                    break;
+
                 case "LOCAL":
                     result = await _connectionService.ConnectLocalShellAsync(
                         serverDto, settings, cancellationToken);
@@ -247,17 +276,28 @@ public partial class ServerListViewModel : ObservableObject
                         serverDto, settings, cancellationToken);
                     break;
 
+                case "VNC":
+                    result = await _connectionService.ConnectVncAsync(
+                        serverDto, settings, cancellationToken);
+                    break;
+
+                case "TELNET":
+                    result = await _connectionService.ConnectTelnetAsync(
+                        serverDto, settings, cancellationToken);
+                    break;
+
                 default:
-                    _connectionSm.SetError(server.Id,
+                    _connectionSm.SetError(sessionId,
                         _localizer.Format("ErrorUnsupportedConnectionType", serverDto.ConnectionType ?? ""));
                     server.ConnectionState = "Error";
+                    serverDto.Id = originalId;
                     return;
             }
 
             if (result.Success)
             {
                 SessionReady?.Invoke(
-                    server.Id, server.DisplayName,
+                    sessionId, originalId, server.DisplayName,
                     serverDto.ConnectionType, result.Session);
             }
             else
@@ -270,15 +310,129 @@ public partial class ServerListViewModel : ObservableObject
         }
         catch (OperationCanceledException)
         {
-            _connectionSm.Reset(server.Id);
+            _connectionSm.Reset(sessionId);
         }
         catch (Exception ex)
         {
             var failure = Ssh.FailureClassifier.Classify(ex);
-            _connectionSm.SetError(server.Id, failure.Message);
+            _connectionSm.SetError(sessionId, failure.Message);
             server.ConnectionState = "Error";
             _dialogService.ShowError(
                 _localizer["ErrorConnectionTitle"], failure.Message);
+        }
+        finally
+        {
+            serverDto.Id = originalId;
+        }
+    }
+
+    /// <summary>
+    /// If the external credential provider is enabled and the server has no stored
+    /// password for its connection type, executes the configured command to retrieve
+    /// the password and injects it (DPAPI-encrypted) into the DTO. This allows all
+    /// downstream code to work unchanged.
+    /// </summary>
+    private async Task TryResolveExternalCredentialsAsync(
+        ServerProfileDto serverDto, AppSettings settings, CancellationToken ct)
+    {
+        if (!settings.UseExternalCredentialProvider)
+        {
+            return;
+        }
+
+        var provider = new Core.Security.CommandCredentialProvider(
+            settings.CredentialProviderCommand, settings.CredentialProviderDatabase);
+
+        if (!provider.IsAvailable)
+        {
+            return;
+        }
+
+        bool needsSshPassword = string.IsNullOrEmpty(serverDto.SshPasswordEncrypted)
+            && serverDto.ConnectionType?.ToUpperInvariant() is "SSH" or "SFTP";
+
+        bool needsRdpPassword = string.IsNullOrEmpty(serverDto.RdpPasswordEncrypted)
+            && serverDto.ConnectionType?.ToUpperInvariant() is "RDP" or "CITRIX";
+
+        bool needsFtpPassword = string.IsNullOrEmpty(serverDto.FtpPasswordEncrypted)
+            && serverDto.ConnectionType?.ToUpperInvariant() is "FTP";
+
+        if (!needsSshPassword && !needsRdpPassword && !needsFtpPassword)
+        {
+            return;
+        }
+
+        try
+        {
+            var host = serverDto.RemoteServer;
+            var port = needsRdpPassword ? serverDto.RemotePort
+                : needsFtpPassword ? serverDto.FtpPort
+                : serverDto.SshPort;
+            var username = needsRdpPassword ? serverDto.RdpUsername
+                : needsFtpPassword ? serverDto.FtpUsername
+                : serverDto.SshUsername;
+
+            var credential = await provider.GetCredentialAsync(
+                host, port, username, serverDto.DisplayName, ct);
+
+            if (credential is null)
+            {
+                return;
+            }
+
+            // Inject the retrieved password as a DPAPI-encrypted value so all
+            // downstream DecryptPassword/CredentialProtector.Unprotect calls work.
+            var encrypted = CredentialProtector.Protect(credential.Password);
+
+            if (needsSshPassword)
+            {
+                serverDto.SshPasswordEncrypted = encrypted;
+            }
+
+            if (needsRdpPassword)
+            {
+                serverDto.RdpPasswordEncrypted = encrypted;
+            }
+
+            if (needsFtpPassword)
+            {
+                serverDto.FtpPasswordEncrypted = encrypted;
+            }
+
+            // If the provider returned a username and the server has none, inject it
+            if (!string.IsNullOrEmpty(credential.Username))
+            {
+                if (needsSshPassword && string.IsNullOrEmpty(serverDto.SshUsername))
+                {
+                    serverDto.SshUsername = credential.Username;
+                }
+
+                if (needsRdpPassword && string.IsNullOrEmpty(serverDto.RdpUsername))
+                {
+                    serverDto.RdpUsername = credential.Username;
+                }
+
+                if (needsFtpPassword && string.IsNullOrEmpty(serverDto.FtpUsername))
+                {
+                    serverDto.FtpUsername = credential.Username;
+                }
+            }
+
+            Core.Logging.FileLogger.Info(
+                $"External credential provider resolved password for {serverDto.DisplayName}");
+        }
+        catch (OperationCanceledException)
+        {
+            // Propagate cancellation
+            throw;
+        }
+        catch (Exception ex)
+        {
+            Core.Logging.FileLogger.Warn(
+                $"External credential provider failed for {serverDto.DisplayName}: {ex.Message}");
+            _dialogService.ShowError(
+                _localizer["ErrorConnectionTitle"],
+                _localizer.Format("ErrorCredentialProviderFailed", ex.Message));
         }
     }
 

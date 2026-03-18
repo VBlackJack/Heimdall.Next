@@ -22,7 +22,6 @@
             <DockPanel LastChildFill="True">
                 <Button x:Name="TerminateButton"
                         DockPanel.Dock="Right"
-                        Content="Terminate"
                         Click="OnTerminateClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="8,2"
@@ -30,7 +29,6 @@
                         Margin="8,0,0,0"/>
                 <Button x:Name="BringToFrontButton"
                         DockPanel.Dock="Right"
-                        Content="Bring to Front"
                         Click="OnBringToFrontClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="8,2"

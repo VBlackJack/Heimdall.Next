@@ -52,7 +52,7 @@ public class WpfDialogService(LocalizationManager localizer) : IDialogService
     /// <inheritdoc/>
     public Task<string?> ShowInputAsync(string title, string prompt, string? defaultValue = null)
     {
-        var dialog = new InputDialog
+        var dialog = new InputDialog(_localizer)
         {
             Title = title,
             Prompt = prompt,
@@ -68,6 +68,7 @@ public class WpfDialogService(LocalizationManager localizer) : IDialogService
     public Task<ServerDialogResult?> ShowServerDialogAsync(ServerDialogViewModel? editVm = null)
     {
         var vm = editVm ?? new ServerDialogViewModel();
+        vm.Localizer ??= _localizer;
         var dialog = new ServerDialog(_localizer)
         {
             DataContext = vm,
@@ -85,6 +86,7 @@ public class WpfDialogService(LocalizationManager localizer) : IDialogService
     public Task<GatewayDialogResult?> ShowGatewayDialogAsync(GatewayDialogViewModel? editVm = null)
     {
         var vm = editVm ?? new GatewayDialogViewModel();
+        vm.Localizer ??= _localizer;
         var dialog = new GatewayDialog
         {
             DataContext = vm,
@@ -102,6 +104,7 @@ public class WpfDialogService(LocalizationManager localizer) : IDialogService
     public Task<ProjectDialogResult?> ShowProjectDialogAsync(ProjectDialogViewModel? editVm = null)
     {
         var vm = editVm ?? new ProjectDialogViewModel();
+        vm.Localizer ??= _localizer;
         var dialog = new ProjectDialog
         {
             DataContext = vm,
@@ -120,7 +123,7 @@ public class WpfDialogService(LocalizationManager localizer) : IDialogService
     {
         ArgumentNullException.ThrowIfNull(viewModel);
 
-        var dialog = new PinDialog
+        var dialog = new PinDialog(_localizer)
         {
             DataContext = viewModel,
             Owner = GetOwnerWindow()

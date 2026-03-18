@@ -22,6 +22,7 @@ using System.Windows.Media;
 using System.Windows.Threading;
 using Heimdall.App.Services;
 using Heimdall.App.ViewModels;
+using Heimdall.Core.Localization;
 
 namespace Heimdall.App.Views;
 
@@ -37,6 +38,7 @@ public partial class EmbeddedCitrixView : UserControl, IDisposable
 
     private CitrixSessionResult? _session;
     private SessionTabViewModel? _sessionTab;
+    private LocalizationManager? _localizer;
     private DispatcherTimer? _healthTimer;
     private bool _disposed;
 
@@ -60,10 +62,16 @@ public partial class EmbeddedCitrixView : UserControl, IDisposable
     public void InitializeSession(
         CitrixSessionResult session,
         SessionTabViewModel sessionTab,
-        string displayName)
+        string displayName,
+        LocalizationManager? localizer = null)
     {
         _session = session;
         _sessionTab = sessionTab;
+        _localizer = localizer;
+
+        // Localize button labels
+        TerminateButton.Content = localizer?["BtnTerminateSession"] ?? "Terminate";
+        BringToFrontButton.Content = localizer?["BtnBringToFront"] ?? "Bring to Front";
 
         SessionTitleText.Text = displayName;
         TitleText.Text = displayName;
@@ -151,7 +159,7 @@ public partial class EmbeddedCitrixView : UserControl, IDisposable
         {
             HealthDot.Fill = Application.Current.TryFindResource("SuccessBrush") as Brush
                              ?? Brushes.LimeGreen;
-            StatusTextBlock.Text = "Connected";
+            StatusTextBlock.Text = _localizer?["CitrixStatusConnected"] ?? "Connected";
             SessionInfoText.Text = _session?.Process?.Id > 0
                 ? $"PID: {_session.Process.Id}"
                 : string.Empty;
@@ -162,7 +170,7 @@ public partial class EmbeddedCitrixView : UserControl, IDisposable
         {
             HealthDot.Fill = Application.Current.TryFindResource("ErrorBrush") as Brush
                              ?? Brushes.Red;
-            StatusTextBlock.Text = "Disconnected";
+            StatusTextBlock.Text = _localizer?["CitrixStatusDisconnected"] ?? "Disconnected";
             SessionInfoText.Text = string.Empty;
             BringToFrontButton.IsEnabled = false;
             TerminateButton.IsEnabled = false;

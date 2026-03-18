@@ -19,6 +19,7 @@ using System.ComponentModel.DataAnnotations;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Heimdall.Core.Configuration;
+using Heimdall.Core.Localization;
 
 namespace Heimdall.App.ViewModels.Dialogs;
 
@@ -28,6 +29,11 @@ namespace Heimdall.App.ViewModels.Dialogs;
 /// </summary>
 public partial class GatewayDialogViewModel : ObservableValidator
 {
+    /// <summary>
+    /// Localizer for translating validation error messages. Set by the dialog service.
+    /// </summary>
+    public LocalizationManager? Localizer { get; set; }
+
     // --- Dialog state ---
 
     [ObservableProperty]
@@ -161,13 +167,31 @@ public partial class GatewayDialogViewModel : ObservableValidator
         };
     }
 
+    private static readonly Dictionary<string, string> ValidationKeyMap = new(StringComparer.Ordinal)
+    {
+        ["Gateway name is required."] = "ValidationGatewayNameRequired",
+        ["Gateway name cannot be empty."] = "ValidationGatewayNameEmpty",
+        ["Host address is required."] = "ValidationGatewayHostRequired",
+        ["Host address cannot be empty."] = "ValidationGatewayHostEmpty",
+        ["Port must be between 1 and 65535."] = "ValidationGatewayPortRange",
+        ["Username is required."] = "ValidationUsernameRequired",
+        ["Username cannot be empty."] = "ValidationUsernameEmpty",
+    };
+
     private string? GetFirstError()
     {
         var firstProperty = GetErrors()
             .OfType<System.ComponentModel.DataAnnotations.ValidationResult>()
             .FirstOrDefault();
 
-        return firstProperty?.ErrorMessage;
+        var message = firstProperty?.ErrorMessage;
+        if (message is not null && Localizer is not null
+            && ValidationKeyMap.TryGetValue(message, out var key))
+        {
+            return Localizer[key];
+        }
+
+        return message;
     }
 }
 

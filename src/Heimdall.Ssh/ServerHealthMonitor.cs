@@ -1,0 +1,272 @@
+/*
+ * Copyright 2026 Julien Bombled
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+using System.Globalization;
+using System.Text.RegularExpressions;
+using Heimdall.Core.Logging;
+using Renci.SshNet;
+
+namespace Heimdall.Ssh;
+
+/// <summary>
+/// Holds a snapshot of server resource usage collected via SSH commands.
+/// </summary>
+public sealed record ServerHealthData(
+    double CpuPercent,
+    long MemTotalMb,
+    long MemUsedMb,
+    long MemFreeMb,
+    string DiskUsed,
+    string DiskTotal,
+    int DiskPercent);
+
+/// <summary>
+/// Polls an SSH server for CPU, RAM, and disk usage at a configurable interval.
+/// Uses the existing <see cref="SshClient"/> from an active shell session to run
+/// lightweight monitoring commands on a multiplexed channel.
+/// </summary>
+public sealed class ServerHealthMonitor : IDisposable
+{
+    private static readonly int DefaultPollIntervalSeconds = 5;
+
+    private static readonly Regex CpuIdleRegex = new(
+        @"%?Cpu.*?:\s.*?(\d+[\.,]\d+)\s*id",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+    private static readonly Regex CpuUsageRegex = new(
+        @"%?Cpu.*?:\s*(\d+[\.,]\d+)\s*us",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+    private static readonly Regex MemRegex = new(
+        @"Mem:\s+(\d+)\s+(\d+)\s+(\d+)",
+        RegexOptions.Compiled);
+
+    private static readonly Regex DiskRegex = new(
+        @"(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\d+)%",
+        RegexOptions.Compiled);
+
+    private CancellationTokenSource? _cts;
+    private Task? _pollTask;
+    private bool _disposed;
+
+    /// <summary>Raised on the thread pool when new health data is available.</summary>
+    public event Action<ServerHealthData>? HealthUpdated;
+
+    /// <summary>
+    /// Starts polling the remote server for health metrics.
+    /// </summary>
+    /// <param name="client">An already-connected SSH client.</param>
+    /// <param name="cancellationToken">External cancellation support.</param>
+    public Task StartAsync(SshClient client, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(client);
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
+        if (_cts is not null)
+        {
+            throw new InvalidOperationException("Health monitor is already running.");
+        }
+
+        _cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        _pollTask = Task.Run(() => PollLoopAsync(client, _cts.Token), _cts.Token);
+
+        return Task.CompletedTask;
+    }
+
+    /// <summary>Stops the polling loop.</summary>
+    public void Stop()
+    {
+        if (_cts is null)
+        {
+            return;
+        }
+
+        try
+        {
+            _cts.Cancel();
+            _pollTask?.Wait(TimeSpan.FromSeconds(3));
+        }
+        catch (AggregateException)
+        {
+            // Expected from task cancellation
+        }
+        finally
+        {
+            _cts.Dispose();
+            _cts = null;
+            _pollTask = null;
+        }
+    }
+
+    public void Dispose()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _disposed = true;
+        Stop();
+    }
+
+    private async Task PollLoopAsync(SshClient client, CancellationToken ct)
+    {
+        while (!ct.IsCancellationRequested)
+        {
+            try
+            {
+                if (!client.IsConnected)
+                {
+                    FileLogger.Warn("ServerHealthMonitor: SSH client disconnected, stopping poll loop");
+                    break;
+                }
+
+                var data = CollectHealthData(client);
+                if (data is not null)
+                {
+                    HealthUpdated?.Invoke(data);
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                break;
+            }
+            catch (Exception ex)
+            {
+                FileLogger.Warn($"ServerHealthMonitor poll error: {ex.Message}");
+            }
+
+            try
+            {
+                await Task.Delay(TimeSpan.FromSeconds(DefaultPollIntervalSeconds), ct)
+                    .ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                break;
+            }
+        }
+    }
+
+    private static ServerHealthData? CollectHealthData(SshClient client)
+    {
+        double cpuPercent = 0;
+        long memTotal = 0, memUsed = 0, memFree = 0;
+        string diskUsed = "?", diskTotal = "?";
+        int diskPercent = 0;
+
+        // CPU usage
+        try
+        {
+            using var cpuCmd = client.RunCommand("top -b -n 1 | head -5");
+            if (cpuCmd.ExitStatus == 0 && !string.IsNullOrWhiteSpace(cpuCmd.Result))
+            {
+                cpuPercent = ParseCpuUsage(cpuCmd.Result);
+            }
+        }
+        catch (Exception ex)
+        {
+            FileLogger.Warn($"ServerHealthMonitor CPU command failed: {ex.Message}");
+        }
+
+        // RAM usage
+        try
+        {
+            using var memCmd = client.RunCommand("free -m | grep Mem");
+            if (memCmd.ExitStatus == 0 && !string.IsNullOrWhiteSpace(memCmd.Result))
+            {
+                ParseMemory(memCmd.Result, out memTotal, out memUsed, out memFree);
+            }
+        }
+        catch (Exception ex)
+        {
+            FileLogger.Warn($"ServerHealthMonitor RAM command failed: {ex.Message}");
+        }
+
+        // Disk usage
+        try
+        {
+            using var diskCmd = client.RunCommand("df -h / | tail -1");
+            if (diskCmd.ExitStatus == 0 && !string.IsNullOrWhiteSpace(diskCmd.Result))
+            {
+                ParseDisk(diskCmd.Result, out diskUsed, out diskTotal, out diskPercent);
+            }
+        }
+        catch (Exception ex)
+        {
+            FileLogger.Warn($"ServerHealthMonitor Disk command failed: {ex.Message}");
+        }
+
+        return new ServerHealthData(cpuPercent, memTotal, memUsed, memFree, diskUsed, diskTotal, diskPercent);
+    }
+
+    internal static double ParseCpuUsage(string topOutput)
+    {
+        // Try to extract idle percentage and compute usage = 100 - idle
+        var idleMatch = CpuIdleRegex.Match(topOutput);
+        if (idleMatch.Success)
+        {
+            var idleStr = idleMatch.Groups[1].Value.Replace(',', '.');
+            if (double.TryParse(idleStr, NumberStyles.Float, CultureInfo.InvariantCulture, out var idle))
+            {
+                return Math.Round(Math.Max(0, 100.0 - idle), 1);
+            }
+        }
+
+        // Fallback: extract user percentage directly
+        var usMatch = CpuUsageRegex.Match(topOutput);
+        if (usMatch.Success)
+        {
+            var usStr = usMatch.Groups[1].Value.Replace(',', '.');
+            if (double.TryParse(usStr, NumberStyles.Float, CultureInfo.InvariantCulture, out var us))
+            {
+                return Math.Round(us, 1);
+            }
+        }
+
+        return 0;
+    }
+
+    internal static void ParseMemory(string freeOutput, out long total, out long used, out long free)
+    {
+        total = 0;
+        used = 0;
+        free = 0;
+
+        var match = MemRegex.Match(freeOutput);
+        if (match.Success)
+        {
+            long.TryParse(match.Groups[1].Value, out total);
+            long.TryParse(match.Groups[2].Value, out used);
+            long.TryParse(match.Groups[3].Value, out free);
+        }
+    }
+
+    internal static void ParseDisk(string dfOutput, out string used, out string total, out int percent)
+    {
+        used = "?";
+        total = "?";
+        percent = 0;
+
+        var match = DiskRegex.Match(dfOutput);
+        if (match.Success)
+        {
+            total = match.Groups[2].Value;
+            used = match.Groups[3].Value;
+            int.TryParse(match.Groups[5].Value, out percent);
+        }
+    }
+}

@@ -32,24 +32,53 @@ namespace Heimdall.App.Services;
 /// </summary>
 public partial class ConnectionService
 {
+    private static readonly TimeSpan HostKeyProbeTimeout = TimeSpan.FromSeconds(8);
+
     private readonly ConfigManager _configManager;
     private readonly TunnelManager _tunnelManager;
     private readonly HostKeyStore _hostKeyStore;
     private readonly ConnectionStateMachine _connectionSm;
     private readonly LocalizationManager _localizer;
+    private readonly X11ServerManager _x11ServerManager;
+
+    /// <summary>
+    /// Cached snapshot of the current application settings, kept up-to-date
+    /// by subscribing to <see cref="ConfigManager.SettingsChanged"/>.
+    /// May be null until the first settings load completes.
+    /// </summary>
+    private AppSettings? _currentSettings;
+
+    /// <summary>
+    /// Returns the latest cached settings snapshot, or null if settings
+    /// have not been loaded yet.
+    /// </summary>
+    public AppSettings? CurrentSettings => _currentSettings;
 
     public ConnectionService(
         ConfigManager configManager,
         TunnelManager tunnelManager,
         HostKeyStore hostKeyStore,
         ConnectionStateMachine connectionSm,
-        LocalizationManager localizer)
+        LocalizationManager localizer,
+        X11ServerManager x11ServerManager)
     {
         _configManager = configManager;
         _tunnelManager = tunnelManager;
         _hostKeyStore = hostKeyStore;
         _connectionSm = connectionSm;
         _localizer = localizer;
+        _x11ServerManager = x11ServerManager;
+
+        _configManager.SettingsChanged += OnSettingsChanged;
+    }
+
+    /// <summary>
+    /// Updates the cached settings when the configuration is saved.
+    /// </summary>
+    private void OnSettingsChanged(AppSettings newSettings)
+    {
+        _currentSettings = newSettings;
+        Core.Logging.FileLogger.Info("ConnectionService: settings refreshed at runtime");
     }
 
     /// <summary>

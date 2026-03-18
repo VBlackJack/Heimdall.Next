@@ -31,6 +31,26 @@ public partial class GatewayDialog : Window
     {
         InitializeComponent();
         WindowThemeHelper.ApplyCurrentTheme(this);
+
+        Loaded += (_, _) =>
+        {
+            if (DataContext is GatewayDialogViewModel { Localizer: not null } vm)
+            {
+                CancelBtn.Content = vm.Localizer["BtnCancel"];
+                SaveBtn.Content = vm.Localizer["BtnSave"];
+
+                // Form labels
+                LblName.Text = vm.Localizer["GatewayDialogLabelName"];
+                LblHost.Text = vm.Localizer["GatewayDialogLabelHost"];
+                LblPort.Text = vm.Localizer["GatewayDialogLabelPort"];
+                LblUsername.Text = vm.Localizer["GatewayDialogLabelUsername"];
+                LblKeyPath.Text = vm.Localizer["GatewayDialogLabelKeyPath"];
+                LblPassword.Text = vm.Localizer["GatewayDialogLabelPassword"];
+                LblParentGateway.Text = vm.Localizer["GatewayDialogLabelParentGateway"];
+                LblHostKeyFingerprint.Text = vm.Localizer["GatewayDialogLabelHostKeyFingerprint"];
+                BtnBrowse.Content = vm.Localizer["GatewayDialogBtnBrowse"];
+            }
+        };
     }
 
     private void OnSaveClick(object sender, RoutedEventArgs e)
@@ -56,9 +76,10 @@ public partial class GatewayDialog : Window
 
     private void OnBrowseKeyClick(object sender, RoutedEventArgs e)
     {
+        var localizer = (DataContext as GatewayDialogViewModel)?.Localizer;
         var dialog = new OpenFileDialog
         {
-            Title = "Select SSH Key",
+            Title = localizer?["GatewayDialogSelectSshKey"] ?? "Select SSH Key",
             Filter = "PPK Files (*.ppk)|*.ppk|PEM Files (*.pem)|*.pem|All Files (*.*)|*.*",
             CheckFileExists = true
         };

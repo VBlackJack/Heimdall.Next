@@ -46,9 +46,17 @@ public partial class App : System.Windows.Application
         DispatcherUnhandledException += (_, args) =>
         {
             Heimdall.Core.Logging.FileLogger.Error("Unhandled exception", args.Exception);
+            var errorTitle = "Heimdall Error";
+            try
+            {
+                var loc = _serviceProvider?.GetService<LocalizationManager>();
+                if (loc is not null)
+                    errorTitle = loc["ErrorUnhandledTitle"];
+            }
+            catch { /* Localization may not be initialized yet */ }
             MessageBox.Show(
                 $"Unhandled error:\n\n{args.Exception.Message}\n\n{args.Exception.StackTrace}",
-                "Heimdall Error",
+                errorTitle,
                 MessageBoxButton.OK,
                 MessageBoxImage.Error);
             args.Handled = true;
@@ -64,6 +72,7 @@ public partial class App : System.Windows.Application
         // Initialize file logger
         var logDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logs");
         Heimdall.Core.Logging.FileLogger.Initialize(logDir);
+        Heimdall.Core.Logging.ConnectionHistory.Initialize(logDir);
         Heimdall.Core.Logging.FileLogger.Info("Heimdall.Next starting");
 
         var services = new ServiceCollection();
@@ -115,6 +124,9 @@ public partial class App : System.Windows.Application
             }
         };
 
+        // Subscribe to runtime settings changes for logging and theme updates
+        configManager.SettingsChanged += OnSettingsChanged;
+
         // Apply the saved theme before showing any window
         ApplyThemeFromSettings(settings.DefaultTheme);
 
@@ -141,7 +153,7 @@ public partial class App : System.Windows.Application
         services.AddSingleton<TunnelManager>();
 
         // Application services
-        services.AddSingleton<NavigationService>();
+        services.AddSingleton<X11ServerManager>();
         services.AddSingleton<ConnectionService>();
         services.AddSingleton<EmbeddedSessionManager>();
         services.AddSingleton<IDialogService, WpfDialogService>();
@@ -263,6 +275,20 @@ public partial class App : System.Windows.Application
     }
 
     /// <summary>
+    /// Handles runtime settings changes by updating logging state and theme.
+    /// Invoked on the thread that saved the settings; theme swap is dispatched
+    /// to the UI thread.
+    /// </summary>
+    private void OnSettingsChanged(Core.Configuration.AppSettings newSettings)
+    {
+        // Update logging state
+        Core.Logging.FileLogger.SetEnabled(newSettings.EnableLogging);
+
+        // Apply theme change on the UI thread
+        Dispatcher.InvokeAsync(() => ApplyThemeFromSettings(newSettings.DefaultTheme));
+    }
+
+    /// <summary>
     /// Replaces the default theme dictionary loaded from App.xaml with the
     /// one selected in the user's saved settings (Light or Dark).
     /// </summary>
@@ -297,7 +323,7 @@ public partial class App : System.Windows.Application
             {
                 _mainViewModel?.Connection.CloseAllSessionsCommand.Execute(null);
             }
-            catch { }
+            catch { /* Best-effort shutdown: session cleanup must not prevent exit */ }
 
             // Close all active tunnels (Plink tunnel processes)
             try
@@ -305,19 +331,35 @@ public partial class App : System.Windows.Application
                 var tunnelManager = _serviceProvider.GetService<TunnelManager>();
                 tunnelManager?.Dispose();
             }
-            catch { }
+            catch { /* Best-effort shutdown: tunnel cleanup must not prevent exit */ }
+
+            // Stop scheduled task engine
+            try
+            {
+                _mainViewModel?.StopScheduler();
+            }
+            catch { /* Best-effort shutdown */ }
+
+            // Stop managed X11 server
+            try
+            {
+                var x11Manager = _serviceProvider.GetService<X11ServerManager>();
+                x11Manager?.Stop();
+            }
+            catch { /* Best-effort shutdown */ }
 
             // Release sleep prevention
             try
             {
                 SleepPrevention.ForceRelease();
             }
-            catch { }
+            catch { /* Best-effort shutdown */ }
         }
 
         _serviceProvider?.Dispose();
 
         Core.Logging.FileLogger.Info("Heimdall.Next shutdown complete");
+        Core.Logging.FileLogger.Flush();
         base.OnExit(e);
     }
 }

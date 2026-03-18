@@ -1,0 +1,57 @@
+<Window x:Class="Heimdall.App.Views.FloatingSessionWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Detached Session"
+        Width="1024" Height="768"
+        MinWidth="400" MinHeight="300"
+        WindowStartupLocation="CenterScreen"
+        Background="{DynamicResource BackgroundBrush}">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <!-- Header bar -->
+            <RowDefinition Height="36"/>
+            <!-- Session content -->
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header bar with session info and reattach button -->
+        <Border Grid.Row="0"
+                Background="{DynamicResource SurfaceBrush}"
+                BorderThickness="0,0,0,1"
+                BorderBrush="{DynamicResource BorderBrush}">
+            <DockPanel Margin="8,0">
+                <!-- Right: Reattach button -->
+                <Button x:Name="ReattachButton"
+                        DockPanel.Dock="Right"
+                        Content="Reattach"
+                        Click="OnReattachClick"
+                        VerticalAlignment="Center"
+                        Padding="12,4"
+                        Style="{DynamicResource SecondaryButtonStyle}"/>
+
+                <!-- Left: Connection type icon + title -->
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock x:Name="TypeIcon" Text="&#xE7F4;"
+                               FontFamily="Segoe MDL2 Assets" FontSize="12"
+                               Foreground="{DynamicResource InfoBrush}"
+                               VerticalAlignment="Center" Margin="0,0,6,0"/>
+                    <TextBlock x:Name="SessionTitle" Text=""
+                               FontSize="13" FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextPrimaryBrush}"
+                               VerticalAlignment="Center"
+                               TextTrimming="CharacterEllipsis"/>
+                    <TextBlock x:Name="TunnelRouteText" Text=""
+                               FontSize="9"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               VerticalAlignment="Center" Margin="6,0,0,0"/>
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <!-- Session host control -->
+        <ContentPresenter x:Name="SessionHost"
+                          Grid.Row="1"
+                          ClipToBounds="True"/>
+    </Grid>
+</Window>

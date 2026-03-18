@@ -32,6 +32,9 @@ public enum SshFailureCode
     /// <summary>Pageant SSH agent is not running or inaccessible.</summary>
     PageantKeyUnavailable,
 
+    /// <summary>Pageant is running but has no identities loaded.</summary>
+    PageantNoIdentities,
+
     /// <summary>Private key passphrase is required but not provided.</summary>
     PassphraseRequired,
 

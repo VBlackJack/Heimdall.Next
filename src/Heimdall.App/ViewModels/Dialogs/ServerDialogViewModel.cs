@@ -20,6 +20,7 @@ using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Heimdall.Core.Configuration;
+using Heimdall.Core.Localization;
 
 namespace Heimdall.App.ViewModels.Dialogs;
 
@@ -32,8 +33,14 @@ public partial class ServerDialogViewModel : ObservableValidator
 {
     private const int DefaultRdpPort = 3389;
     private const int DefaultSshPort = 22;
+    private const int DefaultTelnetPort = 23;
     private const int DefaultRdpTunnelPort = 33890;
     private const int DefaultSshTunnelPort = 2222;
+
+    /// <summary>
+    /// Localizer for translating validation error messages. Set by the dialog service.
+    /// </summary>
+    public LocalizationManager? Localizer { get; set; }
 
     // --- Dialog state ---
 
@@ -135,6 +142,30 @@ public partial class ServerDialogViewModel : ObservableValidator
 
     [ObservableProperty]
     private bool _citrixUseSso = true;
+
+    // --- FTP settings ---
+
+    [ObservableProperty]
+    [NotifyDataErrorInfo]
+    [Range(1, 65535, ErrorMessage = "FTP port must be between 1 and 65535.")]
+    private int _ftpPort = 21;
+
+    [ObservableProperty]
+    private string _ftpUsername = "";
+
+    [ObservableProperty]
+    private string _ftpPassword = "";
+
+    // Existing encrypted FTP password (preserved on edit if user doesn't change it)
+    public string? ExistingFtpPasswordEncrypted { get; set; }
+
+    // --- VNC settings ---
+
+    [ObservableProperty]
+    private int _vncPort = 5900;
+
+    [ObservableProperty]
+    private string _vncPassword = "";
 
     // --- RDP settings ---
 
@@ -260,6 +291,12 @@ public partial class ServerDialogViewModel : ObservableValidator
 
     public bool IsCitrixConnection => string.Equals(ConnectionType, "Citrix", StringComparison.OrdinalIgnoreCase);
 
+    public bool IsFtpConnection => string.Equals(ConnectionType, "FTP", StringComparison.OrdinalIgnoreCase);
+
+    public bool IsVncConnection => string.Equals(ConnectionType, "VNC", StringComparison.OrdinalIgnoreCase);
+
+    public bool IsTelnetConnection => string.Equals(ConnectionType, "Telnet", StringComparison.OrdinalIgnoreCase);
+
     public bool IsSshFamilyConnection => IsSshConnection || IsSftpConnection;
 
     public bool UsesGateway => !DirectConnection && !string.IsNullOrWhiteSpace(SelectedGatewayId);
@@ -270,12 +307,24 @@ public partial class ServerDialogViewModel : ObservableValidator
 
     public int EndpointPort
     {
-        get => IsRdpConnection ? RemotePort : SshPort;
+        get => IsRdpConnection ? RemotePort
+            : IsVncConnection ? VncPort
+            : IsFtpConnection ? FtpPort
+            : IsTelnetConnection ? RemotePort
+            : SshPort;
         set
         {
-            if (IsRdpConnection)
+            if (IsRdpConnection || IsTelnetConnection)
             {
                 RemotePort = value;
+            }
+            else if (IsVncConnection)
+            {
+                VncPort = value;
+            }
+            else if (IsFtpConnection)
+            {
+                FtpPort = value;
             }
             else
             {
@@ -284,7 +333,11 @@ public partial class ServerDialogViewModel : ObservableValidator
         }
     }
 
-    public string EndpointPortLabel => IsRdpConnection ? "Remote RDP port" : "Remote SSH port";
+    public string EndpointPortLabel => IsRdpConnection ? "Remote RDP port"
+        : IsVncConnection ? "VNC port"
+        : IsFtpConnection ? "FTP port"
+        : IsTelnetConnection ? "Telnet port"
+        : "Remote SSH port";
 
     public string EndpointPortHelpText => IsRdpConnection
         ? "Remote desktop port on the destination server."
@@ -310,15 +363,19 @@ public partial class ServerDialogViewModel : ObservableValidator
 
     public string SessionKindLabel => IsRdpConnection
         ? "RDP session"
-        : IsSftpConnection
-            ? "SFTP session"
-            : "SSH session";
+        : IsFtpConnection
+            ? "FTP session"
+            : IsSftpConnection
+                ? "SFTP session"
+                : "SSH session";
 
     public string SessionModeSummary => IsRdpConnection
         ? "Remote Desktop opens after tunnel setup completes."
-        : IsSftpConnection
-            ? "The SFTP browser reuses the SSH authentication settings below."
-            : "The SSH shell connects directly or through the tunnel shown above.";
+        : IsFtpConnection
+            ? "The FTP browser connects directly using the credentials below."
+            : IsSftpConnection
+                ? "The SFTP browser reuses the SSH authentication settings below."
+                : "The SSH shell connects directly or through the tunnel shown above.";
 
     public string TunnelSummary => UsesGateway
         ? string.Format(
@@ -357,7 +414,8 @@ public partial class ServerDialogViewModel : ObservableValidator
 
         if (!HasErrors && UsesGateway && !UseAutomaticTunnelPort && LocalPort <= 0)
         {
-            ValidationError = "Enter a local tunnel port or switch back to Auto.";
+            ValidationError = Localizer?["ValidationTunnelPortRequired"]
+                ?? "Enter a local tunnel port or switch back to Auto.";
             return;
         }
 
@@ -414,6 +472,15 @@ public partial class ServerDialogViewModel : ObservableValidator
             CitrixIcaFilePath = string.IsNullOrWhiteSpace(CitrixIcaFilePath) ? null : CitrixIcaFilePath,
             CitrixSeamlessMode = CitrixSeamlessMode,
             CitrixUseSso = CitrixUseSso,
+            FtpPort = FtpPort,
+            FtpUsername = string.IsNullOrWhiteSpace(FtpUsername) ? null : FtpUsername,
+            FtpPasswordEncrypted = string.IsNullOrEmpty(FtpPassword)
+                ? ExistingFtpPasswordEncrypted
+                : Heimdall.Core.Security.CredentialProtector.Protect(FtpPassword),
+            VncPort = VncPort,
+            VncPassword = string.IsNullOrWhiteSpace(VncPassword) ? null
+                : Heimdall.Core.Security.CredentialProtector.Protect(VncPassword),
+            TelnetPort = IsTelnetConnection ? RemotePort : 23,
             RdpUsername = string.IsNullOrWhiteSpace(RdpUsername) ? null : RdpUsername,
             RdpPasswordEncrypted = string.IsNullOrEmpty(RdpPassword)
                 ? ExistingRdpPasswordEncrypted
@@ -441,9 +508,10 @@ public partial class ServerDialogViewModel : ObservableValidator
             RdpGateway = string.IsNullOrWhiteSpace(RdpGateway) ? null : RdpGateway,
             SshGatewayId = string.IsNullOrWhiteSpace(SelectedGatewayId) ? null : SelectedGatewayId,
             UseDirectConnection = DirectConnection,
-            ProjectId = null,
+            ProjectId = string.IsNullOrWhiteSpace(SelectedProjectId) ? null : SelectedProjectId,
             Tags = string.IsNullOrWhiteSpace(Tags) ? null : Tags,
             Environment = Environment == "None" ? null : Environment,
+            MacAddress = string.IsNullOrWhiteSpace(MacAddress) ? null : MacAddress,
             IsFavorite = IsFavorite
         };
     }
@@ -485,6 +553,10 @@ public partial class ServerDialogViewModel : ObservableValidator
             CitrixIcaFilePath = dto.CitrixIcaFilePath ?? "",
             CitrixSeamlessMode = dto.CitrixSeamlessMode,
             CitrixUseSso = dto.CitrixUseSso,
+            FtpPort = dto.FtpPort > 0 ? dto.FtpPort : 21,
+            FtpUsername = dto.FtpUsername ?? "",
+            ExistingFtpPasswordEncrypted = dto.FtpPasswordEncrypted,
+            VncPort = dto.VncPort > 0 ? dto.VncPort : 5900,
             RdpUsername = dto.RdpUsername ?? "",
             ExistingRdpPasswordEncrypted = dto.RdpPasswordEncrypted,
             ExistingSshPasswordEncrypted = dto.SshPasswordEncrypted,
@@ -513,7 +585,7 @@ public partial class ServerDialogViewModel : ObservableValidator
             DirectConnection = dto.UseDirectConnection,
             SelectedProjectId = dto.ProjectId ?? "",
             Tags = dto.Tags ?? "",
-            MacAddress = "",
+            MacAddress = dto.MacAddress ?? "",
             Environment = dto.Environment ?? "None",
             IsFavorite = dto.IsFavorite
         };
@@ -585,9 +657,15 @@ public partial class ServerDialogViewModel : ObservableValidator
 
     private static int GetDefaultEndpointPort(string connectionType)
     {
-        return string.Equals(connectionType, "RDP", StringComparison.OrdinalIgnoreCase)
-            ? DefaultRdpPort
-            : DefaultSshPort;
+        if (string.Equals(connectionType, "RDP", StringComparison.OrdinalIgnoreCase))
+            return DefaultRdpPort;
+        if (string.Equals(connectionType, "VNC", StringComparison.OrdinalIgnoreCase))
+            return 5900;
+        if (string.Equals(connectionType, "FTP", StringComparison.OrdinalIgnoreCase))
+            return 21;
+        if (string.Equals(connectionType, "Telnet", StringComparison.OrdinalIgnoreCase))
+            return DefaultTelnetPort;
+        return DefaultSshPort;
     }
 
     private static int GetSuggestedTunnelPort(string connectionType)
@@ -614,7 +692,9 @@ public partial class ServerDialogViewModel : ObservableValidator
         OnPropertyChanged(nameof(IsRdpConnection));
         OnPropertyChanged(nameof(IsSshConnection));
         OnPropertyChanged(nameof(IsSftpConnection));
+        OnPropertyChanged(nameof(IsFtpConnection));
         OnPropertyChanged(nameof(IsCitrixConnection));
+        OnPropertyChanged(nameof(IsTelnetConnection));
         OnPropertyChanged(nameof(IsSshFamilyConnection));
         OnPropertyChanged(nameof(UsesGateway));
         OnPropertyChanged(nameof(CanSelectGateway));
@@ -638,13 +718,32 @@ public partial class ServerDialogViewModel : ObservableValidator
         OnPropertyChanged(nameof(GatewayToServerLabel));
     }
 
+    private static readonly Dictionary<string, string> ValidationKeyMap = new(StringComparer.Ordinal)
+    {
+        ["Display name is required."] = "ValidationDisplayNameRequired",
+        ["Display name cannot be empty."] = "ValidationDisplayNameEmpty",
+        ["Port must be between 1 and 65535."] = "ValidationPortRange",
+        ["Local tunnel port must be between 1 and 65535."] = "ValidationLocalPortRange",
+        ["SSH port must be between 1 and 65535."] = "ValidationSshPortRange",
+        ["Audio mode must be 0 (disabled), 1 (local), or 2 (remote)."] = "ValidationAudioMode",
+        ["Color depth must be between 8 and 32."] = "ValidationColorDepth",
+        ["FTP port must be between 1 and 65535."] = "ValidationFtpPortRange",
+    };
+
     private string? GetFirstError()
     {
         var firstProperty = GetErrors()
             .OfType<System.ComponentModel.DataAnnotations.ValidationResult>()
             .FirstOrDefault();
 
-        return firstProperty?.ErrorMessage;
+        var message = firstProperty?.ErrorMessage;
+        if (message is not null && Localizer is not null
+            && ValidationKeyMap.TryGetValue(message, out var key))
+        {
+            return Localizer[key];
+        }
+
+        return message;
     }
 }
 

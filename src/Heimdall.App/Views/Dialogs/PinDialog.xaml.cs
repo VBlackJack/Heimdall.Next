@@ -19,6 +19,7 @@ using System.Windows;
 using System.Windows.Input;
 using Heimdall.App.Theming;
 using Heimdall.App.ViewModels.Dialogs;
+using Heimdall.Core.Localization;
 
 namespace Heimdall.App.Views.Dialogs;
 
@@ -28,12 +29,24 @@ namespace Heimdall.App.Views.Dialogs;
 /// </summary>
 public partial class PinDialog : Window
 {
-    public PinDialog()
+    private readonly LocalizationManager? _localizer;
+
+    public PinDialog(LocalizationManager? localizer = null)
     {
+        _localizer = localizer;
         InitializeComponent();
         WindowThemeHelper.ApplyCurrentTheme(this);
 
-        Loaded += (_, _) => PinBox.Focus();
+        Loaded += (_, _) =>
+        {
+            PinBox.Focus();
+            if (_localizer is not null)
+            {
+                PinTitleText.Text = _localizer["PinEnterLabel"];
+                CancelBtn.Content = _localizer["BtnCancel"];
+                UnlockBtn.Content = _localizer["BtnUnlock"];
+            }
+        };
 
         DataContextChanged += OnDataContextChanged;
     }

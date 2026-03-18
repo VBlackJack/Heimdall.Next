@@ -40,6 +40,7 @@ public partial class ConnectionService
         _connectionSm.TryTransition(server.Id, Core.Models.ConnectionState.ValidatingConfig);
 
         // Resolve tunnel if gateway is configured and not a direct connection
+        int tunnelLocalPort = server.LocalPort;
         if (!server.UseDirectConnection && !string.IsNullOrEmpty(server.SshGatewayId))
         {
             var tunnelResult = await EstablishTunnelAsync(
@@ -51,6 +52,9 @@ public partial class ConnectionService
             {
                 return new ConnectionResult(false, tunnelResult.ErrorMessage, null);
             }
+
+            // Use the dynamically allocated port (may differ from server.LocalPort)
+            tunnelLocalPort = tunnelResult.Tunnel?.LocalPort ?? server.LocalPort;
         }
 
         _connectionSm.TryTransition(server.Id, Core.Models.ConnectionState.LaunchingRdp);
@@ -66,11 +70,11 @@ public partial class ConnectionService
         }
 
         // External mode: launch mstsc.exe
+        string? rdpPassword = null;
         try
         {
             var rdpHost = server.UseDirectConnection ? server.RemoteServer : "127.0.0.1";
-            var rdpPort = server.UseDirectConnection ? server.RemotePort : server.LocalPort;
-            string? rdpPassword = null;
+            var rdpPort = server.UseDirectConnection ? server.RemotePort : tunnelLocalPort;
 
             // Store credentials in Windows Credential Manager for mstsc auto-login
             if (!string.IsNullOrEmpty(server.RdpUsername) && !string.IsNullOrEmpty(server.RdpPasswordEncrypted))
@@ -99,12 +103,24 @@ public partial class ConnectionService
                 Username = server.RdpUsername,
                 FullScreen = false,
                 AdminMode = false,
+                GatewayHostname = server.RdpGateway,
                 Redirections = new Heimdall.Rdp.RdpRedirectionOptions
                 {
                     Clipboard = server.RdpRedirectClipboard,
                     Drives = server.RdpRedirectDrives,
                     Printers = server.RdpRedirectPrinters,
-                    Nla = server.RdpNla
+                    ComPorts = server.RdpRedirectComPorts,
+                    SmartCards = server.RdpRedirectSmartCards,
+                    Webcam = server.RdpRedirectWebcam,
+                    Usb = server.RdpRedirectUsb,
+                    AudioMode = server.RdpAudioMode,
+                    AudioCapture = server.RdpAudioCapture,
+                    MultiMonitor = server.RdpMultiMonitor,
+                    DynamicResolution = server.RdpDynamicResolution,
+                    Nla = server.RdpNla,
+                    BitmapCaching = server.RdpBitmapCaching,
+                    Compression = server.RdpCompression,
+                    AutoReconnect = server.RdpAutoReconnect
                 }
             });
             await File.WriteAllTextAsync(rdpFile, rdpContent, ct).ConfigureAwait(false);
@@ -131,17 +147,21 @@ public partial class ConnectionService
             // Start CredUI autofill watcher for the external mstsc process
             if (!string.IsNullOrEmpty(rdpPassword) && mstscPid > 0)
             {
+                var autofillPassword = rdpPassword;
                 _ = Task.Run(async () =>
                 {
                     try
                     {
                         var filled = await Heimdall.Rdp.CredentialAutofill.WaitAndFillAsync(
-                            mstscPid, rdpHost, rdpPassword,
+                            mstscPid, rdpHost, autofillPassword,
                             TimeSpan.FromSeconds(90), ct).ConfigureAwait(false);
                         if (!filled)
                             Core.Logging.FileLogger.Warn($"External RDP CredUI autofill timed out for {server.DisplayName}");
                     }
-                    catch (OperationCanceledException) { }
+                    catch (OperationCanceledException)
+                    {
+                        // Expected when connection is cancelled during autofill wait
+                    }
                     catch (Exception ex)
                     {
                         Core.Logging.FileLogger.Warn($"External RDP CredUI autofill failed: {ex.Message}");
@@ -152,18 +172,7 @@ public partial class ConnectionService
             // Clean up .rdp file and CredMan entry after delay
             var credCleanupTarget = !string.IsNullOrEmpty(server.RdpUsername) && !string.IsNullOrEmpty(server.RdpPasswordEncrypted)
                 ? $"TERMSRV/{rdpHost}" : null;
-            _ = Task.Delay(10000, ct).ContinueWith(task =>
-            {
-                try { File.Delete(rdpFile); } catch { }
-                if (credCleanupTarget is not null)
-                {
-                    Heimdall.Rdp.CredentialManagerHelper.DeleteCredential(credCleanupTarget, out var credErr);
-                    Core.Logging.FileLogger.Info($"RDP CredMan entry cleaned: {credCleanupTarget}");
-                }
-            }, TaskScheduler.Default);
-
-            // Clear plaintext password from managed memory
-            rdpPassword = null;
+            _ = CleanupRdpArtifactsAsync(rdpFile, credCleanupTarget, ct);
 
             return new ConnectionResult(true, null, null);
         }
@@ -171,6 +180,36 @@ public partial class ConnectionService
         {
             Core.Logging.FileLogger.Error("RDP launch failed", ex);
             return new ConnectionResult(false, ex.Message, null);
+        }
+        finally
+        {
+            // Clear plaintext password from managed memory deterministically
+            rdpPassword = null;
+        }
+    }
+
+    /// <summary>
+    /// Cleans up the temporary .rdp file and CredMan entry after a delay.
+    /// </summary>
+    private static async Task CleanupRdpArtifactsAsync(
+        string rdpFile, string? credCleanupTarget, CancellationToken ct)
+    {
+        try
+        {
+            await Task.Delay(TimeSpan.FromSeconds(10), ct).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            // Proceed with cleanup even if cancelled
+        }
+
+        try { File.Delete(rdpFile); }
+        catch (IOException) { /* Best-effort cleanup */ }
+
+        if (credCleanupTarget is not null)
+        {
+            Heimdall.Rdp.CredentialManagerHelper.DeleteCredential(credCleanupTarget, out _);
+            Core.Logging.FileLogger.Info($"RDP CredMan entry cleaned: {credCleanupTarget}");
         }
     }
 }
