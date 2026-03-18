@@ -59,6 +59,7 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
     private bool _disposed;
     private bool _isLoading;
     private bool _showHidden = true;
+    private bool _sudoMode;
     private string _sortColumn = "Name";
     private ListSortDirection _sortDirection = ListSortDirection.Ascending;
 
@@ -113,6 +114,10 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
 
         _editor = new RemoteFileEditor(browser, hostKeyStore: hostKeyStore);
         _editor.FileUploaded += OnEditorFileUploaded;
+
+        // Hide sudo toggle for FTP sessions (no SSH channel for sudo)
+        BtnSudoMode.Visibility = sshParams is not null
+            ? Visibility.Visible : Visibility.Collapsed;
 
         SessionTitleText.Text = displayName;
         EndpointTextBlock.Text = endpoint;
@@ -309,7 +314,27 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
         {
             UpdateStatus(_localizer?["SftpStatusLoading"] ?? "Loading...");
 
-            var entries = await _browser.ListDirectoryAsync(path);
+            IReadOnlyList<SftpFileInfo> entries;
+
+            if (_sudoMode && _sshParams is not null)
+            {
+                // sudo mode: list via SSH exec channel
+                entries = await ListDirectoryViaSudoAsync(path);
+            }
+            else
+            {
+                try
+                {
+                    entries = await _browser.ListDirectoryAsync(path);
+                }
+                catch (Exception ex) when (_sshParams is not null && IsPermissionDenied(ex))
+                {
+                    // Auto-fallback to sudo for this listing
+                    Core.Logging.FileLogger.Info(
+                        $"EmbeddedSFTP listdir permission denied, falling back to sudo for {path}");
+                    entries = await ListDirectoryViaSudoAsync(path);
+                }
+            }
 
             if (!string.Equals(path, _currentPath, StringComparison.Ordinal))
             {
@@ -1309,7 +1334,7 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
     /// Creates an authenticated SSH client using the same connection factory
     /// and host key verification as the main session (Pageant, keys, TOFU).
     /// </summary>
-    private async Task<Renci.SshNet.SshClient> CreateSudoSshClientAsync(CancellationToken ct)
+    private async Task<Renci.SshNet.SshClient> CreateSudoSshClientAsync(CancellationToken ct = default)
     {
         if (_sshParams is null)
             throw new InvalidOperationException("SSH params not available for sudo.");
@@ -1327,6 +1352,110 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
             .ConfigureAwait(false);
 
         return ssh;
+    }
+
+    private void OnSudoModeToggle(object sender, RoutedEventArgs e)
+    {
+        _sudoMode = BtnSudoMode.IsChecked == true;
+
+        if (_sudoMode)
+        {
+            BtnSudoModeText.Foreground = System.Windows.Media.Brushes.OrangeRed;
+            UpdateStatus(_localizer?["SftpSudoModeEnabled"] ?? "Sudo mode enabled — browsing as root");
+        }
+        else
+        {
+            BtnSudoModeText.Foreground = (System.Windows.Media.Brush)FindResource("TextPrimaryBrush");
+            UpdateStatus(_localizer?["SftpSudoModeDisabled"] ?? "Sudo mode disabled");
+        }
+
+        // Reload current directory with new mode
+        _ = LoadDirectoryAsync(_currentPath);
+    }
+
+    /// <summary>
+    /// Lists a directory via <c>sudo ls -la</c> over SSH exec channel,
+    /// bypassing SFTP permission restrictions for root-owned directories.
+    /// </summary>
+    private async Task<IReadOnlyList<SftpFileInfo>> ListDirectoryViaSudoAsync(string path)
+    {
+        var escaped = Heimdall.Sftp.PathEscaper.EscapeForShell(path);
+        using var ssh = await CreateSudoSshClientAsync();
+
+        try
+        {
+            // -la = long format + hidden files, --time-style=long-iso for consistent date format
+            var cmd = await Task.Run(() =>
+                ssh.RunCommand($"sudo ls -la --time-style=long-iso {escaped}"))
+                .ConfigureAwait(false);
+
+            if (cmd.ExitStatus != 0)
+                throw new InvalidOperationException($"sudo ls failed (exit {cmd.ExitStatus}): {cmd.Error}");
+
+            return ParseLsOutput(cmd.Result ?? "", path);
+        }
+        finally
+        {
+            ssh.Disconnect();
+        }
+    }
+
+    /// <summary>
+    /// Parses the output of <c>ls -la --time-style=long-iso</c> into SftpFileInfo records.
+    /// Format: <c>drwxr-xr-x 2 root root 4096 2026-03-18 14:30 dirname</c>
+    /// </summary>
+    private static IReadOnlyList<SftpFileInfo> ParseLsOutput(string output, string parentPath)
+    {
+        var results = new List<SftpFileInfo>();
+        var lines = output.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+
+        foreach (var line in lines)
+        {
+            // Skip the "total NNN" header line
+            if (line.StartsWith("total ", StringComparison.Ordinal))
+                continue;
+
+            // Minimum: permissions(10) + space + links + space + owner + space + group + space + size + space + date + space + time + space + name
+            // drwxr-xr-x 2 root root 4096 2026-03-18 14:30 dirname
+            var parts = line.Split((char[]?)null, 9, StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length < 9)
+                continue;
+
+            string permissions = parts[0];
+            string owner = parts[2];
+            string group = parts[3];
+            long.TryParse(parts[4], out long size);
+
+            // Parse date+time: "2026-03-18 14:30"
+            DateTime lastModified = DateTime.MinValue;
+            if (parts.Length >= 8)
+            {
+                DateTime.TryParse($"{parts[5]} {parts[6]}", out lastModified);
+            }
+
+            // Name is everything after the 8th column (handles spaces in filenames)
+            string name = parts.Length >= 9 ? parts[8] : parts[^1];
+
+            // Skip . and ..
+            if (name is "." or "..")
+                continue;
+
+            // Handle symlinks: "name -> target"
+            int arrowIdx = name.IndexOf(" -> ", StringComparison.Ordinal);
+            if (arrowIdx >= 0)
+                name = name[..arrowIdx];
+
+            bool isDirectory = permissions.Length > 0 && permissions[0] == 'd';
+            string fullPath = parentPath.EndsWith('/')
+                ? $"{parentPath}{name}"
+                : $"{parentPath}/{name}";
+
+            results.Add(new SftpFileInfo(
+                name, fullPath, isDirectory, size, lastModified,
+                permissions, owner, group));
+        }
+
+        return results;
     }
 
     /// <summary>
