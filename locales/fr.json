@@ -2036,11 +2036,15 @@
   "ExternalToolPromptPath": "Chemin de l'ex\u00e9cutable",
   "ExternalToolPromptArguments": "Mod\u00e8le d'arguments ({Host}, {Port}, {User} sont support\u00e9s)",
 
-  "ToolsShareFolder": "Partager un dossier",
-  "ToolsStopSharing": "Arr\u00eater le partage",
+  "ToolsShareFolder": "Serveur de fichiers rapide",
+  "ToolsStopSharing": "Arr\u00eater le serveur",
   "ToolsSharingActive": "Partage de {0} sur HTTP:{1} TFTP:{2}",
   "ToolsSharingStarted": "Serveur de fichiers d\u00e9marr\u00e9",
   "ToolsSharingStopped": "Serveur de fichiers arr\u00eat\u00e9",
+  "ToolsSharingReady": "Serveur de fichiers pr\u00eat sur {0} (URL copi\u00e9e dans le presse-papiers)",
+  "ToolsSharingServed": "Servi\u00a0: {0} via {1}",
+  "ToolsSharingHelpTitle": "Serveur de fichiers rapide",
+  "ToolsSharingHelp": "Dossier partag\u00e9\u00a0: {0}\n\nURL du serveur\u00a0: {1}\n\nUtilisez ces commandes sur le serveur distant pour t\u00e9l\u00e9charger des fichiers\u00a0:\n\n  wget {2}\n  curl {3}\n  tftp {4}\n\nL'URL a \u00e9t\u00e9 copi\u00e9e dans votre presse-papiers.\nCollez-la dans votre terminal SSH pour t\u00e9l\u00e9charger des fichiers.\n\nCliquez sur \u00ab\u00a0Arr\u00eater le serveur\u00a0\u00bb pour stopper le partage.",
 
   "X11ServerNotFound": "Aucun serveur X11 trouv\u00e9. Installez VcXsrv ou Xming pour le transfert X11.",
   "X11ServerStarted": "Serveur X11 d\u00e9marr\u00e9 : {0}",
