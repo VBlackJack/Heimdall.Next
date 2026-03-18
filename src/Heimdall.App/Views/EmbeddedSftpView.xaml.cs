@@ -45,6 +45,7 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
     private LocalizationManager? _localizer;
     private IDialogService? _dialogService;
     private SshConnectionParams? _sshParams;
+    private Heimdall.Ssh.HostKeyStore? _hostKeyStore;
     private CancellationTokenSource? _transferCts;
     private System.Threading.Timer? _healthTimer;
     private System.Threading.Timer? _errorResetTimer;
@@ -108,6 +109,7 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
         _localizer = localizer;
         _dialogService = dialogService;
         _sshParams = sshParams;
+        _hostKeyStore = hostKeyStore;
 
         _editor = new RemoteFileEditor(browser, hostKeyStore: hostKeyStore);
         _editor.FileUploaded += OnEditorFileUploaded;
@@ -1257,25 +1259,48 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
     }
 
     /// <summary>
+    /// Creates an authenticated SSH client using the same connection factory
+    /// and host key verification as the main session (Pageant, keys, TOFU).
+    /// </summary>
+    private async Task<Renci.SshNet.SshClient> CreateSudoSshClientAsync(CancellationToken ct)
+    {
+        if (_sshParams is null)
+            throw new InvalidOperationException("SSH params not available for sudo.");
+
+        var connInfo = Heimdall.Ssh.SshConnectionFactory.Create(_sshParams);
+        var ssh = new Renci.SshNet.SshClient(connInfo);
+
+        if (_hostKeyStore is not null)
+        {
+            Heimdall.Ssh.SshConnectionFactory.AttachHostKeyVerification(
+                ssh, _sshParams.Host, _sshParams.Port, _hostKeyStore);
+        }
+
+        await Task.Run(() => { ct.ThrowIfCancellationRequested(); ssh.Connect(); }, ct)
+            .ConfigureAwait(false);
+
+        return ssh;
+    }
+
+    /// <summary>
     /// Downloads a file via <c>sudo cat</c> over a direct SSH exec channel,
     /// bypassing SFTP permission restrictions.
     /// </summary>
     private async Task DownloadViaSudoAsync(string remotePath, string localPath, CancellationToken ct)
     {
-        if (_sshParams is null) throw new InvalidOperationException("SSH params not available for sudo.");
-
         var escaped = Heimdall.Sftp.PathEscaper.EscapeForShell(remotePath);
-        var connInfo = Heimdall.Ssh.SshConnectionFactory.Create(_sshParams);
-        using var ssh = new Renci.SshNet.SshClient(connInfo);
+        using var ssh = await CreateSudoSshClientAsync(ct);
 
-        await Task.Run(() => { ct.ThrowIfCancellationRequested(); ssh.Connect(); }, ct).ConfigureAwait(false);
         try
         {
-            var cmd = await Task.Run(() => ssh.RunCommand($"sudo cat {escaped}"), ct).ConfigureAwait(false);
+            var cmd = await Task.Run(() => ssh.RunCommand($"sudo cat {escaped}"), ct)
+                .ConfigureAwait(false);
+
             if (cmd.ExitStatus != 0)
                 throw new InvalidOperationException($"sudo cat failed (exit {cmd.ExitStatus}): {cmd.Error}");
 
-            await File.WriteAllTextAsync(localPath, cmd.Result ?? "", System.Text.Encoding.UTF8, ct).ConfigureAwait(false);
+            await File.WriteAllTextAsync(localPath, cmd.Result ?? "", System.Text.Encoding.UTF8, ct)
+                .ConfigureAwait(false);
         }
         finally
         {
@@ -1289,7 +1314,8 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
     /// </summary>
     private async Task UploadViaSudoAsync(string localPath, string remotePath, CancellationToken ct)
     {
-        if (_sshParams is null || _browser is null) throw new InvalidOperationException("SSH params not available for sudo.");
+        if (_browser is null)
+            throw new InvalidOperationException("Browser not available for sudo upload.");
 
         var escaped = Heimdall.Sftp.PathEscaper.EscapeForShell(remotePath);
         string tempRemote = $"/tmp/.heimdall_upload_{Guid.NewGuid():N}";
@@ -1298,10 +1324,7 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
         await _browser.UploadFileAsync(localPath, tempRemote, ct).ConfigureAwait(false);
 
         // Move to final location via sudo
-        var connInfo = Heimdall.Ssh.SshConnectionFactory.Create(_sshParams);
-        using var ssh = new Renci.SshNet.SshClient(connInfo);
-
-        await Task.Run(() => { ct.ThrowIfCancellationRequested(); ssh.Connect(); }, ct).ConfigureAwait(false);
+        using var ssh = await CreateSudoSshClientAsync(ct);
         try
         {
             var escapedTemp = Heimdall.Sftp.PathEscaper.EscapeForShell(tempRemote);
