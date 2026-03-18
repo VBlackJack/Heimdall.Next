@@ -191,6 +191,10 @@ All connection operations return an `ISessionResult` (defined in `Heimdall.Core/
 
 **Solution**: `IRemoteBrowser` defines the common surface (`Connect`, `ListDirectory`, `Upload`, `Download`, `Disconnect`, events). `SftpBrowser` (SSH.NET) and `FtpBrowser` (`FtpWebRequest`) both implement this interface. `EmbeddedSftpView` binds to `IRemoteBrowser` without knowing the underlying protocol. `RemoteFileEditor` works with both via the same interface.
 
+**Dual edit modes**: Right-click a file to choose between:
+- **Edit (integrated)**: Opens AvalonEdit inside the app with syntax highlighting. Save triggers upload.
+- **Edit with external editor**: Downloads to temp, launches the configured editor (Settings > General > External editor path), `FileSystemWatcher` with 2-second debounce auto-uploads on save.
+
 ### 16. Tab Detach to Floating Window
 
 **Problem**: Users need to view multiple sessions side by side, or move a session to a second monitor.

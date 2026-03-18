@@ -66,7 +66,7 @@ Built with .NET 10 and WPF. Designed as a modern, high-performance alternative t
 
 ### SFTP Browser
 - Embedded file browser panel with directory tree and file list
-- Remote file editor with AvalonEdit (syntax highlighting, auto-upload on save)
+- Dual edit modes: integrated AvalonEdit editor OR external editor with auto-upload on save
 - Sudo edit: transparent fallback to `sudo cat`/`sudo tee` on permission denied
 - Drag-and-drop upload and download
 - Chmod dialog, path bookmarks, filename filter
@@ -231,8 +231,10 @@ Build output goes to `Dist/debug/` or `Dist/release/` with versioned folder name
 
 | Variant | Size | WebView2 | Target |
 |---------|------|----------|--------|
-| **Light** | ~185 MB | Requires system Edge/WebView2 | Standard Windows 11 PCs |
-| **Portable** | ~620 MB | Bundled Fixed Version Runtime | Isolated servers without Edge |
+| **Light** | ~185 MB (zip) / ~54 MB (installer) | Requires system Edge/WebView2 | Standard Windows 11 PCs |
+| **Portable** | ~642 MB (zip) / ~374 MB (installer) | Bundled Fixed Version Runtime | Isolated servers without Edge |
+
+Release mode also produces Inno Setup `.exe` installers in `Dist/installers/` with desktop/start menu shortcuts and upgrade detection.
 
 ---
 
