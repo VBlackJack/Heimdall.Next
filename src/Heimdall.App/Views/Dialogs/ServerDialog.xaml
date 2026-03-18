@@ -439,7 +439,7 @@
 
             <TabItem x:Name="DlgSrv_TabTunneling">
                 <TabItem.Style>
-                    <Style TargetType="TabItem" BasedOn="{DynamicResource ThemedTabItemStyle}">
+                    <Style TargetType="TabItem" BasedOn="{StaticResource ThemedTabItemStyle}">
                         <Style.Triggers>
                             <DataTrigger Binding="{Binding ConnectionType}" Value="FTP">
                                 <Setter Property="Visibility" Value="Collapsed"/>
@@ -563,7 +563,7 @@
 
             <TabItem x:Name="DlgSrv_TabAuthentication">
                 <TabItem.Style>
-                    <Style TargetType="TabItem" BasedOn="{DynamicResource ThemedTabItemStyle}">
+                    <Style TargetType="TabItem" BasedOn="{StaticResource ThemedTabItemStyle}">
                         <Style.Triggers>
                             <DataTrigger Binding="{Binding ConnectionType}" Value="Citrix">
                                 <Setter Property="Visibility" Value="Collapsed"/>
