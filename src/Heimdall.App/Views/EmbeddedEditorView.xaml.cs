@@ -24,13 +24,14 @@ namespace Heimdall.App.Views;
 
 /// <summary>
 /// Embedded text editor with syntax highlighting powered by AvalonEdit.
-/// Used for editing local and remote (SFTP) files with Dracula theme.
+/// Used for editing local and remote (SFTP) files with theme-aware colors.
 /// </summary>
 public partial class EmbeddedEditorView : UserControl
 {
     private string? _filePath;
     private bool _isModified;
     private bool _isRemote;
+    private string _currentTheme = "Dark";
     private Core.Localization.LocalizationManager? _localizer;
 
     /// <summary>Raised when the user saves the file.</summary>
@@ -39,11 +40,11 @@ public partial class EmbeddedEditorView : UserControl
     /// <summary>Raised when the user closes the editor.</summary>
     public event Action? CloseRequested;
 
-    public EmbeddedEditorView(Core.Localization.LocalizationManager? localizer = null)
+    public EmbeddedEditorView(Core.Localization.LocalizationManager? localizer = null, string theme = "Dark")
     {
         _localizer = localizer;
         InitializeComponent();
-        ApplyDraculaTheme();
+        ApplyTheme(theme);
 
         // Localize button labels
         BtnSave.Content = L("EditorBtnSave");
@@ -212,7 +213,23 @@ public partial class EmbeddedEditorView : UserControl
         };
     }
 
-    private void ApplyDraculaTheme()
+    /// <summary>
+    /// Applies the specified theme to the editor. Supports "Dark" and "Light".
+    /// </summary>
+    public void ApplyTheme(string themeName)
+    {
+        _currentTheme = themeName;
+        if (string.Equals(themeName, "Light", StringComparison.OrdinalIgnoreCase))
+        {
+            ApplyLightTheme();
+        }
+        else
+        {
+            ApplyDarkTheme();
+        }
+    }
+
+    private void ApplyDarkTheme()
     {
         // Dracula editor colors
         Editor.Background = new SolidColorBrush(ColorFromHex("#282A36"));
@@ -233,11 +250,39 @@ public partial class EmbeddedEditorView : UserControl
         ApplyDraculaSyntaxColors();
     }
 
+    private void ApplyLightTheme()
+    {
+        Editor.Background = new SolidColorBrush(ColorFromHex("#FFFFFF"));
+        Editor.Foreground = new SolidColorBrush(ColorFromHex("#1A1A2E"));
+        Editor.LineNumbersForeground = new SolidColorBrush(ColorFromHex("#6B7280"));
+
+        Editor.TextArea.SelectionBrush = new SolidColorBrush(ColorFromHex("#B4D5FE"));
+        Editor.TextArea.SelectionForeground = null;
+
+        var currentLineBrush = new SolidColorBrush(ColorFromHex("#F0F0F0"));
+        currentLineBrush.Opacity = 0.5;
+        Editor.TextArea.TextView.CurrentLineBackground = currentLineBrush;
+        Editor.TextArea.TextView.CurrentLineBorder = new System.Windows.Media.Pen(
+            new SolidColorBrush(ColorFromHex("#E0E0E0")), 1);
+
+        // Reset syntax colors to AvalonEdit defaults (designed for light background)
+        ResetSyntaxColors();
+    }
+
+    private void ResetSyntaxColors()
+    {
+        if (Editor.SyntaxHighlighting is null) return;
+
+        // Reload the definition to reset to AvalonEdit defaults
+        var name = Editor.SyntaxHighlighting.Name;
+        Editor.SyntaxHighlighting = HighlightingManager.Instance.GetDefinition(name);
+    }
+
     private void ApplyDraculaSyntaxColors()
     {
         var rules = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
-            // AvalonEdit color name → Dracula hex
+            // AvalonEdit color name -> Dracula hex
             { "Comment", "#6272A4" },
             { "String", "#F1FA8C" },
             { "Char", "#F1FA8C" },

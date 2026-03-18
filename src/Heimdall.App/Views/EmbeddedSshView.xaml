@@ -24,7 +24,6 @@
             <DockPanel LastChildFill="True">
                 <Button x:Name="DisconnectButton"
                         DockPanel.Dock="Right"
-                        Content="Disconnect"
                         Click="OnDisconnectClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="8,2"
@@ -33,7 +32,6 @@
 
                 <Button x:Name="ReconnectButton"
                         DockPanel.Dock="Right"
-                        Content="Reconnect"
                         Click="OnReconnectClick"
                         Style="{DynamicResource PrimaryButtonStyle}"
                         Padding="8,2"
@@ -45,7 +43,6 @@
                         DockPanel.Dock="Right"
                         Content="&#xE9D9;"
                         FontFamily="Segoe MDL2 Assets"
-                        ToolTip="Server health"
                         Click="OnHealthToggleClick"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
                         Padding="6,2" FontSize="12" Margin="4,0"/>
@@ -54,7 +51,6 @@
                         DockPanel.Dock="Right"
                         Content="&#xE8A9;"
                         FontFamily="Segoe MDL2 Assets"
-                        ToolTip="Split pane"
                         Click="OnSplitClick"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
                         Padding="6,2" FontSize="12" Margin="4,0"/>
@@ -94,6 +90,18 @@
                 </StackPanel>
             </DockPanel>
         </Border>
+
+        <!-- Connection progress indicator -->
+        <ProgressBar x:Name="SshLoadingBar"
+                     Grid.Row="1"
+                     VerticalAlignment="Top"
+                     Panel.ZIndex="1"
+                     Height="2"
+                     IsIndeterminate="True"
+                     Foreground="{DynamicResource AccentBrush}"
+                     Background="Transparent"
+                     BorderThickness="0"
+                     IsHitTestVisible="False"/>
 
         <!-- Terminal + Health panel container -->
         <Grid Grid.Row="1">
@@ -138,7 +146,7 @@
                     <!-- Reconnect overlay (shown on unexpected disconnect) -->
                     <Border x:Name="ReconnectOverlay"
                             Visibility="Collapsed"
-                            Background="#CC1E1E2E"
+                            Background="{DynamicResource OverlayBackground}"
                             HorizontalAlignment="Stretch"
                             VerticalAlignment="Stretch">
                         <StackPanel VerticalAlignment="Center"
@@ -155,14 +163,12 @@
                                         HorizontalAlignment="Center"
                                         Margin="0,16,0,0">
                                 <Button x:Name="OverlayReconnectButton"
-                                        Content="Reconnect"
                                         Click="OnOverlayReconnectClick"
                                         Style="{DynamicResource PrimaryButtonStyle}"
                                         Padding="16,6"
                                         FontSize="13"
                                         Margin="0,0,8,0"/>
                                 <Button x:Name="OverlayCloseButton"
-                                        Content="Dismiss"
                                         Click="OnOverlayCloseClick"
                                         Style="{DynamicResource SecondaryButtonStyle}"
                                         Padding="16,6"

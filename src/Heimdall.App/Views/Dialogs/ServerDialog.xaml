@@ -12,7 +12,9 @@
         Height="750"
         WindowStartupLocation="CenterOwner"
         Background="{DynamicResource BackgroundBrush}"
-        ResizeMode="NoResize"
+        ResizeMode="CanResizeWithGrip"
+        MinWidth="550"
+        MinHeight="500"
         ShowInTaskbar="False"
         Closing="OnWindowClosing">
 

@@ -15,6 +15,7 @@
  */
 
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
@@ -139,6 +140,9 @@ public partial class MainWindow : Window
 
         // Share folder button
         Mw_ShareFolderLabel.Text = vm.Localize("ToolsShareFolder");
+
+        // Quick Connect button
+        Mw_QuickConnectLabel.Text = vm.Localize("QuickConnectShortcut");
 
         // Server detail panel
         Mw_DetailGroupLabel.Text = vm.Localize("DetailLabelGroup");
@@ -328,24 +332,43 @@ public partial class MainWindow : Window
         Mw_PaletteHints.Text = vm.Localize("QuickConnectHints");
     }
 
-    private void OnServersTabChecked(object sender, RoutedEventArgs e)
+    private async void OnServersTabChecked(object sender, RoutedEventArgs e)
     {
+        if (!await CheckUnsavedSettingsAsync()) { TabSettings.IsChecked = true; return; }
         SwitchToTab("Servers");
     }
 
-    private void OnTunnelsTabChecked(object sender, RoutedEventArgs e)
+    private async void OnTunnelsTabChecked(object sender, RoutedEventArgs e)
     {
+        if (!await CheckUnsavedSettingsAsync()) { TabSettings.IsChecked = true; return; }
         SwitchToTab("Tunnels");
     }
 
-    private void OnScheduledTabChecked(object sender, RoutedEventArgs e)
+    private async void OnScheduledTabChecked(object sender, RoutedEventArgs e)
     {
+        if (!await CheckUnsavedSettingsAsync()) { TabSettings.IsChecked = true; return; }
         SwitchToTab("Scheduled");
     }
 
     private void OnSettingsTabChecked(object sender, RoutedEventArgs e)
     {
         SwitchToTab("Settings");
+    }
+
+    /// <summary>
+    /// Prompts the user to discard unsaved settings changes when navigating away.
+    /// Returns true if navigation should proceed, false if it should be cancelled.
+    /// </summary>
+    private async Task<bool> CheckUnsavedSettingsAsync()
+    {
+        if (DataContext is not MainViewModel vm) return true;
+        if (vm.SelectedTab != "Settings") return true;
+        if (!vm.Settings.IsDirty) return true;
+
+        return await vm.DialogService.ShowConfirmAsync(
+            vm.Localize("SettingsUnsavedTitle"),
+            vm.Localize("SettingsUnsavedMessage"),
+            "warning");
     }
 
     private async void OnAddFolderFromMenu(object sender, RoutedEventArgs e)
@@ -1987,6 +2010,15 @@ public partial class MainWindow : Window
     {
         if (DataContext is MainViewModel vm && vm.SelectedPaletteItem is not null)
             _ = vm.ConnectFromPaletteCommand.ExecuteAsync(vm.SelectedPaletteItem);
+    }
+
+    private void OnQuickConnectButtonClick(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainViewModel vm)
+        {
+            vm.OpenCommandPaletteCommand.Execute(null);
+            PaletteInput.Focus();
+        }
     }
 
     // ── Ephemeral File Server ─────────────────────────────────────────

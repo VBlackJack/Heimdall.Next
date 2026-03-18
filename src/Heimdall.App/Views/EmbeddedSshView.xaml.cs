@@ -1133,6 +1133,8 @@ public partial class EmbeddedSshView : UserControl, IDisposable
         OverlayReconnectButton.Content = L("BtnReconnectSession");
         OverlayCloseButton.Content = L("BtnCloseOverlay");
         ReconnectMessageText.Text = L("SshDisconnectedMessage");
+        HealthToggleButton.ToolTip = L("ToolTipServerHealth");
+        SplitButton.ToolTip = L("ToolTipSplitPane");
     }
 
     private void PostTerminalMessage(string message)
@@ -1285,6 +1287,9 @@ public partial class EmbeddedSshView : UserControl, IDisposable
         }
 
         StatusTextBlock.Text = status;
+
+        var isConnecting = string.Equals(status, "Connecting", StringComparison.OrdinalIgnoreCase);
+        SshLoadingBar.Visibility = isConnecting ? Visibility.Visible : Visibility.Collapsed;
 
         var isDisconnected = string.Equals(status, "Disconnected", StringComparison.OrdinalIgnoreCase)
             || string.Equals(status, "Error", StringComparison.OrdinalIgnoreCase);

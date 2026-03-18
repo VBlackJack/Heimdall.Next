@@ -124,6 +124,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         if (_localizer is not null)
         {
             DisconnectButton.Content = L("BtnDisconnectSession");
+            SplitButton.ToolTip = L("ToolTipSplitPane");
         }
 
         CreateHostControl();
@@ -604,6 +605,10 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
 
         StatusTextBlock.Text = status;
         DetailTextBlock.Text = detail;
+
+        var isConnecting = string.Equals(status, "Connecting", StringComparison.OrdinalIgnoreCase);
+        RdpLoadingBar.Visibility = isConnecting ? Visibility.Visible : Visibility.Collapsed;
+
         DisconnectButton.IsEnabled = !_disposed
             && !string.Equals(status, "Disconnected", StringComparison.OrdinalIgnoreCase);
         StatusTextBlock.Foreground = GetBrush(

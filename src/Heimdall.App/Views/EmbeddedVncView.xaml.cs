@@ -65,6 +65,7 @@ public partial class EmbeddedVncView : UserControl, IDisposable
         SessionTitleText.Text = displayName;
         EndpointTextBlock.Text = $"{session.Host}:{session.Port}";
         StatusTextBlock.Text = localizer?["StatusVncConnecting"] ?? "Connecting...";
+        VncLoadingBar.Visibility = System.Windows.Visibility.Visible;
 
         // Localize static UI elements
         DisconnectButton.Content = localizer?["BtnDisconnectSession"] ?? "Disconnect";
@@ -151,6 +152,7 @@ public partial class EmbeddedVncView : UserControl, IDisposable
             Dispatcher.Invoke(() =>
             {
                 StatusTextBlock.Text = _localizer?["StatusVncConnected"] ?? "Connected";
+                VncLoadingBar.Visibility = Visibility.Collapsed;
             });
             if (_session?.ServerId is not null)
             {

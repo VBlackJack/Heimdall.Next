@@ -32,21 +32,12 @@ public class WpfDialogService(LocalizationManager localizer) : IDialogService
     /// <inheritdoc/>
     public Task<bool> ShowConfirmAsync(string title, string message, string severity = "info")
     {
-        var image = severity switch
-        {
-            "warning" or "danger" => MessageBoxImage.Warning,
-            "error" => MessageBoxImage.Error,
-            _ => MessageBoxImage.Question
-        };
+        var yes = _localizer["BtnYes"];
+        var no = _localizer["BtnNo"];
+        var result = Views.Dialogs.MessageDialog.ShowConfirm(
+            GetOwnerWindow(), title, message, severity, yes, no);
 
-        var result = MessageBox.Show(
-            GetOwnerWindow(),
-            message,
-            title,
-            MessageBoxButton.YesNo,
-            image);
-
-        return Task.FromResult(result == MessageBoxResult.Yes);
+        return Task.FromResult(result);
     }
 
     /// <inheritdoc/>
@@ -136,23 +127,13 @@ public class WpfDialogService(LocalizationManager localizer) : IDialogService
     /// <inheritdoc/>
     public void ShowError(string title, string message)
     {
-        MessageBox.Show(
-            GetOwnerWindow(),
-            message,
-            title,
-            MessageBoxButton.OK,
-            MessageBoxImage.Error);
+        Views.Dialogs.MessageDialog.ShowMessage(GetOwnerWindow(), title, message, "error");
     }
 
     /// <inheritdoc/>
     public void ShowInfo(string title, string message)
     {
-        MessageBox.Show(
-            GetOwnerWindow(),
-            message,
-            title,
-            MessageBoxButton.OK,
-            MessageBoxImage.Information);
+        Views.Dialogs.MessageDialog.ShowMessage(GetOwnerWindow(), title, message, "info");
     }
 
     /// <summary>

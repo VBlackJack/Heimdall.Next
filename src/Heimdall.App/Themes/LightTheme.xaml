@@ -47,7 +47,7 @@
     <!-- Overlay and feedback brushes -->
     <SolidColorBrush x:Key="OverlayBackground" Color="#A0FFFFFF"/>
     <SolidColorBrush x:Key="DragDropOverlayBackground" Color="#66E8E8E8"/>
-    <SolidColorBrush x:Key="BroadcastActiveBrush" Color="#44FF5555"/>
+    <SolidColorBrush x:Key="BroadcastActiveBrush" Color="#44DC2626"/>
 
     <!-- Scrollbar colors -->
     <SolidColorBrush x:Key="ScrollBarThumbBrush" Color="#C0C0C0"/>

@@ -22,7 +22,6 @@
             <DockPanel LastChildFill="True">
                 <Button x:Name="DisconnectButton"
                         DockPanel.Dock="Right"
-                        Content="Disconnect"
                         Click="OnDisconnectClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="8,2"
@@ -32,7 +31,6 @@
                         DockPanel.Dock="Right"
                         Content="&#xE8A9;"
                         FontFamily="Segoe MDL2 Assets"
-                        ToolTip="Split pane"
                         Click="OnSplitClick"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
                         Padding="6,2" FontSize="12" Margin="4,0"/>
@@ -62,15 +60,27 @@
             </DockPanel>
         </Border>
 
-        <Border Grid.Row="1"
-                Margin="16,0,16,16"
-                Background="Black"
-                BorderBrush="{DynamicResource BorderBrush}"
-                BorderThickness="1"
-                CornerRadius="14">
-            <Grid x:Name="SurfaceContainer" ClipToBounds="True">
-                <wfi:WindowsFormsHost x:Name="FormsHost"/>
-            </Grid>
-        </Border>
+        <Grid Grid.Row="1">
+            <Border Margin="16,0,16,16"
+                    Background="Black"
+                    BorderBrush="{DynamicResource BorderBrush}"
+                    BorderThickness="1"
+                    CornerRadius="14">
+                <Grid x:Name="SurfaceContainer" ClipToBounds="True">
+                    <wfi:WindowsFormsHost x:Name="FormsHost"/>
+                </Grid>
+            </Border>
+
+            <!-- Connection progress indicator -->
+            <ProgressBar x:Name="RdpLoadingBar"
+                         VerticalAlignment="Top"
+                         Height="2"
+                         Margin="16,0,16,0"
+                         IsIndeterminate="True"
+                         Foreground="{DynamicResource AccentBrush}"
+                         Background="Transparent"
+                         BorderThickness="0"
+                         IsHitTestVisible="False"/>
+        </Grid>
     </Grid>
 </UserControl>

@@ -17,11 +17,11 @@
                 BorderThickness="0,0,0,1">
             <DockPanel>
                 <Button x:Name="BtnSave" DockPanel.Dock="Right"
-                        Content="Save" Click="OnSaveClick"
+                        Click="OnSaveClick"
                         Style="{DynamicResource PrimaryButtonStyle}"
                         Padding="12,3" FontSize="11" Margin="4,0,0,0"/>
                 <Button x:Name="BtnClose" DockPanel.Dock="Right"
-                        Content="Close" Click="OnCloseClick"
+                        Click="OnCloseClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="8,3" FontSize="11" Margin="4,0,0,0"/>
                 <TextBlock x:Name="FileNameText"
