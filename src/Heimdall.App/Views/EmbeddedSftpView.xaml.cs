@@ -201,6 +201,7 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
 
         CtxOpen.Header = _localizer["SftpCtxOpen"];
         CtxEdit.Header = _localizer["SftpCtxEdit"];
+        CtxEditExternal.Header = _localizer["SftpCtxEditExternal"];
         CtxDownload.Header = _localizer["SftpBtnDownload"];
         CtxRename.Header = _localizer["SftpBtnRename"];
         CtxDelete.Header = _localizer["SftpBtnDelete"];
@@ -1022,6 +1023,35 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
         if (FileListView.SelectedItem is SftpFileInfo file && !file.IsDirectory)
         {
             _ = EditFileAsync(file);
+        }
+    }
+
+    private void OnCtxEditExternalClick(object sender, RoutedEventArgs e)
+    {
+        if (FileListView.SelectedItem is SftpFileInfo file && !file.IsDirectory && _editor is not null)
+        {
+            _ = EditFileExternalAsync(file);
+        }
+    }
+
+    private async Task EditFileExternalAsync(SftpFileInfo file)
+    {
+        if (_disposed || _editor is null)
+        {
+            return;
+        }
+
+        try
+        {
+            UpdateStatus(_localizer?.Format("SftpStatusEditing", file.Name)
+                ?? $"Editing: {file.Name}");
+
+            await _editor.EditFileAsync(file.FullPath);
+        }
+        catch (Exception ex)
+        {
+            ShowError(_localizer?.Format("SftpStatusTransferFailed", ex.Message)
+                ?? ex.Message);
         }
     }
 

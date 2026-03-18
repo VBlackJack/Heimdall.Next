@@ -326,6 +326,11 @@
                             <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE70F;" FontSize="14"/>
                         </MenuItem.Icon>
                     </MenuItem>
+                    <MenuItem x:Name="CtxEditExternal" Header="Edit with external editor" Click="OnCtxEditExternalClick">
+                        <MenuItem.Icon>
+                            <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE8A7;" FontSize="14"/>
+                        </MenuItem.Icon>
+                    </MenuItem>
                     <MenuItem x:Name="CtxDownload" Header="Download" Click="OnCtxDownloadClick">
                         <MenuItem.Icon>
                             <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE896;" FontSize="14"/>
