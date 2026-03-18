@@ -701,6 +701,7 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
         }
 
         _transferCts?.Cancel();
+        _transferCts?.Dispose();
         _transferCts = new CancellationTokenSource();
         var ct = _transferCts.Token;
 
@@ -759,6 +760,7 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
         }
 
         _transferCts?.Cancel();
+        _transferCts?.Dispose();
         _transferCts = new CancellationTokenSource();
         var ct = _transferCts.Token;
 

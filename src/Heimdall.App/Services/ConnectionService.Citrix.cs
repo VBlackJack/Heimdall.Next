@@ -34,7 +34,7 @@ public partial class ConnectionService
         ArgumentNullException.ThrowIfNull(server);
 
         _connectionSm.TryTransition(server.Id, ConnectionState.ValidatingConfig);
-        _connectionSm.TryTransition(server.Id, ConnectionState.LaunchingRdp);
+        _connectionSm.TryTransition(server.Id, ConnectionState.LaunchingCitrix);
 
         var launcher = ResolveCitrixLauncher();
         if (launcher is null)

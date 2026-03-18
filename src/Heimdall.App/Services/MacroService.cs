@@ -40,7 +40,7 @@ public static class MacroService
     };
 
     /// <summary>Saves a macro to a JSON file named after its ID.</summary>
-    public static void SaveMacro(TerminalMacro macro)
+    public static async Task SaveMacroAsync(TerminalMacro macro)
     {
         ArgumentNullException.ThrowIfNull(macro);
 
@@ -48,12 +48,42 @@ public static class MacroService
 
         var filePath = Path.Combine(MacroDirectory, $"{macro.Id}.json");
         var json = JsonSerializer.Serialize(macro, JsonOptions);
-        File.WriteAllText(filePath, json, System.Text.Encoding.UTF8);
+        await File.WriteAllTextAsync(filePath, json, System.Text.Encoding.UTF8).ConfigureAwait(false);
 
         Core.Logging.FileLogger.Info($"Macro saved: {macro.Name} ({macro.Id})");
     }
 
     /// <summary>Loads all saved macros from the macros directory.</summary>
+    public static async Task<List<TerminalMacro>> LoadMacrosAsync()
+    {
+        var macros = new List<TerminalMacro>();
+
+        if (!Directory.Exists(MacroDirectory))
+        {
+            return macros;
+        }
+
+        foreach (var file in Directory.GetFiles(MacroDirectory, "*.json"))
+        {
+            try
+            {
+                var json = await File.ReadAllTextAsync(file, System.Text.Encoding.UTF8).ConfigureAwait(false);
+                var macro = JsonSerializer.Deserialize<TerminalMacro>(json, ReadOptions);
+                if (macro is not null)
+                {
+                    macros.Add(macro);
+                }
+            }
+            catch (Exception ex)
+            {
+                Core.Logging.FileLogger.Warn($"Failed to load macro from {file}: {ex.Message}");
+            }
+        }
+
+        return macros.OrderBy(m => m.Name, StringComparer.OrdinalIgnoreCase).ToList();
+    }
+
+    /// <summary>Loads all saved macros synchronously. Use for UI-thread context menu population.</summary>
     public static List<TerminalMacro> LoadMacros()
     {
         var macros = new List<TerminalMacro>();

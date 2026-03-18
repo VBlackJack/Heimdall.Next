@@ -78,7 +78,9 @@ public class TelnetSession : ITerminalSession
         _cts = new CancellationTokenSource();
 
         _client = new TcpClient();
-        await _client.ConnectAsync(_host, _port, _cts.Token).ConfigureAwait(false);
+        using var connectTimeout = CancellationTokenSource.CreateLinkedTokenSource(_cts.Token);
+        connectTimeout.CancelAfter(TimeSpan.FromSeconds(15));
+        await _client.ConnectAsync(_host, _port, connectTimeout.Token).ConfigureAwait(false);
         _stream = _client.GetStream();
 
         _readLoop = Task.Run(() => ReadLoop(_cts.Token), _cts.Token);

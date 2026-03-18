@@ -1487,7 +1487,7 @@ public partial class MainWindow : Window
                                 Name = name,
                                 Entries = entries
                             };
-                            Services.MacroService.SaveMacro(macro);
+                            await Services.MacroService.SaveMacroAsync(macro);
                             vm.StatusText = string.Format(vm.Localize("MacroRecordingStopped"), name);
                         }
                     }

@@ -39,11 +39,18 @@ if (-not (Test-Path $distDir)) {
     New-Item -ItemType Directory -Path $distDir -Force | Out-Null
 }
 
-# Find highest existing build number for today
-$existingBuilds = Get-ChildItem -Path $distDir -Directory -Filter "Heimdall.Next_build.${datePrefix}*" -ErrorAction SilentlyContinue |
-    ForEach-Object {
-        if ($_.Name -match "build\.${datePrefix}(\d{2})$") { [int]$Matches[1] }
-    } | Sort-Object -Descending
+# Find highest existing build number for today across BOTH debug and release folders
+# so the sequence never regresses when switching between modes.
+$allDistDirs = @(
+    (Join-Path $ProjectRoot 'Dist\debug'),
+    (Join-Path $ProjectRoot 'Dist\release')
+) | Where-Object { Test-Path $_ }
+
+$existingBuilds = $allDistDirs | ForEach-Object {
+    Get-ChildItem -Path $_ -Directory -Filter "Heimdall.Next_build.${datePrefix}*" -ErrorAction SilentlyContinue
+} | ForEach-Object {
+    if ($_.Name -match "build\.${datePrefix}(\d{2})$") { [int]$Matches[1] }
+} | Sort-Object -Descending
 
 $sequence = if ($existingBuilds.Count -gt 0) { $existingBuilds[0] + 1 } else { 1 }
 $buildNumber = "{0}{1:D2}" -f $datePrefix, $sequence

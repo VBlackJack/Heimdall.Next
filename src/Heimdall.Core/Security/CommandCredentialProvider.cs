@@ -143,7 +143,8 @@ public sealed class CommandCredentialProvider : ICredentialProvider
 
     /// <summary>
     /// Replaces placeholders in the command template with actual values.
-    /// Values are not shell-escaped since they are passed via ProcessStartInfo.Arguments.
+    /// Values are sanitized to prevent argument injection even though
+    /// UseShellExecute is false (CWE-78 defense in depth).
     /// </summary>
     private string ExpandTemplate(
         string template,
@@ -153,11 +154,20 @@ public sealed class CommandCredentialProvider : ICredentialProvider
         string? title)
     {
         return template
-            .Replace("{Host}", host, StringComparison.OrdinalIgnoreCase)
+            .Replace("{Host}", SanitizeArgValue(host), StringComparison.OrdinalIgnoreCase)
             .Replace("{Port}", port.ToString(), StringComparison.OrdinalIgnoreCase)
-            .Replace("{User}", username ?? string.Empty, StringComparison.OrdinalIgnoreCase)
-            .Replace("{Title}", title ?? string.Empty, StringComparison.OrdinalIgnoreCase)
-            .Replace("{Database}", _databasePath ?? string.Empty, StringComparison.OrdinalIgnoreCase);
+            .Replace("{User}", SanitizeArgValue(username), StringComparison.OrdinalIgnoreCase)
+            .Replace("{Title}", SanitizeArgValue(title), StringComparison.OrdinalIgnoreCase)
+            .Replace("{Database}", SanitizeArgValue(_databasePath), StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// Strips shell metacharacters from a placeholder value to prevent injection.
+    /// </summary>
+    private static string SanitizeArgValue(string? value)
+    {
+        if (string.IsNullOrEmpty(value)) return string.Empty;
+        return System.Text.RegularExpressions.Regex.Replace(value, @"[;&|`$<>()!""'\r\n%^]", "");
     }
 
     /// <summary>

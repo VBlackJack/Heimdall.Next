@@ -142,6 +142,7 @@
   "FilterAllGroups": "Tous les groupes",
   "WarnActiveTunnelMessage": "Ce serveur a un tunnel actif. Les modifications peuvent nécessiter une reconnexion.",
   "StatusConnectingProgress": "Connexion en cours...",
+  "StatusEmbeddedRdpOpening": "Ouverture de la session RDP int\u00e9gr\u00e9e pour {0}.",
   "LoadingConnecting": "Connexion...",
   "LoadingEstablishingTunnel": "Établissement du tunnel SSH...",
   "StatusConnectionCancelled": "Connexion annulée.",
@@ -1942,6 +1943,9 @@
   "VncFallbackTitle": "Visionneuse VNC int\u00e9gr\u00e9e indisponible",
   "VncFallbackMessage": "WebView2 n'a pas pu \u00eatre initialis\u00e9 sur cette machine.",
 
+  "VncViewerNotFound": "Fichier HTML du visualiseur VNC introuvable.",
+  "StatusCitrixConnecting": "Connexion \u00e0 Citrix...",
+  "LogCitrixLaunching": "Lancement de la session Citrix",
   "CitrixStatusConnected": "Connect\u00e9",
   "CitrixStatusDisconnected": "D\u00e9connect\u00e9",
 

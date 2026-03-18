@@ -356,6 +356,7 @@ public sealed partial class FtpBrowser : IRemoteBrowser
     {
         _connected = false;
         _credential = null;
+        _host = null;
         Disconnected?.Invoke(null);
     }
 
@@ -396,10 +397,10 @@ public sealed partial class FtpBrowser : IRemoteBrowser
 #pragma warning restore SYSLIB0014
 
         request.Method = method;
-        request.Credentials = _credential;
+        request.Credentials = _credential!;
         request.UseBinary = true;
         request.UsePassive = true;
-        request.KeepAlive = true;
+        request.KeepAlive = false;
         request.Timeout = 30_000;
 
         return request;
