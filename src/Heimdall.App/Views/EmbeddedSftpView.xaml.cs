@@ -742,6 +742,8 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
         }
         catch (Exception ex)
         {
+            Core.Logging.FileLogger.Warn(
+                $"EmbeddedSFTP upload failed [{ex.GetType().Name}]: {ex.Message} (sshParams={(_sshParams is not null ? "present" : "null")})");
             ShowError(_localizer?.Format("SftpStatusTransferFailed", ex.Message) ?? ex.Message);
         }
         finally
@@ -814,6 +816,8 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
         }
         catch (Exception ex)
         {
+            Core.Logging.FileLogger.Warn(
+                $"EmbeddedSFTP download failed [{ex.GetType().Name}]: {ex.Message} (sshParams={(_sshParams is not null ? "present" : "null")})");
             ShowError(_localizer?.Format("SftpStatusTransferFailed", ex.Message) ?? ex.Message);
         }
         finally
@@ -1223,10 +1227,33 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
 
     private static bool IsPermissionDenied(Exception ex)
     {
+        // SSH.NET throws SftpPermissionDeniedException for explicit permission errors
+        var typeName = ex.GetType().Name;
+        if (typeName.Contains("PermissionDenied", StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        // Exclude path-not-found (not a permission issue)
+        if (typeName.Contains("PathNotFound", StringComparison.OrdinalIgnoreCase)
+            || typeName.Contains("NoSuchFile", StringComparison.OrdinalIgnoreCase))
+            return false;
+
         string msg = ex.Message + (ex.InnerException?.Message ?? "");
-        return msg.Contains("permission denied", StringComparison.OrdinalIgnoreCase)
+
+        // Exact permission error strings
+        if (msg.Contains("permission denied", StringComparison.OrdinalIgnoreCase)
             || msg.Contains("access denied", StringComparison.OrdinalIgnoreCase)
-            || msg.Contains("not permitted", StringComparison.OrdinalIgnoreCase);
+            || msg.Contains("not permitted", StringComparison.OrdinalIgnoreCase)
+            || msg.Contains("SSH_FX_PERMISSION_DENIED", StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        // SSH.NET sometimes wraps permission-denied as generic "Failure" (SSH_FX_FAILURE)
+        // when the server doesn't distinguish between error codes.
+        // SftpStatusCode.Failure with write/create operations is usually permission-related.
+        if (typeName.Contains("Sftp", StringComparison.OrdinalIgnoreCase)
+            && msg.Contains("Failure", StringComparison.Ordinal))
+            return true;
+
+        return false;
     }
 
     /// <summary>
