@@ -1415,26 +1415,28 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
             if (line.StartsWith("total ", StringComparison.Ordinal))
                 continue;
 
-            // Minimum: permissions(10) + space + links + space + owner + space + group + space + size + space + date + space + time + space + name
-            // drwxr-xr-x 2 root root 4096 2026-03-18 14:30 dirname
-            var parts = line.Split((char[]?)null, 9, StringSplitOptions.RemoveEmptyEntries);
-            if (parts.Length < 9)
+            // Format: drwxr-xr-x 2 root root 4096 2026-03-18 14:30 dirname
+            // Columns: permissions links owner group size date time name...
+            // Split into max 8 parts so the filename (which may contain spaces) stays intact
+            var parts = line.Split((char[]?)null, 8, StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length < 8)
                 continue;
 
             string permissions = parts[0];
+            // Skip entries that don't start with a permission char (d, -, l, c, b, p, s)
+            if (permissions.Length < 2 || !"dl-cbps".Contains(permissions[0]))
+                continue;
+
             string owner = parts[2];
             string group = parts[3];
             long.TryParse(parts[4], out long size);
 
             // Parse date+time: "2026-03-18 14:30"
             DateTime lastModified = DateTime.MinValue;
-            if (parts.Length >= 8)
-            {
-                DateTime.TryParse($"{parts[5]} {parts[6]}", out lastModified);
-            }
+            DateTime.TryParse($"{parts[5]} {parts[6]}", out lastModified);
 
-            // Name is everything after the 8th column (handles spaces in filenames)
-            string name = parts.Length >= 9 ? parts[8] : parts[^1];
+            // Name is everything after the 7th column (handles spaces in filenames)
+            string name = parts[7];
 
             // Skip . and ..
             if (name is "." or "..")
