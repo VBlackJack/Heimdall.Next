@@ -55,12 +55,14 @@ Built with .NET 10 and WPF. Designed as a modern, high-performance alternative t
 ### VNC
 - Embedded VNC viewer via noVNC + WebView2
 - WebSocket-to-TCP proxy for seamless integration
-- Clipboard sync, scaling modes, quality/compression settings
+- Clipboard sync, scaling modes, view-only mode
+- WebView2 portable deployment (bundled Fixed Version Runtime for isolated servers)
 
 ### Telnet
 - Raw TCP Telnet with IAC negotiation
 - NAWS (window size) subnegotiation support
 - Rendered in the same xterm.js terminal as SSH
+- Username/password authentication, plaintext security warning
 
 ### SFTP Browser
 - Embedded file browser panel with directory tree and file list
@@ -72,6 +74,7 @@ Built with .NET 10 and WPF. Designed as a modern, high-performance alternative t
 ### FTP Browser
 - FTP client using built-in .NET (no external dependencies)
 - Reuses the full SFTP browser UI via `IRemoteBrowser` interface
+- Configurable passive mode and SSL/TLS (FTPS) support
 - Unix and DOS directory listing format support
 
 ### Citrix
@@ -134,18 +137,22 @@ Built with .NET 10 and WPF. Designed as a modern, high-performance alternative t
 - Runtime Dark and Light theme switching (1,700+ lines of WPF control styles)
 - 5 terminal color schemes: Dracula, Solarized Dark, Monokai, Nord, Default
 - Configurable terminal font family and size
+- Settings panel with 6 left-navigation sub-tabs (General, Terminal, SSH & SFTP, RDP, Security, Advanced)
+- Server Dialog: protocol-aware tabs (credentials on Authentication, options per protocol, hidden tabs for irrelevant sections)
 - TreeView hierarchy: Project > Group > Server with merged status dots
 - Connection inheritance: group-level defaults for gateway, SSH username, key path
 - Empty state with welcome panel and import call-to-action
 - Fullscreen mode (F11), toggle sidebar (Ctrl+B), filter (Ctrl+F)
-- Bilingual interface: English and French (~1,936 i18n keys)
+- Bilingual interface: English and French (~1,960 i18n keys)
 
 ### Security
 - DPAPI encryption + HMAC-SHA256 integrity via unified `CredentialProtector`
 - External credential provider: KeePassXC CLI, Bitwarden CLI, 1Password CLI, or any CLI tool
 - PBKDF2-SHA256 PIN hashing (100,000 iterations) with lockout mechanics
 - Windows ACL enforcement on config directories, log files, and temp files
-- Input validation against injection patterns (CWE-78) on all process argument construction
+- Input validation and sanitization against injection patterns (CWE-78) on all process arguments and placeholder expansion
+- HTTP/TFTP directory traversal prevention with sibling-prefix check
+- ConfigManager concurrency-safe writes via SemaphoreSlim
 - WebView2 Content Security Policy (CSP) and navigation blocking
 - Pageant IPC identity verification with empty-agent preflight check
 - Wake-on-LAN via UDP magic packet (right-click context menu)
@@ -207,14 +214,25 @@ dotnet run --project src/Heimdall.App
 # Portable build (Debug, auto-increments build number)
 powershell -File Build.ps1
 
-# Release build (portable + zip archive)
-powershell -File Build.ps1 -Mode Release
+# Release build — both variants (Light + Portable)
+powershell -File Build.ps1 -Mode Release -Variant Both
+
+# Light only (~185 MB, requires system WebView2/Edge)
+powershell -File Build.ps1 -Mode Release -Variant Light
+
+# Portable only (~620 MB, bundles WebView2 for isolated servers)
+powershell -File Build.ps1 -Mode Release -Variant Portable
 
 # Skip tests
 powershell -File Build.ps1 -SkipTests
 ```
 
-Build output goes to `Dist/debug/` or `Dist/release/` with versioned folder names (`Heimdall.Next_build.YYYY.MMDDxx`).
+Build output goes to `Dist/debug/` or `Dist/release/` with versioned folder names.
+
+| Variant | Size | WebView2 | Target |
+|---------|------|----------|--------|
+| **Light** | ~185 MB | Requires system Edge/WebView2 | Standard Windows 11 PCs |
+| **Portable** | ~620 MB | Bundled Fixed Version Runtime | Isolated servers without Edge |
 
 ---
 
