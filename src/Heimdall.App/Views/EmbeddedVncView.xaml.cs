@@ -82,10 +82,19 @@ public partial class EmbeddedVncView : UserControl, IDisposable
     {
         try
         {
-            var env = await CoreWebView2Environment.CreateAsync(
-                userDataFolder: Path.Combine(
-                    Path.GetTempPath(), "Heimdall", "WebView2", "VNC"))
-                .ConfigureAwait(true);
+            if (!Services.WebView2Helper.IsAvailable)
+            {
+                var msg = _localizer?["ErrorWebView2NotFound"]
+                    ?? "WebView2 Runtime not found. Place a Fixed Version Runtime in runtimes/webview2/ or install the Evergreen Runtime.";
+                ShowFallback(msg);
+                if (_session?.ServerId is not null)
+                {
+                    SessionError?.Invoke(_session.ServerId, msg);
+                }
+                return;
+            }
+
+            var env = await Services.WebView2Helper.CreateEnvironmentAsync("VNC");
 
             await VncWebView.EnsureCoreWebView2Async(env).ConfigureAwait(true);
 

@@ -143,6 +143,16 @@ if (Test-Path $assetsSrc) {
     Write-Host "  Copied terminal assets" -ForegroundColor DarkGray
 }
 
+# Bundle WebView2 Fixed Version Runtime if available (fully portable, no system install needed)
+$wv2Runtime = Join-Path $ProjectRoot 'runtimes\webview2'
+if (Test-Path (Join-Path $wv2Runtime 'msedgewebview2.exe')) {
+    $wv2Dest = Join-Path $outputDir 'runtimes\webview2'
+    Copy-Item $wv2Runtime $wv2Dest -Recurse -Force
+    Write-Host "  Bundled WebView2 Fixed Version Runtime" -ForegroundColor DarkGray
+} else {
+    Write-Host "  [!] WebView2 Fixed Version Runtime not found in runtimes/webview2/ — app will require system Evergreen Runtime" -ForegroundColor DarkYellow
+}
+
 Write-Host "[4/5] Portable published" -ForegroundColor Green
 
 # ── Release extras ──────────────────────────────────────────────────────────

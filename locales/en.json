@@ -1112,6 +1112,7 @@
   "ConfirmReleasePortsMessage": "This will kill all plink processes and close all tunnels. Continue?",
   "ConnectAllProgress": "Connecting {0}/{1}...",
   "ErrorWebView2InitFailed": "WebView2 initialization failed — falling back to legacy terminal",
+  "ErrorWebView2NotFound": "WebView2 Runtime not found. Place a Fixed Version Runtime in runtimes/webview2/ or install the Microsoft Edge WebView2 Evergreen Runtime.",
   "LogSshWebView2Mode": "SSH session for {0}: using WebView2 + xterm.js terminal",
   "LogSshLegacyMode": "SSH session for {0}: using legacy terminal (WebView2 unavailable)",
   "WarnPlinkCveVulnerable": "Plink version {0} is vulnerable to {1}. Update to 0.81+ recommended.",

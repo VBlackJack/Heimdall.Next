@@ -586,9 +586,18 @@ public partial class EmbeddedSshView : UserControl, IDisposable
 
         try
         {
+            if (!Services.WebView2Helper.IsAvailable)
+            {
+                ShowWebViewUnavailable(
+                    _localizer?["ErrorWebView2NotFound"]
+                    ?? "WebView2 Runtime not found. Place a Fixed Version Runtime in runtimes/webview2/ or install the Evergreen Runtime.");
+                return;
+            }
+
             Core.Logging.FileLogger.Info("EmbeddedSSH initializing WebView2 terminal surface");
 
-            await TerminalWebView.EnsureCoreWebView2Async();
+            var env = await Services.WebView2Helper.CreateEnvironmentAsync("SSH");
+            await TerminalWebView.EnsureCoreWebView2Async(env);
             if (_disposed || TerminalWebView.CoreWebView2 is null)
             {
                 return;
