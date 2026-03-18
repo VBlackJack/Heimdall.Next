@@ -21,6 +21,12 @@ param(
     [ValidateSet('Debug', 'Release')]
     [string]$Mode = 'Debug',
 
+    # Portable: bundles WebView2 runtime (~620 MB) for isolated servers without Edge
+    # Light:    no bundled runtime (~185 MB) for standard Windows 11 PCs with Edge
+    # Both:     produces both variants (Release mode only)
+    [ValidateSet('Portable', 'Light', 'Both')]
+    [string]$Variant = 'Both',
+
     [switch]$SkipTests
 )
 
@@ -105,77 +111,115 @@ if ($LASTEXITCODE -ne 0) {
 }
 Write-Host "[3/5] Build succeeded" -ForegroundColor Green
 
-# ── Publish portable ────────────────────────────────────────────────────────
+# ── Determine which variants to produce ────────────────────────────────────
 
-Write-Host "[4/5] Publishing portable to $buildFolder..." -ForegroundColor Yellow
-dotnet publish $AppProject -c $Mode -o $outputDir --nologo --verbosity quiet --self-contained true -r win-x64 -p:PublishSingleFile=false
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "Publish FAILED." -ForegroundColor Red
-    exit 1
+$variants = switch ($Variant) {
+    'Both'     { @('Light', 'Portable') }
+    'Portable' { @('Portable') }
+    'Light'    { @('Light') }
 }
 
-# Copy config defaults and locales
-$configDest = Join-Path $outputDir 'config'
-$localesDest = Join-Path $outputDir 'locales'
-if (-not (Test-Path $configDest)) { New-Item -ItemType Directory -Path $configDest -Force | Out-Null }
-if (-not (Test-Path $localesDest)) { New-Item -ItemType Directory -Path $localesDest -Force | Out-Null }
-Copy-Item (Join-Path $ProjectRoot 'config\settings.default.json') $configDest -Force
-Copy-Item (Join-Path $ProjectRoot 'config\servers.default.json') $configDest -Force
-if (Test-Path (Join-Path $ProjectRoot 'locales\en.json')) {
-    Copy-Item (Join-Path $ProjectRoot 'locales\en.json') $localesDest -Force
-}
-if (Test-Path (Join-Path $ProjectRoot 'locales\fr.json')) {
-    Copy-Item (Join-Path $ProjectRoot 'locales\fr.json') $localesDest -Force
-}
-
-# Copy WebView2 native loader (not copied by dotnet publish)
-$wv2Loader = Join-Path $ProjectRoot 'src\Heimdall.App\lib\webview2\WebView2Loader.dll'
-if (Test-Path $wv2Loader) {
-    Copy-Item $wv2Loader $outputDir -Force
-    Write-Host "  Copied WebView2Loader.dll" -ForegroundColor DarkGray
-}
-
-# Copy terminal assets
-$assetsSrc = Join-Path $ProjectRoot 'src\Heimdall.App\Assets'
-$assetsDest = Join-Path $outputDir 'Assets'
-if (Test-Path $assetsSrc) {
-    Copy-Item $assetsSrc $assetsDest -Recurse -Force
-    Write-Host "  Copied terminal assets" -ForegroundColor DarkGray
-}
-
-# Bundle WebView2 Fixed Version Runtime if available (fully portable, no system install needed)
 $wv2Runtime = Join-Path $ProjectRoot 'runtimes\webview2'
-if (Test-Path (Join-Path $wv2Runtime 'msedgewebview2.exe')) {
-    $wv2Dest = Join-Path $outputDir 'runtimes\webview2'
-    Copy-Item $wv2Runtime $wv2Dest -Recurse -Force
-    Write-Host "  Bundled WebView2 Fixed Version Runtime" -ForegroundColor DarkGray
-} else {
-    Write-Host "  [!] WebView2 Fixed Version Runtime not found in runtimes/webview2/ - app will require system Evergreen Runtime" -ForegroundColor DarkYellow
+$hasWv2Runtime = Test-Path (Join-Path $wv2Runtime 'msedgewebview2.exe')
+
+if ($variants -contains 'Portable' -and -not $hasWv2Runtime) {
+    Write-Host "[!] WebView2 Fixed Version Runtime not found in runtimes/webview2/" -ForegroundColor Red
+    Write-Host "    Run Setup-WebView2.ps1 first, or use -Variant Light" -ForegroundColor Red
+    Write-Host "    Falling back to Light variant only." -ForegroundColor DarkYellow
+    $variants = @('Light')
 }
 
-Write-Host "[4/5] Portable published" -ForegroundColor Green
+# ── Helper: publish one variant ────────────────────────────────────────────
 
-# ── Release extras ──────────────────────────────────────────────────────────
+function Publish-Variant {
+    param([string]$VariantName)
+
+    $suffix = if ($VariantName -eq 'Portable') { '_portable' } else { '_light' }
+    # For single-variant builds, omit the suffix for backward compatibility
+    if ($Variant -ne 'Both') { $suffix = '' }
+
+    $variantFolder = "Heimdall.Next_build.${buildNumber}${suffix}"
+    $variantDir = Join-Path $distDir $variantFolder
+
+    Write-Host "  Publishing $VariantName to $variantFolder..." -ForegroundColor Yellow
+    dotnet publish $AppProject -c $Mode -o $variantDir --nologo --verbosity quiet --self-contained true -r win-x64 -p:PublishSingleFile=false
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "Publish FAILED." -ForegroundColor Red
+        exit 1
+    }
+
+    # Copy config defaults and locales
+    $configDest = Join-Path $variantDir 'config'
+    $localesDest = Join-Path $variantDir 'locales'
+    if (-not (Test-Path $configDest)) { New-Item -ItemType Directory -Path $configDest -Force | Out-Null }
+    if (-not (Test-Path $localesDest)) { New-Item -ItemType Directory -Path $localesDest -Force | Out-Null }
+    Copy-Item (Join-Path $ProjectRoot 'config\settings.default.json') $configDest -Force
+    Copy-Item (Join-Path $ProjectRoot 'config\servers.default.json') $configDest -Force
+    if (Test-Path (Join-Path $ProjectRoot 'locales\en.json')) {
+        Copy-Item (Join-Path $ProjectRoot 'locales\en.json') $localesDest -Force
+    }
+    if (Test-Path (Join-Path $ProjectRoot 'locales\fr.json')) {
+        Copy-Item (Join-Path $ProjectRoot 'locales\fr.json') $localesDest -Force
+    }
+
+    # Copy WebView2 native loader
+    $wv2Loader = Join-Path $ProjectRoot 'src\Heimdall.App\lib\webview2\WebView2Loader.dll'
+    if (Test-Path $wv2Loader) {
+        Copy-Item $wv2Loader $variantDir -Force
+    }
+
+    # Copy terminal assets
+    $assetsSrc = Join-Path $ProjectRoot 'src\Heimdall.App\Assets'
+    $assetsDest = Join-Path $variantDir 'Assets'
+    if (Test-Path $assetsSrc) {
+        Copy-Item $assetsSrc $assetsDest -Recurse -Force
+    }
+
+    # Bundle WebView2 runtime for Portable variant only
+    if ($VariantName -eq 'Portable') {
+        $wv2Dest = Join-Path $variantDir 'runtimes\webview2'
+        Copy-Item $wv2Runtime $wv2Dest -Recurse -Force
+        Write-Host "    + WebView2 Fixed Version Runtime bundled" -ForegroundColor DarkGray
+    }
+
+    # Create archive in Release mode
+    if ($Mode -eq 'Release') {
+        $zipPath = Join-Path $distDir "${variantFolder}.zip"
+        if (Test-Path $zipPath) { Remove-Item $zipPath -Force }
+        Compress-Archive -Path $variantDir -DestinationPath $zipPath -CompressionLevel Optimal
+        Write-Host "    + Archive: $zipPath" -ForegroundColor DarkGray
+    }
+
+    return $variantDir
+}
+
+# ── Publish all variants ───────────────────────────────────────────────────
+
+$step = 4
+$totalSteps = 5
+Write-Host "[$step/$totalSteps] Publishing ($($variants -join ' + '))..." -ForegroundColor Yellow
+
+$outputs = @()
+foreach ($v in $variants) {
+    $dir = Publish-Variant -VariantName $v
+    $outputs += @{ Name = $v; Dir = $dir }
+}
+
+Write-Host "[$step/$totalSteps] Published" -ForegroundColor Green
+
+# ── Summary ────────────────────────────────────────────────────────────────
 
 if ($Mode -eq 'Release') {
-    Write-Host "[5/5] Creating release archive..." -ForegroundColor Yellow
-    $zipPath = Join-Path $distDir "${buildFolder}.zip"
-    if (Test-Path $zipPath) { Remove-Item $zipPath -Force }
-    Compress-Archive -Path $outputDir -DestinationPath $zipPath -CompressionLevel Optimal
-    Write-Host "[5/5] Archive created: $zipPath" -ForegroundColor Green
-
-    Write-Host ""
-    Write-Host "Release artifacts:" -ForegroundColor Cyan
-    Write-Host "  Portable: $outputDir" -ForegroundColor White
-    Write-Host "  Archive:  $zipPath" -ForegroundColor White
+    Write-Host "[5/$totalSteps] Release archives created" -ForegroundColor Green
 } else {
-    Write-Host "[5/5] Debug build -no archive" -ForegroundColor DarkYellow
+    Write-Host "[5/$totalSteps] Debug build - no archive" -ForegroundColor DarkYellow
 }
-
-# ── Summary ─────────────────────────────────────────────────────────────────
 
 Write-Host ""
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host "  Build complete: v${buildNumber} ($Mode)" -ForegroundColor Cyan
-Write-Host "  Output: $outputDir" -ForegroundColor Cyan
+foreach ($o in $outputs) {
+    $size = [math]::Round((Get-ChildItem $o.Dir -Recurse | Measure-Object -Property Length -Sum).Sum / 1MB, 0)
+    Write-Host "  $($o.Name): $($o.Dir) (~${size} MB)" -ForegroundColor Cyan
+}
 Write-Host "========================================" -ForegroundColor Cyan
