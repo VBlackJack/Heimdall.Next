@@ -207,13 +207,69 @@ foreach ($v in $variants) {
 
 Write-Host "[$step/$totalSteps] Published" -ForegroundColor Green
 
-# ── Summary ────────────────────────────────────────────────────────────────
+# ── Installers (Release mode only) ─────────────────────────────────────────
 
 if ($Mode -eq 'Release') {
-    Write-Host "[5/$totalSteps] Release archives created" -ForegroundColor Green
+    Write-Host "[5/6] Creating installers..." -ForegroundColor Yellow
+
+    $installerDir = Join-Path $ProjectRoot 'Dist\installers'
+    if (-not (Test-Path $installerDir)) { New-Item -ItemType Directory -Path $installerDir -Force | Out-Null }
+
+    # Inno Setup (.exe installer)
+    $issFile = Join-Path $ProjectRoot 'installer\innosetup.iss'
+    $iscc = 'C:\Program Files (x86)\Inno Setup 6\ISCC.exe'
+    if ((Test-Path $issFile) -and (Test-Path $iscc)) {
+        foreach ($o in $outputs) {
+            $variantLower = $o.Name.ToLower()
+            Write-Host "  Building Inno Setup installer ($($o.Name))..." -ForegroundColor DarkGray
+            & $iscc /DAppVersion="$buildNumber" /DVariant="$($o.Name)" /DSourceDir="$($o.Dir)" /Q $issFile 2>&1 | Out-Null
+            if ($LASTEXITCODE -eq 0) {
+                Write-Host "    + Heimdall.Next_${buildNumber}_$($o.Name)_Setup.exe" -ForegroundColor DarkGray
+            } else {
+                Write-Host "    [!] Inno Setup failed for $($o.Name)" -ForegroundColor DarkYellow
+            }
+        }
+    } else {
+        Write-Host "  [!] Inno Setup not found - skipping .exe installer" -ForegroundColor DarkYellow
+    }
+
+    # WiX MSI (.msi installer)
+    $wixAvailable = $false
+    try { wix --version 2>&1 | Out-Null; $wixAvailable = ($LASTEXITCODE -eq 0) } catch {}
+    if ($wixAvailable) {
+        foreach ($o in $outputs) {
+            $msiOutput = Join-Path $installerDir "Heimdall.Next_${buildNumber}_$($o.Name).msi"
+            $wxsFile = Join-Path $ProjectRoot 'installer\Product.wxs'
+            if (Test-Path $wxsFile) {
+                Write-Host "  Building WiX MSI ($($o.Name))..." -ForegroundColor DarkGray
+                # Create a temp symlink/copy for the harvest path
+                $harvestLink = Join-Path $ProjectRoot 'Dist\release\Heimdall.Next_current'
+                if (Test-Path $harvestLink) { Remove-Item $harvestLink -Recurse -Force }
+                Copy-Item $o.Dir $harvestLink -Recurse -Force
+                try {
+                    wix build -o $msiOutput $wxsFile -ext WixToolset.UI.wixext 2>&1 | Out-Null
+                    if ($LASTEXITCODE -eq 0) {
+                        Write-Host "    + $(Split-Path $msiOutput -Leaf)" -ForegroundColor DarkGray
+                    } else {
+                        Write-Host "    [!] WiX build failed for $($o.Name)" -ForegroundColor DarkYellow
+                    }
+                } catch {
+                    Write-Host "    [!] WiX build error: $_" -ForegroundColor DarkYellow
+                }
+                if (Test-Path $harvestLink) { Remove-Item $harvestLink -Recurse -Force }
+            }
+        }
+    } else {
+        Write-Host "  [!] WiX Toolset not found - skipping .msi installer" -ForegroundColor DarkYellow
+    }
+
+    Write-Host "[5/6] Installers done" -ForegroundColor Green
+    Write-Host "[6/6] Release archives created" -ForegroundColor Green
 } else {
-    Write-Host "[5/$totalSteps] Debug build - no archive" -ForegroundColor DarkYellow
+    Write-Host "[5/5] Debug build - no archive" -ForegroundColor DarkYellow
 }
+
+# ── Summary ────────────────────────────────────────────────────────────────
 
 Write-Host ""
 Write-Host "========================================" -ForegroundColor Cyan
@@ -221,5 +277,14 @@ Write-Host "  Build complete: v${buildNumber} ($Mode)" -ForegroundColor Cyan
 foreach ($o in $outputs) {
     $size = [math]::Round((Get-ChildItem $o.Dir -Recurse | Measure-Object -Property Length -Sum).Sum / 1MB, 0)
     Write-Host "  $($o.Name): $($o.Dir) (~${size} MB)" -ForegroundColor Cyan
+}
+if ($Mode -eq 'Release') {
+    $installerDir = Join-Path $ProjectRoot 'Dist\installers'
+    if (Test-Path $installerDir) {
+        Get-ChildItem $installerDir -File -Filter "*${buildNumber}*" | ForEach-Object {
+            $sz = [math]::Round($_.Length / 1MB, 0)
+            Write-Host "  Installer: $($_.Name) (~${sz} MB)" -ForegroundColor Cyan
+        }
+    }
 }
 Write-Host "========================================" -ForegroundColor Cyan

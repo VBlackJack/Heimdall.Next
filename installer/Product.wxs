@@ -1,0 +1,64 @@
+<!--
+  Heimdall.Next WiX MSI Installer
+  WiX v4+ format. Produces an .msi for enterprise GPO/SCCM deployment.
+  Build: wix build -o Heimdall.Next.msi Product.wxs -ext WixToolset.UI.wixext
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+
+  <Package Name="Heimdall.Next"
+           Manufacturer="Julien Bombled"
+           Version="!(bind.fileVersion.HeimdallExe)"
+           UpgradeCode="B7A4D3E1-8F2C-4A91-9D5E-6C3B8A1F0E72"
+           Scope="perMachine"
+           InstallerVersion="500">
+
+    <MajorUpgrade DowngradeErrorMessage="A newer version of Heimdall.Next is already installed." />
+
+    <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
+
+    <ui:WixUI Id="WixUI_InstallDir" InstallDirectory="INSTALLFOLDER" />
+    <WixVariable Id="WixUILicenseRtf" Value="..\LICENSE.rtf" />
+
+    <Feature Id="ProductFeature" Title="Heimdall.Next" Level="1">
+      <ComponentGroupRef Id="ProductComponents" />
+      <ComponentRef Id="DesktopShortcut" />
+      <ComponentRef Id="StartMenuShortcut" />
+    </Feature>
+
+    <StandardDirectory Id="ProgramFiles6432Folder">
+      <Directory Id="INSTALLFOLDER" Name="Heimdall.Next">
+        <Component Id="DesktopShortcut" Guid="A1B2C3D4-E5F6-7890-AB12-CD34EF56GH78">
+          <Shortcut Id="DesktopShortcutFile"
+                    Name="Heimdall.Next"
+                    Target="[INSTALLFOLDER]Heimdall.Next.exe"
+                    WorkingDirectory="INSTALLFOLDER"
+                    Directory="DesktopFolder" />
+          <RegistryValue Root="HKCU" Key="Software\Heimdall.Next" Name="DesktopShortcut" Type="integer" Value="1" KeyPath="yes" />
+        </Component>
+        <Component Id="StartMenuShortcut" Guid="B2C3D4E5-F6A7-8901-BC23-DE45FG67HI89">
+          <Shortcut Id="StartMenuShortcutFile"
+                    Name="Heimdall.Next"
+                    Target="[INSTALLFOLDER]Heimdall.Next.exe"
+                    WorkingDirectory="INSTALLFOLDER"
+                    Directory="ProgramMenuFolder" />
+          <RegistryValue Root="HKCU" Key="Software\Heimdall.Next" Name="StartMenuShortcut" Type="integer" Value="1" KeyPath="yes" />
+        </Component>
+      </Directory>
+    </StandardDirectory>
+
+    <StandardDirectory Id="DesktopFolder" />
+    <StandardDirectory Id="ProgramMenuFolder" />
+
+  </Package>
+
+  <!-- Product files harvested via heat.exe or manual ComponentGroup -->
+  <Fragment>
+    <ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER">
+      <Files Include="..\Dist\release\Heimdall.Next_current\**">
+        <Exclude Files="**\*.pdb" />
+      </Files>
+    </ComponentGroup>
+  </Fragment>
+
+</Wix>
