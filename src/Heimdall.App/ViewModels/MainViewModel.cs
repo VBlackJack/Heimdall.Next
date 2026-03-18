@@ -320,15 +320,15 @@ public partial class MainViewModel : ObservableObject
             session,
             _currentSettings);
         tab.Status = string.Equals(connectionType, "RDP", StringComparison.OrdinalIgnoreCase)
-            ? "Connecting"
-            : "Connected";
+            ? _localizer["StatusConnectingProgress"]
+            : _localizer["StatusConnected"];
 
         // Resolve tunnel chain route for visual display in session header
         // (uses sessionId — correct for state machine lookup)
         tab.TunnelRoute = ResolveTunnelRoute(sessionId);
 
         StatusText = string.Equals(connectionType, "RDP", StringComparison.OrdinalIgnoreCase)
-            ? string.Format("Opening embedded RDP session for {0}.", displayName)
+            ? _localizer.Format("StatusEmbeddedRdpOpening", displayName)
             : _localizer.Format("StatusConnected", displayName);
 
         // Auto-open SFTP alongside SSH — use original server ID for inventory lookup
@@ -350,6 +350,8 @@ public partial class MainViewModel : ObservableObject
             return;
         }
 
+        try
+        {
         // Close the old tab (disposes the dead session)
         Connection.CloseSessionCommand.Execute(tab);
 
@@ -371,6 +373,11 @@ public partial class MainViewModel : ObservableObject
         if (serverVm is not null)
         {
             ServerList.ConnectCommand.Execute(serverVm);
+        }
+        }
+        catch (Exception ex)
+        {
+            Core.Logging.FileLogger.Error($"Reconnect failed for {serverId}", ex);
         }
     }
 

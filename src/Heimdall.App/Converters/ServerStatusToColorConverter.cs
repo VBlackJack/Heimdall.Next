@@ -54,7 +54,9 @@ public sealed class ServerStatusToColorConverter : IMultiValueConverter
             "error" => ErrorBrush,
             "initializing" or "validatingconfig" or "establishingtunnel"
                 or "tunnelestablished" or "launchingrdp" or "launchingssh"
-                or "launchingsftp" or "launchingftp" or "disconnecting" => ConnectingBrush,
+                or "launchingsftp" or "launchingftp" or "launchingvnc"
+                or "launchingtelnet" or "launchinglocal" or "launchingcitrix"
+                or "disconnecting" => ConnectingBrush,
             // Disconnected or unknown: color by connection type
             _ => connectionType switch
             {
@@ -62,6 +64,10 @@ public sealed class ServerStatusToColorConverter : IMultiValueConverter
                 "SSH" => SshBrush,
                 "SFTP" => SftpBrush,
                 "FTP" => SftpBrush,
+                "VNC" => RdpBrush,
+                "TELNET" => SshBrush,
+                "CITRIX" => RdpBrush,
+                "LOCAL" => DefaultBrush,
                 _ => DefaultBrush
             }
         };

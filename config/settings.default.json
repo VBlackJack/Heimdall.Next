@@ -65,6 +65,7 @@
     "useExternalCredentialProvider": false,
     "credentialProviderCommand": "",
     "credentialProviderDatabase": "",
+    "trustedHostKeys": {},
     "x11ServerPath": null,
     "x11AutoStart": true,
     "externalTools": [

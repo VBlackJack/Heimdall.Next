@@ -38,6 +38,12 @@ public partial class EmbeddedVncView : UserControl, IDisposable
     private bool _webViewReady;
     private bool _disposed;
 
+    /// <summary>Raised when the VNC session connects successfully. Parameter: ServerId.</summary>
+    public event Action<string>? SessionConnected;
+
+    /// <summary>Raised when the VNC session encounters an error. Parameters: ServerId, error message.</summary>
+    public event Action<string, string>? SessionError;
+
     public EmbeddedVncView()
     {
         InitializeComponent();
@@ -98,12 +104,21 @@ public partial class EmbeddedVncView : UserControl, IDisposable
             }
             else
             {
-                ShowFallback("VNC viewer HTML not found.");
+                var msg = _localizer?["VncViewerNotFound"] ?? "VNC viewer HTML not found.";
+                ShowFallback(msg);
+                if (_session?.ServerId is not null)
+                {
+                    SessionError?.Invoke(_session.ServerId, msg);
+                }
             }
         }
         catch (Exception ex)
         {
             ShowFallback(ex.Message);
+            if (_session?.ServerId is not null)
+            {
+                SessionError?.Invoke(_session.ServerId, ex.Message);
+            }
         }
     }
 
@@ -128,6 +143,10 @@ public partial class EmbeddedVncView : UserControl, IDisposable
             {
                 StatusTextBlock.Text = _localizer?["StatusVncConnected"] ?? "Connected";
             });
+            if (_session?.ServerId is not null)
+            {
+                SessionConnected?.Invoke(_session.ServerId);
+            }
             return;
         }
 
@@ -144,6 +163,17 @@ public partial class EmbeddedVncView : UserControl, IDisposable
         {
             var errorMsg = message["error:".Length..];
             Core.Logging.FileLogger.Error($"VNC error: {errorMsg}");
+
+            Dispatcher.Invoke(() =>
+            {
+                StatusTextBlock.Text = _localizer?.Format("ErrorVncConnectionFailed", errorMsg)
+                    ?? $"VNC error: {errorMsg}";
+            });
+
+            if (_session?.ServerId is not null)
+            {
+                SessionError?.Invoke(_session.ServerId, errorMsg);
+            }
             return;
         }
 

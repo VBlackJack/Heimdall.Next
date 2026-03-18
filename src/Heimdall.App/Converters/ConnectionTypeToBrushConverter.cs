@@ -35,6 +35,9 @@ public sealed class ConnectionTypeToBrushConverter : IValueConverter
             "SSH" => "SshBadgeBrush",
             "SFTP" => "SftpBadgeBrush",
             "FTP" => "SftpBadgeBrush",
+            "VNC" => "RdpBadgeBrush",
+            "TELNET" => "SshBadgeBrush",
+            "CITRIX" => "RdpBadgeBrush",
             "LOCAL" => "AccentBrush",
             _ => "InfoBrush"
         };

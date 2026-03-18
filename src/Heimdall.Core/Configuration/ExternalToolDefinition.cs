@@ -30,12 +30,25 @@ public class ExternalToolDefinition
 
     /// <summary>
     /// Replaces variable placeholders in <see cref="Arguments"/> with actual server values.
+    /// Values are sanitized to prevent OS command injection (CWE-78).
     /// </summary>
     public string ResolveArguments(string host, int port, string user)
     {
         return Arguments
-            .Replace("{Host}", host, StringComparison.OrdinalIgnoreCase)
+            .Replace("{Host}", SanitizeValue(host), StringComparison.OrdinalIgnoreCase)
             .Replace("{Port}", port.ToString(), StringComparison.OrdinalIgnoreCase)
-            .Replace("{User}", user, StringComparison.OrdinalIgnoreCase);
+            .Replace("{User}", SanitizeValue(user), StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// Strips shell metacharacters that could be used for command injection
+    /// when arguments are passed through the Windows shell.
+    /// </summary>
+    private static string SanitizeValue(string value)
+    {
+        if (string.IsNullOrEmpty(value)) return string.Empty;
+
+        // Remove characters that are dangerous in Windows shell context
+        return System.Text.RegularExpressions.Regex.Replace(value, @"[;&|`$<>()!""'\r\n%^]", "");
     }
 }

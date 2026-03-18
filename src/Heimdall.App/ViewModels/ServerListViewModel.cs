@@ -1095,13 +1095,17 @@ public partial class ServerListViewModel : ObservableObject
         Heimdall.Core.Models.ConnectionState newState,
         string? error)
     {
-        var server = _allServers.FirstOrDefault(s =>
-            string.Equals(s.Id, serverId, StringComparison.Ordinal));
-
-        if (server is not null)
+        // State machine events may fire from background threads; marshal to UI thread
+        System.Windows.Application.Current?.Dispatcher.BeginInvoke(() =>
         {
-            server.ConnectionState = newState.ToString();
-        }
+            var server = _allServers.FirstOrDefault(s =>
+                string.Equals(s.Id, serverId, StringComparison.Ordinal));
+
+            if (server is not null)
+            {
+                server.ConnectionState = newState.ToString();
+            }
+        });
     }
 }
 
