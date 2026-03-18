@@ -24,6 +24,9 @@ Thumbs.db
 .claude/
 CLAUDE.md
 
+## WebView2 Fixed Version Runtime (downloaded per-machine via Setup-WebView2.ps1)
+runtimes/
+
 ## User config (runtime)
 config/settings.json
 config/servers.json
