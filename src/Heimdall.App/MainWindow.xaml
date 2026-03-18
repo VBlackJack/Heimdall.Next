@@ -796,321 +796,347 @@
             </DockPanel>
 
             <!-- ============================================================ -->
-            <!-- SETTINGS TAB: Organized with card sections                    -->
+            <!-- SETTINGS TAB: Left-navigation sub-tabs                        -->
             <!-- ============================================================ -->
-            <ScrollViewer Visibility="{Binding IsSettingsTabSelected, Converter={StaticResource BoolToVisibilityConverter}}"
-                          VerticalScrollBarVisibility="Auto">
-                <StackPanel Margin="24" MaxWidth="640" HorizontalAlignment="Left">
+            <DockPanel Visibility="{Binding IsSettingsTabSelected, Converter={StaticResource BoolToVisibilityConverter}}">
 
-                    <!-- Section: Appearance -->
-                    <Border Padding="16" Background="{DynamicResource CardBrush}"
-                            BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="10"
-                            Margin="0,0,0,16">
-                        <StackPanel>
-                            <TextBlock x:Name="Mw_SettingsAppearanceTitle" Text="" FontSize="14" FontWeight="SemiBold"
-                                       Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,12"/>
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-                                <StackPanel Grid.Column="0" Margin="0,0,8,0">
-                                    <TextBlock x:Name="Mw_SettingsLanguageLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" Margin="0,0,0,4"/>
-                                    <ComboBox SelectedValue="{Binding Settings.DefaultLocale}" SelectedValuePath="Content">
-                                        <ComboBoxItem Content="en"/>
-                                        <ComboBoxItem Content="fr"/>
-                                    </ComboBox>
-                                </StackPanel>
-                                <StackPanel Grid.Column="1" Margin="8,0,0,0">
-                                    <TextBlock x:Name="Mw_SettingsThemeLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" Margin="0,0,0,4"/>
-                                    <ComboBox SelectedValue="{Binding Settings.DefaultTheme}" SelectedValuePath="Content">
-                                        <ComboBoxItem Content="Dark"/>
-                                        <ComboBoxItem Content="Light"/>
-                                    </ComboBox>
-                                </StackPanel>
-                            </Grid>
-                        </StackPanel>
-                    </Border>
-
-                    <!-- Section: Paths -->
-                    <Border Padding="16" Background="{DynamicResource CardBrush}"
-                            BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="10"
-                            Margin="0,0,0,16">
-                        <StackPanel>
-                            <TextBlock x:Name="Mw_SettingsExternalToolsTitle" Text="" FontSize="14" FontWeight="SemiBold"
-                                       Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,12"/>
-                            <TextBlock x:Name="Mw_SettingsPlinkPathLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" Margin="0,0,0,4"/>
-                            <TextBox Text="{Binding Settings.PlinkPath}"/>
-                            <TextBlock x:Name="Mw_SettingsEditorPathLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" Margin="0,12,0,4"/>
-                            <TextBox Text="{Binding Settings.ExternalEditorPath}"/>
-                        </StackPanel>
-                    </Border>
-
-                    <!-- Section: Session behavior -->
-                    <Border Padding="16" Background="{DynamicResource CardBrush}"
-                            BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="10"
-                            Margin="0,0,0,16">
-                        <StackPanel>
-                            <TextBlock x:Name="Mw_SettingsSessionTitle" Text="" FontSize="14" FontWeight="SemiBold"
-                                       Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,12"/>
-                            <CheckBox x:Name="Mw_SettingsEnableLogging" Content="" IsChecked="{Binding Settings.EnableLogging}"
-                                      Foreground="{DynamicResource TextPrimaryBrush}"/>
-                            <CheckBox x:Name="Mw_SettingsAutoOpenSftp" Content="" IsChecked="{Binding Settings.SftpAutoOpenOnSsh}"
-                                      Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,8,0,0"/>
-                            <Grid Margin="0,12,0,0">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-                                <StackPanel Grid.Column="0" Margin="0,0,8,0">
-                                    <TextBlock x:Name="Mw_SettingsAntiIdleLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" Margin="0,0,0,4"/>
-                                    <TextBox Text="{Binding Settings.AntiIdleInterval}" Width="100" HorizontalAlignment="Left"/>
-                                </StackPanel>
-                                <StackPanel Grid.Column="1" Margin="8,0,0,0">
-                                    <TextBlock x:Name="Mw_SettingsMaxSessionsLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" Margin="0,0,0,4"/>
-                                    <TextBox Text="{Binding Settings.MaxEmbeddedSessions}" Width="100" HorizontalAlignment="Left"/>
-                                </StackPanel>
-                            </Grid>
-                        </StackPanel>
-                    </Border>
-
-                    <!-- Section: SSH Gateways -->
-                    <Border Padding="16" Background="{DynamicResource CardBrush}"
-                            BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="10"
-                            Margin="0,0,0,16">
-                        <StackPanel>
-                            <DockPanel Margin="0,0,0,12">
-                                <TextBlock x:Name="Mw_SettingsGatewaysTitle" Text="" FontSize="14" FontWeight="SemiBold"
-                                           Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
-                                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right">
-                                    <Button x:Name="Mw_SettingsGatewaysAddBtn" Content="" Command="{Binding Settings.AddGatewayCommand}"
-                                            Style="{DynamicResource PrimaryButtonStyle}" Padding="8,3" FontSize="11" Margin="0,0,4,0"/>
-                                    <Button x:Name="Mw_SettingsGatewaysEditBtn" Content="" Command="{Binding Settings.EditGatewayCommand}"
-                                            Style="{DynamicResource SecondaryButtonStyle}" Padding="8,3" FontSize="11" Margin="0,0,4,0"/>
-                                    <Button x:Name="Mw_SettingsGatewaysDeleteBtn" Content="" Command="{Binding Settings.DeleteGatewayCommand}"
-                                            Style="{DynamicResource SecondaryButtonStyle}" Padding="8,3" FontSize="11"/>
-                                </StackPanel>
-                            </DockPanel>
-                            <ListBox ItemsSource="{Binding Settings.Gateways}"
-                                     SelectedItem="{Binding Settings.SelectedGateway}"
-                                     MinHeight="80" MaxHeight="200"
-                                     Background="{DynamicResource BackgroundBrush}"
-                                     BorderBrush="{DynamicResource BorderBrush}"
-                                     BorderThickness="1">
-                                <ListBox.ItemTemplate>
-                                    <DataTemplate>
-                                        <StackPanel Orientation="Horizontal" Margin="4,2">
-                                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold"
-                                                       Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,8,0"/>
-                                            <TextBlock Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11"
-                                                       VerticalAlignment="Center">
-                                                <Run Text="{Binding User, Mode=OneWay}"/>
-                                                <Run Text="@"/>
-                                                <Run Text="{Binding Host, Mode=OneWay}"/>
-                                                <Run Text=":"/>
-                                                <Run Text="{Binding Port, Mode=OneWay}"/>
-                                            </TextBlock>
-                                            <TextBlock Text=" [KEY]" FontSize="10" Foreground="{DynamicResource SshBadgeBrush}"
-                                                       VerticalAlignment="Center"
-                                                       Visibility="{Binding HasKey, Converter={StaticResource BoolToVisibilityConverter}}"/>
-                                        </StackPanel>
-                                    </DataTemplate>
-                                </ListBox.ItemTemplate>
-                            </ListBox>
-                        </StackPanel>
-                    </Border>
-
-                    <!-- Section: Terminal Appearance -->
-                    <Border Padding="16" Background="{DynamicResource CardBrush}"
-                            BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="10"
-                            Margin="0,0,0,16">
-                        <StackPanel>
-                            <TextBlock x:Name="Mw_SettingsTerminalTitle" Text="" FontSize="14" FontWeight="SemiBold"
-                                       Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,12"/>
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-                                <StackPanel Grid.Column="0" Margin="0,0,8,0">
-                                    <TextBlock x:Name="Mw_SettingsTerminalFontLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" Margin="0,0,0,4"/>
-                                    <TextBox Text="{Binding Settings.TerminalFontFamily}" Width="200" HorizontalAlignment="Left"/>
-                                </StackPanel>
-                                <StackPanel Grid.Column="1" Margin="8,0,0,0">
-                                    <TextBlock x:Name="Mw_SettingsTerminalFontSizeLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" Margin="0,0,0,4"/>
-                                    <TextBox Text="{Binding Settings.TerminalFontSize}" Width="80" HorizontalAlignment="Left"/>
-                                </StackPanel>
-                            </Grid>
-                            <StackPanel Margin="0,12,0,0">
-                                <TextBlock x:Name="Mw_SettingsTerminalColorSchemeLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" Margin="0,0,0,4"/>
-                                <ComboBox SelectedValue="{Binding Settings.TerminalColorScheme}" SelectedValuePath="Content"
-                                          Width="200" HorizontalAlignment="Left">
-                                    <ComboBoxItem Content="Default"/>
-                                    <ComboBoxItem Content="Dracula"/>
-                                    <ComboBoxItem Content="Solarized Dark"/>
-                                    <ComboBoxItem Content="Monokai"/>
-                                    <ComboBoxItem Content="Nord"/>
-                                </ComboBox>
-                            </StackPanel>
-                        </StackPanel>
-                    </Border>
-
-                    <!-- Section: RDP Defaults -->
-                    <Border Padding="16" Background="{DynamicResource CardBrush}"
-                            BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="10"
-                            Margin="0,0,0,16">
-                        <StackPanel>
-                            <TextBlock x:Name="Mw_SettingsRdpDefaultsTitle" Text="" FontSize="14" FontWeight="SemiBold"
-                                       Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,12"/>
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-                                <StackPanel Grid.Column="0" Margin="0,0,8,0">
-                                    <TextBlock x:Name="Mw_SettingsRdpWidthLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" Margin="0,0,0,4"/>
-                                    <TextBox Text="{Binding Settings.DefaultResolutionWidth}" Width="100" HorizontalAlignment="Left"/>
-                                </StackPanel>
-                                <StackPanel Grid.Column="1" Margin="8,0,0,0">
-                                    <TextBlock x:Name="Mw_SettingsRdpHeightLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" Margin="0,0,0,4"/>
-                                    <TextBox Text="{Binding Settings.DefaultResolutionHeight}" Width="100" HorizontalAlignment="Left"/>
-                                </StackPanel>
-                            </Grid>
-                        </StackPanel>
-                    </Border>
-
-                    <!-- Section: Session Logging -->
-                    <Border Padding="16" Background="{DynamicResource CardBrush}"
-                            BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="10"
-                            Margin="0,0,0,16">
-                        <StackPanel>
-                            <TextBlock x:Name="Mw_SettingsSessionLoggingTitle" Text="" FontSize="14" FontWeight="SemiBold"
-                                       Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,12"/>
-                            <CheckBox x:Name="Mw_SettingsSessionLoggingEnabled" Content="" IsChecked="{Binding Settings.SessionLoggingEnabled}"
-                                      Foreground="{DynamicResource TextPrimaryBrush}"/>
-                            <StackPanel Margin="0,12,0,0">
-                                <TextBlock x:Name="Mw_SettingsSessionLogDirLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" Margin="0,0,0,4"/>
-                                <TextBox Text="{Binding Settings.SessionLogDirectory}"/>
-                            </StackPanel>
-                        </StackPanel>
-                    </Border>
-
-                    <!-- Section: External Credential Provider -->
-                    <Border Padding="16" Background="{DynamicResource CardBrush}"
-                            BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="10"
-                            Margin="0,0,0,16">
-                        <StackPanel>
-                            <TextBlock x:Name="Mw_SettingsCredProviderTitle" Text="" FontSize="14" FontWeight="SemiBold"
-                                       Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,12"/>
-                            <CheckBox x:Name="Mw_SettingsCredProviderEnabled" Content="" IsChecked="{Binding Settings.UseExternalCredentialProvider}"
-                                      Foreground="{DynamicResource TextPrimaryBrush}"/>
-                            <StackPanel Margin="0,12,0,0">
-                                <TextBlock x:Name="Mw_SettingsCredProviderCmdLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" Margin="0,0,0,4"/>
-                                <TextBox Text="{Binding Settings.CredentialProviderCommand}"
-                                         Tag="keepassxc-cli show -s -a Password &quot;{Database}&quot; &quot;{Title}&quot;"/>
-                            </StackPanel>
-                            <StackPanel Margin="0,12,0,0">
-                                <TextBlock x:Name="Mw_SettingsCredProviderDbLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" Margin="0,0,0,4"/>
-                                <TextBox Text="{Binding Settings.CredentialProviderDatabase}"/>
-                            </StackPanel>
-                        </StackPanel>
-                    </Border>
-
-                    <!-- Section: External Tools -->
-                    <Border Padding="16" Background="{DynamicResource CardBrush}"
-                            BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="10"
-                            Margin="0,0,0,16">
-                        <StackPanel>
-                            <DockPanel Margin="0,0,0,12">
-                                <TextBlock x:Name="Mw_SettingsExtToolsTitle" Text="" FontSize="14" FontWeight="SemiBold"
-                                           Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
-                                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right">
-                                    <Button x:Name="Mw_SettingsExtToolsAddBtn" Content="" Command="{Binding Settings.AddExternalToolCommand}"
-                                            Style="{DynamicResource PrimaryButtonStyle}" Padding="8,3" FontSize="11" Margin="0,0,4,0"/>
-                                    <Button x:Name="Mw_SettingsExtToolsRemoveBtn" Content="" Command="{Binding Settings.RemoveExternalToolCommand}"
-                                            Style="{DynamicResource SecondaryButtonStyle}" Padding="8,3" FontSize="11"/>
-                                </StackPanel>
-                            </DockPanel>
-                            <ListBox ItemsSource="{Binding Settings.ExternalTools}"
-                                     SelectedItem="{Binding Settings.SelectedExternalTool}"
-                                     MinHeight="60" MaxHeight="180"
-                                     Background="{DynamicResource BackgroundBrush}"
-                                     BorderBrush="{DynamicResource BorderBrush}"
-                                     BorderThickness="1">
-                                <ListBox.ItemTemplate>
-                                    <DataTemplate>
-                                        <StackPanel Orientation="Horizontal" Margin="4,2">
-                                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold"
-                                                       Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,8,0"/>
-                                            <TextBlock Text="{Binding ExecutablePath}" Foreground="{DynamicResource TextSecondaryBrush}"
-                                                       FontSize="11" VerticalAlignment="Center"/>
-                                        </StackPanel>
-                                    </DataTemplate>
-                                </ListBox.ItemTemplate>
-                            </ListBox>
-                        </StackPanel>
-                    </Border>
-
-                    <!-- Section: Projects -->
-                    <Border Padding="16" Background="{DynamicResource CardBrush}"
-                            BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="10"
-                            Margin="0,0,0,16">
-                        <StackPanel>
-                            <DockPanel Margin="0,0,0,12">
-                                <TextBlock x:Name="Mw_SettingsProjectsTitle" Text="" FontSize="14" FontWeight="SemiBold"
-                                           Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
-                                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right">
-                                    <Button x:Name="Mw_SettingsProjectsAddBtn" Content="" Command="{Binding Settings.AddProjectCommand}"
-                                            Style="{DynamicResource PrimaryButtonStyle}" Padding="8,3" FontSize="11" Margin="0,0,4,0"/>
-                                    <Button x:Name="Mw_SettingsProjectsEditBtn" Content="" Command="{Binding Settings.EditProjectCommand}"
-                                            Style="{DynamicResource SecondaryButtonStyle}" Padding="8,3" FontSize="11" Margin="0,0,4,0"/>
-                                    <Button x:Name="Mw_SettingsProjectsDeleteBtn" Content="" Command="{Binding Settings.DeleteProjectCommand}"
-                                            Style="{DynamicResource SecondaryButtonStyle}" Padding="8,3" FontSize="11"/>
-                                </StackPanel>
-                            </DockPanel>
-                            <ListBox ItemsSource="{Binding Settings.Projects}"
-                                     SelectedItem="{Binding Settings.SelectedProject}"
-                                     MinHeight="80" MaxHeight="200"
-                                     Background="{DynamicResource BackgroundBrush}"
-                                     BorderBrush="{DynamicResource BorderBrush}"
-                                     BorderThickness="1">
-                                <ListBox.ItemTemplate>
-                                    <DataTemplate>
-                                        <StackPanel Orientation="Horizontal" Margin="4,2">
-                                            <Border Width="10" Height="10" CornerRadius="5" Margin="0,0,8,0"
-                                                    VerticalAlignment="Center" Background="{Binding Color}"/>
-                                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold"
-                                                       Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,8,0"/>
-                                            <TextBlock Text="{Binding Description}" Foreground="{DynamicResource TextSecondaryBrush}"
-                                                       FontSize="11" VerticalAlignment="Center"/>
-                                        </StackPanel>
-                                    </DataTemplate>
-                                </ListBox.ItemTemplate>
-                            </ListBox>
-                        </StackPanel>
-                    </Border>
-
-                    <!-- Save / Reset -->
-                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                        <Button x:Name="Mw_SettingsSaveBtn" Content="" Command="{Binding Settings.SaveCommand}"
-                                Style="{DynamicResource PrimaryButtonStyle}"
-                                Width="130" Margin="0,0,8,0"/>
-                        <Button x:Name="Mw_SettingsResetBtn" Content="" Command="{Binding Settings.ResetToDefaultsCommand}"
-                                Style="{DynamicResource SecondaryButtonStyle}"
-                                Width="130"/>
-                    </StackPanel>
-
-                    <!-- Import / Export -->
-                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                        <Button x:Name="Mw_SettingsExportBtn" Content="" Command="{Binding Settings.ExportConfigCommand}"
-                                Style="{DynamicResource SecondaryButtonStyle}"
-                                Width="130" Margin="0,0,8,0"/>
-                        <Button x:Name="Mw_SettingsImportBtn" Content="" Command="{Binding Settings.ImportConfigCommand}"
-                                Style="{DynamicResource SecondaryButtonStyle}"
-                                Width="130"/>
-                    </StackPanel>
+                <!-- Action buttons pinned at bottom -->
+                <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="24,8,24,16">
+                    <Button x:Name="Mw_SettingsSaveBtn" Content="" Command="{Binding Settings.SaveCommand}"
+                            Style="{DynamicResource PrimaryButtonStyle}" Width="130" Margin="0,0,8,0"/>
+                    <Button x:Name="Mw_SettingsResetBtn" Content="" Command="{Binding Settings.ResetToDefaultsCommand}"
+                            Style="{DynamicResource SecondaryButtonStyle}" Width="130" Margin="0,0,8,0"/>
+                    <Button x:Name="Mw_SettingsExportBtn" Content="" Command="{Binding Settings.ExportConfigCommand}"
+                            Style="{DynamicResource SecondaryButtonStyle}" Width="130" Margin="0,0,8,0"/>
+                    <Button x:Name="Mw_SettingsImportBtn" Content="" Command="{Binding Settings.ImportConfigCommand}"
+                            Style="{DynamicResource SecondaryButtonStyle}" Width="130"/>
                 </StackPanel>
-            </ScrollViewer>
+
+                <TabControl TabStripPlacement="Left" Margin="16,16,16,0"
+                            Background="Transparent" BorderThickness="0">
+
+                    <!-- ═══════ GENERAL ═══════ -->
+                    <TabItem x:Name="Mw_SettingsTabGeneral" Style="{StaticResource ThemedTabItemStyle}">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <StackPanel Margin="16" MaxWidth="600">
+                                <Border Padding="16" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="10" Margin="0,0,0,16">
+                                    <StackPanel>
+                                        <TextBlock x:Name="Mw_SettingsAppearanceTitle" Text="" FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,12"/>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                                                <TextBlock x:Name="Mw_SettingsLanguageLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" Margin="0,0,0,4"/>
+                                                <ComboBox SelectedValue="{Binding Settings.DefaultLocale}" SelectedValuePath="Content">
+                                                    <ComboBoxItem Content="en"/>
+                                                    <ComboBoxItem Content="fr"/>
+                                                </ComboBox>
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="1" Margin="8,0,0,0">
+                                                <TextBlock x:Name="Mw_SettingsThemeLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" Margin="0,0,0,4"/>
+                                                <ComboBox SelectedValue="{Binding Settings.DefaultTheme}" SelectedValuePath="Content">
+                                                    <ComboBoxItem Content="Dark"/>
+                                                    <ComboBoxItem Content="Light"/>
+                                                </ComboBox>
+                                            </StackPanel>
+                                        </Grid>
+                                        <StackPanel Margin="0,12,0,0">
+                                            <TextBlock x:Name="Mw_SettingsMaxSessionsLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" Margin="0,0,0,4"/>
+                                            <TextBox Text="{Binding Settings.MaxEmbeddedSessions}" Width="100" HorizontalAlignment="Left"/>
+                                        </StackPanel>
+                                        <CheckBox x:Name="Mw_SettingsPreventSleep" Content="" IsChecked="{Binding Settings.PreventSleepDuringSession}" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,12,0,0"/>
+                                        <StackPanel Margin="0,12,0,0">
+                                            <TextBlock x:Name="Mw_SettingsEditorPathLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" Margin="0,0,0,4"/>
+                                            <TextBox Text="{Binding Settings.ExternalEditorPath}"/>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Projects -->
+                                <Border Padding="16" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="10">
+                                    <StackPanel>
+                                        <DockPanel Margin="0,0,0,12">
+                                            <TextBlock x:Name="Mw_SettingsProjectsTitle" Text="" FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
+                                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right">
+                                                <Button x:Name="Mw_SettingsProjectsAddBtn" Content="" Command="{Binding Settings.AddProjectCommand}" Style="{DynamicResource PrimaryButtonStyle}" Padding="8,3" FontSize="11" Margin="0,0,4,0"/>
+                                                <Button x:Name="Mw_SettingsProjectsEditBtn" Content="" Command="{Binding Settings.EditProjectCommand}" Style="{DynamicResource SecondaryButtonStyle}" Padding="8,3" FontSize="11" Margin="0,0,4,0"/>
+                                                <Button x:Name="Mw_SettingsProjectsDeleteBtn" Content="" Command="{Binding Settings.DeleteProjectCommand}" Style="{DynamicResource SecondaryButtonStyle}" Padding="8,3" FontSize="11"/>
+                                            </StackPanel>
+                                        </DockPanel>
+                                        <ListBox ItemsSource="{Binding Settings.Projects}" SelectedItem="{Binding Settings.SelectedProject}" MinHeight="80" MaxHeight="200" Background="{DynamicResource BackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
+                                            <ListBox.ItemTemplate>
+                                                <DataTemplate>
+                                                    <StackPanel Orientation="Horizontal" Margin="4,2">
+                                                        <Border Width="10" Height="10" CornerRadius="5" Margin="0,0,8,0" VerticalAlignment="Center" Background="{Binding Color}"/>
+                                                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,8,0"/>
+                                                        <TextBlock Text="{Binding Description}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </DataTemplate>
+                                            </ListBox.ItemTemplate>
+                                        </ListBox>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </TabItem>
+
+                    <!-- ═══════ TERMINAL ═══════ -->
+                    <TabItem x:Name="Mw_SettingsTabTerminal" Style="{StaticResource ThemedTabItemStyle}">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <StackPanel Margin="16" MaxWidth="600">
+                                <Border Padding="16" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="10">
+                                    <StackPanel>
+                                        <TextBlock x:Name="Mw_SettingsTerminalTitle" Text="" FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,12"/>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                                                <TextBlock x:Name="Mw_SettingsTerminalFontLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" Margin="0,0,0,4"/>
+                                                <TextBox Text="{Binding Settings.TerminalFontFamily}" Width="200" HorizontalAlignment="Left"/>
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="1" Margin="8,0,0,0">
+                                                <TextBlock x:Name="Mw_SettingsTerminalFontSizeLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" Margin="0,0,0,4"/>
+                                                <TextBox Text="{Binding Settings.TerminalFontSize}" Width="80" HorizontalAlignment="Left"/>
+                                            </StackPanel>
+                                        </Grid>
+                                        <StackPanel Margin="0,12,0,0">
+                                            <TextBlock x:Name="Mw_SettingsTerminalColorSchemeLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" Margin="0,0,0,4"/>
+                                            <ComboBox SelectedValue="{Binding Settings.TerminalColorScheme}" SelectedValuePath="Content" Width="200" HorizontalAlignment="Left">
+                                                <ComboBoxItem Content="Default"/>
+                                                <ComboBoxItem Content="Dracula"/>
+                                                <ComboBoxItem Content="Solarized Dark"/>
+                                                <ComboBoxItem Content="Monokai"/>
+                                                <ComboBoxItem Content="Nord"/>
+                                            </ComboBox>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </TabItem>
+
+                    <!-- ═══════ SSH & SFTP ═══════ -->
+                    <TabItem x:Name="Mw_SettingsTabSsh" Style="{StaticResource ThemedTabItemStyle}">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <StackPanel Margin="16" MaxWidth="600">
+                                <Border Padding="16" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="10" Margin="0,0,0,16">
+                                    <StackPanel>
+                                        <TextBlock x:Name="Mw_SettingsSshTitle" Text="" FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,12"/>
+                                        <TextBlock x:Name="Mw_SettingsPlinkPathLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" Margin="0,0,0,4"/>
+                                        <TextBox Text="{Binding Settings.PlinkPath}"/>
+                                        <StackPanel Margin="0,12,0,0">
+                                            <TextBlock x:Name="Mw_SettingsSshModeLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" Margin="0,0,0,4"/>
+                                            <ComboBox SelectedValue="{Binding Settings.SshDefaultMode}" SelectedValuePath="Content" Width="200" HorizontalAlignment="Left">
+                                                <ComboBoxItem Content="Embedded"/>
+                                                <ComboBoxItem Content="External"/>
+                                            </ComboBox>
+                                        </StackPanel>
+                                        <Grid Margin="0,12,0,0">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                                                <TextBlock x:Name="Mw_SettingsAntiIdleLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" Margin="0,0,0,4"/>
+                                                <TextBox Text="{Binding Settings.AntiIdleInterval}" Width="100" HorizontalAlignment="Left"/>
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="1" Margin="8,0,0,0">
+                                                <TextBlock x:Name="Mw_SettingsSshTmoutLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" Margin="0,0,0,4"/>
+                                                <TextBox Text="{Binding Settings.SshTmoutResetInterval}" Width="100" HorizontalAlignment="Left"/>
+                                            </StackPanel>
+                                        </Grid>
+                                        <CheckBox x:Name="Mw_SettingsAutoOpenSftp" Content="" IsChecked="{Binding Settings.SftpAutoOpenOnSsh}" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,12,0,0"/>
+                                        <StackPanel Margin="0,12,0,0">
+                                            <TextBlock x:Name="Mw_SettingsX11PathLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" Margin="0,0,0,4"/>
+                                            <TextBox Text="{Binding Settings.X11ServerPath}"/>
+                                        </StackPanel>
+                                        <CheckBox x:Name="Mw_SettingsX11AutoStart" Content="" IsChecked="{Binding Settings.X11AutoStart}" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,8,0,0"/>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- SSH Gateways -->
+                                <Border Padding="16" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="10">
+                                    <StackPanel>
+                                        <DockPanel Margin="0,0,0,12">
+                                            <TextBlock x:Name="Mw_SettingsGatewaysTitle" Text="" FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
+                                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right">
+                                                <Button x:Name="Mw_SettingsGatewaysAddBtn" Content="" Command="{Binding Settings.AddGatewayCommand}" Style="{DynamicResource PrimaryButtonStyle}" Padding="8,3" FontSize="11" Margin="0,0,4,0"/>
+                                                <Button x:Name="Mw_SettingsGatewaysEditBtn" Content="" Command="{Binding Settings.EditGatewayCommand}" Style="{DynamicResource SecondaryButtonStyle}" Padding="8,3" FontSize="11" Margin="0,0,4,0"/>
+                                                <Button x:Name="Mw_SettingsGatewaysDeleteBtn" Content="" Command="{Binding Settings.DeleteGatewayCommand}" Style="{DynamicResource SecondaryButtonStyle}" Padding="8,3" FontSize="11"/>
+                                            </StackPanel>
+                                        </DockPanel>
+                                        <ListBox ItemsSource="{Binding Settings.Gateways}" SelectedItem="{Binding Settings.SelectedGateway}" MinHeight="80" MaxHeight="200" Background="{DynamicResource BackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
+                                            <ListBox.ItemTemplate>
+                                                <DataTemplate>
+                                                    <StackPanel Orientation="Horizontal" Margin="4,2">
+                                                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,8,0"/>
+                                                        <TextBlock Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" VerticalAlignment="Center">
+                                                            <Run Text="{Binding User, Mode=OneWay}"/><Run Text="@"/><Run Text="{Binding Host, Mode=OneWay}"/><Run Text=":"/><Run Text="{Binding Port, Mode=OneWay}"/>
+                                                        </TextBlock>
+                                                        <TextBlock Text=" [KEY]" FontSize="10" Foreground="{DynamicResource SshBadgeBrush}" VerticalAlignment="Center" Visibility="{Binding HasKey, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                                                    </StackPanel>
+                                                </DataTemplate>
+                                            </ListBox.ItemTemplate>
+                                        </ListBox>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </TabItem>
+
+                    <!-- ═══════ RDP ═══════ -->
+                    <TabItem x:Name="Mw_SettingsTabRdp" Style="{StaticResource ThemedTabItemStyle}">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <StackPanel Margin="16" MaxWidth="600">
+                                <Border Padding="16" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="10">
+                                    <StackPanel>
+                                        <TextBlock x:Name="Mw_SettingsRdpDefaultsTitle" Text="" FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,12"/>
+                                        <StackPanel Margin="0,0,0,8">
+                                            <TextBlock x:Name="Mw_SettingsRdpModeLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" Margin="0,0,0,4"/>
+                                            <ComboBox SelectedValue="{Binding Settings.RdpDefaultMode}" SelectedValuePath="Content" Width="200" HorizontalAlignment="Left">
+                                                <ComboBoxItem Content="Embedded"/>
+                                                <ComboBoxItem Content="External"/>
+                                            </ComboBox>
+                                        </StackPanel>
+                                        <Grid Margin="0,8,0,0">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                                                <TextBlock x:Name="Mw_SettingsRdpWidthLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" Margin="0,0,0,4"/>
+                                                <TextBox Text="{Binding Settings.DefaultResolutionWidth}" Width="100" HorizontalAlignment="Left"/>
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="1" Margin="8,0,0,0">
+                                                <TextBlock x:Name="Mw_SettingsRdpHeightLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" Margin="0,0,0,4"/>
+                                                <TextBox Text="{Binding Settings.DefaultResolutionHeight}" Width="100" HorizontalAlignment="Left"/>
+                                            </StackPanel>
+                                        </Grid>
+                                        <StackPanel Margin="0,8,0,0">
+                                            <TextBlock x:Name="Mw_SettingsRdpColorDepthLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" Margin="0,0,0,4"/>
+                                            <ComboBox SelectedValue="{Binding Settings.RdpDefaultColorDepth}" SelectedValuePath="Tag" Width="120" HorizontalAlignment="Left">
+                                                <ComboBoxItem Content="16 bit" Tag="16"/>
+                                                <ComboBoxItem Content="24 bit" Tag="24"/>
+                                                <ComboBoxItem Content="32 bit" Tag="32"/>
+                                            </ComboBox>
+                                        </StackPanel>
+                                        <StackPanel Margin="0,8,0,0">
+                                            <TextBlock x:Name="Mw_SettingsRdpAudioLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" Margin="0,0,0,4"/>
+                                            <ComboBox SelectedValue="{Binding Settings.RdpDefaultAudioMode}" SelectedValuePath="Tag" Width="200" HorizontalAlignment="Left">
+                                                <ComboBoxItem x:Name="Mw_SettingsRdpAudioDisabled" Content="" Tag="0"/>
+                                                <ComboBoxItem x:Name="Mw_SettingsRdpAudioLocal" Content="" Tag="1"/>
+                                                <ComboBoxItem x:Name="Mw_SettingsRdpAudioRemote" Content="" Tag="2"/>
+                                            </ComboBox>
+                                        </StackPanel>
+                                        <CheckBox x:Name="Mw_SettingsRdpNla" Content="" IsChecked="{Binding Settings.RdpDefaultNla}" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,12,0,0"/>
+                                        <CheckBox x:Name="Mw_SettingsRdpDynRes" Content="" IsChecked="{Binding Settings.RdpDefaultDynamicResolution}" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,6,0,0"/>
+                                        <CheckBox x:Name="Mw_SettingsRdpMultiMon" Content="" IsChecked="{Binding Settings.RdpDefaultMultiMonitor}" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,6,0,0"/>
+                                        <CheckBox x:Name="Mw_SettingsRdpAutoReconnect" Content="" IsChecked="{Binding Settings.RdpDefaultAutoReconnect}" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,6,0,0"/>
+                                        <CheckBox x:Name="Mw_SettingsRdpBitmapCache" Content="" IsChecked="{Binding Settings.RdpDefaultBitmapCaching}" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,6,0,0"/>
+                                        <CheckBox x:Name="Mw_SettingsRdpCompression" Content="" IsChecked="{Binding Settings.RdpDefaultCompression}" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,6,0,0"/>
+                                        <TextBlock x:Name="Mw_SettingsRdpRedirTitle" Text="" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,16,0,8"/>
+                                        <CheckBox x:Name="Mw_SettingsRdpClipboard" Content="" IsChecked="{Binding Settings.RdpDefaultRedirectClipboard}" Foreground="{DynamicResource TextPrimaryBrush}"/>
+                                        <CheckBox x:Name="Mw_SettingsRdpDrives" Content="" IsChecked="{Binding Settings.RdpDefaultRedirectDrives}" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,6,0,0"/>
+                                        <CheckBox x:Name="Mw_SettingsRdpPrinters" Content="" IsChecked="{Binding Settings.RdpDefaultRedirectPrinters}" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,6,0,0"/>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </TabItem>
+
+                    <!-- ═══════ SECURITY ═══════ -->
+                    <TabItem x:Name="Mw_SettingsTabSecurity" Style="{StaticResource ThemedTabItemStyle}">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <StackPanel Margin="16" MaxWidth="600">
+                                <Border Padding="16" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="10">
+                                    <StackPanel>
+                                        <TextBlock x:Name="Mw_SettingsCredProviderTitle" Text="" FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,12"/>
+                                        <CheckBox x:Name="Mw_SettingsCredProviderEnabled" Content="" IsChecked="{Binding Settings.UseExternalCredentialProvider}" Foreground="{DynamicResource TextPrimaryBrush}"/>
+                                        <StackPanel Margin="0,12,0,0" IsEnabled="{Binding Settings.UseExternalCredentialProvider}">
+                                            <TextBlock x:Name="Mw_SettingsCredProviderCmdLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" Margin="0,0,0,4"/>
+                                            <TextBox Text="{Binding Settings.CredentialProviderCommand}" Tag="keepassxc-cli show -s -a Password &quot;{Database}&quot; &quot;{Title}&quot;"/>
+                                        </StackPanel>
+                                        <StackPanel Margin="0,12,0,0" IsEnabled="{Binding Settings.UseExternalCredentialProvider}">
+                                            <TextBlock x:Name="Mw_SettingsCredProviderDbLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" Margin="0,0,0,4"/>
+                                            <TextBox Text="{Binding Settings.CredentialProviderDatabase}"/>
+                                        </StackPanel>
+                                        <CheckBox x:Name="Mw_SettingsCredGuard" Content="" IsChecked="{Binding Settings.RequireCredentialGuard}" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,16,0,0"/>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </TabItem>
+
+                    <!-- ═══════ ADVANCED ═══════ -->
+                    <TabItem x:Name="Mw_SettingsTabAdvanced" Style="{StaticResource ThemedTabItemStyle}">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <StackPanel Margin="16" MaxWidth="600">
+                                <!-- Logging -->
+                                <Border Padding="16" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="10" Margin="0,0,0,16">
+                                    <StackPanel>
+                                        <TextBlock x:Name="Mw_SettingsSessionLoggingTitle" Text="" FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,12"/>
+                                        <CheckBox x:Name="Mw_SettingsEnableLogging" Content="" IsChecked="{Binding Settings.EnableLogging}" Foreground="{DynamicResource TextPrimaryBrush}"/>
+                                        <CheckBox x:Name="Mw_SettingsSessionLoggingEnabled" Content="" IsChecked="{Binding Settings.SessionLoggingEnabled}" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,8,0,0"/>
+                                        <StackPanel Margin="0,12,0,0" IsEnabled="{Binding Settings.SessionLoggingEnabled}">
+                                            <TextBlock x:Name="Mw_SettingsSessionLogDirLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" Margin="0,0,0,4"/>
+                                            <TextBox Text="{Binding Settings.SessionLogDirectory}"/>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Timeouts -->
+                                <Border Padding="16" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="10" Margin="0,0,0,16">
+                                    <StackPanel>
+                                        <TextBlock x:Name="Mw_SettingsTimeoutsTitle" Text="" FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,12"/>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                                                <TextBlock x:Name="Mw_SettingsTunnelDelayLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" Margin="0,0,0,4"/>
+                                                <TextBox Text="{Binding Settings.TunnelEstablishmentDelayMs}" Width="100" HorizontalAlignment="Left"/>
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="1" Margin="8,0,0,0">
+                                                <TextBlock x:Name="Mw_SettingsRdpTimeoutLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" Margin="0,0,0,4"/>
+                                                <TextBox Text="{Binding Settings.EmbeddedRdpTimeoutMs}" Width="100" HorizontalAlignment="Left"/>
+                                            </StackPanel>
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- External Tools -->
+                                <Border Padding="16" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="10">
+                                    <StackPanel>
+                                        <DockPanel Margin="0,0,0,12">
+                                            <TextBlock x:Name="Mw_SettingsExtToolsTitle" Text="" FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
+                                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right">
+                                                <Button x:Name="Mw_SettingsExtToolsAddBtn" Content="" Command="{Binding Settings.AddExternalToolCommand}" Style="{DynamicResource PrimaryButtonStyle}" Padding="8,3" FontSize="11" Margin="0,0,4,0"/>
+                                                <Button x:Name="Mw_SettingsExtToolsRemoveBtn" Content="" Command="{Binding Settings.RemoveExternalToolCommand}" Style="{DynamicResource SecondaryButtonStyle}" Padding="8,3" FontSize="11"/>
+                                            </StackPanel>
+                                        </DockPanel>
+                                        <ListBox ItemsSource="{Binding Settings.ExternalTools}" SelectedItem="{Binding Settings.SelectedExternalTool}" MinHeight="60" MaxHeight="180" Background="{DynamicResource BackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
+                                            <ListBox.ItemTemplate>
+                                                <DataTemplate>
+                                                    <StackPanel Orientation="Horizontal" Margin="4,2">
+                                                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,8,0"/>
+                                                        <TextBlock Text="{Binding ExecutablePath}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </DataTemplate>
+                                            </ListBox.ItemTemplate>
+                                        </ListBox>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </TabItem>
+
+                </TabControl>
+            </DockPanel>
 
             <!-- ============================================================ -->
             <!-- ABOUT TAB: Application info                                   -->

@@ -50,8 +50,7 @@ public partial class SettingsViewModel : ObservableObject
     private readonly LocalizationManager _localizer;
     private readonly IDialogService _dialogService;
 
-    [ObservableProperty]
-    private string _plinkPath = "";
+    // --- General ---
 
     [ObservableProperty]
     private string _defaultLocale = "en";
@@ -60,19 +59,15 @@ public partial class SettingsViewModel : ObservableObject
     private string _defaultTheme = "Dark";
 
     [ObservableProperty]
-    private bool _enableLogging = true;
-
-    [ObservableProperty]
-    private int _antiIdleInterval = 60;
-
-    [ObservableProperty]
     private int _maxEmbeddedSessions = 10;
+
+    [ObservableProperty]
+    private bool _preventSleepDuringSession = true;
 
     [ObservableProperty]
     private string _externalEditorPath = "";
 
-    [ObservableProperty]
-    private bool _sftpAutoOpenOnSsh = true;
+    // --- Terminal ---
 
     [ObservableProperty]
     private string _terminalFontFamily = "Consolas";
@@ -83,11 +78,74 @@ public partial class SettingsViewModel : ObservableObject
     [ObservableProperty]
     private string _terminalColorScheme = "Dracula";
 
-    [ObservableProperty]
-    private bool _sessionLoggingEnabled;
+    // --- SSH & SFTP ---
 
     [ObservableProperty]
-    private string _sessionLogDirectory = @"logs\sessions";
+    private string _plinkPath = "";
+
+    [ObservableProperty]
+    private string _sshDefaultMode = "Embedded";
+
+    [ObservableProperty]
+    private int _antiIdleInterval = 60;
+
+    [ObservableProperty]
+    private int _sshTmoutResetInterval = 240;
+
+    [ObservableProperty]
+    private bool _sftpAutoOpenOnSsh = true;
+
+    [ObservableProperty]
+    private string _x11ServerPath = "";
+
+    [ObservableProperty]
+    private bool _x11AutoStart = true;
+
+    // --- RDP defaults ---
+
+    [ObservableProperty]
+    private int _defaultResolutionWidth = 1920;
+
+    [ObservableProperty]
+    private int _defaultResolutionHeight = 1080;
+
+    [ObservableProperty]
+    private string _rdpDefaultMode = "Embedded";
+
+    [ObservableProperty]
+    private bool _rdpDefaultNla = true;
+
+    [ObservableProperty]
+    private int _rdpDefaultColorDepth = 32;
+
+    [ObservableProperty]
+    private bool _rdpDefaultDynamicResolution = true;
+
+    [ObservableProperty]
+    private bool _rdpDefaultMultiMonitor;
+
+    [ObservableProperty]
+    private bool _rdpDefaultRedirectClipboard = true;
+
+    [ObservableProperty]
+    private bool _rdpDefaultRedirectDrives;
+
+    [ObservableProperty]
+    private bool _rdpDefaultRedirectPrinters;
+
+    [ObservableProperty]
+    private bool _rdpDefaultAutoReconnect = true;
+
+    [ObservableProperty]
+    private bool _rdpDefaultBitmapCaching = true;
+
+    [ObservableProperty]
+    private bool _rdpDefaultCompression = true;
+
+    [ObservableProperty]
+    private int _rdpDefaultAudioMode;
+
+    // --- Security ---
 
     [ObservableProperty]
     private bool _useExternalCredentialProvider;
@@ -99,16 +157,32 @@ public partial class SettingsViewModel : ObservableObject
     private string _credentialProviderDatabase = "";
 
     [ObservableProperty]
+    private bool _requireCredentialGuard;
+
+    // --- Advanced / Logging ---
+
+    [ObservableProperty]
+    private bool _enableLogging = true;
+
+    [ObservableProperty]
+    private bool _sessionLoggingEnabled;
+
+    [ObservableProperty]
+    private string _sessionLogDirectory = @"logs\sessions";
+
+    [ObservableProperty]
+    private int _tunnelEstablishmentDelayMs = 2500;
+
+    [ObservableProperty]
+    private int _embeddedRdpTimeoutMs = 30000;
+
+    // --- Collections ---
+
+    [ObservableProperty]
     private ObservableCollection<ExternalToolItemViewModel> _externalTools = new();
 
     [ObservableProperty]
     private ExternalToolItemViewModel? _selectedExternalTool;
-
-    [ObservableProperty]
-    private int _defaultResolutionWidth = 1920;
-
-    [ObservableProperty]
-    private int _defaultResolutionHeight = 1080;
 
     [ObservableProperty]
     private bool _isDirty;
@@ -153,24 +227,55 @@ public partial class SettingsViewModel : ObservableObject
     /// </summary>
     public void LoadFromSettings(AppSettings settings)
     {
-        PlinkPath = settings.PlinkPath;
+        // General
         DefaultLocale = settings.DefaultLocale;
         DefaultTheme = settings.DefaultTheme;
-        EnableLogging = settings.EnableLogging;
-        AntiIdleInterval = settings.AntiIdleIntervalSeconds;
         MaxEmbeddedSessions = settings.MaxEmbeddedSessions;
+        PreventSleepDuringSession = settings.PreventSleepDuringSession;
         ExternalEditorPath = settings.ExternalEditorPath;
-        SftpAutoOpenOnSsh = settings.SftpAutoOpenOnSsh;
+
+        // Terminal
         TerminalFontFamily = settings.TerminalFontFamily;
         TerminalFontSize = settings.TerminalFontSize;
         TerminalColorScheme = settings.TerminalColorScheme;
-        SessionLoggingEnabled = settings.SessionLoggingEnabled;
-        SessionLogDirectory = settings.SessionLogDirectory;
+
+        // SSH & SFTP
+        PlinkPath = settings.PlinkPath;
+        SshDefaultMode = settings.SshDefaultMode;
+        AntiIdleInterval = settings.AntiIdleIntervalSeconds;
+        SshTmoutResetInterval = settings.SshTmoutResetIntervalSeconds;
+        SftpAutoOpenOnSsh = settings.SftpAutoOpenOnSsh;
+        X11ServerPath = settings.X11ServerPath ?? "";
+        X11AutoStart = settings.X11AutoStart;
+
+        // RDP defaults
+        DefaultResolutionWidth = settings.DefaultResolutionWidth;
+        DefaultResolutionHeight = settings.DefaultResolutionHeight;
+        RdpDefaultMode = settings.RdpDefaultMode;
+        RdpDefaultNla = settings.RdpDefaultNla;
+        RdpDefaultColorDepth = settings.RdpDefaultColorDepth;
+        RdpDefaultDynamicResolution = settings.RdpDefaultDynamicResolution;
+        RdpDefaultMultiMonitor = settings.RdpDefaultMultiMonitor;
+        RdpDefaultRedirectClipboard = settings.RdpDefaultRedirectClipboard;
+        RdpDefaultRedirectDrives = settings.RdpDefaultRedirectDrives;
+        RdpDefaultRedirectPrinters = settings.RdpDefaultRedirectPrinters;
+        RdpDefaultAutoReconnect = settings.RdpDefaultAutoReconnect;
+        RdpDefaultBitmapCaching = settings.RdpDefaultBitmapCaching;
+        RdpDefaultCompression = settings.RdpDefaultCompression;
+        RdpDefaultAudioMode = settings.RdpDefaultAudioMode;
+
+        // Security
         UseExternalCredentialProvider = settings.UseExternalCredentialProvider;
         CredentialProviderCommand = settings.CredentialProviderCommand ?? "";
         CredentialProviderDatabase = settings.CredentialProviderDatabase ?? "";
-        DefaultResolutionWidth = settings.DefaultResolutionWidth;
-        DefaultResolutionHeight = settings.DefaultResolutionHeight;
+        RequireCredentialGuard = settings.RequireCredentialGuard;
+
+        // Advanced / Logging
+        EnableLogging = settings.EnableLogging;
+        SessionLoggingEnabled = settings.SessionLoggingEnabled;
+        SessionLogDirectory = settings.SessionLogDirectory;
+        TunnelEstablishmentDelayMs = settings.TunnelEstablishmentDelayMs;
+        EmbeddedRdpTimeoutMs = settings.EmbeddedRdpTimeoutMs;
 
         ExternalTools = new ObservableCollection<ExternalToolItemViewModel>(
             settings.ExternalTools.Select(t => new ExternalToolItemViewModel
@@ -210,24 +315,55 @@ public partial class SettingsViewModel : ObservableObject
     {
         var settings = await _configManager.LoadSettingsAsync();
 
-        settings.PlinkPath = PlinkPath;
+        // General
         settings.DefaultLocale = DefaultLocale;
         settings.DefaultTheme = DefaultTheme;
-        settings.EnableLogging = EnableLogging;
-        settings.AntiIdleIntervalSeconds = AntiIdleInterval;
         settings.MaxEmbeddedSessions = MaxEmbeddedSessions;
+        settings.PreventSleepDuringSession = PreventSleepDuringSession;
         settings.ExternalEditorPath = ExternalEditorPath;
-        settings.SftpAutoOpenOnSsh = SftpAutoOpenOnSsh;
+
+        // Terminal
         settings.TerminalFontFamily = TerminalFontFamily;
         settings.TerminalFontSize = TerminalFontSize;
         settings.TerminalColorScheme = TerminalColorScheme;
-        settings.SessionLoggingEnabled = SessionLoggingEnabled;
-        settings.SessionLogDirectory = SessionLogDirectory;
+
+        // SSH & SFTP
+        settings.PlinkPath = PlinkPath;
+        settings.SshDefaultMode = SshDefaultMode;
+        settings.AntiIdleIntervalSeconds = AntiIdleInterval;
+        settings.SshTmoutResetIntervalSeconds = SshTmoutResetInterval;
+        settings.SftpAutoOpenOnSsh = SftpAutoOpenOnSsh;
+        settings.X11ServerPath = string.IsNullOrWhiteSpace(X11ServerPath) ? null : X11ServerPath;
+        settings.X11AutoStart = X11AutoStart;
+
+        // RDP defaults
+        settings.DefaultResolutionWidth = DefaultResolutionWidth;
+        settings.DefaultResolutionHeight = DefaultResolutionHeight;
+        settings.RdpDefaultMode = RdpDefaultMode;
+        settings.RdpDefaultNla = RdpDefaultNla;
+        settings.RdpDefaultColorDepth = RdpDefaultColorDepth;
+        settings.RdpDefaultDynamicResolution = RdpDefaultDynamicResolution;
+        settings.RdpDefaultMultiMonitor = RdpDefaultMultiMonitor;
+        settings.RdpDefaultRedirectClipboard = RdpDefaultRedirectClipboard;
+        settings.RdpDefaultRedirectDrives = RdpDefaultRedirectDrives;
+        settings.RdpDefaultRedirectPrinters = RdpDefaultRedirectPrinters;
+        settings.RdpDefaultAutoReconnect = RdpDefaultAutoReconnect;
+        settings.RdpDefaultBitmapCaching = RdpDefaultBitmapCaching;
+        settings.RdpDefaultCompression = RdpDefaultCompression;
+        settings.RdpDefaultAudioMode = RdpDefaultAudioMode;
+
+        // Security
         settings.UseExternalCredentialProvider = UseExternalCredentialProvider;
         settings.CredentialProviderCommand = CredentialProviderCommand;
         settings.CredentialProviderDatabase = CredentialProviderDatabase;
-        settings.DefaultResolutionWidth = DefaultResolutionWidth;
-        settings.DefaultResolutionHeight = DefaultResolutionHeight;
+        settings.RequireCredentialGuard = RequireCredentialGuard;
+
+        // Advanced / Logging
+        settings.EnableLogging = EnableLogging;
+        settings.SessionLoggingEnabled = SessionLoggingEnabled;
+        settings.SessionLogDirectory = SessionLogDirectory;
+        settings.TunnelEstablishmentDelayMs = TunnelEstablishmentDelayMs;
+        settings.EmbeddedRdpTimeoutMs = EmbeddedRdpTimeoutMs;
 
         settings.ExternalTools = ExternalTools.Select(t => new ExternalToolDefinition
         {
@@ -247,12 +383,27 @@ public partial class SettingsViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private Task ResetToDefaultsAsync(CancellationToken cancellationToken)
+    private async Task ResetToDefaultsAsync(CancellationToken cancellationToken)
     {
-        var defaults = new AppSettings();
+        // Load factory defaults from settings.default.json (preserves bundled external tools)
+        // rather than new AppSettings() which has empty defaults for collections.
+        var defaultsPath = System.IO.Path.Combine(
+            AppContext.BaseDirectory, "config", "settings.default.json");
+
+        AppSettings defaults;
+        if (System.IO.File.Exists(defaultsPath))
+        {
+            var json = await System.IO.File.ReadAllTextAsync(defaultsPath, cancellationToken);
+            defaults = System.Text.Json.JsonSerializer.Deserialize<AppSettings>(json, ImportJsonOptions)
+                       ?? new AppSettings();
+        }
+        else
+        {
+            defaults = new AppSettings();
+        }
+
         LoadFromSettings(defaults);
         IsDirty = true;
-        return Task.CompletedTask;
     }
 
     [RelayCommand]
