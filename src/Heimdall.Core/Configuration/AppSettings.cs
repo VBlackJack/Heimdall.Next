@@ -59,12 +59,12 @@ public class AppSettings
     public string TerminalColorScheme { get; set; } = "Dracula";
 
     // SSH defaults
-    public string SshDefaultMode { get; set; } = "External";
+    public string SshDefaultMode { get; set; } = "Embedded";
     public int AntiIdleIntervalSeconds { get; set; } = 60;
     public int SshTmoutResetIntervalSeconds { get; set; } = 240;
 
     // RDP defaults
-    public string RdpDefaultMode { get; set; } = "External";
+    public string RdpDefaultMode { get; set; } = "Embedded";
     public bool RdpDefaultRedirectClipboard { get; set; } = true;
     public bool RdpDefaultRedirectDrives { get; set; }
     public bool RdpDefaultRedirectPrinters { get; set; }

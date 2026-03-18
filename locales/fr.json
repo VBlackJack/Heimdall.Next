@@ -1309,7 +1309,8 @@
   "StatusBarTooltipFull": "{0}",
   "A11yKeyboardShortcutsButton": "Afficher les raccourcis clavier",
 
-  "SftpCtxEdit": "\u00c9diter avec un \u00e9diteur externe",
+  "SftpCtxEdit": "\u00c9diter (int\u00e9gr\u00e9)",
+  "SftpCtxEditExternal": "\u00c9diter avec un \u00e9diteur externe",
   "SftpStatusEditing": "\u00c9dition : {0} \u2014 enregistrez dans votre \u00e9diteur pour envoyer automatiquement",
   "SftpStatusAutoUploaded": "Envoy\u00e9 automatiquement : {0}",
   "SftpStatusAutoUploadFailed": "\u00c9chec de l'envoi automatique de {0} : {1}",

@@ -1309,7 +1309,8 @@
   "StatusBarTooltipFull": "{0}",
   "A11yKeyboardShortcutsButton": "Show keyboard shortcuts",
 
-  "SftpCtxEdit": "Edit with external editor",
+  "SftpCtxEdit": "Edit (integrated)",
+  "SftpCtxEditExternal": "Edit with external editor",
   "SftpStatusEditing": "Editing: {0} \u2014 save in your editor to auto-upload",
   "SftpStatusAutoUploaded": "Auto-uploaded: {0}",
   "SftpStatusAutoUploadFailed": "Auto-upload failed for {0}: {1}",
