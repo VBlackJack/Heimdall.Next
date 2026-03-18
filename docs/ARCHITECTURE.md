@@ -195,6 +195,30 @@ All connection operations return an `ISessionResult` (defined in `Heimdall.Core/
 - **Edit (integrated)**: Opens AvalonEdit inside the app with syntax highlighting. Save triggers upload.
 - **Edit with external editor**: Downloads to temp, launches the configured editor (Settings > General > External editor path), `FileSystemWatcher` with 2-second debounce auto-uploads on save.
 
+### 15b. SFTP Sudo Elevation System
+
+**Problem**: SFTP runs with the connected user's permissions. Root-owned files and directories (e.g. `/etc/shadow`, `/root/`) are inaccessible. Unlike SSH where `sudo su -` gives full access, the SFTP protocol has **no built-in privilege escalation**.
+
+**Solution**: Two-tier approach using SSH exec channels alongside the SFTP session:
+
+**Tier 1 — Automatic fallback** (transparent to user):
+Every file operation catches `SftpPermissionDeniedException` and `SshException("Failure")` (SSH_FX_FAILURE, common on servers that don't distinguish error codes), then retries via SSH exec:
+- Upload: SFTP to `/tmp/` → `sudo tee` to target
+- Download: `sudo cat` via SSH exec
+- Edit: delegates to `RemoteFileEditor.EditFileSudoAsync`
+- Chmod/Rename/Delete/Mkdir: `sudo chmod`/`mv`/`rm`/`mkdir` via SSH exec
+
+**Tier 2 — "Browse as root" toggle** (user-initiated):
+Toolbar toggle button switches directory listing from SFTP `ListDirectory` to `sudo ls -la --time-style=long-iso` via SSH exec. Enables browsing ANY directory regardless of permissions.
+
+**Key design decisions and pitfalls encountered**:
+
+- **SSH auth must match the main session**: Sudo helpers must use `SshConnectionFactory.Create()` with the same Pageant/key/password auth as the original connection. Early implementation used raw `new SshClient(connInfo)` which bypassed Pageant integration — the SSH connection failed with "Permission denied (publickey,password)" and the user saw a confusing error.
+- **Host key verification required**: Sudo SSH clients must call `AttachHostKeyVerification()` with the TOFU `HostKeyStore`. Without this, connections fail silently on strict-host-key servers.
+- **Exception detection is fragile**: SSH.NET throws `SftpPermissionDeniedException` for explicit denials, but many servers return `SSH_FX_FAILURE` (status 4) instead of `SSH_FX_PERMISSION_DENIED` (status 3). This surfaces as `SshException("Failure")` — the classifier checks both `Sftp*` and `Ssh*` exception type names with "Failure" message.
+- **`ls -la` output parsing**: The `--time-style=long-iso` format produces **8 columns** (permissions, links, owner, group, size, date, time, name). Early parser expected 9 columns and silently skipped all entries. Filename column must be the last split part to handle spaces.
+- **Sudo toggle hidden for FTP**: FTP sessions have no SSH channel, so the sudo button is collapsed.
+
 ### 16. Tab Detach to Floating Window
 
 **Problem**: Users need to view multiple sessions side by side, or move a session to a second monitor.

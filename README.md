@@ -67,7 +67,8 @@ Built with .NET 10 and WPF. Designed as a modern, high-performance alternative t
 ### SFTP Browser
 - Embedded file browser panel with directory tree and file list
 - Dual edit modes: integrated AvalonEdit editor OR external editor with auto-upload on save
-- Sudo edit: transparent fallback to `sudo cat`/`sudo tee` on permission denied
+- **"Browse as root" sudo mode**: toggle in toolbar enables `sudo ls -la` directory listing via SSH exec channel — browse any directory regardless of SFTP user permissions
+- **Full sudo fallback** on all operations: upload (`sudo tee`), download (`sudo cat`), edit, chmod, rename, delete, mkdir — transparently triggered on permission denied
 - Drag-and-drop upload and download
 - Chmod dialog, path bookmarks, filename filter
 
