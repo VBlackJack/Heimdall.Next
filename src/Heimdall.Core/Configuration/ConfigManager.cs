@@ -49,6 +49,7 @@ public class ConfigManager
     private readonly string _settingsDefaultPath;
     private readonly string _serversDefaultPath;
     private readonly string _logsPath;
+    private readonly SemaphoreSlim _writeLock = new(1, 1);
 
     /// <summary>
     /// Initializes a new ConfigManager rooted at the given application base path.
@@ -177,9 +178,17 @@ public class ConfigManager
     {
         ArgumentNullException.ThrowIfNull(settings);
 
-        var json = JsonSerializer.Serialize(settings, JsonOptions);
-        await WriteTextAsync(_settingsPath, json);
-        ApplyFileAcl(_settingsPath);
+        await _writeLock.WaitAsync();
+        try
+        {
+            var json = JsonSerializer.Serialize(settings, JsonOptions);
+            await WriteTextAsync(_settingsPath, json);
+            ApplyFileAcl(_settingsPath);
+        }
+        finally
+        {
+            _writeLock.Release();
+        }
 
         SettingsChanged?.Invoke(settings);
     }
@@ -207,9 +216,17 @@ public class ConfigManager
     {
         ArgumentNullException.ThrowIfNull(servers);
 
-        var json = JsonSerializer.Serialize(servers, JsonOptions);
-        await WriteTextAsync(_serversPath, json);
-        ApplyFileAcl(_serversPath);
+        await _writeLock.WaitAsync();
+        try
+        {
+            var json = JsonSerializer.Serialize(servers, JsonOptions);
+            await WriteTextAsync(_serversPath, json);
+            ApplyFileAcl(_serversPath);
+        }
+        finally
+        {
+            _writeLock.Release();
+        }
     }
 
     /// <summary>

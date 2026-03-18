@@ -217,57 +217,85 @@ public partial class MainWindow : Window
         Mw_ScheduledColLastRun.Header = vm.Localize("ScheduledColLastRun");
         Mw_ScheduledColNextRun.Header = vm.Localize("ScheduledColNextRun");
 
-        // Settings tab
+        // Settings sub-tab headers
+        Mw_SettingsTabGeneral.Header = vm.Localize("SettingsTabGeneral");
+        Mw_SettingsTabTerminal.Header = vm.Localize("SettingsTabTerminal");
+        Mw_SettingsTabSsh.Header = vm.Localize("SettingsTabSshSftp");
+        Mw_SettingsTabRdp.Header = vm.Localize("SettingsTabRdp");
+        Mw_SettingsTabSecurity.Header = vm.Localize("SettingsTabSecurity");
+        Mw_SettingsTabAdvanced.Header = vm.Localize("SettingsTabAdvanced");
+
+        // Settings - General
         Mw_SettingsAppearanceTitle.Text = vm.Localize("SettingsSectionAppearance");
         Mw_SettingsLanguageLabel.Text = vm.Localize("SettingsLabelLanguage");
         Mw_SettingsThemeLabel.Text = vm.Localize("SettingsLabelTheme");
-        Mw_SettingsExternalToolsTitle.Text = vm.Localize("SettingsSectionExternalTools");
-        Mw_SettingsPlinkPathLabel.Text = vm.Localize("SettingsLabelPlinkPath");
-        Mw_SettingsEditorPathLabel.Text = vm.Localize("SettingsLabelEditorPath");
-        Mw_SettingsSessionTitle.Text = vm.Localize("SettingsSectionSessionBehavior");
-        Mw_SettingsEnableLogging.Content = vm.Localize("SettingsLabelEnableLogging");
-        Mw_SettingsAutoOpenSftp.Content = vm.Localize("SettingsLabelAutoOpenSftp");
-        Mw_SettingsAntiIdleLabel.Text = vm.Localize("SettingsLabelAntiIdleInterval");
         Mw_SettingsMaxSessionsLabel.Text = vm.Localize("SettingsLabelMaxEmbeddedSessions");
+        Mw_SettingsPreventSleep.Content = vm.Localize("SettingsLabelPreventSleep");
+        Mw_SettingsEditorPathLabel.Text = vm.Localize("SettingsLabelEditorPath");
+        Mw_SettingsProjectsTitle.Text = vm.Localize("SettingsSectionProjects");
+        Mw_SettingsProjectsAddBtn.Content = vm.Localize("BtnAddProject");
+        Mw_SettingsProjectsEditBtn.Content = vm.Localize("BtnEditProject");
+        Mw_SettingsProjectsDeleteBtn.Content = vm.Localize("BtnDeleteProject");
 
-        // Settings - Terminal appearance section
+        // Settings - Terminal
         Mw_SettingsTerminalTitle.Text = vm.Localize("SettingsSectionTerminal");
         Mw_SettingsTerminalFontLabel.Text = vm.Localize("SettingsLabelTerminalFont");
         Mw_SettingsTerminalFontSizeLabel.Text = vm.Localize("SettingsLabelTerminalFontSize");
         Mw_SettingsTerminalColorSchemeLabel.Text = vm.Localize("SettingsLabelTerminalColorScheme");
 
-        // Settings - RDP defaults section
-        Mw_SettingsRdpDefaultsTitle.Text = vm.Localize("SettingsSectionRdpDefaults");
-        Mw_SettingsRdpWidthLabel.Text = vm.Localize("SettingsLabelRdpWidth");
-        Mw_SettingsRdpHeightLabel.Text = vm.Localize("SettingsLabelRdpHeight");
-
-        // Settings - Session logging section
-        Mw_SettingsSessionLoggingTitle.Text = vm.Localize("SettingsSectionSessionLogging");
-        Mw_SettingsSessionLoggingEnabled.Content = vm.Localize("SettingsLabelSessionLoggingEnabled");
-        Mw_SettingsSessionLogDirLabel.Text = vm.Localize("SettingsLabelSessionLogDirectory");
-
-        // Settings - External credential provider section
-        Mw_SettingsCredProviderTitle.Text = vm.Localize("SettingsSectionCredentialProvider");
-        Mw_SettingsCredProviderEnabled.Content = vm.Localize("SettingsLabelCredProviderEnabled");
-        Mw_SettingsCredProviderCmdLabel.Text = vm.Localize("SettingsLabelCredProviderCommand");
-        Mw_SettingsCredProviderDbLabel.Text = vm.Localize("SettingsLabelCredProviderDatabase");
-
-        // Settings - External tools section
-        Mw_SettingsExtToolsTitle.Text = vm.Localize("SettingsSectionExternalToolsList");
-        Mw_SettingsExtToolsAddBtn.Content = vm.Localize("BtnAdd");
-        Mw_SettingsExtToolsRemoveBtn.Content = vm.Localize("BtnRemove");
-
-        // Settings - SSH Gateways section
+        // Settings - SSH & SFTP
+        Mw_SettingsSshTitle.Text = vm.Localize("SettingsSectionSshDefaults");
+        Mw_SettingsPlinkPathLabel.Text = vm.Localize("SettingsLabelPlinkPath");
+        Mw_SettingsSshModeLabel.Text = vm.Localize("SettingsLabelSshMode");
+        Mw_SettingsAntiIdleLabel.Text = vm.Localize("SettingsLabelAntiIdleInterval");
+        Mw_SettingsSshTmoutLabel.Text = vm.Localize("SettingsLabelSshTmoutReset");
+        Mw_SettingsAutoOpenSftp.Content = vm.Localize("SettingsLabelAutoOpenSftp");
+        Mw_SettingsX11PathLabel.Text = vm.Localize("SettingsLabelX11ServerPath");
+        Mw_SettingsX11AutoStart.Content = vm.Localize("SettingsLabelX11AutoStart");
         Mw_SettingsGatewaysTitle.Text = vm.Localize("GatewaysSectionTitle");
         Mw_SettingsGatewaysAddBtn.Content = vm.Localize("GatewaysBtnAdd");
         Mw_SettingsGatewaysEditBtn.Content = vm.Localize("GatewaysBtnEdit");
         Mw_SettingsGatewaysDeleteBtn.Content = vm.Localize("GatewaysBtnDelete");
 
-        // Settings - Projects section
-        Mw_SettingsProjectsTitle.Text = vm.Localize("SettingsSectionProjects");
-        Mw_SettingsProjectsAddBtn.Content = vm.Localize("BtnAddProject");
-        Mw_SettingsProjectsEditBtn.Content = vm.Localize("BtnEditProject");
-        Mw_SettingsProjectsDeleteBtn.Content = vm.Localize("BtnDeleteProject");
+        // Settings - RDP
+        Mw_SettingsRdpDefaultsTitle.Text = vm.Localize("SettingsSectionRdpDefaults");
+        Mw_SettingsRdpModeLabel.Text = vm.Localize("SettingsLabelRdpMode");
+        Mw_SettingsRdpWidthLabel.Text = vm.Localize("SettingsLabelRdpWidth");
+        Mw_SettingsRdpHeightLabel.Text = vm.Localize("SettingsLabelRdpHeight");
+        Mw_SettingsRdpColorDepthLabel.Text = vm.Localize("SettingsLabelRdpColorDepth");
+        Mw_SettingsRdpAudioLabel.Text = vm.Localize("SettingsLabelRdpAudio");
+        Mw_SettingsRdpAudioDisabled.Content = vm.Localize("ServerDialogAudioDisabled");
+        Mw_SettingsRdpAudioLocal.Content = vm.Localize("ServerDialogAudioLocal");
+        Mw_SettingsRdpAudioRemote.Content = vm.Localize("ServerDialogAudioRemote");
+        Mw_SettingsRdpNla.Content = vm.Localize("SettingsLabelRdpNla");
+        Mw_SettingsRdpDynRes.Content = vm.Localize("SettingsLabelRdpDynamicRes");
+        Mw_SettingsRdpMultiMon.Content = vm.Localize("SettingsLabelRdpMultiMonitor");
+        Mw_SettingsRdpAutoReconnect.Content = vm.Localize("SettingsLabelRdpAutoReconnect");
+        Mw_SettingsRdpBitmapCache.Content = vm.Localize("SettingsLabelRdpBitmapCache");
+        Mw_SettingsRdpCompression.Content = vm.Localize("SettingsLabelRdpCompression");
+        Mw_SettingsRdpRedirTitle.Text = vm.Localize("SettingsLabelRdpRedirection");
+        Mw_SettingsRdpClipboard.Content = vm.Localize("ServerDialogRedirectClipboard");
+        Mw_SettingsRdpDrives.Content = vm.Localize("ServerDialogRedirectDrives");
+        Mw_SettingsRdpPrinters.Content = vm.Localize("ServerDialogRedirectPrinters");
+
+        // Settings - Security
+        Mw_SettingsCredProviderTitle.Text = vm.Localize("SettingsSectionCredentialProvider");
+        Mw_SettingsCredProviderEnabled.Content = vm.Localize("SettingsLabelCredProviderEnabled");
+        Mw_SettingsCredProviderCmdLabel.Text = vm.Localize("SettingsLabelCredProviderCommand");
+        Mw_SettingsCredProviderDbLabel.Text = vm.Localize("SettingsLabelCredProviderDatabase");
+        Mw_SettingsCredGuard.Content = vm.Localize("SettingsLabelCredentialGuard");
+
+        // Settings - Advanced
+        Mw_SettingsSessionLoggingTitle.Text = vm.Localize("SettingsSectionSessionLogging");
+        Mw_SettingsEnableLogging.Content = vm.Localize("SettingsLabelEnableLogging");
+        Mw_SettingsSessionLoggingEnabled.Content = vm.Localize("SettingsLabelSessionLoggingEnabled");
+        Mw_SettingsSessionLogDirLabel.Text = vm.Localize("SettingsLabelSessionLogDirectory");
+        Mw_SettingsTimeoutsTitle.Text = vm.Localize("SettingsSectionTimeouts");
+        Mw_SettingsTunnelDelayLabel.Text = vm.Localize("SettingsLabelTunnelDelay");
+        Mw_SettingsRdpTimeoutLabel.Text = vm.Localize("SettingsLabelRdpTimeout");
+        Mw_SettingsExtToolsTitle.Text = vm.Localize("SettingsSectionExternalToolsList");
+        Mw_SettingsExtToolsAddBtn.Content = vm.Localize("BtnAdd");
+        Mw_SettingsExtToolsRemoveBtn.Content = vm.Localize("BtnRemove");
 
         // Settings - Save / Reset / Import / Export
         Mw_SettingsSaveBtn.Content = vm.Localize("SettingsBtnSaveSettings");
