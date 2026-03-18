@@ -18,6 +18,7 @@ using System.Diagnostics;
 using System.IO;
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Models;
+using Heimdall.Core.Security;
 
 namespace Heimdall.App.Services;
 
@@ -59,8 +60,24 @@ public partial class ConnectionService
             else if (!string.IsNullOrWhiteSpace(server.CitrixStoreFrontUrl)
                      && !string.IsNullOrWhiteSpace(server.CitrixAppName))
             {
+                // Sanitize user-configurable fields against shell metacharacters (CWE-78).
+                // storebrowse.exe arguments are quoted, but reject suspicious characters as defense-in-depth.
+                if (server.CitrixAppName.AsSpan().IndexOfAny(['|', '&', ';', '`', '$', '\n', '\r']) >= 0
+                    || server.CitrixStoreFrontUrl.AsSpan().IndexOfAny(['|', '&', ';', '`', '$', '\n', '\r']) >= 0)
+                {
+                    var msg = _localizer["CitrixNoConnectionConfigured"];
+                    _connectionSm.SetError(server.Id, msg);
+                    return new ConnectionResult(false, msg, null);
+                }
+
                 // Launch via storebrowse
-                var args = $"-L \"{server.CitrixAppName}\" \"{server.CitrixStoreFrontUrl}\"";
+                // -L = launch, -S = use SSO authentication
+                var argParts = new List<string> { "-L" };
+                if (server.CitrixUseSso)
+                    argParts.Add("-S");
+                argParts.Add($"\"{server.CitrixAppName}\"");
+                argParts.Add($"\"{server.CitrixStoreFrontUrl}\"");
+                var args = string.Join(' ', argParts);
                 Core.Logging.FileLogger.Info($"Citrix launch: {launcher} {args}");
 
                 process = Process.Start(new ProcessStartInfo
@@ -79,7 +96,8 @@ public partial class ConnectionService
             }
 
             _connectionSm.TryTransition(server.Id, ConnectionState.Connected);
-            return new ConnectionResult(true, null, new CitrixSessionResult(process));
+            return new ConnectionResult(true, null, new CitrixSessionResult(
+                process, server.CitrixStoreFrontUrl, server.CitrixAppName));
         }
         catch (Exception ex)
         {
@@ -124,4 +142,7 @@ public partial class ConnectionService
 /// <summary>
 /// Wraps a Citrix Workspace process handle for session lifecycle management.
 /// </summary>
-public record CitrixSessionResult(Process? Process) : ISessionResult;
+public record CitrixSessionResult(
+    Process? Process,
+    string? StoreFrontUrl = null,
+    string? AppName = null) : ISessionResult;

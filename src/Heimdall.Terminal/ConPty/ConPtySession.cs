@@ -142,8 +142,8 @@ public sealed class ConPtySession : ITerminalSession
             _inputWriter.Write(data);
             _inputWriter.Flush();
         }
-        catch (ObjectDisposedException) { }
-        catch (IOException) { }
+        catch (ObjectDisposedException) { /* Expected when session is being torn down */ }
+        catch (IOException) { /* Pipe may be broken if process exited */ }
     }
 
     /// <inheritdoc />
@@ -348,9 +348,9 @@ public sealed class ConPtySession : ITerminalSession
                     DataReceived?.Invoke(copy.AsMemory());
                 }
             }
-            catch (OperationCanceledException) { }
-            catch (ObjectDisposedException) { }
-            catch (IOException) { }
+            catch (OperationCanceledException) { /* Expected when session is disposed */ }
+            catch (ObjectDisposedException) { /* Expected when disposing during read */ }
+            catch (IOException) { /* Pipe broken after process exit */ }
 
             // Raise ProcessExited with the child's exit code.
             if (!_disposed)

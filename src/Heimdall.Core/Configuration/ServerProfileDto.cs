@@ -75,6 +75,9 @@ public class ServerProfileDto
     public string? RdpGateway { get; set; }
     public string? Environment { get; set; }
 
+    /// <summary>MAC address for Wake-on-LAN (format: AA:BB:CC:DD:EE:FF).</summary>
+    public string? MacAddress { get; set; }
+
     // Local shell settings
     public string? LocalShellExecutable { get; set; }
     public string? LocalShellArguments { get; set; }
@@ -87,4 +90,16 @@ public class ServerProfileDto
     public string? CitrixIcaFilePath { get; set; }
     public bool CitrixSeamlessMode { get; set; } = true;
     public bool CitrixUseSso { get; set; } = true;
+
+    // FTP settings
+    public int FtpPort { get; set; } = 21;
+    public string? FtpUsername { get; set; }
+    public string? FtpPasswordEncrypted { get; set; }
+
+    // VNC settings
+    public int VncPort { get; set; } = 5900;
+    public string? VncPassword { get; set; }
+
+    // Telnet settings
+    public int TelnetPort { get; set; } = 23;
 }

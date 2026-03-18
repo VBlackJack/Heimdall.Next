@@ -31,6 +31,7 @@ public sealed class FileLogger : IDisposable
     private readonly ConcurrentQueue<string> _queue = new();
     private readonly Timer _flushTimer;
     private readonly object _writeLock = new();
+    private static volatile bool _enabled = true;
     private bool _disposed;
     private bool _aclApplied;
 
@@ -38,7 +39,7 @@ public sealed class FileLogger : IDisposable
     {
         Directory.CreateDirectory(logDirectory);
         _logPath = Path.Combine(logDirectory, $"heimdall_{DateTime.Now:yyyyMMdd}.log");
-        _flushTimer = new Timer(_ => Flush(), null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(2));
+        _flushTimer = new Timer(_ => FlushInternal(), null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(2));
     }
 
     /// <summary>
@@ -51,10 +52,21 @@ public sealed class FileLogger : IDisposable
     }
 
     /// <summary>
+    /// Enables or disables logging at runtime. When disabled, messages are
+    /// silently discarded. Thread-safe.
+    /// </summary>
+    public static void SetEnabled(bool enabled)
+    {
+        _enabled = enabled;
+    }
+
+    /// <summary>
     /// Log a message at the given level.
     /// </summary>
     public static void Log(string level, string message)
     {
+        if (!_enabled) return;
+
         var entry = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] [{level}] {message}";
         _instance?._queue.Enqueue(entry);
 
@@ -67,7 +79,10 @@ public sealed class FileLogger : IDisposable
     public static void Error(string message) => Log("ERROR", message);
     public static void Error(string message, Exception ex) => Log("ERROR", $"{message}: {ex.Message}");
 
-    private void Flush()
+    /// <summary>Flushes all queued log entries to disk immediately.</summary>
+    public static void Flush() => _instance?.FlushInternal();
+
+    private void FlushInternal()
     {
         if (_disposed || _queue.IsEmpty) return;
 
@@ -106,7 +121,7 @@ public sealed class FileLogger : IDisposable
         // then mark disposed. Setting _disposed before Flush() would
         // cause the final flush to skip (Flush checks _disposed).
         _flushTimer.Dispose();
-        Flush();
+        FlushInternal();
         _disposed = true;
     }
 }

@@ -16,7 +16,7 @@
 
 namespace Heimdall.Core.Models;
 
-public enum ConnectionType { Rdp, Ssh, Sftp, Local, Citrix }
+public enum ConnectionType { Rdp, Ssh, Sftp, Ftp, Local, Citrix, Vnc, Telnet }
 
 public enum ConnectionState
 {
@@ -29,6 +29,9 @@ public enum ConnectionState
     LaunchingSsh,
     LaunchingSftp,
     LaunchingLocal,
+    LaunchingVnc,
+    LaunchingFtp,
+    LaunchingTelnet,
     Connected,
     Disconnecting,
     Error
@@ -81,4 +84,16 @@ public enum RecurrenceType
     Weekly,
     Weekdays,
     Custom
+}
+
+/// <summary>
+/// Schedule types for automated connection tasks.
+/// </summary>
+public enum ScheduleType
+{
+    /// <summary>Connect at a specific time each day.</summary>
+    Daily,
+
+    /// <summary>Connect at a recurring interval in minutes.</summary>
+    Interval
 }

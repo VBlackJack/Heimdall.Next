@@ -66,12 +66,9 @@ public static class AuthPreflightChecker
             && !string.IsNullOrEmpty(connectionParams.KeyPath)
             && string.IsNullOrEmpty(connectionParams.Password))
         {
-            if (!IsPageantRunning())
-            {
-                return PreflightResult.Fail(
-                    SshFailureCode.PageantKeyUnavailable,
-                    "Pageant not running. Start Pageant and load the key, or configure a password.");
-            }
+            var pageantCheck = CheckPageantAvailability();
+            if (pageantCheck is not null)
+                return pageantCheck;
         }
 
         // Tunnel mode: no key and no password — needs Pageant as sole auth source
@@ -79,12 +76,9 @@ public static class AuthPreflightChecker
             && string.IsNullOrEmpty(connectionParams.KeyPath)
             && string.IsNullOrEmpty(connectionParams.Password))
         {
-            if (!IsPageantRunning())
-            {
-                return PreflightResult.Fail(
-                    SshFailureCode.PageantKeyUnavailable,
-                    "No authentication method available. Start Pageant or configure a key/password.");
-            }
+            var pageantCheck = CheckPageantAvailability();
+            if (pageantCheck is not null)
+                return pageantCheck;
         }
 
         return PreflightResult.Ok();
@@ -103,5 +97,37 @@ public static class AuthPreflightChecker
         {
             return false;
         }
+    }
+
+    /// <summary>
+    /// Verifies that Pageant is running and has at least one identity loaded.
+    /// Returns a failure result if not, or null if Pageant is ready.
+    /// </summary>
+    private static PreflightResult? CheckPageantAvailability()
+    {
+        if (!IsPageantRunning())
+        {
+            return PreflightResult.Fail(
+                SshFailureCode.PageantKeyUnavailable,
+                "Pageant not running. Start Pageant and load the key, or configure a password.");
+        }
+
+        try
+        {
+            var client = new Pageant.PageantClient();
+            var identities = client.GetIdentities();
+            if (identities.Count == 0)
+            {
+                return PreflightResult.Fail(
+                    SshFailureCode.PageantNoIdentities,
+                    "Pageant is running but has no keys loaded. Load a key in Pageant before connecting.");
+            }
+        }
+        catch
+        {
+            // Pageant IPC failed — fall through and let the connection attempt handle it
+        }
+
+        return null;
     }
 }

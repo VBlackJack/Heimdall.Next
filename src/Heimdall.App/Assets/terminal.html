@@ -8,11 +8,10 @@
     <title>Heimdall Terminal</title>
     <style>
         :root {
-            --terminal-bg: #282A36;
-            --terminal-fg: #F8F8F2;
-            --terminal-cursor: #BD93F9;
-            --terminal-selection: rgba(68, 71, 90, 0.7);
-            --terminal-border: #44475A;
+            --terminal-bg: /*{{CSS_BG}}*/;
+            --terminal-fg: /*{{CSS_FG}}*/;
+            --terminal-cursor: /*{{CSS_CURSOR}}*/;
+            --terminal-selection: /*{{CSS_SELECTION}}*/;
         }
 
         * {
@@ -27,7 +26,7 @@
             overflow: hidden;
             background: var(--terminal-bg);
             color: var(--terminal-fg);
-            font-family: Consolas, 'Courier New', monospace;
+            font-family: /*{{TERMINAL_FONT_FAMILY}}*/, 'Courier New', monospace;
         }
 
         body {
@@ -156,8 +155,8 @@
             var ready = false;
             var pendingHostMessages = [];
             var pendingResizeHandle = 0;
-            var baseFontSize = 13;
-            var currentFontSize = 13;
+            var baseFontSize = /*{{TERMINAL_FONT_SIZE}}*/;
+            var currentFontSize = baseFontSize;
 
             function postMessage(message) {
                 if (window.chrome && window.chrome.webview) {
@@ -289,7 +288,7 @@
                     allowProposedApi: true,
                     cursorBlink: true,
                     cursorStyle: 'block',
-                    fontFamily: 'Consolas, "Courier New", monospace',
+                    fontFamily: '/*{{TERMINAL_FONT_FAMILY}}*/, "Courier New", monospace',
                     fontSize: baseFontSize,
                     scrollback: 10000,
                     linkHandler: {
@@ -297,30 +296,7 @@
                             postMessage('open-url:' + uri);
                         }
                     },
-                    theme: {
-                        background: '#282A36',
-                        foreground: '#F8F8F2',
-                        cursor: '#BD93F9',
-                        cursorAccent: '#282A36',
-                        selectionBackground: 'rgba(68, 71, 90, 0.7)',
-                        selectionForeground: '#F8F8F2',
-                        black: '#21222C',
-                        red: '#FF5555',
-                        green: '#50FA7B',
-                        yellow: '#F1FA8C',
-                        blue: '#BD93F9',
-                        magenta: '#FF79C6',
-                        cyan: '#8BE9FD',
-                        white: '#F8F8F2',
-                        brightBlack: '#6272A4',
-                        brightRed: '#FF6E6E',
-                        brightGreen: '#69FF94',
-                        brightYellow: '#FFFFA5',
-                        brightBlue: '#D6ACFF',
-                        brightMagenta: '#FF92DF',
-                        brightCyan: '#A4FFFF',
-                        brightWhite: '#FFFFFF'
-                    }
+                    theme: /*{{TERMINAL_THEME}}*/
                 });
 
                 fitAddon = new FitAddon.FitAddon();

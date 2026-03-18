@@ -24,7 +24,7 @@ namespace Heimdall.Sftp;
 /// SFTP browser backed by SSH.NET's native <see cref="SftpClient"/>.
 /// Provides async file operations with progress reporting and cancellation support.
 /// </summary>
-public class SftpBrowser : IDisposable
+public class SftpBrowser : IRemoteBrowser
 {
     private SftpClient? _client;
     private bool _disposed;
@@ -444,7 +444,6 @@ public class SftpBrowser : IDisposable
         _disposed = true;
         Disconnect();
         _clientLock.Dispose();
-        GC.SuppressFinalize(this);
     }
 
     // ------------------------------------------------------------------

@@ -111,7 +111,16 @@ public sealed class PlinkTunnelRunner : IDisposable
         {
             _process = new Process { StartInfo = startInfo };
             _process.Start();
+        }
+        catch (Exception ex)
+        {
+            // Ensure password file is cleaned up if process fails to start
+            CleanupPasswordFile();
+            return new PlinkTunnelResult(false, $"Failed to start plink process: {ex.Message}", SshFailureCode.Unknown);
+        }
 
+        try
+        {
             // Wait for the local port to become reachable (tunnel established)
             bool portReady = await WaitForPortBindAsync(localPort, cancellationToken).ConfigureAwait(false);
 
@@ -229,7 +238,11 @@ public sealed class PlinkTunnelRunner : IDisposable
             if (OperatingSystem.IsWindows())
             {
                 try { Heimdall.Core.Security.AclEnforcer.SetFileAcl(_pwFilePath); }
-                catch { /* Best-effort — file is in user-owned %TEMP% */ }
+                catch (Exception ex)
+                {
+                    Heimdall.Core.Logging.FileLogger.Warn(
+                        $"Failed to enforce ACL on plink password file: {ex.Message}");
+                }
             }
 
             args.Add("-pwfile");

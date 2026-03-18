@@ -83,6 +83,13 @@ public class ConfigManager
     public string ServersPath => _serversPath;
 
     /// <summary>
+    /// Raised after settings are successfully saved, providing the new settings
+    /// snapshot so subscribers can react to configuration changes at runtime
+    /// without requiring an application restart.
+    /// </summary>
+    public event Action<AppSettings>? SettingsChanged;
+
+    /// <summary>
     /// Performs first-run initialization: creates directories,
     /// copies default files if runtime files are missing, and sets file/directory ACLs.
     /// ACL enforcement is fail-closed during initialization — if ACLs cannot be
@@ -173,6 +180,8 @@ public class ConfigManager
         var json = JsonSerializer.Serialize(settings, JsonOptions);
         await WriteTextAsync(_settingsPath, json);
         ApplyFileAcl(_settingsPath);
+
+        SettingsChanged?.Invoke(settings);
     }
 
     /// <summary>

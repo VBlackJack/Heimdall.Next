@@ -29,6 +29,7 @@ public sealed class TunnelManager : IDisposable
 {
     private readonly ConcurrentDictionary<int, TunnelSession> _activeTunnels = new();
     private readonly ConcurrentDictionary<int, ExternalTunnelSession> _externalTunnels = new();
+    private readonly ConcurrentDictionary<int, int> _refCounts = new();
     private readonly object _registryLock = new();
     private bool _disposed;
 
@@ -37,6 +38,38 @@ public sealed class TunnelManager : IDisposable
 
     /// <summary>Raised when a tunnel is closed (localPort, optional error message).</summary>
     public event Action<int, string?>? TunnelClosed;
+
+    /// <summary>
+    /// Increments the reference count for a tunnel on the specified local port.
+    /// Call this when a new session begins using an existing tunnel.
+    /// </summary>
+    /// <param name="localPort">Local port of the tunnel to reference.</param>
+    public void AddReference(int localPort)
+    {
+        _refCounts.AddOrUpdate(localPort, 1, (_, current) => current + 1);
+    }
+
+    /// <summary>
+    /// Decrements the reference count for a tunnel on the specified local port.
+    /// Returns true if the count has reached zero (or no refs were tracked),
+    /// meaning the caller should close the tunnel. Returns false if other
+    /// sessions still reference the tunnel.
+    /// </summary>
+    /// <param name="localPort">Local port of the tunnel to release.</param>
+    /// <returns>True if the tunnel should be closed; false if still in use.</returns>
+    public bool ReleaseReference(int localPort)
+    {
+        var newCount = _refCounts.AddOrUpdate(localPort, 0, (_, current) => Math.Max(0, current - 1));
+
+        if (newCount <= 0)
+        {
+            _refCounts.TryRemove(localPort, out _);
+            CloseTunnel(localPort);
+            return true;
+        }
+
+        return false;
+    }
 
     /// <summary>
     /// Opens a single-hop SSH port-forwarding tunnel through the specified gateway.
@@ -111,6 +144,7 @@ public sealed class TunnelManager : IDisposable
                 }
             }
 
+            AddReference(localPort);
             TunnelOpened?.Invoke(info);
             return new TunnelResult(true, info, null, null);
         }
@@ -311,6 +345,7 @@ public sealed class TunnelManager : IDisposable
                 }
             }
 
+            AddReference(localPort);
             TunnelOpened?.Invoke(tunnelInfo);
             return new TunnelResult(true, tunnelInfo, null, null);
         }
@@ -337,10 +372,23 @@ public sealed class TunnelManager : IDisposable
         }
     }
 
-    /// <summary>Closes and removes the tunnel bound to the specified local port.</summary>
+    /// <summary>
+    /// Closes and removes the tunnel bound to the specified local port.
+    /// If the tunnel has a ref count greater than zero, the tunnel is kept alive.
+    /// Use <see cref="ReleaseReference"/> for ref-counted teardown.
+    /// </summary>
     /// <param name="localPort">Local port of the tunnel to close.</param>
     public void CloseTunnel(int localPort)
     {
+        // If there are still active references, do not tear down
+        if (_refCounts.TryGetValue(localPort, out var count) && count > 0)
+        {
+            return;
+        }
+
+        // No refs remaining — clean up the ref count entry
+        _refCounts.TryRemove(localPort, out _);
+
         if (_activeTunnels.TryRemove(localPort, out var session))
         {
             string? error = null;
@@ -438,6 +486,7 @@ public sealed class TunnelManager : IDisposable
             }
         }
 
+        AddReference(info.LocalPort);
         TunnelOpened?.Invoke(info);
         return true;
     }
@@ -456,6 +505,34 @@ public sealed class TunnelManager : IDisposable
     private bool IsPortTracked(int localPort)
     {
         return _activeTunnels.ContainsKey(localPort) || _externalTunnels.ContainsKey(localPort);
+    }
+
+    /// <summary>
+    /// Allocates an available local port for tunnel forwarding.
+    /// If the requested port is available and not tracked, returns it.
+    /// Otherwise, finds a free ephemeral port via the OS.
+    /// </summary>
+    /// <param name="preferredPort">Preferred port from the server profile.</param>
+    /// <returns>An available local port number.</returns>
+    public int AllocatePort(int preferredPort = 0)
+    {
+        if (preferredPort > 0 && !IsPortTracked(preferredPort))
+        {
+            // Verify the preferred port is not in use by another process
+            try
+            {
+                using var listener = new TcpListener(System.Net.IPAddress.Loopback, preferredPort);
+                listener.Start();
+                listener.Stop();
+                return preferredPort;
+            }
+            catch (SocketException)
+            {
+                // Preferred port is in use by another process — fall through to ephemeral
+            }
+        }
+
+        return GetEphemeralPort();
     }
 
     /// <summary>Finds an available ephemeral port by briefly binding to port 0.</summary>
@@ -493,7 +570,7 @@ public sealed class TunnelManager : IDisposable
 
             port?.Dispose();
         }
-        catch (ObjectDisposedException) { }
+        catch (ObjectDisposedException) { /* Expected when disposing already-closed resources */ }
 
         try
         {
@@ -504,7 +581,7 @@ public sealed class TunnelManager : IDisposable
 
             client?.Dispose();
         }
-        catch (ObjectDisposedException) { }
+        catch (ObjectDisposedException) { /* Expected when disposing already-closed resources */ }
     }
 
     /// <summary>Safely cleans up a partially constructed chained tunnel.</summary>
@@ -527,7 +604,7 @@ public sealed class TunnelManager : IDisposable
 
                 intermediatePorts[i].Dispose();
             }
-            catch (ObjectDisposedException) { }
+            catch (ObjectDisposedException) { /* Expected when disposing already-closed resources */ }
         }
 
         for (int i = intermediateClients.Count - 1; i >= 0; i--)
@@ -541,7 +618,7 @@ public sealed class TunnelManager : IDisposable
 
                 intermediateClients[i].Dispose();
             }
-            catch (ObjectDisposedException) { }
+            catch (ObjectDisposedException) { /* Expected when disposing already-closed resources */ }
         }
     }
 

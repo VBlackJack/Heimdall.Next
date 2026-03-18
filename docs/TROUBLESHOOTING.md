@@ -38,6 +38,14 @@ Index of all issues encountered during development and their solutions.
 23. [Citrix — storebrowse.exe Not Found](#citrix-storebrowseexe-not-found)
 24. [Theme Switching — Light Theme Looks Wrong](#theme-switching-light-theme-looks-wrong)
 25. [Multi-Exec — Broadcast Sends to Wrong Terminals](#multi-exec-broadcast-sends-to-wrong-terminals)
+26. [RDP Embedded — Resize Flicker](#rdp-embedded-resize-flicker)
+27. [VNC — noVNC Library Unavailable](#vnc-novnc-unavailable)
+28. [VNC — WebSocket Proxy Port Conflict](#vnc-websocket-port-conflict)
+29. [X11 Forwarding — No Display](#x11-no-display)
+30. [Telnet — Connection Hangs](#telnet-connection-hangs)
+31. [FTP — Passive Mode Failures](#ftp-passive-mode)
+32. [Tab Detach — WebView2 Session Lost](#tab-detach-webview2)
+33. [Ephemeral Server — Port 69 Access Denied](#tftp-port-access-denied)
 26. [Quick Connect — Ad-Hoc SSH Fails](#quick-connect-ad-hoc-ssh-fails)
 27. [RDP Resize — Still Reconnecting (Delta/Debounce Tuning)](#rdp-resize-still-reconnecting-deltadebounce-tuning)
 
@@ -483,3 +491,106 @@ if (sessionTab.ConnectionType == ConnectionType.Sftp)
 4. If the issue persists, check that `OnResizeTimerTick` compares against the LAST APPLIED resolution, not the last requested one
 
 **Files**: `EmbeddedRdpView.xaml.cs` — `OnResizeTimerTick()`, `UpdateResolution()`
+
+---
+
+## 27. VNC — noVNC Library Unavailable {#vnc-novnc-unavailable}
+
+**Symptom**: VNC tab shows "noVNC Library Unavailable" error instead of the remote desktop.
+
+**Root Cause**: The noVNC JavaScript library is loaded from CDN (`cdn.jsdelivr.net`). In offline or network-restricted environments, the import fails.
+
+**Solution**:
+1. Ensure the machine has internet connectivity
+2. For air-gapped environments, download noVNC from `https://github.com/novnc/noVNC/releases` and place files in `Assets/vnc/`. Update `vnc.html` to import from the local path instead of CDN
+3. The app shows a clear error message with instructions when the CDN is unreachable
+
+**Files**: `Assets/vnc.html`, `Views/EmbeddedVncView.xaml.cs`
+
+---
+
+## 28. VNC — WebSocket Proxy Port Conflict {#vnc-websocket-port-conflict}
+
+**Symptom**: VNC connection fails with a port binding error.
+
+**Root Cause**: The `WebSocketVncProxy` binds to a random local port. In rare cases, the port may already be in use.
+
+**Solution**: Retry the connection — a new random port will be selected. If the issue persists, check for processes hogging ephemeral ports.
+
+**Files**: `Services/WebSocketVncProxy.cs`
+
+---
+
+## 29. X11 Forwarding — No Display {#x11-no-display}
+
+**Symptom**: X11 forwarded applications fail with "Cannot open display" or similar errors.
+
+**Root Cause**: No X11 server (VcXsrv, Xming, X410) is installed or running on the Windows host.
+
+**Solution**:
+1. Install VcXsrv from `https://sourceforge.net/projects/vcxsrv/` or Xming
+2. Heimdall auto-detects and auto-starts the X server when X11 forwarding is enabled
+3. If auto-start fails, set the X server path manually in Settings > X11 Server Path
+4. Verify the `DISPLAY` environment variable is set (Heimdall sets `localhost:0.0` automatically)
+
+**Files**: `Services/X11ServerManager.cs`, `Services/ConnectionService.Ssh.cs`
+
+---
+
+## 30. Telnet — Connection Hangs {#telnet-connection-hangs}
+
+**Symptom**: Telnet connection appears to connect but no prompt appears.
+
+**Root Cause**: Some Telnet servers require specific IAC negotiation responses. Heimdall's Telnet implementation handles basic DO/WILL/DONT/WONT negotiation but may not satisfy all server requirements.
+
+**Solution**:
+1. Verify the target port is correct (default: 23)
+2. Test with a standard Telnet client to confirm the server works
+3. Some legacy devices may require specific terminal type negotiation not yet implemented
+
+**Files**: `Terminal/TelnetSession.cs`
+
+---
+
+## 31. FTP — Passive Mode Failures {#ftp-passive-mode}
+
+**Symptom**: FTP directory listing works but file transfers fail or time out.
+
+**Root Cause**: FTP uses separate data connections. Passive mode (default) requires the server to open a port that the client connects to. Firewalls may block these ports.
+
+**Solution**:
+1. Ensure the FTP server's passive port range is accessible
+2. The built-in .NET `FtpWebRequest` uses passive mode by default
+3. For active mode requirements, this is a known limitation of the current implementation
+
+**Files**: `Sftp/FtpBrowser.cs`
+
+---
+
+## 32. Tab Detach — WebView2 Session Lost {#tab-detach-webview2}
+
+**Symptom**: After detaching an SSH tab to a floating window and re-docking it, the terminal may lose its WebView2 state.
+
+**Root Cause**: WebView2 controls can behave unpredictably when re-parented between WPF visual trees. The control maintains its internal state but the rendering context may need re-initialization.
+
+**Solution**:
+1. If the terminal appears blank after re-docking, the session is still alive — try clicking in the terminal area
+2. For RDP sessions, detach is one-way (ActiveX controls cannot be safely re-parented)
+3. Split sessions cannot be detached (by design)
+
+**Files**: `Views/FloatingSessionWindow.xaml.cs`, `MainWindow.xaml.cs`
+
+---
+
+## 33. Ephemeral Server — Port 69 Access Denied {#tftp-port-access-denied}
+
+**Symptom**: TFTP server fails to start with "access denied" on port 69.
+
+**Root Cause**: Ports below 1024 require elevated privileges on Windows.
+
+**Solution**:
+1. Run Heimdall as Administrator if TFTP is needed
+2. The HTTP server (port 8080) works without elevation
+3. For non-elevated usage, TFTP is not available (this is a Windows security restriction)
+
+**Files**: `Services/EphemeralFileServer.cs`

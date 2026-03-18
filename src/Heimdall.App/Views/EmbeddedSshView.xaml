@@ -41,6 +41,15 @@
                         Margin="8,0,0,0"
                         Visibility="Collapsed"/>
 
+                <Button x:Name="HealthToggleButton"
+                        DockPanel.Dock="Right"
+                        Content="&#xE9D9;"
+                        FontFamily="Segoe MDL2 Assets"
+                        ToolTip="Server health"
+                        Click="OnHealthToggleClick"
+                        Style="{DynamicResource ToolbarGhostButtonStyle}"
+                        Padding="6,2" FontSize="12" Margin="4,0"/>
+
                 <Button x:Name="SplitButton"
                         DockPanel.Dock="Right"
                         Content="&#xE8A9;"
@@ -86,37 +95,155 @@
             </DockPanel>
         </Border>
 
-        <!-- Terminal surface -->
-        <Border Grid.Row="1"
-                Background="{DynamicResource BackgroundBrush}"
-                BorderThickness="0"
-                ClipToBounds="True">
-            <Grid>
-                <wv2:WebView2 x:Name="TerminalWebView"
-                              Focusable="True"
-                              DefaultBackgroundColor="#282A36" />
+        <!-- Terminal + Health panel container -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition x:Name="HealthColumnDef" Width="0"/>
+            </Grid.ColumnDefinitions>
 
-                <Border x:Name="FallbackPanel"
-                        Visibility="Collapsed"
-                        Background="{DynamicResource BackgroundBrush}"
-                        Padding="28">
-                    <StackPanel VerticalAlignment="Center"
-                                HorizontalAlignment="Center"
-                                MaxWidth="420">
-                        <TextBlock Text="Embedded SSH terminal unavailable"
-                                   FontSize="20"
+            <!-- Terminal surface -->
+            <Border x:Name="BroadcastBorder"
+                    Grid.Column="0"
+                    Background="{DynamicResource BackgroundBrush}"
+                    BorderBrush="{DynamicResource WarningBrush}"
+                    BorderThickness="0"
+                    ClipToBounds="True">
+                <Grid>
+                    <wv2:WebView2 x:Name="TerminalWebView"
+                                  Focusable="True"
+                                  DefaultBackgroundColor="#282A36" />
+
+                    <Border x:Name="FallbackPanel"
+                            Visibility="Collapsed"
+                            Background="{DynamicResource BackgroundBrush}"
+                            Padding="28">
+                        <StackPanel VerticalAlignment="Center"
+                                    HorizontalAlignment="Center"
+                                    MaxWidth="420">
+                            <TextBlock Text="Embedded SSH terminal unavailable"
+                                       FontSize="20"
+                                       FontWeight="SemiBold"
+                                       TextAlignment="Center"
+                                       Foreground="{DynamicResource TextPrimaryBrush}" />
+                            <TextBlock x:Name="FallbackMessageText"
+                                       Margin="0,12,0,0"
+                                       Text="WebView2 could not be initialized on this machine."
+                                       TextWrapping="Wrap"
+                                       TextAlignment="Center"
+                                       Foreground="{DynamicResource TextSecondaryBrush}" />
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Reconnect overlay (shown on unexpected disconnect) -->
+                    <Border x:Name="ReconnectOverlay"
+                            Visibility="Collapsed"
+                            Background="#CC1E1E2E"
+                            HorizontalAlignment="Stretch"
+                            VerticalAlignment="Stretch">
+                        <StackPanel VerticalAlignment="Center"
+                                    HorizontalAlignment="Center"
+                                    MaxWidth="400">
+                            <TextBlock x:Name="ReconnectMessageText"
+                                       Text="Session disconnected unexpectedly."
+                                       FontSize="15"
+                                       FontWeight="SemiBold"
+                                       TextAlignment="Center"
+                                       TextWrapping="Wrap"
+                                       Foreground="{DynamicResource TextPrimaryBrush}" />
+                            <StackPanel Orientation="Horizontal"
+                                        HorizontalAlignment="Center"
+                                        Margin="0,16,0,0">
+                                <Button x:Name="OverlayReconnectButton"
+                                        Content="Reconnect"
+                                        Click="OnOverlayReconnectClick"
+                                        Style="{DynamicResource PrimaryButtonStyle}"
+                                        Padding="16,6"
+                                        FontSize="13"
+                                        Margin="0,0,8,0"/>
+                                <Button x:Name="OverlayCloseButton"
+                                        Content="Dismiss"
+                                        Click="OnOverlayCloseClick"
+                                        Style="{DynamicResource SecondaryButtonStyle}"
+                                        Padding="16,6"
+                                        FontSize="13"
+                                        Margin="8,0,0,0"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </Border>
+
+            <!-- Server Health panel (collapsible right side) -->
+            <Border x:Name="HealthPanel"
+                    Grid.Column="1"
+                    Visibility="Collapsed"
+                    Background="{DynamicResource SurfaceBrush}"
+                    BorderBrush="{DynamicResource BorderBrush}"
+                    BorderThickness="1,0,0,0"
+                    Padding="10,8">
+                <ScrollViewer VerticalScrollBarVisibility="Auto"
+                              HorizontalScrollBarVisibility="Disabled">
+                    <StackPanel>
+                        <!-- CPU -->
+                        <TextBlock x:Name="HealthCpuLabel"
+                                   Text="CPU"
+                                   FontSize="11"
                                    FontWeight="SemiBold"
-                                   TextAlignment="Center"
-                                   Foreground="{DynamicResource TextPrimaryBrush}" />
-                        <TextBlock x:Name="FallbackMessageText"
-                                   Margin="0,12,0,0"
-                                   Text="WebView2 could not be initialized on this machine."
-                                   TextWrapping="Wrap"
-                                   TextAlignment="Center"
-                                   Foreground="{DynamicResource TextSecondaryBrush}" />
+                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                   Margin="0,0,0,4"/>
+                        <ProgressBar x:Name="CpuProgressBar"
+                                     Height="14"
+                                     Minimum="0" Maximum="100" Value="0"
+                                     Foreground="{DynamicResource AccentBrush}"
+                                     Background="{DynamicResource BackgroundBrush}"/>
+                        <TextBlock x:Name="CpuPercentText"
+                                   Text="0%"
+                                   FontSize="11"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                   HorizontalAlignment="Right"
+                                   Margin="0,2,0,12"/>
+
+                        <!-- RAM -->
+                        <TextBlock x:Name="HealthRamLabel"
+                                   Text="Memory"
+                                   FontSize="11"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                   Margin="0,0,0,4"/>
+                        <ProgressBar x:Name="RamProgressBar"
+                                     Height="14"
+                                     Minimum="0" Maximum="100" Value="0"
+                                     Foreground="{DynamicResource AccentBrush}"
+                                     Background="{DynamicResource BackgroundBrush}"/>
+                        <TextBlock x:Name="RamDetailText"
+                                   Text="0 / 0 MB"
+                                   FontSize="11"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                   HorizontalAlignment="Right"
+                                   Margin="0,2,0,12"/>
+
+                        <!-- Disk -->
+                        <TextBlock x:Name="HealthDiskLabel"
+                                   Text="Disk"
+                                   FontSize="11"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                   Margin="0,0,0,4"/>
+                        <ProgressBar x:Name="DiskProgressBar"
+                                     Height="14"
+                                     Minimum="0" Maximum="100" Value="0"
+                                     Foreground="{DynamicResource AccentBrush}"
+                                     Background="{DynamicResource BackgroundBrush}"/>
+                        <TextBlock x:Name="DiskDetailText"
+                                   Text="0 / 0"
+                                   FontSize="11"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                   HorizontalAlignment="Right"
+                                   Margin="0,2,0,0"/>
                     </StackPanel>
-                </Border>
-            </Grid>
-        </Border>
+                </ScrollViewer>
+            </Border>
+        </Grid>
     </Grid>
 </UserControl>

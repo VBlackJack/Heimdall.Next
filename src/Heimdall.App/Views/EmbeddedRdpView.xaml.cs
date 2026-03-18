@@ -49,6 +49,8 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
     private ServerProfileDto? _server;
     private SessionTabViewModel? _sessionTab;
 
+    private Core.Localization.LocalizationManager? _localizer;
+
     private bool _initialized;
     private bool _connectStarted;
     private bool _eventSinkAttached;
@@ -94,7 +96,8 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
     public void InitializeSession(
         ServerProfileDto server,
         SessionTabViewModel sessionTab,
-        int antiIdleIntervalSeconds = 60)
+        int antiIdleIntervalSeconds = 60,
+        Core.Localization.LocalizationManager? localizer = null)
     {
         ArgumentNullException.ThrowIfNull(server);
         ArgumentNullException.ThrowIfNull(sessionTab);
@@ -112,13 +115,19 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         _server = server;
         _sessionTab = sessionTab;
         _antiIdleIntervalSeconds = antiIdleIntervalSeconds;
+        _localizer = localizer;
         _initialized = true;
 
         SessionTitleText.Text = server.DisplayName;
         EndpointTextBlock.Text = BuildEndpointText(server);
 
+        if (_localizer is not null)
+        {
+            DisconnectButton.Content = L("BtnDisconnectSession");
+        }
+
         CreateHostControl();
-        UpdateSessionState("Connecting", "Preparing the embedded Remote Desktop session.");
+        UpdateSessionState("Connecting", L("RdpStatusPreparing"));
     }
 
     public void Dispose()
@@ -206,7 +215,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         {
             Core.Logging.FileLogger.Info("EmbeddedRDP Disconnect requested by user");
             _allowResolutionUpdates = false;
-            UpdateSessionState("Disconnecting", "Closing the embedded Remote Desktop session.");
+            UpdateSessionState("Disconnecting", L("RdpStatusDisconnecting"));
             _rdpHost.Disconnect();
         }
         catch (Exception ex)
@@ -358,7 +367,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
             _rdpHost.Connect();
 
             FlushLayoutPipeline("post-connect");
-            UpdateSessionState("Connecting", "Waiting for the Remote Desktop control to connect.");
+            UpdateSessionState("Connecting", L("RdpStatusWaiting"));
 
             if (!string.IsNullOrWhiteSpace(password))
             {
@@ -612,6 +621,23 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         _allowResolutionUpdates = false;
         UpdateSessionState("Error", string.Format("{0} {1}", message, ex.Message));
     }
+
+    /// <summary>
+    /// Updates the aspect ratio setting and triggers a resolution recalculation.
+    /// </summary>
+    public void UpdateAspectRatio(string ratioName)
+    {
+        if (_server is null) return;
+        _server.RdpAspectRatio = ratioName;
+
+        // Trigger a resolution recalculation via the resize timer
+        // (don't call OnSurfaceContainerSizeChanged directly — it needs a real SizeChangedEventArgs)
+        _resizeTimer.Stop();
+        _resizeTimer.Start();
+    }
+
+    /// <summary>Resolves a locale key, falling back to the key name if no localizer is set.</summary>
+    private string L(string key) => _localizer?[key] ?? key;
 
     private (int Width, int Height) GetDisplayDimensions()
     {

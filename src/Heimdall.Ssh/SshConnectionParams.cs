@@ -47,6 +47,9 @@ public class SshConnectionParams
     /// <summary>Whether to enable zlib compression on the SSH transport.</summary>
     public bool Compression { get; init; }
 
+    /// <summary>Whether to request X11 forwarding from the server.</summary>
+    public bool X11Forwarding { get; init; }
+
     /// <summary>TCP connection timeout. Defaults to 15 seconds.</summary>
     public TimeSpan ConnectTimeout { get; init; } = TimeSpan.FromSeconds(15);
 }

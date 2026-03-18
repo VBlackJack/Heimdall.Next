@@ -45,31 +45,31 @@
 
         <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto">
             <StackPanel Margin="0,0,8,0">
-                <TextBlock Text="Name" Style="{StaticResource LabelStyle}"/>
+                <TextBlock x:Name="LblName" Text="Name" Style="{StaticResource LabelStyle}"/>
                 <TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}"
                          Style="{StaticResource FormTextBoxStyle}"
                          AutomationProperties.Name="Gateway Name"/>
 
-                <TextBlock Text="Host" Style="{StaticResource LabelStyle}" Margin="0,12,0,4"/>
+                <TextBlock x:Name="LblHost" Text="Host" Style="{StaticResource LabelStyle}" Margin="0,12,0,4"/>
                 <TextBox Text="{Binding Host, UpdateSourceTrigger=PropertyChanged}"
                          Style="{StaticResource FormTextBoxStyle}"
                          AutomationProperties.Name="Host"/>
 
-                <TextBlock Text="Port" Style="{StaticResource LabelStyle}" Margin="0,12,0,4"/>
+                <TextBlock x:Name="LblPort" Text="Port" Style="{StaticResource LabelStyle}" Margin="0,12,0,4"/>
                 <TextBox Text="{Binding Port}"
                          Style="{StaticResource FormTextBoxStyle}"
                          Width="100" HorizontalAlignment="Left"
                          MaxLength="5"
                          AutomationProperties.Name="Port"/>
 
-                <TextBlock Text="Username" Style="{StaticResource LabelStyle}" Margin="0,12,0,4"/>
+                <TextBlock x:Name="LblUsername" Text="Username" Style="{StaticResource LabelStyle}" Margin="0,12,0,4"/>
                 <TextBox Text="{Binding User, UpdateSourceTrigger=PropertyChanged}"
                          Style="{StaticResource FormTextBoxStyle}"
                          AutomationProperties.Name="Username"/>
 
-                <TextBlock Text="Key Path" Style="{StaticResource LabelStyle}" Margin="0,12,0,4"/>
+                <TextBlock x:Name="LblKeyPath" Text="Key Path" Style="{StaticResource LabelStyle}" Margin="0,12,0,4"/>
                 <DockPanel>
-                    <Button Content="Browse"
+                    <Button x:Name="BtnBrowse" Content="Browse"
                             DockPanel.Dock="Right"
                             Command="{Binding BrowseKeyCommand}"
                             Style="{DynamicResource SecondaryButtonStyle}"
@@ -80,12 +80,12 @@
                              AutomationProperties.Name="Key Path"/>
                 </DockPanel>
 
-                <TextBlock Text="Password" Style="{StaticResource LabelStyle}" Margin="0,12,0,4"/>
+                <TextBlock x:Name="LblPassword" Text="Password" Style="{StaticResource LabelStyle}" Margin="0,12,0,4"/>
                 <PasswordBox x:Name="PasswordBox"
                              Style="{StaticResource FormPasswordBoxStyle}"
                              AutomationProperties.Name="Gateway Password"/>
 
-                <TextBlock Text="Parent Gateway" Style="{StaticResource LabelStyle}" Margin="0,12,0,4"/>
+                <TextBlock x:Name="LblParentGateway" Text="Parent Gateway" Style="{StaticResource LabelStyle}" Margin="0,12,0,4"/>
                 <ComboBox ItemsSource="{Binding AvailableParents}"
                           SelectedValue="{Binding SelectedParentGatewayId}"
                           SelectedValuePath="Id"
@@ -93,7 +93,7 @@
                           Style="{StaticResource FormComboBoxStyle}"
                           AutomationProperties.Name="Parent Gateway"/>
 
-                <TextBlock Text="Host Key Fingerprint" Style="{StaticResource LabelStyle}" Margin="0,12,0,4"/>
+                <TextBlock x:Name="LblHostKeyFingerprint" Text="Host Key Fingerprint" Style="{StaticResource LabelStyle}" Margin="0,12,0,4"/>
                 <TextBox Text="{Binding HostKeyFingerprint, Mode=OneWay}"
                          Style="{StaticResource FormTextBoxStyle}"
                          IsReadOnly="True"
@@ -115,12 +115,12 @@
                     Orientation="Horizontal"
                     HorizontalAlignment="Right"
                     Margin="0,16,0,0">
-            <Button Content="Cancel"
+            <Button x:Name="CancelBtn" Content="Cancel"
                     IsCancel="True"
                     Width="80"
                     Margin="0,0,8,0"
                     Style="{DynamicResource SecondaryButtonStyle}"/>
-            <Button Content="Save"
+            <Button x:Name="SaveBtn" Content="Save"
                     IsDefault="True"
                     Width="80"
                     Click="OnSaveClick"

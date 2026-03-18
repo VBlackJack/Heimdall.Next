@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+using System.Reflection;
 using System.Text;
 using Renci.SshNet;
 
@@ -45,6 +46,9 @@ public sealed class SshShellSession : IDisposable
 
     /// <summary>Whether the underlying SSH connection is active.</summary>
     public bool IsConnected => _client?.IsConnected == true && _stream is not null;
+
+    /// <summary>Exposes the underlying SSH client for multiplexed operations (e.g. health monitoring).</summary>
+    public SshClient? Client => _client;
 
     /// <summary>
     /// Connects to the SSH server, allocates a PTY, and starts the interactive shell.
@@ -138,11 +142,32 @@ public sealed class SshShellSession : IDisposable
             throw new InvalidOperationException("Session is not connected.");
         }
 
-        // SSH.NET 2025.1.0 exposes window-change via SendPseudoTerminalRequest on
-        // the SshCommand channel, but ShellStream does not surface it directly.
-        // A future version or a raw channel approach will be needed here.
-        // For now, log the request but do not throw.
-        _ = (columns, rows);
+        // SSH.NET ShellStream does not expose window-change directly, but the
+        // underlying IChannelSession has SendWindowChangeRequest. Access it via
+        // reflection on the private _channel field.
+        try
+        {
+            var channelField = _stream.GetType().GetField(
+                "_channel",
+                BindingFlags.NonPublic | BindingFlags.Instance);
+
+            if (channelField?.GetValue(_stream) is { } channel)
+            {
+                var method = channel.GetType().GetMethod(
+                    "SendWindowChangeRequest",
+                    BindingFlags.Public | BindingFlags.Instance,
+                    null,
+                    [typeof(uint), typeof(uint), typeof(uint), typeof(uint)],
+                    null);
+
+                method?.Invoke(channel, [(uint)columns, (uint)rows, 0u, 0u]);
+            }
+        }
+        catch (Exception ex)
+        {
+            Core.Logging.FileLogger.Warn(
+                $"SSH window-change request failed for {columns}x{rows}: {ex.InnerException?.Message ?? ex.Message}");
+        }
     }
 
     /// <summary>
@@ -257,7 +282,7 @@ public sealed class SshShellSession : IDisposable
                 _stream.Close();
                 _stream.Dispose();
             }
-            catch (ObjectDisposedException) { }
+            catch (ObjectDisposedException) { /* Expected when disposing already-closed resources */ }
 
             _stream = null;
         }
@@ -277,7 +302,7 @@ public sealed class SshShellSession : IDisposable
 
                 _client.Dispose();
             }
-            catch (ObjectDisposedException) { }
+            catch (ObjectDisposedException) { /* Expected when disposing already-closed resources */ }
 
             _client = null;
         }

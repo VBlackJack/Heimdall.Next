@@ -67,6 +67,9 @@ public partial class ServerItemViewModel : ObservableObject
     [ObservableProperty]
     private int _sortOrder;
 
+    [ObservableProperty]
+    private string _macAddress = "";
+
     public string ConnectionTypeBadge => ConnectionType.ToUpperInvariant() switch
     {
         "SSH" => "S",
@@ -98,6 +101,7 @@ public partial class ServerItemViewModel : ObservableObject
             Username = GetUsername(dto),
             IsFavorite = dto.IsFavorite,
             SortOrder = dto.SortOrder,
+            MacAddress = dto.MacAddress ?? "",
         };
     }
 
@@ -118,6 +122,7 @@ public partial class ServerItemViewModel : ObservableObject
         Username = GetUsername(dto);
         IsFavorite = dto.IsFavorite;
         SortOrder = dto.SortOrder;
+        MacAddress = dto.MacAddress ?? "";
     }
 
     partial void OnConnectionTypeChanged(string value)

@@ -29,6 +29,23 @@ public partial class ProjectDialog : Window
     {
         InitializeComponent();
         WindowThemeHelper.ApplyCurrentTheme(this);
+
+        Loaded += (_, _) =>
+        {
+            if (DataContext is ProjectDialogViewModel { Localizer: not null } vm)
+            {
+                CancelBtn.Content = vm.Localizer["BtnCancel"];
+                SaveBtn.Content = vm.Localizer["BtnSave"];
+
+                // Form labels
+                LblName.Text = vm.Localizer["ProjectDialogLabelName"];
+                LblDescription.Text = vm.Localizer["ProjectDialogLabelDescription"];
+                LblColor.Text = vm.Localizer["ProjectDialogLabelColor"];
+                LblSshDefaults.Text = vm.Localizer["ProjectDialogLabelSshDefaults"];
+                LblDefaultSshUsername.Text = vm.Localizer["ProjectDialogLabelDefaultSshUsername"];
+                LblDefaultSshKeyPath.Text = vm.Localizer["ProjectDialogLabelDefaultSshKeyPath"];
+            }
+        };
     }
 
     private void OnSaveClick(object sender, RoutedEventArgs e)

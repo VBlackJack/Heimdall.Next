@@ -37,12 +37,11 @@ public partial class ConnectionService
         AppSettings settings,
         CancellationToken ct)
     {
-        Core.Logging.FileLogger.Info($"EstablishTunnelAsync: serverId={serverId} gatewayId={gatewayId} target={remoteHost}:{remotePort} localPort={localPort}");
+        Core.Logging.FileLogger.Info($"EstablishTunnelAsync: serverId={serverId} gatewayId={gatewayId} target={remoteHost}:{remotePort} requestedPort={localPort}");
 
-        // Reuse existing tunnel if one is already active on the same local port
+        // Reuse existing tunnel if one is already active for the same remote target
         var existingTunnels = _tunnelManager.GetActiveTunnels();
         var existing = existingTunnels.FirstOrDefault(t =>
-            t.LocalPort == localPort &&
             t.RemoteHost == remoteHost &&
             t.RemotePort == remotePort &&
             t.IsAlive);
@@ -50,14 +49,19 @@ public partial class ConnectionService
         if (existing is not null)
         {
             Core.Logging.FileLogger.Info(
-                $"Reusing existing tunnel on port {localPort} for {serverId}");
-            _connectionSm.SetTunnelInfo(serverId, localPort, 0);
+                $"Reusing existing tunnel on port {existing.LocalPort} for {serverId}");
+            _tunnelManager.AddReference(existing.LocalPort);
+            _connectionSm.SetTunnelInfo(serverId, existing.LocalPort, 0);
             _connectionSm.TryTransition(serverId, Core.Models.ConnectionState.EstablishingTunnel);
             _connectionSm.TryTransition(serverId, Core.Models.ConnectionState.TunnelEstablished);
             return new TunnelResult(true, existing, null, null);
         }
 
         _connectionSm.TryTransition(serverId, Core.Models.ConnectionState.EstablishingTunnel);
+
+        // Dynamic port allocation: use the preferred port if free, otherwise find an available one
+        localPort = _tunnelManager.AllocatePort(localPort);
+        Core.Logging.FileLogger.Info($"Allocated tunnel port: {localPort}");
 
         List<SshConnectionParams> chain;
 
@@ -158,7 +162,7 @@ public partial class ConnectionService
         var plinkPath = ResolvePlinkPath(settings.PlinkPath);
         if (string.IsNullOrWhiteSpace(plinkPath) || !File.Exists(plinkPath))
         {
-            var message = "Plink not found. Set the path in Settings.";
+            var message = _localizer["ErrorPlinkNotConfigured"];
             _connectionSm.SetError(serverId, message);
             return new TunnelResult(false, null, message, SshFailureCode.Unknown);
         }
@@ -195,7 +199,7 @@ public partial class ConnectionService
         if (!_tunnelManager.TryRegisterExternalTunnel(tunnelInfo, runner, () => runner.IsRunning))
         {
             runner.Dispose();
-            const string duplicateMessage = "The tunnel local port was claimed concurrently.";
+            var duplicateMessage = _localizer["ErrorTunnelPortConcurrent"];
             _connectionSm.SetError(serverId, duplicateMessage);
             return new TunnelResult(false, null, duplicateMessage, SshFailureCode.PortInUse);
         }

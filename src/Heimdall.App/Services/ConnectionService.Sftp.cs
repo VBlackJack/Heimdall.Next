@@ -54,7 +54,7 @@ public partial class ConnectionService
             }
 
             targetHost = "127.0.0.1";
-            targetPort = server.LocalPort;
+            targetPort = tunnelResult.Tunnel?.LocalPort ?? server.LocalPort;
         }
 
         _connectionSm.TryTransition(server.Id, Core.Models.ConnectionState.LaunchingSftp);
