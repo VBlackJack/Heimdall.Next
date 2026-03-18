@@ -169,6 +169,24 @@
 
                     <Border Width="1" Margin="8,2" Background="{DynamicResource BorderBrush}"/>
 
+                    <ToggleButton x:Name="BtnSudoMode"
+                                  Click="OnSudoModeToggle"
+                                  Padding="8,2" FontSize="11"
+                                  ToolTip="Browse as root (sudo)"
+                                  Foreground="{DynamicResource TextPrimaryBrush}"
+                                  Background="Transparent"
+                                  BorderThickness="1"
+                                  BorderBrush="{DynamicResource BorderBrush}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE7EF;" FontFamily="Segoe MDL2 Assets" FontSize="12"
+                                       VerticalAlignment="Center" Margin="0,0,4,0"/>
+                            <TextBlock x:Name="BtnSudoModeText" Text="sudo" VerticalAlignment="Center"
+                                       FontSize="11" FontWeight="SemiBold"/>
+                        </StackPanel>
+                    </ToggleButton>
+
+                    <Border Width="1" Margin="8,2" Background="{DynamicResource BorderBrush}"/>
+
                     <Button x:Name="BtnBookmark"
                             Content="&#xE734;"
                             FontFamily="Segoe MDL2 Assets"
