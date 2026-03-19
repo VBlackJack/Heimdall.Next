@@ -34,7 +34,6 @@
 
         <!-- Title -->
         <TextBlock x:Name="PinTitleText" Grid.Row="0"
-                   Text="Enter PIN"
                    FontSize="18" FontWeight="SemiBold"
                    Foreground="{DynamicResource TextPrimaryBrush}"
                    HorizontalAlignment="Center"
@@ -84,13 +83,13 @@
                     Orientation="Horizontal"
                     HorizontalAlignment="Center"
                     Margin="0,16,0,0">
-            <Button x:Name="CancelBtn" Content="Cancel"
+            <Button x:Name="CancelBtn"
                     IsCancel="True"
                     Width="80"
                     Margin="0,0,8,0"
                     Style="{DynamicResource SecondaryButtonStyle}"
                     Click="OnCancelClick"/>
-            <Button x:Name="UnlockBtn" Content="Unlock"
+            <Button x:Name="UnlockBtn"
                     IsDefault="True"
                     Width="80"
                     Click="OnUnlockClick"

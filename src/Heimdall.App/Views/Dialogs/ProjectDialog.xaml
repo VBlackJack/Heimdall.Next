@@ -78,7 +78,7 @@
         </Grid.RowDefinitions>
 
         <StackPanel Grid.Row="0">
-            <TextBlock x:Name="LblName" Text="Name" Style="{StaticResource LabelStyle}"/>
+            <TextBlock x:Name="LblName" Style="{StaticResource LabelStyle}"/>
             <TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}"
                      Style="{StaticResource FormTextBoxStyle}"
                      MaxLength="50"
@@ -92,7 +92,7 @@
                 </TextBlock.Text>
             </TextBlock>
 
-            <TextBlock x:Name="LblDescription" Text="Description" Style="{StaticResource LabelStyle}" Margin="0,8,0,4"/>
+            <TextBlock x:Name="LblDescription" Style="{StaticResource LabelStyle}" Margin="0,8,0,4"/>
             <TextBox Text="{Binding Description, UpdateSourceTrigger=PropertyChanged}"
                      Style="{StaticResource FormTextBoxStyle}"
                      MaxLength="200"
@@ -110,7 +110,7 @@
                 </TextBlock.Text>
             </TextBlock>
 
-            <TextBlock x:Name="LblColor" Text="Color" Style="{StaticResource LabelStyle}" Margin="0,8,0,4"/>
+            <TextBlock x:Name="LblColor" Style="{StaticResource LabelStyle}" Margin="0,8,0,4"/>
             <WrapPanel>
                 <RadioButton GroupName="ProjectColor" Tag="#3B82F6"
                              Background="#3B82F6" Style="{StaticResource ColorSwatchStyle}"
@@ -146,15 +146,15 @@
                              AutomationProperties.Name="Orange"/>
             </WrapPanel>
 
-            <TextBlock x:Name="LblSshDefaults" Text="SSH Defaults" Style="{StaticResource LabelStyle}"
+            <TextBlock x:Name="LblSshDefaults" Style="{StaticResource LabelStyle}"
                        FontWeight="SemiBold" Margin="0,16,0,4"/>
 
-            <TextBlock x:Name="LblDefaultSshUsername" Text="Default SSH Username" Style="{StaticResource LabelStyle}" Margin="0,4,0,4"/>
+            <TextBlock x:Name="LblDefaultSshUsername" Style="{StaticResource LabelStyle}" Margin="0,4,0,4"/>
             <TextBox Text="{Binding DefaultSshUsername}"
                      Style="{StaticResource FormTextBoxStyle}"
                      AutomationProperties.Name="Default SSH Username"/>
 
-            <TextBlock x:Name="LblDefaultSshKeyPath" Text="Default SSH Key Path" Style="{StaticResource LabelStyle}" Margin="0,12,0,4"/>
+            <TextBlock x:Name="LblDefaultSshKeyPath" Style="{StaticResource LabelStyle}" Margin="0,12,0,4"/>
             <TextBox Text="{Binding DefaultSshKeyPath}"
                      Style="{StaticResource FormTextBoxStyle}"
                      AutomationProperties.Name="Default SSH Key Path"/>
@@ -174,12 +174,12 @@
                     Orientation="Horizontal"
                     HorizontalAlignment="Right"
                     Margin="0,16,0,0">
-            <Button x:Name="CancelBtn" Content="Cancel"
+            <Button x:Name="CancelBtn"
                     IsCancel="True"
                     Width="80"
                     Margin="0,0,8,0"
                     Style="{DynamicResource SecondaryButtonStyle}"/>
-            <Button x:Name="SaveBtn" Content="Save"
+            <Button x:Name="SaveBtn"
                     IsDefault="True"
                     Width="80"
                     Click="OnSaveClick"

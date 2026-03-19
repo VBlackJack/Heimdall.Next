@@ -1427,6 +1427,7 @@
   "BroadcastModeOn": "Mode diffusion ACTIF \u2014 saisie envoy\u00e9e \u00e0 tous les terminaux",
   "BroadcastModeOff": "Mode diffusion D\u00c9SACTIV\u00c9",
   "BroadcastToggleTooltip": "Activer/D\u00e9sactiver le mode diffusion (envoyer \u00e0 tous les terminaux)",
+  "BroadcastBadgeLabel": "DIFFUSION",
 
   "WorkspaceSave": "Sauvegarder l\u2019espace de travail",
   "WorkspaceRestore": "Restaurer l\u2019espace de travail",
@@ -1571,6 +1572,8 @@
   "TooltipHideSidebar": "Masquer le panneau (Ctrl+B)",
   "TooltipShowSidebar": "Afficher le panneau (Ctrl+B)",
   "TooltipAddMenu": "Ajouter un serveur, dossier ou passerelle",
+  "TooltipExpandAll": "D\u00e9plier tous les dossiers",
+  "TooltipCollapseAll": "Replier tous les dossiers",
 
   "DetailLabelGroup": "Groupe :",
   "DetailLabelEnvironment": "Environnement :",

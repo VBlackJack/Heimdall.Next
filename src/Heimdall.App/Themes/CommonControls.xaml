@@ -673,9 +673,13 @@
                                     BorderThickness="0,0,0,1"
                                     CornerRadius="12,12,0,0"
                                     Padding="8,8,8,0">
-                                <TabPanel x:Name="HeaderPanel"
-                                          IsItemsHost="True"
-                                          Background="Transparent"/>
+                                <ScrollViewer HorizontalScrollBarVisibility="Auto"
+                                              VerticalScrollBarVisibility="Disabled"
+                                              CanContentScroll="True">
+                                    <TabPanel x:Name="HeaderPanel"
+                                              IsItemsHost="True"
+                                              Background="Transparent"/>
+                                </ScrollViewer>
                             </Border>
                             <Border Grid.Row="1"
                                     Background="{DynamicResource CardBrush}"

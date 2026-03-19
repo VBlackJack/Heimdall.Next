@@ -47,12 +47,12 @@
                     Orientation="Horizontal"
                     HorizontalAlignment="Right"
                     Margin="0,16,0,0">
-            <Button x:Name="CancelBtn" Content="Cancel"
+            <Button x:Name="CancelBtn"
                     IsCancel="True"
                     Width="80"
                     Margin="0,0,8,0"
                     Style="{DynamicResource SecondaryButtonStyle}"/>
-            <Button x:Name="OkBtn" Content="OK"
+            <Button x:Name="OkBtn"
                     IsDefault="True"
                     Width="80"
                     Click="OnOkClick"

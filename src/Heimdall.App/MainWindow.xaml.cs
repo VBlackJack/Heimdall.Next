@@ -132,6 +132,8 @@ public partial class MainWindow : Window
         ToggleSidebarButton.ToolTip = vm.Localize("TooltipHideSidebar");
         ShowSidebarButton.ToolTip = vm.Localize("TooltipShowSidebar");
         AddButton.ToolTip = vm.Localize("TooltipAddMenu");
+        ExpandAllButton.ToolTip = vm.Localize("TooltipExpandAll");
+        CollapseAllButton.ToolTip = vm.Localize("TooltipCollapseAll");
 
         // Add menu
         Mw_AddMenuServer.Header = vm.Localize("AddMenuServer");
@@ -1906,6 +1908,35 @@ public partial class MainWindow : Window
 
     private bool _sidebarHidden;
     private double _savedSidebarWidth = 260;
+
+    private void OnExpandAllClick(object sender, RoutedEventArgs e)
+    {
+        SetAllFoldersExpanded(true);
+    }
+
+    private void OnCollapseAllClick(object sender, RoutedEventArgs e)
+    {
+        SetAllFoldersExpanded(false);
+    }
+
+    private void SetAllFoldersExpanded(bool expanded)
+    {
+        if (DataContext is not ViewModels.MainViewModel vm) return;
+
+        foreach (var folder in vm.ServerList.GroupedServers)
+        {
+            SetFolderExpandedRecursive(folder, expanded);
+        }
+    }
+
+    private static void SetFolderExpandedRecursive(ViewModels.FolderViewModel folder, bool expanded)
+    {
+        folder.IsExpanded = expanded;
+        foreach (var sub in folder.SubFolders)
+        {
+            SetFolderExpandedRecursive(sub, expanded);
+        }
+    }
 
     private void OnToggleSidebarClick(object sender, RoutedEventArgs e) => ToggleSidebar();
 
