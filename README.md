@@ -50,7 +50,7 @@ Built with .NET 10 and WPF. Secure, feature-rich Windows connection manager with
 - Terminal resize via SSH window-change request
 - X11 forwarding with automatic X server detection and auto-start
 - 25 structured failure codes with localized error messages
-- Auto-reconnect overlay on unexpected disconnect
+- Auto-reconnect overlay on unexpected disconnect (SSH and RDP)
 
 ### VNC
 - Embedded VNC viewer via noVNC + WebView2
@@ -90,6 +90,8 @@ Built with .NET 10 and WPF. Secure, feature-rich Windows connection manager with
 ### Quick Connect (Ctrl+K)
 - Command palette for ad-hoc connections without saving a server profile
 - Supports `user@host:port` format with optional protocol prefix
+- Bare IP or hostname input auto-proposes SSH and RDP connections
+- Also used as split session server picker (fuzzy search scales to any inventory size)
 - Recent connection history for quick re-use
 
 ### Tunnel Panel
@@ -145,7 +147,7 @@ Built with .NET 10 and WPF. Secure, feature-rich Windows connection manager with
 - Connection inheritance: group-level defaults for gateway, SSH username, key path
 - Empty state with welcome panel and import call-to-action
 - Fullscreen mode (F11), toggle sidebar (Ctrl+B), filter (Ctrl+F)
-- Bilingual interface: English and French (~1,960 i18n keys)
+- Bilingual interface: English and French (~2,034 i18n keys)
 
 ### Security
 - DPAPI encryption + HMAC-SHA256 integrity via unified `CredentialProtector`
@@ -154,6 +156,9 @@ Built with .NET 10 and WPF. Secure, feature-rich Windows connection manager with
 - Windows ACL enforcement on config directories, log files, and temp files
 - Input validation and sanitization against injection patterns (CWE-78) on all process arguments and placeholder expansion
 - HTTP/TFTP directory traversal prevention with sibling-prefix check
+- WebSocket Origin validation on VNC proxy (CSWSH prevention)
+- Atomic file creation with restrictive ACL for sensitive temp files (TOCTOU-safe)
+- Path traversal prevention on local file browser rename/new folder operations
 - ConfigManager concurrency-safe writes via SemaphoreSlim
 - WebView2 Content Security Policy (CSP) and navigation blocking
 - Pageant IPC identity verification with empty-agent preflight check
@@ -163,7 +168,7 @@ Built with .NET 10 and WPF. Secure, feature-rich Windows connection manager with
 
 ### Import and Migration
 - Migration from Heimdall v1 (DPAPI-encrypted credentials preserved)
-- Import from JSON and MobaXterm (.mxtsessions / .ini)
+- Import from JSON, MobaXterm (.mxtsessions / .ini), mRemoteNG (.xml), RDCMan (.rdg), and .rdp files
 
 ---
 
@@ -190,14 +195,17 @@ Download the latest portable build from the [Releases](../../releases) page, ext
 
 | Shortcut | Action |
 |----------|--------|
+| F1 | Keyboard shortcut help |
 | Ctrl+K | Quick Connect palette |
 | Ctrl+N | Add new server |
+| Ctrl+E | Edit selected server |
+| Ctrl+Del | Delete selected server |
 | Ctrl+Shift+N | Network Scanner |
 | Ctrl+Shift+S | Screenshot to clipboard |
 | Ctrl+B | Toggle sidebar |
 | Ctrl+F | Focus search/filter |
 | F11 | Toggle fullscreen |
-| Escape | Exit fullscreen / clear selection |
+| Escape | Exit fullscreen / close palette |
 | F2 | Rename (SFTP/local file browser) |
 | F5 | Refresh directory |
 
@@ -254,7 +262,7 @@ Release mode also produces Inno Setup `.exe` installers in `Dist/installers/` wi
 | RDP | ActiveX MsTscAx (WindowsFormsHost) |
 | Citrix | StoreBrowse CLI integration |
 | Crypto | System.Security.Cryptography.ProtectedData (DPAPI) |
-| Testing | xUnit + Moq + FluentAssertions (461 tests) |
+| Testing | xUnit + Moq + FluentAssertions (505 tests) |
 | Serialization | System.Text.Json |
 
 ---
