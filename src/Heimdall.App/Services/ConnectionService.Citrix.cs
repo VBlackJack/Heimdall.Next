@@ -33,16 +33,11 @@ public partial class ConnectionService
     {
         ArgumentNullException.ThrowIfNull(server);
 
+        Core.Logging.FileLogger.Info(
+            $"ConnectCitrixAsync: {server.DisplayName} hasLaunchCmd={!string.IsNullOrWhiteSpace(server.CitrixLaunchCommandLine)} storeFront={server.CitrixStoreFrontUrl ?? "none"} icaFile={server.CitrixIcaFilePath ?? "none"}");
+
         _connectionSm.TryTransition(server.Id, ConnectionState.ValidatingConfig);
         _connectionSm.TryTransition(server.Id, ConnectionState.LaunchingCitrix);
-
-        var launcher = ResolveCitrixLauncher();
-        if (launcher is null)
-        {
-            var msg = _localizer["CitrixWorkspaceNotFound"];
-            _connectionSm.SetError(server.Id, msg);
-            return new ConnectionResult(false, msg, null);
-        }
 
         Process? process = null;
         try
@@ -82,6 +77,14 @@ public partial class ConnectionService
             else if (!string.IsNullOrWhiteSpace(server.CitrixStoreFrontUrl)
                      && !string.IsNullOrWhiteSpace(server.CitrixAppName))
             {
+                var launcher = ResolveCitrixLauncher();
+                if (launcher is null)
+                {
+                    var msg = _localizer["CitrixWorkspaceNotFound"];
+                    _connectionSm.SetError(server.Id, msg);
+                    return new ConnectionResult(false, msg, null);
+                }
+
                 // Sanitize user-configurable fields against shell metacharacters (CWE-78).
                 if (server.CitrixAppName.AsSpan().IndexOfAny(['|', '&', ';', '`', '$', '\n', '\r']) >= 0
                     || server.CitrixStoreFrontUrl.AsSpan().IndexOfAny(['|', '&', ';', '`', '$', '\n', '\r']) >= 0)

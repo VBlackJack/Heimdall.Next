@@ -79,7 +79,7 @@ public static class CitrixCacheScanner
         {
             Id = Guid.NewGuid().ToString(),
             DisplayName = r.FriendlyName,
-            RemoteServer = r.StoreFrontUrl ?? string.Empty,
+            RemoteServer = string.IsNullOrWhiteSpace(r.StoreFrontUrl) ? "Citrix Local" : r.StoreFrontUrl,
             ConnectionType = "Citrix",
             Group = string.IsNullOrWhiteSpace(r.Category)
                 ? null
@@ -95,19 +95,21 @@ public static class CitrixCacheScanner
     private static void ParseCacheFile(string filePath, CitrixScanResult result)
     {
         var doc = XDocument.Load(filePath);
-        var resources = doc.Descendants("resource");
+
+        // Use LocalName to be namespace-agnostic (future Citrix versions may add xmlns)
+        var resources = doc.Descendants().Where(e => e.Name.LocalName == "resource");
 
         // Try to extract store URL from the launch command lines
         string? storeUrl = null;
 
         foreach (var resource in resources)
         {
-            var friendlyName = resource.Element("FriendlyName")?.Value?.Trim();
-            var description = resource.Element("Description")?.Value?.Trim();
-            var resourceType = resource.Element("resourceType")?.Value?.Trim();
-            var category = resource.Element("Category")?.Value?.Trim();
-            var launchCmd = resource.Element("LaunchCommandLine")?.Value?.Trim();
-            var icaUrl = resource.Element("icaLaunchUrl")?.Value?.Trim();
+            var friendlyName = El(resource, "FriendlyName");
+            var description = El(resource, "Description");
+            var resourceType = El(resource, "resourceType");
+            var category = El(resource, "Category");
+            var launchCmd = El(resource, "LaunchCommandLine");
+            var icaUrl = El(resource, "icaLaunchUrl");
 
             if (string.IsNullOrWhiteSpace(friendlyName) || string.IsNullOrWhiteSpace(launchCmd))
             {
@@ -138,6 +140,10 @@ public static class CitrixCacheScanner
             });
         }
     }
+
+    /// <summary>Namespace-agnostic element value extraction.</summary>
+    private static string? El(XElement parent, string localName) =>
+        parent.Elements().FirstOrDefault(e => e.Name.LocalName == localName)?.Value?.Trim();
 }
 
 /// <summary>
