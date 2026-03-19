@@ -83,4 +83,11 @@ public interface IDialogService
     /// <param name="title">Info title.</param>
     /// <param name="message">Info details.</param>
     void ShowInfo(string title, string message);
+
+    /// <summary>
+    /// Shows a non-blocking warning notification.
+    /// </summary>
+    /// <param name="title">Warning title.</param>
+    /// <param name="message">Warning details.</param>
+    void ShowWarning(string title, string message);
 }

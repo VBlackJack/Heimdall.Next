@@ -34,6 +34,9 @@ namespace Heimdall.App.ViewModels;
 /// </summary>
 public partial class SettingsViewModel : ObservableObject
 {
+    private static bool HasUtf8Bom(byte[] bytes) =>
+        bytes.Length >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF;
+
     private static readonly JsonSerializerOptions ExportJsonOptions = new()
     {
         WriteIndented = true,
@@ -451,7 +454,7 @@ public partial class SettingsViewModel : ObservableObject
             var dialog = new OpenFileDialog
             {
                 Title = _localizer["ImportDialogTitle"],
-                Filter = _localizer["ImportDialogFilter"]
+                Filter = _localizer["ImportDialogFilterAll"]
             };
 
             if (dialog.ShowDialog() != true)
@@ -459,20 +462,44 @@ public partial class SettingsViewModel : ObservableObject
                 return;
             }
 
-            var json = await File.ReadAllTextAsync(dialog.FileName, cancellationToken);
-            var imported = JsonSerializer.Deserialize<List<ServerProfileDto>>(json, ImportJsonOptions);
+            var ext = Path.GetExtension(dialog.FileName).ToLowerInvariant();
+            List<ServerProfileDto> imported;
+            List<string>? importWarnings = null;
 
-            if (imported is null || imported.Count == 0)
+            if (ext is ".mxtsessions" or ".ini")
+            {
+                // MobaXterm files are often Windows-1252 encoded; try UTF-8 first,
+                // fall back to Windows-1252 if the file contains high-byte characters.
+                var bytes = await File.ReadAllBytesAsync(dialog.FileName, cancellationToken);
+                var content = HasUtf8Bom(bytes)
+                    ? System.Text.Encoding.UTF8.GetString(bytes)
+                    : System.Text.Encoding.GetEncoding(1252).GetString(bytes);
+                var mobaResult = MobaXtermImporter.Parse(content);
+                imported = mobaResult.Servers;
+                importWarnings = mobaResult.Warnings;
+            }
+            else
+            {
+                var json = await File.ReadAllTextAsync(dialog.FileName, cancellationToken);
+                imported = JsonSerializer.Deserialize<List<ServerProfileDto>>(json, ImportJsonOptions)
+                    ?? [];
+            }
+
+            if (imported.Count == 0)
             {
                 _dialogService.ShowInfo(
                     _localizer["ImportDialogTitle"],
-                    _localizer.Format("StatusImportSuccess", 0));
+                    _localizer["ImportNoSessionsFound"]);
                 return;
             }
 
+            var confirmMessage = ext is ".mxtsessions" or ".ini"
+                ? _localizer.Format("ConfirmImportMobaXtermMessage", imported.Count)
+                : _localizer.Format("ConfirmImportMessage", imported.Count);
+
             var confirmed = await _dialogService.ShowConfirmAsync(
                 _localizer["ConfirmImportTitle"],
-                _localizer.Format("ConfirmImportMessage", imported.Count));
+                confirmMessage);
 
             if (!confirmed)
             {
@@ -480,7 +507,6 @@ public partial class SettingsViewModel : ObservableObject
             }
 
             var existing = await _configManager.LoadServersAsync();
-            var existingIds = new HashSet<string>(existing.Select(s => s.Id), StringComparer.OrdinalIgnoreCase);
 
             var newCount = 0;
             var updatedCount = 0;
@@ -511,9 +537,25 @@ public partial class SettingsViewModel : ObservableObject
 
             var totalImported = newCount + updatedCount;
             FileLogger.Info($"Imported {totalImported} server(s) from {dialog.FileName} ({newCount} new, {updatedCount} updated)");
-            _dialogService.ShowInfo(
-                _localizer["ImportDialogTitle"],
-                _localizer.Format("StatusImportBreakdown", totalImported, newCount, updatedCount));
+
+            var statusMessage = _localizer.Format("StatusImportBreakdown", totalImported, newCount, updatedCount);
+
+            if (importWarnings is { Count: > 0 })
+            {
+                var warningText = string.Join("\n", importWarnings.Take(10));
+                statusMessage += "\n\n" + _localizer.Format("ImportMobaXtermWarnings", importWarnings.Count)
+                    + "\n" + warningText;
+            }
+
+            if (ext is ".mxtsessions" or ".ini")
+            {
+                statusMessage += "\n\n" + _localizer["ImportMobaXtermPasswordNotice"];
+                _dialogService.ShowWarning(_localizer["ImportDialogTitle"], statusMessage);
+            }
+            else
+            {
+                _dialogService.ShowInfo(_localizer["ImportDialogTitle"], statusMessage);
+            }
 
             ConfigurationChanged?.Invoke();
         }

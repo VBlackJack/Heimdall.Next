@@ -136,6 +136,12 @@ public class WpfDialogService(LocalizationManager localizer) : IDialogService
         Views.Dialogs.MessageDialog.ShowMessage(GetOwnerWindow(), title, message, "info");
     }
 
+    /// <inheritdoc/>
+    public void ShowWarning(string title, string message)
+    {
+        Views.Dialogs.MessageDialog.ShowMessage(GetOwnerWindow(), title, message, "warning");
+    }
+
     /// <summary>
     /// Gets the current main window as dialog owner for proper centering and modal behavior.
     /// Returns null if no main window is available (e.g., during startup).

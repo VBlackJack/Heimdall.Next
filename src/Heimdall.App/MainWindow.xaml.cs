@@ -154,6 +154,7 @@ public partial class MainWindow : Window
         Mw_EmptyStateSubtitle.Text = vm.Localize("EmptyStateSubtitle");
         Mw_EmptyBtnAddServer.Content = vm.Localize("EmptyStateBtnAddServer");
         Mw_EmptyBtnImport.Content = vm.Localize("EmptyStateBtnImport");
+        Mw_EmptyBtnImport.ToolTip = vm.Localize("TooltipImport");
         Mw_EmptySelectServer.Text = vm.Localize("EmptyStateSelectServer");
 
         // Tunnel bottom panel
@@ -301,7 +302,9 @@ public partial class MainWindow : Window
         Mw_SettingsSaveBtn.Content = vm.Localize("SettingsBtnSaveSettings");
         Mw_SettingsResetBtn.Content = vm.Localize("SettingsBtnResetDefaults");
         Mw_SettingsExportBtn.Content = vm.Localize("SettingsBtnExportServers");
+        Mw_SettingsExportBtn.ToolTip = vm.Localize("TooltipExport");
         Mw_SettingsImportBtn.Content = vm.Localize("SettingsBtnImportServers");
+        Mw_SettingsImportBtn.ToolTip = vm.Localize("TooltipImport");
 
         // About tab
         Mw_AboutAppName.Text = vm.Localize("AppName");

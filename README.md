@@ -163,7 +163,7 @@ Built with .NET 10 and WPF. Secure, feature-rich Windows connection manager with
 
 ### Import and Migration
 - Migration from Heimdall v1 (DPAPI-encrypted credentials preserved)
-- Import from MobaXterm, mRemoteNG, CSV
+- Import from JSON and MobaXterm (.mxtsessions / .ini)
 
 ---
 

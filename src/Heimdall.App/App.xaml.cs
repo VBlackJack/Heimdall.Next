@@ -75,6 +75,9 @@ public partial class App : System.Windows.Application
         Heimdall.Core.Logging.ConnectionHistory.Initialize(logDir);
         Heimdall.Core.Logging.FileLogger.Info("Heimdall.Next starting");
 
+        // Register Windows-1252 codepage for MobaXterm .ini import
+        System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
+
         var services = new ServiceCollection();
         ConfigureServices(services);
         _serviceProvider = services.BuildServiceProvider();
