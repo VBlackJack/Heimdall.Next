@@ -618,7 +618,7 @@
   "StatusTagAdded": "Tag \"{0}\" added.",
   "StatusTagRemoved": "Tag \"{0}\" removed.",
   "ErrorTagEmpty": "Error: Tag name cannot be empty.",
-  "ImportDialogFilterAll": "All Supported|*.json;*.mxtsessions;*.mobaconf;*.ini|JSON|*.json|MobaXterm|*.mxtsessions;*.mobaconf;*.ini|All Files|*.*",
+  "ImportDialogFilterAll": "All Supported|*.json;*.mxtsessions;*.mobaconf;*.ini;*.xml;*.rdg;*.rdp|JSON|*.json|MobaXterm|*.mxtsessions;*.mobaconf;*.ini|mRemoteNG|*.xml|RDCMan|*.rdg|RDP Files|*.rdp|All Files|*.*",
   "ConfirmImportMobaXtermMessage": "Import {0} session(s) from MobaXterm? Passwords cannot be imported and must be re-entered.",
   "ImportMobaXtermPasswordNotice": "MobaXterm passwords are encrypted with a proprietary algorithm and could not be imported. Please re-enter credentials for each session.",
   "ImportMobaXtermWarnings": "{0} session(s) could not be parsed:",

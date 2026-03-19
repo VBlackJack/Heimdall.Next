@@ -468,8 +468,7 @@ public partial class SettingsViewModel : ObservableObject
 
             if (ext is ".mxtsessions" or ".ini" or ".mobaconf")
             {
-                // MobaXterm files are often Windows-1252 encoded; try UTF-8 first,
-                // fall back to Windows-1252 if the file contains high-byte characters.
+                // MobaXterm files are often Windows-1252 encoded
                 var bytes = await File.ReadAllBytesAsync(dialog.FileName, cancellationToken);
                 var content = HasUtf8Bom(bytes)
                     ? System.Text.Encoding.UTF8.GetString(bytes)
@@ -477,6 +476,38 @@ public partial class SettingsViewModel : ObservableObject
                 var mobaResult = MobaXtermImporter.Parse(content);
                 imported = mobaResult.Servers;
                 importWarnings = mobaResult.Warnings;
+            }
+            else if (ext is ".rdp")
+            {
+                var content = await File.ReadAllTextAsync(dialog.FileName, cancellationToken);
+                var rdpServer = RdpFileImporter.Parse(content, Path.GetFileName(dialog.FileName));
+                imported = rdpServer is not null ? [rdpServer] : [];
+            }
+            else if (ext is ".rdg")
+            {
+                var content = await File.ReadAllTextAsync(dialog.FileName, cancellationToken);
+                var rdcResult = RdcManImporter.Parse(content);
+                imported = rdcResult.Servers;
+                importWarnings = rdcResult.Warnings;
+            }
+            else if (ext is ".xml")
+            {
+                var content = await File.ReadAllTextAsync(dialog.FileName, cancellationToken);
+                // Detect mRemoteNG format by looking for Connections root or Node elements
+                if (content.Contains("<Connections", StringComparison.OrdinalIgnoreCase)
+                    || content.Contains("Type=\"Connection\"", StringComparison.OrdinalIgnoreCase))
+                {
+                    var mrnResult = MRemoteNgImporter.Parse(content);
+                    imported = mrnResult.Servers;
+                    importWarnings = mrnResult.Warnings;
+                }
+                else
+                {
+                    // Try RDCMan format
+                    var rdcResult = RdcManImporter.Parse(content);
+                    imported = rdcResult.Servers;
+                    importWarnings = rdcResult.Warnings;
+                }
             }
             else
             {
