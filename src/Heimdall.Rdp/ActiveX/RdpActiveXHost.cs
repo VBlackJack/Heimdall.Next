@@ -219,21 +219,41 @@ public class RdpActiveXHost : AxHost, IRdpSession
 
         try
         {
-            Core.Logging.FileLogger.Info(
-                $"RdpActiveXHost.UpdateResolution: handle=0x{HostHandle.ToInt64():X} width={width} height={height}");
-            // Reconnect(width, height) is available on IMsRdpClient7+ (RDP 7.1+)
+            // IMsRdpClient9+ (RDP 8.1+): change resolution without reconnection.
+            // Parameters: desktopWidth, desktopHeight, physicalWidth, physicalHeight,
+            //             orientation(0), desktopScaleFactor(100), deviceScaleFactor(100)
             ocx.GetType().InvokeMember(
-                "Reconnect",
+                "UpdateSessionDisplaySettings",
                 BindingFlags.InvokeMethod,
                 null,
                 ocx,
-                [(uint)width, (uint)height]);
+                new object[] { (uint)width, (uint)height, (uint)width, (uint)height,
+                               (uint)0, (uint)100, (uint)100 });
+
+            Core.Logging.FileLogger.Info(
+                $"RdpActiveXHost.UpdateResolution: handle=0x{HostHandle.ToInt64():X} {width}x{height} (seamless)");
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            LastError = ex.Message;
-            Core.Logging.FileLogger.Warn(
-                $"RdpActiveXHost.UpdateResolution failed: {ex.Message}");
+            // Fallback: Reconnect(width, height) on IMsRdpClient7+ (older servers/clients)
+            try
+            {
+                ocx.GetType().InvokeMember(
+                    "Reconnect",
+                    BindingFlags.InvokeMethod,
+                    null,
+                    ocx,
+                    [(uint)width, (uint)height]);
+
+                Core.Logging.FileLogger.Info(
+                    $"RdpActiveXHost.UpdateResolution: handle=0x{HostHandle.ToInt64():X} {width}x{height} (reconnect fallback)");
+            }
+            catch (Exception exFallback)
+            {
+                LastError = exFallback.Message;
+                Core.Logging.FileLogger.Warn(
+                    $"RdpActiveXHost.UpdateResolution failed: {exFallback.Message}");
+            }
         }
     }
 
