@@ -95,9 +95,9 @@ public class TelnetSession : ITerminalSession
             _stream.Write(data);
             _stream.Flush();
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            // Connection may have been closed
+            System.Diagnostics.Debug.WriteLine($"[TelnetSession] Write: {ex.Message}");
         }
     }
 
@@ -129,7 +129,7 @@ public class TelnetSession : ITerminalSession
             _stream?.Close();
             _client?.Close();
         }
-        catch { }
+        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[TelnetSession] Kill: {ex.Message}"); }
     }
 
     public void Dispose()
@@ -140,8 +140,8 @@ public class TelnetSession : ITerminalSession
         _cts?.Cancel();
         Kill();
 
-        try { _stream?.Dispose(); } catch { }
-        try { _client?.Dispose(); } catch { }
+        try { _stream?.Dispose(); } catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[TelnetSession] Dispose stream: {ex.Message}"); }
+        try { _client?.Dispose(); } catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[TelnetSession] Dispose client: {ex.Message}"); }
         _stream = null;
         _client = null;
         _cts?.Dispose();
@@ -166,8 +166,8 @@ public class TelnetSession : ITerminalSession
                 ProcessIncoming(buffer.AsSpan(0, bytesRead));
             }
         }
-        catch (OperationCanceledException) { }
-        catch (Exception) { }
+        catch (OperationCanceledException) { /* Expected on session dispose */ }
+        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[TelnetSession] ReadLoop: {ex.Message}"); }
 
         ProcessExited?.Invoke(0);
     }
@@ -277,7 +277,7 @@ public class TelnetSession : ITerminalSession
             buf[2] = option;
             _stream.Write(buf);
         }
-        catch { }
+        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[TelnetSession] SendCommand: {ex.Message}"); }
     }
 
     private void SendNawsSubnegotiation(int columns, int rows)
@@ -298,7 +298,7 @@ public class TelnetSession : ITerminalSession
             buf[8] = SE;
             _stream.Write(buf);
         }
-        catch { }
+        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[TelnetSession] SendNawsSubnegotiation: {ex.Message}"); }
     }
 
     /// <summary>

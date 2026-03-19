@@ -135,7 +135,7 @@ public partial class LocalFileBrowserView : UserControl
                     var info = new DirectoryInfo(dir);
                     entries.Add(new LocalFileEntry(info.Name, info.FullName, true, 0, info.LastWriteTime));
                 }
-                catch { /* Skip inaccessible directories (permissions, broken symlinks) */ }
+                catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[LocalFileBrowserView] skip inaccessible directory: {ex.Message}"); }
             }
 
             foreach (var file in Directory.EnumerateFiles(path))
@@ -145,7 +145,7 @@ public partial class LocalFileBrowserView : UserControl
                     var info = new FileInfo(file);
                     entries.Add(new LocalFileEntry(info.Name, info.FullName, false, info.Length, info.LastWriteTime));
                 }
-                catch { /* Skip inaccessible files (permissions, in-use locks) */ }
+                catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[LocalFileBrowserView] skip inaccessible file: {ex.Message}"); }
             }
 
             if (!string.Equals(path, _currentPath, StringComparison.OrdinalIgnoreCase))
@@ -327,7 +327,7 @@ public partial class LocalFileBrowserView : UserControl
             {
                 Process.Start(new ProcessStartInfo { FileName = entry.FullPath, UseShellExecute = true });
             }
-            catch { /* Best-effort launch via OS file association */ }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[LocalFileBrowserView] file open: {ex.Message}"); }
         }
     }
 
@@ -381,7 +381,7 @@ public partial class LocalFileBrowserView : UserControl
                     Process.Start(new ProcessStartInfo { FileName = "explorer.exe", Arguments = $"\"{entry.FullPath}\"" });
                 }
             }
-            catch { /* Best-effort launch of Explorer */ }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[LocalFileBrowserView] open in Explorer: {ex.Message}"); }
         }
         else
         {
@@ -389,7 +389,7 @@ public partial class LocalFileBrowserView : UserControl
             {
                 Process.Start(new ProcessStartInfo { FileName = "explorer.exe", Arguments = $"\"{_currentPath}\"" });
             }
-            catch { /* Best-effort launch of Explorer */ }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[LocalFileBrowserView] open Explorer: {ex.Message}"); }
         }
     }
 

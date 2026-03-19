@@ -108,12 +108,13 @@ public static class NetworkScanner
                 var entry = await Dns.GetHostEntryAsync(ip, ct);
                 hostname = entry.HostName;
             }
-            catch { /* DNS resolution is best-effort */ }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[NetworkScanner] DNS resolve: {ex.Message}"); }
 
             return new ScanResult(ip, true, reply.RoundtripTime, hostname, []);
         }
-        catch
+        catch (Exception ex)
         {
+            System.Diagnostics.Debug.WriteLine($"[NetworkScanner] ping: {ex.Message}");
             return null;
         }
     }
@@ -133,9 +134,9 @@ public static class NetworkScanner
                 await client.ConnectAsync(ip, port, linked.Token);
                 open.Add(port);
             }
-            catch
+            catch (Exception ex)
             {
-                // Port closed or filtered
+                System.Diagnostics.Debug.WriteLine($"[NetworkScanner] port probe {port}: {ex.Message}");
             }
         }
 

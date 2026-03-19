@@ -1304,7 +1304,7 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
                 editorView.CloseRequested += () =>
                 {
                     if (isSaving) return;
-                    try { File.Delete(localPath); Directory.Delete(tempPath); } catch { }
+                    try { File.Delete(localPath); Directory.Delete(tempPath); } catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[EmbeddedSftpView] temp file cleanup: {ex.Message}"); }
                 };
             }
         }

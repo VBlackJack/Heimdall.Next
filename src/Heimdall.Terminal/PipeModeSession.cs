@@ -95,9 +95,9 @@ public class PipeModeSession : ITerminalSession
             _process.StandardInput.BaseStream.Write(data);
             _process.StandardInput.BaseStream.Flush();
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            // Process may have exited
+            System.Diagnostics.Debug.WriteLine($"[PipeModeSession] Write: {ex.Message}");
         }
     }
 
@@ -124,7 +124,7 @@ public class PipeModeSession : ITerminalSession
                 _process.WaitForExit(3000);
             }
         }
-        catch { }
+        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[PipeModeSession] Kill: {ex.Message}"); }
     }
 
     public void Dispose()
@@ -135,7 +135,7 @@ public class PipeModeSession : ITerminalSession
         _cts?.Cancel();
         Kill();
 
-        try { _process?.Dispose(); } catch { }
+        try { _process?.Dispose(); } catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[PipeModeSession] Dispose process: {ex.Message}"); }
         _process = null;
         _cts?.Dispose();
         _cts = null;
@@ -157,13 +157,13 @@ public class PipeModeSession : ITerminalSession
             }
         }
         catch (OperationCanceledException) { /* Expected when session is disposed or cancelled */ }
-        catch (Exception) { /* Process may have exited; stream read is best-effort */ }
+        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[PipeModeSession] ReadStreamLoop: {ex.Message}"); }
     }
 
     private void OnProcessExited(object? sender, EventArgs e)
     {
         var exitCode = 0;
-        try { exitCode = _process?.ExitCode ?? -1; } catch { /* Process may not have started */ }
+        try { exitCode = _process?.ExitCode ?? -1; } catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[PipeModeSession] OnProcessExited: {ex.Message}"); }
         ProcessExited?.Invoke(exitCode);
     }
 }

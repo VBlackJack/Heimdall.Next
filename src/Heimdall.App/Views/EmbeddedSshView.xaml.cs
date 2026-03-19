@@ -369,8 +369,8 @@ public partial class EmbeddedSshView : UserControl, IDisposable
                 _terminalSession.ProcessExited -= _terminalExitHandler;
             }
 
-            try { _terminalSession.Kill(); } catch { }
-            try { _terminalSession.Dispose(); } catch { }
+            try { _terminalSession.Kill(); } catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[EmbeddedSshView] terminal kill: {ex.Message}"); }
+            try { _terminalSession.Dispose(); } catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[EmbeddedSshView] terminal dispose: {ex.Message}"); }
             _terminalSession = null;
         }
 
@@ -379,7 +379,7 @@ public partial class EmbeddedSshView : UserControl, IDisposable
 
         if (TerminalWebView is IDisposable disposableWebView)
         {
-            try { disposableWebView.Dispose(); } catch { }
+            try { disposableWebView.Dispose(); } catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[EmbeddedSshView] WebView dispose: {ex.Message}"); }
         }
 
         while (_pendingTerminalMessages.TryDequeue(out _))

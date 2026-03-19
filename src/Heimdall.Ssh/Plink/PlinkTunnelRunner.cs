@@ -140,7 +140,7 @@ public sealed class PlinkTunnelRunner : IDisposable
                 }
             }
             catch (OperationCanceledException) { /* Clean shutdown */ }
-            catch { /* Process terminated — expected during shutdown */ }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[PlinkTunnelRunner] stderr drain: {ex.Message}"); }
         }, cancellationToken);
 
         try
@@ -190,9 +190,9 @@ public sealed class PlinkTunnelRunner : IDisposable
                     _process.WaitForExit((int)ProcessKillGracePeriod.TotalMilliseconds);
                 }
             }
-            catch (InvalidOperationException)
+            catch (InvalidOperationException ex)
             {
-                // Process already exited
+                System.Diagnostics.Debug.WriteLine($"[PlinkTunnelRunner] Stop: {ex.Message}");
             }
 
             _process.Dispose();
@@ -274,7 +274,7 @@ public sealed class PlinkTunnelRunner : IDisposable
                         $"Secure file creation failed, using fallback: {ex.Message}");
                     File.WriteAllText(_pwFilePath, password);
                     try { Heimdall.Core.Security.AclEnforcer.SetFileAcl(_pwFilePath); }
-                    catch { /* Best-effort ACL enforcement */ }
+                    catch (Exception aclEx) { System.Diagnostics.Debug.WriteLine($"[PlinkTunnelRunner] ACL enforcement: {aclEx.Message}"); }
                 }
             }
             else
@@ -348,8 +348,9 @@ public sealed class PlinkTunnelRunner : IDisposable
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
             return await _process.StandardError.ReadToEndAsync(cts.Token).ConfigureAwait(false);
         }
-        catch
+        catch (Exception ex)
         {
+            System.Diagnostics.Debug.WriteLine($"[PlinkTunnelRunner] ReadStderrSafe: {ex.Message}");
             return string.Empty;
         }
     }
@@ -365,9 +366,9 @@ public sealed class PlinkTunnelRunner : IDisposable
             {
                 File.Delete(_pwFilePath);
             }
-            catch (IOException)
+            catch (IOException ex)
             {
-                // Best-effort cleanup
+                System.Diagnostics.Debug.WriteLine($"[PlinkTunnelRunner] CleanupPasswordFile: {ex.Message}");
             }
 
             _pwFilePath = null;

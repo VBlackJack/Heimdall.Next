@@ -89,8 +89,9 @@ public sealed class ConPtySession : ITerminalSession
                     return false;
                 return NativeMethods.GetProcAddress(module, "CreatePseudoConsole") != IntPtr.Zero;
             }
-            catch
+            catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"[ConPtySession] IsAvailable check: {ex.Message}");
                 return false;
             }
         }
@@ -232,7 +233,7 @@ public sealed class ConPtySession : ITerminalSession
         if (_readLoop is not null)
         {
             try { _readLoop.Wait(TimeSpan.FromSeconds(2)); }
-            catch { /* Best-effort wait for clean shutdown. */ }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[ConPtySession] Dispose read loop wait: {ex.Message}"); }
         }
 
         _cts?.Dispose();
@@ -438,7 +439,7 @@ public sealed class ConPtySession : ITerminalSession
                 if (exitCode == NativeMethods.STILL_ACTIVE)
                     NativeMethods.TerminateProcess(_processHandle, 1);
             }
-            catch { /* Best-effort termination during cleanup. */ }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[ConPtySession] TerminateAndCloseProcess: {ex.Message}"); }
 
             NativeMethods.CloseHandle(_processHandle);
             _processHandle = IntPtr.Zero;
@@ -467,7 +468,7 @@ public sealed class ConPtySession : ITerminalSession
             return;
 
         try { stream.Dispose(); }
-        catch { /* Best-effort stream cleanup. */ }
+        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[ConPtySession] DisposeStream: {ex.Message}"); }
         stream = null;
     }
 }
