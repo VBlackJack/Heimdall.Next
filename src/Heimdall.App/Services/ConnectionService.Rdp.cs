@@ -65,8 +65,11 @@ public partial class ConnectionService
         if (string.Equals(rdpMode, "Embedded", StringComparison.OrdinalIgnoreCase))
         {
             // Embedded RDP will be handled by the View layer (ActiveX in WindowsFormsHost).
-            // Return the server DTO so the ViewModel can create an embedded session tab.
-            return new ConnectionResult(true, null, new RdpSessionResult(server));
+            // Pass the dynamically allocated tunnel port so the view connects to the correct port.
+            int? effectiveTunnelPort = (!server.UseDirectConnection && !string.IsNullOrEmpty(server.SshGatewayId))
+                ? tunnelLocalPort
+                : null;
+            return new ConnectionResult(true, null, new RdpSessionResult(server, effectiveTunnelPort));
         }
 
         // External mode: launch mstsc.exe
