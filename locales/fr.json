@@ -2014,6 +2014,8 @@
   "LogCitrixLaunching": "Lancement de la session Citrix",
   "CitrixStatusConnected": "Connect\u00e9",
   "CitrixStatusDisconnected": "D\u00e9connect\u00e9",
+  "CitrixStatusEmbedded": "Int\u00e9gr\u00e9",
+  "CitrixStatusExternal": "Fen\u00eatre externe",
 
   "GatewayDialogLabelName": "Nom",
   "GatewayDialogLabelHost": "H\u00f4te",
