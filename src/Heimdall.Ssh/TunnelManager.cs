@@ -606,7 +606,7 @@ public sealed class TunnelManager : IDisposable
 
             port?.Dispose();
         }
-        catch (ObjectDisposedException) { /* Expected when disposing already-closed resources */ }
+        catch (ObjectDisposedException ex) { System.Diagnostics.Debug.WriteLine($"[TunnelManager] CleanupPartial port: {ex.Message}"); }
 
         try
         {
@@ -617,7 +617,7 @@ public sealed class TunnelManager : IDisposable
 
             client?.Dispose();
         }
-        catch (ObjectDisposedException) { /* Expected when disposing already-closed resources */ }
+        catch (ObjectDisposedException ex) { System.Diagnostics.Debug.WriteLine($"[TunnelManager] CleanupPartial client: {ex.Message}"); }
     }
 
     /// <summary>Safely cleans up a partially constructed chained tunnel.</summary>
@@ -640,7 +640,7 @@ public sealed class TunnelManager : IDisposable
 
                 intermediatePorts[i].Dispose();
             }
-            catch (ObjectDisposedException) { /* Expected when disposing already-closed resources */ }
+            catch (ObjectDisposedException ex) { System.Diagnostics.Debug.WriteLine($"[TunnelManager] CleanupChainPartial port[{i}]: {ex.Message}"); }
         }
 
         for (int i = intermediateClients.Count - 1; i >= 0; i--)
@@ -654,7 +654,7 @@ public sealed class TunnelManager : IDisposable
 
                 intermediateClients[i].Dispose();
             }
-            catch (ObjectDisposedException) { /* Expected when disposing already-closed resources */ }
+            catch (ObjectDisposedException ex) { System.Diagnostics.Debug.WriteLine($"[TunnelManager] CleanupChainPartial client[{i}]: {ex.Message}"); }
         }
     }
 
@@ -680,8 +680,9 @@ public sealed class TunnelManager : IDisposable
                 {
                     return _isAlive();
                 }
-                catch
+                catch (Exception ex)
                 {
+                    System.Diagnostics.Debug.WriteLine($"[TunnelManager.ExternalTunnelSession] IsAlive: {ex.Message}");
                     return false;
                 }
             }

@@ -53,7 +53,7 @@ public partial class App : System.Windows.Application
                 if (loc is not null)
                     errorTitle = loc["ErrorUnhandledTitle"];
             }
-            catch { /* Localization may not be initialized yet */ }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[App] localization lookup: {ex.Message}"); }
             MessageBox.Show(
                 $"Unhandled error:\n\n{args.Exception.Message}\n\n{args.Exception.StackTrace}",
                 errorTitle,
@@ -329,7 +329,7 @@ public partial class App : System.Windows.Application
             {
                 _mainViewModel?.Connection.CloseAllSessionsCommand.Execute(null);
             }
-            catch { /* Best-effort shutdown: session cleanup must not prevent exit */ }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[App] session cleanup: {ex.Message}"); }
 
             // Close all active tunnels (Plink tunnel processes)
             try
@@ -337,14 +337,14 @@ public partial class App : System.Windows.Application
                 var tunnelManager = _serviceProvider.GetService<TunnelManager>();
                 tunnelManager?.Dispose();
             }
-            catch { /* Best-effort shutdown: tunnel cleanup must not prevent exit */ }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[App] tunnel cleanup: {ex.Message}"); }
 
             // Stop scheduled task engine
             try
             {
                 _mainViewModel?.StopScheduler();
             }
-            catch { /* Best-effort shutdown */ }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[App] scheduler cleanup: {ex.Message}"); }
 
             // Stop managed X11 server
             try
@@ -352,14 +352,14 @@ public partial class App : System.Windows.Application
                 var x11Manager = _serviceProvider.GetService<X11ServerManager>();
                 x11Manager?.Stop();
             }
-            catch { /* Best-effort shutdown */ }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[App] X11 cleanup: {ex.Message}"); }
 
             // Release sleep prevention
             try
             {
                 SleepPrevention.ForceRelease();
             }
-            catch { /* Best-effort shutdown */ }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[App] sleep prevention cleanup: {ex.Message}"); }
         }
 
         _serviceProvider?.Dispose();

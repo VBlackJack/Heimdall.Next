@@ -174,7 +174,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
             FormsHost.Visibility = System.Windows.Visibility.Collapsed;
             FormsHost.Child = null;
         }
-        catch { }
+        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[EmbeddedRdpView] FormsHost cleanup: {ex.Message}"); }
 
         if (_rdpHost is not null)
         {
@@ -405,8 +405,9 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         {
             await Task.Delay(BeginConnectRetryDelay);
         }
-        catch
+        catch (Exception ex)
         {
+            System.Diagnostics.Debug.WriteLine($"[EmbeddedRdpView] retry delay: {ex.Message}");
             return;
         }
 
@@ -464,8 +465,9 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         {
             await Task.Delay(InitialResizeEnableDelay);
         }
-        catch
+        catch (Exception ex)
         {
+            System.Diagnostics.Debug.WriteLine($"[EmbeddedRdpView] resolution delay: {ex.Message}");
             return;
         }
 
@@ -606,9 +608,9 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         {
             cts.Cancel();
         }
-        catch
+        catch (Exception ex)
         {
-            // Best-effort cancellation only.
+            System.Diagnostics.Debug.WriteLine($"[EmbeddedRdpView] autofill cancel: {ex.Message}");
         }
         finally
         {

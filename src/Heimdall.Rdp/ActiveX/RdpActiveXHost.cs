@@ -429,7 +429,7 @@ public class RdpActiveXHost : AxHost, IRdpSession
         // absorbing pixel rounding differences and providing smooth resize
         // during the debounce delay before UpdateResolution kicks in.
         try { ax.AdvancedSettings2.SmartSizing = true; }
-        catch { /* Older RDP versions may not support SmartSizing */ }
+        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[RdpActiveXHost] SmartSizing: {ex.Message}"); }
     }
 
     private void ApplyRedirectionSettings(object ocx)
@@ -479,7 +479,7 @@ public class RdpActiveXHost : AxHost, IRdpSession
         // Allow background input — CRITICAL for anti-idle on background tabs.
         // Without this, the RDP ActiveX control discards PostMessage input
         // when it does not have focus, silently breaking anti-idle.
-        try { adv.allowBackgroundInput = 1; } catch { }
+        try { adv.allowBackgroundInput = 1; } catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[RdpActiveXHost] allowBackgroundInput: {ex.Message}"); }
 
         // Multi-monitor (requires IMsRdpClientNonScriptable5)
         if (_pendingRedirections.MultiMonitor)
@@ -488,9 +488,9 @@ public class RdpActiveXHost : AxHost, IRdpSession
             {
                 adv.UseMultimon = true;
             }
-            catch
+            catch (Exception ex)
             {
-                // Not supported on this RDP version — ignore
+                System.Diagnostics.Debug.WriteLine($"[RdpActiveXHost] UseMultimon: {ex.Message}");
             }
         }
     }
@@ -525,11 +525,11 @@ public class RdpActiveXHost : AxHost, IRdpSession
             if (disposing)
             {
                 try { DetachEventSink(); }
-                catch { /* already captured in LastError by DetachEventSink */ }
+                catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[RdpActiveXHost] Dispose DetachEventSink: {ex.Message}"); }
             }
 
             try { ReleaseActiveX(); }
-            catch { /* already captured in LastError by ReleaseActiveX */ }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[RdpActiveXHost] Dispose ReleaseActiveX: {ex.Message}"); }
         }
 
         base.Dispose(disposing);

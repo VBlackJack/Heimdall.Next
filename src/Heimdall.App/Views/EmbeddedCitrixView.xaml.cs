@@ -332,7 +332,7 @@ public partial class EmbeddedCitrixView : UserControl, IDisposable
                 _hostPanel.ClientSize.Height,
                 true);
         }
-        catch { /* Best-effort resize */ }
+        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[EmbeddedCitrixView] resize: {ex.Message}"); }
     }
 
     private void OnBringToFrontClick(object sender, RoutedEventArgs e)
@@ -349,7 +349,7 @@ public partial class EmbeddedCitrixView : UserControl, IDisposable
 
             SetForegroundWindow(hWnd);
         }
-        catch (InvalidOperationException) { }
+        catch (InvalidOperationException ex) { System.Diagnostics.Debug.WriteLine($"[EmbeddedCitrixView] bring to front: {ex.Message}"); }
     }
 
     private void OnTerminateClick(object sender, RoutedEventArgs e)
@@ -359,7 +359,7 @@ public partial class EmbeddedCitrixView : UserControl, IDisposable
         if (_session?.Process is not null && !_session.Process.HasExited)
         {
             try { _session.Process.Kill(); }
-            catch (InvalidOperationException) { }
+            catch (InvalidOperationException ex) { System.Diagnostics.Debug.WriteLine($"[EmbeddedCitrixView] terminate process: {ex.Message}"); }
         }
 
         UpdateStatus(false);
@@ -439,7 +439,7 @@ public partial class EmbeddedCitrixView : UserControl, IDisposable
                 SetParent(_capturedHwnd, IntPtr.Zero);
                 ShowWindow(_capturedHwnd, SwShowNormal);
             }
-            catch { /* Best-effort release */ }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[EmbeddedCitrixView] window release: {ex.Message}"); }
         }
 
         _capturedHwnd = IntPtr.Zero;
@@ -461,13 +461,13 @@ public partial class EmbeddedCitrixView : UserControl, IDisposable
         ReleaseEmbeddedWindow();
 
         try { FormsHost.Child = null; }
-        catch { }
+        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[EmbeddedCitrixView] FormsHost cleanup: {ex.Message}"); }
         _hostPanel?.Dispose();
 
         if (_session?.Process is not null && !_session.Process.HasExited)
         {
             try { _session.Process.Kill(); }
-            catch (InvalidOperationException) { }
+            catch (InvalidOperationException ex) { System.Diagnostics.Debug.WriteLine($"[EmbeddedCitrixView] dispose process kill: {ex.Message}"); }
         }
 
         _session?.Process?.Dispose();

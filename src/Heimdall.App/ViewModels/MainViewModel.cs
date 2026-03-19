@@ -559,7 +559,7 @@ public partial class MainViewModel : ObservableObject
             System.Windows.Clipboard.SetText(tunnel.LocalPort.ToString());
             StatusText = _localizer.Format("StatusPortCopied", tunnel.LocalPort);
         }
-        catch { /* Clipboard may fail in RDP sessions */ }
+        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[MainViewModel] clipboard copy: {ex.Message}"); }
     }
 
     [RelayCommand]

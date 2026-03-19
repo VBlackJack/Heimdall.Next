@@ -124,7 +124,7 @@ public static class CitrixCacheScanner
                     var uri = new Uri(icaUrl);
                     storeUrl = $"{uri.Scheme}://{uri.Host}";
                 }
-                catch { /* Ignore malformed URLs */ }
+                catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[CitrixCacheScanner] malformed URL: {ex.Message}"); }
             }
 
             result.Resources.Add(new CitrixResource

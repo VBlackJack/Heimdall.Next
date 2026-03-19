@@ -271,7 +271,7 @@ public partial class ConnectionService
             }
             catch (OperationCanceledException)
             {
-                try { process.Kill(true); } catch { }
+                try { process.Kill(true); } catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[ConnectionService] host key probe kill: {ex.Message}"); }
                 stderr = "";
             }
 

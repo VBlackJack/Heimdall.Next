@@ -421,9 +421,9 @@ public class SftpBrowser : IRemoteBrowser
             {
                 _client.Disconnect();
             }
-            catch
+            catch (Exception ex)
             {
-                // Best-effort disconnect; swallow transport errors during teardown.
+                System.Diagnostics.Debug.WriteLine($"[SftpBrowser] disconnect: {ex.Message}");
             }
         }
 
@@ -544,13 +544,13 @@ internal static class SftpFileAttributesExtensions
     public static int GetOwnerIdOrDefault(this SftpFileAttributes attrs)
     {
         try { return attrs.UserId; }
-        catch { return -1; }
+        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[SftpBrowser] read UserId: {ex.Message}"); return -1; }
     }
 
     public static int GetGroupIdOrDefault(this SftpFileAttributes attrs)
     {
         try { return attrs.GroupId; }
-        catch { return -1; }
+        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[SftpBrowser] read GroupId: {ex.Message}"); return -1; }
     }
 
     public static int GetPermissionsOrDefault(this SftpFileAttributes attrs)
@@ -571,8 +571,9 @@ internal static class SftpFileAttributesExtensions
             if (attrs.OthersCanExecute) mode |= 0x001;
             return mode;
         }
-        catch
+        catch (Exception ex)
         {
+            System.Diagnostics.Debug.WriteLine($"[SftpBrowser] read permissions: {ex.Message}");
             return 0;
         }
     }

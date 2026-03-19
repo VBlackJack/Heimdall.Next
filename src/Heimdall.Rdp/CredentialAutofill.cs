@@ -289,8 +289,9 @@ public static partial class CredentialAutofill
 
             return CredentialBrokerProcessNames.Contains(name, StringComparer.OrdinalIgnoreCase);
         }
-        catch
+        catch (Exception ex)
         {
+            System.Diagnostics.Debug.WriteLine($"[CredentialAutofill] IsCredentialBroker: {ex.Message}");
             return false;
         }
     }
@@ -654,7 +655,7 @@ public static partial class CredentialAutofill
                 }, IntPtr.Zero);
             }
         }
-        catch { /* best-effort thread enumeration */ }
+        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[CredentialAutofill] thread enumeration: {ex.Message}"); }
 
         return result;
     }
@@ -705,8 +706,9 @@ public static partial class CredentialAutofill
             using var process = System.Diagnostics.Process.GetProcessById(processId);
             return process.ProcessName;
         }
-        catch
+        catch (Exception ex)
         {
+            System.Diagnostics.Debug.WriteLine($"[CredentialAutofill] GetProcessName: {ex.Message}");
             return string.Empty;
         }
     }
@@ -717,8 +719,9 @@ public static partial class CredentialAutofill
         {
             return element.Current.Name ?? string.Empty;
         }
-        catch
+        catch (Exception ex)
         {
+            System.Diagnostics.Debug.WriteLine($"[CredentialAutofill] SafeAutomationName: {ex.Message}");
             return string.Empty;
         }
     }
@@ -729,8 +732,9 @@ public static partial class CredentialAutofill
         {
             return element.Current.AutomationId ?? string.Empty;
         }
-        catch
+        catch (Exception ex)
         {
+            System.Diagnostics.Debug.WriteLine($"[CredentialAutofill] SafeAutomationId: {ex.Message}");
             return string.Empty;
         }
     }
@@ -742,8 +746,9 @@ public static partial class CredentialAutofill
             var value = element.GetCurrentPropertyValue(property, true);
             return value is bool b && b;
         }
-        catch
+        catch (Exception ex)
         {
+            System.Diagnostics.Debug.WriteLine($"[CredentialAutofill] SafeAutomationBool: {ex.Message}");
             return false;
         }
     }
