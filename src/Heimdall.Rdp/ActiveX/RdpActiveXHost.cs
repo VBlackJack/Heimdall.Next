@@ -404,6 +404,12 @@ public class RdpActiveXHost : AxHost, IRdpSession
         ax.DesktopWidth = _pendingWidth;
         ax.DesktopHeight = _pendingHeight;
         ax.ColorDepth = _pendingColorDepth;
+
+        // SmartSizing stretches the RDP session to fill the control surface,
+        // absorbing pixel rounding differences and providing smooth resize
+        // during the debounce delay before UpdateResolution kicks in.
+        try { ax.AdvancedSettings2.SmartSizing = true; }
+        catch { /* Older RDP versions may not support SmartSizing */ }
     }
 
     private void ApplyRedirectionSettings(object ocx)
