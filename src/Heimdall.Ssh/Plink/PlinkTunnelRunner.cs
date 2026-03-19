@@ -39,7 +39,7 @@ public record PlinkTunnelResult(bool Success, string? ErrorMessage, SshFailureCo
 /// </remarks>
 public sealed class PlinkTunnelRunner : IDisposable
 {
-    private static readonly int PortCheckMaxAttempts = 5;
+    private static readonly int PortCheckMaxAttempts = 15;
     private static readonly TimeSpan PortCheckInterval = TimeSpan.FromSeconds(2);
     private static readonly TimeSpan ProcessKillGracePeriod = TimeSpan.FromSeconds(2);
 
@@ -308,7 +308,7 @@ public sealed class PlinkTunnelRunner : IDisposable
 
         try
         {
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
             return await _process.StandardError.ReadToEndAsync(cts.Token).ConfigureAwait(false);
         }
         catch

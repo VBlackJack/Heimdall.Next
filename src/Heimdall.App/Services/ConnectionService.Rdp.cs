@@ -172,7 +172,11 @@ public partial class ConnectionService
             // Clean up .rdp file and CredMan entry after delay
             var credCleanupTarget = !string.IsNullOrEmpty(server.RdpUsername) && !string.IsNullOrEmpty(server.RdpPasswordEncrypted)
                 ? $"TERMSRV/{rdpHost}" : null;
-            _ = CleanupRdpArtifactsAsync(rdpFile, credCleanupTarget, ct);
+            _ = Task.Run(async () =>
+            {
+                try { await CleanupRdpArtifactsAsync(rdpFile, credCleanupTarget, ct); }
+                catch (Exception ex) { Core.Logging.FileLogger.Warn($"RDP cleanup failed: {ex.Message}"); }
+            }, CancellationToken.None);
 
             return new ConnectionResult(true, null, null);
         }
