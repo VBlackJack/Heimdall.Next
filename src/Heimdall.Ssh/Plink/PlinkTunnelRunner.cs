@@ -78,6 +78,7 @@ public sealed class PlinkTunnelRunner : IDisposable
         string remoteHost,
         int remotePort,
         int localPort,
+        string? hostKeyFingerprint = null,
         CancellationToken cancellationToken = default)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
@@ -94,7 +95,7 @@ public sealed class PlinkTunnelRunner : IDisposable
 
         // Build argument list
         var args = BuildArguments(gatewayHost, gatewayPort, username, keyPath, password,
-            remoteHost, remotePort, localPort);
+            remoteHost, remotePort, localPort, hostKeyFingerprint);
 
         var startInfo = new ProcessStartInfo
         {
@@ -109,7 +110,9 @@ public sealed class PlinkTunnelRunner : IDisposable
 
         try
         {
-            _process = new Process { StartInfo = startInfo };
+            _process = new Process { StartInfo = startInfo, EnableRaisingEvents = true };
+            _process.Exited += (_, _) =>
+                Core.Logging.FileLogger.Warn($"Plink tunnel process exited (pid={_process?.Id}, port={localPort})");
             _process.Start();
         }
         catch (Exception ex)
@@ -119,6 +122,24 @@ public sealed class PlinkTunnelRunner : IDisposable
             return new PlinkTunnelResult(false, $"Failed to start plink process: {ex.Message}", SshFailureCode.Unknown);
         }
 
+        // Continuously drain stderr in the background to prevent buffer saturation
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                while (_process is { HasExited: false } && _process.StandardError is not null)
+                {
+                    var line = await _process.StandardError.ReadLineAsync().ConfigureAwait(false);
+                    if (line is null) break;
+                    if (!string.IsNullOrWhiteSpace(line))
+                    {
+                        Core.Logging.FileLogger.Info($"Plink stderr (port {localPort}): {line}");
+                    }
+                }
+            }
+            catch { /* Process terminated — expected during shutdown */ }
+        }, CancellationToken.None);
+
         try
         {
             // Wait for the local port to become reachable (tunnel established)
@@ -126,22 +147,15 @@ public sealed class PlinkTunnelRunner : IDisposable
 
             if (!portReady)
             {
-                // Read stderr for error context
-                string stderr = await ReadStderrSafeAsync().ConfigureAwait(false);
+                // Process may have already exited with an error
+                var exitInfo = _process is { HasExited: true }
+                    ? $"(exit code {_process.ExitCode})"
+                    : "(still running but port not bound)";
                 Stop();
 
-                if (stderr.Contains("FATAL ERROR", StringComparison.OrdinalIgnoreCase) ||
-                    stderr.Contains("denied", StringComparison.OrdinalIgnoreCase))
-                {
-                    return new PlinkTunnelResult(false, $"Plink authentication failed: {stderr}", SshFailureCode.AuthRejected);
-                }
-
-                if (stderr.Contains("refused", StringComparison.OrdinalIgnoreCase))
-                {
-                    return new PlinkTunnelResult(false, $"Connection refused: {stderr}", SshFailureCode.NetworkRefused);
-                }
-
-                return new PlinkTunnelResult(false, $"Plink tunnel failed to establish: {stderr}", SshFailureCode.Unknown);
+                var message = $"Plink tunnel failed to bind port {localPort} within timeout {exitInfo}";
+                Core.Logging.FileLogger.Error(message);
+                return new PlinkTunnelResult(false, message, SshFailureCode.Unknown);
             }
 
             return new PlinkTunnelResult(true, null, null);
@@ -210,15 +224,24 @@ public sealed class PlinkTunnelRunner : IDisposable
         string? password,
         string remoteHost,
         int remotePort,
-        int localPort)
+        int localPort,
+        string? hostKeyFingerprint = null)
     {
         var args = new List<string>
         {
             "-ssh",
+            "-batch", // non-interactive: fail instead of prompting
             "-N", // no shell, tunnel only
             "-L", $"{localPort}:{remoteHost}:{remotePort}",
             "-P", gatewayPort.ToString()
         };
+
+        // Use TOFU host key fingerprint if available to prevent interactive prompts
+        if (!string.IsNullOrEmpty(hostKeyFingerprint))
+        {
+            args.Add("-hostkey");
+            args.Add($"\"{hostKeyFingerprint}\"");
+        }
 
         if (!string.IsNullOrEmpty(keyPath))
         {

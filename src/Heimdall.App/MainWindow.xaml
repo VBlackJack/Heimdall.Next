@@ -199,7 +199,9 @@
                                   PreviewMouseRightButtonDown="OnTreeViewPreviewMouseRightButtonDown"
                                   ContextMenuOpening="OnTreeViewContextMenuOpening"
                                   ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                                  VirtualizingPanel.IsVirtualizing="True">
+                                  ScrollViewer.CanContentScroll="True"
+                                  VirtualizingPanel.IsVirtualizing="True"
+                                  VirtualizingPanel.VirtualizationMode="Recycling">
                             <TreeView.Resources>
                                 <!-- Folder node template (recursive — unlimited nesting) -->
                                 <HierarchicalDataTemplate DataType="{x:Type vm:FolderViewModel}"
@@ -275,11 +277,11 @@
                                 </DataTemplate>
                             </TreeView.Resources>
 
-                            <!-- TreeViewItem container style: groups expanded by default -->
+                            <!-- TreeViewItem container style: expand state bound to ViewModel -->
                             <TreeView.ItemContainerStyle>
                                 <Style TargetType="TreeViewItem"
                                        BasedOn="{StaticResource ThemedTreeViewItemStyle}">
-                                    <Setter Property="IsExpanded" Value="True"/>
+                                    <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}"/>
                                     <Setter Property="Padding" Value="1,1"/>
                                     <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
                                 </Style>

@@ -36,26 +36,50 @@ public partial class FolderViewModel : ObservableObject
     [ObservableProperty]
     private string _color = "";
 
+    /// <summary>
+    /// Whether this folder is expanded in the TreeView.
+    /// Bound TwoWay to TreeViewItem.IsExpanded for state persistence.
+    /// </summary>
+    [ObservableProperty]
+    private bool _isExpanded;
+
+    /// <summary>
+    /// Stable key for expand/collapse state persistence.
+    /// Uses FullPath for named folders, sentinel for the root "no group" folder.
+    /// </summary>
+    public string ExpansionKey =>
+        string.IsNullOrEmpty(FullPath) ? "::nogroup" : FullPath;
+
     [ObservableProperty]
     private ObservableCollection<FolderViewModel> _subFolders = [];
 
     [ObservableProperty]
     private ObservableCollection<ServerItemViewModel> _servers = [];
 
+    private ArrayList? _childrenCache;
+
     /// <summary>
     /// Combined collection for the TreeView: sub-folders first, then servers.
     /// WPF resolves the correct DataTemplate by type.
+    /// Cached to avoid re-allocation on each access (perf with 768+ items).
     /// </summary>
     public IList Children
     {
         get
         {
-            var list = new ArrayList();
-            foreach (var f in SubFolders) list.Add(f);
-            foreach (var s in Servers) list.Add(s);
-            return list;
+            if (_childrenCache is null || _childrenCache.Count != SubFolders.Count + Servers.Count)
+            {
+                _childrenCache = new ArrayList(SubFolders.Count + Servers.Count);
+                foreach (var f in SubFolders) _childrenCache.Add(f);
+                foreach (var s in Servers) _childrenCache.Add(s);
+            }
+
+            return _childrenCache;
         }
     }
+
+    /// <summary>Invalidate the Children cache when sub-collections change.</summary>
+    public void InvalidateChildren() => _childrenCache = null;
 
     /// <summary>Total server count (direct + recursive).</summary>
     public int ServerCount =>
