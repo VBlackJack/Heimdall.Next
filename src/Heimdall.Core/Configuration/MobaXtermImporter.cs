@@ -342,8 +342,10 @@ public static partial class MobaXtermImporter
         string.IsNullOrWhiteSpace(value) ? null : value;
 
     /// <summary>
-    /// Sanitize a MobaXterm SubRep folder name to prevent path traversal.
-    /// Strips path separators and parent-directory sequences.
+    /// Sanitize a MobaXterm SubRep folder path for use as a Heimdall group name.
+    /// MobaXterm uses backslash-separated hierarchical folders (e.g. "ADSEC\Gateways").
+    /// Heimdall uses forward-slash hierarchy (e.g. "ADSEC/Gateways").
+    /// Strips parent-directory traversal sequences while preserving the hierarchy.
     /// </summary>
     internal static string SanitizeGroupName(string folder)
     {
@@ -352,22 +354,32 @@ public static partial class MobaXtermImporter
             return string.Empty;
         }
 
-        // Replace backslashes with forward slashes for uniformity, then strip traversal
-        var sanitized = folder
-            .Replace('\\', '/')
-            .Replace("../", string.Empty)
-            .Replace("./", string.Empty);
+        // Convert MobaXterm backslash hierarchy to Heimdall forward-slash hierarchy
+        var sanitized = folder.Replace('\\', '/');
 
-        // Remove any remaining path separators — groups are flat names
-        sanitized = sanitized.Replace("/", string.Empty);
+        // Strip traversal sequences
+        sanitized = sanitized.Replace("../", string.Empty);
+        sanitized = sanitized.Replace("./", string.Empty);
 
-        // Strip characters illegal in file/folder names
-        foreach (var c in Path.GetInvalidFileNameChars())
+        // Remove leading/trailing slashes and collapse double slashes
+        while (sanitized.Contains("//"))
+        {
+            sanitized = sanitized.Replace("//", "/");
+        }
+
+        sanitized = sanitized.Trim('/').Trim();
+
+        // Strip characters illegal in file names from each segment
+        var invalidChars = Path.GetInvalidFileNameChars()
+            .Where(c => c != '/' && c != '\\')
+            .ToArray();
+
+        foreach (var c in invalidChars)
         {
             sanitized = sanitized.Replace(c.ToString(), string.Empty);
         }
 
-        return sanitized.Trim();
+        return sanitized;
     }
 
     /// <summary>
