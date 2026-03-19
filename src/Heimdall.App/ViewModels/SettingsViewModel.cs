@@ -466,7 +466,7 @@ public partial class SettingsViewModel : ObservableObject
             List<ServerProfileDto> imported;
             List<string>? importWarnings = null;
 
-            if (ext is ".mxtsessions" or ".ini")
+            if (ext is ".mxtsessions" or ".ini" or ".mobaconf")
             {
                 // MobaXterm files are often Windows-1252 encoded; try UTF-8 first,
                 // fall back to Windows-1252 if the file contains high-byte characters.
@@ -493,7 +493,7 @@ public partial class SettingsViewModel : ObservableObject
                 return;
             }
 
-            var confirmMessage = ext is ".mxtsessions" or ".ini"
+            var confirmMessage = ext is ".mxtsessions" or ".ini" or ".mobaconf"
                 ? _localizer.Format("ConfirmImportMobaXtermMessage", imported.Count)
                 : _localizer.Format("ConfirmImportMessage", imported.Count);
 
@@ -547,7 +547,7 @@ public partial class SettingsViewModel : ObservableObject
                     + "\n" + warningText;
             }
 
-            if (ext is ".mxtsessions" or ".ini")
+            if (ext is ".mxtsessions" or ".ini" or ".mobaconf")
             {
                 statusMessage += "\n\n" + _localizer["ImportMobaXtermPasswordNotice"];
                 _dialogService.ShowWarning(_localizer["ImportDialogTitle"], statusMessage);

@@ -336,7 +336,19 @@ public class MobaXtermImporterTests
     {
         Assert.Equal("Startup", MobaXtermImporter.SanitizeGroupName(@"..\..\..\Startup"));
         Assert.Equal("Startup", MobaXtermImporter.SanitizeGroupName("../../../Startup"));
-        Assert.Equal("evilpath", MobaXtermImporter.SanitizeGroupName("evil/path"));
+    }
+
+    [Fact]
+    public void SanitizeGroupName_BackslashHierarchy_ConvertedToSlash()
+    {
+        Assert.Equal("ADSEC/A_ADSEC_GW", MobaXtermImporter.SanitizeGroupName(@"ADSEC\A_ADSEC_GW"));
+        Assert.Equal("Parent/Child/Leaf", MobaXtermImporter.SanitizeGroupName(@"Parent\Child\Leaf"));
+    }
+
+    [Fact]
+    public void SanitizeGroupName_ForwardSlashHierarchy_Preserved()
+    {
+        Assert.Equal("PROD/Linux/Web", MobaXtermImporter.SanitizeGroupName("PROD/Linux/Web"));
     }
 
     [Fact]
@@ -498,6 +510,62 @@ public class MobaXtermImporterTests
 
         var server = result.Servers.Single();
         Assert.DoesNotContain("..", server.Group);
-        Assert.DoesNotContain(@"\", server.Group);
+    }
+
+    // --- Real MobaXterm .mobaconf format ---
+
+    [Fact]
+    public void Parse_RealMobaconfFormat_SshWithGateway()
+    {
+        var ini = """
+            [Bookmarks_2]
+            SubRep=ADSEC\A_ADSEC_GW
+            ImgNum=41
+            sncagat01d  (GW)=#109#0%sncagat01d%22%root%%-1%-1%%ypsgat01s.priv.atos.fr%22%a150058%0%0%0%%%-1%0%0%0%%1080%%0%0%1%%0%%%%0%-1%-1%0%%#MobaFont%10%0%0%-1%15%248,248,242%40,42,54%153,153,153%0%-1%0%%xterm%-1%0%_Std_Colors_0_%80%24%0%1%-1%<none>%%0%0%-1%-1%#0# #-1
+            """;
+
+        var result = MobaXtermImporter.Parse(ini);
+
+        var server = result.Servers.Single();
+        Assert.Equal("sncagat01d", server.RemoteServer);
+        Assert.Equal(22, server.SshPort);
+        Assert.Equal("root", server.SshUsername);
+        Assert.Equal("SSH", server.ConnectionType);
+        Assert.Equal("ADSEC/A_ADSEC_GW", server.Group);
+    }
+
+    [Fact]
+    public void Parse_RealMobaconfFormat_RdpWithDomainUser()
+    {
+        var ini = """
+            [Bookmarks_3]
+            SubRep=ADSEC\B_ADSEC_SERVICES
+            ImgNum=41
+            opadsb03d (WSUS)=#91#4%opadsb03d%3389%Administrator@admin.adsec.net%0%-1%-1%-1%-1%0%0%-1%%ypsgat01s.priv.atos.fr%22%a150058%0%0%%-1%%-1%-1%0%-1%0%-1%0%0%0%0%#MobaFont%10%0%0
+            """;
+
+        var result = MobaXtermImporter.Parse(ini);
+
+        var server = result.Servers.Single();
+        Assert.Equal("opadsb03d", server.RemoteServer);
+        Assert.Equal(3389, server.RemotePort);
+        Assert.Equal("Administrator@admin.adsec.net", server.RdpUsername);
+        Assert.Equal("RDP", server.ConnectionType);
+        Assert.Equal("ADSEC/B_ADSEC_SERVICES", server.Group);
+    }
+
+    [Fact]
+    public void Parse_WslSession_Skipped()
+    {
+        var ini = """
+            [Bookmarks]
+            SubRep=
+            ImgNum=42
+            WSL-Dev-box=#151#14%Dev-box-daemon%
+            """;
+
+        var result = MobaXtermImporter.Parse(ini);
+
+        Assert.Empty(result.Servers);
     }
 }

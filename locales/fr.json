@@ -618,7 +618,7 @@
   "StatusTagAdded": "Tag « {0} » ajouté.",
   "StatusTagRemoved": "Tag « {0} » supprimé.",
   "ErrorTagEmpty": "Erreur : le nom du tag ne peut pas être vide.",
-  "ImportDialogFilterAll": "Tous les formats|*.json;*.mxtsessions;*.ini|JSON|*.json|MobaXterm|*.mxtsessions;*.ini|Tous les fichiers|*.*",
+  "ImportDialogFilterAll": "Tous les formats|*.json;*.mxtsessions;*.mobaconf;*.ini|JSON|*.json|MobaXterm|*.mxtsessions;*.mobaconf;*.ini|Tous les fichiers|*.*",
   "ConfirmImportMobaXtermMessage": "Importer {0} session(s) depuis MobaXterm ? Les mots de passe ne peuvent pas être importés et devront être ressaisis.",
   "ImportMobaXtermPasswordNotice": "Les mots de passe MobaXterm sont chiffrés avec un algorithme propriétaire et n'ont pas pu être importés. Veuillez ressaisir les identifiants pour chaque session.",
   "ImportMobaXtermWarnings": "{0} session(s) n'ont pas pu être analysées :",
