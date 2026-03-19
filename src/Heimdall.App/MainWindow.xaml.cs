@@ -181,6 +181,11 @@ public partial class MainWindow : Window
         Mw_TpColRemote.Header = vm.Localize("TunnelPanelColRemote");
         Mw_TpColPort.Header = vm.Localize("TunnelPanelColPort");
 
+        // Tunnel context menu
+        Mw_TpCtxClose.Header = vm.Localize("TunnelCtxClose");
+        Mw_TpCtxCopyPort.Header = vm.Localize("TunnelCtxCopyPort");
+        Mw_TpCtxCloseAll.Header = vm.Localize("TunnelCtxCloseAll");
+
         // Tunnels tab
         Mw_TunnelsTitle.Text = vm.Localize("TunnelsSectionTitle");
         Mw_TunnelsCloseSelectedBtn.Content = vm.Localize("TunnelsBtnCloseSelected");

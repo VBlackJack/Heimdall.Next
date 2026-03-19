@@ -580,6 +580,19 @@
                                           GridLinesVisibility="None"
                                           RowHeight="24"
                                           FontSize="11">
+                                    <DataGrid.ContextMenu>
+                                        <ContextMenu>
+                                            <MenuItem x:Name="Mw_TpCtxClose"
+                                                      Command="{Binding CloseTunnelCommand}"
+                                                      CommandParameter="{Binding SelectedTunnel}"/>
+                                            <MenuItem x:Name="Mw_TpCtxCopyPort"
+                                                      Command="{Binding CopyTunnelPortCommand}"
+                                                      CommandParameter="{Binding SelectedTunnel}"/>
+                                            <Separator/>
+                                            <MenuItem x:Name="Mw_TpCtxCloseAll"
+                                                      Command="{Binding CloseAllTunnelsCommand}"/>
+                                        </ContextMenu>
+                                    </DataGrid.ContextMenu>
                                     <DataGrid.Columns>
                                         <DataGridTemplateColumn Header="" Width="24">
                                             <DataGridTemplateColumn.CellTemplate>

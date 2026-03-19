@@ -431,12 +431,38 @@ public sealed class TunnelManager : IDisposable
         }
     }
 
-    /// <summary>Closes all active tunnels.</summary>
+    /// <summary>
+    /// Forcefully closes a tunnel regardless of reference count.
+    /// Use when the user explicitly requests closure from the UI.
+    /// </summary>
+    public void ForceCloseTunnel(int localPort)
+    {
+        _refCounts.TryRemove(localPort, out _);
+
+        if (_activeTunnels.TryRemove(localPort, out var session))
+        {
+            string? error = null;
+            try { session.Dispose(); }
+            catch (Exception ex) { error = ex.Message; }
+            TunnelClosed?.Invoke(localPort, error);
+            return;
+        }
+
+        if (_externalTunnels.TryRemove(localPort, out var externalSession))
+        {
+            string? error = null;
+            try { externalSession.Dispose(); }
+            catch (Exception ex) { error = ex.Message; }
+            TunnelClosed?.Invoke(localPort, error);
+        }
+    }
+
+    /// <summary>Closes all active tunnels (force, ignores ref counts).</summary>
     public void CloseAllTunnels()
     {
         foreach (var localPort in _activeTunnels.Keys.Concat(_externalTunnels.Keys).Distinct().ToList())
         {
-            CloseTunnel(localPort);
+            ForceCloseTunnel(localPort);
         }
     }
 
