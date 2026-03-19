@@ -42,7 +42,7 @@
                         Padding="6,2" FontSize="12" Margin="4,0"
                         Click="OnResolutionButtonClick">
                     <Button.ContextMenu>
-                        <ContextMenu x:Name="ResolutionMenu">
+                        <ContextMenu x:Name="ResolutionMenu" FontFamily="Segoe UI">
                             <MenuItem x:Name="ResMenuFit" Click="OnResolutionMenuClick" Tag="Fit"/>
                             <Separator/>
                             <MenuItem Header="1920 x 1080" Click="OnResolutionMenuClick" Tag="1920x1080"/>

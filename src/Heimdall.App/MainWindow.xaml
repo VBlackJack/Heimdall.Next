@@ -854,7 +854,9 @@
                     <Button x:Name="Mw_SettingsExportBtn" Content="" Command="{Binding Settings.ExportConfigCommand}"
                             Style="{DynamicResource SecondaryButtonStyle}" Width="130" Margin="0,0,8,0"/>
                     <Button x:Name="Mw_SettingsImportBtn" Content="" Command="{Binding Settings.ImportConfigCommand}"
-                            Style="{DynamicResource SecondaryButtonStyle}" Width="130"/>
+                            Style="{DynamicResource SecondaryButtonStyle}" Width="130" Margin="0,0,8,0"/>
+                    <Button x:Name="Mw_SettingsCitrixBtn" Content="" Command="{Binding Settings.ImportCitrixAppsCommand}"
+                            Style="{DynamicResource SecondaryButtonStyle}" Width="160"/>
                 </StackPanel>
 
                 <TabControl TabStripPlacement="Top" Margin="16,8,16,0"

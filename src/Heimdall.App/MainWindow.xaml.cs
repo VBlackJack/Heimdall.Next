@@ -310,6 +310,8 @@ public partial class MainWindow : Window
         Mw_SettingsExportBtn.ToolTip = vm.Localize("TooltipExport");
         Mw_SettingsImportBtn.Content = vm.Localize("SettingsBtnImportServers");
         Mw_SettingsImportBtn.ToolTip = vm.Localize("TooltipImport");
+        Mw_SettingsCitrixBtn.Content = vm.Localize("BtnImportCitrix");
+        Mw_SettingsCitrixBtn.ToolTip = vm.Localize("TooltipImportCitrix");
 
         // About tab
         Mw_AboutAppName.Text = vm.Localize("AppName");
