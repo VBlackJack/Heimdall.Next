@@ -21,8 +21,9 @@ namespace Heimdall.App.Services;
 
 /// <summary>
 /// Prevents Windows from entering sleep/standby while embedded sessions are active.
-/// Uses <c>SetThreadExecutionState</c> with a reference-counted session model so that
-/// sleep prevention remains active as long as at least one session is running.
+/// Uses <c>SetThreadExecutionState</c> with a reference-counted session model and
+/// a 60-second heartbeat to reset the OS idle timer — required for VMs and RDP hosts
+/// where a single <c>ES_CONTINUOUS</c> flag is insufficient.
 /// </summary>
 [SupportedOSPlatform("windows")]
 public static class SleepPrevention
@@ -32,29 +33,71 @@ public static class SleepPrevention
     private const uint ES_DISPLAY_REQUIRED = 0x00000002;
 
     private static int _activeSessionCount;
+    private static System.Threading.Timer? _keepAliveTimer;
+    private static bool _enabled = true;
+
+    /// <summary>
+    /// Controls whether sleep prevention is active. When false,
+    /// SessionStarted/SessionEnded calls are no-ops.
+    /// Reflects the <c>PreventSleepDuringSession</c> setting.
+    /// </summary>
+    public static bool Enabled
+    {
+        get => _enabled;
+        set
+        {
+            _enabled = value;
+            if (!value && _activeSessionCount > 0)
+            {
+                // Setting turned off while sessions are active — release immediately
+                Interlocked.Exchange(ref _activeSessionCount, 0);
+                _keepAliveTimer?.Dispose();
+                _keepAliveTimer = null;
+                SetThreadExecutionState(ES_CONTINUOUS);
+                Core.Logging.FileLogger.Info("Sleep prevention disabled by user setting");
+            }
+        }
+    }
 
     /// <summary>
     /// Signals that an embedded session has started. When the first session is
-    /// registered, sleep prevention is enabled.
+    /// registered, sleep prevention is enabled with a periodic heartbeat.
     /// </summary>
     public static void SessionStarted()
     {
+        if (!_enabled) return;
+
         if (Interlocked.Increment(ref _activeSessionCount) == 1)
         {
+            // Set the continuous flag on the UI thread
             SetThreadExecutionState(ES_CONTINUOUS | ES_SYSTEM_REQUIRED | ES_DISPLAY_REQUIRED);
-            Core.Logging.FileLogger.Info("Sleep prevention enabled (sessions active)");
+
+            // Start a heartbeat that resets the OS idle timer every 60 seconds.
+            // Without ES_CONTINUOUS, the call acts as a one-shot "mouse move" equivalent,
+            // which overrides VM/group-policy idle timeouts that ignore ES_CONTINUOUS.
+            _keepAliveTimer = new System.Threading.Timer(
+                _ => SetThreadExecutionState(ES_SYSTEM_REQUIRED | ES_DISPLAY_REQUIRED),
+                null,
+                TimeSpan.FromSeconds(60),
+                TimeSpan.FromSeconds(60));
+
+            Core.Logging.FileLogger.Info("Sleep prevention enabled (sessions active, heartbeat started)");
         }
     }
 
     /// <summary>
     /// Signals that an embedded session has ended. When the last session is
-    /// unregistered, sleep prevention is cleared.
+    /// unregistered, sleep prevention and heartbeat are cleared.
     /// </summary>
     public static void SessionEnded()
     {
         if (Interlocked.Decrement(ref _activeSessionCount) <= 0)
         {
             Interlocked.Exchange(ref _activeSessionCount, 0);
+
+            _keepAliveTimer?.Dispose();
+            _keepAliveTimer = null;
+
             SetThreadExecutionState(ES_CONTINUOUS);
             Core.Logging.FileLogger.Info("Sleep prevention cleared (no sessions)");
         }
@@ -67,6 +110,10 @@ public static class SleepPrevention
     public static void ForceRelease()
     {
         Interlocked.Exchange(ref _activeSessionCount, 0);
+
+        _keepAliveTimer?.Dispose();
+        _keepAliveTimer = null;
+
         SetThreadExecutionState(ES_CONTINUOUS);
     }
 

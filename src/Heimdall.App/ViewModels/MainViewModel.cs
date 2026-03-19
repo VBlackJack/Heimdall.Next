@@ -443,6 +443,7 @@ public partial class MainViewModel : ObservableObject
     private void OnSettingsChanged(AppSettings settings)
     {
         _currentSettings = settings;
+        SleepPrevention.Enabled = settings.PreventSleepDuringSession;
     }
 
     private void OnApplicationStatusChanged(ApplicationStatus previous, ApplicationStatus current)
