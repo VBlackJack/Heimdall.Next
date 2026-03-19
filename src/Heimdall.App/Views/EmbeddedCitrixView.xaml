@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:wfi="clr-namespace:System.Windows.Forms.Integration;assembly=WindowsFormsIntegration"
              mc:Ignorable="d"
              d:DesignHeight="400"
              d:DesignWidth="600"
@@ -33,7 +34,8 @@
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="8,2"
                         FontSize="11"
-                        Margin="4,0,0,0"/>
+                        Margin="4,0,0,0"
+                        Visibility="Collapsed"/>
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <TextBlock x:Name="SessionTitleText"
                                FontSize="12"
@@ -55,8 +57,14 @@
             </DockPanel>
         </Border>
 
-        <!-- Session info panel -->
-        <Border Grid.Row="1"
+        <!-- Embedded window host (SetParent mode) -->
+        <Grid x:Name="EmbeddedContainer" Grid.Row="1" Visibility="Collapsed"
+              ClipToBounds="True" Background="Black">
+            <wfi:WindowsFormsHost x:Name="FormsHost"/>
+        </Grid>
+
+        <!-- External session info panel (fallback mode) -->
+        <Border x:Name="InfoPanel" Grid.Row="1"
                 Margin="24"
                 Padding="24"
                 CornerRadius="16"
