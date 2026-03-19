@@ -91,6 +91,9 @@ public class ServerProfileDto
     public bool CitrixSeamlessMode { get; set; } = true;
     public bool CitrixUseSso { get; set; } = true;
 
+    /// <summary>Pre-authenticated SelfService.exe launch arguments from cache XML.</summary>
+    public string? CitrixLaunchCommandLine { get; set; }
+
     // FTP settings
     public int FtpPort { get; set; } = 21;
     public string? FtpUsername { get; set; }

@@ -47,7 +47,29 @@ public partial class ConnectionService
         Process? process = null;
         try
         {
-            if (!string.IsNullOrWhiteSpace(server.CitrixIcaFilePath)
+            if (!string.IsNullOrWhiteSpace(server.CitrixLaunchCommandLine))
+            {
+                // Launch via SelfService.exe with pre-authenticated cache arguments
+                var selfServicePath = ResolveSelfServicePath();
+                if (selfServicePath is null)
+                {
+                    var msg = _localizer["CitrixWorkspaceNotFound"];
+                    _connectionSm.SetError(server.Id, msg);
+                    return new ConnectionResult(false, msg, null);
+                }
+
+                Core.Logging.FileLogger.Info(
+                    $"Citrix launch (SelfService cache): {selfServicePath} {server.CitrixLaunchCommandLine}");
+
+                process = Process.Start(new ProcessStartInfo
+                {
+                    FileName = selfServicePath,
+                    Arguments = server.CitrixLaunchCommandLine,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                });
+            }
+            else if (!string.IsNullOrWhiteSpace(server.CitrixIcaFilePath)
                 && File.Exists(server.CitrixIcaFilePath))
             {
                 // Direct .ica file launch
@@ -61,7 +83,6 @@ public partial class ConnectionService
                      && !string.IsNullOrWhiteSpace(server.CitrixAppName))
             {
                 // Sanitize user-configurable fields against shell metacharacters (CWE-78).
-                // storebrowse.exe arguments are quoted, but reject suspicious characters as defense-in-depth.
                 if (server.CitrixAppName.AsSpan().IndexOfAny(['|', '&', ';', '`', '$', '\n', '\r']) >= 0
                     || server.CitrixStoreFrontUrl.AsSpan().IndexOfAny(['|', '&', ';', '`', '$', '\n', '\r']) >= 0)
                 {
@@ -71,7 +92,6 @@ public partial class ConnectionService
                 }
 
                 // Launch via storebrowse
-                // -L = launch, -S = use SSO authentication
                 var argParts = new List<string> { "-L" };
                 if (server.CitrixUseSso)
                     argParts.Add("-S");
@@ -136,6 +156,35 @@ public partial class ConnectionService
         }
 
         return FindInPath("storebrowse.exe") ?? FindInPath("SelfService.exe");
+    }
+
+    /// <summary>
+    /// Resolves the SelfService.exe path specifically (used for cache-based launch).
+    /// </summary>
+    private static string? ResolveSelfServicePath()
+    {
+        var paths = new[]
+        {
+            Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),
+                "Citrix", "ICA Client", "SelfServicePlugin", "SelfService.exe"),
+            Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),
+                "Citrix", "ICA Client", "SelfService.exe"),
+            Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
+                "Citrix", "ICA Client", "SelfServicePlugin", "SelfService.exe"),
+        };
+
+        foreach (var path in paths)
+        {
+            if (File.Exists(path))
+            {
+                return path;
+            }
+        }
+
+        return FindInPath("SelfService.exe");
     }
 }
 

@@ -576,6 +576,59 @@ public partial class SettingsViewModel : ObservableObject
     }
 
     [RelayCommand]
+    private async Task ImportCitrixAppsAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            var scanResult = CitrixCacheScanner.Scan();
+
+            if (scanResult.Resources.Count == 0)
+            {
+                var warningMsg = scanResult.Warnings.Count > 0
+                    ? string.Join("\n", scanResult.Warnings)
+                    : _localizer["CitrixNoAppsFound"];
+                _dialogService.ShowInfo(_localizer["CitrixScanTitle"], warningMsg);
+                return;
+            }
+
+            var confirmed = await _dialogService.ShowConfirmAsync(
+                _localizer["CitrixScanTitle"],
+                _localizer.Format("CitrixScanConfirm", scanResult.Resources.Count));
+
+            if (!confirmed) return;
+
+            var imported = CitrixCacheScanner.ToServerProfiles(scanResult.Resources);
+            var existing = await _configManager.LoadServersAsync();
+
+            var newCount = 0;
+            foreach (var server in imported)
+            {
+                existing.Add(server);
+                newCount++;
+            }
+
+            await _configManager.SaveServersAsync(existing);
+
+            var statusMsg = _localizer.Format("CitrixScanSuccess", newCount);
+            if (scanResult.Warnings.Count > 0)
+            {
+                statusMsg += "\n\n" + string.Join("\n", scanResult.Warnings.Take(5));
+            }
+
+            _dialogService.ShowInfo(_localizer["CitrixScanTitle"], statusMsg);
+            FileLogger.Info($"Imported {newCount} Citrix app(s) from local cache");
+            ConfigurationChanged?.Invoke();
+        }
+        catch (Exception ex)
+        {
+            FileLogger.Error("Citrix scan failed", ex);
+            _dialogService.ShowError(
+                _localizer["CitrixScanTitle"],
+                _localizer.Format("StatusImportFailed", ex.Message));
+        }
+    }
+
+    [RelayCommand]
     private async Task AddGatewayAsync(CancellationToken cancellationToken)
     {
         var vm = new GatewayDialogViewModel();
