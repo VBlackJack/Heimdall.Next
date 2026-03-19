@@ -72,7 +72,12 @@ public sealed class TaskSchedulerService : IDisposable
         FileLogger.Info("TaskSchedulerService stopped.");
     }
 
-    private async void OnTick(object? state)
+    private void OnTick(object? state)
+    {
+        _ = OnTickAsync();
+    }
+
+    private async Task OnTickAsync()
     {
         if (_disposed)
         {

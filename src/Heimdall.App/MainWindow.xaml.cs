@@ -101,7 +101,7 @@ public partial class MainWindow : Window
         if (DataContext is MainViewModel aboutVm)
             AboutVersionText.Text = string.Format(aboutVm.Localize("AboutVersion"), infoVersion);
         else
-            AboutVersionText.Text = $"Version {infoVersion}";
+            AboutVersionText.Text = string.Format("Version {0}", infoVersion);
         AboutRuntimeText.Text = System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription;
         AboutPlatformText.Text = $"{System.Runtime.InteropServices.RuntimeInformation.OSDescription} ({System.Runtime.InteropServices.RuntimeInformation.OSArchitecture})";
     }
@@ -163,6 +163,8 @@ public partial class MainWindow : Window
         Mw_TunnelPanelCollapseBtn.ToolTip = vm.Localize("TunnelPanelCollapse");
         Mw_TunnelPanelCloseAllBtn.Content = vm.Localize("TunnelsBtnCloseAll");
         Mw_TunnelPanelEmpty.Text = vm.Localize("TunnelsEmptyState");
+
+        Mw_TunnelPanelGrid.Tag = vm.Localize("TooltipCloseTunnel");
 
         // Tunnel panel header: "Tunnels ({0})" split around the dynamic count
         var tunnelHeader = vm.Localize("TunnelPanelHeader");
@@ -241,6 +243,8 @@ public partial class MainWindow : Window
         Mw_SettingsAppearanceTitle.Text = vm.Localize("SettingsSectionAppearance");
         Mw_SettingsLanguageLabel.Text = vm.Localize("SettingsLabelLanguage");
         Mw_SettingsThemeLabel.Text = vm.Localize("SettingsLabelTheme");
+        Mw_ThemeDark.Content = vm.Localize("SettingsThemeDarkValue");
+        Mw_ThemeLight.Content = vm.Localize("SettingsThemeLightValue");
         Mw_SettingsMaxSessionsLabel.Text = vm.Localize("SettingsLabelMaxEmbeddedSessions");
         Mw_SettingsPreventSleep.Content = vm.Localize("SettingsLabelPreventSleep");
         Mw_SettingsEditorPathLabel.Text = vm.Localize("SettingsLabelEditorPath");
@@ -255,6 +259,8 @@ public partial class MainWindow : Window
         Mw_SettingsSshTitle.Text = vm.Localize("SettingsSectionSshDefaults");
         Mw_SettingsPlinkPathLabel.Text = vm.Localize("SettingsLabelPlinkPath");
         Mw_SettingsSshModeLabel.Text = vm.Localize("SettingsLabelSshMode");
+        Mw_SshModeEmbedded.Content = vm.Localize("SettingsSshModeEmbedded");
+        Mw_SshModeExternal.Content = vm.Localize("SettingsSshModeExternal");
         Mw_SettingsAntiIdleLabel.Text = vm.Localize("SettingsLabelAntiIdleInterval");
         Mw_SettingsSshTmoutLabel.Text = vm.Localize("SettingsLabelSshTmoutReset");
         Mw_SettingsAutoOpenSftp.Content = vm.Localize("SettingsLabelAutoOpenSftp");
@@ -268,9 +274,14 @@ public partial class MainWindow : Window
         // Settings - RDP
         Mw_SettingsRdpDefaultsTitle.Text = vm.Localize("SettingsSectionRdpDefaults");
         Mw_SettingsRdpModeLabel.Text = vm.Localize("SettingsLabelRdpMode");
+        Mw_RdpModeEmbedded.Content = vm.Localize("SettingsSshModeEmbedded");
+        Mw_RdpModeExternal.Content = vm.Localize("SettingsSshModeExternal");
         Mw_SettingsRdpWidthLabel.Text = vm.Localize("SettingsLabelRdpWidth");
         Mw_SettingsRdpHeightLabel.Text = vm.Localize("SettingsLabelRdpHeight");
         Mw_SettingsRdpColorDepthLabel.Text = vm.Localize("SettingsLabelRdpColorDepth");
+        Mw_ColorDepth16.Content = vm.Localize("SettingsColorDepth16");
+        Mw_ColorDepth24.Content = vm.Localize("SettingsColorDepth24");
+        Mw_ColorDepth32.Content = vm.Localize("SettingsColorDepth32");
         Mw_SettingsRdpAudioLabel.Text = vm.Localize("SettingsLabelRdpAudio");
         Mw_SettingsRdpAudioDisabled.Content = vm.Localize("ServerDialogAudioDisabled");
         Mw_SettingsRdpAudioLocal.Content = vm.Localize("ServerDialogAudioLocal");
@@ -342,6 +353,21 @@ public partial class MainWindow : Window
         // Quick Connect palette
         Mw_PaletteNoResults.Text = vm.Localize("QuickConnectNoResults");
         Mw_PaletteHints.Text = vm.Localize("QuickConnectHints");
+
+        // Accessibility: automation names for interactive controls
+        System.Windows.Automation.AutomationProperties.SetName(TabServers, vm.Localize("NavTabServers"));
+        System.Windows.Automation.AutomationProperties.SetName(TabTunnels, vm.Localize("NavTabTunnels"));
+        System.Windows.Automation.AutomationProperties.SetName(TabScheduled, vm.Localize("NavTabScheduled"));
+        System.Windows.Automation.AutomationProperties.SetName(TabSettings, vm.Localize("NavTabSettings"));
+        System.Windows.Automation.AutomationProperties.SetName(TabAbout, vm.Localize("NavTabAbout"));
+        System.Windows.Automation.AutomationProperties.SetName(SearchBox, vm.Localize("SearchPlaceholder"));
+        System.Windows.Automation.AutomationProperties.SetName(Mw_FilterBox, vm.Localize("FilterServersPlaceholder"));
+        System.Windows.Automation.AutomationProperties.SetName(ToggleSidebarButton, vm.Localize("TooltipHideSidebar"));
+        System.Windows.Automation.AutomationProperties.SetName(ShowSidebarButton, vm.Localize("TooltipShowSidebar"));
+        System.Windows.Automation.AutomationProperties.SetName(ExpandAllButton, vm.Localize("TooltipExpandAll"));
+        System.Windows.Automation.AutomationProperties.SetName(CollapseAllButton, vm.Localize("TooltipCollapseAll"));
+        System.Windows.Automation.AutomationProperties.SetName(AddButton, vm.Localize("TooltipAddMenu"));
+        System.Windows.Automation.AutomationProperties.SetName(SessionTabControl, vm.Localize("NavTabServers"));
     }
 
     private async void OnServersTabChecked(object sender, RoutedEventArgs e)
@@ -502,6 +528,11 @@ public partial class MainWindow : Window
                 e.Handled = true;
                 break;
 
+            case Key.F1:
+                ShowKeyboardShortcutHelp();
+                e.Handled = true;
+                break;
+
             case Key.F11:
                 ToggleFullscreen();
                 e.Handled = true;
@@ -512,6 +543,15 @@ public partial class MainWindow : Window
                 e.Handled = true;
                 break;
         }
+    }
+
+    private void ShowKeyboardShortcutHelp()
+    {
+        if (DataContext is not MainViewModel vm) return;
+
+        var shortcuts = vm.Localize("HelpShortcutsContent");
+        MessageBox.Show(shortcuts, vm.Localize("HelpShortcutsTitle"),
+            MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
     /// <summary>
@@ -870,10 +910,13 @@ public partial class MainWindow : Window
         }
 
         menu.Items.Add(new Separator());
-        menu.Items.Add(CreateMenuItem(
+        var deleteItem = CreateMenuItem(
             vm.Localize("TreeCtxDelete"),
             vm.ServerList.DeleteServerCommand,
-            server));
+            server);
+        deleteItem.Foreground = Application.Current.TryFindResource("ErrorBrush") as Brush
+            ?? new System.Windows.Media.SolidColorBrush(Colors.Red);
+        menu.Items.Add(deleteItem);
 
         return menu;
     }
@@ -943,7 +986,7 @@ public partial class MainWindow : Window
             Core.Logging.FileLogger.Error($"External tool launch failed: {tool.Name}", ex);
             MessageBox.Show(
                 string.Format(vm.Localize("ExternalToolLaunchError"), tool.Name, ex.Message),
-                "Heimdall",
+                vm.Localize("AppName"),
                 MessageBoxButton.OK,
                 MessageBoxImage.Warning);
         }
@@ -1637,112 +1680,11 @@ public partial class MainWindow : Window
     {
         if (DataContext is not MainViewModel vm) return;
 
-        // Build a picker context menu with two sections:
-        // 1. Open sessions (already connected — move to split pane)
-        // 2. Servers from TreeView (new connection)
-        var menu = new System.Windows.Controls.ContextMenu();
-
-        // Section: existing open sessions
-        var openSessions = vm.Connection.ActiveSessions
-            .Where(s => s != session && !s.IsSplit)
-            .ToList();
-
-        if (openSessions.Count > 0)
-        {
-            var header = new System.Windows.Controls.MenuItem
-            {
-                Header = vm.Localize("SplitMoveOpenSession"),
-                IsEnabled = false,
-                FontWeight = FontWeights.SemiBold
-            };
-            menu.Items.Add(header);
-
-            foreach (var openSession in openSessions)
-            {
-                var item = new System.Windows.Controls.MenuItem
-                {
-                    Header = $"{openSession.Title} ({openSession.ConnectionType})",
-                    Tag = openSession
-                };
-                item.Click += (_, _) =>
-                {
-                    // Move the open session's host control to the secondary pane,
-                    // preserving ALL original metadata for proper unsplit restoration
-                    session.SecondaryHostControl = openSession.HostControl;
-                    session.SecondaryServerId = openSession.ServerId;
-                    session.SecondaryOriginalServerId = openSession.OriginalServerId;
-                    session.SecondaryConnectionType = openSession.ConnectionType;
-                    session.SecondaryTitle = openSession.Title;
-                    session.SecondaryStatus = openSession.Status;
-                    session.SecondaryTunnelRoute = openSession.TunnelRoute;
-                    session.SecondaryEnvironmentColor = openSession.EnvironmentColor;
-
-                    // Detach the host control from the source tab before removing it
-                    openSession.HostControl = null;
-                    vm.Connection.ActiveSessions.Remove(openSession);
-
-                    session.SplitOrientation = orientation;
-                    session.IsSplit = true;
-                    vm.Connection.HasActiveSessions = vm.Connection.ActiveSessions.Count > 0;
-                };
-                menu.Items.Add(item);
-            }
-
-            menu.Items.Add(new System.Windows.Controls.Separator());
-        }
-
-        // Section: new connection from server list
-        var newConnHeader = new System.Windows.Controls.MenuItem
-        {
-            Header = vm.Localize("SplitNewConnection"),
-            IsEnabled = false,
-            FontWeight = FontWeights.SemiBold
-        };
-        menu.Items.Add(newConnHeader);
-
-        // Flatten the folder tree: collect all servers recursively
-        void AddFolderServers(FolderViewModel folder)
-        {
-            AddServersToSplitMenu(menu, folder.Servers, session, orientation, vm, "", folder.FullPath);
-            foreach (var sub in folder.SubFolders)
-            {
-                AddFolderServers(sub);
-            }
-        }
-
-        foreach (var folder in vm.ServerList.GroupedServers)
-        {
-            AddFolderServers(folder);
-        }
-
-        menu.PlacementTarget = SessionTabControl;
-        menu.Placement = System.Windows.Controls.Primitives.PlacementMode.MousePoint;
-        menu.IsOpen = true;
-    }
-
-    private void AddServersToSplitMenu(
-        System.Windows.Controls.ContextMenu menu,
-        System.Collections.ObjectModel.ObservableCollection<ServerItemViewModel> servers,
-        SessionTabViewModel session,
-        Heimdall.Core.Models.SplitOrientation orientation,
-        MainViewModel vm,
-        string projectName,
-        string? groupName)
-    {
-        foreach (var server in servers)
-        {
-            string label = string.IsNullOrWhiteSpace(groupName)
-                ? $"{server.DisplayName} ({server.ConnectionType})"
-                : $"{server.DisplayName} ({server.ConnectionType}) — {groupName}";
-
-            var item = new System.Windows.Controls.MenuItem { Header = label };
-            var capturedServer = server;
-            item.Click += async (_, _) =>
-            {
-                await vm.SplitSessionWithServerAsync(session, capturedServer.Id, orientation);
-            };
-            menu.Items.Add(item);
-        }
+        // Open the Command Palette in split mode — the palette provides fuzzy search
+        // which scales to any number of servers (replaces the old ContextMenu approach
+        // that became unusable with 100+ servers).
+        vm.OpenSplitPalette(session, orientation);
+        PaletteInput.Focus();
     }
 
     private void UnsplitSession(SessionTabViewModel session)

@@ -139,9 +139,9 @@ public partial class ServerDialog : Window
         // Connection basics
         DlgSrv_ConnectionBasicsTitle.Text = _localizer["ServerDialogConnectionBasics"];
         DlgSrv_ConnectionBasicsDesc.Text = _localizer["ServerDialogConnectionBasicsDesc"];
-        DlgSrv_DisplayNameLabel.Text = _localizer["ServerDialogLabelDisplayName"];
-        DlgSrv_ConnectionTypeLabel.Text = _localizer["ServerDialogLabelConnectionType"];
-        DlgSrv_ServerLabel.Text = _localizer["ServerDialogLabelServer"];
+        DlgSrv_DisplayNameLabel.Text = _localizer["ServerDialogLabelDisplayName"] + " *";
+        DlgSrv_ConnectionTypeLabel.Text = _localizer["ServerDialogLabelConnectionType"] + " *";
+        DlgSrv_ServerLabel.Text = _localizer["ServerDialogLabelServer"] + " *";
 
         // Gateway routing
         DlgSrv_GatewayRoutingTitle.Text = _localizer["ServerDialogGatewayRouting"];
@@ -191,6 +191,10 @@ public partial class ServerDialog : Window
         DlgSrv_RdpOptionsTitle.Text = _localizer["ServerDialogRdpOptions"];
         DlgSrv_RdpOptionsDesc.Text = _localizer["ServerDialogRdpOptionsDesc"];
         DlgSrv_SessionModeLabel.Text = _localizer["ServerDialogLabelSessionMode"];
+        DlgSrv_RdpModeEmbedded.Content = _localizer["ServerDialogModeEmbedded"];
+        DlgSrv_RdpModeExternal.Content = _localizer["ServerDialogModeExternal"];
+        DlgSrv_AspectStretch.Content = _localizer["ServerDialogAspectStretch"];
+        DlgSrv_AspectPreserve.Content = _localizer["ServerDialogAspectPreserve"];
         DlgSrv_AspectRatioLabel.Text = _localizer["ServerDialogLabelAspectRatio"];
         DlgSrv_AudioModeLabel.Text = _localizer["ServerDialogLabelAudioMode"];
         DlgSrv_ColorDepthLabel.Text = _localizer["ServerDialogLabelColorDepth"];
@@ -233,6 +237,8 @@ public partial class ServerDialog : Window
         DlgSrv_SshOptionsTitle.Text = _localizer["ServerDialogSshOptions"];
         DlgSrv_SshOptionsDesc.Text = _localizer["ServerDialogSshOptionsDesc"];
         DlgSrv_SshModeLabel.Text = _localizer["ServerDialogLabelSshMode"];
+        DlgSrv_SshModeEmbedded.Content = _localizer["ServerDialogModeEmbedded"];
+        DlgSrv_SshModeExternal.Content = _localizer["ServerDialogModeExternal"];
         DlgSrv_SshCompressionCb.Content = _localizer["ServerDialogSshCompression"];
         DlgSrv_SshAgentFwdCb.Content = _localizer["ServerDialogSshAgentForward"];
         DlgSrv_SshX11Cb.Content = _localizer["ServerDialogSshX11"];
@@ -295,6 +301,11 @@ public partial class ServerDialog : Window
         DlgSrv_EnvironmentLabel.Text = _localizer["ServerDialogLabelEnvironment"];
         DlgSrv_FavoriteLabel.Text = _localizer["ServerDialogLabelFavorite"];
         DlgSrv_MarkFavoriteCb.Content = _localizer["ServerDialogMarkFavorite"];
+        DlgSrv_EnvNone.Content = _localizer["ServerDialogEnvNone"];
+        DlgSrv_EnvProduction.Content = _localizer["ServerDialogEnvProduction"];
+        DlgSrv_EnvStaging.Content = _localizer["ServerDialogEnvStaging"];
+        DlgSrv_EnvLab.Content = _localizer["ServerDialogEnvLab"];
+        DlgSrv_EnvPersonal.Content = _localizer["ServerDialogEnvPersonal"];
 
         // Metadata
         DlgSrv_MetadataTitle.Text = _localizer["ServerDialogMetadata"];
@@ -305,5 +316,12 @@ public partial class ServerDialog : Window
         // Action buttons
         DlgSrv_CancelBtn.Content = _localizer["ServerDialogBtnCancel"];
         DlgSrv_SaveBtn.Content = _localizer["ServerDialogBtnSave"];
+
+        // Accessibility: automation names for PasswordBox controls
+        System.Windows.Automation.AutomationProperties.SetName(RdpPasswordBox, _localizer["ServerDialogLabelPassword"]);
+        System.Windows.Automation.AutomationProperties.SetName(SshPasswordBox, _localizer["ServerDialogLabelPassphrase"]);
+        System.Windows.Automation.AutomationProperties.SetName(FtpPasswordBox, _localizer["ServerDialogFtpPassword"]);
+        System.Windows.Automation.AutomationProperties.SetName(VncPasswordBox, _localizer["ServerDialogVncPassword"]);
+        System.Windows.Automation.AutomationProperties.SetName(TelnetPasswordBox, _localizer["ServerDialogLabelPassword"]);
     }
 }

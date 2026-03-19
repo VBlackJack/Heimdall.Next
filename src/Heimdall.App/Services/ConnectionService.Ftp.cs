@@ -47,7 +47,7 @@ public partial class ConnectionService
         _connectionSm.TryTransition(server.Id, ConnectionState.LaunchingFtp);
 
         string host = server.RemoteServer;
-        int port = server.FtpPort > 0 ? server.FtpPort : 21;
+        int port = server.FtpPort > 0 ? server.FtpPort : DefaultPorts.Ftp;
         string? username = server.FtpUsername;
         string? password = DecryptPassword(server.FtpPasswordEncrypted);
 

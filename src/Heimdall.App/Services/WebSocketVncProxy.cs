@@ -90,6 +90,22 @@ public sealed class WebSocketVncProxy : IDisposable
                     continue;
                 }
 
+                // Validate Origin to prevent Cross-Site WebSocket Hijacking (CSWSH).
+                // Only accept connections originating from local sources.
+                var origin = context.Request.Headers["Origin"];
+                if (!string.IsNullOrEmpty(origin)
+                    && !origin.StartsWith("file://", StringComparison.OrdinalIgnoreCase)
+                    && !origin.StartsWith("http://127.0.0.1", StringComparison.OrdinalIgnoreCase)
+                    && !origin.StartsWith("http://localhost", StringComparison.OrdinalIgnoreCase)
+                    && !origin.StartsWith("https://127.0.0.1", StringComparison.OrdinalIgnoreCase)
+                    && !origin.StartsWith("https://localhost", StringComparison.OrdinalIgnoreCase))
+                {
+                    Core.Logging.FileLogger.Warn($"VNC proxy rejected WebSocket from untrusted origin: {origin}");
+                    context.Response.StatusCode = 403;
+                    context.Response.Close();
+                    continue;
+                }
+
                 var wsContext = await context.AcceptWebSocketAsync(subProtocol: null)
                     .ConfigureAwait(false);
 

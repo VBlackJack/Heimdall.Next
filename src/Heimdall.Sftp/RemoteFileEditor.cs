@@ -304,7 +304,12 @@ public class RemoteFileEditor : IDisposable
         session.Watcher = watcher;
     }
 
-    private async void OnFileChanged(EditSession session)
+    private void OnFileChanged(EditSession session)
+    {
+        _ = OnFileChangedAsync(session);
+    }
+
+    private async Task OnFileChangedAsync(EditSession session)
     {
         if (!session.ShouldUpload)
         {

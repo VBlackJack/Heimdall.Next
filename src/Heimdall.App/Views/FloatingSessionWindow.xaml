@@ -1,7 +1,7 @@
 <Window x:Class="Heimdall.App.Views.FloatingSessionWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Detached Session"
+        Title=""
         Width="1024" Height="768"
         MinWidth="400" MinHeight="300"
         WindowStartupLocation="CenterScreen"
@@ -24,7 +24,7 @@
                 <!-- Right: Reattach button -->
                 <Button x:Name="ReattachButton"
                         DockPanel.Dock="Right"
-                        Content="Reattach"
+                        Content=""
                         Click="OnReattachClick"
                         VerticalAlignment="Center"
                         Padding="12,4"

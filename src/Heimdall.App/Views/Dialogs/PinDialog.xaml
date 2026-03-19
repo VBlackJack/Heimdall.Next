@@ -7,7 +7,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
-        Title="Heimdall - PIN"
+        Title=""
         Width="380" Height="280"
         WindowStartupLocation="CenterOwner"
         Background="{DynamicResource BackgroundBrush}"
@@ -20,6 +20,7 @@
     <Window.Resources>
         <converters:NullToVisibilityConverter x:Key="NullToVisibilityConverter"/>
         <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+        <converters:InvertBoolConverter x:Key="InvertBoolConverter"/>
     </Window.Resources>
 
     <Grid Margin="24">
@@ -43,6 +44,7 @@
         <PasswordBox x:Name="PinBox"
                      Grid.Row="1"
                      MaxLength="8"
+                     IsEnabled="{Binding IsLockedOut, Converter={StaticResource InvertBoolConverter}, FallbackValue=True}"
                      FontSize="20"
                      HorizontalContentAlignment="Center"
                      Background="{DynamicResource CardBrush}"
@@ -93,6 +95,7 @@
                     IsDefault="True"
                     Width="80"
                     Click="OnUnlockClick"
+                    IsEnabled="{Binding IsLockedOut, Converter={StaticResource InvertBoolConverter}, FallbackValue=True}"
                     Style="{DynamicResource PrimaryButtonStyle}"/>
         </StackPanel>
     </Grid>

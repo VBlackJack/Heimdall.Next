@@ -122,14 +122,16 @@ public sealed class PlinkTunnelRunner : IDisposable
             return new PlinkTunnelResult(false, $"Failed to start plink process: {ex.Message}", SshFailureCode.Unknown);
         }
 
-        // Continuously drain stderr in the background to prevent buffer saturation
+        // Continuously drain stderr in the background to prevent buffer saturation.
+        // Uses the cancellation token so the drain terminates cleanly on Stop().
         _ = Task.Run(async () =>
         {
             try
             {
                 while (_process is { HasExited: false } && _process.StandardError is not null)
                 {
-                    var line = await _process.StandardError.ReadLineAsync().ConfigureAwait(false);
+                    cancellationToken.ThrowIfCancellationRequested();
+                    var line = await _process.StandardError.ReadLineAsync(cancellationToken).ConfigureAwait(false);
                     if (line is null) break;
                     if (!string.IsNullOrWhiteSpace(line))
                     {
@@ -137,8 +139,9 @@ public sealed class PlinkTunnelRunner : IDisposable
                     }
                 }
             }
+            catch (OperationCanceledException) { /* Clean shutdown */ }
             catch { /* Process terminated — expected during shutdown */ }
-        }, CancellationToken.None);
+        }, cancellationToken);
 
         try
         {
@@ -251,21 +254,32 @@ public sealed class PlinkTunnelRunner : IDisposable
 
         if (!string.IsNullOrEmpty(password))
         {
-            // Write password to a temporary file and use -pwfile
-            // This avoids exposing the password on the command line
+            // Write password to a temporary file and use -pwfile.
+            // This avoids exposing the password on the command line.
+            // Create the file with restricted ACL atomically to eliminate
+            // the TOCTOU window between creation and permission enforcement.
             CleanupPasswordFile();
             _pwFilePath = Path.Combine(Path.GetTempPath(), $"heimdall_pw_{Guid.NewGuid():N}");
-            File.WriteAllText(_pwFilePath, password);
 
-            // Restrict file ACL to current user + Administrators + SYSTEM
             if (OperatingSystem.IsWindows())
             {
-                try { Heimdall.Core.Security.AclEnforcer.SetFileAcl(_pwFilePath); }
+                try
+                {
+                    Heimdall.Core.Security.SecureFileWriter.WriteAndProtect(_pwFilePath, password);
+                }
                 catch (Exception ex)
                 {
+                    // Fallback: write normally if secure creation fails
                     Heimdall.Core.Logging.FileLogger.Warn(
-                        $"Failed to enforce ACL on plink password file: {ex.Message}");
+                        $"Secure file creation failed, using fallback: {ex.Message}");
+                    File.WriteAllText(_pwFilePath, password);
+                    try { Heimdall.Core.Security.AclEnforcer.SetFileAcl(_pwFilePath); }
+                    catch { /* Best-effort ACL enforcement */ }
                 }
+            }
+            else
+            {
+                File.WriteAllText(_pwFilePath, password);
             }
 
             args.Add("-pwfile");

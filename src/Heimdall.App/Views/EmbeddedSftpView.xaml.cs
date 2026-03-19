@@ -24,6 +24,7 @@ using System.Windows.Media;
 using Heimdall.App.Services;
 using Heimdall.App.ViewModels;
 using Heimdall.Core.Localization;
+using Heimdall.Core.Utilities;
 using Heimdall.Sftp;
 using Heimdall.Ssh;
 using Microsoft.Win32;
@@ -221,6 +222,19 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
 
         EmptyDirectoryText.Text = _localizer["SftpEmptyDirectory"];
         DragDropOverlayText.Text = _localizer["SftpDragDropOverlay"];
+
+        // Accessibility: automation names for toolbar buttons
+        System.Windows.Automation.AutomationProperties.SetName(BtnBack, _localizer["SftpBtnBack"]);
+        System.Windows.Automation.AutomationProperties.SetName(BtnUp, _localizer["SftpBtnUp"]);
+        System.Windows.Automation.AutomationProperties.SetName(BtnHome, _localizer["SftpHomeDir"]);
+        System.Windows.Automation.AutomationProperties.SetName(BtnRefresh, _localizer["SftpBtnRefresh"]);
+        System.Windows.Automation.AutomationProperties.SetName(BtnUpload, _localizer["SftpBtnUpload"]);
+        System.Windows.Automation.AutomationProperties.SetName(BtnNewFolder, _localizer["SftpBtnNewFolder"]);
+        System.Windows.Automation.AutomationProperties.SetName(BtnBookmark, _localizer["SftpBtnBookmark"]);
+        System.Windows.Automation.AutomationProperties.SetName(BtnBookmarks, _localizer["SftpBtnBookmarks"]);
+        System.Windows.Automation.AutomationProperties.SetName(BtnSudoMode, _localizer["SftpSudoModeTooltip"]);
+        System.Windows.Automation.AutomationProperties.SetName(DisconnectButton, _localizer["SftpBtnClose"]);
+        System.Windows.Automation.AutomationProperties.SetName(SplitButton, _localizer["ToolTipSplitPane"]);
 
         if (FileListView.View is GridView gridView)
         {
@@ -1011,7 +1025,7 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
             || octal < 0 || octal > 777
             || newPerms.Any(c => c < '0' || c > '7'))
         {
-            ShowError("Invalid octal permission value.");
+            ShowError(_localizer?["ErrorInvalidOctalPermission"] ?? "Invalid octal permission value.");
             return;
         }
 
@@ -1936,18 +1950,5 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
         return $"{owner}{group}{other}";
     }
 
-    private static string FormatSize(long bytes)
-    {
-        string[] units = ["B", "KB", "MB", "GB", "TB"];
-        int unitIndex = 0;
-        double size = bytes;
-
-        while (size >= 1024 && unitIndex < units.Length - 1)
-        {
-            size /= 1024;
-            unitIndex++;
-        }
-
-        return unitIndex == 0 ? $"{size:F0} {units[unitIndex]}" : $"{size:F1} {units[unitIndex]}";
-    }
+    private static string FormatSize(long bytes) => FileSize.Format(bytes);
 }

@@ -41,7 +41,7 @@ public partial class ConnectionService
             return Task.FromResult(new ConnectionResult(false, msg, null));
         }
 
-        var vncPort = server.VncPort > 0 ? server.VncPort : 5900;
+        var vncPort = server.VncPort > 0 ? server.VncPort : DefaultPorts.Vnc;
 
         _connectionSm.TryTransition(server.Id, ConnectionState.LaunchingVnc);
 

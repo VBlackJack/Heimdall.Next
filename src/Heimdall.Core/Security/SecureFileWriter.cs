@@ -16,6 +16,8 @@
 
 using System.Runtime.InteropServices;
 using System.Security;
+using System.Security.AccessControl;
+using System.Security.Principal;
 using System.Text;
 
 namespace Heimdall.Core.Security;
@@ -93,6 +95,53 @@ public static class SecureFileWriter
             {
                 Array.Clear(utf8Bytes);
             }
+        }
+    }
+
+    /// <summary>
+    /// Writes text to a file that is created with restrictive ACL from the start,
+    /// eliminating the TOCTOU window between file creation and permission enforcement.
+    /// Only the current user, Administrators, and SYSTEM can access the file.
+    /// </summary>
+    /// <param name="filePath">The target file path.</param>
+    /// <param name="text">The text content to write.</param>
+    [System.Runtime.Versioning.SupportedOSPlatform("windows")]
+    public static void WriteAndProtect(string filePath, string text)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(filePath);
+
+        var currentUser = WindowsIdentity.GetCurrent().User
+            ?? throw new InvalidOperationException("Cannot determine current user SID.");
+
+        // Build a restrictive ACL before creating the file
+        var security = new FileSecurity();
+        security.SetAccessRuleProtection(isProtected: true, preserveInheritance: false);
+        security.AddAccessRule(new FileSystemAccessRule(
+            currentUser,
+            FileSystemRights.FullControl,
+            AccessControlType.Allow));
+        security.AddAccessRule(new FileSystemAccessRule(
+            new SecurityIdentifier(WellKnownSidType.BuiltinAdministratorsSid, null),
+            FileSystemRights.FullControl,
+            AccessControlType.Allow));
+        security.AddAccessRule(new FileSystemAccessRule(
+            new SecurityIdentifier(WellKnownSidType.LocalSystemSid, null),
+            FileSystemRights.FullControl,
+            AccessControlType.Allow));
+
+        // Create the file with the restrictive ACL applied atomically
+        var fileInfo = new FileInfo(filePath);
+        using var stream = fileInfo.Create(FileMode.Create, FileSystemRights.WriteData,
+            FileShare.None, 4096, FileOptions.None, security);
+
+        var bytes = Utf8NoBom.GetBytes(text ?? string.Empty);
+        try
+        {
+            stream.Write(bytes, 0, bytes.Length);
+        }
+        finally
+        {
+            Array.Clear(bytes);
         }
     }
 

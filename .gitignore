@@ -27,6 +27,12 @@ CLAUDE.md
 ## WebView2 Fixed Version Runtime (downloaded per-machine via Setup-WebView2.ps1)
 runtimes/
 
+## Secrets and certificates
+*.env
+*.pfx
+*.key
+*.pem
+
 ## User config (runtime)
 config/settings.json
 config/servers.json

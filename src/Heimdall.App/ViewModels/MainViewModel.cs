@@ -85,6 +85,16 @@ public partial class MainViewModel : ObservableObject
 
     // --- Command Palette (Ctrl+K) ---
 
+    /// <summary>
+    /// When non-null, the Command Palette is in "split mode": selecting a server
+    /// will split the specified session instead of opening a new tab.
+    /// </summary>
+    private SessionTabViewModel? _splitPaletteSession;
+    private Core.Models.SplitOrientation _splitPaletteOrientation;
+
+    [ObservableProperty]
+    private string _palettePlaceholder = "";
+
     [ObservableProperty]
     private bool _isCommandPaletteOpen;
 
@@ -343,7 +353,12 @@ public partial class MainViewModel : ObservableObject
     /// Closes the disconnected session tab and starts a fresh connection to
     /// the same server, reusing the standard connection flow.
     /// </summary>
-    private async void OnReconnectRequested(SessionTabViewModel tab, string serverId, string connectionType)
+    private void OnReconnectRequested(SessionTabViewModel tab, string serverId, string connectionType)
+    {
+        _ = OnReconnectRequestedAsync(tab, serverId, connectionType);
+    }
+
+    private async Task OnReconnectRequestedAsync(SessionTabViewModel tab, string serverId, string connectionType)
     {
         if (string.IsNullOrEmpty(serverId))
         {
@@ -822,6 +837,27 @@ public partial class MainViewModel : ObservableObject
             matches.Insert(0, adHoc);
         }
 
+        // Bare IP / hostname: propose SSH and RDP ad-hoc connections
+        if (matches.Count == 0 && LooksLikeHostOrIp(query))
+        {
+            matches.Add(new ServerItemViewModel
+            {
+                Id = $"adhoc-ssh-{query}",
+                DisplayName = _localizer.Format("QuickConnectSshTo", query),
+                RemoteServer = query,
+                ConnectionType = "SSH",
+                Group = ""
+            });
+            matches.Add(new ServerItemViewModel
+            {
+                Id = $"adhoc-rdp-{query}",
+                DisplayName = _localizer.Format("QuickConnectRdpTo", query),
+                RemoteServer = query,
+                ConnectionType = "RDP",
+                Group = ""
+            });
+        }
+
         PaletteResults = new ObservableCollection<ServerItemViewModel>(matches);
         SelectedPaletteItem = PaletteResults.FirstOrDefault();
     }
@@ -829,6 +865,24 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private void OpenCommandPalette()
     {
+        _splitPaletteSession = null;
+        PalettePlaceholder = _localizer["QuickConnectShortcut"];
+        PaletteSearchText = "";
+        IsCommandPaletteOpen = true;
+        OnPaletteSearchTextChanged("");
+        SelectedPaletteItem = PaletteResults.FirstOrDefault();
+    }
+
+    /// <summary>
+    /// Opens the Command Palette in "split mode". Selecting a server will split
+    /// the given session instead of opening a new tab. This replaces the old
+    /// ContextMenu approach that did not scale beyond ~20 servers.
+    /// </summary>
+    public void OpenSplitPalette(SessionTabViewModel session, Core.Models.SplitOrientation orientation)
+    {
+        _splitPaletteSession = session;
+        _splitPaletteOrientation = orientation;
+        PalettePlaceholder = _localizer["SplitPaletteHint"];
         PaletteSearchText = "";
         IsCommandPaletteOpen = true;
         OnPaletteSearchTextChanged("");
@@ -838,6 +892,7 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private void CloseCommandPalette()
     {
+        _splitPaletteSession = null;
         IsCommandPaletteOpen = false;
     }
 
@@ -845,11 +900,22 @@ public partial class MainViewModel : ObservableObject
     private async Task ConnectFromPaletteAsync(ServerItemViewModel? server)
     {
         if (server is null) return;
+
+        var splitSession = _splitPaletteSession;
+        var splitOrientation = _splitPaletteOrientation;
+        _splitPaletteSession = null;
         IsCommandPaletteOpen = false;
+
+        // If the palette was opened in split mode, route to split logic
+        if (splitSession is not null && !server.Id.StartsWith("adhoc-", StringComparison.Ordinal))
+        {
+            await SplitSessionWithServerAsync(splitSession, server.Id, splitOrientation);
+            return;
+        }
 
         if (server.Id.StartsWith("adhoc-", StringComparison.Ordinal))
         {
-            await ConnectAdHocSshAsync(server);
+            await ConnectAdHocAsync(server);
         }
         else
         {
@@ -871,7 +937,7 @@ public partial class MainViewModel : ObservableObject
         }
         else if (server.Id.StartsWith("adhoc-", StringComparison.Ordinal))
         {
-            await ConnectAdHocSshAsync(server);
+            await ConnectAdHocAsync(server);
         }
         else
         {
@@ -880,40 +946,60 @@ public partial class MainViewModel : ObservableObject
     }
 
     /// <summary>
-    /// Connects an ad-hoc SSH server by building a temporary DTO from the
-    /// palette item and calling ConnectionService directly.
+    /// Connects an ad-hoc server (SSH or RDP) by building a temporary DTO
+    /// from the palette item and calling ConnectionService directly.
     /// </summary>
-    private async Task ConnectAdHocSshAsync(ServerItemViewModel server)
+    private async Task ConnectAdHocAsync(ServerItemViewModel server)
     {
+        var connType = server.ConnectionType?.ToUpperInvariant() ?? "SSH";
+
         var dto = new ServerProfileDto
         {
             Id = server.Id,
             DisplayName = server.DisplayName,
             RemoteServer = server.RemoteServer ?? "",
-            ConnectionType = "SSH",
-            SshPort = 22,
-            SshUsername = server.DisplayName.Contains('@')
-                ? server.DisplayName.Split('@')[0]
-                : ""
+            ConnectionType = connType,
         };
 
-        // Parse port from display name if present (user@host:port)
-        var parts = server.DisplayName.Split(':');
-        if (parts.Length == 2 && int.TryParse(parts[1], out var port))
+        if (connType == "SSH")
         {
-            dto.SshPort = port;
-            dto.RemoteServer = parts[0].Contains('@')
-                ? parts[0].Split('@')[1]
-                : parts[0];
+            dto.SshPort = 22;
+            dto.SshUsername = server.DisplayName.Contains('@')
+                ? server.DisplayName.Split('@')[0]
+                : "";
+
+            // Parse port from display name if present (user@host:port)
+            var parts = server.DisplayName.Split(':');
+            if (parts.Length == 2 && int.TryParse(parts[1], out var port))
+            {
+                dto.SshPort = port;
+                dto.RemoteServer = parts[0].Contains('@')
+                    ? parts[0].Split('@')[1]
+                    : parts[0];
+            }
+        }
+        else if (connType == "RDP")
+        {
+            dto.RemotePort = 3389;
         }
 
         var settings = await _configManager.LoadSettingsAsync();
-        var result = await ServerList.ConnectionService.ConnectSshAsync(dto, settings);
+        ConnectionResult result;
+
+        if (connType == "RDP")
+        {
+            result = await ServerList.ConnectionService.ConnectRdpAsync(dto, settings);
+        }
+        else
+        {
+            result = await ServerList.ConnectionService.ConnectSshAsync(dto, settings);
+        }
+
         if (result.Success && result.Session is not null)
         {
-            var tab = Connection.AddSession(dto.Id, dto.DisplayName, "SSH");
+            var tab = Connection.AddSession(dto.Id, dto.DisplayName, connType);
             tab.HostControl = _embeddedSessionManager.CreateHostControl(
-                tab, dto.DisplayName, "SSH", result.Session, settings);
+                tab, dto.DisplayName, connType, result.Session, settings);
             tab.Status = "Connected";
             StatusText = _localizer.Format("StatusConnected", dto.DisplayName);
         }
@@ -973,6 +1059,19 @@ public partial class MainViewModel : ObservableObject
         }
 
         return qi == query.Length ? score : 0;
+    }
+
+    /// <summary>
+    /// Returns true when the input looks like a bare IP address or hostname
+    /// (no spaces, no protocol prefix, alphanumeric with dots and hyphens).
+    /// </summary>
+    private static bool LooksLikeHostOrIp(string input)
+    {
+        if (string.IsNullOrWhiteSpace(input) || input.Contains(' '))
+            return false;
+        return System.Net.IPAddress.TryParse(input, out _)
+            || System.Text.RegularExpressions.Regex.IsMatch(
+                input, @"^[a-zA-Z0-9][a-zA-Z0-9.\-]*$");
     }
 
     private ServerItemViewModel? TryParseAdHocSsh(string input)
