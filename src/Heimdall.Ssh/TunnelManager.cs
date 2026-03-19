@@ -105,13 +105,19 @@ public sealed class TunnelManager : IDisposable
         try
         {
             var connectionInfo = SshConnectionFactory.CreateForTunnel(gatewayParams);
-            client = new SshClient(connectionInfo);
+            client = new SshClient(connectionInfo)
+            {
+                KeepAliveInterval = TimeSpan.FromSeconds(30)
+            };
 
             if (hostKeyStore is not null)
             {
                 SshConnectionFactory.AttachHostKeyVerification(
                     client, gatewayParams.Host, gatewayParams.Port, hostKeyStore);
             }
+
+            client.ErrorOccurred += (_, args) =>
+                Core.Logging.FileLogger.Error($"SSH tunnel error on port {localPort}: {args.Exception.Message}");
 
             await Task.Run(() =>
             {
@@ -122,6 +128,10 @@ public sealed class TunnelManager : IDisposable
             cancellationToken.ThrowIfCancellationRequested();
 
             forwardedPort = new ForwardedPortLocal("127.0.0.1", (uint)localPort, remoteHost, (uint)remotePort);
+
+            forwardedPort.Exception += (_, args) =>
+                Core.Logging.FileLogger.Error($"SSH forwarded port {localPort} exception: {args.Exception.Message}");
+
             client.AddForwardedPort(forwardedPort);
             forwardedPort.Start();
 

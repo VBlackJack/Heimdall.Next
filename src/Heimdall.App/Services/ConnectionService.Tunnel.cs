@@ -85,21 +85,8 @@ public partial class ConnectionService
             return new TunnelResult(false, null, msg, preflight.FailureCode);
         }
 
-        if (chain.Count == 1 && SshConnectionFactory.RequiresPageantFallback(chain[0]))
-        {
-            Core.Logging.FileLogger.Info(
-                $"EstablishTunnelAsync: using plink fallback for {serverId} via {chain[0].Host}:{chain[0].Port}");
-
-            return await EstablishPlinkTunnelAsync(
-                    serverId,
-                    chain[0],
-                    remoteHost,
-                    remotePort,
-                    localPort,
-                    settings,
-                    ct)
-                .ConfigureAwait(false);
-        }
+        // SSH.NET handles Pageant auth via PageantKeyWrapper — no plink pre-emption needed.
+        // Plink is only used as a fallback if SSH.NET auth fails (see below).
 
         // Open tunnel (single-hop or chained)
         TunnelResult result;
@@ -167,6 +154,9 @@ public partial class ConnectionService
             return new TunnelResult(false, null, message, SshFailureCode.Unknown);
         }
 
+        // Look up TOFU host key for deterministic verification (no interactive prompt)
+        var fingerprint = _hostKeyStore?.GetFingerprint(gatewayParams.Host, gatewayParams.Port);
+
         var runner = new PlinkTunnelRunner();
         var result = await runner.StartAsync(
                 plinkPath,
@@ -178,6 +168,7 @@ public partial class ConnectionService
                 remoteHost,
                 remotePort,
                 localPort,
+                fingerprint,
                 ct)
             .ConfigureAwait(false);
 

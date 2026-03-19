@@ -43,6 +43,8 @@ public partial class ServerListViewModel : ObservableObject
     private List<ServerItemViewModel> _allServers = [];
     private List<ProjectTarget> _projectTargets = [];
     private AppSettings? _currentSettings;
+    private readonly HashSet<string> _expandedNodes = new(StringComparer.OrdinalIgnoreCase);
+    private System.Threading.Timer? _expandSaveTimer;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsEmpty))]
@@ -115,6 +117,16 @@ public partial class ServerListViewModel : ObservableObject
         _currentSettings = settings;
         var selectedServerId = SelectedServer?.Id;
         var projectMap = BuildProjectMap(settings);
+
+        // Restore expand state from settings
+        _expandedNodes.Clear();
+        if (settings.TreeExpandedNodes.Count > 0)
+        {
+            foreach (var node in settings.TreeExpandedNodes)
+            {
+                _expandedNodes.Add(node);
+            }
+        }
 
         _allServers = serverDtos
             .Select(dto => ServerItemViewModel.FromDto(
@@ -874,26 +886,16 @@ public partial class ServerListViewModel : ObservableObject
         var topFolders = root.SubFolders.ToList();
         var rootServers = root.Servers.ToList();
 
-        if (rootServers.Count > 0 && topFolders.Count > 0)
+        if (rootServers.Count > 0)
         {
-            // Add root servers as a virtual folder at the end
             var rootFolder = new FolderViewModel
             {
                 Name = _localizer["TreeNodeNoGroup"],
                 FullPath = "",
+                IsExpanded = _expandedNodes.Contains("::nogroup"),
                 Servers = new ObservableCollection<ServerItemViewModel>(rootServers)
             };
-            topFolders.Add(rootFolder);
-        }
-        else if (rootServers.Count > 0)
-        {
-            // Only root servers, no folders — put them in a single virtual root
-            var rootFolder = new FolderViewModel
-            {
-                Name = _localizer["TreeNodeNoGroup"],
-                FullPath = "",
-                Servers = new ObservableCollection<ServerItemViewModel>(rootServers)
-            };
+            rootFolder.PropertyChanged += OnFolderExpandedChanged;
             topFolders.Add(rootFolder);
         }
 
@@ -904,7 +906,7 @@ public partial class ServerListViewModel : ObservableObject
     /// Ensures a folder path exists in the tree, creating intermediate folders as needed.
     /// "ADSEC/Gateway/Linux" creates ADSEC → Gateway → Linux.
     /// </summary>
-    private static FolderViewModel EnsureFolderPath(FolderViewModel root, string path)
+    private FolderViewModel EnsureFolderPath(FolderViewModel root, string path)
     {
         var segments = path.Replace('\\', '/').Split('/', StringSplitOptions.RemoveEmptyEntries);
         var current = root;
@@ -926,8 +928,10 @@ public partial class ServerListViewModel : ObservableObject
                 var newFolder = new FolderViewModel
                 {
                     Name = segment,
-                    FullPath = pathSoFar
+                    FullPath = pathSoFar,
+                    IsExpanded = _expandedNodes.Contains(pathSoFar)
                 };
+                newFolder.PropertyChanged += OnFolderExpandedChanged;
                 current.SubFolders.Add(newFolder);
                 current = newFolder;
             }
@@ -955,6 +959,58 @@ public partial class ServerListViewModel : ObservableObject
         foreach (var sub in folder.SubFolders)
         {
             SortFolderRecursive(sub);
+        }
+    }
+
+    /// <summary>
+    /// Tracks expand/collapse state changes on folder nodes and schedules
+    /// a debounced save of TreeExpandedNodes to settings.
+    /// </summary>
+    private void OnFolderExpandedChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName != nameof(FolderViewModel.IsExpanded) || sender is not FolderViewModel folder)
+        {
+            return;
+        }
+
+        var key = folder.ExpansionKey;
+        if (folder.IsExpanded)
+        {
+            _expandedNodes.Add(key);
+        }
+        else
+        {
+            _expandedNodes.Remove(key);
+        }
+
+        ScheduleExpandStateSave();
+    }
+
+    /// <summary>
+    /// Debounced save of TreeExpandedNodes — waits 500ms after last toggle
+    /// before writing to disk, to avoid spamming settings.json on rapid clicks.
+    /// </summary>
+    private void ScheduleExpandStateSave()
+    {
+        _expandSaveTimer?.Dispose();
+        _expandSaveTimer = new System.Threading.Timer(
+            _ => SaveExpandStateAsync(),
+            null,
+            TimeSpan.FromMilliseconds(500),
+            Timeout.InfiniteTimeSpan);
+    }
+
+    private async void SaveExpandStateAsync()
+    {
+        try
+        {
+            var settings = await _configManager.LoadSettingsAsync();
+            settings.TreeExpandedNodes = _expandedNodes.ToList();
+            await _configManager.SaveSettingsAsync(settings);
+        }
+        catch (Exception ex)
+        {
+            Core.Logging.FileLogger.Warn($"Failed to save tree expand state: {ex.Message}");
         }
     }
 

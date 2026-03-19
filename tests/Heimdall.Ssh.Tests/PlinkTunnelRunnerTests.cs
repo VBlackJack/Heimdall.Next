@@ -84,14 +84,38 @@ public class PlinkTunnelRunnerTests : IDisposable
     }
 
     [Fact]
-    public void BuildArguments_NeverContainsBatchFlag()
+    public void BuildArguments_ContainsBatchFlag()
     {
-        // -batch breaks all tunnel creation (documented in MEMORY.md)
+        // -batch prevents interactive prompts; safe because -hostkey is
+        // passed from TOFU store for known hosts, and unknown hosts fail
+        // deterministically instead of hanging.
         var args = _runner.BuildArguments(
             "gw.test", 22, "user", @"C:\key.ppk", "pass",
             "remote", 22, 10022);
 
-        Assert.DoesNotContain("-batch", args);
+        Assert.Contains("-batch", args);
+    }
+
+    [Fact]
+    public void BuildArguments_WithHostKey_IncludesHostKeyFlag()
+    {
+        var args = _runner.BuildArguments(
+            "gw.test", 22, "user", null, null,
+            "remote", 22, 10022, "SHA256:abc123");
+
+        Assert.Contains("-hostkey", args);
+        var idx = args.IndexOf("-hostkey");
+        Assert.Equal("\"SHA256:abc123\"", args[idx + 1]);
+    }
+
+    [Fact]
+    public void BuildArguments_WithoutHostKey_OmitsHostKeyFlag()
+    {
+        var args = _runner.BuildArguments(
+            "gw.test", 22, "user", null, null,
+            "remote", 22, 10022);
+
+        Assert.DoesNotContain("-hostkey", args);
     }
 
     [Fact]
