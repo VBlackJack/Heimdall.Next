@@ -19,6 +19,8 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Web;
+using Heimdall.Core.Models;
+using Heimdall.Core.Utilities;
 
 namespace Heimdall.App.Services;
 
@@ -65,7 +67,7 @@ public sealed class EphemeralFileServer : IDisposable
     /// Starts the HTTP file server on the specified directory and port.
     /// Serves files via GET and provides a simple HTML directory listing at root.
     /// </summary>
-    public void StartHttpServer(string directory, int port = 8080)
+    public void StartHttpServer(string directory, int port = DefaultPorts.Http)
     {
         if (IsHttpRunning) StopHttpServer();
 
@@ -77,6 +79,9 @@ public sealed class EphemeralFileServer : IDisposable
         try
         {
             _httpListener.Start();
+            Core.Logging.FileLogger.Warn(
+                $"HTTP file server listening on ALL interfaces (port {port}). " +
+                "Directory is exposed to the local network without authentication.");
         }
         catch (HttpListenerException)
         {
@@ -118,7 +123,7 @@ public sealed class EphemeralFileServer : IDisposable
     /// Starts the TFTP server on the specified directory and port.
     /// Implements minimal TFTP (RFC 1350): read requests only, octet mode, 512-byte blocks.
     /// </summary>
-    public void StartTftpServer(string directory, int port = 69)
+    public void StartTftpServer(string directory, int port = DefaultPorts.Tftp)
     {
         if (IsTftpRunning) StopTftpServer();
 
@@ -491,16 +496,7 @@ public sealed class EphemeralFileServer : IDisposable
 
     // ── Helpers ───────────────────────────────────────────────────────
 
-    private static string FormatFileSize(long bytes)
-    {
-        return bytes switch
-        {
-            < 1024 => $"{bytes} B",
-            < 1024 * 1024 => $"{bytes / 1024.0:F1} KB",
-            < 1024 * 1024 * 1024 => $"{bytes / (1024.0 * 1024):F1} MB",
-            _ => $"{bytes / (1024.0 * 1024 * 1024):F1} GB"
-        };
-    }
+    private static string FormatFileSize(long bytes) => FileSize.Format(bytes);
 
     private static string GetMimeType(string filePath)
     {

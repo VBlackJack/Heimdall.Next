@@ -41,7 +41,7 @@ public partial class ConnectionService
             return new ConnectionResult(false, msg, null);
         }
 
-        var port = server.TelnetPort > 0 ? server.TelnetPort : 23;
+        var port = server.TelnetPort > 0 ? server.TelnetPort : DefaultPorts.Telnet;
 
         _connectionSm.TryTransition(server.Id, ConnectionState.LaunchingTelnet);
 

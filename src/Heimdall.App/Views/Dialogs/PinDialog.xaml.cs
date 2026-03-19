@@ -42,6 +42,7 @@ public partial class PinDialog : Window
             PinBox.Focus();
             if (_localizer is not null)
             {
+                Title = _localizer["PinDialogTitle"];
                 PinTitleText.Text = _localizer["PinEnterLabel"];
                 CancelBtn.Content = _localizer["BtnCancel"];
                 UnlockBtn.Content = _localizer["BtnUnlock"];

@@ -13,8 +13,8 @@
     <Color x:Key="AccentHoverColor">#D6ACFF</Color>
     <Color x:Key="AccentPressedColor">#A87AF7</Color>
     <Color x:Key="TextPrimaryColor">#F8F8F2</Color>
-    <Color x:Key="TextSecondaryColor">#6272A4</Color>
-    <Color x:Key="TextDisabledColor">#44475A</Color>
+    <Color x:Key="TextSecondaryColor">#7986AC</Color>
+    <Color x:Key="TextDisabledColor">#5A5D6A</Color>
     <Color x:Key="SuccessColor">#50FA7B</Color>
     <Color x:Key="WarningColor">#FFB86C</Color>
     <Color x:Key="ErrorColor">#FF5555</Color>

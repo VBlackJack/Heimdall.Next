@@ -158,8 +158,8 @@
                                     ToolTip=""
                                     Click="OnToggleSidebarClick"
                                     Style="{DynamicResource SecondaryButtonStyle}"
-                                    Padding="4,4" FontSize="12"
-                                    Width="28" Height="28"
+                                    Padding="6,6" FontSize="12"
+                                    Width="32" Height="32"
                                     Margin="4,0,0,0"/>
                             <Button x:Name="CollapseAllButton"
                                     DockPanel.Dock="Right"
@@ -167,8 +167,8 @@
                                     FontFamily="Segoe MDL2 Assets"
                                     Click="OnCollapseAllClick"
                                     Style="{DynamicResource ToolbarGhostButtonStyle}"
-                                    Padding="4,4" FontSize="10"
-                                    Width="28" Height="28"
+                                    Padding="6,6" FontSize="10"
+                                    Width="32" Height="32"
                                     Margin="2,0,0,0"/>
                             <Button x:Name="ExpandAllButton"
                                     DockPanel.Dock="Right"
@@ -176,16 +176,16 @@
                                     FontFamily="Segoe MDL2 Assets"
                                     Click="OnExpandAllClick"
                                     Style="{DynamicResource ToolbarGhostButtonStyle}"
-                                    Padding="4,4" FontSize="10"
-                                    Width="28" Height="28"
+                                    Padding="6,6" FontSize="10"
+                                    Width="32" Height="32"
                                     Margin="2,0,0,0"/>
                             <Button x:Name="AddButton"
                                     DockPanel.Dock="Right"
                                     ToolTip=""
                                     Click="OnAddButtonClick"
                                     Style="{DynamicResource ToolbarGhostButtonStyle}"
-                                    Padding="4,4" FontSize="12"
-                                    Width="28" Height="28"
+                                    Padding="6,6" FontSize="12"
+                                    Width="32" Height="32"
                                     Margin="4,0,0,0">
                                 <TextBlock Text="&#xE710;" FontFamily="Segoe MDL2 Assets" FontSize="12"/>
                                 <Button.ContextMenu>
@@ -370,10 +370,10 @@
                                              IsHitTestVisible stays True; the Border's Background="Transparent"
                                              ensures IsMouseOver persists when hovering over child elements. -->
                                         <Button x:Name="TabCloseButton" DockPanel.Dock="Right"
-                                                Width="18" Height="18" Margin="6,0,0,0" Padding="0"
+                                                Width="20" Height="20" Margin="6,0,0,0" Padding="2"
                                                 Focusable="False" Content="&#xE711;"
                                                 FontFamily="Segoe MDL2 Assets" FontSize="9"
-                                                Opacity="0" IsHitTestVisible="True"
+                                                Opacity="0.3" IsHitTestVisible="True"
                                                 Command="{Binding DataContext.Connection.CloseSessionCommand, RelativeSource={RelativeSource AncestorType=TabControl}}"
                                                 CommandParameter="{Binding}"
                                                 Style="{DynamicResource SecondaryButtonStyle}"/>
@@ -394,10 +394,13 @@
                                     </DockPanel>
                                 </Border>
                                 <DataTemplate.Triggers>
-                                    <!-- Fade in close button on hover — no layout shift -->
+                                    <!-- Show close button at full opacity on hover or active tab -->
                                     <Trigger SourceName="TabHeaderBorder" Property="IsMouseOver" Value="True">
                                         <Setter TargetName="TabCloseButton" Property="Opacity" Value="1"/>
                                     </Trigger>
+                                    <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=TabItem}}" Value="True">
+                                        <Setter TargetName="TabCloseButton" Property="Opacity" Value="1"/>
+                                    </DataTrigger>
                                     <!-- Connection type icons -->
                                     <DataTrigger Binding="{Binding ConnectionType}" Value="SSH">
                                         <Setter TargetName="TabTypeIcon" Property="Text" Value="&#xE756;"/>
@@ -540,7 +543,7 @@
                                   Visibility="{Binding IsTunnelPanelOpen, Converter={StaticResource BoolToVisibilityConverter}}"/>
 
                     <Border Grid.Row="2"
-                            Height="180"
+                            MinHeight="120" MaxHeight="300"
                             Background="{DynamicResource SurfaceBrush}"
                             BorderBrush="{DynamicResource BorderBrush}"
                             BorderThickness="0,1,0,0"
@@ -585,7 +588,8 @@
 
                             <!-- Content: compact tunnel DataGrid -->
                             <Grid>
-                                <DataGrid ItemsSource="{Binding TunnelList}"
+                                <DataGrid x:Name="Mw_TunnelPanelGrid"
+                                          ItemsSource="{Binding TunnelList}"
                                           SelectedItem="{Binding SelectedTunnel}"
                                           AutoGenerateColumns="False"
                                           IsReadOnly="True"
@@ -647,7 +651,7 @@
                                                             CommandParameter="{Binding}"
                                                             Style="{DynamicResource ToolbarGhostButtonStyle}"
                                                             Padding="2" Margin="0"
-                                                            ToolTip="Close tunnel"
+                                                            ToolTip="{Binding Tag, RelativeSource={RelativeSource AncestorType=DataGrid}}"
                                                             VerticalAlignment="Center"
                                                             HorizontalAlignment="Center"/>
                                                 </DataTemplate>
@@ -902,9 +906,9 @@
                                             </StackPanel>
                                             <StackPanel Grid.Column="1" Margin="8,0,0,0">
                                                 <TextBlock x:Name="Mw_SettingsThemeLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" Margin="0,0,0,4"/>
-                                                <ComboBox SelectedValue="{Binding Settings.DefaultTheme}" SelectedValuePath="Content">
-                                                    <ComboBoxItem Content="Dark"/>
-                                                    <ComboBoxItem Content="Light"/>
+                                                <ComboBox SelectedValue="{Binding Settings.DefaultTheme}" SelectedValuePath="Tag">
+                                                    <ComboBoxItem x:Name="Mw_ThemeDark" Content="Dark" Tag="Dark"/>
+                                                    <ComboBoxItem x:Name="Mw_ThemeLight" Content="Light" Tag="Light"/>
                                                 </ComboBox>
                                             </StackPanel>
                                         </Grid>
@@ -972,9 +976,9 @@
                                         <TextBox Text="{Binding Settings.PlinkPath}"/>
                                         <StackPanel Margin="0,12,0,0">
                                             <TextBlock x:Name="Mw_SettingsSshModeLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" Margin="0,0,0,4"/>
-                                            <ComboBox SelectedValue="{Binding Settings.SshDefaultMode}" SelectedValuePath="Content" Width="200" HorizontalAlignment="Left">
-                                                <ComboBoxItem Content="Embedded"/>
-                                                <ComboBoxItem Content="External"/>
+                                            <ComboBox SelectedValue="{Binding Settings.SshDefaultMode}" SelectedValuePath="Tag" Width="200" HorizontalAlignment="Left">
+                                                <ComboBoxItem x:Name="Mw_SshModeEmbedded" Content="Embedded" Tag="Embedded"/>
+                                                <ComboBoxItem x:Name="Mw_SshModeExternal" Content="External" Tag="External"/>
                                             </ComboBox>
                                         </StackPanel>
                                         <Grid Margin="0,12,0,0">
@@ -1039,9 +1043,9 @@
                                         <TextBlock x:Name="Mw_SettingsRdpDefaultsTitle" Text="" FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,12"/>
                                         <StackPanel Margin="0,0,0,8">
                                             <TextBlock x:Name="Mw_SettingsRdpModeLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" Margin="0,0,0,4"/>
-                                            <ComboBox SelectedValue="{Binding Settings.RdpDefaultMode}" SelectedValuePath="Content" Width="200" HorizontalAlignment="Left">
-                                                <ComboBoxItem Content="Embedded"/>
-                                                <ComboBoxItem Content="External"/>
+                                            <ComboBox SelectedValue="{Binding Settings.RdpDefaultMode}" SelectedValuePath="Tag" Width="200" HorizontalAlignment="Left">
+                                                <ComboBoxItem x:Name="Mw_RdpModeEmbedded" Content="Embedded" Tag="Embedded"/>
+                                                <ComboBoxItem x:Name="Mw_RdpModeExternal" Content="External" Tag="External"/>
                                             </ComboBox>
                                         </StackPanel>
                                         <Grid Margin="0,8,0,0">
@@ -1061,9 +1065,9 @@
                                         <StackPanel Margin="0,8,0,0">
                                             <TextBlock x:Name="Mw_SettingsRdpColorDepthLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" Margin="0,0,0,4"/>
                                             <ComboBox SelectedValue="{Binding Settings.RdpDefaultColorDepth}" SelectedValuePath="Tag" Width="120" HorizontalAlignment="Left">
-                                                <ComboBoxItem Content="16 bit" Tag="16"/>
-                                                <ComboBoxItem Content="24 bit" Tag="24"/>
-                                                <ComboBoxItem Content="32 bit" Tag="32"/>
+                                                <ComboBoxItem x:Name="Mw_ColorDepth16" Content="16 bit" Tag="16"/>
+                                                <ComboBoxItem x:Name="Mw_ColorDepth24" Content="24 bit" Tag="24"/>
+                                                <ComboBoxItem x:Name="Mw_ColorDepth32" Content="32 bit" Tag="32"/>
                                             </ComboBox>
                                         </StackPanel>
                                         <StackPanel Margin="0,8,0,0">

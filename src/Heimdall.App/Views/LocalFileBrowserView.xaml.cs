@@ -24,6 +24,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using Heimdall.App.Views.Dialogs;
 using Heimdall.Core.Localization;
+using Heimdall.Core.Utilities;
 
 namespace Heimdall.App.Views;
 
@@ -599,10 +600,23 @@ public partial class LocalFileBrowserView : UserControl
         var newName = dialog.InputText?.Trim();
         if (string.IsNullOrWhiteSpace(newName) || newName == entry.Name) return;
 
+        if (newName.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0 || newName.Contains(".."))
+        {
+            MessageBox.Show(L10n("ErrorInvalidFileName"), L10n("FileBrowserRenameTitle"),
+                MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
         try
         {
             var parentDir = Path.GetDirectoryName(entry.FullPath)!;
-            var newPath = Path.Combine(parentDir, newName);
+            var newPath = Path.GetFullPath(Path.Combine(parentDir, newName));
+            if (!newPath.StartsWith(parentDir, StringComparison.OrdinalIgnoreCase))
+            {
+                MessageBox.Show(L10n("ErrorInvalidFileName"), L10n("FileBrowserRenameTitle"),
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
 
             if (entry.IsDirectory)
                 Directory.Move(entry.FullPath, newPath);
@@ -632,9 +646,22 @@ public partial class LocalFileBrowserView : UserControl
         var folderName = dialog.InputText?.Trim();
         if (string.IsNullOrWhiteSpace(folderName)) return;
 
+        if (folderName.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0 || folderName.Contains(".."))
+        {
+            MessageBox.Show(L10n("ErrorInvalidFileName"), L10n("FileBrowserNewFolderTitle"),
+                MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
         try
         {
-            var newPath = Path.Combine(_currentPath, folderName);
+            var newPath = Path.GetFullPath(Path.Combine(_currentPath, folderName));
+            if (!newPath.StartsWith(_currentPath, StringComparison.OrdinalIgnoreCase))
+            {
+                MessageBox.Show(L10n("ErrorInvalidFileName"), L10n("FileBrowserNewFolderTitle"),
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
             Directory.CreateDirectory(newPath);
             LoadDirectory(_currentPath);
         }
@@ -689,23 +716,7 @@ public partial class LocalFileBrowserView : UserControl
         }
     }
 
-    /// <summary>
-    /// Formats a byte count into a human-readable size string.
-    /// </summary>
-    private static string FormatSize(long bytes)
-    {
-        string[] units = ["B", "KB", "MB", "GB", "TB"];
-        int index = 0;
-        double size = bytes;
-
-        while (size >= 1024 && index < units.Length - 1)
-        {
-            size /= 1024;
-            index++;
-        }
-
-        return index == 0 ? $"{size:F0} {units[index]}" : $"{size:F1} {units[index]}";
-    }
+    private static string FormatSize(long bytes) => FileSize.Format(bytes);
 }
 
 /// <summary>Local filesystem entry for the file browser ListView.</summary>

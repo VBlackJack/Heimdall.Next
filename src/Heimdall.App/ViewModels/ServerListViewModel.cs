@@ -1000,7 +1000,12 @@ public partial class ServerListViewModel : ObservableObject
             Timeout.InfiniteTimeSpan);
     }
 
-    private async void SaveExpandStateAsync()
+    private void SaveExpandStateAsync()
+    {
+        _ = SaveExpandStateCoreAsync();
+    }
+
+    private async Task SaveExpandStateCoreAsync()
     {
         try
         {

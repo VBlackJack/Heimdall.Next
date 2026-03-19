@@ -55,6 +55,8 @@ public partial class InputDialog : Window
             InputTextBox.SelectAll();
             if (_localizer is not null)
             {
+                if (string.IsNullOrEmpty(Title))
+                    Title = _localizer["InputDialogDefaultTitle"];
                 CancelBtn.Content = _localizer["BtnCancel"];
                 OkBtn.Content = _localizer["BtnOk"];
             }

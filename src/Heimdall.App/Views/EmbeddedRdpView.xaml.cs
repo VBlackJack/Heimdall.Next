@@ -72,6 +72,12 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
     /// </summary>
     public event Action? SplitRequested;
 
+    /// <summary>
+    /// Raised when the user clicks "Reconnect" in the disconnect overlay.
+    /// The subscriber should close this session and open a new connection.
+    /// </summary>
+    public event Action? ReconnectRequested;
+
     public EmbeddedRdpView()
     {
         InitializeComponent();
@@ -132,6 +138,11 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
             SplitButton.ToolTip = L("ToolTipSplitPane");
             ResolutionButton.ToolTip = L("RdpTooltipResolution");
             ResMenuFit.Header = L("RdpResolutionFitToWindow");
+
+            // Accessibility: automation names for toolbar buttons
+            System.Windows.Automation.AutomationProperties.SetName(DisconnectButton, L("BtnDisconnectSession"));
+            System.Windows.Automation.AutomationProperties.SetName(SplitButton, L("ToolTipSplitPane"));
+            System.Windows.Automation.AutomationProperties.SetName(ResolutionButton, L("RdpTooltipResolution"));
         }
 
         CreateHostControl();
@@ -484,6 +495,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
             UpdateSessionState(
                 "Disconnected",
                 string.Format("Remote Desktop disconnected with code {0}.", reason));
+            ShowReconnectOverlay();
         });
     }
 
@@ -502,6 +514,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
             UpdateSessionState(
                 "Error",
                 string.Format("Remote Desktop reported a fatal error ({0}).", errorCode));
+            ShowReconnectOverlay();
         });
     }
 
@@ -709,6 +722,25 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
 
     /// <summary>Resolves a locale key, falling back to the key name if no localizer is set.</summary>
     private string L(string key) => _localizer?[key] ?? key;
+
+    private void ShowReconnectOverlay()
+    {
+        ReconnectMessageText.Text = L("RdpDisconnectedMessage");
+        OverlayReconnectButton.Content = L("BtnReconnectSession");
+        OverlayCloseButton.Content = L("BtnCloseOverlay");
+        ReconnectOverlay.Visibility = System.Windows.Visibility.Visible;
+    }
+
+    private void OnOverlayReconnectClick(object sender, RoutedEventArgs e)
+    {
+        ReconnectOverlay.Visibility = System.Windows.Visibility.Collapsed;
+        ReconnectRequested?.Invoke();
+    }
+
+    private void OnOverlayCloseClick(object sender, RoutedEventArgs e)
+    {
+        ReconnectOverlay.Visibility = System.Windows.Visibility.Collapsed;
+    }
 
     private (int Width, int Height) GetDisplayDimensions()
     {

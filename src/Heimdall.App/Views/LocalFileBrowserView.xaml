@@ -78,7 +78,7 @@
                   VirtualizingPanel.IsVirtualizing="True">
             <ListView.View>
                 <GridView>
-                    <GridViewColumn Header="Name" Width="250">
+                    <GridViewColumn Header="" Width="250">
                         <GridViewColumn.CellTemplate>
                             <DataTemplate>
                                 <StackPanel Orientation="Horizontal">
@@ -98,7 +98,7 @@
                             </DataTemplate>
                         </GridViewColumn.CellTemplate>
                     </GridViewColumn>
-                    <GridViewColumn Header="Size" Width="80">
+                    <GridViewColumn Header="" Width="80">
                         <GridViewColumn.CellTemplate>
                             <DataTemplate>
                                 <TextBlock Text="{Binding Size, Converter={StaticResource FileSizeConverter}, ConverterParameter=dir}"
@@ -106,7 +106,7 @@
                             </DataTemplate>
                         </GridViewColumn.CellTemplate>
                     </GridViewColumn>
-                    <GridViewColumn Header="Modified" Width="130"
+                    <GridViewColumn Header="" Width="130"
                                     DisplayMemberBinding="{Binding LastModified, StringFormat='{}{0:yyyy-MM-dd HH:mm}'}"/>
                 </GridView>
             </ListView.View>
@@ -144,49 +144,49 @@
 
             <ListView.ContextMenu>
                 <ContextMenu Opened="OnContextMenuOpened">
-                    <MenuItem x:Name="CtxOpen" Header="Open" Click="OnCtxOpen" InputGestureText="Enter">
+                    <MenuItem x:Name="CtxOpen" Header="" Click="OnCtxOpen" InputGestureText="Enter">
                         <MenuItem.Icon><TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE8E5;" FontSize="14"/></MenuItem.Icon>
                     </MenuItem>
-                    <MenuItem x:Name="CtxOpenWith" Header="Open With..." Click="OnCtxOpenWith">
+                    <MenuItem x:Name="CtxOpenWith" Header="" Click="OnCtxOpenWith">
                         <MenuItem.Icon><TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE7AC;" FontSize="14"/></MenuItem.Icon>
                     </MenuItem>
-                    <MenuItem x:Name="CtxOpenInExplorer" Header="Open in Explorer" Click="OnCtxOpenInExplorer">
+                    <MenuItem x:Name="CtxOpenInExplorer" Header="" Click="OnCtxOpenInExplorer">
                         <MenuItem.Icon><TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE838;" FontSize="14"/></MenuItem.Icon>
                     </MenuItem>
-                    <MenuItem x:Name="CtxOpenInTerminal" Header="Open in Terminal" Click="OnCtxOpenInTerminal">
+                    <MenuItem x:Name="CtxOpenInTerminal" Header="" Click="OnCtxOpenInTerminal">
                         <MenuItem.Icon><TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE756;" FontSize="14"/></MenuItem.Icon>
                     </MenuItem>
-                    <MenuItem x:Name="CtxOpenInEditor" Header="Open in Editor" Click="OnCtxOpenInEditor">
+                    <MenuItem x:Name="CtxOpenInEditor" Header="" Click="OnCtxOpenInEditor">
                         <MenuItem.Icon><TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE70F;" FontSize="14"/></MenuItem.Icon>
                     </MenuItem>
-                    <MenuItem x:Name="CtxRunInShell" Header="Run in Shell" Click="OnCtxRunInShell">
+                    <MenuItem x:Name="CtxRunInShell" Header="" Click="OnCtxRunInShell">
                         <MenuItem.Icon><TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE768;" FontSize="14"/></MenuItem.Icon>
                     </MenuItem>
                     <Separator/>
-                    <MenuItem x:Name="CtxCopy" Header="Copy" Click="OnCtxCopy" InputGestureText="Ctrl+C">
+                    <MenuItem x:Name="CtxCopy" Header="" Click="OnCtxCopy" InputGestureText="Ctrl+C">
                         <MenuItem.Icon><TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE8C8;" FontSize="14"/></MenuItem.Icon>
                     </MenuItem>
-                    <MenuItem x:Name="CtxPaste" Header="Paste" Click="OnCtxPaste" InputGestureText="Ctrl+V">
+                    <MenuItem x:Name="CtxPaste" Header="" Click="OnCtxPaste" InputGestureText="Ctrl+V">
                         <MenuItem.Icon><TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE77F;" FontSize="14"/></MenuItem.Icon>
                     </MenuItem>
-                    <MenuItem x:Name="CtxCopyPath" Header="Copy path" Click="OnCtxCopyPath">
+                    <MenuItem x:Name="CtxCopyPath" Header="" Click="OnCtxCopyPath">
                         <MenuItem.Icon><TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE71B;" FontSize="14"/></MenuItem.Icon>
                     </MenuItem>
                     <Separator/>
-                    <MenuItem x:Name="CtxRename" Header="Rename" Click="OnCtxRename" InputGestureText="F2">
+                    <MenuItem x:Name="CtxRename" Header="" Click="OnCtxRename" InputGestureText="F2">
                         <MenuItem.Icon><TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE8AC;" FontSize="14"/></MenuItem.Icon>
                     </MenuItem>
-                    <MenuItem x:Name="CtxDelete" Header="Delete" Click="OnCtxDelete" InputGestureText="Del">
+                    <MenuItem x:Name="CtxDelete" Header="" Click="OnCtxDelete" InputGestureText="Del">
                         <MenuItem.Icon><TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE74D;" FontSize="14"/></MenuItem.Icon>
                     </MenuItem>
-                    <MenuItem x:Name="CtxNewFolder" Header="New Folder" Click="OnCtxNewFolder">
+                    <MenuItem x:Name="CtxNewFolder" Header="" Click="OnCtxNewFolder">
                         <MenuItem.Icon><TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE8F4;" FontSize="14"/></MenuItem.Icon>
                     </MenuItem>
                     <Separator/>
-                    <MenuItem x:Name="CtxProperties" Header="Properties" Click="OnCtxProperties">
+                    <MenuItem x:Name="CtxProperties" Header="" Click="OnCtxProperties">
                         <MenuItem.Icon><TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE946;" FontSize="14"/></MenuItem.Icon>
                     </MenuItem>
-                    <MenuItem x:Name="CtxRefresh" Header="Refresh" Click="OnRefreshClick" InputGestureText="F5">
+                    <MenuItem x:Name="CtxRefresh" Header="" Click="OnRefreshClick" InputGestureText="F5">
                         <MenuItem.Icon><TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE72C;" FontSize="14"/></MenuItem.Icon>
                     </MenuItem>
                 </ContextMenu>

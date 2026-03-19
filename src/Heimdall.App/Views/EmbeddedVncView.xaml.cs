@@ -52,7 +52,7 @@ public partial class EmbeddedVncView : UserControl, IDisposable
     /// <summary>
     /// Initializes the VNC view with session parameters and starts the WebSocket proxy.
     /// </summary>
-    public async void InitializeSession(
+    public async Task InitializeSessionAsync(
         VncSessionResult session,
         SessionTabViewModel sessionTab,
         string displayName,

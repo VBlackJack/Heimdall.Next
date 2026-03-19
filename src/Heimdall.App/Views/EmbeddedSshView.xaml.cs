@@ -643,7 +643,7 @@ public partial class EmbeddedSshView : UserControl, IDisposable
     private void OnWebViewProcessFailed(object? sender, CoreWebView2ProcessFailedEventArgs e)
     {
         Core.Logging.FileLogger.Warn($"EmbeddedSSH WebView2 process failed: {e.ProcessFailedKind}");
-        ShowWebViewUnavailable("The embedded terminal renderer crashed.");
+        ShowWebViewUnavailable(_localizer?["ErrorTerminalRendererCrashed"] ?? "The embedded terminal renderer crashed.");
     }
 
     private void OnWebMessageReceived(object? sender, CoreWebView2WebMessageReceivedEventArgs args)
@@ -1139,6 +1139,13 @@ public partial class EmbeddedSshView : UserControl, IDisposable
         ElevateButton.ToolTip = L("ToolTipElevateShell");
         AdminBadgeText.Text = L("AdminBadgeLabel");
         BroadcastBadgeText.Text = L("BroadcastBadgeLabel");
+
+        // Accessibility: automation names for toolbar buttons
+        System.Windows.Automation.AutomationProperties.SetName(DisconnectButton, L("BtnDisconnectSession"));
+        System.Windows.Automation.AutomationProperties.SetName(ReconnectButton, L("BtnReconnectSession"));
+        System.Windows.Automation.AutomationProperties.SetName(HealthToggleButton, L("ToolTipServerHealth"));
+        System.Windows.Automation.AutomationProperties.SetName(SplitButton, L("ToolTipSplitPane"));
+        System.Windows.Automation.AutomationProperties.SetName(ElevateButton, L("ToolTipElevateShell"));
     }
 
     /// <summary>Show/hide the shield button for launching an elevated shell.</summary>

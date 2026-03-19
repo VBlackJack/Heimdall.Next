@@ -93,6 +93,11 @@ public sealed class EmbeddedSessionManager
             var view = new EmbeddedRdpView();
             view.InitializeSession(rdp.Server, sessionTab, antiIdleInterval, _localizer, rdp.TunnelPort);
             WireSplitRequested(view, sessionTab);
+            view.ReconnectRequested += () =>
+                ReconnectRequestedCallback?.Invoke(
+                    sessionTab,
+                    !string.IsNullOrEmpty(sessionTab.OriginalServerId) ? sessionTab.OriginalServerId : sessionTab.ServerId,
+                    sessionTab.ConnectionType);
             return view;
         }
 
@@ -177,7 +182,10 @@ public sealed class EmbeddedSessionManager
             && session is VncSessionResult vnc)
         {
             var view = new EmbeddedVncView();
-            view.InitializeSession(vnc, sessionTab, displayName, _localizer);
+            _ = view.InitializeSessionAsync(vnc, sessionTab, displayName, _localizer)
+                .ContinueWith(t =>
+                    Core.Logging.FileLogger.Error($"VNC init failed: {t.Exception?.GetBaseException().Message}"),
+                    TaskContinuationOptions.OnlyOnFaulted);
             return view;
         }
 
