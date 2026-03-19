@@ -1824,6 +1824,8 @@
   "TunnelPanelCollapse": "R\u00e9duire le panneau des tunnels",
   "TunnelPanelToggle": "Afficher/masquer le panneau des tunnels",
   "ToolTipSplitPane": "Diviser le panneau",
+  "RdpTooltipResolution": "Changer la résolution",
+  "RdpResolutionFitToWindow": "Adapter à la fenêtre",
 
   "ConnectionTypeCitrix": "Citrix",
   "CitrixStoreFrontUrl": "URL StoreFront",
