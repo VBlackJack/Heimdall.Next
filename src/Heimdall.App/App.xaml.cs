@@ -92,6 +92,9 @@ public partial class App : System.Windows.Application
             Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "locales"),
             settings.DefaultLocale);
 
+        // Apply sleep prevention setting
+        SleepPrevention.Enabled = settings.PreventSleepDuringSession;
+
         // Initialize HMAC key for credential protection
         await InitializeHmacKeyAsync(configManager, settings);
 
