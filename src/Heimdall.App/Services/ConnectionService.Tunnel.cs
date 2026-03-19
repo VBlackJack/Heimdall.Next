@@ -183,9 +183,12 @@ public partial class ConnectionService
 
         if (!result.Success)
         {
-            _connectionSm.SetError(serverId, result.ErrorMessage ?? _localizer["ErrorTunnelFailed"]);
+            var errorMsg = result.ErrorMessage ?? _localizer["ErrorTunnelFailed"];
+            Core.Logging.FileLogger.Error(
+                $"Plink tunnel failed for {serverId} via {gatewayParams.Host}:{gatewayParams.Port}: {errorMsg}");
+            _connectionSm.SetError(serverId, errorMsg);
             runner.Dispose();
-            return new TunnelResult(false, null, result.ErrorMessage, result.FailureCode);
+            return new TunnelResult(false, null, errorMsg, result.FailureCode);
         }
 
         var tunnelInfo = new TunnelInfo(
