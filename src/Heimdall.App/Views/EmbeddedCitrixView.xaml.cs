@@ -35,7 +35,7 @@ namespace Heimdall.App.Views;
 public partial class EmbeddedCitrixView : UserControl, IDisposable
 {
     private const int HealthCheckIntervalMs = 3000;
-    private const int WindowCaptureMaxAttempts = 30;
+    private const int WindowCaptureMaxAttempts = 60;
     private const int WindowCapturePollIntervalMs = 500;
 
     // Win32 window style flags
@@ -55,6 +55,7 @@ public partial class EmbeddedCitrixView : UserControl, IDisposable
     private WinForms.Panel? _hostPanel;
     private IntPtr _capturedHwnd;
     private bool _embedded;
+    private bool _captureInProgress;
     private bool _disposed;
 
     [DllImport("user32.dll")]
@@ -80,6 +81,15 @@ public partial class EmbeddedCitrixView : UserControl, IDisposable
 
     [DllImport("user32.dll")]
     private static extern bool IsWindow(IntPtr hWnd);
+
+    [DllImport("user32.dll")]
+    private static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct RECT
+    {
+        public int Left, Top, Right, Bottom;
+    }
 
     public EmbeddedCitrixView()
     {
@@ -132,54 +142,132 @@ public partial class EmbeddedCitrixView : UserControl, IDisposable
             : string.Empty;
     }
 
+    // Citrix process names to scan (covers different Workspace versions)
+    private static readonly string[] CitrixProcessNames =
+        ["wfica32", "wfcrun32", "CDViewer", "Receiver", "SelfService"];
+
+    [DllImport("user32.dll")]
+    private static extern bool EnumWindows(EnumWindowsProc callback, IntPtr lParam);
+
+    [DllImport("user32.dll")]
+    private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
+
+    [DllImport("user32.dll")]
+    private static extern bool IsWindowVisible(IntPtr hWnd);
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    private static extern int GetClassName(IntPtr hWnd, System.Text.StringBuilder lpClassName, int nMaxCount);
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    private static extern int GetWindowTextLength(IntPtr hWnd);
+
+    private delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
+
     /// <summary>
-    /// Polls for a new wfica32.exe window and reparents it into the embedded panel.
+    /// Polls for new Citrix windows and reparents the first viable one.
+    /// Searches multiple process names and uses EnumWindows for robust detection.
     /// Falls back to external mode after timeout.
     /// </summary>
     private async Task TryCaptureWindowAsync()
     {
-        Core.Logging.FileLogger.Info("Citrix: attempting to capture wfica32.exe window...");
+        _captureInProgress = true;
+        Core.Logging.FileLogger.Info("Citrix: attempting to capture Citrix session window...");
 
-        // Record existing wfica32 PIDs before our launch
-        var existingPids = new HashSet<int>(
-            Process.GetProcessesByName("wfica32").Select(p => p.Id));
+        // Record existing Citrix PIDs before our launch
+        var existingPids = new HashSet<int>();
+        foreach (var name in CitrixProcessNames)
+        {
+            foreach (var p in Process.GetProcessesByName(name))
+            {
+                existingPids.Add(p.Id);
+            }
+        }
 
-        for (int attempt = 0; attempt < WindowCaptureMaxAttempts; attempt++)
+        Core.Logging.FileLogger.Info($"Citrix: {existingPids.Count} existing Citrix process(es) before launch");
+
+        for (int attempt = 1; attempt <= WindowCaptureMaxAttempts; attempt++)
         {
             if (_disposed) return;
 
             await Task.Delay(WindowCapturePollIntervalMs);
 
-            // Find new wfica32 processes
-            var candidates = Process.GetProcessesByName("wfica32")
-                .Where(p => !existingPids.Contains(p.Id))
-                .ToList();
-
-            foreach (var proc in candidates)
+            // Scan for new Citrix processes
+            var newPids = new HashSet<int>();
+            foreach (var name in CitrixProcessNames)
             {
-                try
+                foreach (var p in Process.GetProcessesByName(name))
                 {
-                    if (proc.HasExited) continue;
+                    if (!existingPids.Contains(p.Id) && !p.HasExited)
+                    {
+                        newPids.Add(p.Id);
+                    }
+                }
+            }
 
-                    var hwnd = proc.MainWindowHandle;
-                    if (hwnd == IntPtr.Zero) continue;
+            if (newPids.Count == 0) continue;
 
-                    // Found a new wfica32 window — attempt to embed
+            if (attempt % 5 == 0)
+            {
+                Core.Logging.FileLogger.Info(
+                    $"Citrix: scan {attempt}/{WindowCaptureMaxAttempts}, {newPids.Count} new Citrix process(es)");
+            }
+
+            // Use EnumWindows to find visible windows belonging to new Citrix processes
+            IntPtr bestHwnd = IntPtr.Zero;
+            int bestArea = 0;
+
+            EnumWindows((hwnd, _) =>
+            {
+                if (!IsWindowVisible(hwnd)) return true;
+
+                GetWindowThreadProcessId(hwnd, out var pid);
+                if (!newPids.Contains((int)pid)) return true;
+
+                var className = new System.Text.StringBuilder(256);
+                GetClassName(hwnd, className, 256);
+                var cName = className.ToString();
+
+                // Accept Citrix session windows by class name (seamless windows have no title)
+                // Also accept any window with a title as fallback
+                bool isCitrixClass = cName.StartsWith("Transparent Windows Client", StringComparison.OrdinalIgnoreCase)
+                    || cName.StartsWith("CtxSeamless", StringComparison.OrdinalIgnoreCase)
+                    || cName.Contains("CDViewer", StringComparison.OrdinalIgnoreCase)
+                    || cName.StartsWith("TUIWindowClass", StringComparison.OrdinalIgnoreCase)
+                    || cName.StartsWith("IHWindow", StringComparison.OrdinalIgnoreCase);
+
+                if (!isCitrixClass && GetWindowTextLength(hwnd) == 0)
+                    return true; // Skip unknown windows without titles
+
+                GetWindowRect(hwnd, out var rect);
+                int area = (rect.Right - rect.Left) * (rect.Bottom - rect.Top);
+
+                // Skip tiny windows (toolbars, tray icons, etc.)
+                if (area < 10000) return true;
+
+                if (area > bestArea)
+                {
+                    bestArea = area;
+                    bestHwnd = hwnd;
                     Core.Logging.FileLogger.Info(
-                        $"Citrix: found wfica32 window (PID={proc.Id}, hwnd=0x{hwnd.ToInt64():X}), embedding...");
+                        $"Citrix: candidate hwnd=0x{hwnd.ToInt64():X} class='{cName}' pid={pid} size={rect.Right - rect.Left}x{rect.Bottom - rect.Top}");
+                }
 
-                    await Dispatcher.InvokeAsync(() => EmbedWindow(hwnd));
-                    return;
-                }
-                catch (Exception ex)
-                {
-                    Core.Logging.FileLogger.Warn($"Citrix: window capture probe failed: {ex.Message}");
-                }
+                return true;
+            }, IntPtr.Zero);
+
+            if (bestHwnd != IntPtr.Zero)
+            {
+                _captureInProgress = false;
+                Core.Logging.FileLogger.Info(
+                    $"Citrix: capturing hwnd=0x{bestHwnd.ToInt64():X} (area={bestArea}px)");
+                await Dispatcher.InvokeAsync(() => EmbedWindow(bestHwnd));
+                return;
             }
         }
 
         // Timeout — fall back to external mode
-        Core.Logging.FileLogger.Info("Citrix: window capture timed out, using external mode");
+        _captureInProgress = false;
+        Core.Logging.FileLogger.Info("Citrix: window capture timed out after 30s, using external mode");
         await Dispatcher.InvokeAsync(() =>
         {
             BringToFrontButton.Visibility = Visibility.Visible;
@@ -279,25 +367,30 @@ public partial class EmbeddedCitrixView : UserControl, IDisposable
 
     private void OnHealthTimerTick(object? sender, EventArgs e)
     {
-        bool alive;
-
         if (_embedded && _capturedHwnd != IntPtr.Zero)
         {
-            // In embedded mode, check if the captured window still exists
-            alive = IsWindow(_capturedHwnd);
-            if (!alive)
+            // In embedded mode — only check if the captured window still exists
+            if (!IsWindow(_capturedHwnd))
             {
                 _embedded = false;
                 _capturedHwnd = IntPtr.Zero;
                 EmbeddedContainer.Visibility = Visibility.Collapsed;
                 InfoPanel.Visibility = Visibility.Visible;
+                UpdateStatus(false);
             }
-        }
-        else
-        {
-            alive = _session?.Process is not null && !_session.Process.HasExited;
+
+            return;
         }
 
+        if (_captureInProgress)
+        {
+            // Still searching for a window to capture — don't declare dead.
+            // SelfService.exe exits immediately; that's expected.
+            return;
+        }
+
+        // External mode (capture timed out) — monitor the last known process
+        bool alive = _session?.Process is not null && !_session.Process.HasExited;
         UpdateStatus(alive);
     }
 
