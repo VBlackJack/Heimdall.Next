@@ -71,6 +71,9 @@ public sealed class ConPtySession : ITerminalSession
     /// <inheritdoc />
     public int? ProcessId => _disposed ? null : _processId == 0 ? null : _processId;
 
+    /// <inheritdoc />
+    public Dictionary<string, string>? EnvironmentVariables { get; set; }
+
     /// <summary>
     /// Returns true if the ConPTY API is available on this Windows version
     /// (Windows 10 1809+ / Windows Server 2019+).
@@ -312,17 +315,74 @@ public sealed class ConPtySession : ITerminalSession
 
         string? cwd = !string.IsNullOrWhiteSpace(workingDirectory) ? workingDirectory : null;
 
-        if (!NativeMethods.CreateProcessW(
-            null, cmdLine, IntPtr.Zero, IntPtr.Zero,
-            false, flags, IntPtr.Zero, cwd,
-            ref si, out NativeMethods.PROCESS_INFORMATION pi))
+        // Build environment block with injected variables (merged with current process environment)
+        IntPtr envBlock = IntPtr.Zero;
+        if (EnvironmentVariables is { Count: > 0 })
         {
-            throw new Win32Exception(Marshal.GetLastWin32Error(), "CreateProcessW failed.");
+            envBlock = BuildEnvironmentBlock(EnvironmentVariables);
         }
 
-        _processHandle = pi.hProcess;
-        _threadHandle = pi.hThread;
-        _processId = (int)pi.dwProcessId;
+        try
+        {
+            if (!NativeMethods.CreateProcessW(
+                null, cmdLine, IntPtr.Zero, IntPtr.Zero,
+                false, flags, envBlock, cwd,
+                ref si, out NativeMethods.PROCESS_INFORMATION pi))
+            {
+                throw new Win32Exception(Marshal.GetLastWin32Error(), "CreateProcessW failed.");
+            }
+
+            _processHandle = pi.hProcess;
+            _threadHandle = pi.hThread;
+            _processId = (int)pi.dwProcessId;
+        }
+        finally
+        {
+            if (envBlock != IntPtr.Zero)
+                Marshal.FreeHGlobal(envBlock);
+        }
+    }
+
+    /// <summary>
+    /// Builds a Unicode environment block for CreateProcessW.
+    /// Merges the current process environment with the additional variables.
+    /// Format: VAR1=val1\0VAR2=val2\0...\0\0
+    /// </summary>
+    private static IntPtr BuildEnvironmentBlock(Dictionary<string, string> additional)
+    {
+        var env = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+        // Start with current process environment
+        foreach (System.Collections.DictionaryEntry entry in Environment.GetEnvironmentVariables())
+        {
+            if (entry.Key is string key && entry.Value is string val)
+            {
+                env[key] = val;
+            }
+        }
+
+        // Merge additional variables (overwrite if conflict)
+        foreach (var kvp in additional)
+        {
+            env[kvp.Key] = kvp.Value;
+        }
+
+        // Build the null-terminated Unicode block.
+        // Format: KEY1=val1\0KEY2=val2\0...\0\0
+        // Sort by Ordinal (strict Win32 requirement for environment blocks).
+        var sb = new System.Text.StringBuilder();
+        foreach (var kvp in env.OrderBy(k => k.Key, StringComparer.Ordinal))
+        {
+            sb.Append(kvp.Key).Append('=').Append(kvp.Value).Append('\0');
+        }
+        sb.Append('\0'); // Double null terminator
+
+        // Marshal.StringToHGlobalUni stops at the first \0.
+        // Must manually copy the full UTF-16 byte array including embedded nulls.
+        byte[] envBytes = System.Text.Encoding.Unicode.GetBytes(sb.ToString());
+        IntPtr block = Marshal.AllocHGlobal(envBytes.Length);
+        Marshal.Copy(envBytes, 0, block, envBytes.Length);
+        return block;
     }
 
     private void StartReadLoop()

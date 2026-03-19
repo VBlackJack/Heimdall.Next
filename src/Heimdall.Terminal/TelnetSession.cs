@@ -52,6 +52,7 @@ public class TelnetSession : ITerminalSession
 
     public bool IsRunning => _client?.Connected == true && !_disposed;
     public int? ProcessId => null;
+    public Dictionary<string, string>? EnvironmentVariables { get; set; }
 
     public TelnetSession(string host, int port)
     {

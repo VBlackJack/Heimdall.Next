@@ -38,6 +38,7 @@ public class PipeModeSession : ITerminalSession
 
     public bool IsRunning => _process is not null && !_process.HasExited;
     public int? ProcessId => _process?.Id;
+    public Dictionary<string, string>? EnvironmentVariables { get; set; }
 
     public Task StartAsync(string executable, string arguments, int columns = 80, int rows = 24, string? workingDirectory = null)
     {
@@ -59,6 +60,15 @@ public class PipeModeSession : ITerminalSession
             StandardErrorEncoding = null,  // Binary mode — allows direct BaseStream read
             WorkingDirectory = workingDirectory ?? string.Empty
         };
+
+        // Inject additional environment variables (contextual shells)
+        if (EnvironmentVariables is { Count: > 0 })
+        {
+            foreach (var kvp in EnvironmentVariables)
+            {
+                psi.Environment[kvp.Key] = kvp.Value;
+            }
+        }
 
         _process = new Process { StartInfo = psi, EnableRaisingEvents = true };
         _process.Exited += OnProcessExited;

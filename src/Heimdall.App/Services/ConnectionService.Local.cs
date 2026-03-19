@@ -80,6 +80,9 @@ public partial class ConnectionService
             session = new Heimdall.Terminal.PipeModeSession();
         }
 
+        // Inject server metadata as environment variables for contextual shells
+        session.EnvironmentVariables = BuildContextEnvironment(server);
+
         try
         {
             await session.StartAsync(executable, arguments, workingDirectory: workingDir);
@@ -95,7 +98,7 @@ public partial class ConnectionService
         }
 
         _connectionSm.TryTransition(server.Id, Core.Models.ConnectionState.Connected);
-        return new ConnectionResult(true, null, new LocalShellBundle(session, workingDir, executable));
+        return new ConnectionResult(true, null, new LocalShellBundle(session, workingDir, executable, server.LocalShellElevated));
     }
 
     /// <summary>
@@ -105,8 +108,14 @@ public partial class ConnectionService
     /// </summary>
     private static string? ResolveElevationWrapper()
     {
-        // gsudo (open source, MIT): https://github.com/gerardog/gsudo
-        // Works with ConPTY/PipeMode — wraps the child process with elevation
+        // 1. Bundled gsudo (shipped with Heimdall in Assets/Tools/)
+        var bundledPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Tools", "gsudo.exe");
+        if (File.Exists(bundledPath))
+        {
+            return bundledPath;
+        }
+
+        // 2. System-installed gsudo (via winget/chocolatey/scoop)
         try
         {
             var gsudoPath = FindInPath("gsudo.exe");
@@ -117,7 +126,7 @@ public partial class ConnectionService
         }
         catch { }
 
-        // Windows 11 24H2+ native sudo
+        // 3. Windows 11 24H2+ native sudo
         try
         {
             var sudoPath = FindInPath("sudo.exe");
@@ -129,6 +138,41 @@ public partial class ConnectionService
         catch { }
 
         return null;
+    }
+
+    /// <summary>
+    /// Builds a dictionary of HEIMDALL_* environment variables from the server profile.
+    /// These are injected into the local shell so that user scripts can reference
+    /// server metadata without hardcoding IPs or usernames.
+    /// </summary>
+    private static Dictionary<string, string>? BuildContextEnvironment(ServerProfileDto server)
+    {
+        var env = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+        if (!string.IsNullOrWhiteSpace(server.RemoteServer))
+            env["HEIMDALL_HOST"] = server.RemoteServer;
+
+        if (!string.IsNullOrWhiteSpace(server.DisplayName))
+            env["HEIMDALL_NAME"] = server.DisplayName;
+
+        if (server.RemotePort > 0)
+            env["HEIMDALL_PORT"] = server.RemotePort.ToString();
+
+        if (!string.IsNullOrWhiteSpace(server.SshUsername))
+            env["HEIMDALL_USER"] = server.SshUsername;
+        else if (!string.IsNullOrWhiteSpace(server.RdpUsername))
+            env["HEIMDALL_USER"] = server.RdpUsername;
+
+        if (!string.IsNullOrWhiteSpace(server.ConnectionType))
+            env["HEIMDALL_TYPE"] = server.ConnectionType;
+
+        if (!string.IsNullOrWhiteSpace(server.Group))
+            env["HEIMDALL_GROUP"] = server.Group;
+
+        if (!string.IsNullOrWhiteSpace(server.Environment))
+            env["HEIMDALL_ENV"] = server.Environment;
+
+        return env.Count > 0 ? env : null;
     }
 
     private static string? FindInPath(string executableName)

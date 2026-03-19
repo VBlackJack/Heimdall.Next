@@ -1827,6 +1827,8 @@
   "TunnelPanelCollapse": "Collapse tunnel panel",
   "TunnelPanelToggle": "Toggle tunnel panel",
   "ToolTipSplitPane": "Split pane",
+  "ToolTipElevateShell": "Open elevated shell (Administrator)",
+  "AdminBadgeLabel": "ADMIN",
   "RdpTooltipResolution": "Change resolution",
   "RdpResolutionFitToWindow": "Fit to Window",
 
