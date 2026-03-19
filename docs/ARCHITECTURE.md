@@ -10,14 +10,14 @@
 
 # Architecture
 
-Heimdall.Next is a .NET 10 WPF application organized as a multi-project solution with strict dependency boundaries. Supports RDP, SSH, SFTP, FTP, VNC, Telnet, and Citrix connection types with ~1,936 i18n keys per locale (EN/FR).
+Heimdall.Next is a .NET 10 WPF application organized as a multi-project solution with strict dependency boundaries. Supports RDP, SSH, SFTP, FTP, VNC, Telnet, Citrix, and Local Shell connection types with ~2,034 i18n keys per locale (EN/FR).
 
 ## Solution Structure
 
 ```
 Heimdall.slnx (8 projects)
 ├── src/
-│   ├── Heimdall.Core          net10.0         Models, security, config, state machine, i18n, network scanner
+│   ├── Heimdall.Core          net10.0         Models, security, config, state machine, i18n, network scanner, utilities
 │   ├── Heimdall.Ssh           net10.0         SSH engine, tunnels, Pageant, TOFU, failure classifier, health monitor
 │   ├── Heimdall.Rdp           net10.0-windows RDP + Citrix engine (ActiveX, StoreBrowse), credential autofill
 │   ├── Heimdall.Sftp          net10.0         SFTP/FTP browser (SSH.NET + FtpWebRequest), remote file editing
