@@ -651,17 +651,32 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
             return (1024, 768);
         }
 
-        var width = Math.Max((int)Math.Floor(SurfaceContainer.ActualWidth), 2);
-        var height = Math.Max((int)Math.Floor(SurfaceContainer.ActualHeight), 2);
+        double logicalWidth = Math.Max(SurfaceContainer.ActualWidth, 2);
+        double logicalHeight = Math.Max(SurfaceContainer.ActualHeight, 2);
 
-        if (width <= 2 || height <= 2)
+        if (logicalWidth <= 2 || logicalHeight <= 2)
         {
             return (1024, 768);
         }
 
+        // Convert WPF logical pixels (DIPs) to physical pixels for the ActiveX control.
+        // On a 150% DPI display, WPF reports 2238 DIPs but the control needs 3357 physical pixels.
+        double dpiScaleX = 1.0;
+        double dpiScaleY = 1.0;
+
+        var source = PresentationSource.FromVisual(this);
+        if (source?.CompositionTarget is not null)
+        {
+            dpiScaleX = source.CompositionTarget.TransformToDevice.M11;
+            dpiScaleY = source.CompositionTarget.TransformToDevice.M22;
+        }
+
+        int physicalWidth = (int)Math.Round(logicalWidth * dpiScaleX);
+        int physicalHeight = (int)Math.Round(logicalHeight * dpiScaleY);
+
         return AspectRatioManager.Calculate(
-            width,
-            height,
+            physicalWidth,
+            physicalHeight,
             ParseAspectRatio(_server.RdpAspectRatio));
     }
 
