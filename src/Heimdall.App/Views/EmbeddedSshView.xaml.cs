@@ -1136,7 +1136,28 @@ public partial class EmbeddedSshView : UserControl, IDisposable
         ReconnectMessageText.Text = L("SshDisconnectedMessage");
         HealthToggleButton.ToolTip = L("ToolTipServerHealth");
         SplitButton.ToolTip = L("ToolTipSplitPane");
+        ElevateButton.ToolTip = L("ToolTipElevateShell");
+        AdminBadgeText.Text = L("AdminBadgeLabel");
         BroadcastBadgeText.Text = L("BroadcastBadgeLabel");
+    }
+
+    /// <summary>Show/hide the shield button for launching an elevated shell.</summary>
+    public void ShowElevateButton(bool visible) =>
+        ElevateButton.Visibility = visible ? Visibility.Visible : Visibility.Collapsed;
+
+    /// <summary>Show/hide the ADMIN badge and hide the elevate button.</summary>
+    public void SetElevatedIndicator(bool elevated)
+    {
+        AdminBadge.Visibility = elevated ? Visibility.Visible : Visibility.Collapsed;
+        ElevateButton.Visibility = Visibility.Collapsed;
+    }
+
+    /// <summary>Raised when the user clicks the shield button to request an elevated shell.</summary>
+    public event Action? ElevateRequested;
+
+    private void OnElevateClick(object sender, RoutedEventArgs e)
+    {
+        ElevateRequested?.Invoke();
     }
 
     private void PostTerminalMessage(string message)

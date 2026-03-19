@@ -44,6 +44,12 @@ public interface ITerminalSession : IDisposable
     int? ProcessId { get; }
 
     /// <summary>
+    /// Additional environment variables to inject into the child process.
+    /// Set before calling <see cref="StartAsync"/>. Merged with the current process environment.
+    /// </summary>
+    Dictionary<string, string>? EnvironmentVariables { get; set; }
+
+    /// <summary>
     /// Launches the child process inside a pseudo-console with the given
     /// initial terminal dimensions.
     /// </summary>

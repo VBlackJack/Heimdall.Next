@@ -203,4 +203,4 @@ public record SftpSessionBundle(SftpBrowser Browser, SshConnectionParams SshPara
 /// Bundles a local shell terminal session with the resolved working directory
 /// so the file browser panel can start at the same path as the shell.
 /// </summary>
-public record LocalShellBundle(Heimdall.Terminal.ITerminalSession Session, string WorkingDirectory, string ShellExecutable) : Heimdall.Core.Models.ISessionResult;
+public record LocalShellBundle(Heimdall.Terminal.ITerminalSession Session, string WorkingDirectory, string ShellExecutable, bool IsElevated = false) : Heimdall.Core.Models.ISessionResult;

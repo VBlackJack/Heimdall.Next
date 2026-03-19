@@ -111,7 +111,7 @@ public sealed class EmbeddedSessionManager
         if (string.Equals(connectionType, "LOCAL", StringComparison.OrdinalIgnoreCase) &&
             session is LocalShellBundle localBundle)
         {
-            var termView = CreateTerminalSshView(sessionTab, localBundle.Session, displayName, 0, settings);
+            var termView = CreateTerminalSshView(sessionTab, localBundle.Session, displayName, 0, settings, localBundle.IsElevated);
 
             // Auto-attach local file browser panel in a vertical split
             var fileBrowser = new Views.LocalFileBrowserView(
@@ -210,10 +210,20 @@ public sealed class EmbeddedSessionManager
         Heimdall.Terminal.ITerminalSession terminalSession,
         string displayName,
         int keepAliveIntervalSeconds,
-        AppSettings? settings = null)
+        AppSettings? settings = null,
+        bool isElevated = false)
     {
         var view = new EmbeddedSshView { Localizer = _localizer, TerminalSettings = settings };
         view.InitializeTerminalSession(terminalSession, tab, displayName, keepAliveIntervalSeconds);
+        if (isElevated)
+        {
+            view.SetElevatedIndicator(true);
+        }
+        else
+        {
+            view.ShowElevateButton(true);
+        }
+
         WireBroadcast(view);
         WireSplitRequested(view, tab);
         WireReconnectRequested(view, tab);

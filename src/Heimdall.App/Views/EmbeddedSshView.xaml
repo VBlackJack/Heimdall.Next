@@ -55,6 +55,29 @@
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
                         Padding="6,2" FontSize="12" Margin="4,0"/>
 
+                <Button x:Name="ElevateButton"
+                        DockPanel.Dock="Right"
+                        Content="&#xE7EF;"
+                        FontFamily="Segoe MDL2 Assets"
+                        Click="OnElevateClick"
+                        Style="{DynamicResource ToolbarGhostButtonStyle}"
+                        Padding="6,2" FontSize="12" Margin="4,0"
+                        Visibility="Collapsed"/>
+
+                <!-- Admin badge (visible when session is elevated) -->
+                <Border x:Name="AdminBadge"
+                        DockPanel.Dock="Right"
+                        Background="Goldenrod"
+                        CornerRadius="4"
+                        Padding="6,1"
+                        Margin="4,0"
+                        VerticalAlignment="Center"
+                        Visibility="Collapsed">
+                    <TextBlock x:Name="AdminBadgeText" Text="ADMIN"
+                               FontSize="9" FontWeight="Bold"
+                               Foreground="Black"/>
+                </Border>
+
                 <!-- Broadcast mode indicator -->
                 <Border x:Name="BroadcastBadge"
                         DockPanel.Dock="Right"
