@@ -515,10 +515,10 @@ public partial class MainViewModel : ObservableObject
             return;
         }
 
-        _tunnelManager.CloseTunnel(tunnel.LocalPort);
+        _tunnelManager.ForceCloseTunnel(tunnel.LocalPort);
         TunnelCount = _tunnelManager.GetActiveTunnels().Count;
         RefreshTunnelList();
-        StatusText = $"Tunnel on port {tunnel.LocalPort} closed.";
+        StatusText = _localizer.Format("StatusTunnelClosed", tunnel.LocalPort);
     }
 
     [RelayCommand]
@@ -527,7 +527,23 @@ public partial class MainViewModel : ObservableObject
         _tunnelManager.CloseAllTunnels();
         TunnelCount = 0;
         RefreshTunnelList();
-        StatusText = "All tunnels closed.";
+        StatusText = _localizer["StatusAllTunnelsClosed"];
+    }
+
+    [RelayCommand]
+    private void CopyTunnelPort(TunnelInfo? tunnel)
+    {
+        if (tunnel is null)
+        {
+            return;
+        }
+
+        try
+        {
+            System.Windows.Clipboard.SetText(tunnel.LocalPort.ToString());
+            StatusText = _localizer.Format("StatusPortCopied", tunnel.LocalPort);
+        }
+        catch { /* Clipboard may fail in RDP sessions */ }
     }
 
     [RelayCommand]

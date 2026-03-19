@@ -1842,6 +1842,12 @@
 
   "TunnelPanelColRemote": "Remote",
   "TunnelPanelColPort": "Port",
+  "TunnelCtxClose": "Close Tunnel",
+  "TunnelCtxCopyPort": "Copy Local Port",
+  "TunnelCtxCloseAll": "Close All Tunnels",
+  "StatusTunnelClosed": "Tunnel on port {0} closed.",
+  "StatusAllTunnelsClosed": "All tunnels closed.",
+  "StatusPortCopied": "Port {0} copied to clipboard.",
   "TooltipCloseTunnel": "Close tunnel",
   "SettingsBtnExportServers": "Export Servers",
   "SettingsBtnImportServers": "Import Servers",
