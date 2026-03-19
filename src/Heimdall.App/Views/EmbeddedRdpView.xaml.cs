@@ -50,6 +50,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
     private SessionTabViewModel? _sessionTab;
 
     private Core.Localization.LocalizationManager? _localizer;
+    private int? _tunnelPort;
 
     private bool _initialized;
     private bool _connectStarted;
@@ -97,7 +98,8 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         ServerProfileDto server,
         SessionTabViewModel sessionTab,
         int antiIdleIntervalSeconds = 60,
-        Core.Localization.LocalizationManager? localizer = null)
+        Core.Localization.LocalizationManager? localizer = null,
+        int? tunnelPort = null)
     {
         ArgumentNullException.ThrowIfNull(server);
         ArgumentNullException.ThrowIfNull(sessionTab);
@@ -116,6 +118,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         _sessionTab = sessionTab;
         _antiIdleIntervalSeconds = antiIdleIntervalSeconds;
         _localizer = localizer;
+        _tunnelPort = tunnelPort;
         _initialized = true;
 
         SessionTitleText.Text = server.DisplayName;
@@ -807,25 +810,30 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
             : "127.0.0.1";
     }
 
-    private static int ResolveConnectPort(ServerProfileDto server)
+    private int ResolveConnectPort(ServerProfileDto server)
     {
-        return server.UseDirectConnection || string.IsNullOrWhiteSpace(server.SshGatewayId)
-            ? server.RemotePort
-            : server.LocalPort;
+        if (server.UseDirectConnection || string.IsNullOrWhiteSpace(server.SshGatewayId))
+        {
+            return server.RemotePort;
+        }
+
+        // Use the dynamically allocated tunnel port, falling back to server.LocalPort
+        return _tunnelPort ?? server.LocalPort;
     }
 
-    private static string BuildEndpointText(ServerProfileDto server)
+    private string BuildEndpointText(ServerProfileDto server)
     {
         if (server.UseDirectConnection || string.IsNullOrWhiteSpace(server.SshGatewayId))
         {
             return string.Format("{0}:{1}", server.RemoteServer, server.RemotePort);
         }
 
+        var localPort = _tunnelPort ?? server.LocalPort;
         return string.Format(
             "{0}:{1} via localhost:{2}",
             server.RemoteServer,
             server.RemotePort,
-            server.LocalPort);
+            localPort);
     }
 
     private static (string Username, string? Domain) SplitUsername(string? username)

@@ -91,7 +91,7 @@ public sealed class EmbeddedSessionManager
             session is RdpSessionResult rdp)
         {
             var view = new EmbeddedRdpView();
-            view.InitializeSession(rdp.Server, sessionTab, antiIdleInterval, _localizer);
+            view.InitializeSession(rdp.Server, sessionTab, antiIdleInterval, _localizer, rdp.TunnelPort);
             WireSplitRequested(view, sessionTab);
             return view;
         }

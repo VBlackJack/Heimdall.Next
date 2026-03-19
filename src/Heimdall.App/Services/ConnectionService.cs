@@ -183,7 +183,9 @@ public partial class ConnectionService
 public record ConnectionResult(bool Success, string? ErrorMessage, Heimdall.Core.Models.ISessionResult? Session);
 
 /// <summary>Wraps a <see cref="ServerProfileDto"/> for embedded RDP sessions.</summary>
-public record RdpSessionResult(ServerProfileDto Server) : Heimdall.Core.Models.ISessionResult;
+/// <param name="Server">Server profile DTO.</param>
+/// <param name="TunnelPort">Dynamically allocated tunnel port, or null for direct connections.</param>
+public record RdpSessionResult(ServerProfileDto Server, int? TunnelPort = null) : Heimdall.Core.Models.ISessionResult;
 
 /// <summary>Wraps an SSH.NET shell session.</summary>
 public record SshSessionResult(Heimdall.Ssh.SshShellSession Session) : Heimdall.Core.Models.ISessionResult;
