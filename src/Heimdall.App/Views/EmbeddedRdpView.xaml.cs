@@ -62,6 +62,8 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
     private int _beginConnectAttempt;
     private int _lastAppliedWidth;
     private int _lastAppliedHeight;
+    private int _manualResolutionWidth;
+    private int _manualResolutionHeight;
     private DateTime _connectedAtUtc;
 
     /// <summary>
@@ -128,6 +130,8 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         {
             DisconnectButton.Content = L("BtnDisconnectSession");
             SplitButton.ToolTip = L("ToolTipSplitPane");
+            ResolutionButton.ToolTip = L("RdpTooltipResolution");
+            ResMenuFit.Header = L("RdpResolutionFitToWindow");
         }
 
         CreateHostControl();
@@ -644,6 +648,65 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         _resizeTimer.Start();
     }
 
+    private void OnResolutionButtonClick(object sender, RoutedEventArgs e)
+    {
+        // Update checkmarks to reflect current resolution
+        var currentTag = _manualResolutionWidth > 0
+            ? $"{_manualResolutionWidth}x{_manualResolutionHeight}"
+            : "Fit";
+
+        foreach (var menuItem in ResolutionMenu.Items.OfType<MenuItem>())
+        {
+            menuItem.IsChecked = menuItem.Tag is string tag && tag == currentTag;
+        }
+
+        ResolutionMenu.PlacementTarget = ResolutionButton;
+        ResolutionMenu.IsOpen = true;
+    }
+
+    private void OnResolutionMenuClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is not MenuItem item || item.Tag is not string tag)
+            return;
+
+        if (tag == "Fit")
+        {
+            _manualResolutionWidth = 0;
+            _manualResolutionHeight = 0;
+            ResolutionButton.ToolTip = L("RdpTooltipResolution");
+            if (TryFindResource("TextPrimaryBrush") is System.Windows.Media.Brush defaultBrush)
+                ResolutionButton.Foreground = defaultBrush;
+            Core.Logging.FileLogger.Info("RDP resolution set to: Fit to Window");
+        }
+        else
+        {
+            var parts = tag.Split('x');
+            if (parts.Length == 2
+                && int.TryParse(parts[0], out var w)
+                && int.TryParse(parts[1], out var h))
+            {
+                _manualResolutionWidth = w;
+                _manualResolutionHeight = h;
+                ResolutionButton.ToolTip = $"{L("RdpTooltipResolution")} ({w}x{h})";
+                if (TryFindResource("AccentBrush") is System.Windows.Media.Brush accentBrush)
+                    ResolutionButton.Foreground = accentBrush;
+                Core.Logging.FileLogger.Info($"RDP resolution set to: {w}x{h}");
+            }
+        }
+
+        // Apply immediately if connected
+        if (_rdpHost?.IsConnected == true && _allowResolutionUpdates)
+        {
+            var (width, height) = GetDisplayDimensions();
+            if (width > 0 && height > 0)
+            {
+                _rdpHost.UpdateResolution(width, height);
+                _lastAppliedWidth = width;
+                _lastAppliedHeight = height;
+            }
+        }
+    }
+
     /// <summary>Resolves a locale key, falling back to the key name if no localizer is set.</summary>
     private string L(string key) => _localizer?[key] ?? key;
 
@@ -652,6 +715,12 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         if (_server is null)
         {
             return (1024, 768);
+        }
+
+        // Manual resolution override — use exact dimensions if set
+        if (_manualResolutionWidth > 0 && _manualResolutionHeight > 0)
+        {
+            return (_manualResolutionWidth, _manualResolutionHeight);
         }
 
         double logicalWidth = Math.Max(SurfaceContainer.ActualWidth, 2);

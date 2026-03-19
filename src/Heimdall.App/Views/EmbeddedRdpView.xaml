@@ -34,6 +34,31 @@
                         Click="OnSplitClick"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
                         Padding="6,2" FontSize="12" Margin="4,0"/>
+                <Button x:Name="ResolutionButton"
+                        DockPanel.Dock="Right"
+                        Content="&#xE740;"
+                        FontFamily="Segoe MDL2 Assets"
+                        Style="{DynamicResource ToolbarGhostButtonStyle}"
+                        Padding="6,2" FontSize="12" Margin="4,0"
+                        Click="OnResolutionButtonClick">
+                    <Button.ContextMenu>
+                        <ContextMenu x:Name="ResolutionMenu">
+                            <MenuItem x:Name="ResMenuFit" Click="OnResolutionMenuClick" Tag="Fit"/>
+                            <Separator/>
+                            <MenuItem Header="1920 x 1080" Click="OnResolutionMenuClick" Tag="1920x1080"/>
+                            <MenuItem Header="1680 x 1050" Click="OnResolutionMenuClick" Tag="1680x1050"/>
+                            <MenuItem Header="1600 x 900" Click="OnResolutionMenuClick" Tag="1600x900"/>
+                            <MenuItem Header="1440 x 900" Click="OnResolutionMenuClick" Tag="1440x900"/>
+                            <MenuItem Header="1366 x 768" Click="OnResolutionMenuClick" Tag="1366x768"/>
+                            <MenuItem Header="1280 x 1024" Click="OnResolutionMenuClick" Tag="1280x1024"/>
+                            <MenuItem Header="1280 x 720" Click="OnResolutionMenuClick" Tag="1280x720"/>
+                            <MenuItem Header="1024 x 768" Click="OnResolutionMenuClick" Tag="1024x768"/>
+                            <Separator/>
+                            <MenuItem Header="2560 x 1440" Click="OnResolutionMenuClick" Tag="2560x1440"/>
+                            <MenuItem Header="3840 x 2160" Click="OnResolutionMenuClick" Tag="3840x2160"/>
+                        </ContextMenu>
+                    </Button.ContextMenu>
+                </Button>
 
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <TextBlock x:Name="SessionTitleText"
