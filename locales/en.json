@@ -1427,6 +1427,7 @@
   "BroadcastModeOn": "Broadcast mode ON \u2014 input sent to all terminals",
   "BroadcastModeOff": "Broadcast mode OFF",
   "BroadcastToggleTooltip": "Toggle Broadcast Mode (send to all terminals)",
+  "BroadcastBadgeLabel": "BROADCAST",
 
   "WorkspaceSave": "Save Workspace",
   "WorkspaceRestore": "Restore Workspace",
@@ -1571,6 +1572,8 @@
   "TooltipHideSidebar": "Hide sidebar (Ctrl+B)",
   "TooltipShowSidebar": "Show sidebar (Ctrl+B)",
   "TooltipAddMenu": "Add server, folder, or gateway",
+  "TooltipExpandAll": "Expand all folders",
+  "TooltipCollapseAll": "Collapse all folders",
 
   "DetailLabelGroup": "Group:",
   "DetailLabelEnvironment": "Environment:",

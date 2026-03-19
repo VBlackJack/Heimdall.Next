@@ -1129,12 +1129,14 @@ public partial class EmbeddedSshView : UserControl, IDisposable
         if (_localizer is null) return;
         DisconnectButton.Content = L("BtnDisconnectSession");
         ReconnectButton.Content = L("BtnReconnectSession");
+        FallbackTitleText.Text = L("EmbeddedSshFallbackTitle");
         FallbackMessageText.Text = L("EmbeddedSshFallbackMessage");
         OverlayReconnectButton.Content = L("BtnReconnectSession");
         OverlayCloseButton.Content = L("BtnCloseOverlay");
         ReconnectMessageText.Text = L("SshDisconnectedMessage");
         HealthToggleButton.ToolTip = L("ToolTipServerHealth");
         SplitButton.ToolTip = L("ToolTipSplitPane");
+        BroadcastBadgeText.Text = L("BroadcastBadgeLabel");
     }
 
     private void PostTerminalMessage(string message)
