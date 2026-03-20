@@ -179,6 +179,13 @@ public partial class PasswordGeneratorView : UserControl, IDisposable
 
     private void PopulateComboBoxes()
     {
+        // Mode selector
+        CmbMode.Items.Clear();
+        CmbMode.Items.Add(L("ToolPwdGenModeRandom"));
+        CmbMode.Items.Add(L("ToolPwdGenModeSyllable"));
+        CmbMode.Items.Add(L("ToolPwdGenModePassphrase"));
+        CmbMode.SelectedIndex = 0;
+
         CmbSylCase.Items.Clear();
         CmbSylCase.Items.Add(L("ToolPwdGenCaseMixed"));
         CmbSylCase.Items.Add(L("ToolPwdGenCaseLower"));
@@ -189,12 +196,21 @@ public partial class PasswordGeneratorView : UserControl, IDisposable
         CmbSylCase.Items.Add(L("ToolPwdGenCaseInverse"));
         CmbSylCase.SelectedIndex = 0;
 
+        // Syllable placement
         CmbSylPlacement.Items.Clear();
         CmbSylPlacement.Items.Add(L("ToolPwdGenPlacementRandom"));
         CmbSylPlacement.Items.Add(L("ToolPwdGenPlacementStart"));
         CmbSylPlacement.Items.Add(L("ToolPwdGenPlacementEnd"));
         CmbSylPlacement.Items.Add(L("ToolPwdGenPlacementMiddle"));
         CmbSylPlacement.SelectedIndex = 0;
+
+        // Passphrase placement
+        CmbPpPlacement.Items.Clear();
+        CmbPpPlacement.Items.Add(L("ToolPwdGenPlacementRandom"));
+        CmbPpPlacement.Items.Add(L("ToolPwdGenPlacementStart"));
+        CmbPpPlacement.Items.Add(L("ToolPwdGenPlacementEnd"));
+        CmbPpPlacement.Items.Add(L("ToolPwdGenPlacementMiddle"));
+        CmbPpPlacement.SelectedIndex = 0;
 
         TxtCustomSpecials.Text = SymbolChars;
 
@@ -212,14 +228,9 @@ public partial class PasswordGeneratorView : UserControl, IDisposable
     private void ApplyLocalization()
     {
         TitleText.Text = L("ToolPwdGenTitle");
-        BtnGenerate.Content = L("ToolPwdGenBtnGenerate");
-        BtnCopy.Content = L("ToolPwdGenBtnCopy");
+        ModeLabel.Text = L("ToolPwdGenMode");
+        BtnRegenerate.ToolTip = L("ToolPwdGenBtnRegenerate");
         BtnCopy.ToolTip = L("ToolBtnCopyToClipboard");
-
-        // Mode radio buttons
-        RbModeRandom.Content = L("ToolPwdGenModeRandom");
-        RbModeSyllable.Content = L("ToolPwdGenModeSyllable");
-        RbModePassphrase.Content = L("ToolPwdGenModePassphrase");
 
         // Random mode
         LengthLabel.Text = L("ToolPwdGenLength");
@@ -227,12 +238,15 @@ public partial class PasswordGeneratorView : UserControl, IDisposable
         ChkLowercase.Content = L("ToolPwdGenLowercase");
         ChkDigits.Content = L("ToolPwdGenDigits");
         ChkSymbols.Content = L("ToolPwdGenSymbols");
+
+        // Advanced options
+        AdvancedExpander.Header = L("ToolPwdGenAdvanced");
         ChkExcludeAmbiguous.Content = L("ToolPwdGenExcludeAmbiguous");
         ChkCliSafe.Content = L("ToolPwdGenCliSafe");
         CustomSpecialsLabel.Text = L("ToolPwdGenCustomSpecials");
 
         // Presets
-        PresetsLabel.Text = L("ToolPwdGenPresets");
+        PresetsLabel.Text = L("ToolPwdGenQuickPresets");
         BtnPresetPin4.Content = L("ToolPwdGenPresetPin4");
         BtnPresetPin6.Content = L("ToolPwdGenPresetPin6");
         BtnPresetWifi.Content = L("ToolPwdGenPresetWifi");
@@ -258,11 +272,13 @@ public partial class PasswordGeneratorView : UserControl, IDisposable
         ChkPpCapitalize.Content = L("ToolPwdGenCapitalize");
         ChkPpDigit.Content = L("ToolPwdGenAddDigit");
         ChkPpSpecial.Content = L("ToolPwdGenAddSpecial");
+        PpPlacementLabel.Text = L("ToolPwdGenPlacement");
 
         // Accessibility
-        System.Windows.Automation.AutomationProperties.SetName(BtnGenerate, L("ToolPwdGenBtnGenerate"));
+        System.Windows.Automation.AutomationProperties.SetName(BtnRegenerate, L("ToolPwdGenBtnRegenerate"));
         System.Windows.Automation.AutomationProperties.SetName(BtnCopy, L("ToolPwdGenBtnCopy"));
         System.Windows.Automation.AutomationProperties.SetName(PasswordOutput, L("ToolPwdGenTitle"));
+        System.Windows.Automation.AutomationProperties.SetName(CmbMode, L("ToolPwdGenMode"));
         System.Windows.Automation.AutomationProperties.SetName(LengthSlider, L("ToolPwdGenLength"));
         System.Windows.Automation.AutomationProperties.SetName(ChkUppercase, L("ToolPwdGenUppercase"));
         System.Windows.Automation.AutomationProperties.SetName(ChkLowercase, L("ToolPwdGenLowercase"));
@@ -272,10 +288,8 @@ public partial class PasswordGeneratorView : UserControl, IDisposable
         System.Windows.Automation.AutomationProperties.SetName(ChkCliSafe, L("ToolPwdGenCliSafe"));
         System.Windows.Automation.AutomationProperties.SetName(TxtCustomSpecials, L("ToolPwdGenCustomSpecials"));
         System.Windows.Automation.AutomationProperties.SetName(CmbSylPlacement, L("ToolPwdGenPlacement"));
+        System.Windows.Automation.AutomationProperties.SetName(CmbPpPlacement, L("ToolPwdGenPlacement"));
         System.Windows.Automation.AutomationProperties.SetName(CmbKeyboardLayout, L("ToolPwdGenKeyboardLayout"));
-        System.Windows.Automation.AutomationProperties.SetName(RbModeRandom, L("ToolPwdGenModeRandom"));
-        System.Windows.Automation.AutomationProperties.SetName(RbModeSyllable, L("ToolPwdGenModeSyllable"));
-        System.Windows.Automation.AutomationProperties.SetName(RbModePassphrase, L("ToolPwdGenModePassphrase"));
         System.Windows.Automation.AutomationProperties.SetName(SylLengthSlider, L("ToolPwdGenBaseLength"));
         System.Windows.Automation.AutomationProperties.SetName(CmbSylCase, L("ToolPwdGenCase"));
         System.Windows.Automation.AutomationProperties.SetName(SylDigitsSlider, L("ToolPwdGenDigits"));
@@ -292,29 +306,38 @@ public partial class PasswordGeneratorView : UserControl, IDisposable
         System.Windows.Automation.AutomationProperties.SetName(BtnPresetApiKey, L("ToolPwdGenPresetApiKey"));
         System.Windows.Automation.AutomationProperties.SetName(BtnPresetMysql, L("ToolPwdGenPresetMysql"));
         System.Windows.Automation.AutomationProperties.SetName(BtnPresetPassphrase4, L("ToolPwdGenPresetPassphrase4"));
-
-        // ToolTip for generate button
-        BtnGenerate.ToolTip = L("ToolPwdGenBtnGenerate");
     }
 
-    private GeneratorMode CurrentMode
-    {
-        get
+    private GeneratorMode CurrentMode =>
+        CmbMode.SelectedIndex switch
         {
-            if (RbModeSyllable.IsChecked == true) return GeneratorMode.Syllable;
-            if (RbModePassphrase.IsChecked == true) return GeneratorMode.Passphrase;
-            return GeneratorMode.Random;
-        }
-    }
+            1 => GeneratorMode.Syllable,
+            2 => GeneratorMode.Passphrase,
+            _ => GeneratorMode.Random
+        };
 
-    private void OnModeChanged(object sender, RoutedEventArgs e)
+    private void OnModeSelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (!_initialized) return;
 
-        PanelRandom.Visibility = CurrentMode == GeneratorMode.Random ? Visibility.Visible : Visibility.Collapsed;
-        PanelSyllable.Visibility = CurrentMode == GeneratorMode.Syllable ? Visibility.Visible : Visibility.Collapsed;
-        PanelPassphrase.Visibility = CurrentMode == GeneratorMode.Passphrase ? Visibility.Visible : Visibility.Collapsed;
-        PanelPlacement.Visibility = CurrentMode != GeneratorMode.Random ? Visibility.Visible : Visibility.Collapsed;
+        var mode = CurrentMode;
+        PanelRandom.Visibility = mode == GeneratorMode.Random ? Visibility.Visible : Visibility.Collapsed;
+        PanelSyllable.Visibility = mode == GeneratorMode.Syllable ? Visibility.Visible : Visibility.Collapsed;
+        PanelPassphrase.Visibility = mode == GeneratorMode.Passphrase ? Visibility.Visible : Visibility.Collapsed;
+
+        // Hide entire presets container in Syllable mode (no presets defined)
+        PanelPresets.Visibility = mode == GeneratorMode.Syllable ? Visibility.Collapsed : Visibility.Visible;
+
+        // Preset visibility per mode
+        PresetsRandom.Visibility = mode == GeneratorMode.Random ? Visibility.Visible : Visibility.Collapsed;
+        PresetsPassphrase.Visibility = mode == GeneratorMode.Passphrase ? Visibility.Visible : Visibility.Collapsed;
+
+        // Update inline placement visibility
+        UpdateSylPlacementVisibility();
+        UpdatePpPlacementVisibility();
+
+        // Refresh advanced option visibility for this mode
+        RefreshAdvancedVisibility();
 
         if (!_suspendGeneration)
             GeneratePassword();
@@ -345,6 +368,12 @@ public partial class PasswordGeneratorView : UserControl, IDisposable
         SylSpecialsValueText.Text = ((int)SylSpecialsSlider.Value).ToString();
         PpWordCountValueText.Text = ((int)PpWordCountSlider.Value).ToString();
 
+        // Refresh inline placement visibility for syllable mode
+        UpdateSylPlacementVisibility();
+
+        // Refresh advanced option visibility (custom specials, exclude ambiguous)
+        RefreshAdvancedVisibility();
+
         GeneratePassword();
     }
 
@@ -352,11 +381,53 @@ public partial class PasswordGeneratorView : UserControl, IDisposable
     {
         if (!_initialized || _suspendGeneration) return;
 
-        PanelCustomSpecials.Visibility = ChkSymbols.IsChecked == true
+        RefreshAdvancedVisibility();
+        OnParameterChanged(sender, e);
+    }
+
+    private void OnPpExtrasChanged(object sender, RoutedEventArgs e)
+    {
+        if (!_initialized || _suspendGeneration) return;
+
+        UpdatePpPlacementVisibility();
+        RefreshAdvancedVisibility();
+        OnParameterChanged(sender, e);
+    }
+
+    private void UpdateSylPlacementVisibility()
+    {
+        if (SylPlacementPanel == null) return;
+        var hasExtras = (int)SylDigitsSlider.Value > 0 || (int)SylSpecialsSlider.Value > 0;
+        SylPlacementPanel.Visibility = hasExtras && CurrentMode == GeneratorMode.Syllable
             ? Visibility.Visible
             : Visibility.Collapsed;
+    }
 
-        OnParameterChanged(sender, e);
+    private void UpdatePpPlacementVisibility()
+    {
+        if (PpPlacementPanel == null) return;
+        var hasExtras = ChkPpDigit.IsChecked == true || ChkPpSpecial.IsChecked == true;
+        PpPlacementPanel.Visibility = hasExtras && CurrentMode == GeneratorMode.Passphrase
+            ? Visibility.Visible
+            : Visibility.Collapsed;
+    }
+
+    private void RefreshAdvancedVisibility()
+    {
+        var mode = CurrentMode;
+
+        // Exclude ambiguous is only relevant in Random mode
+        ChkExcludeAmbiguous.Visibility = mode == GeneratorMode.Random ? Visibility.Visible : Visibility.Collapsed;
+
+        // Show custom specials if: Random mode with Symbols checked, OR Syllable with specials > 0, OR Passphrase with special checked
+        bool showCustomSpecials = mode switch
+        {
+            GeneratorMode.Random => ChkSymbols?.IsChecked == true,
+            GeneratorMode.Syllable => (int)SylSpecialsSlider.Value > 0,
+            GeneratorMode.Passphrase => ChkPpSpecial?.IsChecked == true,
+            _ => false
+        };
+        PanelCustomSpecials.Visibility = showCustomSpecials ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private void GeneratePassword()
@@ -436,8 +507,13 @@ public partial class PasswordGeneratorView : UserControl, IDisposable
 
     private string GetEffectiveSymbols()
     {
-        var symbols = ChkSymbols?.IsChecked == true && !string.IsNullOrWhiteSpace(TxtCustomSpecials?.Text)
-            ? new string(TxtCustomSpecials.Text.Where(c => !char.IsLetterOrDigit(c) && !char.IsWhiteSpace(c)).Distinct().ToArray())
+        // In Random mode, use ChkSymbols state. In other modes, always allow custom specials if provided.
+        bool useCustom = CurrentMode == GeneratorMode.Random
+            ? ChkSymbols?.IsChecked == true && !string.IsNullOrWhiteSpace(TxtCustomSpecials?.Text)
+            : !string.IsNullOrWhiteSpace(TxtCustomSpecials?.Text);
+
+        var symbols = useCustom
+            ? new string(TxtCustomSpecials!.Text.Where(c => !char.IsLetterOrDigit(c) && !char.IsWhiteSpace(c)).Distinct().ToArray())
             : SymbolChars;
 
         if (ChkCliSafe?.IsChecked == true)
@@ -610,7 +686,7 @@ public partial class PasswordGeneratorView : UserControl, IDisposable
 
         var passphrase = new StringBuilder(string.Join(separator, words));
         var effectiveSymbols = GetEffectiveSymbols();
-        var placement = (Placement)CmbSylPlacement.SelectedIndex;
+        var placement = (Placement)CmbPpPlacement.SelectedIndex;
 
         var passphraseChars = new List<char>(passphrase.ToString());
         var digitExtras = addDigit ? 1 : 0;
@@ -674,12 +750,6 @@ public partial class PasswordGeneratorView : UserControl, IDisposable
         StrengthBarFillColumn.Width = new GridLength(widthPercent, GridUnitType.Star);
         StrengthBarEmptyColumn.Width = new GridLength(1 - widthPercent, GridUnitType.Star);
 
-        // Entropy info line
-        var entropyFormat = CurrentMode == GeneratorMode.Passphrase
-            ? L("ToolPwdGenEntropyDict")
-            : L("ToolPwdGenEntropy");
-        EntropyText.Text = string.Format(entropyFormat, entropy.ToString("F1"), poolSize);
-
         // Issues list
         UpdateIssuesList();
     }
@@ -740,8 +810,8 @@ public partial class PasswordGeneratorView : UserControl, IDisposable
         _suspendGeneration = true;
         try
         {
-            RbModeRandom.IsChecked = true;
-            OnModeChanged(RbModeRandom, new RoutedEventArgs());
+            CmbMode.SelectedIndex = 0;
+            OnModeSelectionChanged(CmbMode, null!);
             ChkUppercase.IsChecked = upper;
             ChkLowercase.IsChecked = lower;
             ChkDigits.IsChecked = digits;
@@ -755,6 +825,7 @@ public partial class PasswordGeneratorView : UserControl, IDisposable
         {
             _suspendGeneration = false;
         }
+        RefreshAdvancedVisibility();
         GeneratePassword();
     }
 
@@ -779,8 +850,8 @@ public partial class PasswordGeneratorView : UserControl, IDisposable
         _suspendGeneration = true;
         try
         {
-            RbModePassphrase.IsChecked = true;
-            OnModeChanged(RbModePassphrase, new RoutedEventArgs());
+            CmbMode.SelectedIndex = 2;
+            OnModeSelectionChanged(CmbMode, null!);
             PpWordCountSlider.Value = 4;
             ChkPpCapitalize.IsChecked = true;
             ChkPpDigit.IsChecked = true;
@@ -792,6 +863,7 @@ public partial class PasswordGeneratorView : UserControl, IDisposable
         {
             _suspendGeneration = false;
         }
+        RefreshAdvancedVisibility();
         GeneratePassword();
     }
 
@@ -880,6 +952,8 @@ public partial class PasswordGeneratorView : UserControl, IDisposable
             PasswordOutput.Text = string.Empty;
             UpdatePhoneticDisplay(string.Empty);
             UpdateKeyboardLayoutDisplay(string.Empty);
+            UpdateStrengthIndicator(0, 0);
+            StrengthIssues.Text = string.Empty;
             e.Handled = true;
         }
     }
