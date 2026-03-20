@@ -1,0 +1,116 @@
+<UserControl x:Class="Heimdall.App.Views.Tools.JwtParserView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="{DynamicResource BackgroundBrush}">
+    <Grid Margin="0">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Border Grid.Row="0" Padding="12,8"
+                Background="{DynamicResource SurfaceBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="0,0,0,1">
+            <TextBlock x:Name="HeaderTitle" Text=""
+                       FontSize="14" FontWeight="SemiBold"
+                       Foreground="{DynamicResource TextPrimaryBrush}"
+                       VerticalAlignment="Center"/>
+        </Border>
+
+        <!-- Content -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="16">
+            <StackPanel MaxWidth="700">
+
+                <!-- Input -->
+                <TextBlock x:Name="LblInput" Text=""
+                           FontSize="12" Margin="0,0,0,4"
+                           Foreground="{DynamicResource TextSecondaryBrush}"/>
+                <TextBox x:Name="TxtInput" Text=""
+                         FontSize="12" FontFamily="Consolas"
+                         Padding="8,6" Height="80"
+                         AcceptsReturn="True"
+                         TextWrapping="Wrap"
+                         VerticalScrollBarVisibility="Auto"
+                         Background="{DynamicResource CardBrush}"
+                         Foreground="{DynamicResource TextPrimaryBrush}"
+                         BorderBrush="{DynamicResource BorderBrush}"
+                         TextChanged="OnInputTextChanged"
+                         />
+
+                <!-- Expiration status -->
+                <Border x:Name="ExpirationBorder" Margin="0,12,0,0"
+                        Padding="10,6" CornerRadius="4"
+                        Visibility="Collapsed">
+                    <TextBlock x:Name="TxtExpiration" Text=""
+                               FontSize="12" FontWeight="SemiBold"/>
+                </Border>
+
+                <!-- Error message -->
+                <TextBlock x:Name="TxtError" Text=""
+                           FontSize="12" Margin="0,12,0,0"
+                           Foreground="{DynamicResource ErrorBrush}"
+                           TextWrapping="Wrap"
+                           Visibility="Collapsed"/>
+
+                <!-- Header section -->
+                <TextBlock x:Name="LblHeader" Text=""
+                           FontSize="12" FontWeight="SemiBold"
+                           Margin="0,16,0,4"
+                           Foreground="#5B9BD5"/>
+                <Border Background="{DynamicResource CardBrush}"
+                        BorderBrush="#5B9BD5" BorderThickness="1"
+                        CornerRadius="4" Padding="8" Margin="0,0,0,12">
+                    <TextBox x:Name="TxtHeader" Text=""
+                             FontSize="12" FontFamily="Consolas"
+                             IsReadOnly="True"
+                             AcceptsReturn="True"
+                             TextWrapping="Wrap"
+                             BorderThickness="0"
+                             Background="Transparent"
+                             Foreground="#5B9BD5"
+                             />
+                </Border>
+
+                <!-- Payload section -->
+                <TextBlock x:Name="LblPayload" Text=""
+                           FontSize="12" FontWeight="SemiBold"
+                           Margin="0,4,0,4"
+                           Foreground="#70AD47"/>
+                <Border Background="{DynamicResource CardBrush}"
+                        BorderBrush="#70AD47" BorderThickness="1"
+                        CornerRadius="4" Padding="8" Margin="0,0,0,12">
+                    <TextBox x:Name="TxtPayload" Text=""
+                             FontSize="12" FontFamily="Consolas"
+                             IsReadOnly="True"
+                             AcceptsReturn="True"
+                             TextWrapping="Wrap"
+                             BorderThickness="0"
+                             Background="Transparent"
+                             Foreground="#70AD47"
+                             />
+                </Border>
+
+                <!-- Signature section -->
+                <TextBlock x:Name="LblSignature" Text=""
+                           FontSize="12" FontWeight="SemiBold"
+                           Margin="0,4,0,4"
+                           Foreground="#ED7D31"/>
+                <Border Background="{DynamicResource CardBrush}"
+                        BorderBrush="#ED7D31" BorderThickness="1"
+                        CornerRadius="4" Padding="8" Margin="0,0,0,12">
+                    <TextBox x:Name="TxtSignature" Text=""
+                             FontSize="12" FontFamily="Consolas"
+                             IsReadOnly="True"
+                             TextWrapping="Wrap"
+                             BorderThickness="0"
+                             Background="Transparent"
+                             Foreground="#ED7D31"
+                             />
+                </Border>
+
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</UserControl>

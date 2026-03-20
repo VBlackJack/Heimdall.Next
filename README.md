@@ -134,6 +134,18 @@ Built with .NET 10 and WPF. Secure, feature-rich Windows connection manager with
 - HTTP: directory listing, MIME types, path traversal protection
 - TFTP: RFC 1350 read-only implementation
 
+### Built-in Sysops Toolbox (21 tools)
+
+All tools open as session tabs (split, detach, reorder). Accessible via **Ctrl+K** palette or **"+" → Add Tool** menu. Tools can be saved in the TreeView alongside servers.
+
+| Category | Tools |
+|----------|-------|
+| **Network** | Ping Monitor, DNS Lookup, SSL Cert Inspector, Port Scanner, Subnet Calculator, IP Converter |
+| **Security** | Password Generator, SSH Key Generator, Hash Generator, HMAC Generator |
+| **Encoding** | Base64 Encoder, URL Encoder, JWT Parser |
+| **DevOps** | Chmod Calculator, Crontab Builder, JSON Formatter, Regex Tester, Text Diff |
+| **Utilities** | DateTime Converter, UUID Generator, HTTP Status Codes |
+
 ### Session Management
 - Tabbed sessions with drag-to-reorder
 - Tab detach to floating window (Chrome-style drag-out or context menu)
@@ -152,7 +164,7 @@ Built with .NET 10 and WPF. Secure, feature-rich Windows connection manager with
 - Connection inheritance: group-level defaults for gateway, SSH username, key path
 - Empty state with welcome panel and import call-to-action
 - Fullscreen mode (F11), toggle sidebar (Ctrl+B), filter (Ctrl+F)
-- Bilingual interface: English and French (~2,086 i18n keys)
+- Bilingual interface: English and French (~2,463 i18n keys)
 - WCAG 2.1 AA accessibility: AutomationProperties on all interactive controls, keyboard focus indicators, TextTrimming on dynamic content
 
 ### Security
@@ -285,6 +297,7 @@ Release mode also produces Inno Setup `.exe` installers in `Dist/installers/` wi
 | Citrix | StoreBrowse CLI integration |
 | Crypto | System.Security.Cryptography.ProtectedData (DPAPI) |
 | Testing | xUnit + Moq (1,013 tests) |
+| Built-in Tools | 21 sysops tools (Ctrl+K → `tools`) |
 | Serialization | System.Text.Json |
 
 ---

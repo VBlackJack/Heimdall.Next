@@ -107,6 +107,21 @@ public partial class ConnectionViewModel : ObservableObject
     /// </summary>
     private void CloseSessionInternal(SessionTabViewModel session)
     {
+        // Tool tabs bypass ConnectionStateMachine, history, and tunnels
+        if (session.ConnectionType.StartsWith("TOOL:", StringComparison.OrdinalIgnoreCase))
+        {
+            SafeDispose(session.HostControl as IDisposable);
+            ActiveSessions.Remove(session);
+
+            if (ActiveSession == session)
+            {
+                ActiveSession = ActiveSessions.LastOrDefault();
+            }
+
+            HasActiveSessions = ActiveSessions.Count > 0;
+            return;
+        }
+
         var historyId = !string.IsNullOrEmpty(session.OriginalServerId)
             ? session.OriginalServerId : session.ServerId;
         Core.Logging.ConnectionHistory.RecordDisconnect(

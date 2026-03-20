@@ -50,24 +50,24 @@
                 <TextBlock x:Name="LblName" Style="{StaticResource LabelStyle}"/>
                 <TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}"
                          Style="{StaticResource FormTextBoxStyle}"
-                         AutomationProperties.Name="Gateway Name"/>
+                         x:Name="TxtName"/>
 
                 <TextBlock x:Name="LblHost" Style="{StaticResource LabelStyle}" Margin="0,12,0,4"/>
                 <TextBox Text="{Binding Host, UpdateSourceTrigger=PropertyChanged}"
                          Style="{StaticResource FormTextBoxStyle}"
-                         AutomationProperties.Name="Host"/>
+                         x:Name="TxtHost"/>
 
                 <TextBlock x:Name="LblPort" Style="{StaticResource LabelStyle}" Margin="0,12,0,4"/>
                 <TextBox Text="{Binding Port}"
                          Style="{StaticResource FormTextBoxStyle}"
                          Width="100" HorizontalAlignment="Left"
                          MaxLength="5"
-                         AutomationProperties.Name="Port"/>
+                         x:Name="TxtPort"/>
 
                 <TextBlock x:Name="LblUsername" Style="{StaticResource LabelStyle}" Margin="0,12,0,4"/>
                 <TextBox Text="{Binding User, UpdateSourceTrigger=PropertyChanged}"
                          Style="{StaticResource FormTextBoxStyle}"
-                         AutomationProperties.Name="Username"/>
+                         x:Name="TxtUsername"/>
 
                 <TextBlock x:Name="LblKeyPath" Style="{StaticResource LabelStyle}" Margin="0,12,0,4"/>
                 <DockPanel>
@@ -79,13 +79,13 @@
                             Click="OnBrowseKeyClick"/>
                     <TextBox Text="{Binding KeyPath}"
                              Style="{StaticResource FormTextBoxStyle}"
-                             AutomationProperties.Name="Key Path"/>
+                             x:Name="TxtKeyPath"/>
                 </DockPanel>
 
                 <TextBlock x:Name="LblPassword" Style="{StaticResource LabelStyle}" Margin="0,12,0,4"/>
                 <PasswordBox x:Name="PasswordBox"
                              Style="{StaticResource FormPasswordBoxStyle}"
-                             AutomationProperties.Name="Gateway Password"/>
+                             />
 
                 <TextBlock x:Name="LblParentGateway" Style="{StaticResource LabelStyle}" Margin="0,12,0,4"/>
                 <ComboBox ItemsSource="{Binding AvailableParents}"
@@ -93,13 +93,13 @@
                           SelectedValuePath="Id"
                           DisplayMemberPath="DisplayText"
                           Style="{StaticResource FormComboBoxStyle}"
-                          AutomationProperties.Name="Parent Gateway"/>
+                          x:Name="CmbParentGateway"/>
 
                 <TextBlock x:Name="LblHostKeyFingerprint" Style="{StaticResource LabelStyle}" Margin="0,12,0,4"/>
                 <TextBox Text="{Binding HostKeyFingerprint, Mode=OneWay}"
                          Style="{StaticResource FormTextBoxStyle}"
                          IsReadOnly="True"
-                         AutomationProperties.Name="Host Key Fingerprint"/>
+                         x:Name="TxtHostKeyFingerprint"/>
             </StackPanel>
         </ScrollViewer>
 

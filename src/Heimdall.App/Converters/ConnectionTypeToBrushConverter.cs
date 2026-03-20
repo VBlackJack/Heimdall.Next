@@ -29,18 +29,27 @@ public sealed class ConnectionTypeToBrushConverter : IValueConverter
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
     {
         string typeStr = value?.ToString()?.ToUpperInvariant() ?? string.Empty;
-        string resourceKey = typeStr switch
+
+        string resourceKey;
+        if (typeStr.StartsWith("TOOL:", StringComparison.Ordinal))
         {
-            "RDP" => "RdpBadgeBrush",
-            "SSH" => "SshBadgeBrush",
-            "SFTP" => "SftpBadgeBrush",
-            "FTP" => "SftpBadgeBrush",
-            "VNC" => "RdpBadgeBrush",
-            "TELNET" => "SshBadgeBrush",
-            "CITRIX" => "RdpBadgeBrush",
-            "LOCAL" => "AccentBrush",
-            _ => "InfoBrush"
-        };
+            resourceKey = "ToolBadgeBrush";
+        }
+        else
+        {
+            resourceKey = typeStr switch
+            {
+                "RDP" => "RdpBadgeBrush",
+                "SSH" => "SshBadgeBrush",
+                "SFTP" => "SftpBadgeBrush",
+                "FTP" => "SftpBadgeBrush",
+                "VNC" => "RdpBadgeBrush",
+                "TELNET" => "SshBadgeBrush",
+                "CITRIX" => "RdpBadgeBrush",
+                "LOCAL" => "AccentBrush",
+                _ => "InfoBrush"
+            };
+        }
 
         return Application.Current.TryFindResource(resourceKey) as Brush
                ?? Brushes.Gray;

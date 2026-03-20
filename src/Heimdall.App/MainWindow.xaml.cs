@@ -34,6 +34,43 @@ namespace Heimdall.App;
 /// </summary>
 public partial class MainWindow : Window
 {
+    /// <summary>
+    /// All supported tool type identifiers with their i18n label keys.
+    /// Shared by <see cref="OnAddToolSubmenuOpened"/> and <see cref="CreateAddToolSubmenu"/>.
+    /// </summary>
+    /// <summary>
+    /// Tools that require a target host (network-oriented). All others skip the host prompt.
+    /// </summary>
+    private static readonly HashSet<string> NetworkTools = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "TOOL:PING", "TOOL:DNS", "TOOL:CERT", "TOOL:PORTSCAN", "TOOL:SUBNET", "TOOL:IPCONV"
+    };
+
+    private static readonly (string ToolType, string LabelKey)[] ToolTypeDefinitions =
+    [
+        ("TOOL:PING", "PaletteToolPing"),
+        ("TOOL:DNS", "PaletteToolDns"),
+        ("TOOL:CERT", "PaletteToolCert"),
+        ("TOOL:PORTSCAN", "PaletteToolPortScan"),
+        ("TOOL:SUBNET", "PaletteToolSubnet"),
+        ("TOOL:HASH", "PaletteToolHash"),
+        ("TOOL:DIFF", "PaletteToolDiff"),
+        ("TOOL:PASSWORD", "PaletteToolPassword"),
+        ("TOOL:BASE64", "PaletteToolBase64"),
+        ("TOOL:CHMOD", "PaletteToolChmod"),
+        ("TOOL:JWT", "PaletteToolJwt"),
+        ("TOOL:REGEX", "PaletteToolRegex"),
+        ("TOOL:JSON", "PaletteToolJson"),
+        ("TOOL:DATETIME", "PaletteToolDateTime"),
+        ("TOOL:UUID", "PaletteToolUuid"),
+        ("TOOL:SSHKEY", "PaletteToolSshKey"),
+        ("TOOL:HMAC", "PaletteToolHmac"),
+        ("TOOL:IPCONV", "PaletteToolIpConv"),
+        ("TOOL:URLENC", "PaletteToolUrlEnc"),
+        ("TOOL:HTTP", "PaletteToolHttp"),
+        ("TOOL:CRONTAB", "PaletteToolCron"),
+    ];
+
     private object? _treeContextTarget;
     private bool _treeContextTargetFromPointer;
     private bool _treeContextPointerHitEmptyArea;
@@ -155,6 +192,7 @@ public partial class MainWindow : Window
         CollapseAllButton.ToolTip = vm.Localize("TooltipCollapseAll");
 
         Mw_AddMenuServer.Header = vm.Localize("AddMenuServer");
+        Mw_AddMenuTool.Header = vm.Localize("AddMenuTool");
         Mw_AddMenuGateway.Header = vm.Localize("AddMenuGateway");
         Mw_AddMenuFolder.Header = vm.Localize("AddMenuFolder");
 
@@ -439,6 +477,72 @@ public partial class MainWindow : Window
         }
     }
 
+    private void OnAddToolSubmenuOpened(object sender, RoutedEventArgs e)
+    {
+        if (sender is not MenuItem parentItem || DataContext is not MainViewModel vm)
+            return;
+
+        if (parentItem.Items.Count > 1)
+            return;
+
+        parentItem.Items.Clear();
+
+        foreach (var (toolType, labelKey) in ToolTypeDefinitions)
+        {
+            var item = new MenuItem { Header = vm.Localize(labelKey), Tag = toolType };
+            item.Click += OnAddToolItemClick;
+            parentItem.Items.Add(item);
+        }
+    }
+
+    private async void OnAddToolItemClick(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            if (sender is not MenuItem item || DataContext is not MainViewModel vm)
+                return;
+
+            var toolType = (string)item.Tag;
+            var label = (string)item.Header;
+            var group = (item.Parent as MenuItem)?.Tag as string;
+
+            var displayName = await vm.DialogService.ShowInputAsync(
+                vm.Localize("AddToolDialogTitle"),
+                vm.Localize("AddToolDialogName"),
+                label);
+
+            if (string.IsNullOrWhiteSpace(displayName)) return;
+
+            // Only prompt for host on network-oriented tools
+            string host = "";
+            if (NetworkTools.Contains(toolType))
+            {
+                var hostInput = await vm.DialogService.ShowInputAsync(
+                    vm.Localize("AddToolDialogTitle"),
+                    vm.Localize("AddToolDialogHost"),
+                    "");
+                host = hostInput?.Trim() ?? "";
+            }
+
+            var dto = new Core.Configuration.ServerProfileDto
+            {
+                Id = Guid.NewGuid().ToString(),
+                DisplayName = displayName.Trim(),
+                ConnectionType = toolType,
+                RemoteServer = host,
+                Group = group
+            };
+
+            var servers = await vm.ConfigManager.LoadServersAsync();
+            servers.Add(dto);
+            await vm.ConfigManager.SaveServersAsync(servers);
+
+            var settings = await vm.ConfigManager.LoadSettingsAsync();
+            vm.ServerList.LoadServers(servers, settings);
+        }
+        catch (Exception ex) { Core.Logging.FileLogger.Error($"Add tool failed: {ex.Message}"); }
+    }
+
     private void OnAboutTabChecked(object sender, RoutedEventArgs e)
     {
         SwitchToTab("About");
@@ -692,6 +796,10 @@ public partial class MainWindow : Window
         if (e.NewValue is ServerItemViewModel server)
         {
             vm.ServerList.SelectedServer = server;
+
+            var isTool = server.ConnectionType?.StartsWith("TOOL:", StringComparison.OrdinalIgnoreCase) == true;
+            Mw_DetailConnectBtn.Content = vm.Localize(isTool ? "DetailBtnOpen" : "DetailBtnConnect");
+            Mw_DetailHostPort.Visibility = isTool ? Visibility.Collapsed : Visibility.Visible;
         }
         else
         {
@@ -710,10 +818,21 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (vm.ServerList.SelectedServer is not null &&
-            vm.ServerList.ConnectCommand.CanExecute(vm.ServerList.SelectedServer))
+        var server = vm.ServerList.SelectedServer;
+        if (server is null) return;
+
+        if (server.ConnectionType?.StartsWith("TOOL:", StringComparison.OrdinalIgnoreCase) == true)
         {
-            vm.ServerList.ConnectCommand.Execute(vm.ServerList.SelectedServer);
+            var toolId = server.ConnectionType["TOOL:".Length..];
+            var context = new Core.Models.ToolContext(
+                TargetHost: server.RemoteServer,
+                TargetPort: server.RemotePort > 0 ? (int?)server.RemotePort : null,
+                Argument: server.RemoteServer);
+            _ = vm.OpenToolTabAsync(toolId, server.DisplayName, context);
+        }
+        else if (vm.ServerList.ConnectCommand.CanExecute(server))
+        {
+            vm.ServerList.ConnectCommand.Execute(server);
         }
     }
 
@@ -1087,6 +1206,7 @@ public partial class MainWindow : Window
             }
         };
         menu.Items.Add(addSubItem);
+        menu.Items.Add(CreateAddToolSubmenu(vm, folder.FullPath));
 
         menu.Items.Add(new Separator());
 
@@ -1218,7 +1338,24 @@ public partial class MainWindow : Window
         };
         menu.Items.Add(newFolderItem);
 
+        menu.Items.Add(new Separator());
+        menu.Items.Add(CreateAddToolSubmenu(vm));
+
         return menu;
+    }
+
+    private MenuItem CreateAddToolSubmenu(MainViewModel vm, string? group = null)
+    {
+        var toolMenu = new MenuItem { Header = vm.Localize("AddMenuTool"), Tag = group };
+
+        foreach (var (toolType, labelKey) in ToolTypeDefinitions)
+        {
+            var item = new MenuItem { Header = vm.Localize(labelKey), Tag = toolType };
+            item.Click += OnAddToolItemClick;
+            toolMenu.Items.Add(item);
+        }
+
+        return toolMenu;
     }
 
     private MenuItem CreateMoveToProjectMenu(MainViewModel vm, ServerItemViewModel server)

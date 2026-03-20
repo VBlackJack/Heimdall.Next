@@ -43,6 +43,8 @@
     <SolidColorBrush x:Key="RdpBadgeBrush" Color="#8BE9FD"/>
     <SolidColorBrush x:Key="SshBadgeBrush" Color="#50FA7B"/>
     <SolidColorBrush x:Key="SftpBadgeBrush" Color="#FFB86C"/>
+    <Color x:Key="ToolBadgeColor">#36D7B7</Color>
+    <SolidColorBrush x:Key="ToolBadgeBrush" Color="#36D7B7"/>
 
     <!-- Overlay and feedback brushes -->
     <SolidColorBrush x:Key="OverlayBackground" Color="#A0000000"/>

@@ -82,7 +82,7 @@
             <TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}"
                      Style="{StaticResource FormTextBoxStyle}"
                      MaxLength="50"
-                     AutomationProperties.Name="Project Name"/>
+                     x:Name="TxtName"/>
             <TextBlock Foreground="{DynamicResource TextDisabledBrush}" FontSize="11"
                        HorizontalAlignment="Right" Margin="0,2,0,0">
                 <TextBlock.Text>
@@ -100,7 +100,7 @@
                      AcceptsReturn="False"
                      Height="60"
                      VerticalContentAlignment="Top"
-                     AutomationProperties.Name="Description"/>
+                     x:Name="TxtDescription"/>
             <TextBlock Foreground="{DynamicResource TextDisabledBrush}" FontSize="11"
                        HorizontalAlignment="Right" Margin="0,2,0,0">
                 <TextBlock.Text>
@@ -115,35 +115,35 @@
                 <RadioButton GroupName="ProjectColor" Tag="#3B82F6"
                              Background="#3B82F6" Style="{StaticResource ColorSwatchStyle}"
                              IsChecked="{Binding Color, Converter={x:Static converters:ColorRadioConverter.Instance}, ConverterParameter=#3B82F6}"
-                             AutomationProperties.Name="Blue"/>
+                             x:Name="RbColorBlue"/>
                 <RadioButton GroupName="ProjectColor" Tag="#22C55E"
                              Background="#22C55E" Style="{StaticResource ColorSwatchStyle}"
                              IsChecked="{Binding Color, Converter={x:Static converters:ColorRadioConverter.Instance}, ConverterParameter=#22C55E}"
-                             AutomationProperties.Name="Green"/>
+                             x:Name="RbColorGreen"/>
                 <RadioButton GroupName="ProjectColor" Tag="#EF4444"
                              Background="#EF4444" Style="{StaticResource ColorSwatchStyle}"
                              IsChecked="{Binding Color, Converter={x:Static converters:ColorRadioConverter.Instance}, ConverterParameter=#EF4444}"
-                             AutomationProperties.Name="Red"/>
+                             x:Name="RbColorRed"/>
                 <RadioButton GroupName="ProjectColor" Tag="#F59E0B"
                              Background="#F59E0B" Style="{StaticResource ColorSwatchStyle}"
                              IsChecked="{Binding Color, Converter={x:Static converters:ColorRadioConverter.Instance}, ConverterParameter=#F59E0B}"
-                             AutomationProperties.Name="Amber"/>
+                             x:Name="RbColorAmber"/>
                 <RadioButton GroupName="ProjectColor" Tag="#8B5CF6"
                              Background="#8B5CF6" Style="{StaticResource ColorSwatchStyle}"
                              IsChecked="{Binding Color, Converter={x:Static converters:ColorRadioConverter.Instance}, ConverterParameter=#8B5CF6}"
-                             AutomationProperties.Name="Purple"/>
+                             x:Name="RbColorPurple"/>
                 <RadioButton GroupName="ProjectColor" Tag="#EC4899"
                              Background="#EC4899" Style="{StaticResource ColorSwatchStyle}"
                              IsChecked="{Binding Color, Converter={x:Static converters:ColorRadioConverter.Instance}, ConverterParameter=#EC4899}"
-                             AutomationProperties.Name="Pink"/>
+                             x:Name="RbColorPink"/>
                 <RadioButton GroupName="ProjectColor" Tag="#06B6D4"
                              Background="#06B6D4" Style="{StaticResource ColorSwatchStyle}"
                              IsChecked="{Binding Color, Converter={x:Static converters:ColorRadioConverter.Instance}, ConverterParameter=#06B6D4}"
-                             AutomationProperties.Name="Cyan"/>
+                             x:Name="RbColorCyan"/>
                 <RadioButton GroupName="ProjectColor" Tag="#F97316"
                              Background="#F97316" Style="{StaticResource ColorSwatchStyle}"
                              IsChecked="{Binding Color, Converter={x:Static converters:ColorRadioConverter.Instance}, ConverterParameter=#F97316}"
-                             AutomationProperties.Name="Orange"/>
+                             x:Name="RbColorOrange"/>
             </WrapPanel>
 
             <TextBlock x:Name="LblSshDefaults" Style="{StaticResource LabelStyle}"
@@ -152,12 +152,12 @@
             <TextBlock x:Name="LblDefaultSshUsername" Style="{StaticResource LabelStyle}" Margin="0,4,0,4"/>
             <TextBox Text="{Binding DefaultSshUsername}"
                      Style="{StaticResource FormTextBoxStyle}"
-                     AutomationProperties.Name="Default SSH Username"/>
+                     x:Name="TxtDefaultSshUsername"/>
 
             <TextBlock x:Name="LblDefaultSshKeyPath" Style="{StaticResource LabelStyle}" Margin="0,12,0,4"/>
             <TextBox Text="{Binding DefaultSshKeyPath}"
                      Style="{StaticResource FormTextBoxStyle}"
-                     AutomationProperties.Name="Default SSH Key Path"/>
+                     x:Name="TxtDefaultSshKeyPath"/>
         </StackPanel>
 
         <!-- Validation error -->

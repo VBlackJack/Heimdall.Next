@@ -53,7 +53,6 @@
                      BorderThickness="1"
                      Padding="8,6"
                      CaretBrush="{DynamicResource TextPrimaryBrush}"
-                     AutomationProperties.Name="PIN Entry"
                      KeyDown="OnPinKeyDown"/>
 
         <!-- Error message (visible when non-empty) -->

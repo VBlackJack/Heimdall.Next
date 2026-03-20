@@ -253,6 +253,8 @@ public partial class MainViewModel : ObservableObject
 
         // Wire server list session events to the connection tab manager
         ServerList.SessionReady += OnSessionReady;
+        ServerList.ToolSessionRequested += (toolId, title, ctx) =>
+            _ = SafeFireAndForgetAsync(OpenToolTabAsync(toolId, title, ctx));
         ServerList.StatusMessageRequested += message => StatusText = message;
     }
 
@@ -842,6 +844,15 @@ public partial class MainViewModel : ObservableObject
             return;
         }
 
+        // Check for tool commands first (e.g., "subnet 192.168.1.0/24", "hash", "tools")
+        var toolItems = TryParseToolCommand(query);
+        if (toolItems.Count > 0)
+        {
+            PaletteResults = new ObservableCollection<ServerItemViewModel>(toolItems);
+            SelectedPaletteItem = PaletteResults.FirstOrDefault();
+            return;
+        }
+
         var matches = ServerList.Servers
             .Select(s => (Server: s, Score: FuzzyScore(s, query)))
             .Where(x => x.Score > 0)
@@ -933,7 +944,11 @@ public partial class MainViewModel : ObservableObject
             return;
         }
 
-        if (server.Id.StartsWith("adhoc-", StringComparison.Ordinal))
+        if (server.Id.StartsWith("tool-", StringComparison.Ordinal))
+        {
+            await OpenToolFromPaletteAsync(server);
+        }
+        else if (server.Id.StartsWith("adhoc-", StringComparison.Ordinal))
         {
             await ConnectAdHocAsync(server);
         }
@@ -948,6 +963,12 @@ public partial class MainViewModel : ObservableObject
     {
         if (server is null) return;
         IsCommandPaletteOpen = false;
+
+        if (server.Id.StartsWith("tool-", StringComparison.Ordinal))
+        {
+            await OpenToolFromPaletteAsync(server);
+            return;
+        }
 
         var activeSession = Connection.ActiveSession;
         if (activeSession is not null && !server.Id.StartsWith("adhoc-", StringComparison.Ordinal))
@@ -1079,6 +1100,111 @@ public partial class MainViewModel : ObservableObject
         }
 
         return qi == query.Length ? score : 0;
+    }
+
+    /// <summary>
+    /// Tool command definitions for the command palette.
+    /// Each entry maps one or more command prefixes to a tool ID and i18n keys.
+    /// </summary>
+    private static readonly (string[] Prefixes, string ToolId, string LabelKey, string? LabelWithArgKey)[] ToolCommands =
+    [
+        (["subnet"], "SUBNET", "PaletteToolSubnet", "PaletteToolSubnetWith"),
+        (["hash"], "HASH", "PaletteToolHash", "PaletteToolHashWith"),
+        (["password", "pwgen"], "PASSWORD", "PaletteToolPassword", null),
+        (["base64"], "BASE64", "PaletteToolBase64", "PaletteToolBase64With"),
+        (["chmod"], "CHMOD", "PaletteToolChmod", "PaletteToolChmodWith"),
+        (["datetime", "epoch"], "DATETIME", "PaletteToolDateTime", "PaletteToolDateTimeWith"),
+        (["uuid", "guid"], "UUID", "PaletteToolUuid", null),
+        (["jwt"], "JWT", "PaletteToolJwt", "PaletteToolJwtWith"),
+        (["regex"], "REGEX", "PaletteToolRegex", "PaletteToolRegexWith"),
+        (["json"], "JSON", "PaletteToolJson", "PaletteToolJsonWith"),
+        (["diff"], "DIFF", "PaletteToolDiff", null),
+        (["ping"], "PING", "PaletteToolPing", "PaletteToolPingWith"),
+        (["dns", "nslookup", "dig"], "DNS", "PaletteToolDns", "PaletteToolDnsWith"),
+        (["cert", "ssl"], "CERT", "PaletteToolCert", "PaletteToolCertWith"),
+        (["cron", "crontab"], "CRONTAB", "PaletteToolCron", "PaletteToolCronWith"),
+        (["sshkey", "keygen"], "SSHKEY", "PaletteToolSshKey", null),
+        (["portscan", "scan"], "PORTSCAN", "PaletteToolPortScan", "PaletteToolPortScanWith"),
+        (["hmac"], "HMAC", "PaletteToolHmac", null),
+        (["ipconv", "ip"], "IPCONV", "PaletteToolIpConv", "PaletteToolIpConvWith"),
+        (["url", "urlenc", "urlencode", "urldecode"], "URLENC", "PaletteToolUrlEnc", "PaletteToolUrlEncWith"),
+        (["http", "status"], "HTTP", "PaletteToolHttp", "PaletteToolHttpWith"),
+    ];
+
+    /// <summary>
+    /// Checks whether the palette query matches a tool command prefix.
+    /// Returns matching tool palette items, or all tools when the query is "tool" / "tools".
+    /// </summary>
+    private List<ServerItemViewModel> TryParseToolCommand(string query)
+    {
+        var results = new List<ServerItemViewModel>();
+        var lower = query.ToLowerInvariant();
+
+        // Show all tools when user types "tool" or "tools"
+        if (lower is "tool" or "tools")
+        {
+            foreach (var cmd in ToolCommands)
+            {
+                results.Add(new ServerItemViewModel
+                {
+                    Id = $"tool-{cmd.ToolId.ToLowerInvariant()}",
+                    DisplayName = _localizer[cmd.LabelKey],
+                    ConnectionType = $"TOOL:{cmd.ToolId}",
+                    Group = _localizer["PaletteToolsSectionHeader"]
+                });
+            }
+            return results;
+        }
+
+        // Check if query starts with a known tool prefix
+        foreach (var cmd in ToolCommands)
+        {
+            foreach (var prefix in cmd.Prefixes)
+            {
+                if (!lower.StartsWith(prefix, StringComparison.Ordinal))
+                    continue;
+
+                // Exact match or followed by a space
+                var rest = query[prefix.Length..].Trim();
+                string displayName;
+
+                if (!string.IsNullOrEmpty(rest) && cmd.LabelWithArgKey is not null)
+                {
+                    displayName = _localizer.Format(cmd.LabelWithArgKey, rest);
+                }
+                else
+                {
+                    displayName = _localizer[cmd.LabelKey];
+                }
+
+                results.Add(new ServerItemViewModel
+                {
+                    Id = $"tool-{cmd.ToolId.ToLowerInvariant()}|{rest}",
+                    DisplayName = displayName,
+                    ConnectionType = $"TOOL:{cmd.ToolId}",
+                    Group = _localizer["PaletteToolsSectionHeader"]
+                });
+                return results;
+            }
+        }
+
+        return results;
+    }
+
+    /// <summary>
+    /// Opens a tool tab from a palette item whose Id starts with "tool-".
+    /// Extracts the tool ID and optional argument from the encoded Id.
+    /// </summary>
+    private async Task OpenToolFromPaletteAsync(ServerItemViewModel item)
+    {
+        // Id format: "tool-<toolid>|<argument>"
+        var payload = item.Id["tool-".Length..];
+        var pipeIndex = payload.IndexOf('|');
+        var toolId = pipeIndex >= 0 ? payload[..pipeIndex] : payload;
+        var argument = pipeIndex >= 0 ? payload[(pipeIndex + 1)..] : null;
+
+        var context = !string.IsNullOrEmpty(argument) ? new ToolContext(Argument: argument) : null;
+        await OpenToolTabAsync(toolId, item.DisplayName, context);
     }
 
     /// <summary>
@@ -1259,5 +1385,24 @@ public partial class MainViewModel : ObservableObject
         Settings.LoadFromSettings(settings);
         LoadScheduledTasks(settings);
         WindowTitle = _localizer.Format("WindowTitle", ServerCount);
+    }
+
+    // ── Tool tabs ────────────────────────────────────────────────
+
+    /// <summary>
+    /// Opens a non-connection tool as a session tab, bypassing
+    /// ConnectionService and ConnectionStateMachine entirely.
+    /// </summary>
+    internal async Task OpenToolTabAsync(string toolId, string title, ToolContext? context)
+    {
+        await Task.CompletedTask;
+
+        var connectionType = $"TOOL:{toolId.ToUpperInvariant()}";
+        var sessionId = $"tool-{toolId.ToLowerInvariant()}-{Guid.NewGuid():N}";
+
+        var tab = Connection.AddSession(sessionId, title, connectionType);
+        tab.HostControl = _embeddedSessionManager.CreateToolControl(
+            tab, toolId, context, _currentSettings);
+        tab.Status = _localizer["StatusReady"];
     }
 }

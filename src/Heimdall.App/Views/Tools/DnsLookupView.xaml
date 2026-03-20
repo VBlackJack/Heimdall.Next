@@ -1,0 +1,91 @@
+<UserControl x:Class="Heimdall.App.Views.Tools.DnsLookupView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="{DynamicResource BackgroundBrush}">
+    <Grid Margin="0">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Border Grid.Row="0" Padding="12,8"
+                Background="{DynamicResource SurfaceBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="0,0,0,1">
+            <TextBlock x:Name="HeaderTitle" Text=""
+                       FontSize="14" FontWeight="SemiBold"
+                       Foreground="{DynamicResource TextPrimaryBrush}"
+                       VerticalAlignment="Center"/>
+        </Border>
+
+        <!-- Content -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="16">
+            <StackPanel MaxWidth="700">
+
+                <!-- Input Row -->
+                <TextBlock x:Name="LblHostname" Text=""
+                           FontSize="12" Margin="0,0,0,4"
+                           Foreground="{DynamicResource TextSecondaryBrush}"/>
+                <DockPanel Margin="0,0,0,16">
+                    <Button x:Name="BtnLookup" DockPanel.Dock="Right"
+                            Content="" Click="OnLookupClick"
+                            Style="{DynamicResource PrimaryButtonStyle}"
+                            Padding="16,6" Margin="8,0,0,0"
+                            VerticalAlignment="Center"
+                            />
+                    <ComboBox x:Name="CmbRecordType" DockPanel.Dock="Right"
+                              Width="100" Margin="8,0,0,0"
+                              VerticalAlignment="Center"
+                              Background="{DynamicResource CardBrush}"
+                              Foreground="{DynamicResource TextPrimaryBrush}"
+                              BorderBrush="{DynamicResource BorderBrush}"
+                              />
+                    <TextBox x:Name="TxtHostname" Text=""
+                             FontSize="13" FontFamily="Consolas"
+                             Padding="8,6"
+                             Background="{DynamicResource CardBrush}"
+                             Foreground="{DynamicResource TextPrimaryBrush}"
+                             BorderBrush="{DynamicResource BorderBrush}"
+                             VerticalAlignment="Center"
+                             />
+                </DockPanel>
+
+                <!-- Error message -->
+                <TextBlock x:Name="TxtError" Text="" Visibility="Collapsed"
+                           FontSize="12" Margin="0,0,0,12"
+                           Foreground="{DynamicResource ErrorBrush}"/>
+
+                <!-- Results -->
+                <Border x:Name="ResultsPanel" Visibility="Collapsed"
+                        Background="{DynamicResource CardBrush}"
+                        BorderBrush="{DynamicResource BorderBrush}"
+                        BorderThickness="1" CornerRadius="4"
+                        Padding="16,12">
+                    <StackPanel>
+                        <TextBlock x:Name="TxtResultHeader" Text=""
+                                   FontSize="13" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource AccentBrush}"
+                                   Margin="0,0,0,8"/>
+                        <TextBlock x:Name="TxtResults" Text=""
+                                   FontSize="13" FontFamily="Consolas"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                   TextWrapping="Wrap"/>
+                    </StackPanel>
+                </Border>
+
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Status Bar -->
+        <Border Grid.Row="2" Padding="12,6"
+                Background="{DynamicResource SurfaceBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="0,1,0,0">
+            <TextBlock x:Name="TxtStatus" Text=""
+                       FontSize="12" FontFamily="Consolas"
+                       Foreground="{DynamicResource TextSecondaryBrush}"/>
+        </Border>
+    </Grid>
+</UserControl>
