@@ -61,8 +61,9 @@ public partial class ConnectionService
         {
             session.Dispose();
             Core.Logging.FileLogger.Error("Telnet connection failed", ex);
-            _connectionSm.SetError(server.Id, ex.Message);
-            return new ConnectionResult(false, ex.Message, null);
+            var userMsg = _localizer.Format("ErrorTelnetConnectionFailed", ex.Message);
+            _connectionSm.SetError(server.Id, userMsg);
+            return new ConnectionResult(false, userMsg, null);
         }
 
         _connectionSm.TryTransition(server.Id, ConnectionState.Connected);

@@ -112,18 +112,18 @@ public partial class SplitPaneHost : UserControl
             RootGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
             RootGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 
-            Grid.SetRow(PrimaryPresenter, 0);
-            Grid.SetColumn(PrimaryPresenter, 0);
-            Grid.SetRowSpan(PrimaryPresenter, 1);
-            Grid.SetColumnSpan(PrimaryPresenter, 1);
+            Grid.SetRow(PrimaryBorder, 0);
+            Grid.SetColumn(PrimaryBorder, 0);
+            Grid.SetRowSpan(PrimaryBorder, 1);
+            Grid.SetColumnSpan(PrimaryBorder, 1);
 
             Splitter.Visibility = Visibility.Collapsed;
-            SecondaryPresenter.Visibility = Visibility.Collapsed;
+            SecondaryBorder.Visibility = Visibility.Collapsed;
             return;
         }
 
         SecondaryPresenter.Content = SecondaryContent;
-        SecondaryPresenter.Visibility = Visibility.Visible;
+        SecondaryBorder.Visibility = Visibility.Visible;
         Splitter.Visibility = Visibility.Visible;
 
         if (Orientation == SplitOrientation.Horizontal)
@@ -134,10 +134,10 @@ public partial class SplitPaneHost : UserControl
             RootGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
             RootGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
 
-            Grid.SetRow(PrimaryPresenter, 0);
-            Grid.SetColumn(PrimaryPresenter, 0);
-            Grid.SetRowSpan(PrimaryPresenter, 1);
-            Grid.SetColumnSpan(PrimaryPresenter, 1);
+            Grid.SetRow(PrimaryBorder, 0);
+            Grid.SetColumn(PrimaryBorder, 0);
+            Grid.SetRowSpan(PrimaryBorder, 1);
+            Grid.SetColumnSpan(PrimaryBorder, 1);
 
             Grid.SetRow(Splitter, 1);
             Grid.SetColumn(Splitter, 0);
@@ -147,10 +147,10 @@ public partial class SplitPaneHost : UserControl
             Splitter.VerticalAlignment = VerticalAlignment.Center;
             Splitter.ResizeDirection = GridResizeDirection.Rows;
 
-            Grid.SetRow(SecondaryPresenter, 2);
-            Grid.SetColumn(SecondaryPresenter, 0);
-            Grid.SetRowSpan(SecondaryPresenter, 1);
-            Grid.SetColumnSpan(SecondaryPresenter, 1);
+            Grid.SetRow(SecondaryBorder, 2);
+            Grid.SetColumn(SecondaryBorder, 0);
+            Grid.SetRowSpan(SecondaryBorder, 1);
+            Grid.SetColumnSpan(SecondaryBorder, 1);
         }
         else
         {
@@ -160,10 +160,10 @@ public partial class SplitPaneHost : UserControl
             RootGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             RootGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 
-            Grid.SetRow(PrimaryPresenter, 0);
-            Grid.SetColumn(PrimaryPresenter, 0);
-            Grid.SetRowSpan(PrimaryPresenter, 1);
-            Grid.SetColumnSpan(PrimaryPresenter, 1);
+            Grid.SetRow(PrimaryBorder, 0);
+            Grid.SetColumn(PrimaryBorder, 0);
+            Grid.SetRowSpan(PrimaryBorder, 1);
+            Grid.SetColumnSpan(PrimaryBorder, 1);
 
             Grid.SetRow(Splitter, 0);
             Grid.SetColumn(Splitter, 1);
@@ -173,10 +173,10 @@ public partial class SplitPaneHost : UserControl
             Splitter.VerticalAlignment = VerticalAlignment.Stretch;
             Splitter.ResizeDirection = GridResizeDirection.Columns;
 
-            Grid.SetRow(SecondaryPresenter, 0);
-            Grid.SetColumn(SecondaryPresenter, 2);
-            Grid.SetRowSpan(SecondaryPresenter, 1);
-            Grid.SetColumnSpan(SecondaryPresenter, 1);
+            Grid.SetRow(SecondaryBorder, 0);
+            Grid.SetColumn(SecondaryBorder, 2);
+            Grid.SetRowSpan(SecondaryBorder, 1);
+            Grid.SetColumnSpan(SecondaryBorder, 1);
         }
     }
 }

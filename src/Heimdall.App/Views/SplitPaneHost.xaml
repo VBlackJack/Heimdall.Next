@@ -7,7 +7,20 @@
              d:DesignHeight="400"
              d:DesignWidth="800">
     <Grid x:Name="RootGrid" ClipToBounds="True">
-        <ContentPresenter x:Name="PrimaryPresenter" ClipToBounds="True"/>
+        <Border x:Name="PrimaryBorder" ClipToBounds="True"
+                BorderThickness="0" BorderBrush="Transparent">
+            <Border.Style>
+                <Style TargetType="Border">
+                    <Style.Triggers>
+                        <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                            <Setter Property="BorderThickness" Value="2"/>
+                            <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                        </Trigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
+            <ContentPresenter x:Name="PrimaryPresenter" ClipToBounds="True"/>
+        </Border>
         <GridSplitter x:Name="Splitter"
                       Visibility="Collapsed"
                       Background="{DynamicResource CardBrush}"
@@ -24,8 +37,20 @@
                 </Style>
             </GridSplitter.Style>
         </GridSplitter>
-        <ContentPresenter x:Name="SecondaryPresenter"
-                          ClipToBounds="True"
-                          Visibility="Collapsed"/>
+        <Border x:Name="SecondaryBorder" ClipToBounds="True"
+                BorderThickness="0" BorderBrush="Transparent"
+                Visibility="Collapsed">
+            <Border.Style>
+                <Style TargetType="Border">
+                    <Style.Triggers>
+                        <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                            <Setter Property="BorderThickness" Value="2"/>
+                            <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                        </Trigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
+            <ContentPresenter x:Name="SecondaryPresenter" ClipToBounds="True"/>
+        </Border>
     </Grid>
 </UserControl>

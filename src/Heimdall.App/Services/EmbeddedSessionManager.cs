@@ -22,6 +22,7 @@ using Heimdall.App.Views;
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Models;
+using Heimdall.Core.StateMachine;
 using Heimdall.Sftp;
 using Heimdall.Ssh;
 
@@ -36,6 +37,7 @@ public sealed class EmbeddedSessionManager
     private readonly LocalizationManager _localizer;
     private readonly IDialogService _dialogService;
     private readonly HostKeyStore _hostKeyStore;
+    private readonly ConnectionStateMachine _connectionSm;
 
     /// <summary>
     /// Optional callback invoked when a terminal view broadcasts input.
@@ -67,11 +69,13 @@ public sealed class EmbeddedSessionManager
     public EmbeddedSessionManager(
         LocalizationManager localizer,
         IDialogService dialogService,
-        HostKeyStore hostKeyStore)
+        HostKeyStore hostKeyStore,
+        ConnectionStateMachine connectionSm)
     {
         _localizer = localizer;
         _dialogService = dialogService;
         _hostKeyStore = hostKeyStore;
+        _connectionSm = connectionSm;
     }
 
     public object CreateHostControl(
@@ -182,6 +186,19 @@ public sealed class EmbeddedSessionManager
             && session is VncSessionResult vnc)
         {
             var view = new EmbeddedVncView();
+            view.SessionConnected += (serverId) =>
+            {
+                _connectionSm.TryTransition(serverId, ConnectionState.Connected);
+                sessionTab.Status = _localizer["StatusConnected"];
+                Core.Logging.FileLogger.Info($"VNC connected: {serverId}");
+            };
+            view.SessionError += (serverId, errorMsg) =>
+            {
+                var localizedMsg = _localizer.Format("ErrorVncConnectionFailed", errorMsg);
+                _connectionSm.SetError(serverId, localizedMsg);
+                sessionTab.Status = localizedMsg;
+                Core.Logging.FileLogger.Error($"VNC error for {serverId}: {errorMsg}");
+            };
             _ = view.InitializeSessionAsync(vnc, sessionTab, displayName, _localizer)
                 .ContinueWith(t =>
                     Core.Logging.FileLogger.Error($"VNC init failed: {t.Exception?.GetBaseException().Message}"),

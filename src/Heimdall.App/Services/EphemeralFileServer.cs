@@ -29,7 +29,7 @@ namespace Heimdall.App.Services;
 /// Both servers are read-only and run on background tasks while the application is open.
 /// HTTP serves files via GET with directory listing; TFTP implements minimal RFC 1350 (RRQ only).
 /// </summary>
-public sealed class EphemeralFileServer : IDisposable
+public sealed class EphemeralFileServer : IDisposable, IAsyncDisposable
 {
     private const int TftpBlockSize = 512;
     private const int TftpTimeout = 5000;
@@ -70,7 +70,7 @@ public sealed class EphemeralFileServer : IDisposable
     public void StartHttpServer(string directory, int port = DefaultPorts.Http)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(directory);
-        if (IsHttpRunning) StopHttpServer();
+        if (IsHttpRunning) StopHttpServerAsync().GetAwaiter().GetResult();
 
         _servingDirectory = Path.GetFullPath(directory);
         _httpCts = new CancellationTokenSource();
@@ -101,7 +101,7 @@ public sealed class EphemeralFileServer : IDisposable
     }
 
     /// <summary>Stops the HTTP file server.</summary>
-    public void StopHttpServer()
+    public async Task StopHttpServerAsync()
     {
         if (!IsHttpRunning) return;
 
@@ -109,7 +109,11 @@ public sealed class EphemeralFileServer : IDisposable
         try { _httpListener?.Stop(); } catch (Exception ex) { Core.Logging.FileLogger.Warn($"[EphemeralFileServer] HTTP stop: {ex.Message}"); }
         try { _httpListener?.Close(); } catch (Exception ex) { Core.Logging.FileLogger.Warn($"[EphemeralFileServer] HTTP close: {ex.Message}"); }
 
-        try { _httpTask?.Wait(TimeSpan.FromSeconds(2)); } catch (Exception ex) { Core.Logging.FileLogger.Warn($"[EphemeralFileServer] HTTP task wait: {ex.Message}"); }
+        if (_httpTask is not null)
+        {
+            try { await _httpTask.WaitAsync(TimeSpan.FromSeconds(2)); }
+            catch (Exception ex) { Core.Logging.FileLogger.Warn($"[EphemeralFileServer] HTTP task wait: {ex.Message}"); }
+        }
 
         _httpListener = null;
         _httpCts?.Dispose();
@@ -127,7 +131,7 @@ public sealed class EphemeralFileServer : IDisposable
     public void StartTftpServer(string directory, int port = DefaultPorts.Tftp)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(directory);
-        if (IsTftpRunning) StopTftpServer();
+        if (IsTftpRunning) StopTftpServerAsync().GetAwaiter().GetResult();
 
         _servingDirectory = Path.GetFullPath(directory);
         _tftpCts = new CancellationTokenSource();
@@ -141,14 +145,18 @@ public sealed class EphemeralFileServer : IDisposable
     }
 
     /// <summary>Stops the TFTP file server.</summary>
-    public void StopTftpServer()
+    public async Task StopTftpServerAsync()
     {
         if (!IsTftpRunning) return;
 
         _tftpCts?.Cancel();
         try { _tftpListener?.Close(); } catch (Exception ex) { Core.Logging.FileLogger.Warn($"[EphemeralFileServer] TFTP close: {ex.Message}"); }
 
-        try { _tftpTask?.Wait(TimeSpan.FromSeconds(2)); } catch (Exception ex) { Core.Logging.FileLogger.Warn($"[EphemeralFileServer] TFTP task wait: {ex.Message}"); }
+        if (_tftpTask is not null)
+        {
+            try { await _tftpTask.WaitAsync(TimeSpan.FromSeconds(2)); }
+            catch (Exception ex) { Core.Logging.FileLogger.Warn($"[EphemeralFileServer] TFTP task wait: {ex.Message}"); }
+        }
 
         _tftpListener = null;
         _tftpCts?.Dispose();
@@ -159,11 +167,30 @@ public sealed class EphemeralFileServer : IDisposable
         Core.Logging.FileLogger.Info("TFTP file server stopped");
     }
 
-    /// <summary>Stops both servers and releases all resources.</summary>
+    /// <summary>Stops both servers asynchronously and releases all resources.</summary>
+    public async ValueTask DisposeAsync()
+    {
+        await StopHttpServerAsync();
+        await StopTftpServerAsync();
+    }
+
+    /// <summary>Stops both servers and releases all resources (synchronous fallback).</summary>
     public void Dispose()
     {
-        StopHttpServer();
-        StopTftpServer();
+        // Cancellation tokens ensure tasks finish quickly after cancel
+        _httpCts?.Cancel();
+        _tftpCts?.Cancel();
+        try { _httpListener?.Stop(); } catch { /* already stopped */ }
+        try { _httpListener?.Close(); } catch { /* already closed */ }
+        try { _tftpListener?.Close(); } catch { /* already closed */ }
+        _httpListener = null;
+        _tftpListener = null;
+        _httpCts?.Dispose();
+        _tftpCts?.Dispose();
+        _httpCts = null;
+        _tftpCts = null;
+        IsHttpRunning = false;
+        IsTftpRunning = false;
     }
 
     /// <summary>

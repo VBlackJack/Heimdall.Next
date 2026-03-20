@@ -192,7 +192,10 @@ public sealed class ConnectionStateMachine
     /// </summary>
     public void Reset(string serverId)
     {
-        ConnectionState previousState;
+        // Capture events to emit in order, then fire them sequentially
+        // outside the lock to avoid re-entrancy, but using a per-server
+        // guarantee via the captured state.
+        (ConnectionState from, ConnectionState to)[] transitions;
 
         lock (_lock)
         {
@@ -206,17 +209,20 @@ public sealed class ConnectionStateMachine
                 return;
             }
 
-            previousState = data.CurrentState;
+            var originalState = data.CurrentState;
+            var pending = new List<(ConnectionState from, ConnectionState to)>();
 
             // From Error, go directly to Disconnected (Error cannot transition to Disconnecting)
             if (data.CurrentState != ConnectionState.Error
                 && IsValidTransition(data.CurrentState, ConnectionState.Disconnecting))
             {
+                pending.Add((data.CurrentState, ConnectionState.Disconnecting));
                 data.PreviousState = data.CurrentState;
                 data.CurrentState = ConnectionState.Disconnecting;
                 data.LastTransitionUtc = DateTime.UtcNow;
             }
 
+            pending.Add((data.CurrentState, ConnectionState.Disconnected));
             data.PreviousState = data.CurrentState;
             data.CurrentState = ConnectionState.Disconnected;
             data.ErrorMessage = null;
@@ -224,9 +230,16 @@ public sealed class ConnectionStateMachine
             data.TunnelProcessId = null;
             data.ConnectedAtUtc = null;
             data.LastTransitionUtc = DateTime.UtcNow;
+
+            transitions = pending.ToArray();
         }
 
-        StateChanged?.Invoke(serverId, previousState, ConnectionState.Disconnected, null);
+        // Emit events in order; state is already final so concurrent
+        // reconnects will see Disconnected and create a new entry.
+        foreach (var (from, to) in transitions)
+        {
+            StateChanged?.Invoke(serverId, from, to, null);
+        }
     }
 
     /// <summary>

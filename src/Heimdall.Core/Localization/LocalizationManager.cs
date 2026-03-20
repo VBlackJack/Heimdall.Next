@@ -34,6 +34,12 @@ public class LocalizationManager
     private string _localesPath = string.Empty;
 
     /// <summary>
+    /// Raised after the locale has been switched. Subscribers should
+    /// re-apply localized strings to their UI elements.
+    /// </summary>
+    public event Action<string>? LocaleChanged;
+
+    /// <summary>
     /// Gets the current locale identifier (e.g., "en", "fr").
     /// </summary>
     public string CurrentLocale => _currentLocale;
@@ -122,6 +128,7 @@ public class LocalizationManager
         }
 
         await LoadAsync(_localesPath, locale);
+        LocaleChanged?.Invoke(locale);
     }
 
     /// <summary>

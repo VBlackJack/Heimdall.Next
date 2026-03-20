@@ -46,29 +46,33 @@ public partial class MainWindow : Window
         "TOOL:PING", "TOOL:DNS", "TOOL:CERT", "TOOL:PORTSCAN", "TOOL:SUBNET", "TOOL:IPCONV"
     };
 
-    private static readonly (string ToolType, string LabelKey)[] ToolTypeDefinitions =
+    private static readonly (string Category, string ToolType, string LabelKey)[] ToolTypeDefinitions =
     [
-        ("TOOL:PING", "PaletteToolPing"),
-        ("TOOL:DNS", "PaletteToolDns"),
-        ("TOOL:CERT", "PaletteToolCert"),
-        ("TOOL:PORTSCAN", "PaletteToolPortScan"),
-        ("TOOL:SUBNET", "PaletteToolSubnet"),
-        ("TOOL:HASH", "PaletteToolHash"),
-        ("TOOL:DIFF", "PaletteToolDiff"),
-        ("TOOL:PASSWORD", "PaletteToolPassword"),
-        ("TOOL:BASE64", "PaletteToolBase64"),
-        ("TOOL:CHMOD", "PaletteToolChmod"),
-        ("TOOL:JWT", "PaletteToolJwt"),
-        ("TOOL:REGEX", "PaletteToolRegex"),
-        ("TOOL:JSON", "PaletteToolJson"),
-        ("TOOL:DATETIME", "PaletteToolDateTime"),
-        ("TOOL:UUID", "PaletteToolUuid"),
-        ("TOOL:SSHKEY", "PaletteToolSshKey"),
-        ("TOOL:HMAC", "PaletteToolHmac"),
-        ("TOOL:IPCONV", "PaletteToolIpConv"),
-        ("TOOL:URLENC", "PaletteToolUrlEnc"),
-        ("TOOL:HTTP", "PaletteToolHttp"),
-        ("TOOL:CRONTAB", "PaletteToolCron"),
+        // Network
+        ("ToolCategoryNetwork", "TOOL:PING", "PaletteToolPing"),
+        ("ToolCategoryNetwork", "TOOL:DNS", "PaletteToolDns"),
+        ("ToolCategoryNetwork", "TOOL:CERT", "PaletteToolCert"),
+        ("ToolCategoryNetwork", "TOOL:PORTSCAN", "PaletteToolPortScan"),
+        ("ToolCategoryNetwork", "TOOL:SUBNET", "PaletteToolSubnet"),
+        ("ToolCategoryNetwork", "TOOL:IPCONV", "PaletteToolIpConv"),
+        ("ToolCategoryNetwork", "TOOL:HTTP", "PaletteToolHttp"),
+        // Security
+        ("ToolCategorySecurity", "TOOL:HASH", "PaletteToolHash"),
+        ("ToolCategorySecurity", "TOOL:HMAC", "PaletteToolHmac"),
+        ("ToolCategorySecurity", "TOOL:PASSWORD", "PaletteToolPassword"),
+        ("ToolCategorySecurity", "TOOL:SSHKEY", "PaletteToolSshKey"),
+        ("ToolCategorySecurity", "TOOL:JWT", "PaletteToolJwt"),
+        // Encoding & Format
+        ("ToolCategoryEncoding", "TOOL:BASE64", "PaletteToolBase64"),
+        ("ToolCategoryEncoding", "TOOL:URLENC", "PaletteToolUrlEnc"),
+        ("ToolCategoryEncoding", "TOOL:JSON", "PaletteToolJson"),
+        ("ToolCategoryEncoding", "TOOL:REGEX", "PaletteToolRegex"),
+        ("ToolCategoryEncoding", "TOOL:DIFF", "PaletteToolDiff"),
+        // System
+        ("ToolCategorySystem", "TOOL:CHMOD", "PaletteToolChmod"),
+        ("ToolCategorySystem", "TOOL:DATETIME", "PaletteToolDateTime"),
+        ("ToolCategorySystem", "TOOL:UUID", "PaletteToolUuid"),
+        ("ToolCategorySystem", "TOOL:CRONTAB", "PaletteToolCron"),
     ];
 
     private object? _treeContextTarget;
@@ -109,6 +113,12 @@ public partial class MainWindow : Window
             }
 
             PopulateAboutSection();
+        };
+
+        // Re-apply all localized strings when the user switches language at runtime
+        viewModel.GetLocalizer().LocaleChanged += (_) =>
+        {
+            Dispatcher.Invoke(() => ApplyLocalization());
         };
 
         KeyDown += OnKeyDown;
@@ -487,8 +497,24 @@ public partial class MainWindow : Window
 
         parentItem.Items.Clear();
 
-        foreach (var (toolType, labelKey) in ToolTypeDefinitions)
+        string? lastCategory = null;
+        foreach (var (category, toolType, labelKey) in ToolTypeDefinitions)
         {
+            if (!string.Equals(category, lastCategory, StringComparison.Ordinal))
+            {
+                if (lastCategory is not null)
+                    parentItem.Items.Add(new Separator());
+
+                var header = new MenuItem
+                {
+                    Header = vm.Localize(category),
+                    IsEnabled = false,
+                    FontWeight = FontWeights.SemiBold
+                };
+                parentItem.Items.Add(header);
+                lastCategory = category;
+            }
+
             var item = new MenuItem { Header = vm.Localize(labelKey), Tag = toolType };
             item.Click += OnAddToolItemClick;
             parentItem.Items.Add(item);
@@ -575,12 +601,29 @@ public partial class MainWindow : Window
         }
     }
 
+    /// <summary>
+    /// Returns true when the keyboard focus is inside an embedded terminal (WebView2),
+    /// meaning single-modifier shortcuts (Ctrl+B/F/K) should be forwarded to the
+    /// remote session instead of being intercepted by the shell.
+    /// </summary>
+    private static bool IsTerminalFocused()
+    {
+        var focused = Keyboard.FocusedElement as DependencyObject;
+        return focused is Microsoft.Web.WebView2.Wpf.WebView2
+            || FindAncestor<Views.EmbeddedSshView>(focused) is not null
+            || FindAncestor<Views.EmbeddedVncView>(focused) is not null;
+    }
+
     private void OnKeyDown(object sender, KeyEventArgs e)
     {
         if (DataContext is not MainViewModel vm)
         {
             return;
         }
+
+        // When a terminal has focus, only intercept Ctrl+Shift combos and F-keys;
+        // let single-Ctrl shortcuts (Ctrl+B/F/K) pass through to the remote session.
+        var terminalHasFocus = IsTerminalFocused();
 
         switch (e.Key)
         {
@@ -593,6 +636,7 @@ public partial class MainWindow : Window
                 break;
 
             case Key.Delete:
+                if (terminalHasFocus) break;
                 if (vm.ServerList.SelectedServer is not null &&
                     vm.ServerList.DeleteServerCommand.CanExecute(vm.ServerList.SelectedServer))
                 {
@@ -602,6 +646,7 @@ public partial class MainWindow : Window
                 break;
 
             case Key.E when Keyboard.Modifiers == ModifierKeys.Control:
+                if (terminalHasFocus) break;
                 if (vm.ServerList.SelectedServer is not null &&
                     vm.ServerList.EditServerCommand.CanExecute(vm.ServerList.SelectedServer))
                 {
@@ -611,22 +656,22 @@ public partial class MainWindow : Window
                 break;
 
             case Key.F when Keyboard.Modifiers == ModifierKeys.Control:
+                if (terminalHasFocus) break;
                 SearchBox.Focus();
                 SearchBox.SelectAll();
                 e.Handled = true;
                 break;
 
             case Key.B when Keyboard.Modifiers == ModifierKeys.Control:
+                if (terminalHasFocus) break;
                 ToggleSidebar();
                 e.Handled = true;
                 break;
 
             case Key.K when Keyboard.Modifiers == ModifierKeys.Control:
-                if (DataContext is MainViewModel vm2)
-                {
-                    vm2.OpenCommandPaletteCommand.Execute(null);
-                    PaletteInput.Focus();
-                }
+                if (terminalHasFocus) break;
+                vm.OpenCommandPaletteCommand.Execute(null);
+                PaletteInput.Focus();
                 e.Handled = true;
                 break;
 
@@ -891,27 +936,52 @@ public partial class MainWindow : Window
         _treeDragInProgress = false;
     }
 
+    private TreeViewItem? _lastDropHighlight;
+
+    private void ClearDropHighlight()
+    {
+        if (_lastDropHighlight is not null)
+        {
+            _lastDropHighlight.BorderThickness = new Thickness(0);
+            _lastDropHighlight.BorderBrush = null;
+            _lastDropHighlight = null;
+        }
+    }
+
     private void OnTreeViewDragOver(object sender, System.Windows.DragEventArgs e)
     {
         e.Effects = System.Windows.DragDropEffects.None;
 
         if (!e.Data.GetDataPresent("HeimdallServer"))
         {
+            ClearDropHighlight();
             e.Handled = true;
             return;
         }
 
         var target = FindAncestor<TreeViewItem>(e.OriginalSource as DependencyObject);
+        ClearDropHighlight();
+
         if (target?.DataContext is FolderViewModel)
         {
             e.Effects = System.Windows.DragDropEffects.Move;
+            target.BorderThickness = new Thickness(1);
+            target.BorderBrush = TryFindResource("AccentBrush") as Brush ?? Brushes.DodgerBlue;
+            _lastDropHighlight = target;
         }
 
         e.Handled = true;
     }
 
+    private void OnTreeViewDragLeave(object sender, System.Windows.DragEventArgs e)
+    {
+        ClearDropHighlight();
+    }
+
     private async void OnTreeViewDrop(object sender, System.Windows.DragEventArgs e)
     {
+        ClearDropHighlight();
+
         if (!e.Data.GetDataPresent("HeimdallServer"))
         {
             return;
@@ -1348,8 +1418,24 @@ public partial class MainWindow : Window
     {
         var toolMenu = new MenuItem { Header = vm.Localize("AddMenuTool"), Tag = group };
 
-        foreach (var (toolType, labelKey) in ToolTypeDefinitions)
+        string? lastCategory = null;
+        foreach (var (category, toolType, labelKey) in ToolTypeDefinitions)
         {
+            if (!string.Equals(category, lastCategory, StringComparison.Ordinal))
+            {
+                if (lastCategory is not null)
+                    toolMenu.Items.Add(new Separator());
+
+                var header = new MenuItem
+                {
+                    Header = vm.Localize(category),
+                    IsEnabled = false,
+                    FontWeight = FontWeights.SemiBold
+                };
+                toolMenu.Items.Add(header);
+                lastCategory = category;
+            }
+
             var item = new MenuItem { Header = vm.Localize(labelKey), Tag = toolType };
             item.Click += OnAddToolItemClick;
             toolMenu.Items.Add(item);
@@ -1466,6 +1552,7 @@ public partial class MainWindow : Window
             var data = new System.Windows.DataObject("SessionTab", draggedSession);
             var result = DragDrop.DoDragDrop(SessionTabControl, data, System.Windows.DragDropEffects.Move);
             _tabDragItem = null;
+            ClearTabDropHighlight();
 
             // If the drop landed outside the TabControl (no target accepted it),
             // detach the tab to a floating window
@@ -1476,11 +1563,33 @@ public partial class MainWindow : Window
         }
     }
 
+    private System.Windows.Controls.TabItem? _lastTabDropHighlight;
+
+    private void ClearTabDropHighlight()
+    {
+        if (_lastTabDropHighlight is not null)
+        {
+            _lastTabDropHighlight.BorderThickness = new Thickness(0);
+            _lastTabDropHighlight.BorderBrush = null;
+            _lastTabDropHighlight = null;
+        }
+    }
+
     private void OnTabDragOver(object sender, System.Windows.DragEventArgs e)
     {
+        ClearTabDropHighlight();
+
         if (e.Data.GetDataPresent("SessionTab"))
         {
             e.Effects = System.Windows.DragDropEffects.Move;
+
+            var targetTab = FindAncestor<System.Windows.Controls.TabItem>(e.OriginalSource as DependencyObject);
+            if (targetTab is not null && targetTab.DataContext != _tabDragItem)
+            {
+                targetTab.BorderThickness = new Thickness(2, 0, 0, 0);
+                targetTab.BorderBrush = TryFindResource("AccentBrush") as Brush ?? Brushes.DodgerBlue;
+                _lastTabDropHighlight = targetTab;
+            }
         }
         else
         {
@@ -1491,6 +1600,8 @@ public partial class MainWindow : Window
 
     private void OnTabDrop(object sender, System.Windows.DragEventArgs e)
     {
+        ClearTabDropHighlight();
+
         if (DataContext is not MainViewModel vm) return;
         if (!e.Data.GetDataPresent("SessionTab")) return;
 
@@ -2237,10 +2348,13 @@ public partial class MainWindow : Window
         };
     }
 
-    private void StopFileServer()
+    private async void StopFileServer()
     {
-        _fileServer?.Dispose();
-        _fileServer = null;
+        if (_fileServer is not null)
+        {
+            await _fileServer.DisposeAsync();
+            _fileServer = null;
+        }
 
         Mw_SharingStatus.Visibility = Visibility.Collapsed;
         Mw_SharingStatus.Text = string.Empty;

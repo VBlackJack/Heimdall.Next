@@ -39,7 +39,9 @@ public sealed class ServerStatusToColorConverter : IMultiValueConverter
 
     public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
     {
-        if (values.Length < 2)
+        if (values.Length < 2
+            || values[0] == DependencyProperty.UnsetValue
+            || values[1] == DependencyProperty.UnsetValue)
         {
             return DefaultBrush;
         }

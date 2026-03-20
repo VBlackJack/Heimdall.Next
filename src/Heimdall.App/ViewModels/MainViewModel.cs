@@ -266,6 +266,7 @@ public partial class MainViewModel : ObservableObject
     private async Task LoadAsync(CancellationToken cancellationToken)
     {
         IsBusy = true;
+        using var _ = _appStatus.BeginOperation("Loading");
 
         try
         {
@@ -299,7 +300,7 @@ public partial class MainViewModel : ObservableObject
 
             _taskScheduler.Start();
 
-            _appStatus.TryTransition(ApplicationStatus.Ready);
+            // OperationScope.Dispose() handles the Ready transition
             StatusText = _localizer["StatusReady"];
             WindowTitle = _localizer.Format("WindowTitle", ServerCount);
         }
@@ -1305,9 +1306,14 @@ public partial class MainViewModel : ObservableObject
 
     // --- Broadcast mode ---
 
+    public string BroadcastToggleTooltip => IsBroadcastMode
+        ? _localizer["BroadcastModeOn"]
+        : _localizer["TooltipToggleBroadcast"];
+
     partial void OnIsBroadcastModeChanged(bool value)
     {
         UpdateBroadcastIndicators(value);
+        OnPropertyChanged(nameof(BroadcastToggleTooltip));
     }
 
     [RelayCommand]

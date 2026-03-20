@@ -134,8 +134,9 @@ public partial class ConnectionService
         catch (Exception ex)
         {
             process?.Dispose();
-            _connectionSm.SetError(server.Id, ex.Message);
-            return new ConnectionResult(false, ex.Message, null);
+            var userMsg = _localizer.Format("ErrorCitrixLaunchFailed", ex.Message);
+            _connectionSm.SetError(server.Id, userMsg);
+            return new ConnectionResult(false, userMsg, null);
         }
     }
 
