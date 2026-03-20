@@ -12,6 +12,34 @@
 
 All notable changes to Heimdall.Next are documented in this file.
 
+## [v2026.032012] - 2026-03-20
+
+### Features
+- 21 built-in sysops tools as session tabs (Ping, DNS, Cert Inspector, Port Scanner, Subnet Calculator, IP Converter, Password Generator, SSH Key Generator, Hash, HMAC, Base64, URL Encoder, JWT Parser, Chmod Calculator, Crontab Builder, JSON Formatter, Regex Tester, Text Diff, DateTime Converter, UUID Generator, HTTP Status Codes)
+- Tools accessible via Ctrl+K palette, "+" menu, right-click context menu, and TreeView double-click
+- Enhanced Password Generator: 3 modes (Random/Syllable/Passphrase), 7 case options, 6 presets, CLI-safe mode, custom specials, exclude ambiguous, NATO phonetic, AZERTY/QWERTY layout, 5-level strength with mode-aware issues
+- Wordlists expanded to 525 EN / 513 FR words with validation
+
+### Security
+- Unbiased random generation (modulo bias eliminated)
+- CLI-safe fallback bypass fixed
+- XXE protection on all XML importers
+- Citrix command injection validation
+- Password file TOCTOU eliminated
+
+### UX
+- Tool tabs integrate with TreeView (icons, double-click, edit, context menu)
+- Detail panel shows "Open" for tools, hides connection info
+- Copy feedback "✓" on all tool copy buttons
+- Input validation with error messages on network tools
+- Large payload protection (JSON/Base64 5MB, Regex 500 cap)
+- AutomationProperties localized on all controls
+
+### Architecture
+- ToolContext record, CreateToolControl factory, TOOL:* ConnectionType prefix
+- Tool type list shared constant, no duplication
+- Preset suspension flag prevents multi-regeneration
+
 ## [v2026.032002] - 2026-03-20
 
 ### Security
