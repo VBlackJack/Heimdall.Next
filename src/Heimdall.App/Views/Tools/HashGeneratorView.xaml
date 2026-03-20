@@ -1,0 +1,84 @@
+<UserControl x:Class="Heimdall.App.Views.Tools.HashGeneratorView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="{DynamicResource BackgroundBrush}">
+    <Grid Margin="0">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Border Grid.Row="0" Padding="12,8"
+                Background="{DynamicResource SurfaceBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="0,0,0,1">
+            <TextBlock x:Name="HeaderTitle" Text=""
+                       FontSize="14" FontWeight="SemiBold"
+                       Foreground="{DynamicResource TextPrimaryBrush}"
+                       VerticalAlignment="Center"/>
+        </Border>
+
+        <!-- Content -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="16">
+            <StackPanel MaxWidth="600">
+
+                <!-- Algorithm selector -->
+                <TextBlock x:Name="LblAlgorithm" Text=""
+                           FontSize="12" Margin="0,0,0,4"
+                           Foreground="{DynamicResource TextSecondaryBrush}"/>
+                <ComboBox x:Name="CmbAlgorithm"
+                          Margin="0,0,0,16"
+                          Padding="8,6" FontSize="13"
+                          Background="{DynamicResource CardBrush}"
+                          Foreground="{DynamicResource TextPrimaryBrush}"
+                          BorderBrush="{DynamicResource BorderBrush}"
+                          SelectionChanged="OnAlgorithmChanged"
+                          />
+
+                <!-- Input text -->
+                <TextBlock x:Name="LblInput" Text=""
+                           FontSize="12" Margin="0,0,0,4"
+                           Foreground="{DynamicResource TextSecondaryBrush}"/>
+                <TextBox x:Name="TxtInput" Text=""
+                         FontSize="13" FontFamily="Consolas"
+                         Padding="8,6" Height="120"
+                         AcceptsReturn="True" AcceptsTab="True"
+                         TextWrapping="Wrap"
+                         VerticalScrollBarVisibility="Auto"
+                         Background="{DynamicResource CardBrush}"
+                         Foreground="{DynamicResource TextPrimaryBrush}"
+                         BorderBrush="{DynamicResource BorderBrush}"
+                         TextChanged="OnInputTextChanged"
+                         />
+
+                <!-- Output -->
+                <TextBlock x:Name="LblOutput" Text=""
+                           FontSize="12" Margin="0,16,0,4"
+                           Foreground="{DynamicResource TextSecondaryBrush}"/>
+                <DockPanel Margin="0,0,0,8">
+                    <Button x:Name="BtnCopy" DockPanel.Dock="Right"
+                            Content="" Click="OnCopyClick"
+                            Style="{DynamicResource SecondaryButtonStyle}"
+                            Padding="12,6" Margin="8,0,0,0"
+                            VerticalAlignment="Stretch"/>
+                    <TextBox x:Name="TxtOutput" Text=""
+                             FontSize="13" FontFamily="Consolas"
+                             Padding="8,6"
+                             IsReadOnly="True"
+                             Background="{DynamicResource CardBrush}"
+                             Foreground="{DynamicResource AccentBrush}"
+                             BorderBrush="{DynamicResource BorderBrush}"
+                             VerticalAlignment="Center"
+                             />
+                </DockPanel>
+
+                <!-- Byte length indicator -->
+                <TextBlock x:Name="TxtByteLength" Text=""
+                           FontSize="11"
+                           Foreground="{DynamicResource TextSecondaryBrush}"/>
+
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</UserControl>

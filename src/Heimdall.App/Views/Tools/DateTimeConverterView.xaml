@@ -1,0 +1,124 @@
+<UserControl x:Class="Heimdall.App.Views.Tools.DateTimeConverterView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="{DynamicResource BackgroundBrush}">
+    <Grid Margin="0">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Border Grid.Row="0" Padding="12,8"
+                Background="{DynamicResource SurfaceBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="0,0,0,1">
+            <TextBlock x:Name="HeaderTitle" Text=""
+                       FontSize="14" FontWeight="SemiBold"
+                       Foreground="{DynamicResource TextPrimaryBrush}"
+                       VerticalAlignment="Center"/>
+        </Border>
+
+        <!-- Content -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="16">
+            <StackPanel MaxWidth="600">
+
+                <!-- Input -->
+                <TextBlock x:Name="LblInput" Text=""
+                           FontSize="12" Margin="0,0,0,4"
+                           Foreground="{DynamicResource TextSecondaryBrush}"/>
+                <DockPanel Margin="0,0,0,8">
+                    <Button x:Name="BtnNow" DockPanel.Dock="Right"
+                            Content="" Click="OnNowClick"
+                            Style="{DynamicResource SecondaryButtonStyle}"
+                            Padding="12,6" Margin="8,0,0,0"
+                            VerticalAlignment="Stretch"
+                            />
+                    <TextBox x:Name="TxtInput" Text=""
+                             FontSize="13" FontFamily="Consolas"
+                             Padding="8,6"
+                             Background="{DynamicResource CardBrush}"
+                             Foreground="{DynamicResource TextPrimaryBrush}"
+                             BorderBrush="{DynamicResource BorderBrush}"
+                             TextChanged="OnInputTextChanged"
+                             />
+                </DockPanel>
+
+                <!-- Detected format -->
+                <TextBlock x:Name="TxtDetectedFormat" Text=""
+                           FontSize="11" Margin="0,0,0,16"
+                           Foreground="{DynamicResource TextSecondaryBrush}"/>
+
+                <!-- Unix Timestamp -->
+                <TextBlock x:Name="LblUnixTimestamp" Text=""
+                           FontSize="12" Margin="0,0,0,4"
+                           Foreground="{DynamicResource TextSecondaryBrush}"/>
+                <DockPanel Margin="0,0,0,12">
+                    <Button x:Name="BtnCopyUnix" DockPanel.Dock="Right"
+                            Content="" Click="OnCopyUnixClick"
+                            Style="{DynamicResource SecondaryButtonStyle}"
+                            Padding="12,6" Margin="8,0,0,0"
+                            VerticalAlignment="Stretch"/>
+                    <TextBox x:Name="TxtUnixTimestamp" Text=""
+                             FontSize="13" FontFamily="Consolas"
+                             Padding="8,6" IsReadOnly="True"
+                             Background="{DynamicResource CardBrush}"
+                             Foreground="{DynamicResource AccentBrush}"
+                             BorderBrush="{DynamicResource BorderBrush}"
+                             />
+                </DockPanel>
+
+                <!-- ISO 8601 UTC -->
+                <TextBlock x:Name="LblIsoUtc" Text=""
+                           FontSize="12" Margin="0,0,0,4"
+                           Foreground="{DynamicResource TextSecondaryBrush}"/>
+                <DockPanel Margin="0,0,0,12">
+                    <Button x:Name="BtnCopyIsoUtc" DockPanel.Dock="Right"
+                            Content="" Click="OnCopyIsoUtcClick"
+                            Style="{DynamicResource SecondaryButtonStyle}"
+                            Padding="12,6" Margin="8,0,0,0"
+                            VerticalAlignment="Stretch"/>
+                    <TextBox x:Name="TxtIsoUtc" Text=""
+                             FontSize="13" FontFamily="Consolas"
+                             Padding="8,6" IsReadOnly="True"
+                             Background="{DynamicResource CardBrush}"
+                             Foreground="{DynamicResource AccentBrush}"
+                             BorderBrush="{DynamicResource BorderBrush}"
+                             />
+                </DockPanel>
+
+                <!-- ISO 8601 Local -->
+                <TextBlock x:Name="LblIsoLocal" Text=""
+                           FontSize="12" Margin="0,0,0,4"
+                           Foreground="{DynamicResource TextSecondaryBrush}"/>
+                <DockPanel Margin="0,0,0,12">
+                    <Button x:Name="BtnCopyIsoLocal" DockPanel.Dock="Right"
+                            Content="" Click="OnCopyIsoLocalClick"
+                            Style="{DynamicResource SecondaryButtonStyle}"
+                            Padding="12,6" Margin="8,0,0,0"
+                            VerticalAlignment="Stretch"/>
+                    <TextBox x:Name="TxtIsoLocal" Text=""
+                             FontSize="13" FontFamily="Consolas"
+                             Padding="8,6" IsReadOnly="True"
+                             Background="{DynamicResource CardBrush}"
+                             Foreground="{DynamicResource AccentBrush}"
+                             BorderBrush="{DynamicResource BorderBrush}"
+                             />
+                </DockPanel>
+
+                <!-- Local time display -->
+                <TextBlock x:Name="LblLocalTime" Text=""
+                           FontSize="12" Margin="0,0,0,4"
+                           Foreground="{DynamicResource TextSecondaryBrush}"/>
+                <TextBox x:Name="TxtLocalTime" Text=""
+                         FontSize="13" FontFamily="Consolas"
+                         Padding="8,6" IsReadOnly="True" Margin="0,0,0,8"
+                         Background="{DynamicResource CardBrush}"
+                         Foreground="{DynamicResource AccentBrush}"
+                         BorderBrush="{DynamicResource BorderBrush}"
+                         />
+
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</UserControl>

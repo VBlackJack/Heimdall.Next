@@ -1,0 +1,95 @@
+<UserControl x:Class="Heimdall.App.Views.Tools.UrlEncoderView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="{DynamicResource BackgroundBrush}">
+    <Grid Margin="0">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Border Grid.Row="0" Padding="12,8"
+                Background="{DynamicResource SurfaceBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="0,0,0,1">
+            <TextBlock x:Name="HeaderTitle" Text=""
+                       FontSize="14" FontWeight="SemiBold"
+                       Foreground="{DynamicResource TextPrimaryBrush}"
+                       VerticalAlignment="Center"/>
+        </Border>
+
+        <!-- Content -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="16">
+            <StackPanel MaxWidth="700">
+
+                <!-- Decoded field -->
+                <DockPanel Margin="0,0,0,4">
+                    <Button x:Name="BtnCopyDecoded" DockPanel.Dock="Right"
+                            Content="" Click="OnCopyDecodedClick"
+                            Style="{DynamicResource SecondaryButtonStyle}"
+                            Padding="10,4" Margin="8,0,0,0"
+                            VerticalAlignment="Bottom"
+/>
+                    <TextBlock x:Name="LblDecoded" Text=""
+                               FontSize="12"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               VerticalAlignment="Bottom"/>
+                </DockPanel>
+                <TextBox x:Name="TxtDecoded" Text=""
+                         FontSize="13" FontFamily="Consolas"
+                         Padding="8,6" Margin="0,0,0,8"
+                         AcceptsReturn="True" TextWrapping="Wrap"
+                         MinHeight="80" MaxHeight="200"
+                         VerticalScrollBarVisibility="Auto"
+                         Background="{DynamicResource CardBrush}"
+                         Foreground="{DynamicResource TextPrimaryBrush}"
+                         BorderBrush="{DynamicResource BorderBrush}"
+/>
+
+                <!-- Buttons -->
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,4,0,4">
+                    <Button x:Name="BtnEncode" Content="" Click="OnEncodeClick"
+                            Style="{DynamicResource PrimaryButtonStyle}"
+                            Padding="16,6" Margin="0,0,8,0"
+/>
+                    <Button x:Name="BtnDecode" Content="" Click="OnDecodeClick"
+                            Style="{DynamicResource PrimaryButtonStyle}"
+                            Padding="16,6"
+/>
+                </StackPanel>
+
+                <!-- Encoded field -->
+                <DockPanel Margin="0,8,0,4">
+                    <Button x:Name="BtnCopyEncoded" DockPanel.Dock="Right"
+                            Content="" Click="OnCopyEncodedClick"
+                            Style="{DynamicResource SecondaryButtonStyle}"
+                            Padding="10,4" Margin="8,0,0,0"
+                            VerticalAlignment="Bottom"
+/>
+                    <TextBlock x:Name="LblEncoded" Text=""
+                               FontSize="12"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               VerticalAlignment="Bottom"/>
+                </DockPanel>
+                <TextBox x:Name="TxtEncoded" Text=""
+                         FontSize="13" FontFamily="Consolas"
+                         Padding="8,6" Margin="0,0,0,8"
+                         AcceptsReturn="True" TextWrapping="Wrap"
+                         MinHeight="80" MaxHeight="200"
+                         VerticalScrollBarVisibility="Auto"
+                         Background="{DynamicResource CardBrush}"
+                         Foreground="{DynamicResource TextPrimaryBrush}"
+                         BorderBrush="{DynamicResource BorderBrush}"
+/>
+
+                <!-- Component encoding toggle -->
+                <CheckBox x:Name="ChkComponentEncoding" Margin="0,4,0,0"
+                          Foreground="{DynamicResource TextSecondaryBrush}">
+                    <TextBlock x:Name="LblComponentEncoding" Text="" FontSize="12"/>
+                </CheckBox>
+
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</UserControl>

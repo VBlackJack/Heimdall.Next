@@ -1,0 +1,104 @@
+<UserControl x:Class="Heimdall.App.Views.Tools.IpConverterView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="{DynamicResource BackgroundBrush}">
+    <Grid Margin="0">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Border Grid.Row="0" Padding="12,8"
+                Background="{DynamicResource SurfaceBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="0,0,0,1">
+            <TextBlock x:Name="HeaderTitle" Text=""
+                       FontSize="14" FontWeight="SemiBold"
+                       Foreground="{DynamicResource TextPrimaryBrush}"
+                       VerticalAlignment="Center"/>
+        </Border>
+
+        <!-- Content -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="16">
+            <StackPanel MaxWidth="600">
+
+                <!-- Input -->
+                <TextBlock x:Name="LblInput" Text=""
+                           FontSize="12" Margin="0,0,0,4"
+                           Foreground="{DynamicResource TextSecondaryBrush}"/>
+                <TextBox x:Name="TxtInput" Text=""
+                         FontSize="13" FontFamily="Consolas"
+                         Padding="8,6" Margin="0,0,0,16"
+                         Background="{DynamicResource CardBrush}"
+                         Foreground="{DynamicResource TextPrimaryBrush}"
+                         BorderBrush="{DynamicResource BorderBrush}"
+                         VerticalAlignment="Center"
+                         />
+
+                <!-- Error message -->
+                <TextBlock x:Name="TxtError" Text="" Visibility="Collapsed"
+                           FontSize="12" Margin="0,0,0,12"
+                           Foreground="{DynamicResource ErrorBrush}"/>
+
+                <!-- Results -->
+                <Border x:Name="ResultsPanel" Visibility="Collapsed"
+                        Background="{DynamicResource CardBrush}"
+                        BorderBrush="{DynamicResource BorderBrush}"
+                        BorderThickness="1" CornerRadius="4"
+                        Padding="16,12">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="16"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="8"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="8"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="8"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="8"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <!-- Row 0: Dotted Decimal -->
+                        <TextBlock x:Name="LblDotted" Grid.Row="0" Grid.Column="0" Text=""
+                                   FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                        <TextBlock x:Name="TxtDotted" Grid.Row="0" Grid.Column="2" Text=""
+                                   FontSize="13" FontFamily="Consolas" Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
+
+                        <!-- Row 2: Decimal (Integer) -->
+                        <TextBlock x:Name="LblDecimal" Grid.Row="2" Grid.Column="0" Text=""
+                                   FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                        <TextBlock x:Name="TxtDecimal" Grid.Row="2" Grid.Column="2" Text=""
+                                   FontSize="13" FontFamily="Consolas" Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
+
+                        <!-- Row 4: Hexadecimal -->
+                        <TextBlock x:Name="LblHex" Grid.Row="4" Grid.Column="0" Text=""
+                                   FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                        <TextBlock x:Name="TxtHex" Grid.Row="4" Grid.Column="2" Text=""
+                                   FontSize="13" FontFamily="Consolas" Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
+
+                        <!-- Row 6: Binary -->
+                        <TextBlock x:Name="LblBinary" Grid.Row="6" Grid.Column="0" Text=""
+                                   FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                        <TextBlock x:Name="TxtBinary" Grid.Row="6" Grid.Column="2" Text=""
+                                   FontSize="13" FontFamily="Consolas" Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"
+                                   TextWrapping="Wrap"/>
+
+                        <!-- Row 8: Mapped IPv6 -->
+                        <TextBlock x:Name="LblMappedIpv6" Grid.Row="8" Grid.Column="0" Text=""
+                                   FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                        <TextBlock x:Name="TxtMappedIpv6" Grid.Row="8" Grid.Column="2" Text=""
+                                   FontSize="13" FontFamily="Consolas" Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
+                    </Grid>
+                </Border>
+
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</UserControl>

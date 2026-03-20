@@ -427,4 +427,135 @@ public sealed class EmbeddedSessionManager
             return outer;
         }
     }
+
+    /// <summary>
+    /// Creates a host control for a tool tab (non-connection UI surface).
+    /// </summary>
+    public object CreateToolControl(
+        SessionTabViewModel sessionTab,
+        string toolId,
+        ToolContext? context,
+        AppSettings? settings = null)
+    {
+        ArgumentNullException.ThrowIfNull(sessionTab);
+        ArgumentException.ThrowIfNullOrWhiteSpace(toolId);
+
+        switch (toolId.ToUpperInvariant())
+        {
+            case "SUBNET":
+                var subnetView = new Views.Tools.SubnetCalculatorView();
+                subnetView.Initialize(context, _localizer);
+                return subnetView;
+
+            case "HASH":
+                var hashView = new Views.Tools.HashGeneratorView();
+                hashView.Initialize(context, _localizer);
+                return hashView;
+
+            case "PASSWORD":
+                var passwordView = new Views.Tools.PasswordGeneratorView();
+                passwordView.Initialize(context, _localizer);
+                return passwordView;
+
+            case "BASE64":
+                var base64View = new Views.Tools.Base64ToolView();
+                base64View.Initialize(context, _localizer);
+                return base64View;
+
+            case "CHMOD":
+                var chmodView = new Views.Tools.ChmodCalculatorView();
+                chmodView.Initialize(context, _localizer);
+                return chmodView;
+
+            case "REGEX":
+                var regexView = new Views.Tools.RegexTesterView();
+                regexView.Initialize(context, _localizer);
+                return regexView;
+
+            case "JSON":
+                var jsonView = new Views.Tools.JsonFormatterView();
+                jsonView.Initialize(context, _localizer);
+                return jsonView;
+
+            case "DATETIME":
+                var dateTimeView = new Views.Tools.DateTimeConverterView();
+                dateTimeView.Initialize(context, _localizer);
+                return dateTimeView;
+
+            case "UUID":
+                var uuidView = new Views.Tools.UuidGeneratorView();
+                uuidView.Initialize(context, _localizer);
+                return uuidView;
+
+            case "JWT":
+                var jwtView = new Views.Tools.JwtParserView();
+                jwtView.Initialize(context, _localizer);
+                return jwtView;
+
+            case "IPCONV":
+                var ipConvView = new Views.Tools.IpConverterView();
+                ipConvView.Initialize(context, _localizer);
+                return ipConvView;
+
+            case "URLENC":
+                var urlEncView = new Views.Tools.UrlEncoderView();
+                urlEncView.Initialize(context, _localizer);
+                return urlEncView;
+
+            case "HTTP":
+                var httpView = new Views.Tools.HttpStatusCodesView();
+                httpView.Initialize(context, _localizer);
+                return httpView;
+
+            case "DIFF":
+                var diffView = new Views.Tools.TextDiffView();
+                diffView.Initialize(context, _localizer);
+                return diffView;
+
+            case "PING":
+                var pingView = new Views.Tools.PingToolView();
+                pingView.Initialize(context, _localizer);
+                return pingView;
+
+            case "DNS":
+                var dnsView = new Views.Tools.DnsLookupView();
+                dnsView.Initialize(context, _localizer);
+                return dnsView;
+
+            case "CERT":
+                var certView = new Views.Tools.CertInspectorView();
+                certView.Initialize(context, _localizer);
+                return certView;
+
+            case "CRONTAB":
+                var cronView = new Views.Tools.CrontabBuilderView();
+                cronView.Initialize(context, _localizer);
+                return cronView;
+
+            case "SSHKEY":
+                var sshKeyView = new Views.Tools.SshKeyGeneratorView();
+                sshKeyView.Initialize(context, _localizer);
+                return sshKeyView;
+
+            case "PORTSCAN":
+                var portScanView = new Views.Tools.PortScannerView();
+                portScanView.Initialize(context, _localizer);
+                return portScanView;
+
+            case "HMAC":
+                var hmacView = new Views.Tools.HmacGeneratorView();
+                hmacView.Initialize(context, _localizer);
+                return hmacView;
+
+            default:
+                return new TextBlock
+                {
+                    Text = $"Tool: {toolId}",
+                    FontSize = 18,
+                    HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
+                    VerticalAlignment = System.Windows.VerticalAlignment.Center,
+                    Foreground = GetBrush("TextPrimaryBrush", Brushes.White)
+                };
+        }
+    }
 }

@@ -48,6 +48,7 @@ public partial class PinDialog : Window
                 UnlockBtn.Content = _localizer["BtnUnlock"];
                 System.Windows.Automation.AutomationProperties.SetName(CancelBtn, _localizer["BtnCancel"]);
                 System.Windows.Automation.AutomationProperties.SetName(UnlockBtn, _localizer["BtnUnlock"]);
+                System.Windows.Automation.AutomationProperties.SetName(PinBox, _localizer["PinEnterLabel"]);
             }
         };
 

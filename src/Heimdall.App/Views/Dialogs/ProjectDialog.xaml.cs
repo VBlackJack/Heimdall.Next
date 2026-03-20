@@ -46,6 +46,22 @@ public partial class ProjectDialog : Window
                 LblSshDefaults.Text = vm.Localizer["ProjectDialogLabelSshDefaults"];
                 LblDefaultSshUsername.Text = vm.Localizer["ProjectDialogLabelDefaultSshUsername"];
                 LblDefaultSshKeyPath.Text = vm.Localizer["ProjectDialogLabelDefaultSshKeyPath"];
+
+                // Input field accessibility
+                System.Windows.Automation.AutomationProperties.SetName(TxtName, vm.Localizer["ProjectDialogLabelName"]);
+                System.Windows.Automation.AutomationProperties.SetName(TxtDescription, vm.Localizer["ProjectDialogLabelDescription"]);
+                System.Windows.Automation.AutomationProperties.SetName(TxtDefaultSshUsername, vm.Localizer["ProjectDialogLabelDefaultSshUsername"]);
+                System.Windows.Automation.AutomationProperties.SetName(TxtDefaultSshKeyPath, vm.Localizer["ProjectDialogLabelDefaultSshKeyPath"]);
+
+                // Color swatch accessibility
+                System.Windows.Automation.AutomationProperties.SetName(RbColorBlue, vm.Localizer["ProjectDialogColorBlue"]);
+                System.Windows.Automation.AutomationProperties.SetName(RbColorGreen, vm.Localizer["ProjectDialogColorGreen"]);
+                System.Windows.Automation.AutomationProperties.SetName(RbColorRed, vm.Localizer["ProjectDialogColorRed"]);
+                System.Windows.Automation.AutomationProperties.SetName(RbColorAmber, vm.Localizer["ProjectDialogColorAmber"]);
+                System.Windows.Automation.AutomationProperties.SetName(RbColorPurple, vm.Localizer["ProjectDialogColorPurple"]);
+                System.Windows.Automation.AutomationProperties.SetName(RbColorPink, vm.Localizer["ProjectDialogColorPink"]);
+                System.Windows.Automation.AutomationProperties.SetName(RbColorCyan, vm.Localizer["ProjectDialogColorCyan"]);
+                System.Windows.Automation.AutomationProperties.SetName(RbColorOrange, vm.Localizer["ProjectDialogColorOrange"]);
             }
         };
     }

@@ -89,6 +89,12 @@ public partial class ServerListViewModel : ObservableObject
     public event Action<string, string, string, string, Core.Models.ISessionResult?>? SessionReady;
 
     /// <summary>
+    /// Raised when a TOOL:* entry is double-clicked. MainViewModel handles opening the tool tab.
+    /// Parameters: (toolId, displayName, context).
+    /// </summary>
+    public event Action<string, string, Core.Models.ToolContext>? ToolSessionRequested;
+
+    /// <summary>
     /// Raised when a non-modal status message should be surfaced in the shell.
     /// </summary>
     public event Action<string>? StatusMessageRequested;
@@ -251,6 +257,20 @@ public partial class ServerListViewModel : ObservableObject
         var originalId = serverDto.Id;
         serverDto.Id = sessionId;
         _connectionSm.TryTransition(sessionId, Core.Models.ConnectionState.Initializing);
+
+        // Tool entries bypass the connection pipeline entirely
+        if (serverDto.ConnectionType?.StartsWith("TOOL:", StringComparison.OrdinalIgnoreCase) == true)
+        {
+            var toolId = serverDto.ConnectionType["TOOL:".Length..];
+            var context = new Core.Models.ToolContext(
+                TargetHost: serverDto.RemoteServer,
+                TargetPort: serverDto.RemotePort > 0 ? serverDto.RemotePort : null,
+                Argument: serverDto.RemoteServer);
+            ToolSessionRequested?.Invoke(toolId, server.DisplayName, context);
+            serverDto.Id = originalId;
+            _connectionSm.Reset(sessionId);
+            return;
+        }
 
         try
         {
@@ -490,6 +510,29 @@ public partial class ServerListViewModel : ObservableObject
 
         if (serverDto is null)
         {
+            return;
+        }
+
+        // Tools use a simplified edit flow (name + host) instead of the full ServerDialog
+        if (serverDto.ConnectionType?.StartsWith("TOOL:", StringComparison.OrdinalIgnoreCase) == true)
+        {
+            var newName = await _dialogService.ShowInputAsync(
+                _localizer["AddToolDialogTitle"],
+                _localizer["AddToolDialogName"],
+                serverDto.DisplayName);
+            if (string.IsNullOrWhiteSpace(newName)) return;
+
+            var newHost = await _dialogService.ShowInputAsync(
+                _localizer["AddToolDialogTitle"],
+                _localizer["AddToolDialogHost"],
+                serverDto.RemoteServer ?? "");
+
+            serverDto.DisplayName = newName.Trim();
+            serverDto.RemoteServer = newHost?.Trim() ?? "";
+            await _configManager.SaveServersAsync(servers);
+
+            server.DisplayName = serverDto.DisplayName;
+            server.RemoteServer = serverDto.RemoteServer;
             return;
         }
 

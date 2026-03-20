@@ -1,0 +1,192 @@
+<!--
+  Copyright 2026 Julien Bombled
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<UserControl x:Class="Heimdall.App.Views.Tools.ChmodCalculatorView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="{DynamicResource BackgroundBrush}">
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Title -->
+        <TextBlock x:Name="TitleText" Grid.Row="0"
+                   FontSize="16" FontWeight="SemiBold"
+                   Foreground="{DynamicResource TextPrimaryBrush}"
+                   Margin="0,0,0,16"/>
+
+        <!-- Permission matrix: 3x3 grid with headers -->
+        <Grid Grid.Row="1" Margin="0,0,0,16">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="100"/>
+                <ColumnDefinition Width="80"/>
+                <ColumnDefinition Width="80"/>
+                <ColumnDefinition Width="80"/>
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Column headers -->
+            <TextBlock x:Name="HeaderRead" Grid.Row="0" Grid.Column="1"
+                       FontWeight="SemiBold" HorizontalAlignment="Center"
+                       Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,6"/>
+            <TextBlock x:Name="HeaderWrite" Grid.Row="0" Grid.Column="2"
+                       FontWeight="SemiBold" HorizontalAlignment="Center"
+                       Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,6"/>
+            <TextBlock x:Name="HeaderExecute" Grid.Row="0" Grid.Column="3"
+                       FontWeight="SemiBold" HorizontalAlignment="Center"
+                       Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,6"/>
+
+            <!-- Owner row -->
+            <TextBlock x:Name="LabelOwner" Grid.Row="1" Grid.Column="0"
+                       Foreground="{DynamicResource TextPrimaryBrush}"
+                       VerticalAlignment="Center" Margin="0,4"/>
+            <CheckBox x:Name="ChkOwnerR" Grid.Row="1" Grid.Column="1"
+                      HorizontalAlignment="Center"
+                      Checked="OnPermissionChanged" Unchecked="OnPermissionChanged"
+                      />
+            <CheckBox x:Name="ChkOwnerW" Grid.Row="1" Grid.Column="2"
+                      HorizontalAlignment="Center"
+                      Checked="OnPermissionChanged" Unchecked="OnPermissionChanged"
+                      />
+            <CheckBox x:Name="ChkOwnerX" Grid.Row="1" Grid.Column="3"
+                      HorizontalAlignment="Center"
+                      Checked="OnPermissionChanged" Unchecked="OnPermissionChanged"
+                      />
+
+            <!-- Group row -->
+            <TextBlock x:Name="LabelGroup" Grid.Row="2" Grid.Column="0"
+                       Foreground="{DynamicResource TextPrimaryBrush}"
+                       VerticalAlignment="Center" Margin="0,4"/>
+            <CheckBox x:Name="ChkGroupR" Grid.Row="2" Grid.Column="1"
+                      HorizontalAlignment="Center"
+                      Checked="OnPermissionChanged" Unchecked="OnPermissionChanged"
+                      />
+            <CheckBox x:Name="ChkGroupW" Grid.Row="2" Grid.Column="2"
+                      HorizontalAlignment="Center"
+                      Checked="OnPermissionChanged" Unchecked="OnPermissionChanged"
+                      />
+            <CheckBox x:Name="ChkGroupX" Grid.Row="2" Grid.Column="3"
+                      HorizontalAlignment="Center"
+                      Checked="OnPermissionChanged" Unchecked="OnPermissionChanged"
+                      />
+
+            <!-- Others row -->
+            <TextBlock x:Name="LabelOthers" Grid.Row="3" Grid.Column="0"
+                       Foreground="{DynamicResource TextPrimaryBrush}"
+                       VerticalAlignment="Center" Margin="0,4"/>
+            <CheckBox x:Name="ChkOthersR" Grid.Row="3" Grid.Column="1"
+                      HorizontalAlignment="Center"
+                      Checked="OnPermissionChanged" Unchecked="OnPermissionChanged"
+                      />
+            <CheckBox x:Name="ChkOthersW" Grid.Row="3" Grid.Column="2"
+                      HorizontalAlignment="Center"
+                      Checked="OnPermissionChanged" Unchecked="OnPermissionChanged"
+                      />
+            <CheckBox x:Name="ChkOthersX" Grid.Row="3" Grid.Column="3"
+                      HorizontalAlignment="Center"
+                      Checked="OnPermissionChanged" Unchecked="OnPermissionChanged"
+                      />
+        </Grid>
+
+        <!-- Octal + Symbolic display -->
+        <Border Grid.Row="2" Padding="12"
+                Background="{DynamicResource SurfaceBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="1" CornerRadius="4"
+                Margin="0,0,0,12">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="120"/>
+                    <ColumnDefinition Width="20"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <TextBlock x:Name="OctalLabel" Grid.Column="0"
+                           Foreground="{DynamicResource TextSecondaryBrush}"
+                           VerticalAlignment="Center" Margin="0,0,8,0"/>
+                <TextBox x:Name="OctalInput" Grid.Column="1"
+                         FontFamily="Consolas" FontSize="20" FontWeight="Bold"
+                         MaxLength="3"
+                         Background="Transparent"
+                         Foreground="{DynamicResource AccentBrush}"
+                         BorderThickness="0"
+                         VerticalAlignment="Center"
+                         TextChanged="OnOctalTextChanged"
+                         />
+
+                <TextBlock x:Name="SymbolicLabel" Grid.Column="3"
+                           Foreground="{DynamicResource TextSecondaryBrush}"
+                           VerticalAlignment="Center" Margin="0,0,8,0"/>
+                <TextBlock x:Name="SymbolicDisplay" Grid.Column="4"
+                           FontFamily="Consolas" FontSize="20" FontWeight="Bold"
+                           Foreground="{DynamicResource TextPrimaryBrush}"
+                           VerticalAlignment="Center"/>
+            </Grid>
+        </Border>
+
+        <!-- Copy buttons -->
+        <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,0,0,16">
+            <Button x:Name="BtnCopyOctal" Click="OnCopyOctalClick"
+                    Style="{DynamicResource SecondaryButtonStyle}"
+                    Padding="12,4" Margin="0,0,8,0"/>
+            <Button x:Name="BtnCopySymbolic" Click="OnCopySymbolicClick"
+                    Style="{DynamicResource SecondaryButtonStyle}"
+                    Padding="12,4"/>
+        </StackPanel>
+
+        <!-- Presets -->
+        <StackPanel Grid.Row="4">
+            <TextBlock x:Name="PresetsLabel"
+                       FontSize="12" FontWeight="SemiBold"
+                       Foreground="{DynamicResource TextSecondaryBrush}"
+                       Margin="0,0,0,6"/>
+            <WrapPanel Orientation="Horizontal">
+                <Button Content="644" Click="OnPresetClick" Tag="644"
+                        Style="{DynamicResource SecondaryButtonStyle}"
+                        Padding="16,4" Margin="0,0,6,6"
+                        />
+                <Button Content="755" Click="OnPresetClick" Tag="755"
+                        Style="{DynamicResource SecondaryButtonStyle}"
+                        Padding="16,4" Margin="0,0,6,6"
+                        />
+                <Button Content="600" Click="OnPresetClick" Tag="600"
+                        Style="{DynamicResource SecondaryButtonStyle}"
+                        Padding="16,4" Margin="0,0,6,6"
+                        />
+                <Button Content="700" Click="OnPresetClick" Tag="700"
+                        Style="{DynamicResource SecondaryButtonStyle}"
+                        Padding="16,4" Margin="0,0,6,6"
+                        />
+                <Button Content="777" Click="OnPresetClick" Tag="777"
+                        Style="{DynamicResource SecondaryButtonStyle}"
+                        Padding="16,4" Margin="0,0,6,6"
+                        />
+            </WrapPanel>
+        </StackPanel>
+    </Grid>
+</UserControl>

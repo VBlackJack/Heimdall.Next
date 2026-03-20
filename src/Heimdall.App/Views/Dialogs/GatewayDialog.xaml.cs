@@ -52,6 +52,16 @@ public partial class GatewayDialog : Window
                 LblHostKeyFingerprint.Text = vm.Localizer["GatewayDialogLabelHostKeyFingerprint"];
                 BtnBrowse.Content = vm.Localizer["GatewayDialogBtnBrowse"];
                 System.Windows.Automation.AutomationProperties.SetName(BtnBrowse, vm.Localizer["GatewayDialogBtnBrowse"]);
+
+                // Input field accessibility
+                System.Windows.Automation.AutomationProperties.SetName(TxtName, vm.Localizer["GatewayDialogLabelName"]);
+                System.Windows.Automation.AutomationProperties.SetName(TxtHost, vm.Localizer["GatewayDialogLabelHost"]);
+                System.Windows.Automation.AutomationProperties.SetName(TxtPort, vm.Localizer["GatewayDialogLabelPort"]);
+                System.Windows.Automation.AutomationProperties.SetName(TxtUsername, vm.Localizer["GatewayDialogLabelUsername"]);
+                System.Windows.Automation.AutomationProperties.SetName(TxtKeyPath, vm.Localizer["GatewayDialogLabelKeyPath"]);
+                System.Windows.Automation.AutomationProperties.SetName(PasswordBox, vm.Localizer["GatewayDialogLabelPassword"]);
+                System.Windows.Automation.AutomationProperties.SetName(CmbParentGateway, vm.Localizer["GatewayDialogLabelParentGateway"]);
+                System.Windows.Automation.AutomationProperties.SetName(TxtHostKeyFingerprint, vm.Localizer["GatewayDialogLabelHostKeyFingerprint"]);
             }
         };
     }
@@ -83,7 +93,7 @@ public partial class GatewayDialog : Window
         var dialog = new OpenFileDialog
         {
             Title = localizer?["GatewayDialogSelectSshKey"] ?? "Select SSH Key",
-            Filter = "PPK Files (*.ppk)|*.ppk|PEM Files (*.pem)|*.pem|All Files (*.*)|*.*",
+            Filter = localizer?["ServerDialogBrowseKeyFilter"] ?? "PPK Files (*.ppk)|*.ppk|PEM Files (*.pem)|*.pem|All Files (*.*)|*.*",
             CheckFileExists = true
         };
 
