@@ -49,6 +49,8 @@ public partial class EmbeddedEditorView : UserControl
         // Localize button labels
         BtnSave.Content = L("EditorBtnSave");
         BtnClose.Content = L("EditorBtnClose");
+        System.Windows.Automation.AutomationProperties.SetName(BtnSave, L("EditorBtnSave"));
+        System.Windows.Automation.AutomationProperties.SetName(BtnClose, L("EditorBtnClose"));
 
         Editor.TextChanged += (_, _) =>
         {
@@ -65,7 +67,7 @@ public partial class EmbeddedEditorView : UserControl
     /// <summary>
     /// Opens a file for editing with automatic syntax detection.
     /// </summary>
-    public void OpenFile(string filePath)
+    public async void OpenFile(string filePath)
     {
         _filePath = filePath;
         _isModified = false;
@@ -73,7 +75,7 @@ public partial class EmbeddedEditorView : UserControl
 
         try
         {
-            Editor.Text = File.ReadAllText(filePath);
+            Editor.Text = await File.ReadAllTextAsync(filePath);
             _isModified = false;
 
             // Auto-detect syntax highlighting from file extension

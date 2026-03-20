@@ -205,6 +205,7 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
         ToggleHiddenCheckBox.ToolTip = _localizer["SftpToggleHidden"];
         SplitButton.ToolTip = _localizer["ToolTipSplitPane"];
         BtnSudoMode.ToolTip = _localizer["SftpSudoModeTooltip"];
+        BtnSudoModeText.Text = _localizer["SftpSudoModeLabel"];
 
         FilterTextBox.Tag = _localizer["SftpFilterPlaceholder"];
 
@@ -235,6 +236,7 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
         System.Windows.Automation.AutomationProperties.SetName(BtnSudoMode, _localizer["SftpSudoModeTooltip"]);
         System.Windows.Automation.AutomationProperties.SetName(DisconnectButton, _localizer["SftpBtnClose"]);
         System.Windows.Automation.AutomationProperties.SetName(SplitButton, _localizer["ToolTipSplitPane"]);
+        System.Windows.Automation.AutomationProperties.SetName(ToggleHiddenCheckBox, _localizer["SftpToggleHidden"]);
 
         if (FileListView.View is GridView gridView)
         {
@@ -1304,7 +1306,7 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
                 editorView.CloseRequested += () =>
                 {
                     if (isSaving) return;
-                    try { File.Delete(localPath); Directory.Delete(tempPath); } catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[EmbeddedSftpView] temp file cleanup: {ex.Message}"); }
+                    try { File.Delete(localPath); Directory.Delete(tempPath); } catch (Exception ex) { Core.Logging.FileLogger.Warn($"[EmbeddedSftpView] temp file cleanup: {ex.Message}"); }
                 };
             }
         }

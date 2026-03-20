@@ -59,6 +59,8 @@ public partial class InputDialog : Window
                     Title = _localizer["InputDialogDefaultTitle"];
                 CancelBtn.Content = _localizer["BtnCancel"];
                 OkBtn.Content = _localizer["BtnOk"];
+                System.Windows.Automation.AutomationProperties.SetName(CancelBtn, _localizer["BtnCancel"]);
+                System.Windows.Automation.AutomationProperties.SetName(OkBtn, _localizer["BtnOk"]);
             }
         };
     }

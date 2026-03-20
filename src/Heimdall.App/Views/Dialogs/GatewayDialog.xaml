@@ -45,7 +45,7 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto">
+        <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
             <StackPanel Margin="0,0,8,0">
                 <TextBlock x:Name="LblName" Style="{StaticResource LabelStyle}"/>
                 <TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}"

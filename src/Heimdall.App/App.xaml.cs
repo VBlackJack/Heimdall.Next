@@ -47,15 +47,20 @@ public partial class App : System.Windows.Application
         {
             Heimdall.Core.Logging.FileLogger.Error("Unhandled exception", args.Exception);
             var errorTitle = "Heimdall Error";
+            var errorBody = $"{args.Exception.Message}\n\n{args.Exception.StackTrace}";
             try
             {
                 var loc = _serviceProvider?.GetService<LocalizationManager>();
                 if (loc is not null)
+                {
                     errorTitle = loc["ErrorUnhandledTitle"];
+                    errorBody = loc.Format("ErrorUnhandledMessage",
+                        args.Exception.Message, args.Exception.StackTrace ?? "");
+                }
             }
-            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[App] localization lookup: {ex.Message}"); }
+            catch (Exception ex) { Core.Logging.FileLogger.Warn($"[App] localization lookup: {ex.Message}"); }
             MessageBox.Show(
-                $"Unhandled error:\n\n{args.Exception.Message}\n\n{args.Exception.StackTrace}",
+                errorBody,
                 errorTitle,
                 MessageBoxButton.OK,
                 MessageBoxImage.Error);
@@ -329,7 +334,7 @@ public partial class App : System.Windows.Application
             {
                 _mainViewModel?.Connection.CloseAllSessionsCommand.Execute(null);
             }
-            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[App] session cleanup: {ex.Message}"); }
+            catch (Exception ex) { Core.Logging.FileLogger.Warn($"[App] session cleanup: {ex.Message}"); }
 
             // Close all active tunnels (Plink tunnel processes)
             try
@@ -337,14 +342,14 @@ public partial class App : System.Windows.Application
                 var tunnelManager = _serviceProvider.GetService<TunnelManager>();
                 tunnelManager?.Dispose();
             }
-            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[App] tunnel cleanup: {ex.Message}"); }
+            catch (Exception ex) { Core.Logging.FileLogger.Warn($"[App] tunnel cleanup: {ex.Message}"); }
 
             // Stop scheduled task engine
             try
             {
                 _mainViewModel?.StopScheduler();
             }
-            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[App] scheduler cleanup: {ex.Message}"); }
+            catch (Exception ex) { Core.Logging.FileLogger.Warn($"[App] scheduler cleanup: {ex.Message}"); }
 
             // Stop managed X11 server
             try
@@ -352,14 +357,14 @@ public partial class App : System.Windows.Application
                 var x11Manager = _serviceProvider.GetService<X11ServerManager>();
                 x11Manager?.Stop();
             }
-            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[App] X11 cleanup: {ex.Message}"); }
+            catch (Exception ex) { Core.Logging.FileLogger.Warn($"[App] X11 cleanup: {ex.Message}"); }
 
             // Release sleep prevention
             try
             {
                 SleepPrevention.ForceRelease();
             }
-            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[App] sleep prevention cleanup: {ex.Message}"); }
+            catch (Exception ex) { Core.Logging.FileLogger.Warn($"[App] sleep prevention cleanup: {ex.Message}"); }
         }
 
         _serviceProvider?.Dispose();

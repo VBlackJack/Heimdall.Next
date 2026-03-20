@@ -127,19 +127,19 @@ public class WpfDialogService(LocalizationManager localizer) : IDialogService
     /// <inheritdoc/>
     public void ShowError(string title, string message)
     {
-        Views.Dialogs.MessageDialog.ShowMessage(GetOwnerWindow(), title, message, "error");
+        Views.Dialogs.MessageDialog.ShowMessage(GetOwnerWindow(), title, message, "error", _localizer["BtnOk"]);
     }
 
     /// <inheritdoc/>
     public void ShowInfo(string title, string message)
     {
-        Views.Dialogs.MessageDialog.ShowMessage(GetOwnerWindow(), title, message, "info");
+        Views.Dialogs.MessageDialog.ShowMessage(GetOwnerWindow(), title, message, "info", _localizer["BtnOk"]);
     }
 
     /// <inheritdoc/>
     public void ShowWarning(string title, string message)
     {
-        Views.Dialogs.MessageDialog.ShowMessage(GetOwnerWindow(), title, message, "warning");
+        Views.Dialogs.MessageDialog.ShowMessage(GetOwnerWindow(), title, message, "warning", _localizer["BtnOk"]);
     }
 
     /// <summary>

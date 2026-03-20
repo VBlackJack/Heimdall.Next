@@ -393,6 +393,7 @@ public partial class MainViewModel : ObservableObject
         catch (Exception ex)
         {
             Core.Logging.FileLogger.Error($"Reconnect failed for {serverId}", ex);
+            StatusText = _localizer.Format("StatusReconnectFailed", ex.Message);
         }
     }
 
@@ -423,6 +424,8 @@ public partial class MainViewModel : ObservableObject
             {
                 Core.Logging.FileLogger.Warn(
                     $"SFTP auto-open failed for {serverId}: {sftpResult.ErrorMessage}");
+                System.Windows.Application.Current.Dispatcher.Invoke(() =>
+                    StatusText = _localizer.Format("StatusSftpAutoOpenFailed", sftpResult.ErrorMessage ?? ""));
                 return;
             }
 
@@ -515,6 +518,11 @@ public partial class MainViewModel : ObservableObject
     {
         TunnelCount = _tunnelManager.GetActiveTunnels().Count;
         RefreshTunnelList();
+
+        if (!string.IsNullOrEmpty(error))
+        {
+            StatusText = _localizer.Format("StatusTunnelClosed", localPort) + $" ({error})";
+        }
     }
 
     private void RefreshTunnelList()
@@ -559,7 +567,7 @@ public partial class MainViewModel : ObservableObject
             System.Windows.Clipboard.SetText(tunnel.LocalPort.ToString());
             StatusText = _localizer.Format("StatusPortCopied", tunnel.LocalPort);
         }
-        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[MainViewModel] clipboard copy: {ex.Message}"); }
+        catch (Exception ex) { Core.Logging.FileLogger.Warn($"[MainViewModel] clipboard copy: {ex.Message}"); }
     }
 
     [RelayCommand]
@@ -676,7 +684,7 @@ public partial class MainViewModel : ObservableObject
         var confirmed = await _dialogService.ShowConfirmAsync(
             _localizer["ConfirmDeleteScheduledTaskTitle"],
             _localizer.Format("ConfirmDeleteScheduledTaskMessage", taskName),
-            "warning");
+            "danger");
 
         if (!confirmed)
         {

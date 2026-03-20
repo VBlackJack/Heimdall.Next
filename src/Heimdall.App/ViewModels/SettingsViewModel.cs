@@ -191,15 +191,22 @@ public partial class SettingsViewModel : ObservableObject
     private bool _isDirty;
 
     [ObservableProperty]
+    private bool _isBusy;
+
+    [ObservableProperty]
     private ObservableCollection<GatewayItemViewModel> _gateways = new();
 
     [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(EditGatewayCommand))]
+    [NotifyCanExecuteChangedFor(nameof(DeleteGatewayCommand))]
     private GatewayItemViewModel? _selectedGateway;
 
     [ObservableProperty]
     private ObservableCollection<ProjectItemViewModel> _projects = new();
 
     [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(EditProjectCommand))]
+    [NotifyCanExecuteChangedFor(nameof(DeleteProjectCommand))]
     private ProjectItemViewModel? _selectedProject;
 
     /// <summary>
@@ -462,6 +469,7 @@ public partial class SettingsViewModel : ObservableObject
                 return;
             }
 
+            IsBusy = true;
             var ext = Path.GetExtension(dialog.FileName).ToLowerInvariant();
             List<ServerProfileDto> imported;
             List<string>? importWarnings = null;
@@ -604,6 +612,10 @@ public partial class SettingsViewModel : ObservableObject
                 _localizer["ImportDialogTitle"],
                 _localizer.Format("StatusImportFailed", ex.Message));
         }
+        finally
+        {
+            IsBusy = false;
+        }
     }
 
     [RelayCommand]
@@ -688,13 +700,14 @@ public partial class SettingsViewModel : ObservableObject
         }
     }
 
-    [RelayCommand]
+    private bool CanEditGateway() => SelectedGateway is not null;
+
+    [RelayCommand(CanExecute = nameof(CanEditGateway))]
     private async Task EditGatewayAsync(CancellationToken cancellationToken)
     {
-        if (SelectedGateway == null) return;
-
+        var gateway = SelectedGateway!;
         var settings = await _configManager.LoadSettingsAsync();
-        var gwDto = settings.SshGateways.FirstOrDefault(g => g.Id == SelectedGateway.Id);
+        var gwDto = settings.SshGateways.FirstOrDefault(g => g.Id == gateway.Id);
         if (gwDto == null) return;
 
         var vm = GatewayDialogViewModel.FromDto(gwDto);
@@ -713,33 +726,34 @@ public partial class SettingsViewModel : ObservableObject
                 settings.SshGateways[idx] = result.Gateway;
                 await _configManager.SaveSettingsAsync(settings);
 
-                SelectedGateway.Name = result.Gateway.Name;
-                SelectedGateway.Host = result.Gateway.Host;
-                SelectedGateway.Port = result.Gateway.Port;
-                SelectedGateway.User = result.Gateway.User;
-                SelectedGateway.HasKey = !string.IsNullOrEmpty(result.Gateway.KeyPath);
-                SelectedGateway.HasPassword = !string.IsNullOrEmpty(result.Gateway.SshPasswordEncrypted);
+                gateway.Name = result.Gateway.Name;
+                gateway.Host = result.Gateway.Host;
+                gateway.Port = result.Gateway.Port;
+                gateway.User = result.Gateway.User;
+                gateway.HasKey = !string.IsNullOrEmpty(result.Gateway.KeyPath);
+                gateway.HasPassword = !string.IsNullOrEmpty(result.Gateway.SshPasswordEncrypted);
             }
         }
     }
 
-    [RelayCommand]
+    private bool CanDeleteGateway() => SelectedGateway is not null;
+
+    [RelayCommand(CanExecute = nameof(CanDeleteGateway))]
     private async Task DeleteGatewayAsync(CancellationToken cancellationToken)
     {
-        if (SelectedGateway == null) return;
-
+        var gateway = SelectedGateway!;
         var confirmed = await _dialogService.ShowConfirmAsync(
-            "Delete Gateway",
-            $"Delete gateway '{SelectedGateway.Name}'? Servers using this gateway will lose their tunnel configuration.",
+            _localizer["ConfirmDeleteGatewayTitle"],
+            _localizer.Format("ConfirmDeleteGatewayDetailMessage", gateway.Name),
             "danger");
 
         if (!confirmed) return;
 
         var settings = await _configManager.LoadSettingsAsync();
-        settings.SshGateways.RemoveAll(g => g.Id == SelectedGateway.Id);
+        settings.SshGateways.RemoveAll(g => g.Id == gateway.Id);
         await _configManager.SaveSettingsAsync(settings);
 
-        Gateways.Remove(SelectedGateway);
+        Gateways.Remove(gateway);
         SelectedGateway = null;
     }
 
@@ -773,13 +787,14 @@ public partial class SettingsViewModel : ObservableObject
         ConfigurationChanged?.Invoke();
     }
 
-    [RelayCommand]
+    private bool CanEditProject() => SelectedProject is not null;
+
+    [RelayCommand(CanExecute = nameof(CanEditProject))]
     private async Task EditProjectAsync(CancellationToken cancellationToken)
     {
-        if (SelectedProject is null) return;
-
+        var project = SelectedProject!;
         var settings = await _configManager.LoadSettingsAsync();
-        var projectDto = settings.Projects.FirstOrDefault(p => p.Id == SelectedProject.Id);
+        var projectDto = settings.Projects.FirstOrDefault(p => p.Id == project.Id);
         if (projectDto is null) return;
 
         var vm = ProjectDialogViewModel.FromDto(projectDto);
@@ -795,28 +810,29 @@ public partial class SettingsViewModel : ObservableObject
             settings.Projects[idx] = result.Project;
             await _configManager.SaveSettingsAsync(settings);
 
-            SelectedProject.Name = result.Project.Name;
-            SelectedProject.Color = result.Project.Color ?? "#3B82F6";
-            SelectedProject.Description = result.Project.Description ?? "";
+            project.Name = result.Project.Name;
+            project.Color = result.Project.Color ?? "#3B82F6";
+            project.Description = result.Project.Description ?? "";
         }
 
         ConfigurationChanged?.Invoke();
     }
 
-    [RelayCommand]
+    private bool CanDeleteProject() => SelectedProject is not null;
+
+    [RelayCommand(CanExecute = nameof(CanDeleteProject))]
     private async Task DeleteProjectAsync(CancellationToken cancellationToken)
     {
-        if (SelectedProject is null) return;
-
+        var project = SelectedProject!;
         var settings = await _configManager.LoadSettingsAsync();
         var servers = await _configManager.LoadServersAsync();
         var usageCount = servers.Count(s =>
-            string.Equals(s.ProjectId, SelectedProject.Id, StringComparison.Ordinal));
+            string.Equals(s.ProjectId, project.Id, StringComparison.Ordinal));
 
         var message = usageCount > 0
             ? _localizer.Format("ConfirmDeleteProjectInUse", usageCount)
-                + "\n" + _localizer.Format("ConfirmDeleteProjectMessage", SelectedProject.Name)
-            : _localizer.Format("ConfirmDeleteProjectMessage", SelectedProject.Name);
+                + "\n" + _localizer.Format("ConfirmDeleteProjectMessage", project.Name)
+            : _localizer.Format("ConfirmDeleteProjectMessage", project.Name);
 
         var confirmed = await _dialogService.ShowConfirmAsync(
             _localizer["ConfirmDeleteProjectTitle"],
@@ -825,11 +841,11 @@ public partial class SettingsViewModel : ObservableObject
 
         if (!confirmed) return;
 
-        settings.Projects.RemoveAll(p => p.Id == SelectedProject.Id);
+        settings.Projects.RemoveAll(p => p.Id == project.Id);
 
         // Unassign servers from the deleted project
         foreach (var server in servers.Where(s =>
-            string.Equals(s.ProjectId, SelectedProject.Id, StringComparison.Ordinal)))
+            string.Equals(s.ProjectId, project.Id, StringComparison.Ordinal)))
         {
             server.ProjectId = null;
         }
@@ -837,7 +853,7 @@ public partial class SettingsViewModel : ObservableObject
         await _configManager.SaveSettingsAsync(settings);
         await _configManager.SaveServersAsync(servers);
 
-        Projects.Remove(SelectedProject);
+        Projects.Remove(project);
         SelectedProject = null;
 
         ConfigurationChanged?.Invoke();

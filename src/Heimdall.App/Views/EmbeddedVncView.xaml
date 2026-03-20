@@ -66,8 +66,7 @@
         <!-- VNC surface -->
         <Grid Grid.Row="1" ClipToBounds="True">
             <wv2:WebView2 x:Name="VncWebView"
-                          Focusable="True"
-                          DefaultBackgroundColor="#1E1E2E" />
+                          Focusable="True" />
 
             <Border x:Name="FallbackPanel"
                     Visibility="Collapsed"

@@ -58,6 +58,7 @@ public partial class FloatingSessionWindow : Window
         SessionTitle.Text = _session.Title;
         TunnelRouteText.Text = _session.TunnelRoute;
         ReattachButton.Content = _localizer["SessionCtxReattach"];
+        System.Windows.Automation.AutomationProperties.SetName(ReattachButton, _localizer["SessionCtxReattach"]);
 
         // Set connection type icon (mirrors MainWindow tab header triggers)
         switch (_session.ConnectionType)

@@ -55,7 +55,6 @@
                         DockPanel.Dock="Right"
                         Content="&#xE8A9;"
                         FontFamily="Segoe MDL2 Assets"
-                        ToolTip=""
                         Click="OnSplitClick"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
                         Padding="6,2" FontSize="12" Margin="4,0"/>
@@ -65,12 +64,16 @@
                                FontSize="13"
                                FontWeight="SemiBold"
                                Foreground="{DynamicResource TextPrimaryBrush}"
-                               VerticalAlignment="Center"/>
+                               VerticalAlignment="Center"
+                               TextTrimming="CharacterEllipsis"
+                               MaxWidth="300"/>
                     <TextBlock x:Name="EndpointTextBlock"
                                Margin="8,0,0,0"
                                FontSize="11"
                                Foreground="{DynamicResource TextSecondaryBrush}"
-                               VerticalAlignment="Center"/>
+                               VerticalAlignment="Center"
+                               TextTrimming="CharacterEllipsis"
+                               MaxWidth="250"/>
                     <TextBlock Text=" - " Foreground="{DynamicResource TextSecondaryBrush}"
                                FontSize="11" VerticalAlignment="Center"/>
                     <TextBlock x:Name="StatusTextBlock"
@@ -148,7 +151,7 @@
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="&#xE898;" FontFamily="Segoe MDL2 Assets" FontSize="12"
                                        VerticalAlignment="Center" Margin="0,0,4,0"/>
-                            <TextBlock x:Name="BtnUploadText" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="BtnUploadText" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
                         </StackPanel>
                     </Button>
                     <Button x:Name="BtnNewFolder"
@@ -158,7 +161,7 @@
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="&#xE8F4;" FontFamily="Segoe MDL2 Assets" FontSize="12"
                                        VerticalAlignment="Center" Margin="0,0,4,0"/>
-                            <TextBlock x:Name="BtnNewFolderText" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="BtnNewFolderText" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
                         </StackPanel>
                     </Button>
 
@@ -174,7 +177,7 @@
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="&#xE7EF;" FontFamily="Segoe MDL2 Assets" FontSize="12"
                                        VerticalAlignment="Center" Margin="0,0,4,0"/>
-                            <TextBlock x:Name="BtnSudoModeText" Text="sudo" VerticalAlignment="Center"
+                            <TextBlock x:Name="BtnSudoModeText" Text="" VerticalAlignment="Center"
                                        FontSize="11" FontWeight="SemiBold"/>
                         </StackPanel>
                     </ToggleButton>

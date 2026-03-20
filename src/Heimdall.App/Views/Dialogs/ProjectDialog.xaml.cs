@@ -36,6 +36,8 @@ public partial class ProjectDialog : Window
             {
                 CancelBtn.Content = vm.Localizer["BtnCancel"];
                 SaveBtn.Content = vm.Localizer["BtnSave"];
+                System.Windows.Automation.AutomationProperties.SetName(CancelBtn, vm.Localizer["BtnCancel"]);
+                System.Windows.Automation.AutomationProperties.SetName(SaveBtn, vm.Localizer["BtnSave"]);
 
                 // Form labels
                 LblName.Text = vm.Localizer["ProjectDialogLabelName"];

@@ -546,7 +546,7 @@ public partial class ServerListViewModel : ObservableObject
         var confirmed = await _dialogService.ShowConfirmAsync(
             _localizer["DialogTitleDeleteServer"],
             _localizer.Format("ConfirmDeleteServer", server.DisplayName),
-            "warning");
+            "danger");
 
         if (!confirmed)
         {

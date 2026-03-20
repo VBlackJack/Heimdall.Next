@@ -46,6 +46,9 @@
                             <Setter TargetName="ButtonBorder" Property="Background" Value="{DynamicResource AccentPressedBrush}"/>
                             <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="{DynamicResource AccentPressedBrush}"/>
                         </Trigger>
+                        <Trigger Property="IsFocused" Value="True">
+                            <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="{DynamicResource TextPrimaryBrush}"/>
+                        </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
                             <Setter TargetName="ButtonBorder" Property="Background" Value="{DynamicResource CardBrush}"/>
                             <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="{DynamicResource CardBrush}"/>
@@ -126,6 +129,9 @@
                         </Trigger>
                         <Trigger Property="IsPressed" Value="True">
                             <Setter TargetName="ButtonBorder" Property="Background" Value="{DynamicResource SurfaceBrush}"/>
+                        </Trigger>
+                        <Trigger Property="IsFocused" Value="True">
+                            <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
                             <Setter TargetName="ButtonBorder" Property="Background" Value="{DynamicResource SurfaceBrush}"/>

@@ -189,7 +189,7 @@
 
         <TabControl Grid.Row="0" Style="{DynamicResource ThemedTabControlStyle}">
             <TabItem x:Name="DlgSrv_TabConnection" Style="{DynamicResource ThemedTabItemStyle}">
-                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                     <StackPanel Margin="8">
                         <Border Style="{StaticResource SectionCardStyle}">
                             <StackPanel>
@@ -461,7 +461,7 @@
                         </Style.Triggers>
                     </Style>
                 </TabItem.Style>
-                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                     <StackPanel Margin="8">
                         <Border Style="{StaticResource SectionCardStyle}">
                             <StackPanel>
@@ -576,7 +576,7 @@
                         </Style.Triggers>
                     </Style>
                 </TabItem.Style>
-                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                     <StackPanel Margin="8">
                         <Border>
                             <Border.Style>
@@ -729,7 +729,7 @@
             </TabItem>
 
             <TabItem x:Name="DlgSrv_TabOptions" Style="{DynamicResource ThemedTabItemStyle}">
-                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                     <StackPanel Margin="8">
                         <Border>
                             <Border.Style>
@@ -763,16 +763,16 @@
                                               SelectedValue="{Binding RdpMode}"
                                               SelectedValuePath="Tag"
                                               Style="{StaticResource FormComboBoxStyle}">
-                                        <ComboBoxItem x:Name="DlgSrv_RdpModeEmbedded" Content="Embedded" Tag="Embedded"/>
-                                        <ComboBoxItem x:Name="DlgSrv_RdpModeExternal" Content="External" Tag="External"/>
+                                        <ComboBoxItem x:Name="DlgSrv_RdpModeEmbedded" Content="" Tag="Embedded"/>
+                                        <ComboBoxItem x:Name="DlgSrv_RdpModeExternal" Content="" Tag="External"/>
                                     </ComboBox>
                                     <ComboBox Grid.Row="1" Grid.Column="1"
                                               Margin="12,0,0,0"
                                               SelectedValue="{Binding RdpAspectRatio}"
                                               SelectedValuePath="Tag"
                                               Style="{StaticResource FormComboBoxStyle}">
-                                        <ComboBoxItem x:Name="DlgSrv_AspectStretch" Content="Stretch" Tag="Stretch"/>
-                                        <ComboBoxItem x:Name="DlgSrv_AspectPreserve" Content="Preserve" Tag="Preserve"/>
+                                        <ComboBoxItem x:Name="DlgSrv_AspectStretch" Content="" Tag="Stretch"/>
+                                        <ComboBoxItem x:Name="DlgSrv_AspectPreserve" Content="" Tag="Preserve"/>
                                     </ComboBox>
                                     <TextBlock x:Name="DlgSrv_AudioModeLabel" Grid.Row="2" Grid.Column="0" Style="{StaticResource LabelStyle}" Margin="0,14,0,4"/>
                                     <TextBlock x:Name="DlgSrv_ColorDepthLabel" Grid.Row="2" Grid.Column="1" Style="{StaticResource LabelStyle}" Margin="12,14,0,4"/>
@@ -883,8 +883,8 @@
                                               SelectedValue="{Binding SshMode}"
                                               SelectedValuePath="Tag"
                                               Style="{StaticResource FormComboBoxStyle}">
-                                        <ComboBoxItem x:Name="DlgSrv_SshModeEmbedded" Content="Embedded" Tag="Embedded"/>
-                                        <ComboBoxItem x:Name="DlgSrv_SshModeExternal" Content="External" Tag="External"/>
+                                        <ComboBoxItem x:Name="DlgSrv_SshModeEmbedded" Content="" Tag="Embedded"/>
+                                        <ComboBoxItem x:Name="DlgSrv_SshModeExternal" Content="" Tag="External"/>
                                     </ComboBox>
                                 </Grid>
                                 <StackPanel Margin="0,14,0,0">
@@ -1096,7 +1096,7 @@
             </TabItem>
 
             <TabItem x:Name="DlgSrv_TabInfo" Style="{DynamicResource ThemedTabItemStyle}">
-                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                     <StackPanel Margin="8">
                         <Border Style="{StaticResource SectionCardStyle}">
                             <StackPanel>
@@ -1124,11 +1124,11 @@
                                               SelectedValue="{Binding Environment}"
                                               SelectedValuePath="Tag"
                                               Style="{StaticResource FormComboBoxStyle}">
-                                        <ComboBoxItem x:Name="DlgSrv_EnvNone" Content="None" Tag="None"/>
-                                        <ComboBoxItem x:Name="DlgSrv_EnvProduction" Content="Production" Tag="Production"/>
-                                        <ComboBoxItem x:Name="DlgSrv_EnvStaging" Content="Staging" Tag="Staging"/>
-                                        <ComboBoxItem x:Name="DlgSrv_EnvLab" Content="Lab" Tag="Lab"/>
-                                        <ComboBoxItem x:Name="DlgSrv_EnvPersonal" Content="Personal" Tag="Personal"/>
+                                        <ComboBoxItem x:Name="DlgSrv_EnvNone" Content="" Tag="None"/>
+                                        <ComboBoxItem x:Name="DlgSrv_EnvProduction" Content="" Tag="Production"/>
+                                        <ComboBoxItem x:Name="DlgSrv_EnvStaging" Content="" Tag="Staging"/>
+                                        <ComboBoxItem x:Name="DlgSrv_EnvLab" Content="" Tag="Lab"/>
+                                        <ComboBoxItem x:Name="DlgSrv_EnvPersonal" Content="" Tag="Personal"/>
                                     </ComboBox>
                                     <CheckBox Grid.Row="3" Grid.Column="1"
                                               Margin="12,2,0,0"

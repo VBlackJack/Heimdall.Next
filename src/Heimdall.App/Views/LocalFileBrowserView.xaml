@@ -28,7 +28,7 @@
                      DockPanel.Dock="Right"
                      Width="160"
                      Style="{DynamicResource SearchTextBoxStyle}"
-                     Tag="Filter..."
+                     Tag=""
                      FontSize="11"
                      VerticalContentAlignment="Center"
                      Margin="8,0,0,0"
