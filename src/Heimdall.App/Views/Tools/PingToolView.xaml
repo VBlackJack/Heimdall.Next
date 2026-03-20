@@ -45,6 +45,12 @@
                             Padding="10,6" Margin="8,0,0,0"
                             VerticalAlignment="Center"
 />
+                    <Button x:Name="BtnCopyLog" Content=""
+                            Click="OnCopyLogClick"
+                            Style="{DynamicResource SecondaryButtonStyle}"
+                            Padding="10,6" Margin="4,0,0,0"
+                            VerticalAlignment="Center"
+/>
 
                     <TextBlock Text="  " VerticalAlignment="Center"/>
 

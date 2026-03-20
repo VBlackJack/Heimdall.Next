@@ -28,11 +28,6 @@
                            FontSize="12" Margin="0,0,0,4"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
                 <DockPanel Margin="0,0,0,16">
-                    <Button x:Name="BtnCalculate" DockPanel.Dock="Right"
-                            Content="" Click="OnCalculateClick"
-                            Style="{DynamicResource PrimaryButtonStyle}"
-                            Padding="16,6" Margin="8,0,0,0"
-                            VerticalAlignment="Center"/>
                     <TextBox x:Name="TxtCidrInput" Text=""
                              FontSize="13" FontFamily="Consolas"
                              Padding="8,6"

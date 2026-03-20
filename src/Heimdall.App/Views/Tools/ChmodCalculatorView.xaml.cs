@@ -17,6 +17,7 @@
 using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Models;
 
@@ -186,8 +187,11 @@ public partial class ChmodCalculatorView : UserControl, IDisposable
         }
     }
 
-    private void OnSymbolicInputTextChanged(object sender, TextChangedEventArgs e)
+    private void OnSymbolicInputKeyDown(object sender, KeyEventArgs e)
     {
+        if (e.Key != Key.Enter) return;
+        e.Handled = true;
+
         if (!_initialized || _updatingFromCode) return;
 
         var text = SymbolicInput.Text.Trim();
@@ -206,7 +210,7 @@ public partial class ChmodCalculatorView : UserControl, IDisposable
                 OctalInput.Text = octal;
                 ApplyOctalToCheckboxes(octal);
                 UpdateSymbolicDisplay(octal);
-                UpdateCommandPreview(octal);
+                UpdateCommandPreview(octal, text);
             }
             finally
             {
@@ -220,23 +224,24 @@ public partial class ChmodCalculatorView : UserControl, IDisposable
         }
     }
 
-    private void UpdateCommandPreview(string octal)
+    private void UpdateCommandPreview(string octal, string? symbolicNotation = null)
     {
-        CommandPreviewText.Text = $"chmod {octal} filename";
+        var mode = !string.IsNullOrEmpty(symbolicNotation) ? symbolicNotation : octal;
+        CommandPreviewText.Text = $"chmod {mode} filename";
     }
 
     /// <summary>
     /// Parses symbolic chmod notation (e.g. "u+x,g-w,o=r") and returns the resulting octal string.
-    /// Applies operations against the current checkbox state to support relative operations (+/-).
+    /// Applies operations against a clean "000" base state to avoid progressive corruption.
     /// </summary>
     private bool TryParseSymbolicNotation(string input, out string octal)
     {
         octal = string.Empty;
 
-        // Start from current permissions
-        var owner = GetDigit(ChkOwnerR, ChkOwnerW, ChkOwnerX);
-        var group = GetDigit(ChkGroupR, ChkGroupW, ChkGroupX);
-        var others = GetDigit(ChkOthersR, ChkOthersW, ChkOthersX);
+        // Start from a clean base (000) to avoid progressive state corruption
+        var owner = 0;
+        var group = 0;
+        var others = 0;
 
         var clauses = input.Split(',', StringSplitOptions.RemoveEmptyEntries);
         if (clauses.Length == 0) return false;

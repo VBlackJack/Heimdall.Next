@@ -231,23 +231,59 @@ public partial class HmacGeneratorView : UserControl, IDisposable
         if (TxtVerifyResult is null || TxtVerify is null || TxtOutput is null) return;
 
         var expected = TxtVerify.Text.Trim();
-        var computed = TxtOutput.Text;
 
-        if (string.IsNullOrEmpty(expected) || string.IsNullOrEmpty(computed))
+        if (string.IsNullOrEmpty(expected) || string.IsNullOrEmpty(GetCurrentKey()) || string.IsNullOrEmpty(TxtInput?.Text))
         {
             TxtVerifyResult.Text = string.Empty;
             return;
         }
 
-        if (string.Equals(expected, computed, StringComparison.OrdinalIgnoreCase))
+        // Compute both hex and base64 outputs for comparison
+        var hexOutput = ComputeHmacFormatted(useBase64: false);
+        var b64Output = ComputeHmacFormatted(useBase64: true);
+
+        bool match = (!string.IsNullOrEmpty(hexOutput) && string.Equals(expected, hexOutput, StringComparison.OrdinalIgnoreCase))
+                  || (!string.IsNullOrEmpty(b64Output) && string.Equals(expected, b64Output, StringComparison.OrdinalIgnoreCase));
+
+        if (match)
         {
             TxtVerifyResult.Text = L("ToolHmacVerifyMatch");
-            TxtVerifyResult.Foreground = new SolidColorBrush(System.Windows.Media.Color.FromRgb(34, 197, 94));
+            TxtVerifyResult.Foreground = (Brush)FindResource("SuccessBrush");
         }
         else
         {
             TxtVerifyResult.Text = L("ToolHmacVerifyNoMatch");
-            TxtVerifyResult.Foreground = new SolidColorBrush(System.Windows.Media.Color.FromRgb(239, 68, 68));
+            TxtVerifyResult.Foreground = (Brush)FindResource("ErrorBrush");
+        }
+    }
+
+    /// <summary>
+    /// Computes the HMAC in the specified format without updating the UI output.
+    /// </summary>
+    private string? ComputeHmacFormatted(bool useBase64)
+    {
+        var input = TxtInput?.Text;
+        var key = GetCurrentKey();
+        if (string.IsNullOrEmpty(input) || string.IsNullOrEmpty(key)) return null;
+
+        var algorithmName = CmbAlgorithm?.SelectedItem as string ?? "HMAC-SHA256";
+
+        try
+        {
+            var keyBytes = Encoding.UTF8.GetBytes(key);
+            using var hmac = CreateHmacAlgorithm(algorithmName, keyBytes);
+            if (hmac is null) return null;
+
+            var inputBytes = Encoding.UTF8.GetBytes(input);
+            var hashBytes = hmac.ComputeHash(inputBytes);
+
+            return useBase64
+                ? Convert.ToBase64String(hashBytes)
+                : Convert.ToHexStringLower(hashBytes);
+        }
+        catch
+        {
+            return null;
         }
     }
 

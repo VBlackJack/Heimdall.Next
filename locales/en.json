@@ -2705,5 +2705,10 @@
   "ToolIpConvBtnCopyIpv6": "Copy",
   "ToolDateTimeDetectedMs": "Detected: Unix timestamp (milliseconds)",
   "ToolPwdGenBtnCopyPhonetic": "Copy phonetic",
-  "ToolSshKeyGenEd25519Tooltip": "Ed25519: requires .NET EdDSA support (coming soon)"
+  "ToolSshKeyGenEd25519Tooltip": "Ed25519: requires .NET EdDSA support (coming soon)",
+  "ToolPingValidationTimeout": "Invalid timeout value. Please enter a number between 100 and 30000 ms.",
+  "ToolPingValidationCount": "Invalid count value. Please enter a number between 0 and 100000 (0 = unlimited).",
+  "ToolHashBtnClearFile": "Clear file",
+  "ToolPingBtnCopyLog": "Copy log",
+  "ToolHttpCopyHint": "Double-click to copy"
 }

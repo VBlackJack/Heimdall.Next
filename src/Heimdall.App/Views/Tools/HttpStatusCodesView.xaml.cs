@@ -57,6 +57,7 @@ public partial class HttpStatusCodesView : UserControl, IDisposable
     {
         HeaderTitle.Text = L("ToolHttpTitle");
         TxtFilter.Tag = L("ToolHttpFilterPlaceholder");
+        TxtCopyHint.Text = L("ToolHttpCopyHint");
 
         System.Windows.Automation.AutomationProperties.SetName(TxtFilter, L("ToolHttpFilterPlaceholder"));
     }
