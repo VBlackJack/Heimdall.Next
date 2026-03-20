@@ -1,9 +1,9 @@
 ; Heimdall.Next Inno Setup Script
 ; Produces a single .exe installer for end-user deployment.
-; Supports Light and Portable variants via preprocessor defines.
+; Supports Standard and SelfContained editions via preprocessor defines.
 
 #ifndef Variant
-  #define Variant "Light"
+  #define Variant "Standard"
 #endif
 
 #ifndef AppVersion
@@ -12,6 +12,7 @@
 
 #ifndef SourceDir
   #define SourceDir "..\Dist\release\Heimdall.Next_build." + AppVersion + "_" + LowerCase(Variant)
+  ; Maps: Standard -> _standard, SelfContained -> _selfcontained
 #endif
 
 [Setup]
