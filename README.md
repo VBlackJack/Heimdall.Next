@@ -180,22 +180,36 @@ Built with .NET 10 and WPF. Secure, feature-rich Windows connection manager with
 
 ---
 
+## Download
+
+Two editions are available. Both include the full .NET runtime and require **no prior .NET installation**.
+
+| Edition | Size | WebView2 | Best for |
+|---------|------|----------|----------|
+| **Standard** | ~55 MB (installer) / ~195 MB (zip) | Requires Edge or WebView2 Evergreen Runtime (pre-installed on Windows 10/11) | Most users — workstations, laptops, any PC with Edge |
+| **Self-Contained** | ~216 MB (installer) / ~653 MB (zip) | Bundled (WebView2 Fixed Version Runtime included) | Air-gapped servers, restricted environments without Edge, isolated VMs |
+
+Both editions are available as **installer** (.exe with shortcuts, upgrade detection, uninstaller) or **zip** (extract and run, no installation required).
+
+> **Which should I choose?** If you're unsure, pick **Standard**. It works on any Windows 10/11 PC with Edge installed (which is virtually all of them). Choose **Self-Contained** only if your target machine has no internet access and no Edge browser.
+
+---
+
 ## Requirements
 
-| Dependency | Minimum Version |
-|---|---|
-| Windows | 10 / 11 |
-| .NET Runtime | 10.0 (bundled in portable build) |
-| WebView2 Runtime | Evergreen (for SSH/VNC terminal) |
-| PuTTY (Plink + Pageant) | 0.81+ (optional, for Pageant-only auth fallback) |
-| X11 Server | VcXsrv / Xming / X410 (optional, for X11 forwarding) |
-| Citrix Workspace App | Latest (optional, for Citrix connections) |
+| Dependency | Minimum Version | Notes |
+|---|---|---|
+| Windows | 10 / 11 | Both editions |
+| Edge or WebView2 Runtime | Evergreen | Standard edition only (pre-installed on Windows 10/11) |
+| PuTTY (Plink + Pageant) | 0.81+ | Optional, for Pageant-only SSH key auth |
+| X11 Server | VcXsrv / Xming / X410 | Optional, for X11 forwarding |
+| Citrix Workspace App | Latest | Optional, for Citrix connections |
 
 ---
 
 ## Quick Start
 
-Download the latest portable build from the [Releases](../../releases) page, extract, and run `Heimdall.Next.exe`. No installation required.
+Download the latest release from the [Releases](../../releases) page. Run the installer or extract the zip and launch `Heimdall.Next.exe`.
 
 ---
 
@@ -235,10 +249,10 @@ powershell -File Build.ps1
 # Release build — both variants (Light + Portable)
 powershell -File Build.ps1 -Mode Release -Variant Both
 
-# Light only (~185 MB, requires system WebView2/Edge)
+# Standard only (~195 MB, requires Edge/WebView2)
 powershell -File Build.ps1 -Mode Release -Variant Light
 
-# Portable only (~620 MB, bundles WebView2 for isolated servers)
+# Self-Contained only (~653 MB, bundles WebView2 runtime)
 powershell -File Build.ps1 -Mode Release -Variant Portable
 
 # Skip tests
@@ -247,10 +261,10 @@ powershell -File Build.ps1 -SkipTests
 
 Build output goes to `Dist/debug/` or `Dist/release/` with versioned folder names.
 
-| Variant | Size | WebView2 | Target |
-|---------|------|----------|--------|
-| **Light** | ~185 MB (zip) / ~54 MB (installer) | Requires system Edge/WebView2 | Standard Windows 11 PCs |
-| **Portable** | ~642 MB (zip) / ~374 MB (installer) | Bundled Fixed Version Runtime | Isolated servers without Edge |
+| Edition | Build Variant | Size | WebView2 |
+|---------|--------------|------|----------|
+| **Standard** | `Light` | ~195 MB (zip) / ~55 MB (installer) | Requires system Edge/WebView2 |
+| **Self-Contained** | `Portable` | ~653 MB (zip) / ~216 MB (installer) | Bundled Fixed Version Runtime |
 
 Release mode also produces Inno Setup `.exe` installers in `Dist/installers/` with desktop/start menu shortcuts and upgrade detection.
 

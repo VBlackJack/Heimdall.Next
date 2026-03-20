@@ -391,19 +391,19 @@ Action buttons (Save / Reset / Export / Import) are pinned at the bottom, always
 
 Settings persistence: ViewModel -> AppSettings -> ConfigManager -> settings.json (UTF-8 no BOM). ConfigManager writes are protected by a `SemaphoreSlim` to prevent concurrent save corruption.
 
-## WebView2 Portable Deployment
+## WebView2 Deployment Strategy
 
 WebView2 is required for embedded SSH terminals (xterm.js) and VNC sessions (noVNC). `WebView2Helper` centralizes runtime detection:
 
-1. **Bundled Fixed Version Runtime** in `runtimes/webview2/` (fully portable, ~436 MB)
-2. **System Evergreen Runtime** via Edge or standalone installer
+1. **Bundled Fixed Version Runtime** in `runtimes/webview2/` (Self-Contained edition, ~436 MB)
+2. **System Evergreen Runtime** via Edge or standalone installer (Standard edition)
 3. **Unavailable** — shows localized error message, no crash
 
-Build variants:
+Build editions:
 
-| Variant | Size | Target |
-|---------|------|--------|
-| **Light** | ~185 MB | Standard PCs with Edge |
-| **Portable** | ~620 MB | Isolated servers without Edge |
+| Edition | Build flag | Size | WebView2 |
+|---------|-----------|------|----------|
+| **Standard** | `-Variant Light` | ~195 MB | Requires Edge (pre-installed on Windows 10/11) |
+| **Self-Contained** | `-Variant Portable` | ~653 MB | Bundled Fixed Version Runtime for air-gapped/isolated environments |
 
 `Build.ps1 -Variant Both` produces both variants. `Setup-WebView2.ps1` automates Evergreen Runtime installation on machines with internet access.
