@@ -15,9 +15,11 @@
  */
 
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using System.Windows.Threading;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Models;
 
@@ -30,8 +32,11 @@ public partial class TextDiffView : UserControl, IDisposable
 {
     private const int MaxLineCount = 10000;
 
+    private const int AutoCompareDebounceMs = 500;
+
     private LocalizationManager? _localizer;
     private string _unifiedDiff = string.Empty;
+    private DispatcherTimer? _autoCompareTimer;
 
     public TextDiffView()
     {
@@ -72,9 +77,61 @@ public partial class TextDiffView : UserControl, IDisposable
         System.Windows.Automation.AutomationProperties.SetName(DiffOutput, L("ToolDiffOutputLabel"));
 
         BtnCopyDiff.ToolTip = L("ToolBtnCopyToClipboard");
+
+        ChkIgnoreWhitespace.Content = L("ToolDiffChkIgnoreWhitespace");
+        ChkIgnoreCase.Content = L("ToolDiffChkIgnoreCase");
+        ChkAutoCompare.Content = L("ToolDiffChkAutoCompare");
+
+        System.Windows.Automation.AutomationProperties.SetName(ChkIgnoreWhitespace, L("ToolDiffChkIgnoreWhitespace"));
+        System.Windows.Automation.AutomationProperties.SetName(ChkIgnoreCase, L("ToolDiffChkIgnoreCase"));
+        System.Windows.Automation.AutomationProperties.SetName(ChkAutoCompare, L("ToolDiffChkAutoCompare"));
+    }
+
+    private void OnDiffOptionChanged(object sender, RoutedEventArgs e)
+    {
+        // Re-run comparison when options change (if there is content)
+        if (!string.IsNullOrEmpty(OriginalText.Text) || !string.IsNullOrEmpty(ModifiedText.Text))
+        {
+            RunComparison();
+        }
+    }
+
+    private void OnAutoCompareChanged(object sender, RoutedEventArgs e)
+    {
+        if (ChkAutoCompare.IsChecked == true)
+        {
+            OriginalText.TextChanged += OnAutoCompareTextChanged;
+            ModifiedText.TextChanged += OnAutoCompareTextChanged;
+        }
+        else
+        {
+            OriginalText.TextChanged -= OnAutoCompareTextChanged;
+            ModifiedText.TextChanged -= OnAutoCompareTextChanged;
+            _autoCompareTimer?.Stop();
+        }
+    }
+
+    private void OnAutoCompareTextChanged(object sender, TextChangedEventArgs e)
+    {
+        _autoCompareTimer?.Stop();
+        _autoCompareTimer = new DispatcherTimer
+        {
+            Interval = TimeSpan.FromMilliseconds(AutoCompareDebounceMs)
+        };
+        _autoCompareTimer.Tick += (_, _) =>
+        {
+            _autoCompareTimer.Stop();
+            RunComparison();
+        };
+        _autoCompareTimer.Start();
     }
 
     private void OnCompareClick(object sender, RoutedEventArgs e)
+    {
+        RunComparison();
+    }
+
+    private void RunComparison()
     {
         var originalLines = SplitLines(OriginalText.Text);
         var modifiedLines = SplitLines(ModifiedText.Text);
@@ -200,21 +257,56 @@ public partial class TextDiffView : UserControl, IDisposable
     }
 
     /// <summary>
-    /// Computes a line-based diff using the Longest Common Subsequence (LCS) algorithm.
+    /// Normalizes a line for comparison, applying whitespace and case options.
+    /// The original text is preserved for display; only comparison uses the normalized form.
     /// </summary>
-    private static List<DiffOperation> ComputeDiff(string[] original, string[] modified)
+    private string NormalizeLine(string line)
+    {
+        var result = line;
+        if (ChkIgnoreWhitespace?.IsChecked == true)
+        {
+            result = Regex.Replace(result.Trim(), @"\s+", " ");
+        }
+
+        if (ChkIgnoreCase?.IsChecked == true)
+        {
+            result = result.ToLowerInvariant();
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Computes a line-based diff using the Longest Common Subsequence (LCS) algorithm.
+    /// Comparison uses normalized lines; display preserves original text.
+    /// </summary>
+    private List<DiffOperation> ComputeDiff(string[] original, string[] modified)
     {
         int n = original.Length;
         int m = modified.Length;
 
-        // Build LCS length matrix
+        // Normalize lines for comparison
+        var normalizedOriginal = new string[n];
+        var normalizedModified = new string[m];
+
+        for (int i = 0; i < n; i++)
+        {
+            normalizedOriginal[i] = NormalizeLine(original[i]);
+        }
+
+        for (int j = 0; j < m; j++)
+        {
+            normalizedModified[j] = NormalizeLine(modified[j]);
+        }
+
+        // Build LCS length matrix using normalized lines
         var lcs = new int[n + 1, m + 1];
 
         for (int i = 1; i <= n; i++)
         {
             for (int j = 1; j <= m; j++)
             {
-                if (string.Equals(original[i - 1], modified[j - 1], StringComparison.Ordinal))
+                if (string.Equals(normalizedOriginal[i - 1], normalizedModified[j - 1], StringComparison.Ordinal))
                 {
                     lcs[i, j] = lcs[i - 1, j - 1] + 1;
                 }
@@ -225,7 +317,7 @@ public partial class TextDiffView : UserControl, IDisposable
             }
         }
 
-        // Backtrack to produce diff operations
+        // Backtrack to produce diff operations (using original text for display)
         var result = new List<DiffOperation>();
         int x = n;
         int y = m;
@@ -233,7 +325,7 @@ public partial class TextDiffView : UserControl, IDisposable
         while (x > 0 || y > 0)
         {
             if (x > 0 && y > 0 &&
-                string.Equals(original[x - 1], modified[y - 1], StringComparison.Ordinal))
+                string.Equals(normalizedOriginal[x - 1], normalizedModified[y - 1], StringComparison.Ordinal))
             {
                 result.Add(new DiffOperation(DiffLineType.Unchanged, original[x - 1]));
                 x--;
@@ -259,6 +351,8 @@ public partial class TextDiffView : UserControl, IDisposable
 
     public void Dispose()
     {
+        _autoCompareTimer?.Stop();
+        _autoCompareTimer = null;
         _unifiedDiff = string.Empty;
         GC.SuppressFinalize(this);
     }

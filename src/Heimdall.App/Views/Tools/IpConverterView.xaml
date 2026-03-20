@@ -52,6 +52,7 @@
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="16"/>
                             <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
@@ -70,18 +71,27 @@
                                    FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                         <TextBlock x:Name="TxtDotted" Grid.Row="0" Grid.Column="2" Text=""
                                    FontSize="13" FontFamily="Consolas" Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
+                        <Button x:Name="BtnCopyDotted" Grid.Row="0" Grid.Column="3" Click="OnCopyValueClick"
+                                Tag="Dotted" Style="{DynamicResource SecondaryButtonStyle}"
+                                Padding="6,2" Margin="8,0,0,0" FontSize="11" VerticalAlignment="Center"/>
 
                         <!-- Row 2: Decimal (Integer) -->
                         <TextBlock x:Name="LblDecimal" Grid.Row="2" Grid.Column="0" Text=""
                                    FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                         <TextBlock x:Name="TxtDecimal" Grid.Row="2" Grid.Column="2" Text=""
                                    FontSize="13" FontFamily="Consolas" Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
+                        <Button x:Name="BtnCopyDecimal" Grid.Row="2" Grid.Column="3" Click="OnCopyValueClick"
+                                Tag="Decimal" Style="{DynamicResource SecondaryButtonStyle}"
+                                Padding="6,2" Margin="8,0,0,0" FontSize="11" VerticalAlignment="Center"/>
 
                         <!-- Row 4: Hexadecimal -->
                         <TextBlock x:Name="LblHex" Grid.Row="4" Grid.Column="0" Text=""
                                    FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                         <TextBlock x:Name="TxtHex" Grid.Row="4" Grid.Column="2" Text=""
                                    FontSize="13" FontFamily="Consolas" Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
+                        <Button x:Name="BtnCopyHex" Grid.Row="4" Grid.Column="3" Click="OnCopyValueClick"
+                                Tag="Hex" Style="{DynamicResource SecondaryButtonStyle}"
+                                Padding="6,2" Margin="8,0,0,0" FontSize="11" VerticalAlignment="Center"/>
 
                         <!-- Row 6: Binary -->
                         <TextBlock x:Name="LblBinary" Grid.Row="6" Grid.Column="0" Text=""
@@ -89,12 +99,18 @@
                         <TextBlock x:Name="TxtBinary" Grid.Row="6" Grid.Column="2" Text=""
                                    FontSize="13" FontFamily="Consolas" Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"
                                    TextWrapping="Wrap"/>
+                        <Button x:Name="BtnCopyBinary" Grid.Row="6" Grid.Column="3" Click="OnCopyValueClick"
+                                Tag="Binary" Style="{DynamicResource SecondaryButtonStyle}"
+                                Padding="6,2" Margin="8,0,0,0" FontSize="11" VerticalAlignment="Center"/>
 
                         <!-- Row 8: Mapped IPv6 -->
                         <TextBlock x:Name="LblMappedIpv6" Grid.Row="8" Grid.Column="0" Text=""
                                    FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                         <TextBlock x:Name="TxtMappedIpv6" Grid.Row="8" Grid.Column="2" Text=""
                                    FontSize="13" FontFamily="Consolas" Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
+                        <Button x:Name="BtnCopyIpv6" Grid.Row="8" Grid.Column="3" Click="OnCopyValueClick"
+                                Tag="Ipv6" Style="{DynamicResource SecondaryButtonStyle}"
+                                Padding="6,2" Margin="8,0,0,0" FontSize="11" VerticalAlignment="Center"/>
                     </Grid>
                 </Border>
 

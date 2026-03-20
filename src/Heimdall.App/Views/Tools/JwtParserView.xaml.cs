@@ -80,6 +80,13 @@ public partial class JwtParserView : UserControl, IDisposable
         LblPayload.Text = L("ToolJwtPayloadLabel");
         LblSignature.Text = L("ToolJwtSignatureLabel");
 
+        BtnCopyHeader.Content = L("ToolJwtBtnCopyHeader");
+        BtnCopyPayload.Content = L("ToolJwtBtnCopyPayload");
+        BtnCopySignature.Content = L("ToolJwtBtnCopySignature");
+        BtnCopyHeader.ToolTip = L("ToolBtnCopyToClipboard");
+        BtnCopyPayload.ToolTip = L("ToolBtnCopyToClipboard");
+        BtnCopySignature.ToolTip = L("ToolBtnCopyToClipboard");
+
         System.Windows.Automation.AutomationProperties.SetName(TxtInput, L("ToolJwtInputLabel"));
         System.Windows.Automation.AutomationProperties.SetName(TxtHeader, L("ToolJwtHeaderLabel"));
         System.Windows.Automation.AutomationProperties.SetName(TxtPayload, L("ToolJwtPayloadLabel"));
@@ -236,6 +243,30 @@ public partial class JwtParserView : UserControl, IDisposable
     {
         TxtError.Text = message;
         TxtError.Visibility = Visibility.Visible;
+    }
+
+    private void OnCopyHeaderClick(object sender, RoutedEventArgs e)
+    {
+        CopyTextToClipboard(TxtHeader.Text, sender as Button);
+    }
+
+    private void OnCopyPayloadClick(object sender, RoutedEventArgs e)
+    {
+        CopyTextToClipboard(TxtPayload.Text, sender as Button);
+    }
+
+    private void OnCopySignatureClick(object sender, RoutedEventArgs e)
+    {
+        CopyTextToClipboard(TxtSignature.Text, sender as Button);
+    }
+
+    private static void CopyTextToClipboard(string? text, Button? btn)
+    {
+        if (!string.IsNullOrEmpty(text))
+        {
+            Clipboard.SetText(text);
+            CopyFeedbackHelper.ShowCopyFeedback(btn);
+        }
     }
 
     private string L(string key) => _localizer?[key] ?? key;

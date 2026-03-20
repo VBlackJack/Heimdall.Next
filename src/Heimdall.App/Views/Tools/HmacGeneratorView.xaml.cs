@@ -18,6 +18,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
 using System.Windows.Threading;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Models;
@@ -27,11 +28,14 @@ namespace Heimdall.App.Views.Tools;
 /// <summary>
 /// HMAC generator tool that computes keyed-hash message authentication codes.
 /// Supports HMAC-SHA256, HMAC-SHA384, HMAC-SHA512, HMAC-SHA1, and HMAC-MD5.
+/// Includes verify mode and show/hide key toggle.
 /// </summary>
 public partial class HmacGeneratorView : UserControl, IDisposable
 {
     private LocalizationManager? _localizer;
     private DispatcherTimer? _debounceTimer;
+    private bool _keyVisible;
+    private bool _syncingKey;
 
     private static readonly string[] Algorithms =
         ["HMAC-SHA256", "HMAC-SHA384", "HMAC-SHA512", "HMAC-SHA1", "HMAC-MD5"];
@@ -89,20 +93,62 @@ public partial class HmacGeneratorView : UserControl, IDisposable
         LblOutput.Text = L("ToolHmacOutputLabel");
         LblFormat.Text = L("ToolHmacFormatLabel");
         BtnCopy.Content = L("ToolHmacBtnCopy");
+        LblVerify.Text = L("ToolHmacVerifyLabel");
 
         System.Windows.Automation.AutomationProperties.SetName(BtnCopy, L("ToolHmacBtnCopy"));
         System.Windows.Automation.AutomationProperties.SetName(CmbAlgorithm, L("ToolHmacAlgorithmLabel"));
+        System.Windows.Automation.AutomationProperties.SetName(PwdKey, L("ToolHmacKeyLabel"));
         System.Windows.Automation.AutomationProperties.SetName(TxtKey, L("ToolHmacKeyLabel"));
         System.Windows.Automation.AutomationProperties.SetName(TxtInput, L("ToolHmacInputLabel"));
         System.Windows.Automation.AutomationProperties.SetName(TxtOutput, L("ToolHmacOutputLabel"));
         System.Windows.Automation.AutomationProperties.SetName(RdoHex, L("ToolHmacHexOutput"));
         System.Windows.Automation.AutomationProperties.SetName(RdoBase64, L("ToolHmacBase64Output"));
+        System.Windows.Automation.AutomationProperties.SetName(BtnToggleKey, L("ToolHmacToggleKeyVisibility"));
+        System.Windows.Automation.AutomationProperties.SetName(TxtVerify, L("ToolHmacVerifyLabel"));
 
         BtnCopy.ToolTip = L("ToolBtnCopyToClipboard");
+        BtnToggleKey.ToolTip = L("ToolHmacToggleKeyVisibility");
+    }
+
+    private void OnToggleKeyVisibility(object sender, RoutedEventArgs e)
+    {
+        _keyVisible = !_keyVisible;
+        _syncingKey = true;
+
+        if (_keyVisible)
+        {
+            // Show TextBox, hide PasswordBox
+            TxtKey.Text = PwdKey.Password;
+            TxtKey.Visibility = Visibility.Visible;
+            PwdKey.Visibility = Visibility.Collapsed;
+            // Eye-off icon
+            BtnToggleKey.Content = "\uED1A";
+        }
+        else
+        {
+            // Show PasswordBox, hide TextBox
+            PwdKey.Password = TxtKey.Text;
+            PwdKey.Visibility = Visibility.Visible;
+            TxtKey.Visibility = Visibility.Collapsed;
+            // Eye icon
+            BtnToggleKey.Content = "\uE7B3";
+        }
+
+        _syncingKey = false;
+    }
+
+    private void OnKeyPasswordChanged(object sender, RoutedEventArgs e)
+    {
+        if (_syncingKey) return;
+
+        _debounceTimer?.Stop();
+        _debounceTimer?.Start();
     }
 
     private void OnInputChanged(object sender, TextChangedEventArgs e)
     {
+        if (_syncingKey) return;
+
         _debounceTimer?.Stop();
         _debounceTimer?.Start();
     }
@@ -117,15 +163,24 @@ public partial class HmacGeneratorView : UserControl, IDisposable
         ComputeHmac();
     }
 
+    /// <summary>
+    /// Gets the current key text from whichever control is visible.
+    /// </summary>
+    private string GetCurrentKey()
+    {
+        return _keyVisible ? (TxtKey?.Text ?? string.Empty) : (PwdKey?.Password ?? string.Empty);
+    }
+
     private void ComputeHmac()
     {
         var input = TxtInput?.Text;
-        var key = TxtKey?.Text;
+        var key = GetCurrentKey();
 
         if (string.IsNullOrEmpty(input) || string.IsNullOrEmpty(key))
         {
             if (TxtOutput is not null) TxtOutput.Text = string.Empty;
             if (TxtByteLength is not null) TxtByteLength.Text = string.Empty;
+            UpdateVerifyResult();
             return;
         }
 
@@ -161,6 +216,38 @@ public partial class HmacGeneratorView : UserControl, IDisposable
             Core.Logging.FileLogger.Warn($"HmacGenerator computation failed: {ex.Message}");
             TxtOutput.Text = string.Empty;
             TxtByteLength.Text = string.Empty;
+        }
+
+        UpdateVerifyResult();
+    }
+
+    private void OnVerifyTextChanged(object sender, TextChangedEventArgs e)
+    {
+        UpdateVerifyResult();
+    }
+
+    private void UpdateVerifyResult()
+    {
+        if (TxtVerifyResult is null || TxtVerify is null || TxtOutput is null) return;
+
+        var expected = TxtVerify.Text.Trim();
+        var computed = TxtOutput.Text;
+
+        if (string.IsNullOrEmpty(expected) || string.IsNullOrEmpty(computed))
+        {
+            TxtVerifyResult.Text = string.Empty;
+            return;
+        }
+
+        if (string.Equals(expected, computed, StringComparison.OrdinalIgnoreCase))
+        {
+            TxtVerifyResult.Text = L("ToolHmacVerifyMatch");
+            TxtVerifyResult.Foreground = new SolidColorBrush(System.Windows.Media.Color.FromRgb(34, 197, 94));
+        }
+        else
+        {
+            TxtVerifyResult.Text = L("ToolHmacVerifyNoMatch");
+            TxtVerifyResult.Foreground = new SolidColorBrush(System.Windows.Media.Color.FromRgb(239, 68, 68));
         }
     }
 

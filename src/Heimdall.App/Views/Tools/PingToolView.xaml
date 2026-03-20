@@ -39,6 +39,52 @@
                             Padding="16,6" Margin="8,0,0,0"
                             VerticalAlignment="Center"
 />
+                    <Button x:Name="BtnClear" Content=""
+                            Click="OnClearClick"
+                            Style="{DynamicResource SecondaryButtonStyle}"
+                            Padding="10,6" Margin="8,0,0,0"
+                            VerticalAlignment="Center"
+/>
+
+                    <TextBlock Text="  " VerticalAlignment="Center"/>
+
+                    <TextBlock x:Name="LblInterval" Text=""
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               FontSize="12" VerticalAlignment="Center" Margin="8,0,4,0"/>
+                    <ComboBox x:Name="CmbInterval" Width="70"
+                              SelectedIndex="1"
+                              VerticalAlignment="Center"
+                              Background="{DynamicResource CardBrush}"
+                              Foreground="{DynamicResource TextPrimaryBrush}"
+                              BorderBrush="{DynamicResource BorderBrush}">
+                        <ComboBoxItem Content="0.5s" Tag="500"/>
+                        <ComboBoxItem Content="1s" Tag="1000"/>
+                        <ComboBoxItem Content="2s" Tag="2000"/>
+                        <ComboBoxItem Content="5s" Tag="5000"/>
+                        <ComboBoxItem Content="10s" Tag="10000"/>
+                    </ComboBox>
+
+                    <TextBlock x:Name="LblTimeout" Text=""
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               FontSize="12" VerticalAlignment="Center" Margin="8,0,4,0"/>
+                    <TextBox x:Name="TxtTimeout" Text="2000" Width="60"
+                             FontSize="12" FontFamily="Consolas"
+                             Padding="4,4"
+                             Background="{DynamicResource CardBrush}"
+                             Foreground="{DynamicResource TextPrimaryBrush}"
+                             BorderBrush="{DynamicResource BorderBrush}"
+                             VerticalAlignment="Center"/>
+
+                    <TextBlock x:Name="LblCount" Text=""
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               FontSize="12" VerticalAlignment="Center" Margin="8,0,4,0"/>
+                    <TextBox x:Name="TxtCount" Text="0" Width="50"
+                             FontSize="12" FontFamily="Consolas"
+                             Padding="4,4"
+                             Background="{DynamicResource CardBrush}"
+                             Foreground="{DynamicResource TextPrimaryBrush}"
+                             BorderBrush="{DynamicResource BorderBrush}"
+                             VerticalAlignment="Center"/>
                 </StackPanel>
             </DockPanel>
         </Border>

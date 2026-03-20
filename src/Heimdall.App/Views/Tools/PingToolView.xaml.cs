@@ -33,7 +33,7 @@ namespace Heimdall.App.Views.Tools;
 public partial class PingToolView : UserControl, IDisposable
 {
     private const int MaxDataPoints = 60;
-    private const int PingTimeoutMs = 2000;
+    private const int DefaultPingTimeoutMs = 2000;
 
     private LocalizationManager? _localizer;
     private DispatcherTimer? _pingTimer;
@@ -68,6 +68,9 @@ public partial class PingToolView : UserControl, IDisposable
         _localizer = localizer;
         ApplyLocalization();
 
+        // Pre-fill with a sensible default; context overrides if provided
+        TxtHost.Text = "8.8.8.8";
+
         if (!string.IsNullOrWhiteSpace(context?.TargetHost))
         {
             TxtHost.Text = context.TargetHost;
@@ -84,8 +87,17 @@ public partial class PingToolView : UserControl, IDisposable
         LblLoss.Text = L("ToolPingLoss");
         TxtPingCount.Text = string.Empty;
 
+        BtnClear.Content = L("ToolPingBtnClear");
+        LblInterval.Text = L("ToolPingIntervalLabel");
+        LblTimeout.Text = L("ToolPingTimeoutLabel");
+        LblCount.Text = L("ToolPingCountLabel");
+
         System.Windows.Automation.AutomationProperties.SetName(BtnToggle, L("ToolPingBtnStart"));
+        System.Windows.Automation.AutomationProperties.SetName(BtnClear, L("ToolPingBtnClear"));
         System.Windows.Automation.AutomationProperties.SetName(TxtHost, L("ToolPingHostLabel"));
+        System.Windows.Automation.AutomationProperties.SetName(CmbInterval, L("ToolPingIntervalLabel"));
+        System.Windows.Automation.AutomationProperties.SetName(TxtTimeout, L("ToolPingTimeoutLabel"));
+        System.Windows.Automation.AutomationProperties.SetName(TxtCount, L("ToolPingCountLabel"));
     }
 
     private void OnHostKeyDown(object sender, KeyEventArgs e)
@@ -100,6 +112,24 @@ public partial class PingToolView : UserControl, IDisposable
     private void OnToggleClick(object sender, RoutedEventArgs e)
     {
         TogglePing();
+    }
+
+    private void OnClearClick(object sender, RoutedEventArgs e)
+    {
+        _dataPoints.Clear();
+        _logBuilder.Clear();
+        TxtLog.Text = string.Empty;
+        TxtLog.Inlines.Clear();
+        _sequenceNumber = 0;
+        _sentCount = 0;
+        _lostCount = 0;
+        _minLatency = long.MaxValue;
+        _maxLatency = 0;
+        _totalLatency = 0;
+        _successCount = 0;
+        ResetStats();
+        TxtPingCount.Text = string.Empty;
+        RedrawGraph();
     }
 
     private void TogglePing()
@@ -144,12 +174,18 @@ public partial class PingToolView : UserControl, IDisposable
         _cts = new CancellationTokenSource();
         _isRunning = true;
         BtnToggle.Content = L("ToolPingBtnStop");
+        BtnToggle.Background = (Brush)FindResource("ErrorBrush");
         System.Windows.Automation.AutomationProperties.SetName(BtnToggle, L("ToolPingBtnStop"));
         TxtHost.IsReadOnly = true;
+        CmbInterval.IsEnabled = false;
+        TxtTimeout.IsReadOnly = true;
+        TxtCount.IsReadOnly = true;
+
+        var intervalMs = GetSelectedIntervalMs();
 
         _pingTimer = new DispatcherTimer
         {
-            Interval = TimeSpan.FromSeconds(1)
+            Interval = TimeSpan.FromMilliseconds(intervalMs)
         };
         _pingTimer.Tick += OnPingTimerTick;
         _pingTimer.Start();
@@ -167,8 +203,12 @@ public partial class PingToolView : UserControl, IDisposable
         _cts = null;
         _isRunning = false;
         BtnToggle.Content = L("ToolPingBtnStart");
+        BtnToggle.Background = (Brush)FindResource("AccentBrush");
         System.Windows.Automation.AutomationProperties.SetName(BtnToggle, L("ToolPingBtnStart"));
         TxtHost.IsReadOnly = false;
+        CmbInterval.IsEnabled = true;
+        TxtTimeout.IsReadOnly = false;
+        TxtCount.IsReadOnly = false;
     }
 
     private async void OnPingTimerTick(object? sender, EventArgs e)
@@ -188,10 +228,12 @@ public partial class PingToolView : UserControl, IDisposable
         _sentCount++;
         var seq = _sequenceNumber;
 
+        var timeoutMs = GetConfiguredTimeoutMs();
+
         try
         {
             using var ping = new Ping();
-            var reply = await ping.SendPingAsync(host, PingTimeoutMs);
+            var reply = await ping.SendPingAsync(host, timeoutMs);
 
             if (_cts is null || _cts.IsCancellationRequested)
             {
@@ -260,6 +302,7 @@ public partial class PingToolView : UserControl, IDisposable
         UpdateStats();
         UpdatePingCount();
         RedrawGraph();
+        CheckPingCountLimit();
     }
 
     private void AppendLogLine(string text, bool isError)
@@ -415,6 +458,63 @@ public partial class PingToolView : UserControl, IDisposable
         }
 
         _graphLine = polyline;
+    }
+
+    /// <summary>
+    /// Returns the selected ping interval in milliseconds from the ComboBox.
+    /// </summary>
+    private int GetSelectedIntervalMs()
+    {
+        if (CmbInterval.SelectedItem is ComboBoxItem item && item.Tag is string tagStr &&
+            int.TryParse(tagStr, out var ms))
+        {
+            return ms;
+        }
+
+        return 1000;
+    }
+
+    /// <summary>
+    /// Returns the configured timeout in milliseconds from the TextBox.
+    /// </summary>
+    private int GetConfiguredTimeoutMs()
+    {
+        if (int.TryParse(TxtTimeout.Text.Trim(), out var ms) && ms > 0)
+        {
+            return ms;
+        }
+
+        return DefaultPingTimeoutMs;
+    }
+
+    /// <summary>
+    /// Returns the configured ping count limit (0 = unlimited).
+    /// </summary>
+    private int GetConfiguredCount()
+    {
+        if (int.TryParse(TxtCount.Text.Trim(), out var count) && count >= 0)
+        {
+            return count;
+        }
+
+        return 0;
+    }
+
+    /// <summary>
+    /// Checks whether the configured ping count has been reached and auto-stops if so.
+    /// </summary>
+    private void CheckPingCountLimit()
+    {
+        var limit = GetConfiguredCount();
+        if (limit > 0 && _sentCount >= limit)
+        {
+            StopPing();
+
+            var lossPercent = _sentCount > 0 ? (_lostCount * 100.0 / _sentCount) : 0;
+            AppendLogLine(
+                string.Format(L("ToolPingCompleteFormat"), _sentCount, _successCount, $"{lossPercent:F1}"),
+                false);
+        }
     }
 
     private string L(string key) => _localizer?[key] ?? key;

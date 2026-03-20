@@ -17,8 +17,25 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              Background="{DynamicResource BackgroundBrush}">
-    <Grid Margin="16">
+    <Grid>
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Border Grid.Row="0" Padding="12,8"
+                Background="{DynamicResource SurfaceBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="0,0,0,1"
+                Margin="0,0,0,12">
+            <TextBlock x:Name="TitleText" FontSize="14" FontWeight="SemiBold"
+                       Foreground="{DynamicResource TextPrimaryBrush}"/>
+        </Border>
+
+        <Grid Grid.Row="1" Margin="16,0,16,16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
@@ -27,14 +44,8 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <!-- Title -->
-        <TextBlock x:Name="TitleText" Grid.Row="0"
-                   FontSize="16" FontWeight="SemiBold"
-                   Foreground="{DynamicResource TextPrimaryBrush}"
-                   Margin="0,0,0,16"/>
-
         <!-- Permission matrix: 3x3 grid with headers -->
-        <Grid Grid.Row="1" Margin="0,0,0,16">
+        <Grid Grid.Row="0" Margin="0,0,0,16">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="100"/>
                 <ColumnDefinition Width="80"/>
@@ -112,7 +123,7 @@
         </Grid>
 
         <!-- Octal + Symbolic display -->
-        <Border Grid.Row="2" Padding="12"
+        <Border Grid.Row="1" Padding="12"
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="1" CornerRadius="4"
@@ -149,8 +160,59 @@
             </Grid>
         </Border>
 
+        <!-- Symbolic input -->
+        <Border Grid.Row="2" Padding="12"
+                Background="{DynamicResource SurfaceBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="1" CornerRadius="4"
+                Margin="0,0,0,12">
+            <StackPanel>
+                <TextBlock x:Name="SymbolicInputLabel"
+                           Foreground="{DynamicResource TextSecondaryBrush}"
+                           FontSize="12" Margin="0,0,0,4"/>
+                <TextBox x:Name="SymbolicInput"
+                         FontFamily="Consolas" FontSize="14"
+                         Background="Transparent"
+                         Foreground="{DynamicResource TextPrimaryBrush}"
+                         BorderBrush="{DynamicResource BorderBrush}"
+                         BorderThickness="0,0,0,1"
+                         Padding="4,2"
+                         TextChanged="OnSymbolicInputTextChanged"/>
+                <TextBlock x:Name="SymbolicInputError"
+                           Foreground="{DynamicResource ErrorBrush}"
+                           FontSize="11" Margin="0,2,0,0"
+                           Visibility="Collapsed"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Command preview -->
+        <Border Grid.Row="3" Padding="12"
+                Background="{DynamicResource SurfaceBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="1" CornerRadius="4"
+                Margin="0,0,0,12">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock x:Name="CommandPreviewLabel" Grid.Column="0"
+                           Foreground="{DynamicResource TextSecondaryBrush}"
+                           VerticalAlignment="Center" Margin="0,0,8,0"/>
+                <TextBlock x:Name="CommandPreviewText" Grid.Column="1"
+                           FontFamily="Consolas" FontSize="14"
+                           Foreground="{DynamicResource AccentBrush}"
+                           VerticalAlignment="Center"/>
+                <Button x:Name="BtnCopyCommand" Grid.Column="2"
+                        Click="OnCopyCommandClick"
+                        Style="{DynamicResource SecondaryButtonStyle}"
+                        Padding="10,4" Margin="8,0,0,0"/>
+            </Grid>
+        </Border>
+
         <!-- Copy buttons -->
-        <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,0,0,16">
+        <StackPanel Grid.Row="4" Orientation="Horizontal" Margin="0,0,0,16">
             <Button x:Name="BtnCopyOctal" Click="OnCopyOctalClick"
                     Style="{DynamicResource SecondaryButtonStyle}"
                     Padding="12,4" Margin="0,0,8,0"/>
@@ -160,7 +222,7 @@
         </StackPanel>
 
         <!-- Presets -->
-        <StackPanel Grid.Row="4">
+        <StackPanel Grid.Row="5">
             <TextBlock x:Name="PresetsLabel"
                        FontSize="12" FontWeight="SemiBold"
                        Foreground="{DynamicResource TextSecondaryBrush}"
@@ -188,5 +250,6 @@
                         />
             </WrapPanel>
         </StackPanel>
+        </Grid>
     </Grid>
 </UserControl>

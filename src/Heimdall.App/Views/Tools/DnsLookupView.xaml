@@ -64,10 +64,15 @@
                         BorderThickness="1" CornerRadius="4"
                         Padding="16,12">
                     <StackPanel>
-                        <TextBlock x:Name="TxtResultHeader" Text=""
-                                   FontSize="13" FontWeight="SemiBold"
-                                   Foreground="{DynamicResource AccentBrush}"
-                                   Margin="0,0,0,8"/>
+                        <DockPanel Margin="0,0,0,8">
+                            <Button x:Name="BtnCopyResults" DockPanel.Dock="Right" Click="OnCopyResultsClick"
+                                    Style="{DynamicResource SecondaryButtonStyle}"
+                                    Padding="8,2" FontSize="11" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="TxtResultHeader" Text=""
+                                       FontSize="13" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource AccentBrush}"
+                                       VerticalAlignment="Center"/>
+                        </DockPanel>
                         <TextBlock x:Name="TxtResults" Text=""
                                    FontSize="13" FontFamily="Consolas"
                                    Foreground="{DynamicResource TextPrimaryBrush}"

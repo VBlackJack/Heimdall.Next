@@ -41,6 +41,7 @@ public partial class PortScannerView : UserControl, IDisposable
     private bool _disposed;
 
     private readonly ObservableCollection<PortScanResult> _results = [];
+    private readonly List<PortScanResult> _allResults = [];
 
     private static readonly Dictionary<int, string> WellKnownServices = new()
     {
@@ -87,6 +88,10 @@ public partial class PortScannerView : UserControl, IDisposable
         _localizer = localizer;
         ApplyLocalization();
 
+        // Pre-fill with sensible defaults; context overrides if provided
+        TxtHost.Text = "localhost";
+        TxtPorts.Text = "22,80,443,3389,5900";
+
         if (!string.IsNullOrWhiteSpace(context?.TargetHost))
         {
             TxtHost.Text = context.TargetHost;
@@ -113,6 +118,20 @@ public partial class PortScannerView : UserControl, IDisposable
         System.Windows.Automation.AutomationProperties.SetName(TxtPorts, L("ToolPortScanPortsLabel"));
 
         BtnCopy.ToolTip = L("ToolBtnCopyToClipboard");
+
+        BtnPresetWeb.Content = L("ToolPortScanPresetWeb");
+        BtnPresetSshRemote.Content = L("ToolPortScanPresetSshRemote");
+        BtnPresetDatabase.Content = L("ToolPortScanPresetDatabase");
+        BtnPresetCommon.Content = L("ToolPortScanPresetCommon");
+        BtnPresetFull.Content = L("ToolPortScanPresetFull");
+        ChkOpenOnly.Content = L("ToolPortScanChkOpenOnly");
+
+        System.Windows.Automation.AutomationProperties.SetName(ChkOpenOnly, L("ToolPortScanChkOpenOnly"));
+        System.Windows.Automation.AutomationProperties.SetName(BtnPresetWeb, L("ToolPortScanPresetWeb"));
+        System.Windows.Automation.AutomationProperties.SetName(BtnPresetSshRemote, L("ToolPortScanPresetSshRemote"));
+        System.Windows.Automation.AutomationProperties.SetName(BtnPresetDatabase, L("ToolPortScanPresetDatabase"));
+        System.Windows.Automation.AutomationProperties.SetName(BtnPresetCommon, L("ToolPortScanPresetCommon"));
+        System.Windows.Automation.AutomationProperties.SetName(BtnPresetFull, L("ToolPortScanPresetFull"));
     }
 
     private void OnHostKeyDown(object sender, KeyEventArgs e)
@@ -162,9 +181,11 @@ public partial class PortScannerView : UserControl, IDisposable
         }
 
         _results.Clear();
+        _allResults.Clear();
         _cts = new CancellationTokenSource();
         _isScanning = true;
         BtnScan.Content = L("ToolPortScanBtnStop");
+        BtnScan.Background = (System.Windows.Media.Brush)FindResource("ErrorBrush");
         System.Windows.Automation.AutomationProperties.SetName(BtnScan, L("ToolPortScanBtnStop"));
         TxtHost.IsReadOnly = true;
         TxtPorts.IsReadOnly = true;
@@ -188,11 +209,17 @@ public partial class PortScannerView : UserControl, IDisposable
             try
             {
                 ct.ThrowIfCancellationRequested();
-                var result = await ProbePortAsync(host, port, ct);
+                var probeResult = await ProbePortAsync(host, port, ct);
 
                 await Dispatcher.InvokeAsync(() =>
                 {
-                    _results.Add(result);
+                    var statusText = probeResult.IsOpen
+                        ? L("ToolPortScanStatusOpen")
+                        : L("ToolPortScanStatusClosed");
+                    var result = new PortScanResult(
+                        probeResult.Port, probeResult.IsOpen, probeResult.Service,
+                        probeResult.ResponseTime, statusText);
+                    _allResults.Add(result);
                     completed++;
                     ScanProgress.Value = completed;
 
@@ -203,6 +230,12 @@ public partial class PortScannerView : UserControl, IDisposable
                     else
                     {
                         closedCount++;
+                    }
+
+                    // Apply filter: only add to visible collection if matching
+                    if (ChkOpenOnly?.IsChecked != true || result.IsOpen)
+                    {
+                        _results.Add(result);
                     }
 
                     TxtOpen.Text = openCount.ToString();
@@ -238,13 +271,14 @@ public partial class PortScannerView : UserControl, IDisposable
         _cts = null;
         _isScanning = false;
         BtnScan.Content = L("ToolPortScanBtnStart");
+        BtnScan.Background = (System.Windows.Media.Brush)FindResource("AccentBrush");
         System.Windows.Automation.AutomationProperties.SetName(BtnScan, L("ToolPortScanBtnStart"));
         TxtHost.IsReadOnly = false;
         TxtPorts.IsReadOnly = false;
         ScanProgress.Visibility = Visibility.Collapsed;
     }
 
-    private static async Task<PortScanResult> ProbePortAsync(string host, int port, CancellationToken ct)
+    private static async Task<PortProbeResult> ProbePortAsync(string host, int port, CancellationToken ct)
     {
         var sw = Stopwatch.StartNew();
 
@@ -258,7 +292,7 @@ public partial class PortScannerView : UserControl, IDisposable
             sw.Stop();
 
             var service = WellKnownServices.GetValueOrDefault(port, "");
-            return new PortScanResult(port, true, service, $"{sw.ElapsedMilliseconds} ms");
+            return new PortProbeResult(port, true, service, $"{sw.ElapsedMilliseconds} ms");
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
@@ -268,7 +302,7 @@ public partial class PortScannerView : UserControl, IDisposable
         {
             sw.Stop();
             var service = WellKnownServices.GetValueOrDefault(port, "");
-            return new PortScanResult(port, false, service, "—");
+            return new PortProbeResult(port, false, service, "\u2014");
         }
     }
 
@@ -302,6 +336,36 @@ public partial class PortScannerView : UserControl, IDisposable
         }
 
         return ports.OrderBy(p => p).ToList();
+    }
+
+    private void OnPresetClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button btn && btn.Tag is string ports)
+        {
+            TxtPorts.Text = ports;
+        }
+    }
+
+    private void OnOpenOnlyChanged(object sender, RoutedEventArgs e)
+    {
+        ApplyOpenOnlyFilter();
+    }
+
+    /// <summary>
+    /// Applies the "open only" filter to the results grid.
+    /// </summary>
+    private void ApplyOpenOnlyFilter()
+    {
+        _results.Clear();
+
+        var filtered = ChkOpenOnly?.IsChecked == true
+            ? _allResults.Where(r => r.IsOpen)
+            : _allResults.AsEnumerable();
+
+        foreach (var result in filtered)
+        {
+            _results.Add(result);
+        }
     }
 
     private void OnCopyClick(object sender, RoutedEventArgs e)
@@ -348,8 +412,13 @@ public partial class PortScannerView : UserControl, IDisposable
     /// <summary>
     /// Represents a single port scan result for DataGrid binding.
     /// </summary>
-    public sealed record PortScanResult(int Port, bool IsOpen, string Service, string ResponseTime)
-    {
-        public string Status => IsOpen ? "Open" : "Closed";
-    }
+    /// <summary>
+    /// Internal result from port probing (before localization).
+    /// </summary>
+    private sealed record PortProbeResult(int Port, bool IsOpen, string Service, string ResponseTime);
+
+    /// <summary>
+    /// Represents a single port scan result for DataGrid binding.
+    /// </summary>
+    public sealed record PortScanResult(int Port, bool IsOpen, string Service, string ResponseTime, string Status);
 }
