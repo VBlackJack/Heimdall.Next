@@ -25,6 +25,7 @@
     <ProjectReference Include="..\..\src\Heimdall.Ssh\Heimdall.Ssh.csproj" />
     <ProjectReference Include="..\..\src\Heimdall.Sftp\Heimdall.Sftp.csproj" />
     <ProjectReference Include="..\..\src\Heimdall.Core\Heimdall.Core.csproj" />
+    <ProjectReference Include="..\..\src\Heimdall.Rdp\Heimdall.Rdp.csproj" />
     <ProjectReference Include="..\..\src\Heimdall.Terminal\Heimdall.Terminal.csproj" />
   </ItemGroup>
 

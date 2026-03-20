@@ -265,7 +265,7 @@ Release mode also produces Inno Setup `.exe` installers in `Dist/installers/` wi
 | RDP | ActiveX MsTscAx (WindowsFormsHost) |
 | Citrix | StoreBrowse CLI integration |
 | Crypto | System.Security.Cryptography.ProtectedData (DPAPI) |
-| Testing | xUnit + Moq + FluentAssertions (505 tests) |
+| Testing | xUnit + Moq (1,013 tests) |
 | Serialization | System.Text.Json |
 
 ---
