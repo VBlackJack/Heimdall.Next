@@ -105,10 +105,10 @@ public sealed class EphemeralFileServer : IDisposable
         if (!IsHttpRunning) return;
 
         _httpCts?.Cancel();
-        try { _httpListener?.Stop(); } catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[EphemeralFileServer] HTTP stop: {ex.Message}"); }
-        try { _httpListener?.Close(); } catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[EphemeralFileServer] HTTP close: {ex.Message}"); }
+        try { _httpListener?.Stop(); } catch (Exception ex) { Core.Logging.FileLogger.Warn($"[EphemeralFileServer] HTTP stop: {ex.Message}"); }
+        try { _httpListener?.Close(); } catch (Exception ex) { Core.Logging.FileLogger.Warn($"[EphemeralFileServer] HTTP close: {ex.Message}"); }
 
-        try { _httpTask?.Wait(TimeSpan.FromSeconds(2)); } catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[EphemeralFileServer] HTTP task wait: {ex.Message}"); }
+        try { _httpTask?.Wait(TimeSpan.FromSeconds(2)); } catch (Exception ex) { Core.Logging.FileLogger.Warn($"[EphemeralFileServer] HTTP task wait: {ex.Message}"); }
 
         _httpListener = null;
         _httpCts?.Dispose();
@@ -144,9 +144,9 @@ public sealed class EphemeralFileServer : IDisposable
         if (!IsTftpRunning) return;
 
         _tftpCts?.Cancel();
-        try { _tftpListener?.Close(); } catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[EphemeralFileServer] TFTP close: {ex.Message}"); }
+        try { _tftpListener?.Close(); } catch (Exception ex) { Core.Logging.FileLogger.Warn($"[EphemeralFileServer] TFTP close: {ex.Message}"); }
 
-        try { _tftpTask?.Wait(TimeSpan.FromSeconds(2)); } catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[EphemeralFileServer] TFTP task wait: {ex.Message}"); }
+        try { _tftpTask?.Wait(TimeSpan.FromSeconds(2)); } catch (Exception ex) { Core.Logging.FileLogger.Warn($"[EphemeralFileServer] TFTP task wait: {ex.Message}"); }
 
         _tftpListener = null;
         _tftpCts?.Dispose();
@@ -178,7 +178,7 @@ public sealed class EphemeralFileServer : IDisposable
             if (socket.LocalEndPoint is IPEndPoint endPoint)
                 return endPoint.Address.ToString();
         }
-        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[EphemeralFileServer] local IP detection: {ex.Message}"); }
+        catch (Exception ex) { Core.Logging.FileLogger.Warn($"[EphemeralFileServer] local IP detection: {ex.Message}"); }
 
         return "127.0.0.1";
     }
@@ -212,7 +212,7 @@ public sealed class EphemeralFileServer : IDisposable
                     context.Response.StatusCode = 500;
                     context.Response.Close();
                 }
-                catch (Exception closeEx) { System.Diagnostics.Debug.WriteLine($"[EphemeralFileServer] HTTP error response close: {closeEx.Message}"); }
+                catch (Exception closeEx) { Core.Logging.FileLogger.Warn($"[EphemeralFileServer] HTTP error response close: {closeEx.Message}"); }
             }
         }
     }
@@ -469,7 +469,7 @@ public sealed class EphemeralFileServer : IDisposable
             {
                 await SendTftpError(transferClient, clientEndpoint, 0, "Internal server error");
             }
-            catch (Exception sendEx) { System.Diagnostics.Debug.WriteLine($"[EphemeralFileServer] TFTP error send: {sendEx.Message}"); }
+            catch (Exception sendEx) { Core.Logging.FileLogger.Warn($"[EphemeralFileServer] TFTP error send: {sendEx.Message}"); }
         }
     }
 

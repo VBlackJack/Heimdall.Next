@@ -38,6 +38,8 @@ public partial class GatewayDialog : Window
             {
                 CancelBtn.Content = vm.Localizer["BtnCancel"];
                 SaveBtn.Content = vm.Localizer["BtnSave"];
+                System.Windows.Automation.AutomationProperties.SetName(CancelBtn, vm.Localizer["BtnCancel"]);
+                System.Windows.Automation.AutomationProperties.SetName(SaveBtn, vm.Localizer["BtnSave"]);
 
                 // Form labels
                 LblName.Text = vm.Localizer["GatewayDialogLabelName"];
@@ -49,6 +51,7 @@ public partial class GatewayDialog : Window
                 LblParentGateway.Text = vm.Localizer["GatewayDialogLabelParentGateway"];
                 LblHostKeyFingerprint.Text = vm.Localizer["GatewayDialogLabelHostKeyFingerprint"];
                 BtnBrowse.Content = vm.Localizer["GatewayDialogBtnBrowse"];
+                System.Windows.Automation.AutomationProperties.SetName(BtnBrowse, vm.Localizer["GatewayDialogBtnBrowse"]);
             }
         };
     }

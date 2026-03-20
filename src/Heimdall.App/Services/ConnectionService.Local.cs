@@ -124,7 +124,7 @@ public partial class ConnectionService
                 return gsudoPath;
             }
         }
-        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[ConnectionService] gsudo PATH lookup: {ex.Message}"); }
+        catch (Exception ex) { Core.Logging.FileLogger.Warn($"[ConnectionService] gsudo PATH lookup: {ex.Message}"); }
 
         // 3. Windows 11 24H2+ native sudo
         try
@@ -135,7 +135,7 @@ public partial class ConnectionService
                 return sudoPath;
             }
         }
-        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[ConnectionService] sudo PATH lookup: {ex.Message}"); }
+        catch (Exception ex) { Core.Logging.FileLogger.Warn($"[ConnectionService] sudo PATH lookup: {ex.Message}"); }
 
         return null;
     }

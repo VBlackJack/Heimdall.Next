@@ -230,6 +230,13 @@ public partial class EmbeddedSshView : UserControl, IDisposable
     {
         InitializeComponent();
 
+        // Set WebView2 background from theme to avoid flash of wrong color
+        if (TryFindResource("PrimaryColor") is System.Windows.Media.Color themeColor)
+        {
+            TerminalWebView.DefaultBackgroundColor =
+                System.Drawing.Color.FromArgb(themeColor.A, themeColor.R, themeColor.G, themeColor.B);
+        }
+
         Loaded += OnLoaded;
         IsVisibleChanged += OnVisibilityChanged;
     }
@@ -290,7 +297,7 @@ public partial class EmbeddedSshView : UserControl, IDisposable
 
         LocalizeButtons();
         SessionTitleText.Text = displayName;
-        EndpointTextBlock.Text = "via Plink";
+        EndpointTextBlock.Text = L("SshEndpointViaPlink");
         UpdateStatus("Connected");
 
         _terminalDataHandler = OnTerminalDataReceived;
@@ -369,8 +376,8 @@ public partial class EmbeddedSshView : UserControl, IDisposable
                 _terminalSession.ProcessExited -= _terminalExitHandler;
             }
 
-            try { _terminalSession.Kill(); } catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[EmbeddedSshView] terminal kill: {ex.Message}"); }
-            try { _terminalSession.Dispose(); } catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[EmbeddedSshView] terminal dispose: {ex.Message}"); }
+            try { _terminalSession.Kill(); } catch (Exception ex) { Core.Logging.FileLogger.Warn($"[EmbeddedSshView] terminal kill: {ex.Message}"); }
+            try { _terminalSession.Dispose(); } catch (Exception ex) { Core.Logging.FileLogger.Warn($"[EmbeddedSshView] terminal dispose: {ex.Message}"); }
             _terminalSession = null;
         }
 
@@ -379,7 +386,7 @@ public partial class EmbeddedSshView : UserControl, IDisposable
 
         if (TerminalWebView is IDisposable disposableWebView)
         {
-            try { disposableWebView.Dispose(); } catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[EmbeddedSshView] WebView dispose: {ex.Message}"); }
+            try { disposableWebView.Dispose(); } catch (Exception ex) { Core.Logging.FileLogger.Warn($"[EmbeddedSshView] WebView dispose: {ex.Message}"); }
         }
 
         while (_pendingTerminalMessages.TryDequeue(out _))
@@ -1316,7 +1323,16 @@ public partial class EmbeddedSshView : UserControl, IDisposable
             _sessionTab.Status = status;
         }
 
-        StatusTextBlock.Text = status;
+        // Display localized status text while keeping internal state identifier
+        var displayText = status switch
+        {
+            "Connected" => L("SshSessionStatusConnected"),
+            "Disconnected" => L("SshSessionStatusDisconnected"),
+            "Error" => L("SshSessionStatusError"),
+            "Connecting" => L("SshSessionStatusConnecting"),
+            _ => status
+        };
+        StatusTextBlock.Text = displayText;
 
         var isConnecting = string.Equals(status, "Connecting", StringComparison.OrdinalIgnoreCase);
         SshLoadingBar.Visibility = isConnecting ? Visibility.Visible : Visibility.Collapsed;

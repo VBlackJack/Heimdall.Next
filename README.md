@@ -147,7 +147,7 @@ Built with .NET 10 and WPF. Secure, feature-rich Windows connection manager with
 - Connection inheritance: group-level defaults for gateway, SSH username, key path
 - Empty state with welcome panel and import call-to-action
 - Fullscreen mode (F11), toggle sidebar (Ctrl+B), filter (Ctrl+F)
-- Bilingual interface: English and French (~2,034 i18n keys)
+- Bilingual interface: English and French (~2,086 i18n keys)
 
 ### Security
 - DPAPI encryption + HMAC-SHA256 integrity via unified `CredentialProtector`

@@ -112,6 +112,8 @@ public partial class EmbeddedCitrixView : UserControl, IDisposable
 
         TerminateButton.Content = localizer?["BtnTerminateSession"] ?? "Terminate";
         BringToFrontButton.Content = localizer?["BtnBringToFront"] ?? "Bring to Front";
+        System.Windows.Automation.AutomationProperties.SetName(TerminateButton, localizer?["BtnTerminateSession"] ?? "Terminate");
+        System.Windows.Automation.AutomationProperties.SetName(BringToFrontButton, localizer?["BtnBringToFront"] ?? "Bring to Front");
 
         SessionTitleText.Text = displayName;
         TitleText.Text = displayName;
@@ -332,7 +334,7 @@ public partial class EmbeddedCitrixView : UserControl, IDisposable
                 _hostPanel.ClientSize.Height,
                 true);
         }
-        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[EmbeddedCitrixView] resize: {ex.Message}"); }
+        catch (Exception ex) { Core.Logging.FileLogger.Warn($"[EmbeddedCitrixView] resize: {ex.Message}"); }
     }
 
     private void OnBringToFrontClick(object sender, RoutedEventArgs e)
@@ -349,7 +351,7 @@ public partial class EmbeddedCitrixView : UserControl, IDisposable
 
             SetForegroundWindow(hWnd);
         }
-        catch (InvalidOperationException ex) { System.Diagnostics.Debug.WriteLine($"[EmbeddedCitrixView] bring to front: {ex.Message}"); }
+        catch (InvalidOperationException ex) { Core.Logging.FileLogger.Warn($"[EmbeddedCitrixView] bring to front: {ex.Message}"); }
     }
 
     private void OnTerminateClick(object sender, RoutedEventArgs e)
@@ -359,7 +361,7 @@ public partial class EmbeddedCitrixView : UserControl, IDisposable
         if (_session?.Process is not null && !_session.Process.HasExited)
         {
             try { _session.Process.Kill(); }
-            catch (InvalidOperationException ex) { System.Diagnostics.Debug.WriteLine($"[EmbeddedCitrixView] terminate process: {ex.Message}"); }
+            catch (InvalidOperationException ex) { Core.Logging.FileLogger.Warn($"[EmbeddedCitrixView] terminate process: {ex.Message}"); }
         }
 
         UpdateStatus(false);
@@ -439,7 +441,7 @@ public partial class EmbeddedCitrixView : UserControl, IDisposable
                 SetParent(_capturedHwnd, IntPtr.Zero);
                 ShowWindow(_capturedHwnd, SwShowNormal);
             }
-            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[EmbeddedCitrixView] window release: {ex.Message}"); }
+            catch (Exception ex) { Core.Logging.FileLogger.Warn($"[EmbeddedCitrixView] window release: {ex.Message}"); }
         }
 
         _capturedHwnd = IntPtr.Zero;
@@ -461,13 +463,13 @@ public partial class EmbeddedCitrixView : UserControl, IDisposable
         ReleaseEmbeddedWindow();
 
         try { FormsHost.Child = null; }
-        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[EmbeddedCitrixView] FormsHost cleanup: {ex.Message}"); }
+        catch (Exception ex) { Core.Logging.FileLogger.Warn($"[EmbeddedCitrixView] FormsHost cleanup: {ex.Message}"); }
         _hostPanel?.Dispose();
 
         if (_session?.Process is not null && !_session.Process.HasExited)
         {
             try { _session.Process.Kill(); }
-            catch (InvalidOperationException ex) { System.Diagnostics.Debug.WriteLine($"[EmbeddedCitrixView] dispose process kill: {ex.Message}"); }
+            catch (InvalidOperationException ex) { Core.Logging.FileLogger.Warn($"[EmbeddedCitrixView] dispose process kill: {ex.Message}"); }
         }
 
         _session?.Process?.Dispose();

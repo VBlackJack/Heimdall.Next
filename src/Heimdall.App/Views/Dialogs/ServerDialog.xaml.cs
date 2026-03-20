@@ -316,6 +316,8 @@ public partial class ServerDialog : Window
         // Action buttons
         DlgSrv_CancelBtn.Content = _localizer["ServerDialogBtnCancel"];
         DlgSrv_SaveBtn.Content = _localizer["ServerDialogBtnSave"];
+        System.Windows.Automation.AutomationProperties.SetName(DlgSrv_CancelBtn, _localizer["ServerDialogBtnCancel"]);
+        System.Windows.Automation.AutomationProperties.SetName(DlgSrv_SaveBtn, _localizer["ServerDialogBtnSave"]);
 
         // Accessibility: automation names for PasswordBox controls
         System.Windows.Automation.AutomationProperties.SetName(RdpPasswordBox, _localizer["ServerDialogLabelPassword"]);

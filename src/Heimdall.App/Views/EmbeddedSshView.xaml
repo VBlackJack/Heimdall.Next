@@ -98,12 +98,16 @@
                                FontSize="12"
                                FontWeight="SemiBold"
                                Foreground="{DynamicResource TextPrimaryBrush}"
-                               VerticalAlignment="Center"/>
+                               VerticalAlignment="Center"
+                               TextTrimming="CharacterEllipsis"
+                               MaxWidth="300"/>
                     <TextBlock x:Name="EndpointTextBlock"
                                Margin="8,0,0,0"
                                FontSize="11"
                                Foreground="{DynamicResource TextSecondaryBrush}"
-                               VerticalAlignment="Center"/>
+                               VerticalAlignment="Center"
+                               TextTrimming="CharacterEllipsis"
+                               MaxWidth="250"/>
                     <TextBlock Text=" - " Foreground="{DynamicResource TextSecondaryBrush}"
                                FontSize="11" VerticalAlignment="Center"/>
                     <TextBlock x:Name="StatusTextBlock"
@@ -142,8 +146,7 @@
                     ClipToBounds="True">
                 <Grid>
                     <wv2:WebView2 x:Name="TerminalWebView"
-                                  Focusable="True"
-                                  DefaultBackgroundColor="#282A36" />
+                                  Focusable="True" />
 
                     <Border x:Name="FallbackPanel"
                             Visibility="Collapsed"

@@ -34,12 +34,13 @@ public partial class MessageDialog : Window
     /// <summary>
     /// Shows a themed information or error message with a single OK button.
     /// </summary>
-    public static void ShowMessage(Window? owner, string title, string message, string severity = "info")
+    public static void ShowMessage(Window? owner, string title, string message, string severity = "info", string primaryLabel = "OK")
     {
         var dialog = new MessageDialog { Owner = owner };
         dialog.TitleText.Text = title;
         dialog.MessageText.Text = message;
-        dialog.BtnPrimary.Content = "OK";
+        dialog.BtnPrimary.Content = primaryLabel;
+        System.Windows.Automation.AutomationProperties.SetName(dialog.BtnPrimary, primaryLabel);
 
         ApplySeverityStyle(dialog, severity);
 
@@ -64,6 +65,8 @@ public partial class MessageDialog : Window
         dialog.BtnPrimary.Content = primaryLabel;
         dialog.BtnSecondary.Content = secondaryLabel;
         dialog.BtnSecondary.Visibility = Visibility.Visible;
+        System.Windows.Automation.AutomationProperties.SetName(dialog.BtnPrimary, primaryLabel);
+        System.Windows.Automation.AutomationProperties.SetName(dialog.BtnSecondary, secondaryLabel);
 
         ApplySeverityStyle(dialog, severity);
 

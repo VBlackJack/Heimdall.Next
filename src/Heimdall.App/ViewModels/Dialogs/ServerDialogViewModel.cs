@@ -460,8 +460,8 @@ public partial class ServerDialogViewModel : ObservableValidator
     private void TestGateway()
     {
         GatewayTestMessage = UsesGateway
-            ? "Gateway diagnostics are not wired in this prototype yet."
-            : "Select a gateway and disable direct connection to test tunneling.";
+            ? Localizer?["GatewayDiagnosticsNotAvailable"] ?? "Gateway diagnostics are not available yet."
+            : Localizer?["GatewayDiagnosticsSelectGateway"] ?? "Select a gateway and disable direct connection to test tunneling.";
     }
 
     /// <summary>
