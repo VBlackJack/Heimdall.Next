@@ -16,6 +16,7 @@
 
 using System.Collections;
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace Heimdall.App.ViewModels;
@@ -56,7 +57,20 @@ public partial class FolderViewModel : ObservableObject
     [ObservableProperty]
     private ObservableCollection<ServerItemViewModel> _servers = [];
 
+    partial void OnSubFoldersChanged(ObservableCollection<FolderViewModel> value)
+    {
+        InvalidateChildren();
+        value.CollectionChanged += (_, _) => InvalidateChildren();
+    }
+
+    partial void OnServersChanged(ObservableCollection<ServerItemViewModel> value)
+    {
+        InvalidateChildren();
+        value.CollectionChanged += (_, _) => InvalidateChildren();
+    }
+
     private ArrayList? _childrenCache;
+    private int? _serverCountCache;
 
     /// <summary>
     /// Combined collection for the TreeView: sub-folders first, then servers.
@@ -78,10 +92,14 @@ public partial class FolderViewModel : ObservableObject
         }
     }
 
-    /// <summary>Invalidate the Children cache when sub-collections change.</summary>
-    public void InvalidateChildren() => _childrenCache = null;
+    /// <summary>Invalidate the Children and ServerCount caches when sub-collections change.</summary>
+    public void InvalidateChildren()
+    {
+        _childrenCache = null;
+        _serverCountCache = null;
+    }
 
-    /// <summary>Total server count (direct + recursive).</summary>
+    /// <summary>Total server count (direct + recursive). Cached; call InvalidateChildren() on structural changes.</summary>
     public int ServerCount =>
-        Servers.Count + SubFolders.Sum(f => f.ServerCount);
+        _serverCountCache ??= Servers.Count + SubFolders.Sum(f => f.ServerCount);
 }

@@ -44,6 +44,15 @@ public partial class ConnectionService
         {
             if (!string.IsNullOrWhiteSpace(server.CitrixLaunchCommandLine))
             {
+                // Validate launch command against shell metacharacters (CWE-78)
+                if (server.CitrixLaunchCommandLine.AsSpan().IndexOfAny(
+                    ['|', '&', ';', '`', '$', '\n', '\r']) >= 0)
+                {
+                    var msg = _localizer["CitrixNoConnectionConfigured"];
+                    _connectionSm.SetError(server.Id, msg);
+                    return new ConnectionResult(false, msg, null);
+                }
+
                 // Launch via SelfService.exe with pre-authenticated cache arguments
                 var selfServicePath = ResolveSelfServicePath();
                 if (selfServicePath is null)

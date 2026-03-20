@@ -148,6 +148,7 @@ Built with .NET 10 and WPF. Secure, feature-rich Windows connection manager with
 - Empty state with welcome panel and import call-to-action
 - Fullscreen mode (F11), toggle sidebar (Ctrl+B), filter (Ctrl+F)
 - Bilingual interface: English and French (~2,086 i18n keys)
+- WCAG 2.1 AA accessibility: AutomationProperties on all interactive controls, keyboard focus indicators, TextTrimming on dynamic content
 
 ### Security
 - DPAPI encryption + HMAC-SHA256 integrity via unified `CredentialProtector`
@@ -162,6 +163,8 @@ Built with .NET 10 and WPF. Secure, feature-rich Windows connection manager with
 - ConfigManager concurrency-safe writes via SemaphoreSlim
 - WebView2 Content Security Policy (CSP) and navigation blocking
 - Pageant IPC identity verification with empty-agent preflight check
+- XXE protection: DtdProcessing.Prohibit on all XML importers (mRemoteNG, RDCMan, Citrix cache)
+- Plink password file: atomic ACL creation on Windows, mode 0600 on Unix (no fallback)
 - Wake-on-LAN via UDP magic packet (right-click context menu)
 - TOFU host key fingerprints persisted across restarts
 - Session-scoped CredMan entries with deterministic cleanup

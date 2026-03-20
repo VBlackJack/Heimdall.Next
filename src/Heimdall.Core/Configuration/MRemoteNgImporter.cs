@@ -47,7 +47,13 @@ public static class MRemoteNgImporter
 
         try
         {
-            var doc = XDocument.Parse(content);
+            var xmlSettings = new System.Xml.XmlReaderSettings
+            {
+                DtdProcessing = System.Xml.DtdProcessing.Prohibit,
+                XmlResolver = null
+            };
+            using var reader = System.Xml.XmlReader.Create(new System.IO.StringReader(content), xmlSettings);
+            var doc = XDocument.Load(reader);
             var root = doc.Root;
             if (root is null) return result;
 
@@ -226,11 +232,11 @@ public static class MRemoteNgImporter
     {
         switch (type)
         {
-            case "RDP": dto.RemotePort = 3389; break;
-            case "SSH": dto.SshPort = 22; dto.RemotePort = 22; break;
-            case "VNC": dto.VncPort = 5900; dto.RemotePort = 5900; break;
-            case "Telnet": dto.TelnetPort = 23; dto.RemotePort = 23; break;
-            case "FTP": dto.FtpPort = 21; dto.RemotePort = 21; break;
+            case "RDP": dto.RemotePort = Models.DefaultPorts.Rdp; break;
+            case "SSH": dto.SshPort = Models.DefaultPorts.Ssh; dto.RemotePort = Models.DefaultPorts.Ssh; break;
+            case "VNC": dto.VncPort = Models.DefaultPorts.Vnc; dto.RemotePort = Models.DefaultPorts.Vnc; break;
+            case "Telnet": dto.TelnetPort = Models.DefaultPorts.Telnet; dto.RemotePort = Models.DefaultPorts.Telnet; break;
+            case "FTP": dto.FtpPort = Models.DefaultPorts.Ftp; dto.RemotePort = Models.DefaultPorts.Ftp; break;
         }
     }
 

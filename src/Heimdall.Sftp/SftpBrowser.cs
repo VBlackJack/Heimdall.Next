@@ -423,7 +423,7 @@ public class SftpBrowser : IRemoteBrowser
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[SftpBrowser] disconnect: {ex.Message}");
+                Heimdall.Core.Logging.FileLogger.Warn($"[SftpBrowser] disconnect: {ex.Message}");
             }
         }
 
@@ -544,13 +544,13 @@ internal static class SftpFileAttributesExtensions
     public static int GetOwnerIdOrDefault(this SftpFileAttributes attrs)
     {
         try { return attrs.UserId; }
-        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[SftpBrowser] read UserId: {ex.Message}"); return -1; }
+        catch (Exception ex) { Heimdall.Core.Logging.FileLogger.Warn($"[SftpBrowser] read UserId: {ex.Message}"); return -1; }
     }
 
     public static int GetGroupIdOrDefault(this SftpFileAttributes attrs)
     {
         try { return attrs.GroupId; }
-        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[SftpBrowser] read GroupId: {ex.Message}"); return -1; }
+        catch (Exception ex) { Heimdall.Core.Logging.FileLogger.Warn($"[SftpBrowser] read GroupId: {ex.Message}"); return -1; }
     }
 
     public static int GetPermissionsOrDefault(this SftpFileAttributes attrs)
@@ -573,7 +573,7 @@ internal static class SftpFileAttributesExtensions
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"[SftpBrowser] read permissions: {ex.Message}");
+            Heimdall.Core.Logging.FileLogger.Warn($"[SftpBrowser] read permissions: {ex.Message}");
             return 0;
         }
     }

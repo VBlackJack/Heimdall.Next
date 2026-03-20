@@ -40,6 +40,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
 {
     private static readonly TimeSpan InitialResizeEnableDelay = TimeSpan.FromSeconds(10);
     private static readonly TimeSpan BeginConnectRetryDelay = TimeSpan.FromMilliseconds(120);
+    private static readonly TimeSpan ResizeDebounceInterval = TimeSpan.FromMilliseconds(1000);
 
     private readonly DispatcherTimer _resizeTimer;
 
@@ -83,7 +84,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         InitializeComponent();
 
         _resizeTimer = new DispatcherTimer(
-            TimeSpan.FromMilliseconds(1000),
+            ResizeDebounceInterval,
             DispatcherPriority.Background,
             OnResizeTimerTick,
             Dispatcher)

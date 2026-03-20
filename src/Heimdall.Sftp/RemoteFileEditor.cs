@@ -29,7 +29,8 @@ namespace Heimdall.Sftp;
 public class RemoteFileEditor : IDisposable
 {
     /// <summary>Minimum interval between consecutive auto-uploads for the same file.</summary>
-    private static readonly TimeSpan DebounceInterval = TimeSpan.FromSeconds(2);
+    internal static readonly TimeSpan UploadDebounceInterval = TimeSpan.FromSeconds(2);
+    private const string RemoteTempPrefix = "/tmp/.heimdall_";
 
     private readonly IRemoteBrowser _browser;
     private readonly string _editorPath;
@@ -362,7 +363,7 @@ public class RemoteFileEditor : IDisposable
         }
 
         string escapedPath = PathEscaper.EscapeForShell(session.RemotePath);
-        string tempRemotePath = $"/tmp/heimdall_edit_{Guid.NewGuid():N}";
+        string tempRemotePath = $"{RemoteTempPrefix}edit_{Guid.NewGuid():N}";
 
         var connectionInfo = SshConnectionFactory.Create(session.SshParams);
         using var sftpClient = new SftpClient(connectionInfo);
@@ -483,7 +484,7 @@ internal class EditSession : IDisposable
     /// another upload (debounce guard).
     /// </summary>
     public bool ShouldUpload =>
-        (DateTime.UtcNow - LastUploadTime).TotalSeconds >= 2;
+        (DateTime.UtcNow - LastUploadTime) >= RemoteFileEditor.UploadDebounceInterval;
 
     /// <inheritdoc/>
     public void Dispose()

@@ -185,52 +185,8 @@ public partial class ConnectionViewModel : ObservableObject
 
         foreach (var session in ActiveSessions.ToList())
         {
-            // Record disconnect for the primary session (use original server ID for history)
-            var primaryHistoryId = !string.IsNullOrEmpty(session.OriginalServerId)
-                ? session.OriginalServerId : session.ServerId;
-            Core.Logging.ConnectionHistory.RecordDisconnect(
-                primaryHistoryId, session.Title, session.ConnectionType);
-
-            // Close tunnels
-            var stateData = _connectionSm.GetStateData(session.ServerId);
-            if (stateData?.TunnelLocalPort is int localPort)
-            {
-                _tunnelManager.ReleaseReference(localPort);
-            }
-
-            // Dispose secondary pane first if split
-            if (session.IsSplit)
-            {
-                if (!string.IsNullOrEmpty(session.SecondaryServerId))
-                {
-                    var secHistoryId = !string.IsNullOrEmpty(session.SecondaryOriginalServerId)
-                        ? session.SecondaryOriginalServerId : session.SecondaryServerId;
-                    Core.Logging.ConnectionHistory.RecordDisconnect(
-                        secHistoryId,
-                        session.SecondaryTitle,
-                        session.SecondaryConnectionType);
-
-                    var secondaryStateData = _connectionSm.GetStateData(session.SecondaryServerId);
-                    if (secondaryStateData?.TunnelLocalPort is int secondaryPort)
-                    {
-                        _tunnelManager.ReleaseReference(secondaryPort);
-                    }
-
-                    _connectionSm.Reset(session.SecondaryServerId);
-                }
-
-                SafeDispose(session.SecondaryHostControl as IDisposable);
-                session.SecondaryHostControl = null;
-                session.IsSplit = false;
-            }
-
-            SafeDispose(session.HostControl as IDisposable);
-            _connectionSm.Reset(session.ServerId);
+            CloseSessionInternal(session);
         }
-
-        ActiveSessions.Clear();
-        ActiveSession = null;
-        HasActiveSessions = false;
     }
 
     /// <summary>

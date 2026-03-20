@@ -51,15 +51,16 @@ public static partial class MobaXtermImporter
         [98] = "Telnet",
     };
 
-    // Default ports per protocol.
-    private static readonly Dictionary<string, int> DefaultPorts = new()
+    // Default ports per protocol — delegates to shared constants.
+    private static int GetDefaultPort(string protocol) => protocol switch
     {
-        ["SSH"] = 22,
-        ["RDP"] = 3389,
-        ["SFTP"] = 22,
-        ["FTP"] = 21,
-        ["VNC"] = 5900,
-        ["Telnet"] = 23,
+        "SSH" => Models.DefaultPorts.Ssh,
+        "RDP" => Models.DefaultPorts.Rdp,
+        "SFTP" => Models.DefaultPorts.Sftp,
+        "FTP" => Models.DefaultPorts.Ftp,
+        "VNC" => Models.DefaultPorts.Vnc,
+        "Telnet" => Models.DefaultPorts.Telnet,
+        _ => 0
     };
 
     /// <summary>
@@ -146,7 +147,7 @@ public static partial class MobaXtermImporter
             return null; // No host, skip
         }
 
-        var port = ParsePort(portStr, DefaultPorts.GetValueOrDefault(connectionType, 0));
+        var port = ParsePort(portStr, GetDefaultPort(connectionType));
 
         var sanitizedGroup = SanitizeGroupName(folder);
 
@@ -171,7 +172,7 @@ public static partial class MobaXtermImporter
         switch (connectionType)
         {
             case "SSH":
-                dto.SshPort = port > 0 ? port : DefaultPorts["SSH"];
+                dto.SshPort = port > 0 ? port : GetDefaultPort("SSH");
                 dto.SshUsername = NullIfEmpty(user);
                 dto.RemotePort = dto.SshPort;
                 dto.SshMode = "Embedded";
@@ -179,31 +180,31 @@ public static partial class MobaXtermImporter
                 break;
 
             case "RDP":
-                dto.RemotePort = port > 0 ? port : DefaultPorts["RDP"];
+                dto.RemotePort = port > 0 ? port : GetDefaultPort("RDP");
                 dto.RdpUsername = NullIfEmpty(user);
                 dto.RdpMode = "Embedded";
                 break;
 
             case "SFTP":
-                dto.SshPort = port > 0 ? port : DefaultPorts["SFTP"];
+                dto.SshPort = port > 0 ? port : GetDefaultPort("SFTP");
                 dto.SshUsername = NullIfEmpty(user);
                 dto.RemotePort = dto.SshPort;
                 break;
 
             case "FTP":
-                dto.FtpPort = port > 0 ? port : DefaultPorts["FTP"];
+                dto.FtpPort = port > 0 ? port : GetDefaultPort("FTP");
                 dto.FtpUsername = NullIfEmpty(user);
                 dto.RemotePort = dto.FtpPort;
                 ApplyFtpExtras(dto, fields);
                 break;
 
             case "VNC":
-                dto.VncPort = port > 0 ? port : DefaultPorts["VNC"];
+                dto.VncPort = port > 0 ? port : GetDefaultPort("VNC");
                 dto.RemotePort = dto.VncPort;
                 break;
 
             case "Telnet":
-                dto.TelnetPort = port > 0 ? port : DefaultPorts["Telnet"];
+                dto.TelnetPort = port > 0 ? port : GetDefaultPort("Telnet");
                 dto.TelnetUsername = NullIfEmpty(user);
                 dto.RemotePort = dto.TelnetPort;
                 break;

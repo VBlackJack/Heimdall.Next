@@ -290,9 +290,9 @@ public class ConfigManager
 
             fileInfo.SetAccessControl(security);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            // ACL application is best-effort (non-NTFS filesystems, restricted environments)
+            Logging.FileLogger.Warn($"ACL application skipped (non-NTFS or restricted): {ex.Message}");
         }
     }
 }

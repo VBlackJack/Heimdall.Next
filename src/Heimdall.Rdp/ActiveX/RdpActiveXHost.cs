@@ -429,7 +429,7 @@ public class RdpActiveXHost : AxHost, IRdpSession
         // absorbing pixel rounding differences and providing smooth resize
         // during the debounce delay before UpdateResolution kicks in.
         try { ax.AdvancedSettings2.SmartSizing = true; }
-        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[RdpActiveXHost] SmartSizing: {ex.Message}"); }
+        catch (Exception ex) { Heimdall.Core.Logging.FileLogger.Warn($"[RdpActiveXHost] SmartSizing: {ex.Message}"); }
     }
 
     private void ApplyRedirectionSettings(object ocx)
@@ -479,7 +479,7 @@ public class RdpActiveXHost : AxHost, IRdpSession
         // Allow background input — CRITICAL for anti-idle on background tabs.
         // Without this, the RDP ActiveX control discards PostMessage input
         // when it does not have focus, silently breaking anti-idle.
-        try { adv.allowBackgroundInput = 1; } catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[RdpActiveXHost] allowBackgroundInput: {ex.Message}"); }
+        try { adv.allowBackgroundInput = 1; } catch (Exception ex) { Heimdall.Core.Logging.FileLogger.Warn($"[RdpActiveXHost] allowBackgroundInput: {ex.Message}"); }
 
         // Multi-monitor (requires IMsRdpClientNonScriptable5)
         if (_pendingRedirections.MultiMonitor)
@@ -490,7 +490,7 @@ public class RdpActiveXHost : AxHost, IRdpSession
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[RdpActiveXHost] UseMultimon: {ex.Message}");
+                Heimdall.Core.Logging.FileLogger.Warn($"[RdpActiveXHost] UseMultimon: {ex.Message}");
             }
         }
     }
@@ -525,11 +525,11 @@ public class RdpActiveXHost : AxHost, IRdpSession
             if (disposing)
             {
                 try { DetachEventSink(); }
-                catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[RdpActiveXHost] Dispose DetachEventSink: {ex.Message}"); }
+                catch (Exception ex) { Heimdall.Core.Logging.FileLogger.Warn($"[RdpActiveXHost] Dispose DetachEventSink: {ex.Message}"); }
             }
 
             try { ReleaseActiveX(); }
-            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[RdpActiveXHost] Dispose ReleaseActiveX: {ex.Message}"); }
+            catch (Exception ex) { Heimdall.Core.Logging.FileLogger.Warn($"[RdpActiveXHost] Dispose ReleaseActiveX: {ex.Message}"); }
         }
 
         base.Dispose(disposing);

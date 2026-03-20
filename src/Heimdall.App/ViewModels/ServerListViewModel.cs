@@ -338,6 +338,43 @@ public partial class ServerListViewModel : ObservableObject
         }
     }
 
+    private static CredentialTarget? GetCredentialTarget(ServerProfileDto dto)
+    {
+        var connType = dto.ConnectionType?.ToUpperInvariant();
+
+        if (connType is "SSH" or "SFTP" && string.IsNullOrEmpty(dto.SshPasswordEncrypted))
+        {
+            return new CredentialTarget(
+                dto.SshPort, dto.SshUsername,
+                encrypted => dto.SshPasswordEncrypted = encrypted,
+                username => { if (string.IsNullOrEmpty(dto.SshUsername)) dto.SshUsername = username; });
+        }
+
+        if (connType is "RDP" or "CITRIX" && string.IsNullOrEmpty(dto.RdpPasswordEncrypted))
+        {
+            return new CredentialTarget(
+                dto.RemotePort, dto.RdpUsername,
+                encrypted => dto.RdpPasswordEncrypted = encrypted,
+                username => { if (string.IsNullOrEmpty(dto.RdpUsername)) dto.RdpUsername = username; });
+        }
+
+        if (connType is "FTP" && string.IsNullOrEmpty(dto.FtpPasswordEncrypted))
+        {
+            return new CredentialTarget(
+                dto.FtpPort, dto.FtpUsername,
+                encrypted => dto.FtpPasswordEncrypted = encrypted,
+                username => { if (string.IsNullOrEmpty(dto.FtpUsername)) dto.FtpUsername = username; });
+        }
+
+        return null;
+    }
+
+    private readonly record struct CredentialTarget(
+        int Port,
+        string? Username,
+        Action<string> SetPassword,
+        Action<string> SetUsernameIfEmpty);
+
     /// <summary>
     /// If the external credential provider is enabled and the server has no stored
     /// password for its connection type, executes the configured command to retrieve
@@ -360,74 +397,29 @@ public partial class ServerListViewModel : ObservableObject
             return;
         }
 
-        bool needsSshPassword = string.IsNullOrEmpty(serverDto.SshPasswordEncrypted)
-            && serverDto.ConnectionType?.ToUpperInvariant() is "SSH" or "SFTP";
-
-        bool needsRdpPassword = string.IsNullOrEmpty(serverDto.RdpPasswordEncrypted)
-            && serverDto.ConnectionType?.ToUpperInvariant() is "RDP" or "CITRIX";
-
-        bool needsFtpPassword = string.IsNullOrEmpty(serverDto.FtpPasswordEncrypted)
-            && serverDto.ConnectionType?.ToUpperInvariant() is "FTP";
-
-        if (!needsSshPassword && !needsRdpPassword && !needsFtpPassword)
+        var credTarget = GetCredentialTarget(serverDto);
+        if (credTarget is null)
         {
             return;
         }
 
         try
         {
-            var host = serverDto.RemoteServer;
-            var port = needsRdpPassword ? serverDto.RemotePort
-                : needsFtpPassword ? serverDto.FtpPort
-                : serverDto.SshPort;
-            var username = needsRdpPassword ? serverDto.RdpUsername
-                : needsFtpPassword ? serverDto.FtpUsername
-                : serverDto.SshUsername;
-
             var credential = await provider.GetCredentialAsync(
-                host, port, username, serverDto.DisplayName, ct);
+                serverDto.RemoteServer, credTarget.Value.Port,
+                credTarget.Value.Username, serverDto.DisplayName, ct);
 
             if (credential is null)
             {
                 return;
             }
 
-            // Inject the retrieved password as a DPAPI-encrypted value so all
-            // downstream DecryptPassword/CredentialProtector.Unprotect calls work.
             var encrypted = CredentialProtector.Protect(credential.Password);
+            credTarget.Value.SetPassword(encrypted);
 
-            if (needsSshPassword)
-            {
-                serverDto.SshPasswordEncrypted = encrypted;
-            }
-
-            if (needsRdpPassword)
-            {
-                serverDto.RdpPasswordEncrypted = encrypted;
-            }
-
-            if (needsFtpPassword)
-            {
-                serverDto.FtpPasswordEncrypted = encrypted;
-            }
-
-            // If the provider returned a username and the server has none, inject it
             if (!string.IsNullOrEmpty(credential.Username))
             {
-                if (needsSshPassword && string.IsNullOrEmpty(serverDto.SshUsername))
-                {
-                    serverDto.SshUsername = credential.Username;
-                }
-
-                if (needsRdpPassword && string.IsNullOrEmpty(serverDto.RdpUsername))
-                {
-                    serverDto.RdpUsername = credential.Username;
-                }
-
-                if (needsFtpPassword && string.IsNullOrEmpty(serverDto.FtpUsername))
-                {
-                    serverDto.FtpUsername = credential.Username;
-                }
+                credTarget.Value.SetUsernameIfEmpty(credential.Username);
             }
 
             Core.Logging.FileLogger.Info(

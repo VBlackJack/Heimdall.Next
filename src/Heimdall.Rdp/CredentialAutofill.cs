@@ -291,7 +291,7 @@ public static partial class CredentialAutofill
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"[CredentialAutofill] IsCredentialBroker: {ex.Message}");
+            FileLogger.Warn($"[CredentialAutofill] IsCredentialBroker: {ex.Message}");
             return false;
         }
     }
@@ -655,7 +655,7 @@ public static partial class CredentialAutofill
                 }, IntPtr.Zero);
             }
         }
-        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[CredentialAutofill] thread enumeration: {ex.Message}"); }
+        catch (Exception ex) { FileLogger.Warn($"[CredentialAutofill] thread enumeration: {ex.Message}"); }
 
         return result;
     }
@@ -708,7 +708,7 @@ public static partial class CredentialAutofill
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"[CredentialAutofill] GetProcessName: {ex.Message}");
+            FileLogger.Warn($"[CredentialAutofill] GetProcessName: {ex.Message}");
             return string.Empty;
         }
     }
@@ -721,7 +721,7 @@ public static partial class CredentialAutofill
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"[CredentialAutofill] SafeAutomationName: {ex.Message}");
+            FileLogger.Warn($"[CredentialAutofill] SafeAutomationName: {ex.Message}");
             return string.Empty;
         }
     }
@@ -734,7 +734,7 @@ public static partial class CredentialAutofill
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"[CredentialAutofill] SafeAutomationId: {ex.Message}");
+            FileLogger.Warn($"[CredentialAutofill] SafeAutomationId: {ex.Message}");
             return string.Empty;
         }
     }
@@ -748,7 +748,7 @@ public static partial class CredentialAutofill
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"[CredentialAutofill] SafeAutomationBool: {ex.Message}");
+            FileLogger.Warn($"[CredentialAutofill] SafeAutomationBool: {ex.Message}");
             return false;
         }
     }

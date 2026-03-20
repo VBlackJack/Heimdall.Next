@@ -257,7 +257,7 @@ public sealed class SshShellSession : IDisposable
             try
             {
                 _readCts.Cancel();
-                _readLoopTask?.Wait(TimeSpan.FromSeconds(2));
+                _readLoopTask?.Wait(TimeSpan.FromMilliseconds(500));
             }
             catch (AggregateException)
             {

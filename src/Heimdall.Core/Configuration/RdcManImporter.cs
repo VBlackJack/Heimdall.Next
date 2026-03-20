@@ -33,7 +33,13 @@ public static class RdcManImporter
 
         try
         {
-            var doc = XDocument.Parse(content);
+            var xmlSettings = new System.Xml.XmlReaderSettings
+            {
+                DtdProcessing = System.Xml.DtdProcessing.Prohibit,
+                XmlResolver = null
+            };
+            using var reader = System.Xml.XmlReader.Create(new System.IO.StringReader(content), xmlSettings);
+            var doc = XDocument.Load(reader);
             var root = doc.Root;
             if (root is null) return result;
 
