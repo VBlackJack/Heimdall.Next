@@ -94,7 +94,13 @@ public static class CitrixCacheScanner
 
     private static void ParseCacheFile(string filePath, CitrixScanResult result)
     {
-        var doc = XDocument.Load(filePath);
+        var xmlSettings = new System.Xml.XmlReaderSettings
+        {
+            DtdProcessing = System.Xml.DtdProcessing.Prohibit,
+            XmlResolver = null
+        };
+        using var reader = System.Xml.XmlReader.Create(filePath, xmlSettings);
+        var doc = XDocument.Load(reader);
 
         // Use LocalName to be namespace-agnostic (future Citrix versions may add xmlns)
         var resources = doc.Descendants().Where(e => e.Name.LocalName == "resource");
@@ -124,7 +130,7 @@ public static class CitrixCacheScanner
                     var uri = new Uri(icaUrl);
                     storeUrl = $"{uri.Scheme}://{uri.Host}";
                 }
-                catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[CitrixCacheScanner] malformed URL: {ex.Message}"); }
+                catch (Exception ex) { Heimdall.Core.Logging.FileLogger.Warn($"[CitrixCacheScanner] malformed URL: {ex.Message}"); }
             }
 
             result.Resources.Add(new CitrixResource

@@ -40,7 +40,7 @@ public sealed record ServerHealthData(
 /// </summary>
 public sealed class ServerHealthMonitor : IDisposable
 {
-    private static readonly int DefaultPollIntervalSeconds = 5;
+    private static readonly int DefaultPollIntervalSeconds = 15;
 
     private static readonly Regex CpuIdleRegex = new(
         @"%?Cpu.*?:\s.*?(\d+[\.,]\d+)\s*id",
@@ -97,7 +97,7 @@ public sealed class ServerHealthMonitor : IDisposable
         try
         {
             _cts.Cancel();
-            _pollTask?.Wait(TimeSpan.FromSeconds(3));
+            _pollTask?.Wait(TimeSpan.FromMilliseconds(500));
         }
         catch (AggregateException)
         {
@@ -134,7 +134,7 @@ public sealed class ServerHealthMonitor : IDisposable
                     break;
                 }
 
-                var data = CollectHealthData(client);
+                var data = await CollectHealthDataAsync(client).ConfigureAwait(false);
                 if (data is not null)
                 {
                     HealthUpdated?.Invoke(data);
@@ -161,54 +161,55 @@ public sealed class ServerHealthMonitor : IDisposable
         }
     }
 
-    private static ServerHealthData? CollectHealthData(SshClient client)
+    private static async Task<ServerHealthData?> CollectHealthDataAsync(SshClient client)
     {
         double cpuPercent = 0;
         long memTotal = 0, memUsed = 0, memFree = 0;
         string diskUsed = "?", diskTotal = "?";
         int diskPercent = 0;
 
-        // CPU usage
-        try
-        {
-            using var cpuCmd = client.RunCommand("top -b -n 1 | head -5");
-            if (cpuCmd.ExitStatus == 0 && !string.IsNullOrWhiteSpace(cpuCmd.Result))
-            {
-                cpuPercent = ParseCpuUsage(cpuCmd.Result);
-            }
-        }
-        catch (Exception ex)
-        {
-            FileLogger.Warn($"ServerHealthMonitor CPU command failed: {ex.Message}");
-        }
+        // Run all 3 health queries in parallel via Task.Run to avoid
+        // blocking the poll loop on sequential SSH.NET RunCommand calls.
+        string? cpuResult = null, memResult = null, diskResult = null;
 
-        // RAM usage
-        try
-        {
-            using var memCmd = client.RunCommand("free -m | grep Mem");
-            if (memCmd.ExitStatus == 0 && !string.IsNullOrWhiteSpace(memCmd.Result))
+        await Task.WhenAll(
+            Task.Run(() =>
             {
-                ParseMemory(memCmd.Result, out memTotal, out memUsed, out memFree);
-            }
-        }
-        catch (Exception ex)
-        {
-            FileLogger.Warn($"ServerHealthMonitor RAM command failed: {ex.Message}");
-        }
+                try
+                {
+                    using var cmd = client.RunCommand("top -b -n 1 | head -5");
+                    if (cmd.ExitStatus == 0) cpuResult = cmd.Result;
+                }
+                catch (Exception ex) { FileLogger.Warn($"ServerHealthMonitor CPU command failed: {ex.Message}"); }
+            }),
+            Task.Run(() =>
+            {
+                try
+                {
+                    using var cmd = client.RunCommand("free -m | grep Mem");
+                    if (cmd.ExitStatus == 0) memResult = cmd.Result;
+                }
+                catch (Exception ex) { FileLogger.Warn($"ServerHealthMonitor RAM command failed: {ex.Message}"); }
+            }),
+            Task.Run(() =>
+            {
+                try
+                {
+                    using var cmd = client.RunCommand("df -h / | tail -1");
+                    if (cmd.ExitStatus == 0) diskResult = cmd.Result;
+                }
+                catch (Exception ex) { FileLogger.Warn($"ServerHealthMonitor disk command failed: {ex.Message}"); }
+            })
+        ).ConfigureAwait(false);
 
-        // Disk usage
-        try
-        {
-            using var diskCmd = client.RunCommand("df -h / | tail -1");
-            if (diskCmd.ExitStatus == 0 && !string.IsNullOrWhiteSpace(diskCmd.Result))
-            {
-                ParseDisk(diskCmd.Result, out diskUsed, out diskTotal, out diskPercent);
-            }
-        }
-        catch (Exception ex)
-        {
-            FileLogger.Warn($"ServerHealthMonitor Disk command failed: {ex.Message}");
-        }
+        if (!string.IsNullOrWhiteSpace(cpuResult))
+            cpuPercent = ParseCpuUsage(cpuResult);
+
+        if (!string.IsNullOrWhiteSpace(memResult))
+            ParseMemory(memResult, out memTotal, out memUsed, out memFree);
+
+        if (!string.IsNullOrWhiteSpace(diskResult))
+            ParseDisk(diskResult, out diskUsed, out diskTotal, out diskPercent);
 
         return new ServerHealthData(cpuPercent, memTotal, memUsed, memFree, diskUsed, diskTotal, diskPercent);
     }

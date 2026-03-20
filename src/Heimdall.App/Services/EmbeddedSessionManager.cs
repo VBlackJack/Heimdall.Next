@@ -135,10 +135,10 @@ public sealed class EmbeddedSessionManager
             };
 
             // Edit in embedded editor: swap file browser with AvalonEdit editor
-            fileBrowser.EditInEditorRequested += (path) =>
+            fileBrowser.EditInEditorRequested += async (path) =>
             {
                 var editorView = new Views.EmbeddedEditorView();
-                editorView.OpenFile(path);
+                await editorView.OpenFile(path);
 
                 // When editor closes, restore the file browser
                 editorView.CloseRequested += () =>

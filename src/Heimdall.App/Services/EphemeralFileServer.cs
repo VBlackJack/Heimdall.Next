@@ -69,6 +69,7 @@ public sealed class EphemeralFileServer : IDisposable
     /// </summary>
     public void StartHttpServer(string directory, int port = DefaultPorts.Http)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(directory);
         if (IsHttpRunning) StopHttpServer();
 
         _servingDirectory = Path.GetFullPath(directory);
@@ -125,6 +126,7 @@ public sealed class EphemeralFileServer : IDisposable
     /// </summary>
     public void StartTftpServer(string directory, int port = DefaultPorts.Tftp)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(directory);
         if (IsTftpRunning) StopTftpServer();
 
         _servingDirectory = Path.GetFullPath(directory);

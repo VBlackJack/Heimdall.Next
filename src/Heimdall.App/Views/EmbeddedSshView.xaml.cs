@@ -48,6 +48,13 @@ public partial class EmbeddedSshView : UserControl, IDisposable
 
     private static readonly byte[] KeepAliveCr = [0x0D];
 
+    private const string MsgOpenUrl = "open-url:";
+    private const string MsgReady = "ready:";
+    private const string MsgResize = "resize:";
+    private const string MsgInput = "input:";
+    private const string MsgClipboardWrite = "clipboard-write:";
+    private const string MsgClipboardRead = "clipboard-read:";
+
     /// <summary>
     /// Maps color scheme names to xterm.js theme JSON object literals.
     /// Keys must match the values stored in <see cref="AppSettings.TerminalColorScheme"/>.
@@ -684,7 +691,7 @@ public partial class EmbeddedSshView : UserControl, IDisposable
         }
 
         // Open URL: terminal requests to open a link in the default browser
-        if (message.StartsWith("open-url:", StringComparison.Ordinal))
+        if (message.StartsWith(MsgOpenUrl, StringComparison.Ordinal))
         {
             var url = message["open-url:".Length..];
             if (Uri.TryCreate(url, UriKind.Absolute, out var uri)
@@ -706,7 +713,7 @@ public partial class EmbeddedSshView : UserControl, IDisposable
             return;
         }
 
-        if (message.StartsWith("ready:", StringComparison.Ordinal))
+        if (message.StartsWith(MsgReady, StringComparison.Ordinal))
         {
             _terminalReady = true;
             Core.Logging.FileLogger.Info($"EmbeddedSSH terminal ready: {message}");
@@ -721,7 +728,7 @@ public partial class EmbeddedSshView : UserControl, IDisposable
             return;
         }
 
-        if (message.StartsWith("resize:", StringComparison.Ordinal))
+        if (message.StartsWith(MsgResize, StringComparison.Ordinal))
         {
             if (TryParseSize(message.AsSpan("resize:".Length), out var cols, out var rows))
             {
@@ -730,7 +737,7 @@ public partial class EmbeddedSshView : UserControl, IDisposable
             return;
         }
 
-        if (message.StartsWith("input:", StringComparison.Ordinal))
+        if (message.StartsWith(MsgInput, StringComparison.Ordinal))
         {
             var base64 = message["input:".Length..];
 
@@ -750,7 +757,7 @@ public partial class EmbeddedSshView : UserControl, IDisposable
         }
 
         // Clipboard write: terminal wants to copy text to system clipboard
-        if (message.StartsWith("clipboard-write:", StringComparison.Ordinal))
+        if (message.StartsWith(MsgClipboardWrite, StringComparison.Ordinal))
         {
             try
             {
@@ -770,7 +777,7 @@ public partial class EmbeddedSshView : UserControl, IDisposable
 
         // Clipboard read: terminal requests paste from system clipboard
         // Protected by SmartPasteGuard to prevent dangerous multi-line or destructive pastes.
-        if (message.StartsWith("clipboard-read:", StringComparison.Ordinal))
+        if (message.StartsWith(MsgClipboardRead, StringComparison.Ordinal))
         {
             try
             {

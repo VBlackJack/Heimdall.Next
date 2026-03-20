@@ -10,7 +10,7 @@
 
 # Architecture
 
-Heimdall.Next is a .NET 10 WPF application organized as a multi-project solution with strict dependency boundaries. Supports RDP, SSH, SFTP, FTP, VNC, Telnet, Citrix, and Local Shell connection types with ~2,086 i18n keys per locale (EN/FR).
+Heimdall.Next is a .NET 10 WPF application organized as a multi-project solution with strict dependency boundaries. Supports RDP, SSH, SFTP, FTP, VNC, Telnet, Citrix, and Local Shell connection types with ~2,086 i18n keys per locale (EN/FR). Health monitor polls in parallel (Task.WhenAll), XML importers hardened against XXE, all Debug.WriteLine replaced with FileLogger.
 
 ## Solution Structure
 
@@ -364,7 +364,9 @@ Error state reachable from Ready or Busy.
 | Pageant IPC | Process owner identity verification before shared memory access |
 | Credential autofill | Scoped to mstsc process lineage + host hint matching, `#32770` class excluded |
 | RDP CredMan | Session-scoped persistence, deterministic cleanup after session launch |
-| Temp file security | ACL enforcement on .rdp files, Plink -pwfile, SFTP edit directories |
+| Temp file security | ACL enforcement on .rdp files, Plink -pwfile (atomic ACL, no fallback), SFTP edit directories |
+| XXE prevention | `DtdProcessing.Prohibit` + `XmlResolver = null` on all XML importers |
+| Citrix argument validation | Shell metacharacter check on `CitrixLaunchCommandLine` before `Process.Start` |
 | SSH host trust | TOFU fingerprints persisted to `settings.json`, loaded at startup |
 | File writes | UTF-8 without BOM via `SecureFileWriter` |
 | Memory | Credentials cleared after COM injection, `SecureString` for handoff paths |

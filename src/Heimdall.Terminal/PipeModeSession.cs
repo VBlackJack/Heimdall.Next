@@ -97,7 +97,7 @@ public class PipeModeSession : ITerminalSession
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"[PipeModeSession] Write: {ex.Message}");
+            Heimdall.Core.Logging.FileLogger.Warn($"[PipeModeSession] Write: {ex.Message}");
         }
     }
 
@@ -124,7 +124,7 @@ public class PipeModeSession : ITerminalSession
                 _process.WaitForExit(3000);
             }
         }
-        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[PipeModeSession] Kill: {ex.Message}"); }
+        catch (Exception ex) { Heimdall.Core.Logging.FileLogger.Warn($"[PipeModeSession] Kill: {ex.Message}"); }
     }
 
     public void Dispose()
@@ -135,7 +135,7 @@ public class PipeModeSession : ITerminalSession
         _cts?.Cancel();
         Kill();
 
-        try { _process?.Dispose(); } catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[PipeModeSession] Dispose process: {ex.Message}"); }
+        try { _process?.Dispose(); } catch (Exception ex) { Heimdall.Core.Logging.FileLogger.Warn($"[PipeModeSession] Dispose process: {ex.Message}"); }
         _process = null;
         _cts?.Dispose();
         _cts = null;
@@ -157,13 +157,13 @@ public class PipeModeSession : ITerminalSession
             }
         }
         catch (OperationCanceledException) { /* Expected when session is disposed or cancelled */ }
-        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[PipeModeSession] ReadStreamLoop: {ex.Message}"); }
+        catch (Exception ex) { Heimdall.Core.Logging.FileLogger.Warn($"[PipeModeSession] ReadStreamLoop: {ex.Message}"); }
     }
 
     private void OnProcessExited(object? sender, EventArgs e)
     {
         var exitCode = 0;
-        try { exitCode = _process?.ExitCode ?? -1; } catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[PipeModeSession] OnProcessExited: {ex.Message}"); }
+        try { exitCode = _process?.ExitCode ?? -1; } catch (Exception ex) { Heimdall.Core.Logging.FileLogger.Warn($"[PipeModeSession] OnProcessExited: {ex.Message}"); }
         ProcessExited?.Invoke(exitCode);
     }
 }

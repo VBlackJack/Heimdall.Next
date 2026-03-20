@@ -345,7 +345,7 @@ public partial class MainViewModel : ObservableObject
         if (string.Equals(connectionType, "SSH", StringComparison.OrdinalIgnoreCase)
             && _currentSettings?.SftpAutoOpenOnSsh == true)
         {
-            _ = AutoOpenSftpAsync(tab, originalServerId);
+            _ = SafeFireAndForgetAsync(AutoOpenSftpAsync(tab, originalServerId));
         }
     }
 
@@ -355,7 +355,7 @@ public partial class MainViewModel : ObservableObject
     /// </summary>
     private void OnReconnectRequested(SessionTabViewModel tab, string serverId, string connectionType)
     {
-        _ = OnReconnectRequestedAsync(tab, serverId, connectionType);
+        _ = SafeFireAndForgetAsync(OnReconnectRequestedAsync(tab, serverId, connectionType));
     }
 
     private async Task OnReconnectRequestedAsync(SessionTabViewModel tab, string serverId, string connectionType)
@@ -757,6 +757,18 @@ public partial class MainViewModel : ObservableObject
     {
         _taskScheduler.Stop();
         _taskScheduler.Dispose();
+    }
+
+    private static async Task SafeFireAndForgetAsync(Task task)
+    {
+        try
+        {
+            await task.ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            Core.Logging.FileLogger.Error($"Fire-and-forget task failed: {ex.Message}", ex);
+        }
     }
 
     /// <summary>

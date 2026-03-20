@@ -67,7 +67,7 @@ public partial class EmbeddedEditorView : UserControl
     /// <summary>
     /// Opens a file for editing with automatic syntax detection.
     /// </summary>
-    public async void OpenFile(string filePath)
+    public async Task OpenFile(string filePath)
     {
         _filePath = filePath;
         _isModified = false;

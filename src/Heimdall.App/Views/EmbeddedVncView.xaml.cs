@@ -104,7 +104,7 @@ public partial class EmbeddedVncView : UserControl, IDisposable
 
             var env = await Services.WebView2Helper.CreateEnvironmentAsync("VNC");
 
-            await VncWebView.EnsureCoreWebView2Async(env).ConfigureAwait(true);
+            await VncWebView.EnsureCoreWebView2Async(env);
 
             VncWebView.CoreWebView2.Settings.AreDefaultContextMenusEnabled = false;
             VncWebView.CoreWebView2.Settings.AreDevToolsEnabled = false;

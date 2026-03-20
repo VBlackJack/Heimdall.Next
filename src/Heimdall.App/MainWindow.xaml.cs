@@ -114,59 +114,73 @@ public partial class MainWindow : Window
     {
         if (DataContext is not MainViewModel vm) return;
 
-        // App title
+        ApplyNavigationLocalization(vm);
+        ApplyToolbarLocalization(vm);
+        ApplyTunnelLocalization(vm);
+        ApplyScheduledLocalization(vm);
+        ApplySettingsLocalization(vm);
+        ApplyAboutLocalization(vm);
+        ApplyAccessibilityLocalization(vm);
+    }
+
+    private void ApplyNavigationLocalization(MainViewModel vm)
+    {
         Mw_AppTitle.Text = vm.Localize("AppName");
 
-        // Navigation tabs
         TabServers.Content = vm.Localize("NavTabServers");
         TabTunnels.Content = vm.Localize("NavTabTunnels");
         TabScheduled.Content = vm.Localize("NavTabScheduled");
         TabSettings.Content = vm.Localize("NavTabSettings");
         TabAbout.Content = vm.Localize("NavTabAbout");
 
-        // Search / filter
         SearchBox.Tag = vm.Localize("SearchPlaceholder");
         Mw_FilterBox.Tag = vm.Localize("FilterServersPlaceholder");
 
-        // Sidebar toggle
+        FullscreenBar.ToolTip = vm.Localize("TooltipExitFullscreenEsc");
+
+        Mw_StatusTunnelToggle.ToolTip = vm.Localize("TunnelPanelToggle");
+        Mw_StatusBarServersLabel.Text = " " + vm.Localize("StatusBarServers") + " " + vm.Localize("StatusBarSeparator");
+        Mw_StatusBarTunnelsLabel.Text = " " + vm.Localize("StatusBarTunnels");
+
+        Mw_PaletteNoResults.Text = vm.Localize("QuickConnectNoResults");
+        Mw_PaletteHints.Text = vm.Localize("QuickConnectHints");
+    }
+
+    private void ApplyToolbarLocalization(MainViewModel vm)
+    {
         ToggleSidebarButton.ToolTip = vm.Localize("TooltipHideSidebar");
         ShowSidebarButton.ToolTip = vm.Localize("TooltipShowSidebar");
         AddButton.ToolTip = vm.Localize("TooltipAddMenu");
         ExpandAllButton.ToolTip = vm.Localize("TooltipExpandAll");
         CollapseAllButton.ToolTip = vm.Localize("TooltipCollapseAll");
 
-        // Add menu
         Mw_AddMenuServer.Header = vm.Localize("AddMenuServer");
         Mw_AddMenuGateway.Header = vm.Localize("AddMenuGateway");
         Mw_AddMenuFolder.Header = vm.Localize("AddMenuFolder");
 
-        // Share folder button
         Mw_ShareFolderLabel.Text = vm.Localize("ToolsShareFolder");
-
-        // Quick Connect button
         Mw_QuickConnectLabel.Text = vm.Localize("QuickConnectShortcut");
 
-        // Server detail panel
         Mw_DetailGroupLabel.Text = vm.Localize("DetailLabelGroup");
         Mw_DetailEnvLabel.Text = vm.Localize("DetailLabelEnvironment");
         Mw_DetailConnectBtn.Content = vm.Localize("DetailBtnConnect");
 
-        // Empty state (no servers)
         Mw_EmptyStateTitle.Text = vm.Localize("EmptyStateTitle");
         Mw_EmptyStateSubtitle.Text = vm.Localize("EmptyStateSubtitle");
         Mw_EmptyBtnAddServer.Content = vm.Localize("EmptyStateBtnAddServer");
         Mw_EmptyBtnImport.Content = vm.Localize("EmptyStateBtnImport");
         Mw_EmptyBtnImport.ToolTip = vm.Localize("TooltipImport");
         Mw_EmptySelectServer.Text = vm.Localize("EmptyStateSelectServer");
+    }
 
-        // Tunnel bottom panel
+    private void ApplyTunnelLocalization(MainViewModel vm)
+    {
         Mw_TunnelPanelCollapseBtn.ToolTip = vm.Localize("TunnelPanelCollapse");
         Mw_TunnelPanelCloseAllBtn.Content = vm.Localize("TunnelsBtnCloseAll");
         Mw_TunnelPanelEmpty.Text = vm.Localize("TunnelsEmptyState");
 
         Mw_TunnelPanelGrid.Tag = vm.Localize("TooltipCloseTunnel");
 
-        // Tunnel panel header: "Tunnels ({0})" split around the dynamic count
         var tunnelHeader = vm.Localize("TunnelPanelHeader");
         var placeholderIdx = tunnelHeader.IndexOf("{0}", StringComparison.Ordinal);
         if (placeholderIdx >= 0)
@@ -179,59 +193,56 @@ public partial class MainWindow : Window
             Mw_TunnelPanelHeaderPrefix.Text = tunnelHeader;
         }
 
-        // Tunnel bottom panel columns
         Mw_TpColGateway.Header = vm.Localize("TunnelsColGateway");
         Mw_TpColLocal.Header = vm.Localize("TunnelPanelColLocal");
         Mw_TpColRemote.Header = vm.Localize("TunnelPanelColRemote");
         Mw_TpColPort.Header = vm.Localize("TunnelPanelColPort");
 
-        // Tunnel context menu
         Mw_TpCtxClose.Header = vm.Localize("TunnelCtxClose");
         Mw_TpCtxCopyPort.Header = vm.Localize("TunnelCtxCopyPort");
         Mw_TpCtxCloseAll.Header = vm.Localize("TunnelCtxCloseAll");
 
-        // Tunnels tab
         Mw_TunnelsTitle.Text = vm.Localize("TunnelsSectionTitle");
         Mw_TunnelsCloseSelectedBtn.Content = vm.Localize("TunnelsBtnCloseSelected");
         Mw_TunnelsCloseAllBtn.Content = vm.Localize("TunnelsBtnCloseAll");
         Mw_TunnelsEmpty.Text = vm.Localize("TunnelsEmptyState");
 
-        // Tunnels tab columns
         Mw_TunnelsColGateway.Header = vm.Localize("TunnelsColGateway");
         Mw_TunnelsColLocalPort.Header = vm.Localize("TunnelsColLocalPort");
         Mw_TunnelsColRemoteHost.Header = vm.Localize("TunnelsColRemoteHost");
         Mw_TunnelsColRemotePort.Header = vm.Localize("TunnelsColRemotePort");
         Mw_TunnelsColStarted.Header = vm.Localize("TunnelsColStarted");
 
-        // Gateways section (Tunnels tab)
         Mw_GatewaysTitle.Text = vm.Localize("GatewaysSectionTitle");
         Mw_GatewaysAddBtn.Content = vm.Localize("GatewaysBtnAdd");
         Mw_GatewaysEditBtn.Content = vm.Localize("GatewaysBtnEdit");
         Mw_GatewaysDeleteBtn.Content = vm.Localize("GatewaysBtnDelete");
 
-        // Gateways columns
         Mw_GatewaysColName.Header = vm.Localize("GatewaysColName");
         Mw_GatewaysColHost.Header = vm.Localize("GatewaysColHost");
         Mw_GatewaysColPort.Header = vm.Localize("GatewaysColPort");
         Mw_GatewaysColUser.Header = vm.Localize("GatewaysColUser");
         Mw_GatewaysColAuth.Header = vm.Localize("GatewaysColAuth");
+    }
 
-        // Scheduled tab
+    private void ApplyScheduledLocalization(MainViewModel vm)
+    {
         Mw_ScheduledTitle.Text = vm.Localize("ScheduledSectionTitle");
         Mw_ScheduledAddBtn.Content = vm.Localize("ScheduledBtnAdd");
         Mw_ScheduledDeleteBtn.Content = vm.Localize("ScheduledBtnDelete");
         Mw_ScheduledEmpty.Text = vm.Localize("ScheduledEmptyState");
         Mw_ScheduledCreateBtn.Content = vm.Localize("ScheduledEmptyAddButton");
 
-        // Scheduled columns
         Mw_ScheduledColEnabled.Header = vm.Localize("ScheduledColEnabled");
         Mw_ScheduledColServer.Header = vm.Localize("ScheduledColServer");
         Mw_ScheduledColType.Header = vm.Localize("ScheduledColType");
         Mw_ScheduledColSchedule.Header = vm.Localize("ScheduledColSchedule");
         Mw_ScheduledColLastRun.Header = vm.Localize("ScheduledColLastRun");
         Mw_ScheduledColNextRun.Header = vm.Localize("ScheduledColNextRun");
+    }
 
-        // Settings sub-tab headers
+    private void ApplySettingsLocalization(MainViewModel vm)
+    {
         Mw_SettingsTabGeneral.Header = vm.Localize("SettingsTabGeneral");
         Mw_SettingsTabTerminal.Header = vm.Localize("SettingsTabTerminal");
         Mw_SettingsTabSsh.Header = vm.Localize("SettingsTabSshSftp");
@@ -239,7 +250,6 @@ public partial class MainWindow : Window
         Mw_SettingsTabSecurity.Header = vm.Localize("SettingsTabSecurity");
         Mw_SettingsTabAdvanced.Header = vm.Localize("SettingsTabAdvanced");
 
-        // Settings - General
         Mw_SettingsAppearanceTitle.Text = vm.Localize("SettingsSectionAppearance");
         Mw_SettingsLanguageLabel.Text = vm.Localize("SettingsLabelLanguage");
         Mw_SettingsThemeLabel.Text = vm.Localize("SettingsLabelTheme");
@@ -249,13 +259,11 @@ public partial class MainWindow : Window
         Mw_SettingsPreventSleep.Content = vm.Localize("SettingsLabelPreventSleep");
         Mw_SettingsEditorPathLabel.Text = vm.Localize("SettingsLabelEditorPath");
 
-        // Settings - Terminal
         Mw_SettingsTerminalTitle.Text = vm.Localize("SettingsSectionTerminal");
         Mw_SettingsTerminalFontLabel.Text = vm.Localize("SettingsLabelTerminalFont");
         Mw_SettingsTerminalFontSizeLabel.Text = vm.Localize("SettingsLabelTerminalFontSize");
         Mw_SettingsTerminalColorSchemeLabel.Text = vm.Localize("SettingsLabelTerminalColorScheme");
 
-        // Settings - SSH & SFTP
         Mw_SettingsSshTitle.Text = vm.Localize("SettingsSectionSshDefaults");
         Mw_SettingsPlinkPathLabel.Text = vm.Localize("SettingsLabelPlinkPath");
         Mw_SettingsSshModeLabel.Text = vm.Localize("SettingsLabelSshMode");
@@ -271,7 +279,6 @@ public partial class MainWindow : Window
         Mw_SettingsGatewaysEditBtn.Content = vm.Localize("GatewaysBtnEdit");
         Mw_SettingsGatewaysDeleteBtn.Content = vm.Localize("GatewaysBtnDelete");
 
-        // Settings - RDP
         Mw_SettingsRdpDefaultsTitle.Text = vm.Localize("SettingsSectionRdpDefaults");
         Mw_SettingsRdpModeLabel.Text = vm.Localize("SettingsLabelRdpMode");
         Mw_RdpModeEmbedded.Content = vm.Localize("SettingsSshModeEmbedded");
@@ -297,14 +304,12 @@ public partial class MainWindow : Window
         Mw_SettingsRdpDrives.Content = vm.Localize("ServerDialogRedirectDrives");
         Mw_SettingsRdpPrinters.Content = vm.Localize("ServerDialogRedirectPrinters");
 
-        // Settings - Security
         Mw_SettingsCredProviderTitle.Text = vm.Localize("SettingsSectionCredentialProvider");
         Mw_SettingsCredProviderEnabled.Content = vm.Localize("SettingsLabelCredProviderEnabled");
         Mw_SettingsCredProviderCmdLabel.Text = vm.Localize("SettingsLabelCredProviderCommand");
         Mw_SettingsCredProviderDbLabel.Text = vm.Localize("SettingsLabelCredProviderDatabase");
         Mw_SettingsCredGuard.Content = vm.Localize("SettingsLabelCredentialGuard");
 
-        // Settings - Advanced
         Mw_SettingsSessionLoggingTitle.Text = vm.Localize("SettingsSectionSessionLogging");
         Mw_SettingsEnableLogging.Content = vm.Localize("SettingsLabelEnableLogging");
         Mw_SettingsSessionLoggingEnabled.Content = vm.Localize("SettingsLabelSessionLoggingEnabled");
@@ -316,7 +321,6 @@ public partial class MainWindow : Window
         Mw_SettingsExtToolsAddBtn.Content = vm.Localize("BtnAdd");
         Mw_SettingsExtToolsRemoveBtn.Content = vm.Localize("BtnRemove");
 
-        // Settings - Save / Reset / Import / Export
         Mw_SettingsSaveBtn.Content = vm.Localize("SettingsBtnSaveSettings");
         Mw_SettingsResetBtn.Content = vm.Localize("SettingsBtnResetDefaults");
         Mw_SettingsExportBtn.Content = vm.Localize("SettingsBtnExportServers");
@@ -325,8 +329,10 @@ public partial class MainWindow : Window
         Mw_SettingsImportBtn.ToolTip = vm.Localize("TooltipImport");
         Mw_SettingsCitrixBtn.Content = vm.Localize("BtnImportCitrix");
         Mw_SettingsCitrixBtn.ToolTip = vm.Localize("TooltipImportCitrix");
+    }
 
-        // About tab
+    private void ApplyAboutLocalization(MainViewModel vm)
+    {
         Mw_AboutAppName.Text = vm.Localize("AppName");
         Mw_AboutTagline.Text = vm.Localize("AboutTagline");
         Mw_AboutAuthorLabel.Text = vm.Localize("AboutLabelAuthor");
@@ -341,20 +347,10 @@ public partial class MainWindow : Window
         Mw_AboutFeature4.Text = "\u2022 " + vm.Localize("AboutFeatureSftp");
         Mw_AboutFeature5.Text = "\u2022 " + vm.Localize("AboutFeatureBilingual");
         Mw_AboutFeature6.Text = "\u2022 " + vm.Localize("AboutFeatureTheme");
+    }
 
-        // Fullscreen exit
-        FullscreenBar.ToolTip = vm.Localize("TooltipExitFullscreenEsc");
-
-        // Status bar
-        Mw_StatusTunnelToggle.ToolTip = vm.Localize("TunnelPanelToggle");
-        Mw_StatusBarServersLabel.Text = " " + vm.Localize("StatusBarServers") + " " + vm.Localize("StatusBarSeparator");
-        Mw_StatusBarTunnelsLabel.Text = " " + vm.Localize("StatusBarTunnels");
-
-        // Quick Connect palette
-        Mw_PaletteNoResults.Text = vm.Localize("QuickConnectNoResults");
-        Mw_PaletteHints.Text = vm.Localize("QuickConnectHints");
-
-        // Accessibility: automation names for interactive controls
+    private void ApplyAccessibilityLocalization(MainViewModel vm)
+    {
         System.Windows.Automation.AutomationProperties.SetName(TabServers, vm.Localize("NavTabServers"));
         System.Windows.Automation.AutomationProperties.SetName(TabTunnels, vm.Localize("NavTabTunnels"));
         System.Windows.Automation.AutomationProperties.SetName(TabScheduled, vm.Localize("NavTabScheduled"));
@@ -372,20 +368,32 @@ public partial class MainWindow : Window
 
     private async void OnServersTabChecked(object sender, RoutedEventArgs e)
     {
-        if (!await CheckUnsavedSettingsAsync()) { TabSettings.IsChecked = true; return; }
-        SwitchToTab("Servers");
+        try
+        {
+            if (!await CheckUnsavedSettingsAsync()) { TabSettings.IsChecked = true; return; }
+            SwitchToTab("Servers");
+        }
+        catch (Exception ex) { Core.Logging.FileLogger.Error($"Tab switch failed: {ex.Message}"); }
     }
 
     private async void OnTunnelsTabChecked(object sender, RoutedEventArgs e)
     {
-        if (!await CheckUnsavedSettingsAsync()) { TabSettings.IsChecked = true; return; }
-        SwitchToTab("Tunnels");
+        try
+        {
+            if (!await CheckUnsavedSettingsAsync()) { TabSettings.IsChecked = true; return; }
+            SwitchToTab("Tunnels");
+        }
+        catch (Exception ex) { Core.Logging.FileLogger.Error($"Tab switch failed: {ex.Message}"); }
     }
 
     private async void OnScheduledTabChecked(object sender, RoutedEventArgs e)
     {
-        if (!await CheckUnsavedSettingsAsync()) { TabSettings.IsChecked = true; return; }
-        SwitchToTab("Scheduled");
+        try
+        {
+            if (!await CheckUnsavedSettingsAsync()) { TabSettings.IsChecked = true; return; }
+            SwitchToTab("Scheduled");
+        }
+        catch (Exception ex) { Core.Logging.FileLogger.Error($"Tab switch failed: {ex.Message}"); }
     }
 
     private void OnSettingsTabChecked(object sender, RoutedEventArgs e)

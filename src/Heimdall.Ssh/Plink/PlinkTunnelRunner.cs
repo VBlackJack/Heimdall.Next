@@ -140,7 +140,7 @@ public sealed class PlinkTunnelRunner : IDisposable
                 }
             }
             catch (OperationCanceledException) { /* Clean shutdown */ }
-            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[PlinkTunnelRunner] stderr drain: {ex.Message}"); }
+            catch (Exception ex) { Heimdall.Core.Logging.FileLogger.Warn($"[PlinkTunnelRunner] stderr drain: {ex.Message}"); }
         }, cancellationToken);
 
         try
@@ -192,7 +192,7 @@ public sealed class PlinkTunnelRunner : IDisposable
             }
             catch (InvalidOperationException ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[PlinkTunnelRunner] Stop: {ex.Message}");
+                Heimdall.Core.Logging.FileLogger.Warn($"[PlinkTunnelRunner] Stop: {ex.Message}");
             }
 
             _process.Dispose();
@@ -263,23 +263,22 @@ public sealed class PlinkTunnelRunner : IDisposable
 
             if (OperatingSystem.IsWindows())
             {
-                try
-                {
-                    Heimdall.Core.Security.SecureFileWriter.WriteAndProtect(_pwFilePath, password);
-                }
-                catch (Exception ex)
-                {
-                    // Fallback: write normally if secure creation fails
-                    Heimdall.Core.Logging.FileLogger.Warn(
-                        $"Secure file creation failed, using fallback: {ex.Message}");
-                    File.WriteAllText(_pwFilePath, password);
-                    try { Heimdall.Core.Security.AclEnforcer.SetFileAcl(_pwFilePath); }
-                    catch (Exception aclEx) { System.Diagnostics.Debug.WriteLine($"[PlinkTunnelRunner] ACL enforcement: {aclEx.Message}"); }
-                }
+                Heimdall.Core.Security.SecureFileWriter.WriteAndProtect(_pwFilePath, password);
             }
             else
             {
                 File.WriteAllText(_pwFilePath, password);
+                // Best-effort POSIX permission restriction (mode 0600)
+                try
+                {
+                    File.SetUnixFileMode(_pwFilePath,
+                        UnixFileMode.UserRead | UnixFileMode.UserWrite);
+                }
+                catch (Exception ex)
+                {
+                    Heimdall.Core.Logging.FileLogger.Warn(
+                        $"[PlinkTunnelRunner] Unix file mode restriction failed: {ex.Message}");
+                }
             }
 
             args.Add("-pwfile");
@@ -350,7 +349,7 @@ public sealed class PlinkTunnelRunner : IDisposable
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"[PlinkTunnelRunner] ReadStderrSafe: {ex.Message}");
+            Heimdall.Core.Logging.FileLogger.Warn($"[PlinkTunnelRunner] ReadStderrSafe: {ex.Message}");
             return string.Empty;
         }
     }
@@ -368,7 +367,7 @@ public sealed class PlinkTunnelRunner : IDisposable
             }
             catch (IOException ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[PlinkTunnelRunner] CleanupPasswordFile: {ex.Message}");
+                Heimdall.Core.Logging.FileLogger.Warn($"[PlinkTunnelRunner] CleanupPasswordFile: {ex.Message}");
             }
 
             _pwFilePath = null;

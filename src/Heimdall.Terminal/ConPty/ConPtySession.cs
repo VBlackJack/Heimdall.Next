@@ -91,7 +91,7 @@ public sealed class ConPtySession : ITerminalSession
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[ConPtySession] IsAvailable check: {ex.Message}");
+                Heimdall.Core.Logging.FileLogger.Warn($"[ConPtySession] IsAvailable check: {ex.Message}");
                 return false;
             }
         }
@@ -232,8 +232,8 @@ public sealed class ConPtySession : ITerminalSession
         // Wait briefly for the read loop task to complete.
         if (_readLoop is not null)
         {
-            try { _readLoop.Wait(TimeSpan.FromSeconds(2)); }
-            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[ConPtySession] Dispose read loop wait: {ex.Message}"); }
+            try { _readLoop.Wait(TimeSpan.FromMilliseconds(500)); }
+            catch (Exception ex) { Heimdall.Core.Logging.FileLogger.Warn($"[ConPtySession] Dispose read loop wait: {ex.Message}"); }
         }
 
         _cts?.Dispose();
@@ -439,7 +439,7 @@ public sealed class ConPtySession : ITerminalSession
                 if (exitCode == NativeMethods.STILL_ACTIVE)
                     NativeMethods.TerminateProcess(_processHandle, 1);
             }
-            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[ConPtySession] TerminateAndCloseProcess: {ex.Message}"); }
+            catch (Exception ex) { Heimdall.Core.Logging.FileLogger.Warn($"[ConPtySession] TerminateAndCloseProcess: {ex.Message}"); }
 
             NativeMethods.CloseHandle(_processHandle);
             _processHandle = IntPtr.Zero;
@@ -468,7 +468,7 @@ public sealed class ConPtySession : ITerminalSession
             return;
 
         try { stream.Dispose(); }
-        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[ConPtySession] DisposeStream: {ex.Message}"); }
+        catch (Exception ex) { Heimdall.Core.Logging.FileLogger.Warn($"[ConPtySession] DisposeStream: {ex.Message}"); }
         stream = null;
     }
 }

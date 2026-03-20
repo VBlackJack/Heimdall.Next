@@ -39,6 +39,8 @@ namespace Heimdall.App.Views;
 public partial class EmbeddedSftpView : UserControl, IDisposable
 {
     private static readonly TimeSpan SftpOperationTimeout = TimeSpan.FromSeconds(30);
+    private static readonly TimeSpan StatusResetDelay = TimeSpan.FromSeconds(5);
+    private const string RemoteTempPrefix = "/tmp/.heimdall_";
 
     private IRemoteBrowser? _browser;
     private RemoteFileEditor? _editor;
@@ -1533,7 +1535,7 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
             throw new InvalidOperationException("Browser not available for sudo upload.");
 
         var escaped = Heimdall.Sftp.PathEscaper.EscapeForShell(remotePath);
-        string tempRemote = $"/tmp/.heimdall_upload_{Guid.NewGuid():N}";
+        string tempRemote = $"{RemoteTempPrefix}upload_{Guid.NewGuid():N}";
 
         // Upload to temp path (writable by current user)
         await _browser.UploadFileAsync(localPath, tempRemote, ct).ConfigureAwait(false);
@@ -1892,7 +1894,7 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
             {
                 StatusTextBlock.Foreground = GetBrush("TextPrimaryBrush", Brushes.White);
             });
-        }, null, TimeSpan.FromSeconds(5), Timeout.InfiniteTimeSpan);
+        }, null, StatusResetDelay, Timeout.InfiniteTimeSpan);
     }
 
     private void SetToolbarEnabled(bool enabled)

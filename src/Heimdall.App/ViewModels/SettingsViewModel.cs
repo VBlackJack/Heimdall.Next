@@ -471,58 +471,15 @@ public partial class SettingsViewModel : ObservableObject
 
             IsBusy = true;
             var ext = Path.GetExtension(dialog.FileName).ToLowerInvariant();
-            List<ServerProfileDto> imported;
-            List<string>? importWarnings = null;
 
-            if (ext is ".mxtsessions" or ".ini" or ".mobaconf")
+            var (imported, importWarnings) = ext switch
             {
-                // MobaXterm files are often Windows-1252 encoded
-                var bytes = await File.ReadAllBytesAsync(dialog.FileName, cancellationToken);
-                var content = HasUtf8Bom(bytes)
-                    ? System.Text.Encoding.UTF8.GetString(bytes)
-                    : System.Text.Encoding.GetEncoding(1252).GetString(bytes);
-                var mobaResult = MobaXtermImporter.Parse(content);
-                imported = mobaResult.Servers;
-                importWarnings = mobaResult.Warnings;
-            }
-            else if (ext is ".rdp")
-            {
-                var content = await File.ReadAllTextAsync(dialog.FileName, cancellationToken);
-                var rdpServer = RdpFileImporter.Parse(content, Path.GetFileName(dialog.FileName));
-                imported = rdpServer is not null ? [rdpServer] : [];
-            }
-            else if (ext is ".rdg")
-            {
-                var content = await File.ReadAllTextAsync(dialog.FileName, cancellationToken);
-                var rdcResult = RdcManImporter.Parse(content);
-                imported = rdcResult.Servers;
-                importWarnings = rdcResult.Warnings;
-            }
-            else if (ext is ".xml")
-            {
-                var content = await File.ReadAllTextAsync(dialog.FileName, cancellationToken);
-                // Detect mRemoteNG format by looking for Connections root or Node elements
-                if (content.Contains("<Connections", StringComparison.OrdinalIgnoreCase)
-                    || content.Contains("Type=\"Connection\"", StringComparison.OrdinalIgnoreCase))
-                {
-                    var mrnResult = MRemoteNgImporter.Parse(content);
-                    imported = mrnResult.Servers;
-                    importWarnings = mrnResult.Warnings;
-                }
-                else
-                {
-                    // Try RDCMan format
-                    var rdcResult = RdcManImporter.Parse(content);
-                    imported = rdcResult.Servers;
-                    importWarnings = rdcResult.Warnings;
-                }
-            }
-            else
-            {
-                var json = await File.ReadAllTextAsync(dialog.FileName, cancellationToken);
-                imported = JsonSerializer.Deserialize<List<ServerProfileDto>>(json, ImportJsonOptions)
-                    ?? [];
-            }
+                ".mxtsessions" or ".ini" or ".mobaconf" => await ImportMobaXtermAsync(dialog.FileName, cancellationToken),
+                ".rdp" => await ImportRdpFileAsync(dialog.FileName, cancellationToken),
+                ".rdg" => await ImportRdcManAsync(dialog.FileName, cancellationToken),
+                ".xml" => await ImportXmlAsync(dialog.FileName, cancellationToken),
+                _ => await ImportJsonAsync(dialog.FileName, cancellationToken),
+            };
 
             if (imported.Count == 0)
             {
@@ -616,6 +573,64 @@ public partial class SettingsViewModel : ObservableObject
         {
             IsBusy = false;
         }
+    }
+
+    private async Task<(List<ServerProfileDto> Servers, List<string>? Warnings)> ImportMobaXtermAsync(
+        string filePath, CancellationToken cancellationToken)
+    {
+        var bytes = await File.ReadAllBytesAsync(filePath, cancellationToken);
+        var content = HasUtf8Bom(bytes)
+            ? System.Text.Encoding.UTF8.GetString(bytes)
+            : System.Text.Encoding.GetEncoding(1252).GetString(bytes);
+        var mobaResult = MobaXtermImporter.Parse(content);
+        return (mobaResult.Servers, mobaResult.Warnings);
+    }
+
+    private async Task<(List<ServerProfileDto> Servers, List<string>? Warnings)> ImportRdpFileAsync(
+        string filePath, CancellationToken cancellationToken)
+    {
+        var content = await File.ReadAllTextAsync(filePath, cancellationToken);
+        var rdpServer = RdpFileImporter.Parse(content, Path.GetFileName(filePath));
+        return (rdpServer is not null ? [rdpServer] : [], null);
+    }
+
+    private async Task<(List<ServerProfileDto> Servers, List<string>? Warnings)> ImportRdcManAsync(
+        string filePath, CancellationToken cancellationToken)
+    {
+        var content = await File.ReadAllTextAsync(filePath, cancellationToken);
+        var rdcResult = RdcManImporter.Parse(content);
+        return (rdcResult.Servers, rdcResult.Warnings);
+    }
+
+    private async Task<(List<ServerProfileDto> Servers, List<string>? Warnings)> ImportXmlAsync(
+        string filePath, CancellationToken cancellationToken)
+    {
+        var content = await File.ReadAllTextAsync(filePath, cancellationToken);
+        if (content.Contains("<Connections", StringComparison.OrdinalIgnoreCase)
+            || content.Contains("Type=\"Connection\"", StringComparison.OrdinalIgnoreCase))
+        {
+            var mrnResult = MRemoteNgImporter.Parse(content);
+            return (mrnResult.Servers, mrnResult.Warnings);
+        }
+
+        var rdcResult = RdcManImporter.Parse(content);
+        return (rdcResult.Servers, rdcResult.Warnings);
+    }
+
+    private async Task<(List<ServerProfileDto> Servers, List<string>? Warnings)> ImportMRemoteNgAsync(
+        string filePath, CancellationToken cancellationToken)
+    {
+        var content = await File.ReadAllTextAsync(filePath, cancellationToken);
+        var mrnResult = MRemoteNgImporter.Parse(content);
+        return (mrnResult.Servers, mrnResult.Warnings);
+    }
+
+    private async Task<(List<ServerProfileDto> Servers, List<string>? Warnings)> ImportJsonAsync(
+        string filePath, CancellationToken cancellationToken)
+    {
+        var json = await File.ReadAllTextAsync(filePath, cancellationToken);
+        var servers = JsonSerializer.Deserialize<List<ServerProfileDto>>(json, ImportJsonOptions) ?? [];
+        return (servers, null);
     }
 
     [RelayCommand]

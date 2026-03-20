@@ -108,13 +108,13 @@ public static class NetworkScanner
                 var entry = await Dns.GetHostEntryAsync(ip, ct);
                 hostname = entry.HostName;
             }
-            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[NetworkScanner] DNS resolve: {ex.Message}"); }
+            catch (Exception ex) { Heimdall.Core.Logging.FileLogger.Warn($"[NetworkScanner] DNS resolve: {ex.Message}"); }
 
             return new ScanResult(ip, true, reply.RoundtripTime, hostname, []);
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"[NetworkScanner] ping: {ex.Message}");
+            Heimdall.Core.Logging.FileLogger.Warn($"[NetworkScanner] ping: {ex.Message}");
             return null;
         }
     }
@@ -136,7 +136,7 @@ public static class NetworkScanner
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[NetworkScanner] port probe {port}: {ex.Message}");
+                Heimdall.Core.Logging.FileLogger.Warn($"[NetworkScanner] port probe {port}: {ex.Message}");
             }
         }
 
