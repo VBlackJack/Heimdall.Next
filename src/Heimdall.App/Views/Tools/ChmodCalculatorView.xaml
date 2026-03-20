@@ -177,7 +177,7 @@
                          BorderBrush="{DynamicResource BorderBrush}"
                          BorderThickness="0,0,0,1"
                          Padding="4,2"
-                         TextChanged="OnSymbolicInputTextChanged"/>
+                         KeyDown="OnSymbolicInputKeyDown"/>
                 <TextBlock x:Name="SymbolicInputError"
                            Foreground="{DynamicResource ErrorBrush}"
                            FontSize="11" Margin="0,2,0,0"

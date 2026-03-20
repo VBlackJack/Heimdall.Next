@@ -61,10 +61,10 @@
                             Padding="6,2" FontSize="11" Margin="8,0,0,0" VerticalAlignment="Center"/>
                     <TextBlock x:Name="LblHeader" Text=""
                                FontSize="12" FontWeight="SemiBold"
-                               Foreground="#5B9BD5" VerticalAlignment="Center"/>
+                               Foreground="{DynamicResource JwtHeaderBrush}" VerticalAlignment="Center"/>
                 </DockPanel>
                 <Border Background="{DynamicResource CardBrush}"
-                        BorderBrush="#5B9BD5" BorderThickness="1"
+                        BorderBrush="{DynamicResource JwtHeaderBrush}" BorderThickness="1"
                         CornerRadius="4" Padding="8" Margin="0,0,0,12">
                     <TextBox x:Name="TxtHeader" Text=""
                              FontSize="12" FontFamily="Consolas"
@@ -73,7 +73,7 @@
                              TextWrapping="Wrap"
                              BorderThickness="0"
                              Background="Transparent"
-                             Foreground="#5B9BD5"
+                             Foreground="{DynamicResource JwtHeaderBrush}"
                              />
                 </Border>
 
@@ -84,10 +84,10 @@
                             Padding="6,2" FontSize="11" Margin="8,0,0,0" VerticalAlignment="Center"/>
                     <TextBlock x:Name="LblPayload" Text=""
                                FontSize="12" FontWeight="SemiBold"
-                               Foreground="#70AD47" VerticalAlignment="Center"/>
+                               Foreground="{DynamicResource JwtPayloadBrush}" VerticalAlignment="Center"/>
                 </DockPanel>
                 <Border Background="{DynamicResource CardBrush}"
-                        BorderBrush="#70AD47" BorderThickness="1"
+                        BorderBrush="{DynamicResource JwtPayloadBrush}" BorderThickness="1"
                         CornerRadius="4" Padding="8" Margin="0,0,0,12">
                     <TextBox x:Name="TxtPayload" Text=""
                              FontSize="12" FontFamily="Consolas"
@@ -96,7 +96,7 @@
                              TextWrapping="Wrap"
                              BorderThickness="0"
                              Background="Transparent"
-                             Foreground="#70AD47"
+                             Foreground="{DynamicResource JwtPayloadBrush}"
                              />
                 </Border>
 
@@ -107,10 +107,10 @@
                             Padding="6,2" FontSize="11" Margin="8,0,0,0" VerticalAlignment="Center"/>
                     <TextBlock x:Name="LblSignature" Text=""
                                FontSize="12" FontWeight="SemiBold"
-                               Foreground="#ED7D31" VerticalAlignment="Center"/>
+                               Foreground="{DynamicResource JwtSignatureBrush}" VerticalAlignment="Center"/>
                 </DockPanel>
                 <Border Background="{DynamicResource CardBrush}"
-                        BorderBrush="#ED7D31" BorderThickness="1"
+                        BorderBrush="{DynamicResource JwtSignatureBrush}" BorderThickness="1"
                         CornerRadius="4" Padding="8" Margin="0,0,0,12">
                     <TextBox x:Name="TxtSignature" Text=""
                              FontSize="12" FontFamily="Consolas"
@@ -118,7 +118,7 @@
                              TextWrapping="Wrap"
                              BorderThickness="0"
                              Background="Transparent"
-                             Foreground="#ED7D31"
+                             Foreground="{DynamicResource JwtSignatureBrush}"
                              />
                 </Border>
 

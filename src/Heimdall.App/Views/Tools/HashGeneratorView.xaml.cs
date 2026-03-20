@@ -36,6 +36,7 @@ public partial class HashGeneratorView : UserControl, IDisposable
 {
     private LocalizationManager? _localizer;
     private DispatcherTimer? _debounceTimer;
+    private bool _fileMode;
 
     private static readonly string[] Algorithms = ["MD5", "SHA1", "SHA256", "SHA384", "SHA512"];
 
@@ -158,8 +159,10 @@ public partial class HashGeneratorView : UserControl, IDisposable
 
         TxtFileDropZone.Text = L("ToolHashFileDropZone");
         BtnBrowseFile.Content = L("ToolHashBtnBrowseFile");
+        BtnClearFile.Content = L("ToolHashBtnClearFile");
 
         System.Windows.Automation.AutomationProperties.SetName(TxtInput, L("ToolHashInputLabel"));
+        System.Windows.Automation.AutomationProperties.SetName(BtnClearFile, L("ToolHashBtnClearFile"));
         System.Windows.Automation.AutomationProperties.SetName(TxtVerify, L("ToolHashVerifyLabel"));
         System.Windows.Automation.AutomationProperties.SetName(BtnBrowseFile, L("ToolHashBtnBrowseFile"));
 
@@ -181,6 +184,7 @@ public partial class HashGeneratorView : UserControl, IDisposable
 
     private void OnInputTextChanged(object sender, TextChangedEventArgs e)
     {
+        if (_fileMode) return;
         _debounceTimer?.Stop();
         _debounceTimer?.Start();
     }
@@ -273,11 +277,11 @@ public partial class HashGeneratorView : UserControl, IDisposable
                 string.Equals(computedHash, expected, StringComparison.OrdinalIgnoreCase))
             {
                 TxtVerifyResult.Text = string.Format(L("ToolHashVerifyMatch"), detectedAlgo);
-                TxtVerifyResult.Foreground = new SolidColorBrush(System.Windows.Media.Color.FromRgb(34, 197, 94));
+                TxtVerifyResult.Foreground = (Brush)FindResource("SuccessBrush");
 
                 if (_hashOutputBoxes.TryGetValue(detectedAlgo, out var matchBox))
                 {
-                    matchBox.Foreground = new SolidColorBrush(System.Windows.Media.Color.FromRgb(34, 197, 94));
+                    matchBox.Foreground = (Brush)FindResource("SuccessBrush");
                 }
                 return;
             }
@@ -290,18 +294,18 @@ public partial class HashGeneratorView : UserControl, IDisposable
                 string.Equals(hash, expected, StringComparison.OrdinalIgnoreCase))
             {
                 TxtVerifyResult.Text = string.Format(L("ToolHashVerifyMatch"), algo);
-                TxtVerifyResult.Foreground = new SolidColorBrush(System.Windows.Media.Color.FromRgb(34, 197, 94));
+                TxtVerifyResult.Foreground = (Brush)FindResource("SuccessBrush");
 
                 if (_hashOutputBoxes.TryGetValue(algo, out var matchBox))
                 {
-                    matchBox.Foreground = new SolidColorBrush(System.Windows.Media.Color.FromRgb(34, 197, 94));
+                    matchBox.Foreground = (Brush)FindResource("SuccessBrush");
                 }
                 return;
             }
         }
 
         TxtVerifyResult.Text = L("ToolHashVerifyNoMatch");
-        TxtVerifyResult.Foreground = new SolidColorBrush(System.Windows.Media.Color.FromRgb(239, 68, 68));
+        TxtVerifyResult.Foreground = (Brush)FindResource("ErrorBrush");
     }
 
     private void OnCopyHashClick(object sender, RoutedEventArgs e)
@@ -374,6 +378,11 @@ public partial class HashGeneratorView : UserControl, IDisposable
                 return;
             }
 
+            _fileMode = true;
+            TxtInput.IsEnabled = false;
+            TxtInput.Text = string.Empty;
+            BtnClearFile.Visibility = Visibility.Visible;
+
             TxtFileStatus.Text = L("ToolHashFileHashing");
             TxtFileStatus.Foreground = (Brush)FindResource("TextSecondaryBrush");
             _currentHashes.Clear();
@@ -426,6 +435,39 @@ public partial class HashGeneratorView : UserControl, IDisposable
             TxtFileStatus.Text = string.Format(L("ToolHashFileError"), ex.Message);
             TxtFileStatus.Foreground = (Brush)FindResource("ErrorBrush");
         }
+    }
+
+    private void OnClearFileClick(object sender, RoutedEventArgs e)
+    {
+        _fileMode = false;
+        TxtInput.IsEnabled = true;
+        BtnClearFile.Visibility = Visibility.Collapsed;
+        TxtFileStatus.Text = string.Empty;
+        _currentHashes.Clear();
+
+        foreach (var algo in Algorithms)
+        {
+            if (_hashOutputBoxes.TryGetValue(algo, out var box))
+            {
+                box.Text = string.Empty;
+            }
+        }
+
+        TxtByteLength.Text = string.Empty;
+        UpdateVerifyResult();
+    }
+
+    private void OnDragEnter(object sender, System.Windows.DragEventArgs e)
+    {
+        if (e.Data.GetDataPresent(System.Windows.DataFormats.FileDrop))
+        {
+            DropZoneBorder.BorderBrush = (Brush)FindResource("AccentBrush");
+        }
+    }
+
+    private void OnDragLeave(object sender, System.Windows.DragEventArgs e)
+    {
+        DropZoneBorder.BorderBrush = (Brush)FindResource("BorderBrush");
     }
 
     private static HashAlgorithm? CreateHashAlgorithm(string name) => name switch

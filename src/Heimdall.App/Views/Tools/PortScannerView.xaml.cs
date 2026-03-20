@@ -185,7 +185,8 @@ public partial class PortScannerView : UserControl, IDisposable
         _cts = new CancellationTokenSource();
         _isScanning = true;
         BtnScan.Content = L("ToolPortScanBtnStop");
-        BtnScan.Background = (System.Windows.Media.Brush)FindResource("ErrorBrush");
+        BtnScan.Foreground = (System.Windows.Media.Brush)FindResource("ErrorBrush");
+        BtnScan.Style = (Style)FindResource("SecondaryButtonStyle");
         System.Windows.Automation.AutomationProperties.SetName(BtnScan, L("ToolPortScanBtnStop"));
         TxtHost.IsReadOnly = true;
         TxtPorts.IsReadOnly = true;
@@ -271,7 +272,8 @@ public partial class PortScannerView : UserControl, IDisposable
         _cts = null;
         _isScanning = false;
         BtnScan.Content = L("ToolPortScanBtnStart");
-        BtnScan.Background = (System.Windows.Media.Brush)FindResource("AccentBrush");
+        BtnScan.Foreground = (System.Windows.Media.Brush)FindResource("TextPrimaryBrush");
+        BtnScan.Style = (Style)FindResource("PrimaryButtonStyle");
         System.Windows.Automation.AutomationProperties.SetName(BtnScan, L("ToolPortScanBtnStart"));
         TxtHost.IsReadOnly = false;
         TxtPorts.IsReadOnly = false;

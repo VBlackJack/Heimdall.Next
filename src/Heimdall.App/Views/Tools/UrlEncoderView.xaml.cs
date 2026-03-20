@@ -16,6 +16,7 @@
 
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Models;
 
@@ -63,14 +64,10 @@ public partial class UrlEncoderView : UserControl, IDisposable
         HeaderTitle.Text = L("ToolUrlEncTitle");
         LblDecoded.Text = L("ToolUrlEncDecodedLabel");
         LblEncoded.Text = L("ToolUrlEncEncodedLabel");
-        BtnEncode.Content = L("ToolUrlEncBtnEncode");
-        BtnDecode.Content = L("ToolUrlEncBtnDecode");
         BtnCopyDecoded.Content = L("ToolUrlEncBtnCopy");
         BtnCopyEncoded.Content = L("ToolUrlEncBtnCopy");
         LblComponentEncoding.Text = L("ToolUrlEncComponentMode");
 
-        System.Windows.Automation.AutomationProperties.SetName(BtnEncode, L("ToolUrlEncBtnEncode"));
-        System.Windows.Automation.AutomationProperties.SetName(BtnDecode, L("ToolUrlEncBtnDecode"));
         System.Windows.Automation.AutomationProperties.SetName(BtnCopyDecoded, L("ToolUrlEncBtnCopy"));
         System.Windows.Automation.AutomationProperties.SetName(BtnCopyEncoded, L("ToolUrlEncBtnCopy"));
         System.Windows.Automation.AutomationProperties.SetName(TxtDecoded, L("ToolUrlEncDecodedLabel"));
@@ -97,6 +94,7 @@ public partial class UrlEncoderView : UserControl, IDisposable
             TxtEncoded.Text = ChkComponentEncoding.IsChecked == true
                 ? Uri.EscapeDataString(input)
                 : EscapeUrlPreservingStructure(input);
+            ResetBorderState(TxtEncoded);
         }
         finally
         {
@@ -115,61 +113,20 @@ public partial class UrlEncoderView : UserControl, IDisposable
             if (string.IsNullOrEmpty(input))
             {
                 TxtDecoded.Text = string.Empty;
+                ResetBorderState(TxtDecoded);
                 return;
             }
 
             try
             {
                 TxtDecoded.Text = Uri.UnescapeDataString(input);
+                ResetBorderState(TxtDecoded);
             }
             catch (UriFormatException)
             {
-                // Leave decoded text unchanged on invalid input
+                TxtDecoded.Text = string.Empty;
+                TxtDecoded.BorderBrush = (Brush)FindResource("ErrorBrush");
             }
-        }
-        finally
-        {
-            _updatingFromCode = false;
-        }
-    }
-
-    private void OnEncodeClick(object sender, RoutedEventArgs e)
-    {
-        var input = TxtDecoded.Text;
-        if (string.IsNullOrEmpty(input))
-        {
-            return;
-        }
-
-        _updatingFromCode = true;
-        try
-        {
-            TxtEncoded.Text = ChkComponentEncoding.IsChecked == true
-                ? Uri.EscapeDataString(input)
-                : EscapeUrlPreservingStructure(input);
-        }
-        finally
-        {
-            _updatingFromCode = false;
-        }
-    }
-
-    private void OnDecodeClick(object sender, RoutedEventArgs e)
-    {
-        var input = TxtEncoded.Text;
-        if (string.IsNullOrEmpty(input))
-        {
-            return;
-        }
-
-        _updatingFromCode = true;
-        try
-        {
-            TxtDecoded.Text = Uri.UnescapeDataString(input);
-        }
-        catch (UriFormatException)
-        {
-            TxtDecoded.Text = input;
         }
         finally
         {
@@ -234,6 +191,14 @@ public partial class UrlEncoderView : UserControl, IDisposable
     private static bool IsUrlStructuralChar(char c)
     {
         return c is ':' or '/' or '?' or '#' or '&' or '=' or '@' or '%';
+    }
+
+    /// <summary>
+    /// Resets a TextBox border to the default theme brush after a successful operation.
+    /// </summary>
+    private void ResetBorderState(System.Windows.Controls.TextBox textBox)
+    {
+        textBox.BorderBrush = (Brush)FindResource("BorderBrush");
     }
 
     private string L(string key) => _localizer?[key] ?? key;

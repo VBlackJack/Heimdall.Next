@@ -25,12 +25,18 @@
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,0,0,1">
-            <TextBox x:Name="TxtFilter" Text=""
-                     FontSize="13" Padding="8,6"
-                     Background="{DynamicResource CardBrush}"
-                     Foreground="{DynamicResource TextPrimaryBrush}"
-                     BorderBrush="{DynamicResource BorderBrush}"
-                     />
+            <DockPanel>
+                <TextBlock x:Name="TxtCopyHint" DockPanel.Dock="Right"
+                           FontSize="11" FontStyle="Italic"
+                           Foreground="{DynamicResource TextSecondaryBrush}"
+                           VerticalAlignment="Center" Margin="8,0,0,0"/>
+                <TextBox x:Name="TxtFilter" Text=""
+                         FontSize="13" Padding="8,6"
+                         Background="{DynamicResource CardBrush}"
+                         Foreground="{DynamicResource TextPrimaryBrush}"
+                         BorderBrush="{DynamicResource BorderBrush}"
+                         />
+            </DockPanel>
         </Border>
 
         <!-- Status code list -->

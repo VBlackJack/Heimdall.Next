@@ -41,11 +41,12 @@
                          />
 
                 <!-- File hash zone -->
-                <Border Margin="0,12,0,0" Padding="12,8"
+                <Border x:Name="DropZoneBorder" Margin="0,12,0,0" Padding="12,8"
                         Background="{DynamicResource CardBrush}"
                         BorderBrush="{DynamicResource BorderBrush}"
                         BorderThickness="1" CornerRadius="4"
-                        AllowDrop="True" Drop="OnDrop" DragOver="OnDragOver">
+                        AllowDrop="True" Drop="OnDrop" DragOver="OnDragOver"
+                        DragEnter="OnDragEnter" DragLeave="OnDragLeave">
                     <DockPanel>
                         <Button x:Name="BtnBrowseFile" DockPanel.Dock="Right"
                                 Click="OnBrowseFileClick"
@@ -61,9 +62,18 @@
                 </Border>
 
                 <!-- File hash status -->
-                <TextBlock x:Name="TxtFileStatus" Text=""
-                           FontSize="11" Margin="0,4,0,0"
-                           Foreground="{DynamicResource TextSecondaryBrush}"/>
+                <DockPanel Margin="0,4,0,0">
+                    <Button x:Name="BtnClearFile" DockPanel.Dock="Right"
+                            Content="" Click="OnClearFileClick"
+                            Style="{DynamicResource SecondaryButtonStyle}"
+                            Padding="10,4" Margin="8,0,0,0"
+                            Visibility="Collapsed"
+                            VerticalAlignment="Center"/>
+                    <TextBlock x:Name="TxtFileStatus" Text=""
+                               FontSize="11"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               VerticalAlignment="Center"/>
+                </DockPanel>
 
                 <!-- All hash results -->
                 <TextBlock x:Name="LblResults" Text=""

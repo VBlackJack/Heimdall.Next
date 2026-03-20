@@ -2704,5 +2704,10 @@
   "ToolIpConvBtnCopyIpv6": "Copier",
   "ToolDateTimeDetectedMs": "D\u00e9tect\u00e9\u00a0: horodatage Unix (millisecondes)",
   "ToolPwdGenBtnCopyPhonetic": "Copier la phon\u00e9tique",
-  "ToolSshKeyGenEd25519Tooltip": "Ed25519\u00a0: n\u00e9cessite le support EdDSA de .NET (bient\u00f4t disponible)"
+  "ToolSshKeyGenEd25519Tooltip": "Ed25519\u00a0: n\u00e9cessite le support EdDSA de .NET (bient\u00f4t disponible)",
+  "ToolPingValidationTimeout": "Valeur de d\u00e9lai invalide. Veuillez entrer un nombre entre 100 et 30000 ms.",
+  "ToolPingValidationCount": "Valeur de compteur invalide. Veuillez entrer un nombre entre 0 et 100000 (0 = illimit\u00e9).",
+  "ToolHashBtnClearFile": "Effacer le fichier",
+  "ToolPingBtnCopyLog": "Copier le journal",
+  "ToolHttpCopyHint": "Double-cliquer pour copier"
 }

@@ -77,12 +77,14 @@ public partial class DateTimeConverterView : UserControl, IDisposable
         BtnCopyUnix.Content = L("ToolDateTimeBtnCopy");
         BtnCopyIsoUtc.Content = L("ToolDateTimeBtnCopy");
         BtnCopyIsoLocal.Content = L("ToolDateTimeBtnCopy");
+        BtnCopyLocalTime.Content = L("ToolDateTimeBtnCopy");
 
         System.Windows.Automation.AutomationProperties.SetName(BtnNow, L("ToolDateTimeBtnNow"));
         System.Windows.Automation.AutomationProperties.SetName(TxtInput, L("ToolDateTimeInputLabel"));
         System.Windows.Automation.AutomationProperties.SetName(BtnCopyUnix, L("ToolDateTimeBtnCopy"));
         System.Windows.Automation.AutomationProperties.SetName(BtnCopyIsoUtc, L("ToolDateTimeBtnCopy"));
         System.Windows.Automation.AutomationProperties.SetName(BtnCopyIsoLocal, L("ToolDateTimeBtnCopy"));
+        System.Windows.Automation.AutomationProperties.SetName(BtnCopyLocalTime, L("ToolDateTimeBtnCopy"));
         System.Windows.Automation.AutomationProperties.SetName(TxtUnixTimestamp, L("ToolDateTimeUnixLabel"));
         System.Windows.Automation.AutomationProperties.SetName(TxtIsoUtc, L("ToolDateTimeIsoUtcLabel"));
         System.Windows.Automation.AutomationProperties.SetName(TxtIsoLocal, L("ToolDateTimeIsoLocalLabel"));
@@ -91,6 +93,7 @@ public partial class DateTimeConverterView : UserControl, IDisposable
         BtnCopyUnix.ToolTip = L("ToolBtnCopyToClipboard");
         BtnCopyIsoUtc.ToolTip = L("ToolBtnCopyToClipboard");
         BtnCopyIsoLocal.ToolTip = L("ToolBtnCopyToClipboard");
+        BtnCopyLocalTime.ToolTip = L("ToolBtnCopyToClipboard");
     }
 
     private void OnInputTextChanged(object sender, TextChangedEventArgs e)
@@ -196,6 +199,7 @@ public partial class DateTimeConverterView : UserControl, IDisposable
     private void OnCopyUnixClick(object sender, RoutedEventArgs e) => CopyToClipboard(TxtUnixTimestamp.Text, sender as Button);
     private void OnCopyIsoUtcClick(object sender, RoutedEventArgs e) => CopyToClipboard(TxtIsoUtc.Text, sender as Button);
     private void OnCopyIsoLocalClick(object sender, RoutedEventArgs e) => CopyToClipboard(TxtIsoLocal.Text, sender as Button);
+    private void OnCopyLocalTimeClick(object sender, RoutedEventArgs e) => CopyToClipboard(TxtLocalTime.Text, sender as Button);
 
     private static void CopyToClipboard(string? text, Button? btn)
     {

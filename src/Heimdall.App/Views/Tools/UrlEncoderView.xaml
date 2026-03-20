@@ -48,18 +48,6 @@
                          TextChanged="OnDecodedTextChanged"
 />
 
-                <!-- Buttons -->
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,4,0,4">
-                    <Button x:Name="BtnEncode" Content="" Click="OnEncodeClick"
-                            Style="{DynamicResource PrimaryButtonStyle}"
-                            Padding="16,6" Margin="0,0,8,0"
-/>
-                    <Button x:Name="BtnDecode" Content="" Click="OnDecodeClick"
-                            Style="{DynamicResource PrimaryButtonStyle}"
-                            Padding="16,6"
-/>
-                </StackPanel>
-
                 <!-- Encoded field -->
                 <DockPanel Margin="0,8,0,4">
                     <Button x:Name="BtnCopyEncoded" DockPanel.Dock="Right"

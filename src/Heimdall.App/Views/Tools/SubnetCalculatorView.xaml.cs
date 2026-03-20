@@ -62,7 +62,6 @@ public partial class SubnetCalculatorView : UserControl, IDisposable
     {
         HeaderTitle.Text = L("ToolSubnetCalculatorTitle");
         LblCidrInput.Text = L("ToolSubnetCidrInputLabel");
-        BtnCalculate.Content = L("ToolSubnetBtnCalculate");
         LblNetwork.Text = L("ToolSubnetNetworkAddress");
         LblBroadcast.Text = L("ToolSubnetBroadcastAddress");
         LblSubnetMask.Text = L("ToolSubnetMask");
@@ -92,7 +91,6 @@ public partial class SubnetCalculatorView : UserControl, IDisposable
         BtnCopyCidr.ToolTip = copyTooltip;
         BtnCopyWildcard.ToolTip = copyTooltip;
 
-        System.Windows.Automation.AutomationProperties.SetName(BtnCalculate, L("ToolSubnetBtnCalculate"));
         System.Windows.Automation.AutomationProperties.SetName(TxtCidrInput, L("ToolSubnetCidrInputLabel"));
     }
 
@@ -108,11 +106,6 @@ public partial class SubnetCalculatorView : UserControl, IDisposable
     private void OnInputChanged(object sender, TextChangedEventArgs e)
     {
         if (!_initialized) return;
-        Calculate();
-    }
-
-    private void OnCalculateClick(object sender, RoutedEventArgs e)
-    {
         Calculate();
     }
 

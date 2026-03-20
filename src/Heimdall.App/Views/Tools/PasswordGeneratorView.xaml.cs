@@ -935,6 +935,9 @@ public partial class PasswordGeneratorView : UserControl, IDisposable
 
     private void OnKeyDown(object sender, KeyEventArgs e)
     {
+        // Do not intercept keyboard shortcuts when a TextBox has focus
+        if (Keyboard.FocusedElement is System.Windows.Controls.TextBox) return;
+
         if (e.Key == Key.Enter)
         {
             GeneratePassword();

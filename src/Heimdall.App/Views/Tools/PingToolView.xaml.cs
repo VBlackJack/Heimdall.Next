@@ -88,12 +88,15 @@ public partial class PingToolView : UserControl, IDisposable
         TxtPingCount.Text = string.Empty;
 
         BtnClear.Content = L("ToolPingBtnClear");
+        BtnCopyLog.Content = L("ToolPingBtnCopyLog");
         LblInterval.Text = L("ToolPingIntervalLabel");
         LblTimeout.Text = L("ToolPingTimeoutLabel");
         LblCount.Text = L("ToolPingCountLabel");
 
         System.Windows.Automation.AutomationProperties.SetName(BtnToggle, L("ToolPingBtnStart"));
         System.Windows.Automation.AutomationProperties.SetName(BtnClear, L("ToolPingBtnClear"));
+        System.Windows.Automation.AutomationProperties.SetName(BtnCopyLog, L("ToolPingBtnCopyLog"));
+        BtnCopyLog.ToolTip = L("ToolBtnCopyToClipboard");
         System.Windows.Automation.AutomationProperties.SetName(TxtHost, L("ToolPingHostLabel"));
         System.Windows.Automation.AutomationProperties.SetName(CmbInterval, L("ToolPingIntervalLabel"));
         System.Windows.Automation.AutomationProperties.SetName(TxtTimeout, L("ToolPingTimeoutLabel"));
@@ -132,6 +135,32 @@ public partial class PingToolView : UserControl, IDisposable
         RedrawGraph();
     }
 
+    private void OnCopyLogClick(object sender, RoutedEventArgs e)
+    {
+        var logText = new System.Text.StringBuilder();
+        foreach (var inline in TxtLog.Inlines)
+        {
+            if (inline is System.Windows.Documents.Run run)
+            {
+                logText.Append(run.Text);
+            }
+        }
+
+        var text = logText.ToString().Trim();
+        if (!string.IsNullOrEmpty(text))
+        {
+            try
+            {
+                Clipboard.SetText(text);
+                CopyFeedbackHelper.ShowCopyFeedback(sender as Button);
+            }
+            catch (Exception ex)
+            {
+                Core.Logging.FileLogger.Warn($"PingTool clipboard copy failed: {ex.Message}");
+            }
+        }
+    }
+
     private void TogglePing()
     {
         if (_isRunning)
@@ -150,10 +179,22 @@ public partial class PingToolView : UserControl, IDisposable
         if (string.IsNullOrWhiteSpace(host))
         {
             TxtLog.Inlines.Clear();
-            TxtLog.Inlines.Add(new System.Windows.Documents.Run(L("ToolValidationHostRequired"))
-            {
-                Foreground = (System.Windows.Media.Brush)FindResource("ErrorBrush")
-            });
+            AppendLogLine(L("ToolValidationHostRequired"), true);
+            return;
+        }
+
+        if (!int.TryParse(TxtTimeout.Text.Trim(), out var timeout) || timeout < 100 || timeout > 30000)
+        {
+            TxtLog.Inlines.Clear();
+            AppendLogLine(L("ToolPingValidationTimeout"), true);
+            return;
+        }
+
+        var countText = TxtCount.Text.Trim();
+        if (!string.IsNullOrEmpty(countText) && (!int.TryParse(countText, out var count) || count < 0 || count > 100000))
+        {
+            TxtLog.Inlines.Clear();
+            AppendLogLine(L("ToolPingValidationCount"), true);
             return;
         }
 
@@ -174,7 +215,8 @@ public partial class PingToolView : UserControl, IDisposable
         _cts = new CancellationTokenSource();
         _isRunning = true;
         BtnToggle.Content = L("ToolPingBtnStop");
-        BtnToggle.Background = (Brush)FindResource("ErrorBrush");
+        BtnToggle.Foreground = (Brush)FindResource("ErrorBrush");
+        BtnToggle.Style = (Style)FindResource("SecondaryButtonStyle");
         System.Windows.Automation.AutomationProperties.SetName(BtnToggle, L("ToolPingBtnStop"));
         TxtHost.IsReadOnly = true;
         CmbInterval.IsEnabled = false;
@@ -203,7 +245,8 @@ public partial class PingToolView : UserControl, IDisposable
         _cts = null;
         _isRunning = false;
         BtnToggle.Content = L("ToolPingBtnStart");
-        BtnToggle.Background = (Brush)FindResource("AccentBrush");
+        BtnToggle.Foreground = (Brush)FindResource("TextPrimaryBrush");
+        BtnToggle.Style = (Style)FindResource("PrimaryButtonStyle");
         System.Windows.Automation.AutomationProperties.SetName(BtnToggle, L("ToolPingBtnStart"));
         TxtHost.IsReadOnly = false;
         CmbInterval.IsEnabled = true;

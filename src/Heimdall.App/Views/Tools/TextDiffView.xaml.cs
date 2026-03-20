@@ -131,10 +131,13 @@ public partial class TextDiffView : UserControl, IDisposable
         RunComparison();
     }
 
-    private void RunComparison()
+    private async void RunComparison()
     {
-        var originalLines = SplitLines(OriginalText.Text);
-        var modifiedLines = SplitLines(ModifiedText.Text);
+        var originalText = OriginalText.Text;
+        var modifiedText = ModifiedText.Text;
+
+        var originalLines = SplitLines(originalText);
+        var modifiedLines = SplitLines(modifiedText);
 
         if (originalLines.Length > MaxLineCount || modifiedLines.Length > MaxLineCount)
         {
@@ -142,7 +145,7 @@ public partial class TextDiffView : UserControl, IDisposable
             return;
         }
 
-        var diffOps = ComputeDiff(originalLines, modifiedLines);
+        var diffOps = await Task.Run(() => ComputeDiff(originalLines, modifiedLines));
         var displayItems = new List<DiffLineViewModel>();
         var unifiedBuilder = new StringBuilder();
 

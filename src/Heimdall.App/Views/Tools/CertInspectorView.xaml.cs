@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-using System.Diagnostics;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Security.Cryptography;
@@ -173,7 +172,7 @@ public partial class CertInspectorView : UserControl, IDisposable
         }
         catch (Exception ex)
         {
-            Debug.WriteLine($"Certificate retrieval failed: {ex.Message}");
+            Core.Logging.FileLogger.Warn($"CertInspector certificate retrieval failed: {ex.Message}");
             TxtError.Text = string.Format(L("ToolCertErrorConnection"), ex.Message);
             TxtError.Visibility = Visibility.Visible;
         }

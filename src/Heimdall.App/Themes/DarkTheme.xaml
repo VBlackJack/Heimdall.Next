@@ -46,6 +46,14 @@
     <Color x:Key="ToolBadgeColor">#36D7B7</Color>
     <SolidColorBrush x:Key="ToolBadgeBrush" Color="#36D7B7"/>
 
+    <!-- JWT section colors -->
+    <Color x:Key="JwtHeaderColor">#5B9BD5</Color>
+    <SolidColorBrush x:Key="JwtHeaderBrush" Color="{StaticResource JwtHeaderColor}"/>
+    <Color x:Key="JwtPayloadColor">#70AD47</Color>
+    <SolidColorBrush x:Key="JwtPayloadBrush" Color="{StaticResource JwtPayloadColor}"/>
+    <Color x:Key="JwtSignatureColor">#ED7D31</Color>
+    <SolidColorBrush x:Key="JwtSignatureBrush" Color="{StaticResource JwtSignatureColor}"/>
+
     <!-- Overlay and feedback brushes -->
     <SolidColorBrush x:Key="OverlayBackground" Color="#A0000000"/>
     <SolidColorBrush x:Key="DragDropOverlayBackground" Color="#66282A36"/>
