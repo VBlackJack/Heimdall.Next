@@ -68,27 +68,12 @@ public partial class PasswordGeneratorView : UserControl, IDisposable
         [' '] = "Space"
     };
 
-    // QWERTY -> AZERTY key mapping (keys that differ)
-    private static readonly Dictionary<char, char> QwertyToAzerty = new()
-    {
-        ['q'] = 'a', ['w'] = 'z', ['a'] = 'q', ['z'] = 'w', ['m'] = ',',
-        ['Q'] = 'A', ['W'] = 'Z', ['A'] = 'Q', ['Z'] = 'W', ['M'] = '?',
-        [';'] = 'm', ['\''] = '\u00f9', ['['] = '^', [']'] = '$', ['\\'] = '*',
-        // Number row: QWERTY unshifted -> AZERTY unshifted
-        ['1'] = '&', ['2'] = '\u00e9', ['3'] = '"', ['4'] = '\'', ['5'] = '(',
-        ['6'] = '-', ['7'] = '\u00e8', ['8'] = '_', ['9'] = '\u00e7', ['0'] = '\u00e0'
-    };
+    // Characters that differ between QWERTY and AZERTY layouts
+    private const string LayoutUnsafeChars = "aqwzmAQWZM";
 
-    // AZERTY -> QWERTY key mapping (reverse)
-    private static readonly Dictionary<char, char> AzertyToQwerty = new()
-    {
-        ['a'] = 'q', ['z'] = 'w', ['q'] = 'a', ['w'] = 'z', [','] = 'm',
-        ['A'] = 'Q', ['Z'] = 'W', ['Q'] = 'A', ['W'] = 'Z', ['?'] = 'M',
-        ['m'] = ';', ['\u00f9'] = '\'', ['^'] = '[', ['$'] = ']', ['*'] = '\\',
-        // Number row: AZERTY unshifted -> QWERTY unshifted
-        ['&'] = '1', ['\u00e9'] = '2', ['"'] = '3', ['\''] = '4', ['('] = '5',
-        ['-'] = '6', ['\u00e8'] = '7', ['_'] = '8', ['\u00e7'] = '9', ['\u00e0'] = '0'
-    };
+    private static readonly string[] LayoutSafeConsonants =
+        ["b","c","d","f","g","h","j","k","l","n","p","r","s","t","v","x"];
+    private static readonly string[] LayoutSafeVowels = ["e","i","o","u","y"];
 
     private static readonly string[] Consonants =
         ["b","c","d","f","g","h","j","k","l","m","n","p","r","s","t","v","w","x","z"];
@@ -219,17 +204,16 @@ public partial class PasswordGeneratorView : UserControl, IDisposable
         CmbPpLanguage.Items.Add(L("ToolPwdGenLangFrench"));
         CmbPpLanguage.SelectedIndex = 0;
 
-        CmbKeyboardLayout.Items.Clear();
-        CmbKeyboardLayout.Items.Add(L("ToolPwdGenLayoutQwerty"));
-        CmbKeyboardLayout.Items.Add(L("ToolPwdGenLayoutAzerty"));
-        CmbKeyboardLayout.SelectedIndex = 0;
     }
 
     private void ApplyLocalization()
     {
         TitleText.Text = L("ToolPwdGenTitle");
         ModeLabel.Text = L("ToolPwdGenMode");
+        ModeDescription.Text = L("ToolPwdGenModeRandomDesc");
+        BtnRegenerate.Content = L("ToolPwdGenBtnGenerate");
         BtnRegenerate.ToolTip = L("ToolPwdGenBtnRegenerate");
+        BtnCopy.Content = L("ToolPwdGenBtnCopy");
         BtnCopy.ToolTip = L("ToolBtnCopyToClipboard");
 
         // Random mode
@@ -254,9 +238,9 @@ public partial class PasswordGeneratorView : UserControl, IDisposable
         BtnPresetMysql.Content = L("ToolPwdGenPresetMysql");
         BtnPresetPassphrase4.Content = L("ToolPwdGenPresetPassphrase4");
 
-        // Phonetic + keyboard layout
+        // Layout-safe + Phonetic
+        ChkLayoutSafe.Content = L("ToolPwdGenLayoutSafe");
         PhoneticLabel.Text = L("ToolPwdGenPhonetic");
-        KeyboardLayoutLabel.Text = L("ToolPwdGenKeyboardLayout");
 
         // Syllable mode
         SylLengthLabel.Text = L("ToolPwdGenBaseLength");
@@ -289,7 +273,7 @@ public partial class PasswordGeneratorView : UserControl, IDisposable
         System.Windows.Automation.AutomationProperties.SetName(TxtCustomSpecials, L("ToolPwdGenCustomSpecials"));
         System.Windows.Automation.AutomationProperties.SetName(CmbSylPlacement, L("ToolPwdGenPlacement"));
         System.Windows.Automation.AutomationProperties.SetName(CmbPpPlacement, L("ToolPwdGenPlacement"));
-        System.Windows.Automation.AutomationProperties.SetName(CmbKeyboardLayout, L("ToolPwdGenKeyboardLayout"));
+        System.Windows.Automation.AutomationProperties.SetName(ChkLayoutSafe, L("ToolPwdGenLayoutSafe"));
         System.Windows.Automation.AutomationProperties.SetName(SylLengthSlider, L("ToolPwdGenBaseLength"));
         System.Windows.Automation.AutomationProperties.SetName(CmbSylCase, L("ToolPwdGenCase"));
         System.Windows.Automation.AutomationProperties.SetName(SylDigitsSlider, L("ToolPwdGenDigits"));
@@ -324,6 +308,18 @@ public partial class PasswordGeneratorView : UserControl, IDisposable
         PanelRandom.Visibility = mode == GeneratorMode.Random ? Visibility.Visible : Visibility.Collapsed;
         PanelSyllable.Visibility = mode == GeneratorMode.Syllable ? Visibility.Visible : Visibility.Collapsed;
         PanelPassphrase.Visibility = mode == GeneratorMode.Passphrase ? Visibility.Visible : Visibility.Collapsed;
+
+        // Mode description
+        ModeDescription.Text = mode switch
+        {
+            GeneratorMode.Random => L("ToolPwdGenModeRandomDesc"),
+            GeneratorMode.Syllable => L("ToolPwdGenModeSyllableDesc"),
+            GeneratorMode.Passphrase => L("ToolPwdGenModePassphraseDesc"),
+            _ => ""
+        };
+
+        // Layout-safe is relevant for Random and Syllable, not Passphrase
+        ChkLayoutSafe.Visibility = mode == GeneratorMode.Passphrase ? Visibility.Collapsed : Visibility.Visible;
 
         // Hide entire presets container in Syllable mode (no presets defined)
         PanelPresets.Visibility = mode == GeneratorMode.Syllable ? Visibility.Collapsed : Visibility.Visible;
@@ -456,7 +452,7 @@ public partial class PasswordGeneratorView : UserControl, IDisposable
             PasswordOutput.Text = string.Empty;
             UpdateStrengthIndicator(0, 0);
             UpdatePhoneticDisplay(string.Empty);
-            UpdateKeyboardLayoutDisplay(string.Empty);
+
             return;
         }
 
@@ -475,7 +471,7 @@ public partial class PasswordGeneratorView : UserControl, IDisposable
         var totalEntropy = entropyPerChar * length;
         UpdateStrengthIndicator(totalEntropy, charset.Length);
         UpdatePhoneticDisplay(password.ToString());
-        UpdateKeyboardLayoutDisplay(password.ToString());
+
     }
 
     private string BuildCharset()
@@ -498,6 +494,17 @@ public partial class PasswordGeneratorView : UserControl, IDisposable
             foreach (var c in charset)
             {
                 if (!AmbiguousChars.Contains(c))
+                    sb.Append(c);
+            }
+        }
+
+        if (ChkLayoutSafe.IsChecked == true)
+        {
+            var charset = sb.ToString();
+            sb.Clear();
+            foreach (var c in charset)
+            {
+                if (!LayoutUnsafeChars.Contains(c))
                     sb.Append(c);
             }
         }
@@ -538,13 +545,16 @@ public partial class PasswordGeneratorView : UserControl, IDisposable
         var effectiveSymbols = GetEffectiveSymbols();
 
         // Build syllable base
+        var isLayoutSafe = ChkLayoutSafe.IsChecked == true;
+        var consonants = isLayoutSafe ? LayoutSafeConsonants : Consonants;
+        var vowels = isLayoutSafe ? LayoutSafeVowels : Vowels;
         var sb = new StringBuilder();
         var syllableIndex = 0;
         var charIndex = 0;
         while (sb.Length < targetLength)
         {
-            var consonant = Consonants[CryptoRandomInt(Consonants.Length)];
-            var vowel = Vowels[CryptoRandomInt(Vowels.Length)];
+            var consonant = consonants[CryptoRandomInt(consonants.Length)];
+            var vowel = vowels[CryptoRandomInt(vowels.Length)];
 
             switch (caseMode)
             {
@@ -610,7 +620,7 @@ public partial class PasswordGeneratorView : UserControl, IDisposable
         SylTotalLengthText.Text = string.Format(L("ToolPwdGenTotalLength"), finalPassword.Length);
 
         // Entropy: syllable choices + digit/special insertions
-        var syllablePoolSize = Consonants.Length * Vowels.Length; // 19*6 = 114
+        var syllablePoolSize = consonants.Length * vowels.Length;
         var syllableCount = (targetLength + 1) / 2;
         var entropy = Math.Log2(syllablePoolSize) * syllableCount;
         if (digitCount > 0) entropy += Math.Log2(DigitChars.Length) * digitCount;
@@ -619,7 +629,7 @@ public partial class PasswordGeneratorView : UserControl, IDisposable
 
         UpdateStrengthIndicator(entropy, syllablePoolSize);
         UpdatePhoneticDisplay(finalPassword);
-        UpdateKeyboardLayoutDisplay(finalPassword);
+
     }
 
     private void InsertExtras(List<char> chars, int digitCount, int specialCount, Placement placement, string symbols)
@@ -671,7 +681,7 @@ public partial class PasswordGeneratorView : UserControl, IDisposable
             PasswordOutput.Text = string.Empty;
             UpdateStrengthIndicator(0, 0);
             UpdatePhoneticDisplay(string.Empty);
-            UpdateKeyboardLayoutDisplay(string.Empty);
+
             return;
         }
 
@@ -703,7 +713,7 @@ public partial class PasswordGeneratorView : UserControl, IDisposable
 
         UpdateStrengthIndicator(entropy, wordList.Length);
         UpdatePhoneticDisplay(finalPassword);
-        UpdateKeyboardLayoutDisplay(finalPassword);
+
     }
 
     // ── Strength indicator ───────────────────────────────────────────────────
@@ -818,6 +828,7 @@ public partial class PasswordGeneratorView : UserControl, IDisposable
             ChkSymbols.IsChecked = symbols;
             ChkExcludeAmbiguous.IsChecked = false;
             ChkCliSafe.IsChecked = false;
+            ChkLayoutSafe.IsChecked = false;
             TxtCustomSpecials.Text = SymbolChars;
             LengthSlider.Value = length;
         }
@@ -910,36 +921,6 @@ public partial class PasswordGeneratorView : UserControl, IDisposable
         PanelPhonetic.Visibility = Visibility.Visible;
     }
 
-    // ── Keyboard layout translation ──────────────────────────────────────────
-
-    private void OnKeyboardLayoutChanged(object sender, SelectionChangedEventArgs e)
-    {
-        if (!_initialized) return;
-        UpdateKeyboardLayoutDisplay(PasswordOutput.Text);
-    }
-
-    private void UpdateKeyboardLayoutDisplay(string password)
-    {
-        if (string.IsNullOrEmpty(password) || password.Length > PhoneticMaxLength)
-        {
-            PanelKeyboardLayout.Visibility = Visibility.Collapsed;
-            return;
-        }
-
-        var isQwerty = CmbKeyboardLayout.SelectedIndex == 0;
-        var mapping = isQwerty ? QwertyToAzerty : AzertyToQwerty;
-        var labelKey = isQwerty ? "ToolPwdGenOnAzerty" : "ToolPwdGenOnQwerty";
-
-        var sb = new StringBuilder(password.Length);
-        foreach (var c in password)
-        {
-            sb.Append(mapping.TryGetValue(c, out var mapped) ? mapped : c);
-        }
-
-        KeyboardLayoutText.Text = $"{L(labelKey)} {sb}";
-        PanelKeyboardLayout.Visibility = Visibility.Visible;
-    }
-
     private void OnKeyDown(object sender, KeyEventArgs e)
     {
         if (e.Key == Key.Enter)
@@ -951,7 +932,7 @@ public partial class PasswordGeneratorView : UserControl, IDisposable
         {
             PasswordOutput.Text = string.Empty;
             UpdatePhoneticDisplay(string.Empty);
-            UpdateKeyboardLayoutDisplay(string.Empty);
+
             UpdateStrengthIndicator(0, 0);
             StrengthIssues.Text = string.Empty;
             e.Handled = true;
