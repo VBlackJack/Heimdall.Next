@@ -28,6 +28,8 @@ namespace Heimdall.App.Services;
 public sealed class TaskSchedulerService : IDisposable
 {
     private const int TickIntervalMs = 60_000;
+    private const string ScheduleIntervalFormat = "Every {0} min";
+    private const string ScheduleDailyFormat = "Daily {0}";
 
     private readonly System.Threading.Timer _timer;
     private readonly SemaphoreSlim _tickGuard = new(1, 1);
@@ -188,7 +190,7 @@ public sealed class TaskSchedulerService : IDisposable
         {
             var interval = task.IntervalMinutes > 0 ? task.IntervalMinutes : 60;
             task.NextRun = fromTime.AddMinutes(interval);
-            task.Schedule = $"Every {interval} min";
+            task.Schedule = string.Format(CultureInfo.CurrentCulture, ScheduleIntervalFormat, interval);
         }
         else
         {
@@ -205,13 +207,13 @@ public sealed class TaskSchedulerService : IDisposable
                 }
 
                 task.NextRun = candidate;
-                task.Schedule = $"Daily {task.TimeOfDay}";
+                task.Schedule = string.Format(CultureInfo.CurrentCulture, ScheduleDailyFormat, task.TimeOfDay);
             }
             else
             {
                 // Fallback: schedule for next day at 08:00
                 task.NextRun = fromTime.Date.AddDays(1).AddHours(8);
-                task.Schedule = "Daily 08:00";
+                task.Schedule = string.Format(CultureInfo.CurrentCulture, ScheduleDailyFormat, "08:00");
                 FileLogger.Warn($"Invalid TimeOfDay '{task.TimeOfDay}' for task '{task.ServerName}', defaulting to 08:00.");
             }
         }

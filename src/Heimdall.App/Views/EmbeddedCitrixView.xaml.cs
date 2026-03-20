@@ -136,11 +136,11 @@ public partial class EmbeddedCitrixView : UserControl, IDisposable
     public void SetConnectionInfo(string? storeFrontUrl, string? appName)
     {
         StoreFrontText.Text = !string.IsNullOrWhiteSpace(storeFrontUrl)
-            ? $"StoreFront: {storeFrontUrl}"
+            ? _localizer?.Format("CitrixStoreFrontLabel", storeFrontUrl) ?? $"StoreFront: {storeFrontUrl}"
             : string.Empty;
 
         AppNameText.Text = !string.IsNullOrWhiteSpace(appName)
-            ? $"Application: {appName}"
+            ? _localizer?.Format("CitrixAppNameLabel", appName) ?? $"Application: {appName}"
             : string.Empty;
     }
 

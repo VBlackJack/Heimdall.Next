@@ -443,7 +443,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
 
             _connectedAtUtc = DateTime.UtcNow;
             _allowResolutionUpdates = false;
-            UpdateSessionState("Connected", "The embedded Remote Desktop session is active.");
+            UpdateSessionState("Connected", L("RdpStatusConnectedDetail"));
             FlushLayoutPipeline("on-connected");
 
             if (_server is not null && _server.RdpAntiIdle && _antiIdleIntervalSeconds > 0)
@@ -497,7 +497,8 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
             _allowResolutionUpdates = false;
             UpdateSessionState(
                 "Disconnected",
-                string.Format("Remote Desktop disconnected with code {0}.", reason));
+                _localizer?.Format("RdpStatusDisconnectedDetail", reason)
+                    ?? $"Remote Desktop disconnected with code {reason}.");
             ShowReconnectOverlay();
         });
     }
@@ -516,7 +517,8 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
             _allowResolutionUpdates = false;
             UpdateSessionState(
                 "Error",
-                string.Format("Remote Desktop reported a fatal error ({0}).", errorCode));
+                _localizer?.Format("RdpStatusFatalErrorDetail", errorCode)
+                    ?? $"Remote Desktop reported a fatal error ({errorCode}).");
             ShowReconnectOverlay();
         });
     }
@@ -647,7 +649,9 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
     {
         Core.Logging.FileLogger.Error(message, ex);
         _allowResolutionUpdates = false;
-        UpdateSessionState("Error", string.Format("{0} {1}", message, ex.Message));
+        UpdateSessionState("Error",
+            _localizer?.Format("RdpStatusErrorDetail", message, ex.Message)
+                ?? $"{message} {ex.Message}");
     }
 
     /// <summary>

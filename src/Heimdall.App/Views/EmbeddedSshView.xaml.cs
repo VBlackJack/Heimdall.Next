@@ -68,7 +68,7 @@ public partial class EmbeddedSshView : UserControl, IDisposable
                     foreground: '#F8F8F2',
                     cursor: '#BD93F9',
                     cursorAccent: '#282A36',
-                    selectionBackground: 'rgba(68, 71, 90, 0.7)',
+                    selectionBackground: 'rgba(98, 114, 164, 0.5)',
                     selectionForeground: '#F8F8F2',
                     black: '#21222C',
                     red: '#FF5555',
@@ -94,7 +94,7 @@ public partial class EmbeddedSshView : UserControl, IDisposable
                     foreground: '#839496',
                     cursor: '#93A1A1',
                     cursorAccent: '#002B36',
-                    selectionBackground: 'rgba(7, 54, 66, 0.7)',
+                    selectionBackground: 'rgba(38, 139, 210, 0.3)',
                     selectionForeground: '#93A1A1',
                     black: '#073642',
                     red: '#DC322F',
@@ -408,10 +408,18 @@ public partial class EmbeddedSshView : UserControl, IDisposable
     {
         if (e.NewValue is true && _terminalReady && !_disposed)
         {
-            // Re-focus terminal when tab becomes visible (tab switch)
+            // Re-focus terminal when tab becomes visible (tab switch),
+            // but only if no other focusable control currently has keyboard focus
             _ = Dispatcher.BeginInvoke(() =>
             {
-                if (!_disposed && _terminalReady)
+                if (_disposed || !_terminalReady) return;
+
+                var currentFocus = System.Windows.Input.Keyboard.FocusedElement;
+                var focusIsElsewhere = currentFocus is not null
+                    && currentFocus is not System.Windows.Window
+                    && !IsKeyboardFocusWithin;
+
+                if (!focusIsElsewhere)
                 {
                     TerminalWebView.Focus();
                     PostTerminalMessage("focus:");
@@ -1226,9 +1234,20 @@ public partial class EmbeddedSshView : UserControl, IDisposable
         if (_terminalReady)
         {
             _initialTerminalFocusApplied = true;
-            Core.Logging.FileLogger.Info("EmbeddedSSH applying initial terminal focus");
-            TerminalWebView.Focus();
-            PostTerminalMessage("focus:");
+
+            // Only steal focus on first mount if this view is actually visible
+            // and no other focusable control currently has keyboard focus
+            var currentFocus = System.Windows.Input.Keyboard.FocusedElement;
+            var focusIsElsewhere = currentFocus is not null
+                && currentFocus is not System.Windows.Window
+                && !IsKeyboardFocusWithin;
+
+            if (IsVisible && !focusIsElsewhere)
+            {
+                Core.Logging.FileLogger.Info("EmbeddedSSH applying initial terminal focus");
+                TerminalWebView.Focus();
+                PostTerminalMessage("focus:");
+            }
         }
     }
 

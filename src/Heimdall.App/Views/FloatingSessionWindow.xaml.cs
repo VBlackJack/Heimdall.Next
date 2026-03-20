@@ -50,6 +50,9 @@ public partial class FloatingSessionWindow : Window
         WindowThemeHelper.ApplyCurrentTheme(this);
 
         ApplySessionInfo();
+
+        // Re-apply localized strings when language changes at runtime
+        _localizer.LocaleChanged += OnLocaleChanged;
     }
 
     private void ApplySessionInfo()
@@ -154,6 +157,18 @@ public partial class FloatingSessionWindow : Window
             }
         }
 
+        _localizer.LocaleChanged -= OnLocaleChanged;
         base.OnClosed(e);
+    }
+
+    private void OnLocaleChanged(string _)
+    {
+        Dispatcher.Invoke(() =>
+        {
+            Title = string.Format(_localizer["SessionDetachTitle"], _session.Title);
+            ReattachButton.Content = _localizer["SessionCtxReattach"];
+            System.Windows.Automation.AutomationProperties.SetName(
+                ReattachButton, _localizer["SessionCtxReattach"]);
+        });
     }
 }

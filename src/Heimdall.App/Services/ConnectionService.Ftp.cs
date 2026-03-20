@@ -64,8 +64,9 @@ public partial class ConnectionService
             browser.Dispose();
             Core.Logging.FileLogger.Warn(
                 $"FTP connect failed: {ex.Message}");
-            _connectionSm.SetError(server.Id, ex.Message);
-            return new ConnectionResult(false, ex.Message, null);
+            var userMsg = _localizer.Format("ErrorFtpConnectionFailed", ex.Message);
+            _connectionSm.SetError(server.Id, userMsg);
+            return new ConnectionResult(false, userMsg, null);
         }
 
         _connectionSm.TryTransition(server.Id, ConnectionState.Connected);
