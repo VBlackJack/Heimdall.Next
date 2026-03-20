@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main, master, develop]
   pull_request:
-    branches: [main]
+    branches: [main, master]
 
 jobs:
   build-and-test:
@@ -20,11 +20,27 @@ jobs:
       - name: Restore
         run: dotnet restore Heimdall.slnx
 
+      - name: Check code formatting
+        run: dotnet format Heimdall.slnx --no-restore --verify-no-changes --verbosity diagnostic
+        continue-on-error: true
+
       - name: Build
         run: dotnet build Heimdall.slnx --no-restore -c Release
 
-      - name: Test
-        run: dotnet test Heimdall.slnx --no-build -c Release --verbosity normal
+      - name: Test with coverage
+        run: >
+          dotnet test Heimdall.slnx --no-build -c Release
+          --verbosity normal
+          --collect:"XPlat Code Coverage"
+          --results-directory TestResults
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-report
+          path: TestResults/**/coverage.cobertura.xml
+          retention-days: 30
 
       - name: Validate JSON locales
         shell: pwsh
@@ -35,4 +51,11 @@ jobs:
           $frKeys = ($fr.PSObject.Properties | Measure-Object).Count
           Write-Host "EN: $enKeys keys, FR: $frKeys keys"
           if ($enKeys -ne $frKeys) { throw "i18n key parity mismatch: EN=$enKeys FR=$frKeys" }
-          Write-Host "i18n parity OK"
+          $enSorted = $en.PSObject.Properties.Name | Sort-Object
+          $frSorted = $fr.PSObject.Properties.Name | Sort-Object
+          $diff = Compare-Object $enSorted $frSorted
+          if ($diff) {
+            $diff | ForEach-Object { Write-Host "$($_.SideIndicator) $($_.InputObject)" }
+            throw "i18n key sets differ"
+          }
+          Write-Host "i18n parity OK ($enKeys keys)"
