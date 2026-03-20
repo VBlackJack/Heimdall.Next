@@ -21,10 +21,11 @@ param(
     [ValidateSet('Debug', 'Release')]
     [string]$Mode = 'Debug',
 
-    # Portable: bundles WebView2 runtime (~620 MB) for isolated servers without Edge
-    # Light:    no bundled runtime (~185 MB) for standard Windows 11 PCs with Edge
-    # Both:     produces both variants (Release mode only)
-    [ValidateSet('Portable', 'Light', 'Both')]
+    # SelfContained: bundles WebView2 runtime (~653 MB) for air-gapped servers without Edge
+    # Standard:      no bundled runtime (~195 MB) for PCs with Edge (pre-installed on Windows 10/11)
+    # Both:          produces both editions (Release mode only)
+    # Legacy aliases: Light = Standard, Portable = SelfContained
+    [ValidateSet('Standard', 'SelfContained', 'Both', 'Light', 'Portable')]
     [string]$Variant = 'Both',
 
     [switch]$SkipTests
@@ -114,19 +115,21 @@ Write-Host "[3/5] Build succeeded" -ForegroundColor Green
 # ── Determine which variants to produce ────────────────────────────────────
 
 $variants = switch ($Variant) {
-    'Both'     { @('Light', 'Portable') }
-    'Portable' { @('Portable') }
-    'Light'    { @('Light') }
+    'Both'          { @('Standard', 'SelfContained') }
+    'Standard'      { @('Standard') }
+    'Light'         { @('Standard') }
+    'SelfContained' { @('SelfContained') }
+    'Portable'      { @('SelfContained') }
 }
 
 $wv2Runtime = Join-Path $ProjectRoot 'runtimes\webview2'
 $hasWv2Runtime = Test-Path (Join-Path $wv2Runtime 'msedgewebview2.exe')
 
-if ($variants -contains 'Portable' -and -not $hasWv2Runtime) {
+if ($variants -contains 'SelfContained' -and -not $hasWv2Runtime) {
     Write-Host "[!] WebView2 Fixed Version Runtime not found in runtimes/webview2/" -ForegroundColor Red
-    Write-Host "    Run Setup-WebView2.ps1 first, or use -Variant Light" -ForegroundColor Red
-    Write-Host "    Falling back to Light variant only." -ForegroundColor DarkYellow
-    $variants = @('Light')
+    Write-Host "    Run Setup-WebView2.ps1 first, or use -Variant Standard" -ForegroundColor Red
+    Write-Host "    Falling back to Standard edition only." -ForegroundColor DarkYellow
+    $variants = @('Standard')
 }
 
 # ── Helper: publish one variant ────────────────────────────────────────────
@@ -134,7 +137,7 @@ if ($variants -contains 'Portable' -and -not $hasWv2Runtime) {
 function Publish-Variant {
     param([string]$VariantName)
 
-    $suffix = if ($VariantName -eq 'Portable') { '_portable' } else { '_light' }
+    $suffix = if ($VariantName -eq 'SelfContained') { '_selfcontained' } else { '_standard' }
     # For single-variant builds, omit the suffix for backward compatibility
     if ($Variant -ne 'Both') { $suffix = '' }
 
@@ -175,8 +178,8 @@ function Publish-Variant {
         Copy-Item $assetsSrc $assetsDest -Recurse -Force
     }
 
-    # Bundle WebView2 runtime for Portable variant only
-    if ($VariantName -eq 'Portable') {
+    # Bundle WebView2 runtime for SelfContained edition only
+    if ($VariantName -eq 'SelfContained') {
         $wv2Dest = Join-Path $variantDir 'runtimes\webview2'
         Copy-Item $wv2Runtime $wv2Dest -Recurse -Force
         Write-Host "    + WebView2 Fixed Version Runtime bundled" -ForegroundColor DarkGray
