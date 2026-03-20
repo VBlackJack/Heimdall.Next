@@ -46,6 +46,9 @@ public partial class IpConverterView : UserControl, IDisposable
         _localizer = localizer;
         ApplyLocalization();
 
+        // Pre-fill with a sensible default (auto-converts via TextChanged); context overrides if provided
+        TxtInput.Text = "192.168.1.1";
+
         if (!string.IsNullOrWhiteSpace(context?.TargetHost))
         {
             TxtInput.Text = context.TargetHost;
@@ -61,6 +64,19 @@ public partial class IpConverterView : UserControl, IDisposable
         LblHex.Text = L("ToolIpConvHexadecimal");
         LblBinary.Text = L("ToolIpConvBinary");
         LblMappedIpv6.Text = L("ToolIpConvMappedIpv6");
+
+        var copyLabel = L("ToolBtnCopyValue");
+        var copyTooltip = L("ToolBtnCopyToClipboard");
+        BtnCopyDotted.Content = copyLabel;
+        BtnCopyDecimal.Content = copyLabel;
+        BtnCopyHex.Content = copyLabel;
+        BtnCopyBinary.Content = copyLabel;
+        BtnCopyIpv6.Content = copyLabel;
+        BtnCopyDotted.ToolTip = copyTooltip;
+        BtnCopyDecimal.ToolTip = copyTooltip;
+        BtnCopyHex.ToolTip = copyTooltip;
+        BtnCopyBinary.ToolTip = copyTooltip;
+        BtnCopyIpv6.ToolTip = copyTooltip;
 
         System.Windows.Automation.AutomationProperties.SetName(TxtInput, L("ToolIpConvInputLabel"));
     }
@@ -161,6 +177,27 @@ public partial class IpConverterView : UserControl, IDisposable
         }
 
         return false;
+    }
+
+    private void OnCopyValueClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button btn) return;
+
+        var text = btn.Tag?.ToString() switch
+        {
+            "Dotted" => TxtDotted.Text,
+            "Decimal" => TxtDecimal.Text,
+            "Hex" => TxtHex.Text,
+            "Binary" => TxtBinary.Text,
+            "Ipv6" => TxtMappedIpv6.Text,
+            _ => null
+        };
+
+        if (!string.IsNullOrEmpty(text))
+        {
+            Clipboard.SetText(text);
+            CopyFeedbackHelper.ShowCopyFeedback(btn);
+        }
     }
 
     private string L(string key) => _localizer?[key] ?? key;

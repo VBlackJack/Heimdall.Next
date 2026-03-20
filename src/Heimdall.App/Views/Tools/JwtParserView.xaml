@@ -55,10 +55,14 @@
                            Visibility="Collapsed"/>
 
                 <!-- Header section -->
-                <TextBlock x:Name="LblHeader" Text=""
-                           FontSize="12" FontWeight="SemiBold"
-                           Margin="0,16,0,4"
-                           Foreground="#5B9BD5"/>
+                <DockPanel Margin="0,16,0,4">
+                    <Button x:Name="BtnCopyHeader" DockPanel.Dock="Right" Click="OnCopyHeaderClick"
+                            Style="{DynamicResource SecondaryButtonStyle}"
+                            Padding="6,2" FontSize="11" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                    <TextBlock x:Name="LblHeader" Text=""
+                               FontSize="12" FontWeight="SemiBold"
+                               Foreground="#5B9BD5" VerticalAlignment="Center"/>
+                </DockPanel>
                 <Border Background="{DynamicResource CardBrush}"
                         BorderBrush="#5B9BD5" BorderThickness="1"
                         CornerRadius="4" Padding="8" Margin="0,0,0,12">
@@ -74,10 +78,14 @@
                 </Border>
 
                 <!-- Payload section -->
-                <TextBlock x:Name="LblPayload" Text=""
-                           FontSize="12" FontWeight="SemiBold"
-                           Margin="0,4,0,4"
-                           Foreground="#70AD47"/>
+                <DockPanel Margin="0,4,0,4">
+                    <Button x:Name="BtnCopyPayload" DockPanel.Dock="Right" Click="OnCopyPayloadClick"
+                            Style="{DynamicResource SecondaryButtonStyle}"
+                            Padding="6,2" FontSize="11" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                    <TextBlock x:Name="LblPayload" Text=""
+                               FontSize="12" FontWeight="SemiBold"
+                               Foreground="#70AD47" VerticalAlignment="Center"/>
+                </DockPanel>
                 <Border Background="{DynamicResource CardBrush}"
                         BorderBrush="#70AD47" BorderThickness="1"
                         CornerRadius="4" Padding="8" Margin="0,0,0,12">
@@ -93,10 +101,14 @@
                 </Border>
 
                 <!-- Signature section -->
-                <TextBlock x:Name="LblSignature" Text=""
-                           FontSize="12" FontWeight="SemiBold"
-                           Margin="0,4,0,4"
-                           Foreground="#ED7D31"/>
+                <DockPanel Margin="0,4,0,4">
+                    <Button x:Name="BtnCopySignature" DockPanel.Dock="Right" Click="OnCopySignatureClick"
+                            Style="{DynamicResource SecondaryButtonStyle}"
+                            Padding="6,2" FontSize="11" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                    <TextBlock x:Name="LblSignature" Text=""
+                               FontSize="12" FontWeight="SemiBold"
+                               Foreground="#ED7D31" VerticalAlignment="Center"/>
+                </DockPanel>
                 <Border Background="{DynamicResource CardBrush}"
                         BorderBrush="#ED7D31" BorderThickness="1"
                         CornerRadius="4" Padding="8" Margin="0,0,0,12">

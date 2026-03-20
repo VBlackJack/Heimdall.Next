@@ -38,6 +38,31 @@
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="16">
             <StackPanel MaxWidth="600">
 
+                <!-- Quick presets -->
+                <TextBlock x:Name="LblPresets" Text=""
+                           FontSize="12" Margin="0,0,0,6"
+                           Foreground="{DynamicResource TextSecondaryBrush}"/>
+                <WrapPanel Margin="0,0,0,16">
+                    <Button x:Name="BtnPresetEveryMin" Click="OnPresetClick" Tag="* * * * *"
+                            Style="{DynamicResource SecondaryButtonStyle}"
+                            Padding="10,4" Margin="0,0,6,6" FontSize="12"/>
+                    <Button x:Name="BtnPresetEveryHour" Click="OnPresetClick" Tag="0 * * * *"
+                            Style="{DynamicResource SecondaryButtonStyle}"
+                            Padding="10,4" Margin="0,0,6,6" FontSize="12"/>
+                    <Button x:Name="BtnPresetDailyMidnight" Click="OnPresetClick" Tag="0 0 * * *"
+                            Style="{DynamicResource SecondaryButtonStyle}"
+                            Padding="10,4" Margin="0,0,6,6" FontSize="12"/>
+                    <Button x:Name="BtnPresetWeekdays9am" Click="OnPresetClick" Tag="0 9 * * 1-5"
+                            Style="{DynamicResource SecondaryButtonStyle}"
+                            Padding="10,4" Margin="0,0,6,6" FontSize="12"/>
+                    <Button x:Name="BtnPresetWeeklySunday" Click="OnPresetClick" Tag="0 0 * * 0"
+                            Style="{DynamicResource SecondaryButtonStyle}"
+                            Padding="10,4" Margin="0,0,6,6" FontSize="12"/>
+                    <Button x:Name="BtnPresetMonthly1st" Click="OnPresetClick" Tag="0 0 1 * *"
+                            Style="{DynamicResource SecondaryButtonStyle}"
+                            Padding="10,4" Margin="0,0,6,6" FontSize="12"/>
+                </WrapPanel>
+
                 <!-- Selectors -->
                 <Grid Margin="0,0,0,16">
                     <Grid.ColumnDefinitions>
@@ -147,12 +172,18 @@
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
                 <TextBox x:Name="TxtManualInput" Text=""
                          FontSize="13" FontFamily="Consolas"
-                         Padding="8,6" Margin="0,0,0,16"
+                         Padding="8,6" Margin="0,0,0,4"
                          Background="{DynamicResource CardBrush}"
                          Foreground="{DynamicResource TextPrimaryBrush}"
                          BorderBrush="{DynamicResource BorderBrush}"
                          TextChanged="OnManualInputChanged"
                          />
+                <TextBlock x:Name="TxtValidationError" Text=""
+                           FontSize="11" Margin="0,0,0,12"
+                           FontWeight="SemiBold"
+                           Foreground="Red"
+                           TextWrapping="Wrap"
+                           Visibility="Collapsed"/>
 
                 <!-- Next executions -->
                 <TextBlock x:Name="LblNextRuns" Text=""

@@ -28,6 +28,8 @@ namespace Heimdall.App.Views.Tools;
 public partial class UrlEncoderView : UserControl, IDisposable
 {
     private LocalizationManager? _localizer;
+    private bool _initialized;
+    private bool _updatingFromCode;
 
     public UrlEncoderView()
     {
@@ -42,10 +44,18 @@ public partial class UrlEncoderView : UserControl, IDisposable
         _localizer = localizer;
         ApplyLocalization();
 
+        // Pre-fill with a sensible default; context overrides if provided
+        var initialText = "https://example.com/path?key=hello world&lang=en";
+
         if (!string.IsNullOrWhiteSpace(context?.Argument))
         {
-            TxtDecoded.Text = context.Argument;
+            initialText = context.Argument;
         }
+
+        _initialized = true;
+
+        // Setting TxtDecoded.Text triggers OnDecodedTextChanged which auto-encodes
+        TxtDecoded.Text = initialText;
     }
 
     private void ApplyLocalization()
@@ -70,6 +80,59 @@ public partial class UrlEncoderView : UserControl, IDisposable
         BtnCopyEncoded.ToolTip = L("ToolBtnCopyToClipboard");
     }
 
+    private void OnDecodedTextChanged(object sender, TextChangedEventArgs e)
+    {
+        if (!_initialized || _updatingFromCode) return;
+
+        _updatingFromCode = true;
+        try
+        {
+            var input = TxtDecoded.Text;
+            if (string.IsNullOrEmpty(input))
+            {
+                TxtEncoded.Text = string.Empty;
+                return;
+            }
+
+            TxtEncoded.Text = ChkComponentEncoding.IsChecked == true
+                ? Uri.EscapeDataString(input)
+                : EscapeUrlPreservingStructure(input);
+        }
+        finally
+        {
+            _updatingFromCode = false;
+        }
+    }
+
+    private void OnEncodedTextChanged(object sender, TextChangedEventArgs e)
+    {
+        if (!_initialized || _updatingFromCode) return;
+
+        _updatingFromCode = true;
+        try
+        {
+            var input = TxtEncoded.Text;
+            if (string.IsNullOrEmpty(input))
+            {
+                TxtDecoded.Text = string.Empty;
+                return;
+            }
+
+            try
+            {
+                TxtDecoded.Text = Uri.UnescapeDataString(input);
+            }
+            catch (UriFormatException)
+            {
+                // Leave decoded text unchanged on invalid input
+            }
+        }
+        finally
+        {
+            _updatingFromCode = false;
+        }
+    }
+
     private void OnEncodeClick(object sender, RoutedEventArgs e)
     {
         var input = TxtDecoded.Text;
@@ -78,9 +141,17 @@ public partial class UrlEncoderView : UserControl, IDisposable
             return;
         }
 
-        TxtEncoded.Text = ChkComponentEncoding.IsChecked == true
-            ? Uri.EscapeDataString(input)
-            : EscapeUrlPreservingStructure(input);
+        _updatingFromCode = true;
+        try
+        {
+            TxtEncoded.Text = ChkComponentEncoding.IsChecked == true
+                ? Uri.EscapeDataString(input)
+                : EscapeUrlPreservingStructure(input);
+        }
+        finally
+        {
+            _updatingFromCode = false;
+        }
     }
 
     private void OnDecodeClick(object sender, RoutedEventArgs e)
@@ -91,6 +162,7 @@ public partial class UrlEncoderView : UserControl, IDisposable
             return;
         }
 
+        _updatingFromCode = true;
         try
         {
             TxtDecoded.Text = Uri.UnescapeDataString(input);
@@ -98,6 +170,10 @@ public partial class UrlEncoderView : UserControl, IDisposable
         catch (UriFormatException)
         {
             TxtDecoded.Text = input;
+        }
+        finally
+        {
+            _updatingFromCode = false;
         }
     }
 

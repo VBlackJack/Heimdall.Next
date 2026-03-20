@@ -61,6 +61,9 @@ public partial class DnsLookupView : UserControl, IDisposable
         _localizer = localizer;
         ApplyLocalization();
 
+        // Pre-fill with a sensible default; context overrides if provided
+        TxtHostname.Text = "example.com";
+
         if (!string.IsNullOrWhiteSpace(context?.TargetHost))
         {
             TxtHostname.Text = context.TargetHost;
@@ -74,9 +77,13 @@ public partial class DnsLookupView : UserControl, IDisposable
         BtnLookup.Content = L("ToolDnsBtnLookup");
         TxtStatus.Text = string.Empty;
 
+        BtnCopyResults.Content = L("ToolDnsBtnCopyResults");
+        BtnCopyResults.ToolTip = L("ToolBtnCopyToClipboard");
+
         System.Windows.Automation.AutomationProperties.SetName(BtnLookup, L("ToolDnsBtnLookup"));
         System.Windows.Automation.AutomationProperties.SetName(TxtHostname, L("ToolDnsHostnameLabel"));
         System.Windows.Automation.AutomationProperties.SetName(CmbRecordType, L("ToolDnsRecordTypeLabel"));
+        System.Windows.Automation.AutomationProperties.SetName(BtnCopyResults, L("ToolDnsBtnCopyResults"));
     }
 
     private void OnHostnameKeyDown(object sender, KeyEventArgs e)
@@ -294,6 +301,15 @@ public partial class DnsLookupView : UserControl, IDisposable
         }
 
         return sb.ToString().TrimEnd();
+    }
+
+    private void OnCopyResultsClick(object sender, RoutedEventArgs e)
+    {
+        if (!string.IsNullOrEmpty(TxtResults.Text))
+        {
+            Clipboard.SetText(TxtResults.Text);
+            CopyFeedbackHelper.ShowCopyFeedback(sender as Button);
+        }
     }
 
     private string L(string key) => _localizer?[key] ?? key;

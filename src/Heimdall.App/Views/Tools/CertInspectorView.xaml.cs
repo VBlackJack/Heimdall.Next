@@ -58,6 +58,9 @@ public partial class CertInspectorView : UserControl, IDisposable
         _localizer = localizer;
         ApplyLocalization();
 
+        // Pre-fill with a sensible default; context overrides if provided
+        TxtHost.Text = "google.com";
+
         if (!string.IsNullOrWhiteSpace(context?.TargetHost))
         {
             TxtHost.Text = context.TargetHost;

@@ -84,7 +84,7 @@ public partial class SshKeyGeneratorView : UserControl, IDisposable
         Ed25519Notice.Text = L("ToolSshKeyGenEd25519Notice");
 
         // Ed25519 combo item tooltip
-        Ed25519Item.ToolTip = L("ToolSshKeyGenEd25519Notice");
+        Ed25519Item.ToolTip = L("ToolSshKeyGenEd25519Tooltip");
 
         // Accessibility
         System.Windows.Automation.AutomationProperties.SetName(BtnGenerate, L("ToolSshKeyGenBtnGenerate"));

@@ -72,6 +72,7 @@ public partial class CrontabBuilderView : UserControl, IDisposable
     private void ApplyLocalization()
     {
         HeaderTitle.Text = L("ToolCronTitle");
+        LblPresets.Text = L("ToolCronPresetsLabel");
         LblMinute.Text = L("ToolCronMinute");
         LblHour.Text = L("ToolCronHour");
         LblDayOfMonth.Text = L("ToolCronDayOfMonth");
@@ -80,6 +81,13 @@ public partial class CrontabBuilderView : UserControl, IDisposable
         BtnCopy.Content = L("ToolCronBtnCopy");
         LblManualEdit.Text = L("ToolCronManualEdit");
         LblNextRuns.Text = L("ToolCronNextRuns");
+
+        BtnPresetEveryMin.Content = L("ToolCronPresetEveryMin");
+        BtnPresetEveryHour.Content = L("ToolCronPresetEveryHour");
+        BtnPresetDailyMidnight.Content = L("ToolCronPresetDailyMidnight");
+        BtnPresetWeekdays9am.Content = L("ToolCronPresetWeekdays9am");
+        BtnPresetWeeklySunday.Content = L("ToolCronPresetWeeklySunday");
+        BtnPresetMonthly1st.Content = L("ToolCronPresetMonthly1st");
 
         AutomationProperties.SetName(BtnCopy, L("ToolCronBtnCopy"));
         AutomationProperties.SetName(TxtManualInput, L("ToolCronManualEdit"));
@@ -176,11 +184,73 @@ public partial class CrontabBuilderView : UserControl, IDisposable
         }
     }
 
+    private void OnPresetClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button btn || btn.Tag is not string cronExpr) return;
+        if (!TryParseCron(cronExpr, out var fields)) return;
+
+        _updatingFromCode = true;
+        try
+        {
+            ApplyCronToSelectors(fields);
+            TxtCronExpression.Text = cronExpr;
+            TxtManualInput.Text = cronExpr;
+            TxtDescription.Text = DescribeCron(fields);
+            NextRunsList.ItemsSource = CalculateNextRuns(fields, NextRunsCount);
+            TxtValidationError.Visibility = Visibility.Collapsed;
+        }
+        finally
+        {
+            _updatingFromCode = false;
+        }
+    }
+
     private void OnManualInputChanged(object sender, TextChangedEventArgs e)
     {
         if (!_initialized || _updatingFromCode) return;
 
         var text = TxtManualInput.Text.Trim();
+
+        if (string.IsNullOrEmpty(text))
+        {
+            TxtValidationError.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        var parts = text.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length != 5)
+        {
+            TxtValidationError.Text = L("ToolCronValidationFieldCount");
+            TxtValidationError.Visibility = Visibility.Visible;
+            return;
+        }
+
+        // Validate each field individually
+        string[] fieldLabels = [L("ToolCronMinute"), L("ToolCronHour"), L("ToolCronDayOfMonth"), L("ToolCronMonth"), L("ToolCronDayOfWeek")];
+        for (var i = 0; i < parts.Length; i++)
+        {
+            if (!IsValidCronField(parts[i]))
+            {
+                TxtValidationError.Text = string.Format(L("ToolCronValidationInvalidField"), fieldLabels[i], parts[i]);
+                TxtValidationError.Visibility = Visibility.Visible;
+                return;
+            }
+        }
+
+        // Validate ranges
+        int[][] ranges = [[0, 59], [0, 23], [1, 31], [1, 12], [0, 6]];
+        for (var i = 0; i < parts.Length; i++)
+        {
+            if (!ValidateFieldRange(parts[i], ranges[i][0], ranges[i][1]))
+            {
+                TxtValidationError.Text = string.Format(L("ToolCronValidationOutOfRange"), fieldLabels[i], ranges[i][0], ranges[i][1]);
+                TxtValidationError.Visibility = Visibility.Visible;
+                return;
+            }
+        }
+
+        TxtValidationError.Visibility = Visibility.Collapsed;
+
         if (!TryParseCron(text, out var fields)) return;
 
         _updatingFromCode = true;
@@ -195,6 +265,43 @@ public partial class CrontabBuilderView : UserControl, IDisposable
         {
             _updatingFromCode = false;
         }
+    }
+
+    /// <summary>
+    /// Validates that numeric values in a cron field fall within the allowed range.
+    /// </summary>
+    private static bool ValidateFieldRange(string field, int min, int max)
+    {
+        if (field == "*") return true;
+
+        foreach (var part in field.Split(','))
+        {
+            if (part.Contains('/'))
+            {
+                var stepParts = part.Split('/');
+                if (stepParts.Length != 2) return false;
+                if (stepParts[0] != "*" && int.TryParse(stepParts[0], out var start) && (start < min || start > max))
+                    return false;
+                if (!int.TryParse(stepParts[1], out var step) || step <= 0)
+                    return false;
+            }
+            else if (part.Contains('-'))
+            {
+                var rangeParts = part.Split('-');
+                if (rangeParts.Length != 2) return false;
+                if (!int.TryParse(rangeParts[0], out var rStart) || rStart < min || rStart > max) return false;
+                if (!int.TryParse(rangeParts[1], out var rEnd) || rEnd < min || rEnd > max) return false;
+            }
+            else if (int.TryParse(part, out var val))
+            {
+                if (val < min || val > max) return false;
+            }
+            else
+            {
+                return false;
+            }
+        }
+        return true;
     }
 
     private void UpdateFromSelectors()

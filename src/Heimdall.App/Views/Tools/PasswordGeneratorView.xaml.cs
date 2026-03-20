@@ -241,6 +241,9 @@ public partial class PasswordGeneratorView : UserControl, IDisposable
         // Layout-safe + Phonetic
         ChkLayoutSafe.Content = L("ToolPwdGenLayoutSafe");
         PhoneticLabel.Text = L("ToolPwdGenPhonetic");
+        BtnCopyPhonetic.Content = L("ToolPwdGenBtnCopyPhonetic");
+        BtnCopyPhonetic.ToolTip = L("ToolBtnCopyToClipboard");
+        System.Windows.Automation.AutomationProperties.SetName(BtnCopyPhonetic, L("ToolPwdGenBtnCopyPhonetic"));
 
         // Syllable mode
         SylLengthLabel.Text = L("ToolPwdGenBaseLength");
@@ -349,6 +352,15 @@ public partial class PasswordGeneratorView : UserControl, IDisposable
         if (!string.IsNullOrEmpty(PasswordOutput.Text))
         {
             Clipboard.SetText(PasswordOutput.Text);
+            CopyFeedbackHelper.ShowCopyFeedback(sender as Button);
+        }
+    }
+
+    private void OnCopyPhoneticClick(object sender, RoutedEventArgs e)
+    {
+        if (!string.IsNullOrEmpty(PhoneticText.Text))
+        {
+            Clipboard.SetText(PhoneticText.Text);
             CopyFeedbackHelper.ShowCopyFeedback(sender as Button);
         }
     }

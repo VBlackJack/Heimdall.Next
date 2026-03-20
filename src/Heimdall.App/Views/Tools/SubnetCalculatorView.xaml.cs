@@ -29,11 +29,13 @@ namespace Heimdall.App.Views.Tools;
 public partial class SubnetCalculatorView : UserControl, IDisposable
 {
     private LocalizationManager? _localizer;
+    private bool _initialized;
 
     public SubnetCalculatorView()
     {
         InitializeComponent();
         TxtCidrInput.KeyDown += OnInputKeyDown;
+        TxtCidrInput.TextChanged += OnInputChanged;
     }
 
     /// <summary>
@@ -44,11 +46,16 @@ public partial class SubnetCalculatorView : UserControl, IDisposable
         _localizer = localizer;
         ApplyLocalization();
 
+        // Pre-fill with a sensible default and auto-calculate; context overrides if provided
+        TxtCidrInput.Text = "192.168.1.0/24";
+
         if (!string.IsNullOrWhiteSpace(context?.TargetHost))
         {
             TxtCidrInput.Text = context.TargetHost;
-            Calculate();
         }
+
+        _initialized = true;
+        Calculate();
     }
 
     private void ApplyLocalization()
@@ -65,6 +72,26 @@ public partial class SubnetCalculatorView : UserControl, IDisposable
         LblCidr.Text = L("ToolSubnetCidrNotation");
         LblWildcard.Text = L("ToolSubnetWildcardMask");
 
+        var copyLabel = L("ToolBtnCopyValue");
+        var copyTooltip = L("ToolBtnCopyToClipboard");
+        BtnCopyNetwork.Content = copyLabel;
+        BtnCopyBroadcast.Content = copyLabel;
+        BtnCopyMask.Content = copyLabel;
+        BtnCopyFirstHost.Content = copyLabel;
+        BtnCopyLastHost.Content = copyLabel;
+        BtnCopyTotalHosts.Content = copyLabel;
+        BtnCopyCidr.Content = copyLabel;
+        BtnCopyWildcard.Content = copyLabel;
+
+        BtnCopyNetwork.ToolTip = copyTooltip;
+        BtnCopyBroadcast.ToolTip = copyTooltip;
+        BtnCopyMask.ToolTip = copyTooltip;
+        BtnCopyFirstHost.ToolTip = copyTooltip;
+        BtnCopyLastHost.ToolTip = copyTooltip;
+        BtnCopyTotalHosts.ToolTip = copyTooltip;
+        BtnCopyCidr.ToolTip = copyTooltip;
+        BtnCopyWildcard.ToolTip = copyTooltip;
+
         System.Windows.Automation.AutomationProperties.SetName(BtnCalculate, L("ToolSubnetBtnCalculate"));
         System.Windows.Automation.AutomationProperties.SetName(TxtCidrInput, L("ToolSubnetCidrInputLabel"));
     }
@@ -76,6 +103,12 @@ public partial class SubnetCalculatorView : UserControl, IDisposable
             Calculate();
             e.Handled = true;
         }
+    }
+
+    private void OnInputChanged(object sender, TextChangedEventArgs e)
+    {
+        if (!_initialized) return;
+        Calculate();
     }
 
     private void OnCalculateClick(object sender, RoutedEventArgs e)
@@ -213,6 +246,30 @@ public partial class SubnetCalculatorView : UserControl, IDisposable
             (byte)(mask >> 8),
             (byte)mask
         ];
+    }
+
+    private void OnCopyValueClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button btn) return;
+
+        var text = btn.Tag?.ToString() switch
+        {
+            "Network" => TxtNetwork.Text,
+            "Broadcast" => TxtBroadcast.Text,
+            "Mask" => TxtSubnetMask.Text,
+            "FirstHost" => TxtFirstHost.Text,
+            "LastHost" => TxtLastHost.Text,
+            "TotalHosts" => TxtTotalHosts.Text,
+            "Cidr" => TxtCidr.Text,
+            "Wildcard" => TxtWildcard.Text,
+            _ => null
+        };
+
+        if (!string.IsNullOrEmpty(text))
+        {
+            Clipboard.SetText(text);
+            CopyFeedbackHelper.ShowCopyFeedback(btn);
+        }
     }
 
     private string L(string key) => _localizer?[key] ?? key;

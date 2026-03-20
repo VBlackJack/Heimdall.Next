@@ -50,12 +50,18 @@ public partial class Base64ToolView : UserControl, IDisposable
         _localizer = localizer;
         ApplyLocalization();
 
+        // Pre-fill with a sensible default; context overrides if provided
+        InputText.Text = "Hello, World!";
+
         if (!string.IsNullOrEmpty(context?.Argument))
         {
             InputText.Text = context.Argument;
         }
 
         _initialized = true;
+
+        // Trigger initial encoding so the tool shows a result on load
+        _ = EncodeAsync();
     }
 
     private void ApplyLocalization()

@@ -48,7 +48,7 @@
                                    Foreground="{DynamicResource TextPrimaryBrush}"
                                    VerticalAlignment="Center" Width="120"/>
                         <ComboBox x:Name="AlgorithmCombo"
-                                  SelectedIndex="0"
+                                  SelectedIndex="1"
                                   MinWidth="200"
 >
                             <ComboBoxItem Content="RSA (2048)"/>

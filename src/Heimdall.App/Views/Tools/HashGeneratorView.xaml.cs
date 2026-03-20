@@ -14,19 +14,23 @@
  * limitations under the License.
  */
 
+using System.IO;
 using System.Security.Cryptography;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
 using System.Windows.Threading;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Models;
+using Heimdall.Core.Utilities;
+using Microsoft.Win32;
 
 namespace Heimdall.App.Views.Tools;
 
 /// <summary>
-/// Hash generator tool that computes cryptographic hashes of arbitrary text input.
-/// Supports MD5, SHA1, SHA256, SHA384, and SHA512.
+/// Hash generator tool that computes all cryptographic hashes simultaneously.
+/// Supports MD5, SHA1, SHA256, SHA384, and SHA512 with verify mode.
 /// </summary>
 public partial class HashGeneratorView : UserControl, IDisposable
 {
@@ -35,10 +39,32 @@ public partial class HashGeneratorView : UserControl, IDisposable
 
     private static readonly string[] Algorithms = ["MD5", "SHA1", "SHA256", "SHA384", "SHA512"];
 
+    /// <summary>
+    /// Maximum file size allowed for hashing (50 MB).
+    /// </summary>
+    private const long MaxFileSizeBytes = 50L * 1024 * 1024;
+
+    /// <summary>
+    /// Maps hash hex length to algorithm name for verify auto-detection.
+    /// </summary>
+    private static readonly Dictionary<int, string> LengthToAlgorithm = new()
+    {
+        [32] = "MD5",
+        [40] = "SHA1",
+        [64] = "SHA256",
+        [96] = "SHA384",
+        [128] = "SHA512",
+    };
+
+    private readonly Dictionary<string, System.Windows.Controls.TextBox> _hashOutputBoxes = new();
+    private readonly Dictionary<string, Button> _hashCopyButtons = new();
+    private readonly Dictionary<string, DockPanel> _hashRows = new();
+    private readonly Dictionary<string, string> _currentHashes = new();
+
     public HashGeneratorView()
     {
         InitializeComponent();
-        InitializeAlgorithms();
+        BuildHashResultRows();
         InitializeDebounceTimer();
     }
 
@@ -56,14 +82,58 @@ public partial class HashGeneratorView : UserControl, IDisposable
         }
     }
 
-    private void InitializeAlgorithms()
+    private void BuildHashResultRows()
     {
         foreach (var algo in Algorithms)
         {
-            CmbAlgorithm.Items.Add(algo);
-        }
+            var row = new DockPanel { Margin = new Thickness(0, 3, 0, 3) };
 
-        CmbAlgorithm.SelectedIndex = 2; // SHA256
+            var label = new TextBlock
+            {
+                Text = $"{algo}:",
+                FontFamily = new System.Windows.Media.FontFamily("Consolas"),
+                FontSize = 12,
+                FontWeight = FontWeights.Bold,
+                Width = 60,
+                VerticalAlignment = VerticalAlignment.Center,
+                Foreground = (Brush)FindResource("TextSecondaryBrush"),
+            };
+            label.SetValue(DockPanel.DockProperty, Dock.Left);
+
+            var copyBtn = new Button
+            {
+                Content = "",
+                Padding = new Thickness(8, 4, 8, 4),
+                Margin = new Thickness(6, 0, 0, 0),
+                VerticalAlignment = VerticalAlignment.Center,
+                Style = (Style)FindResource("SecondaryButtonStyle"),
+            };
+            copyBtn.SetValue(DockPanel.DockProperty, Dock.Right);
+            copyBtn.Tag = algo;
+            copyBtn.Click += OnCopyHashClick;
+
+            var hashBox = new System.Windows.Controls.TextBox
+            {
+                FontSize = 12,
+                FontFamily = new System.Windows.Media.FontFamily("Consolas"),
+                Padding = new Thickness(6, 4, 6, 4),
+                IsReadOnly = true,
+                Background = Brushes.Transparent,
+                Foreground = (Brush)FindResource("AccentBrush"),
+                BorderThickness = new Thickness(0),
+                VerticalAlignment = VerticalAlignment.Center,
+            };
+
+            row.Children.Add(label);
+            row.Children.Add(copyBtn);
+            row.Children.Add(hashBox);
+
+            HashResultsPanel.Children.Add(row);
+
+            _hashOutputBoxes[algo] = hashBox;
+            _hashCopyButtons[algo] = copyBtn;
+            _hashRows[algo] = row;
+        }
     }
 
     private void InitializeDebounceTimer()
@@ -75,24 +145,38 @@ public partial class HashGeneratorView : UserControl, IDisposable
         _debounceTimer.Tick += (_, _) =>
         {
             _debounceTimer.Stop();
-            ComputeHash();
+            ComputeAllHashes();
         };
     }
 
     private void ApplyLocalization()
     {
         HeaderTitle.Text = L("ToolHashGeneratorTitle");
-        LblAlgorithm.Text = L("ToolHashAlgorithmLabel");
         LblInput.Text = L("ToolHashInputLabel");
-        LblOutput.Text = L("ToolHashOutputLabel");
-        BtnCopy.Content = L("ToolHashBtnCopy");
+        LblResults.Text = L("ToolHashResultsLabel");
+        LblVerify.Text = L("ToolHashVerifyLabel");
 
-        System.Windows.Automation.AutomationProperties.SetName(BtnCopy, L("ToolHashBtnCopy"));
-        System.Windows.Automation.AutomationProperties.SetName(CmbAlgorithm, L("ToolHashAlgorithmLabel"));
+        TxtFileDropZone.Text = L("ToolHashFileDropZone");
+        BtnBrowseFile.Content = L("ToolHashBtnBrowseFile");
+
         System.Windows.Automation.AutomationProperties.SetName(TxtInput, L("ToolHashInputLabel"));
-        System.Windows.Automation.AutomationProperties.SetName(TxtOutput, L("ToolHashOutputLabel"));
+        System.Windows.Automation.AutomationProperties.SetName(TxtVerify, L("ToolHashVerifyLabel"));
+        System.Windows.Automation.AutomationProperties.SetName(BtnBrowseFile, L("ToolHashBtnBrowseFile"));
 
-        BtnCopy.ToolTip = L("ToolBtnCopyToClipboard");
+        foreach (var algo in Algorithms)
+        {
+            if (_hashCopyButtons.TryGetValue(algo, out var btn))
+            {
+                btn.Content = L("ToolHashBtnCopy");
+                btn.ToolTip = L("ToolBtnCopyToClipboard");
+                System.Windows.Automation.AutomationProperties.SetName(btn, $"{L("ToolHashBtnCopy")} {algo}");
+            }
+
+            if (_hashOutputBoxes.TryGetValue(algo, out var box))
+            {
+                System.Windows.Automation.AutomationProperties.SetName(box, $"{algo} hash");
+            }
+        }
     }
 
     private void OnInputTextChanged(object sender, TextChangedEventArgs e)
@@ -101,65 +185,246 @@ public partial class HashGeneratorView : UserControl, IDisposable
         _debounceTimer?.Start();
     }
 
-    private void OnAlgorithmChanged(object sender, SelectionChangedEventArgs e)
-    {
-        ComputeHash();
-    }
-
-    private void ComputeHash()
+    private void ComputeAllHashes()
     {
         var input = TxtInput.Text;
+        _currentHashes.Clear();
+
         if (string.IsNullOrEmpty(input))
         {
-            TxtOutput.Text = string.Empty;
+            foreach (var algo in Algorithms)
+            {
+                if (_hashOutputBoxes.TryGetValue(algo, out var box))
+                {
+                    box.Text = string.Empty;
+                }
+            }
             TxtByteLength.Text = string.Empty;
+            UpdateVerifyResult();
             return;
         }
 
-        var algorithmName = CmbAlgorithm.SelectedItem as string ?? "SHA256";
+        var inputBytes = Encoding.UTF8.GetBytes(input);
 
-        try
+        foreach (var algo in Algorithms)
         {
-            using var algorithm = CreateHashAlgorithm(algorithmName);
-            if (algorithm is null)
+            try
             {
-                TxtOutput.Text = L("ToolHashErrorUnsupported");
-                TxtByteLength.Text = string.Empty;
-                return;
+                using var algorithm = CreateHashAlgorithm(algo);
+                if (algorithm is null) continue;
+
+                var hashBytes = algorithm.ComputeHash(inputBytes);
+                var hex = Convert.ToHexStringLower(hashBytes);
+
+                _currentHashes[algo] = hex;
+
+                if (_hashOutputBoxes.TryGetValue(algo, out var box))
+                {
+                    box.Text = hex;
+                }
             }
-
-            var inputBytes = Encoding.UTF8.GetBytes(input);
-            var hashBytes = algorithm.ComputeHash(inputBytes);
-            var hex = Convert.ToHexStringLower(hashBytes);
-
-            TxtOutput.Text = hex;
-            TxtByteLength.Text = string.Format(
-                L("ToolHashByteLengthFormat"),
-                hashBytes.Length,
-                hashBytes.Length * 8);
+            catch (Exception ex)
+            {
+                Core.Logging.FileLogger.Warn($"HashGenerator {algo} computation failed: {ex.Message}");
+                if (_hashOutputBoxes.TryGetValue(algo, out var box))
+                {
+                    box.Text = string.Empty;
+                }
+            }
         }
-        catch (Exception ex)
-        {
-            Core.Logging.FileLogger.Warn($"HashGenerator computation failed: {ex.Message}");
-            TxtOutput.Text = string.Empty;
-            TxtByteLength.Text = string.Empty;
-        }
+
+        TxtByteLength.Text = string.Format(
+            L("ToolHashByteLengthFormat"),
+            inputBytes.Length,
+            inputBytes.Length * 8);
+
+        UpdateVerifyResult();
     }
 
-    private void OnCopyClick(object sender, RoutedEventArgs e)
+    private void OnVerifyTextChanged(object sender, TextChangedEventArgs e)
     {
-        var hash = TxtOutput.Text;
-        if (!string.IsNullOrEmpty(hash))
+        UpdateVerifyResult();
+    }
+
+    private void UpdateVerifyResult()
+    {
+        var expected = TxtVerify.Text.Trim().ToLowerInvariant();
+
+        // Reset all row highlights
+        var accentBrush = (Brush)FindResource("AccentBrush");
+        foreach (var algo in Algorithms)
+        {
+            if (_hashOutputBoxes.TryGetValue(algo, out var box))
+            {
+                box.Foreground = accentBrush;
+            }
+        }
+
+        if (string.IsNullOrEmpty(expected) || _currentHashes.Count == 0)
+        {
+            TxtVerifyResult.Text = string.Empty;
+            return;
+        }
+
+        // Auto-detect algorithm by length and check match
+        if (LengthToAlgorithm.TryGetValue(expected.Length, out var detectedAlgo))
+        {
+            if (_currentHashes.TryGetValue(detectedAlgo, out var computedHash) &&
+                string.Equals(computedHash, expected, StringComparison.OrdinalIgnoreCase))
+            {
+                TxtVerifyResult.Text = string.Format(L("ToolHashVerifyMatch"), detectedAlgo);
+                TxtVerifyResult.Foreground = new SolidColorBrush(System.Windows.Media.Color.FromRgb(34, 197, 94));
+
+                if (_hashOutputBoxes.TryGetValue(detectedAlgo, out var matchBox))
+                {
+                    matchBox.Foreground = new SolidColorBrush(System.Windows.Media.Color.FromRgb(34, 197, 94));
+                }
+                return;
+            }
+        }
+
+        // Fallback: check all algorithms regardless of length
+        foreach (var algo in Algorithms)
+        {
+            if (_currentHashes.TryGetValue(algo, out var hash) &&
+                string.Equals(hash, expected, StringComparison.OrdinalIgnoreCase))
+            {
+                TxtVerifyResult.Text = string.Format(L("ToolHashVerifyMatch"), algo);
+                TxtVerifyResult.Foreground = new SolidColorBrush(System.Windows.Media.Color.FromRgb(34, 197, 94));
+
+                if (_hashOutputBoxes.TryGetValue(algo, out var matchBox))
+                {
+                    matchBox.Foreground = new SolidColorBrush(System.Windows.Media.Color.FromRgb(34, 197, 94));
+                }
+                return;
+            }
+        }
+
+        TxtVerifyResult.Text = L("ToolHashVerifyNoMatch");
+        TxtVerifyResult.Foreground = new SolidColorBrush(System.Windows.Media.Color.FromRgb(239, 68, 68));
+    }
+
+    private void OnCopyHashClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button btn || btn.Tag is not string algo) return;
+
+        if (_currentHashes.TryGetValue(algo, out var hash) && !string.IsNullOrEmpty(hash))
         {
             try
             {
                 Clipboard.SetText(hash);
-                CopyFeedbackHelper.ShowCopyFeedback(sender as Button);
+                CopyFeedbackHelper.ShowCopyFeedback(btn);
             }
             catch (Exception ex)
             {
                 Core.Logging.FileLogger.Warn($"HashGenerator clipboard copy failed: {ex.Message}");
             }
+        }
+    }
+
+    private void OnDragOver(object sender, System.Windows.DragEventArgs e)
+    {
+        if (e.Data.GetDataPresent(System.Windows.DataFormats.FileDrop))
+        {
+            e.Effects = System.Windows.DragDropEffects.Copy;
+        }
+        else
+        {
+            e.Effects = System.Windows.DragDropEffects.None;
+        }
+        e.Handled = true;
+    }
+
+    private void OnDrop(object sender, System.Windows.DragEventArgs e)
+    {
+        if (e.Data.GetDataPresent(System.Windows.DataFormats.FileDrop))
+        {
+            var files = (string[])e.Data.GetData(System.Windows.DataFormats.FileDrop);
+            if (files?.Length > 0)
+            {
+                HashFileAsync(files[0]);
+            }
+        }
+    }
+
+    private void OnBrowseFileClick(object sender, RoutedEventArgs e)
+    {
+        var dialog = new OpenFileDialog
+        {
+            Filter = "All files (*.*)|*.*",
+        };
+
+        if (dialog.ShowDialog() == true)
+        {
+            HashFileAsync(dialog.FileName);
+        }
+    }
+
+    private async void HashFileAsync(string filePath)
+    {
+        try
+        {
+            var fileInfo = new FileInfo(filePath);
+            if (!fileInfo.Exists) return;
+
+            if (fileInfo.Length > MaxFileSizeBytes)
+            {
+                TxtFileStatus.Text = L("ToolHashFileTooLarge");
+                TxtFileStatus.Foreground = (Brush)FindResource("ErrorBrush");
+                return;
+            }
+
+            TxtFileStatus.Text = L("ToolHashFileHashing");
+            TxtFileStatus.Foreground = (Brush)FindResource("TextSecondaryBrush");
+            _currentHashes.Clear();
+
+            var fileBytes = await Task.Run(() => File.ReadAllBytes(filePath));
+
+            foreach (var algo in Algorithms)
+            {
+                try
+                {
+                    using var algorithm = CreateHashAlgorithm(algo);
+                    if (algorithm is null) continue;
+
+                    var hashBytes = await Task.Run(() => algorithm.ComputeHash(fileBytes));
+                    var hex = Convert.ToHexStringLower(hashBytes);
+
+                    _currentHashes[algo] = hex;
+
+                    if (_hashOutputBoxes.TryGetValue(algo, out var box))
+                    {
+                        box.Text = hex;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Core.Logging.FileLogger.Warn($"HashGenerator file {algo} computation failed: {ex.Message}");
+                    if (_hashOutputBoxes.TryGetValue(algo, out var box))
+                    {
+                        box.Text = string.Empty;
+                    }
+                }
+            }
+
+            TxtFileStatus.Text = string.Format(
+                L("ToolHashFileResult"),
+                fileInfo.Name,
+                FileSize.Format(fileInfo.Length));
+            TxtFileStatus.Foreground = (Brush)FindResource("TextSecondaryBrush");
+
+            TxtByteLength.Text = string.Format(
+                L("ToolHashByteLengthFormat"),
+                fileInfo.Length,
+                fileInfo.Length * 8);
+
+            UpdateVerifyResult();
+        }
+        catch (Exception ex)
+        {
+            Core.Logging.FileLogger.Warn($"HashGenerator file hash failed: {ex.Message}");
+            TxtFileStatus.Text = string.Format(L("ToolHashFileError"), ex.Message);
+            TxtFileStatus.Foreground = (Brush)FindResource("ErrorBrush");
         }
     }
 

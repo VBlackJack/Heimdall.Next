@@ -118,10 +118,12 @@ public partial class DateTimeConverterView : UserControl, IDisposable
         {
             DateTimeOffset dto;
 
-            if (TryParseUnixTimestamp(input, out var unixDto))
+            if (TryParseUnixTimestamp(input, out var unixDto, out var isMilliseconds))
             {
                 dto = unixDto;
-                TxtDetectedFormat.Text = L("ToolDateTimeDetectedUnix");
+                TxtDetectedFormat.Text = isMilliseconds
+                    ? L("ToolDateTimeDetectedMs")
+                    : L("ToolDateTimeDetectedUnix");
             }
             else if (DateTimeOffset.TryParse(input, CultureInfo.InvariantCulture,
                          DateTimeStyles.None, out var parsedDto))
@@ -149,21 +151,36 @@ public partial class DateTimeConverterView : UserControl, IDisposable
         }
     }
 
-    private static bool TryParseUnixTimestamp(string input, out DateTimeOffset result)
+    private static bool TryParseUnixTimestamp(string input, out DateTimeOffset result, out bool isMilliseconds)
     {
         result = default;
+        isMilliseconds = false;
 
-        if (!long.TryParse(input, NumberStyles.Integer, CultureInfo.InvariantCulture, out var seconds))
+        if (!long.TryParse(input, NumberStyles.Integer, CultureInfo.InvariantCulture, out var value))
             return false;
 
-        // Reasonable range: 1970-01-01 to 3000-01-01
+        // Reasonable range for seconds: 1970-01-01 to 3000-01-01
         const long maxSeconds = 32503680000L;
         const long minSeconds = -62135596800L;
 
-        if (seconds < minSeconds || seconds > maxSeconds)
+        // If 13+ digits, treat as milliseconds
+        if (input.Length >= 13 || value > maxSeconds)
+        {
+            const long maxMilliseconds = maxSeconds * 1000;
+            const long minMilliseconds = minSeconds * 1000;
+
+            if (value < minMilliseconds || value > maxMilliseconds)
+                return false;
+
+            result = DateTimeOffset.FromUnixTimeMilliseconds(value);
+            isMilliseconds = true;
+            return true;
+        }
+
+        if (value < minSeconds || value > maxSeconds)
             return false;
 
-        result = DateTimeOffset.FromUnixTimeSeconds(seconds);
+        result = DateTimeOffset.FromUnixTimeSeconds(value);
         return true;
     }
 

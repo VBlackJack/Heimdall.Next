@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
 using Heimdall.Core.Localization;
@@ -48,13 +49,19 @@ public partial class ChmodCalculatorView : UserControl, IDisposable
         if (!string.IsNullOrEmpty(context?.Argument) && IsValidOctal(context.Argument))
         {
             OctalInput.Text = context.Argument;
+            UpdateCommandPreview(context.Argument);
         }
         else
         {
             ApplyOctalToCheckboxes("755");
             OctalInput.Text = "755";
+            UpdateCommandPreview("755");
         }
     }
+
+    private static readonly Regex SymbolicClausePattern = new(
+        @"^([ugoa]+)([\+\-=])([rwx]*)$",
+        RegexOptions.Compiled);
 
     private void ApplyLocalization()
     {
@@ -70,10 +77,15 @@ public partial class ChmodCalculatorView : UserControl, IDisposable
         BtnCopyOctal.Content = L("ToolChmodBtnCopyOctal");
         BtnCopySymbolic.Content = L("ToolChmodBtnCopySymbolic");
         PresetsLabel.Text = L("ToolChmodPresets");
+        SymbolicInputLabel.Text = L("ToolChmodSymbolicInput");
+        CommandPreviewLabel.Text = L("ToolChmodCommandPreview");
+        BtnCopyCommand.Content = L("ToolChmodBtnCopyCommand");
 
         System.Windows.Automation.AutomationProperties.SetName(BtnCopyOctal, L("ToolChmodBtnCopyOctal"));
         System.Windows.Automation.AutomationProperties.SetName(BtnCopySymbolic, L("ToolChmodBtnCopySymbolic"));
+        System.Windows.Automation.AutomationProperties.SetName(BtnCopyCommand, L("ToolChmodBtnCopyCommand"));
         System.Windows.Automation.AutomationProperties.SetName(OctalInput, L("ToolChmodOctal"));
+        System.Windows.Automation.AutomationProperties.SetName(SymbolicInput, L("ToolChmodSymbolicInput"));
 
         System.Windows.Automation.AutomationProperties.SetName(ChkOwnerR, $"{L("ToolChmodOwner")} {L("ToolChmodRead")}");
         System.Windows.Automation.AutomationProperties.SetName(ChkOwnerW, $"{L("ToolChmodOwner")} {L("ToolChmodWrite")}");
@@ -87,6 +99,7 @@ public partial class ChmodCalculatorView : UserControl, IDisposable
 
         BtnCopyOctal.ToolTip = L("ToolBtnCopyToClipboard");
         BtnCopySymbolic.ToolTip = L("ToolBtnCopyToClipboard");
+        BtnCopyCommand.ToolTip = L("ToolBtnCopyToClipboard");
     }
 
     private void OnPermissionChanged(object sender, RoutedEventArgs e)
@@ -99,6 +112,7 @@ public partial class ChmodCalculatorView : UserControl, IDisposable
             var octal = CalculateOctalFromCheckboxes();
             OctalInput.Text = octal;
             UpdateSymbolicDisplay(octal);
+            UpdateCommandPreview(octal);
         }
         finally
         {
@@ -118,6 +132,7 @@ public partial class ChmodCalculatorView : UserControl, IDisposable
         {
             ApplyOctalToCheckboxes(text);
             UpdateSymbolicDisplay(text);
+            UpdateCommandPreview(text);
         }
         finally
         {
@@ -135,6 +150,7 @@ public partial class ChmodCalculatorView : UserControl, IDisposable
                 OctalInput.Text = preset;
                 ApplyOctalToCheckboxes(preset);
                 UpdateSymbolicDisplay(preset);
+                UpdateCommandPreview(preset);
             }
             finally
             {
@@ -159,6 +175,108 @@ public partial class ChmodCalculatorView : UserControl, IDisposable
             Clipboard.SetText(SymbolicDisplay.Text);
             CopyFeedbackHelper.ShowCopyFeedback(sender as Button);
         }
+    }
+
+    private void OnCopyCommandClick(object sender, RoutedEventArgs e)
+    {
+        if (!string.IsNullOrEmpty(CommandPreviewText.Text))
+        {
+            Clipboard.SetText(CommandPreviewText.Text);
+            CopyFeedbackHelper.ShowCopyFeedback(sender as Button);
+        }
+    }
+
+    private void OnSymbolicInputTextChanged(object sender, TextChangedEventArgs e)
+    {
+        if (!_initialized || _updatingFromCode) return;
+
+        var text = SymbolicInput.Text.Trim();
+        if (string.IsNullOrEmpty(text))
+        {
+            SymbolicInputError.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        if (TryParseSymbolicNotation(text, out var octal))
+        {
+            SymbolicInputError.Visibility = Visibility.Collapsed;
+            _updatingFromCode = true;
+            try
+            {
+                OctalInput.Text = octal;
+                ApplyOctalToCheckboxes(octal);
+                UpdateSymbolicDisplay(octal);
+                UpdateCommandPreview(octal);
+            }
+            finally
+            {
+                _updatingFromCode = false;
+            }
+        }
+        else
+        {
+            SymbolicInputError.Text = L("ToolChmodErrorInvalidSymbolic");
+            SymbolicInputError.Visibility = Visibility.Visible;
+        }
+    }
+
+    private void UpdateCommandPreview(string octal)
+    {
+        CommandPreviewText.Text = $"chmod {octal} filename";
+    }
+
+    /// <summary>
+    /// Parses symbolic chmod notation (e.g. "u+x,g-w,o=r") and returns the resulting octal string.
+    /// Applies operations against the current checkbox state to support relative operations (+/-).
+    /// </summary>
+    private bool TryParseSymbolicNotation(string input, out string octal)
+    {
+        octal = string.Empty;
+
+        // Start from current permissions
+        var owner = GetDigit(ChkOwnerR, ChkOwnerW, ChkOwnerX);
+        var group = GetDigit(ChkGroupR, ChkGroupW, ChkGroupX);
+        var others = GetDigit(ChkOthersR, ChkOthersW, ChkOthersX);
+
+        var clauses = input.Split(',', StringSplitOptions.RemoveEmptyEntries);
+        if (clauses.Length == 0) return false;
+
+        foreach (var clause in clauses)
+        {
+            var match = SymbolicClausePattern.Match(clause.Trim());
+            if (!match.Success) return false;
+
+            var who = match.Groups[1].Value;
+            var op = match.Groups[2].Value[0];
+            var perms = match.Groups[3].Value;
+
+            var permBits = 0;
+            if (perms.Contains('r')) permBits |= 4;
+            if (perms.Contains('w')) permBits |= 2;
+            if (perms.Contains('x')) permBits |= 1;
+
+            var applyToOwner = who.Contains('u') || who.Contains('a');
+            var applyToGroup = who.Contains('g') || who.Contains('a');
+            var applyToOthers = who.Contains('o') || who.Contains('a');
+
+            if (applyToOwner) owner = ApplyOperation(owner, op, permBits);
+            if (applyToGroup) group = ApplyOperation(group, op, permBits);
+            if (applyToOthers) others = ApplyOperation(others, op, permBits);
+        }
+
+        octal = $"{owner}{group}{others}";
+        return true;
+    }
+
+    private static int ApplyOperation(int current, char op, int bits)
+    {
+        return op switch
+        {
+            '+' => current | bits,
+            '-' => current & ~bits,
+            '=' => bits,
+            _ => current
+        };
     }
 
     private string CalculateOctalFromCheckboxes()

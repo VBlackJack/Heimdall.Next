@@ -36,18 +36,38 @@
                           SelectionChanged="OnAlgorithmChanged"
                           />
 
-                <!-- Secret key -->
+                <!-- Secret key with show/hide toggle -->
                 <TextBlock x:Name="LblKey" Text=""
                            FontSize="12" Margin="0,0,0,4"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
-                <TextBox x:Name="TxtKey" Text=""
-                         FontSize="13" FontFamily="Consolas"
-                         Padding="8,6" Margin="0,0,0,16"
-                         Background="{DynamicResource CardBrush}"
-                         Foreground="{DynamicResource TextPrimaryBrush}"
-                         BorderBrush="{DynamicResource BorderBrush}"
-                         TextChanged="OnInputChanged"
-                         />
+                <DockPanel Margin="0,0,0,16">
+                    <Button x:Name="BtnToggleKey" DockPanel.Dock="Right"
+                            Content="&#xE7B3;"
+                            FontFamily="Segoe MDL2 Assets" FontSize="14"
+                            Click="OnToggleKeyVisibility"
+                            Style="{DynamicResource SecondaryButtonStyle}"
+                            Padding="8,6" Margin="6,0,0,0"
+                            VerticalAlignment="Stretch"/>
+                    <Grid>
+                        <PasswordBox x:Name="PwdKey"
+                                     FontSize="13" FontFamily="Consolas"
+                                     Padding="8,6"
+                                     Background="{DynamicResource CardBrush}"
+                                     Foreground="{DynamicResource TextPrimaryBrush}"
+                                     BorderBrush="{DynamicResource BorderBrush}"
+                                     PasswordChanged="OnKeyPasswordChanged"
+                                     />
+                        <TextBox x:Name="TxtKey" Text=""
+                                 FontSize="13" FontFamily="Consolas"
+                                 Padding="8,6"
+                                 Background="{DynamicResource CardBrush}"
+                                 Foreground="{DynamicResource TextPrimaryBrush}"
+                                 BorderBrush="{DynamicResource BorderBrush}"
+                                 TextChanged="OnInputChanged"
+                                 Visibility="Collapsed"
+                                 />
+                    </Grid>
+                </DockPanel>
 
                 <!-- Input message -->
                 <TextBlock x:Name="LblInput" Text=""
@@ -106,6 +126,22 @@
                 <TextBlock x:Name="TxtByteLength" Text=""
                            FontSize="11"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
+
+                <!-- Verify field -->
+                <TextBlock x:Name="LblVerify" Text=""
+                           FontSize="12" Margin="0,16,0,4"
+                           Foreground="{DynamicResource TextSecondaryBrush}"/>
+                <TextBox x:Name="TxtVerify" Text=""
+                         FontSize="13" FontFamily="Consolas"
+                         Padding="8,6" Margin="0,0,0,4"
+                         Background="{DynamicResource CardBrush}"
+                         Foreground="{DynamicResource TextPrimaryBrush}"
+                         BorderBrush="{DynamicResource BorderBrush}"
+                         TextChanged="OnVerifyTextChanged"
+                         />
+                <TextBlock x:Name="TxtVerifyResult" Text=""
+                           FontSize="12" Margin="0,0,0,8"
+                           FontWeight="SemiBold"/>
 
             </StackPanel>
         </ScrollViewer>
