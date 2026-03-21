@@ -276,6 +276,8 @@ public partial class MainWindow : Window
         Mw_SettingsTerminalFontLabel.Text = vm.Localize("SettingsLabelTerminalFont");
         Mw_SettingsTerminalFontSizeLabel.Text = vm.Localize("SettingsLabelTerminalFontSize");
         Mw_SettingsTerminalColorSchemeLabel.Text = vm.Localize("SettingsLabelTerminalColorScheme");
+        Mw_SettingsPsPolicyLabel.Text = vm.Localize("SettingsPsExecutionPolicy");
+        Mw_SettingsPsPolicyHint.Text = vm.Localize("SettingsPsExecutionPolicyHint");
 
         Mw_SettingsSshTitle.Text = vm.Localize("SettingsSectionSshDefaults");
         Mw_SettingsPlinkPathLabel.Text = vm.Localize("SettingsLabelPlinkPath");

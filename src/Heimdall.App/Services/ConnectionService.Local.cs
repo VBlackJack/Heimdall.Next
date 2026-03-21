@@ -38,6 +38,31 @@ public partial class ConnectionService
 
         string executable = server.LocalShellExecutable ?? "powershell.exe";
         string arguments = server.LocalShellArguments ?? "";
+
+        // Apply PowerShell execution policy and -NoLogo when launching powershell/pwsh
+        if (executable.Contains("powershell", StringComparison.OrdinalIgnoreCase)
+            || executable.Contains("pwsh", StringComparison.OrdinalIgnoreCase))
+        {
+            var policyPrefix = "";
+            if (!string.Equals(settings.PowerShellExecutionPolicy, "Default", StringComparison.OrdinalIgnoreCase)
+                && !string.IsNullOrWhiteSpace(settings.PowerShellExecutionPolicy))
+            {
+                policyPrefix = $"-ExecutionPolicy {settings.PowerShellExecutionPolicy}";
+            }
+
+            var noLogo = "";
+            if (!arguments.Contains("-NoLogo", StringComparison.OrdinalIgnoreCase))
+            {
+                noLogo = "-NoLogo";
+            }
+
+            var prefix = string.Join(" ", new[] { policyPrefix, noLogo }.Where(s => !string.IsNullOrEmpty(s)));
+            if (!string.IsNullOrEmpty(prefix))
+            {
+                arguments = string.IsNullOrWhiteSpace(arguments) ? prefix : $"{prefix} {arguments}";
+            }
+        }
+
         string workingDir = !string.IsNullOrWhiteSpace(server.LocalShellWorkingDirectory)
             && Directory.Exists(server.LocalShellWorkingDirectory)
             ? server.LocalShellWorkingDirectory

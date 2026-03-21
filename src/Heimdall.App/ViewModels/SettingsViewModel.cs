@@ -81,6 +81,9 @@ public partial class SettingsViewModel : ObservableObject
     [ObservableProperty]
     private string _terminalColorScheme = "Dracula";
 
+    [ObservableProperty]
+    private string _powerShellExecutionPolicy = "Default";
+
     // --- SSH & SFTP ---
 
     [ObservableProperty]
@@ -248,6 +251,7 @@ public partial class SettingsViewModel : ObservableObject
         TerminalFontFamily = settings.TerminalFontFamily;
         TerminalFontSize = settings.TerminalFontSize;
         TerminalColorScheme = settings.TerminalColorScheme;
+        PowerShellExecutionPolicy = settings.PowerShellExecutionPolicy;
 
         // SSH & SFTP
         PlinkPath = settings.PlinkPath;
@@ -339,6 +343,7 @@ public partial class SettingsViewModel : ObservableObject
         settings.TerminalFontFamily = TerminalFontFamily;
         settings.TerminalFontSize = TerminalFontSize;
         settings.TerminalColorScheme = TerminalColorScheme;
+        settings.PowerShellExecutionPolicy = PowerShellExecutionPolicy;
 
         // SSH & SFTP
         settings.PlinkPath = PlinkPath;
