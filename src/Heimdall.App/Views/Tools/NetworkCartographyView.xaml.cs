@@ -239,6 +239,9 @@ public partial class NetworkCartographyView : UserControl, IToolView
 
         engine.HostCompleted += hostResult =>
         {
+            // Only show hosts that have at least one open port
+            if (!hostResult.Services.Any(s => s.IsOpen)) return;
+
             Dispatcher.InvokeAsync(() =>
             {
                 _results.Add(ToRow(hostResult));

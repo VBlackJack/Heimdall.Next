@@ -28,7 +28,9 @@ public static class RoleClassifier
         // ── Enterprise servers ─────────────────────────────────────────
         new("Active Directory", [53, 88, 389], [636, 445, 135, 464, 3268, 3269], 95),
         new("DNS Server", [53], [], 60),
-        new("Web Server", [80, 443], [8080, 8443, 9090], 80),
+        new("Web Server", [80], [443, 8080, 8443, 9090, 9443, 3000], 70),
+        new("Web Server (HTTPS)", [443], [8443, 9443], 75),
+        new("Web Server (HTTPS-Alt)", [8443], [443, 9443], 65),
         new("Database (MySQL)", [3306], [33060], 85),
         new("Database (PostgreSQL)", [5432], [], 85),
         new("Database (MSSQL)", [1433], [1434], 85),

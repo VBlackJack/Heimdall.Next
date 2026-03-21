@@ -1937,7 +1937,7 @@ public partial class MainWindow : Window
             vm.Connection.ActiveSession = session;
         }
 
-        // SFTP, local file browser, and their ListViews have their own context menus.
+        // Views with their own context menus: SFTP, local file browser, and tool DataGrids.
         // Check the visual tree source to avoid overriding them.
         if (clickSource is not null)
         {
@@ -1946,6 +1946,13 @@ public partial class MainWindow : Window
                 || FindAncestor<Views.LocalFileBrowserView>(clickSource) is not null)
             {
                 return;
+            }
+
+            // Tool views with DataGrid context menus (NetworkCartography, PortScanner, etc.)
+            var dataGrid = FindAncestor<System.Windows.Controls.DataGrid>(clickSource);
+            if (dataGrid is not null && session.ConnectionType?.StartsWith("TOOL:", StringComparison.OrdinalIgnoreCase) == true)
+            {
+                return; // Let the tool's own ContextMenuOpening handler take over
             }
 
             // Also check for ListViewItem inside a split pane (the view might not
