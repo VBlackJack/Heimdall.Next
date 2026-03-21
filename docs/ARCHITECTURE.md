@@ -10,7 +10,7 @@
 
 # Architecture
 
-Heimdall.Next is a .NET 10 WPF application organized as a multi-project solution with strict dependency boundaries. Supports RDP, SSH, SFTP, FTP, VNC, Telnet, Citrix, and Local Shell connection types with ~2,959 i18n keys per locale (EN/FR), 31 built-in sysops tools with contextual help, and 1,213 automated tests. Health monitor polls in parallel (Task.WhenAll), XML importers hardened against XXE, all Debug.WriteLine replaced with FileLogger.
+Heimdall.Next is a .NET 10 WPF application organized as a multi-project solution with strict dependency boundaries. Supports RDP, SSH, SFTP, FTP, VNC, Telnet, Citrix, and Local Shell connection types with ~3,025 i18n keys per locale (EN/FR), 32 built-in sysops tools with contextual help, cross-tool navigation, and 1,213 automated tests. Health monitor polls in parallel (Task.WhenAll), XML importers hardened against XXE, all Debug.WriteLine replaced with FileLogger.
 
 ## Solution Structure
 
@@ -466,12 +466,15 @@ When opening a tool from a server context menu, all available server metadata is
 - **Detail panel**: Selecting a tool in TreeView shows dedicated panel (name, category, description, "Open in Tab")
 - **Password presets**: Custom presets saved to `config/password-presets.json`, restored on click, deleted via right-click
 - **Protocol colors**: Theme-aware brushes (bright on dark, darker on light) defined per-theme, not globally
+- **Cross-tool navigation**: `ToolContextMenuHelper` with `OpenToolAction` callback enables right-click → open another tool with prefilled context
+- **Network Cartography engine**: `Heimdall.Core.Discovery/` namespace with CartographyEngine, RoleClassifier (50+ roles, 60+ banner fingerprints), OuiDatabase (140 MAC prefixes), VlanDetector, DrawIoExporter, ScanHistoryManager
+- **PowerShell Execution Policy**: Configurable in Settings > Terminal, applied as `-ExecutionPolicy` flag on local shell launch
 
 ### Tool Categories (31 tools)
 
 | Category | Count | Tools |
 |----------|-------|-------|
-| **Network** | 9 | Ping, DNS (custom server), Cert Inspector (chain+TLS), Port Scanner (banner grab), Subnet (IPv4+IPv6), IP Converter, HTTP Status, Whois, Network Calculator (supernet+VLAN) |
+| **Network** | 10 | **Network Cartography** (subnet discovery, port scan, TLS inspection, role classification, VLAN detection, MAC/OUI, Draw.io export, scan history/diff), Ping, DNS (custom server, via tunnel), Cert Inspector (chain+TLS, via tunnel), Port Scanner (banner grab, via tunnel), Subnet (IPv4+IPv6), IP Converter, HTTP Status, Whois, Network Calculator (supernet+VLAN) |
 | **Security** | 7 | Password (crack time+history), SSH Key (RSA+Ed25519), Hash (SHA3+progress), HMAC, JWT (signature verify), Certificate Generator (CA+leaf), TOTP (RFC 6238) |
 | **Encoding** | 6 | Base64 (URL-safe), URL Encoder, JSON (error position), Regex (match highlight), Text Diff (word-level), Text Case (8 formats) |
 | **System** | 9 | Chmod, Crontab Builder, DateTime (timezone+relative), UUID (v4+v7), Hosts Editor, SSH Config Generator, Log Viewer/Tail, Cron Job Manager, Service Status Dashboard |
