@@ -52,7 +52,8 @@ public sealed class ConnectionTypeToGeometryConverter : IValueConverter
             };
         }
 
-        return Application.Current.TryFindResource(resourceKey) as Geometry;
+        return Application.Current.TryFindResource(resourceKey) as Geometry
+            ?? Geometry.Empty;
     }
 
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)

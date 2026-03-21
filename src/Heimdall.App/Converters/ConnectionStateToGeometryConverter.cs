@@ -38,7 +38,8 @@ public sealed class ConnectionStateToGeometryConverter : IValueConverter
             _ => "Geo.Status.Disconnected"
         };
 
-        return Application.Current.TryFindResource(resourceKey) as Geometry;
+        return Application.Current.TryFindResource(resourceKey) as Geometry
+            ?? Geometry.Empty;
     }
 
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
