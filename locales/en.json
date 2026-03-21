@@ -3157,5 +3157,15 @@
   "ToolCtxOpenBrowser": "Open in Browser ({0})",
   "ToolCtxAddToServers": "Add to Servers",
   "ToolHostsEditorCtxEnable": "Enable",
-  "ToolHostsEditorCtxDisable": "Disable"
+  "ToolHostsEditorCtxDisable": "Disable",
+
+  "PaletteToolDiagram": "Diagram Editor",
+  "ToolDiagramTitle": "Diagram Editor",
+  "ToolDiagramBtnNew": "New",
+  "ToolDiagramBtnOpen": "Open",
+  "ToolDiagramBtnSave": "Save",
+  "ToolDiagramBtnExportPng": "Export PNG",
+  "ToolDiagramBtnEdit": "Edit Diagram",
+  "ToolDescDIAGRAM": "Create and edit network diagrams with the embedded draw.io editor",
+  "ToolHelpDIAGRAM": "Diagram Editor\n\nCreate and edit network diagrams using the draw.io editor.\n\nFeatures:\n- Full draw.io editor embedded offline\n- Open/Save .drawio files\n- Export to PNG\n- Auto-generate from Network Cartography scans\n\nUsage:\n1. Click New for a blank diagram, or Open to load an existing .drawio file\n2. Use the draw.io toolbar to add shapes, connections, and labels\n3. Save as .drawio or export as PNG"
 }

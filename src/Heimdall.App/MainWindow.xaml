@@ -488,6 +488,10 @@
                                             <Setter TargetName="TypeIcon" Property="Text" Value="&#xE90F;"/>
                                             <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolBadgeBrush}"/>
                                         </DataTrigger>
+                                        <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:DIAGRAM">
+                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE90F;"/>
+                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolBadgeBrush}"/>
+                                        </DataTrigger>
                                     </DataTemplate.Triggers>
                                 </DataTemplate>
                             </TreeView.Resources>
