@@ -141,6 +141,15 @@ public partial class CertInspectorView : UserControl, IToolView
         AutomationProperties.SetName(BtnCopy, L("ToolCertBtnCopy"));
 
         BtnCopy.ToolTip = L("ToolBtnCopyToClipboard");
+
+        BtnHelp.ToolTip = L("ToolHelpTooltip");
+        AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
+    }
+
+    private void OnHelpClick(object sender, RoutedEventArgs e)
+    {
+        var helpText = L("ToolHelpCERT");
+        MessageBox.Show(helpText, L("ToolHelpTitle"), MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
     private void OnInputKeyDown(object sender, KeyEventArgs e)

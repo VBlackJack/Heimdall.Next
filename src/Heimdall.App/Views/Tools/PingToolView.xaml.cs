@@ -114,6 +114,9 @@ public partial class PingToolView : UserControl, IToolView
         System.Windows.Automation.AutomationProperties.SetName(CmbInterval, L("ToolPingIntervalLabel"));
         System.Windows.Automation.AutomationProperties.SetName(TxtTimeout, L("ToolPingTimeoutLabel"));
         System.Windows.Automation.AutomationProperties.SetName(TxtCount, L("ToolPingCountLabel"));
+
+        BtnHelp.ToolTip = L("ToolHelpTooltip");
+        System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
     }
 
     private void OnHostKeyDown(object sender, KeyEventArgs e)
@@ -625,6 +628,12 @@ public partial class PingToolView : UserControl, IToolView
         {
             Core.Logging.FileLogger.Warn($"PingTool CSV export failed: {ex.Message}");
         }
+    }
+
+    private void OnHelpClick(object sender, RoutedEventArgs e)
+    {
+        var helpText = L("ToolHelpPING");
+        MessageBox.Show(helpText, L("ToolHelpTitle"), MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
     private string L(string key) => _localizer?[key] ?? key;

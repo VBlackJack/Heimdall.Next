@@ -191,6 +191,15 @@ public partial class HashGeneratorView : UserControl, IToolView
                 System.Windows.Automation.AutomationProperties.SetName(box, $"{algo} hash");
             }
         }
+
+        BtnHelp.ToolTip = L("ToolHelpTooltip");
+        System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
+    }
+
+    private void OnHelpClick(object sender, RoutedEventArgs e)
+    {
+        var helpText = L("ToolHelpHASH");
+        MessageBox.Show(helpText, L("ToolHelpTitle"), MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
     private void OnInputTextChanged(object sender, TextChangedEventArgs e)

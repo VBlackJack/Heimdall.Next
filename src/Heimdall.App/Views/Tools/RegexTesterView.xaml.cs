@@ -100,6 +100,15 @@ public partial class RegexTesterView : UserControl, IToolView
         System.Windows.Automation.AutomationProperties.SetName(HighlightDisplay, L("ToolRegexHighlightLabel"));
 
         BtnCopyMatches.ToolTip = L("ToolBtnCopyToClipboard");
+
+        BtnHelp.ToolTip = L("ToolHelpTooltip");
+        System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
+    }
+
+    private void OnHelpClick(object sender, RoutedEventArgs e)
+    {
+        var helpText = L("ToolHelpREGEX");
+        MessageBox.Show(helpText, L("ToolHelpTitle"), MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
     private void OnPatternTextChanged(object sender, TextChangedEventArgs e)

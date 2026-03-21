@@ -17,6 +17,7 @@
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -134,6 +135,7 @@ public partial class PasswordGeneratorView : UserControl, IToolView
         }
 
         _initialized = true;
+        RebuildCustomPresetButtons();
         GeneratePassword();
     }
 
@@ -304,6 +306,12 @@ public partial class PasswordGeneratorView : UserControl, IToolView
         System.Windows.Automation.AutomationProperties.SetName(BtnPresetPassphrase4, L("ToolPwdGenPresetPassphrase4"));
         System.Windows.Automation.AutomationProperties.SetName(BtnPresetPassphrase6, L("ToolPwdGenPresetPassphrase6"));
         System.Windows.Automation.AutomationProperties.SetName(BtnPresetSsh, L("ToolPwdGenPresetSsh"));
+
+        BtnSavePreset.Content = L("ToolPwdGenBtnSavePreset");
+        System.Windows.Automation.AutomationProperties.SetName(BtnSavePreset, L("ToolPwdGenBtnSavePreset"));
+
+        BtnHelp.ToolTip = L("ToolHelpTooltip");
+        System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
     }
 
     private GeneratorMode CurrentMode =>
@@ -1078,6 +1086,177 @@ public partial class PasswordGeneratorView : UserControl, IToolView
             StrengthIssues.Text = string.Empty;
             e.Handled = true;
         }
+    }
+
+    // ── Custom presets ─────────────────────────────────────────────────────
+
+    private static string GetPresetsFilePath()
+    {
+        var appDir = AppDomain.CurrentDomain.BaseDirectory;
+        return Path.Combine(appDir, "config", "password-presets.json");
+    }
+
+    private sealed class PasswordPreset
+    {
+        public string Name { get; set; } = string.Empty;
+        public int Mode { get; set; }
+        public int Length { get; set; } = 24;
+        public bool Upper { get; set; } = true;
+        public bool Lower { get; set; } = true;
+        public bool Digits { get; set; } = true;
+        public bool Symbols { get; set; }
+        public bool LayoutSafe { get; set; }
+        public bool ExcludeAmbiguous { get; set; }
+        public bool CliSafe { get; set; }
+        public int SylLength { get; set; } = 16;
+        public int SylDigits { get; set; } = 2;
+        public int SylSpecials { get; set; } = 1;
+        public int PpWordCount { get; set; } = 4;
+        public string PpSeparator { get; set; } = "-";
+    }
+
+    private List<PasswordPreset> LoadCustomPresets()
+    {
+        try
+        {
+            var path = GetPresetsFilePath();
+            if (!File.Exists(path)) return [];
+
+            var json = File.ReadAllText(path, Encoding.UTF8);
+            return JsonSerializer.Deserialize<List<PasswordPreset>>(json) ?? [];
+        }
+        catch
+        {
+            return [];
+        }
+    }
+
+    private void SaveCustomPresets(List<PasswordPreset> presets)
+    {
+        try
+        {
+            var path = GetPresetsFilePath();
+            var dir = Path.GetDirectoryName(path);
+            if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+            {
+                Directory.CreateDirectory(dir);
+            }
+
+            var options = new JsonSerializerOptions { WriteIndented = true };
+            var json = JsonSerializer.Serialize(presets, options);
+            File.WriteAllText(path, json, Encoding.UTF8);
+        }
+        catch (Exception ex)
+        {
+            Core.Logging.FileLogger.Warn($"[PasswordGenerator] Failed to save custom presets: {ex.Message}");
+        }
+    }
+
+    private void OnSavePresetClick(object sender, RoutedEventArgs e)
+    {
+        var dialog = new Views.Dialogs.InputDialog(_localizer)
+        {
+            Owner = Window.GetWindow(this),
+            Title = L("ToolPwdGenSavePresetTitle"),
+            Prompt = L("ToolPwdGenSavePresetPrompt"),
+        };
+        if (dialog.ShowDialog() != true) return;
+
+        var name = dialog.InputText.Trim();
+        if (string.IsNullOrEmpty(name)) return;
+
+        var preset = new PasswordPreset
+        {
+            Name = name,
+            Mode = CmbMode.SelectedIndex,
+            Length = (int)LengthSlider.Value,
+            Upper = ChkUppercase.IsChecked == true,
+            Lower = ChkLowercase.IsChecked == true,
+            Digits = ChkDigits.IsChecked == true,
+            Symbols = ChkSymbols.IsChecked == true,
+            LayoutSafe = ChkLayoutSafe.IsChecked == true,
+            ExcludeAmbiguous = ChkExcludeAmbiguous.IsChecked == true,
+            CliSafe = ChkCliSafe.IsChecked == true,
+            SylLength = (int)SylLengthSlider.Value,
+            SylDigits = (int)SylDigitsSlider.Value,
+            SylSpecials = (int)SylSpecialsSlider.Value,
+            PpWordCount = (int)PpWordCountSlider.Value,
+            PpSeparator = TxtPpSeparator.Text,
+        };
+
+        var presets = LoadCustomPresets();
+        presets.RemoveAll(p => string.Equals(p.Name, name, StringComparison.OrdinalIgnoreCase));
+        presets.Add(preset);
+        SaveCustomPresets(presets);
+        RebuildCustomPresetButtons();
+    }
+
+    private void ApplyCustomPreset(PasswordPreset preset)
+    {
+        _suspendGeneration = true;
+
+        CmbMode.SelectedIndex = preset.Mode;
+        LengthSlider.Value = preset.Length;
+        ChkUppercase.IsChecked = preset.Upper;
+        ChkLowercase.IsChecked = preset.Lower;
+        ChkDigits.IsChecked = preset.Digits;
+        ChkSymbols.IsChecked = preset.Symbols;
+        ChkLayoutSafe.IsChecked = preset.LayoutSafe;
+        ChkExcludeAmbiguous.IsChecked = preset.ExcludeAmbiguous;
+        ChkCliSafe.IsChecked = preset.CliSafe;
+        SylLengthSlider.Value = preset.SylLength;
+        SylDigitsSlider.Value = preset.SylDigits;
+        SylSpecialsSlider.Value = preset.SylSpecials;
+        PpWordCountSlider.Value = preset.PpWordCount;
+        TxtPpSeparator.Text = preset.PpSeparator;
+
+        _suspendGeneration = false;
+
+        // Trigger mode UI update then generate
+        OnModeSelectionChanged(CmbMode, null!);
+        GeneratePassword();
+    }
+
+    private void RebuildCustomPresetButtons()
+    {
+        PanelCustomPresets.Children.Clear();
+        var presets = LoadCustomPresets();
+        if (presets.Count == 0) return;
+
+        foreach (var preset in presets)
+        {
+            var btn = new Button
+            {
+                Content = preset.Name,
+                Tag = preset,
+                Style = (Style)FindResource("SecondaryButtonStyle"),
+                Padding = new Thickness(8, 2, 8, 2),
+                Margin = new Thickness(0, 0, 6, 4),
+                FontSize = 11,
+            };
+            btn.Click += (_, _) => ApplyCustomPreset((PasswordPreset)btn.Tag);
+            System.Windows.Automation.AutomationProperties.SetName(btn, preset.Name);
+
+            // Right-click to delete
+            var deleteItem = new MenuItem { Header = L("ToolPwdGenDeletePreset") };
+            deleteItem.Click += (_, _) =>
+            {
+                var all = LoadCustomPresets();
+                all.RemoveAll(p => string.Equals(p.Name, preset.Name, StringComparison.OrdinalIgnoreCase));
+                SaveCustomPresets(all);
+                RebuildCustomPresetButtons();
+            };
+            btn.ContextMenu = new ContextMenu();
+            btn.ContextMenu.Items.Add(deleteItem);
+
+            PanelCustomPresets.Children.Add(btn);
+        }
+    }
+
+    private void OnHelpClick(object sender, RoutedEventArgs e)
+    {
+        var helpText = L("ToolHelpPASSWORD");
+        MessageBox.Show(helpText, L("ToolHelpTitle"), MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
     public void Dispose()
