@@ -169,7 +169,9 @@ public sealed class ApplicationStatusMachine
     {
         lock (_lock)
         {
-            if (_currentStatus != ApplicationStatus.Ready && _currentStatus != ApplicationStatus.Busy)
+            if (_currentStatus != ApplicationStatus.Ready
+                && _currentStatus != ApplicationStatus.Busy
+                && _currentStatus != ApplicationStatus.Initializing)
             {
                 throw new InvalidOperationException(
                     $"Cannot begin operation in {_currentStatus} state.");
@@ -210,7 +212,8 @@ public sealed class ApplicationStatusMachine
         {
             _activeOperationCount = Math.Max(0, _activeOperationCount - 1);
             shouldTransitionToReady = _activeOperationCount == 0
-                                     && _currentStatus == ApplicationStatus.Busy;
+                                     && (_currentStatus == ApplicationStatus.Busy
+                                         || _currentStatus == ApplicationStatus.Initializing);
         }
 
         if (shouldTransitionToReady)
