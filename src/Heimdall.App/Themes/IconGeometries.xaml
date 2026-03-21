@@ -159,4 +159,43 @@
     <!-- Service Status Dashboard: dashboard with 3 horizontal bars -->
     <Geometry x:Key="Geo.Tool.ServiceStatusDashboard">M1,2 L15,2 L15,14 L1,14 Z M1,4.5 L15,4.5 M3,7 L13,7 L13,8.5 L3,8.5 Z M3,9.5 L10,9.5 L10,11 L3,11 Z M3,12 L7,12 L7,13 L3,13 Z</Geometry>
 
+    <!-- Certificate Inspector: shield with magnifier -->
+    <Geometry x:Key="Geo.Tool.CertInspector">M8,1 L14,3 L14,8 C14,12 8,15 8,15 C8,15 2,12 2,8 L2,3 Z M10,6 A2.5,2.5 0 1 1 10,10 A2.5,2.5 0 1 1 10,6 Z M12,10.5 L14,12.5</Geometry>
+
+    <!-- IP Converter: arrows between dotted quad -->
+    <Geometry x:Key="Geo.Tool.IpConverter">M1,8 L6,8 M6,6 L8,8 L6,10 M15,8 L10,8 M10,6 L8,8 L10,10 M3,4 A0.8,0.8 0 1 1 3,5 Z M8,4 A0.8,0.8 0 1 1 8,5 Z M13,4 A0.8,0.8 0 1 1 13,5 Z M3,12 L5,12 L7,12 L9,12 L11,12 L13,12</Geometry>
+
+    <!-- HTTP Status: globe with code -->
+    <Geometry x:Key="Geo.Tool.HttpStatus">M8,1 A7,7 0 1 1 8,15 A7,7 0 1 1 8,1 Z M1,8 L15,8 M8,1 C5,4 5,12 8,15 M8,1 C11,4 11,12 8,15 M4,5 L6,5 M10,11 L12,11</Geometry>
+
+    <!-- Whois: document with @ symbol -->
+    <Geometry x:Key="Geo.Tool.Whois">M3,1 L13,1 L13,15 L3,15 Z M8,6 A2.5,2.5 0 1 1 8,11 L10,11 L10,8 A1,1 0 0 0 8,8 A1,1 0 0 1 8,6 Z</Geometry>
+
+    <!-- JWT: token with lock -->
+    <Geometry x:Key="Geo.Tool.Jwt">M2,4 L14,4 L14,12 L2,12 Z M2,7 L14,7 M6,4 L6,12 M10,4 L10,7 M11,9 A1.5,1.5 0 1 1 11,10 Z M10.5,10 L10.5,11.5 L11.5,11.5 L11.5,10</Geometry>
+
+    <!-- TOTP: clock with key -->
+    <Geometry x:Key="Geo.Tool.Totp">M8,2 A6,6 0 1 1 8,14 A6,6 0 1 1 8,2 Z M8,4.5 L8,8 L10.5,10 M2,6 L4,8 L2,10 M1,8 L4,8</Geometry>
+
+    <!-- URL Encoder: link chain -->
+    <Geometry x:Key="Geo.Tool.UrlEncoder">M4,6 A3,3 0 0 1 7,3 L9,3 A3,3 0 0 1 12,6 L12,7 A3,3 0 0 1 9,10 M12,10 A3,3 0 0 1 9,13 L7,13 A3,3 0 0 1 4,10 L4,9 A3,3 0 0 1 7,6 M6,8 L10,8</Geometry>
+
+    <!-- Text Diff: split document with +/- -->
+    <Geometry x:Key="Geo.Tool.Diff">M1,2 L7,2 L7,14 L1,14 Z M9,2 L15,2 L15,14 L9,14 Z M3,5 L5,5 M3,7 L5,7 M3,9 L5,9 M11,5 L13,5 M11,7 L13,7 M10.5,10 L13.5,10 M12,8.5 L12,11.5</Geometry>
+
+    <!-- Text Case: Aa letters -->
+    <Geometry x:Key="Geo.Tool.TextCase">M2,12 L5.5,3 L9,12 M3.5,9.5 L7.5,9.5 M10,12 L10,7 A2.5,2.5 0 1 1 14,9.5 L14,12 M10,9.5 A2,2 0 1 1 14,9.5</Geometry>
+
+    <!-- Chmod: lock with grid -->
+    <Geometry x:Key="Geo.Tool.Chmod">M2,6 L14,6 L14,14 L2,14 Z M4,6 L4,4 A4,4 0 0 1 12,4 L12,6 M6,6 L6,14 M10,6 L10,14 M2,10 L14,10</Geometry>
+
+    <!-- DateTime: calendar with clock -->
+    <Geometry x:Key="Geo.Tool.DateTime">M2,3 L14,3 L14,13 L2,13 Z M2,6 L14,6 M5,1 L5,4 M11,1 L11,4 M8,7.5 A2.5,2.5 0 1 1 8,12.5 A2.5,2.5 0 1 1 8,7.5 Z M8,8.5 L8,10 L9.5,10.5</Geometry>
+
+    <!-- UUID: grid of blocks -->
+    <Geometry x:Key="Geo.Tool.Uuid">M1,3 L4,3 L4,6 L1,6 Z M5.5,3 L7,3 L7,6 L5.5,6 Z M8.5,3 L12,3 L12,6 Z M1,7.5 L4,7.5 L4,10.5 L1,10.5 Z M5.5,7.5 L10.5,7.5 L10.5,10.5 L5.5,10.5 Z M12,7.5 L15,7.5 L15,10.5 L12,10.5 Z M1,12 L6.5,12 L6.5,15 L1,15 Z M8,12 L15,12 L15,15 L8,15 Z</Geometry>
+
+    <!-- Crontab: clock with schedule lines -->
+    <Geometry x:Key="Geo.Tool.Crontab">M8,2 A6,6 0 1 1 8,14 A6,6 0 1 1 8,2 Z M8,4.5 L8,8 L10.5,10 M1,4 L4,4 M1,8 L3,8 M1,12 L4,12</Geometry>
+
 </ResourceDictionary>
