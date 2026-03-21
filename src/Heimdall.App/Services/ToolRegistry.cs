@@ -47,6 +47,7 @@ public sealed class ToolRegistry
             Entry("IPCONV",   ToolCategory.Network,  "ToolCategoryNetwork",  "PaletteToolIpConv",   null,                      ["ip","ipconv"],         false, () => new Views.Tools.IpConverterView()),
             Entry("HTTP",     ToolCategory.Network,  "ToolCategoryNetwork",  "PaletteToolHttp",     null,                      ["http","status"],       false, () => new Views.Tools.HttpStatusCodesView()),
             Entry("WHOIS",    ToolCategory.Network,  "ToolCategoryNetwork",  "PaletteToolWhois",    "PaletteToolWhoisWith",    ["whois"],               true,  () => new Views.Tools.WhoisLookupView()),
+            Entry("NETCALC",  ToolCategory.Network,  "ToolCategoryNetwork",  "PaletteToolNetCalc",  null,                      ["netcalc","vlan","supernet"], false, () => new Views.Tools.NetworkCalculatorView(), "Icon.Tool.NetworkCalculator"),
 
             // ── Security ──────────────────────────────────────────────
             Entry("HASH",     ToolCategory.Security, "ToolCategorySecurity", "PaletteToolHash",     "PaletteToolHashWith",     ["hash"],                false, () => new Views.Tools.HashGeneratorView(),      "Icon.Tool.HashGenerator"),
@@ -75,7 +76,6 @@ public sealed class ToolRegistry
             Entry("SSHCONFIG",ToolCategory.System,   "ToolCategorySystem",   "PaletteToolSshConfig",null,                      ["sshconfig","ssh-config"], false, () => new Views.Tools.SshConfigGeneratorView(), "Icon.Tool.SshConfigGenerator"),
             Entry("CRONJOB",  ToolCategory.System,   "ToolCategorySystem",   "PaletteToolCronJob",  null,                      ["cronjob","crontab-manager","tasks"], false, () => new Views.Tools.CronJobManagerView(), "Icon.Tool.CronJobManager"),
             Entry("SERVICES", ToolCategory.System,   "ToolCategorySystem",   "PaletteToolServices", null,                      ["services","svc","systemctl"],        false, () => new Views.Tools.ServiceStatusView(),  "Icon.Tool.ServiceStatusDashboard"),
-            Entry("NETCALC",  ToolCategory.Network,  "ToolCategoryNetwork",  "PaletteToolNetCalc",  null,                      ["netcalc","vlan","supernet"], false, () => new Views.Tools.NetworkCalculatorView(), "Icon.Tool.NetworkCalculator"),
         };
 
         _entries = entries;

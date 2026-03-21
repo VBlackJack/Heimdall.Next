@@ -39,6 +39,16 @@
     <SolidColorBrush x:Key="ErrorBrush" Color="{StaticResource ErrorColor}"/>
     <SolidColorBrush x:Key="InfoBrush" Color="{StaticResource InfoColor}"/>
 
+    <!-- Protocol accent color brushes (dark theme) -->
+    <SolidColorBrush x:Key="ProtocolRdpBrush" Color="#3B82F6"/>
+    <SolidColorBrush x:Key="ProtocolSshBrush" Color="#22C55E"/>
+    <SolidColorBrush x:Key="ProtocolSftpBrush" Color="#F59E0B"/>
+    <SolidColorBrush x:Key="ProtocolVncBrush" Color="#8BE9FD"/>
+    <SolidColorBrush x:Key="ProtocolTelnetBrush" Color="#A0A0B0"/>
+    <SolidColorBrush x:Key="ProtocolFtpBrush" Color="#60A5FA"/>
+    <SolidColorBrush x:Key="ProtocolCitrixBrush" Color="#1E40AF"/>
+    <SolidColorBrush x:Key="ProtocolLocalBrush" Color="#BD93F9"/>
+
     <!-- Connection type badge colors (Dracula palette) -->
     <SolidColorBrush x:Key="RdpBadgeBrush" Color="#8BE9FD"/>
     <SolidColorBrush x:Key="SshBadgeBrush" Color="#50FA7B"/>

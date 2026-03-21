@@ -238,7 +238,7 @@
                                 Background="{DynamicResource SurfaceBrush}"
                                 BorderBrush="{DynamicResource BorderBrush}"
                                 BorderThickness="0,1,0,0"
-                                MaxHeight="220"
+                                MaxHeight="300"
                                 Visibility="Collapsed">
                             <DockPanel>
                                 <DockPanel DockPanel.Dock="Top" Margin="8,6,8,4">
@@ -595,8 +595,9 @@
                     <!-- SERVER DETAILS (visible when no sessions) -->
                     <Grid Grid.Row="0"
                           Visibility="{Binding Connection.HasActiveSessions, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=Invert}">
-                        <!-- Server detail panel (shown when a server is selected) -->
-                        <Border Visibility="{Binding ServerList.HasSelection, Converter={StaticResource BoolToVisibilityConverter}}"
+                        <!-- Server detail panel (shown when a non-tool server is selected) -->
+                        <Border x:Name="ServerDetailPanel"
+                                Visibility="{Binding ServerList.HasSelection, Converter={StaticResource BoolToVisibilityConverter}}"
                                 Padding="24">
                             <StackPanel VerticalAlignment="Top">
                                 <TextBlock Text="{Binding ServerList.SelectedServer.DisplayName}"
@@ -651,6 +652,39 @@
                                         CommandParameter="{Binding ServerList.SelectedServer}"
                                         Style="{DynamicResource PrimaryButtonStyle}"
                                         Width="120" HorizontalAlignment="Left"
+                                        Margin="0,20,0,0"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Tool detail panel (shown when a TOOL:* entry is selected) -->
+                        <Border x:Name="ToolDetailPanel"
+                                Visibility="Collapsed"
+                                Padding="24">
+                            <StackPanel VerticalAlignment="Top">
+                                <TextBlock x:Name="Mw_ToolDetailName"
+                                           FontSize="20" FontWeight="Bold"
+                                           Foreground="{DynamicResource TextPrimaryBrush}"
+                                           TextTrimming="CharacterEllipsis"/>
+
+                                <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                                    <Border CornerRadius="3" Padding="6,2" Margin="0,0,8,0"
+                                            Background="{DynamicResource ToolBadgeBrush}">
+                                        <TextBlock x:Name="Mw_ToolDetailCategory"
+                                                   FontSize="11" FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource BackgroundBrush}"
+                                                   TextTrimming="CharacterEllipsis"/>
+                                    </Border>
+                                </StackPanel>
+
+                                <TextBlock x:Name="Mw_ToolDetailDescription"
+                                           Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,12,0,0"
+                                           FontSize="13" TextWrapping="Wrap"/>
+
+                                <Button x:Name="Mw_ToolDetailOpenBtn" Content=""
+                                        Command="{Binding ServerList.ConnectCommand}"
+                                        CommandParameter="{Binding ServerList.SelectedServer}"
+                                        Style="{DynamicResource PrimaryButtonStyle}"
+                                        Width="140" HorizontalAlignment="Left"
                                         Margin="0,20,0,0"/>
                             </StackPanel>
                         </Border>
