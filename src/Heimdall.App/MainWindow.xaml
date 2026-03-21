@@ -372,6 +372,10 @@
                                             <Setter TargetName="TypeIcon" Property="Text" Value="&#xE90F;"/>
                                             <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolBadgeBrush}"/>
                                         </DataTrigger>
+                                        <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:NETMAP">
+                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE90F;"/>
+                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolBadgeBrush}"/>
+                                        </DataTrigger>
                                         <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:PORTSCAN">
                                             <Setter TargetName="TypeIcon" Property="Text" Value="&#xE90F;"/>
                                             <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolBadgeBrush}"/>
