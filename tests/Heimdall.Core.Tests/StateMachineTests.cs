@@ -840,9 +840,19 @@ public class ApplicationStatusMachineTests
     }
 
     [Fact]
-    public void BeginOperation_Throws_WhenNotReadyOrBusy()
+    public void BeginOperation_Succeeds_WhenInitializing()
     {
-        // Status is Initializing
+        // Status is Initializing — allowed since startup needs tracked operations
+        using var op = _sm.BeginOperation();
+        Assert.NotNull(op);
+    }
+
+    [Fact]
+    public void BeginOperation_Throws_WhenShutdown()
+    {
+        _sm.TryTransition(ApplicationStatus.Ready);
+        _sm.TryTransition(ApplicationStatus.Shutdown);
+
         Assert.Throws<InvalidOperationException>(() => _sm.BeginOperation());
     }
 

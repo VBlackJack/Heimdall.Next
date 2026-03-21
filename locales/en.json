@@ -3047,5 +3047,6 @@
   "ToolDescHOSTS": "Hosts file editor with syntax validation",
   "ToolDescSSHCONFIG": "SSH client configuration file generator",
   "ToolDescCRONJOB": "Cron job manager for scheduled task monitoring",
-  "ToolDescSERVICES": "Windows service status dashboard with start/stop controls"
+  "ToolDescSERVICES": "Windows service status dashboard with start/stop controls",
+  "ToolsPanelCollapse": "Collapse tools panel"
 }
