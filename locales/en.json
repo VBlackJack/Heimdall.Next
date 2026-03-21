@@ -3091,5 +3091,6 @@
   "ToolHelpSERVICES": "Service Status Dashboard\n\nMonitors Windows service status with start/stop controls.\n\nUsage:\nView running services, their status, and startup type. Start, stop, or restart services directly.",
   "ToolPwdGenPresetRightClickHint": "Click to apply — Right-click to delete",
   "TreeCtxOpenToolInTab": "Open in Tab",
-  "TreeCtxRemoveTool": "Remove"
+  "TreeCtxRemoveTool": "Remove",
+  "SessionCloseTab": "Close Tab"
 }

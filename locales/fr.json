@@ -3090,5 +3090,6 @@
   "ToolHelpSERVICES": "Tableau de Bord des Services\n\nSurveille le statut des services Windows.\n\nUtilisation :\nVisualisez les services en cours, leur statut et type de d\u00e9marrage. D\u00e9marrez, arr\u00eatez ou red\u00e9marrez les services directement.",
   "ToolPwdGenPresetRightClickHint": "Cliquer pour appliquer \u2014 Clic droit pour supprimer",
   "TreeCtxOpenToolInTab": "Ouvrir dans un onglet",
-  "TreeCtxRemoveTool": "Retirer"
+  "TreeCtxRemoveTool": "Retirer",
+  "SessionCloseTab": "Fermer l'onglet"
 }
