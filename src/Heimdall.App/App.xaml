@@ -10,6 +10,8 @@
                 <ResourceDictionary Source="Themes/DarkTheme.xaml"/>
                 <!-- Icon assets -->
                 <ResourceDictionary Source="Assets/IconResources.xaml"/>
+                <!-- Vector icon geometries -->
+                <ResourceDictionary Source="Themes/IconGeometries.xaml"/>
             </ResourceDictionary.MergedDictionaries>
 
             <!-- Value converters -->
@@ -20,6 +22,9 @@
             <converters:ServerStatusToColorConverter x:Key="ServerStatusToColorConverter"/>
             <converters:ConnectionTypeToIconConverter x:Key="TypeToIconConverter"/>
             <converters:ConnectionStateToIconConverter x:Key="StateToIconConverter"/>
+            <converters:ConnectionTypeToGeometryConverter x:Key="TypeToGeoConverter"/>
+            <converters:ConnectionTypeToColorConverter x:Key="TypeToColorConverter"/>
+            <converters:ConnectionStateToGeometryConverter x:Key="StateToGeoConverter"/>
 
             <!-- Toolbar navigation tab style (RadioButton as flat tab) -->
             <Style x:Key="ToolbarTabStyle" TargetType="RadioButton">

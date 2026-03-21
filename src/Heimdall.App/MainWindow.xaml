@@ -235,9 +235,12 @@
                                             <ColumnDefinition Width="*"/>
                                             <ColumnDefinition Width="Auto"/>
                                         </Grid.ColumnDefinitions>
-                                        <Image Grid.Column="0" Width="14" Height="14"
-                                               Source="{StaticResource Icon.Tree.Group}"
-                                               Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                        <Path Grid.Column="0"
+                                              Data="{StaticResource Geo.Tree.Group}"
+                                              Fill="{DynamicResource InfoBrush}"
+                                              Width="14" Height="14"
+                                              Stretch="Uniform"
+                                              VerticalAlignment="Center" Margin="0,0,6,0"/>
                                         <TextBlock Grid.Column="1" Text="{Binding Name}"
                                                    FontSize="12" FontWeight="SemiBold"
                                                    Foreground="{DynamicResource TextPrimaryBrush}"
@@ -257,16 +260,13 @@
                                 <DataTemplate DataType="{x:Type vm:ServerItemViewModel}">
                                     <StackPanel Orientation="Horizontal" Margin="0,1"
                                                 ToolTip="{Binding DisplayName}">
-                                        <!-- Protocol icon (PNG from resources) -->
-                                        <Image x:Name="ProtocolIcon" Width="16" Height="16" Margin="0,0,4,0"
-                                               Source="{Binding ConnectionType, Converter={StaticResource TypeToIconConverter}}"
-                                               VerticalAlignment="Center"/>
-                                        <!-- Tool glyph icon (hidden by default, shown for TOOL:* types) -->
-                                        <TextBlock x:Name="TypeIcon" Text="&#xE7F4;"
-                                                   FontFamily="Segoe MDL2 Assets" FontSize="10"
-                                                   Foreground="{DynamicResource ToolBadgeBrush}"
-                                                   VerticalAlignment="Center" Margin="0,0,4,0"
-                                                   Visibility="Collapsed"/>
+                                        <!-- Protocol vector icon -->
+                                        <Path x:Name="ProtocolGeo"
+                                              Data="{Binding ConnectionType, Converter={StaticResource TypeToGeoConverter}}"
+                                              Fill="{Binding ConnectionType, Converter={StaticResource TypeToColorConverter}}"
+                                              Width="16" Height="16"
+                                              Stretch="Uniform"
+                                              VerticalAlignment="Center" Margin="0,0,4,0"/>
                                         <!-- Status dot -->
                                         <Ellipse Width="7" Height="7" Margin="2,0,4,0"
                                                  VerticalAlignment="Center">
@@ -277,10 +277,12 @@
                                                 </MultiBinding>
                                             </Ellipse.Fill>
                                         </Ellipse>
-                                        <!-- Connection state icon -->
-                                        <Image Width="12" Height="12" Margin="0,0,4,0"
-                                               Source="{Binding ConnectionState, Converter={StaticResource StateToIconConverter}}"
-                                               VerticalAlignment="Center"/>
+                                        <!-- Connection state vector icon -->
+                                        <Path Data="{Binding ConnectionState, Converter={StaticResource StateToGeoConverter}}"
+                                              Fill="{Binding ConnectionState, Converter={StaticResource ConnectionStateToBrushConverter}}"
+                                              Width="10" Height="10"
+                                              Stretch="Uniform"
+                                              VerticalAlignment="Center" Margin="2,0,4,0"/>
                                         <!-- Server name -->
                                         <TextBlock Text="{Binding DisplayName}" FontSize="12"
                                                    Foreground="{DynamicResource TextPrimaryBrush}"
@@ -288,111 +290,90 @@
                                                    TextTrimming="CharacterEllipsis"/>
                                     </StackPanel>
                                     <DataTemplate.Triggers>
-                                        <!-- TOOL:* types: show glyph TextBlock, hide protocol Image -->
+                                        <!-- TOOL:* types: override geometry and fill on ProtocolGeo -->
                                         <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:PING">
-                                            <Setter TargetName="TypeIcon" Property="Visibility" Value="Visible"/>
-                                            <Setter TargetName="ProtocolIcon" Property="Visibility" Value="Collapsed"/>
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE774;"/>
+                                            <Setter TargetName="ProtocolGeo" Property="Data" Value="{StaticResource Geo.Tool.Ping}"/>
+                                            <Setter TargetName="ProtocolGeo" Property="Fill" Value="{DynamicResource ToolBadgeBrush}"/>
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:DNS">
-                                            <Setter TargetName="TypeIcon" Property="Visibility" Value="Visible"/>
-                                            <Setter TargetName="ProtocolIcon" Property="Visibility" Value="Collapsed"/>
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xF6FA;"/>
+                                            <Setter TargetName="ProtocolGeo" Property="Data" Value="{StaticResource Geo.Tool.Dns}"/>
+                                            <Setter TargetName="ProtocolGeo" Property="Fill" Value="{DynamicResource ToolBadgeBrush}"/>
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:CERT">
-                                            <Setter TargetName="TypeIcon" Property="Visibility" Value="Visible"/>
-                                            <Setter TargetName="ProtocolIcon" Property="Visibility" Value="Collapsed"/>
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xEB95;"/>
+                                            <Setter TargetName="ProtocolGeo" Property="Data" Value="{StaticResource Geo.Tool.Certificate}"/>
+                                            <Setter TargetName="ProtocolGeo" Property="Fill" Value="{DynamicResource ToolBadgeBrush}"/>
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:SUBNET">
-                                            <Setter TargetName="TypeIcon" Property="Visibility" Value="Visible"/>
-                                            <Setter TargetName="ProtocolIcon" Property="Visibility" Value="Collapsed"/>
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE968;"/>
+                                            <Setter TargetName="ProtocolGeo" Property="Data" Value="{StaticResource Geo.Tool.SubnetCalc}"/>
+                                            <Setter TargetName="ProtocolGeo" Property="Fill" Value="{DynamicResource ToolBadgeBrush}"/>
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:PORTSCAN">
-                                            <Setter TargetName="TypeIcon" Property="Visibility" Value="Visible"/>
-                                            <Setter TargetName="ProtocolIcon" Property="Visibility" Value="Collapsed"/>
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xEE65;"/>
+                                            <Setter TargetName="ProtocolGeo" Property="Data" Value="{StaticResource Geo.Tool.PortScanner}"/>
+                                            <Setter TargetName="ProtocolGeo" Property="Fill" Value="{DynamicResource ToolBadgeBrush}"/>
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:HASH">
-                                            <Setter TargetName="TypeIcon" Property="Visibility" Value="Visible"/>
-                                            <Setter TargetName="ProtocolIcon" Property="Visibility" Value="Collapsed"/>
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE8D7;"/>
+                                            <Setter TargetName="ProtocolGeo" Property="Data" Value="{StaticResource Geo.Tool.Hash}"/>
+                                            <Setter TargetName="ProtocolGeo" Property="Fill" Value="{DynamicResource ToolBadgeBrush}"/>
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:DIFF">
-                                            <Setter TargetName="TypeIcon" Property="Visibility" Value="Visible"/>
-                                            <Setter TargetName="ProtocolIcon" Property="Visibility" Value="Collapsed"/>
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE8FE;"/>
+                                            <Setter TargetName="ProtocolGeo" Property="Data" Value="{StaticResource Geo.Tool.Diff}"/>
+                                            <Setter TargetName="ProtocolGeo" Property="Fill" Value="{DynamicResource ToolBadgeBrush}"/>
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:PASSWORD">
-                                            <Setter TargetName="TypeIcon" Property="Visibility" Value="Visible"/>
-                                            <Setter TargetName="ProtocolIcon" Property="Visibility" Value="Collapsed"/>
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE8D7;"/>
+                                            <Setter TargetName="ProtocolGeo" Property="Data" Value="{StaticResource Geo.Tool.Password}"/>
+                                            <Setter TargetName="ProtocolGeo" Property="Fill" Value="{DynamicResource ToolBadgeBrush}"/>
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:BASE64">
-                                            <Setter TargetName="TypeIcon" Property="Visibility" Value="Visible"/>
-                                            <Setter TargetName="ProtocolIcon" Property="Visibility" Value="Collapsed"/>
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE943;"/>
+                                            <Setter TargetName="ProtocolGeo" Property="Data" Value="{StaticResource Geo.Tool.Base64}"/>
+                                            <Setter TargetName="ProtocolGeo" Property="Fill" Value="{DynamicResource ToolBadgeBrush}"/>
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:CHMOD">
-                                            <Setter TargetName="TypeIcon" Property="Visibility" Value="Visible"/>
-                                            <Setter TargetName="ProtocolIcon" Property="Visibility" Value="Collapsed"/>
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE8D7;"/>
+                                            <Setter TargetName="ProtocolGeo" Property="Data" Value="{StaticResource Geo.Tool.Chmod}"/>
+                                            <Setter TargetName="ProtocolGeo" Property="Fill" Value="{DynamicResource ToolBadgeBrush}"/>
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:DATETIME">
-                                            <Setter TargetName="TypeIcon" Property="Visibility" Value="Visible"/>
-                                            <Setter TargetName="ProtocolIcon" Property="Visibility" Value="Collapsed"/>
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE787;"/>
+                                            <Setter TargetName="ProtocolGeo" Property="Data" Value="{StaticResource Geo.Tool.DateTime}"/>
+                                            <Setter TargetName="ProtocolGeo" Property="Fill" Value="{DynamicResource ToolBadgeBrush}"/>
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:UUID">
-                                            <Setter TargetName="TypeIcon" Property="Visibility" Value="Visible"/>
-                                            <Setter TargetName="ProtocolIcon" Property="Visibility" Value="Collapsed"/>
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE8AC;"/>
+                                            <Setter TargetName="ProtocolGeo" Property="Data" Value="{StaticResource Geo.Tool.Uuid}"/>
+                                            <Setter TargetName="ProtocolGeo" Property="Fill" Value="{DynamicResource ToolBadgeBrush}"/>
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:JWT">
-                                            <Setter TargetName="TypeIcon" Property="Visibility" Value="Visible"/>
-                                            <Setter TargetName="ProtocolIcon" Property="Visibility" Value="Collapsed"/>
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xEB95;"/>
+                                            <Setter TargetName="ProtocolGeo" Property="Data" Value="{StaticResource Geo.Tool.Jwt}"/>
+                                            <Setter TargetName="ProtocolGeo" Property="Fill" Value="{DynamicResource ToolBadgeBrush}"/>
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:REGEX">
-                                            <Setter TargetName="TypeIcon" Property="Visibility" Value="Visible"/>
-                                            <Setter TargetName="ProtocolIcon" Property="Visibility" Value="Collapsed"/>
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE71C;"/>
+                                            <Setter TargetName="ProtocolGeo" Property="Data" Value="{StaticResource Geo.Tool.Regex}"/>
+                                            <Setter TargetName="ProtocolGeo" Property="Fill" Value="{DynamicResource ToolBadgeBrush}"/>
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:JSON">
-                                            <Setter TargetName="TypeIcon" Property="Visibility" Value="Visible"/>
-                                            <Setter TargetName="ProtocolIcon" Property="Visibility" Value="Collapsed"/>
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE7C3;"/>
+                                            <Setter TargetName="ProtocolGeo" Property="Data" Value="{StaticResource Geo.Tool.Json}"/>
+                                            <Setter TargetName="ProtocolGeo" Property="Fill" Value="{DynamicResource ToolBadgeBrush}"/>
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:IPCONV">
-                                            <Setter TargetName="TypeIcon" Property="Visibility" Value="Visible"/>
-                                            <Setter TargetName="ProtocolIcon" Property="Visibility" Value="Collapsed"/>
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE968;"/>
+                                            <Setter TargetName="ProtocolGeo" Property="Data" Value="{StaticResource Geo.Tool.IpConv}"/>
+                                            <Setter TargetName="ProtocolGeo" Property="Fill" Value="{DynamicResource ToolBadgeBrush}"/>
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:URLENC">
-                                            <Setter TargetName="TypeIcon" Property="Visibility" Value="Visible"/>
-                                            <Setter TargetName="ProtocolIcon" Property="Visibility" Value="Collapsed"/>
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE71B;"/>
+                                            <Setter TargetName="ProtocolGeo" Property="Data" Value="{StaticResource Geo.Tool.UrlEnc}"/>
+                                            <Setter TargetName="ProtocolGeo" Property="Fill" Value="{DynamicResource ToolBadgeBrush}"/>
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:HTTP">
-                                            <Setter TargetName="TypeIcon" Property="Visibility" Value="Visible"/>
-                                            <Setter TargetName="ProtocolIcon" Property="Visibility" Value="Collapsed"/>
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE774;"/>
+                                            <Setter TargetName="ProtocolGeo" Property="Data" Value="{StaticResource Geo.Tool.Http}"/>
+                                            <Setter TargetName="ProtocolGeo" Property="Fill" Value="{DynamicResource ToolBadgeBrush}"/>
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:CRONTAB">
-                                            <Setter TargetName="TypeIcon" Property="Visibility" Value="Visible"/>
-                                            <Setter TargetName="ProtocolIcon" Property="Visibility" Value="Collapsed"/>
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE823;"/>
+                                            <Setter TargetName="ProtocolGeo" Property="Data" Value="{StaticResource Geo.Tool.Crontab}"/>
+                                            <Setter TargetName="ProtocolGeo" Property="Fill" Value="{DynamicResource ToolBadgeBrush}"/>
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:SSHKEY">
-                                            <Setter TargetName="TypeIcon" Property="Visibility" Value="Visible"/>
-                                            <Setter TargetName="ProtocolIcon" Property="Visibility" Value="Collapsed"/>
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE8D7;"/>
+                                            <Setter TargetName="ProtocolGeo" Property="Data" Value="{StaticResource Geo.Tool.SshKey}"/>
+                                            <Setter TargetName="ProtocolGeo" Property="Fill" Value="{DynamicResource ToolBadgeBrush}"/>
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:HMAC">
-                                            <Setter TargetName="TypeIcon" Property="Visibility" Value="Visible"/>
-                                            <Setter TargetName="ProtocolIcon" Property="Visibility" Value="Collapsed"/>
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE8D7;"/>
+                                            <Setter TargetName="ProtocolGeo" Property="Data" Value="{StaticResource Geo.Tool.Hmac}"/>
+                                            <Setter TargetName="ProtocolGeo" Property="Fill" Value="{DynamicResource ToolBadgeBrush}"/>
                                         </DataTrigger>
                                     </DataTemplate.Triggers>
                                 </DataTemplate>
@@ -560,9 +541,11 @@
                                                 CommandParameter="{Binding}"
                                                 Style="{DynamicResource SecondaryButtonStyle}"/>
                                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                            <Image Width="16" Height="16" Margin="0,0,5,0"
-                                                   Source="{Binding ConnectionType, Converter={StaticResource TypeToIconConverter}}"
-                                                   VerticalAlignment="Center"/>
+                                            <Path Data="{Binding ConnectionType, Converter={StaticResource TypeToGeoConverter}}"
+                                                  Fill="{Binding ConnectionType, Converter={StaticResource TypeToColorConverter}}"
+                                                  Width="16" Height="16"
+                                                  Stretch="Uniform"
+                                                  VerticalAlignment="Center" Margin="0,0,5,0"/>
                                             <TextBlock Text="{Binding Title}" FontSize="12" FontWeight="SemiBold"
                                                        Foreground="{DynamicResource TextPrimaryBrush}"
                                                        VerticalAlignment="Center"
