@@ -67,10 +67,10 @@ public sealed class WebSocketVncProxy : IDisposable
         _httpListener.Start();
         _ = AcceptLoopAsync(_cts.Token).ContinueWith(t =>
         {
-            if (t.IsFaulted)
+            if (t.IsFaulted && t.Exception is not null)
             {
                 Core.Logging.FileLogger.Error(
-                    $"VNC proxy accept loop failed: {t.Exception?.InnerException?.Message}");
+                    $"VNC proxy accept loop failed: {t.Exception.GetBaseException()}");
             }
         }, TaskContinuationOptions.OnlyOnFaulted);
     }
@@ -91,16 +91,17 @@ public sealed class WebSocketVncProxy : IDisposable
                 }
 
                 // Validate Origin to prevent Cross-Site WebSocket Hijacking (CSWSH).
-                // Only accept connections originating from local sources.
+                // Require an Origin header and only accept the VNC virtual host or localhost.
                 var origin = context.Request.Headers["Origin"];
-                if (!string.IsNullOrEmpty(origin)
-                    && !origin.StartsWith("file://", StringComparison.OrdinalIgnoreCase)
-                    && !origin.StartsWith("http://127.0.0.1", StringComparison.OrdinalIgnoreCase)
-                    && !origin.StartsWith("http://localhost", StringComparison.OrdinalIgnoreCase)
-                    && !origin.StartsWith("https://127.0.0.1", StringComparison.OrdinalIgnoreCase)
-                    && !origin.StartsWith("https://localhost", StringComparison.OrdinalIgnoreCase))
+                if (string.IsNullOrEmpty(origin)
+                    || (!origin.StartsWith("https://heimdall-vnc.local", StringComparison.OrdinalIgnoreCase)
+                        && !origin.StartsWith("http://127.0.0.1", StringComparison.OrdinalIgnoreCase)
+                        && !origin.StartsWith("http://localhost", StringComparison.OrdinalIgnoreCase)
+                        && !origin.StartsWith("https://127.0.0.1", StringComparison.OrdinalIgnoreCase)
+                        && !origin.StartsWith("https://localhost", StringComparison.OrdinalIgnoreCase)))
                 {
-                    Core.Logging.FileLogger.Warn($"VNC proxy rejected WebSocket from untrusted origin: {origin}");
+                    Core.Logging.FileLogger.Warn(
+                        $"VNC proxy rejected WebSocket: {(string.IsNullOrEmpty(origin) ? "missing Origin header" : $"untrusted origin: {origin}")}");
                     context.Response.StatusCode = 403;
                     context.Response.Close();
                     continue;
@@ -157,9 +158,9 @@ public sealed class WebSocketVncProxy : IDisposable
                     await ws.CloseAsync(WebSocketCloseStatus.NormalClosure, string.Empty,
                         CancellationToken.None).ConfigureAwait(false);
                 }
-                catch
+                catch (Exception ex)
                 {
-                    // Best-effort close.
+                    Core.Logging.FileLogger.Warn($"VNC proxy WebSocket close: {ex.Message}");
                 }
             }
 

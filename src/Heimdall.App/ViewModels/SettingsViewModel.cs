@@ -292,7 +292,10 @@ public partial class SettingsViewModel : ObservableObject
             {
                 Name = t.Name,
                 ExecutablePath = t.ExecutablePath,
-                Arguments = t.Arguments
+                Arguments = t.Arguments,
+                WorkingDirectory = t.WorkingDirectory,
+                RunAsAdministrator = t.RunAsAdministrator,
+                RunHidden = t.RunHidden
             }));
 
         Gateways = new ObservableCollection<GatewayItemViewModel>(
@@ -379,7 +382,10 @@ public partial class SettingsViewModel : ObservableObject
         {
             Name = t.Name,
             ExecutablePath = t.ExecutablePath,
-            Arguments = t.Arguments
+            Arguments = t.Arguments,
+            WorkingDirectory = t.WorkingDirectory,
+            RunAsAdministrator = t.RunAsAdministrator,
+            RunHidden = t.RunHidden
         }).ToList();
 
         await _configManager.SaveSettingsAsync(settings);
@@ -875,31 +881,18 @@ public partial class SettingsViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private async Task AddExternalToolAsync(CancellationToken cancellationToken)
+    private Task AddExternalToolAsync(CancellationToken cancellationToken)
     {
-        var name = await _dialogService.ShowInputAsync(
-            _localizer["ExternalToolDialogTitle"],
-            _localizer["ExternalToolPromptName"]);
-        if (string.IsNullOrWhiteSpace(name)) return;
-
-        var executablePath = await _dialogService.ShowInputAsync(
-            _localizer["ExternalToolDialogTitle"],
-            _localizer["ExternalToolPromptPath"]);
-        if (string.IsNullOrWhiteSpace(executablePath)) return;
-
-        var arguments = await _dialogService.ShowInputAsync(
-            _localizer["ExternalToolDialogTitle"],
-            _localizer["ExternalToolPromptArguments"],
-            "{Host} {Port} {User}");
-
-        ExternalTools.Add(new ExternalToolItemViewModel
+        var newTool = new ExternalToolItemViewModel
         {
-            Name = name,
-            ExecutablePath = executablePath,
-            Arguments = arguments ?? ""
-        });
+            Name = _localizer["ExternalToolDefaultName"],
+            Arguments = "{Host}"
+        };
 
+        ExternalTools.Add(newTool);
+        SelectedExternalTool = newTool;
         IsDirty = true;
+        return Task.CompletedTask;
     }
 
     [RelayCommand]

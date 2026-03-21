@@ -141,4 +141,112 @@ public class PathEscaperTests
 
         Assert.Equal("'/home/user/fichier_accentue.txt'", result);
     }
+
+    // ── Extended edge cases ─────────────────────────────────────────────
+
+    [Fact]
+    public void EscapeForShell_PathWithSpaces_EscapedInSingleQuotes()
+    {
+        var result = PathEscaper.EscapeForShell("/path/with spaces/file.txt");
+
+        Assert.Equal("'/path/with spaces/file.txt'", result);
+    }
+
+    [Fact]
+    public void EscapeForShell_PathWithJapaneseCharacters_Preserved()
+    {
+        var result = PathEscaper.EscapeForShell("/path/\u65E5\u672C\u8A9E/file.txt");
+
+        Assert.Equal("'/path/\u65E5\u672C\u8A9E/file.txt'", result);
+    }
+
+    [Fact]
+    public void EscapeForShell_PathWithCJKCharacters_Preserved()
+    {
+        var result = PathEscaper.EscapeForShell("/home/\u4E2D\u6587/\u6587\u4EF6.txt");
+
+        Assert.Equal("'/home/\u4E2D\u6587/\u6587\u4EF6.txt'", result);
+    }
+
+    [Fact]
+    public void EscapeForShell_PathWithDollarSign_QuotedLiterally()
+    {
+        var result = PathEscaper.EscapeForShell("/path/$HOME/file");
+
+        Assert.StartsWith("'", result);
+        Assert.EndsWith("'", result);
+        Assert.Contains("$HOME", result);
+    }
+
+    [Fact]
+    public void EscapeForShell_PathWithBackticks_QuotedLiterally()
+    {
+        var result = PathEscaper.EscapeForShell("/path/`command`/file");
+
+        Assert.StartsWith("'", result);
+        Assert.EndsWith("'", result);
+        Assert.Contains("`command`", result);
+    }
+
+    [Fact]
+    public void EscapeForShell_PathWithOnlySpecialChars()
+    {
+        // Characters that are not control characters but are shell-special
+        var result = PathEscaper.EscapeForShell("$HOME;rm -rf /");
+
+        Assert.StartsWith("'", result);
+        Assert.EndsWith("'", result);
+    }
+
+    [Fact]
+    public void EscapeForShell_VeryLongPath()
+    {
+        var longPath = "/" + string.Join("/", Enumerable.Repeat("segment", 100));
+        var result = PathEscaper.EscapeForShell(longPath);
+
+        Assert.StartsWith("'", result);
+        Assert.EndsWith("'", result);
+        Assert.Contains("segment", result);
+    }
+
+    [Fact]
+    public void EscapeForShell_PathWithBackslash()
+    {
+        var result = PathEscaper.EscapeForShell("/path/with\\backslash");
+
+        Assert.StartsWith("'", result);
+        Assert.EndsWith("'", result);
+    }
+
+    [Fact]
+    public void EscapeForShell_PathWithHash_QuotedLiterally()
+    {
+        var result = PathEscaper.EscapeForShell("/path/file#backup");
+
+        Assert.Equal("'/path/file#backup'", result);
+    }
+
+    [Fact]
+    public void EscapeForShell_PathWithTilde_QuotedLiterally()
+    {
+        var result = PathEscaper.EscapeForShell("~/documents/file.txt");
+
+        Assert.Equal("'~/documents/file.txt'", result);
+    }
+
+    [Fact]
+    public void EscapeForShell_PathWithAsterisk_QuotedLiterally()
+    {
+        var result = PathEscaper.EscapeForShell("/tmp/*.log");
+
+        Assert.Equal("'/tmp/*.log'", result);
+    }
+
+    [Fact]
+    public void EscapeForShell_PathWithQuestionMark_QuotedLiterally()
+    {
+        var result = PathEscaper.EscapeForShell("/tmp/file?.txt");
+
+        Assert.Equal("'/tmp/file?.txt'", result);
+    }
 }

@@ -481,6 +481,245 @@ public class ConnectionStateMachineTests
         Assert.False(metadata.AllowsUserAction);
         Assert.True(metadata.IsProgress);
     }
+
+    // ── All protocol launch states: full transition coverage ────────────
+
+    [Theory]
+    [InlineData(ConnectionState.LaunchingVnc)]
+    [InlineData(ConnectionState.LaunchingFtp)]
+    [InlineData(ConnectionState.LaunchingTelnet)]
+    [InlineData(ConnectionState.LaunchingCitrix)]
+    [InlineData(ConnectionState.LaunchingRdp)]
+    [InlineData(ConnectionState.LaunchingSsh)]
+    [InlineData(ConnectionState.LaunchingSftp)]
+    [InlineData(ConnectionState.LaunchingLocal)]
+    public void LaunchState_ToConnected_IsValid(ConnectionState launchState)
+    {
+        Assert.True(ConnectionStateMachine.IsValidTransition(launchState, ConnectionState.Connected));
+    }
+
+    [Theory]
+    [InlineData(ConnectionState.LaunchingVnc)]
+    [InlineData(ConnectionState.LaunchingFtp)]
+    [InlineData(ConnectionState.LaunchingTelnet)]
+    [InlineData(ConnectionState.LaunchingCitrix)]
+    [InlineData(ConnectionState.LaunchingRdp)]
+    [InlineData(ConnectionState.LaunchingSsh)]
+    [InlineData(ConnectionState.LaunchingSftp)]
+    [InlineData(ConnectionState.LaunchingLocal)]
+    public void LaunchState_ToError_IsValid(ConnectionState launchState)
+    {
+        Assert.True(ConnectionStateMachine.IsValidTransition(launchState, ConnectionState.Error));
+    }
+
+    [Theory]
+    [InlineData(ConnectionState.LaunchingVnc)]
+    [InlineData(ConnectionState.LaunchingFtp)]
+    [InlineData(ConnectionState.LaunchingTelnet)]
+    [InlineData(ConnectionState.LaunchingCitrix)]
+    [InlineData(ConnectionState.LaunchingRdp)]
+    [InlineData(ConnectionState.LaunchingSsh)]
+    [InlineData(ConnectionState.LaunchingSftp)]
+    [InlineData(ConnectionState.LaunchingLocal)]
+    public void LaunchState_ToDisconnecting_IsValid(ConnectionState launchState)
+    {
+        Assert.True(ConnectionStateMachine.IsValidTransition(launchState, ConnectionState.Disconnecting));
+    }
+
+    // ── TunnelEstablished → each protocol launch transition ─────────────
+
+    [Theory]
+    [InlineData(ConnectionState.LaunchingRdp)]
+    [InlineData(ConnectionState.LaunchingSsh)]
+    [InlineData(ConnectionState.LaunchingSftp)]
+    [InlineData(ConnectionState.LaunchingVnc)]
+    [InlineData(ConnectionState.LaunchingFtp)]
+    [InlineData(ConnectionState.LaunchingTelnet)]
+    [InlineData(ConnectionState.LaunchingCitrix)]
+    public void TunnelEstablished_ToLaunchState_IsValid(ConnectionState launchState)
+    {
+        Assert.True(ConnectionStateMachine.IsValidTransition(ConnectionState.TunnelEstablished, launchState));
+    }
+
+    // ── ValidatingConfig → each protocol launch (direct, no tunnel) ─────
+
+    [Theory]
+    [InlineData(ConnectionState.LaunchingRdp)]
+    [InlineData(ConnectionState.LaunchingSsh)]
+    [InlineData(ConnectionState.LaunchingSftp)]
+    [InlineData(ConnectionState.LaunchingVnc)]
+    [InlineData(ConnectionState.LaunchingFtp)]
+    [InlineData(ConnectionState.LaunchingTelnet)]
+    [InlineData(ConnectionState.LaunchingCitrix)]
+    [InlineData(ConnectionState.LaunchingLocal)]
+    public void ValidatingConfig_ToLaunchState_IsValid(ConnectionState launchState)
+    {
+        Assert.True(ConnectionStateMachine.IsValidTransition(ConnectionState.ValidatingConfig, launchState));
+    }
+
+    // ── Full workflow for each protocol via tunnel ───────────────────────
+
+    [Theory]
+    [InlineData(ConnectionState.LaunchingVnc)]
+    [InlineData(ConnectionState.LaunchingFtp)]
+    [InlineData(ConnectionState.LaunchingTelnet)]
+    [InlineData(ConnectionState.LaunchingCitrix)]
+    public void FullTunnelWorkflow_Succeeds_ForAllProtocols(ConnectionState launchState)
+    {
+        var sm = new ConnectionStateMachine();
+        var id = $"srv-{launchState}";
+
+        Assert.True(sm.TryTransition(id, ConnectionState.Initializing));
+        Assert.True(sm.TryTransition(id, ConnectionState.ValidatingConfig));
+        Assert.True(sm.TryTransition(id, ConnectionState.EstablishingTunnel));
+        Assert.True(sm.TryTransition(id, ConnectionState.TunnelEstablished));
+        Assert.True(sm.TryTransition(id, launchState));
+        Assert.True(sm.TryTransition(id, ConnectionState.Connected));
+        Assert.True(sm.TryTransition(id, ConnectionState.Disconnecting));
+        Assert.True(sm.TryTransition(id, ConnectionState.Disconnected));
+
+        Assert.Equal(ConnectionState.Disconnected, sm.GetState(id));
+    }
+
+    // ── Full direct workflow for each protocol (no tunnel) ──────────────
+
+    [Theory]
+    [InlineData(ConnectionState.LaunchingVnc)]
+    [InlineData(ConnectionState.LaunchingFtp)]
+    [InlineData(ConnectionState.LaunchingTelnet)]
+    [InlineData(ConnectionState.LaunchingCitrix)]
+    public void FullDirectWorkflow_Succeeds_ForAllProtocols(ConnectionState launchState)
+    {
+        var sm = new ConnectionStateMachine();
+        var id = $"srv-{launchState}";
+
+        Assert.True(sm.TryTransition(id, ConnectionState.Initializing));
+        Assert.True(sm.TryTransition(id, ConnectionState.ValidatingConfig));
+        Assert.True(sm.TryTransition(id, launchState));
+        Assert.True(sm.TryTransition(id, ConnectionState.Connected));
+        Assert.True(sm.TryTransition(id, ConnectionState.Disconnecting));
+        Assert.True(sm.TryTransition(id, ConnectionState.Disconnected));
+    }
+
+    // ── Concurrent servers in different states ──────────────────────────
+
+    [Fact]
+    public void ConcurrentServers_ThreeServersInDifferentStates()
+    {
+        var sm = new ConnectionStateMachine();
+
+        // Server 1: Connected
+        sm.TryTransition("srv-1", ConnectionState.Initializing);
+        sm.TryTransition("srv-1", ConnectionState.ValidatingConfig);
+        sm.TryTransition("srv-1", ConnectionState.LaunchingSsh);
+        sm.TryTransition("srv-1", ConnectionState.Connected);
+
+        // Server 2: Establishing tunnel
+        sm.TryTransition("srv-2", ConnectionState.Initializing);
+        sm.TryTransition("srv-2", ConnectionState.ValidatingConfig);
+        sm.TryTransition("srv-2", ConnectionState.EstablishingTunnel);
+
+        // Server 3: Error state
+        sm.TryTransition("srv-3", ConnectionState.Initializing);
+        sm.SetError("srv-3", "Auth failed");
+
+        Assert.Equal(ConnectionState.Connected, sm.GetState("srv-1"));
+        Assert.Equal(ConnectionState.EstablishingTunnel, sm.GetState("srv-2"));
+        Assert.Equal(ConnectionState.Error, sm.GetState("srv-3"));
+
+        // Verify active connections excludes Error and Disconnected
+        var active = sm.GetActiveConnections();
+        Assert.Equal(2, active.Count);
+        Assert.True(active.ContainsKey("srv-1"));
+        Assert.True(active.ContainsKey("srv-2"));
+        Assert.False(active.ContainsKey("srv-3"));
+    }
+
+    // ── Reset after Error state ─────────────────────────────────────────
+
+    [Fact]
+    public void ResetAfterError_TransitionsToDisconnected()
+    {
+        var sm = new ConnectionStateMachine();
+        sm.TryTransition("srv", ConnectionState.Initializing);
+        sm.TryTransition("srv", ConnectionState.ValidatingConfig);
+        sm.TryTransition("srv", ConnectionState.LaunchingVnc);
+        sm.SetError("srv", "Connection refused");
+
+        Assert.Equal(ConnectionState.Error, sm.GetState("srv"));
+
+        sm.Reset("srv");
+
+        Assert.Equal(ConnectionState.Disconnected, sm.GetState("srv"));
+        var data = sm.GetStateData("srv");
+        Assert.NotNull(data);
+        Assert.Null(data.ErrorMessage);
+    }
+
+    [Fact]
+    public void ResetAfterError_CanReconnect()
+    {
+        var sm = new ConnectionStateMachine();
+        sm.TryTransition("srv", ConnectionState.Initializing);
+        sm.SetError("srv", "timeout");
+        sm.Reset("srv");
+
+        Assert.True(sm.TryTransition("srv", ConnectionState.Initializing));
+        Assert.Equal(ConnectionState.Initializing, sm.GetState("srv"));
+    }
+
+    // ── Metadata for all launch states ──────────────────────────────────
+
+    [Theory]
+    [InlineData(ConnectionState.LaunchingVnc, "StatusVncConnecting", "LogVncLaunching")]
+    [InlineData(ConnectionState.LaunchingFtp, "StatusFtpConnecting", "LogFtpLaunching")]
+    [InlineData(ConnectionState.LaunchingTelnet, "StatusTelnetConnecting", "LogTelnetLaunching")]
+    [InlineData(ConnectionState.LaunchingCitrix, "StatusCitrixConnecting", "LogCitrixLaunching")]
+    public void LaunchState_Metadata_IsProgressState(ConnectionState state, string displayKey, string logKey)
+    {
+        var metadata = ConnectionStateMachine.GetMetadata(state);
+
+        Assert.Equal(displayKey, metadata.DisplayKey);
+        Assert.Equal(logKey, metadata.LogKey);
+        Assert.False(metadata.IsTerminal);
+        Assert.False(metadata.AllowsUserAction);
+        Assert.True(metadata.IsProgress);
+    }
+
+    // ── Transition table coverage for Vnc/Ftp/Telnet/Citrix ─────────────
+
+    [Theory]
+    [InlineData(ConnectionState.LaunchingVnc, ConnectionState.Connected, true)]
+    [InlineData(ConnectionState.LaunchingVnc, ConnectionState.Error, true)]
+    [InlineData(ConnectionState.LaunchingVnc, ConnectionState.Disconnecting, true)]
+    [InlineData(ConnectionState.LaunchingVnc, ConnectionState.Disconnected, false)]
+    [InlineData(ConnectionState.LaunchingVnc, ConnectionState.Initializing, false)]
+    [InlineData(ConnectionState.LaunchingFtp, ConnectionState.Connected, true)]
+    [InlineData(ConnectionState.LaunchingFtp, ConnectionState.Error, true)]
+    [InlineData(ConnectionState.LaunchingFtp, ConnectionState.Disconnecting, true)]
+    [InlineData(ConnectionState.LaunchingFtp, ConnectionState.Disconnected, false)]
+    [InlineData(ConnectionState.LaunchingTelnet, ConnectionState.Connected, true)]
+    [InlineData(ConnectionState.LaunchingTelnet, ConnectionState.Error, true)]
+    [InlineData(ConnectionState.LaunchingTelnet, ConnectionState.Disconnecting, true)]
+    [InlineData(ConnectionState.LaunchingTelnet, ConnectionState.Disconnected, false)]
+    [InlineData(ConnectionState.LaunchingCitrix, ConnectionState.Connected, true)]
+    [InlineData(ConnectionState.LaunchingCitrix, ConnectionState.Error, true)]
+    [InlineData(ConnectionState.LaunchingCitrix, ConnectionState.Disconnecting, true)]
+    [InlineData(ConnectionState.LaunchingCitrix, ConnectionState.Disconnected, false)]
+    public void NewLaunchStates_TransitionTable(ConnectionState from, ConnectionState to, bool expected)
+    {
+        Assert.Equal(expected, ConnectionStateMachine.IsValidTransition(from, to));
+    }
+
+    // ── TunnelEstablished cannot transition to LaunchingLocal ────────────
+
+    [Fact]
+    public void TunnelEstablished_CannotTransitionToLaunchingLocal()
+    {
+        // Local shell does not use tunnels
+        Assert.False(ConnectionStateMachine.IsValidTransition(
+            ConnectionState.TunnelEstablished, ConnectionState.LaunchingLocal));
+    }
 }
 
 public class ApplicationStatusMachineTests

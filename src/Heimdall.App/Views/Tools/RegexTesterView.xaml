@@ -86,19 +86,33 @@
             <TextBlock x:Name="TestTextLabel" Grid.Row="0"
                        Foreground="{DynamicResource TextSecondaryBrush}"
                        FontSize="12" Margin="0,0,0,4"/>
-            <TextBox x:Name="TestText" Grid.Row="1"
-                     AcceptsReturn="True" AcceptsTab="True"
-                     TextWrapping="Wrap"
-                     VerticalScrollBarVisibility="Auto"
-                     HorizontalScrollBarVisibility="Auto"
-                     FontFamily="Consolas" FontSize="13"
-                     Background="{DynamicResource SurfaceBrush}"
-                     Foreground="{DynamicResource TextPrimaryBrush}"
-                     BorderBrush="{DynamicResource BorderBrush}"
-                     BorderThickness="1"
-                     Padding="6"
-                     TextChanged="OnTestTextChanged"
+            <Grid Grid.Row="1">
+                <TextBox x:Name="TestText"
+                         AcceptsReturn="True" AcceptsTab="True"
+                         TextWrapping="Wrap"
+                         VerticalScrollBarVisibility="Auto"
+                         HorizontalScrollBarVisibility="Auto"
+                         FontFamily="Consolas" FontSize="13"
+                         Background="{DynamicResource SurfaceBrush}"
+                         Foreground="{DynamicResource TextPrimaryBrush}"
+                         BorderBrush="{DynamicResource BorderBrush}"
+                         BorderThickness="1"
+                         Padding="6"
+                         TextChanged="OnTestTextChanged"
 />
+                <RichTextBox x:Name="HighlightDisplay"
+                             IsReadOnly="True" IsHitTestVisible="False"
+                             Visibility="Collapsed"
+                             Background="{DynamicResource SurfaceBrush}"
+                             Foreground="{DynamicResource TextPrimaryBrush}"
+                             BorderBrush="{DynamicResource BorderBrush}"
+                             BorderThickness="1"
+                             Padding="6"
+                             FontFamily="Consolas" FontSize="13"
+                             VerticalScrollBarVisibility="Auto"
+                             HorizontalScrollBarVisibility="Auto"
+                             />
+            </Grid>
         </Grid>
 
         <!-- Match count -->

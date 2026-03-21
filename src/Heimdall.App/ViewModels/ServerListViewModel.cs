@@ -265,7 +265,11 @@ public partial class ServerListViewModel : ObservableObject
             var context = new Core.Models.ToolContext(
                 TargetHost: serverDto.RemoteServer,
                 TargetPort: serverDto.RemotePort > 0 ? serverDto.RemotePort : null,
-                Argument: serverDto.RemoteServer);
+                Argument: serverDto.RemoteServer,
+                DisplayName: serverDto.DisplayName,
+                Username: serverDto.SshUsername ?? serverDto.RdpUsername,
+                ConnectionType: serverDto.ConnectionType,
+                ProjectName: server.ProjectName);
             ToolSessionRequested?.Invoke(toolId, server.DisplayName, context);
             serverDto.Id = originalId;
             _connectionSm.Reset(sessionId);

@@ -98,3 +98,14 @@ public enum ScheduleType
     /// <summary>Connect at a recurring interval in minutes.</summary>
     Interval
 }
+
+/// <summary>
+/// Categories for built-in tools in the command palette and menus.
+/// </summary>
+public enum ToolCategory
+{
+    Network,
+    Security,
+    Encoding,
+    System
+}

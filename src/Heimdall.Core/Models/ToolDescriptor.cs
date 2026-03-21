@@ -1,0 +1,45 @@
+/*
+ * Copyright 2026 Julien Bombled
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+namespace Heimdall.Core.Models;
+
+/// <summary>
+/// Single source of truth for a built-in tool's metadata.
+/// Used by the tool registry, command palette, menus, and view factory.
+/// </summary>
+/// <param name="Id">Short identifier, e.g. "PING", "HASH". Used as lookup key.</param>
+/// <param name="Category">Grouping for menus and palette.</param>
+/// <param name="CategoryLabelKey">i18n key for the category header, e.g. "ToolCategoryNetwork".</param>
+/// <param name="LabelKey">i18n key for the tool name, e.g. "PaletteToolPing".</param>
+/// <param name="LabelWithArgKey">i18n key for "tool with argument" variant, e.g. "PaletteToolPingWith". Null if not supported.</param>
+/// <param name="CommandPrefixes">Palette search aliases, e.g. ["ping"] or ["dns","nslookup","dig"].</param>
+/// <param name="IsNetworkTool">True if the tool should prompt for a target host when opened standalone.</param>
+/// <param name="IconResourceKey">Optional XAML resource key for the tool's icon (e.g. "Icon.Tool.PortScanner"). Null if no icon available.</param>
+public record ToolDescriptor(
+    string Id,
+    ToolCategory Category,
+    string CategoryLabelKey,
+    string LabelKey,
+    string? LabelWithArgKey,
+    string[] CommandPrefixes,
+    bool IsNetworkTool,
+    string? IconResourceKey = null)
+{
+    /// <summary>
+    /// The prefixed tool type string used in connection type fields, e.g. "TOOL:PING".
+    /// </summary>
+    public string ToolType => $"TOOL:{Id}";
+}

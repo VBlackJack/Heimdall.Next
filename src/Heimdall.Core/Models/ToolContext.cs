@@ -18,8 +18,16 @@ namespace Heimdall.Core.Models;
 
 /// <summary>
 /// Carries optional context data when opening a tool tab.
+/// Enriched fields allow tools to prefill with server-specific values
+/// instead of generic placeholders like "example.com".
 /// </summary>
 public record ToolContext(
     string? TargetHost = null,
     int? TargetPort = null,
-    string? Argument = null);
+    string? Argument = null,
+    string? DisplayName = null,
+    string? Username = null,
+    string? ConnectionType = null,
+    string? ProjectName = null,
+    string? GroupName = null,
+    string? SourceServerId = null);

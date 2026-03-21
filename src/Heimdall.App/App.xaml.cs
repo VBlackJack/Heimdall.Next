@@ -40,6 +40,10 @@ public partial class App : System.Windows.Application
     {
         base.OnStartup(e);
 
+        // Show splash screen during initialization
+        var splash = new System.Windows.SplashScreen("Assets/splash-screen.png");
+        splash.Show(autoClose: false);
+
         // Register global exception handlers BEFORE any awaits — async void
         // resumes on the dispatcher, so unhandled exceptions from awaited calls
         // must already be caught at this point.
@@ -109,30 +113,34 @@ public partial class App : System.Windows.Application
         {
             var entries = settings.TrustedHostKeys.Select(kvp =>
             {
-                var parts = kvp.Key.Split(':');
-                var host = parts[0];
-                var port = parts.Length > 1 && int.TryParse(parts[1], out var p) ? p : 22;
+                ParseHostKeyEntry(kvp.Key, out var host, out var port);
                 return (host, port, (string?)kvp.Value);
             });
             hostKeyStore.LoadFromConfig(entries);
         }
 
-        // Persist newly trusted host keys back to settings
+        // Persist newly trusted host keys back to settings via transactional merge.
+        // MergeHostKeyAsync holds the write lock across load+mutate+save,
+        // preventing concurrent TOFU events from overwriting each other.
         hostKeyStore.HostKeyEvent += (key, fingerprint, trusted) =>
         {
-            if (trusted && !settings.TrustedHostKeys.ContainsKey(key))
+            if (!trusted)
             {
-                settings.TrustedHostKeys[key] = fingerprint;
-                _ = Task.Run(async () =>
-                {
-                    try { await configManager.SaveSettingsAsync(settings); }
-                    catch (Exception ex)
-                    {
-                        Heimdall.Core.Logging.FileLogger.Warn(
-                            $"Failed to persist host key for {key}: {ex.Message}");
-                    }
-                });
+                return;
             }
+
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await configManager.MergeHostKeyAsync(key, fingerprint);
+                }
+                catch (Exception ex)
+                {
+                    Heimdall.Core.Logging.FileLogger.Warn(
+                        $"Failed to persist host key for {key}: {ex.Message}");
+                }
+            });
         };
 
         // Subscribe to runtime settings changes for logging and theme updates
@@ -143,6 +151,9 @@ public partial class App : System.Windows.Application
 
         // Check for legacy Heimdall installation and offer migration on first run
         await TryMigrateLegacyAsync(configManager, localization);
+
+        // Close splash before showing main window (300ms fade out)
+        splash.Close(TimeSpan.FromMilliseconds(300));
 
         var mainWindow = _serviceProvider.GetRequiredService<MainWindow>();
         _mainViewModel = mainWindow.DataContext as MainViewModel;
@@ -165,6 +176,7 @@ public partial class App : System.Windows.Application
 
         // Application services
         services.AddSingleton<X11ServerManager>();
+        services.AddSingleton<ToolRegistry>();
         services.AddSingleton<ConnectionService>();
         services.AddSingleton<EmbeddedSessionManager>();
         services.AddSingleton<IDialogService, WpfDialogService>();
@@ -177,6 +189,42 @@ public partial class App : System.Windows.Application
 
         // Windows
         services.AddTransient<MainWindow>();
+    }
+
+    /// <summary>
+    /// Parses a host key entry in the form "host:port", handling IPv6 bracket
+    /// notation (e.g., "[2001:db8::1]:22") correctly.
+    /// </summary>
+    private static void ParseHostKeyEntry(string key, out string host, out int port)
+    {
+        port = 22;
+
+        if (key.StartsWith('['))
+        {
+            // IPv6 bracket notation: [host]:port
+            var closeBracket = key.IndexOf(']');
+            if (closeBracket > 0)
+            {
+                host = key[1..closeBracket];
+                if (closeBracket + 2 < key.Length && key[closeBracket + 1] == ':')
+                {
+                    int.TryParse(key[(closeBracket + 2)..], out port);
+                }
+                return;
+            }
+        }
+
+        // Standard host:port — split on the last colon only (handles bare IPv6 without brackets)
+        var lastColon = key.LastIndexOf(':');
+        if (lastColon > 0 && int.TryParse(key[(lastColon + 1)..], out var parsedPort))
+        {
+            host = key[..lastColon];
+            port = parsedPort;
+        }
+        else
+        {
+            host = key;
+        }
     }
 
     /// <summary>

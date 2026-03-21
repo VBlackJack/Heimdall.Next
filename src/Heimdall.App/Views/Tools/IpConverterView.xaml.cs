@@ -28,7 +28,7 @@ namespace Heimdall.App.Views.Tools;
 /// dotted decimal, integer, hexadecimal, binary, and IPv4-mapped IPv6.
 /// Accepts input in any of those formats and converts to all others.
 /// </summary>
-public partial class IpConverterView : UserControl, IDisposable
+public partial class IpConverterView : UserControl, IToolView
 {
     private LocalizationManager? _localizer;
 
@@ -53,6 +53,12 @@ public partial class IpConverterView : UserControl, IDisposable
         {
             TxtInput.Text = context.TargetHost;
         }
+
+        Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, () =>
+        {
+            TxtInput.Focus();
+            TxtInput.SelectAll();
+        });
     }
 
     private void ApplyLocalization()

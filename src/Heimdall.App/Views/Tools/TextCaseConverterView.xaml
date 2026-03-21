@@ -1,0 +1,97 @@
+<UserControl x:Class="Heimdall.App.Views.Tools.TextCaseConverterView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="{DynamicResource BackgroundBrush}">
+    <Grid Margin="0">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Border Grid.Row="0" Padding="12,8"
+                Background="{DynamicResource SurfaceBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="0,0,0,1">
+            <TextBlock x:Name="HeaderTitle" Text=""
+                       FontSize="14" FontWeight="SemiBold"
+                       Foreground="{DynamicResource TextPrimaryBrush}"
+                       VerticalAlignment="Center"/>
+        </Border>
+
+        <!-- Content -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="16">
+            <StackPanel MaxWidth="700">
+
+                <!-- Input -->
+                <TextBlock x:Name="LblInput" Text=""
+                           FontSize="12" Margin="0,0,0,4"
+                           Foreground="{DynamicResource TextSecondaryBrush}"/>
+                <TextBox x:Name="TxtInput" Text=""
+                         FontSize="13" FontFamily="Consolas"
+                         Padding="8,6" Height="100"
+                         AcceptsReturn="True"
+                         TextWrapping="Wrap"
+                         VerticalScrollBarVisibility="Auto"
+                         Background="{DynamicResource CardBrush}"
+                         Foreground="{DynamicResource TextPrimaryBrush}"
+                         BorderBrush="{DynamicResource BorderBrush}"
+                         TextChanged="OnInputChanged"/>
+
+                <!-- Conversion buttons -->
+                <TextBlock x:Name="LblConversions" Text=""
+                           FontSize="12" Margin="0,16,0,8"
+                           Foreground="{DynamicResource TextSecondaryBrush}"/>
+                <WrapPanel Margin="0,0,0,16">
+                    <Button x:Name="BtnCamelCase" Content="" Click="OnCamelCaseClick"
+                            Style="{DynamicResource SecondaryButtonStyle}"
+                            Padding="12,6" Margin="0,0,6,6"/>
+                    <Button x:Name="BtnPascalCase" Content="" Click="OnPascalCaseClick"
+                            Style="{DynamicResource SecondaryButtonStyle}"
+                            Padding="12,6" Margin="0,0,6,6"/>
+                    <Button x:Name="BtnSnakeCase" Content="" Click="OnSnakeCaseClick"
+                            Style="{DynamicResource SecondaryButtonStyle}"
+                            Padding="12,6" Margin="0,0,6,6"/>
+                    <Button x:Name="BtnKebabCase" Content="" Click="OnKebabCaseClick"
+                            Style="{DynamicResource SecondaryButtonStyle}"
+                            Padding="12,6" Margin="0,0,6,6"/>
+                    <Button x:Name="BtnUpperCase" Content="" Click="OnUpperCaseClick"
+                            Style="{DynamicResource SecondaryButtonStyle}"
+                            Padding="12,6" Margin="0,0,6,6"/>
+                    <Button x:Name="BtnLowerCase" Content="" Click="OnLowerCaseClick"
+                            Style="{DynamicResource SecondaryButtonStyle}"
+                            Padding="12,6" Margin="0,0,6,6"/>
+                    <Button x:Name="BtnTitleCase" Content="" Click="OnTitleCaseClick"
+                            Style="{DynamicResource SecondaryButtonStyle}"
+                            Padding="12,6" Margin="0,0,6,6"/>
+                    <Button x:Name="BtnConstantCase" Content="" Click="OnConstantCaseClick"
+                            Style="{DynamicResource SecondaryButtonStyle}"
+                            Padding="12,6" Margin="0,0,6,6"/>
+                </WrapPanel>
+
+                <!-- Output -->
+                <TextBlock x:Name="LblOutput" Text=""
+                           FontSize="12" Margin="0,0,0,4"
+                           Foreground="{DynamicResource TextSecondaryBrush}"/>
+                <DockPanel Margin="0,0,0,8">
+                    <Button x:Name="BtnCopy" DockPanel.Dock="Right"
+                            Content="" Click="OnCopyClick"
+                            Style="{DynamicResource SecondaryButtonStyle}"
+                            Padding="12,6" Margin="8,0,0,0"
+                            VerticalAlignment="Top"/>
+                    <TextBox x:Name="TxtOutput" Text=""
+                             FontSize="13" FontFamily="Consolas"
+                             Padding="8,6" Height="100"
+                             IsReadOnly="True"
+                             AcceptsReturn="True"
+                             TextWrapping="Wrap"
+                             VerticalScrollBarVisibility="Auto"
+                             Background="{DynamicResource CardBrush}"
+                             Foreground="{DynamicResource AccentBrush}"
+                             BorderBrush="{DynamicResource BorderBrush}"/>
+                </DockPanel>
+
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</UserControl>

@@ -27,7 +27,7 @@ namespace Heimdall.App.Views.Tools;
 /// <summary>
 /// Base64 encoder/decoder tool supporting both text and file input modes.
 /// </summary>
-public partial class Base64ToolView : UserControl, IDisposable
+public partial class Base64ToolView : UserControl, IToolView
 {
     private const long MaxFileSizeBytes = 5 * 1024 * 1024; // 5 MB
     private const int AsyncThresholdBytes = 100 * 1024; // 100 KB
@@ -62,6 +62,12 @@ public partial class Base64ToolView : UserControl, IDisposable
 
         // Trigger initial encoding so the tool shows a result on load
         _ = EncodeAsync();
+
+        Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, () =>
+        {
+            InputText.Focus();
+            InputText.SelectAll();
+        });
     }
 
     private void ApplyLocalization()
@@ -79,6 +85,8 @@ public partial class Base64ToolView : UserControl, IDisposable
         System.Windows.Automation.AutomationProperties.SetName(BtnDecode, L("ToolBase64BtnDecode"));
         System.Windows.Automation.AutomationProperties.SetName(BtnCopyOutput, L("ToolBase64BtnCopy"));
         System.Windows.Automation.AutomationProperties.SetName(BtnBrowseFile, L("ToolBase64BtnBrowse"));
+        ChkUrlSafe.Content = L("ToolBase64UrlSafe");
+        System.Windows.Automation.AutomationProperties.SetName(ChkUrlSafe, L("ToolBase64UrlSafe"));
         System.Windows.Automation.AutomationProperties.SetName(ChkFileMode, L("ToolBase64FileMode"));
         System.Windows.Automation.AutomationProperties.SetName(InputText, L("ToolBase64InputLabel"));
         System.Windows.Automation.AutomationProperties.SetName(OutputText, L("ToolBase64OutputLabel"));
@@ -105,16 +113,18 @@ public partial class Base64ToolView : UserControl, IDisposable
                 data = Encoding.UTF8.GetBytes(InputText.Text);
             }
 
+            var urlSafe = ChkUrlSafe?.IsChecked == true;
+
             string encoded;
             if (data.Length > AsyncThresholdBytes)
             {
                 BtnEncode.IsEnabled = false;
-                encoded = await Task.Run(() => Convert.ToBase64String(data, Base64FormattingOptions.InsertLineBreaks));
+                encoded = await Task.Run(() => EncodeBase64(data, urlSafe));
                 BtnEncode.IsEnabled = true;
             }
             else
             {
-                encoded = Convert.ToBase64String(data, Base64FormattingOptions.InsertLineBreaks);
+                encoded = EncodeBase64(data, urlSafe);
             }
 
             OutputText.Text = encoded;
@@ -128,11 +138,37 @@ public partial class Base64ToolView : UserControl, IDisposable
         }
     }
 
+    private static string EncodeBase64(byte[] data, bool urlSafe)
+    {
+        var encoded = Convert.ToBase64String(data, Base64FormattingOptions.InsertLineBreaks);
+        if (!urlSafe)
+        {
+            return encoded;
+        }
+
+        return encoded
+            .Replace('+', '-')
+            .Replace('/', '_')
+            .TrimEnd('=');
+    }
+
     private void OnDecodeClick(object sender, RoutedEventArgs e)
     {
         try
         {
-            var decoded = Convert.FromBase64String(InputText.Text.Trim());
+            var input = InputText.Text.Trim();
+            if (ChkUrlSafe?.IsChecked == true)
+            {
+                input = input.Replace('-', '+').Replace('_', '/');
+                // Restore padding
+                switch (input.Length % 4)
+                {
+                    case 2: input += "=="; break;
+                    case 3: input += "="; break;
+                }
+            }
+
+            var decoded = Convert.FromBase64String(input);
 
             if (_isFileMode)
             {

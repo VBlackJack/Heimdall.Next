@@ -26,7 +26,7 @@ namespace Heimdall.App.Views.Tools;
 /// URL encoder/decoder tool with support for full URL encoding
 /// (Uri.EscapeDataString) and component encoding (Uri.EscapeUriString).
 /// </summary>
-public partial class UrlEncoderView : UserControl, IDisposable
+public partial class UrlEncoderView : UserControl, IToolView
 {
     private LocalizationManager? _localizer;
     private bool _initialized;
@@ -57,6 +57,12 @@ public partial class UrlEncoderView : UserControl, IDisposable
 
         // Setting TxtDecoded.Text triggers OnDecodedTextChanged which auto-encodes
         TxtDecoded.Text = initialText;
+
+        Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, () =>
+        {
+            TxtDecoded.Focus();
+            TxtDecoded.SelectAll();
+        });
     }
 
     private void ApplyLocalization()

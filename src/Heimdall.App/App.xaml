@@ -8,6 +8,8 @@
             <ResourceDictionary.MergedDictionaries>
                 <!-- Default theme: Dark -->
                 <ResourceDictionary Source="Themes/DarkTheme.xaml"/>
+                <!-- Icon assets -->
+                <ResourceDictionary Source="Assets/IconResources.xaml"/>
             </ResourceDictionary.MergedDictionaries>
 
             <!-- Value converters -->
@@ -16,6 +18,8 @@
             <converters:ConnectionStateToBrushConverter x:Key="ConnectionStateToBrushConverter"/>
             <converters:NullToVisibilityConverter x:Key="NullToVisibilityConverter"/>
             <converters:ServerStatusToColorConverter x:Key="ServerStatusToColorConverter"/>
+            <converters:ConnectionTypeToIconConverter x:Key="TypeToIconConverter"/>
+            <converters:ConnectionStateToIconConverter x:Key="StateToIconConverter"/>
 
             <!-- Toolbar navigation tab style (RadioButton as flat tab) -->
             <Style x:Key="ToolbarTabStyle" TargetType="RadioButton">

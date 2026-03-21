@@ -49,6 +49,16 @@
 
                 <!-- Options -->
                 <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+                    <ComboBox x:Name="CmbVersion" Width="160"
+                              Margin="0,0,16,0"
+                              Background="{DynamicResource CardBrush}"
+                              Foreground="{DynamicResource TextPrimaryBrush}"
+                              BorderBrush="{DynamicResource BorderBrush}"
+                              SelectionChanged="OnVersionChanged"
+                              SelectedIndex="0">
+                        <ComboBoxItem Tag="4"/>
+                        <ComboBoxItem Tag="7"/>
+                    </ComboBox>
                     <CheckBox x:Name="ChkUppercase"
                               Margin="0,0,16,0"
                               Foreground="{DynamicResource TextPrimaryBrush}"

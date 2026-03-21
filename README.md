@@ -8,18 +8,18 @@
       http://www.apache.org/licenses/LICENSE-2.0
 -->
 
+![Heimdall.Next](docs/readme-banner.png)
+
 # Heimdall.Next
 
 [![CI](https://github.com/VBlackJack/Heimdall.Next/actions/workflows/ci.yml/badge.svg)](https://github.com/VBlackJack/Heimdall.Next/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-1013%20passing-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/tests-1212%20passing-brightgreen.svg)]()
 [![.NET](https://img.shields.io/badge/.NET-10.0-purple.svg)]()
 
 **The secure, all-in-one Windows connection manager for RDP, SSH, SFTP, VNC, Telnet, FTP, Citrix, and local terminals.**
 
 Built with .NET 10 and WPF. Secure, feature-rich Windows connection manager with enterprise-grade encryption and modern UX.
-
-<!-- Screenshot placeholder: ![Heimdall.Next](docs/screenshot.png) -->
 
 ---
 
@@ -125,8 +125,11 @@ Built with .NET 10 and WPF. Secure, feature-rich Windows connection manager with
 - Background timer with proper async dispatch and semaphore-guarded ticks
 
 ### External Tools
-- Configurable tools (ping, tracert, nslookup) in server context menu
-- Variable substitution: `{Host}`, `{Port}`, `{User}`
+- Configurable tools in server context menu with inline edit panel
+- 8 variable placeholders: `{Host}`, `{Port}`, `{User}`, `{ServerName}`, `{Protocol}`, `{KeyFile}`, `{Project}`, `{Gateway}`
+- Run as Administrator, Run Hidden, Working Directory options
+- File browser for executable selection
+- Integrated into Ctrl+K command palette
 
 ### Quick File Server
 - One-click HTTP + TFTP server for transferring files to servers without SFTP (hardened servers, containers, network equipment)
@@ -134,17 +137,16 @@ Built with .NET 10 and WPF. Secure, feature-rich Windows connection manager with
 - HTTP: directory listing, MIME types, path traversal protection
 - TFTP: RFC 1350 read-only implementation
 
-### Built-in Sysops Toolbox (21 tools)
+### Built-in Sysops Toolbox (31 tools)
 
-All tools open as session tabs (split, detach, reorder). Accessible via **Ctrl+K** palette or **"+" → Add Tool** menu. Tools can be saved in the TreeView alongside servers.
+All tools open as session tabs (split, detach, reorder). Accessible via **Ctrl+K** palette, **Ctrl+Shift+T** sidebar panel, or **"+" → Add Tool** menu. Tools can be saved in the TreeView alongside servers. Centralized `ToolRegistry` with icons, categories, and command aliases. Recent tools shown in palette on open. Singleton behavior for context-free tools.
 
 | Category | Tools |
 |----------|-------|
-| **Network** | Ping Monitor, DNS Lookup, SSL Cert Inspector, Port Scanner, Subnet Calculator, IP Converter |
-| **Security** | Password Generator, SSH Key Generator, Hash Generator, HMAC Generator |
-| **Encoding** | Base64 Encoder, URL Encoder, JWT Parser |
-| **DevOps** | Chmod Calculator, Crontab Builder, JSON Formatter, Regex Tester, Text Diff |
-| **Utilities** | DateTime Converter, UUID Generator, HTTP Status Codes |
+| **Network** | Ping Monitor, DNS Lookup (custom server), SSL Cert Inspector (chain + TLS version), Port Scanner (progress + banner grab), Subnet Calculator (IPv4 + IPv6), IP Converter, HTTP Status Codes, Whois Lookup, Network Calculator (supernet + VLAN planner) |
+| **Security** | Password Generator (crack time + history), SSH Key Generator (RSA + Ed25519), Hash Generator (SHA3 + progress), HMAC Generator, JWT Parser (HMAC signature verify), Certificate Generator (self-signed + CA/leaf), TOTP Generator (RFC 6238) |
+| **Encoding** | Base64 Encoder (URL-safe RFC 4648), URL Encoder, JSON Formatter (error position), Regex Tester (match highlighting), Text Diff (word-level), Text Case Converter (8 formats) |
+| **System** | Chmod Calculator, Crontab Builder, DateTime Converter (timezone + relative), UUID Generator (v4 + v7), Hosts File Editor, SSH Config Generator, Log Viewer / Tail (regex filter), Cron Job Manager (crontab + Windows tasks), Service Status Dashboard |
 
 ### Session Management
 - Tabbed sessions with drag-to-reorder
@@ -164,7 +166,7 @@ All tools open as session tabs (split, detach, reorder). Accessible via **Ctrl+K
 - Connection inheritance: group-level defaults for gateway, SSH username, key path
 - Empty state with welcome panel and import call-to-action
 - Fullscreen mode (F11), toggle sidebar (Ctrl+B), filter (Ctrl+F)
-- Bilingual interface: English and French (~2,513 i18n keys)
+- Bilingual interface: English and French (~2,889 i18n keys)
 - WCAG 2.1 AA accessibility: AutomationProperties on all interactive controls, keyboard focus indicators, TextTrimming on dynamic content
 
 ### Security
@@ -230,7 +232,8 @@ Download the latest release from the [Releases](../../releases) page. Run the in
 | Shortcut | Action |
 |----------|--------|
 | F1 | Keyboard shortcut help |
-| Ctrl+K | Quick Connect palette |
+| Ctrl+K | Quick Connect palette (servers, tools, external tools) |
+| Ctrl+Shift+T | Toggle Tools sidebar panel |
 | Ctrl+N | Add new server |
 | Ctrl+E | Edit selected server |
 | Ctrl+Del | Delete selected server |
@@ -238,6 +241,7 @@ Download the latest release from the [Releases](../../releases) page. Run the in
 | Ctrl+Shift+S | Screenshot to clipboard |
 | Ctrl+B | Toggle sidebar |
 | Ctrl+F | Focus search/filter |
+| Ctrl+Enter | Execute action (JSON Formatter, etc.) |
 | F11 | Toggle fullscreen |
 | Escape | Exit fullscreen / close palette |
 | F2 | Rename (SFTP/local file browser) |
@@ -296,8 +300,8 @@ Release mode also produces Inno Setup `.exe` installers in `Dist/installers/` wi
 | RDP | ActiveX MsTscAx (WindowsFormsHost) |
 | Citrix | StoreBrowse CLI integration |
 | Crypto | System.Security.Cryptography.ProtectedData (DPAPI) |
-| Testing | xUnit + Moq (1,013 tests) |
-| Built-in Tools | 21 sysops tools (Ctrl+K → `tools`) |
+| Testing | xUnit + Moq (1,212 tests) |
+| Built-in Tools | 31 sysops tools (Ctrl+K → `tools` or Ctrl+Shift+T) |
 | Serialization | System.Text.Json |
 
 ---

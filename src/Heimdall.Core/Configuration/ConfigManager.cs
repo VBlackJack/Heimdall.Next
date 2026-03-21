@@ -128,13 +128,14 @@ public class ConfigManager
         {
             if (File.Exists(_settingsDefaultPath))
             {
-                var defaultContent = await File.ReadAllTextAsync(_settingsDefaultPath, Utf8NoBom);
-                await WriteTextAsync(_settingsPath, defaultContent);
+                var defaultContent = await File.ReadAllTextAsync(_settingsDefaultPath, Utf8NoBom)
+                    .ConfigureAwait(false);
+                await WriteTextAsync(_settingsPath, defaultContent).ConfigureAwait(false);
             }
             else
             {
                 var defaults = new AppSettings();
-                await SaveSettingsAsync(defaults);
+                await SaveSettingsAsync(defaults).ConfigureAwait(false);
             }
         }
 
@@ -165,7 +166,8 @@ public class ConfigManager
             return new AppSettings();
         }
 
-        var json = await File.ReadAllTextAsync(_settingsPath, Utf8NoBom);
+        var json = await File.ReadAllTextAsync(_settingsPath, Utf8NoBom)
+            .ConfigureAwait(false);
         var settings = JsonSerializer.Deserialize<AppSettings>(json, ReadOptions);
 
         return settings ?? new AppSettings();
@@ -178,11 +180,11 @@ public class ConfigManager
     {
         ArgumentNullException.ThrowIfNull(settings);
 
-        await _writeLock.WaitAsync();
+        await _writeLock.WaitAsync().ConfigureAwait(false);
         try
         {
             var json = JsonSerializer.Serialize(settings, JsonOptions);
-            await WriteTextAsync(_settingsPath, json);
+            await WriteTextAsync(_settingsPath, json).ConfigureAwait(false);
             ApplyFileAcl(_settingsPath);
         }
         finally
@@ -191,6 +193,54 @@ public class ConfigManager
         }
 
         SettingsChanged?.Invoke(settings);
+    }
+
+    /// <summary>
+    /// Atomically merges a trusted host key into settings.json.
+    /// The load, mutation, and save happen under the write lock so concurrent
+    /// TOFU events cannot overwrite each other.
+    /// </summary>
+    /// <param name="hostPortKey">Host key in "host:port" or "[ipv6]:port" format.</param>
+    /// <param name="fingerprint">SHA256 fingerprint of the host key.</param>
+    /// <returns>True if the key was actually persisted (new entry), false if already present.</returns>
+    public async Task<bool> MergeHostKeyAsync(string hostPortKey, string fingerprint)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(hostPortKey);
+        ArgumentException.ThrowIfNullOrWhiteSpace(fingerprint);
+
+        await _writeLock.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            var settings = await LoadSettingsInternalAsync().ConfigureAwait(false);
+            if (settings.TrustedHostKeys.ContainsKey(hostPortKey))
+            {
+                return false;
+            }
+
+            settings.TrustedHostKeys[hostPortKey] = fingerprint;
+            var json = JsonSerializer.Serialize(settings, JsonOptions);
+            await WriteTextAsync(_settingsPath, json).ConfigureAwait(false);
+            ApplyFileAcl(_settingsPath);
+            return true;
+        }
+        finally
+        {
+            _writeLock.Release();
+        }
+    }
+
+    /// <summary>
+    /// Internal settings load that does NOT acquire the write lock (caller must hold it).
+    /// </summary>
+    private async Task<AppSettings> LoadSettingsInternalAsync()
+    {
+        if (!File.Exists(_settingsPath))
+        {
+            return new AppSettings();
+        }
+
+        var json = await File.ReadAllTextAsync(_settingsPath, Utf8NoBom).ConfigureAwait(false);
+        return JsonSerializer.Deserialize<AppSettings>(json, ReadOptions) ?? new AppSettings();
     }
 
     /// <summary>
@@ -203,7 +253,8 @@ public class ConfigManager
             return new List<ServerProfileDto>();
         }
 
-        var json = await File.ReadAllTextAsync(_serversPath, Utf8NoBom);
+        var json = await File.ReadAllTextAsync(_serversPath, Utf8NoBom)
+            .ConfigureAwait(false);
         var servers = JsonSerializer.Deserialize<List<ServerProfileDto>>(json, ReadOptions);
 
         return servers ?? new List<ServerProfileDto>();
@@ -216,11 +267,11 @@ public class ConfigManager
     {
         ArgumentNullException.ThrowIfNull(servers);
 
-        await _writeLock.WaitAsync();
+        await _writeLock.WaitAsync().ConfigureAwait(false);
         try
         {
             var json = JsonSerializer.Serialize(servers, JsonOptions);
-            await WriteTextAsync(_serversPath, json);
+            await WriteTextAsync(_serversPath, json).ConfigureAwait(false);
             ApplyFileAcl(_serversPath);
         }
         finally

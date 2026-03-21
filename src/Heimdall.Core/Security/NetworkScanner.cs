@@ -63,11 +63,11 @@ public static class NetworkScanner
         var semaphore = new SemaphoreSlim(64);
         var tasks = addresses.Select(async ip =>
         {
-            await semaphore.WaitAsync(ct);
+            await semaphore.WaitAsync(ct).ConfigureAwait(false);
             try
             {
                 ct.ThrowIfCancellationRequested();
-                var result = await PingHostAsync(ip, ct);
+                var result = await PingHostAsync(ip, ct).ConfigureAwait(false);
                 Interlocked.Increment(ref completed);
                 progress?.Invoke(completed, total);
                 return result;
@@ -78,13 +78,14 @@ public static class NetworkScanner
             }
         });
 
-        var pingResults = await Task.WhenAll(tasks);
+        var pingResults = await Task.WhenAll(tasks).ConfigureAwait(false);
 
         // Port probe on alive hosts
         foreach (var result in pingResults.Where(r => r is { IsAlive: true }))
         {
             ct.ThrowIfCancellationRequested();
-            var openPorts = await ProbePortsAsync(result!.IpAddress, ct);
+            var openPorts = await ProbePortsAsync(result!.IpAddress, ct)
+                .ConfigureAwait(false);
             results.Add(result with { OpenPorts = openPorts });
         }
 
@@ -97,7 +98,7 @@ public static class NetworkScanner
         try
         {
             using var ping = new Ping();
-            var reply = await ping.SendPingAsync(ip, PingTimeoutMs);
+            var reply = await ping.SendPingAsync(ip, PingTimeoutMs).ConfigureAwait(false);
 
             if (reply.Status != IPStatus.Success)
                 return null;
@@ -105,7 +106,7 @@ public static class NetworkScanner
             string? hostname = null;
             try
             {
-                var entry = await Dns.GetHostEntryAsync(ip, ct);
+                var entry = await Dns.GetHostEntryAsync(ip, ct).ConfigureAwait(false);
                 hostname = entry.HostName;
             }
             catch (Exception ex) { Heimdall.Core.Logging.FileLogger.Warn($"[NetworkScanner] DNS resolve: {ex.Message}"); }
@@ -131,7 +132,7 @@ public static class NetworkScanner
                 using var timeout = new CancellationTokenSource(PortProbeTimeoutMs);
                 using var linked = CancellationTokenSource.CreateLinkedTokenSource(ct, timeout.Token);
 
-                await client.ConnectAsync(ip, port, linked.Token);
+                await client.ConnectAsync(ip, port, linked.Token).ConfigureAwait(false);
                 open.Add(port);
             }
             catch (Exception ex)

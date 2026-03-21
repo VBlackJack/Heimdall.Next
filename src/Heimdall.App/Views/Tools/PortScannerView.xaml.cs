@@ -16,6 +16,7 @@
 
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.IO;
 using System.Net.Sockets;
 using System.Text;
 using System.Windows;
@@ -30,10 +31,12 @@ namespace Heimdall.App.Views.Tools;
 /// Port scanner tool that probes TCP ports on a target host
 /// and displays results with service identification.
 /// </summary>
-public partial class PortScannerView : UserControl, IDisposable
+public partial class PortScannerView : UserControl, IToolView
 {
     private const int ConnectTimeoutMs = 2000;
+    private const int BannerGrabTimeoutMs = 1000;
     private const int MaxConcurrent = 50;
+    private const int LargePortCountWarningThreshold = 10000;
 
     private LocalizationManager? _localizer;
     private CancellationTokenSource? _cts;
@@ -96,6 +99,12 @@ public partial class PortScannerView : UserControl, IDisposable
         {
             TxtHost.Text = context.TargetHost;
         }
+
+        Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, () =>
+        {
+            TxtHost.Focus();
+            TxtHost.SelectAll();
+        });
     }
 
     private void ApplyLocalization()
@@ -111,6 +120,8 @@ public partial class PortScannerView : UserControl, IDisposable
         ColStatus.Header = L("ToolPortScanColStatus");
         ColService.Header = L("ToolPortScanColService");
         ColResponseTime.Header = L("ToolPortScanColResponseTime");
+        ColBanner.Header = L("ToolPortScanColBanner");
+        BtnExportCsv.Content = L("ToolPortScanBtnExportCsv");
 
         System.Windows.Automation.AutomationProperties.SetName(BtnScan, L("ToolPortScanBtnStart"));
         System.Windows.Automation.AutomationProperties.SetName(BtnCopy, L("ToolPortScanBtnCopy"));
@@ -118,6 +129,7 @@ public partial class PortScannerView : UserControl, IDisposable
         System.Windows.Automation.AutomationProperties.SetName(TxtPorts, L("ToolPortScanPortsLabel"));
 
         BtnCopy.ToolTip = L("ToolBtnCopyToClipboard");
+        System.Windows.Automation.AutomationProperties.SetName(BtnExportCsv, L("ToolPortScanBtnExportCsv"));
 
         BtnPresetWeb.Content = L("ToolPortScanPresetWeb");
         BtnPresetSshRemote.Content = L("ToolPortScanPresetSshRemote");
@@ -180,6 +192,21 @@ public partial class PortScannerView : UserControl, IDisposable
             return;
         }
 
+        if (ports.Count > LargePortCountWarningThreshold)
+        {
+            var message = string.Format(L("ToolPortScanLargeRangeWarning"), ports.Count);
+            var result = MessageBox.Show(
+                message,
+                L("ToolPortScanTitle"),
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning);
+
+            if (result != MessageBoxResult.Yes)
+            {
+                return;
+            }
+        }
+
         _results.Clear();
         _allResults.Clear();
         _cts = new CancellationTokenSource();
@@ -193,7 +220,9 @@ public partial class PortScannerView : UserControl, IDisposable
         ScanProgress.IsIndeterminate = false;
         ScanProgress.Maximum = ports.Count;
         ScanProgress.Value = 0;
-        ScanProgress.Visibility = Visibility.Visible;
+        TxtProgressPercent.Text = "0%";
+        TxtProgressCount.Text = string.Format(L("ToolPortScanProgressCount"), 0, ports.Count);
+        ProgressPanel.Visibility = Visibility.Visible;
 
         var openCount = 0;
         var closedCount = 0;
@@ -219,10 +248,14 @@ public partial class PortScannerView : UserControl, IDisposable
                         : L("ToolPortScanStatusClosed");
                     var result = new PortScanResult(
                         probeResult.Port, probeResult.IsOpen, probeResult.Service,
-                        probeResult.ResponseTime, statusText);
+                        probeResult.ResponseTime, statusText, probeResult.Banner ?? "");
                     _allResults.Add(result);
                     completed++;
                     ScanProgress.Value = completed;
+                    var percent = (int)(completed * 100.0 / ScanProgress.Maximum);
+                    TxtProgressPercent.Text = $"{percent}%";
+                    TxtProgressCount.Text = string.Format(
+                        L("ToolPortScanProgressCount"), completed, (int)ScanProgress.Maximum);
 
                     if (result.IsOpen)
                     {
@@ -277,7 +310,7 @@ public partial class PortScannerView : UserControl, IDisposable
         System.Windows.Automation.AutomationProperties.SetName(BtnScan, L("ToolPortScanBtnStart"));
         TxtHost.IsReadOnly = false;
         TxtPorts.IsReadOnly = false;
-        ScanProgress.Visibility = Visibility.Collapsed;
+        ProgressPanel.Visibility = Visibility.Collapsed;
     }
 
     private static async Task<PortProbeResult> ProbePortAsync(string host, int port, CancellationToken ct)
@@ -294,7 +327,8 @@ public partial class PortScannerView : UserControl, IDisposable
             sw.Stop();
 
             var service = WellKnownServices.GetValueOrDefault(port, "");
-            return new PortProbeResult(port, true, service, $"{sw.ElapsedMilliseconds} ms");
+            var banner = await GrabBannerAsync(client, ct);
+            return new PortProbeResult(port, true, service, $"{sw.ElapsedMilliseconds} ms", banner);
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
@@ -304,7 +338,28 @@ public partial class PortScannerView : UserControl, IDisposable
         {
             sw.Stop();
             var service = WellKnownServices.GetValueOrDefault(port, "");
-            return new PortProbeResult(port, false, service, "\u2014");
+            return new PortProbeResult(port, false, service, "\u2014", null);
+        }
+    }
+
+    /// <summary>
+    /// Attempts to read the first line of response from an already-connected TCP client
+    /// to identify the service banner.
+    /// </summary>
+    private static async Task<string?> GrabBannerAsync(TcpClient client, CancellationToken ct)
+    {
+        try
+        {
+            using var timeout = new CancellationTokenSource(BannerGrabTimeoutMs);
+            using var linked = CancellationTokenSource.CreateLinkedTokenSource(ct, timeout.Token);
+            var stream = client.GetStream();
+            var buffer = new byte[256];
+            var read = await stream.ReadAsync(buffer, linked.Token);
+            return read > 0 ? Encoding.ASCII.GetString(buffer, 0, read).Trim() : null;
+        }
+        catch
+        {
+            return null;
         }
     }
 
@@ -370,6 +425,44 @@ public partial class PortScannerView : UserControl, IDisposable
         }
     }
 
+    private void OnExportCsvClick(object sender, RoutedEventArgs e)
+    {
+        if (_allResults.Count == 0)
+        {
+            return;
+        }
+
+        var dialog = new Microsoft.Win32.SaveFileDialog
+        {
+            Filter = "CSV files (*.csv)|*.csv",
+            FileName = $"portscan_{TxtHost.Text.Trim()}_{DateTime.Now:yyyyMMdd_HHmmss}.csv",
+        };
+
+        if (dialog.ShowDialog() != true)
+        {
+            return;
+        }
+
+        try
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine("Port,Status,Service,ResponseTime,Banner");
+
+            foreach (var r in _allResults.OrderBy(r => r.Port))
+            {
+                var banner = r.Banner.Replace("\"", "\"\"");
+                sb.AppendLine($"{r.Port},{r.Status},{r.Service},{r.ResponseTime},\"{banner}\"");
+            }
+
+            File.WriteAllText(dialog.FileName, sb.ToString(), Encoding.UTF8);
+            CopyFeedbackHelper.ShowCopyFeedback(sender as Button);
+        }
+        catch (Exception ex)
+        {
+            Core.Logging.FileLogger.Warn($"PortScanner CSV export failed: {ex.Message}");
+        }
+    }
+
     private void OnCopyClick(object sender, RoutedEventArgs e)
     {
         if (_results.Count == 0)
@@ -417,10 +510,10 @@ public partial class PortScannerView : UserControl, IDisposable
     /// <summary>
     /// Internal result from port probing (before localization).
     /// </summary>
-    private sealed record PortProbeResult(int Port, bool IsOpen, string Service, string ResponseTime);
+    private sealed record PortProbeResult(int Port, bool IsOpen, string Service, string ResponseTime, string? Banner);
 
     /// <summary>
     /// Represents a single port scan result for DataGrid binding.
     /// </summary>
-    public sealed record PortScanResult(int Port, bool IsOpen, string Service, string ResponseTime, string Status);
+    public sealed record PortScanResult(int Port, bool IsOpen, string Service, string ResponseTime, string Status, string Banner);
 }

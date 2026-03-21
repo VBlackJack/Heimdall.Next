@@ -122,6 +122,51 @@
                              />
                 </Border>
 
+                <!-- Signature Verification section -->
+                <Border x:Name="VerifySection" Visibility="Collapsed"
+                        Background="{DynamicResource CardBrush}"
+                        BorderBrush="{DynamicResource BorderBrush}"
+                        BorderThickness="1" CornerRadius="4"
+                        Padding="12" Margin="0,0,0,12">
+                    <StackPanel>
+                        <TextBlock x:Name="LblVerifyTitle" Text=""
+                                   FontSize="12" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                   Margin="0,0,0,8"/>
+
+                        <!-- Unsupported algorithm message (for RS/ES) -->
+                        <TextBlock x:Name="TxtUnsupportedAlg" Text=""
+                                   Visibility="Collapsed"
+                                   FontSize="12"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                   TextWrapping="Wrap"/>
+
+                        <!-- HMAC verification controls -->
+                        <StackPanel x:Name="HmacVerifyPanel" Visibility="Collapsed">
+                            <TextBlock x:Name="LblSecret" Text=""
+                                       FontSize="12" Margin="0,0,0,4"
+                                       Foreground="{DynamicResource TextSecondaryBrush}"/>
+                            <DockPanel Margin="0,0,0,8">
+                                <Button x:Name="BtnVerify" DockPanel.Dock="Right"
+                                        Content="" Click="OnVerifyClick"
+                                        Style="{DynamicResource PrimaryButtonStyle}"
+                                        Padding="16,6" Margin="8,0,0,0"
+                                        VerticalAlignment="Center"/>
+                                <TextBox x:Name="TxtSecret" Text=""
+                                         FontSize="12" FontFamily="Consolas"
+                                         Padding="8,6"
+                                         Background="{DynamicResource BackgroundBrush}"
+                                         Foreground="{DynamicResource TextPrimaryBrush}"
+                                         BorderBrush="{DynamicResource BorderBrush}"
+                                         VerticalAlignment="Center"/>
+                            </DockPanel>
+                            <TextBlock x:Name="TxtVerifyResult" Text=""
+                                       Visibility="Collapsed"
+                                       FontSize="12" FontWeight="SemiBold"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
             </StackPanel>
         </ScrollViewer>
     </Grid>

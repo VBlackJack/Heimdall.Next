@@ -128,7 +128,8 @@ public class HostKeyStore
     public IReadOnlyDictionary<string, string> GetAllTrusted()
         => _trustedKeys;
 
-    private static string MakeKey(string host, int port) => $"{host}:{port}";
+    private static string MakeKey(string host, int port)
+        => host.Contains(':') ? $"[{host}]:{port}" : $"{host}:{port}";
 
     /// <summary>
     /// Compute a SHA256 fingerprint from raw host key bytes.

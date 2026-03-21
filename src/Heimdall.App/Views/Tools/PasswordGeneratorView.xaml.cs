@@ -29,7 +29,7 @@ namespace Heimdall.App.Views.Tools;
 /// <summary>
 /// Password generator with Random, Syllable, and Passphrase modes, plus a 5-level strength indicator.
 /// </summary>
-public partial class PasswordGeneratorView : UserControl, IDisposable
+public partial class PasswordGeneratorView : UserControl, IToolView
 {
     private const string UppercaseChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     private const string LowercaseChars = "abcdefghijklmnopqrstuvwxyz";
@@ -96,11 +96,15 @@ public partial class PasswordGeneratorView : UserControl, IDisposable
         "oiseau","olive","orange","palmier","pensee","portail","radeau","renard","soleil","volcan"
     ];
 
+    private const int HistoryMaxSize = 10;
+    private const double BruteForceGuessesPerSecond = 10_000_000_000; // 10 billion/sec
+
     private LocalizationManager? _localizer;
     private bool _initialized;
     private bool _suspendGeneration;
     private string[] _englishWords = [];
     private string[] _frenchWords = [];
+    private readonly List<string> _passwordHistory = new();
 
     private enum GeneratorMode { Random, Syllable, Passphrase }
 
@@ -237,6 +241,11 @@ public partial class PasswordGeneratorView : UserControl, IDisposable
         BtnPresetApiKey.Content = L("ToolPwdGenPresetApiKey");
         BtnPresetMysql.Content = L("ToolPwdGenPresetMysql");
         BtnPresetPassphrase4.Content = L("ToolPwdGenPresetPassphrase4");
+        BtnPresetPassphrase6.Content = L("ToolPwdGenPresetPassphrase6");
+        BtnPresetSsh.Content = L("ToolPwdGenPresetSsh");
+        QuickLengthLabel.Text = L("ToolPwdGenQuickLength");
+        HistoryLabel.Text = L("ToolPwdGenHistory");
+        BtnClearHistory.Content = L("ToolPwdGenClearHistory");
 
         // Layout-safe + Phonetic
         ChkLayoutSafe.Content = L("ToolPwdGenLayoutSafe");
@@ -293,6 +302,8 @@ public partial class PasswordGeneratorView : UserControl, IDisposable
         System.Windows.Automation.AutomationProperties.SetName(BtnPresetApiKey, L("ToolPwdGenPresetApiKey"));
         System.Windows.Automation.AutomationProperties.SetName(BtnPresetMysql, L("ToolPwdGenPresetMysql"));
         System.Windows.Automation.AutomationProperties.SetName(BtnPresetPassphrase4, L("ToolPwdGenPresetPassphrase4"));
+        System.Windows.Automation.AutomationProperties.SetName(BtnPresetPassphrase6, L("ToolPwdGenPresetPassphrase6"));
+        System.Windows.Automation.AutomationProperties.SetName(BtnPresetSsh, L("ToolPwdGenPresetSsh"));
     }
 
     private GeneratorMode CurrentMode =>
@@ -772,8 +783,14 @@ public partial class PasswordGeneratorView : UserControl, IDisposable
         StrengthBarFillColumn.Width = new GridLength(widthPercent, GridUnitType.Star);
         StrengthBarEmptyColumn.Width = new GridLength(1 - widthPercent, GridUnitType.Star);
 
+        // Crack time estimate
+        UpdateCrackTimeEstimate(entropy);
+
         // Issues list
         UpdateIssuesList();
+
+        // Add to history
+        AddToHistory(PasswordOutput.Text);
     }
 
     private void UpdateIssuesList()
@@ -931,6 +948,115 @@ public partial class PasswordGeneratorView : UserControl, IDisposable
 
         PhoneticText.Text = string.Join(" - ", parts);
         PanelPhonetic.Visibility = Visibility.Visible;
+    }
+
+    private void OnPasswordOutputGotFocus(object sender, RoutedEventArgs e)
+    {
+        // Auto-select the entire password on focus for easy copy
+        if (sender is System.Windows.Controls.TextBox tb && !string.IsNullOrEmpty(tb.Text))
+        {
+            tb.SelectAll();
+        }
+    }
+
+    private void OnQuickLength(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button btn && btn.Tag is string tagStr && int.TryParse(tagStr, out var len))
+        {
+            LengthSlider.Value = len;
+        }
+    }
+
+    private void AddToHistory(string password)
+    {
+        if (string.IsNullOrEmpty(password)) return;
+
+        // Remove duplicate if exists
+        _passwordHistory.Remove(password);
+
+        // Add at front
+        _passwordHistory.Insert(0, password);
+
+        // Trim to max size
+        while (_passwordHistory.Count > HistoryMaxSize)
+            _passwordHistory.RemoveAt(_passwordHistory.Count - 1);
+
+        HistoryList.ItemsSource = null;
+        HistoryList.ItemsSource = _passwordHistory;
+    }
+
+    private void OnClearHistoryClick(object sender, RoutedEventArgs e)
+    {
+        _passwordHistory.Clear();
+        HistoryList.ItemsSource = null;
+    }
+
+    private void OnHistoryCopyClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button btn && btn.Tag is string password)
+        {
+            Clipboard.SetText(password);
+            CopyFeedbackHelper.ShowCopyFeedback(btn);
+        }
+    }
+
+    private void UpdateCrackTimeEstimate(double entropy)
+    {
+        if (entropy <= 0)
+        {
+            CrackTimeText.Text = string.Empty;
+            return;
+        }
+
+        // Time = 2^entropy / (2 * guesses_per_second)  — average case
+        var totalCombinations = Math.Pow(2, Math.Min(entropy, 256));
+        var secondsAvg = totalCombinations / (2 * BruteForceGuessesPerSecond);
+
+        string timeStr;
+        if (secondsAvg < 1)
+            timeStr = L("ToolPwdGenCrackInstant");
+        else if (secondsAvg < 60)
+            timeStr = string.Format(L("ToolPwdGenCrackSeconds"), (int)secondsAvg);
+        else if (secondsAvg < 3600)
+            timeStr = string.Format(L("ToolPwdGenCrackMinutes"), (int)(secondsAvg / 60));
+        else if (secondsAvg < 86400)
+            timeStr = string.Format(L("ToolPwdGenCrackHours"), (int)(secondsAvg / 3600));
+        else if (secondsAvg < 365.25 * 86400)
+            timeStr = string.Format(L("ToolPwdGenCrackDays"), (int)(secondsAvg / 86400));
+        else if (secondsAvg < 100 * 365.25 * 86400)
+            timeStr = string.Format(L("ToolPwdGenCrackYears"), (int)(secondsAvg / (365.25 * 86400)));
+        else if (secondsAvg < 1_000_000 * 365.25 * 86400)
+            timeStr = string.Format(L("ToolPwdGenCrackCenturies"), (int)(secondsAvg / (100 * 365.25 * 86400)));
+        else
+            timeStr = L("ToolPwdGenCrackForever");
+
+        CrackTimeText.Text = string.Format(L("ToolPwdGenCrackTime"), timeStr);
+    }
+
+    private void OnPresetSsh(object sender, RoutedEventArgs e) =>
+        ApplyRandomPreset(20, true, true, true, true);
+
+    private void OnPresetPassphrase6(object sender, RoutedEventArgs e)
+    {
+        if (!_initialized) return;
+        _suspendGeneration = true;
+        try
+        {
+            CmbMode.SelectedIndex = 2;
+            OnModeSelectionChanged(CmbMode, null!);
+            PpWordCountSlider.Value = 6;
+            ChkPpCapitalize.IsChecked = true;
+            ChkPpDigit.IsChecked = true;
+            ChkPpSpecial.IsChecked = true;
+            TxtPpSeparator.Text = "-";
+            CmbPpLanguage.SelectedIndex = 0;
+        }
+        finally
+        {
+            _suspendGeneration = false;
+        }
+        RefreshAdvancedVisibility();
+        GeneratePassword();
     }
 
     private void OnKeyDown(object sender, KeyEventArgs e)

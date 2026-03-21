@@ -32,13 +32,13 @@ namespace Heimdall.App.Views.Tools;
 /// Hash generator tool that computes all cryptographic hashes simultaneously.
 /// Supports MD5, SHA1, SHA256, SHA384, and SHA512 with verify mode.
 /// </summary>
-public partial class HashGeneratorView : UserControl, IDisposable
+public partial class HashGeneratorView : UserControl, IToolView
 {
     private LocalizationManager? _localizer;
     private DispatcherTimer? _debounceTimer;
     private bool _fileMode;
 
-    private static readonly string[] Algorithms = ["MD5", "SHA1", "SHA256", "SHA384", "SHA512"];
+    private static readonly string[] Algorithms = ["MD5", "SHA1", "SHA256", "SHA384", "SHA512", "SHA3-256"];
 
     /// <summary>
     /// Maximum file size allowed for hashing (50 MB).
@@ -52,10 +52,15 @@ public partial class HashGeneratorView : UserControl, IDisposable
     {
         [32] = "MD5",
         [40] = "SHA1",
-        [64] = "SHA256",
+        [64] = "SHA256",  // Also SHA3-256; prefer SHA256 for auto-detect
         [96] = "SHA384",
         [128] = "SHA512",
     };
+
+    /// <summary>
+    /// Whether SHA3-256 is supported on this platform.
+    /// </summary>
+    private static readonly bool Sha3Supported = SHA3_256.IsSupported;
 
     private readonly Dictionary<string, System.Windows.Controls.TextBox> _hashOutputBoxes = new();
     private readonly Dictionary<string, Button> _hashCopyButtons = new();
@@ -81,6 +86,12 @@ public partial class HashGeneratorView : UserControl, IDisposable
         {
             TxtInput.Text = context.Argument;
         }
+
+        Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, () =>
+        {
+            TxtInput.Focus();
+            TxtInput.SelectAll();
+        });
     }
 
     private void BuildHashResultRows()
@@ -95,7 +106,7 @@ public partial class HashGeneratorView : UserControl, IDisposable
                 FontFamily = new System.Windows.Media.FontFamily("Consolas"),
                 FontSize = 12,
                 FontWeight = FontWeights.Bold,
-                Width = 60,
+                Width = 72,
                 VerticalAlignment = VerticalAlignment.Center,
                 Foreground = (Brush)FindResource("TextSecondaryBrush"),
             };
@@ -382,6 +393,7 @@ public partial class HashGeneratorView : UserControl, IDisposable
             TxtInput.IsEnabled = false;
             TxtInput.Text = string.Empty;
             BtnClearFile.Visibility = Visibility.Visible;
+            FileHashProgress.Visibility = Visibility.Visible;
 
             TxtFileStatus.Text = L("ToolHashFileHashing");
             TxtFileStatus.Foreground = (Brush)FindResource("TextSecondaryBrush");
@@ -416,6 +428,8 @@ public partial class HashGeneratorView : UserControl, IDisposable
                 }
             }
 
+            FileHashProgress.Visibility = Visibility.Collapsed;
+
             TxtFileStatus.Text = string.Format(
                 L("ToolHashFileResult"),
                 fileInfo.Name,
@@ -431,6 +445,7 @@ public partial class HashGeneratorView : UserControl, IDisposable
         }
         catch (Exception ex)
         {
+            FileHashProgress.Visibility = Visibility.Collapsed;
             Core.Logging.FileLogger.Warn($"HashGenerator file hash failed: {ex.Message}");
             TxtFileStatus.Text = string.Format(L("ToolHashFileError"), ex.Message);
             TxtFileStatus.Foreground = (Brush)FindResource("ErrorBrush");
@@ -442,6 +457,7 @@ public partial class HashGeneratorView : UserControl, IDisposable
         _fileMode = false;
         TxtInput.IsEnabled = true;
         BtnClearFile.Visibility = Visibility.Collapsed;
+        FileHashProgress.Visibility = Visibility.Collapsed;
         TxtFileStatus.Text = string.Empty;
         _currentHashes.Clear();
 
@@ -477,6 +493,8 @@ public partial class HashGeneratorView : UserControl, IDisposable
         "SHA256" => SHA256.Create(),
         "SHA384" => SHA384.Create(),
         "SHA512" => SHA512.Create(),
+        "SHA3-256" when Sha3Supported => SHA3_256.Create(),
+        "SHA3-256" => null,
         _ => null
     };
 
