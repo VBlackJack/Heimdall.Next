@@ -41,6 +41,7 @@ public partial class NetworkCartographyView : UserControl, IToolView
     private List<(string FileName, DateTime Timestamp, string Subnet)> _historyList = [];
     private List<Heimdall.Core.Configuration.SshGatewayDto>? _gateways;
     private Heimdall.Core.Configuration.SshGatewayDto? _selectedGateway;
+    private Action<string, string, ToolContext?>? _openToolAction;
 
     private readonly ObservableCollection<CartographyRowViewModel> _results = [];
 
@@ -49,12 +50,15 @@ public partial class NetworkCartographyView : UserControl, IToolView
         InitializeComponent();
         ResultsGrid.ItemsSource = _results;
         TxtSubnet.KeyDown += OnSubnetKeyDown;
+        ResultsGrid.PreviewMouseRightButtonDown += ToolContextMenuHelper.SelectRowOnRightClick;
+        ResultsGrid.ContextMenuOpening += OnResultsContextMenuOpening;
     }
 
     /// <inheritdoc />
     public void Initialize(ToolContext? context, LocalizationManager? localizer)
     {
         _localizer = localizer;
+        _openToolAction = ToolContextMenuHelper.GetOpenToolAction(context);
         ApplyLocalization();
 
         if (!string.IsNullOrWhiteSpace(context?.TargetHost))
@@ -438,7 +442,8 @@ public partial class NetworkCartographyView : UserControl, IToolView
 
     private CartographyRowViewModel ToRow(HostScanResult host)
     {
-        var openPorts = host.Services.Where(s => s.IsOpen).Select(s => s.Port).OrderBy(p => p);
+        var openPortsList = host.Services.Where(s => s.IsOpen).Select(s => s.Port).OrderBy(p => p).ToList();
+        var openPorts = openPortsList.AsEnumerable();
         var services = host.Services
             .Where(s => s.IsOpen && s.ServiceName is not null)
             .Select(s => s.ServiceName!)
@@ -475,7 +480,8 @@ public partial class NetworkCartographyView : UserControl, IToolView
             Confidence = host.PrimaryRole is not null ? $"{host.PrimaryRole.Confidence}%" : "\u2014",
             VlanSegment = _lastSnapshot?.DetectedVlans?
                 .FirstOrDefault(v => v.MemberIps.Contains(host.IpAddress))
-                is { } vlan ? $"VLAN {vlan.VlanId} ({vlan.Subnet})" : "\u2014"
+                is { } vlan ? $"VLAN {vlan.VlanId} ({vlan.Subnet})" : "\u2014",
+            OpenPorts = openPortsList
         };
     }
 
@@ -622,6 +628,47 @@ public partial class NetworkCartographyView : UserControl, IToolView
         _selectedGateway = idx < _gateways.Count ? _gateways[idx] : null;
     }
 
+    private void OnResultsContextMenuOpening(object sender, ContextMenuEventArgs e)
+    {
+        if (ResultsGrid.SelectedItem is not CartographyRowViewModel row)
+        {
+            e.Handled = true;
+            return;
+        }
+
+        var menu = new ContextMenu();
+
+        if (_openToolAction is not null)
+        {
+            var hostItems = ToolContextMenuHelper.BuildHostActions(
+                row.IpAddress, row.Hostname, row.OpenPorts, _localizer, _openToolAction);
+            foreach (var item in hostItems)
+            {
+                menu.Items.Add(item);
+            }
+        }
+        else
+        {
+            // Fallback: copy actions only
+            var copyIp = new MenuItem { Header = L("ToolCtxCopyIp") };
+            copyIp.Click += (_, _) => Clipboard.SetText(row.IpAddress);
+            menu.Items.Add(copyIp);
+
+            if (!string.IsNullOrWhiteSpace(row.Hostname) && row.Hostname != "\u2014")
+            {
+                var copyHost = new MenuItem { Header = L("ToolCtxCopyHostname") };
+                copyHost.Click += (_, _) => Clipboard.SetText(row.Hostname);
+                menu.Items.Add(copyHost);
+            }
+        }
+
+        // Copy row as CSV
+        var csvText = $"{row.IpAddress},{row.Hostname},{row.PortSummary},{row.ServiceSummary},{row.PrimaryRoleName}";
+        menu.Items.Add(ToolContextMenuHelper.BuildCopyRowAction(csvText, _localizer));
+
+        ResultsGrid.ContextMenu = menu;
+    }
+
     private string L(string key) => _localizer?[key] ?? key;
 
     /// <inheritdoc />
@@ -650,5 +697,10 @@ public partial class NetworkCartographyView : UserControl, IToolView
         public string PrimaryRoleName { get; init; } = "";
         public string Confidence { get; init; } = "";
         public string VlanSegment { get; init; } = "";
+
+        /// <summary>
+        /// Raw list of open ports for cross-tool context menu actions.
+        /// </summary>
+        public IReadOnlyList<int> OpenPorts { get; init; } = [];
     }
 }

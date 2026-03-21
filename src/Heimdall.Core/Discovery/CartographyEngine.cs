@@ -35,16 +35,18 @@ public sealed class CartographyEngine
     /// <summary>Ports that typically serve TLS-encrypted traffic.</summary>
     private static readonly HashSet<int> TlsPorts = [443, 8443, 636, 993, 995, 465, 990, 3269, 9443];
 
-    /// <summary>Top 20 ports for quick reconnaissance.</summary>
+    /// <summary>Top ports for quick reconnaissance.</summary>
     public static readonly int[] QuickPorts =
-        [22, 80, 443, 3389, 8080, 53, 25, 3306, 5432, 445, 139, 88, 389, 161, 21, 5900, 8443, 1433, 27017, 6379];
+        [22, 80, 443, 3389, 8080, 53, 25, 3306, 5432, 445, 139, 88, 389, 161, 21, 554, 631, 5900, 8443, 1433,
+         9100, 27017, 6379];
 
-    /// <summary>~50 ports covering the most common enterprise services.</summary>
+    /// <summary>~70 ports covering the most common enterprise services.</summary>
     public static readonly int[] StandardPorts =
         [21, 22, 23, 25, 53, 67, 80, 88, 110, 111, 135, 139, 143, 161, 162, 389, 443, 445, 464, 465,
-         514, 554, 587, 631, 636, 993, 995, 1433, 1434, 1521, 1883, 1900, 2049, 2375, 2376, 3000,
-         3128, 3260, 3268, 3306, 3389, 5000, 5060, 5432, 5665, 5900, 5901, 5985, 6379, 6443, 6514,
-         8006, 8080, 8123, 8291, 8443, 8899, 9090, 9100, 9200, 9300, 10050, 10250, 27017, 33060, 62078];
+         514, 554, 587, 623, 631, 636, 902, 993, 995, 1433, 1434, 1521, 1883, 1900, 2049, 2375, 2376,
+         3000, 3128, 3260, 3268, 3306, 3389, 5000, 5038, 5060, 5432, 5665, 5900, 5901, 5985, 5986,
+         6379, 6443, 6514, 8006, 8008, 8080, 8123, 8291, 8443, 8899, 9090, 9100, 9200, 9300, 9443,
+         10050, 10051, 10250, 27017, 33060, 62078];
 
     /// <summary>Fires during the ICMP ping sweep phase.</summary>
     public event Action<int, int>? HostDiscoveryProgress;
@@ -84,13 +86,16 @@ public sealed class CartographyEngine
             _ => StandardPorts
         };
 
+        // Retrieve local ARP table for MAC/OUI enrichment
+        var arpTable = GetArpTable();
+
         var semaphore = new SemaphoreSlim(profile.MaxConcurrency);
         var tasks = aliveHosts.Select(async ip =>
         {
             await semaphore.WaitAsync(ct).ConfigureAwait(false);
             try
             {
-                var result = await ScanHostAsync(ip, ports, profile, ct).ConfigureAwait(false);
+                var result = await ScanHostAsync(ip, ports, profile, arpTable, ct).ConfigureAwait(false);
                 lock (hosts) hosts.Add(result);
                 HostCompleted?.Invoke(result);
             }
@@ -149,7 +154,8 @@ public sealed class CartographyEngine
     }
 
     private async Task<HostScanResult> ScanHostAsync(
-        string ip, int[] ports, ScanProfile profile, CancellationToken ct)
+        string ip, int[] ports, ScanProfile profile,
+        Dictionary<string, string> arpTable, CancellationToken ct)
     {
         var services = new List<ServiceResult>();
         var portCompleted = 0;
@@ -191,7 +197,11 @@ public sealed class CartographyEngine
         var roles = RoleClassifier.ClassifyWithBanners(openPorts, banners);
         var primaryRole = roles.Count > 0 ? roles[0] : null;
 
-        return new HostScanResult(ip, hostname, true, 0, services, primaryRole, roles);
+        // Enrich with MAC address and manufacturer from ARP table
+        var mac = arpTable.TryGetValue(ip, out var m) ? m : null;
+        var manufacturer = mac is not null ? OuiDatabase.LookupManufacturer(mac) : null;
+
+        return new HostScanResult(ip, hostname, true, 0, services, primaryRole, roles, mac, manufacturer);
     }
 
     private static async Task<ServiceResult> ProbePortAsync(
@@ -212,7 +222,7 @@ public sealed class CartographyEngine
             {
                 var stream = client.GetStream();
                 stream.ReadTimeout = 1000;
-                var buf = new byte[512];
+                var buf = new byte[2048];
 
                 if (stream.DataAvailable || await WaitForDataAsync(stream, 800, ct).ConfigureAwait(false))
                 {
@@ -342,7 +352,21 @@ public sealed class CartographyEngine
         if (banner.StartsWith("HTTP/", StringComparison.Ordinal))
         {
             var serverMatch = Regex.Match(banner, @"Server:\s*(.+)", RegexOptions.IgnoreCase);
-            return ("HTTP", serverMatch.Success ? serverMatch.Groups[1].Value.Trim() : null);
+            var serverVersion = serverMatch.Success ? serverMatch.Groups[1].Value.Trim() : null;
+
+            // Extract <title> for device identification (login pages often reveal appliance type)
+            var titleMatch = Regex.Match(banner, @"<title>(.*?)</title>",
+                RegexOptions.IgnoreCase | RegexOptions.Singleline);
+            if (titleMatch.Success)
+            {
+                var title = titleMatch.Groups[1].Value.Trim();
+                if (!string.IsNullOrEmpty(title))
+                {
+                    return ("HTTP", serverVersion is not null ? $"{serverVersion} [{title}]" : title);
+                }
+            }
+
+            return ("HTTP", serverVersion);
         }
 
         if (banner.Contains("mysql", StringComparison.OrdinalIgnoreCase) ||
@@ -359,7 +383,8 @@ public sealed class CartographyEngine
     }
 
     private static bool IsLikelyHttpPort(int port) =>
-        port is 80 or 443 or 8080 or 8443 or 9090 or 3000 or 8000 or 8888;
+        port is 80 or 443 or 8080 or 8443 or 9090 or 9443 or 3000 or 5000 or 8000 or 8006 or 8008
+            or 8123 or 8888;
 
     private static async Task<bool> WaitForDataAsync(
         NetworkStream stream, int maxWaitMs, CancellationToken ct)
@@ -407,5 +432,47 @@ public sealed class CartographyEngine
         if (parts.Length != 4) return 0;
         return long.Parse(parts[0]) << 24 | long.Parse(parts[1]) << 16 |
                long.Parse(parts[2]) << 8 | long.Parse(parts[3]);
+    }
+
+    /// <summary>
+    /// Retrieves the local ARP table by running "arp -a" and parsing the output.
+    /// Returns a dictionary mapping IP addresses to MAC addresses.
+    /// </summary>
+    private static Dictionary<string, string> GetArpTable()
+    {
+        var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        try
+        {
+            var psi = new ProcessStartInfo
+            {
+                FileName = "arp",
+                Arguments = "-a",
+                RedirectStandardOutput = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+            using var proc = Process.Start(psi);
+            if (proc is null) return result;
+
+            var output = proc.StandardOutput.ReadToEnd();
+            proc.WaitForExit();
+
+            // Parse lines like: "  10.0.0.1             aa-bb-cc-dd-ee-ff     dynamic"
+            foreach (var line in output.Split('\n'))
+            {
+                var parts = line.Trim().Split([' '], StringSplitOptions.RemoveEmptyEntries);
+                if (parts.Length >= 2)
+                {
+                    var ip = parts[0];
+                    var mac = parts[1];
+                    if (IPAddress.TryParse(ip, out _) && mac.Contains('-'))
+                    {
+                        result[ip] = mac;
+                    }
+                }
+            }
+        }
+        catch { /* ARP table unavailable */ }
+        return result;
     }
 }

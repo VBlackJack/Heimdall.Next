@@ -67,6 +67,13 @@ public sealed class EmbeddedSessionManager
     /// </summary>
     public Action<SessionTabViewModel, string, string>? ReconnectRequestedCallback { get; set; }
 
+    /// <summary>
+    /// Optional callback for cross-tool navigation. Allows tool views to open other tools.
+    /// Parameters: (string toolId, string title, ToolContext? context).
+    /// Wired by MainViewModel to delegate to <c>OpenToolTabAsync</c>.
+    /// </summary>
+    public Func<string, string, ToolContext?, Task>? OpenToolCallback { get; set; }
+
     public EmbeddedSessionManager(
         LocalizationManager localizer,
         IDialogService dialogService,
@@ -489,6 +496,15 @@ public sealed class EmbeddedSessionManager
             context = (context ?? new ToolContext()) with
             {
                 SshGateways = (System.Collections.IList)gateways
+            };
+        }
+
+        // Inject cross-tool navigation callback so tools can open other tools
+        if (OpenToolCallback is not null)
+        {
+            context = (context ?? new ToolContext()) with
+            {
+                OpenToolAction = OpenToolCallback
             };
         }
 

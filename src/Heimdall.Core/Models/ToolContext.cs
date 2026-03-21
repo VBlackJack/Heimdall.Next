@@ -31,4 +31,5 @@ public record ToolContext(
     string? ProjectName = null,
     string? GroupName = null,
     string? SourceServerId = null,
-    System.Collections.IList? SshGateways = null);
+    System.Collections.IList? SshGateways = null,
+    Delegate? OpenToolAction = null);
