@@ -38,7 +38,12 @@ public static class DrawIoExporter
         sb.AppendLine("        <mxCell id=\"0\"/>");
         sb.AppendLine("        <mxCell id=\"1\" parent=\"0\"/>");
 
-        var groups = snapshot.Hosts
+        // Only include hosts with at least one open port (skip ping-only results)
+        var activeHosts = snapshot.Hosts
+            .Where(h => h.Services.Any(s => s.IsOpen))
+            .ToList();
+
+        var groups = activeHosts
             .GroupBy(h => h.PrimaryRole?.Role ?? "Unknown")
             .OrderBy(g => g.Key)
             .ToList();
