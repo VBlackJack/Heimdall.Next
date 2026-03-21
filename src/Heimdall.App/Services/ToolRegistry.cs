@@ -41,12 +41,12 @@ public sealed class ToolRegistry
             // ── Network ───────────────────────────────────────────────
             Entry("PING",     ToolCategory.Network,  "ToolCategoryNetwork",  "PaletteToolPing",     "PaletteToolPingWith",     ["ping"],                true,  () => new Views.Tools.PingToolView(),           "Icon.Tool.NetworkScanner"),
             Entry("DNS",      ToolCategory.Network,  "ToolCategoryNetwork",  "PaletteToolDns",      "PaletteToolDnsWith",      ["dns","nslookup","dig"],true,  () => new Views.Tools.DnsLookupView(),          "Icon.Tool.DnsLookup"),
-            Entry("CERT",     ToolCategory.Network,  "ToolCategoryNetwork",  "PaletteToolCert",     "PaletteToolCertWith",     ["cert","ssl"],          true,  () => new Views.Tools.CertInspectorView()),
+            Entry("CERT",     ToolCategory.Network,  "ToolCategoryNetwork",  "PaletteToolCert",     "PaletteToolCertWith",     ["cert","ssl"],          true,  () => new Views.Tools.CertInspectorView(),     "Icon.Tool.CertInspector"),
             Entry("PORTSCAN", ToolCategory.Network,  "ToolCategoryNetwork",  "PaletteToolPortScan", "PaletteToolPortScanWith", ["portscan","scan"],     true,  () => new Views.Tools.PortScannerView(),        "Icon.Tool.PortScanner"),
             Entry("SUBNET",   ToolCategory.Network,  "ToolCategoryNetwork",  "PaletteToolSubnet",   "PaletteToolSubnetWith",   ["subnet"],              false, () => new Views.Tools.SubnetCalculatorView(),   "Icon.Tool.NetworkScanner"),
-            Entry("IPCONV",   ToolCategory.Network,  "ToolCategoryNetwork",  "PaletteToolIpConv",   null,                      ["ip","ipconv"],         false, () => new Views.Tools.IpConverterView()),
-            Entry("HTTP",     ToolCategory.Network,  "ToolCategoryNetwork",  "PaletteToolHttp",     null,                      ["http","status"],       false, () => new Views.Tools.HttpStatusCodesView()),
-            Entry("WHOIS",    ToolCategory.Network,  "ToolCategoryNetwork",  "PaletteToolWhois",    "PaletteToolWhoisWith",    ["whois"],               true,  () => new Views.Tools.WhoisLookupView()),
+            Entry("IPCONV",   ToolCategory.Network,  "ToolCategoryNetwork",  "PaletteToolIpConv",   null,                      ["ip","ipconv"],         false, () => new Views.Tools.IpConverterView(),        "Icon.Tool.IpConverter"),
+            Entry("HTTP",     ToolCategory.Network,  "ToolCategoryNetwork",  "PaletteToolHttp",     null,                      ["http","status"],       false, () => new Views.Tools.HttpStatusCodesView(),   "Icon.Tool.HttpStatus"),
+            Entry("WHOIS",    ToolCategory.Network,  "ToolCategoryNetwork",  "PaletteToolWhois",    "PaletteToolWhoisWith",    ["whois"],               true,  () => new Views.Tools.WhoisLookupView(),       "Icon.Tool.Whois"),
             Entry("NETCALC",  ToolCategory.Network,  "ToolCategoryNetwork",  "PaletteToolNetCalc",  null,                      ["netcalc","vlan","supernet"], false, () => new Views.Tools.NetworkCalculatorView(), "Icon.Tool.NetworkCalculator"),
 
             // ── Security ──────────────────────────────────────────────
@@ -55,22 +55,22 @@ public sealed class ToolRegistry
             Entry("PASSWORD", ToolCategory.Security, "ToolCategorySecurity", "PaletteToolPassword", null,                      ["password","pwgen"],    false, () => new Views.Tools.PasswordGeneratorView(),  "Icon.Tool.PasswordGenerator"),
             Entry("SSHKEY",   ToolCategory.Security, "ToolCategorySecurity", "PaletteToolSshKey",   null,                      ["sshkey","keygen"],     false, () => new Views.Tools.SshKeyGeneratorView(),    "Icon.Tool.SshKeyGenerator"),
             Entry("CERTGEN",  ToolCategory.Security, "ToolCategorySecurity", "PaletteToolCertGen",  null,                      ["certgen","certificate","openssl"], false, () => new Views.Tools.CertificateGeneratorView(), "Icon.Tool.CertificateGenerator"),
-            Entry("JWT",      ToolCategory.Security, "ToolCategorySecurity", "PaletteToolJwt",      "PaletteToolJwtWith",      ["jwt"],                 false, () => new Views.Tools.JwtParserView()),
-            Entry("TOTP",     ToolCategory.Security, "ToolCategorySecurity", "PaletteToolTotp",     null,                      ["totp","otp","2fa"],    false, () => new Views.Tools.TotpGeneratorView()),
+            Entry("JWT",      ToolCategory.Security, "ToolCategorySecurity", "PaletteToolJwt",      "PaletteToolJwtWith",      ["jwt"],                 false, () => new Views.Tools.JwtParserView(),         "Icon.Tool.Jwt"),
+            Entry("TOTP",     ToolCategory.Security, "ToolCategorySecurity", "PaletteToolTotp",     null,                      ["totp","otp","2fa"],    false, () => new Views.Tools.TotpGeneratorView(),     "Icon.Tool.Totp"),
 
             // ── Encoding & Format ─────────────────────────────────────
             Entry("BASE64",   ToolCategory.Encoding, "ToolCategoryEncoding", "PaletteToolBase64",   "PaletteToolBase64With",   ["base64"],              false, () => new Views.Tools.Base64ToolView(),         "Icon.Tool.Base64Encoding"),
-            Entry("URLENC",   ToolCategory.Encoding, "ToolCategoryEncoding", "PaletteToolUrlEnc",   null,                      ["url","urlencode"],     false, () => new Views.Tools.UrlEncoderView()),
+            Entry("URLENC",   ToolCategory.Encoding, "ToolCategoryEncoding", "PaletteToolUrlEnc",   null,                      ["url","urlencode"],     false, () => new Views.Tools.UrlEncoderView(),        "Icon.Tool.UrlEncoder"),
             Entry("JSON",     ToolCategory.Encoding, "ToolCategoryEncoding", "PaletteToolJson",     "PaletteToolJsonWith",     ["json"],                false, () => new Views.Tools.JsonFormatterView(),      "Icon.Tool.JsonFormatter"),
             Entry("REGEX",    ToolCategory.Encoding, "ToolCategoryEncoding", "PaletteToolRegex",    "PaletteToolRegexWith",    ["regex"],               false, () => new Views.Tools.RegexTesterView(),        "Icon.Tool.RegexTester"),
-            Entry("DIFF",     ToolCategory.Encoding, "ToolCategoryEncoding", "PaletteToolDiff",     null,                      ["diff"],                false, () => new Views.Tools.TextDiffView()),
-            Entry("TEXTCASE", ToolCategory.Encoding, "ToolCategoryEncoding", "PaletteToolTextCase", null,                      ["case","textcase"],     false, () => new Views.Tools.TextCaseConverterView()),
+            Entry("DIFF",     ToolCategory.Encoding, "ToolCategoryEncoding", "PaletteToolDiff",     null,                      ["diff"],                false, () => new Views.Tools.TextDiffView(),          "Icon.Tool.Diff"),
+            Entry("TEXTCASE", ToolCategory.Encoding, "ToolCategoryEncoding", "PaletteToolTextCase", null,                      ["case","textcase"],     false, () => new Views.Tools.TextCaseConverterView(), "Icon.Tool.TextCase"),
 
             // ── System ────────────────────────────────────────────────
-            Entry("CHMOD",    ToolCategory.System,   "ToolCategorySystem",   "PaletteToolChmod",    "PaletteToolChmodWith",    ["chmod"],               false, () => new Views.Tools.ChmodCalculatorView()),
-            Entry("DATETIME", ToolCategory.System,   "ToolCategorySystem",   "PaletteToolDateTime", "PaletteToolDateTimeWith", ["datetime","epoch"],    false, () => new Views.Tools.DateTimeConverterView()),
-            Entry("UUID",     ToolCategory.System,   "ToolCategorySystem",   "PaletteToolUuid",     null,                      ["uuid","guid"],         false, () => new Views.Tools.UuidGeneratorView()),
-            Entry("CRONTAB",  ToolCategory.System,   "ToolCategorySystem",   "PaletteToolCron",     "PaletteToolCronWith",     ["cron","crontab"],      false, () => new Views.Tools.CrontabBuilderView()),
+            Entry("CHMOD",    ToolCategory.System,   "ToolCategorySystem",   "PaletteToolChmod",    "PaletteToolChmodWith",    ["chmod"],               false, () => new Views.Tools.ChmodCalculatorView(),   "Icon.Tool.Chmod"),
+            Entry("DATETIME", ToolCategory.System,   "ToolCategorySystem",   "PaletteToolDateTime", "PaletteToolDateTimeWith", ["datetime","epoch"],    false, () => new Views.Tools.DateTimeConverterView(), "Icon.Tool.DateTime"),
+            Entry("UUID",     ToolCategory.System,   "ToolCategorySystem",   "PaletteToolUuid",     null,                      ["uuid","guid"],         false, () => new Views.Tools.UuidGeneratorView(),     "Icon.Tool.Uuid"),
+            Entry("CRONTAB",  ToolCategory.System,   "ToolCategorySystem",   "PaletteToolCron",     "PaletteToolCronWith",     ["cron","crontab"],      false, () => new Views.Tools.CrontabBuilderView(),    "Icon.Tool.Crontab"),
             Entry("LOGVIEW",  ToolCategory.System,   "ToolCategorySystem",   "PaletteToolLogView",  null,                      ["log","tail","logview"], false, () => new Views.Tools.LogViewerView(),          "Icon.Tool.LogViewer"),
             Entry("HOSTS",    ToolCategory.System,   "ToolCategorySystem",   "PaletteToolHosts",    null,                      ["hosts"],               false, () => new Views.Tools.HostsFileEditorView(),    "Icon.Tool.HostsFileEditor"),
             Entry("SSHCONFIG",ToolCategory.System,   "ToolCategorySystem",   "PaletteToolSshConfig",null,                      ["sshconfig","ssh-config"], false, () => new Views.Tools.SshConfigGeneratorView(), "Icon.Tool.SshConfigGenerator"),
