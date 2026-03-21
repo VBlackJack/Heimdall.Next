@@ -145,12 +145,21 @@ public partial class NetworkCartographyView : UserControl, IToolView
         var subnet = TxtSubnet.Text.Trim();
         if (string.IsNullOrWhiteSpace(subnet))
         {
+            TxtStatus.Text = L("ToolNetMapErrorEmptySubnet");
             return;
+        }
+
+        // Auto-append /24 if user entered a bare IP without CIDR prefix
+        if (!subnet.Contains('/'))
+        {
+            subnet = subnet + "/24";
+            TxtSubnet.Text = subnet;
         }
 
         var ipList = CartographyEngine.ParseCidr(subnet);
         if (ipList.Count == 0)
         {
+            TxtStatus.Text = L("ToolNetMapErrorInvalidSubnet");
             return;
         }
 
