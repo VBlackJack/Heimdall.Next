@@ -2074,6 +2074,8 @@
   "SettingsLabelTerminalFont": "Font family",
   "SettingsLabelTerminalFontSize": "Font size",
   "SettingsLabelTerminalColorScheme": "Color scheme",
+  "SettingsPsExecutionPolicy": "PowerShell Execution Policy",
+  "SettingsPsExecutionPolicyHint": "Applied when launching local PowerShell/pwsh sessions",
 
   "SettingsSectionRdpDefaults": "RDP Default Resolution",
   "SettingsLabelRdpWidth": "Width (px)",

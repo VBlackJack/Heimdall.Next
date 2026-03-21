@@ -1205,6 +1205,17 @@
                                                 <ComboBoxItem Content="Nord"/>
                                             </ComboBox>
                                         </StackPanel>
+                                        <StackPanel Margin="0,12,0,0">
+                                            <TextBlock x:Name="Mw_SettingsPsPolicyLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" Margin="0,0,0,4"/>
+                                            <ComboBox SelectedValue="{Binding Settings.PowerShellExecutionPolicy}" SelectedValuePath="Tag" Width="200" HorizontalAlignment="Left">
+                                                <ComboBoxItem Content="Default" Tag="Default"/>
+                                                <ComboBoxItem Content="Bypass" Tag="Bypass"/>
+                                                <ComboBoxItem Content="RemoteSigned" Tag="RemoteSigned"/>
+                                                <ComboBoxItem Content="Unrestricted" Tag="Unrestricted"/>
+                                                <ComboBoxItem Content="AllSigned" Tag="AllSigned"/>
+                                            </ComboBox>
+                                            <TextBlock x:Name="Mw_SettingsPsPolicyHint" Text="" Foreground="{DynamicResource TextTertiaryBrush}" FontSize="10" Margin="0,4,0,0" TextWrapping="Wrap"/>
+                                        </StackPanel>
                                     </StackPanel>
                                 </Border>
                             </StackPanel>

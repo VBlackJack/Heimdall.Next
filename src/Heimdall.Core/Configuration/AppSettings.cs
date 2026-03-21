@@ -57,6 +57,7 @@ public class AppSettings
     public string TerminalFontFamily { get; set; } = "Consolas";
     public int TerminalFontSize { get; set; } = 14;
     public string TerminalColorScheme { get; set; } = "Dracula";
+    public string PowerShellExecutionPolicy { get; set; } = "Default";
 
     // SSH defaults
     public string SshDefaultMode { get; set; } = "Embedded";
