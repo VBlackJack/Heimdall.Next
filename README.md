@@ -138,7 +138,7 @@ Built with .NET 10 and WPF. Secure, feature-rich Windows connection manager with
 - HTTP: directory listing, MIME types, path traversal protection
 - TFTP: RFC 1350 read-only implementation
 
-### Built-in Sysops Toolbox (32 tools)
+### Built-in Sysops Toolbox (33 tools)
 
 All tools open as session tabs (split, detach, reorder). Accessible via **Ctrl+K** palette, **Ctrl+Shift+T** sidebar panel, or **"+" → Add Tool** menu. Tools can be saved in the TreeView alongside servers. Centralized `ToolRegistry` with vector icons, categories, and command aliases. Recent tools shown in palette on open. Singleton behavior for context-free tools. Built-in help system with usage examples (? button). Dedicated detail panel for tools with descriptions. Password Generator supports saveable custom presets (JSON persistence). Cross-tool navigation via right-click context menus (IP → Port Scanner → Cert Inspector). Network tools support scanning via SSH tunnel ("Route via" gateway selector).
 
@@ -147,7 +147,7 @@ All tools open as session tabs (split, detach, reorder). Accessible via **Ctrl+K
 | **Network** | **Network Cartography** (subnet discovery + port scan + TLS inspection + role classification + VLAN detection + MAC/OUI identification + banner fingerprinting + Draw.io export + scan history/diff), Ping Monitor, DNS Lookup (custom server + via tunnel), SSL Cert Inspector (chain + TLS version + via tunnel), Port Scanner (progress + banner grab + via tunnel), Subnet Calculator (IPv4 + IPv6), IP Converter, HTTP Status Codes, Whois Lookup, Network Calculator (supernet + VLAN planner) |
 | **Security** | Password Generator (crack time + history + saveable presets), SSH Key Generator (RSA + Ed25519), Hash Generator (SHA3 + progress), HMAC Generator, JWT Parser (HMAC signature verify), Certificate Generator (self-signed + CA/leaf), TOTP Generator (RFC 6238) |
 | **Encoding** | Base64 Encoder (URL-safe RFC 4648), URL Encoder, JSON Formatter (error position), Regex Tester (match highlighting), Text Diff (word-level), Text Case Converter (8 formats) |
-| **System** | Chmod Calculator, Crontab Builder, DateTime Converter (timezone + relative), UUID Generator (v4 + v7), Hosts File Editor, SSH Config Generator, Log Viewer / Tail (regex filter), Cron Job Manager (crontab + Windows tasks), Service Status Dashboard |
+| **System** | Chmod Calculator, Crontab Builder, DateTime Converter (timezone + relative), UUID Generator (v4 + v7), Hosts File Editor, SSH Config Generator, Log Viewer / Tail (regex filter), Cron Job Manager (crontab + Windows tasks), Service Status Dashboard, **Diagram Editor** (draw.io embedded offline, New/Open/Save/Export PNG) |
 
 ### Session Management
 - Tabbed sessions with drag-to-reorder
@@ -167,7 +167,7 @@ All tools open as session tabs (split, detach, reorder). Accessible via **Ctrl+K
 - Connection inheritance: group-level defaults for gateway, SSH username, key path
 - Empty state with welcome panel and import call-to-action
 - Fullscreen mode (F11), toggle sidebar (Ctrl+B), filter (Ctrl+F)
-- Bilingual interface: English and French (~3,025 i18n keys)
+- Bilingual interface: English and French (~3,034 i18n keys)
 - WCAG 2.1 AA accessibility: AutomationProperties on all interactive controls, keyboard focus indicators, TextTrimming on dynamic content
 
 ### Security
@@ -302,7 +302,7 @@ Release mode also produces Inno Setup `.exe` installers in `Dist/installers/` wi
 | Citrix | StoreBrowse CLI integration |
 | Crypto | System.Security.Cryptography.ProtectedData (DPAPI) |
 | Testing | xUnit + Moq (1,213 tests) |
-| Built-in Tools | 32 sysops tools (Ctrl+K → `tools` or Ctrl+Shift+T) |
+| Built-in Tools | 33 sysops tools (Ctrl+K → `tools` or Ctrl+Shift+T) |
 | Serialization | System.Text.Json |
 
 ---
