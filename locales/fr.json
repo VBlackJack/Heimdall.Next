@@ -3046,5 +3046,6 @@
   "ToolDescHOSTS": "\u00c9diteur du fichier hosts avec validation syntaxique",
   "ToolDescSSHCONFIG": "G\u00e9n\u00e9rateur de fichier de configuration SSH client",
   "ToolDescCRONJOB": "Gestionnaire de t\u00e2ches cron pour la surveillance des t\u00e2ches planifi\u00e9es",
-  "ToolDescSERVICES": "Tableau de bord des services Windows avec contr\u00f4les d\u00e9marrer/arr\u00eater"
+  "ToolDescSERVICES": "Tableau de bord des services Windows avec contr\u00f4les d\u00e9marrer/arr\u00eater",
+  "ToolsPanelCollapse": "R\u00e9duire le panneau outils"
 }

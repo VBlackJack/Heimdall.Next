@@ -385,6 +385,7 @@ public partial class MainWindow : Window
         System.Windows.Automation.AutomationProperties.SetName(CollapseAllButton, vm.Localize("TooltipCollapseAll"));
         System.Windows.Automation.AutomationProperties.SetName(AddButton, vm.Localize("TooltipAddMenu"));
         System.Windows.Automation.AutomationProperties.SetName(SessionTabControl, vm.Localize("NavTabServers"));
+        System.Windows.Automation.AutomationProperties.SetName(BtnCollapseTools, vm.Localize("ToolsPanelCollapse"));
     }
 
     private async void OnServersTabChecked(object sender, RoutedEventArgs e)
@@ -838,6 +839,8 @@ public partial class MainWindow : Window
         else
         {
             vm.ServerList.SelectedServer = null;
+            ServerDetailPanel.Visibility = Visibility.Collapsed;
+            ToolDetailPanel.Visibility = Visibility.Collapsed;
         }
     }
 
@@ -877,6 +880,7 @@ public partial class MainWindow : Window
         if (server.ConnectionType?.StartsWith("TOOL:", StringComparison.OrdinalIgnoreCase) == true)
         {
             var toolId = server.ConnectionType["TOOL:".Length..];
+            vm.TrackRecentTool(toolId.ToUpperInvariant());
             var context = new Core.Models.ToolContext(
                 TargetHost: server.RemoteServer,
                 TargetPort: server.RemotePort > 0 ? (int?)server.RemotePort : null,
