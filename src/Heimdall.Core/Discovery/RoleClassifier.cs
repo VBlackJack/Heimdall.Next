@@ -86,7 +86,7 @@ public static class RoleClassifier
     /// <summary>
     /// Returns a human-readable service name for a well-known port number.
     /// </summary>
-    internal static string GetPortServiceName(int port) => port switch
+    public static string GetPortServiceName(int port) => port switch
     {
         21 => "FTP", 22 => "SSH", 25 => "SMTP", 53 => "DNS",
         67 => "DHCP", 68 => "DHCP", 80 => "HTTP", 88 => "Kerberos",
