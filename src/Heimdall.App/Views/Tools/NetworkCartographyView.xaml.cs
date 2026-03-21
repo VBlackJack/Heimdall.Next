@@ -105,6 +105,7 @@ public partial class NetworkCartographyView : UserControl, IToolView
         ColRole.Header = L("ToolNetMapColRole");
         ColConfidence.Header = L("ToolNetMapColConfidence");
         ColVlan.Header = L("ToolNetMapColVlan");
+        ColManufacturer.Header = L("ToolNetMapColManufacturer");
 
         CmbDepth.Items.Clear();
         CmbDepth.Items.Add(new ComboBoxItem { Content = L("ToolNetMapDepthQuick"), Tag = ScanDepth.Quick });
@@ -241,9 +242,6 @@ public partial class NetworkCartographyView : UserControl, IToolView
 
         engine.HostCompleted += hostResult =>
         {
-            // Only show hosts that have at least one open port
-            if (!hostResult.Services.Any(s => s.IsOpen)) return;
-
             Dispatcher.InvokeAsync(() =>
             {
                 _results.Add(ToRow(hostResult));
@@ -481,11 +479,14 @@ public partial class NetworkCartographyView : UserControl, IToolView
                 : tlsCert.IsExpired ? L("ToolNetMapCertExpired")
                 : tlsCert.ExpiresSoon ? L("ToolNetMapCertExpiring")
                 : L("ToolNetMapCertValid"),
-            PrimaryRoleName = host.PrimaryRole?.Role ?? "\u2014",
-            Confidence = host.PrimaryRole is not null ? $"{host.PrimaryRole.Confidence}%" : "\u2014",
+            PrimaryRoleName = host.PrimaryRole?.Role
+                ?? (host.Manufacturer is not null ? host.Manufacturer : "\u2014"),
+            Confidence = host.PrimaryRole is not null ? $"{host.PrimaryRole.Confidence}%"
+                : (host.Manufacturer is not null ? "MAC" : "\u2014"),
             VlanSegment = _lastSnapshot?.DetectedVlans?
                 .FirstOrDefault(v => v.MemberIps.Contains(host.IpAddress))
                 is { } vlan ? $"VLAN {vlan.VlanId} ({vlan.Subnet})" : "\u2014",
+            Manufacturer = host.Manufacturer ?? "\u2014",
             OpenPorts = openPortsList
         };
     }
@@ -727,6 +728,7 @@ public partial class NetworkCartographyView : UserControl, IToolView
         public string PrimaryRoleName { get; init; } = "";
         public string Confidence { get; init; } = "";
         public string VlanSegment { get; init; } = "";
+        public string Manufacturer { get; init; } = "";
 
         /// <summary>
         /// Raw list of open ports for cross-tool context menu actions.

@@ -150,6 +150,8 @@
                                         Foreground="{DynamicResource TextSecondaryBrush}"/>
                     <DataGridTextColumn x:Name="ColVlan" Binding="{Binding VlanSegment}" Width="150"
                                         Foreground="{DynamicResource TextSecondaryBrush}"/>
+                    <DataGridTextColumn x:Name="ColManufacturer" Binding="{Binding Manufacturer}" Width="140"
+                                        Foreground="{DynamicResource TextSecondaryBrush}"/>
                 </DataGrid.Columns>
             </DataGrid>
         </Border>

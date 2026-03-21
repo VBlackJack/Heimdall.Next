@@ -38,14 +38,15 @@ public static class DrawIoExporter
         sb.AppendLine("        <mxCell id=\"0\"/>");
         sb.AppendLine("        <mxCell id=\"1\" parent=\"0\"/>");
 
-        // Only include hosts with at least one open port (skip ping-only results)
-        var activeHosts = snapshot.Hosts
-            .Where(h => h.Services.Any(s => s.IsOpen))
-            .ToList();
-
-        var groups = activeHosts
-            .GroupBy(h => h.PrimaryRole?.Role ?? "Unknown")
-            .OrderBy(g => g.Key)
+        // Separate hosts with open ports (classified) from ping-only hosts (no services)
+        var groups = snapshot.Hosts
+            .GroupBy(h =>
+            {
+                if (!h.Services.Any(s => s.IsOpen))
+                    return "Ping Only (No Open Ports)";
+                return h.PrimaryRole?.Role ?? "Unclassified";
+            })
+            .OrderBy(g => g.Key == "Ping Only (No Open Ports)" ? "ZZZZ" : g.Key) // ping-only last
             .ToList();
 
         var cellId = 2;
@@ -96,9 +97,15 @@ public static class DrawIoExporter
         if (!string.IsNullOrEmpty(host.Hostname))
             sb.Append($"\n{host.Hostname}");
 
+        // Show manufacturer from MAC OUI if available
+        if (!string.IsNullOrEmpty(host.Manufacturer))
+            sb.Append($"\n[{host.Manufacturer}]");
+
         var ports = string.Join(", ", host.Services.Where(s => s.IsOpen).Select(s => s.Port));
         if (!string.IsNullOrEmpty(ports))
             sb.Append($"\nPorts: {ports}");
+        else if (!string.IsNullOrEmpty(host.MacAddress))
+            sb.Append($"\nMAC: {host.MacAddress}");
 
         var tlsCert = host.Services.FirstOrDefault(s => s.Certificate is not null)?.Certificate;
         if (tlsCert is not null)
@@ -112,21 +119,32 @@ public static class DrawIoExporter
     private static string GetRoleColor(string role) => role switch
     {
         "Active Directory" => "#1E40AF",
-        "Web Server" => "#16A34A",
+        var r when r.StartsWith("Web Server", StringComparison.Ordinal) => "#16A34A",
         var r when r.StartsWith("Database", StringComparison.Ordinal) => "#D97706",
         "Mail Server" => "#7C3AED",
         "Windows RDP" => "#2563EB",
         "SSH Server" => "#059669",
+        var r when r.Contains("Camera", StringComparison.Ordinal) => "#DC2626",
+        var r when r.Contains("NAS", StringComparison.Ordinal) => "#EA580C",
+        var r when r.Contains("Router", StringComparison.Ordinal) || r.Contains("Switch", StringComparison.Ordinal) => "#0891B2",
+        var r when r.Contains("Firewall", StringComparison.Ordinal) => "#B91C1C",
+        var r when r.Contains("Printer", StringComparison.Ordinal) => "#6B7280",
+        var r when r.Contains("Hypervisor", StringComparison.Ordinal) || r.Contains("VMware", StringComparison.Ordinal) || r.Contains("Proxmox", StringComparison.Ordinal) => "#7C3AED",
         "Network Equipment (SNMP)" => "#6B7280",
+        "Ping Only (No Open Ports)" => "#9CA3AF",
         _ => "#44475A"
     };
 
     private static string GetNodeStyle(string role) => role switch
     {
         "Active Directory" => "rounded=1;whiteSpace=wrap;fillColor=#1E40AF;fontColor=#ffffff;strokeColor=#1E3A8A;fontSize=10;align=left;spacingLeft=8;",
-        "Web Server" => "rounded=1;whiteSpace=wrap;fillColor=#16A34A;fontColor=#ffffff;strokeColor=#15803D;fontSize=10;align=left;spacingLeft=8;",
+        var r when r.StartsWith("Web Server", StringComparison.Ordinal) => "rounded=1;whiteSpace=wrap;fillColor=#16A34A;fontColor=#ffffff;strokeColor=#15803D;fontSize=10;align=left;spacingLeft=8;",
         var r when r.StartsWith("Database", StringComparison.Ordinal) => "shape=cylinder3;whiteSpace=wrap;fillColor=#D97706;fontColor=#ffffff;strokeColor=#B45309;fontSize=10;size=8;",
         "Mail Server" => "rounded=1;whiteSpace=wrap;fillColor=#7C3AED;fontColor=#ffffff;strokeColor=#6D28D9;fontSize=10;align=left;spacingLeft=8;",
+        var r when r.Contains("Camera", StringComparison.Ordinal) => "rounded=1;whiteSpace=wrap;fillColor=#DC2626;fontColor=#ffffff;strokeColor=#B91C1C;fontSize=10;align=left;spacingLeft=8;",
+        var r when r.Contains("NAS", StringComparison.Ordinal) => "rounded=1;whiteSpace=wrap;fillColor=#EA580C;fontColor=#ffffff;strokeColor=#C2410C;fontSize=10;align=left;spacingLeft=8;",
+        var r when r.Contains("Printer", StringComparison.Ordinal) => "rounded=1;whiteSpace=wrap;fillColor=#6B7280;fontColor=#ffffff;strokeColor=#4B5563;fontSize=10;align=left;spacingLeft=8;",
+        "Ping Only (No Open Ports)" => "rounded=1;whiteSpace=wrap;fillColor=#E5E7EB;fontColor=#6B7280;strokeColor=#9CA3AF;fontSize=10;align=left;spacingLeft=8;dashed=1;",
         _ => "rounded=1;whiteSpace=wrap;fillColor=#44475A;fontColor=#ffffff;strokeColor=#6272A4;fontSize=10;align=left;spacingLeft=8;"
     };
 
