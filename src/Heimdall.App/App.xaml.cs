@@ -40,7 +40,10 @@ public partial class App : System.Windows.Application
     {
         base.OnStartup(e);
 
-        // Show splash screen during initialization (custom window for controlled size)
+        // Show splash screen during initialization (custom window for controlled size).
+        // Temporarily switch to explicit shutdown so closing the splash doesn't kill the app
+        // (WPF treats the first Window shown as MainWindow when ShutdownMode is OnMainWindowClose).
+        ShutdownMode = ShutdownMode.OnExplicitShutdown;
         var splash = CreateSplashWindow();
 
         // Register global exception handlers BEFORE any awaits — async void
@@ -156,6 +159,8 @@ public partial class App : System.Windows.Application
 
         var mainWindow = _serviceProvider.GetRequiredService<MainWindow>();
         _mainViewModel = mainWindow.DataContext as MainViewModel;
+        MainWindow = mainWindow;
+        ShutdownMode = ShutdownMode.OnMainWindowClose;
         mainWindow.Show();
     }
 
