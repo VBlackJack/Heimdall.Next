@@ -3139,5 +3139,21 @@
   "ToolNetMapColVlan": "VLAN / Segment",
   "ToolNetMapErrorEmptySubnet": "Enter a subnet in CIDR notation (e.g. 192.168.1.0/24) or an IP address",
   "ToolNetMapErrorInvalidSubnet": "Invalid subnet. Use CIDR notation: 192.168.1.0/24 (supports /16 to /30)",
-  "ToolHelpNETMAP": "Network Cartography\n\nDiscovers hosts on a subnet, scans their ports, identifies services, and classifies server roles.\n\nUsage:\n1. Enter a subnet in CIDR notation (e.g. 192.168.1.0/24)\n2. Select scan depth: Quick (20 ports), Standard (50 ports), or Deep (custom)\n3. Click Start Scan or press Enter\n\nOptions:\n- Skip ping: scan all IPs even if ICMP is blocked\n- Reverse DNS: resolve hostnames for discovered hosts\n\nScan depths:\n- Quick: 20 common ports (SSH, HTTP, RDP, DNS, etc.) — fast reconnaissance\n- Standard: 50 ports covering most enterprise services — recommended\n- Deep: custom port list for thorough analysis\n\nFeatures:\n- ICMP ping sweep for host discovery\n- TCP port scanning with banner grabbing\n- Service identification from banners (SSH, HTTP, FTP, MySQL, etc.)\n- Heuristic role classification (Active Directory, Web Server, Database, etc.)\n- Confidence scoring for role matches\n- Export results to CSV\n\nExamples:\n- 192.168.1.0/24 — Scan a /24 subnet (254 hosts)\n- 10.0.0.0/20 — Scan a larger network (4094 hosts)\n- 172.16.0.0/24 with Skip Ping — Scan through firewalls"
+  "ToolHelpNETMAP": "Network Cartography\n\nDiscovers hosts on a subnet, scans their ports, identifies services, and classifies server roles.\n\nUsage:\n1. Enter a subnet in CIDR notation (e.g. 192.168.1.0/24)\n2. Select scan depth: Quick (20 ports), Standard (50 ports), or Deep (custom)\n3. Click Start Scan or press Enter\n\nOptions:\n- Skip ping: scan all IPs even if ICMP is blocked\n- Reverse DNS: resolve hostnames for discovered hosts\n\nScan depths:\n- Quick: 20 common ports (SSH, HTTP, RDP, DNS, etc.) — fast reconnaissance\n- Standard: 50 ports covering most enterprise services — recommended\n- Deep: custom port list for thorough analysis\n\nFeatures:\n- ICMP ping sweep for host discovery\n- TCP port scanning with banner grabbing\n- Service identification from banners (SSH, HTTP, FTP, MySQL, etc.)\n- Heuristic role classification (Active Directory, Web Server, Database, etc.)\n- Confidence scoring for role matches\n- Export results to CSV\n\nExamples:\n- 192.168.1.0/24 — Scan a /24 subnet (254 hosts)\n- 10.0.0.0/20 — Scan a larger network (4094 hosts)\n- 172.16.0.0/24 with Skip Ping — Scan through firewalls",
+
+  "ToolCtxCopyIp": "Copy IP Address",
+  "ToolCtxCopyHostname": "Copy Hostname",
+  "ToolCtxCopyRow": "Copy Row",
+  "ToolCtxCopyPort": "Copy Port",
+  "ToolCtxCopyService": "Copy Service",
+  "ToolCtxCopyBanner": "Copy Banner",
+  "ToolCtxOpenPing": "Ping this host",
+  "ToolCtxOpenPortScan": "Scan ports",
+  "ToolCtxOpenDns": "DNS Lookup",
+  "ToolCtxOpenWhois": "Whois",
+  "ToolCtxOpenCertInspector": "Inspect TLS Certificate",
+  "ToolCtxOpenBrowser": "Open in Browser ({0})",
+  "ToolCtxAddToServers": "Add to Servers",
+  "ToolHostsEditorCtxEnable": "Enable",
+  "ToolHostsEditorCtxDisable": "Disable"
 }

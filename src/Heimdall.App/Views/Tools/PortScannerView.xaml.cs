@@ -48,6 +48,7 @@ public partial class PortScannerView : UserControl, IToolView
     private bool _disposed;
     private List<SshGatewayDto>? _gateways;
     private SshGatewayDto? _selectedGateway;
+    private Action<string, string, ToolContext?>? _openToolAction;
 
     private readonly ObservableCollection<PortScanResult> _results = [];
     private readonly List<PortScanResult> _allResults = [];
@@ -87,6 +88,8 @@ public partial class PortScannerView : UserControl, IToolView
         ResultsGrid.ItemsSource = _results;
         TxtHost.KeyDown += OnHostKeyDown;
         TxtPorts.KeyDown += OnHostKeyDown;
+        ResultsGrid.PreviewMouseRightButtonDown += ToolContextMenuHelper.SelectRowOnRightClick;
+        ResultsGrid.ContextMenuOpening += OnResultsContextMenuOpening;
     }
 
     /// <summary>
@@ -95,6 +98,7 @@ public partial class PortScannerView : UserControl, IToolView
     public void Initialize(ToolContext? context, LocalizationManager? localizer)
     {
         _localizer = localizer;
+        _openToolAction = ToolContextMenuHelper.GetOpenToolAction(context);
         ApplyLocalization();
 
         // Pre-fill with sensible defaults; context overrides if provided
@@ -635,6 +639,77 @@ public partial class PortScannerView : UserControl, IToolView
         {
             Core.Logging.FileLogger.Warn($"PortScanner clipboard copy failed: {ex.Message}");
         }
+    }
+
+    private void OnResultsContextMenuOpening(object sender, ContextMenuEventArgs e)
+    {
+        if (ResultsGrid.SelectedItem is not PortScanResult row)
+        {
+            e.Handled = true;
+            return;
+        }
+
+        var menu = new ContextMenu();
+        var host = TxtHost.Text.Trim();
+
+        // Copy Port
+        var copyPort = new MenuItem { Header = L("ToolCtxCopyPort") };
+        copyPort.Click += (_, _) => Clipboard.SetText(row.Port.ToString());
+        menu.Items.Add(copyPort);
+
+        // Copy Service
+        if (!string.IsNullOrWhiteSpace(row.Service))
+        {
+            var copyService = new MenuItem { Header = L("ToolCtxCopyService") };
+            copyService.Click += (_, _) => Clipboard.SetText(row.Service);
+            menu.Items.Add(copyService);
+        }
+
+        // Copy Banner
+        if (!string.IsNullOrWhiteSpace(row.Banner))
+        {
+            var copyBanner = new MenuItem { Header = L("ToolCtxCopyBanner") };
+            copyBanner.Click += (_, _) => Clipboard.SetText(row.Banner);
+            menu.Items.Add(copyBanner);
+        }
+
+        if (_openToolAction is not null && row.IsOpen)
+        {
+            menu.Items.Add(new Separator());
+
+            // Open Cert Inspector (if TLS port)
+            if (row.Port is 443 or 8443 or 636 or 993 or 995)
+            {
+                var cert = new MenuItem { Header = L("ToolCtxOpenCertInspector") };
+                cert.Click += (_, _) => _openToolAction("CERT", L("PaletteToolCert"),
+                    new ToolContext(TargetHost: host, TargetPort: row.Port));
+                menu.Items.Add(cert);
+            }
+
+            // Open in Browser (if HTTP port)
+            if (row.Port is 80 or 443 or 8080 or 8443 or 8006 or 5000 or 3000 or 9090)
+            {
+                var scheme = row.Port is 443 or 8443 ? "https" : "http";
+                var url = $"{scheme}://{host}:{row.Port}";
+                var browser = new MenuItem { Header = string.Format(L("ToolCtxOpenBrowser"), url) };
+                browser.Click += (_, _) =>
+                {
+                    System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                    {
+                        FileName = url,
+                        UseShellExecute = true
+                    })?.Dispose();
+                };
+                menu.Items.Add(browser);
+            }
+        }
+
+        // Copy row
+        menu.Items.Add(new Separator());
+        var csvText = $"{row.Port}\t{row.Status}\t{row.Service}\t{row.ResponseTime}\t{row.Banner}";
+        menu.Items.Add(ToolContextMenuHelper.BuildCopyRowAction(csvText, _localizer));
+
+        ResultsGrid.ContextMenu = menu;
     }
 
     private string L(string key) => _localizer?[key] ?? key;

@@ -39,8 +39,8 @@ public static class RoleClassifier
         new("Windows RDP", [3389], [445, 135, 139], 70),
         new("VNC Server", [5900], [5901, 5902], 65),
         new("Proxy/Load Balancer", [8080], [8443, 3128, 80, 443], 55),
-        new("Syslog Server", [514], [6514], 55),
-        new("DHCP Server", [67], [68], 55),
+        new("Syslog Server", [514], [6514], 30),   // UDP-only (514/udp), unreliable with TCP scan
+        new("DHCP Server", [67], [68], 30),         // UDP-only (67-68/udp), unreliable with TCP scan
         new("FTP Server", [21], [990], 60),
         new("Redis", [6379], [], 75),
         new("Elasticsearch", [9200], [9300], 75),
@@ -75,7 +75,7 @@ public static class RoleClassifier
         new("MQTT Broker", [1883], [8883, 9001], 75),
         new("Apple Device", [62078], [5353, 3689], 70),
         new("Chromecast/Smart TV", [8008], [8443, 9000], 55),
-        new("UPnP Device", [1900], [5000, 80], 50),
+        new("UPnP Device", [1900], [5000, 80], 25),  // UDP-only (1900/udp SSDP), unreliable with TCP scan
 
         // ── Telephony / VoIP ───────────────────────────────────────────
         new("VoIP/SIP Server", [5060], [5061, 80, 443], 75),
@@ -85,6 +85,9 @@ public static class RoleClassifier
         new("VMware ESXi", [443, 902], [80, 22], 80),
         new("Proxmox VE", [8006], [22, 3128], 80),
         new("Hyper-V Host", [3389, 445], [135, 139, 5985, 5986], 60),
+
+        // ── Server Management ─────────────────────────────────────────
+        new("Server Management (IPMI)", [623], [443, 80, 22], 80),
 
         // ── Monitoring ─────────────────────────────────────────────────
         new("Zabbix Server", [10051], [10050, 80, 443], 75),
@@ -161,6 +164,37 @@ public static class RoleClassifier
         ("Home Assistant", "Smart Home (Home Assistant)", 90),
         ("Philips Hue", "IoT (Philips Hue Bridge)", 85),
         ("Sonos", "IoT (Sonos Speaker)", 80),
+
+        // Web Servers / Reverse Proxies
+        ("nginx", "Web Server (nginx)", 80),
+        ("Apache", "Web Server (Apache)", 80),
+        ("Microsoft-IIS", "Web Server (IIS)", 80),
+        ("Microsoft-HTTPAPI", "Windows HTTP API", 70),
+        ("HAProxy", "Load Balancer (HAProxy)", 85),
+        ("Traefik", "Reverse Proxy (Traefik)", 80),
+        ("Caddy", "Web Server (Caddy)", 75),
+        ("LiteSpeed", "Web Server (LiteSpeed)", 75),
+        ("Kestrel", "Web Server (.NET Kestrel)", 70),
+        ("Tomcat", "App Server (Tomcat)", 80),
+        ("Jetty", "App Server (Jetty)", 75),
+
+        // Mail Servers
+        ("Postfix", "Mail Server (Postfix)", 85),
+        ("Dovecot", "Mail Server (Dovecot)", 85),
+        ("Exchange", "Mail Server (Exchange)", 90),
+
+        // Directory / File Servers
+        ("Samba", "File Server (Samba)", 80),
+        ("OpenLDAP", "LDAP Server (OpenLDAP)", 85),
+
+        // Server Management
+        ("iDRAC", "Server Management (Dell iDRAC)", 95),
+        ("iLO", "Server Management (HP iLO)", 95),
+
+        // Appliance Identification (via HTML <title>)
+        ("Proxmox Virtual Environment", "Hypervisor (Proxmox VE)", 95),
+        ("UniFi Network", "Network Controller (UniFi)", 90),
+        ("Pi-hole", "DNS Filter (Pi-hole)", 85),
 
         // NTP
         ("ntpd", "NTP Server", 80),
@@ -248,7 +282,7 @@ public static class RoleClassifier
         110 => "POP3", 135 => "RPC", 139 => "NetBIOS", 143 => "IMAP",
         161 => "SNMP", 162 => "SNMP-Trap", 389 => "LDAP", 443 => "HTTPS",
         445 => "SMB", 464 => "Kerberos-Change", 465 => "SMTPS",
-        514 => "Syslog", 587 => "SMTP-Submission", 636 => "LDAPS",
+        514 => "Syslog", 587 => "SMTP-Submission", 623 => "IPMI", 636 => "LDAPS",
         993 => "IMAPS", 995 => "POP3S", 990 => "FTPS",
         1433 => "MSSQL", 1434 => "MSSQL-Browser", 1521 => "Oracle",
         2375 => "Docker", 2376 => "Docker-TLS",
@@ -269,7 +303,7 @@ public static class RoleClassifier
         8088 => "Asterisk-HTTP", 8123 => "Home-Assistant",
         8291 => "MikroTik-Winbox", 8728 => "MikroTik-API",
         8883 => "MQTT-TLS", 8899 => "ONVIF",
-        9001 => "MQTT-WS", 9100 => "RAW-Print",
+        9001 => "MQTT-WS", 9100 => "RAW-Print", 9443 => "HTTPS-Alt",
         10050 => "Zabbix-Agent", 10051 => "Zabbix-Server",
         27018 => "MongoDB-Shard", 27019 => "MongoDB-Config",
         33060 => "MySQL-X", 34567 => "DVR-Admin",

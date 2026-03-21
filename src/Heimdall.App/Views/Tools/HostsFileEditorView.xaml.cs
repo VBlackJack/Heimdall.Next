@@ -43,6 +43,7 @@ public partial class HostsFileEditorView : UserControl, IToolView
         RegexOptions.Compiled);
 
     private LocalizationManager? _localizer;
+    private Action<string, string, ToolContext?>? _openToolAction;
     private readonly ObservableCollection<HostEntry> _entries = [];
     private readonly List<string> _preambleLines = [];
 
@@ -50,11 +51,14 @@ public partial class HostsFileEditorView : UserControl, IToolView
     {
         InitializeComponent();
         HostsGrid.ItemsSource = _entries;
+        HostsGrid.PreviewMouseRightButtonDown += ToolContextMenuHelper.SelectRowOnRightClick;
+        HostsGrid.ContextMenuOpening += OnHostsContextMenuOpening;
     }
 
     public void Initialize(ToolContext? context, LocalizationManager? localizer)
     {
         _localizer = localizer;
+        _openToolAction = ToolContextMenuHelper.GetOpenToolAction(context);
         ApplyLocalization();
         LoadHostsFile();
     }
@@ -306,6 +310,66 @@ public partial class HostsFileEditorView : UserControl, IToolView
                 tb.ToolTip = null;
             }
         }
+    }
+
+    private void OnHostsContextMenuOpening(object sender, System.Windows.Controls.ContextMenuEventArgs e)
+    {
+        if (HostsGrid.SelectedItem is not HostEntry entry)
+        {
+            e.Handled = true;
+            return;
+        }
+
+        var menu = new System.Windows.Controls.ContextMenu();
+
+        // Toggle enable/disable
+        var toggleHeader = entry.Enabled ? L("ToolHostsEditorCtxDisable") : L("ToolHostsEditorCtxEnable");
+        var toggle = new System.Windows.Controls.MenuItem { Header = toggleHeader };
+        toggle.Click += (_, _) => entry.Enabled = !entry.Enabled;
+        menu.Items.Add(toggle);
+
+        menu.Items.Add(new System.Windows.Controls.Separator());
+
+        // Copy IP
+        var copyIp = new System.Windows.Controls.MenuItem { Header = L("ToolCtxCopyIp") };
+        copyIp.Click += (_, _) => System.Windows.Clipboard.SetText(entry.IpAddress);
+        menu.Items.Add(copyIp);
+
+        // Copy Hostname
+        if (!string.IsNullOrWhiteSpace(entry.Hostname))
+        {
+            var copyHost = new System.Windows.Controls.MenuItem { Header = L("ToolCtxCopyHostname") };
+            copyHost.Click += (_, _) => System.Windows.Clipboard.SetText(entry.Hostname);
+            menu.Items.Add(copyHost);
+        }
+
+        // Cross-tool navigation
+        if (_openToolAction is not null && !string.IsNullOrWhiteSpace(entry.IpAddress))
+        {
+            menu.Items.Add(new System.Windows.Controls.Separator());
+
+            var ping = new System.Windows.Controls.MenuItem { Header = L("ToolCtxOpenPing") };
+            ping.Click += (_, _) => _openToolAction("PING", L("PaletteToolPing"),
+                new ToolContext(TargetHost: entry.IpAddress));
+            menu.Items.Add(ping);
+
+            var portScan = new System.Windows.Controls.MenuItem { Header = L("ToolCtxOpenPortScan") };
+            portScan.Click += (_, _) => _openToolAction("PORTSCAN", L("PaletteToolPortScan"),
+                new ToolContext(TargetHost: entry.IpAddress));
+            menu.Items.Add(portScan);
+
+            var dns = new System.Windows.Controls.MenuItem { Header = L("ToolCtxOpenDns") };
+            dns.Click += (_, _) => _openToolAction("DNS", L("PaletteToolDns"),
+                new ToolContext(TargetHost: entry.IpAddress));
+            menu.Items.Add(dns);
+
+            var whois = new System.Windows.Controls.MenuItem { Header = L("ToolCtxOpenWhois") };
+            whois.Click += (_, _) => _openToolAction("WHOIS", L("PaletteToolWhois"),
+                new ToolContext(TargetHost: entry.IpAddress));
+            menu.Items.Add(whois);
+        }
+
+        HostsGrid.ContextMenu = menu;
     }
 
     private string L(string key) => _localizer?[key] ?? key;

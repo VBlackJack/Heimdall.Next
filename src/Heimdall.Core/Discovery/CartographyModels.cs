@@ -55,7 +55,9 @@ public record HostScanResult(
     long PingLatencyMs,
     List<ServiceResult> Services,
     RoleMatch? PrimaryRole,
-    List<RoleMatch> AllRoles);
+    List<RoleMatch> AllRoles,
+    string? MacAddress = null,
+    string? Manufacturer = null);
 
 /// <summary>
 /// Result of probing a single port on a host.

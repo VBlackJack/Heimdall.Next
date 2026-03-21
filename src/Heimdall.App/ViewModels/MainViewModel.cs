@@ -257,6 +257,10 @@ public partial class MainViewModel : ObservableObject
         // Wire SSH reconnect: close the old session tab and re-connect from scratch
         _embeddedSessionManager.ReconnectRequestedCallback = OnReconnectRequested;
 
+        // Wire cross-tool navigation so tools can open other tool tabs
+        _embeddedSessionManager.OpenToolCallback = (toolId, title, ctx) =>
+            OpenToolTabAsync(toolId, title, ctx);
+
         // Swap WPF theme ResourceDictionary when the user changes the theme setting
         Settings.ThemeChanged += OnThemeChanged;
 
