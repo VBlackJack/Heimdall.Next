@@ -30,4 +30,5 @@ public record ToolContext(
     string? ConnectionType = null,
     string? ProjectName = null,
     string? GroupName = null,
-    string? SourceServerId = null);
+    string? SourceServerId = null,
+    System.Collections.IList? SshGateways = null);

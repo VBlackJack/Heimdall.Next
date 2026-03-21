@@ -482,6 +482,16 @@ public sealed class EmbeddedSessionManager
         }
 
         var view = _toolRegistry.CreateView(toolId);
+
+        // Enrich context with SSH gateways so tools can offer "Route via" tunnel support
+        if (settings?.SshGateways is { Count: > 0 } gateways)
+        {
+            context = (context ?? new ToolContext()) with
+            {
+                SshGateways = (System.Collections.IList)gateways
+            };
+        }
+
         view.Initialize(context, _localizer);
         return view;
     }

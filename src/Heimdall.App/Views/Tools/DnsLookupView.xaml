@@ -66,6 +66,20 @@
                              />
                 </DockPanel>
 
+                <!-- Route via gateway -->
+                <DockPanel Margin="0,0,0,8">
+                    <TextBlock x:Name="LblRouteVia" Text=""
+                               FontSize="12" Margin="0,0,8,0"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               VerticalAlignment="Center"/>
+                    <ComboBox x:Name="CmbRouteVia" Width="240"
+                              SelectionChanged="OnRouteViaChanged"
+                              Background="{DynamicResource CardBrush}"
+                              Foreground="{DynamicResource TextPrimaryBrush}"
+                              BorderBrush="{DynamicResource BorderBrush}"
+                              VerticalAlignment="Center"/>
+                </DockPanel>
+
                 <!-- Error message -->
                 <TextBlock x:Name="TxtError" Text="" Visibility="Collapsed"
                            FontSize="12" Margin="0,0,0,12"
