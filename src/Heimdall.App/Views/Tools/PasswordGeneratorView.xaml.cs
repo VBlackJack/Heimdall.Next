@@ -343,10 +343,7 @@ public partial class PasswordGeneratorView : UserControl, IToolView
         // Layout-safe is relevant for Random and Syllable, not Passphrase
         ChkLayoutSafe.Visibility = mode == GeneratorMode.Passphrase ? Visibility.Collapsed : Visibility.Visible;
 
-        // Hide entire presets container in Syllable mode (no presets defined)
-        PanelPresets.Visibility = mode == GeneratorMode.Syllable ? Visibility.Collapsed : Visibility.Visible;
-
-        // Preset visibility per mode
+        // Built-in presets per mode; save preset + custom presets always visible
         PresetsRandom.Visibility = mode == GeneratorMode.Random ? Visibility.Visible : Visibility.Collapsed;
         PresetsPassphrase.Visibility = mode == GeneratorMode.Passphrase ? Visibility.Visible : Visibility.Collapsed;
 
@@ -1235,6 +1232,7 @@ public partial class PasswordGeneratorView : UserControl, IToolView
                 FontSize = 11,
             };
             btn.Click += (_, _) => ApplyCustomPreset((PasswordPreset)btn.Tag);
+            btn.ToolTip = L("ToolPwdGenPresetRightClickHint");
             System.Windows.Automation.AutomationProperties.SetName(btn, preset.Name);
 
             // Right-click to delete
