@@ -42,8 +42,9 @@ public sealed class CartographyEngine
     /// <summary>~50 ports covering the most common enterprise services.</summary>
     public static readonly int[] StandardPorts =
         [21, 22, 23, 25, 53, 67, 80, 88, 110, 111, 135, 139, 143, 161, 162, 389, 443, 445, 464, 465,
-         514, 587, 636, 993, 995, 1433, 1434, 1521, 2375, 2376, 3128, 3268, 3306, 3389, 5432, 5900,
-         5901, 5985, 6379, 6443, 6514, 8080, 8443, 9090, 9200, 9300, 10250, 27017, 33060];
+         514, 554, 587, 631, 636, 993, 995, 1433, 1434, 1521, 1883, 1900, 2049, 2375, 2376, 3000,
+         3128, 3260, 3268, 3306, 3389, 5000, 5060, 5432, 5665, 5900, 5901, 5985, 6379, 6443, 6514,
+         8006, 8080, 8123, 8291, 8443, 8899, 9090, 9100, 9200, 9300, 10050, 10250, 27017, 33060, 62078];
 
     /// <summary>Fires during the ICMP ping sweep phase.</summary>
     public event Action<int, int>? HostDiscoveryProgress;
@@ -184,8 +185,10 @@ public sealed class CartographyEngine
             catch { /* DNS reverse failed */ }
         }
 
-        var openPorts = services.Where(s => s.IsOpen).Select(s => s.Port).ToList();
-        var roles = RoleClassifier.Classify(openPorts);
+        var openServices = services.Where(s => s.IsOpen).ToList();
+        var openPorts = openServices.Select(s => s.Port).ToList();
+        var banners = openServices.Select(s => s.Banner).ToList();
+        var roles = RoleClassifier.ClassifyWithBanners(openPorts, banners);
         var primaryRole = roles.Count > 0 ? roles[0] : null;
 
         return new HostScanResult(ip, hostname, true, 0, services, primaryRole, roles);
