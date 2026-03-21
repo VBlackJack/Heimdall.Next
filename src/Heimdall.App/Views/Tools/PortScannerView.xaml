@@ -125,6 +125,9 @@
                       RowBackground="Transparent"
                       AlternatingRowBackground="{DynamicResource SurfaceBrush}"
                       HorizontalGridLinesBrush="{DynamicResource BorderBrush}"
+                      ColumnHeaderStyle="{StaticResource ThemedDataGridColumnHeaderStyle}"
+                      CellStyle="{StaticResource ThemedDataGridCellStyle}"
+                      RowStyle="{StaticResource ThemedDataGridRowStyle}"
 >
                 <DataGrid.Columns>
                     <DataGridTextColumn x:Name="ColPort" Binding="{Binding Port}" Width="80"

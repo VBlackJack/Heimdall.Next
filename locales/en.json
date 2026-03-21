@@ -3088,5 +3088,6 @@
   "ToolHelpHOSTS": "Hosts File Editor\n\nEdits the system hosts file with syntax validation.\n\nUsage:\nView and edit host entries. Changes require administrator privileges to save.",
   "ToolHelpSSHCONFIG": "SSH Config Generator\n\nGenerates SSH client configuration files.\n\nUsage:\nConfigure host entries with hostname, user, port, key file, and proxy settings. Export to ~/.ssh/config format.",
   "ToolHelpCRONJOB": "Cron Job Manager\n\nManages and monitors scheduled cron tasks on remote servers.\n\nUsage:\nConnect to a server via SSH to list, edit, and monitor cron jobs.",
-  "ToolHelpSERVICES": "Service Status Dashboard\n\nMonitors Windows service status with start/stop controls.\n\nUsage:\nView running services, their status, and startup type. Start, stop, or restart services directly."
+  "ToolHelpSERVICES": "Service Status Dashboard\n\nMonitors Windows service status with start/stop controls.\n\nUsage:\nView running services, their status, and startup type. Start, stop, or restart services directly.",
+  "ToolPwdGenPresetRightClickHint": "Click to apply — Right-click to delete"
 }
