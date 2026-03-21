@@ -201,4 +201,7 @@
     <!-- Crontab: clock with schedule lines -->
     <Geometry x:Key="Geo.Tool.Crontab">M8,2 A6,6 0 1 1 8,14 A6,6 0 1 1 8,2 Z M8,4.5 L8,8 L10.5,10 M1,4 L4,4 M1,8 L3,8 M1,12 L4,12</Geometry>
 
+    <!-- Diagram Editor: connected boxes -->
+    <Geometry x:Key="Geo.Tool.Diagram">M2,2 L6,2 L6,6 L2,6 Z M10,2 L14,2 L14,6 L10,6 Z M2,10 L6,10 L6,14 L2,14 Z M10,10 L14,10 L14,14 L10,14 Z M6,4 L10,4 M4,6 L4,10 M12,6 L12,10 M6,12 L10,12</Geometry>
+
 </ResourceDictionary>

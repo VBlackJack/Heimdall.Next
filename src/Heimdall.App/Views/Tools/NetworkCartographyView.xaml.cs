@@ -95,6 +95,7 @@ public partial class NetworkCartographyView : UserControl, IToolView
         LblRouteVia.Text = L("ToolTunnelRouteVia");
 
         BtnExportDrawio.Content = L("ToolNetMapBtnExportDrawio");
+        BtnEditDiagram.Content = L("ToolDiagramBtnEdit");
 
         ColIp.Header = L("ToolNetMapColIp");
         ColHostname.Header = L("ToolNetMapColHostname");
@@ -117,6 +118,7 @@ public partial class NetworkCartographyView : UserControl, IToolView
         System.Windows.Automation.AutomationProperties.SetName(BtnStop, L("ToolNetMapBtnStop"));
         System.Windows.Automation.AutomationProperties.SetName(BtnExportCsv, L("ToolNetMapBtnExport"));
         System.Windows.Automation.AutomationProperties.SetName(BtnExportDrawio, L("ToolNetMapBtnExportDrawio"));
+        System.Windows.Automation.AutomationProperties.SetName(BtnEditDiagram, L("ToolDiagramBtnEdit"));
         System.Windows.Automation.AutomationProperties.SetName(CmbHistory, L("ToolNetMapCompareWith"));
         System.Windows.Automation.AutomationProperties.SetName(ChkSkipPing, L("ToolNetMapSkipPing"));
         System.Windows.Automation.AutomationProperties.SetName(ChkReverseDns, L("ToolNetMapReverseDns"));
@@ -549,6 +551,31 @@ public partial class NetworkCartographyView : UserControl, IToolView
         catch (Exception ex)
         {
             Core.Logging.FileLogger.Warn($"NetworkCartography Draw.io export failed: {ex.Message}");
+        }
+    }
+
+    private void OnEditDiagramClick(object sender, RoutedEventArgs e)
+    {
+        if (_lastSnapshot is null || _openToolAction is null) return;
+
+        try
+        {
+            // Generate draw.io XML from the last scan snapshot
+            var xml = DrawIoExporter.Generate(_lastSnapshot);
+
+            // Save to temp file so the diagram editor can load it
+            var tempFile = Path.Combine(
+                Path.GetTempPath(),
+                $"heimdall_netmap_{DateTime.Now:yyyyMMdd_HHmmss}.drawio");
+            File.WriteAllText(tempFile, xml, Encoding.UTF8);
+
+            // Open in diagram editor tool tab
+            _openToolAction("DIAGRAM", L("PaletteToolDiagram"),
+                new ToolContext(Argument: tempFile));
+        }
+        catch (Exception ex)
+        {
+            Core.Logging.FileLogger.Warn($"NetworkCartography edit diagram failed: {ex.Message}");
         }
     }
 

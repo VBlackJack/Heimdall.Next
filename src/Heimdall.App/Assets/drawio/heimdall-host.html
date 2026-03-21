@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8"/>
+    <style>
+        * { margin: 0; padding: 0; }
+        html, body { width: 100%; height: 100%; overflow: hidden; }
+        iframe { width: 100%; height: 100%; border: none; }
+    </style>
+</head>
+<body>
+    <iframe id="drawio-frame"></iframe>
+    <script>
+        var currentXml = '';
+        var frame = document.getElementById('drawio-frame');
+
+        // Listen for messages from draw.io iframe
+        window.addEventListener('message', function(evt) {
+            if (evt.data && typeof evt.data === 'string') {
+                try {
+                    var msg = JSON.parse(evt.data);
+                    handleDrawioMessage(msg);
+                } catch(e) {}
+            }
+        });
+
+        function handleDrawioMessage(msg) {
+            switch(msg.event) {
+                case 'init':
+                    // draw.io is ready — load initial XML if available
+                    if (currentXml) {
+                        frame.contentWindow.postMessage(JSON.stringify({
+                            action: 'load',
+                            xml: currentXml,
+                            autosave: 1
+                        }), '*');
+                    }
+                    break;
+
+                case 'autosave':
+                case 'save':
+                    // Send saved XML to C# host
+                    if (window.chrome && window.chrome.webview) {
+                        window.chrome.webview.postMessage('save:' + msg.xml);
+                    }
+                    break;
+
+                case 'export':
+                    if (window.chrome && window.chrome.webview) {
+                        window.chrome.webview.postMessage('export:' + msg.data);
+                    }
+                    break;
+
+                case 'exit':
+                    if (window.chrome && window.chrome.webview) {
+                        window.chrome.webview.postMessage('exit:');
+                    }
+                    break;
+            }
+        }
+
+        // Listen for messages from C# host
+        if (window.chrome && window.chrome.webview) {
+            window.chrome.webview.addEventListener('message', function(evt) {
+                var msg = evt.data;
+                if (typeof msg !== 'string') return;
+
+                if (msg.indexOf('load:') === 0) {
+                    currentXml = msg.substring(5);
+                    frame.contentWindow.postMessage(JSON.stringify({
+                        action: 'load',
+                        xml: currentXml,
+                        autosave: 1
+                    }), '*');
+                    return;
+                }
+
+                if (msg === 'export-png:') {
+                    frame.contentWindow.postMessage(JSON.stringify({
+                        action: 'export',
+                        format: 'png',
+                        spinKey: 'export'
+                    }), '*');
+                    return;
+                }
+
+                if (msg === 'export-svg:') {
+                    frame.contentWindow.postMessage(JSON.stringify({
+                        action: 'export',
+                        format: 'svg',
+                        spinKey: 'export'
+                    }), '*');
+                    return;
+                }
+            });
+
+            window.chrome.webview.postMessage('ready:');
+        }
+
+        // Load draw.io in embed mode
+        frame.src = 'index.html?embed=1&proto=json&spin=1&libraries=1&ui=dark';
+    </script>
+</body>
+</html>

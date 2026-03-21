@@ -172,6 +172,11 @@
                             Style="{DynamicResource SecondaryButtonStyle}"
                             Padding="12,6" Margin="0,0,4,0"
                             VerticalAlignment="Center"/>
+                    <Button x:Name="BtnEditDiagram" Content=""
+                            Click="OnEditDiagramClick"
+                            Style="{DynamicResource SecondaryButtonStyle}"
+                            Padding="12,6" Margin="0,0,4,0"
+                            VerticalAlignment="Center"/>
                     <Button x:Name="BtnExportCsv" Content=""
                             Click="OnExportCsvClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
