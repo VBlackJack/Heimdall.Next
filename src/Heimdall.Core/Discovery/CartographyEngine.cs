@@ -398,7 +398,7 @@ public sealed class CartographyEngine
         return result;
     }
 
-    private static long IpToLong(string ip)
+    public static long IpToLong(string ip)
     {
         var parts = ip.Split('.');
         if (parts.Length != 4) return 0;

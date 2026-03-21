@@ -39,6 +39,8 @@ public partial class NetworkCartographyView : UserControl, IToolView
     private int _totalHostCount;
     private NetworkScanSnapshot? _lastSnapshot;
     private List<(string FileName, DateTime Timestamp, string Subnet)> _historyList = [];
+    private List<Heimdall.Core.Configuration.SshGatewayDto>? _gateways;
+    private Heimdall.Core.Configuration.SshGatewayDto? _selectedGateway;
 
     private readonly ObservableCollection<CartographyRowViewModel> _results = [];
 
@@ -60,6 +62,12 @@ public partial class NetworkCartographyView : UserControl, IToolView
             TxtSubnet.Text = context.TargetHost;
         }
 
+        // Populate gateway selector for "Route via" tunnel support
+        if (context?.SshGateways is System.Collections.IList gateways)
+        {
+            _gateways = gateways.Cast<Heimdall.Core.Configuration.SshGatewayDto>().ToList();
+        }
+        PopulateRouteSelector();
         PopulateHistory();
 
         Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, () =>
@@ -80,6 +88,7 @@ public partial class NetworkCartographyView : UserControl, IToolView
 
         ChkSkipPing.Content = L("ToolNetMapSkipPing");
         ChkReverseDns.Content = L("ToolNetMapReverseDns");
+        LblRouteVia.Text = L("ToolTunnelRouteVia");
 
         BtnExportDrawio.Content = L("ToolNetMapBtnExportDrawio");
 
@@ -234,7 +243,16 @@ public partial class NetworkCartographyView : UserControl, IToolView
 
         try
         {
-            var snapshot = await engine.ScanAsync(profile, _cts.Token).ConfigureAwait(false);
+            NetworkScanSnapshot snapshot;
+
+            if (_selectedGateway is not null)
+            {
+                snapshot = await ScanViaTunnelAsync(profile, _cts.Token).ConfigureAwait(false);
+            }
+            else
+            {
+                snapshot = await engine.ScanAsync(profile, _cts.Token).ConfigureAwait(false);
+            }
 
             try
             {
@@ -282,6 +300,124 @@ public partial class NetworkCartographyView : UserControl, IToolView
         }
 
         await Dispatcher.InvokeAsync(StopScan);
+    }
+
+    /// <summary>
+    /// Scans a subnet via SSH gateway using remote commands.
+    /// Uses ping, /dev/tcp probes, and nslookup on the gateway host.
+    /// </summary>
+    private async Task<NetworkScanSnapshot> ScanViaTunnelAsync(ScanProfile profile, CancellationToken ct)
+    {
+        var startTime = DateTime.UtcNow;
+        var gw = _selectedGateway!;
+
+        // Decrypt gateway password
+        var password = !string.IsNullOrEmpty(gw.SshPasswordEncrypted)
+            ? Heimdall.Core.Security.CredentialProtector.Unprotect(gw.SshPasswordEncrypted)
+            : null;
+
+        var connParams = new Heimdall.Ssh.SshConnectionParams
+        {
+            Host = gw.Host,
+            Port = gw.Port,
+            Username = gw.User,
+            Password = password,
+            KeyPath = gw.KeyPath
+        };
+
+        var connInfo = Heimdall.Ssh.SshConnectionFactory.Create(connParams);
+        using var sshClient = new Renci.SshNet.SshClient(connInfo);
+
+        await Dispatcher.InvokeAsync(() =>
+            TxtStatus.Text = string.Format(L("ToolTunnelConnecting"), gw.Name));
+
+        await Task.Run(() => sshClient.Connect(), ct).ConfigureAwait(false);
+
+        var ipList = CartographyEngine.ParseCidr(profile.Subnet);
+        var hosts = new List<HostScanResult>();
+        var ports = profile.CustomPorts ?? (profile.Depth == ScanDepth.Quick
+            ? CartographyEngine.QuickPorts : CartographyEngine.StandardPorts);
+        var completed = 0;
+
+        // Batch scan: for each IP, test ports via /dev/tcp
+        foreach (var ip in ipList)
+        {
+            ct.ThrowIfCancellationRequested();
+            var openServices = new List<ServiceResult>();
+
+            foreach (var port in ports)
+            {
+                try
+                {
+                    using var cmd = sshClient.CreateCommand(
+                        $"(echo >/dev/tcp/{ip}/{port}) 2>/dev/null && echo OPEN || echo CLOSED");
+                    cmd.CommandTimeout = TimeSpan.FromMilliseconds(profile.TimeoutMs);
+                    var result = await Task.Run(() => cmd.Execute(), ct).ConfigureAwait(false);
+
+                    if (result?.Trim() == "OPEN")
+                    {
+                        var svcName = RoleClassifier.GetPortServiceName(port);
+                        openServices.Add(new ServiceResult(port, true,
+                            svcName != $"Port-{port}" ? svcName : null,
+                            null, null, 0));
+                    }
+                }
+                catch (OperationCanceledException) { throw; }
+                catch { /* probe failed, port closed or filtered */ }
+            }
+
+            // Reverse DNS via gateway
+            string? hostname = null;
+            if (profile.ReverseDns)
+            {
+                try
+                {
+                    using var dnsCmd = sshClient.CreateCommand($"host {ip} 2>/dev/null | head -1");
+                    dnsCmd.CommandTimeout = TimeSpan.FromSeconds(3);
+                    var dnsResult = await Task.Run(() => dnsCmd.Execute(), ct).ConfigureAwait(false);
+                    if (dnsResult?.Contains("domain name pointer") == true)
+                    {
+                        hostname = dnsResult.Split("domain name pointer")[1].Trim().TrimEnd('.');
+                    }
+                }
+                catch { /* DNS failed */ }
+            }
+
+            if (openServices.Count > 0)
+            {
+                var openPorts = openServices.Select(s => s.Port).ToList();
+                var roles = RoleClassifier.Classify(openPorts);
+
+                var hostResult = new HostScanResult(ip, hostname, true, 0,
+                    openServices, roles.FirstOrDefault(), roles);
+                hosts.Add(hostResult);
+
+                await Dispatcher.InvokeAsync(() => _results.Add(ToRow(hostResult)));
+            }
+
+            completed++;
+            await Dispatcher.InvokeAsync(() =>
+            {
+                ScanProgress.Maximum = ipList.Count;
+                ScanProgress.Value = completed;
+                TxtStatus.Text = string.Format(L("ToolNetMapStatusScanning"),
+                    ip, completed, ipList.Count);
+            });
+        }
+
+        sshClient.Disconnect();
+
+        var orderedHosts = hosts.OrderBy(h => CartographyEngine.IpToLong(h.IpAddress)).ToList();
+        var vlans = VlanDetector.InferFromHosts(orderedHosts);
+
+        return new NetworkScanSnapshot(
+            Guid.NewGuid().ToString("N"),
+            DateTime.UtcNow,
+            profile,
+            gw.Name,
+            DateTime.UtcNow - startTime,
+            orderedHosts,
+            vlans);
     }
 
     private void StopScan()
@@ -459,6 +595,31 @@ public partial class NetworkCartographyView : UserControl, IToolView
 
         TxtDiff.Text = string.Join(" | ", parts);
         DiffPanel.Visibility = Visibility.Visible;
+    }
+
+    private void PopulateRouteSelector()
+    {
+        CmbRouteVia.Items.Clear();
+        CmbRouteVia.Items.Add(L("ToolTunnelDirect"));
+        if (_gateways is not null)
+        {
+            foreach (var gw in _gateways)
+            {
+                CmbRouteVia.Items.Add($"{gw.Name} ({gw.Host}:{gw.Port})");
+            }
+        }
+        CmbRouteVia.SelectedIndex = 0;
+    }
+
+    private void OnRouteViaChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (CmbRouteVia.SelectedIndex <= 0 || _gateways is null)
+        {
+            _selectedGateway = null;
+            return;
+        }
+        var idx = CmbRouteVia.SelectedIndex - 1;
+        _selectedGateway = idx < _gateways.Count ? _gateways[idx] : null;
     }
 
     private string L(string key) => _localizer?[key] ?? key;
