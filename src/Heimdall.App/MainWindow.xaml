@@ -206,7 +206,60 @@
                                      Tag=""/>
                         </DockPanel>
 
-                        <!-- Hierarchical TreeView -->
+                        <!-- TOOLS: Toggle button (always at bottom) -->
+                        <Border DockPanel.Dock="Bottom"
+                                Background="{DynamicResource SurfaceBrush}"
+                                BorderBrush="{DynamicResource BorderBrush}"
+                                BorderThickness="0,1,0,0"
+                                Padding="4,2">
+                            <Button x:Name="BtnToggleToolsPanel"
+                                    Click="OnToggleToolsPanel"
+                                    Style="{DynamicResource ToolbarGhostButtonStyle}"
+                                    HorizontalAlignment="Stretch"
+                                    HorizontalContentAlignment="Left"
+                                    Padding="4,3" FontSize="11">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="&#xE90F;" FontFamily="Segoe MDL2 Assets" FontSize="11"
+                                               Foreground="{DynamicResource AccentBrush}"
+                                               VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                    <TextBlock x:Name="Mw_ToolsToggleLabel" Text=""
+                                               Foreground="{DynamicResource TextPrimaryBrush}"
+                                               VerticalAlignment="Center"/>
+                                    <TextBlock Text=" (Ctrl+Shift+T)"
+                                               FontSize="10"
+                                               Foreground="{DynamicResource TextSecondaryBrush}"
+                                               VerticalAlignment="Center" Margin="4,0,0,0"/>
+                                </StackPanel>
+                            </Button>
+                        </Border>
+
+                        <!-- TOOLS: Expandable panel (above toggle, collapsed by default) -->
+                        <Border x:Name="ToolsQuickPanel" DockPanel.Dock="Bottom"
+                                Background="{DynamicResource SurfaceBrush}"
+                                BorderBrush="{DynamicResource BorderBrush}"
+                                BorderThickness="0,1,0,0"
+                                MaxHeight="220"
+                                Visibility="Collapsed">
+                            <DockPanel>
+                                <DockPanel DockPanel.Dock="Top" Margin="8,6,8,4">
+                                    <TextBlock x:Name="Mw_ToolsPanelTitle" Text=""
+                                               FontSize="12" FontWeight="SemiBold"
+                                               Foreground="{DynamicResource TextPrimaryBrush}"
+                                               VerticalAlignment="Center"/>
+                                    <Button x:Name="BtnCollapseTools" DockPanel.Dock="Right"
+                                            Content="&#xE70D;" FontFamily="Segoe MDL2 Assets"
+                                            Click="OnToggleToolsPanel"
+                                            Style="{DynamicResource ToolbarGhostButtonStyle}"
+                                            Padding="4,4" FontSize="10"
+                                            HorizontalAlignment="Right"/>
+                                </DockPanel>
+                                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="4,0,4,4">
+                                    <StackPanel x:Name="ToolsCategoryStack"/>
+                                </ScrollViewer>
+                            </DockPanel>
+                        </Border>
+
+                        <!-- Hierarchical TreeView (fills remaining space) -->
                         <TreeView x:Name="ServerTreeView"
                                   ItemsSource="{Binding ServerList.GroupedServers}"
                                   Style="{DynamicResource ThemedTreeViewStyle}"
@@ -404,59 +457,6 @@
                             </TreeView.ItemContainerStyle>
 
                         </TreeView>
-
-                        <!-- TOOLS QUICK-ACCESS PANEL (bottom of sidebar) -->
-                        <Border x:Name="ToolsQuickPanel" DockPanel.Dock="Bottom"
-                                Background="{DynamicResource SurfaceBrush}"
-                                BorderBrush="{DynamicResource BorderBrush}"
-                                BorderThickness="0,1,0,0"
-                                MaxHeight="280"
-                                Visibility="Collapsed">
-                            <DockPanel>
-                                <DockPanel DockPanel.Dock="Top" Margin="8,6,8,4">
-                                    <TextBlock x:Name="Mw_ToolsPanelTitle" Text=""
-                                               FontSize="12" FontWeight="SemiBold"
-                                               Foreground="{DynamicResource TextPrimaryBrush}"
-                                               VerticalAlignment="Center"/>
-                                    <Button x:Name="BtnCollapseTools" DockPanel.Dock="Right"
-                                            Content="&#xE70D;" FontFamily="Segoe MDL2 Assets"
-                                            Click="OnToggleToolsPanel"
-                                            Style="{DynamicResource ToolbarGhostButtonStyle}"
-                                            Padding="4,4" FontSize="10"
-                                            HorizontalAlignment="Right"/>
-                                </DockPanel>
-                                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="4,0,4,4">
-                                    <StackPanel x:Name="ToolsCategoryStack"/>
-                                </ScrollViewer>
-                            </DockPanel>
-                        </Border>
-
-                        <!-- Toggle button for tools panel -->
-                        <Border DockPanel.Dock="Bottom"
-                                Background="{DynamicResource SurfaceBrush}"
-                                BorderBrush="{DynamicResource BorderBrush}"
-                                BorderThickness="0,1,0,0"
-                                Padding="4,2">
-                            <Button x:Name="BtnToggleToolsPanel"
-                                    Click="OnToggleToolsPanel"
-                                    Style="{DynamicResource ToolbarGhostButtonStyle}"
-                                    HorizontalAlignment="Stretch"
-                                    HorizontalContentAlignment="Left"
-                                    Padding="4,3" FontSize="11">
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="&#xE90F;" FontFamily="Segoe MDL2 Assets" FontSize="11"
-                                               Foreground="{DynamicResource AccentBrush}"
-                                               VerticalAlignment="Center" Margin="0,0,6,0"/>
-                                    <TextBlock x:Name="Mw_ToolsToggleLabel" Text=""
-                                               Foreground="{DynamicResource TextPrimaryBrush}"
-                                               VerticalAlignment="Center"/>
-                                    <TextBlock Text=" (Ctrl+Shift+T)"
-                                               FontSize="10"
-                                               Foreground="{DynamicResource TextSecondaryBrush}"
-                                               VerticalAlignment="Center" Margin="4,0,0,0"/>
-                                </StackPanel>
-                            </Button>
-                        </Border>
                     </DockPanel>
                 </Border>
 
