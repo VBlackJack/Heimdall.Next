@@ -1180,18 +1180,34 @@ public partial class MainWindow : Window
 
             var btnContent = new StackPanel { Orientation = System.Windows.Controls.Orientation.Horizontal };
 
-            // Add icon if available
-            if (descriptor.IconResourceKey is not null
-                && TryFindResource(descriptor.IconResourceKey) is System.Windows.Media.Imaging.BitmapImage icon)
+            // Add icon if available (prefer vector geometry, fall back to bitmap)
+            if (descriptor.IconResourceKey is not null)
             {
-                btnContent.Children.Add(new System.Windows.Controls.Image
+                var geoKey = descriptor.IconResourceKey.Replace("Icon.", "Geo.", StringComparison.Ordinal);
+                if (TryFindResource(geoKey) is System.Windows.Media.Geometry geo)
                 {
-                    Source = icon,
-                    Width = 16,
-                    Height = 16,
-                    Margin = new Thickness(0, 0, 6, 0),
-                    VerticalAlignment = VerticalAlignment.Center
-                });
+                    btnContent.Children.Add(new System.Windows.Shapes.Path
+                    {
+                        Data = geo,
+                        Fill = (System.Windows.Media.Brush)FindResource("TextPrimaryBrush"),
+                        Width = 16,
+                        Height = 16,
+                        Stretch = System.Windows.Media.Stretch.Uniform,
+                        VerticalAlignment = VerticalAlignment.Center,
+                        Margin = new Thickness(0, 0, 6, 0)
+                    });
+                }
+                else if (TryFindResource(descriptor.IconResourceKey) is System.Windows.Media.Imaging.BitmapImage icon)
+                {
+                    btnContent.Children.Add(new System.Windows.Controls.Image
+                    {
+                        Source = icon,
+                        Width = 16,
+                        Height = 16,
+                        Margin = new Thickness(0, 0, 6, 0),
+                        VerticalAlignment = VerticalAlignment.Center
+                    });
+                }
             }
 
             btnContent.Children.Add(new TextBlock
