@@ -1959,50 +1959,58 @@ public partial class MainWindow : Window
 
         var menu = new System.Windows.Controls.ContextMenu();
 
-        var disconnectItem = new System.Windows.Controls.MenuItem { Header = vm.Localize("SessionDisconnect") };
-        disconnectItem.Click += (_, _) => vm.Connection.CloseSessionCommand.Execute(session);
-        menu.Items.Add(disconnectItem);
+        var isToolTab = session.ConnectionType?.StartsWith("TOOL:", StringComparison.OrdinalIgnoreCase) == true;
 
-        menu.Items.Add(new System.Windows.Controls.Separator());
-
-        var aspectMenu = new System.Windows.Controls.MenuItem { Header = vm.Localize("SessionAspectRatio") };
-        foreach (var (label, tag) in new[] { ("Stretch", "Stretch"), ("Auto", "Auto"), ("16:9", "Ratio16x9"), ("4:3", "Ratio4x3"), ("21:9", "Ratio21x9") })
+        // Close tab — "Close" for tools, "Disconnect" for connections
+        var closeItem = new System.Windows.Controls.MenuItem
         {
-            var item = new System.Windows.Controls.MenuItem { Header = label, Tag = tag };
-            item.Click += OnAspectRatioClick;
-            aspectMenu.Items.Add(item);
-        }
-        menu.Items.Add(aspectMenu);
-
-        menu.Items.Add(new System.Windows.Controls.Separator());
-
-        var fullscreenItem = new System.Windows.Controls.MenuItem { Header = vm.Localize("SessionFullscreen") };
-        fullscreenItem.Click += OnToggleFullscreenClick;
-        menu.Items.Add(fullscreenItem);
-
-        // Duplicate tab (reconnect same server in new tab)
-        var duplicateItem = new System.Windows.Controls.MenuItem { Header = vm.Localize("SessionDuplicateTab") };
-        duplicateItem.Click += async (_, _) =>
-        {
-            // Use OriginalServerId for inventory lookup; fall back to ServerId for
-            // sessions that predate the split (e.g. ad-hoc connections)
-            var lookupId = !string.IsNullOrEmpty(session.OriginalServerId)
-                ? session.OriginalServerId
-                : session.ServerId;
-
-            if (!string.IsNullOrEmpty(lookupId) && vm.ServerList.ConnectCommand is not null)
-            {
-                var serverVm = vm.ServerList.Servers.FirstOrDefault(
-                    s => string.Equals(s.Id, lookupId, StringComparison.Ordinal));
-                if (serverVm is not null)
-                {
-                    vm.ServerList.ConnectCommand.Execute(serverVm);
-                }
-            }
+            Header = vm.Localize(isToolTab ? "SessionCloseTab" : "SessionDisconnect")
         };
-        menu.Items.Add(duplicateItem);
+        closeItem.Click += (_, _) => vm.Connection.CloseSessionCommand.Execute(session);
+        menu.Items.Add(closeItem);
 
-        // Detach to floating window
+        // Connection-specific actions (not shown for tools)
+        if (!isToolTab)
+        {
+            menu.Items.Add(new System.Windows.Controls.Separator());
+
+            var aspectMenu = new System.Windows.Controls.MenuItem { Header = vm.Localize("SessionAspectRatio") };
+            foreach (var (label, tag) in new[] { ("Stretch", "Stretch"), ("Auto", "Auto"), ("16:9", "Ratio16x9"), ("4:3", "Ratio4x3"), ("21:9", "Ratio21x9") })
+            {
+                var item = new System.Windows.Controls.MenuItem { Header = label, Tag = tag };
+                item.Click += OnAspectRatioClick;
+                aspectMenu.Items.Add(item);
+            }
+            menu.Items.Add(aspectMenu);
+
+            menu.Items.Add(new System.Windows.Controls.Separator());
+
+            var fullscreenItem = new System.Windows.Controls.MenuItem { Header = vm.Localize("SessionFullscreen") };
+            fullscreenItem.Click += OnToggleFullscreenClick;
+            menu.Items.Add(fullscreenItem);
+
+            // Duplicate tab (reconnect same server in new tab)
+            var duplicateItem = new System.Windows.Controls.MenuItem { Header = vm.Localize("SessionDuplicateTab") };
+            duplicateItem.Click += async (_, _) =>
+            {
+                var lookupId = !string.IsNullOrEmpty(session.OriginalServerId)
+                    ? session.OriginalServerId
+                    : session.ServerId;
+
+                if (!string.IsNullOrEmpty(lookupId) && vm.ServerList.ConnectCommand is not null)
+                {
+                    var serverVm = vm.ServerList.Servers.FirstOrDefault(
+                        s => string.Equals(s.Id, lookupId, StringComparison.Ordinal));
+                    if (serverVm is not null)
+                    {
+                        vm.ServerList.ConnectCommand.Execute(serverVm);
+                    }
+                }
+            };
+            menu.Items.Add(duplicateItem);
+        }
+
+        // Detach to floating window (works for both tools and connections)
         if (!session.IsSplit)
         {
             var detachItem = new System.Windows.Controls.MenuItem { Header = vm.Localize("SessionCtxDetach") };
@@ -2129,9 +2137,9 @@ public partial class MainWindow : Window
             menu.Items.Add(playMenu);
         }
 
-        var closeItem = new System.Windows.Controls.MenuItem { Header = vm.Localize("SessionCloseSession") };
-        closeItem.Click += (_, _) => vm.Connection.CloseSessionCommand.Execute(session);
-        menu.Items.Add(closeItem);
+        var closeAllItem = new System.Windows.Controls.MenuItem { Header = vm.Localize("SessionCloseSession") };
+        closeAllItem.Click += (_, _) => vm.Connection.CloseSessionCommand.Execute(session);
+        menu.Items.Add(closeAllItem);
 
         menu.Items.Add(new System.Windows.Controls.Separator());
 
