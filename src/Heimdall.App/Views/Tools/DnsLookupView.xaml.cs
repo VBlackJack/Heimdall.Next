@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+using System.Collections;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
@@ -21,8 +22,11 @@ using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using Heimdall.Core.Configuration;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Models;
+using Heimdall.Core.Security;
+using Heimdall.Ssh;
 
 namespace Heimdall.App.Views.Tools;
 
@@ -47,6 +51,8 @@ public partial class DnsLookupView : UserControl, IToolView
     private LocalizationManager? _localizer;
     private CancellationTokenSource? _cts;
     private bool _disposed;
+    private List<SshGatewayDto>? _gateways;
+    private SshGatewayDto? _selectedGateway;
 
     public DnsLookupView()
     {
@@ -83,6 +89,13 @@ public partial class DnsLookupView : UserControl, IToolView
             TxtHostname.Text = context.TargetHost;
         }
 
+        // Populate SSH gateway selector for tunnel-based DNS lookups
+        if (context?.SshGateways is IList gateways)
+        {
+            _gateways = gateways.Cast<SshGatewayDto>().ToList();
+        }
+        PopulateRouteSelector();
+
         Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, () =>
         {
             TxtHostname.Focus();
@@ -105,6 +118,9 @@ public partial class DnsLookupView : UserControl, IToolView
         System.Windows.Automation.AutomationProperties.SetName(CmbRecordType, L("ToolDnsRecordTypeLabel"));
         System.Windows.Automation.AutomationProperties.SetName(CmbDnsServer, L("ToolDnsServerLabel"));
         System.Windows.Automation.AutomationProperties.SetName(BtnCopyResults, L("ToolDnsBtnCopyResults"));
+
+        LblRouteVia.Text = L("ToolTunnelRouteVia");
+        System.Windows.Automation.AutomationProperties.SetName(CmbRouteVia, L("ToolTunnelRouteVia"));
 
         BtnHelp.ToolTip = L("ToolHelpTooltip");
         System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
@@ -165,7 +181,11 @@ public partial class DnsLookupView : UserControl, IToolView
         {
             string results;
 
-            if (recordType is "A" or "AAAA" && dnsServer is null)
+            if (_selectedGateway is not null)
+            {
+                results = await LookupViaTunnelAsync(hostname, recordType, dnsServer, _cts.Token);
+            }
+            else if (recordType is "A" or "AAAA" && dnsServer is null)
             {
                 results = await LookupHostEntryAsync(hostname, recordType, _cts.Token);
             }
@@ -339,6 +359,111 @@ public partial class DnsLookupView : UserControl, IToolView
         }
 
         return sb.ToString().TrimEnd();
+    }
+
+    private void PopulateRouteSelector()
+    {
+        CmbRouteVia.Items.Clear();
+        CmbRouteVia.Items.Add(new ComboBoxItem { Content = L("ToolTunnelDirect") });
+
+        if (_gateways is not null)
+        {
+            foreach (var gw in _gateways)
+            {
+                var label = $"{gw.Name} ({gw.Host}:{gw.Port})";
+                CmbRouteVia.Items.Add(new ComboBoxItem { Content = label, Tag = gw });
+            }
+        }
+
+        CmbRouteVia.SelectedIndex = 0;
+    }
+
+    private void OnRouteViaChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (CmbRouteVia.SelectedItem is ComboBoxItem item && item.Tag is SshGatewayDto gw)
+        {
+            _selectedGateway = gw;
+        }
+        else
+        {
+            _selectedGateway = null;
+        }
+    }
+
+    /// <summary>
+    /// Creates a temporary SSH connection to the selected gateway.
+    /// </summary>
+    private static Renci.SshNet.SshClient ConnectToGateway(SshGatewayDto gateway)
+    {
+        string? password = null;
+        if (!string.IsNullOrEmpty(gateway.SshPasswordEncrypted))
+        {
+            password = CredentialProtector.Unprotect(gateway.SshPasswordEncrypted);
+        }
+
+        var connParams = new SshConnectionParams
+        {
+            Host = gateway.Host,
+            Port = gateway.Port,
+            Username = gateway.User,
+            KeyPath = gateway.KeyPath,
+            Password = password,
+            ConnectTimeout = TimeSpan.FromSeconds(10)
+        };
+
+        var connInfo = SshConnectionFactory.Create(connParams);
+        var client = new Renci.SshNet.SshClient(connInfo);
+        client.Connect();
+        return client;
+    }
+
+    /// <summary>
+    /// Performs a DNS lookup remotely via an SSH gateway using dig or nslookup.
+    /// </summary>
+    private async Task<string> LookupViaTunnelAsync(
+        string hostname, string recordType, string? dnsServer, CancellationToken ct)
+    {
+        return await Task.Run(() =>
+        {
+            using var client = ConnectToGateway(_selectedGateway!);
+            try
+            {
+                // Try dig first (more commonly available on Linux servers)
+                var serverArg = dnsServer is not null ? $"@{dnsServer} " : "";
+                var digCommand = $"dig {serverArg}{hostname} {recordType} +noall +answer 2>/dev/null";
+
+                using var digCmd = client.CreateCommand(digCommand);
+                digCmd.CommandTimeout = TimeSpan.FromSeconds(8);
+                var digResult = digCmd.Execute()?.Trim();
+
+                if (!string.IsNullOrWhiteSpace(digResult))
+                {
+                    return digResult;
+                }
+
+                // Fall back to nslookup
+                var nslookupArgs = dnsServer is not null
+                    ? $"-type={recordType} {hostname} {dnsServer}"
+                    : $"-type={recordType} {hostname}";
+                using var nsCmd = client.CreateCommand($"nslookup {nslookupArgs} 2>&1");
+                nsCmd.CommandTimeout = TimeSpan.FromSeconds(8);
+                var nsResult = nsCmd.Execute()?.Trim();
+
+                if (!string.IsNullOrWhiteSpace(nsResult))
+                {
+                    return ParseNslookupOutput(nsResult, recordType);
+                }
+
+                // Fall back to host command
+                using var hostCmd = client.CreateCommand($"host -t {recordType} {hostname} {dnsServer ?? ""} 2>&1");
+                hostCmd.CommandTimeout = TimeSpan.FromSeconds(8);
+                return hostCmd.Execute()?.Trim() ?? L("ToolDnsNoResults");
+            }
+            finally
+            {
+                try { client.Disconnect(); } catch { /* best effort */ }
+            }
+        }, ct).ConfigureAwait(false);
     }
 
     private void OnCopyResultsClick(object sender, RoutedEventArgs e)

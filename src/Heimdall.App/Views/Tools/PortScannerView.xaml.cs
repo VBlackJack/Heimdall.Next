@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+using System.Collections;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
@@ -22,8 +23,11 @@ using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using Heimdall.Core.Configuration;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Models;
+using Heimdall.Core.Security;
+using Heimdall.Ssh;
 
 namespace Heimdall.App.Views.Tools;
 
@@ -42,6 +46,8 @@ public partial class PortScannerView : UserControl, IToolView
     private CancellationTokenSource? _cts;
     private bool _isScanning;
     private bool _disposed;
+    private List<SshGatewayDto>? _gateways;
+    private SshGatewayDto? _selectedGateway;
 
     private readonly ObservableCollection<PortScanResult> _results = [];
     private readonly List<PortScanResult> _allResults = [];
@@ -100,6 +106,13 @@ public partial class PortScannerView : UserControl, IToolView
             TxtHost.Text = context.TargetHost;
         }
 
+        // Populate SSH gateway selector for tunnel-based scanning
+        if (context?.SshGateways is IList gateways)
+        {
+            _gateways = gateways.Cast<SshGatewayDto>().ToList();
+        }
+        PopulateRouteSelector();
+
         Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, () =>
         {
             TxtHost.Focus();
@@ -144,6 +157,9 @@ public partial class PortScannerView : UserControl, IToolView
         System.Windows.Automation.AutomationProperties.SetName(BtnPresetDatabase, L("ToolPortScanPresetDatabase"));
         System.Windows.Automation.AutomationProperties.SetName(BtnPresetCommon, L("ToolPortScanPresetCommon"));
         System.Windows.Automation.AutomationProperties.SetName(BtnPresetFull, L("ToolPortScanPresetFull"));
+
+        LblRouteVia.Text = L("ToolTunnelRouteVia");
+        System.Windows.Automation.AutomationProperties.SetName(CmbRouteVia, L("ToolTunnelRouteVia"));
 
         BtnHelp.ToolTip = L("ToolHelpTooltip");
         System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
@@ -239,7 +255,25 @@ public partial class PortScannerView : UserControl, IToolView
 
         TxtTotal.Text = ports.Count.ToString();
 
-        var semaphore = new SemaphoreSlim(MaxConcurrent);
+        // Connect to SSH gateway if selected (for tunnel-based scanning)
+        Renci.SshNet.SshClient? tunnelClient = null;
+        if (_selectedGateway is not null)
+        {
+            try
+            {
+                tunnelClient = ConnectToGateway(_selectedGateway);
+            }
+            catch (Exception ex)
+            {
+                Core.Logging.FileLogger.Warn($"PortScanner gateway connection failed: {ex.Message}");
+                TxtError.Text = string.Format(L("ToolTunnelFailed"), ex.Message);
+                TxtError.Visibility = Visibility.Visible;
+                StopScan();
+                return;
+            }
+        }
+
+        var semaphore = new SemaphoreSlim(tunnelClient is not null ? 10 : MaxConcurrent);
         var ct = _cts.Token;
 
         var tasks = ports.Select(async port =>
@@ -248,7 +282,9 @@ public partial class PortScannerView : UserControl, IToolView
             try
             {
                 ct.ThrowIfCancellationRequested();
-                var probeResult = await ProbePortAsync(host, port, ct);
+                var probeResult = tunnelClient is not null
+                    ? await ProbePortViaTunnelAsync(tunnelClient, host, port, ConnectTimeoutMs, ct)
+                    : await ProbePortAsync(host, port, ct);
 
                 await Dispatcher.InvokeAsync(() =>
                 {
@@ -303,6 +339,14 @@ public partial class PortScannerView : UserControl, IToolView
         {
             Core.Logging.FileLogger.Warn($"PortScanner scan failed: {ex.Message}");
         }
+        finally
+        {
+            if (tunnelClient is not null)
+            {
+                try { tunnelClient.Disconnect(); } catch { /* best effort */ }
+                tunnelClient.Dispose();
+            }
+        }
 
         StopScan();
     }
@@ -320,6 +364,100 @@ public partial class PortScannerView : UserControl, IToolView
         TxtHost.IsReadOnly = false;
         TxtPorts.IsReadOnly = false;
         ProgressPanel.Visibility = Visibility.Collapsed;
+    }
+
+    private void PopulateRouteSelector()
+    {
+        CmbRouteVia.Items.Clear();
+        CmbRouteVia.Items.Add(new ComboBoxItem { Content = L("ToolTunnelDirect") });
+
+        if (_gateways is not null)
+        {
+            foreach (var gw in _gateways)
+            {
+                var label = $"{gw.Name} ({gw.Host}:{gw.Port})";
+                CmbRouteVia.Items.Add(new ComboBoxItem { Content = label, Tag = gw });
+            }
+        }
+
+        CmbRouteVia.SelectedIndex = 0;
+    }
+
+    private void OnRouteViaChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (CmbRouteVia.SelectedItem is ComboBoxItem item && item.Tag is SshGatewayDto gw)
+        {
+            _selectedGateway = gw;
+        }
+        else
+        {
+            _selectedGateway = null;
+        }
+    }
+
+    /// <summary>
+    /// Probes a single port remotely via an SSH gateway using /dev/tcp bash built-in.
+    /// Falls back to nc (netcat) if /dev/tcp is unavailable.
+    /// </summary>
+    private static async Task<PortProbeResult> ProbePortViaTunnelAsync(
+        Renci.SshNet.SshClient sshClient, string host, int port, int timeoutMs, CancellationToken ct)
+    {
+        var sw = Stopwatch.StartNew();
+
+        try
+        {
+            var result = await Task.Run(() =>
+            {
+                using var cmd = sshClient.CreateCommand(
+                    $"(echo >/dev/tcp/{host}/{port}) 2>/dev/null && echo OPEN || echo CLOSED");
+                cmd.CommandTimeout = TimeSpan.FromMilliseconds(timeoutMs);
+                cmd.Execute();
+                return cmd.Result?.Trim();
+            }, ct).ConfigureAwait(false);
+
+            sw.Stop();
+            var isOpen = string.Equals(result, "OPEN", StringComparison.OrdinalIgnoreCase);
+            var service = WellKnownServices.GetValueOrDefault(port, "");
+            return new PortProbeResult(port, isOpen, service, isOpen ? $"{sw.ElapsedMilliseconds} ms" : "\u2014", null);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch
+        {
+            sw.Stop();
+            var service = WellKnownServices.GetValueOrDefault(port, "");
+            return new PortProbeResult(port, false, service, "\u2014", null);
+        }
+    }
+
+    /// <summary>
+    /// Creates a temporary SSH connection to the selected gateway.
+    /// The caller is responsible for disconnecting and disposing the client.
+    /// </summary>
+    private static Renci.SshNet.SshClient ConnectToGateway(SshGatewayDto gateway)
+    {
+        string? password = null;
+        if (!string.IsNullOrEmpty(gateway.SshPasswordEncrypted))
+        {
+            password = CredentialProtector.Unprotect(gateway.SshPasswordEncrypted);
+        }
+
+        var connParams = new SshConnectionParams
+        {
+            Host = gateway.Host,
+            Port = gateway.Port,
+            Username = gateway.User,
+            KeyPath = gateway.KeyPath,
+            Password = password,
+            ConnectTimeout = TimeSpan.FromSeconds(10)
+        };
+
+        var connInfo = SshConnectionFactory.Create(connParams);
+        var client = new Renci.SshNet.SshClient(connInfo);
+        client.Connect();
+        return client;
     }
 
     private static async Task<PortProbeResult> ProbePortAsync(string host, int port, CancellationToken ct)

@@ -43,6 +43,15 @@
                              BorderBrush="{DynamicResource BorderBrush}"
                              VerticalAlignment="Center"
 />
+                    <TextBlock x:Name="LblRouteVia" Text=""
+                               FontSize="11" VerticalAlignment="Center" Margin="12,0,4,0"
+                               Foreground="{DynamicResource TextSecondaryBrush}"/>
+                    <ComboBox x:Name="CmbRouteVia" Width="180"
+                              SelectionChanged="OnRouteViaChanged"
+                              Background="{DynamicResource CardBrush}"
+                              Foreground="{DynamicResource TextPrimaryBrush}"
+                              BorderBrush="{DynamicResource BorderBrush}"
+                              VerticalAlignment="Center"/>
                     <Button x:Name="BtnScan" Content=""
                             Click="OnScanClick"
                             Style="{DynamicResource PrimaryButtonStyle}"

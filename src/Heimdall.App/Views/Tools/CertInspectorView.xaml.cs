@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+using System.Collections;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Security.Authentication;
@@ -25,8 +26,11 @@ using System.Windows.Automation;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using Heimdall.Core.Configuration;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Models;
+using Heimdall.Core.Security;
+using Heimdall.Ssh;
 
 namespace Heimdall.App.Views.Tools;
 
@@ -39,6 +43,8 @@ public partial class CertInspectorView : UserControl, IToolView
     private LocalizationManager? _localizer;
     private CancellationTokenSource? _cts;
     private string _lastDetails = string.Empty;
+    private List<SshGatewayDto>? _gateways;
+    private SshGatewayDto? _selectedGateway;
 
     private static readonly TimeSpan ConnectionTimeout = TimeSpan.FromSeconds(10);
     private const int DaysWarningThreshold = 30;
@@ -93,6 +99,13 @@ public partial class CertInspectorView : UserControl, IToolView
             ParseArgument(context.Argument);
         }
 
+        // Populate SSH gateway selector for tunnel-based inspection
+        if (context?.SshGateways is IList gateways)
+        {
+            _gateways = gateways.Cast<SshGatewayDto>().ToList();
+        }
+        PopulateRouteSelector();
+
         Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, () =>
         {
             TxtHost.Focus();
@@ -141,6 +154,9 @@ public partial class CertInspectorView : UserControl, IToolView
         AutomationProperties.SetName(BtnCopy, L("ToolCertBtnCopy"));
 
         BtnCopy.ToolTip = L("ToolBtnCopyToClipboard");
+
+        LblRouteVia.Text = L("ToolTunnelRouteVia");
+        AutomationProperties.SetName(CmbRouteVia, L("ToolTunnelRouteVia"));
 
         BtnHelp.ToolTip = L("ToolHelpTooltip");
         AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
@@ -199,7 +215,28 @@ public partial class CertInspectorView : UserControl, IToolView
 
         try
         {
-            var result = await Task.Run(() => RetrieveCertificate(host, port, _cts.Token), _cts.Token);
+            CertInspectionResult result;
+
+            if (_selectedGateway is not null)
+            {
+                result = await Task.Run(() =>
+                {
+                    using var client = ConnectToGateway(_selectedGateway);
+                    try
+                    {
+                        return RetrieveCertificateViaTunnel(client, host, port, _cts.Token);
+                    }
+                    finally
+                    {
+                        try { client.Disconnect(); } catch { /* best effort */ }
+                    }
+                }, _cts.Token);
+            }
+            else
+            {
+                result = await Task.Run(() => RetrieveCertificate(host, port, _cts.Token), _cts.Token);
+            }
+
             DisplayCertificate(result, host);
         }
         catch (OperationCanceledException)
@@ -210,7 +247,10 @@ public partial class CertInspectorView : UserControl, IToolView
         catch (Exception ex)
         {
             Core.Logging.FileLogger.Warn($"CertInspector certificate retrieval failed: {ex.Message}");
-            TxtError.Text = string.Format(L("ToolCertErrorConnection"), ex.Message);
+            var errorMsg = _selectedGateway is not null
+                ? string.Format(L("ToolTunnelFailed"), ex.Message)
+                : string.Format(L("ToolCertErrorConnection"), ex.Message);
+            TxtError.Text = errorMsg;
             TxtError.Visibility = Visibility.Visible;
         }
         finally
@@ -476,6 +516,124 @@ public partial class CertInspectorView : UserControl, IToolView
             Clipboard.SetText(_lastDetails);
             CopyFeedbackHelper.ShowCopyFeedback(sender as Button);
         }
+    }
+
+    private void PopulateRouteSelector()
+    {
+        CmbRouteVia.Items.Clear();
+        CmbRouteVia.Items.Add(new ComboBoxItem { Content = L("ToolTunnelDirect") });
+
+        if (_gateways is not null)
+        {
+            foreach (var gw in _gateways)
+            {
+                var label = $"{gw.Name} ({gw.Host}:{gw.Port})";
+                CmbRouteVia.Items.Add(new ComboBoxItem { Content = label, Tag = gw });
+            }
+        }
+
+        CmbRouteVia.SelectedIndex = 0;
+    }
+
+    private void OnRouteViaChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (CmbRouteVia.SelectedItem is ComboBoxItem item && item.Tag is SshGatewayDto gw)
+        {
+            _selectedGateway = gw;
+        }
+        else
+        {
+            _selectedGateway = null;
+        }
+    }
+
+    /// <summary>
+    /// Creates a temporary SSH connection to the selected gateway.
+    /// </summary>
+    private static Renci.SshNet.SshClient ConnectToGateway(SshGatewayDto gateway)
+    {
+        string? password = null;
+        if (!string.IsNullOrEmpty(gateway.SshPasswordEncrypted))
+        {
+            password = CredentialProtector.Unprotect(gateway.SshPasswordEncrypted);
+        }
+
+        var connParams = new SshConnectionParams
+        {
+            Host = gateway.Host,
+            Port = gateway.Port,
+            Username = gateway.User,
+            KeyPath = gateway.KeyPath,
+            Password = password,
+            ConnectTimeout = TimeSpan.FromSeconds(10)
+        };
+
+        var connInfo = SshConnectionFactory.Create(connParams);
+        var client = new Renci.SshNet.SshClient(connInfo);
+        client.Connect();
+        return client;
+    }
+
+    /// <summary>
+    /// Retrieves certificate details via an SSH gateway using openssl s_client.
+    /// Parses the remote openssl output into a structured result.
+    /// </summary>
+    private static CertInspectionResult RetrieveCertificateViaTunnel(
+        Renci.SshNet.SshClient sshClient, string host, int port, CancellationToken ct)
+    {
+        var pemOutput = Task.Run(() =>
+        {
+            using var cmd = sshClient.CreateCommand(
+                $"echo | openssl s_client -connect {host}:{port} -servername {host} 2>/dev/null");
+            cmd.CommandTimeout = TimeSpan.FromSeconds(10);
+            cmd.Execute();
+            return cmd.Result ?? string.Empty;
+        }, ct).GetAwaiter().GetResult();
+
+        // Extract PEM certificate block
+        var beginMarker = "-----BEGIN CERTIFICATE-----";
+        var endMarker = "-----END CERTIFICATE-----";
+        var beginIdx = pemOutput.IndexOf(beginMarker, StringComparison.Ordinal);
+        var endIdx = pemOutput.IndexOf(endMarker, StringComparison.Ordinal);
+
+        if (beginIdx < 0 || endIdx < 0)
+        {
+            throw new InvalidOperationException(
+                "No certificate received from the remote host via tunnel.");
+        }
+
+        var pemBlock = pemOutput[beginIdx..(endIdx + endMarker.Length)];
+        var base64 = pemBlock
+            .Replace(beginMarker, "")
+            .Replace(endMarker, "")
+            .Replace("\r", "")
+            .Replace("\n", "");
+        var certBytes = Convert.FromBase64String(base64);
+        var cert = X509CertificateLoader.LoadCertificate(certBytes);
+
+        // Try to get TLS version from the openssl output
+        var tlsProtocol = SslProtocols.None;
+        if (pemOutput.Contains("TLSv1.3", StringComparison.OrdinalIgnoreCase))
+            tlsProtocol = SslProtocols.Tls13;
+        else if (pemOutput.Contains("TLSv1.2", StringComparison.OrdinalIgnoreCase))
+            tlsProtocol = SslProtocols.Tls12;
+
+        // Build chain from the PEM output (may contain multiple certs)
+        var chainElements = new List<ChainCertInfo>();
+        using var chain = new X509Chain();
+        chain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
+        chain.Build(cert);
+
+        foreach (var element in chain.ChainElements)
+        {
+            chainElements.Add(new ChainCertInfo
+            {
+                Subject = element.Certificate.Subject,
+                Expiry = element.Certificate.NotAfter.ToString("yyyy-MM-dd HH:mm:ss UTC")
+            });
+        }
+
+        return new CertInspectionResult(cert, tlsProtocol, chainElements);
     }
 
     private string L(string key) => _localizer?[key] ?? key;
