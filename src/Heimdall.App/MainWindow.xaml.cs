@@ -1060,6 +1060,9 @@ public partial class MainWindow : Window
     {
         return target switch
         {
+            ServerItemViewModel server when server.ConnectionType?.StartsWith(
+                "TOOL:", StringComparison.OrdinalIgnoreCase) == true
+                => CreateToolContextMenu(vm, server),
             ServerItemViewModel server => CreateServerContextMenu(vm, server),
             FolderViewModel folder => CreateFolderContextMenu(vm, folder),
             _ => CreateEmptyAreaContextMenu(vm)
@@ -1126,6 +1129,48 @@ public partial class MainWindow : Window
         deleteItem.Foreground = Application.Current.TryFindResource("ErrorBrush") as Brush
             ?? new System.Windows.Media.SolidColorBrush(Colors.Red);
         menu.Items.Add(deleteItem);
+
+        return menu;
+    }
+
+    /// <summary>
+    /// Builds a context menu specific to tool entries (TOOL:*) in the TreeView.
+    /// Excludes server-specific actions like Connect, Copy Hostname, Wake-on-LAN, External Tools.
+    /// </summary>
+    private ContextMenu CreateToolContextMenu(MainViewModel vm, ServerItemViewModel tool)
+    {
+        var menu = CreateContextMenu();
+
+        // "Open in Tab" — the primary action for tools
+        var openItem = new MenuItem { Header = vm.Localize("TreeCtxOpenToolInTab") };
+        openItem.Click += (_, _) =>
+        {
+            var toolId = tool.ConnectionType!["TOOL:".Length..];
+            vm.TrackRecentTool(toolId.ToUpperInvariant());
+            var context = new Core.Models.ToolContext(
+                TargetHost: tool.RemoteServer,
+                TargetPort: tool.RemotePort > 0 ? tool.RemotePort : null,
+                Argument: tool.RemoteServer);
+            _ = vm.OpenToolTabAsync(toolId, tool.DisplayName, context);
+        };
+        menu.Items.Add(openItem);
+
+        menu.Items.Add(new Separator());
+
+        // Move to Project / Group (tools can be organized just like servers)
+        menu.Items.Add(CreateMoveToProjectMenu(vm, tool));
+        menu.Items.Add(CreateMoveToGroupMenu(vm, tool));
+
+        menu.Items.Add(new Separator());
+
+        // Remove from inventory
+        var removeItem = CreateMenuItem(
+            vm.Localize("TreeCtxRemoveTool"),
+            vm.ServerList.DeleteServerCommand,
+            tool);
+        removeItem.Foreground = Application.Current.TryFindResource("ErrorBrush") as Brush
+            ?? new System.Windows.Media.SolidColorBrush(Colors.Red);
+        menu.Items.Add(removeItem);
 
         return menu;
     }
