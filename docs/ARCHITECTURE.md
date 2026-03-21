@@ -10,7 +10,7 @@
 
 # Architecture
 
-Heimdall.Next is a .NET 10 WPF application organized as a multi-project solution with strict dependency boundaries. Supports RDP, SSH, SFTP, FTP, VNC, Telnet, Citrix, and Local Shell connection types with ~2,889 i18n keys per locale (EN/FR), 31 built-in sysops tools, and 1,212 automated tests. Health monitor polls in parallel (Task.WhenAll), XML importers hardened against XXE, all Debug.WriteLine replaced with FileLogger.
+Heimdall.Next is a .NET 10 WPF application organized as a multi-project solution with strict dependency boundaries. Supports RDP, SSH, SFTP, FTP, VNC, Telnet, Citrix, and Local Shell connection types with ~2,959 i18n keys per locale (EN/FR), 31 built-in sysops tools with contextual help, and 1,213 automated tests. Health monitor polls in parallel (Task.WhenAll), XML importers hardened against XXE, all Debug.WriteLine replaced with FileLogger.
 
 ## Solution Structure
 
@@ -462,6 +462,10 @@ When opening a tool from a server context menu, all available server metadata is
 - **Recent tools**: Last 5 used tools shown at top of palette when opened
 - **Singleton behavior**: Context-free tools (UUID, Password, Chmod) reuse existing tab
 - **External tools**: Also searchable in Ctrl+K palette
+- **Help system**: "?" button on tools shows description, usage instructions, and examples
+- **Detail panel**: Selecting a tool in TreeView shows dedicated panel (name, category, description, "Open in Tab")
+- **Password presets**: Custom presets saved to `config/password-presets.json`, restored on click, deleted via right-click
+- **Protocol colors**: Theme-aware brushes (bright on dark, darker on light) defined per-theme, not globally
 
 ### Tool Categories (31 tools)
 
