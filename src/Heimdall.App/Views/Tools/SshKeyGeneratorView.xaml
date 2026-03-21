@@ -28,10 +28,17 @@
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,0,0,1">
-            <TextBlock x:Name="TitleText"
-                       FontSize="14" FontWeight="SemiBold"
-                       Foreground="{DynamicResource TextPrimaryBrush}"
-                       VerticalAlignment="Center"/>
+            <DockPanel>
+                <Button x:Name="BtnHelp" DockPanel.Dock="Right" Content="?"
+                        Click="OnHelpClick"
+                        Style="{DynamicResource SecondaryButtonStyle}"
+                        Padding="6,2" FontSize="12" FontWeight="Bold"
+                        Width="24" Height="24" Margin="8,0,0,0"/>
+                <TextBlock x:Name="TitleText"
+                           FontSize="14" FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextPrimaryBrush}"
+                           VerticalAlignment="Center"/>
+            </DockPanel>
         </Border>
 
     <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="0">

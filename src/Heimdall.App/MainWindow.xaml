@@ -206,6 +206,32 @@
                                      Tag=""/>
                         </DockPanel>
 
+                        <!-- TOOLS: Expandable panel (above toggle, collapsed by default) -->
+                        <Border x:Name="ToolsQuickPanel" DockPanel.Dock="Bottom"
+                                Background="{DynamicResource SurfaceBrush}"
+                                BorderBrush="{DynamicResource BorderBrush}"
+                                BorderThickness="0,0,0,1"
+                                MaxHeight="300"
+                                Visibility="Collapsed">
+                            <DockPanel>
+                                <DockPanel DockPanel.Dock="Top" Margin="8,6,8,4">
+                                    <TextBlock x:Name="Mw_ToolsPanelTitle" Text=""
+                                               FontSize="12" FontWeight="SemiBold"
+                                               Foreground="{DynamicResource TextPrimaryBrush}"
+                                               VerticalAlignment="Center"/>
+                                    <Button x:Name="BtnCollapseTools" DockPanel.Dock="Right"
+                                            Content="&#xE70D;" FontFamily="Segoe MDL2 Assets"
+                                            Click="OnToggleToolsPanel"
+                                            Style="{DynamicResource ToolbarGhostButtonStyle}"
+                                            Padding="4,4" FontSize="10"
+                                            HorizontalAlignment="Right"/>
+                                </DockPanel>
+                                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="4,0,4,4">
+                                    <StackPanel x:Name="ToolsCategoryStack"/>
+                                </ScrollViewer>
+                            </DockPanel>
+                        </Border>
+
                         <!-- TOOLS: Toggle button (always at bottom) -->
                         <Border DockPanel.Dock="Bottom"
                                 Background="{DynamicResource SurfaceBrush}"
@@ -231,32 +257,6 @@
                                                VerticalAlignment="Center" Margin="4,0,0,0"/>
                                 </StackPanel>
                             </Button>
-                        </Border>
-
-                        <!-- TOOLS: Expandable panel (above toggle, collapsed by default) -->
-                        <Border x:Name="ToolsQuickPanel" DockPanel.Dock="Bottom"
-                                Background="{DynamicResource SurfaceBrush}"
-                                BorderBrush="{DynamicResource BorderBrush}"
-                                BorderThickness="0,1,0,0"
-                                MaxHeight="300"
-                                Visibility="Collapsed">
-                            <DockPanel>
-                                <DockPanel DockPanel.Dock="Top" Margin="8,6,8,4">
-                                    <TextBlock x:Name="Mw_ToolsPanelTitle" Text=""
-                                               FontSize="12" FontWeight="SemiBold"
-                                               Foreground="{DynamicResource TextPrimaryBrush}"
-                                               VerticalAlignment="Center"/>
-                                    <Button x:Name="BtnCollapseTools" DockPanel.Dock="Right"
-                                            Content="&#xE70D;" FontFamily="Segoe MDL2 Assets"
-                                            Click="OnToggleToolsPanel"
-                                            Style="{DynamicResource ToolbarGhostButtonStyle}"
-                                            Padding="4,4" FontSize="10"
-                                            HorizontalAlignment="Right"/>
-                                </DockPanel>
-                                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="4,0,4,4">
-                                    <StackPanel x:Name="ToolsCategoryStack"/>
-                                </ScrollViewer>
-                            </DockPanel>
                         </Border>
 
                         <!-- Hierarchical TreeView (fills remaining space) -->

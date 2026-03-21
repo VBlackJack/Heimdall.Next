@@ -77,6 +77,15 @@ public partial class JsonFormatterView : UserControl, IToolView
         System.Windows.Automation.AutomationProperties.SetName(OutputText, L("ToolJsonOutputLabel"));
 
         BtnCopyOutput.ToolTip = L("ToolBtnCopyToClipboard");
+
+        BtnHelp.ToolTip = L("ToolHelpTooltip");
+        System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
+    }
+
+    private void OnHelpClick(object sender, RoutedEventArgs e)
+    {
+        var helpText = L("ToolHelpJSON");
+        MessageBox.Show(helpText, L("ToolHelpTitle"), MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
     private void OnKeyDown(object sender, KeyEventArgs e)

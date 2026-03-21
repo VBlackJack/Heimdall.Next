@@ -117,6 +117,15 @@ public partial class SshKeyGeneratorView : UserControl, IToolView
         BtnCopyFingerprint.ToolTip = L("ToolBtnCopyToClipboard");
         BtnCopyPublicKey.ToolTip = L("ToolBtnCopyToClipboard");
         BtnCopyPrivateKey.ToolTip = L("ToolBtnCopyToClipboard");
+
+        BtnHelp.ToolTip = L("ToolHelpTooltip");
+        System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
+    }
+
+    private void OnHelpClick(object sender, RoutedEventArgs e)
+    {
+        var helpText = L("ToolHelpSSHKEY");
+        MessageBox.Show(helpText, L("ToolHelpTitle"), MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
     private void OnGenerateClick(object sender, RoutedEventArgs e)
