@@ -40,9 +40,8 @@ public partial class App : System.Windows.Application
     {
         base.OnStartup(e);
 
-        // Show splash screen during initialization
-        var splash = new System.Windows.SplashScreen("Assets/splash-screen.png");
-        splash.Show(autoClose: false);
+        // Show splash screen during initialization (custom window for controlled size)
+        var splash = CreateSplashWindow();
 
         // Register global exception handlers BEFORE any awaits — async void
         // resumes on the dispatcher, so unhandled exceptions from awaited calls
@@ -152,12 +151,48 @@ public partial class App : System.Windows.Application
         // Check for legacy Heimdall installation and offer migration on first run
         await TryMigrateLegacyAsync(configManager, localization);
 
-        // Close splash before showing main window (300ms fade out)
-        splash.Close(TimeSpan.FromMilliseconds(300));
+        // Close splash before showing main window
+        splash.Close();
 
         var mainWindow = _serviceProvider.GetRequiredService<MainWindow>();
         _mainViewModel = mainWindow.DataContext as MainViewModel;
         mainWindow.Show();
+    }
+
+    /// <summary>
+    /// Creates a borderless splash window with the splash image scaled to 600x448
+    /// (preserving the 2400x1792 aspect ratio). Centered on screen, topmost.
+    /// </summary>
+    private static Window CreateSplashWindow()
+    {
+        var splashPath = System.IO.Path.Combine(
+            AppDomain.CurrentDomain.BaseDirectory, "Assets", "splash-screen.png");
+
+        var window = new Window
+        {
+            WindowStyle = WindowStyle.None,
+            AllowsTransparency = true,
+            Background = System.Windows.Media.Brushes.Transparent,
+            WindowStartupLocation = WindowStartupLocation.CenterScreen,
+            Topmost = true,
+            ShowInTaskbar = false,
+            Width = 600,
+            Height = 448,
+            ResizeMode = ResizeMode.NoResize
+        };
+
+        if (System.IO.File.Exists(splashPath))
+        {
+            var bitmap = new System.Windows.Media.Imaging.BitmapImage(new Uri(splashPath));
+            window.Content = new System.Windows.Controls.Image
+            {
+                Source = bitmap,
+                Stretch = System.Windows.Media.Stretch.Uniform
+            };
+        }
+
+        window.Show();
+        return window;
     }
 
     private static void ConfigureServices(IServiceCollection services)
