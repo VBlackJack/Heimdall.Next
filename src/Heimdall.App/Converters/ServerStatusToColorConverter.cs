@@ -25,25 +25,17 @@ namespace Heimdall.App.Converters;
 /// Multi-value converter that merges connection type and connection state into a single
 /// status indicator color. When connected/connecting/error, the state color wins;
 /// when disconnected, the color reflects the connection type (RDP/SSH/SFTP).
-/// All brush instances are frozen for rendering performance.
+/// Brush values are resolved from theme resources so they adapt to Light/Dark themes.
 /// </summary>
 public sealed class ServerStatusToColorConverter : IMultiValueConverter
 {
-    private static readonly SolidColorBrush ConnectedBrush = CreateFrozen("#50FA7B");
-    private static readonly SolidColorBrush ConnectingBrush = CreateFrozen("#FFB86C");
-    private static readonly SolidColorBrush ErrorBrush = CreateFrozen("#FF5555");
-    private static readonly SolidColorBrush RdpBrush = CreateFrozen("#8BE9FD");
-    private static readonly SolidColorBrush SshBrush = CreateFrozen("#50FA7B");
-    private static readonly SolidColorBrush SftpBrush = CreateFrozen("#FFB86C");
-    private static readonly SolidColorBrush DefaultBrush = CreateFrozen("#6272A4");
-
     public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
     {
         if (values.Length < 2
             || values[0] == DependencyProperty.UnsetValue
             || values[1] == DependencyProperty.UnsetValue)
         {
-            return DefaultBrush;
+            return ResolveBrush("BorderBrush", Brushes.Gray);
         }
 
         string connectionType = values[0]?.ToString()?.ToUpperInvariant() ?? string.Empty;
@@ -52,25 +44,25 @@ public sealed class ServerStatusToColorConverter : IMultiValueConverter
         // State-based colors take priority over type-based colors
         return connectionState switch
         {
-            "connected" => ConnectedBrush,
-            "error" => ErrorBrush,
+            "connected" => ResolveBrush("SuccessBrush", Brushes.Green),
+            "error" => ResolveBrush("ErrorBrush", Brushes.Red),
             "initializing" or "validatingconfig" or "establishingtunnel"
                 or "tunnelestablished" or "launchingrdp" or "launchingssh"
                 or "launchingsftp" or "launchingftp" or "launchingvnc"
                 or "launchingtelnet" or "launchinglocal" or "launchingcitrix"
-                or "disconnecting" => ConnectingBrush,
+                or "disconnecting" => ResolveBrush("WarningBrush", Brushes.Orange),
             // Disconnected or unknown: color by connection type
             _ => connectionType switch
             {
-                "RDP" => RdpBrush,
-                "SSH" => SshBrush,
-                "SFTP" => SftpBrush,
-                "FTP" => SftpBrush,
-                "VNC" => RdpBrush,
-                "TELNET" => SshBrush,
-                "CITRIX" => RdpBrush,
-                "LOCAL" => DefaultBrush,
-                _ => DefaultBrush
+                "RDP" => ResolveBrush("InfoBrush", Brushes.Cyan),
+                "SSH" => ResolveBrush("SuccessBrush", Brushes.Green),
+                "SFTP" => ResolveBrush("WarningBrush", Brushes.Orange),
+                "FTP" => ResolveBrush("WarningBrush", Brushes.Orange),
+                "VNC" => ResolveBrush("InfoBrush", Brushes.Cyan),
+                "TELNET" => ResolveBrush("SuccessBrush", Brushes.Green),
+                "CITRIX" => ResolveBrush("InfoBrush", Brushes.Cyan),
+                "LOCAL" => ResolveBrush("BorderBrush", Brushes.Gray),
+                _ => ResolveBrush("BorderBrush", Brushes.Gray)
             }
         };
     }
@@ -78,10 +70,6 @@ public sealed class ServerStatusToColorConverter : IMultiValueConverter
     public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture)
         => [DependencyProperty.UnsetValue, DependencyProperty.UnsetValue];
 
-    private static SolidColorBrush CreateFrozen(string hex)
-    {
-        var brush = new SolidColorBrush((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(hex));
-        brush.Freeze();
-        return brush;
-    }
+    private static Brush ResolveBrush(string resourceKey, Brush fallback)
+        => Application.Current.TryFindResource(resourceKey) as Brush ?? fallback;
 }

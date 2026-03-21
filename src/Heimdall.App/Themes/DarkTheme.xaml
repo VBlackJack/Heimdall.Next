@@ -40,13 +40,13 @@
     <SolidColorBrush x:Key="InfoBrush" Color="{StaticResource InfoColor}"/>
 
     <!-- Protocol accent color brushes (dark theme) -->
-    <SolidColorBrush x:Key="ProtocolRdpBrush" Color="#3B82F6"/>
+    <SolidColorBrush x:Key="ProtocolRdpBrush" Color="#5B9FFF"/>
     <SolidColorBrush x:Key="ProtocolSshBrush" Color="#22C55E"/>
     <SolidColorBrush x:Key="ProtocolSftpBrush" Color="#F59E0B"/>
     <SolidColorBrush x:Key="ProtocolVncBrush" Color="#8BE9FD"/>
     <SolidColorBrush x:Key="ProtocolTelnetBrush" Color="#A0A0B0"/>
     <SolidColorBrush x:Key="ProtocolFtpBrush" Color="#60A5FA"/>
-    <SolidColorBrush x:Key="ProtocolCitrixBrush" Color="#1E40AF"/>
+    <SolidColorBrush x:Key="ProtocolCitrixBrush" Color="#4B6FD1"/>
     <SolidColorBrush x:Key="ProtocolLocalBrush" Color="#BD93F9"/>
 
     <!-- Connection type badge colors (Dracula palette) -->
@@ -64,13 +64,16 @@
     <Color x:Key="JwtSignatureColor">#ED7D31</Color>
     <SolidColorBrush x:Key="JwtSignatureBrush" Color="{StaticResource JwtSignatureColor}"/>
 
+    <!-- Badge text (dark on bright badge backgrounds) -->
+    <SolidColorBrush x:Key="BadgeTextBrush" Color="#282A36"/>
+
     <!-- Overlay and feedback brushes -->
     <SolidColorBrush x:Key="OverlayBackground" Color="#A0000000"/>
     <SolidColorBrush x:Key="DragDropOverlayBackground" Color="#66282A36"/>
     <SolidColorBrush x:Key="BroadcastActiveBrush" Color="#44FF5555"/>
 
     <!-- Scrollbar (Dracula) -->
-    <SolidColorBrush x:Key="ScrollBarThumbBrush" Color="#44475A"/>
+    <SolidColorBrush x:Key="ScrollBarThumbBrush" Color="#6B7282"/>
     <SolidColorBrush x:Key="ScrollBarTrackBrush" Color="#282A36"/>
 
 </ResourceDictionary>

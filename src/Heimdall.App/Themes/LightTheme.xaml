@@ -45,7 +45,7 @@
     <SolidColorBrush x:Key="ProtocolSftpBrush" Color="#D97706"/>
     <SolidColorBrush x:Key="ProtocolVncBrush" Color="#0891B2"/>
     <SolidColorBrush x:Key="ProtocolTelnetBrush" Color="#6B7280"/>
-    <SolidColorBrush x:Key="ProtocolFtpBrush" Color="#2563EB"/>
+    <SolidColorBrush x:Key="ProtocolFtpBrush" Color="#1D4ED8"/>
     <SolidColorBrush x:Key="ProtocolCitrixBrush" Color="#1E3A8A"/>
     <SolidColorBrush x:Key="ProtocolLocalBrush" Color="#7C3AED"/>
 
@@ -63,6 +63,9 @@
     <SolidColorBrush x:Key="JwtPayloadBrush" Color="{StaticResource JwtPayloadColor}"/>
     <Color x:Key="JwtSignatureColor">#C05621</Color>
     <SolidColorBrush x:Key="JwtSignatureBrush" Color="{StaticResource JwtSignatureColor}"/>
+
+    <!-- Badge text (white on dark badge backgrounds) -->
+    <SolidColorBrush x:Key="BadgeTextBrush" Color="#FFFFFF"/>
 
     <!-- Overlay and feedback brushes -->
     <SolidColorBrush x:Key="OverlayBackground" Color="#A0FFFFFF"/>

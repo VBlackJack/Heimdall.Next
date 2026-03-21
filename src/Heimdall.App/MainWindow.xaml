@@ -11,6 +11,8 @@
         Width="1400" Height="900"
         MinWidth="800" MinHeight="600"
         WindowStartupLocation="CenterScreen"
+        FontFamily="Segoe UI"
+        TextOptions.TextFormattingMode="Display"
         Background="{DynamicResource BackgroundBrush}">
 
     <Grid>
@@ -651,7 +653,7 @@
                                                 Converter={StaticResource ConnectionTypeToBrushConverter}}">
                                         <TextBlock Text="{Binding ServerList.SelectedServer.ConnectionType}"
                                                    FontSize="11" FontWeight="SemiBold"
-                                                   Foreground="{DynamicResource BackgroundBrush}"
+                                                   Foreground="{DynamicResource BadgeTextBrush}"
                                                    TextTrimming="CharacterEllipsis"/>
                                     </Border>
                                     <Ellipse Width="8" Height="8" Margin="0,0,6,0"
@@ -711,7 +713,7 @@
                                             Background="{DynamicResource ToolBadgeBrush}">
                                         <TextBlock x:Name="Mw_ToolDetailCategory"
                                                    FontSize="11" FontWeight="SemiBold"
-                                                   Foreground="{DynamicResource BackgroundBrush}"
+                                                   Foreground="{DynamicResource BadgeTextBrush}"
                                                    TextTrimming="CharacterEllipsis"/>
                                     </Border>
                                 </StackPanel>
