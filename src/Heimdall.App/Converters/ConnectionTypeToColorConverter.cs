@@ -52,7 +52,8 @@ public sealed class ConnectionTypeToColorConverter : IValueConverter
             };
         }
 
-        return Application.Current.TryFindResource(resourceKey) as Brush;
+        return Application.Current.TryFindResource(resourceKey) as Brush
+            ?? Brushes.Gray;
     }
 
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
