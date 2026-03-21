@@ -263,7 +263,10 @@ public partial class MainViewModel : ObservableObject
         // Wire server list session events to the connection tab manager
         ServerList.SessionReady += OnSessionReady;
         ServerList.ToolSessionRequested += (toolId, title, ctx) =>
+        {
+            TrackRecentTool(toolId.ToUpperInvariant());
             _ = SafeFireAndForgetAsync(OpenToolTabAsync(toolId, title, ctx));
+        };
         ServerList.StatusMessageRequested += message => StatusText = message;
     }
 
@@ -850,7 +853,10 @@ public partial class MainViewModel : ObservableObject
         {
             var initialResults = new List<ServerItemViewModel>();
 
-            // Show recent tools first (if any)
+            // Show recent servers first
+            initialResults.AddRange(ServerList.Servers.Take(10));
+
+            // Then recent tools at the bottom (if any)
             foreach (var toolId in _recentToolIds)
             {
                 var desc = ToolRegistry.GetById(toolId);
@@ -865,9 +871,6 @@ public partial class MainViewModel : ObservableObject
                     });
                 }
             }
-
-            // Then recent servers
-            initialResults.AddRange(ServerList.Servers.Take(10));
 
             PaletteResults = new ObservableCollection<ServerItemViewModel>(initialResults);
             SelectedPaletteItem = PaletteResults.FirstOrDefault();
@@ -1499,7 +1502,7 @@ public partial class MainViewModel : ObservableObject
         // (e.g., Password Generator, UUID, Chmod). Network tools or tools opened
         // with a specific argument are allowed to have multiple instances.
         var isNetworkTool = ToolRegistry.IsNetworkTool(toolId);
-        var hasContext = context?.TargetHost is not null || context?.Argument is not null;
+        var hasContext = !string.IsNullOrWhiteSpace(context?.TargetHost) || !string.IsNullOrWhiteSpace(context?.Argument);
 
         if (!isNetworkTool && !hasContext)
         {

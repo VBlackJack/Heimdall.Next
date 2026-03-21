@@ -821,13 +821,43 @@ public partial class MainWindow : Window
             vm.ServerList.SelectedServer = server;
 
             var isTool = server.ConnectionType?.StartsWith("TOOL:", StringComparison.OrdinalIgnoreCase) == true;
-            Mw_DetailConnectBtn.Content = vm.Localize(isTool ? "DetailBtnOpen" : "DetailBtnConnect");
-            Mw_DetailHostPort.Visibility = isTool ? Visibility.Collapsed : Visibility.Visible;
+            if (isTool)
+            {
+                ServerDetailPanel.Visibility = Visibility.Collapsed;
+                ToolDetailPanel.Visibility = Visibility.Visible;
+                UpdateToolDetailPanel(vm, server.ConnectionType!);
+            }
+            else
+            {
+                ServerDetailPanel.Visibility = Visibility.Visible;
+                ToolDetailPanel.Visibility = Visibility.Collapsed;
+                Mw_DetailConnectBtn.Content = vm.Localize("DetailBtnConnect");
+                Mw_DetailHostPort.Visibility = Visibility.Visible;
+            }
         }
         else
         {
             vm.ServerList.SelectedServer = null;
         }
+    }
+
+    /// <summary>
+    /// Populates the tool-specific detail panel with name, category, and description.
+    /// </summary>
+    private void UpdateToolDetailPanel(MainViewModel vm, string connectionType)
+    {
+        var toolId = connectionType["TOOL:".Length..];
+        var desc = ToolRegistry.GetById(toolId);
+        if (desc is null) return;
+
+        Mw_ToolDetailName.Text = vm.Localize(desc.LabelKey);
+        Mw_ToolDetailCategory.Text = vm.Localize(desc.CategoryLabelKey);
+
+        var descKey = $"ToolDesc{desc.Id}";
+        var description = vm.Localize(descKey);
+        Mw_ToolDetailDescription.Text = description != descKey ? description : "";
+
+        Mw_ToolDetailOpenBtn.Content = vm.Localize("DetailBtnOpenInTab");
     }
 
     /// <summary>
@@ -1226,6 +1256,7 @@ public partial class MainWindow : Window
                 Padding = new Thickness(8, 3, 8, 3),
                 FontSize = 11
             };
+            System.Windows.Automation.AutomationProperties.SetName(btn, vm.Localize(descriptor.LabelKey));
             btn.Click += OnToolsPanelItemClick;
             ToolsCategoryStack.Children.Add(btn);
         }
