@@ -18,6 +18,8 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Documents;
+using System.Windows.Media;
 using System.Windows.Threading;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Models;
@@ -27,7 +29,7 @@ namespace Heimdall.App.Views.Tools;
 /// <summary>
 /// Real-time regex pattern tester with match listing and group captures.
 /// </summary>
-public partial class RegexTesterView : UserControl, IDisposable
+public partial class RegexTesterView : UserControl, IToolView
 {
     private const int MaxDisplayedMatches = 500;
 
@@ -67,6 +69,12 @@ public partial class RegexTesterView : UserControl, IDisposable
         }
 
         _initialized = true;
+
+        Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, () =>
+        {
+            PatternText.Focus();
+            PatternText.SelectAll();
+        });
     }
 
     private void ApplyLocalization()
@@ -89,6 +97,7 @@ public partial class RegexTesterView : UserControl, IDisposable
         System.Windows.Automation.AutomationProperties.SetName(PatternText, L("ToolRegexPatternLabel"));
         System.Windows.Automation.AutomationProperties.SetName(TestText, L("ToolRegexTestTextLabel"));
         System.Windows.Automation.AutomationProperties.SetName(MatchesList, L("ToolRegexMatchesLabel"));
+        System.Windows.Automation.AutomationProperties.SetName(HighlightDisplay, L("ToolRegexHighlightLabel"));
 
         BtnCopyMatches.ToolTip = L("ToolBtnCopyToClipboard");
     }
@@ -118,6 +127,7 @@ public partial class RegexTesterView : UserControl, IDisposable
     {
         MatchesList.Items.Clear();
         MatchCountText.Text = string.Empty;
+        ClearHighlightDisplay();
 
         var pattern = PatternText.Text;
         var testText = TestText.Text;
@@ -156,6 +166,12 @@ public partial class RegexTesterView : UserControl, IDisposable
             int totalCount = matches.Count;
             MatchCountText.Text = string.Format(L("ToolRegexMatchCount"), totalCount);
 
+            // Build inline highlight display
+            if (totalCount > 0)
+            {
+                BuildHighlightDisplay(testText, matches, regex.GetGroupNames());
+            }
+
             int displayCount = Math.Min(totalCount, MaxDisplayedMatches);
             for (int i = 0; i < displayCount; i++)
             {
@@ -172,7 +188,7 @@ public partial class RegexTesterView : UserControl, IDisposable
                 MatchesList.Items.Add(new ListBoxItem
                 {
                     Content = sb.ToString(),
-                    Foreground = (System.Windows.Media.Brush)FindResource("TextPrimaryBrush"),
+                    Foreground = (Brush)FindResource("TextPrimaryBrush"),
                     FontFamily = new System.Windows.Media.FontFamily("Consolas"),
                     FontSize = 13
                 });
@@ -183,7 +199,7 @@ public partial class RegexTesterView : UserControl, IDisposable
                 MatchesList.Items.Add(new ListBoxItem
                 {
                     Content = string.Format(L("ToolRegexMatchesTruncated"), MaxDisplayedMatches, totalCount),
-                    Foreground = (System.Windows.Media.Brush)FindResource("TextSecondaryBrush"),
+                    Foreground = (Brush)FindResource("TextSecondaryBrush"),
                     FontStyle = FontStyles.Italic,
                     FontSize = 13
                 });
@@ -193,6 +209,93 @@ public partial class RegexTesterView : UserControl, IDisposable
         {
             StatusText.Text = L("ToolRegexStatusTimeout");
         }
+    }
+
+    /// <summary>
+    /// Builds a FlowDocument with highlighted match regions overlaid on the test text.
+    /// Full match uses semi-transparent accent; named capture groups use a distinct color.
+    /// </summary>
+    private void BuildHighlightDisplay(string input, MatchCollection matches, string[] groupNames)
+    {
+        var accentSolid = FindResource("AccentBrush") as SolidColorBrush;
+        var accentColor = accentSolid?.Color ?? Colors.DodgerBlue;
+        var matchBrush = new SolidColorBrush(System.Windows.Media.Color.FromArgb(80, accentColor.R, accentColor.G, accentColor.B));
+        var groupBrush = new SolidColorBrush(System.Windows.Media.Color.FromArgb(100, 255, 165, 0));
+
+        var foregroundBrush = FindResource("TextPrimaryBrush") as Brush ?? System.Windows.SystemColors.ControlTextBrush;
+
+        // Determine whether named groups exist (beyond index-only group names)
+        bool hasNamedGroups = false;
+        foreach (var name in groupNames)
+        {
+            if (!int.TryParse(name, out _))
+            {
+                hasNamedGroups = true;
+                break;
+            }
+        }
+
+        var doc = new FlowDocument
+        {
+            FontFamily = new System.Windows.Media.FontFamily("Consolas"),
+            FontSize = 13,
+            PagePadding = new Thickness(0)
+        };
+        var para = new Paragraph { Margin = new Thickness(0) };
+
+        int lastEnd = 0;
+        foreach (Match m in matches)
+        {
+            // Add unhighlighted segment before this match
+            if (m.Index > lastEnd)
+            {
+                var normalRun = new Run(input[lastEnd..m.Index]) { Foreground = foregroundBrush };
+                para.Inlines.Add(normalRun);
+            }
+
+            // Determine if any named group contributed to this match
+            bool usesNamedGroup = false;
+            if (hasNamedGroups)
+            {
+                foreach (var name in groupNames)
+                {
+                    if (!int.TryParse(name, out _) && m.Groups[name].Success && m.Groups[name].Length > 0)
+                    {
+                        usesNamedGroup = true;
+                        break;
+                    }
+                }
+            }
+
+            var highlightedRun = new Run(m.Value)
+            {
+                Background = usesNamedGroup ? groupBrush : matchBrush,
+                Foreground = foregroundBrush
+            };
+            para.Inlines.Add(highlightedRun);
+
+            lastEnd = m.Index + m.Length;
+        }
+
+        // Add remaining unhighlighted text
+        if (lastEnd < input.Length)
+        {
+            var tailRun = new Run(input[lastEnd..]) { Foreground = foregroundBrush };
+            para.Inlines.Add(tailRun);
+        }
+
+        doc.Blocks.Add(para);
+        HighlightDisplay.Document = doc;
+        HighlightDisplay.Visibility = Visibility.Visible;
+    }
+
+    /// <summary>
+    /// Hides the highlight overlay and resets its document content.
+    /// </summary>
+    private void ClearHighlightDisplay()
+    {
+        HighlightDisplay.Document = new FlowDocument();
+        HighlightDisplay.Visibility = Visibility.Collapsed;
     }
 
     private void OnCopyMatchesClick(object sender, RoutedEventArgs e)

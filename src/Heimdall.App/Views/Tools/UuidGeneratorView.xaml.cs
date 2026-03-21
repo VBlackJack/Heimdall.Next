@@ -15,6 +15,7 @@
  */
 
 using System.Globalization;
+using System.Security.Cryptography;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
@@ -27,7 +28,7 @@ namespace Heimdall.App.Views.Tools;
 /// UUID v4 generator tool with single and batch generation modes.
 /// Supports uppercase and hyphenless formatting options.
 /// </summary>
-public partial class UuidGeneratorView : UserControl, IDisposable
+public partial class UuidGeneratorView : UserControl, IToolView
 {
     private LocalizationManager? _localizer;
     private const int MaxBatchCount = 100;
@@ -73,10 +74,46 @@ public partial class UuidGeneratorView : UserControl, IDisposable
 
         BtnCopy.ToolTip = L("ToolBtnCopyToClipboard");
         BtnCopyBatch.ToolTip = L("ToolBtnCopyToClipboard");
+
+        // Set ComboBox item labels after localizer is available
+        if (CmbVersion.Items[0] is ComboBoxItem v4Item)
+        {
+            v4Item.Content = L("ToolUuidVersionV4");
+        }
+
+        if (CmbVersion.Items[1] is ComboBoxItem v7Item)
+        {
+            v7Item.Content = L("ToolUuidVersionV7");
+        }
+
+        System.Windows.Automation.AutomationProperties.SetName(CmbVersion, L("ToolUuidVersionLabel"));
     }
 
     private void OnGenerateClick(object sender, RoutedEventArgs e) => GenerateSingle();
     private void OnCopyClick(object sender, RoutedEventArgs e) => CopyToClipboard(TxtResult.Text, sender as Button);
+
+    private void OnVersionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        // Update the result label to reflect the selected version
+        if (_localizer is null) return;
+
+        var version = GetSelectedVersion();
+        LblSingleResult.Text = version == 7
+            ? L("ToolUuidResultLabelV7")
+            : L("ToolUuidResultLabel");
+
+        GenerateSingle();
+
+        if (!string.IsNullOrEmpty(TxtBatchResults.Text))
+        {
+            var lines = TxtBatchResults.Text.Split(Environment.NewLine,
+                StringSplitOptions.RemoveEmptyEntries);
+            if (lines.Length > 0)
+            {
+                GenerateBatch(lines.Length);
+            }
+        }
+    }
 
     private void OnFormatChanged(object sender, RoutedEventArgs e)
     {
@@ -116,7 +153,7 @@ public partial class UuidGeneratorView : UserControl, IDisposable
 
     private void GenerateSingle()
     {
-        TxtResult.Text = FormatUuid(Guid.NewGuid());
+        TxtResult.Text = FormatUuid(GenerateUuid());
     }
 
     private void GenerateBatch(int count)
@@ -125,10 +162,55 @@ public partial class UuidGeneratorView : UserControl, IDisposable
         for (var i = 0; i < count; i++)
         {
             if (i > 0) sb.AppendLine();
-            sb.Append(FormatUuid(Guid.NewGuid()));
+            sb.Append(FormatUuid(GenerateUuid()));
         }
 
         TxtBatchResults.Text = sb.ToString();
+    }
+
+    private Guid GenerateUuid()
+    {
+        return GetSelectedVersion() == 7 ? GenerateUuidV7() : Guid.NewGuid();
+    }
+
+    private int GetSelectedVersion()
+    {
+        if (CmbVersion?.SelectedItem is ComboBoxItem item &&
+            item.Tag is string tagStr &&
+            int.TryParse(tagStr, out var version))
+        {
+            return version;
+        }
+
+        return 4;
+    }
+
+    /// <summary>
+    /// Generates a UUID v7 (RFC 9562) with a Unix timestamp in the upper 48 bits,
+    /// version bits set to 0111, variant bits set to 10xx, and cryptographic random fill.
+    /// </summary>
+    private static Guid GenerateUuidV7()
+    {
+        Span<byte> bytes = stackalloc byte[16];
+        RandomNumberGenerator.Fill(bytes);
+
+        // Unix timestamp in milliseconds (48 bits)
+        var unixMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+
+        bytes[0] = (byte)(unixMs >> 40);
+        bytes[1] = (byte)(unixMs >> 32);
+        bytes[2] = (byte)(unixMs >> 24);
+        bytes[3] = (byte)(unixMs >> 16);
+        bytes[4] = (byte)(unixMs >> 8);
+        bytes[5] = (byte)unixMs;
+
+        // Version: set upper nibble of byte 6 to 0111 (7)
+        bytes[6] = (byte)((bytes[6] & 0x0F) | 0x70);
+
+        // Variant: set upper 2 bits of byte 8 to 10
+        bytes[8] = (byte)((bytes[8] & 0x3F) | 0x80);
+
+        return new Guid(bytes, bigEndian: true);
     }
 
     private string FormatUuid(Guid guid)

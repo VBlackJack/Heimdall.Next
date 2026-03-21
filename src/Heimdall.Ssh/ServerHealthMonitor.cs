@@ -87,6 +87,39 @@ public sealed class ServerHealthMonitor : IDisposable
     }
 
     /// <summary>Stops the polling loop.</summary>
+    public async Task StopAsync()
+    {
+        if (_cts is null)
+        {
+            return;
+        }
+
+        try
+        {
+            _cts.Cancel();
+            if (_pollTask is not null)
+            {
+                await _pollTask.WaitAsync(TimeSpan.FromMilliseconds(500))
+                    .ConfigureAwait(false);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Expected from task cancellation
+        }
+        catch (TimeoutException)
+        {
+            // Expected from WaitAsync timeout
+        }
+        finally
+        {
+            _cts.Dispose();
+            _cts = null;
+            _pollTask = null;
+        }
+    }
+
+    /// <summary>Stops the polling loop synchronously (best-effort for Dispose).</summary>
     public void Stop()
     {
         if (_cts is null)

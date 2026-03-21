@@ -30,7 +30,7 @@ namespace Heimdall.App.Views.Tools;
 /// Supports HMAC-SHA256, HMAC-SHA384, HMAC-SHA512, HMAC-SHA1, and HMAC-MD5.
 /// Includes verify mode and show/hide key toggle.
 /// </summary>
-public partial class HmacGeneratorView : UserControl, IDisposable
+public partial class HmacGeneratorView : UserControl, IToolView
 {
     private LocalizationManager? _localizer;
     private DispatcherTimer? _debounceTimer;
@@ -59,6 +59,12 @@ public partial class HmacGeneratorView : UserControl, IDisposable
         {
             TxtInput.Text = context.Argument;
         }
+
+        Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, () =>
+        {
+            TxtInput.Focus();
+            TxtInput.SelectAll();
+        });
     }
 
     private void InitializeAlgorithms()

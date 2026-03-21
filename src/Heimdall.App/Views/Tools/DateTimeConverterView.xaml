@@ -110,7 +110,7 @@
                 <TextBlock x:Name="LblLocalTime" Text=""
                            FontSize="12" Margin="0,0,0,4"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
-                <DockPanel Margin="0,0,0,8">
+                <DockPanel Margin="0,0,0,12">
                     <Button x:Name="BtnCopyLocalTime" DockPanel.Dock="Right"
                             Content="" Click="OnCopyLocalTimeClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
@@ -124,6 +124,40 @@
                              BorderBrush="{DynamicResource BorderBrush}"
                              />
                 </DockPanel>
+
+                <!-- Timezone converter -->
+                <TextBlock x:Name="LblTimezone" Text=""
+                           FontSize="12" Margin="0,0,0,4"
+                           Foreground="{DynamicResource TextSecondaryBrush}"/>
+                <DockPanel Margin="0,0,0,4">
+                    <Button x:Name="BtnCopyTzTime" DockPanel.Dock="Right"
+                            Content="" Click="OnCopyTzTimeClick"
+                            Style="{DynamicResource SecondaryButtonStyle}"
+                            Padding="12,6" Margin="8,0,0,0"
+                            VerticalAlignment="Stretch"/>
+                    <ComboBox x:Name="CmbTimezone" Width="300"
+                              VerticalAlignment="Center" DockPanel.Dock="Left" Margin="0,0,8,0"
+                              Background="{DynamicResource CardBrush}"
+                              Foreground="{DynamicResource TextPrimaryBrush}"
+                              BorderBrush="{DynamicResource BorderBrush}"
+                              SelectionChanged="OnTimezoneChanged"/>
+                    <TextBox x:Name="TxtTzTime" Text=""
+                             FontSize="13" FontFamily="Consolas"
+                             Padding="8,6" IsReadOnly="True"
+                             Background="{DynamicResource CardBrush}"
+                             Foreground="{DynamicResource AccentBrush}"
+                             BorderBrush="{DynamicResource BorderBrush}"
+                             />
+                </DockPanel>
+
+                <!-- Relative time -->
+                <TextBlock x:Name="LblRelativeTime" Text=""
+                           FontSize="12" Margin="0,12,0,4"
+                           Foreground="{DynamicResource TextSecondaryBrush}"/>
+                <TextBlock x:Name="TxtRelativeTime" Text=""
+                           FontSize="13" FontFamily="Consolas"
+                           Foreground="{DynamicResource AccentBrush}"
+                           Margin="0,0,0,8"/>
 
             </StackPanel>
         </ScrollViewer>

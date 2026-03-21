@@ -1,0 +1,343 @@
+<!--
+  Copyright 2026 Julien Bombled
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<UserControl x:Class="Heimdall.App.Views.Tools.CertificateGeneratorView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="{DynamicResource BackgroundBrush}">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Border Grid.Row="0" Padding="12,8"
+                Background="{DynamicResource SurfaceBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="0,0,0,1">
+            <TextBlock x:Name="TitleText"
+                       FontSize="14" FontWeight="SemiBold"
+                       Foreground="{DynamicResource TextPrimaryBrush}"
+                       VerticalAlignment="Center"/>
+        </Border>
+
+    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="0">
+        <Grid Margin="16">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Subject section -->
+            <Border Grid.Row="0" Padding="12"
+                    Background="{DynamicResource SurfaceBrush}"
+                    BorderBrush="{DynamicResource BorderBrush}"
+                    BorderThickness="1" CornerRadius="4"
+                    Margin="0,0,0,12">
+                <StackPanel>
+                    <TextBlock x:Name="SubjectSectionLabel"
+                               Foreground="{DynamicResource TextPrimaryBrush}"
+                               FontWeight="SemiBold" Margin="0,0,0,8"/>
+                    <!-- Common Name -->
+                    <DockPanel Margin="0,0,0,8">
+                        <TextBlock x:Name="CnLabel"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                   VerticalAlignment="Center" Width="160"/>
+                        <TextBox x:Name="CnInput"
+                                 Foreground="{DynamicResource TextPrimaryBrush}"
+                                 Background="{DynamicResource CardBrush}"
+                                 BorderBrush="{DynamicResource BorderBrush}"
+                                 Padding="4,2"/>
+                    </DockPanel>
+                    <!-- Organization -->
+                    <DockPanel Margin="0,0,0,8">
+                        <TextBlock x:Name="OrgLabel"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                   VerticalAlignment="Center" Width="160"/>
+                        <TextBox x:Name="OrgInput"
+                                 Foreground="{DynamicResource TextPrimaryBrush}"
+                                 Background="{DynamicResource CardBrush}"
+                                 BorderBrush="{DynamicResource BorderBrush}"
+                                 Padding="4,2"/>
+                    </DockPanel>
+                    <!-- Country -->
+                    <DockPanel Margin="0,0,0,4">
+                        <TextBlock x:Name="CountryLabel"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                   VerticalAlignment="Center" Width="160"/>
+                        <TextBox x:Name="CountryInput"
+                                 Foreground="{DynamicResource TextPrimaryBrush}"
+                                 Background="{DynamicResource CardBrush}"
+                                 BorderBrush="{DynamicResource BorderBrush}"
+                                 Padding="4,2" MaxLength="2"/>
+                    </DockPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- Options section -->
+            <Border Grid.Row="1" Padding="12"
+                    Background="{DynamicResource SurfaceBrush}"
+                    BorderBrush="{DynamicResource BorderBrush}"
+                    BorderThickness="1" CornerRadius="4"
+                    Margin="0,0,0,12">
+                <StackPanel>
+                    <TextBlock x:Name="OptionsSectionLabel"
+                               Foreground="{DynamicResource TextPrimaryBrush}"
+                               FontWeight="SemiBold" Margin="0,0,0,8"/>
+                    <!-- Key Size -->
+                    <DockPanel Margin="0,0,0,8">
+                        <TextBlock x:Name="KeySizeLabel"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                   VerticalAlignment="Center" Width="160"/>
+                        <ComboBox x:Name="KeySizeCombo"
+                                  SelectedIndex="0"
+                                  MinWidth="200">
+                            <ComboBoxItem Content="RSA 2048"/>
+                            <ComboBoxItem Content="RSA 4096"/>
+                        </ComboBox>
+                    </DockPanel>
+                    <!-- Validity Days -->
+                    <DockPanel Margin="0,0,0,8">
+                        <TextBlock x:Name="ValidityLabel"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                   VerticalAlignment="Center" Width="160"/>
+                        <TextBox x:Name="ValidityInput"
+                                 Text="365"
+                                 Foreground="{DynamicResource TextPrimaryBrush}"
+                                 Background="{DynamicResource CardBrush}"
+                                 BorderBrush="{DynamicResource BorderBrush}"
+                                 Padding="4,2" Width="100"
+                                 HorizontalAlignment="Left"/>
+                    </DockPanel>
+                    <!-- SANs -->
+                    <DockPanel Margin="0,0,0,4">
+                        <TextBlock x:Name="SanLabel"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                   VerticalAlignment="Center" Width="160"/>
+                        <TextBox x:Name="SanInput"
+                                 Foreground="{DynamicResource TextPrimaryBrush}"
+                                 Background="{DynamicResource CardBrush}"
+                                 BorderBrush="{DynamicResource BorderBrush}"
+                                 Padding="4,2"/>
+                    </DockPanel>
+                    <TextBlock x:Name="SanHint"
+                               FontSize="11"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               Margin="160,0,0,0"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Type selector -->
+            <Border Grid.Row="2" Padding="12"
+                    Background="{DynamicResource SurfaceBrush}"
+                    BorderBrush="{DynamicResource BorderBrush}"
+                    BorderThickness="1" CornerRadius="4"
+                    Margin="0,0,0,12">
+                <StackPanel>
+                    <TextBlock x:Name="TypeSectionLabel"
+                               Foreground="{DynamicResource TextPrimaryBrush}"
+                               FontWeight="SemiBold" Margin="0,0,0,8"/>
+                    <StackPanel Orientation="Horizontal">
+                        <RadioButton x:Name="RadioSelfSigned"
+                                     IsChecked="True"
+                                     Foreground="{DynamicResource TextPrimaryBrush}"
+                                     Margin="0,0,20,0"/>
+                        <RadioButton x:Name="RadioCaLeaf"
+                                     Foreground="{DynamicResource TextPrimaryBrush}"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- Generate button -->
+            <Button x:Name="BtnGenerate" Grid.Row="3"
+                    Click="OnGenerateClick"
+                    Style="{DynamicResource PrimaryButtonStyle}"
+                    Padding="16,6" Margin="0,0,0,16"
+                    HorizontalAlignment="Left"/>
+
+            <!-- Fingerprint -->
+            <Border Grid.Row="4" Padding="8"
+                    Background="{DynamicResource SurfaceBrush}"
+                    BorderBrush="{DynamicResource BorderBrush}"
+                    BorderThickness="1" CornerRadius="4"
+                    Margin="0,0,0,12"
+                    Visibility="Collapsed" x:Name="FingerprintPanel">
+                <DockPanel>
+                    <TextBlock x:Name="FingerprintLabel"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               VerticalAlignment="Center" Width="100"
+                               FontWeight="SemiBold"/>
+                    <Button x:Name="BtnCopyFingerprint" DockPanel.Dock="Right"
+                            Click="OnCopyFingerprintClick"
+                            Style="{DynamicResource SecondaryButtonStyle}"
+                            Padding="10,4" Margin="8,0,0,0"
+                            VerticalAlignment="Center"/>
+                    <TextBox x:Name="FingerprintOutput"
+                             IsReadOnly="True"
+                             FontFamily="Consolas" FontSize="12"
+                             Background="Transparent"
+                             Foreground="{DynamicResource TextPrimaryBrush}"
+                             BorderThickness="0"
+                             VerticalAlignment="Center"/>
+                </DockPanel>
+            </Border>
+
+            <!-- Certificate PEM (self-signed) / CA Certificate (CA+Leaf) -->
+            <Border Grid.Row="5" Padding="8"
+                    Background="{DynamicResource SurfaceBrush}"
+                    BorderBrush="{DynamicResource BorderBrush}"
+                    BorderThickness="1" CornerRadius="4"
+                    Margin="0,0,0,12"
+                    Visibility="Collapsed" x:Name="CertPanel">
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,6">
+                        <TextBlock x:Name="CertLabel"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                   FontWeight="SemiBold" VerticalAlignment="Center"/>
+                        <Button x:Name="BtnCopyCert"
+                                Click="OnCopyCertClick"
+                                Style="{DynamicResource SecondaryButtonStyle}"
+                                Padding="10,4" Margin="8,0,0,0"
+                                VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <TextBox x:Name="CertOutput"
+                             IsReadOnly="True"
+                             FontFamily="Consolas" FontSize="12"
+                             TextWrapping="Wrap"
+                             MaxHeight="200"
+                             VerticalScrollBarVisibility="Auto"
+                             Background="Transparent"
+                             Foreground="{DynamicResource TextPrimaryBrush}"
+                             BorderThickness="0"/>
+                </DockPanel>
+            </Border>
+
+            <!-- Private Key -->
+            <Border Grid.Row="6" Padding="8"
+                    Background="{DynamicResource SurfaceBrush}"
+                    BorderBrush="{DynamicResource BorderBrush}"
+                    BorderThickness="1" CornerRadius="4"
+                    Margin="0,0,0,12"
+                    Visibility="Collapsed" x:Name="KeyPanel">
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,6">
+                        <TextBlock x:Name="KeyLabel"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                   FontWeight="SemiBold" VerticalAlignment="Center"/>
+                        <Button x:Name="BtnCopyKey"
+                                Click="OnCopyKeyClick"
+                                Style="{DynamicResource SecondaryButtonStyle}"
+                                Padding="10,4" Margin="8,0,0,0"
+                                VerticalAlignment="Center"/>
+                        <Button x:Name="BtnShowKey"
+                                Click="OnToggleKeyClick"
+                                Style="{DynamicResource SecondaryButtonStyle}"
+                                Padding="10,4" Margin="4,0,0,0"
+                                VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <TextBox x:Name="KeyOutput"
+                             IsReadOnly="True"
+                             FontFamily="Consolas" FontSize="12"
+                             TextWrapping="Wrap"
+                             MaxHeight="200"
+                             VerticalScrollBarVisibility="Auto"
+                             Background="Transparent"
+                             Foreground="{DynamicResource TextPrimaryBrush}"
+                             BorderThickness="0"/>
+                </DockPanel>
+            </Border>
+
+            <!-- Leaf Certificate (CA+Leaf mode only) -->
+            <Border Grid.Row="7" Padding="8"
+                    Background="{DynamicResource SurfaceBrush}"
+                    BorderBrush="{DynamicResource BorderBrush}"
+                    BorderThickness="1" CornerRadius="4"
+                    Margin="0,0,0,12"
+                    Visibility="Collapsed" x:Name="LeafPanel">
+                <StackPanel>
+                    <!-- Leaf Cert -->
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                        <TextBlock x:Name="LeafCertLabel"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                   FontWeight="SemiBold" VerticalAlignment="Center"/>
+                        <Button x:Name="BtnCopyLeafCert"
+                                Click="OnCopyLeafCertClick"
+                                Style="{DynamicResource SecondaryButtonStyle}"
+                                Padding="10,4" Margin="8,0,0,0"
+                                VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <TextBox x:Name="LeafCertOutput"
+                             IsReadOnly="True"
+                             FontFamily="Consolas" FontSize="12"
+                             TextWrapping="Wrap"
+                             MaxHeight="160"
+                             VerticalScrollBarVisibility="Auto"
+                             Background="Transparent"
+                             Foreground="{DynamicResource TextPrimaryBrush}"
+                             BorderThickness="0"
+                             Margin="0,0,0,12"/>
+                    <!-- Leaf Key -->
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                        <TextBlock x:Name="LeafKeyLabel"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                   FontWeight="SemiBold" VerticalAlignment="Center"/>
+                        <Button x:Name="BtnCopyLeafKey"
+                                Click="OnCopyLeafKeyClick"
+                                Style="{DynamicResource SecondaryButtonStyle}"
+                                Padding="10,4" Margin="8,0,0,0"
+                                VerticalAlignment="Center"/>
+                        <Button x:Name="BtnShowLeafKey"
+                                Click="OnToggleLeafKeyClick"
+                                Style="{DynamicResource SecondaryButtonStyle}"
+                                Padding="10,4" Margin="4,0,0,0"
+                                VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <TextBox x:Name="LeafKeyOutput"
+                             IsReadOnly="True"
+                             FontFamily="Consolas" FontSize="12"
+                             TextWrapping="Wrap"
+                             MaxHeight="160"
+                             VerticalScrollBarVisibility="Auto"
+                             Background="Transparent"
+                             Foreground="{DynamicResource TextPrimaryBrush}"
+                             BorderThickness="0"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Export buttons -->
+            <StackPanel Grid.Row="8" Orientation="Horizontal"
+                        Visibility="Collapsed" x:Name="ExportPanel"
+                        Margin="0,0,0,12">
+                <Button x:Name="BtnSavePem"
+                        Click="OnSavePemClick"
+                        Style="{DynamicResource SecondaryButtonStyle}"
+                        Padding="16,6" Margin="0,0,8,0"/>
+                <Button x:Name="BtnSavePfx"
+                        Click="OnSavePfxClick"
+                        Style="{DynamicResource SecondaryButtonStyle}"
+                        Padding="16,6"/>
+            </StackPanel>
+        </Grid>
+    </ScrollViewer>
+    </Grid>
+</UserControl>

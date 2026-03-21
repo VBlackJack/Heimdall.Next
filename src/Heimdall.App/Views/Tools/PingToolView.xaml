@@ -51,6 +51,12 @@
                             Padding="10,6" Margin="4,0,0,0"
                             VerticalAlignment="Center"
 />
+                    <Button x:Name="BtnExportCsv" Content=""
+                            Click="OnExportCsvClick"
+                            Style="{DynamicResource SecondaryButtonStyle}"
+                            Padding="10,6" Margin="4,0,0,0"
+                            VerticalAlignment="Center"
+/>
 
                     <TextBlock Text="  " VerticalAlignment="Center"/>
 
@@ -173,6 +179,14 @@
                            Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,4,0"/>
                 <TextBlock x:Name="TxtMax" Text="—" FontSize="12" FontFamily="Consolas"
                            Foreground="{DynamicResource WarningBrush}" FontWeight="SemiBold"/>
+
+                <TextBlock Text="  |  " FontSize="12"
+                           Foreground="{DynamicResource BorderBrush}"/>
+
+                <TextBlock x:Name="LblJitter" Text="" FontSize="12" FontFamily="Consolas"
+                           Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,4,0"/>
+                <TextBlock x:Name="TxtJitter" Text="—" FontSize="12" FontFamily="Consolas"
+                           Foreground="{DynamicResource TextPrimaryBrush}" FontWeight="SemiBold"/>
 
                 <TextBlock Text="  |  " FontSize="12"
                            Foreground="{DynamicResource BorderBrush}"/>

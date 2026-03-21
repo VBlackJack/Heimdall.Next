@@ -113,9 +113,10 @@ public sealed class CommandCredentialProvider : ICredentialProvider
 
             if (process.ExitCode != 0)
             {
-                var stderr = await process.StandardError.ReadToEndAsync(ct).ConfigureAwait(false);
+                // Log only exit code — stderr may contain credential fragments from
+                // the external tool and must not be persisted to log files.
                 Logging.FileLogger.Warn(
-                    $"CommandCredentialProvider: command exited with code {process.ExitCode}: {stderr.Trim()}");
+                    $"CommandCredentialProvider: command exited with code {process.ExitCode}");
                 return null;
             }
 

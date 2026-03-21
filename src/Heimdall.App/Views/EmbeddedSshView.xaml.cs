@@ -711,7 +711,7 @@ public partial class EmbeddedSshView : UserControl, IDisposable
                     {
                         FileName = uri.AbsoluteUri,
                         UseShellExecute = true
-                    });
+                    })?.Dispose();
                 }
                 catch (Exception ex)
                 {

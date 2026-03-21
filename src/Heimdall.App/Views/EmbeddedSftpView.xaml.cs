@@ -1406,7 +1406,7 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
         try
         {
             // -la = long format + hidden files, --time-style=long-iso for consistent date format
-            var cmd = await Task.Run(() =>
+            using var cmd = await Task.Run(() =>
                 ssh.RunCommand($"sudo ls -la --time-style=long-iso {escaped}"))
                 .ConfigureAwait(false);
 
@@ -1489,7 +1489,7 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
         using var ssh = await CreateSudoSshClientAsync(ct);
         try
         {
-            var cmd = await Task.Run(() => ssh.RunCommand(command), ct).ConfigureAwait(false);
+            using var cmd = await Task.Run(() => ssh.RunCommand(command), ct).ConfigureAwait(false);
             if (cmd.ExitStatus != 0)
                 throw new InvalidOperationException($"Command failed (exit {cmd.ExitStatus}): {cmd.Error}");
         }
@@ -1510,7 +1510,7 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
 
         try
         {
-            var cmd = await Task.Run(() => ssh.RunCommand($"sudo cat {escaped}"), ct)
+            using var cmd = await Task.Run(() => ssh.RunCommand($"sudo cat {escaped}"), ct)
                 .ConfigureAwait(false);
 
             if (cmd.ExitStatus != 0)
@@ -1545,7 +1545,7 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
         try
         {
             var escapedTemp = Heimdall.Sftp.PathEscaper.EscapeForShell(tempRemote);
-            var cmd = await Task.Run(() =>
+            using var cmd = await Task.Run(() =>
                 ssh.RunCommand($"cat {escapedTemp} | sudo tee -- {escaped} > /dev/null && sudo rm -f {escapedTemp}"),
                 ct).ConfigureAwait(false);
 

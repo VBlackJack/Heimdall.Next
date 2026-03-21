@@ -27,7 +27,7 @@ namespace Heimdall.App.Views.Tools;
 /// Visual cron expression builder with bidirectional editing and human-readable preview.
 /// Supports standard 5-field cron format (minute, hour, day-of-month, month, day-of-week).
 /// </summary>
-public partial class CrontabBuilderView : UserControl, IDisposable
+public partial class CrontabBuilderView : UserControl, IToolView
 {
     private LocalizationManager? _localizer;
     private bool _initialized;

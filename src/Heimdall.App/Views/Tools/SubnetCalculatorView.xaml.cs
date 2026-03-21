@@ -15,6 +15,8 @@
  */
 
 using System.Net;
+using System.Net.Sockets;
+using System.Numerics;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -24,9 +26,9 @@ using Heimdall.Core.Models;
 namespace Heimdall.App.Views.Tools;
 
 /// <summary>
-/// IPv4 subnet calculator tool that displays network information for a given CIDR notation.
+/// IPv4/IPv6 subnet calculator tool that displays network information for a given CIDR notation.
 /// </summary>
-public partial class SubnetCalculatorView : UserControl, IDisposable
+public partial class SubnetCalculatorView : UserControl, IToolView
 {
     private LocalizationManager? _localizer;
     private bool _initialized;
@@ -56,6 +58,12 @@ public partial class SubnetCalculatorView : UserControl, IDisposable
 
         _initialized = true;
         Calculate();
+
+        Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, () =>
+        {
+            TxtCidrInput.Focus();
+            TxtCidrInput.SelectAll();
+        });
     }
 
     private void ApplyLocalization()
@@ -120,15 +128,31 @@ public partial class SubnetCalculatorView : UserControl, IDisposable
             return;
         }
 
-        if (!TryParseCidr(input, out var address, out var prefixLength))
+        if (!TryParseCidr(input, out var address, out var prefixLength, out var maxPrefix))
         {
             TxtError.Text = L("ToolSubnetErrorInvalidCidr");
             TxtError.Visibility = Visibility.Visible;
             return;
         }
 
+        bool isIpv6 = address!.AddressFamily == AddressFamily.InterNetworkV6;
+
+        if (isIpv6)
+        {
+            CalculateIpv6(address, prefixLength);
+        }
+        else
+        {
+            CalculateIpv4(address, prefixLength);
+        }
+
+        ResultsPanel.Visibility = Visibility.Visible;
+    }
+
+    private void CalculateIpv4(IPAddress address, int prefixLength)
+    {
         var maskBytes = PrefixToMask(prefixLength);
-        var ipBytes = address!.GetAddressBytes();
+        var ipBytes = address.GetAddressBytes();
 
         // Network address = IP AND mask
         var networkBytes = new byte[4];
@@ -180,24 +204,146 @@ public partial class SubnetCalculatorView : UserControl, IDisposable
         TxtCidr.Text = $"{new IPAddress(networkBytes)}/{prefixLength}";
         TxtWildcard.Text = new IPAddress(wildcardBytes).ToString();
 
-        ResultsPanel.Visibility = Visibility.Visible;
+        // Show IPv4-specific rows
+        LblBroadcast.Visibility = Visibility.Visible;
+        TxtBroadcast.Visibility = Visibility.Visible;
+        BtnCopyBroadcast.Visibility = Visibility.Visible;
+        LblSubnetMask.Visibility = Visibility.Visible;
+        TxtSubnetMask.Visibility = Visibility.Visible;
+        BtnCopyMask.Visibility = Visibility.Visible;
+        LblWildcard.Visibility = Visibility.Visible;
+        TxtWildcard.Visibility = Visibility.Visible;
+        BtnCopyWildcard.Visibility = Visibility.Visible;
     }
 
-    private static bool TryParseCidr(string input, out IPAddress? address, out int prefixLength)
+    private void CalculateIpv6(IPAddress address, int prefixLength)
+    {
+        var ipBytes = address.GetAddressBytes();
+        const int byteLen = 16;
+
+        // Build mask bytes
+        var maskBytes = new byte[byteLen];
+        for (int i = 0; i < byteLen; i++)
+        {
+            int bitsInByte = Math.Max(0, Math.Min(8, prefixLength - i * 8));
+            maskBytes[i] = (byte)(0xFF << (8 - bitsInByte));
+        }
+
+        // Network address = IP AND mask
+        var networkBytes = new byte[byteLen];
+        for (int i = 0; i < byteLen; i++)
+        {
+            networkBytes[i] = (byte)(ipBytes[i] & maskBytes[i]);
+        }
+
+        // Last address = network OR ~mask
+        var lastBytes = new byte[byteLen];
+        for (int i = 0; i < byteLen; i++)
+        {
+            lastBytes[i] = (byte)(networkBytes[i] | (byte)~maskBytes[i]);
+        }
+
+        // First host = network + 1
+        var firstHostBytes = (byte[])networkBytes.Clone();
+        IncrementIpv6Bytes(firstHostBytes);
+
+        // Last host = last - 1
+        var lastHostBytes = (byte[])lastBytes.Clone();
+        DecrementIpv6Bytes(lastHostBytes);
+
+        // Total hosts
+        int hostBits = 128 - prefixLength;
+        string totalHostsDisplay;
+        if (prefixLength == 128)
+        {
+            totalHostsDisplay = "1";
+        }
+        else if (prefixLength == 127)
+        {
+            totalHostsDisplay = "2";
+        }
+        else if (hostBits > 64)
+        {
+            totalHostsDisplay = L("ToolSubnetIpv6TooManyHosts");
+        }
+        else
+        {
+            // For hostBits <= 64, compute (2^hostBits - 2)
+            var total = (BigInteger.One << hostBits) - 2;
+            totalHostsDisplay = total.ToString("N0");
+        }
+
+        TxtNetwork.Text = new IPAddress(networkBytes).ToString();
+        TxtFirstHost.Text = new IPAddress(firstHostBytes).ToString();
+        TxtLastHost.Text = new IPAddress(lastHostBytes).ToString();
+        TxtTotalHosts.Text = totalHostsDisplay;
+        TxtCidr.Text = $"{new IPAddress(networkBytes)}/{prefixLength}";
+
+        // Hide IPv4-specific rows
+        LblBroadcast.Visibility = Visibility.Collapsed;
+        TxtBroadcast.Visibility = Visibility.Collapsed;
+        BtnCopyBroadcast.Visibility = Visibility.Collapsed;
+        LblSubnetMask.Visibility = Visibility.Collapsed;
+        TxtSubnetMask.Visibility = Visibility.Collapsed;
+        BtnCopyMask.Visibility = Visibility.Collapsed;
+        LblWildcard.Visibility = Visibility.Collapsed;
+        TxtWildcard.Visibility = Visibility.Collapsed;
+        BtnCopyWildcard.Visibility = Visibility.Collapsed;
+
+        TxtBroadcast.Text = string.Empty;
+        TxtSubnetMask.Text = string.Empty;
+        TxtWildcard.Text = string.Empty;
+    }
+
+    private static void IncrementIpv6Bytes(byte[] bytes)
+    {
+        for (int i = bytes.Length - 1; i >= 0; i--)
+        {
+            if (bytes[i] < 0xFF)
+            {
+                bytes[i]++;
+                return;
+            }
+            bytes[i] = 0;
+        }
+    }
+
+    private static void DecrementIpv6Bytes(byte[] bytes)
+    {
+        for (int i = bytes.Length - 1; i >= 0; i--)
+        {
+            if (bytes[i] > 0)
+            {
+                bytes[i]--;
+                return;
+            }
+            bytes[i] = 0xFF;
+        }
+    }
+
+    private static bool TryParseCidr(string input, out IPAddress? address, out int prefixLength, out int maxPrefix)
     {
         address = null;
         prefixLength = 0;
+        maxPrefix = 32;
 
         var parts = input.Split('/');
         if (parts.Length == 1)
         {
-            // Bare IP address defaults to /32
+            // Bare IP address
             if (!IPAddress.TryParse(parts[0], out address))
             {
                 return false;
             }
 
-            if (address.AddressFamily != System.Net.Sockets.AddressFamily.InterNetwork)
+            if (address.AddressFamily == AddressFamily.InterNetworkV6)
+            {
+                maxPrefix = 128;
+                prefixLength = 128;
+                return true;
+            }
+
+            if (address.AddressFamily != AddressFamily.InterNetwork)
             {
                 return false;
             }
@@ -216,12 +362,16 @@ public partial class SubnetCalculatorView : UserControl, IDisposable
             return false;
         }
 
-        if (address.AddressFamily != System.Net.Sockets.AddressFamily.InterNetwork)
+        if (address.AddressFamily == AddressFamily.InterNetworkV6)
+        {
+            maxPrefix = 128;
+        }
+        else if (address.AddressFamily != AddressFamily.InterNetwork)
         {
             return false;
         }
 
-        if (!int.TryParse(parts[1], out prefixLength) || prefixLength < 0 || prefixLength > 32)
+        if (!int.TryParse(parts[1], out prefixLength) || prefixLength < 0 || prefixLength > maxPrefix)
         {
             return false;
         }

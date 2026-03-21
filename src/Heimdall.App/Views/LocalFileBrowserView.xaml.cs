@@ -332,7 +332,7 @@ public partial class LocalFileBrowserView : UserControl
         {
             try
             {
-                Process.Start(new ProcessStartInfo { FileName = entry.FullPath, UseShellExecute = true });
+                Process.Start(new ProcessStartInfo { FileName = entry.FullPath, UseShellExecute = true })?.Dispose();
             }
             catch (Exception ex) { Core.Logging.FileLogger.Warn($"[LocalFileBrowser] file open: {ex.Message}"); }
         }
@@ -360,7 +360,7 @@ public partial class LocalFileBrowserView : UserControl
                 FileName = "rundll32.exe",
                 Arguments = $"shell32.dll,OpenAs_RunDLL \"{entry.FullPath}\"",
                 UseShellExecute = false
-            });
+            })?.Dispose();
         }
         catch (Exception ex)
         {
@@ -381,11 +381,11 @@ public partial class LocalFileBrowserView : UserControl
                     {
                         FileName = "explorer.exe",
                         Arguments = $"/select,\"{entry.FullPath}\""
-                    });
+                    })?.Dispose();
                 }
                 else
                 {
-                    Process.Start(new ProcessStartInfo { FileName = "explorer.exe", Arguments = $"\"{entry.FullPath}\"" });
+                    Process.Start(new ProcessStartInfo { FileName = "explorer.exe", Arguments = $"\"{entry.FullPath}\"" })?.Dispose();
                 }
             }
             catch (Exception ex) { Core.Logging.FileLogger.Warn($"[LocalFileBrowser] open in Explorer: {ex.Message}"); }
@@ -394,7 +394,7 @@ public partial class LocalFileBrowserView : UserControl
         {
             try
             {
-                Process.Start(new ProcessStartInfo { FileName = "explorer.exe", Arguments = $"\"{_currentPath}\"" });
+                Process.Start(new ProcessStartInfo { FileName = "explorer.exe", Arguments = $"\"{_currentPath}\"" })?.Dispose();
             }
             catch (Exception ex) { Core.Logging.FileLogger.Warn($"[LocalFileBrowser] open Explorer: {ex.Message}"); }
         }
@@ -429,7 +429,7 @@ public partial class LocalFileBrowserView : UserControl
                 FileName = editorPath,
                 Arguments = $"\"{entry.FullPath}\"",
                 UseShellExecute = false
-            });
+            })?.Dispose();
         }
         catch (Exception ex)
         {

@@ -106,7 +106,7 @@ public class LocalizationManager
                 $"Locale file not found: {filePath}", filePath);
         }
 
-        var json = await File.ReadAllTextAsync(filePath);
+        var json = await File.ReadAllTextAsync(filePath).ConfigureAwait(false);
         var parsed = JsonSerializer.Deserialize<Dictionary<string, string>>(json, JsonOptions);
 
         _strings = parsed ?? new Dictionary<string, string>();
@@ -127,7 +127,7 @@ public class LocalizationManager
                 "Cannot switch locale before initial load. Call LoadAsync first.");
         }
 
-        await LoadAsync(_localesPath, locale);
+        await LoadAsync(_localesPath, locale).ConfigureAwait(false);
         LocaleChanged?.Invoke(locale);
     }
 

@@ -14,9 +14,11 @@
  * limitations under the License.
  */
 
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Windows;
+using System.Windows.Automation;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Threading;
@@ -29,7 +31,7 @@ namespace Heimdall.App.Views.Tools;
 /// JWT parser tool that decodes and displays the header, payload, and signature
 /// of a JSON Web Token with color-coded sections and expiration status.
 /// </summary>
-public partial class JwtParserView : UserControl, IDisposable
+public partial class JwtParserView : UserControl, IToolView
 {
     private LocalizationManager? _localizer;
     private DispatcherTimer? _debounceTimer;
@@ -57,6 +59,12 @@ public partial class JwtParserView : UserControl, IDisposable
         {
             TxtInput.Text = context.Argument;
         }
+
+        Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, () =>
+        {
+            TxtInput.Focus();
+            TxtInput.SelectAll();
+        });
     }
 
     private void InitializeDebounceTimer()
@@ -86,11 +94,17 @@ public partial class JwtParserView : UserControl, IDisposable
         BtnCopyHeader.ToolTip = L("ToolBtnCopyToClipboard");
         BtnCopyPayload.ToolTip = L("ToolBtnCopyToClipboard");
         BtnCopySignature.ToolTip = L("ToolBtnCopyToClipboard");
+        LblVerifyTitle.Text = L("ToolJwtVerifyHmacTitle");
+        LblSecret.Text = L("ToolJwtSecretLabel");
+        BtnVerify.Content = L("ToolJwtBtnVerify");
+        TxtUnsupportedAlg.Text = L("ToolJwtUnsupportedAlg");
 
-        System.Windows.Automation.AutomationProperties.SetName(TxtInput, L("ToolJwtInputLabel"));
-        System.Windows.Automation.AutomationProperties.SetName(TxtHeader, L("ToolJwtHeaderLabel"));
-        System.Windows.Automation.AutomationProperties.SetName(TxtPayload, L("ToolJwtPayloadLabel"));
-        System.Windows.Automation.AutomationProperties.SetName(TxtSignature, L("ToolJwtSignatureLabel"));
+        AutomationProperties.SetName(TxtInput, L("ToolJwtInputLabel"));
+        AutomationProperties.SetName(TxtHeader, L("ToolJwtHeaderLabel"));
+        AutomationProperties.SetName(TxtPayload, L("ToolJwtPayloadLabel"));
+        AutomationProperties.SetName(TxtSignature, L("ToolJwtSignatureLabel"));
+        AutomationProperties.SetName(TxtSecret, L("ToolJwtSecretLabel"));
+        AutomationProperties.SetName(BtnVerify, L("ToolJwtBtnVerify"));
     }
 
     private void OnInputTextChanged(object sender, TextChangedEventArgs e)
@@ -135,6 +149,7 @@ public partial class JwtParserView : UserControl, IDisposable
 
             TxtError.Visibility = Visibility.Collapsed;
             UpdateExpirationStatus(payloadJson);
+            UpdateVerifySection(headerJson);
         }
         catch (Exception ex)
         {
@@ -157,18 +172,20 @@ public partial class JwtParserView : UserControl, IDisposable
 
                 if (expTime < now)
                 {
-                    ExpirationBorder.Background = new SolidColorBrush(System.Windows.Media.Color.FromArgb(40, 255, 80, 80));
-                    ExpirationBorder.BorderBrush = new SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 80, 80));
+                    var errorBrush = (SolidColorBrush)FindResource("ErrorBrush");
+                    ExpirationBorder.Background = new SolidColorBrush(System.Windows.Media.Color.FromArgb(40, errorBrush.Color.R, errorBrush.Color.G, errorBrush.Color.B));
+                    ExpirationBorder.BorderBrush = errorBrush;
                     ExpirationBorder.BorderThickness = new Thickness(1);
-                    TxtExpiration.Foreground = new SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 80, 80));
+                    TxtExpiration.Foreground = errorBrush;
                     TxtExpiration.Text = string.Format(L("ToolJwtExpired"), expTime.ToLocalTime().ToString("F"));
                 }
                 else
                 {
-                    ExpirationBorder.Background = new SolidColorBrush(System.Windows.Media.Color.FromArgb(40, 80, 200, 80));
-                    ExpirationBorder.BorderBrush = new SolidColorBrush(System.Windows.Media.Color.FromRgb(80, 200, 80));
+                    var successBrush = (SolidColorBrush)FindResource("SuccessBrush");
+                    ExpirationBorder.Background = new SolidColorBrush(System.Windows.Media.Color.FromArgb(40, successBrush.Color.R, successBrush.Color.G, successBrush.Color.B));
+                    ExpirationBorder.BorderBrush = successBrush;
                     ExpirationBorder.BorderThickness = new Thickness(1);
-                    TxtExpiration.Foreground = new SolidColorBrush(System.Windows.Media.Color.FromRgb(80, 200, 80));
+                    TxtExpiration.Foreground = successBrush;
                     TxtExpiration.Text = string.Format(L("ToolJwtValid"), expTime.ToLocalTime().ToString("F"));
                 }
 
@@ -176,10 +193,11 @@ public partial class JwtParserView : UserControl, IDisposable
             }
             else
             {
-                ExpirationBorder.Background = new SolidColorBrush(System.Windows.Media.Color.FromArgb(40, 180, 180, 180));
-                ExpirationBorder.BorderBrush = new SolidColorBrush(System.Windows.Media.Color.FromRgb(180, 180, 180));
+                var secondaryBrush = (SolidColorBrush)FindResource("TextSecondaryBrush");
+                ExpirationBorder.Background = new SolidColorBrush(System.Windows.Media.Color.FromArgb(40, secondaryBrush.Color.R, secondaryBrush.Color.G, secondaryBrush.Color.B));
+                ExpirationBorder.BorderBrush = secondaryBrush;
                 ExpirationBorder.BorderThickness = new Thickness(1);
-                TxtExpiration.Foreground = new SolidColorBrush(System.Windows.Media.Color.FromRgb(180, 180, 180));
+                TxtExpiration.Foreground = secondaryBrush;
                 TxtExpiration.Text = L("ToolJwtNoExpiry");
                 ExpirationBorder.Visibility = Visibility.Visible;
             }
@@ -237,6 +255,8 @@ public partial class JwtParserView : UserControl, IDisposable
         TxtPayload.Text = string.Empty;
         TxtSignature.Text = string.Empty;
         ExpirationBorder.Visibility = Visibility.Collapsed;
+        VerifySection.Visibility = Visibility.Collapsed;
+        TxtVerifyResult.Visibility = Visibility.Collapsed;
     }
 
     private void ShowError(string message)
@@ -267,6 +287,121 @@ public partial class JwtParserView : UserControl, IDisposable
             Clipboard.SetText(text);
             CopyFeedbackHelper.ShowCopyFeedback(btn);
         }
+    }
+
+    private void UpdateVerifySection(string headerJson)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(headerJson);
+            if (doc.RootElement.TryGetProperty("alg", out var algElement))
+            {
+                var alg = algElement.GetString() ?? string.Empty;
+
+                if (alg is "HS256" or "HS384" or "HS512")
+                {
+                    VerifySection.Visibility = Visibility.Visible;
+                    HmacVerifyPanel.Visibility = Visibility.Visible;
+                    TxtUnsupportedAlg.Visibility = Visibility.Collapsed;
+                    TxtVerifyResult.Visibility = Visibility.Collapsed;
+                }
+                else if (alg.StartsWith("RS", StringComparison.Ordinal) ||
+                         alg.StartsWith("ES", StringComparison.Ordinal) ||
+                         alg.StartsWith("PS", StringComparison.Ordinal))
+                {
+                    VerifySection.Visibility = Visibility.Visible;
+                    HmacVerifyPanel.Visibility = Visibility.Collapsed;
+                    TxtUnsupportedAlg.Visibility = Visibility.Visible;
+                }
+                else
+                {
+                    VerifySection.Visibility = Visibility.Collapsed;
+                }
+            }
+            else
+            {
+                VerifySection.Visibility = Visibility.Collapsed;
+            }
+        }
+        catch
+        {
+            VerifySection.Visibility = Visibility.Collapsed;
+        }
+    }
+
+    private void OnVerifyClick(object sender, RoutedEventArgs e)
+    {
+        var input = TxtInput.Text?.Trim();
+        var secret = TxtSecret.Text;
+
+        if (string.IsNullOrEmpty(input) || string.IsNullOrEmpty(secret))
+        {
+            return;
+        }
+
+        VerifyHmacSignature(input, secret);
+    }
+
+    private void VerifyHmacSignature(string jwt, string secret)
+    {
+        var parts = jwt.Split('.');
+        if (parts.Length != 3) return;
+
+        var headerJson = DecodeBase64Url(parts[0]);
+        if (headerJson is null) return;
+
+        string? alg;
+        try
+        {
+            using var doc = JsonDocument.Parse(headerJson);
+            alg = doc.RootElement.TryGetProperty("alg", out var algElement)
+                ? algElement.GetString()
+                : null;
+        }
+        catch
+        {
+            return;
+        }
+
+        var payload = parts[0] + "." + parts[1];
+        var signature = parts[2];
+
+        var key = Encoding.UTF8.GetBytes(secret);
+        var inputBytes = Encoding.UTF8.GetBytes(payload);
+
+        using var hmac = alg switch
+        {
+            "HS256" => (HMAC)new HMACSHA256(key),
+            "HS384" => new HMACSHA384(key),
+            "HS512" => new HMACSHA512(key),
+            _ => null
+        };
+
+        if (hmac is null) return;
+
+        var computed = Base64UrlEncode(hmac.ComputeHash(inputBytes));
+        var isValid = string.Equals(computed, signature, StringComparison.Ordinal);
+
+        TxtVerifyResult.Visibility = Visibility.Visible;
+
+        if (isValid)
+        {
+            TxtVerifyResult.Text = "\u2714 " + L("ToolJwtSignatureValid");
+            TxtVerifyResult.Foreground = (Brush)FindResource("SuccessBrush");
+        }
+        else
+        {
+            TxtVerifyResult.Text = "\u2716 " + L("ToolJwtSignatureInvalid");
+            TxtVerifyResult.Foreground = (Brush)FindResource("ErrorBrush");
+        }
+    }
+
+    private static string Base64UrlEncode(byte[] bytes)
+    {
+        return Convert.ToBase64String(bytes)
+            .TrimEnd('=')
+            .Replace('+', '-')
+            .Replace('/', '_');
     }
 
     private string L(string key) => _localizer?[key] ?? key;

@@ -27,15 +27,17 @@ namespace Heimdall.App.Views.Tools;
 /// DateTime converter tool that converts between Unix timestamps and ISO 8601 datetime strings.
 /// Displays results in both UTC and local time.
 /// </summary>
-public partial class DateTimeConverterView : UserControl, IDisposable
+public partial class DateTimeConverterView : UserControl, IToolView
 {
     private LocalizationManager? _localizer;
     private DispatcherTimer? _debounceTimer;
+    private DateTimeOffset? _lastParsedDto;
 
     public DateTimeConverterView()
     {
         InitializeComponent();
         InitializeDebounceTimer();
+        PopulateTimezones();
     }
 
     /// <summary>
@@ -50,6 +52,12 @@ public partial class DateTimeConverterView : UserControl, IDisposable
         {
             TxtInput.Text = context.Argument;
         }
+
+        Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, () =>
+        {
+            TxtInput.Focus();
+            TxtInput.SelectAll();
+        });
     }
 
     private void InitializeDebounceTimer()
@@ -65,6 +73,28 @@ public partial class DateTimeConverterView : UserControl, IDisposable
         };
     }
 
+    private void PopulateTimezones()
+    {
+        foreach (var tz in TimeZoneInfo.GetSystemTimeZones())
+        {
+            CmbTimezone.Items.Add(new ComboBoxItem
+            {
+                Content = tz.DisplayName,
+                Tag = tz.Id,
+            });
+        }
+
+        // Select UTC by default
+        for (int i = 0; i < CmbTimezone.Items.Count; i++)
+        {
+            if (CmbTimezone.Items[i] is ComboBoxItem item && item.Tag is string id && id == "UTC")
+            {
+                CmbTimezone.SelectedIndex = i;
+                break;
+            }
+        }
+    }
+
     private void ApplyLocalization()
     {
         HeaderTitle.Text = L("ToolDateTimeTitle");
@@ -74,10 +104,13 @@ public partial class DateTimeConverterView : UserControl, IDisposable
         LblIsoUtc.Text = L("ToolDateTimeIsoUtcLabel");
         LblIsoLocal.Text = L("ToolDateTimeIsoLocalLabel");
         LblLocalTime.Text = L("ToolDateTimeLocalTimeLabel");
+        LblTimezone.Text = L("ToolDateTimeTimezoneLabel");
+        LblRelativeTime.Text = L("ToolDateTimeRelativeTimeLabel");
         BtnCopyUnix.Content = L("ToolDateTimeBtnCopy");
         BtnCopyIsoUtc.Content = L("ToolDateTimeBtnCopy");
         BtnCopyIsoLocal.Content = L("ToolDateTimeBtnCopy");
         BtnCopyLocalTime.Content = L("ToolDateTimeBtnCopy");
+        BtnCopyTzTime.Content = L("ToolDateTimeBtnCopy");
 
         System.Windows.Automation.AutomationProperties.SetName(BtnNow, L("ToolDateTimeBtnNow"));
         System.Windows.Automation.AutomationProperties.SetName(TxtInput, L("ToolDateTimeInputLabel"));
@@ -85,15 +118,19 @@ public partial class DateTimeConverterView : UserControl, IDisposable
         System.Windows.Automation.AutomationProperties.SetName(BtnCopyIsoUtc, L("ToolDateTimeBtnCopy"));
         System.Windows.Automation.AutomationProperties.SetName(BtnCopyIsoLocal, L("ToolDateTimeBtnCopy"));
         System.Windows.Automation.AutomationProperties.SetName(BtnCopyLocalTime, L("ToolDateTimeBtnCopy"));
+        System.Windows.Automation.AutomationProperties.SetName(BtnCopyTzTime, L("ToolDateTimeBtnCopy"));
         System.Windows.Automation.AutomationProperties.SetName(TxtUnixTimestamp, L("ToolDateTimeUnixLabel"));
         System.Windows.Automation.AutomationProperties.SetName(TxtIsoUtc, L("ToolDateTimeIsoUtcLabel"));
         System.Windows.Automation.AutomationProperties.SetName(TxtIsoLocal, L("ToolDateTimeIsoLocalLabel"));
         System.Windows.Automation.AutomationProperties.SetName(TxtLocalTime, L("ToolDateTimeLocalTimeLabel"));
+        System.Windows.Automation.AutomationProperties.SetName(CmbTimezone, L("ToolDateTimeTimezoneLabel"));
+        System.Windows.Automation.AutomationProperties.SetName(TxtTzTime, L("ToolDateTimeTimezoneLabel"));
 
         BtnCopyUnix.ToolTip = L("ToolBtnCopyToClipboard");
         BtnCopyIsoUtc.ToolTip = L("ToolBtnCopyToClipboard");
         BtnCopyIsoLocal.ToolTip = L("ToolBtnCopyToClipboard");
         BtnCopyLocalTime.ToolTip = L("ToolBtnCopyToClipboard");
+        BtnCopyTzTime.ToolTip = L("ToolBtnCopyToClipboard");
     }
 
     private void OnInputTextChanged(object sender, TextChangedEventArgs e)
@@ -141,10 +178,14 @@ public partial class DateTimeConverterView : UserControl, IDisposable
                 return;
             }
 
+            _lastParsedDto = dto;
+
             TxtUnixTimestamp.Text = dto.ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture);
             TxtIsoUtc.Text = dto.UtcDateTime.ToString("o", CultureInfo.InvariantCulture);
             TxtIsoLocal.Text = dto.ToLocalTime().ToString("o", CultureInfo.InvariantCulture);
             TxtLocalTime.Text = dto.ToLocalTime().ToString("F", CultureInfo.CurrentCulture);
+            UpdateTimezoneDisplay(dto);
+            TxtRelativeTime.Text = FormatRelativeTime(dto);
         }
         catch (Exception ex)
         {
@@ -189,17 +230,88 @@ public partial class DateTimeConverterView : UserControl, IDisposable
 
     private void ClearOutput()
     {
+        _lastParsedDto = null;
         TxtUnixTimestamp.Text = string.Empty;
         TxtIsoUtc.Text = string.Empty;
         TxtIsoLocal.Text = string.Empty;
         TxtLocalTime.Text = string.Empty;
+        TxtTzTime.Text = string.Empty;
+        TxtRelativeTime.Text = string.Empty;
         TxtDetectedFormat.Text = string.Empty;
+    }
+
+    private void OnTimezoneChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_lastParsedDto.HasValue)
+        {
+            UpdateTimezoneDisplay(_lastParsedDto.Value);
+        }
+    }
+
+    private void UpdateTimezoneDisplay(DateTimeOffset dto)
+    {
+        if (CmbTimezone.SelectedItem is not ComboBoxItem item || item.Tag is not string tzId)
+        {
+            TxtTzTime.Text = string.Empty;
+            return;
+        }
+
+        try
+        {
+            var tz = TimeZoneInfo.FindSystemTimeZoneById(tzId);
+            var converted = TimeZoneInfo.ConvertTime(dto, tz);
+            TxtTzTime.Text = converted.ToString("F", CultureInfo.CurrentCulture);
+        }
+        catch (Exception ex)
+        {
+            Core.Logging.FileLogger.Warn($"DateTimeConverter timezone conversion failed: {ex.Message}");
+            TxtTzTime.Text = string.Empty;
+        }
+    }
+
+    private string FormatRelativeTime(DateTimeOffset dto)
+    {
+        var now = DateTimeOffset.UtcNow;
+        var diff = now - dto;
+        bool isPast = diff.TotalSeconds >= 0;
+        var absDiff = isPast ? diff : diff.Negate();
+
+        string relative;
+        if (absDiff.TotalSeconds < 60)
+        {
+            relative = string.Format(L("ToolDateTimeRelativeSeconds"), (int)absDiff.TotalSeconds);
+        }
+        else if (absDiff.TotalMinutes < 60)
+        {
+            relative = string.Format(L("ToolDateTimeRelativeMinutes"), (int)absDiff.TotalMinutes);
+        }
+        else if (absDiff.TotalHours < 24)
+        {
+            relative = string.Format(L("ToolDateTimeRelativeHours"), (int)absDiff.TotalHours);
+        }
+        else if (absDiff.TotalDays < 30)
+        {
+            relative = string.Format(L("ToolDateTimeRelativeDays"), (int)absDiff.TotalDays);
+        }
+        else if (absDiff.TotalDays < 365)
+        {
+            relative = string.Format(L("ToolDateTimeRelativeMonths"), (int)(absDiff.TotalDays / 30));
+        }
+        else
+        {
+            relative = string.Format(L("ToolDateTimeRelativeYears"), (int)(absDiff.TotalDays / 365));
+        }
+
+        return isPast
+            ? string.Format(L("ToolDateTimeRelativeAgo"), relative)
+            : string.Format(L("ToolDateTimeRelativeIn"), relative);
     }
 
     private void OnCopyUnixClick(object sender, RoutedEventArgs e) => CopyToClipboard(TxtUnixTimestamp.Text, sender as Button);
     private void OnCopyIsoUtcClick(object sender, RoutedEventArgs e) => CopyToClipboard(TxtIsoUtc.Text, sender as Button);
     private void OnCopyIsoLocalClick(object sender, RoutedEventArgs e) => CopyToClipboard(TxtIsoLocal.Text, sender as Button);
     private void OnCopyLocalTimeClick(object sender, RoutedEventArgs e) => CopyToClipboard(TxtLocalTime.Text, sender as Button);
+    private void OnCopyTzTimeClick(object sender, RoutedEventArgs e) => CopyToClipboard(TxtTzTime.Text, sender as Button);
 
     private static void CopyToClipboard(string? text, Button? btn)
     {

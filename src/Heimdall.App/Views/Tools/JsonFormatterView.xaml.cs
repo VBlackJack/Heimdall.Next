@@ -17,6 +17,7 @@
 using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Models;
 
@@ -25,7 +26,7 @@ namespace Heimdall.App.Views.Tools;
 /// <summary>
 /// JSON formatter tool supporting pretty-print and minification.
 /// </summary>
-public partial class JsonFormatterView : UserControl, IDisposable
+public partial class JsonFormatterView : UserControl, IToolView
 {
     private const long MaxInputSizeBytes = 5 * 1024 * 1024; // 5 MB
     private const int AsyncThresholdBytes = 100 * 1024; // 100 KB
@@ -52,6 +53,12 @@ public partial class JsonFormatterView : UserControl, IDisposable
         }
 
         _initialized = true;
+
+        Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, () =>
+        {
+            InputText.Focus();
+            InputText.SelectAll();
+        });
     }
 
     private void ApplyLocalization()
@@ -70,6 +77,15 @@ public partial class JsonFormatterView : UserControl, IDisposable
         System.Windows.Automation.AutomationProperties.SetName(OutputText, L("ToolJsonOutputLabel"));
 
         BtnCopyOutput.ToolTip = L("ToolBtnCopyToClipboard");
+    }
+
+    private void OnKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter && Keyboard.Modifiers == ModifierKeys.Control)
+        {
+            OnPrettifyClick(sender, e);
+            e.Handled = true;
+        }
     }
 
     private void OnPrettifyClick(object sender, RoutedEventArgs e)
@@ -124,13 +140,28 @@ public partial class JsonFormatterView : UserControl, IDisposable
 
             var statusKey = writeIndented ? "ToolJsonStatusPrettified" : "ToolJsonStatusMinified";
             StatusText.Text = string.Format(L(statusKey), result.Length);
+            StatusText.Foreground = (System.Windows.Media.Brush)FindResource("TextSecondaryBrush");
         }
         catch (JsonException ex)
         {
             BtnPrettify.IsEnabled = true;
             BtnMinify.IsEnabled = true;
             OutputText.Text = string.Empty;
-            StatusText.Text = string.Format(L("ToolJsonStatusError"), ex.Message);
+
+            if (ex.LineNumber.HasValue && ex.BytePositionInLine.HasValue)
+            {
+                StatusText.Text = string.Format(
+                    L("ToolJsonStatusErrorAtPosition"),
+                    ex.LineNumber.Value + 1,
+                    ex.BytePositionInLine.Value + 1,
+                    ex.InnerException?.Message ?? ex.Message);
+            }
+            else
+            {
+                StatusText.Text = string.Format(L("ToolJsonStatusError"), ex.Message);
+            }
+
+            StatusText.Foreground = (System.Windows.Media.Brush)FindResource("ErrorBrush");
         }
     }
 

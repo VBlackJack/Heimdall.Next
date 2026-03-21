@@ -29,12 +29,20 @@ namespace Heimdall.App.Views.Tools;
 /// <summary>
 /// DNS record lookup tool supporting A, AAAA, MX, CNAME, TXT, NS, PTR, SOA, and ANY record types.
 /// </summary>
-public partial class DnsLookupView : UserControl, IDisposable
+public partial class DnsLookupView : UserControl, IToolView
 {
     private static readonly TimeSpan LookupTimeout = TimeSpan.FromSeconds(5);
 
     private static readonly string[] RecordTypes =
         ["A", "AAAA", "MX", "CNAME", "TXT", "NS", "PTR", "SOA", "ANY"];
+
+    private static readonly (string Label, string? Address)[] DnsServers =
+    [
+        ("System", null),
+        ("Google (8.8.8.8)", "8.8.8.8"),
+        ("Cloudflare (1.1.1.1)", "1.1.1.1"),
+        ("Quad9 (9.9.9.9)", "9.9.9.9"),
+    ];
 
     private LocalizationManager? _localizer;
     private CancellationTokenSource? _cts;
@@ -49,6 +57,12 @@ public partial class DnsLookupView : UserControl, IDisposable
             CmbRecordType.Items.Add(new ComboBoxItem { Content = type });
         }
         CmbRecordType.SelectedIndex = 0;
+
+        foreach (var (label, _) in DnsServers)
+        {
+            CmbDnsServer.Items.Add(new ComboBoxItem { Content = label });
+        }
+        CmbDnsServer.SelectedIndex = 0;
 
         TxtHostname.KeyDown += OnHostnameKeyDown;
     }
@@ -68,6 +82,12 @@ public partial class DnsLookupView : UserControl, IDisposable
         {
             TxtHostname.Text = context.TargetHost;
         }
+
+        Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, () =>
+        {
+            TxtHostname.Focus();
+            TxtHostname.SelectAll();
+        });
     }
 
     private void ApplyLocalization()
@@ -83,6 +103,7 @@ public partial class DnsLookupView : UserControl, IDisposable
         System.Windows.Automation.AutomationProperties.SetName(BtnLookup, L("ToolDnsBtnLookup"));
         System.Windows.Automation.AutomationProperties.SetName(TxtHostname, L("ToolDnsHostnameLabel"));
         System.Windows.Automation.AutomationProperties.SetName(CmbRecordType, L("ToolDnsRecordTypeLabel"));
+        System.Windows.Automation.AutomationProperties.SetName(CmbDnsServer, L("ToolDnsServerLabel"));
         System.Windows.Automation.AutomationProperties.SetName(BtnCopyResults, L("ToolDnsBtnCopyResults"));
     }
 
@@ -115,6 +136,10 @@ public partial class DnsLookupView : UserControl, IDisposable
         }
 
         var recordType = (CmbRecordType.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "A";
+        var serverIndex = CmbDnsServer.SelectedIndex;
+        string? dnsServer = serverIndex >= 0 && serverIndex < DnsServers.Length
+            ? DnsServers[serverIndex].Address
+            : null;
 
         // Cancel any previous lookup
         _cts?.Cancel();
@@ -131,13 +156,13 @@ public partial class DnsLookupView : UserControl, IDisposable
         {
             string results;
 
-            if (recordType is "A" or "AAAA")
+            if (recordType is "A" or "AAAA" && dnsServer is null)
             {
                 results = await LookupHostEntryAsync(hostname, recordType, _cts.Token);
             }
             else
             {
-                results = await LookupViaNslookupAsync(hostname, recordType, _cts.Token);
+                results = await LookupViaNslookupAsync(hostname, recordType, dnsServer, _cts.Token);
             }
 
             stopwatch.Stop();
@@ -215,12 +240,16 @@ public partial class DnsLookupView : UserControl, IDisposable
     }
 
     private static async Task<string> LookupViaNslookupAsync(
-        string hostname, string recordType, CancellationToken ct)
+        string hostname, string recordType, string? dnsServer, CancellationToken ct)
     {
+        var arguments = dnsServer is not null
+            ? $"-type={recordType} {hostname} {dnsServer}"
+            : $"-type={recordType} {hostname}";
+
         var psi = new ProcessStartInfo
         {
             FileName = "nslookup",
-            Arguments = $"-type={recordType} {hostname}",
+            Arguments = arguments,
             UseShellExecute = false,
             RedirectStandardOutput = true,
             RedirectStandardError = true,

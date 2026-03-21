@@ -316,4 +316,110 @@ public class HostKeyStoreTests
     {
         Assert.Throws<ArgumentNullException>(() => _store.Remove(null!, 22));
     }
+
+    // ── IPv6 address support ────────────────────────────────────────────
+
+    [Fact]
+    public void Trust_IPv6Address_StoresFingerprint()
+    {
+        _store.Trust("[::1]", 22, "SHA256:ipv6test");
+
+        Assert.Equal("SHA256:ipv6test", _store.GetFingerprint("[::1]", 22));
+    }
+
+    [Fact]
+    public void Verify_IPv6Address_FirstUse_ReturnsTrustedAndFirstUse()
+    {
+        var result = _store.Verify("[::1]", 22, _sampleKey);
+
+        Assert.True(result.Trusted);
+        Assert.True(result.FirstUse);
+    }
+
+    [Fact]
+    public void Trust_Verify_IPv6_Roundtrip()
+    {
+        var fingerprint = HostKeyStore.ComputeFingerprint(_sampleKey);
+        _store.Trust("[::1]", 22, fingerprint);
+
+        var result = _store.Verify("[::1]", 22, _sampleKey);
+
+        Assert.True(result.Trusted);
+        Assert.False(result.FirstUse);
+        Assert.Equal(fingerprint, result.StoredFingerprint);
+    }
+
+    [Fact]
+    public void Trust_IPv6FullAddress_Roundtrip()
+    {
+        var fingerprint = HostKeyStore.ComputeFingerprint(_sampleKey);
+        _store.Trust("[2001:db8::1]", 22, fingerprint);
+
+        var result = _store.Verify("[2001:db8::1]", 22, _sampleKey);
+
+        Assert.True(result.Trusted);
+        Assert.False(result.FirstUse);
+    }
+
+    [Fact]
+    public void MixedIPv4AndIPv6_AreSeparateEntries()
+    {
+        _store.Trust("192.168.1.1", 22, "SHA256:ipv4key");
+        _store.Trust("[::1]", 22, "SHA256:ipv6key");
+
+        Assert.Equal("SHA256:ipv4key", _store.GetFingerprint("192.168.1.1", 22));
+        Assert.Equal("SHA256:ipv6key", _store.GetFingerprint("[::1]", 22));
+
+        var all = _store.GetAllTrusted();
+        Assert.Equal(2, all.Count);
+    }
+
+    [Fact]
+    public void IPv6_DifferentPorts_AreSeparateEntries()
+    {
+        _store.Trust("[::1]", 22, "SHA256:port22");
+        _store.Trust("[::1]", 2222, "SHA256:port2222");
+
+        Assert.Equal("SHA256:port22", _store.GetFingerprint("[::1]", 22));
+        Assert.Equal("SHA256:port2222", _store.GetFingerprint("[::1]", 2222));
+    }
+
+    [Fact]
+    public void LoadFromConfig_WithIPv6Entries()
+    {
+        var entries = new List<(string host, int port, string? fingerprint)>
+        {
+            ("[::1]", 22, "SHA256:loopback6"),
+            ("[2001:db8::1]", 2222, "SHA256:remote6"),
+            ("192.168.1.1", 22, "SHA256:ipv4host"),
+        };
+
+        _store.LoadFromConfig(entries);
+
+        Assert.Equal("SHA256:loopback6", _store.GetFingerprint("[::1]", 22));
+        Assert.Equal("SHA256:remote6", _store.GetFingerprint("[2001:db8::1]", 2222));
+        Assert.Equal("SHA256:ipv4host", _store.GetFingerprint("192.168.1.1", 22));
+    }
+
+    [Fact]
+    public void Remove_IPv6Entry()
+    {
+        _store.Trust("[::1]", 22, "SHA256:ipv6test");
+
+        Assert.True(_store.Remove("[::1]", 22));
+        Assert.Null(_store.GetFingerprint("[::1]", 22));
+    }
+
+    [Fact]
+    public void Verify_IPv6_Mismatch_ReturnsUntrusted()
+    {
+        _store.Trust("[::1]", 22, "SHA256:originalkey");
+
+        byte[] differentKey = [0xAA, 0xBB, 0xCC];
+        var result = _store.Verify("[::1]", 22, differentKey);
+
+        Assert.False(result.Trusted);
+        Assert.False(result.FirstUse);
+        Assert.Equal("SHA256:originalkey", result.StoredFingerprint);
+    }
 }

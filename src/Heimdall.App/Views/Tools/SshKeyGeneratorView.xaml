@@ -63,7 +63,7 @@
 >
                             <ComboBoxItem Content="RSA (2048)"/>
                             <ComboBoxItem Content="RSA (4096)"/>
-                            <ComboBoxItem Content="Ed25519" x:Name="Ed25519Item" IsEnabled="False"/>
+                            <ComboBoxItem Content="Ed25519" x:Name="Ed25519Item"/>
                         </ComboBox>
                     </DockPanel>
 

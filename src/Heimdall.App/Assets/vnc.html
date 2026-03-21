@@ -147,23 +147,20 @@
     <div id="vnc-container"></div>
 
     <!--
-        noVNC library loaded from CDN.
-        TODO: Bundle noVNC locally for offline/restricted environments.
-        To vendor locally: download https://github.com/novnc/noVNC/archive/refs/tags/v1.5.0.zip,
-        extract core/ and vendor/ folders into Assets/vnc/, then change the import below
-        to: import RFB from './vnc/core/rfb.js';
+        noVNC library loaded from local vendored copy (supply-chain safe).
+        Vendored from https://github.com/novnc/noVNC v1.5.0
     -->
     <script type="module">
         var RFB;
         try {
-            var module = await import('https://cdn.jsdelivr.net/npm/@novnc/novnc@1.5.0/core/rfb.js');
+            var module = await import('./vnc/core/rfb.js');
             RFB = module.default;
         } catch (importError) {
             document.getElementById('loading').style.display = 'none';
             var ep = document.getElementById('error-panel');
             document.getElementById('error-title').textContent = 'noVNC Library Unavailable';
             document.getElementById('error-message').textContent =
-                'Failed to load the noVNC library from CDN. Ensure internet connectivity or install noVNC locally. (' + importError.message + ')';
+                'Failed to load the noVNC library. Ensure vnc/core/ folder is present alongside vnc.html. (' + importError.message + ')';
             ep.classList.add('visible');
             if (window.chrome && window.chrome.webview) {
                 window.chrome.webview.postMessage('error:noVNC library failed to load: ' + importError.message);

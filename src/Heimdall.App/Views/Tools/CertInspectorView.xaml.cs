@@ -16,6 +16,7 @@
 
 using System.Net.Security;
 using System.Net.Sockets;
+using System.Security.Authentication;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
@@ -33,7 +34,7 @@ namespace Heimdall.App.Views.Tools;
 /// SSL/TLS certificate inspector that retrieves and displays certificate details
 /// for any host:port combination.
 /// </summary>
-public partial class CertInspectorView : UserControl, IDisposable
+public partial class CertInspectorView : UserControl, IToolView
 {
     private LocalizationManager? _localizer;
     private CancellationTokenSource? _cts;
@@ -41,6 +42,23 @@ public partial class CertInspectorView : UserControl, IDisposable
 
     private static readonly TimeSpan ConnectionTimeout = TimeSpan.FromSeconds(10);
     private const int DaysWarningThreshold = 30;
+
+    /// <summary>
+    /// Holds the full result of an SSL/TLS certificate inspection.
+    /// </summary>
+    private sealed record CertInspectionResult(
+        X509Certificate2 Certificate,
+        SslProtocols TlsProtocol,
+        List<ChainCertInfo> ChainElements);
+
+    /// <summary>
+    /// Holds summary information for a single certificate in the chain.
+    /// </summary>
+    public sealed class ChainCertInfo
+    {
+        public string Subject { get; init; } = string.Empty;
+        public string Expiry { get; init; } = string.Empty;
+    }
 
     public CertInspectorView()
     {
@@ -74,6 +92,12 @@ public partial class CertInspectorView : UserControl, IDisposable
         {
             ParseArgument(context.Argument);
         }
+
+        Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, () =>
+        {
+            TxtHost.Focus();
+            TxtHost.SelectAll();
+        });
     }
 
     private void ParseArgument(string argument)
@@ -108,6 +132,8 @@ public partial class CertInspectorView : UserControl, IDisposable
         LblKeySize.Text = L("ToolCertKeySize");
         LblSans.Text = L("ToolCertSans");
         BtnCopy.Content = L("ToolCertBtnCopy");
+        LblTlsVersion.Text = L("ToolCertTlsVersion");
+        LblChainTitle.Text = L("ToolCertChainTitle");
 
         AutomationProperties.SetName(BtnCheck, L("ToolCertBtnCheck"));
         AutomationProperties.SetName(TxtHost, L("ToolCertHostLabel"));
@@ -156,14 +182,16 @@ public partial class CertInspectorView : UserControl, IDisposable
         TxtError.Visibility = Visibility.Collapsed;
         DetailsPanel.Visibility = Visibility.Collapsed;
         ExpirationBanner.Visibility = Visibility.Collapsed;
+        TlsHostPanel.Visibility = Visibility.Collapsed;
+        ChainPanel.Visibility = Visibility.Collapsed;
         BtnCopy.Visibility = Visibility.Collapsed;
         LoadingBar.Visibility = Visibility.Visible;
         BtnCheck.IsEnabled = false;
 
         try
         {
-            var cert = await Task.Run(() => RetrieveCertificate(host, port, _cts.Token), _cts.Token);
-            DisplayCertificate(cert, host);
+            var result = await Task.Run(() => RetrieveCertificate(host, port, _cts.Token), _cts.Token);
+            DisplayCertificate(result, host);
         }
         catch (OperationCanceledException)
         {
@@ -183,7 +211,7 @@ public partial class CertInspectorView : UserControl, IDisposable
         }
     }
 
-    private static X509Certificate2 RetrieveCertificate(string host, int port, CancellationToken ct)
+    private static CertInspectionResult RetrieveCertificate(string host, int port, CancellationToken ct)
     {
         X509Certificate? remoteCert = null;
 
@@ -203,43 +231,156 @@ public partial class CertInspectorView : UserControl, IDisposable
             throw new InvalidOperationException("No certificate received from the remote host.");
         }
 
-        return new X509Certificate2(remoteCert);
+        var cert2 = new X509Certificate2(remoteCert);
+        var tlsProtocol = ssl.SslProtocol;
+
+        // Build certificate chain
+        var chainElements = new List<ChainCertInfo>();
+        using var chain = new X509Chain();
+        chain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
+        chain.Build(cert2);
+
+        foreach (var element in chain.ChainElements)
+        {
+            chainElements.Add(new ChainCertInfo
+            {
+                Subject = element.Certificate.Subject,
+                Expiry = element.Certificate.NotAfter.ToString("yyyy-MM-dd HH:mm:ss UTC")
+            });
+        }
+
+        return new CertInspectionResult(cert2, tlsProtocol, chainElements);
     }
 
-    private void DisplayCertificate(X509Certificate2 cert, string host)
+    private void DisplayCertificate(CertInspectionResult result, string host)
     {
-        using (cert)
+        using var cert = result.Certificate;
+
+        TxtSubject.Text = cert.Subject;
+        TxtIssuer.Text = cert.Issuer;
+        TxtValidFrom.Text = cert.NotBefore.ToString("yyyy-MM-dd HH:mm:ss UTC");
+        TxtSerial.Text = cert.SerialNumber;
+        TxtSigAlg.Text = cert.SignatureAlgorithm.FriendlyName ?? cert.SignatureAlgorithm.Value ?? "-";
+
+        // Key size
+        var keySize = GetPublicKeySize(cert);
+        TxtKeySize.Text = keySize > 0 ? $"{keySize} bits" : "-";
+
+        // SHA-256 thumbprint
+        var sha256Bytes = cert.GetCertHash(HashAlgorithmName.SHA256);
+        TxtThumbprint.Text = Convert.ToHexString(sha256Bytes);
+
+        // Validity and expiration
+        var daysRemaining = (cert.NotAfter - DateTime.UtcNow).Days;
+        TxtValidTo.Text = $"{cert.NotAfter:yyyy-MM-dd HH:mm:ss UTC} ({daysRemaining} {L("ToolCertDaysRemaining")})";
+
+        UpdateExpirationBanner(daysRemaining);
+
+        // Subject Alternative Names (OID 2.5.29.17)
+        var sans = ExtractSans(cert);
+        SansList.ItemsSource = sans.Count > 0 ? sans : ["-"];
+
+        // TLS version
+        TxtTlsVersion.Text = FormatTlsProtocol(result.TlsProtocol);
+
+        // Hostname match validation
+        var hostnameMatches = CheckHostnameMatch(cert, sans, host);
+        if (hostnameMatches)
         {
-            TxtSubject.Text = cert.Subject;
-            TxtIssuer.Text = cert.Issuer;
-            TxtValidFrom.Text = cert.NotBefore.ToString("yyyy-MM-dd HH:mm:ss UTC");
-            TxtSerial.Text = cert.SerialNumber;
-            TxtSigAlg.Text = cert.SignatureAlgorithm.FriendlyName ?? cert.SignatureAlgorithm.Value ?? "-";
-
-            // Key size
-            var keySize = GetPublicKeySize(cert);
-            TxtKeySize.Text = keySize > 0 ? $"{keySize} bits" : "-";
-
-            // SHA-256 thumbprint
-            var sha256Bytes = cert.GetCertHash(HashAlgorithmName.SHA256);
-            TxtThumbprint.Text = Convert.ToHexString(sha256Bytes);
-
-            // Validity and expiration
-            var daysRemaining = (cert.NotAfter - DateTime.UtcNow).Days;
-            TxtValidTo.Text = $"{cert.NotAfter:yyyy-MM-dd HH:mm:ss UTC} ({daysRemaining} {L("ToolCertDaysRemaining")})";
-
-            UpdateExpirationBanner(daysRemaining);
-
-            // Subject Alternative Names (OID 2.5.29.17)
-            var sans = ExtractSans(cert);
-            SansList.ItemsSource = sans.Count > 0 ? sans : ["-"];
-
-            // Build copyable details
-            _lastDetails = BuildDetailsText(cert, host, sha256Bytes, sans, daysRemaining);
-
-            DetailsPanel.Visibility = Visibility.Visible;
-            BtnCopy.Visibility = Visibility.Visible;
+            TxtHostnameMatch.Text = "\u2714 " + L("ToolCertHostnameMatch");
+            TxtHostnameMatch.Foreground = (Brush)FindResource("SuccessBrush");
         }
+        else
+        {
+            TxtHostnameMatch.Text = "\u2716 " + L("ToolCertHostnameMismatch");
+            TxtHostnameMatch.Foreground = (Brush)FindResource("ErrorBrush");
+        }
+
+        TlsHostPanel.Visibility = Visibility.Visible;
+
+        // Certificate chain
+        ChainList.ItemsSource = result.ChainElements;
+        ChainPanel.Visibility = result.ChainElements.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+
+        // Build copyable details
+        _lastDetails = BuildDetailsText(cert, host, sha256Bytes, sans, daysRemaining, result.TlsProtocol, hostnameMatches);
+
+        DetailsPanel.Visibility = Visibility.Visible;
+        BtnCopy.Visibility = Visibility.Visible;
+    }
+
+    private static string FormatTlsProtocol(SslProtocols protocol)
+    {
+        return protocol switch
+        {
+            SslProtocols.Tls12 => "TLS 1.2",
+            SslProtocols.Tls13 => "TLS 1.3",
+#pragma warning disable CA5397, CS0618, SYSLIB0039
+            SslProtocols.Tls11 => "TLS 1.1",
+            SslProtocols.Tls => "TLS 1.0",
+            SslProtocols.Ssl3 => "SSL 3.0",
+            SslProtocols.Ssl2 => "SSL 2.0",
+#pragma warning restore CA5397, CS0618, SYSLIB0039
+            _ => protocol.ToString()
+        };
+    }
+
+    private static bool CheckHostnameMatch(X509Certificate2 cert, List<string> sans, string host)
+    {
+        // Check SANs first (preferred per RFC 6125)
+        foreach (var san in sans)
+        {
+            if (MatchesHostname(san, host))
+            {
+                return true;
+            }
+        }
+
+        // Fall back to CN in Subject
+        var cn = ExtractCn(cert.Subject);
+        if (!string.IsNullOrEmpty(cn) && MatchesHostname(cn, host))
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    private static bool MatchesHostname(string pattern, string host)
+    {
+        if (string.Equals(pattern, host, StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        // Wildcard matching: *.example.com matches sub.example.com
+        if (pattern.StartsWith("*.", StringComparison.Ordinal))
+        {
+            var suffix = pattern[1..]; // .example.com
+            var dotIndex = host.IndexOf('.', StringComparison.Ordinal);
+            if (dotIndex > 0)
+            {
+                var hostSuffix = host[dotIndex..];
+                return string.Equals(suffix, hostSuffix, StringComparison.OrdinalIgnoreCase);
+            }
+        }
+
+        return false;
+    }
+
+    private static string ExtractCn(string subject)
+    {
+        // Parse CN= from the subject string
+        const string cnPrefix = "CN=";
+        var startIndex = subject.IndexOf(cnPrefix, StringComparison.OrdinalIgnoreCase);
+        if (startIndex < 0)
+        {
+            return string.Empty;
+        }
+
+        startIndex += cnPrefix.Length;
+        var endIndex = subject.IndexOf(',', startIndex);
+        return endIndex < 0 ? subject[startIndex..].Trim() : subject[startIndex..endIndex].Trim();
     }
 
     private void UpdateExpirationBanner(int daysRemaining)
@@ -248,17 +389,17 @@ public partial class CertInspectorView : UserControl, IDisposable
 
         if (daysRemaining < 0)
         {
-            ExpirationBanner.Background = new SolidColorBrush(System.Windows.Media.Color.FromRgb(220, 53, 69));
+            ExpirationBanner.Background = (Brush)FindResource("ErrorBrush");
             TxtExpiration.Text = L("ToolCertExpired");
         }
         else if (daysRemaining <= DaysWarningThreshold)
         {
-            ExpirationBanner.Background = new SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 152, 0));
+            ExpirationBanner.Background = (Brush)FindResource("WarningBrush");
             TxtExpiration.Text = string.Format(L("ToolCertExpiringSoon"), daysRemaining);
         }
         else
         {
-            ExpirationBanner.Background = new SolidColorBrush(System.Windows.Media.Color.FromRgb(40, 167, 69));
+            ExpirationBanner.Background = (Brush)FindResource("SuccessBrush");
             TxtExpiration.Text = string.Format(L("ToolCertValid"), daysRemaining);
         }
     }
@@ -296,10 +437,12 @@ public partial class CertInspectorView : UserControl, IDisposable
         return 0;
     }
 
-    private string BuildDetailsText(X509Certificate2 cert, string host, byte[] sha256Bytes, List<string> sans, int daysRemaining)
+    private string BuildDetailsText(X509Certificate2 cert, string host, byte[] sha256Bytes, List<string> sans, int daysRemaining, SslProtocols tlsProtocol, bool hostnameMatches)
     {
         var sb = new StringBuilder();
         sb.AppendLine($"{L("ToolCertDetailHost")}: {host}");
+        sb.AppendLine($"{L("ToolCertTlsVersion")}: {FormatTlsProtocol(tlsProtocol)}");
+        sb.AppendLine($"{(hostnameMatches ? L("ToolCertHostnameMatch") : L("ToolCertHostnameMismatch"))}");
         sb.AppendLine($"{L("ToolCertSubject")}: {cert.Subject}");
         sb.AppendLine($"{L("ToolCertIssuer")}: {cert.Issuer}");
         sb.AppendLine($"{L("ToolCertValidFrom")}: {cert.NotBefore:yyyy-MM-dd HH:mm:ss UTC}");

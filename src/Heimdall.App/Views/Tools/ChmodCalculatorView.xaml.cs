@@ -26,7 +26,7 @@ namespace Heimdall.App.Views.Tools;
 /// <summary>
 /// Interactive chmod permission calculator with bidirectional octal/checkbox sync.
 /// </summary>
-public partial class ChmodCalculatorView : UserControl, IDisposable
+public partial class ChmodCalculatorView : UserControl, IToolView
 {
     private LocalizationManager? _localizer;
     private bool _initialized;
@@ -58,6 +58,12 @@ public partial class ChmodCalculatorView : UserControl, IDisposable
             OctalInput.Text = "755";
             UpdateCommandPreview("755");
         }
+
+        Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, () =>
+        {
+            OctalInput.Focus();
+            OctalInput.SelectAll();
+        });
     }
 
     private static readonly Regex SymbolicClausePattern = new(

@@ -259,9 +259,13 @@ public sealed class SshShellSession : IDisposable
                 _readCts.Cancel();
                 _readLoopTask?.Wait(TimeSpan.FromMilliseconds(500));
             }
-            catch (AggregateException)
+            catch (AggregateException ex) when (ex.InnerExceptions.All(e => e is OperationCanceledException or ObjectDisposedException))
             {
-                // Expected from task cancellation
+                // Expected from task cancellation during teardown
+            }
+            catch (AggregateException ex)
+            {
+                Core.Logging.FileLogger.Warn($"SshShellSession read loop stop: {ex.InnerException?.Message ?? ex.Message}");
             }
             finally
             {

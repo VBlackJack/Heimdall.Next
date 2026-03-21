@@ -10,7 +10,7 @@
 
 # Architecture
 
-Heimdall.Next is a .NET 10 WPF application organized as a multi-project solution with strict dependency boundaries. Supports RDP, SSH, SFTP, FTP, VNC, Telnet, Citrix, and Local Shell connection types with ~2,513 i18n keys per locale (EN/FR). Health monitor polls in parallel (Task.WhenAll), XML importers hardened against XXE, all Debug.WriteLine replaced with FileLogger.
+Heimdall.Next is a .NET 10 WPF application organized as a multi-project solution with strict dependency boundaries. Supports RDP, SSH, SFTP, FTP, VNC, Telnet, Citrix, and Local Shell connection types with ~2,889 i18n keys per locale (EN/FR), 31 built-in sysops tools, and 1,212 automated tests. Health monitor polls in parallel (Task.WhenAll), XML importers hardened against XXE, all Debug.WriteLine replaced with FileLogger.
 
 ## Solution Structure
 
@@ -25,8 +25,9 @@ Heimdall.slnx (8 projects)
 │   └── Heimdall.App           net10.0-windows WPF application (MVVM, views, themes, DI)
 │       ├── Views: MainWindow, EmbeddedRdpView, EmbeddedSshView, EmbeddedSftpView,
 │       │          EmbeddedCitrixView, EmbeddedVncView, FloatingSessionWindow
+│       ├── Views/Tools: 31 built-in sysops tools (IToolView interface)
 │       └── Services: ConnectionService (.Rdp/.Ssh/.Sftp/.Ftp/.Vnc/.Telnet/.Citrix/.Local/.Tunnel),
-│                     EmbeddedSessionManager, TaskSchedulerService, MacroService,
+│                     EmbeddedSessionManager, ToolRegistry, TaskSchedulerService, MacroService,
 │                     EphemeralFileServer, X11ServerManager, WebSocketVncProxy
 └── tests/
     ├── Heimdall.Core.Tests    State machine, HMAC integrity, input validation, PIN manager, config manager tests
@@ -407,3 +408,66 @@ Build editions:
 | **Self-Contained** | `-Variant Portable` | ~653 MB | Bundled Fixed Version Runtime for air-gapped/isolated environments |
 
 `Build.ps1 -Variant Both` produces both variants. `Setup-WebView2.ps1` automates Evergreen Runtime installation on machines with internet access.
+
+## Tool Architecture
+
+### ToolRegistry (Single Source of Truth)
+
+All 31 built-in tools are registered in `ToolRegistry` (singleton). Each tool is described by a `ToolDescriptor` record:
+
+```csharp
+public record ToolDescriptor(
+    string Id,                  // "PING", "CERTGEN", etc.
+    ToolCategory Category,      // Network, Security, Encoding, System
+    string CategoryLabelKey,    // i18n key for category header
+    string LabelKey,            // i18n key for tool name
+    string? LabelWithArgKey,    // i18n key for "tool with argument" variant
+    string[] CommandPrefixes,   // Palette aliases: ["ping"], ["dns","dig"]
+    bool IsNetworkTool,         // Prompts for host when opened standalone
+    string? IconResourceKey);   // XAML BitmapImage key: "Icon.Tool.PortScanner"
+```
+
+The registry eliminates three formerly-duplicated lists (menu definitions, palette commands, view factory switch) into one ordered collection. Adding a new tool requires:
+1. One XAML + code-behind file implementing `IToolView`
+2. One `Entry()` line in `ToolRegistry`
+3. i18n keys in both locale files
+
+### IToolView Interface
+
+```csharp
+public interface IToolView : IDisposable
+{
+    void Initialize(ToolContext? context, LocalizationManager? localizer);
+}
+```
+
+All tool views implement this contract. `EmbeddedSessionManager.CreateToolControl()` uses the registry's factory delegate to instantiate views without any protocol-specific switch logic.
+
+### ToolContext (Enriched Server Context)
+
+```csharp
+public record ToolContext(
+    string? TargetHost, int? TargetPort, string? Argument,
+    string? DisplayName, string? Username, string? ConnectionType,
+    string? ProjectName, string? GroupName, string? SourceServerId);
+```
+
+When opening a tool from a server context menu, all available server metadata is passed. Network tools prefill their host input; security tools can use credentials context.
+
+### Tool Navigation
+
+- **Ctrl+Shift+T**: Toggle retractable Tools sidebar panel (categorized with icons)
+- **Ctrl+K → "tools"**: Command palette lists all tools grouped by category
+- **Ctrl+K → "ping 10.0.0.1"**: Opens tool with prefilled argument
+- **Recent tools**: Last 5 used tools shown at top of palette when opened
+- **Singleton behavior**: Context-free tools (UUID, Password, Chmod) reuse existing tab
+- **External tools**: Also searchable in Ctrl+K palette
+
+### Tool Categories (31 tools)
+
+| Category | Count | Tools |
+|----------|-------|-------|
+| **Network** | 9 | Ping, DNS (custom server), Cert Inspector (chain+TLS), Port Scanner (banner grab), Subnet (IPv4+IPv6), IP Converter, HTTP Status, Whois, Network Calculator (supernet+VLAN) |
+| **Security** | 7 | Password (crack time+history), SSH Key (RSA+Ed25519), Hash (SHA3+progress), HMAC, JWT (signature verify), Certificate Generator (CA+leaf), TOTP (RFC 6238) |
+| **Encoding** | 6 | Base64 (URL-safe), URL Encoder, JSON (error position), Regex (match highlight), Text Diff (word-level), Text Case (8 formats) |
+| **System** | 9 | Chmod, Crontab Builder, DateTime (timezone+relative), UUID (v4+v7), Hosts Editor, SSH Config Generator, Log Viewer/Tail, Cron Job Manager, Service Status Dashboard |

@@ -198,6 +198,13 @@ public partial class MainViewModel : ObservableObject
     /// </summary>
     public SettingsViewModel Settings { get; }
 
+    /// <summary>Centralized tool registry shared with MainWindow for menus.</summary>
+    public ToolRegistry ToolRegistry { get; }
+
+    /// <summary>Recently used tool IDs (most recent first, max 5).</summary>
+    private readonly List<string> _recentToolIds = new();
+    private const int MaxRecentTools = 5;
+
     public MainViewModel(
         ConfigManager configManager,
         LocalizationManager localizer,
@@ -207,6 +214,7 @@ public partial class MainViewModel : ObservableObject
         HostKeyStore hostKeyStore,
         IDialogService dialogService,
         EmbeddedSessionManager embeddedSessionManager,
+        ToolRegistry toolRegistry,
         ServerListViewModel serverList,
         ConnectionViewModel connection,
         SettingsViewModel settings)
@@ -219,6 +227,7 @@ public partial class MainViewModel : ObservableObject
         _hostKeyStore = hostKeyStore;
         _dialogService = dialogService;
         _embeddedSessionManager = embeddedSessionManager;
+        ToolRegistry = toolRegistry;
         ServerList = serverList;
         Connection = connection;
         Settings = settings;
@@ -839,8 +848,28 @@ public partial class MainViewModel : ObservableObject
         var query = value?.Trim() ?? "";
         if (string.IsNullOrEmpty(query))
         {
-            PaletteResults = new ObservableCollection<ServerItemViewModel>(
-                ServerList.Servers.Take(10));
+            var initialResults = new List<ServerItemViewModel>();
+
+            // Show recent tools first (if any)
+            foreach (var toolId in _recentToolIds)
+            {
+                var desc = ToolRegistry.GetById(toolId);
+                if (desc is not null)
+                {
+                    initialResults.Add(new ServerItemViewModel
+                    {
+                        Id = $"tool-{desc.Id.ToLowerInvariant()}",
+                        DisplayName = _localizer[desc.LabelKey],
+                        ConnectionType = desc.ToolType,
+                        Group = _localizer["PaletteRecentToolsHeader"]
+                    });
+                }
+            }
+
+            // Then recent servers
+            initialResults.AddRange(ServerList.Servers.Take(10));
+
+            PaletteResults = new ObservableCollection<ServerItemViewModel>(initialResults);
             SelectedPaletteItem = PaletteResults.FirstOrDefault();
             return;
         }
@@ -949,6 +978,10 @@ public partial class MainViewModel : ObservableObject
         {
             await OpenToolFromPaletteAsync(server);
         }
+        else if (server.Id.StartsWith("ext-tool-", StringComparison.Ordinal))
+        {
+            LaunchExternalToolFromPalette(server);
+        }
         else if (server.Id.StartsWith("adhoc-", StringComparison.Ordinal))
         {
             await ConnectAdHocAsync(server);
@@ -968,6 +1001,12 @@ public partial class MainViewModel : ObservableObject
         if (server.Id.StartsWith("tool-", StringComparison.Ordinal))
         {
             await OpenToolFromPaletteAsync(server);
+            return;
+        }
+
+        if (server.Id.StartsWith("ext-tool-", StringComparison.Ordinal))
+        {
+            LaunchExternalToolFromPalette(server);
             return;
         }
 
@@ -1104,88 +1143,92 @@ public partial class MainViewModel : ObservableObject
     }
 
     /// <summary>
-    /// Tool command definitions for the command palette.
-    /// Each entry maps one or more command prefixes to a tool ID and i18n keys.
+    /// Tracks a tool ID as recently used for the palette's "recent tools" section.
     /// </summary>
-    private static readonly (string[] Prefixes, string ToolId, string LabelKey, string? LabelWithArgKey)[] ToolCommands =
-    [
-        (["subnet"], "SUBNET", "PaletteToolSubnet", "PaletteToolSubnetWith"),
-        (["hash"], "HASH", "PaletteToolHash", "PaletteToolHashWith"),
-        (["password", "pwgen"], "PASSWORD", "PaletteToolPassword", null),
-        (["base64"], "BASE64", "PaletteToolBase64", "PaletteToolBase64With"),
-        (["chmod"], "CHMOD", "PaletteToolChmod", "PaletteToolChmodWith"),
-        (["datetime", "epoch"], "DATETIME", "PaletteToolDateTime", "PaletteToolDateTimeWith"),
-        (["uuid", "guid"], "UUID", "PaletteToolUuid", null),
-        (["jwt"], "JWT", "PaletteToolJwt", "PaletteToolJwtWith"),
-        (["regex"], "REGEX", "PaletteToolRegex", "PaletteToolRegexWith"),
-        (["json"], "JSON", "PaletteToolJson", "PaletteToolJsonWith"),
-        (["diff"], "DIFF", "PaletteToolDiff", null),
-        (["ping"], "PING", "PaletteToolPing", "PaletteToolPingWith"),
-        (["dns", "nslookup", "dig"], "DNS", "PaletteToolDns", "PaletteToolDnsWith"),
-        (["cert", "ssl"], "CERT", "PaletteToolCert", "PaletteToolCertWith"),
-        (["cron", "crontab"], "CRONTAB", "PaletteToolCron", "PaletteToolCronWith"),
-        (["sshkey", "keygen"], "SSHKEY", "PaletteToolSshKey", null),
-        (["portscan", "scan"], "PORTSCAN", "PaletteToolPortScan", "PaletteToolPortScanWith"),
-        (["hmac"], "HMAC", "PaletteToolHmac", null),
-        (["ipconv", "ip"], "IPCONV", "PaletteToolIpConv", "PaletteToolIpConvWith"),
-        (["url", "urlenc", "urlencode", "urldecode"], "URLENC", "PaletteToolUrlEnc", "PaletteToolUrlEncWith"),
-        (["http", "status"], "HTTP", "PaletteToolHttp", "PaletteToolHttpWith"),
-    ];
+    public void TrackRecentTool(string toolId)
+    {
+        _recentToolIds.Remove(toolId);
+        _recentToolIds.Insert(0, toolId);
+        while (_recentToolIds.Count > MaxRecentTools)
+            _recentToolIds.RemoveAt(_recentToolIds.Count - 1);
+    }
 
     /// <summary>
     /// Checks whether the palette query matches a tool command prefix.
     /// Returns matching tool palette items, or all tools when the query is "tool" / "tools".
+    /// Uses the centralized <see cref="ToolRegistry"/> instead of a static array.
     /// </summary>
     private List<ServerItemViewModel> TryParseToolCommand(string query)
     {
         var results = new List<ServerItemViewModel>();
         var lower = query.ToLowerInvariant();
 
-        // Show all tools when user types "tool" or "tools"
+        // Show all tools when user types "tool" or "tools", grouped by category
         if (lower is "tool" or "tools")
         {
-            foreach (var cmd in ToolCommands)
+            foreach (var descriptor in ToolRegistry.All)
             {
                 results.Add(new ServerItemViewModel
                 {
-                    Id = $"tool-{cmd.ToolId.ToLowerInvariant()}",
-                    DisplayName = _localizer[cmd.LabelKey],
-                    ConnectionType = $"TOOL:{cmd.ToolId}",
-                    Group = _localizer["PaletteToolsSectionHeader"]
+                    Id = $"tool-{descriptor.Id.ToLowerInvariant()}",
+                    DisplayName = _localizer[descriptor.LabelKey],
+                    ConnectionType = descriptor.ToolType,
+                    Group = _localizer[descriptor.CategoryLabelKey]
                 });
             }
             return results;
         }
 
         // Check if query starts with a known tool prefix
-        foreach (var cmd in ToolCommands)
+        foreach (var descriptor in ToolRegistry.All)
         {
-            foreach (var prefix in cmd.Prefixes)
+            foreach (var prefix in descriptor.CommandPrefixes)
             {
                 if (!lower.StartsWith(prefix, StringComparison.Ordinal))
                     continue;
 
-                // Exact match or followed by a space
                 var rest = query[prefix.Length..].Trim();
                 string displayName;
 
-                if (!string.IsNullOrEmpty(rest) && cmd.LabelWithArgKey is not null)
+                if (!string.IsNullOrEmpty(rest) && descriptor.LabelWithArgKey is not null)
                 {
-                    displayName = _localizer.Format(cmd.LabelWithArgKey, rest);
+                    displayName = _localizer.Format(descriptor.LabelWithArgKey, rest);
                 }
                 else
                 {
-                    displayName = _localizer[cmd.LabelKey];
+                    displayName = _localizer[descriptor.LabelKey];
                 }
 
                 results.Add(new ServerItemViewModel
                 {
-                    Id = $"tool-{cmd.ToolId.ToLowerInvariant()}|{rest}",
+                    Id = $"tool-{descriptor.Id.ToLowerInvariant()}|{rest}",
                     DisplayName = displayName,
-                    ConnectionType = $"TOOL:{cmd.ToolId}",
+                    ConnectionType = descriptor.ToolType,
                     Group = _localizer["PaletteToolsSectionHeader"]
                 });
                 return results;
+            }
+        }
+
+        // Search external tools when no built-in tool matched
+        if (results.Count == 0)
+        {
+            var extTools = _currentSettings?.ExternalTools ?? [];
+            foreach (var ext in extTools)
+            {
+                if (string.IsNullOrWhiteSpace(ext.Name)) continue;
+
+                if (FuzzyScoreString(ext.Name, query) > 0
+                    || ext.Name.Contains(query, StringComparison.OrdinalIgnoreCase))
+                {
+                    results.Add(new ServerItemViewModel
+                    {
+                        Id = $"ext-tool-{ext.Name}",
+                        DisplayName = ext.Name,
+                        ConnectionType = "EXTERNAL",
+                        Group = _localizer["PaletteExternalToolsHeader"]
+                    });
+                }
             }
         }
 
@@ -1205,7 +1248,54 @@ public partial class MainViewModel : ObservableObject
         var argument = pipeIndex >= 0 ? payload[(pipeIndex + 1)..] : null;
 
         var context = !string.IsNullOrEmpty(argument) ? new ToolContext(Argument: argument) : null;
+        TrackRecentTool(toolId.ToUpperInvariant());
         await OpenToolTabAsync(toolId, item.DisplayName, context);
+    }
+
+    /// <summary>
+    /// Launches an external tool from a palette item whose Id starts with "ext-tool-".
+    /// Matches the tool name back to the configured ExternalToolDefinition and starts
+    /// the process without server context (no placeholders resolved).
+    /// </summary>
+    private void LaunchExternalToolFromPalette(ServerItemViewModel item)
+    {
+        var toolName = item.Id["ext-tool-".Length..];
+        var extTool = _currentSettings?.ExternalTools
+            .FirstOrDefault(t => string.Equals(t.Name, toolName, StringComparison.Ordinal));
+
+        if (extTool is null) return;
+
+        try
+        {
+            var psi = new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = extTool.ExecutablePath,
+                Arguments = extTool.Arguments,
+                UseShellExecute = true
+            };
+
+            if (!string.IsNullOrWhiteSpace(extTool.WorkingDirectory))
+            {
+                psi.WorkingDirectory = extTool.WorkingDirectory;
+            }
+
+            if (extTool.RunAsAdministrator)
+            {
+                psi.Verb = "runas";
+            }
+
+            if (extTool.RunHidden)
+            {
+                psi.WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden;
+                psi.CreateNoWindow = true;
+            }
+
+            System.Diagnostics.Process.Start(psi);
+        }
+        catch (Exception ex)
+        {
+            Core.Logging.FileLogger.Warn($"Failed to launch external tool '{toolName}': {ex.Message}");
+        }
     }
 
     /// <summary>
@@ -1404,6 +1494,24 @@ public partial class MainViewModel : ObservableObject
         await Task.CompletedTask;
 
         var connectionType = $"TOOL:{toolId.ToUpperInvariant()}";
+
+        // Singleton behavior: reuse existing tab for tools that have no context
+        // (e.g., Password Generator, UUID, Chmod). Network tools or tools opened
+        // with a specific argument are allowed to have multiple instances.
+        var isNetworkTool = ToolRegistry.IsNetworkTool(toolId);
+        var hasContext = context?.TargetHost is not null || context?.Argument is not null;
+
+        if (!isNetworkTool && !hasContext)
+        {
+            var existing = Connection.ActiveSessions
+                .FirstOrDefault(s => s.ConnectionType == connectionType);
+            if (existing is not null)
+            {
+                Connection.ActiveSession = existing;
+                return;
+            }
+        }
+
         var sessionId = $"tool-{toolId.ToLowerInvariant()}-{Guid.NewGuid():N}";
 
         var tab = Connection.AddSession(sessionId, title, connectionType);

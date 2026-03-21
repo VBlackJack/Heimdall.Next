@@ -83,12 +83,24 @@
                    FontSize="12" Margin="12,4,12,0"
                    Foreground="{DynamicResource ErrorBrush}"/>
 
-        <!-- Progress bar -->
-        <ProgressBar x:Name="ScanProgress" Grid.Row="2"
-                     Height="4" Minimum="0" Maximum="100"
-                     IsIndeterminate="False" Visibility="Collapsed"
-                     Foreground="{DynamicResource AccentBrush}"
-                     Background="{DynamicResource SurfaceBrush}"/>
+        <!-- Progress bar with percentage overlay -->
+        <Grid Grid.Row="2" x:Name="ProgressPanel" Visibility="Collapsed">
+            <ProgressBar x:Name="ScanProgress"
+                         Height="20" Minimum="0" Maximum="100"
+                         IsIndeterminate="False"
+                         Foreground="{DynamicResource AccentBrush}"
+                         Background="{DynamicResource SurfaceBrush}"/>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                <TextBlock x:Name="TxtProgressPercent" Text="0%"
+                           FontSize="11" FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextPrimaryBrush}"/>
+                <TextBlock Text="  —  " FontSize="11"
+                           Foreground="{DynamicResource TextSecondaryBrush}"/>
+                <TextBlock x:Name="TxtProgressCount" Text="0 / 0"
+                           FontSize="11"
+                           Foreground="{DynamicResource TextSecondaryBrush}"/>
+            </StackPanel>
+        </Grid>
 
         <!-- Results DataGrid -->
         <Border Grid.Row="3" Margin="8"
@@ -118,6 +130,8 @@
                                         Foreground="{DynamicResource TextSecondaryBrush}"/>
                     <DataGridTextColumn x:Name="ColResponseTime" Binding="{Binding ResponseTime}" Width="120"
                                         Foreground="{DynamicResource TextSecondaryBrush}"/>
+                    <DataGridTextColumn x:Name="ColBanner" Binding="{Binding Banner}" Width="*"
+                                        Foreground="{DynamicResource TextSecondaryBrush}"/>
                 </DataGrid.Columns>
             </DataGrid>
         </Border>
@@ -128,6 +142,11 @@
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,1,0,0">
             <DockPanel>
+                <Button x:Name="BtnExportCsv" Content=""
+                        Click="OnExportCsvClick"
+                        Style="{DynamicResource SecondaryButtonStyle}"
+                        Padding="12,6" DockPanel.Dock="Right" Margin="4,0,0,0"
+                        VerticalAlignment="Center"/>
                 <Button x:Name="BtnCopy" Content=""
                         Click="OnCopyClick"
                         Style="{DynamicResource SecondaryButtonStyle}"

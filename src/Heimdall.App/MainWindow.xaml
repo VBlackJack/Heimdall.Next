@@ -235,10 +235,9 @@
                                             <ColumnDefinition Width="*"/>
                                             <ColumnDefinition Width="Auto"/>
                                         </Grid.ColumnDefinitions>
-                                        <TextBlock Grid.Column="0" Text="&#xE8B7;"
-                                                   FontFamily="Segoe MDL2 Assets" FontSize="13"
-                                                   Foreground="{DynamicResource InfoBrush}" Margin="0,0,6,0"
-                                                   VerticalAlignment="Center"/>
+                                        <Image Grid.Column="0" Width="14" Height="14"
+                                               Source="{StaticResource Icon.Tree.Group}"
+                                               Margin="0,0,6,0" VerticalAlignment="Center"/>
                                         <TextBlock Grid.Column="1" Text="{Binding Name}"
                                                    FontSize="12" FontWeight="SemiBold"
                                                    Foreground="{DynamicResource TextPrimaryBrush}"
@@ -258,13 +257,18 @@
                                 <DataTemplate DataType="{x:Type vm:ServerItemViewModel}">
                                     <StackPanel Orientation="Horizontal" Margin="0,1"
                                                 ToolTip="{Binding DisplayName}">
-                                        <!-- Connection type icon -->
+                                        <!-- Protocol icon (PNG from resources) -->
+                                        <Image x:Name="ProtocolIcon" Width="16" Height="16" Margin="0,0,4,0"
+                                               Source="{Binding ConnectionType, Converter={StaticResource TypeToIconConverter}}"
+                                               VerticalAlignment="Center"/>
+                                        <!-- Tool glyph icon (hidden by default, shown for TOOL:* types) -->
                                         <TextBlock x:Name="TypeIcon" Text="&#xE7F4;"
                                                    FontFamily="Segoe MDL2 Assets" FontSize="10"
-                                                   Foreground="{DynamicResource InfoBrush}"
-                                                   VerticalAlignment="Center" Margin="0,0,4,0"/>
+                                                   Foreground="{DynamicResource ToolBadgeBrush}"
+                                                   VerticalAlignment="Center" Margin="0,0,4,0"
+                                                   Visibility="Collapsed"/>
                                         <!-- Status dot -->
-                                        <Ellipse Width="7" Height="7" Margin="2,0,8,0"
+                                        <Ellipse Width="7" Height="7" Margin="2,0,4,0"
                                                  VerticalAlignment="Center">
                                             <Ellipse.Fill>
                                                 <MultiBinding Converter="{StaticResource ServerStatusToColorConverter}">
@@ -273,6 +277,10 @@
                                                 </MultiBinding>
                                             </Ellipse.Fill>
                                         </Ellipse>
+                                        <!-- Connection state icon -->
+                                        <Image Width="12" Height="12" Margin="0,0,4,0"
+                                               Source="{Binding ConnectionState, Converter={StaticResource StateToIconConverter}}"
+                                               VerticalAlignment="Center"/>
                                         <!-- Server name -->
                                         <TextBlock Text="{Binding DisplayName}" FontSize="12"
                                                    Foreground="{DynamicResource TextPrimaryBrush}"
@@ -280,105 +288,111 @@
                                                    TextTrimming="CharacterEllipsis"/>
                                     </StackPanel>
                                     <DataTemplate.Triggers>
-                                        <DataTrigger Binding="{Binding ConnectionType}" Value="SSH">
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE756;"/>
-                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource SuccessBrush}"/>
-                                        </DataTrigger>
-                                        <DataTrigger Binding="{Binding ConnectionType}" Value="SFTP">
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE8B7;"/>
-                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource WarningBrush}"/>
-                                        </DataTrigger>
-                                        <DataTrigger Binding="{Binding ConnectionType}" Value="Local">
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE756;"/>
-                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource AccentBrush}"/>
-                                        </DataTrigger>
-                                        <DataTrigger Binding="{Binding ConnectionType}" Value="Citrix">
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE753;"/>
-                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource InfoBrush}"/>
-                                        </DataTrigger>
+                                        <!-- TOOL:* types: show glyph TextBlock, hide protocol Image -->
                                         <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:PING">
+                                            <Setter TargetName="TypeIcon" Property="Visibility" Value="Visible"/>
+                                            <Setter TargetName="ProtocolIcon" Property="Visibility" Value="Collapsed"/>
                                             <Setter TargetName="TypeIcon" Property="Text" Value="&#xE774;"/>
-                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolBadgeBrush}"/>
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:DNS">
+                                            <Setter TargetName="TypeIcon" Property="Visibility" Value="Visible"/>
+                                            <Setter TargetName="ProtocolIcon" Property="Visibility" Value="Collapsed"/>
                                             <Setter TargetName="TypeIcon" Property="Text" Value="&#xF6FA;"/>
-                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolBadgeBrush}"/>
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:CERT">
+                                            <Setter TargetName="TypeIcon" Property="Visibility" Value="Visible"/>
+                                            <Setter TargetName="ProtocolIcon" Property="Visibility" Value="Collapsed"/>
                                             <Setter TargetName="TypeIcon" Property="Text" Value="&#xEB95;"/>
-                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolBadgeBrush}"/>
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:SUBNET">
+                                            <Setter TargetName="TypeIcon" Property="Visibility" Value="Visible"/>
+                                            <Setter TargetName="ProtocolIcon" Property="Visibility" Value="Collapsed"/>
                                             <Setter TargetName="TypeIcon" Property="Text" Value="&#xE968;"/>
-                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolBadgeBrush}"/>
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:PORTSCAN">
+                                            <Setter TargetName="TypeIcon" Property="Visibility" Value="Visible"/>
+                                            <Setter TargetName="ProtocolIcon" Property="Visibility" Value="Collapsed"/>
                                             <Setter TargetName="TypeIcon" Property="Text" Value="&#xEE65;"/>
-                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolBadgeBrush}"/>
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:HASH">
+                                            <Setter TargetName="TypeIcon" Property="Visibility" Value="Visible"/>
+                                            <Setter TargetName="ProtocolIcon" Property="Visibility" Value="Collapsed"/>
                                             <Setter TargetName="TypeIcon" Property="Text" Value="&#xE8D7;"/>
-                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolBadgeBrush}"/>
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:DIFF">
+                                            <Setter TargetName="TypeIcon" Property="Visibility" Value="Visible"/>
+                                            <Setter TargetName="ProtocolIcon" Property="Visibility" Value="Collapsed"/>
                                             <Setter TargetName="TypeIcon" Property="Text" Value="&#xE8FE;"/>
-                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolBadgeBrush}"/>
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:PASSWORD">
+                                            <Setter TargetName="TypeIcon" Property="Visibility" Value="Visible"/>
+                                            <Setter TargetName="ProtocolIcon" Property="Visibility" Value="Collapsed"/>
                                             <Setter TargetName="TypeIcon" Property="Text" Value="&#xE8D7;"/>
-                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolBadgeBrush}"/>
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:BASE64">
+                                            <Setter TargetName="TypeIcon" Property="Visibility" Value="Visible"/>
+                                            <Setter TargetName="ProtocolIcon" Property="Visibility" Value="Collapsed"/>
                                             <Setter TargetName="TypeIcon" Property="Text" Value="&#xE943;"/>
-                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolBadgeBrush}"/>
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:CHMOD">
+                                            <Setter TargetName="TypeIcon" Property="Visibility" Value="Visible"/>
+                                            <Setter TargetName="ProtocolIcon" Property="Visibility" Value="Collapsed"/>
                                             <Setter TargetName="TypeIcon" Property="Text" Value="&#xE8D7;"/>
-                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolBadgeBrush}"/>
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:DATETIME">
+                                            <Setter TargetName="TypeIcon" Property="Visibility" Value="Visible"/>
+                                            <Setter TargetName="ProtocolIcon" Property="Visibility" Value="Collapsed"/>
                                             <Setter TargetName="TypeIcon" Property="Text" Value="&#xE787;"/>
-                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolBadgeBrush}"/>
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:UUID">
+                                            <Setter TargetName="TypeIcon" Property="Visibility" Value="Visible"/>
+                                            <Setter TargetName="ProtocolIcon" Property="Visibility" Value="Collapsed"/>
                                             <Setter TargetName="TypeIcon" Property="Text" Value="&#xE8AC;"/>
-                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolBadgeBrush}"/>
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:JWT">
+                                            <Setter TargetName="TypeIcon" Property="Visibility" Value="Visible"/>
+                                            <Setter TargetName="ProtocolIcon" Property="Visibility" Value="Collapsed"/>
                                             <Setter TargetName="TypeIcon" Property="Text" Value="&#xEB95;"/>
-                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolBadgeBrush}"/>
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:REGEX">
+                                            <Setter TargetName="TypeIcon" Property="Visibility" Value="Visible"/>
+                                            <Setter TargetName="ProtocolIcon" Property="Visibility" Value="Collapsed"/>
                                             <Setter TargetName="TypeIcon" Property="Text" Value="&#xE71C;"/>
-                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolBadgeBrush}"/>
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:JSON">
+                                            <Setter TargetName="TypeIcon" Property="Visibility" Value="Visible"/>
+                                            <Setter TargetName="ProtocolIcon" Property="Visibility" Value="Collapsed"/>
                                             <Setter TargetName="TypeIcon" Property="Text" Value="&#xE7C3;"/>
-                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolBadgeBrush}"/>
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:IPCONV">
+                                            <Setter TargetName="TypeIcon" Property="Visibility" Value="Visible"/>
+                                            <Setter TargetName="ProtocolIcon" Property="Visibility" Value="Collapsed"/>
                                             <Setter TargetName="TypeIcon" Property="Text" Value="&#xE968;"/>
-                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolBadgeBrush}"/>
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:URLENC">
+                                            <Setter TargetName="TypeIcon" Property="Visibility" Value="Visible"/>
+                                            <Setter TargetName="ProtocolIcon" Property="Visibility" Value="Collapsed"/>
                                             <Setter TargetName="TypeIcon" Property="Text" Value="&#xE71B;"/>
-                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolBadgeBrush}"/>
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:HTTP">
+                                            <Setter TargetName="TypeIcon" Property="Visibility" Value="Visible"/>
+                                            <Setter TargetName="ProtocolIcon" Property="Visibility" Value="Collapsed"/>
                                             <Setter TargetName="TypeIcon" Property="Text" Value="&#xE774;"/>
-                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolBadgeBrush}"/>
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:CRONTAB">
+                                            <Setter TargetName="TypeIcon" Property="Visibility" Value="Visible"/>
+                                            <Setter TargetName="ProtocolIcon" Property="Visibility" Value="Collapsed"/>
                                             <Setter TargetName="TypeIcon" Property="Text" Value="&#xE823;"/>
-                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolBadgeBrush}"/>
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:SSHKEY">
+                                            <Setter TargetName="TypeIcon" Property="Visibility" Value="Visible"/>
+                                            <Setter TargetName="ProtocolIcon" Property="Visibility" Value="Collapsed"/>
                                             <Setter TargetName="TypeIcon" Property="Text" Value="&#xE8D7;"/>
-                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolBadgeBrush}"/>
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:HMAC">
+                                            <Setter TargetName="TypeIcon" Property="Visibility" Value="Visible"/>
+                                            <Setter TargetName="ProtocolIcon" Property="Visibility" Value="Collapsed"/>
                                             <Setter TargetName="TypeIcon" Property="Text" Value="&#xE8D7;"/>
-                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolBadgeBrush}"/>
                                         </DataTrigger>
                                     </DataTemplate.Triggers>
                                 </DataTemplate>
@@ -395,6 +409,59 @@
                             </TreeView.ItemContainerStyle>
 
                         </TreeView>
+
+                        <!-- TOOLS QUICK-ACCESS PANEL (bottom of sidebar) -->
+                        <Border x:Name="ToolsQuickPanel" DockPanel.Dock="Bottom"
+                                Background="{DynamicResource SurfaceBrush}"
+                                BorderBrush="{DynamicResource BorderBrush}"
+                                BorderThickness="0,1,0,0"
+                                MaxHeight="280"
+                                Visibility="Collapsed">
+                            <DockPanel>
+                                <DockPanel DockPanel.Dock="Top" Margin="8,6,8,4">
+                                    <TextBlock x:Name="Mw_ToolsPanelTitle" Text=""
+                                               FontSize="12" FontWeight="SemiBold"
+                                               Foreground="{DynamicResource TextPrimaryBrush}"
+                                               VerticalAlignment="Center"/>
+                                    <Button x:Name="BtnCollapseTools" DockPanel.Dock="Right"
+                                            Content="&#xE70D;" FontFamily="Segoe MDL2 Assets"
+                                            Click="OnToggleToolsPanel"
+                                            Style="{DynamicResource ToolbarGhostButtonStyle}"
+                                            Padding="4,4" FontSize="10"
+                                            HorizontalAlignment="Right"/>
+                                </DockPanel>
+                                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="4,0,4,4">
+                                    <StackPanel x:Name="ToolsCategoryStack"/>
+                                </ScrollViewer>
+                            </DockPanel>
+                        </Border>
+
+                        <!-- Toggle button for tools panel -->
+                        <Border DockPanel.Dock="Bottom"
+                                Background="{DynamicResource SurfaceBrush}"
+                                BorderBrush="{DynamicResource BorderBrush}"
+                                BorderThickness="0,1,0,0"
+                                Padding="4,2">
+                            <Button x:Name="BtnToggleToolsPanel"
+                                    Click="OnToggleToolsPanel"
+                                    Style="{DynamicResource ToolbarGhostButtonStyle}"
+                                    HorizontalAlignment="Stretch"
+                                    HorizontalContentAlignment="Left"
+                                    Padding="4,3" FontSize="11">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="&#xE90F;" FontFamily="Segoe MDL2 Assets" FontSize="11"
+                                               Foreground="{DynamicResource AccentBrush}"
+                                               VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                    <TextBlock x:Name="Mw_ToolsToggleLabel" Text=""
+                                               Foreground="{DynamicResource TextPrimaryBrush}"
+                                               VerticalAlignment="Center"/>
+                                    <TextBlock Text=" (Ctrl+Shift+T)"
+                                               FontSize="10"
+                                               Foreground="{DynamicResource TextSecondaryBrush}"
+                                               VerticalAlignment="Center" Margin="4,0,0,0"/>
+                                </StackPanel>
+                            </Button>
+                        </Border>
                     </DockPanel>
                 </Border>
 
@@ -493,10 +560,9 @@
                                                 CommandParameter="{Binding}"
                                                 Style="{DynamicResource SecondaryButtonStyle}"/>
                                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                            <TextBlock x:Name="TabTypeIcon" Text="&#xE7F4;"
-                                                       FontFamily="Segoe MDL2 Assets" FontSize="10"
-                                                       Foreground="{DynamicResource InfoBrush}"
-                                                       VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                            <Image Width="16" Height="16" Margin="0,0,5,0"
+                                                   Source="{Binding ConnectionType, Converter={StaticResource TypeToIconConverter}}"
+                                                   VerticalAlignment="Center"/>
                                             <TextBlock Text="{Binding Title}" FontSize="12" FontWeight="SemiBold"
                                                        Foreground="{DynamicResource TextPrimaryBrush}"
                                                        VerticalAlignment="Center"
@@ -515,23 +581,6 @@
                                     </Trigger>
                                     <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=TabItem}}" Value="True">
                                         <Setter TargetName="TabCloseButton" Property="Opacity" Value="1"/>
-                                    </DataTrigger>
-                                    <!-- Connection type icons -->
-                                    <DataTrigger Binding="{Binding ConnectionType}" Value="SSH">
-                                        <Setter TargetName="TabTypeIcon" Property="Text" Value="&#xE756;"/>
-                                        <Setter TargetName="TabTypeIcon" Property="Foreground" Value="{DynamicResource SuccessBrush}"/>
-                                    </DataTrigger>
-                                    <DataTrigger Binding="{Binding ConnectionType}" Value="SFTP">
-                                        <Setter TargetName="TabTypeIcon" Property="Text" Value="&#xE8B7;"/>
-                                        <Setter TargetName="TabTypeIcon" Property="Foreground" Value="{DynamicResource WarningBrush}"/>
-                                    </DataTrigger>
-                                    <DataTrigger Binding="{Binding ConnectionType}" Value="LOCAL">
-                                        <Setter TargetName="TabTypeIcon" Property="Text" Value="&#xE756;"/>
-                                        <Setter TargetName="TabTypeIcon" Property="Foreground" Value="{DynamicResource AccentBrush}"/>
-                                    </DataTrigger>
-                                    <DataTrigger Binding="{Binding ConnectionType}" Value="CITRIX">
-                                        <Setter TargetName="TabTypeIcon" Property="Text" Value="&#xE753;"/>
-                                        <Setter TargetName="TabTypeIcon" Property="Foreground" Value="{DynamicResource InfoBrush}"/>
                                     </DataTrigger>
                                 </DataTemplate.Triggers>
                             </DataTemplate>
@@ -1286,7 +1335,7 @@
                                                 <Button x:Name="Mw_SettingsExtToolsRemoveBtn" Content="" Command="{Binding Settings.RemoveExternalToolCommand}" Style="{DynamicResource SecondaryButtonStyle}" Padding="8,3" FontSize="11"/>
                                             </StackPanel>
                                         </DockPanel>
-                                        <ListBox ItemsSource="{Binding Settings.ExternalTools}" SelectedItem="{Binding Settings.SelectedExternalTool}" MinHeight="60" MaxHeight="180" Background="{DynamicResource BackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
+                                        <ListBox ItemsSource="{Binding Settings.ExternalTools}" SelectedItem="{Binding Settings.SelectedExternalTool}" MinHeight="60" MaxHeight="120" Background="{DynamicResource BackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
                                             <ListBox.ItemTemplate>
                                                 <DataTemplate>
                                                     <StackPanel Orientation="Horizontal" Margin="4,2">
@@ -1296,6 +1345,50 @@
                                                 </DataTemplate>
                                             </ListBox.ItemTemplate>
                                         </ListBox>
+
+                                        <!-- Inline edit panel for selected tool -->
+                                        <Border Margin="0,12,0,0" Padding="12" Background="{DynamicResource BackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="6"
+                                                DataContext="{Binding Settings.SelectedExternalTool}"
+                                                Visibility="{Binding DataContext.Settings.SelectedExternalTool, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource NullToVisibilityConverter}}">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="100"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                </Grid.RowDefinitions>
+
+                                                <TextBlock x:Name="Mw_ExtToolLblName" Grid.Row="0" Grid.Column="0" Text="" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12"/>
+                                                <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,6" FontSize="12"/>
+
+                                                <TextBlock x:Name="Mw_ExtToolLblPath" Grid.Row="1" Grid.Column="0" Text="" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12"/>
+                                                <DockPanel Grid.Row="1" Grid.Column="1" Margin="0,0,0,6">
+                                                    <Button x:Name="Mw_ExtToolBrowseBtn" DockPanel.Dock="Right" Content="..." Padding="6,2" Margin="4,0,0,0" Click="OnExtToolBrowseClick" Style="{DynamicResource SecondaryButtonStyle}" FontSize="11"/>
+                                                    <TextBox Text="{Binding ExecutablePath, UpdateSourceTrigger=PropertyChanged}" FontSize="12"/>
+                                                </DockPanel>
+
+                                                <TextBlock x:Name="Mw_ExtToolLblArgs" Grid.Row="2" Grid.Column="0" Text="" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12"/>
+                                                <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding Arguments, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,6" FontSize="12" FontFamily="Consolas"/>
+
+                                                <TextBlock x:Name="Mw_ExtToolLblWorkDir" Grid.Row="3" Grid.Column="0" Text="" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12"/>
+                                                <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding WorkingDirectory, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,6" FontSize="12"/>
+
+                                                <StackPanel Grid.Row="4" Grid.Column="1" Orientation="Horizontal" Margin="0,2,0,6">
+                                                    <CheckBox x:Name="Mw_ExtToolChkAdmin" Content="" IsChecked="{Binding RunAsAdministrator}" Margin="0,0,16,0" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="12"/>
+                                                    <CheckBox x:Name="Mw_ExtToolChkHidden" Content="" IsChecked="{Binding RunHidden}" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="12"/>
+                                                </StackPanel>
+
+                                                <TextBlock Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="2"
+                                                           Text="{}{Host}  {Port}  {User}  {ServerName}  {Protocol}  {Project}"
+                                                           Foreground="{DynamicResource TextSecondaryBrush}" FontSize="10" FontFamily="Consolas" Opacity="0.7" Margin="0,2,0,0"/>
+                                            </Grid>
+                                        </Border>
                                     </StackPanel>
                                 </Border>
                             </StackPanel>

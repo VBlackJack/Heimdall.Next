@@ -31,6 +31,12 @@ namespace Heimdall.App.Views;
 /// </summary>
 public partial class EmbeddedVncView : UserControl, IDisposable
 {
+    /// <summary>
+    /// Virtual host name for mapping local VNC assets into WebView2.
+    /// Provides a stable HTTPS origin instead of file:// for security.
+    /// </summary>
+    private const string VncVirtualHost = "heimdall-vnc.local";
+
     private VncSessionResult? _session;
     private SessionTabViewModel? _sessionTab;
     private WebSocketVncProxy? _proxy;
@@ -106,18 +112,45 @@ public partial class EmbeddedVncView : UserControl, IDisposable
 
             await VncWebView.EnsureCoreWebView2Async(env);
 
-            VncWebView.CoreWebView2.Settings.AreDefaultContextMenusEnabled = false;
-            VncWebView.CoreWebView2.Settings.AreDevToolsEnabled = false;
-            VncWebView.CoreWebView2.Settings.IsStatusBarEnabled = false;
-            VncWebView.CoreWebView2.Settings.IsZoomControlEnabled = false;
+            var core = VncWebView.CoreWebView2;
+            core.Settings.AreDefaultContextMenusEnabled = false;
+            core.Settings.AreDevToolsEnabled = false;
+            core.Settings.AreBrowserAcceleratorKeysEnabled = false;
+            core.Settings.AreDefaultScriptDialogsEnabled = false;
+            core.Settings.IsStatusBarEnabled = false;
+            core.Settings.IsZoomControlEnabled = false;
+            core.Settings.IsPinchZoomEnabled = false;
 
-            VncWebView.CoreWebView2.WebMessageReceived += OnWebMessageReceived;
+            core.WebMessageReceived += OnWebMessageReceived;
 
-            // Load the VNC HTML page
+            // Map local Assets folder to a virtual HTTPS host so noVNC runs
+            // under a proper origin instead of file:// (Microsoft recommended pattern
+            // for local content in WebView2 — avoids CORS issues and provides a stable
+            // origin for WebMessage source validation).
+            var assetsPath = Path.Combine(AppContext.BaseDirectory, "Assets");
+            core.SetVirtualHostNameToFolderMapping(
+                VncVirtualHost, assetsPath,
+                CoreWebView2HostResourceAccessKind.Allow);
+
+            // Block all navigation away from the VNC virtual host
+            core.NavigationStarting += (_, navArgs) =>
+            {
+                if (navArgs.Uri is not null
+                    && !navArgs.Uri.StartsWith($"https://{VncVirtualHost}", StringComparison.OrdinalIgnoreCase)
+                    && !navArgs.Uri.StartsWith("about:", StringComparison.OrdinalIgnoreCase)
+                    && !navArgs.Uri.StartsWith("data:", StringComparison.OrdinalIgnoreCase))
+                {
+                    navArgs.Cancel = true;
+                    Core.Logging.FileLogger.Warn(
+                        $"EmbeddedVNC blocked navigation to: {navArgs.Uri}");
+                }
+            };
+
+            // Load the VNC HTML page via virtual host mapping
             var htmlPath = Path.Combine(AppContext.BaseDirectory, "Assets", "vnc.html");
             if (File.Exists(htmlPath))
             {
-                VncWebView.CoreWebView2.Navigate(new Uri(htmlPath).AbsoluteUri);
+                core.Navigate($"https://{VncVirtualHost}/vnc.html");
             }
             else
             {
@@ -141,6 +174,18 @@ public partial class EmbeddedVncView : UserControl, IDisposable
 
     private void OnWebMessageReceived(object? sender, CoreWebView2WebMessageReceivedEventArgs e)
     {
+        // Validate message source — only accept messages from our virtual VNC host
+        var source = e.Source;
+        if (!string.IsNullOrEmpty(source)
+            && !source.StartsWith($"https://{VncVirtualHost}", StringComparison.OrdinalIgnoreCase)
+            && !source.StartsWith("about:", StringComparison.OrdinalIgnoreCase)
+            && !source.StartsWith("data:", StringComparison.OrdinalIgnoreCase))
+        {
+            Core.Logging.FileLogger.Warn(
+                $"EmbeddedVNC rejected WebMessage from unexpected source: {source}");
+            return;
+        }
+
         var message = e.TryGetWebMessageAsString();
         if (string.IsNullOrEmpty(message))
         {

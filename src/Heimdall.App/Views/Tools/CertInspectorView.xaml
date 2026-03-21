@@ -188,6 +188,62 @@
                     </Grid>
                 </Border>
 
+                <!-- TLS Version + Hostname Match -->
+                <Border x:Name="TlsHostPanel" Visibility="Collapsed"
+                        Background="{DynamicResource CardBrush}"
+                        BorderBrush="{DynamicResource BorderBrush}"
+                        BorderThickness="1" CornerRadius="4"
+                        Padding="16,12" Margin="0,12,0,0">
+                    <StackPanel>
+                        <!-- TLS Version -->
+                        <DockPanel Margin="0,0,0,8">
+                            <TextBlock x:Name="LblTlsVersion" Text=""
+                                       FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}"
+                                       VerticalAlignment="Center" Width="120"/>
+                            <TextBlock x:Name="TxtTlsVersion" Text=""
+                                       FontSize="13" FontFamily="Consolas"
+                                       Foreground="{DynamicResource AccentBrush}"
+                                       FontWeight="SemiBold" VerticalAlignment="Center"/>
+                        </DockPanel>
+                        <!-- Hostname Match -->
+                        <DockPanel>
+                            <TextBlock x:Name="TxtHostnameMatch" Text=""
+                                       FontSize="12" FontWeight="SemiBold"
+                                       VerticalAlignment="Center"/>
+                        </DockPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- Certificate Chain -->
+                <Border x:Name="ChainPanel" Visibility="Collapsed"
+                        Background="{DynamicResource CardBrush}"
+                        BorderBrush="{DynamicResource BorderBrush}"
+                        BorderThickness="1" CornerRadius="4"
+                        Padding="16,12" Margin="0,12,0,0">
+                    <StackPanel>
+                        <TextBlock x:Name="LblChainTitle" Text=""
+                                   FontSize="13" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                   Margin="0,0,0,8"/>
+                        <ItemsControl x:Name="ChainList">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border BorderBrush="{DynamicResource BorderBrush}"
+                                            BorderThickness="0,0,0,1"
+                                            Padding="0,4" Margin="0,0,0,4">
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding Subject}" FontSize="12" FontFamily="Consolas"
+                                                       Foreground="{DynamicResource TextPrimaryBrush}" TextWrapping="Wrap"/>
+                                            <TextBlock Text="{Binding Expiry}" FontSize="11"
+                                                       Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0"/>
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Border>
+
                 <!-- Copy button -->
                 <Button x:Name="BtnCopy" Click="OnCopyClick"
                         Visibility="Collapsed"

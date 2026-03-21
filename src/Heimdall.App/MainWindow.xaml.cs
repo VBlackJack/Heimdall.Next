@@ -35,45 +35,10 @@ namespace Heimdall.App;
 public partial class MainWindow : Window
 {
     /// <summary>
-    /// All supported tool type identifiers with their i18n label keys.
-    /// Shared by <see cref="OnAddToolSubmenuOpened"/> and <see cref="CreateAddToolSubmenu"/>.
+    /// Centralized tool registry — injected from the ViewModel. Replaces the former
+    /// static <c>ToolTypeDefinitions</c> and <c>NetworkTools</c> arrays.
     /// </summary>
-    /// <summary>
-    /// Tools that require a target host (network-oriented). All others skip the host prompt.
-    /// </summary>
-    private static readonly HashSet<string> NetworkTools = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "TOOL:PING", "TOOL:DNS", "TOOL:CERT", "TOOL:PORTSCAN", "TOOL:SUBNET", "TOOL:IPCONV"
-    };
-
-    private static readonly (string Category, string ToolType, string LabelKey)[] ToolTypeDefinitions =
-    [
-        // Network
-        ("ToolCategoryNetwork", "TOOL:PING", "PaletteToolPing"),
-        ("ToolCategoryNetwork", "TOOL:DNS", "PaletteToolDns"),
-        ("ToolCategoryNetwork", "TOOL:CERT", "PaletteToolCert"),
-        ("ToolCategoryNetwork", "TOOL:PORTSCAN", "PaletteToolPortScan"),
-        ("ToolCategoryNetwork", "TOOL:SUBNET", "PaletteToolSubnet"),
-        ("ToolCategoryNetwork", "TOOL:IPCONV", "PaletteToolIpConv"),
-        ("ToolCategoryNetwork", "TOOL:HTTP", "PaletteToolHttp"),
-        // Security
-        ("ToolCategorySecurity", "TOOL:HASH", "PaletteToolHash"),
-        ("ToolCategorySecurity", "TOOL:HMAC", "PaletteToolHmac"),
-        ("ToolCategorySecurity", "TOOL:PASSWORD", "PaletteToolPassword"),
-        ("ToolCategorySecurity", "TOOL:SSHKEY", "PaletteToolSshKey"),
-        ("ToolCategorySecurity", "TOOL:JWT", "PaletteToolJwt"),
-        // Encoding & Format
-        ("ToolCategoryEncoding", "TOOL:BASE64", "PaletteToolBase64"),
-        ("ToolCategoryEncoding", "TOOL:URLENC", "PaletteToolUrlEnc"),
-        ("ToolCategoryEncoding", "TOOL:JSON", "PaletteToolJson"),
-        ("ToolCategoryEncoding", "TOOL:REGEX", "PaletteToolRegex"),
-        ("ToolCategoryEncoding", "TOOL:DIFF", "PaletteToolDiff"),
-        // System
-        ("ToolCategorySystem", "TOOL:CHMOD", "PaletteToolChmod"),
-        ("ToolCategorySystem", "TOOL:DATETIME", "PaletteToolDateTime"),
-        ("ToolCategorySystem", "TOOL:UUID", "PaletteToolUuid"),
-        ("ToolCategorySystem", "TOOL:CRONTAB", "PaletteToolCron"),
-    ];
+    private ToolRegistry ToolRegistry => ((MainViewModel)DataContext).ToolRegistry;
 
     private object? _treeContextTarget;
     private bool _treeContextTargetFromPointer;
@@ -366,8 +331,16 @@ public partial class MainWindow : Window
         Mw_SettingsTunnelDelayLabel.Text = vm.Localize("SettingsLabelTunnelDelay");
         Mw_SettingsRdpTimeoutLabel.Text = vm.Localize("SettingsLabelRdpTimeout");
         Mw_SettingsExtToolsTitle.Text = vm.Localize("SettingsSectionExternalToolsList");
+        Mw_ToolsPanelTitle.Text = vm.Localize("ToolsPanelTitle");
+        Mw_ToolsToggleLabel.Text = vm.Localize("ToolsPanelToggle");
         Mw_SettingsExtToolsAddBtn.Content = vm.Localize("BtnAdd");
         Mw_SettingsExtToolsRemoveBtn.Content = vm.Localize("BtnRemove");
+        Mw_ExtToolLblName.Text = vm.Localize("ExternalToolLabelName");
+        Mw_ExtToolLblPath.Text = vm.Localize("ExternalToolLabelPath");
+        Mw_ExtToolLblArgs.Text = vm.Localize("ExternalToolLabelArguments");
+        Mw_ExtToolLblWorkDir.Text = vm.Localize("ExternalToolLabelWorkDir");
+        Mw_ExtToolChkAdmin.Content = vm.Localize("ExternalToolRunAsAdmin");
+        Mw_ExtToolChkHidden.Content = vm.Localize("ExternalToolRunHidden");
 
         Mw_SettingsSaveBtn.Content = vm.Localize("SettingsBtnSaveSettings");
         Mw_SettingsResetBtn.Content = vm.Localize("SettingsBtnResetDefaults");
@@ -498,24 +471,24 @@ public partial class MainWindow : Window
         parentItem.Items.Clear();
 
         string? lastCategory = null;
-        foreach (var (category, toolType, labelKey) in ToolTypeDefinitions)
+        foreach (var descriptor in ToolRegistry.All)
         {
-            if (!string.Equals(category, lastCategory, StringComparison.Ordinal))
+            if (!string.Equals(descriptor.CategoryLabelKey, lastCategory, StringComparison.Ordinal))
             {
                 if (lastCategory is not null)
                     parentItem.Items.Add(new Separator());
 
                 var header = new MenuItem
                 {
-                    Header = vm.Localize(category),
+                    Header = vm.Localize(descriptor.CategoryLabelKey),
                     IsEnabled = false,
                     FontWeight = FontWeights.SemiBold
                 };
                 parentItem.Items.Add(header);
-                lastCategory = category;
+                lastCategory = descriptor.CategoryLabelKey;
             }
 
-            var item = new MenuItem { Header = vm.Localize(labelKey), Tag = toolType };
+            var item = new MenuItem { Header = vm.Localize(descriptor.LabelKey), Tag = descriptor.ToolType };
             item.Click += OnAddToolItemClick;
             parentItem.Items.Add(item);
         }
@@ -541,7 +514,7 @@ public partial class MainWindow : Window
 
             // Only prompt for host on network-oriented tools
             string host = "";
-            if (NetworkTools.Contains(toolType))
+            if (ToolRegistry.IsNetworkTool(toolType))
             {
                 var hostInput = await vm.DialogService.ShowInputAsync(
                     vm.Localize("AddToolDialogTitle"),
@@ -682,6 +655,11 @@ public partial class MainWindow : Window
 
             case Key.N when Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift):
                 _ = LaunchNetworkScannerAsync(vm);
+                e.Handled = true;
+                break;
+
+            case Key.T when Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift):
+                ToggleToolsPanel();
                 e.Handled = true;
                 break;
 
@@ -1154,6 +1132,142 @@ public partial class MainWindow : Window
     /// <summary>
     /// Launches an external tool in a visible console window with variable placeholders resolved.
     /// </summary>
+    // ── Tools Quick-Access Panel ──────────────────────────────────────────
+
+    private bool _toolsPanelPopulated;
+
+    private void OnToggleToolsPanel(object sender, RoutedEventArgs e) => ToggleToolsPanel();
+
+    private void ToggleToolsPanel()
+    {
+        if (ToolsQuickPanel.Visibility == Visibility.Visible)
+        {
+            ToolsQuickPanel.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        if (!_toolsPanelPopulated)
+        {
+            PopulateToolsPanel();
+            _toolsPanelPopulated = true;
+        }
+
+        ToolsQuickPanel.Visibility = Visibility.Visible;
+    }
+
+    private void PopulateToolsPanel()
+    {
+        if (DataContext is not MainViewModel vm) return;
+
+        ToolsCategoryStack.Children.Clear();
+        string? lastCategory = null;
+
+        foreach (var descriptor in ToolRegistry.All)
+        {
+            if (!string.Equals(descriptor.CategoryLabelKey, lastCategory, StringComparison.Ordinal))
+            {
+                var header = new TextBlock
+                {
+                    Text = vm.Localize(descriptor.CategoryLabelKey),
+                    FontSize = 10,
+                    FontWeight = FontWeights.SemiBold,
+                    Foreground = (Brush)FindResource("TextSecondaryBrush"),
+                    Margin = new Thickness(4, lastCategory is null ? 0 : 8, 0, 2)
+                };
+                ToolsCategoryStack.Children.Add(header);
+                lastCategory = descriptor.CategoryLabelKey;
+            }
+
+            var btnContent = new StackPanel { Orientation = System.Windows.Controls.Orientation.Horizontal };
+
+            // Add icon if available
+            if (descriptor.IconResourceKey is not null
+                && TryFindResource(descriptor.IconResourceKey) is System.Windows.Media.Imaging.BitmapImage icon)
+            {
+                btnContent.Children.Add(new System.Windows.Controls.Image
+                {
+                    Source = icon,
+                    Width = 16,
+                    Height = 16,
+                    Margin = new Thickness(0, 0, 6, 0),
+                    VerticalAlignment = VerticalAlignment.Center
+                });
+            }
+
+            btnContent.Children.Add(new TextBlock
+            {
+                Text = vm.Localize(descriptor.LabelKey),
+                VerticalAlignment = VerticalAlignment.Center
+            });
+
+            var btn = new Button
+            {
+                Content = btnContent,
+                Tag = descriptor,
+                Style = (Style)FindResource("ToolbarGhostButtonStyle"),
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Stretch,
+                HorizontalContentAlignment = System.Windows.HorizontalAlignment.Left,
+                Padding = new Thickness(8, 3, 8, 3),
+                FontSize = 11
+            };
+            btn.Click += OnToolsPanelItemClick;
+            ToolsCategoryStack.Children.Add(btn);
+        }
+    }
+
+    private async void OnToolsPanelItemClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button btn || btn.Tag is not Core.Models.ToolDescriptor descriptor
+            || DataContext is not MainViewModel vm)
+            return;
+
+        try
+        {
+            Core.Models.ToolContext? context = null;
+
+            // If a network tool, get context from selected server or prompt
+            if (descriptor.IsNetworkTool)
+            {
+                var host = vm.ServerList.SelectedServer?.RemoteServer;
+                if (string.IsNullOrWhiteSpace(host))
+                {
+                    host = await vm.DialogService.ShowInputAsync(
+                        vm.Localize("AddToolDialogTitle"),
+                        vm.Localize("AddToolDialogHost"));
+                    if (string.IsNullOrWhiteSpace(host)) return;
+                }
+                context = new Core.Models.ToolContext(TargetHost: host);
+            }
+
+            await vm.OpenToolTabAsync(
+                descriptor.Id,
+                vm.Localize(descriptor.LabelKey),
+                context);
+
+            // Track as recent tool
+            vm.TrackRecentTool(descriptor.Id);
+        }
+        catch (Exception ex)
+        {
+            Core.Logging.FileLogger.Error($"Tool panel launch failed: {descriptor.Id}", ex);
+        }
+    }
+
+    private void OnExtToolBrowseClick(object sender, RoutedEventArgs e)
+    {
+        var dialog = new Microsoft.Win32.OpenFileDialog
+        {
+            Filter = "Executables (*.exe;*.bat;*.cmd;*.ps1)|*.exe;*.bat;*.cmd;*.ps1|All files (*.*)|*.*"
+        };
+
+        if (dialog.ShowDialog(this) == true && DataContext is MainViewModel vm
+            && vm.Settings.SelectedExternalTool is not null)
+        {
+            vm.Settings.SelectedExternalTool.ExecutablePath = dialog.FileName;
+            vm.Settings.IsDirty = true;
+        }
+    }
+
     private static void LaunchExternalTool(
         MainViewModel vm,
         Core.Configuration.ExternalToolDefinition tool,
@@ -1164,7 +1278,10 @@ public partial class MainWindow : Window
             var arguments = tool.ResolveArguments(
                 server.RemoteServer,
                 server.RemotePort,
-                server.Username);
+                server.Username,
+                serverName: server.DisplayName,
+                protocol: server.ConnectionType,
+                project: server.ProjectName);
 
             var psi = new System.Diagnostics.ProcessStartInfo
             {
@@ -1173,7 +1290,22 @@ public partial class MainWindow : Window
                 UseShellExecute = true
             };
 
-            System.Diagnostics.Process.Start(psi);
+            if (!string.IsNullOrWhiteSpace(tool.WorkingDirectory))
+            {
+                psi.WorkingDirectory = tool.WorkingDirectory;
+            }
+
+            if (tool.RunAsAdministrator)
+            {
+                psi.Verb = "runas";
+            }
+
+            if (tool.RunHidden)
+            {
+                psi.WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden;
+            }
+
+            System.Diagnostics.Process.Start(psi)?.Dispose();
 
             Core.Logging.FileLogger.Info(
                 $"External tool launched: {tool.ExecutablePath} {arguments}");
@@ -1419,24 +1551,24 @@ public partial class MainWindow : Window
         var toolMenu = new MenuItem { Header = vm.Localize("AddMenuTool"), Tag = group };
 
         string? lastCategory = null;
-        foreach (var (category, toolType, labelKey) in ToolTypeDefinitions)
+        foreach (var descriptor in ToolRegistry.All)
         {
-            if (!string.Equals(category, lastCategory, StringComparison.Ordinal))
+            if (!string.Equals(descriptor.CategoryLabelKey, lastCategory, StringComparison.Ordinal))
             {
                 if (lastCategory is not null)
                     toolMenu.Items.Add(new Separator());
 
                 var header = new MenuItem
                 {
-                    Header = vm.Localize(category),
+                    Header = vm.Localize(descriptor.CategoryLabelKey),
                     IsEnabled = false,
                     FontWeight = FontWeights.SemiBold
                 };
                 toolMenu.Items.Add(header);
-                lastCategory = category;
+                lastCategory = descriptor.CategoryLabelKey;
             }
 
-            var item = new MenuItem { Header = vm.Localize(labelKey), Tag = toolType };
+            var item = new MenuItem { Header = vm.Localize(descriptor.LabelKey), Tag = descriptor.ToolType };
             item.Click += OnAddToolItemClick;
             toolMenu.Items.Add(item);
         }

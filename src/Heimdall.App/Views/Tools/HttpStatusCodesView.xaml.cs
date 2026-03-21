@@ -28,7 +28,7 @@ namespace Heimdall.App.Views.Tools;
 /// HTTP status codes reference tool with search/filter and grouped display.
 /// Click any entry to copy the code and name to clipboard.
 /// </summary>
-public partial class HttpStatusCodesView : UserControl, IDisposable
+public partial class HttpStatusCodesView : UserControl, IToolView
 {
     private LocalizationManager? _localizer;
     private List<HttpStatusEntry> _allEntries = [];

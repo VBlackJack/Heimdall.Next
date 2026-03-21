@@ -35,6 +35,13 @@
                             Padding="16,6" Margin="8,0,0,0"
                             VerticalAlignment="Center"
                             />
+                    <ComboBox x:Name="CmbDnsServer" DockPanel.Dock="Right"
+                              Width="160" Margin="8,0,0,0"
+                              VerticalAlignment="Center"
+                              Background="{DynamicResource CardBrush}"
+                              Foreground="{DynamicResource TextPrimaryBrush}"
+                              BorderBrush="{DynamicResource BorderBrush}"
+                              />
                     <ComboBox x:Name="CmbRecordType" DockPanel.Dock="Right"
                               Width="100" Margin="8,0,0,0"
                               VerticalAlignment="Center"

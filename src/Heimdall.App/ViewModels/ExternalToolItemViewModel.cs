@@ -26,6 +26,9 @@ public partial class ExternalToolItemViewModel : ObservableObject
     [ObservableProperty] private string _name = "";
     [ObservableProperty] private string _executablePath = "";
     [ObservableProperty] private string _arguments = "";
+    [ObservableProperty] private string _workingDirectory = "";
+    [ObservableProperty] private bool _runAsAdministrator;
+    [ObservableProperty] private bool _runHidden;
 
     public string DisplayText => $"{Name} — {ExecutablePath}";
 }

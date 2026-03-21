@@ -61,6 +61,13 @@
                     </DockPanel>
                 </Border>
 
+                <!-- File hash progress bar -->
+                <ProgressBar x:Name="FileHashProgress" Height="4"
+                             IsIndeterminate="True" Visibility="Collapsed"
+                             Foreground="{DynamicResource AccentBrush}"
+                             Background="{DynamicResource SurfaceBrush}"
+                             Margin="0,4,0,0"/>
+
                 <!-- File hash status -->
                 <DockPanel Margin="0,4,0,0">
                     <Button x:Name="BtnClearFile" DockPanel.Dock="Right"

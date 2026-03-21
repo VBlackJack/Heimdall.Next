@@ -126,17 +126,32 @@ public partial class ConnectionService
                     AutoReconnect = server.RdpAutoReconnect
                 }
             });
-            await File.WriteAllTextAsync(rdpFile, rdpContent, ct).ConfigureAwait(false);
-
-            // Restrict .rdp file ACL — contains connection metadata (no password,
-            // but host/user/redirections are sensitive in enterprise environments)
-            try { AclEnforcer.SetFileAcl(rdpFile); }
-            catch (Exception aclEx)
+            // Create .rdp file with restrictive ACL from the start (no TOCTOU window).
+            // Falls back to standard write + post-hoc ACL on non-Windows or if atomic
+            // creation fails.
+            if (OperatingSystem.IsWindows())
             {
-                Core.Logging.FileLogger.Warn($"Failed to set ACL on .rdp file: {aclEx.Message}");
+                try
+                {
+                    Core.Security.SecureFileWriter.WriteAndProtect(rdpFile, rdpContent);
+                }
+                catch (Exception swEx)
+                {
+                    Core.Logging.FileLogger.Error($"Atomic ACL write failed for .rdp file, falling back to unprotected write: {swEx.Message}");
+                    await File.WriteAllTextAsync(rdpFile, rdpContent, ct).ConfigureAwait(false);
+                    try { AclEnforcer.SetFileAcl(rdpFile); }
+                    catch (Exception aclEx)
+                    {
+                        Core.Logging.FileLogger.Error($"Failed to set ACL on .rdp file — file has inherited permissions: {aclEx.Message}");
+                    }
+                }
+            }
+            else
+            {
+                await File.WriteAllTextAsync(rdpFile, rdpContent, ct).ConfigureAwait(false);
             }
 
-            var mstscProcess = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+            using var mstscProcess = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
             {
                 FileName = "mstsc.exe",
                 Arguments = $"\"{rdpFile}\"",

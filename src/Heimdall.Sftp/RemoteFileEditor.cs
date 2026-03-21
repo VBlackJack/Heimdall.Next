@@ -100,7 +100,7 @@ public class RemoteFileEditor : IDisposable
         }
 
         StartWatcher(session);
-        LaunchEditor(localPath);
+        LaunchEditor(_editorPath, localPath);
     }
 
     /// <summary>
@@ -143,7 +143,7 @@ public class RemoteFileEditor : IDisposable
 
         try
         {
-            var downloadCmd = await Task.Run(() =>
+            using var downloadCmd = await Task.Run(() =>
                 sshClient.RunCommand($"sudo cat {escapedPath}"),
                 ct).ConfigureAwait(false);
 
@@ -183,7 +183,7 @@ public class RemoteFileEditor : IDisposable
         }
 
         StartWatcher(session);
-        LaunchEditor(localPath);
+        LaunchEditor(_editorPath, localPath);
     }
 
     /// <summary>
@@ -249,8 +249,8 @@ public class RemoteFileEditor : IDisposable
             try { Heimdall.Core.Security.AclEnforcer.SetDirectoryAcl(tempDir); }
             catch (Exception ex)
             {
-                Heimdall.Core.Logging.FileLogger.Warn(
-                    $"Failed to restrict temp directory ACL for SFTP editor: {ex.Message}");
+                Heimdall.Core.Logging.FileLogger.Error(
+                    $"Failed to restrict temp directory ACL for SFTP editor — edited files may be readable by other users: {ex.Message}");
             }
         }
 
@@ -272,9 +272,10 @@ public class RemoteFileEditor : IDisposable
                 Directory.Delete(dir, recursive: false);
             }
         }
-        catch
+        catch (Exception ex)
         {
-            // Best-effort cleanup; temp files will be cleaned by the OS eventually.
+            Heimdall.Core.Logging.FileLogger.Warn(
+                $"RemoteFileEditor temp cleanup failed for {localPath}: {ex.Message}");
         }
     }
 
@@ -396,7 +397,7 @@ public class RemoteFileEditor : IDisposable
             string escapedTemp = PathEscaper.EscapeForShell(tempRemotePath);
             await Task.Run(() =>
             {
-                var result = sshClient.RunCommand(
+                using var result = sshClient.RunCommand(
                     $"cat {escapedTemp} | sudo tee -- {escapedPath} > /dev/null");
 
                 if (result.ExitStatus != 0)
@@ -412,7 +413,7 @@ public class RemoteFileEditor : IDisposable
             try
             {
                 string escapedTemp2 = PathEscaper.EscapeForShell(tempRemotePath);
-                sshClient.RunCommand($"sudo rm -f {escapedTemp2}");
+                using var rmCmd = sshClient.RunCommand($"sudo rm -f {escapedTemp2}");
             }
             catch (Exception ex)
             {
@@ -425,27 +426,33 @@ public class RemoteFileEditor : IDisposable
         }
     }
 
-    private void LaunchEditor(string localPath)
+    private static void LaunchEditor(string editorPath, string localPath)
     {
-        if (!string.IsNullOrWhiteSpace(_editorPath) &&
-            !string.Equals(_editorPath, "notepad.exe", StringComparison.OrdinalIgnoreCase))
+        Process? proc = null;
+        try
         {
-            // Use the configured external editor
-            Process.Start(new ProcessStartInfo
+            if (!string.IsNullOrWhiteSpace(editorPath) &&
+                !string.Equals(editorPath, "notepad.exe", StringComparison.OrdinalIgnoreCase))
             {
-                FileName = _editorPath,
-                Arguments = $"\"{localPath}\"",
-                UseShellExecute = false
-            });
+                proc = Process.Start(new ProcessStartInfo
+                {
+                    FileName = editorPath,
+                    Arguments = $"\"{localPath}\"",
+                    UseShellExecute = false
+                });
+            }
+            else
+            {
+                proc = Process.Start(new ProcessStartInfo
+                {
+                    FileName = localPath,
+                    UseShellExecute = true
+                });
+            }
         }
-        else
+        finally
         {
-            // Fallback to OS file association
-            Process.Start(new ProcessStartInfo
-            {
-                FileName = localPath,
-                UseShellExecute = true
-            });
+            proc?.Dispose();
         }
     }
 }
@@ -491,5 +498,6 @@ internal class EditSession : IDisposable
     {
         Watcher?.Dispose();
         UploadSemaphore.Dispose();
+        GC.SuppressFinalize(this);
     }
 }

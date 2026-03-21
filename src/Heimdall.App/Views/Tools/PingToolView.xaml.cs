@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+using System.IO;
 using System.Net.NetworkInformation;
 using System.Text;
 using System.Windows;
@@ -30,7 +31,7 @@ namespace Heimdall.App.Views.Tools;
 /// <summary>
 /// Continuous ping monitor with live latency graph and running statistics.
 /// </summary>
-public partial class PingToolView : UserControl, IDisposable
+public partial class PingToolView : UserControl, IToolView
 {
     private const int MaxDataPoints = 60;
     private const int DefaultPingTimeoutMs = 2000;
@@ -50,6 +51,9 @@ public partial class PingToolView : UserControl, IDisposable
     private long _maxLatency;
     private long _totalLatency;
     private int _successCount;
+    private double _sumSquaredLatency;
+
+    private readonly List<PingCsvEntry> _csvEntries = [];
 
     private Polyline? _graphLine;
     private readonly List<Ellipse> _timeoutMarkers = [];
@@ -75,6 +79,12 @@ public partial class PingToolView : UserControl, IDisposable
         {
             TxtHost.Text = context.TargetHost;
         }
+
+        Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, () =>
+        {
+            TxtHost.Focus();
+            TxtHost.SelectAll();
+        });
     }
 
     private void ApplyLocalization()
@@ -87,8 +97,10 @@ public partial class PingToolView : UserControl, IDisposable
         LblLoss.Text = L("ToolPingLoss");
         TxtPingCount.Text = string.Empty;
 
+        LblJitter.Text = L("ToolPingJitter");
         BtnClear.Content = L("ToolPingBtnClear");
         BtnCopyLog.Content = L("ToolPingBtnCopyLog");
+        BtnExportCsv.Content = L("ToolPingBtnExportCsv");
         LblInterval.Text = L("ToolPingIntervalLabel");
         LblTimeout.Text = L("ToolPingTimeoutLabel");
         LblCount.Text = L("ToolPingCountLabel");
@@ -96,6 +108,7 @@ public partial class PingToolView : UserControl, IDisposable
         System.Windows.Automation.AutomationProperties.SetName(BtnToggle, L("ToolPingBtnStart"));
         System.Windows.Automation.AutomationProperties.SetName(BtnClear, L("ToolPingBtnClear"));
         System.Windows.Automation.AutomationProperties.SetName(BtnCopyLog, L("ToolPingBtnCopyLog"));
+        System.Windows.Automation.AutomationProperties.SetName(BtnExportCsv, L("ToolPingBtnExportCsv"));
         BtnCopyLog.ToolTip = L("ToolBtnCopyToClipboard");
         System.Windows.Automation.AutomationProperties.SetName(TxtHost, L("ToolPingHostLabel"));
         System.Windows.Automation.AutomationProperties.SetName(CmbInterval, L("ToolPingIntervalLabel"));
@@ -121,6 +134,7 @@ public partial class PingToolView : UserControl, IDisposable
     {
         _dataPoints.Clear();
         _logBuilder.Clear();
+        _csvEntries.Clear();
         TxtLog.Text = string.Empty;
         TxtLog.Inlines.Clear();
         _sequenceNumber = 0;
@@ -130,6 +144,7 @@ public partial class PingToolView : UserControl, IDisposable
         _maxLatency = 0;
         _totalLatency = 0;
         _successCount = 0;
+        _sumSquaredLatency = 0;
         ResetStats();
         TxtPingCount.Text = string.Empty;
         RedrawGraph();
@@ -201,6 +216,7 @@ public partial class PingToolView : UserControl, IDisposable
         // Reset state
         _dataPoints.Clear();
         _logBuilder.Clear();
+        _csvEntries.Clear();
         TxtLog.Text = string.Empty;
         TxtLog.Inlines.Clear();
         _sequenceNumber = 0;
@@ -210,6 +226,7 @@ public partial class PingToolView : UserControl, IDisposable
         _maxLatency = 0;
         _totalLatency = 0;
         _successCount = 0;
+        _sumSquaredLatency = 0;
         ResetStats();
 
         _cts = new CancellationTokenSource();
@@ -298,8 +315,11 @@ public partial class PingToolView : UserControl, IDisposable
 
                 _successCount++;
                 _totalLatency += latency;
+                _sumSquaredLatency += latency * (double)latency;
                 if (latency < _minLatency) _minLatency = latency;
                 if (latency > _maxLatency) _maxLatency = latency;
+
+                _csvEntries.Add(new PingCsvEntry(seq, timestamp, latency, "OK"));
 
                 AppendLogLine(
                     string.Format(L("ToolPingReplyFormat"), timestamp, seq, reply.Address, latency, ttl),
@@ -314,6 +334,7 @@ public partial class PingToolView : UserControl, IDisposable
                 }
 
                 _lostCount++;
+                _csvEntries.Add(new PingCsvEntry(seq, timestamp, -1, reply.Status.ToString()));
 
                 AppendLogLine(
                     string.Format(L("ToolPingTimeoutFormat"), timestamp, seq, reply.Status),
@@ -337,6 +358,7 @@ public partial class PingToolView : UserControl, IDisposable
 
             var timestamp = DateTime.Now.ToString("HH:mm:ss");
             var message = ex.InnerException?.Message ?? ex.Message;
+            _csvEntries.Add(new PingCsvEntry(seq, timestamp, -1, $"Error: {message}"));
             AppendLogLine(
                 string.Format(L("ToolPingErrorFormat"), timestamp, seq, message),
                 true);
@@ -371,6 +393,12 @@ public partial class PingToolView : UserControl, IDisposable
             TxtMin.Text = $"{_minLatency} ms";
             TxtAvg.Text = $"{_totalLatency / _successCount} ms";
             TxtMax.Text = $"{_maxLatency} ms";
+
+            // Jitter = standard deviation of latencies
+            double mean = (double)_totalLatency / _successCount;
+            double variance = (_sumSquaredLatency / _successCount) - (mean * mean);
+            double jitter = Math.Sqrt(Math.Max(0, variance));
+            TxtJitter.Text = $"{jitter:F1} ms";
         }
 
         var lossPercent = _sentCount > 0 ? (_lostCount * 100.0 / _sentCount) : 0;
@@ -387,6 +415,7 @@ public partial class PingToolView : UserControl, IDisposable
         TxtMin.Text = "\u2014";
         TxtAvg.Text = "\u2014";
         TxtMax.Text = "\u2014";
+        TxtJitter.Text = "\u2014";
         TxtLoss.Text = "\u2014";
     }
 
@@ -560,6 +589,44 @@ public partial class PingToolView : UserControl, IDisposable
         }
     }
 
+    private void OnExportCsvClick(object sender, RoutedEventArgs e)
+    {
+        if (_csvEntries.Count == 0)
+        {
+            return;
+        }
+
+        var dialog = new Microsoft.Win32.SaveFileDialog
+        {
+            Filter = "CSV files (*.csv)|*.csv",
+            FileName = $"ping_{TxtHost.Text.Trim()}_{DateTime.Now:yyyyMMdd_HHmmss}.csv",
+        };
+
+        if (dialog.ShowDialog() != true)
+        {
+            return;
+        }
+
+        try
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine("Seq,Timestamp,Latency,Status");
+
+            foreach (var entry in _csvEntries)
+            {
+                var latencyStr = entry.Latency >= 0 ? entry.Latency.ToString() : "";
+                sb.AppendLine($"{entry.Seq},{entry.Timestamp},{latencyStr},{entry.Status}");
+            }
+
+            File.WriteAllText(dialog.FileName, sb.ToString(), Encoding.UTF8);
+            CopyFeedbackHelper.ShowCopyFeedback(sender as Button);
+        }
+        catch (Exception ex)
+        {
+            Core.Logging.FileLogger.Warn($"PingTool CSV export failed: {ex.Message}");
+        }
+    }
+
     private string L(string key) => _localizer?[key] ?? key;
 
     public void Dispose()
@@ -575,4 +642,5 @@ public partial class PingToolView : UserControl, IDisposable
     }
 
     private readonly record struct PingDataPoint(long Latency, bool IsTimeout);
+    private readonly record struct PingCsvEntry(int Seq, string Timestamp, long Latency, string Status);
 }
