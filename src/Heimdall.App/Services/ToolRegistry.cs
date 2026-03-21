@@ -47,6 +47,7 @@ public sealed class ToolRegistry
             Entry("IPCONV",   ToolCategory.Network,  "ToolCategoryNetwork",  "PaletteToolIpConv",   null,                      ["ip","ipconv"],         false, () => new Views.Tools.IpConverterView(),        "Icon.Tool.IpConverter"),
             Entry("HTTP",     ToolCategory.Network,  "ToolCategoryNetwork",  "PaletteToolHttp",     null,                      ["http","status"],       false, () => new Views.Tools.HttpStatusCodesView(),   "Icon.Tool.HttpStatus"),
             Entry("WHOIS",    ToolCategory.Network,  "ToolCategoryNetwork",  "PaletteToolWhois",    "PaletteToolWhoisWith",    ["whois"],               true,  () => new Views.Tools.WhoisLookupView(),       "Icon.Tool.Whois"),
+            Entry("NETMAP",   ToolCategory.Network,  "ToolCategoryNetwork",  "PaletteToolNetMap",   "PaletteToolNetMapWith",   ["netmap","cartography","discover"], true, () => new Views.Tools.NetworkCartographyView(), "Icon.Tool.NetMap"),
             Entry("NETCALC",  ToolCategory.Network,  "ToolCategoryNetwork",  "PaletteToolNetCalc",  null,                      ["netcalc","vlan","supernet"], false, () => new Views.Tools.NetworkCalculatorView(), "Icon.Tool.NetworkCalculator"),
 
             // ── Security ──────────────────────────────────────────────

@@ -195,6 +195,9 @@
     <!-- UUID: grid of blocks -->
     <Geometry x:Key="Geo.Tool.Uuid">M1,3 L4,3 L4,6 L1,6 Z M5.5,3 L7,3 L7,6 L5.5,6 Z M8.5,3 L12,3 L12,6 Z M1,7.5 L4,7.5 L4,10.5 L1,10.5 Z M5.5,7.5 L10.5,7.5 L10.5,10.5 L5.5,10.5 Z M12,7.5 L15,7.5 L15,10.5 L12,10.5 Z M1,12 L6.5,12 L6.5,15 L1,15 Z M8,12 L15,12 L15,15 L8,15 Z</Geometry>
 
+    <!-- Network Map: radar circle with connected nodes -->
+    <Geometry x:Key="Geo.Tool.NetMap">M8,2 A6,6 0 1 1 8,14 A6,6 0 1 1 8,2 Z M8,8 L12,4 M4,5 A1.5,1.5 0 1 1 4,6.5 Z M12,3 A1.5,1.5 0 1 1 12,4.5 Z M11,10 A1.5,1.5 0 1 1 11,11.5 Z M5,11 A1.5,1.5 0 1 1 5,12.5 Z M8,8 L11,10 M8,8 L5,11 M8,8 L4,5</Geometry>
+
     <!-- Crontab: clock with schedule lines -->
     <Geometry x:Key="Geo.Tool.Crontab">M8,2 A6,6 0 1 1 8,14 A6,6 0 1 1 8,2 Z M8,4.5 L8,8 L10.5,10 M1,4 L4,4 M1,8 L3,8 M1,12 L4,12</Geometry>
 
