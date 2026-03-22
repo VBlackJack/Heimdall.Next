@@ -210,6 +210,9 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
         BtnSudoMode.ToolTip = _localizer["SftpSudoModeTooltip"];
         BtnSudoModeText.Text = _localizer["SftpSudoModeLabel"];
 
+        BtnGoPath.ToolTip = _localizer["SftpBtnGoPath"];
+        System.Windows.Automation.AutomationProperties.SetName(BtnGoPath, _localizer["SftpBtnGoPath"]);
+
         FilterTextBox.Tag = _localizer["SftpFilterPlaceholder"];
 
         CtxOpen.Header = _localizer["SftpCtxOpen"];
