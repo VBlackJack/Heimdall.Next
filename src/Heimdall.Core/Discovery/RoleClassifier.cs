@@ -96,6 +96,14 @@ public static class RoleClassifier
         new("Prometheus", [9090], [9093, 9094], 65),
         new("Grafana", [3000], [80, 443], 60),
         new("Nagios/Icinga", [80, 5665], [443, 5667], 65),
+
+        // ── CI/CD ─────────────────────────────────────────────────────
+        new("CI/CD (Jenkins)", [8080], [443, 50000], 55),
+        new("GitLab Instance", [80, 443], [22, 8443, 5050], 55),
+        new("Container Registry", [5000], [443, 5043], 55),
+
+        // ── UPS / Power ───────────────────────────────────────────────
+        new("UPS Management", [161], [80, 443], 40),
     ];
 
     /// <summary>
@@ -201,6 +209,32 @@ public static class RoleClassifier
         // NTP
         ("ntpd", "NTP Server", 80),
         ("chrony", "NTP Server (Chrony)", 80),
+
+        // IoT / Smart Home (additional)
+        ("Shelly", "IoT (Shelly)", 90),
+        ("Tasmota", "IoT (Tasmota)", 90),
+        ("ESPHome", "IoT (ESPHome)", 85),
+        ("ESPEasy", "IoT (ESP Easy)", 80),
+        ("Tuya", "IoT (Tuya)", 80),
+
+        // DevOps / CI-CD
+        ("Portainer", "Container Management (Portainer)", 90),
+        ("Rancher", "Container Management (Rancher)", 85),
+        ("Jenkins", "CI/CD (Jenkins)", 90),
+        ("GitLab", "CI/CD (GitLab)", 90),
+        ("Gitea", "Git Server (Gitea)", 85),
+        ("Gogs", "Git Server (Gogs)", 80),
+        ("Nexus Repository", "Artifact Repository (Nexus)", 85),
+        ("SonarQube", "Code Analysis (SonarQube)", 85),
+        ("Grafana", "Monitoring (Grafana)", 85),
+
+        // Management Appliances
+        ("Proxmox Backup Server", "Backup (Proxmox BS)", 90),
+        ("Veeam", "Backup (Veeam)", 90),
+        ("NetApp", "Storage (NetApp)", 90),
+        ("Zabbix", "Monitoring (Zabbix)", 85),
+        ("Nagios", "Monitoring (Nagios)", 85),
+        ("Icinga", "Monitoring (Icinga)", 85),
     ];
 
     /// <summary>
@@ -272,6 +306,212 @@ public static class RoleClassifier
         }
 
         return [.. matches.OrderByDescending(m => m.Confidence)];
+    }
+
+    /// <summary>
+    /// Full enriched classification using ports, banners, OS fingerprint, NetBIOS,
+    /// SNMP, mDNS services, and HTTP headers for maximum accuracy.
+    /// </summary>
+    public static List<RoleMatch> ClassifyEnriched(
+        IReadOnlyList<int> openPorts,
+        IReadOnlyList<string?> banners,
+        OsFingerprint? os,
+        string? netBiosName,
+        string? netBiosDomain,
+        SnmpInfo? snmp,
+        List<string>? mdnsServices,
+        Dictionary<string, string>? httpHeaders)
+    {
+        var matches = ClassifyWithBanners(openPorts, banners);
+
+        // SNMP-based evidence
+        if (snmp?.SysDescr is not null)
+        {
+            var descr = snmp.SysDescr;
+            ApplySnmpBoosts(matches, descr);
+        }
+
+        // NetBIOS domain membership boosts Windows-related roles
+        if (!string.IsNullOrEmpty(netBiosDomain))
+        {
+            BoostMatchesContaining(matches, "Windows", 10, $"netbios-domain: {netBiosDomain}");
+            BoostMatchesContaining(matches, "RDP", 10, $"netbios-domain: {netBiosDomain}");
+            BoostMatchesContaining(matches, "Active Directory", 10, $"netbios-domain: {netBiosDomain}");
+        }
+
+        // mDNS service evidence
+        if (mdnsServices is { Count: > 0 })
+        {
+            ApplyMdnsBoosts(matches, mdnsServices);
+        }
+
+        // HTTP header evidence
+        if (httpHeaders is { Count: > 0 })
+        {
+            ApplyHttpHeaderBoosts(matches, httpHeaders);
+        }
+
+        // OS + port cross-reference
+        if (os is not null)
+        {
+            ApplyOsBoosts(matches, os, openPorts);
+        }
+
+        return [.. matches.OrderByDescending(m => m.Confidence)];
+    }
+
+    private static void ApplySnmpBoosts(List<RoleMatch> matches, string sysDescr)
+    {
+        var snmpRoles = new (string Pattern, string Role, int Boost)[]
+        {
+            ("Cisco", "Router", 15),
+            ("Cisco", "Switch", 15),
+            ("Cisco", "Network", 15),
+            ("HP ETHERNET", "Printer", 20),
+            ("Hewlett-Packard", "Printer", 15),
+            ("RICOH", "Printer", 20),
+            ("KYOCERA", "Printer", 20),
+            ("Brother", "Printer", 20),
+            ("Canon", "Printer", 15),
+            ("Xerox", "Printer", 20),
+            ("Lexmark", "Printer", 20),
+            ("APC", "UPS", 25),
+            ("Eaton", "UPS", 25),
+            ("Liebert", "UPS", 25),
+            ("Juniper", "Network", 15),
+            ("MikroTik", "Router", 15),
+            ("Synology", "NAS", 15),
+            ("QNAP", "NAS", 15),
+            ("VMware", "Hypervisor", 15),
+            ("Linux", "Linux", 10),
+            ("Windows", "Windows", 10),
+        };
+
+        foreach (var (pattern, roleFragment, boost) in snmpRoles)
+        {
+            if (!sysDescr.Contains(pattern, StringComparison.OrdinalIgnoreCase)) continue;
+
+            var boosted = false;
+            for (var i = 0; i < matches.Count; i++)
+            {
+                if (matches[i].Role.Contains(roleFragment, StringComparison.OrdinalIgnoreCase))
+                {
+                    matches[i] = matches[i] with
+                    {
+                        Confidence = Math.Min(99, matches[i].Confidence + boost),
+                        Evidence = [.. matches[i].Evidence, $"snmp-sysDescr: \"{pattern}\""]
+                    };
+                    boosted = true;
+                }
+            }
+
+            // If no existing match was boosted, add a new one for specific appliances
+            if (!boosted && (pattern is "APC" or "Eaton" or "Liebert"))
+            {
+                matches.Add(new RoleMatch($"UPS ({pattern})", 70,
+                    [$"snmp-sysDescr: \"{pattern}\""]));
+            }
+        }
+    }
+
+    private static void ApplyMdnsBoosts(List<RoleMatch> matches, List<string> services)
+    {
+        var mdnsRoles = new (string Service, string RoleFragment, string NewRole, int Boost)[]
+        {
+            ("IPP Printer", "Printer", "Network Printer (mDNS)", 15),
+            ("IPP Printer (TLS)", "Printer", "Network Printer (mDNS)", 15),
+            ("Network Printer", "Printer", "Network Printer (mDNS)", 15),
+            ("AirPlay", "Apple", "Apple Device (AirPlay)", 20),
+            ("AirPlay Audio", "Apple", "Apple Device (AirPlay)", 20),
+            ("Apple Companion", "Apple", "Apple Device", 15),
+            ("Chromecast", "Chromecast", "Chromecast/Smart TV", 25),
+            ("HomeKit", "IoT", "IoT (HomeKit)", 20),
+            ("HomeKit Accessory", "IoT", "IoT (HomeKit)", 20),
+            ("MQTT", "MQTT", "MQTT Broker", 10),
+            ("Spotify Connect", "IoT", "Media Player (Spotify)", 15),
+            ("Sonos", "Sonos", "IoT (Sonos Speaker)", 20),
+            ("Scanner", "Printer", "Scanner/Printer (mDNS)", 10),
+        };
+
+        foreach (var (service, roleFragment, newRole, boost) in mdnsRoles)
+        {
+            if (!services.Any(s => s.Equals(service, StringComparison.OrdinalIgnoreCase))) continue;
+
+            var boosted = false;
+            for (var i = 0; i < matches.Count; i++)
+            {
+                if (matches[i].Role.Contains(roleFragment, StringComparison.OrdinalIgnoreCase))
+                {
+                    matches[i] = matches[i] with
+                    {
+                        Confidence = Math.Min(99, matches[i].Confidence + boost),
+                        Evidence = [.. matches[i].Evidence, $"mdns: {service}"]
+                    };
+                    boosted = true;
+                }
+            }
+
+            if (!boosted)
+            {
+                matches.Add(new RoleMatch(newRole, Math.Min(80, 50 + boost),
+                    [$"mdns: {service}"]));
+            }
+        }
+    }
+
+    private static void ApplyHttpHeaderBoosts(List<RoleMatch> matches, Dictionary<string, string> headers)
+    {
+        if (headers.TryGetValue("X-Powered-By", out var poweredBy))
+        {
+            if (poweredBy.Contains("ASP.NET", StringComparison.OrdinalIgnoreCase))
+            {
+                BoostMatchesContaining(matches, "Windows", 10, $"http: X-Powered-By={poweredBy}");
+                BoostMatchesContaining(matches, "IIS", 10, $"http: X-Powered-By={poweredBy}");
+            }
+        }
+
+        if (headers.TryGetValue("WWW-Authenticate", out var auth))
+        {
+            if (auth.Contains("NTLM", StringComparison.OrdinalIgnoreCase))
+                BoostMatchesContaining(matches, "Windows", 15, "http: WWW-Authenticate=NTLM");
+            if (auth.Contains("Negotiate", StringComparison.OrdinalIgnoreCase))
+                BoostMatchesContaining(matches, "Active Directory", 10, "http: WWW-Authenticate=Negotiate");
+        }
+    }
+
+    private static void ApplyOsBoosts(List<RoleMatch> matches, OsFingerprint os, IReadOnlyList<int> openPorts)
+    {
+        var portSet = new HashSet<int>(openPorts);
+
+        if (os.OsGuess.Contains("Windows", StringComparison.OrdinalIgnoreCase))
+        {
+            // Windows OS + AD ports → boost AD confidence
+            if (portSet.Contains(88) && portSet.Contains(389))
+                BoostMatchesContaining(matches, "Active Directory", 10, $"os: {os.OsGuess}");
+
+            BoostMatchesContaining(matches, "Windows", 5, $"os: {os.OsGuess}");
+            BoostMatchesContaining(matches, "RDP", 5, $"os: {os.OsGuess}");
+        }
+        else if (os.OsGuess.Contains("Linux", StringComparison.OrdinalIgnoreCase))
+        {
+            BoostMatchesContaining(matches, "SSH", 5, $"os: {os.OsGuess}");
+        }
+    }
+
+    private static void BoostMatchesContaining(
+        List<RoleMatch> matches, string roleFragment, int boost, string evidence)
+    {
+        for (var i = 0; i < matches.Count; i++)
+        {
+            if (matches[i].Role.Contains(roleFragment, StringComparison.OrdinalIgnoreCase))
+            {
+                matches[i] = matches[i] with
+                {
+                    Confidence = Math.Min(99, matches[i].Confidence + boost),
+                    Evidence = [.. matches[i].Evidence, evidence]
+                };
+            }
+        }
     }
 
     /// <summary>

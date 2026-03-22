@@ -12,9 +12,32 @@
 
 All notable changes to Heimdall.Next are documented in this file.
 
+## [Unreleased]
+
+### Network Cartography — Enhanced Device Detection
+- OS fingerprinting via ICMP TTL analysis (Windows/Linux/Network Equipment) and banner pattern matching (33 patterns)
+- NetBIOS NBSTAT probe (UDP 137): computer name, domain/workgroup, MAC address extraction
+- SNMPv2c GET probe (UDP 161): sysDescr, sysName, sysLocation with raw ASN.1/BER encoding
+- mDNS/Bonjour service discovery (multicast UDP 5353): 26 service types (AirPlay, HomeKit, Chromecast, printers, etc.)
+- HTTP header deep analysis: Server, X-Powered-By, WWW-Authenticate, X-Frame-Options, HSTS extraction
+- HTTPS header extraction: TLS handshake + HTTP GET over SSL for HTTPS-only endpoints (443/8443/9443)
+- Expanded OUI database from 101 to 300+ manufacturer prefixes (IoT, enterprise, ISP routers, industrial/SCADA, mobile, media)
+- Enhanced role classification (`ClassifyEnriched`): multi-source evidence from ports + banners + OS + NetBIOS + SNMP + mDNS + HTTP headers
+- 20 new banner fingerprints (Shelly, Tasmota, Jenkins, GitLab, Portainer, etc.) and 4 new role definitions (UPS, CI/CD, GitLab, Container Registry)
+- Ping latency capture (was hardcoded to 0)
+- New DataGrid columns: OS, Details (compact NB/SNMP/mDNS summary)
+- Row tooltip with full enrichment data on hover (localized labels)
+- CSV export expanded to 20 columns with localized headers
+- Draw.io export enriched with OS, NetBIOS name, SNMP sysName in node labels
+- History diff detects OS, NetBIOS, and manufacturer changes (typed `HostChange` model)
+- Enrichment progress display in status bar during NetBIOS/SNMP phase
+- Cross-platform ARP table: Windows (`arp -a`), Linux (`/proc/net/arp`), macOS (`arp -a` with regex)
+- Debug logging on UDP probe failures (NetBIOS, SNMP, mDNS)
+- 92 new xUnit tests covering OsFingerprinter, UdpProbeEngine (including realistic NBSTAT payloads), RoleClassifierEnriched, OuiDatabase, CartographyEngine (TLS port classification, CIDR parsing, typed diff model)
+
 ## [v2026.032203] - 2026-03-22
 
-### UX Audit (6 passes, cross-audited by Opus, Codex, Gemini)
+### UX Audit (6 passes)
 - Gateway diagram: Viewbox auto-scaling prevents truncation
 - ServerDialog: tabs stay visible but disabled (not hidden), with tooltip explanation
 - 33 tool icons: 4 category colors + per-tool glyphs replace uniform wrench
@@ -114,7 +137,7 @@ All notable changes to Heimdall.Next are documented in this file.
 ## [v2026.032001] - 2026-03-20
 
 ### UX
-- 117 fixes across 5 audit passes (cross-validated with Gemini)
+- 117 fixes across 5 audit passes
 - Add 47 i18n keys (2086 EN/FR in perfect parity)
 - Add AutomationProperties.Name on all interactive controls (20+)
 - Add keyboard focus indicators on PrimaryButtonStyle and SecondaryButtonStyle

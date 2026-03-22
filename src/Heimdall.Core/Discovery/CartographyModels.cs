@@ -46,6 +46,22 @@ public record NetworkScanSnapshot(
     List<VlanInfo>? DetectedVlans = null);
 
 /// <summary>
+/// SNMP system information retrieved via SNMPv2c GET.
+/// </summary>
+public record SnmpInfo(
+    string? SysDescr,
+    string? SysName,
+    string? SysLocation);
+
+/// <summary>
+/// Inferred operating system with confidence and detection source.
+/// </summary>
+public record OsFingerprint(
+    string OsGuess,
+    string Source,
+    int Confidence);
+
+/// <summary>
 /// Aggregated scan result for a single host.
 /// </summary>
 public record HostScanResult(
@@ -57,7 +73,13 @@ public record HostScanResult(
     RoleMatch? PrimaryRole,
     List<RoleMatch> AllRoles,
     string? MacAddress = null,
-    string? Manufacturer = null);
+    string? Manufacturer = null,
+    OsFingerprint? OsFingerprint = null,
+    string? NetBiosName = null,
+    string? NetBiosDomain = null,
+    SnmpInfo? SnmpInfo = null,
+    List<string>? MdnsServices = null,
+    Dictionary<string, string>? HttpHeaders = null);
 
 /// <summary>
 /// Result of probing a single port on a host.
@@ -69,7 +91,8 @@ public record ServiceResult(
     string? Banner,
     string? Version,
     long ResponseTimeMs,
-    CertificateInfo? Certificate = null);
+    CertificateInfo? Certificate = null,
+    Dictionary<string, string>? HttpHeaders = null);
 
 /// <summary>
 /// TLS certificate information gathered from a host's service.
@@ -106,9 +129,32 @@ public record VlanInfo(
     List<string> MemberIps);
 
 /// <summary>
+/// Types of changes that can occur on a host between scans.
+/// </summary>
+public enum HostChangeType
+{
+    PortAdded,
+    PortRemoved,
+    HostnameChanged,
+    RoleChanged,
+    OsChanged,
+    NetBiosChanged,
+    ManufacturerChanged
+}
+
+/// <summary>
+/// A single structural change detected on a host.
+/// </summary>
+public record HostChange(
+    HostChangeType Type,
+    string? OldValue,
+    string? NewValue,
+    int? Port = null);
+
+/// <summary>
 /// Difference between two scan snapshots.
 /// </summary>
 public record ScanDiff(
     List<HostScanResult> NewHosts,
     List<HostScanResult> RemovedHosts,
-    List<(HostScanResult Old, HostScanResult New, List<string> Changes)> ModifiedHosts);
+    List<(HostScanResult Old, HostScanResult New, List<HostChange> Changes)> ModifiedHosts);

@@ -146,12 +146,15 @@
                       HorizontalGridLinesBrush="{DynamicResource BorderBrush}"
                       ColumnHeaderStyle="{StaticResource ThemedDataGridColumnHeaderStyle}"
                       CellStyle="{StaticResource ThemedDataGridCellStyle}"
-                      RowStyle="{StaticResource ThemedDataGridRowStyle}">
+                      RowStyle="{StaticResource ThemedDataGridRowStyle}"
+                      RowDetailsVisibilityMode="Collapsed">
                 <DataGrid.Columns>
                     <DataGridTextColumn x:Name="ColIp" Binding="{Binding IpAddress}" Width="120"
                                         Foreground="{DynamicResource TextPrimaryBrush}"/>
                     <DataGridTextColumn x:Name="ColHostname" Binding="{Binding Hostname}" Width="180"
                                         Foreground="{DynamicResource TextPrimaryBrush}"/>
+                    <DataGridTextColumn x:Name="ColOs" Binding="{Binding OsGuess}" Width="120"
+                                        Foreground="{DynamicResource TextSecondaryBrush}"/>
                     <DataGridTextColumn x:Name="ColPorts" Binding="{Binding PortSummary}" Width="200"
                                         Foreground="{DynamicResource TextSecondaryBrush}"/>
                     <DataGridTextColumn x:Name="ColServices" Binding="{Binding ServiceSummary}" Width="200"
@@ -161,6 +164,8 @@
                     <DataGridTextColumn x:Name="ColRole" Binding="{Binding PrimaryRoleName}" Width="150"
                                         Foreground="{DynamicResource TextPrimaryBrush}"/>
                     <DataGridTextColumn x:Name="ColConfidence" Binding="{Binding Confidence}" Width="80"
+                                        Foreground="{DynamicResource TextSecondaryBrush}"/>
+                    <DataGridTextColumn x:Name="ColDetails" Binding="{Binding DetailsSummary}" Width="200"
                                         Foreground="{DynamicResource TextSecondaryBrush}"/>
                     <DataGridTextColumn x:Name="ColVlan" Binding="{Binding VlanSegment}" Width="150"
                                         Foreground="{DynamicResource TextSecondaryBrush}"/>

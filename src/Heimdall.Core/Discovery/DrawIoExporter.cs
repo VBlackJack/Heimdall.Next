@@ -107,6 +107,15 @@ public static class DrawIoExporter
         else if (!string.IsNullOrEmpty(host.MacAddress))
             sb.Append($"\nMAC: {host.MacAddress}");
 
+        if (host.OsFingerprint is not null)
+            sb.Append($"\nOS: {host.OsFingerprint.OsGuess}");
+
+        if (!string.IsNullOrEmpty(host.NetBiosName))
+            sb.Append($"\nNetBIOS: {host.NetBiosName}");
+
+        if (host.SnmpInfo?.SysName is not null)
+            sb.Append($"\nSNMP: {host.SnmpInfo.SysName}");
+
         var tlsCert = host.Services.FirstOrDefault(s => s.Certificate is not null)?.Certificate;
         if (tlsCert is not null)
         {

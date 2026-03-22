@@ -52,6 +52,7 @@ public partial class NetworkCartographyView : UserControl, IToolView
         TxtSubnet.KeyDown += OnSubnetKeyDown;
         ResultsGrid.PreviewMouseRightButtonDown += ToolContextMenuHelper.SelectRowOnRightClick;
         ResultsGrid.ContextMenuOpening += OnResultsContextMenuOpening;
+        ResultsGrid.LoadingRow += OnResultsLoadingRow;
     }
 
     /// <inheritdoc />
@@ -104,7 +105,9 @@ public partial class NetworkCartographyView : UserControl, IToolView
         ColTls.Header = L("ToolNetMapColTls");
         ColRole.Header = L("ToolNetMapColRole");
         ColConfidence.Header = L("ToolNetMapColConfidence");
+        ColOs.Header = L("ToolNetMapColOs");
         ColVlan.Header = L("ToolNetMapColVlan");
+        ColDetails.Header = L("ToolNetMapColDetails");
         ColManufacturer.Header = L("ToolNetMapColManufacturer");
 
         CmbDepth.Items.Clear();
@@ -240,6 +243,14 @@ public partial class NetworkCartographyView : UserControl, IToolView
             Dispatcher.InvokeAsync(() =>
             {
                 TxtStatus.Text = string.Format(L("ToolNetMapStatusScanning"), host, completed, totalPorts);
+            });
+        };
+
+        engine.EnrichmentProgress += (host, phase) =>
+        {
+            Dispatcher.InvokeAsync(() =>
+            {
+                TxtStatus.Text = string.Format(L("ToolNetMapStatusEnriching"), host, phase);
             });
         };
 
@@ -468,10 +479,55 @@ public partial class NetworkCartographyView : UserControl, IToolView
                 tlsStatus = $"{tlsCert.TlsVersion} ({L("ToolNetMapCertValid")} {tlsCert.NotAfter:yyyy-MM-dd})";
         }
 
+        // OS fingerprint
+        var osGuess = host.OsFingerprint?.OsGuess ?? "\u2014";
+
+        // Details summary: compact one-line
+        var detailParts = new List<string>();
+        if (!string.IsNullOrEmpty(host.NetBiosName))
+            detailParts.Add($"NB:{host.NetBiosName}");
+        if (host.SnmpInfo?.SysName is not null)
+            detailParts.Add($"SNMP:{host.SnmpInfo.SysName}");
+        if (host.MdnsServices is { Count: > 0 })
+            detailParts.Add($"mDNS:{host.MdnsServices.Count}");
+        var detailsSummary = detailParts.Count > 0 ? string.Join(" | ", detailParts) : "\u2014";
+
+        // Full tooltip (localized labels)
+        var tooltipParts = new List<string>
+        {
+            $"{L("ToolNetMapTipIp")}: {host.IpAddress}"
+        };
+        if (host.Hostname is not null) tooltipParts.Add($"{L("ToolNetMapTipHostname")}: {host.Hostname}");
+        if (host.OsFingerprint is not null)
+            tooltipParts.Add($"{L("ToolNetMapTipOs")}: {host.OsFingerprint.OsGuess} ({host.OsFingerprint.Source}, {host.OsFingerprint.Confidence}%)");
+        if (host.PingLatencyMs > 0) tooltipParts.Add($"{L("ToolNetMapTipLatency")}: {host.PingLatencyMs}ms");
+        if (host.MacAddress is not null) tooltipParts.Add($"{L("ToolNetMapTipMac")}: {host.MacAddress}");
+        if (host.Manufacturer is not null) tooltipParts.Add($"{L("ToolNetMapTipManufacturer")}: {host.Manufacturer}");
+        if (host.NetBiosName is not null) tooltipParts.Add($"{L("ToolNetMapTipNetBios")}: {host.NetBiosName}");
+        if (host.NetBiosDomain is not null) tooltipParts.Add($"{L("ToolNetMapTipDomain")}: {host.NetBiosDomain}");
+        if (host.SnmpInfo is not null)
+        {
+            if (host.SnmpInfo.SysDescr is not null) tooltipParts.Add($"{L("ToolNetMapTipSnmpDescr")}: {host.SnmpInfo.SysDescr}");
+            if (host.SnmpInfo.SysName is not null) tooltipParts.Add($"{L("ToolNetMapTipSnmpName")}: {host.SnmpInfo.SysName}");
+            if (host.SnmpInfo.SysLocation is not null) tooltipParts.Add($"{L("ToolNetMapTipSnmpLocation")}: {host.SnmpInfo.SysLocation}");
+        }
+        if (host.MdnsServices is { Count: > 0 })
+            tooltipParts.Add($"{L("ToolNetMapTipMdns")}: {string.Join(", ", host.MdnsServices)}");
+        if (host.HttpHeaders is { Count: > 0 })
+        {
+            foreach (var (key, value) in host.HttpHeaders)
+                tooltipParts.Add($"{key}: {value}");
+        }
+        var detailTooltip = string.Join("\n", tooltipParts);
+
+        var mdnsServicesList = host.MdnsServices is { Count: > 0 }
+            ? string.Join("; ", host.MdnsServices) : null;
+
         return new CartographyRowViewModel
         {
             IpAddress = host.IpAddress,
             Hostname = host.Hostname ?? "\u2014",
+            OsGuess = osGuess,
             PortSummary = string.Join(", ", openPorts),
             ServiceSummary = string.Join(", ", services),
             TlsStatus = tlsStatus,
@@ -486,10 +542,18 @@ public partial class NetworkCartographyView : UserControl, IToolView
                 ?? (host.Manufacturer is not null ? host.Manufacturer : "\u2014"),
             Confidence = host.PrimaryRole is not null ? $"{host.PrimaryRole.Confidence}%"
                 : (host.Manufacturer is not null ? "MAC" : "\u2014"),
+            DetailsSummary = detailsSummary,
+            DetailTooltip = detailTooltip,
             VlanSegment = _lastSnapshot?.DetectedVlans?
                 .FirstOrDefault(v => v.MemberIps.Contains(host.IpAddress))
                 is { } vlan ? $"VLAN {vlan.VlanId} ({vlan.Subnet})" : "\u2014",
             Manufacturer = host.Manufacturer ?? "\u2014",
+            NetBiosName = host.NetBiosName,
+            NetBiosDomain = host.NetBiosDomain,
+            SnmpSysName = host.SnmpInfo?.SysName,
+            SnmpSysDescr = host.SnmpInfo?.SysDescr,
+            SnmpSysLocation = host.SnmpInfo?.SysLocation,
+            MdnsServicesList = mdnsServicesList,
             OpenPorts = openPortsList
         };
     }
@@ -509,11 +573,12 @@ public partial class NetworkCartographyView : UserControl, IToolView
         try
         {
             var sb = new StringBuilder();
-            sb.AppendLine("IP Address,Hostname,Open Ports,Services,TLS_Version,Cert_Subject,Cert_Expires,Cert_Algorithm,Cert_Status,Role,Confidence");
+            sb.AppendLine(L("ToolNetMapExportHeader"));
 
             foreach (var r in _results)
             {
                 var hostname = (r.Hostname ?? "").Replace("\"", "\"\"");
+                var os = (r.OsGuess ?? "").Replace("\"", "\"\"");
                 var ports = r.PortSummary.Replace("\"", "\"\"");
                 var services = r.ServiceSummary.Replace("\"", "\"\"");
                 var tls = (r.TlsStatus ?? "").Replace("\"", "\"\"");
@@ -522,7 +587,15 @@ public partial class NetworkCartographyView : UserControl, IToolView
                 var certAlgorithm = (r.CertAlgorithm ?? "").Replace("\"", "\"\"");
                 var certStatus = (r.CertStatus ?? "").Replace("\"", "\"\"");
                 var role = (r.PrimaryRoleName ?? "").Replace("\"", "\"\"");
-                sb.AppendLine($"{r.IpAddress},\"{hostname}\",\"{ports}\",\"{services}\",\"{tls}\",\"{certSubject}\",\"{certExpires}\",\"{certAlgorithm}\",\"{certStatus}\",\"{role}\",{r.Confidence}");
+                var nbName = (r.NetBiosName ?? "").Replace("\"", "\"\"");
+                var nbDomain = (r.NetBiosDomain ?? "").Replace("\"", "\"\"");
+                var snmpName = (r.SnmpSysName ?? "").Replace("\"", "\"\"");
+                var snmpDescr = (r.SnmpSysDescr ?? "").Replace("\"", "\"\"");
+                var snmpLoc = (r.SnmpSysLocation ?? "").Replace("\"", "\"\"");
+                var mdns = (r.MdnsServicesList ?? "").Replace("\"", "\"\"");
+                var manufacturer = (r.Manufacturer ?? "").Replace("\"", "\"\"");
+                var vlan = (r.VlanSegment ?? "").Replace("\"", "\"\"");
+                sb.AppendLine($"{r.IpAddress},\"{hostname}\",\"{os}\",\"{ports}\",\"{services}\",\"{tls}\",\"{certSubject}\",\"{certExpires}\",\"{certAlgorithm}\",\"{certStatus}\",\"{role}\",{r.Confidence},\"{nbName}\",\"{nbDomain}\",\"{snmpName}\",\"{snmpDescr}\",\"{snmpLoc}\",\"{mdns}\",\"{manufacturer}\",\"{vlan}\"");
             }
 
             File.WriteAllText(dialog.FileName, sb.ToString(), Encoding.UTF8);
@@ -697,13 +770,22 @@ public partial class NetworkCartographyView : UserControl, IToolView
         }
 
         // Copy row as CSV
-        var csvText = $"{row.IpAddress},{row.Hostname},{row.PortSummary},{row.ServiceSummary},{row.PrimaryRoleName}";
+        var csvText = $"{row.IpAddress},{row.Hostname},{row.OsGuess},{row.PortSummary},{row.ServiceSummary},{row.PrimaryRoleName},{row.Manufacturer}";
         menu.Items.Add(ToolContextMenuHelper.BuildCopyRowAction(csvText, _localizer));
         menu.Items.Add(ToolContextMenuHelper.BuildCopyAllAction(ResultsGrid, _localizer));
         menu.Items.Add(new Separator());
         menu.Items.Add(ToolContextMenuHelper.BuildExportCsvAction(ResultsGrid, _localizer));
 
         ResultsGrid.ContextMenu = menu;
+    }
+
+    private void OnResultsLoadingRow(object? sender, DataGridRowEventArgs e)
+    {
+        if (e.Row.DataContext is CartographyRowViewModel row &&
+            !string.IsNullOrEmpty(row.DetailTooltip))
+        {
+            e.Row.ToolTip = row.DetailTooltip;
+        }
     }
 
     private string L(string key) => _localizer?[key] ?? key;
@@ -724,6 +806,7 @@ public partial class NetworkCartographyView : UserControl, IToolView
     {
         public string IpAddress { get; init; } = "";
         public string? Hostname { get; init; }
+        public string OsGuess { get; init; } = "";
         public string PortSummary { get; init; } = "";
         public string ServiceSummary { get; init; } = "";
         public string TlsStatus { get; init; } = "";
@@ -733,8 +816,18 @@ public partial class NetworkCartographyView : UserControl, IToolView
         public string? CertStatus { get; init; }
         public string PrimaryRoleName { get; init; } = "";
         public string Confidence { get; init; } = "";
+        public string DetailsSummary { get; init; } = "";
+        public string DetailTooltip { get; init; } = "";
         public string VlanSegment { get; init; } = "";
         public string Manufacturer { get; init; } = "";
+
+        // Raw fields for CSV export
+        public string? NetBiosName { get; init; }
+        public string? NetBiosDomain { get; init; }
+        public string? SnmpSysName { get; init; }
+        public string? SnmpSysDescr { get; init; }
+        public string? SnmpSysLocation { get; init; }
+        public string? MdnsServicesList { get; init; }
 
         /// <summary>
         /// Raw list of open ports for cross-tool context menu actions.
