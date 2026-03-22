@@ -16,11 +16,11 @@ This file provides guidance to Claude Code when working with code in this reposi
 
 ## Codebase Size
 
-- **~196 C# source files** (~53,000 LOC)
+- **~198 C# source files** (~55,000 LOC)
 - **~58 XAML files** (~13,000 LOC)
-- **35 test files** (~12,000 LOC), 1,213 xUnit tests
-- **~3,029 i18n keys** per locale (EN/FR)
-- **33 built-in sysops tools** (ToolRegistry with IToolView interface, cross-tool navigation, Network Cartography with fingerprinting)
+- **40 test files** (~14,000 LOC), 1,305 xUnit tests
+- **~3,061 i18n keys** per locale (EN/FR)
+- **33 built-in sysops tools** (ToolRegistry with IToolView interface, cross-tool navigation, Network Cartography with deep fingerprinting)
 - **1,760+ lines** of theme XAML (CommonControls + Dark/Light, Design Tokens, micro-animations)
 
 ## Architecture (6 Projects)
@@ -35,6 +35,9 @@ Heimdall.slnx
 │   │   ├── Models/             # RdpServer, SshGateway, Project, TunnelSession, ISessionResult, ServerProfileDto, TerminalMacro, DefaultPorts, Enums
 │   │   ├── Security/           # DpapiProvider, HmacIntegrity, CredentialProtector, PinManager, InputValidator, AclEnforcer,
 │   │   │                       # NetworkScanner, WakeOnLan, CommandCredentialProvider, ICredentialProvider, SecureFileWriter
+│   │   ├── Discovery/          # CartographyEngine, UdpProbeEngine (NetBIOS/SNMP/mDNS), OsFingerprinter,
+│   │   │                       # RoleClassifier, OuiDatabase (300+ MAC prefixes), VlanDetector,
+│   │   │                       # DrawIoExporter, ScanHistoryManager, CartographyModels
 │   │   ├── Utilities/          # FileSize (shared formatting)
 │   │   └── StateMachine/       # ConnectionStateMachine, ApplicationStatusMachine
 │   │
@@ -86,7 +89,7 @@ Heimdall.slnx
 │   └── Heimdall.Ssh.Tests/     # FailureClassifier, AuthPreflight, HostKeyStore, Pageant, PlinkTunnel
 │
 ├── config/                     # Factory defaults (settings.default.json, servers.default.json)
-├── locales/                    # en.json, fr.json (~3,029 keys each)
+├── locales/                    # en.json, fr.json (~3,061 keys each)
 ├── docs/                       # TROUBLESHOOTING.md, ARCHITECTURE.md
 ├── Build.ps1                   # Portable build script (YYYY.MMDDxx versioning)
 └── Dist/                       # Build output (gitignored)
@@ -100,13 +103,21 @@ Heimdall.slnx
 | **MobaXtermImporter** | Parses MobaXterm .mxtsessions/.ini files into ServerProfileDto (6 protocols, path sanitization) |
 | **GroupDefaultsDto** | Connection inheritance at project/group level |
 | **ExternalToolDefinition** | Configurable external tool integration |
-| **LocalizationManager** | JSON-based i18n with ~3,029 keys per locale |
+| **LocalizationManager** | JSON-based i18n with ~3,061 keys per locale |
 | **FileLogger** | Daily rotation file logging |
 | **ConnectionHistory** | Persisted log of connection events for audit and quick re-connect |
 | **CredentialProtector** | DPAPI+HMAC encryption with legacy blob support |
 | **ICredentialProvider** | Pluggable credential source interface |
 | **CommandCredentialProvider** | External command credential retrieval (password manager CLI) |
-| **NetworkScanner** | Subnet scanning for host discovery |
+| **NetworkScanner** | Legacy lightweight subnet scanner (ICMP + TCP port probes) |
+| **CartographyEngine** | Full network cartography: ping sweep (TTL capture), port scan, banner grab, HTTP header extraction, TLS cert inspection, UDP probes (NetBIOS/SNMP/mDNS), OS fingerprinting, enriched role classification, VLAN detection |
+| **UdpProbeEngine** | Raw UDP packet construction for NetBIOS NBSTAT (name/domain/MAC), SNMPv2c GET (sysDescr/sysName/sysLocation), mDNS service discovery (26 service types) |
+| **OsFingerprinter** | OS detection via ICMP TTL analysis + SSH/HTTP banner pattern matching (33 patterns), multi-source merge |
+| **RoleClassifier** | Heuristic role classification: 46+ port patterns, 96+ banner fingerprints, multi-source `ClassifyEnriched()` consuming ports+banners+OS+NetBIOS+SNMP+mDNS+HTTP headers |
+| **OuiDatabase** | Embedded MAC OUI lookup (300+ manufacturer prefixes: enterprise, IoT, ISP, industrial, mobile, media) |
+| **VlanDetector** | Passive VLAN inference from /24 subnets + Cisco `show vlan brief` parser |
+| **ScanHistoryManager** | Scan snapshot persistence (JSON), historical comparison with typed `HostChange` diff |
+| **DrawIoExporter** | Network topology diagram generation (Draw.io XML with role-colored swimlanes, OS/NetBIOS/SNMP labels) |
 | **WakeOnLan** | Magic packet transmission for remote machine wake-up |
 | **ConnectionStateMachine** | 15-state connection lifecycle with validated transitions |
 | **SshConnectionFactory** | SSH.NET connection creation with Pageant and key auth |
@@ -177,7 +188,7 @@ powershell -File Build.ps1 -SkipTests
 GitHub Actions (`.github/workflows/ci.yml`) runs on push to main/develop and PRs to main:
 1. **Build**: `dotnet build` in Release configuration
 2. **Test**: `dotnet test` (xUnit, 505 tests)
-3. **Validate JSON locales**: Checks i18n key parity between en.json and fr.json (~3,029 keys)
+3. **Validate JSON locales**: Checks i18n key parity between en.json and fr.json (~3,061 keys)
 4. **Lint**: Code quality checks
 
 ## Code Standards

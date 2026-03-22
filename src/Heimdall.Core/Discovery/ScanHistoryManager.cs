@@ -98,26 +98,35 @@ public static class ScanHistoryManager
         var newHosts = newer.Hosts.Where(h => !oldIps.ContainsKey(h.IpAddress)).ToList();
         var removedHosts = older.Hosts.Where(h => !newIps.ContainsKey(h.IpAddress)).ToList();
 
-        var modified = new List<(HostScanResult Old, HostScanResult New, List<string> Changes)>();
+        var modified = new List<(HostScanResult Old, HostScanResult New, List<HostChange> Changes)>();
         foreach (var newHost in newer.Hosts)
         {
             if (!oldIps.TryGetValue(newHost.IpAddress, out var oldHost)) continue;
 
-            var changes = new List<string>();
+            var changes = new List<HostChange>();
 
             var oldPorts = new HashSet<int>(oldHost.Services.Where(s => s.IsOpen).Select(s => s.Port));
             var newPorts = new HashSet<int>(newHost.Services.Where(s => s.IsOpen).Select(s => s.Port));
 
             foreach (var p in newPorts.Except(oldPorts))
-                changes.Add($"+port:{p}");
+                changes.Add(new HostChange(HostChangeType.PortAdded, null, null, p));
             foreach (var p in oldPorts.Except(newPorts))
-                changes.Add($"-port:{p}");
+                changes.Add(new HostChange(HostChangeType.PortRemoved, null, null, p));
 
             if (oldHost.Hostname != newHost.Hostname)
-                changes.Add($"hostname: {oldHost.Hostname ?? "(none)"} -> {newHost.Hostname ?? "(none)"}");
+                changes.Add(new HostChange(HostChangeType.HostnameChanged, oldHost.Hostname, newHost.Hostname));
 
             if (oldHost.PrimaryRole?.Role != newHost.PrimaryRole?.Role)
-                changes.Add($"role: {oldHost.PrimaryRole?.Role ?? "Unknown"} -> {newHost.PrimaryRole?.Role ?? "Unknown"}");
+                changes.Add(new HostChange(HostChangeType.RoleChanged, oldHost.PrimaryRole?.Role, newHost.PrimaryRole?.Role));
+
+            if (oldHost.OsFingerprint?.OsGuess != newHost.OsFingerprint?.OsGuess)
+                changes.Add(new HostChange(HostChangeType.OsChanged, oldHost.OsFingerprint?.OsGuess, newHost.OsFingerprint?.OsGuess));
+
+            if (oldHost.NetBiosName != newHost.NetBiosName)
+                changes.Add(new HostChange(HostChangeType.NetBiosChanged, oldHost.NetBiosName, newHost.NetBiosName));
+
+            if (oldHost.Manufacturer != newHost.Manufacturer)
+                changes.Add(new HostChange(HostChangeType.ManufacturerChanged, oldHost.Manufacturer, newHost.Manufacturer));
 
             if (changes.Count > 0)
                 modified.Add((oldHost, newHost, changes));

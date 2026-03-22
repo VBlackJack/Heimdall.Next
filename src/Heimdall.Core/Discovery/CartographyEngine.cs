@@ -33,7 +33,10 @@ namespace Heimdall.Core.Discovery;
 public sealed class CartographyEngine
 {
     /// <summary>Ports that typically serve TLS-encrypted traffic.</summary>
-    private static readonly HashSet<int> TlsPorts = [443, 8443, 636, 993, 995, 465, 990, 3269, 9443];
+    internal static readonly HashSet<int> TlsPorts = [443, 8443, 636, 993, 995, 465, 990, 3269, 9443];
+
+    /// <summary>Subset of TLS ports where HTTPS (HTTP-over-TLS) is expected.</summary>
+    internal static readonly HashSet<int> HttpsTlsPorts = [443, 8443, 9443];
 
     /// <summary>Top ports for quick reconnaissance.</summary>
     public static readonly int[] QuickPorts =
@@ -57,6 +60,9 @@ public sealed class CartographyEngine
     /// <summary>Fires when a single host has been fully scanned.</summary>
     public event Action<HostScanResult>? HostCompleted;
 
+    /// <summary>Fires during UDP enrichment phases (NetBIOS, SNMP).</summary>
+    public event Action<string, string>? EnrichmentProgress;
+
     /// <summary>
     /// Runs a full cartography scan against the specified profile.
     /// </summary>
@@ -69,14 +75,17 @@ public sealed class CartographyEngine
 
         var ipList = ParseCidr(profile.Subnet);
 
+        Dictionary<string, (long LatencyMs, int Ttl)> pingResults;
         List<string> aliveHosts;
         if (profile.SkipPing)
         {
             aliveHosts = ipList;
+            pingResults = [];
         }
         else
         {
-            aliveHosts = await PingSweepAsync(ipList, profile, ct).ConfigureAwait(false);
+            pingResults = await PingSweepAsync(ipList, profile, ct).ConfigureAwait(false);
+            aliveHosts = [.. pingResults.Keys];
         }
 
         var ports = profile.CustomPorts ?? profile.Depth switch
@@ -89,13 +98,25 @@ public sealed class CartographyEngine
         // Retrieve local ARP table for MAC/OUI enrichment
         var arpTable = GetArpTable();
 
+        // mDNS discovery (one multicast query for all local devices)
+        var mdnsResults = new Dictionary<string, List<string>>();
+        try
+        {
+            mdnsResults = await UdpProbeEngine.QueryMdnsServicesAsync(aliveHosts, 2000, ct)
+                .ConfigureAwait(false);
+        }
+        catch { /* mDNS unavailable */ }
+
         var semaphore = new SemaphoreSlim(profile.MaxConcurrency);
         var tasks = aliveHosts.Select(async ip =>
         {
             await semaphore.WaitAsync(ct).ConfigureAwait(false);
             try
             {
-                var result = await ScanHostAsync(ip, ports, profile, arpTable, ct).ConfigureAwait(false);
+                var (latency, ttl) = pingResults.TryGetValue(ip, out var p) ? p : (0L, 0);
+                var mdnsServices = mdnsResults.TryGetValue(ip, out var ms) ? ms : null;
+                var result = await ScanHostAsync(ip, ports, profile, arpTable,
+                    ttl, latency, mdnsServices, ct).ConfigureAwait(false);
                 lock (hosts) hosts.Add(result);
                 HostCompleted?.Invoke(result);
             }
@@ -119,10 +140,10 @@ public sealed class CartographyEngine
             detectedVlans);
     }
 
-    private async Task<List<string>> PingSweepAsync(
+    private async Task<Dictionary<string, (long LatencyMs, int Ttl)>> PingSweepAsync(
         List<string> ips, ScanProfile profile, CancellationToken ct)
     {
-        var alive = new List<string>();
+        var alive = new Dictionary<string, (long LatencyMs, int Ttl)>();
         var completed = 0;
         var semaphore = new SemaphoreSlim(64);
 
@@ -136,7 +157,9 @@ public sealed class CartographyEngine
                     .ConfigureAwait(false);
                 if (reply.Status == IPStatus.Success)
                 {
-                    lock (alive) alive.Add(ip);
+                    var ttl = reply.Options?.Ttl ?? 0;
+                    var latency = reply.RoundtripTime;
+                    lock (alive) alive[ip] = (latency, ttl);
                 }
                 Interlocked.Increment(ref completed);
                 HostDiscoveryProgress?.Invoke(completed, ips.Count);
@@ -155,7 +178,8 @@ public sealed class CartographyEngine
 
     private async Task<HostScanResult> ScanHostAsync(
         string ip, int[] ports, ScanProfile profile,
-        Dictionary<string, string> arpTable, CancellationToken ct)
+        Dictionary<string, string> arpTable, int ttl, long latencyMs,
+        List<string>? mdnsServices, CancellationToken ct)
     {
         var services = new List<ServiceResult>();
         var portCompleted = 0;
@@ -180,6 +204,15 @@ public sealed class CartographyEngine
 
         await Task.WhenAll(portTasks).ConfigureAwait(false);
 
+        // UDP enrichment: NetBIOS + SNMP in parallel
+        EnrichmentProgress?.Invoke(ip, "NetBIOS/SNMP");
+        var netBiosTask = UdpProbeEngine.QueryNetBiosAsync(ip, 1500, ct);
+        var snmpTask = UdpProbeEngine.QuerySnmpAsync(ip, 2000, ct);
+        await Task.WhenAll(netBiosTask, snmpTask).ConfigureAwait(false);
+
+        var (nbName, nbDomain, nbMac) = await netBiosTask.ConfigureAwait(false);
+        var snmpInfo = await snmpTask.ConfigureAwait(false);
+
         string? hostname = null;
         if (profile.ReverseDns)
         {
@@ -194,14 +227,42 @@ public sealed class CartographyEngine
         var openServices = services.Where(s => s.IsOpen).ToList();
         var openPorts = openServices.Select(s => s.Port).ToList();
         var banners = openServices.Select(s => s.Banner).ToList();
-        var roles = RoleClassifier.ClassifyWithBanners(openPorts, banners);
+
+        // OS fingerprinting from TTL and banners
+        var ttlOs = OsFingerprinter.GuessFromTtl(ttl);
+        var bannerOs = OsFingerprinter.GuessFromBanners(openServices);
+        var osFingerprint = OsFingerprinter.Merge(ttlOs, bannerOs);
+
+        // Aggregate HTTP headers from all services
+        var allHttpHeaders = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var svc in openServices)
+        {
+            if (svc.HttpHeaders is null) continue;
+            foreach (var (key, value) in svc.HttpHeaders)
+            {
+                allHttpHeaders.TryAdd(key, value);
+            }
+        }
+
+        // Enhanced role classification with all evidence sources
+        var roles = RoleClassifier.ClassifyEnriched(
+            openPorts, banners, osFingerprint, nbName, nbDomain,
+            snmpInfo, mdnsServices, allHttpHeaders.Count > 0 ? allHttpHeaders : null);
         var primaryRole = roles.Count > 0 ? roles[0] : null;
 
-        // Enrich with MAC address and manufacturer from ARP table
-        var mac = arpTable.TryGetValue(ip, out var m) ? m : null;
+        // Enrich with MAC address (prefer ARP, fallback to NetBIOS MAC)
+        var mac = arpTable.TryGetValue(ip, out var m) ? m : nbMac;
         var manufacturer = mac is not null ? OuiDatabase.LookupManufacturer(mac) : null;
 
-        return new HostScanResult(ip, hostname, true, 0, services, primaryRole, roles, mac, manufacturer);
+        return new HostScanResult(
+            ip, hostname, true, latencyMs, services, primaryRole, roles,
+            mac, manufacturer,
+            OsFingerprint: osFingerprint,
+            NetBiosName: nbName,
+            NetBiosDomain: nbDomain,
+            SnmpInfo: snmpInfo,
+            MdnsServices: mdnsServices,
+            HttpHeaders: allHttpHeaders.Count > 0 ? allHttpHeaders : null);
     }
 
     private static async Task<ServiceResult> ProbePortAsync(
@@ -231,7 +292,10 @@ public sealed class CartographyEngine
                         banner = Encoding.ASCII.GetString(buf, 0, read).Trim();
                 }
 
-                if (banner is null && IsLikelyHttpPort(port))
+                // Use centralized probe strategy to decide what to do
+                var strategy = GetProbeStrategy(port);
+
+                if (banner is null && strategy.PlaintextHttp)
                 {
                     var probe = Encoding.ASCII.GetBytes("GET / HTTP/1.0\r\nHost: " + host + "\r\n\r\n");
                     await stream.WriteAsync(probe, linked.Token).ConfigureAwait(false);
@@ -247,15 +311,22 @@ public sealed class CartographyEngine
             }
             catch { /* banner grab failed, port is still open */ }
 
-            var (serviceName, version) = ParseBanner(banner, port);
-
             CertificateInfo? certInfo = null;
-            if (TlsPorts.Contains(port))
+            var probeStrategy = GetProbeStrategy(port);
+            if (probeStrategy.TlsInspection)
             {
-                certInfo = await InspectTlsAsync(host, port, ct).ConfigureAwait(false);
+                var (cert, tlsBanner) = await InspectTlsWithHttpAsync(
+                    host, port, probeStrategy.HttpOverTls, ct).ConfigureAwait(false);
+                certInfo = cert;
+                if (tlsBanner is not null)
+                    banner = tlsBanner;
             }
 
-            return new ServiceResult(port, true, serviceName, banner, version, sw.ElapsedMilliseconds, certInfo);
+            var (serviceName, version) = ParseBanner(banner, port);
+            var httpHeaders = ExtractHttpHeaders(banner);
+
+            return new ServiceResult(port, true, serviceName, banner, version,
+                sw.ElapsedMilliseconds, certInfo, httpHeaders);
         }
         catch
         {
@@ -263,13 +334,19 @@ public sealed class CartographyEngine
         }
     }
 
-    private static async Task<CertificateInfo?> InspectTlsAsync(
-        string host, int port, CancellationToken ct)
+    /// <summary>
+    /// Performs TLS handshake for certificate inspection. When <paramref name="probeHttp"/>
+    /// is true (HTTPS ports only), also sends GET / over the encrypted stream to capture
+    /// the HTTP banner and headers. Non-HTTP TLS services (SMTPS, LDAPS, IMAPS, etc.)
+    /// are not probed with HTTP to avoid protocol mismatch.
+    /// </summary>
+    private static async Task<(CertificateInfo? Cert, string? HttpBanner)> InspectTlsWithHttpAsync(
+        string host, int port, bool probeHttp, CancellationToken ct)
     {
         try
         {
             using var tcp = new TcpClient();
-            using var cts = new CancellationTokenSource(3000);
+            using var cts = new CancellationTokenSource(5000);
             using var linked = CancellationTokenSource.CreateLinkedTokenSource(ct, cts.Token);
             await tcp.ConnectAsync(host, port, linked.Token).ConfigureAwait(false);
 
@@ -279,52 +356,79 @@ public sealed class CartographyEngine
                 TargetHost = host
             }, linked.Token).ConfigureAwait(false);
 
-            var remoteCert = ssl.RemoteCertificate;
-            if (remoteCert is null) return null;
+            // Extract certificate
+            var certInfo = ExtractCertInfo(ssl);
 
-            using var x509 = new X509Certificate2(remoteCert);
-
-            var sans = new List<string>();
-            foreach (var ext in x509.Extensions)
+            // Only send HTTP GET on HTTPS-likely ports (443, 8443, 9443)
+            string? httpBanner = null;
+            if (probeHttp)
             {
-                if (ext.Oid?.Value == "2.5.29.17")
+                try
                 {
-                    var sanStr = ext.Format(false);
-                    foreach (var part in sanStr.Split(','))
-                    {
-                        var trimmed = part.Trim();
-                        if (trimmed.StartsWith("DNS Name=", StringComparison.OrdinalIgnoreCase))
-                            sans.Add(trimmed["DNS Name=".Length..]);
-                        else if (trimmed.StartsWith("IP Address=", StringComparison.OrdinalIgnoreCase))
-                            sans.Add(trimmed["IP Address=".Length..]);
-                    }
+                    var probe = Encoding.ASCII.GetBytes(
+                        $"GET / HTTP/1.0\r\nHost: {host}\r\nConnection: close\r\n\r\n");
+                    await ssl.WriteAsync(probe, linked.Token).ConfigureAwait(false);
+                    await ssl.FlushAsync(linked.Token).ConfigureAwait(false);
+
+                    var buf = new byte[4096];
+                    var read = await ssl.ReadAsync(buf, linked.Token).ConfigureAwait(false);
+                    if (read > 0)
+                        httpBanner = Encoding.ASCII.GetString(buf, 0, read).Trim();
+                }
+                catch { /* HTTP probe over TLS failed, cert is still valid */ }
+            }
+
+            return (certInfo, httpBanner);
+        }
+        catch { return (null, null); }
+    }
+
+    private static CertificateInfo? ExtractCertInfo(SslStream ssl)
+    {
+        var remoteCert = ssl.RemoteCertificate;
+        if (remoteCert is null) return null;
+
+        using var x509 = new X509Certificate2(remoteCert);
+
+        var sans = new List<string>();
+        foreach (var ext in x509.Extensions)
+        {
+            if (ext.Oid?.Value == "2.5.29.17")
+            {
+                var sanStr = ext.Format(false);
+                foreach (var part in sanStr.Split(','))
+                {
+                    var trimmed = part.Trim();
+                    if (trimmed.StartsWith("DNS Name=", StringComparison.OrdinalIgnoreCase))
+                        sans.Add(trimmed["DNS Name=".Length..]);
+                    else if (trimmed.StartsWith("IP Address=", StringComparison.OrdinalIgnoreCase))
+                        sans.Add(trimmed["IP Address=".Length..]);
                 }
             }
-
-            var keyAlg = x509.PublicKey.Oid.FriendlyName ?? "Unknown";
-            var keySize = 0;
-            try
-            {
-                keySize = x509.PublicKey.GetRSAPublicKey()?.KeySize
-                    ?? x509.PublicKey.GetECDsaPublicKey()?.KeySize
-                    ?? 0;
-            }
-            catch { /* key type may not support size extraction */ }
-
-            return new CertificateInfo(
-                x509.Subject,
-                x509.Issuer,
-                x509.NotBefore,
-                x509.NotAfter,
-                x509.NotAfter < DateTime.UtcNow,
-                x509.NotAfter < DateTime.UtcNow.AddDays(30) && x509.NotAfter >= DateTime.UtcNow,
-                keySize > 0 ? $"{keyAlg} {keySize}" : keyAlg,
-                x509.SignatureAlgorithm.FriendlyName ?? "",
-                [.. sans],
-                ssl.SslProtocol.ToString(),
-                x509.GetCertHashString(HashAlgorithmName.SHA256));
         }
-        catch { return null; }
+
+        var keyAlg = x509.PublicKey.Oid.FriendlyName ?? "Unknown";
+        var keySize = 0;
+        try
+        {
+            keySize = x509.PublicKey.GetRSAPublicKey()?.KeySize
+                ?? x509.PublicKey.GetECDsaPublicKey()?.KeySize
+                ?? 0;
+        }
+        catch { /* key type may not support size extraction */ }
+
+        return new CertificateInfo(
+            x509.Subject,
+            x509.Issuer,
+            x509.NotBefore,
+            x509.NotAfter,
+            x509.NotAfter < DateTime.UtcNow,
+            x509.NotAfter < DateTime.UtcNow.AddDays(30) && x509.NotAfter >= DateTime.UtcNow,
+            keySize > 0 ? $"{keyAlg} {keySize}" : keyAlg,
+            x509.SignatureAlgorithm.FriendlyName ?? "",
+            [.. sans],
+            ssl.SslProtocol.ToString(),
+            x509.GetCertHashString(HashAlgorithmName.SHA256));
     }
 
     private static (string? service, string? version) ParseBanner(string? banner, int port)
@@ -382,9 +486,53 @@ public sealed class CartographyEngine
         return (null, banner);
     }
 
+    /// <summary>
+    /// Extracts security-relevant HTTP headers from an HTTP banner response.
+    /// </summary>
+    private static Dictionary<string, string>? ExtractHttpHeaders(string? banner)
+    {
+        if (string.IsNullOrEmpty(banner) ||
+            !banner.StartsWith("HTTP/", StringComparison.Ordinal))
+            return null;
+
+        var headers = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        string[] targetHeaders =
+        [
+            "Server", "X-Powered-By", "X-Generator", "X-AspNet-Version",
+            "WWW-Authenticate", "X-Frame-Options", "Strict-Transport-Security"
+        ];
+
+        foreach (var headerName in targetHeaders)
+        {
+            var match = Regex.Match(banner,
+                $@"(?:^|\n){Regex.Escape(headerName)}:\s*(.+?)(?:\r?\n|$)",
+                RegexOptions.IgnoreCase);
+            if (match.Success)
+                headers[headerName] = match.Groups[1].Value.Trim();
+        }
+
+        return headers.Count > 0 ? headers : null;
+    }
+
     private static bool IsLikelyHttpPort(int port) =>
         port is 80 or 443 or 8080 or 8443 or 9090 or 9443 or 3000 or 5000 or 8000 or 8006 or 8008
             or 8123 or 8888;
+
+    /// <summary>
+    /// Determines the HTTP probe strategy for a given port.
+    /// Returns (shouldPlaintextProbe, shouldTlsProbe, shouldHttpOverTls).
+    /// This encodes the exact decision path used by <see cref="ProbePortAsync"/>.
+    /// </summary>
+    internal static (bool PlaintextHttp, bool TlsInspection, bool HttpOverTls) GetProbeStrategy(int port)
+    {
+        var isTls = TlsPorts.Contains(port);
+        var isHttpLikely = IsLikelyHttpPort(port);
+        return (
+            PlaintextHttp: isHttpLikely && !isTls,
+            TlsInspection: isTls,
+            HttpOverTls: isTls && HttpsTlsPorts.Contains(port)
+        );
+    }
 
     private static async Task<bool> WaitForDataAsync(
         NetworkStream stream, int maxWaitMs, CancellationToken ct)
@@ -435,7 +583,7 @@ public sealed class CartographyEngine
     }
 
     /// <summary>
-    /// Retrieves the local ARP table by running "arp -a" and parsing the output.
+    /// Retrieves the local ARP table by running "arp -a" (Windows/macOS) or reading /proc/net/arp (Linux).
     /// Returns a dictionary mapping IP addresses to MAC addresses.
     /// </summary>
     private static Dictionary<string, string> GetArpTable()
@@ -443,31 +591,79 @@ public sealed class CartographyEngine
         var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         try
         {
-            var psi = new ProcessStartInfo
+            if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows))
             {
-                FileName = "arp",
-                Arguments = "-a",
-                RedirectStandardOutput = true,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            };
-            using var proc = Process.Start(psi);
-            if (proc is null) return result;
-
-            var output = proc.StandardOutput.ReadToEnd();
-            proc.WaitForExit();
-
-            // Parse lines like: "  10.0.0.1             aa-bb-cc-dd-ee-ff     dynamic"
-            foreach (var line in output.Split('\n'))
-            {
-                var parts = line.Trim().Split([' '], StringSplitOptions.RemoveEmptyEntries);
-                if (parts.Length >= 2)
+                var psi = new ProcessStartInfo
                 {
-                    var ip = parts[0];
-                    var mac = parts[1];
-                    if (IPAddress.TryParse(ip, out _) && mac.Contains('-'))
+                    FileName = "arp",
+                    Arguments = "-a",
+                    RedirectStandardOutput = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                };
+                using var proc = Process.Start(psi);
+                if (proc is null) return result;
+
+                var output = proc.StandardOutput.ReadToEnd();
+                proc.WaitForExit();
+
+                // Parse lines like: "  10.0.0.1             aa-bb-cc-dd-ee-ff     dynamic"
+                foreach (var line in output.Split('\n'))
+                {
+                    var parts = line.Trim().Split([' '], StringSplitOptions.RemoveEmptyEntries);
+                    if (parts.Length >= 2)
                     {
-                        result[ip] = mac;
+                        var ip = parts[0];
+                        var mac = parts[1];
+                        if (IPAddress.TryParse(ip, out _) && mac.Contains('-'))
+                        {
+                            result[ip] = mac;
+                        }
+                    }
+                }
+            }
+            else if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Linux))
+            {
+                if (System.IO.File.Exists("/proc/net/arp"))
+                {
+                    var lines = System.IO.File.ReadAllLines("/proc/net/arp");
+                    foreach (var line in lines.Skip(1)) // Skip header
+                    {
+                        var parts = line.Split([' '], StringSplitOptions.RemoveEmptyEntries);
+                        if (parts.Length >= 4)
+                        {
+                            var ip = parts[0];
+                            var mac = parts[3];
+                            if (mac != "00:00:00:00:00:00" && IPAddress.TryParse(ip, out _))
+                            {
+                                result[ip] = mac.Replace(':', '-');
+                            }
+                        }
+                    }
+                }
+            }
+            else if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.OSX))
+            {
+                var psi = new ProcessStartInfo
+                {
+                    FileName = "arp",
+                    Arguments = "-a",
+                    RedirectStandardOutput = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                };
+                using var proc = Process.Start(psi);
+                if (proc is null) return result;
+                var output = proc.StandardOutput.ReadToEnd();
+                proc.WaitForExit();
+
+                // Parse lines like: "? (192.168.1.1) at 00:11:22:33:44:55 on en0 ifscope [ether]"
+                foreach (var line in output.Split('\n'))
+                {
+                    var match = Regex.Match(line, @"\((.*?)\)\s+at\s+([a-fA-F0-9:]+)");
+                    if (match.Success)
+                    {
+                        result[match.Groups[1].Value] = match.Groups[2].Value.Replace(':', '-');
                     }
                 }
             }

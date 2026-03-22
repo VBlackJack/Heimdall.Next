@@ -505,14 +505,14 @@ When opening a tool from a server context menu, all available server metadata is
 - **Password presets**: Custom presets saved to `config/password-presets.json`, restored on click, deleted via right-click
 - **Protocol colors**: Theme-aware brushes (bright on dark, darker on light) defined per-theme, not globally
 - **Cross-tool navigation**: `ToolContextMenuHelper` with `OpenToolAction` callback enables right-click → open another tool with prefilled context
-- **Network Cartography engine**: `Heimdall.Core.Discovery/` namespace with CartographyEngine, RoleClassifier (50+ roles, 60+ banner fingerprints), OuiDatabase (140 MAC prefixes), VlanDetector, DrawIoExporter, ScanHistoryManager
+- **Network Cartography engine**: `Heimdall.Core.Discovery/` namespace with CartographyEngine (ping sweep + TTL capture, port scan, banner grab, HTTP/HTTPS header extraction, TLS cert inspection, NetBIOS/SNMP/mDNS UDP probes, OS fingerprinting), UdpProbeEngine (raw NetBIOS NBSTAT + SNMPv2c GET + mDNS service discovery), OsFingerprinter (TTL + 33 banner patterns), RoleClassifier (46+ port patterns, 96+ banner fingerprints, multi-source ClassifyEnriched), OuiDatabase (300+ MAC prefixes), VlanDetector, DrawIoExporter, ScanHistoryManager (typed HostChange diff)
 - **PowerShell Execution Policy**: Configurable in Settings > Terminal, applied as `-ExecutionPolicy` flag on local shell launch
 
 ### Tool Categories (33 tools)
 
 | Category | Count | Tools |
 |----------|-------|-------|
-| **Network** | 10 | **Network Cartography** (subnet discovery, port scan, TLS inspection, role classification, VLAN detection, MAC/OUI, Draw.io export, scan history/diff), Ping, DNS (custom server, via tunnel), Cert Inspector (chain+TLS, via tunnel), Port Scanner (banner grab, via tunnel), Subnet (IPv4+IPv6), IP Converter, HTTP Status, Whois, Network Calculator (supernet+VLAN) |
+| **Network** | 10 | **Network Cartography** (ping sweep + TTL OS fingerprinting, port scan, banner grab, HTTP/HTTPS header extraction, TLS cert inspection, NetBIOS NBSTAT probe, SNMPv2c query, mDNS/Bonjour discovery, 300+ OUI MAC lookup, 46+ role patterns with multi-source classification, VLAN detection, Draw.io topology export, scan history with typed diff), Ping, DNS (custom server, via tunnel), Cert Inspector (chain+TLS, via tunnel), Port Scanner (banner grab, via tunnel), Subnet (IPv4+IPv6), IP Converter, HTTP Status, Whois, Network Calculator (supernet+VLAN) |
 | **Security** | 7 | Password (crack time+history), SSH Key (RSA+Ed25519), Hash (SHA3+progress), HMAC, JWT (signature verify), Certificate Generator (CA+leaf), TOTP (RFC 6238) |
 | **Encoding** | 6 | Base64 (URL-safe), URL Encoder, JSON (error position), Regex (match highlight), Text Diff (word-level), Text Case (8 formats) |
 | **System** | 10 | Chmod, Crontab Builder, DateTime (timezone+relative), UUID (v4+v7), Hosts Editor, SSH Config Generator, Log Viewer/Tail, Cron Job Manager, Service Status Dashboard, **Diagram Editor** (draw.io embedded offline) |
