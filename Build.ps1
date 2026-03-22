@@ -53,11 +53,36 @@ $allDistDirs = @(
     (Join-Path $ProjectRoot 'Dist\release')
 ) | Where-Object { Test-Path $_ }
 
-$existingBuilds = $allDistDirs | ForEach-Object {
+$existingBuilds = @($allDistDirs | ForEach-Object {
     Get-ChildItem -Path $_ -Directory -Filter "Heimdall.Next_build.${datePrefix}*" -ErrorAction SilentlyContinue
 } | ForEach-Object {
     if ($_.Name -match "build\.${datePrefix}(\d{2})(?:_|$)") { [int]$Matches[1] }
-} | Sort-Object -Descending
+})
+
+# Also check the csproj InformationalVersion to avoid duplicating a published release
+$csprojRaw = Get-Content $AppProject -Raw
+if ($csprojRaw -match '<InformationalVersion>(\d{4}\.\d{6})</InformationalVersion>') {
+    $currentVer = $Matches[1]
+    if ($currentVer -match "${datePrefix}(\d{2})$") {
+        $existingBuilds += [int]$Matches[1]
+    }
+}
+
+# Also check GitHub releases to avoid collisions with already-published versions
+try {
+    $ghTags = & gh release list --limit 20 2>$null
+    if ($LASTEXITCODE -eq 0 -and $ghTags) {
+        $ghTags | ForEach-Object {
+            if ($_ -match "v${datePrefix}(\d{2})") {
+                $existingBuilds += [int]$Matches[1]
+            }
+        }
+    }
+} catch {
+    # gh CLI not available or no network — continue with local-only detection
+}
+
+$existingBuilds = $existingBuilds | Sort-Object -Descending
 
 $sequence = if ($existingBuilds.Count -gt 0) { $existingBuilds[0] + 1 } else { 1 }
 $buildNumber = "{0}{1:D2}" -f $datePrefix, $sequence
