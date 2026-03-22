@@ -75,6 +75,9 @@ public partial class TotpGeneratorView : UserControl, IToolView
         System.Windows.Automation.AutomationProperties.SetName(TxtCode, L("ToolTotpCodeLabel"));
         System.Windows.Automation.AutomationProperties.SetName(BtnCopy, L("ToolTotpBtnCopy"));
         System.Windows.Automation.AutomationProperties.SetName(ProgressTime, L("ToolTotpTimeRemaining"));
+
+        BtnHelp.ToolTip = L("ToolHelpTooltip");
+        System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
     }
 
     private void OnInputKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
@@ -218,6 +221,12 @@ public partial class TotpGeneratorView : UserControl, IToolView
         >= '2' and <= '7' => c - '2' + 26,
         _ => -1
     };
+
+    private void OnHelpClick(object sender, RoutedEventArgs e)
+    {
+        var helpText = L("ToolHelpTOTP");
+        MessageBox.Show(helpText, L("ToolHelpTitle"), MessageBoxButton.OK, MessageBoxImage.Information);
+    }
 
     private string L(string key) => _localizer?[key] ?? key;
 

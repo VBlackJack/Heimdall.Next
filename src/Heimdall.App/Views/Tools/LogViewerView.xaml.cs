@@ -89,6 +89,9 @@ public partial class LogViewerView : UserControl, IToolView
         System.Windows.Automation.AutomationProperties.SetName(FilterInput, L("ToolLogViewBtnFilter"));
         System.Windows.Automation.AutomationProperties.SetName(EncodingCombo, L("ToolLogViewEncoding"));
         System.Windows.Automation.AutomationProperties.SetName(LogViewer, L("ToolLogViewTitle"));
+
+        BtnHelp.ToolTip = L("ToolHelpTooltip");
+        System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
     }
 
     private void OnBrowseClick(object sender, RoutedEventArgs e)
@@ -420,6 +423,12 @@ public partial class LogViewerView : UserControl, IToolView
         {
             // File info may be temporarily unavailable
         }
+    }
+
+    private void OnHelpClick(object sender, RoutedEventArgs e)
+    {
+        var helpText = L("ToolHelpLOGVIEW");
+        MessageBox.Show(helpText, L("ToolHelpTitle"), MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
     private string L(string key) => _localizer?[key] ?? key;

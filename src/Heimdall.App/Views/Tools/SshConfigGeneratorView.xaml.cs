@@ -98,6 +98,9 @@ public partial class SshConfigGeneratorView : UserControl, IToolView
         AutomationProperties.SetName(BtnGenerateAll, L("ToolSshConfigBtnGenerateAll"));
         AutomationProperties.SetName(BtnCopy, L("ToolSshConfigBtnCopy"));
         AutomationProperties.SetName(TxtOutput, L("ToolSshConfigOutput"));
+
+        BtnHelp.ToolTip = L("ToolHelpTooltip");
+        AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
     }
 
     private void OnGenerateClick(object sender, RoutedEventArgs e)
@@ -196,6 +199,12 @@ public partial class SshConfigGeneratorView : UserControl, IToolView
     private static int ParseInt(string text, int fallback)
     {
         return int.TryParse(text.Trim(), out var value) ? value : fallback;
+    }
+
+    private void OnHelpClick(object sender, RoutedEventArgs e)
+    {
+        var helpText = L("ToolHelpSSHCONFIG");
+        MessageBox.Show(helpText, L("ToolHelpTitle"), MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
     private string L(string key) => _localizer?[key] ?? key;

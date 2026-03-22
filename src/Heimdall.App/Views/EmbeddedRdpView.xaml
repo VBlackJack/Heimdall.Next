@@ -15,7 +15,7 @@
         </Grid.RowDefinitions>
 
         <Border x:Name="SessionHeaderBar" Grid.Row="0"
-                Padding="8,3"
+                Padding="{StaticResource SessionHeaderPadding}"
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,0,0,1">
@@ -90,7 +90,7 @@
 
         <Grid Grid.Row="1">
             <Border Margin="16,0,16,16"
-                    Background="Black"
+                    Background="{DynamicResource BackgroundBrush}"
                     BorderBrush="{DynamicResource BorderBrush}"
                     BorderThickness="1"
                     CornerRadius="{StaticResource CornerRadiusXl}">

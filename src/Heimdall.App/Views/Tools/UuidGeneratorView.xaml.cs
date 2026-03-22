@@ -87,6 +87,9 @@ public partial class UuidGeneratorView : UserControl, IToolView
         }
 
         System.Windows.Automation.AutomationProperties.SetName(CmbVersion, L("ToolUuidVersionLabel"));
+
+        BtnHelp.ToolTip = L("ToolHelpTooltip");
+        System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
     }
 
     private void OnGenerateClick(object sender, RoutedEventArgs e) => GenerateSingle();
@@ -238,6 +241,12 @@ public partial class UuidGeneratorView : UserControl, IToolView
                 Core.Logging.FileLogger.Warn($"UuidGenerator clipboard copy failed: {ex.Message}");
             }
         }
+    }
+
+    private void OnHelpClick(object sender, RoutedEventArgs e)
+    {
+        var helpText = L("ToolHelpUUID");
+        MessageBox.Show(helpText, L("ToolHelpTitle"), MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
     private string L(string key) => _localizer?[key] ?? key;

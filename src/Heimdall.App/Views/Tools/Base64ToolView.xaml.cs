@@ -92,6 +92,9 @@ public partial class Base64ToolView : UserControl, IToolView
         System.Windows.Automation.AutomationProperties.SetName(OutputText, L("ToolBase64OutputLabel"));
 
         BtnCopyOutput.ToolTip = L("ToolBtnCopyToClipboard");
+
+        BtnHelp.ToolTip = L("ToolHelpTooltip");
+        System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
     }
 
     private void OnEncodeClick(object sender, RoutedEventArgs e)
@@ -263,6 +266,12 @@ public partial class Base64ToolView : UserControl, IToolView
             OutputText.Text = string.Empty;
             StatusText.Text = string.Empty;
         }
+    }
+
+    private void OnHelpClick(object sender, RoutedEventArgs e)
+    {
+        var helpText = L("ToolHelpBASE64");
+        MessageBox.Show(helpText, L("ToolHelpTitle"), MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
     private string L(string key) => _localizer?[key] ?? key;

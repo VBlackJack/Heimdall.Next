@@ -23,6 +23,19 @@
     <Thickness x:Key="SpacingLg">16</Thickness>
     <Thickness x:Key="SpacingXl">24</Thickness>
 
+    <!-- Asymmetric content area margin (below header, sides + bottom) -->
+    <Thickness x:Key="ContentAreaMargin">16,0,16,16</Thickness>
+
+    <!-- Tool panel header/footer padding (horizontal=12, vertical=8/6) -->
+    <Thickness x:Key="ToolHeaderPadding">12,8</Thickness>
+    <Thickness x:Key="ToolFooterPadding">12,6</Thickness>
+
+    <!-- Session header strip padding (horizontal=8, vertical=4) -->
+    <Thickness x:Key="SessionHeaderPadding">8,4</Thickness>
+
+    <!-- Design Tokens: Font Family                                -->
+    <FontFamily x:Key="FontFamilyMonospace">Consolas, Courier New, monospace</FontFamily>
+
     <!-- Design Tokens: Corner Radius                              -->
     <CornerRadius x:Key="CornerRadiusXs">2</CornerRadius>
     <CornerRadius x:Key="CornerRadiusSm">4</CornerRadius>
@@ -84,7 +97,7 @@
     <!-- ========================================================= -->
     <Style x:Key="PrimaryButtonStyle" TargetType="{x:Type Button}">
         <Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
-        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextOnAccentBrush}"/>
         <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
         <Setter Property="BorderThickness" Value="1"/>
         <Setter Property="Padding" Value="16,8"/>
@@ -114,7 +127,7 @@
                             <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="{DynamicResource AccentPressedBrush}"/>
                         </Trigger>
                         <Trigger Property="IsFocused" Value="True">
-                            <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="{DynamicResource TextPrimaryBrush}"/>
+                            <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="{DynamicResource FocusIndicatorBrush}"/>
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
                             <Setter TargetName="ButtonBorder" Property="Background" Value="{DynamicResource CardBrush}"/>
@@ -156,7 +169,7 @@
                             <Setter TargetName="Bd" Property="Background" Value="{DynamicResource TextSecondaryBrush}"/>
                         </Trigger>
                         <Trigger Property="IsFocused" Value="True">
-                            <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource FocusIndicatorBrush}"/>
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
                             <Setter Property="Opacity" Value="{StaticResource OpacityDisabled}"/>
@@ -198,7 +211,7 @@
                             <Setter TargetName="ButtonBorder" Property="Background" Value="{DynamicResource SurfaceBrush}"/>
                         </Trigger>
                         <Trigger Property="IsFocused" Value="True">
-                            <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                            <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="{DynamicResource FocusIndicatorBrush}"/>
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
                             <Setter TargetName="ButtonBorder" Property="Background" Value="{DynamicResource SurfaceBrush}"/>

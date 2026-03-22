@@ -105,6 +105,9 @@ public partial class JwtParserView : UserControl, IToolView
         AutomationProperties.SetName(TxtSignature, L("ToolJwtSignatureLabel"));
         AutomationProperties.SetName(TxtSecret, L("ToolJwtSecretLabel"));
         AutomationProperties.SetName(BtnVerify, L("ToolJwtBtnVerify"));
+
+        BtnHelp.ToolTip = L("ToolHelpTooltip");
+        AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
     }
 
     private void OnInputTextChanged(object sender, TextChangedEventArgs e)
@@ -402,6 +405,12 @@ public partial class JwtParserView : UserControl, IToolView
             .TrimEnd('=')
             .Replace('+', '-')
             .Replace('/', '_');
+    }
+
+    private void OnHelpClick(object sender, RoutedEventArgs e)
+    {
+        var helpText = L("ToolHelpJWT");
+        MessageBox.Show(helpText, L("ToolHelpTitle"), MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
     private string L(string key) => _localizer?[key] ?? key;

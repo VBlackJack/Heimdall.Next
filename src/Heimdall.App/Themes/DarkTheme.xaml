@@ -9,12 +9,12 @@
     <Color x:Key="PrimaryColor">#282A36</Color>
     <Color x:Key="SecondaryColor">#21222C</Color>
     <Color x:Key="SurfaceColor">#44475A</Color>
-    <Color x:Key="AccentColor">#BD93F9</Color>
-    <Color x:Key="AccentHoverColor">#D6ACFF</Color>
-    <Color x:Key="AccentPressedColor">#A87AF7</Color>
+    <Color x:Key="AccentColor">#A67AF7</Color>
+    <Color x:Key="AccentHoverColor">#C4A0FF</Color>
+    <Color x:Key="AccentPressedColor">#8E5FD9</Color>
     <Color x:Key="TextPrimaryColor">#F8F8F2</Color>
-    <Color x:Key="TextSecondaryColor">#9BA3C2</Color>
-    <Color x:Key="TextDisabledColor">#8288A0</Color>
+    <Color x:Key="TextSecondaryColor">#A8B0CC</Color>
+    <Color x:Key="TextDisabledColor">#9298B0</Color>
     <Color x:Key="SuccessColor">#50FA7B</Color>
     <Color x:Key="WarningColor">#FFB86C</Color>
     <Color x:Key="ErrorColor">#FF6E6E</Color>
@@ -52,7 +52,7 @@
     <SolidColorBrush x:Key="ProtocolTelnetBrush" Color="#A0A0B0"/>
     <SolidColorBrush x:Key="ProtocolFtpBrush" Color="#60A5FA"/>
     <SolidColorBrush x:Key="ProtocolCitrixBrush" Color="#4B6FD1"/>
-    <SolidColorBrush x:Key="ProtocolLocalBrush" Color="#BD93F9"/>
+    <SolidColorBrush x:Key="ProtocolLocalBrush" Color="#A67AF7"/>
 
     <!-- Connection type badge colors (Dracula palette) -->
     <SolidColorBrush x:Key="RdpBadgeBrush" Color="#8BE9FD"/>
@@ -63,7 +63,7 @@
     <!-- Per-category tool icon brushes -->
     <SolidColorBrush x:Key="ToolNetworkBrush" Color="#5B9FFF"/>
     <SolidColorBrush x:Key="ToolSecurityBrush" Color="#F59E0B"/>
-    <SolidColorBrush x:Key="ToolEncodingBrush" Color="#BD93F9"/>
+    <SolidColorBrush x:Key="ToolEncodingBrush" Color="#A67AF7"/>
     <SolidColorBrush x:Key="ToolSystemBrush" Color="#36D7B7"/>
 
     <!-- JWT section colors -->
@@ -84,6 +84,9 @@
 
     <!-- Explicit white text for content displayed on accent-colored backgrounds -->
     <SolidColorBrush x:Key="TextOnAccentBrush" Color="#FFFFFF"/>
+
+    <!-- Keyboard focus indicator (high-contrast ring for accessibility) -->
+    <SolidColorBrush x:Key="FocusIndicatorBrush" Color="#8BE9FD"/>
 
     <!-- Overlay and feedback brushes -->
     <SolidColorBrush x:Key="OverlayBackground" Color="#A0000000"/>

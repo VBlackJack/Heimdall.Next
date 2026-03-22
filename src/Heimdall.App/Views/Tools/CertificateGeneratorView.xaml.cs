@@ -133,6 +133,9 @@ public partial class CertificateGeneratorView : UserControl, IToolView
         BtnCopyKey.ToolTip = L("ToolBtnCopyToClipboard");
         BtnCopyLeafCert.ToolTip = L("ToolBtnCopyToClipboard");
         BtnCopyLeafKey.ToolTip = L("ToolBtnCopyToClipboard");
+
+        BtnHelp.ToolTip = L("ToolHelpTooltip");
+        System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
     }
 
     private void OnGenerateClick(object sender, RoutedEventArgs e)
@@ -578,6 +581,12 @@ public partial class CertificateGeneratorView : UserControl, IToolView
         _exportCert = null;
         _exportKey?.Dispose();
         _exportKey = null;
+    }
+
+    private void OnHelpClick(object sender, RoutedEventArgs e)
+    {
+        var helpText = L("ToolHelpCERTGEN");
+        MessageBox.Show(helpText, L("ToolHelpTitle"), MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
     private string L(string key) => _localizer?[key] ?? key;

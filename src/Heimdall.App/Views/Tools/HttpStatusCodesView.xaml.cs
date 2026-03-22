@@ -60,6 +60,9 @@ public partial class HttpStatusCodesView : UserControl, IToolView
         TxtCopyHint.Text = L("ToolHttpCopyHint");
 
         System.Windows.Automation.AutomationProperties.SetName(TxtFilter, L("ToolHttpFilterPlaceholder"));
+
+        BtnHelp.ToolTip = L("ToolHelpTooltip");
+        System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
     }
 
     private void BuildStatusCodes()
@@ -223,6 +226,12 @@ public partial class HttpStatusCodesView : UserControl, IToolView
     private static Brush TryGetBrush(string key, Brush fallback)
     {
         return Application.Current.TryFindResource(key) as Brush ?? fallback;
+    }
+
+    private void OnHelpClick(object sender, RoutedEventArgs e)
+    {
+        var helpText = L("ToolHelpHTTP");
+        MessageBox.Show(helpText, L("ToolHelpTitle"), MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
     private string L(string key) => _localizer?[key] ?? key;

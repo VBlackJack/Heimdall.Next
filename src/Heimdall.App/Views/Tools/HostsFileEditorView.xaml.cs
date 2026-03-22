@@ -80,6 +80,9 @@ public partial class HostsFileEditorView : UserControl, IToolView
         AutomationProperties.SetName(BtnAddEntry, L("ToolHostsEditorBtnAdd"));
         AutomationProperties.SetName(BtnDeleteSelected, L("ToolHostsEditorBtnDelete"));
         AutomationProperties.SetName(HostsGrid, L("ToolHostsEditorTitle"));
+
+        BtnHelp.ToolTip = L("ToolHelpTooltip");
+        AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
     }
 
     private void LoadHostsFile()
@@ -370,6 +373,12 @@ public partial class HostsFileEditorView : UserControl, IToolView
         }
 
         HostsGrid.ContextMenu = menu;
+    }
+
+    private void OnHelpClick(object sender, RoutedEventArgs e)
+    {
+        var helpText = L("ToolHelpHOSTS");
+        MessageBox.Show(helpText, L("ToolHelpTitle"), MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
     private string L(string key) => _localizer?[key] ?? key;

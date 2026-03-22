@@ -86,6 +86,9 @@ public partial class NetworkCalculatorView : UserControl, IToolView
         AutomationProperties.SetName(BtnVlanCompute, L("ToolNetCalcBtnCompute"));
         AutomationProperties.SetName(BtnCopyResult, L("ToolBtnCopyValue"));
         AutomationProperties.SetName(TxtResult, L("ToolNetCalcResult"));
+
+        BtnHelp.ToolTip = L("ToolHelpTooltip");
+        AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
     }
 
     private void OnModeChanged(object sender, RoutedEventArgs e)
@@ -380,6 +383,12 @@ public partial class NetworkCalculatorView : UserControl, IToolView
             if (start == 0) break;
         }
         return result;
+    }
+
+    private void OnHelpClick(object sender, RoutedEventArgs e)
+    {
+        var helpText = L("ToolHelpNETCALC");
+        MessageBox.Show(helpText, L("ToolHelpTitle"), MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
     private string L(string key) => _localizer?[key] ?? key;

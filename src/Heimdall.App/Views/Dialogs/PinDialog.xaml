@@ -83,7 +83,7 @@
         <!-- Buttons -->
         <StackPanel Grid.Row="5"
                     Orientation="Horizontal"
-                    HorizontalAlignment="Center"
+                    HorizontalAlignment="Right"
                     Margin="0,16,0,0">
             <Button x:Name="CancelBtn"
                     IsCancel="True"

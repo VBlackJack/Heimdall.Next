@@ -81,6 +81,9 @@ public partial class UrlEncoderView : UserControl, IToolView
 
         BtnCopyDecoded.ToolTip = L("ToolBtnCopyToClipboard");
         BtnCopyEncoded.ToolTip = L("ToolBtnCopyToClipboard");
+
+        BtnHelp.ToolTip = L("ToolHelpTooltip");
+        System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
     }
 
     private void OnDecodedTextChanged(object sender, TextChangedEventArgs e)
@@ -205,6 +208,12 @@ public partial class UrlEncoderView : UserControl, IToolView
     private void ResetBorderState(System.Windows.Controls.TextBox textBox)
     {
         textBox.BorderBrush = (Brush)FindResource("BorderBrush");
+    }
+
+    private void OnHelpClick(object sender, RoutedEventArgs e)
+    {
+        var helpText = L("ToolHelpURLENC");
+        MessageBox.Show(helpText, L("ToolHelpTitle"), MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
     private string L(string key) => _localizer?[key] ?? key;

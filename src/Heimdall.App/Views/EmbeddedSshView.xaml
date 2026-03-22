@@ -17,7 +17,7 @@
 
         <!-- Header strip (compact, matches RDP pattern) -->
         <Border Grid.Row="0"
-                Padding="8,3"
+                Padding="{StaticResource SessionHeaderPadding}"
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,0,0,1">

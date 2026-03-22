@@ -82,6 +82,9 @@ public partial class TextCaseConverterView : UserControl, IToolView
         System.Windows.Automation.AutomationProperties.SetName(BtnLowerCase, L("ToolTextCaseLower"));
         System.Windows.Automation.AutomationProperties.SetName(BtnTitleCase, L("ToolTextCaseTitle_Case"));
         System.Windows.Automation.AutomationProperties.SetName(BtnConstantCase, L("ToolTextCaseConstant"));
+
+        BtnHelp.ToolTip = L("ToolHelpTooltip");
+        System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
     }
 
     private void OnInputChanged(object sender, TextChangedEventArgs e)
@@ -207,6 +210,12 @@ public partial class TextCaseConverterView : UserControl, IToolView
     {
         if (string.IsNullOrEmpty(word)) return word;
         return char.ToUpper(word[0], CultureInfo.InvariantCulture) + word[1..].ToLowerInvariant();
+    }
+
+    private void OnHelpClick(object sender, RoutedEventArgs e)
+    {
+        var helpText = L("ToolHelpTEXTCASE");
+        MessageBox.Show(helpText, L("ToolHelpTitle"), MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
     private string L(string key) => _localizer?[key] ?? key;
