@@ -56,7 +56,7 @@ $allDistDirs = @(
 $existingBuilds = $allDistDirs | ForEach-Object {
     Get-ChildItem -Path $_ -Directory -Filter "Heimdall.Next_build.${datePrefix}*" -ErrorAction SilentlyContinue
 } | ForEach-Object {
-    if ($_.Name -match "build\.${datePrefix}(\d{2})$") { [int]$Matches[1] }
+    if ($_.Name -match "build\.${datePrefix}(\d{2})(?:_|$)") { [int]$Matches[1] }
 } | Sort-Object -Descending
 
 $sequence = if ($existingBuilds.Count -gt 0) { $existingBuilds[0] + 1 } else { 1 }
