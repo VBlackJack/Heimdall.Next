@@ -21,7 +21,7 @@
 
         <!-- Content -->
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="{StaticResource SpacingLg}">
-            <StackPanel MaxWidth="600">
+            <StackPanel MaxWidth="700">
 
                 <!-- Algorithm selector -->
                 <TextBlock x:Name="LblAlgorithm" Text=""
@@ -58,11 +58,13 @@
                                      PasswordChanged="OnKeyPasswordChanged"
                                      />
                         <TextBox x:Name="TxtKey" Text=""
+                                 Style="{DynamicResource WatermarkTextBoxStyle}"
                                  FontSize="13" FontFamily="Consolas"
                                  Padding="8,6"
                                  Background="{DynamicResource CardBrush}"
                                  Foreground="{DynamicResource TextPrimaryBrush}"
                                  BorderBrush="{DynamicResource BorderBrush}"
+                                 Tag="secret key"
                                  TextChanged="OnInputChanged"
                                  Visibility="Collapsed"
                                  />
@@ -82,6 +84,7 @@
                          Background="{DynamicResource CardBrush}"
                          Foreground="{DynamicResource TextPrimaryBrush}"
                          BorderBrush="{DynamicResource BorderBrush}"
+                         Tag="message"
                          TextChanged="OnInputChanged"
                          />
 
@@ -132,11 +135,13 @@
                            FontSize="{StaticResource FontSizeBody}" Margin="0,16,0,4"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
                 <TextBox x:Name="TxtVerify" Text=""
+                         Style="{DynamicResource WatermarkTextBoxStyle}"
                          FontSize="13" FontFamily="Consolas"
                          Padding="8,6" Margin="0,0,0,4"
                          Background="{DynamicResource CardBrush}"
                          Foreground="{DynamicResource TextPrimaryBrush}"
                          BorderBrush="{DynamicResource BorderBrush}"
+                         Tag="paste HMAC to verify"
                          TextChanged="OnVerifyTextChanged"
                          />
                 <TextBlock x:Name="TxtVerifyResult" Text=""

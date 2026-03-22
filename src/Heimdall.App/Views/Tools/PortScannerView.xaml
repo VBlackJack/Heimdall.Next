@@ -28,6 +28,8 @@
                            VerticalAlignment="Center" DockPanel.Dock="Left"/>
                 <StackPanel Orientation="Horizontal" Margin="16,0,0,0" VerticalAlignment="Center">
                     <TextBox x:Name="TxtHost" Text="" Width="200"
+                             Style="{StaticResource WatermarkTextBoxStyle}"
+                             Tag="hostname or IP"
                              FontSize="13" FontFamily="Consolas"
                              Padding="8,6"
                              Background="{DynamicResource CardBrush}"
@@ -36,6 +38,8 @@
                              VerticalAlignment="Center"
 />
                     <TextBox x:Name="TxtPorts" Text="22,80,443,3389,5900,8080" Width="260"
+                             Style="{StaticResource WatermarkTextBoxStyle}"
+                             Tag="22, 80, 443 or 1-1024"
                              FontSize="13" FontFamily="Consolas"
                              Padding="8,6" Margin="8,0,0,0"
                              Background="{DynamicResource CardBrush}"
@@ -158,10 +162,12 @@
                     <DataGridTextColumn x:Name="ColStatus" Binding="{Binding Status}" Width="100"
                                         Foreground="{DynamicResource TextPrimaryBrush}"/>
                     <DataGridTextColumn x:Name="ColService" Binding="{Binding Service}" Width="150"
+                                        ElementStyle="{StaticResource DataGridCellTextStyle}"
                                         Foreground="{DynamicResource TextSecondaryBrush}"/>
                     <DataGridTextColumn x:Name="ColResponseTime" Binding="{Binding ResponseTime}" Width="120"
                                         Foreground="{DynamicResource TextSecondaryBrush}"/>
                     <DataGridTextColumn x:Name="ColBanner" Binding="{Binding Banner}" Width="*"
+                                        ElementStyle="{StaticResource DataGridCellTextStyle}"
                                         Foreground="{DynamicResource TextSecondaryBrush}"/>
                 </DataGrid.Columns>
             </DataGrid>

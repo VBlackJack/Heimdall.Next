@@ -45,6 +45,7 @@
                          Background="{DynamicResource CardBrush}"
                          Foreground="{DynamicResource TextPrimaryBrush}"
                          BorderBrush="{DynamicResource BorderBrush}"
+                         Tag="URL or text to encode/decode"
                          TextChanged="OnDecodedTextChanged"
 />
 
@@ -70,6 +71,7 @@
                          Background="{DynamicResource CardBrush}"
                          Foreground="{DynamicResource TextPrimaryBrush}"
                          BorderBrush="{DynamicResource BorderBrush}"
+                         Tag="encoded URL"
                          TextChanged="OnEncodedTextChanged"
 />
 

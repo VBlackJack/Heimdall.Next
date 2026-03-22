@@ -72,6 +72,7 @@
                  BorderBrush="{DynamicResource BorderBrush}"
                  BorderThickness="1"
                  Padding="6"
+                 Tag="text to encode/decode"
                  TextChanged="OnInputTextChanged"
                  />
 

@@ -55,6 +55,8 @@
                            Foreground="{DynamicResource TextSecondaryBrush}"
                            VerticalAlignment="Center" Margin="0,0,6,0"/>
                 <TextBox x:Name="TxtSubnet" Text="192.168.1.0/24" Width="180"
+                         Style="{StaticResource WatermarkTextBoxStyle}"
+                         Tag="192.168.1.0/24"
                          FontSize="13" FontFamily="Consolas"
                          Padding="8,6"
                          Background="{DynamicResource CardBrush}"
@@ -152,24 +154,32 @@
                     <DataGridTextColumn x:Name="ColIp" Binding="{Binding IpAddress}" Width="120"
                                         Foreground="{DynamicResource TextPrimaryBrush}"/>
                     <DataGridTextColumn x:Name="ColHostname" Binding="{Binding Hostname}" Width="180"
+                                        ElementStyle="{StaticResource DataGridCellTextStyle}"
                                         Foreground="{DynamicResource TextPrimaryBrush}"/>
                     <DataGridTextColumn x:Name="ColOs" Binding="{Binding OsGuess}" Width="120"
                                         Foreground="{DynamicResource TextSecondaryBrush}"/>
                     <DataGridTextColumn x:Name="ColPorts" Binding="{Binding PortSummary}" Width="200"
+                                        ElementStyle="{StaticResource DataGridCellTextStyle}"
                                         Foreground="{DynamicResource TextSecondaryBrush}"/>
                     <DataGridTextColumn x:Name="ColServices" Binding="{Binding ServiceSummary}" Width="200"
+                                        ElementStyle="{StaticResource DataGridCellTextStyle}"
                                         Foreground="{DynamicResource TextSecondaryBrush}"/>
                     <DataGridTextColumn x:Name="ColTls" Binding="{Binding TlsStatus}" Width="180"
+                                        ElementStyle="{StaticResource DataGridCellTextStyle}"
                                         Foreground="{DynamicResource TextSecondaryBrush}"/>
                     <DataGridTextColumn x:Name="ColRole" Binding="{Binding PrimaryRoleName}" Width="150"
+                                        ElementStyle="{StaticResource DataGridCellTextStyle}"
                                         Foreground="{DynamicResource TextPrimaryBrush}"/>
                     <DataGridTextColumn x:Name="ColConfidence" Binding="{Binding Confidence}" Width="80"
                                         Foreground="{DynamicResource TextSecondaryBrush}"/>
                     <DataGridTextColumn x:Name="ColDetails" Binding="{Binding DetailsSummary}" Width="200"
+                                        ElementStyle="{StaticResource DataGridCellTextStyle}"
                                         Foreground="{DynamicResource TextSecondaryBrush}"/>
                     <DataGridTextColumn x:Name="ColVlan" Binding="{Binding VlanSegment}" Width="150"
+                                        ElementStyle="{StaticResource DataGridCellTextStyle}"
                                         Foreground="{DynamicResource TextSecondaryBrush}"/>
                     <DataGridTextColumn x:Name="ColManufacturer" Binding="{Binding Manufacturer}" Width="140"
+                                        ElementStyle="{StaticResource DataGridCellTextStyle}"
                                         Foreground="{DynamicResource TextSecondaryBrush}"/>
                 </DataGrid.Columns>
             </DataGrid>

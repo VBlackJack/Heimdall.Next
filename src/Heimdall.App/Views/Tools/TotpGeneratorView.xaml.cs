@@ -77,6 +77,11 @@ public partial class TotpGeneratorView : UserControl, IToolView
         System.Windows.Automation.AutomationProperties.SetName(ProgressTime, L("ToolTotpTimeRemaining"));
     }
 
+    private void OnInputKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+    {
+        if (e.Key == System.Windows.Input.Key.Enter) OnGenerateClick(sender, e);
+    }
+
     private void OnGenerateClick(object sender, RoutedEventArgs e)
     {
         TxtError.Visibility = Visibility.Collapsed;
