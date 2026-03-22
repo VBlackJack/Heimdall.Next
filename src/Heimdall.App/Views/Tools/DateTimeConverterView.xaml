@@ -21,7 +21,7 @@
 
         <!-- Content -->
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="{StaticResource SpacingLg}">
-            <StackPanel MaxWidth="600">
+            <StackPanel MaxWidth="700">
 
                 <!-- Input -->
                 <TextBlock x:Name="LblInput" Text=""
@@ -35,11 +35,13 @@
                             VerticalAlignment="Stretch"
                             />
                     <TextBox x:Name="TxtInput" Text=""
+                             Style="{DynamicResource WatermarkTextBoxStyle}"
                              FontSize="13" FontFamily="Consolas"
                              Padding="8,6"
                              Background="{DynamicResource CardBrush}"
                              Foreground="{DynamicResource TextPrimaryBrush}"
                              BorderBrush="{DynamicResource BorderBrush}"
+                             Tag="timestamp, ISO 8601, or date string"
                              TextChanged="OnInputTextChanged"
                              />
                 </DockPanel>

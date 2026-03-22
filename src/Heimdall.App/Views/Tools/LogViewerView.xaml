@@ -54,11 +54,13 @@
                         Padding="10,4" Margin="4,0,0,0"
                         VerticalAlignment="Center"/>
                 <TextBox x:Name="FilePathInput"
+                         Style="{DynamicResource WatermarkTextBoxStyle}"
                          Foreground="{DynamicResource TextPrimaryBrush}"
                          Background="{DynamicResource CardBrush}"
                          BorderBrush="{DynamicResource BorderBrush}"
                          Padding="4,2"
                          VerticalAlignment="Center"
+                         Tag="log file path"
                          KeyDown="OnFilePathKeyDown"/>
             </DockPanel>
         </Border>
@@ -96,11 +98,13 @@
                         Padding="8,2" Margin="4,0,0,0"
                         VerticalAlignment="Center"/>
                 <TextBox x:Name="FilterInput"
+                         Style="{DynamicResource WatermarkTextBoxStyle}"
                          Foreground="{DynamicResource TextPrimaryBrush}"
                          Background="{DynamicResource CardBrush}"
                          BorderBrush="{DynamicResource BorderBrush}"
                          Padding="4,2"
                          VerticalAlignment="Center"
+                         Tag="filter text"
                          KeyDown="OnFilterKeyDown"/>
             </DockPanel>
         </Border>

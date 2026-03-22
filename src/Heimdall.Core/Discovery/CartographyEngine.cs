@@ -98,14 +98,36 @@ public sealed class CartographyEngine
         // Retrieve local ARP table for MAC/OUI enrichment
         var arpTable = GetArpTable();
 
-        // mDNS discovery (one multicast query for all local devices)
+        // Detect OS default gateway IPs for automatic router classification
+        var gatewayIps = GetDefaultGatewayIps();
+
+        // mDNS + SSDP discovery in parallel (multicast queries for all local devices)
         var mdnsResults = new Dictionary<string, List<string>>();
-        try
+        var ssdpResults = new Dictionary<string, SsdpInfo>();
+
+        var mdnsTask = Task.Run(async () =>
         {
-            mdnsResults = await UdpProbeEngine.QueryMdnsServicesAsync(aliveHosts, 2000, ct)
-                .ConfigureAwait(false);
-        }
-        catch { /* mDNS unavailable */ }
+            try
+            {
+                return await UdpProbeEngine.QueryMdnsServicesAsync(aliveHosts, 2000, ct)
+                    .ConfigureAwait(false);
+            }
+            catch { return new Dictionary<string, List<string>>(); }
+        }, ct);
+
+        var ssdpTask = Task.Run(async () =>
+        {
+            try
+            {
+                return await UdpProbeEngine.QuerySsdpAsync(aliveHosts, 2500, ct)
+                    .ConfigureAwait(false);
+            }
+            catch { return new Dictionary<string, SsdpInfo>(); }
+        }, ct);
+
+        await Task.WhenAll(mdnsTask, ssdpTask).ConfigureAwait(false);
+        mdnsResults = await mdnsTask.ConfigureAwait(false);
+        ssdpResults = await ssdpTask.ConfigureAwait(false);
 
         var semaphore = new SemaphoreSlim(profile.MaxConcurrency);
         var tasks = aliveHosts.Select(async ip =>
@@ -115,8 +137,9 @@ public sealed class CartographyEngine
             {
                 var (latency, ttl) = pingResults.TryGetValue(ip, out var p) ? p : (0L, 0);
                 var mdnsServices = mdnsResults.TryGetValue(ip, out var ms) ? ms : null;
+                var ssdpInfo = ssdpResults.TryGetValue(ip, out var ss) ? ss : null;
                 var result = await ScanHostAsync(ip, ports, profile, arpTable,
-                    ttl, latency, mdnsServices, ct).ConfigureAwait(false);
+                    gatewayIps, ttl, latency, mdnsServices, ssdpInfo, ct).ConfigureAwait(false);
                 lock (hosts) hosts.Add(result);
                 HostCompleted?.Invoke(result);
             }
@@ -178,8 +201,9 @@ public sealed class CartographyEngine
 
     private async Task<HostScanResult> ScanHostAsync(
         string ip, int[] ports, ScanProfile profile,
-        Dictionary<string, string> arpTable, int ttl, long latencyMs,
-        List<string>? mdnsServices, CancellationToken ct)
+        Dictionary<string, string> arpTable, HashSet<string> gatewayIps,
+        int ttl, long latencyMs,
+        List<string>? mdnsServices, SsdpInfo? ssdpInfo, CancellationToken ct)
     {
         var services = new List<ServiceResult>();
         var portCompleted = 0;
@@ -244,15 +268,57 @@ public sealed class CartographyEngine
             }
         }
 
+        // Collect all TLS certificates for classification
+        var allCertificates = openServices
+            .Where(s => s.Certificate is not null)
+            .Select(s => s.Certificate!)
+            .ToList();
+
         // Enhanced role classification with all evidence sources
         var roles = RoleClassifier.ClassifyEnriched(
             openPorts, banners, osFingerprint, nbName, nbDomain,
-            snmpInfo, mdnsServices, allHttpHeaders.Count > 0 ? allHttpHeaders : null);
+            snmpInfo, mdnsServices, allHttpHeaders.Count > 0 ? allHttpHeaders : null,
+            allCertificates.Count > 0 ? allCertificates : null,
+            ssdpInfo);
         var primaryRole = roles.Count > 0 ? roles[0] : null;
+
+        // Default gateway auto-detection: boost or add Router/Gateway role
+        if (gatewayIps.Contains(ip))
+        {
+            var routerIdx = roles.FindIndex(r =>
+                r.Role.Contains("Router", StringComparison.OrdinalIgnoreCase) ||
+                r.Role.Contains("Gateway", StringComparison.OrdinalIgnoreCase));
+            if (routerIdx >= 0)
+            {
+                roles[routerIdx] = roles[routerIdx] with
+                {
+                    Confidence = Math.Min(99, Math.Max(roles[routerIdx].Confidence, 95)),
+                    Evidence = [.. roles[routerIdx].Evidence, "default-gateway"]
+                };
+            }
+            else
+            {
+                roles.Insert(0, new RoleMatch("Router/Gateway", 95, ["default-gateway"]));
+            }
+            // Re-sort after gateway boost
+            roles = [.. roles.OrderByDescending(r => r.Confidence)];
+            primaryRole = roles[0];
+        }
 
         // Enrich with MAC address (prefer ARP, fallback to NetBIOS MAC)
         var mac = arpTable.TryGetValue(ip, out var m) ? m : nbMac;
         var manufacturer = mac is not null ? OuiDatabase.LookupManufacturer(mac) : null;
+
+        // MAC-based role inference for devices with no ports and no role
+        if (primaryRole is null && manufacturer is not null)
+        {
+            var inferred = RoleClassifier.InferFromManufacturer(manufacturer);
+            if (inferred is not null)
+            {
+                roles = [inferred];
+                primaryRole = inferred;
+            }
+        }
 
         return new HostScanResult(
             ip, hostname, true, latencyMs, services, primaryRole, roles,
@@ -262,7 +328,8 @@ public sealed class CartographyEngine
             NetBiosDomain: nbDomain,
             SnmpInfo: snmpInfo,
             MdnsServices: mdnsServices,
-            HttpHeaders: allHttpHeaders.Count > 0 ? allHttpHeaders : null);
+            HttpHeaders: allHttpHeaders.Count > 0 ? allHttpHeaders : null,
+            SsdpInfo: ssdpInfo);
     }
 
     private static async Task<ServiceResult> ProbePortAsync(
@@ -580,6 +647,31 @@ public sealed class CartographyEngine
         if (parts.Length != 4) return 0;
         return long.Parse(parts[0]) << 24 | long.Parse(parts[1]) << 16 |
                long.Parse(parts[2]) << 8 | long.Parse(parts[3]);
+    }
+
+    /// <summary>
+    /// Detects the OS default gateway IP addresses from all active network interfaces.
+    /// Used to auto-classify the gateway host as Router/Gateway with high confidence.
+    /// </summary>
+    private static HashSet<string> GetDefaultGatewayIps()
+    {
+        var gateways = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        try
+        {
+            foreach (var iface in NetworkInterface.GetAllNetworkInterfaces())
+            {
+                if (iface.OperationalStatus != OperationalStatus.Up) continue;
+                if (iface.NetworkInterfaceType is NetworkInterfaceType.Loopback) continue;
+                var props = iface.GetIPProperties();
+                foreach (var gw in props.GatewayAddresses)
+                {
+                    if (gw.Address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+                        gateways.Add(gw.Address.ToString());
+                }
+            }
+        }
+        catch { /* gateway detection unavailable */ }
+        return gateways;
     }
 
     /// <summary>

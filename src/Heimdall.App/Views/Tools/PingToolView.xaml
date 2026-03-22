@@ -31,6 +31,8 @@
                            HorizontalAlignment="Right"/>
                 <StackPanel Orientation="Horizontal" Margin="16,0,0,0" VerticalAlignment="Center">
                     <TextBox x:Name="TxtHost" Text="" Width="240"
+                             Style="{StaticResource WatermarkTextBoxStyle}"
+                             Tag="hostname or IP"
                              FontSize="13" FontFamily="Consolas"
                              Padding="8,6"
                              Background="{DynamicResource CardBrush}"

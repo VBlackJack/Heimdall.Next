@@ -490,6 +490,8 @@ public partial class NetworkCartographyView : UserControl, IToolView
             detailParts.Add($"SNMP:{host.SnmpInfo.SysName}");
         if (host.MdnsServices is { Count: > 0 })
             detailParts.Add($"mDNS:{host.MdnsServices.Count}");
+        if (host.SsdpInfo?.DeviceType is not null)
+            detailParts.Add($"UPnP:{host.SsdpInfo.DeviceType}");
         var detailsSummary = detailParts.Count > 0 ? string.Join(" | ", detailParts) : "\u2014";
 
         // Full tooltip (localized labels)
@@ -513,6 +515,13 @@ public partial class NetworkCartographyView : UserControl, IToolView
         }
         if (host.MdnsServices is { Count: > 0 })
             tooltipParts.Add($"{L("ToolNetMapTipMdns")}: {string.Join(", ", host.MdnsServices)}");
+        if (host.SsdpInfo is not null)
+        {
+            if (host.SsdpInfo.DeviceType is not null)
+                tooltipParts.Add($"{L("ToolNetMapTipSsdpDevice")}: {host.SsdpInfo.DeviceType}");
+            if (host.SsdpInfo.Server is not null)
+                tooltipParts.Add($"{L("ToolNetMapTipSsdpServer")}: {host.SsdpInfo.Server}");
+        }
         if (host.HttpHeaders is { Count: > 0 })
         {
             foreach (var (key, value) in host.HttpHeaders)
@@ -554,6 +563,7 @@ public partial class NetworkCartographyView : UserControl, IToolView
             SnmpSysDescr = host.SnmpInfo?.SysDescr,
             SnmpSysLocation = host.SnmpInfo?.SysLocation,
             MdnsServicesList = mdnsServicesList,
+            SsdpDeviceType = host.SsdpInfo?.DeviceType,
             OpenPorts = openPortsList
         };
     }
@@ -595,7 +605,8 @@ public partial class NetworkCartographyView : UserControl, IToolView
                 var mdns = (r.MdnsServicesList ?? "").Replace("\"", "\"\"");
                 var manufacturer = (r.Manufacturer ?? "").Replace("\"", "\"\"");
                 var vlan = (r.VlanSegment ?? "").Replace("\"", "\"\"");
-                sb.AppendLine($"{r.IpAddress},\"{hostname}\",\"{os}\",\"{ports}\",\"{services}\",\"{tls}\",\"{certSubject}\",\"{certExpires}\",\"{certAlgorithm}\",\"{certStatus}\",\"{role}\",{r.Confidence},\"{nbName}\",\"{nbDomain}\",\"{snmpName}\",\"{snmpDescr}\",\"{snmpLoc}\",\"{mdns}\",\"{manufacturer}\",\"{vlan}\"");
+                var ssdpDevice = (r.SsdpDeviceType ?? "").Replace("\"", "\"\"");
+                sb.AppendLine($"{r.IpAddress},\"{hostname}\",\"{os}\",\"{ports}\",\"{services}\",\"{tls}\",\"{certSubject}\",\"{certExpires}\",\"{certAlgorithm}\",\"{certStatus}\",\"{role}\",{r.Confidence},\"{nbName}\",\"{nbDomain}\",\"{snmpName}\",\"{snmpDescr}\",\"{snmpLoc}\",\"{mdns}\",\"{manufacturer}\",\"{vlan}\",\"{ssdpDevice}\"");
             }
 
             File.WriteAllText(dialog.FileName, sb.ToString(), Encoding.UTF8);
@@ -828,6 +839,7 @@ public partial class NetworkCartographyView : UserControl, IToolView
         public string? SnmpSysDescr { get; init; }
         public string? SnmpSysLocation { get; init; }
         public string? MdnsServicesList { get; init; }
+        public string? SsdpDeviceType { get; init; }
 
         /// <summary>
         /// Raw list of open ports for cross-tool context menu actions.
