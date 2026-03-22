@@ -38,7 +38,7 @@
         </Style>
     </Window.Resources>
 
-    <Grid Margin="16">
+    <Grid Margin="{StaticResource SpacingLg}">
         <Grid.RowDefinitions>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>

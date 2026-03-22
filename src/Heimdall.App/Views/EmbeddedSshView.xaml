@@ -27,7 +27,7 @@
                         Click="OnDisconnectClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="8,2"
-                        FontSize="11"
+                        FontSize="{StaticResource FontSizeCaption}"
                         Margin="8,0,0,0"/>
 
                 <Button x:Name="ReconnectButton"
@@ -35,7 +35,7 @@
                         Click="OnReconnectClick"
                         Style="{DynamicResource PrimaryButtonStyle}"
                         Padding="8,2"
-                        FontSize="11"
+                        FontSize="{StaticResource FontSizeCaption}"
                         Margin="8,0,0,0"
                         Visibility="Collapsed"/>
 
@@ -45,7 +45,7 @@
                         FontFamily="Segoe MDL2 Assets"
                         Click="OnHealthToggleClick"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
-                        Padding="6,2" FontSize="12" Margin="4,0"/>
+                        Padding="6,2" FontSize="{StaticResource FontSizeBody}" Margin="4,0"/>
 
                 <Button x:Name="SplitButton"
                         DockPanel.Dock="Right"
@@ -53,7 +53,7 @@
                         FontFamily="Segoe MDL2 Assets"
                         Click="OnSplitClick"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
-                        Padding="6,2" FontSize="12" Margin="4,0"/>
+                        Padding="6,2" FontSize="{StaticResource FontSizeBody}" Margin="4,0"/>
 
                 <Button x:Name="ElevateButton"
                         DockPanel.Dock="Right"
@@ -61,7 +61,7 @@
                         FontFamily="Segoe MDL2 Assets"
                         Click="OnElevateClick"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
-                        Padding="6,2" FontSize="12" Margin="4,0"
+                        Padding="6,2" FontSize="{StaticResource FontSizeBody}" Margin="4,0"
                         Visibility="Collapsed"/>
 
                 <!-- Admin badge (visible when session is elevated) -->
@@ -95,7 +95,7 @@
 
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <TextBlock x:Name="SessionTitleText"
-                               FontSize="12"
+                               FontSize="{StaticResource FontSizeBody}"
                                FontWeight="SemiBold"
                                Foreground="{DynamicResource TextPrimaryBrush}"
                                VerticalAlignment="Center"
@@ -103,15 +103,15 @@
                                MaxWidth="300"/>
                     <TextBlock x:Name="EndpointTextBlock"
                                Margin="8,0,0,0"
-                               FontSize="11"
+                               FontSize="{StaticResource FontSizeCaption}"
                                Foreground="{DynamicResource TextSecondaryBrush}"
                                VerticalAlignment="Center"
                                TextTrimming="CharacterEllipsis"
                                MaxWidth="250"/>
                     <TextBlock Text=" - " Foreground="{DynamicResource TextSecondaryBrush}"
-                               FontSize="11" VerticalAlignment="Center"/>
+                               FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center"/>
                     <TextBlock x:Name="StatusTextBlock"
-                               FontSize="11"
+                               FontSize="{StaticResource FontSizeCaption}"
                                Foreground="{DynamicResource TextPrimaryBrush}"
                                VerticalAlignment="Center"/>
                 </StackPanel>
@@ -218,7 +218,7 @@
                     <StackPanel>
                         <!-- CPU -->
                         <TextBlock x:Name="HealthCpuLabel"
-                                   FontSize="11"
+                                   FontSize="{StaticResource FontSizeCaption}"
                                    FontWeight="SemiBold"
                                    Foreground="{DynamicResource TextSecondaryBrush}"
                                    Margin="0,0,0,4"/>
@@ -229,14 +229,14 @@
                                      Background="{DynamicResource BackgroundBrush}"/>
                         <TextBlock x:Name="CpuPercentText"
                                    Text="0%"
-                                   FontSize="11"
+                                   FontSize="{StaticResource FontSizeCaption}"
                                    Foreground="{DynamicResource TextPrimaryBrush}"
                                    HorizontalAlignment="Right"
                                    Margin="0,2,0,12"/>
 
                         <!-- RAM -->
                         <TextBlock x:Name="HealthRamLabel"
-                                   FontSize="11"
+                                   FontSize="{StaticResource FontSizeCaption}"
                                    FontWeight="SemiBold"
                                    Foreground="{DynamicResource TextSecondaryBrush}"
                                    Margin="0,0,0,4"/>
@@ -247,14 +247,14 @@
                                      Background="{DynamicResource BackgroundBrush}"/>
                         <TextBlock x:Name="RamDetailText"
                                    Text="0 / 0 MB"
-                                   FontSize="11"
+                                   FontSize="{StaticResource FontSizeCaption}"
                                    Foreground="{DynamicResource TextPrimaryBrush}"
                                    HorizontalAlignment="Right"
                                    Margin="0,2,0,12"/>
 
                         <!-- Disk -->
                         <TextBlock x:Name="HealthDiskLabel"
-                                   FontSize="11"
+                                   FontSize="{StaticResource FontSizeCaption}"
                                    FontWeight="SemiBold"
                                    Foreground="{DynamicResource TextSecondaryBrush}"
                                    Margin="0,0,0,4"/>
@@ -265,7 +265,7 @@
                                      Background="{DynamicResource BackgroundBrush}"/>
                         <TextBlock x:Name="DiskDetailText"
                                    Text="0 / 0"
-                                   FontSize="11"
+                                   FontSize="{StaticResource FontSizeCaption}"
                                    Foreground="{DynamicResource TextPrimaryBrush}"
                                    HorizontalAlignment="Right"
                                    Margin="0,2,0,0"/>

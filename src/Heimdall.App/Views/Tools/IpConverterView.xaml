@@ -14,18 +14,18 @@
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,0,0,1">
             <TextBlock x:Name="HeaderTitle" Text=""
-                       FontSize="14" FontWeight="SemiBold"
+                       FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                        Foreground="{DynamicResource TextPrimaryBrush}"
                        VerticalAlignment="Center"/>
         </Border>
 
         <!-- Content -->
-        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="16">
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="{StaticResource SpacingLg}">
             <StackPanel MaxWidth="600">
 
                 <!-- Input -->
                 <TextBlock x:Name="LblInput" Text=""
-                           FontSize="12" Margin="0,0,0,4"
+                           FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,4"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
                 <TextBox x:Name="TxtInput" Text=""
                          FontSize="13" FontFamily="Consolas"
@@ -38,7 +38,7 @@
 
                 <!-- Error message -->
                 <TextBlock x:Name="TxtError" Text="" Visibility="Collapsed"
-                           FontSize="12" Margin="0,0,0,12" TextWrapping="Wrap"
+                           FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,12" TextWrapping="Wrap"
                            Foreground="{DynamicResource ErrorBrush}"/>
 
                 <!-- Results -->
@@ -68,49 +68,49 @@
 
                         <!-- Row 0: Dotted Decimal -->
                         <TextBlock x:Name="LblDotted" Grid.Row="0" Grid.Column="0" Text=""
-                                   FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                                   FontSize="{StaticResource FontSizeBody}" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                         <TextBlock x:Name="TxtDotted" Grid.Row="0" Grid.Column="2" Text=""
                                    FontSize="13" FontFamily="Consolas" Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
                         <Button x:Name="BtnCopyDotted" Grid.Row="0" Grid.Column="3" Click="OnCopyValueClick"
                                 Tag="Dotted" Style="{DynamicResource SecondaryButtonStyle}"
-                                Padding="6,2" Margin="8,0,0,0" FontSize="11" VerticalAlignment="Center"/>
+                                Padding="6,2" Margin="8,0,0,0" FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center"/>
 
                         <!-- Row 2: Decimal (Integer) -->
                         <TextBlock x:Name="LblDecimal" Grid.Row="2" Grid.Column="0" Text=""
-                                   FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                                   FontSize="{StaticResource FontSizeBody}" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                         <TextBlock x:Name="TxtDecimal" Grid.Row="2" Grid.Column="2" Text=""
                                    FontSize="13" FontFamily="Consolas" Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
                         <Button x:Name="BtnCopyDecimal" Grid.Row="2" Grid.Column="3" Click="OnCopyValueClick"
                                 Tag="Decimal" Style="{DynamicResource SecondaryButtonStyle}"
-                                Padding="6,2" Margin="8,0,0,0" FontSize="11" VerticalAlignment="Center"/>
+                                Padding="6,2" Margin="8,0,0,0" FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center"/>
 
                         <!-- Row 4: Hexadecimal -->
                         <TextBlock x:Name="LblHex" Grid.Row="4" Grid.Column="0" Text=""
-                                   FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                                   FontSize="{StaticResource FontSizeBody}" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                         <TextBlock x:Name="TxtHex" Grid.Row="4" Grid.Column="2" Text=""
                                    FontSize="13" FontFamily="Consolas" Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
                         <Button x:Name="BtnCopyHex" Grid.Row="4" Grid.Column="3" Click="OnCopyValueClick"
                                 Tag="Hex" Style="{DynamicResource SecondaryButtonStyle}"
-                                Padding="6,2" Margin="8,0,0,0" FontSize="11" VerticalAlignment="Center"/>
+                                Padding="6,2" Margin="8,0,0,0" FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center"/>
 
                         <!-- Row 6: Binary -->
                         <TextBlock x:Name="LblBinary" Grid.Row="6" Grid.Column="0" Text=""
-                                   FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                                   FontSize="{StaticResource FontSizeBody}" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                         <TextBlock x:Name="TxtBinary" Grid.Row="6" Grid.Column="2" Text=""
                                    FontSize="13" FontFamily="Consolas" Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"
                                    TextWrapping="Wrap"/>
                         <Button x:Name="BtnCopyBinary" Grid.Row="6" Grid.Column="3" Click="OnCopyValueClick"
                                 Tag="Binary" Style="{DynamicResource SecondaryButtonStyle}"
-                                Padding="6,2" Margin="8,0,0,0" FontSize="11" VerticalAlignment="Center"/>
+                                Padding="6,2" Margin="8,0,0,0" FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center"/>
 
                         <!-- Row 8: Mapped IPv6 -->
                         <TextBlock x:Name="LblMappedIpv6" Grid.Row="8" Grid.Column="0" Text=""
-                                   FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                                   FontSize="{StaticResource FontSizeBody}" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                         <TextBlock x:Name="TxtMappedIpv6" Grid.Row="8" Grid.Column="2" Text=""
                                    FontSize="13" FontFamily="Consolas" Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
                         <Button x:Name="BtnCopyIpv6" Grid.Row="8" Grid.Column="3" Click="OnCopyValueClick"
                                 Tag="Ipv6" Style="{DynamicResource SecondaryButtonStyle}"
-                                Padding="6,2" Margin="8,0,0,0" FontSize="11" VerticalAlignment="Center"/>
+                                Padding="6,2" Margin="8,0,0,0" FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center"/>
                     </Grid>
                 </Border>
 

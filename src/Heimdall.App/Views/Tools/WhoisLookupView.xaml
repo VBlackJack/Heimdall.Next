@@ -21,7 +21,7 @@
         </Border>
 
         <!-- Content -->
-        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="16">
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="{StaticResource SpacingLg}">
             <StackPanel MaxWidth="700">
 
                 <!-- Input Row -->

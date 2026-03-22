@@ -19,13 +19,13 @@
                 <Button x:Name="BtnSave" DockPanel.Dock="Right"
                         Click="OnSaveClick"
                         Style="{DynamicResource PrimaryButtonStyle}"
-                        Padding="12,3" FontSize="11" Margin="4,0,0,0"/>
+                        Padding="12,3" FontSize="{StaticResource FontSizeCaption}" Margin="4,0,0,0"/>
                 <Button x:Name="BtnClose" DockPanel.Dock="Right"
                         Click="OnCloseClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="8,3" FontSize="11" Margin="4,0,0,0"/>
+                        Padding="8,3" FontSize="{StaticResource FontSizeCaption}" Margin="4,0,0,0"/>
                 <TextBlock x:Name="FileNameText"
-                           FontSize="12" FontWeight="SemiBold"
+                           FontSize="{StaticResource FontSizeBody}" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
                            VerticalAlignment="Center"
                            TextTrimming="CharacterEllipsis"/>
@@ -50,10 +50,10 @@
             <DockPanel>
                 <TextBlock x:Name="CursorPositionText"
                            DockPanel.Dock="Right"
-                           FontSize="11"
+                           FontSize="{StaticResource FontSizeCaption}"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
                 <TextBlock x:Name="SyntaxLabel"
-                           FontSize="11"
+                           FontSize="{StaticResource FontSizeCaption}"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
             </DockPanel>
         </Border>

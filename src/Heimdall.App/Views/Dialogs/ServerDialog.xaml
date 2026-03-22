@@ -181,7 +181,7 @@
         </Style>
     </Window.Resources>
 
-    <Grid Margin="16">
+    <Grid Margin="{StaticResource SpacingLg}">
         <Grid.RowDefinitions>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
@@ -191,7 +191,7 @@
         <TabControl x:Name="MainTabControl" Grid.Row="0" Style="{DynamicResource ThemedTabControlStyle}">
             <TabItem x:Name="DlgSrv_TabConnection" Style="{DynamicResource ThemedTabItemStyle}">
                 <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                    <StackPanel Margin="8">
+                    <StackPanel Margin="{StaticResource SpacingSm}">
                         <Border Style="{StaticResource SectionCardStyle}">
                             <StackPanel>
                                 <TextBlock x:Name="DlgSrv_ConnectionBasicsTitle" Style="{StaticResource SectionTitleStyle}"/>
@@ -468,7 +468,7 @@
                     </Style>
                 </TabItem.Style>
                 <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                    <StackPanel Margin="8">
+                    <StackPanel Margin="{StaticResource SpacingSm}">
                         <Border Style="{StaticResource SectionCardStyle}">
                             <StackPanel>
                                 <TextBlock x:Name="DlgSrv_TunnelingTitle" Style="{StaticResource SectionTitleStyle}"/>
@@ -585,7 +585,7 @@
                     </Style>
                 </TabItem.Style>
                 <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                    <StackPanel Margin="8">
+                    <StackPanel Margin="{StaticResource SpacingSm}">
                         <Border>
                             <Border.Style>
                                 <Style TargetType="Border" BasedOn="{StaticResource SectionCardStyle}">
@@ -738,7 +738,7 @@
 
             <TabItem x:Name="DlgSrv_TabOptions" Style="{DynamicResource ThemedTabItemStyle}">
                 <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                    <StackPanel Margin="8">
+                    <StackPanel Margin="{StaticResource SpacingSm}">
                         <Border>
                             <Border.Style>
                                 <Style TargetType="Border" BasedOn="{StaticResource SectionCardStyle}">
@@ -1105,7 +1105,7 @@
 
             <TabItem x:Name="DlgSrv_TabInfo" Style="{DynamicResource ThemedTabItemStyle}">
                 <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                    <StackPanel Margin="8">
+                    <StackPanel Margin="{StaticResource SpacingSm}">
                         <Border Style="{StaticResource SectionCardStyle}">
                             <StackPanel>
                                 <TextBlock x:Name="DlgSrv_OrgTitle" Style="{StaticResource SectionTitleStyle}"/>

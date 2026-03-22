@@ -32,7 +32,7 @@
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,0,0,1">
             <TextBlock x:Name="TitleText"
-                       FontSize="14" FontWeight="SemiBold"
+                       FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                        Foreground="{DynamicResource TextPrimaryBrush}"
                        VerticalAlignment="Center"/>
         </Border>
@@ -108,13 +108,13 @@
         <!-- Log display -->
         <RichTextBox x:Name="LogViewer" Grid.Row="3"
                      IsReadOnly="True"
-                     FontFamily="Consolas" FontSize="12"
+                     FontFamily="Consolas" FontSize="{StaticResource FontSizeBody}"
                      Background="{DynamicResource CardBrush}"
                      Foreground="{DynamicResource TextPrimaryBrush}"
                      BorderThickness="0"
                      VerticalScrollBarVisibility="Auto"
                      HorizontalScrollBarVisibility="Auto"
-                     Padding="8">
+                     Padding="{StaticResource SpacingSm}">
             <FlowDocument x:Name="LogDocument" PageWidth="10000"/>
         </RichTextBox>
 
@@ -126,10 +126,10 @@
             <DockPanel>
                 <TextBlock x:Name="StatsText"
                            Foreground="{DynamicResource TextSecondaryBrush}"
-                           FontSize="11" VerticalAlignment="Center"/>
+                           FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center"/>
                 <TextBlock x:Name="TailStatusText" DockPanel.Dock="Right"
                            Foreground="{DynamicResource AccentBrush}"
-                           FontSize="11" VerticalAlignment="Center"
+                           FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center"
                            HorizontalAlignment="Right"
                            Visibility="Collapsed"/>
             </DockPanel>

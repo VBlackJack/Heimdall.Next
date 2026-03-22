@@ -14,13 +14,13 @@
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,0,0,1">
             <TextBlock x:Name="HeaderTitle" Text=""
-                       FontSize="14" FontWeight="SemiBold"
+                       FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                        Foreground="{DynamicResource TextPrimaryBrush}"
                        VerticalAlignment="Center"/>
         </Border>
 
         <!-- Content -->
-        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="16">
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="{StaticResource SpacingLg}">
             <StackPanel MaxWidth="700">
 
                 <!-- Decoded field -->
@@ -32,7 +32,7 @@
                             VerticalAlignment="Bottom"
 />
                     <TextBlock x:Name="LblDecoded" Text=""
-                               FontSize="12"
+                               FontSize="{StaticResource FontSizeBody}"
                                Foreground="{DynamicResource TextSecondaryBrush}"
                                VerticalAlignment="Bottom"/>
                 </DockPanel>
@@ -57,7 +57,7 @@
                             VerticalAlignment="Bottom"
 />
                     <TextBlock x:Name="LblEncoded" Text=""
-                               FontSize="12"
+                               FontSize="{StaticResource FontSizeBody}"
                                Foreground="{DynamicResource TextSecondaryBrush}"
                                VerticalAlignment="Bottom"/>
                 </DockPanel>
@@ -76,7 +76,7 @@
                 <!-- Component encoding toggle -->
                 <CheckBox x:Name="ChkComponentEncoding" Margin="0,4,0,0"
                           Foreground="{DynamicResource TextSecondaryBrush}">
-                    <TextBlock x:Name="LblComponentEncoding" Text="" FontSize="12"/>
+                    <TextBlock x:Name="LblComponentEncoding" Text="" FontSize="{StaticResource FontSizeBody}"/>
                 </CheckBox>
 
             </StackPanel>

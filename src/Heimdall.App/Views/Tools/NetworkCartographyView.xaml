@@ -127,7 +127,7 @@
         </Border>
 
         <!-- Row 3: Results DataGrid -->
-        <Border Grid.Row="3" Margin="8"
+        <Border Grid.Row="3" Margin="{StaticResource SpacingSm}"
                 Background="{DynamicResource CardBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="1" CornerRadius="4">

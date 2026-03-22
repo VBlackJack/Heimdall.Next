@@ -29,18 +29,18 @@
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,0,0,1">
             <TextBlock x:Name="HeaderTitle" Text=""
-                       FontSize="14" FontWeight="SemiBold"
+                       FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                        Foreground="{DynamicResource TextPrimaryBrush}"
                        VerticalAlignment="Center"/>
         </Border>
 
         <!-- Content -->
-        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="16">
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="{StaticResource SpacingLg}">
             <StackPanel MaxWidth="700">
 
                 <!-- Mode selector -->
                 <TextBlock x:Name="LblMode" Text=""
-                           FontSize="12" Margin="0,0,0,6"
+                           FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,6"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
                 <WrapPanel Margin="0,0,0,16">
                     <RadioButton x:Name="RbSupernet" GroupName="Mode"
@@ -65,21 +65,21 @@
                         Padding="16,12" Margin="0,0,0,12">
                     <StackPanel>
                         <TextBlock x:Name="LblSupernetInput" Text=""
-                                   FontSize="12" Margin="0,0,0,4"
+                                   FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,4"
                                    Foreground="{DynamicResource TextSecondaryBrush}"/>
                         <TextBox x:Name="TxtSupernetInput"
                                  AcceptsReturn="True"
                                  TextWrapping="Wrap"
                                  Height="100"
                                  VerticalScrollBarVisibility="Auto"
-                                 FontFamily="Consolas" FontSize="12"
+                                 FontFamily="Consolas" FontSize="{StaticResource FontSizeBody}"
                                  Foreground="{DynamicResource TextPrimaryBrush}"
                                  Background="{DynamicResource CardBrush}"
                                  BorderBrush="{DynamicResource BorderBrush}"
                                  Padding="8,6" Margin="0,0,0,8"/>
                         <Button x:Name="BtnSupernetCompute" Click="OnSupernetComputeClick"
                                 Style="{DynamicResource PrimaryButtonStyle}"
-                                Padding="14,6" HorizontalAlignment="Left" FontSize="12"/>
+                                Padding="14,6" HorizontalAlignment="Left" FontSize="{StaticResource FontSizeBody}"/>
                     </StackPanel>
                 </Border>
 
@@ -102,7 +102,7 @@
                                        Foreground="{DynamicResource TextPrimaryBrush}"
                                        VerticalAlignment="Center" Margin="0,0,8,0"/>
                             <TextBox x:Name="TxtStartIp" Grid.Column="1"
-                                     FontFamily="Consolas" FontSize="12"
+                                     FontFamily="Consolas" FontSize="{StaticResource FontSizeBody}"
                                      Foreground="{DynamicResource TextPrimaryBrush}"
                                      Background="{DynamicResource CardBrush}"
                                      BorderBrush="{DynamicResource BorderBrush}"
@@ -111,7 +111,7 @@
                                        Foreground="{DynamicResource TextPrimaryBrush}"
                                        VerticalAlignment="Center" Margin="0,0,8,0"/>
                             <TextBox x:Name="TxtEndIp" Grid.Column="4"
-                                     FontFamily="Consolas" FontSize="12"
+                                     FontFamily="Consolas" FontSize="{StaticResource FontSizeBody}"
                                      Foreground="{DynamicResource TextPrimaryBrush}"
                                      Background="{DynamicResource CardBrush}"
                                      BorderBrush="{DynamicResource BorderBrush}"
@@ -119,7 +119,7 @@
                         </Grid>
                         <Button x:Name="BtnRangeCompute" Click="OnRangeComputeClick"
                                 Style="{DynamicResource PrimaryButtonStyle}"
-                                Padding="14,6" Margin="0,8,0,0" HorizontalAlignment="Left" FontSize="12"/>
+                                Padding="14,6" Margin="0,8,0,0" HorizontalAlignment="Left" FontSize="{StaticResource FontSizeBody}"/>
                     </StackPanel>
                 </Border>
 
@@ -144,7 +144,7 @@
                                        Foreground="{DynamicResource TextPrimaryBrush}"
                                        VerticalAlignment="Center" Margin="0,0,8,0"/>
                             <TextBox x:Name="TxtHostsNeeded" Grid.Row="0" Grid.Column="1"
-                                     FontFamily="Consolas" FontSize="12"
+                                     FontFamily="Consolas" FontSize="{StaticResource FontSizeBody}"
                                      MaxWidth="150" HorizontalAlignment="Left"
                                      Foreground="{DynamicResource TextPrimaryBrush}"
                                      Background="{DynamicResource CardBrush}"
@@ -154,7 +154,7 @@
                                        Foreground="{DynamicResource TextPrimaryBrush}"
                                        VerticalAlignment="Center" Margin="0,0,8,0"/>
                             <TextBox x:Name="TxtBaseNetwork" Grid.Row="2" Grid.Column="1"
-                                     Text="10.0.0.0" FontFamily="Consolas" FontSize="12"
+                                     Text="10.0.0.0" FontFamily="Consolas" FontSize="{StaticResource FontSizeBody}"
                                      MaxWidth="200" HorizontalAlignment="Left"
                                      Foreground="{DynamicResource TextPrimaryBrush}"
                                      Background="{DynamicResource CardBrush}"
@@ -163,13 +163,13 @@
                         </Grid>
                         <Button x:Name="BtnVlanCompute" Click="OnVlanComputeClick"
                                 Style="{DynamicResource PrimaryButtonStyle}"
-                                Padding="14,6" Margin="0,8,0,0" HorizontalAlignment="Left" FontSize="12"/>
+                                Padding="14,6" Margin="0,8,0,0" HorizontalAlignment="Left" FontSize="{StaticResource FontSizeBody}"/>
                     </StackPanel>
                 </Border>
 
                 <!-- Error -->
                 <TextBlock x:Name="TxtError" Text="" Visibility="Collapsed"
-                           FontSize="12" Margin="0,0,0,8" TextWrapping="Wrap"
+                           FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,8" TextWrapping="Wrap"
                            Foreground="{DynamicResource ErrorBrush}"/>
 
                 <!-- Results -->
@@ -183,7 +183,7 @@
                                 Click="OnCopyResultClick"
                                 Style="{DynamicResource SecondaryButtonStyle}"
                                 Padding="10,4" Margin="0,0,0,8"
-                                HorizontalAlignment="Left" FontSize="11"/>
+                                HorizontalAlignment="Left" FontSize="{StaticResource FontSizeCaption}"/>
                         <TextBox x:Name="TxtResult"
                                  IsReadOnly="True"
                                  FontFamily="Consolas" FontSize="13"

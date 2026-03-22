@@ -14,18 +14,18 @@
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,0,0,1">
             <TextBlock x:Name="HeaderTitle" Text=""
-                       FontSize="14" FontWeight="SemiBold"
+                       FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                        Foreground="{DynamicResource TextPrimaryBrush}"
                        VerticalAlignment="Center"/>
         </Border>
 
         <!-- Content -->
-        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="16">
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="{StaticResource SpacingLg}">
             <StackPanel MaxWidth="600">
 
                 <!-- Algorithm selector -->
                 <TextBlock x:Name="LblAlgorithm" Text=""
-                           FontSize="12" Margin="0,0,0,4"
+                           FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,4"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
                 <ComboBox x:Name="CmbAlgorithm"
                           Margin="0,0,0,16"
@@ -38,12 +38,12 @@
 
                 <!-- Secret key with show/hide toggle -->
                 <TextBlock x:Name="LblKey" Text=""
-                           FontSize="12" Margin="0,0,0,4"
+                           FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,4"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
                 <DockPanel Margin="0,0,0,16">
                     <Button x:Name="BtnToggleKey" DockPanel.Dock="Right"
                             Content="&#xE7B3;"
-                            FontFamily="Segoe MDL2 Assets" FontSize="14"
+                            FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeSubtitle}"
                             Click="OnToggleKeyVisibility"
                             Style="{DynamicResource SecondaryButtonStyle}"
                             Padding="8,6" Margin="6,0,0,0"
@@ -71,7 +71,7 @@
 
                 <!-- Input message -->
                 <TextBlock x:Name="LblInput" Text=""
-                           FontSize="12" Margin="0,0,0,4"
+                           FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,4"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
                 <TextBox x:Name="TxtInput" Text=""
                          FontSize="13" FontFamily="Consolas"
@@ -87,7 +87,7 @@
 
                 <!-- Output format toggle -->
                 <TextBlock x:Name="LblFormat" Text=""
-                           FontSize="12" Margin="0,16,0,4"
+                           FontSize="{StaticResource FontSizeBody}" Margin="0,16,0,4"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
                 <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
                     <RadioButton x:Name="RdoHex" Content="Hex" IsChecked="True"
@@ -103,7 +103,7 @@
 
                 <!-- Output -->
                 <TextBlock x:Name="LblOutput" Text=""
-                           FontSize="12" Margin="0,0,0,4"
+                           FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,4"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
                 <DockPanel Margin="0,0,0,8">
                     <Button x:Name="BtnCopy" DockPanel.Dock="Right"
@@ -124,12 +124,12 @@
 
                 <!-- Byte length indicator -->
                 <TextBlock x:Name="TxtByteLength" Text=""
-                           FontSize="11"
+                           FontSize="{StaticResource FontSizeCaption}"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
 
                 <!-- Verify field -->
                 <TextBlock x:Name="LblVerify" Text=""
-                           FontSize="12" Margin="0,16,0,4"
+                           FontSize="{StaticResource FontSizeBody}" Margin="0,16,0,4"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
                 <TextBox x:Name="TxtVerify" Text=""
                          FontSize="13" FontFamily="Consolas"
@@ -140,7 +140,7 @@
                          TextChanged="OnVerifyTextChanged"
                          />
                 <TextBlock x:Name="TxtVerifyResult" Text=""
-                           FontSize="12" Margin="0,0,0,8"
+                           FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,8"
                            FontWeight="SemiBold"/>
 
             </StackPanel>
