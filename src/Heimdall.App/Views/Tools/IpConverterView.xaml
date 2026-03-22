@@ -28,6 +28,8 @@
                            FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,4"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
                 <TextBox x:Name="TxtInput" Text=""
+                         Style="{StaticResource WatermarkTextBoxStyle}"
+                         Tag="IP address or integer"
                          FontSize="13" FontFamily="Consolas"
                          Padding="8,6" Margin="0,0,0,16"
                          Background="{DynamicResource CardBrush}"

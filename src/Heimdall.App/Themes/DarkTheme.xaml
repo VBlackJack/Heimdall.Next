@@ -13,14 +13,14 @@
     <Color x:Key="AccentHoverColor">#D6ACFF</Color>
     <Color x:Key="AccentPressedColor">#A87AF7</Color>
     <Color x:Key="TextPrimaryColor">#F8F8F2</Color>
-    <Color x:Key="TextSecondaryColor">#7986AC</Color>
+    <Color x:Key="TextSecondaryColor">#8E9BC0</Color>
     <Color x:Key="TextDisabledColor">#5A5D6A</Color>
     <Color x:Key="SuccessColor">#50FA7B</Color>
     <Color x:Key="WarningColor">#FFB86C</Color>
     <Color x:Key="ErrorColor">#FF5555</Color>
     <Color x:Key="InfoColor">#8BE9FD</Color>
     <Color x:Key="BorderColor">#6272A4</Color>
-    <Color x:Key="HighlightColor">#343746</Color>
+    <Color x:Key="HighlightColor">#353A50</Color>
 
     <!-- Brushes -->
     <SolidColorBrush x:Key="BackgroundBrush" Color="{StaticResource PrimaryColor}"/>
@@ -72,13 +72,16 @@
     <!-- Badge text (dark on bright badge backgrounds) -->
     <SolidColorBrush x:Key="BadgeTextBrush" Color="#282A36"/>
 
+    <!-- Explicit white text for content displayed on accent-colored backgrounds -->
+    <SolidColorBrush x:Key="TextOnAccentBrush" Color="#FFFFFF"/>
+
     <!-- Overlay and feedback brushes -->
     <SolidColorBrush x:Key="OverlayBackground" Color="#A0000000"/>
     <SolidColorBrush x:Key="DragDropOverlayBackground" Color="#66282A36"/>
     <SolidColorBrush x:Key="BroadcastActiveBrush" Color="#44FF5555"/>
 
     <!-- Scrollbar (Dracula) -->
-    <SolidColorBrush x:Key="ScrollBarThumbBrush" Color="#6B7282"/>
+    <SolidColorBrush x:Key="ScrollBarThumbBrush" Color="#7B8298"/>
     <SolidColorBrush x:Key="ScrollBarTrackBrush" Color="#282A36"/>
 
 </ResourceDictionary>

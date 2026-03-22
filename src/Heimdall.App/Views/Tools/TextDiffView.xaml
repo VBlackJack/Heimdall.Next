@@ -90,6 +90,7 @@
                          BorderBrush="{DynamicResource BorderBrush}"
                          BorderThickness="1"
                          Padding="6"
+                         Tag="original text"
 />
             </Grid>
 
@@ -113,6 +114,7 @@
                          BorderBrush="{DynamicResource BorderBrush}"
                          BorderThickness="1"
                          Padding="6"
+                         Tag="modified text"
 />
             </Grid>
         </Grid>

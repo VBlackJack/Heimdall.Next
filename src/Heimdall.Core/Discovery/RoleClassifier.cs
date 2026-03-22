@@ -51,6 +51,7 @@ public static class RoleClassifier
 
         // ── Network equipment ──────────────────────────────────────────
         new("Network Equipment (SNMP)", [161], [162, 80, 443], 60),
+        new("Router/Gateway (DNS)", [53, 80], [443, 554, 445, 161, 23, 8080], 72),
         new("Router/Gateway", [53, 67, 80], [443, 8080, 161, 23], 75),
         new("Managed Switch", [161, 22], [23, 80, 443], 65),
         new("MikroTik Router", [8291], [80, 443, 22, 8728, 8729], 80),
@@ -238,6 +239,77 @@ public static class RoleClassifier
     ];
 
     /// <summary>
+    /// TLS certificate domain fingerprints for device identification.
+    /// Self-signed certs on appliances often reveal device type via CN/SAN.
+    /// </summary>
+    private static readonly (string DomainPattern, string Role, int Boost)[] CertificateDomainFingerprints =
+    [
+        // ISP routers / gateways
+        ("fbxos.fr", "Router/Gateway (Freebox)", 30),
+        ("freebox", "Router/Gateway (Freebox)", 30),
+        ("fritz.box", "Router (Fritz!Box)", 30),
+        ("bbox.fr", "Router/Gateway (Bouygues)", 30),
+        ("sfr.fr", "Router/Gateway (SFR)", 30),
+        ("livebox", "Router/Gateway (Livebox)", 30),
+
+        // Network equipment
+        ("tplinkrepeater", "WiFi Repeater (TP-Link)", 35),
+        ("tplinkwifi", "Router (TP-Link)", 30),
+        ("tplinkap", "Wireless Access Point (TP-Link)", 30),
+        ("tplinkmifi", "Mobile Hotspot (TP-Link)", 25),
+        ("tplinkextender", "WiFi Repeater (TP-Link)", 35),
+        ("ubnt.com", "Network (Ubiquiti)", 25),
+        ("unifi", "Network Controller (UniFi)", 25),
+        ("mikrotik", "Router (MikroTik)", 30),
+        ("netgear", "Router (Netgear)", 25),
+        ("dlink", "Router (D-Link)", 25),
+        ("zyxel", "Network (Zyxel)", 25),
+
+        // NAS / storage
+        ("synology", "NAS (Synology)", 25),
+        ("myqnapcloud", "NAS (QNAP)", 25),
+
+        // Generic patterns (lower boost, broader match)
+        ("router", "Router/Gateway", 15),
+        ("gateway", "Router/Gateway", 15),
+        ("repeater", "WiFi Repeater", 20),
+        ("extender", "WiFi Repeater", 20),
+    ];
+
+    /// <summary>
+    /// Manufacturer-to-role mapping for devices with no open ports.
+    /// Used as last-resort identification when all other signals are absent.
+    /// </summary>
+    private static readonly (string ManufacturerPattern, string Role, int Confidence)[] ManufacturerRoleInference =
+    [
+        ("Apple", "Mobile Device (Apple)", 40),
+        ("Samsung", "Mobile/Smart TV (Samsung)", 35),
+        ("Google Nest", "Smart Home (Google Nest)", 45),
+        ("Google Chromecast", "Chromecast (Google)", 50),
+        ("Google", "Smart Device (Google)", 35),
+        ("Amazon", "Smart Device (Amazon)", 35),
+        ("Ring", "IoT (Ring)", 45),
+        ("Sony", "PlayStation/Smart TV (Sony)", 30),
+        ("Nintendo", "Game Console (Nintendo)", 40),
+        ("Microsoft", "Windows Device", 30),
+        ("Xiaomi", "Mobile Device (Xiaomi)", 35),
+        ("Huawei", "Mobile Device (Huawei)", 35),
+        ("OnePlus", "Mobile Device (OnePlus)", 35),
+        ("Raspberry Pi", "Raspberry Pi", 45),
+        ("Espressif", "IoT Device (ESP)", 40),
+        ("Sonos", "Smart Speaker (Sonos)", 50),
+        ("Philips Hue", "IoT (Philips Hue Bridge)", 50),
+        ("LIFX", "IoT (LIFX)", 45),
+        ("Nest", "Smart Home (Nest)", 45),
+        ("Roku", "Media Streamer (Roku)", 50),
+        ("Free (Freebox)", "Router/Gateway (Freebox)", 50),
+        ("Freebox", "Router/Gateway (Freebox)", 50),
+        ("Sagemcom", "Router/Gateway (ISP CPE)", 40),
+        ("Technicolor", "Router/Gateway (ISP CPE)", 40),
+        ("AVM", "Router (Fritz!Box)", 45),
+    ];
+
+    /// <summary>
     /// Classifies a host based on its open ports, returning all matching roles
     /// sorted by descending confidence.
     /// </summary>
@@ -310,7 +382,7 @@ public static class RoleClassifier
 
     /// <summary>
     /// Full enriched classification using ports, banners, OS fingerprint, NetBIOS,
-    /// SNMP, mDNS services, and HTTP headers for maximum accuracy.
+    /// SNMP, mDNS services, HTTP headers, TLS certificates, and SSDP device info.
     /// </summary>
     public static List<RoleMatch> ClassifyEnriched(
         IReadOnlyList<int> openPorts,
@@ -320,7 +392,9 @@ public static class RoleClassifier
         string? netBiosDomain,
         SnmpInfo? snmp,
         List<string>? mdnsServices,
-        Dictionary<string, string>? httpHeaders)
+        Dictionary<string, string>? httpHeaders,
+        IReadOnlyList<CertificateInfo>? certificates = null,
+        SsdpInfo? ssdp = null)
     {
         var matches = ClassifyWithBanners(openPorts, banners);
 
@@ -351,11 +425,26 @@ public static class RoleClassifier
             ApplyHttpHeaderBoosts(matches, httpHeaders);
         }
 
+        // TLS certificate domain evidence
+        if (certificates is { Count: > 0 })
+        {
+            ApplyCertificateBoosts(matches, certificates);
+        }
+
+        // SSDP/UPnP device type evidence
+        if (ssdp is not null)
+        {
+            ApplySsdpBoosts(matches, ssdp);
+        }
+
         // OS + port cross-reference
         if (os is not null)
         {
             ApplyOsBoosts(matches, os, openPorts);
         }
+
+        // Resolve conflicting classifications (e.g., DNS server misclassified as camera)
+        ApplyConflictResolution(matches, openPorts);
 
         return [.. matches.OrderByDescending(m => m.Confidence)];
     }
@@ -431,6 +520,9 @@ public static class RoleClassifier
             ("Spotify Connect", "IoT", "Media Player (Spotify)", 15),
             ("Sonos", "Sonos", "IoT (Sonos Speaker)", 20),
             ("Scanner", "Printer", "Scanner/Printer (mDNS)", 10),
+            ("Freebox API", "Router", "Router/Gateway (Freebox)", 30),
+            ("PSIA IP Camera", "Camera", "IP Camera (PSIA)", 15),
+            ("Arlo Camera", "Camera", "IP Camera (Arlo)", 15),
         };
 
         foreach (var (service, roleFragment, newRole, boost) in mdnsRoles)
@@ -512,6 +604,168 @@ public static class RoleClassifier
                 };
             }
         }
+    }
+
+    /// <summary>
+    /// Boosts or adds role matches based on TLS certificate CN and SAN domains.
+    /// Appliance self-signed certs often embed the device type in the domain name.
+    /// </summary>
+    private static void ApplyCertificateBoosts(
+        List<RoleMatch> matches, IReadOnlyList<CertificateInfo> certificates)
+    {
+        foreach (var cert in certificates)
+        {
+            // Collect all identifiers from cert subject CN and SANs
+            var domains = new List<string>();
+
+            // Parse CN from X.500 subject string (e.g., "CN=foo.bar, O=Org")
+            var cnMatch = System.Text.RegularExpressions.Regex.Match(
+                cert.Subject, @"CN=([^,]+)", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            if (cnMatch.Success)
+                domains.Add(cnMatch.Groups[1].Value.Trim());
+
+            if (cert.SubjectAltNames is { Length: > 0 })
+                domains.AddRange(cert.SubjectAltNames);
+
+            if (domains.Count == 0) continue;
+
+            foreach (var (pattern, role, boost) in CertificateDomainFingerprints)
+            {
+                if (!domains.Any(d => d.Contains(pattern, StringComparison.OrdinalIgnoreCase)))
+                    continue;
+
+                var boosted = false;
+                // Extract the role family keyword for matching (first word before parenthesis)
+                var roleFamily = role.Split('(')[0].Trim().Split('/')[0].Trim();
+
+                for (var i = 0; i < matches.Count; i++)
+                {
+                    if (matches[i].Role.Contains(roleFamily, StringComparison.OrdinalIgnoreCase))
+                    {
+                        matches[i] = matches[i] with
+                        {
+                            Confidence = Math.Min(99, matches[i].Confidence + boost),
+                            Evidence = [.. matches[i].Evidence, $"cert-cn: \"{pattern}\""]
+                        };
+                        boosted = true;
+                    }
+                }
+
+                if (!boosted)
+                {
+                    matches.Add(new RoleMatch(role, Math.Min(95, 60 + boost),
+                        [$"cert-cn: \"{pattern}\""]));
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Boosts or adds role matches based on SSDP/UPnP device type information.
+    /// </summary>
+    private static void ApplySsdpBoosts(List<RoleMatch> matches, SsdpInfo ssdp)
+    {
+        var ssdpRoles = new (string Pattern, string RoleFragment, string NewRole, int Boost)[]
+        {
+            ("InternetGatewayDevice", "Router", "Router/Gateway (UPnP)", 25),
+            ("MediaRenderer", "Smart TV", "Smart TV/Media Player (UPnP)", 20),
+            ("MediaServer", "Media", "Media Server (UPnP)", 20),
+            ("Printer", "Printer", "Network Printer (UPnP)", 15),
+        };
+
+        var deviceType = ssdp.DeviceType ?? "";
+        var server = ssdp.Server ?? "";
+        var searchText = $"{deviceType} {ssdp.FriendlyName} {ssdp.ModelName} {server}";
+
+        foreach (var (pattern, roleFragment, newRole, boost) in ssdpRoles)
+        {
+            if (!searchText.Contains(pattern, StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            var boosted = false;
+            for (var i = 0; i < matches.Count; i++)
+            {
+                if (matches[i].Role.Contains(roleFragment, StringComparison.OrdinalIgnoreCase))
+                {
+                    matches[i] = matches[i] with
+                    {
+                        Confidence = Math.Min(99, matches[i].Confidence + boost),
+                        Evidence = [.. matches[i].Evidence, $"ssdp: {pattern}"]
+                    };
+                    boosted = true;
+                }
+            }
+
+            if (!boosted)
+            {
+                matches.Add(new RoleMatch(newRole, Math.Min(85, 55 + boost),
+                    [$"ssdp: {pattern}"]));
+            }
+        }
+
+        // Also check SSDP manufacturer/server string against banner fingerprints
+        if (!string.IsNullOrEmpty(server))
+        {
+            foreach (var (pattern, role, confidence) in BannerFingerprints)
+            {
+                if (server.Contains(pattern, StringComparison.OrdinalIgnoreCase))
+                {
+                    if (!matches.Any(m => string.Equals(m.Role, role, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        matches.Add(new RoleMatch(role, Math.Min(confidence, 80),
+                            [$"ssdp-server: \"{pattern}\""]));
+                    }
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Resolves conflicting role classifications. For example, DNS servers
+    /// are almost never IP cameras, so DNS presence suppresses camera confidence.
+    /// </summary>
+    private static void ApplyConflictResolution(
+        List<RoleMatch> matches, IReadOnlyList<int> openPorts)
+    {
+        var portSet = new HashSet<int>(openPorts);
+
+        // DNS port open → suppress camera roles (DNS servers are not cameras)
+        if (portSet.Contains(53))
+        {
+            for (var i = 0; i < matches.Count; i++)
+            {
+                if (matches[i].Role.Contains("Camera", StringComparison.OrdinalIgnoreCase) ||
+                    matches[i].Role.Contains("DVR", StringComparison.OrdinalIgnoreCase) ||
+                    matches[i].Role.Contains("NVR", StringComparison.OrdinalIgnoreCase))
+                {
+                    matches[i] = matches[i] with
+                    {
+                        Confidence = Math.Max(0, matches[i].Confidence - 25),
+                        Evidence = [.. matches[i].Evidence, "conflict: DNS suppresses camera"]
+                    };
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Last-resort role inference based on MAC manufacturer when no open ports
+    /// or other signals are available.
+    /// </summary>
+    public static RoleMatch? InferFromManufacturer(string? manufacturer)
+    {
+        if (string.IsNullOrEmpty(manufacturer)) return null;
+
+        foreach (var (pattern, role, confidence) in ManufacturerRoleInference)
+        {
+            if (manufacturer.Contains(pattern, StringComparison.OrdinalIgnoreCase))
+            {
+                return new RoleMatch(role, confidence,
+                    [$"manufacturer: \"{manufacturer}\""]);
+            }
+        }
+
+        return null;
     }
 
     /// <summary>

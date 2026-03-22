@@ -57,6 +57,8 @@
                               BorderBrush="{DynamicResource BorderBrush}"
                               />
                     <TextBox x:Name="TxtHostname" Text=""
+                             Style="{StaticResource WatermarkTextBoxStyle}"
+                             Tag="example.com"
                              FontSize="13" FontFamily="Consolas"
                              Padding="8,6"
                              Background="{DynamicResource CardBrush}"

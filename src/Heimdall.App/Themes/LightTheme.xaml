@@ -72,6 +72,9 @@
     <!-- Badge text (white on dark badge backgrounds) -->
     <SolidColorBrush x:Key="BadgeTextBrush" Color="#FFFFFF"/>
 
+    <!-- Explicit white text for content displayed on accent-colored backgrounds -->
+    <SolidColorBrush x:Key="TextOnAccentBrush" Color="#FFFFFF"/>
+
     <!-- Overlay and feedback brushes -->
     <SolidColorBrush x:Key="OverlayBackground" Color="#A0FFFFFF"/>
     <SolidColorBrush x:Key="DragDropOverlayBackground" Color="#66E8E8E8"/>

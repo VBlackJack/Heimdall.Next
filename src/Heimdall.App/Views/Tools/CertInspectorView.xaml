@@ -70,6 +70,8 @@
                                Foreground="{DynamicResource TextSecondaryBrush}"
                                VerticalAlignment="Center"/>
                     <TextBox x:Name="TxtHost" Text=""
+                             Style="{StaticResource WatermarkTextBoxStyle}"
+                             Tag="hostname"
                              FontSize="13" FontFamily="Consolas"
                              Padding="8,6"
                              Background="{DynamicResource CardBrush}"

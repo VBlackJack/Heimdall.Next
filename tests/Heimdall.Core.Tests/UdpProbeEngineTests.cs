@@ -251,4 +251,53 @@ public class UdpProbeEngineTests
         var result = UdpProbeEngine.ParseMdnsResponse(new byte[5]);
         Assert.Empty(result);
     }
+
+    // ── SSDP packet tests ─────────────────────────────────────────
+
+    [Fact]
+    public void BuildSsdpMSearchQuery_HasCorrectFormat()
+    {
+        var packet = UdpProbeEngine.BuildSsdpMSearchQuery();
+        var text = System.Text.Encoding.ASCII.GetString(packet);
+        Assert.StartsWith("M-SEARCH", text);
+        Assert.Contains("ssdp:discover", text);
+        Assert.Contains("ssdp:all", text);
+        Assert.Contains("239.255.255.250:1900", text);
+    }
+
+    [Fact]
+    public void ParseSsdpResponse_ValidGateway_ExtractsDeviceType()
+    {
+        var response = "HTTP/1.1 200 OK\r\n" +
+            "ST: urn:schemas-upnp-org:device:InternetGatewayDevice:1\r\n" +
+            "USN: uuid:12345::urn:schemas-upnp-org:device:InternetGatewayDevice:1\r\n" +
+            "SERVER: Linux/3.4, UPnP/1.0, Portable SDK/1.8.6\r\n" +
+            "LOCATION: http://192.168.1.1:49152/rootDesc.xml\r\n\r\n";
+
+        var result = UdpProbeEngine.ParseSsdpResponse(response);
+
+        Assert.NotNull(result);
+        Assert.Equal("InternetGatewayDevice", result.DeviceType);
+        Assert.Contains("Linux", result.Server!);
+    }
+
+    [Fact]
+    public void ParseSsdpResponse_EmptyResponse_ReturnsNull()
+    {
+        Assert.Null(UdpProbeEngine.ParseSsdpResponse(""));
+        Assert.Null(UdpProbeEngine.ParseSsdpResponse("   "));
+    }
+
+    [Fact]
+    public void ParseSsdpResponse_MediaRenderer_ExtractsDeviceType()
+    {
+        var response = "HTTP/1.1 200 OK\r\n" +
+            "ST: urn:schemas-upnp-org:device:MediaRenderer:1\r\n" +
+            "SERVER: Samsung TV UPnP/1.0\r\n\r\n";
+
+        var result = UdpProbeEngine.ParseSsdpResponse(response);
+
+        Assert.NotNull(result);
+        Assert.Equal("MediaRenderer", result.DeviceType);
+    }
 }
