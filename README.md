@@ -14,8 +14,8 @@
 
 [![CI](https://github.com/VBlackJack/Heimdall.Next/actions/workflows/ci.yml/badge.svg)](https://github.com/VBlackJack/Heimdall.Next/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-1213%20passing-brightgreen.svg)]()
-[![Tools](https://img.shields.io/badge/tools-32%20sysops-blue.svg)]()
+[![Tests](https://img.shields.io/badge/tests-1324%20passing-brightgreen.svg)]()
+[![Tools](https://img.shields.io/badge/tools-33%20sysops-blue.svg)]()
 [![.NET](https://img.shields.io/badge/.NET-10.0-purple.svg)]()
 
 **The secure, all-in-one Windows connection manager for RDP, SSH, SFTP, VNC, Telnet, FTP, Citrix, and local terminals.**
@@ -158,8 +158,12 @@ All tools open as session tabs (split, detach, reorder). Accessible via **Ctrl+K
 - Screenshot capture to clipboard (Ctrl+Shift+S)
 
 ### User Interface
-- Runtime Dark and Light theme switching (1,760+ lines of WPF control styles with Design Tokens)
-- Design System: typography scale (Caption/Body/Subtitle/Title/Headline), spacing tokens, micro-animations (150ms fade-in)
+- Runtime Dark and Light theme switching (1,870+ lines of WPF control styles)
+- Design System with 40 tokens: typography (10 sizes), spacing (8 tokens incl. asymmetric), corner radius, opacity, icon sizes, monospace font family, micro-animations (150ms/250ms)
+- WCAG AA compliant: all foreground/background pairs verified at 4.5:1+ contrast ratio
+- FocusIndicatorBrush for keyboard navigation accessibility on all button styles
+- Unique protocol icons per connection type (RDP, SSH, SFTP, VNC, Telnet, FTP, Citrix, Local Shell)
+- 19 themed control styles with complete hover/pressed/focused/disabled states
 - 5 terminal color schemes: Dracula, Solarized Dark, Monokai, Nord, Default
 - Configurable terminal font family and size
 - Settings panel with 6 left-navigation sub-tabs (General, Terminal, SSH & SFTP, RDP, Security, Advanced)
@@ -168,8 +172,9 @@ All tools open as session tabs (split, detach, reorder). Accessible via **Ctrl+K
 - Command Palette (Ctrl+K): protocol icons, status dots, endpoint hints, Ctrl+Enter for split
 - Connection inheritance: group-level defaults for gateway, SSH username, key path
 - Empty states: tool views show guidance before first query, welcome panel with import CTA
+- Built-in help button ("?") on all 33 tools with localized usage instructions
 - Fullscreen mode (F11), toggle sidebar (Ctrl+B), filter (Ctrl+F)
-- Bilingual interface: English and French (~3,029 i18n keys)
+- Bilingual interface: English and French (~3,061 i18n keys)
 - WCAG 2.1 AA accessibility: 385+ AutomationProperties via code-behind, keyboard focus indicators, disabled state tooltips
 
 ### Security
@@ -303,7 +308,7 @@ Release mode also produces Inno Setup `.exe` installers in `Dist/installers/` wi
 | RDP | ActiveX MsTscAx (WindowsFormsHost) |
 | Citrix | StoreBrowse CLI integration |
 | Crypto | System.Security.Cryptography.ProtectedData (DPAPI) |
-| Testing | xUnit + Moq + FluentAssertions (1,213 tests) |
+| Testing | xUnit + Moq + FluentAssertions (1,324 tests) |
 | Built-in Tools | 33 sysops tools (Ctrl+K → `tools` or Ctrl+Shift+T) |
 | Serialization | System.Text.Json |
 
