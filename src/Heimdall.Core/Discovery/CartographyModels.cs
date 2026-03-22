@@ -54,6 +54,16 @@ public record SnmpInfo(
     string? SysLocation);
 
 /// <summary>
+/// SSDP/UPnP device information retrieved via M-SEARCH multicast discovery.
+/// </summary>
+public record SsdpInfo(
+    string? DeviceType,
+    string? FriendlyName,
+    string? Manufacturer,
+    string? ModelName,
+    string? Server);
+
+/// <summary>
 /// Inferred operating system with confidence and detection source.
 /// </summary>
 public record OsFingerprint(
@@ -79,7 +89,8 @@ public record HostScanResult(
     string? NetBiosDomain = null,
     SnmpInfo? SnmpInfo = null,
     List<string>? MdnsServices = null,
-    Dictionary<string, string>? HttpHeaders = null);
+    Dictionary<string, string>? HttpHeaders = null,
+    SsdpInfo? SsdpInfo = null);
 
 /// <summary>
 /// Result of probing a single port on a host.

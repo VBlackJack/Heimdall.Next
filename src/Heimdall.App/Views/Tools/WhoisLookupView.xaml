@@ -35,6 +35,8 @@
                             Padding="16,6" Margin="8,0,0,0"
                             VerticalAlignment="Center"/>
                     <TextBox x:Name="TxtDomain" Text=""
+                             Style="{StaticResource WatermarkTextBoxStyle}"
+                             Tag="example.com or IP address"
                              FontSize="13" FontFamily="Consolas"
                              Padding="8,6"
                              Background="{DynamicResource CardBrush}"

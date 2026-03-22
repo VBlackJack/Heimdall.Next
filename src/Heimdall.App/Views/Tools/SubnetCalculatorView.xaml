@@ -36,6 +36,8 @@
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
                 <DockPanel Margin="0,0,0,16">
                     <TextBox x:Name="TxtCidrInput" Text=""
+                             Style="{StaticResource WatermarkTextBoxStyle}"
+                             Tag="192.168.1.0/24"
                              FontSize="13" FontFamily="Consolas"
                              Padding="8,6"
                              Background="{DynamicResource CardBrush}"

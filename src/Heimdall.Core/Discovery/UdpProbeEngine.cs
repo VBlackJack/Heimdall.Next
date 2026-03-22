@@ -65,6 +65,16 @@ public static class UdpProbeEngine
         ["_ftp._tcp"] = "FTP",
         ["_rdp._tcp"] = "RDP",
         ["_device-info._tcp"] = "Device Info",
+        ["_fbx-api._tcp"] = "Freebox API",
+        ["_psia._tcp"] = "PSIA IP Camera",
+        ["_cgi._tcp"] = "CGI Service",
+        ["_arlo-video._tcp"] = "Arlo Camera",
+        ["_axis-video._tcp"] = "AXIS Camera",
+        ["_nvr._tcp"] = "Network Video Recorder",
+        ["_coap._udp"] = "IoT CoAP",
+        ["_hue._tcp"] = "Philips Hue",
+        ["_matter._tcp"] = "Matter Smart Home",
+        ["_thread._udp"] = "Thread Network",
     };
 
     // ── NetBIOS NBSTAT ───────────────────────────────────────────────
@@ -543,6 +553,123 @@ public static class UdpProbeEngine
             offset += len + 1;
         }
         return offset;
+    }
+
+    // ── SSDP/UPnP Discovery ────────────────────────────────────────
+
+    private static readonly IPAddress SsdpMulticast = IPAddress.Parse("239.255.255.250");
+    private const int SsdpPort = 1900;
+
+    /// <summary>
+    /// Sends an SSDP M-SEARCH multicast query and collects UPnP device responses,
+    /// returning discovered device info keyed by responding IP address.
+    /// </summary>
+    public static async Task<Dictionary<string, SsdpInfo>> QuerySsdpAsync(
+        IReadOnlyList<string> targetIps, int timeoutMs, CancellationToken ct)
+    {
+        var results = new Dictionary<string, SsdpInfo>();
+        var targetSet = new HashSet<string>(targetIps);
+
+        try
+        {
+            using var udp = new UdpClient();
+            udp.Client.SetSocketOption(
+                SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+            udp.Client.Bind(new IPEndPoint(IPAddress.Any, 0));
+
+            var query = BuildSsdpMSearchQuery();
+            var ssdpEndpoint = new IPEndPoint(SsdpMulticast, SsdpPort);
+            await udp.SendAsync(query, query.Length, ssdpEndpoint).ConfigureAwait(false);
+
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            cts.CancelAfter(timeoutMs);
+
+            while (!cts.Token.IsCancellationRequested)
+            {
+                try
+                {
+                    var result = await udp.ReceiveAsync(cts.Token).ConfigureAwait(false);
+                    var senderIp = result.RemoteEndPoint.Address.ToString();
+
+                    if (!targetSet.Contains(senderIp)) continue;
+
+                    var info = ParseSsdpResponse(Encoding.ASCII.GetString(result.Buffer));
+                    if (info is not null && !results.ContainsKey(senderIp))
+                    {
+                        results[senderIp] = info;
+                    }
+                }
+                catch (OperationCanceledException) { break; }
+                catch { /* ignore malformed responses */ }
+            }
+        }
+        catch (OperationCanceledException) { /* expected */ }
+        catch (Exception ex)
+        {
+            FileLogger.Log("DEBUG", $"SSDP discovery failed: {ex.Message}");
+        }
+
+        return results;
+    }
+
+    internal static byte[] BuildSsdpMSearchQuery()
+    {
+        var query = "M-SEARCH * HTTP/1.1\r\n" +
+                    "HOST: 239.255.255.250:1900\r\n" +
+                    "MAN: \"ssdp:discover\"\r\n" +
+                    "MX: 2\r\n" +
+                    "ST: ssdp:all\r\n" +
+                    "\r\n";
+        return Encoding.ASCII.GetBytes(query);
+    }
+
+    internal static SsdpInfo? ParseSsdpResponse(string response)
+    {
+        if (string.IsNullOrWhiteSpace(response)) return null;
+
+        string? deviceType = null;
+        string? server = null;
+        string? usn = null;
+
+        foreach (var line in response.Split('\n'))
+        {
+            var trimmed = line.Trim();
+            if (trimmed.StartsWith("ST:", StringComparison.OrdinalIgnoreCase))
+            {
+                var st = trimmed[3..].Trim();
+                // Extract device type from URN (e.g., urn:schemas-upnp-org:device:InternetGatewayDevice:1)
+                var urnParts = st.Split(':');
+                if (urnParts.Length >= 4 && st.Contains("device", StringComparison.OrdinalIgnoreCase))
+                    deviceType = urnParts[^2]; // device type is second-to-last
+                else
+                    deviceType ??= st;
+            }
+            else if (trimmed.StartsWith("SERVER:", StringComparison.OrdinalIgnoreCase))
+            {
+                server = trimmed[7..].Trim();
+            }
+            else if (trimmed.StartsWith("USN:", StringComparison.OrdinalIgnoreCase))
+            {
+                usn = trimmed[4..].Trim();
+            }
+        }
+
+        if (deviceType is null && server is null) return null;
+
+        // Try to extract friendly name from USN
+        string? friendlyName = null;
+        string? manufacturer = null;
+        string? modelName = null;
+
+        // SERVER header often contains OS and device info (e.g., "Linux/3.4, UPnP/1.0, Portable SDK/1.8.6")
+        if (server is not null)
+        {
+            var serverParts = server.Split(',');
+            if (serverParts.Length > 0)
+                manufacturer = serverParts[0].Trim();
+        }
+
+        return new SsdpInfo(deviceType, friendlyName, manufacturer, modelName, server);
     }
 
     // ── ASN.1/BER helpers (for SNMP) ─────────────────────────────────

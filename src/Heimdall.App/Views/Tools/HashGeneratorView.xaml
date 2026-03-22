@@ -44,6 +44,7 @@
                          Background="{DynamicResource CardBrush}"
                          Foreground="{DynamicResource TextPrimaryBrush}"
                          BorderBrush="{DynamicResource BorderBrush}"
+                         Tag="text to hash"
                          TextChanged="OnInputTextChanged"
                          />
 
@@ -110,11 +111,13 @@
                            FontSize="{StaticResource FontSizeBody}" Margin="0,16,0,4"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
                 <TextBox x:Name="TxtVerify" Text=""
+                         Style="{DynamicResource WatermarkTextBoxStyle}"
                          FontSize="13" FontFamily="Consolas"
                          Padding="8,6" Margin="0,0,0,4"
                          Background="{DynamicResource CardBrush}"
                          Foreground="{DynamicResource TextPrimaryBrush}"
                          BorderBrush="{DynamicResource BorderBrush}"
+                         Tag="paste hash to verify"
                          TextChanged="OnVerifyTextChanged"
                          />
                 <TextBlock x:Name="TxtVerifyResult" Text=""

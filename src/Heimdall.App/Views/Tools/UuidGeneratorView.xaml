@@ -21,7 +21,7 @@
 
         <!-- Content -->
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="{StaticResource SpacingLg}">
-            <StackPanel MaxWidth="600">
+            <StackPanel MaxWidth="700">
 
                 <!-- Single UUID generation -->
                 <TextBlock x:Name="LblSingleResult" Text=""

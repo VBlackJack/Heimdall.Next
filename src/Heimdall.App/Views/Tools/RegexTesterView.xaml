@@ -57,12 +57,14 @@
                        Foreground="{DynamicResource TextSecondaryBrush}"
                        FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,4"/>
             <TextBox x:Name="PatternText"
+                     Style="{DynamicResource WatermarkTextBoxStyle}"
                      FontFamily="Consolas" FontSize="13"
                      Background="{DynamicResource SurfaceBrush}"
                      Foreground="{DynamicResource TextPrimaryBrush}"
                      BorderBrush="{DynamicResource BorderBrush}"
                      BorderThickness="1"
                      Padding="6"
+                     Tag="regex pattern"
                      TextChanged="OnPatternTextChanged"
 />
         </DockPanel>
@@ -106,6 +108,7 @@
                          BorderBrush="{DynamicResource BorderBrush}"
                          BorderThickness="1"
                          Padding="6"
+                         Tag="test string"
                          TextChanged="OnTestTextChanged"
 />
                 <RichTextBox x:Name="HighlightDisplay"
