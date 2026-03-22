@@ -42,7 +42,7 @@
 
                 <!-- Expiration status -->
                 <Border x:Name="ExpirationBorder" Margin="0,12,0,0"
-                        Padding="10,6" CornerRadius="4"
+                        Padding="10,6" CornerRadius="{StaticResource CornerRadiusSm}"
                         Visibility="Collapsed">
                     <TextBlock x:Name="TxtExpiration" Text=""
                                FontSize="{StaticResource FontSizeBody}" FontWeight="SemiBold"/>
@@ -51,7 +51,7 @@
                 <!-- Error message -->
                 <TextBlock x:Name="TxtError" Text=""
                            FontSize="{StaticResource FontSizeBody}" Margin="0,12,0,0"
-                           Foreground="{DynamicResource ErrorBrush}"
+                           Foreground="{DynamicResource ErrorTextBrush}"
                            TextWrapping="Wrap"
                            Visibility="Collapsed"/>
 
@@ -66,7 +66,7 @@
                 </DockPanel>
                 <Border Background="{DynamicResource CardBrush}"
                         BorderBrush="{DynamicResource JwtHeaderBrush}" BorderThickness="1"
-                        CornerRadius="4" Padding="{StaticResource SpacingSm}" Margin="0,0,0,12">
+                        CornerRadius="{StaticResource CornerRadiusSm}" Padding="{StaticResource SpacingSm}" Margin="0,0,0,12">
                     <TextBox x:Name="TxtHeader" Text=""
                              FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                              IsReadOnly="True"
@@ -89,7 +89,7 @@
                 </DockPanel>
                 <Border Background="{DynamicResource CardBrush}"
                         BorderBrush="{DynamicResource JwtPayloadBrush}" BorderThickness="1"
-                        CornerRadius="4" Padding="{StaticResource SpacingSm}" Margin="0,0,0,12">
+                        CornerRadius="{StaticResource CornerRadiusSm}" Padding="{StaticResource SpacingSm}" Margin="0,0,0,12">
                     <TextBox x:Name="TxtPayload" Text=""
                              FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                              IsReadOnly="True"
@@ -112,7 +112,7 @@
                 </DockPanel>
                 <Border Background="{DynamicResource CardBrush}"
                         BorderBrush="{DynamicResource JwtSignatureBrush}" BorderThickness="1"
-                        CornerRadius="4" Padding="{StaticResource SpacingSm}" Margin="0,0,0,12">
+                        CornerRadius="{StaticResource CornerRadiusSm}" Padding="{StaticResource SpacingSm}" Margin="0,0,0,12">
                     <TextBox x:Name="TxtSignature" Text=""
                              FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                              IsReadOnly="True"
@@ -127,7 +127,7 @@
                 <Border x:Name="VerifySection" Visibility="Collapsed"
                         Background="{DynamicResource CardBrush}"
                         BorderBrush="{DynamicResource BorderBrush}"
-                        BorderThickness="1" CornerRadius="4"
+                        BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
                         Padding="{StaticResource SpacingMd}" Margin="0,0,0,12">
                     <StackPanel>
                         <TextBlock x:Name="LblVerifyTitle" Text=""

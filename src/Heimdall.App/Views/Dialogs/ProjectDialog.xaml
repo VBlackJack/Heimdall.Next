@@ -8,7 +8,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
         Title="{Binding DialogTitle}"
-        Width="460" Height="480"
+        Width="460" SizeToContent="Height" MaxHeight="650"
         WindowStartupLocation="CenterOwner"
         Background="{DynamicResource BackgroundBrush}"
         ResizeMode="CanResizeWithGrip"
@@ -82,7 +82,7 @@
             <TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}"
                      Style="{StaticResource FormTextBoxStyle}"
                      MaxLength="50"
-                     x:Name="TxtName"/>
+                     x:Name="TxtName" TabIndex="0"/>
             <TextBlock Foreground="{DynamicResource TextDisabledBrush}" FontSize="{StaticResource FontSizeCaption}"
                        HorizontalAlignment="Right" Margin="0,2,0,0">
                 <TextBlock.Text>
@@ -102,7 +102,7 @@
                      Height="60"
                      VerticalContentAlignment="Top"
                      VerticalScrollBarVisibility="Auto"
-                     x:Name="TxtDescription"/>
+                     x:Name="TxtDescription" TabIndex="1"/>
             <TextBlock Foreground="{DynamicResource TextDisabledBrush}" FontSize="{StaticResource FontSizeCaption}"
                        HorizontalAlignment="Right" Margin="0,2,0,0">
                 <TextBlock.Text>
@@ -157,18 +157,18 @@
             <TextBlock x:Name="LblDefaultSshUsername" Style="{StaticResource LabelStyle}" Margin="0,4,0,4"/>
             <TextBox Text="{Binding DefaultSshUsername}"
                      Style="{StaticResource FormTextBoxStyle}"
-                     x:Name="TxtDefaultSshUsername"/>
+                     x:Name="TxtDefaultSshUsername" TabIndex="2"/>
 
             <TextBlock x:Name="LblDefaultSshKeyPath" Style="{StaticResource LabelStyle}" Margin="0,12,0,4"/>
             <TextBox Text="{Binding DefaultSshKeyPath}"
                      Style="{StaticResource FormTextBoxStyle}"
-                     x:Name="TxtDefaultSshKeyPath"/>
+                     x:Name="TxtDefaultSshKeyPath" TabIndex="3"/>
         </StackPanel>
 
         <!-- Validation error -->
         <TextBlock Grid.Row="1"
                    Text="{Binding ValidationError}"
-                   Foreground="{DynamicResource ErrorBrush}"
+                   Foreground="{DynamicResource ErrorTextBrush}"
                    FontSize="{StaticResource FontSizeBody}"
                    Margin="0,8,0,0"
                    TextWrapping="Wrap"

@@ -84,7 +84,7 @@
                          TextWrapping="NoWrap"
                          VerticalScrollBarVisibility="Auto"
                          HorizontalScrollBarVisibility="Auto"
-                         FontFamily="Consolas" FontSize="13"
+                         FontFamily="Consolas" FontSize="{StaticResource FontSizeBodyLarge}"
                          Background="{DynamicResource SurfaceBrush}"
                          Foreground="{DynamicResource TextPrimaryBrush}"
                          BorderBrush="{DynamicResource BorderBrush}"
@@ -108,7 +108,7 @@
                          TextWrapping="NoWrap"
                          VerticalScrollBarVisibility="Auto"
                          HorizontalScrollBarVisibility="Auto"
-                         FontFamily="Consolas" FontSize="13"
+                         FontFamily="Consolas" FontSize="{StaticResource FontSizeBodyLarge}"
                          Background="{DynamicResource SurfaceBrush}"
                          Foreground="{DynamicResource TextPrimaryBrush}"
                          BorderBrush="{DynamicResource BorderBrush}"
@@ -148,7 +148,7 @@
         <Border Grid.Row="2"
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
-                BorderThickness="1" CornerRadius="2">
+                BorderThickness="1" CornerRadius="{StaticResource CornerRadiusXs}">
             <ScrollViewer VerticalScrollBarVisibility="Auto"
                           HorizontalScrollBarVisibility="Auto">
                 <ItemsControl x:Name="DiffOutput"
@@ -171,11 +171,11 @@
                                            Foreground="{DynamicResource TextSecondaryBrush}"
                                            TextAlignment="Right" Padding="2,1,6,1"/>
                                 <TextBlock Grid.Column="2" Text="{Binding Prefix}"
-                                           FontFamily="Consolas" FontSize="13"
+                                           FontFamily="Consolas" FontSize="{StaticResource FontSizeBodyLarge}"
                                            Foreground="{Binding PrefixForeground}"
                                            FontWeight="Bold" Padding="0,1,4,1"/>
                                 <TextBlock Grid.Column="3"
-                                           FontFamily="Consolas" FontSize="13"
+                                           FontFamily="Consolas" FontSize="{StaticResource FontSizeBodyLarge}"
                                            Foreground="{DynamicResource TextPrimaryBrush}"
                                            Padding="0,1,4,1"
                                            local:InlineBindingHelper.InlineCollection="{Binding Inlines}"/>

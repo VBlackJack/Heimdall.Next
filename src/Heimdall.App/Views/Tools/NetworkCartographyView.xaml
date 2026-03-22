@@ -57,7 +57,7 @@
                 <TextBox x:Name="TxtSubnet" Text="192.168.1.0/24" Width="180"
                          Style="{StaticResource WatermarkTextBoxStyle}"
                          Tag="192.168.1.0/24"
-                         FontSize="13" FontFamily="Consolas"
+                         FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
                          Padding="8,6"
                          Background="{DynamicResource CardBrush}"
                          Foreground="{DynamicResource TextPrimaryBrush}"
@@ -119,11 +119,11 @@
                 Style="{StaticResource ToolEmptyStateStyle}"
                 Margin="0,24,0,0">
             <StackPanel HorizontalAlignment="Center">
-                <TextBlock Text="&#xE826;" FontFamily="Segoe MDL2 Assets" FontSize="32"
+                <TextBlock Text="&#xE826;" FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource IconSizeEmptyState}"
                            HorizontalAlignment="Center"
                            Foreground="{DynamicResource TextDisabledBrush}" Margin="0,0,0,8"/>
                 <TextBlock x:Name="TxtEmptyState" Text=""
-                           FontSize="13" TextAlignment="Center"
+                           FontSize="{StaticResource FontSizeBodyLarge}" TextAlignment="Center"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
             </StackPanel>
         </Border>
@@ -132,7 +132,7 @@
         <Border Grid.Row="3" Margin="{StaticResource SpacingSm}"
                 Background="{DynamicResource CardBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
-                BorderThickness="1" CornerRadius="4">
+                BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}">
             <DataGrid x:Name="ResultsGrid"
                       AutoGenerateColumns="False"
                       IsReadOnly="True"

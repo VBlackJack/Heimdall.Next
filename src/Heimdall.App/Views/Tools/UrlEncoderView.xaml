@@ -37,7 +37,7 @@
                                VerticalAlignment="Bottom"/>
                 </DockPanel>
                 <TextBox x:Name="TxtDecoded" Text=""
-                         FontSize="13" FontFamily="Consolas"
+                         FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
                          Padding="8,6" Margin="0,0,0,8"
                          AcceptsReturn="True" TextWrapping="Wrap"
                          MinHeight="80" MaxHeight="200"
@@ -63,7 +63,7 @@
                                VerticalAlignment="Bottom"/>
                 </DockPanel>
                 <TextBox x:Name="TxtEncoded" Text=""
-                         FontSize="13" FontFamily="Consolas"
+                         FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
                          Padding="8,6" Margin="0,0,0,8"
                          AcceptsReturn="True" TextWrapping="Wrap"
                          MinHeight="80" MaxHeight="200"

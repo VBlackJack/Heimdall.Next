@@ -37,19 +37,23 @@
                 <Button Content="&#xE72B;" FontFamily="Segoe MDL2 Assets"
                         x:Name="BtnBack" Click="OnBackClick"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
-                        Padding="6,2" FontSize="{StaticResource FontSizeCaption}" IsEnabled="False"/>
+                        Padding="6,2" FontSize="{StaticResource FontSizeCaption}" IsEnabled="False"
+                        AutomationProperties.Name="Navigate back"/>
                 <Button x:Name="BtnUp" Content="&#xE74A;" FontFamily="Segoe MDL2 Assets"
                         Click="OnUpClick"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
-                        Padding="6,2" FontSize="{StaticResource FontSizeCaption}" Margin="3,0,0,0"/>
+                        Padding="6,2" FontSize="{StaticResource FontSizeCaption}" Margin="3,0,0,0"
+                        AutomationProperties.Name="Navigate up"/>
                 <Button x:Name="BtnHome" Content="&#xE80F;" FontFamily="Segoe MDL2 Assets"
                         Click="OnHomeClick"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
-                        Padding="6,2" FontSize="{StaticResource FontSizeCaption}" Margin="3,0,0,0"/>
+                        Padding="6,2" FontSize="{StaticResource FontSizeCaption}" Margin="3,0,0,0"
+                        AutomationProperties.Name="Navigate to home"/>
                 <Button x:Name="BtnRefresh" Content="&#xE72C;" FontFamily="Segoe MDL2 Assets"
                         Click="OnRefreshClick"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
-                        Padding="6,2" FontSize="{StaticResource FontSizeCaption}" Margin="3,0,0,0"/>
+                        Padding="6,2" FontSize="{StaticResource FontSizeCaption}" Margin="3,0,0,0"
+                        AutomationProperties.Name="Refresh directory"/>
             </StackPanel>
             </DockPanel>
         </Border>
@@ -78,7 +82,7 @@
                   VirtualizingPanel.IsVirtualizing="True">
             <ListView.View>
                 <GridView>
-                    <GridViewColumn Header="" Width="250">
+                    <GridViewColumn x:Name="ColName" Width="250">
                         <GridViewColumn.CellTemplate>
                             <DataTemplate>
                                 <StackPanel Orientation="Horizontal">
@@ -98,7 +102,7 @@
                             </DataTemplate>
                         </GridViewColumn.CellTemplate>
                     </GridViewColumn>
-                    <GridViewColumn Header="" Width="80">
+                    <GridViewColumn x:Name="ColSize" Width="80">
                         <GridViewColumn.CellTemplate>
                             <DataTemplate>
                                 <TextBlock Text="{Binding Size, Converter={StaticResource FileSizeConverter}, ConverterParameter=dir}"
@@ -106,7 +110,7 @@
                             </DataTemplate>
                         </GridViewColumn.CellTemplate>
                     </GridViewColumn>
-                    <GridViewColumn Header="" Width="130"
+                    <GridViewColumn x:Name="ColDate" Width="130"
                                     DisplayMemberBinding="{Binding LastModified, StringFormat='{}{0:yyyy-MM-dd HH:mm}'}"/>
                 </GridView>
             </ListView.View>
@@ -210,7 +214,7 @@
                    Grid.Row="2"
                    VerticalAlignment="Center"
                    HorizontalAlignment="Center"
-                   FontSize="13"
+                   FontSize="{StaticResource FontSizeBodyLarge}"
                    Foreground="{DynamicResource TextSecondaryBrush}"
                    IsHitTestVisible="False"
                    Visibility="Collapsed"/>

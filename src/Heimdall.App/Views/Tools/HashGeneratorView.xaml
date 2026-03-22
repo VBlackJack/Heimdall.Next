@@ -36,7 +36,7 @@
                            FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,4"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
                 <TextBox x:Name="TxtInput" Text=""
-                         FontSize="13" FontFamily="Consolas"
+                         FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
                          Padding="8,6" Height="120"
                          AcceptsReturn="True" AcceptsTab="True"
                          TextWrapping="Wrap"
@@ -52,7 +52,7 @@
                 <Border x:Name="DropZoneBorder" Margin="0,12,0,0" Padding="12,8"
                         Background="{DynamicResource CardBrush}"
                         BorderBrush="{DynamicResource BorderBrush}"
-                        BorderThickness="1" CornerRadius="4"
+                        BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
                         AllowDrop="True" Drop="OnDrop" DragOver="OnDragOver"
                         DragEnter="OnDragEnter" DragLeave="OnDragLeave">
                     <DockPanel>
@@ -96,7 +96,7 @@
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
                 <Border Background="{DynamicResource CardBrush}"
                         BorderBrush="{DynamicResource BorderBrush}"
-                        BorderThickness="1" CornerRadius="4"
+                        BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
                         Padding="12,8" Margin="0,0,0,8">
                     <StackPanel x:Name="HashResultsPanel" />
                 </Border>
@@ -112,7 +112,7 @@
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
                 <TextBox x:Name="TxtVerify" Text=""
                          Style="{DynamicResource WatermarkTextBoxStyle}"
-                         FontSize="13" FontFamily="Consolas"
+                         FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
                          Padding="8,6" Margin="0,0,0,4"
                          Background="{DynamicResource CardBrush}"
                          Foreground="{DynamicResource TextPrimaryBrush}"

@@ -78,6 +78,11 @@ public partial class ServerListViewModel : ObservableObject
     public bool IsEmpty => Servers.Count == 0;
 
     /// <summary>
+    /// Number of servers currently visible after filtering.
+    /// </summary>
+    public int FilteredCount => Servers.Count;
+
+    /// <summary>
     /// True when a server is selected in the TreeView, used to toggle the detail panel.
     /// </summary>
     public bool HasSelection => SelectedServer is not null;

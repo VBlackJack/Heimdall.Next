@@ -13,14 +13,19 @@
     <Color x:Key="AccentHoverColor">#D6ACFF</Color>
     <Color x:Key="AccentPressedColor">#A87AF7</Color>
     <Color x:Key="TextPrimaryColor">#F8F8F2</Color>
-    <Color x:Key="TextSecondaryColor">#8E9BC0</Color>
-    <Color x:Key="TextDisabledColor">#5A5D6A</Color>
+    <Color x:Key="TextSecondaryColor">#9BA3C2</Color>
+    <Color x:Key="TextDisabledColor">#8288A0</Color>
     <Color x:Key="SuccessColor">#50FA7B</Color>
     <Color x:Key="WarningColor">#FFB86C</Color>
-    <Color x:Key="ErrorColor">#FF5555</Color>
+    <Color x:Key="ErrorColor">#FF6E6E</Color>
     <Color x:Key="InfoColor">#8BE9FD</Color>
     <Color x:Key="BorderColor">#6272A4</Color>
     <Color x:Key="HighlightColor">#353A50</Color>
+
+    <!-- WCAG-safe text variants for semantic colors on dark backgrounds -->
+    <Color x:Key="SuccessTextColor">#50FA7B</Color>
+    <Color x:Key="WarningTextColor">#FFB86C</Color>
+    <Color x:Key="ErrorTextColor">#FF6E6E</Color>
 
     <!-- Brushes -->
     <SolidColorBrush x:Key="BackgroundBrush" Color="{StaticResource PrimaryColor}"/>
@@ -68,6 +73,11 @@
     <SolidColorBrush x:Key="JwtPayloadBrush" Color="{StaticResource JwtPayloadColor}"/>
     <Color x:Key="JwtSignatureColor">#ED7D31</Color>
     <SolidColorBrush x:Key="JwtSignatureBrush" Color="{StaticResource JwtSignatureColor}"/>
+
+    <!-- WCAG-safe semantic text brushes (for text rendered on dark backgrounds) -->
+    <SolidColorBrush x:Key="SuccessTextBrush" Color="{StaticResource SuccessTextColor}"/>
+    <SolidColorBrush x:Key="WarningTextBrush" Color="{StaticResource WarningTextColor}"/>
+    <SolidColorBrush x:Key="ErrorTextBrush" Color="{StaticResource ErrorTextColor}"/>
 
     <!-- Badge text (dark on bright badge backgrounds) -->
     <SolidColorBrush x:Key="BadgeTextBrush" Color="#282A36"/>

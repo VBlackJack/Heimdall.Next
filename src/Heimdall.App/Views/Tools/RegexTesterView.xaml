@@ -58,7 +58,7 @@
                        FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,4"/>
             <TextBox x:Name="PatternText"
                      Style="{DynamicResource WatermarkTextBoxStyle}"
-                     FontFamily="Consolas" FontSize="13"
+                     FontFamily="Consolas" FontSize="{StaticResource FontSizeBodyLarge}"
                      Background="{DynamicResource SurfaceBrush}"
                      Foreground="{DynamicResource TextPrimaryBrush}"
                      BorderBrush="{DynamicResource BorderBrush}"
@@ -102,7 +102,7 @@
                          TextWrapping="Wrap"
                          VerticalScrollBarVisibility="Auto"
                          HorizontalScrollBarVisibility="Auto"
-                         FontFamily="Consolas" FontSize="13"
+                         FontFamily="Consolas" FontSize="{StaticResource FontSizeBodyLarge}"
                          Background="{DynamicResource SurfaceBrush}"
                          Foreground="{DynamicResource TextPrimaryBrush}"
                          BorderBrush="{DynamicResource BorderBrush}"
@@ -119,7 +119,7 @@
                              BorderBrush="{DynamicResource BorderBrush}"
                              BorderThickness="1"
                              Padding="6"
-                             FontFamily="Consolas" FontSize="13"
+                             FontFamily="Consolas" FontSize="{StaticResource FontSizeBodyLarge}"
                              VerticalScrollBarVisibility="Auto"
                              HorizontalScrollBarVisibility="Auto"
                              />
@@ -151,7 +151,7 @@
                      Foreground="{DynamicResource TextPrimaryBrush}"
                      BorderBrush="{DynamicResource BorderBrush}"
                      BorderThickness="1"
-                     FontFamily="Consolas" FontSize="13"
+                     FontFamily="Consolas" FontSize="{StaticResource FontSizeBodyLarge}"
 />
         </Grid>
 

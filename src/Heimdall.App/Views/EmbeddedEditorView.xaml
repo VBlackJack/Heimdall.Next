@@ -36,7 +36,7 @@
         <avalon:TextEditor x:Name="Editor"
                            Grid.Row="1"
                            FontFamily="Consolas"
-                           FontSize="13"
+                           FontSize="{StaticResource FontSizeBodyLarge}"
                            ShowLineNumbers="True"
                            WordWrap="False"
                            HorizontalScrollBarVisibility="Auto"

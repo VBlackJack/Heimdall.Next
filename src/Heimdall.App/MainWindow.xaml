@@ -35,7 +35,7 @@
                 <!-- Left: App title + navigation tabs -->
                 <StackPanel Orientation="Horizontal" DockPanel.Dock="Left" VerticalAlignment="Center">
                     <TextBlock x:Name="Mw_AppTitle" Text=""
-                               FontSize="16" FontWeight="Bold"
+                               FontSize="{StaticResource FontSizeLarge}" FontWeight="Bold"
                                Foreground="{DynamicResource AccentBrush}"
                                VerticalAlignment="Center"
                                Margin="0,0,24,0"/>
@@ -81,10 +81,11 @@
                             Style="{DynamicResource ToolbarGhostButtonStyle}"
                             Padding="6,4" FontSize="{StaticResource FontSizeBody}"
                             Margin="0,0,4,0"
-                            VerticalAlignment="Center">
+                            VerticalAlignment="Center"
+                            AutomationProperties.Name="Share folder">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="&#xE72D;" FontFamily="Segoe MDL2 Assets"
-                                       FontSize="13" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                                       FontSize="{StaticResource FontSizeBodyLarge}" VerticalAlignment="Center" Margin="0,0,4,0"/>
                             <TextBlock x:Name="Mw_ShareFolderLabel" Text="" FontSize="{StaticResource FontSizeBody}"
                                        VerticalAlignment="Center"/>
                         </StackPanel>
@@ -162,7 +163,7 @@
                                     FontFamily="Segoe MDL2 Assets"
                                     Click="OnCollapseAllClick"
                                     Style="{DynamicResource ToolbarGhostButtonStyle}"
-                                    Padding="6,6" FontSize="10"
+                                    Padding="6,6" FontSize="{StaticResource FontSizeCaption}"
                                     Width="32" Height="32"
                                     Margin="2,0,0,0"/>
                             <Button x:Name="ExpandAllButton"
@@ -171,7 +172,7 @@
                                     FontFamily="Segoe MDL2 Assets"
                                     Click="OnExpandAllClick"
                                     Style="{DynamicResource ToolbarGhostButtonStyle}"
-                                    Padding="6,6" FontSize="10"
+                                    Padding="6,6" FontSize="{StaticResource FontSizeCaption}"
                                     Width="32" Height="32"
                                     Margin="2,0,0,0"/>
                             <Button x:Name="AddButton"
@@ -195,9 +196,30 @@
                                     </ContextMenu>
                                 </Button.ContextMenu>
                             </Button>
-                            <TextBox x:Name="Mw_FilterBox" Text="{Binding ServerList.SearchText, UpdateSourceTrigger=PropertyChanged}"
-                                     Style="{DynamicResource SearchTextBoxStyle}"
-                                     Tag=""/>
+                            <Grid>
+                                <TextBox x:Name="Mw_FilterBox" Text="{Binding ServerList.SearchText, UpdateSourceTrigger=PropertyChanged}"
+                                         Style="{DynamicResource SearchTextBoxStyle}"
+                                         Tag="" Padding="10,6,28,6"
+                                         AutomationProperties.Name="Search and filter servers"/>
+                                <Button x:Name="Mw_FilterClearBtn"
+                                        Content="&#xE711;"
+                                        FontFamily="Segoe MDL2 Assets"
+                                        FontSize="{StaticResource FontSizeSmallCaption}"
+                                        HorizontalAlignment="Right" VerticalAlignment="Center"
+                                        Margin="0,0,4,0"
+                                        Padding="4"
+                                        Style="{DynamicResource ToolbarGhostButtonStyle}"
+                                        MinHeight="0"
+                                        Click="OnFilterClearClick"
+                                        Visibility="Collapsed"
+                                        AutomationProperties.Name="Clear search filter"/>
+                            </Grid>
+                            <TextBlock x:Name="Mw_FilterResultCount"
+                                       FontSize="{StaticResource FontSizeSmallCaption}"
+                                       Foreground="{DynamicResource TextSecondaryBrush}"
+                                       HorizontalAlignment="Right"
+                                       Margin="0,2,4,0"
+                                       Visibility="Collapsed"/>
                         </DockPanel>
 
                         <!-- TOOLS: Expandable panel (above toggle, collapsed by default) -->
@@ -217,7 +239,7 @@
                                             Content="&#xE70D;" FontFamily="Segoe MDL2 Assets"
                                             Click="OnToggleToolsPanel"
                                             Style="{DynamicResource ToolbarGhostButtonStyle}"
-                                            Padding="4,4" FontSize="10"
+                                            Padding="4,4" FontSize="{StaticResource FontSizeCaption}"
                                             HorizontalAlignment="Right"/>
                                 </DockPanel>
                                 <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="4,0,4,4">
@@ -237,7 +259,8 @@
                                     Style="{DynamicResource ToolbarGhostButtonStyle}"
                                     HorizontalAlignment="Stretch"
                                     HorizontalContentAlignment="Left"
-                                    Padding="4,3" FontSize="{StaticResource FontSizeCaption}">
+                                    Padding="4,3" FontSize="{StaticResource FontSizeCaption}"
+                                    AutomationProperties.Name="Toggle tools panel">
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="&#xE90F;" FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeCaption}"
                                                Foreground="{DynamicResource AccentBrush}"
@@ -246,7 +269,7 @@
                                                Foreground="{DynamicResource TextPrimaryBrush}"
                                                VerticalAlignment="Center"/>
                                     <TextBlock Text=" (Ctrl+Shift+T)"
-                                               FontSize="10"
+                                               FontSize="{StaticResource FontSizeCaption}"
                                                Foreground="{DynamicResource TextSecondaryBrush}"
                                                VerticalAlignment="Center" Margin="4,0,0,0"/>
                                 </StackPanel>
@@ -293,7 +316,7 @@
                                                    Foreground="{DynamicResource TextPrimaryBrush}"
                                                    VerticalAlignment="Center"
                                                    TextTrimming="CharacterEllipsis"/>
-                                        <Border Grid.Column="2" Padding="6,2" CornerRadius="8" Margin="6,0,0,0"
+                                        <Border Grid.Column="2" Padding="6,2" CornerRadius="{StaticResource CornerRadiusMd}" Margin="6,0,0,0"
                                                 Background="{DynamicResource CardBrush}"
                                                 VerticalAlignment="Center">
                                             <TextBlock Text="{Binding ServerCount}" FontSize="{StaticResource FontSizeCaption}"
@@ -527,7 +550,7 @@
                         <ControlTemplate TargetType="GridSplitter">
                             <Border Background="{TemplateBinding Background}">
                                 <TextBlock Text="&#xE784;" FontFamily="Segoe MDL2 Assets"
-                                           FontSize="8" Foreground="{DynamicResource TextSecondaryBrush}"
+                                           FontSize="{StaticResource FontSizeSmallCaption}" Foreground="{DynamicResource TextSecondaryBrush}"
                                            HorizontalAlignment="Center" VerticalAlignment="Center"
                                            RenderTransformOrigin="0.5,0.5">
                                     <TextBlock.RenderTransform>
@@ -593,10 +616,11 @@
                                         <Button x:Name="TabCloseButton" DockPanel.Dock="Right"
                                                 Width="20" Height="20" Margin="6,0,0,0" Padding="2"
                                                 Focusable="False" Content="&#xE711;"
-                                                FontFamily="Segoe MDL2 Assets" FontSize="9"
+                                                FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeSmallCaption}"
                                                 Opacity="0.3" IsHitTestVisible="True"
                                                 Command="{Binding DataContext.Connection.CloseSessionCommand, RelativeSource={RelativeSource AncestorType=TabControl}}"
                                                 CommandParameter="{Binding}"
+                                                AutomationProperties.Name="Close session tab"
                                                 Style="{DynamicResource SecondaryButtonStyle}"/>
                                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                             <TextBlock Text="&#xE7F4;"
@@ -608,7 +632,7 @@
                                                        VerticalAlignment="Center"
                                                        ToolTip="{Binding Title}"
                                                        TextTrimming="CharacterEllipsis" MaxWidth="160"/>
-                                            <TextBlock x:Name="TunnelRouteText" Text="{Binding TunnelRoute}" FontSize="9"
+                                            <TextBlock x:Name="TunnelRouteText" Text="{Binding TunnelRoute}" FontSize="{StaticResource FontSizeSmallCaption}"
                                                        Foreground="{DynamicResource TextSecondaryBrush}"
                                                        VerticalAlignment="Center" Margin="5,0,0,0"/>
                                         </StackPanel>
@@ -643,7 +667,7 @@
                                                          Width="200" Height="3"
                                                          Margin="0,0,0,12"/>
                                             <TextBlock Text="{Binding Status}"
-                                                       FontSize="13"
+                                                       FontSize="{StaticResource FontSizeBodyLarge}"
                                                        Foreground="{DynamicResource TextSecondaryBrush}"
                                                        HorizontalAlignment="Center"/>
                                             <TextBlock Text="{Binding TunnelRoute}"
@@ -672,12 +696,12 @@
                                 Padding="{StaticResource SpacingXl}">
                             <StackPanel VerticalAlignment="Top">
                                 <TextBlock Text="{Binding ServerList.SelectedServer.DisplayName}"
-                                           FontSize="20" FontWeight="Bold"
+                                           FontSize="{StaticResource FontSizeDisplay}" FontWeight="Bold"
                                            Foreground="{DynamicResource TextPrimaryBrush}"
                                            TextTrimming="CharacterEllipsis"/>
 
                                 <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                                    <Border CornerRadius="3" Padding="6,2" Margin="0,0,8,0"
+                                    <Border CornerRadius="{StaticResource CornerRadiusSm}" Padding="6,2" Margin="0,0,8,0"
                                             Background="{Binding ServerList.SelectedServer.ConnectionType,
                                                 Converter={StaticResource ConnectionTypeToBrushConverter}}">
                                         <TextBlock Text="{Binding ServerList.SelectedServer.ConnectionType}"
@@ -698,7 +722,7 @@
 
                                 <TextBlock x:Name="Mw_DetailHostPort"
                                            Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,12,0,0"
-                                           FontSize="13">
+                                           FontSize="{StaticResource FontSizeBodyLarge}">
                                     <Run Text="{Binding ServerList.SelectedServer.RemoteServer, Mode=OneWay}"/>
                                     <Run Text=" : "/>
                                     <Run Text="{Binding ServerList.SelectedServer.RemotePort, Mode=OneWay}"/>
@@ -733,12 +757,12 @@
                                 Padding="{StaticResource SpacingXl}">
                             <StackPanel VerticalAlignment="Top">
                                 <TextBlock x:Name="Mw_ToolDetailName"
-                                           FontSize="20" FontWeight="Bold"
+                                           FontSize="{StaticResource FontSizeDisplay}" FontWeight="Bold"
                                            Foreground="{DynamicResource TextPrimaryBrush}"
                                            TextTrimming="CharacterEllipsis"/>
 
                                 <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                                    <Border CornerRadius="3" Padding="6,2" Margin="0,0,8,0"
+                                    <Border CornerRadius="{StaticResource CornerRadiusSm}" Padding="6,2" Margin="0,0,8,0"
                                             Background="{DynamicResource ToolBadgeBrush}">
                                         <TextBlock x:Name="Mw_ToolDetailCategory"
                                                    FontSize="{StaticResource FontSizeCaption}" FontWeight="SemiBold"
@@ -749,7 +773,7 @@
 
                                 <TextBlock x:Name="Mw_ToolDetailDescription"
                                            Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,12,0,0"
-                                           FontSize="13" TextWrapping="Wrap"/>
+                                           FontSize="{StaticResource FontSizeBodyLarge}" TextWrapping="Wrap"/>
 
                                 <Button x:Name="Mw_ToolDetailOpenBtn" Content=""
                                         Command="{Binding ServerList.ConnectCommand}"
@@ -767,16 +791,16 @@
                             <!-- Show empty state overlay when no servers exist -->
                             <StackPanel Visibility="{Binding ServerList.IsEmpty, Converter={StaticResource BoolToVisibilityConverter}}">
                                 <TextBlock Text="&#xE774;"
-                                           FontFamily="Segoe MDL2 Assets" FontSize="64"
+                                           FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeHero}"
                                            Foreground="{DynamicResource TextSecondaryBrush}"
                                            HorizontalAlignment="Center" Opacity="0.5"
                                            Margin="0,0,0,16"/>
-                                <TextBlock x:Name="Mw_EmptyStateTitle" Text="" FontSize="22"
+                                <TextBlock x:Name="Mw_EmptyStateTitle" Text="" FontSize="{StaticResource FontSizeHeadline}"
                                            FontWeight="SemiBold"
                                            Foreground="{DynamicResource TextPrimaryBrush}"
                                            HorizontalAlignment="Center"/>
                                 <TextBlock x:Name="Mw_EmptyStateSubtitle" Text=""
-                                           FontSize="13"
+                                           FontSize="{StaticResource FontSizeBodyLarge}"
                                            Foreground="{DynamicResource TextSecondaryBrush}"
                                            HorizontalAlignment="Center" Margin="0,8,0,24"
                                            TextWrapping="Wrap" MaxWidth="400"
@@ -785,11 +809,11 @@
                                     <Button x:Name="Mw_EmptyBtnAddServer" Content=""
                                             Command="{Binding ServerList.AddServerCommand}"
                                             Style="{DynamicResource PrimaryButtonStyle}"
-                                            Padding="16,8" FontSize="13"/>
+                                            Padding="16,8" FontSize="{StaticResource FontSizeBodyLarge}"/>
                                     <Button x:Name="Mw_EmptyBtnImport" Content=""
                                             Command="{Binding Settings.ImportConfigCommand}"
                                             Style="{DynamicResource SecondaryButtonStyle}"
-                                            Padding="16,8" FontSize="13"
+                                            Padding="16,8" FontSize="{StaticResource FontSizeBodyLarge}"
                                             Margin="12,0,0,0"/>
                                 </StackPanel>
                             </StackPanel>
@@ -828,16 +852,18 @@
                                     <Button x:Name="Mw_TunnelPanelCollapseBtn" DockPanel.Dock="Right"
                                             Content="&#xE70D;"
                                             FontFamily="Segoe MDL2 Assets"
-                                            FontSize="10"
+                                            FontSize="{StaticResource FontSizeCaption}"
                                             Command="{Binding ToggleTunnelPanelCommand}"
                                             Style="{DynamicResource ToolbarGhostButtonStyle}"
-                                            Padding="6,2" Margin="4,0,0,0"/>
+                                            Padding="6,2" Margin="4,0,0,0"
+                                            AutomationProperties.Name="Collapse tunnel panel"/>
                                     <Button x:Name="Mw_TunnelPanelCloseAllBtn" DockPanel.Dock="Right"
                                             Content=""
                                             Command="{Binding CloseAllTunnelsCommand}"
                                             Style="{DynamicResource SecondaryButtonStyle}"
-                                            Foreground="{DynamicResource ErrorBrush}"
-                                            Padding="6,2" FontSize="10" Margin="4,0,0,0"/>
+                                            Foreground="{DynamicResource ErrorTextBrush}"
+                                            Padding="6,2" FontSize="{StaticResource FontSizeCaption}" Margin="4,0,0,0"
+                                            AutomationProperties.Name="Close all tunnels"/>
                                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                         <TextBlock Text="&#xE945;" FontFamily="Segoe MDL2 Assets"
                                                    FontSize="{StaticResource FontSizeBody}" Margin="0,0,6,0"
@@ -914,14 +940,15 @@
                                                 <DataTemplate>
                                                     <Button Content="&#xE711;"
                                                             FontFamily="Segoe MDL2 Assets"
-                                                            FontSize="10"
+                                                            FontSize="{StaticResource FontSizeCaption}"
                                                             Command="{Binding DataContext.CloseTunnelCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
                                                             CommandParameter="{Binding}"
                                                             Style="{DynamicResource ToolbarGhostButtonStyle}"
                                                             Padding="2" Margin="0"
                                                             ToolTip="{Binding Tag, RelativeSource={RelativeSource AncestorType=DataGrid}}"
                                                             VerticalAlignment="Center"
-                                                            HorizontalAlignment="Center"/>
+                                                            HorizontalAlignment="Center"
+                                                            AutomationProperties.Name="Close tunnel"/>
                                                 </DataTemplate>
                                             </DataGridTemplateColumn.CellTemplate>
                                         </DataGridTemplateColumn>
@@ -965,7 +992,7 @@
                             <Button x:Name="Mw_TunnelsCloseAllBtn" Content=""
                                     Command="{Binding CloseAllTunnelsCommand}"
                                     Style="{DynamicResource SecondaryButtonStyle}"
-                                    Foreground="{DynamicResource ErrorBrush}"
+                                    Foreground="{DynamicResource ErrorTextBrush}"
                                     Padding="8,3" FontSize="{StaticResource FontSizeCaption}"/>
                         </StackPanel>
                     </DockPanel>
@@ -1013,7 +1040,7 @@
 
                         <!-- Empty state -->
                         <TextBlock x:Name="Mw_TunnelsEmpty" Text=""
-                                   FontSize="13"
+                                   FontSize="{StaticResource FontSizeBodyLarge}"
                                    Foreground="{DynamicResource TextSecondaryBrush}"
                                    HorizontalAlignment="Center"
                                    VerticalAlignment="Center"
@@ -1065,7 +1092,7 @@
                                                        Margin="0,0,4,0"/>
                                             <TextBlock Text="&#xE8AC;" FontFamily="Segoe MDL2 Assets"
                                                        FontSize="{StaticResource FontSizeCaption}"
-                                                       Foreground="{DynamicResource WarningBrush}"
+                                                       Foreground="{DynamicResource WarningTextBrush}"
                                                        Visibility="{Binding HasPassword, Converter={StaticResource BoolToVisibilityConverter}}"/>
                                         </StackPanel>
                                     </DataTemplate>
@@ -1121,7 +1148,7 @@
                     <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center"
                                 Visibility="{Binding HasNoScheduledTasks, Converter={StaticResource BoolToVisibilityConverter}}">
                         <TextBlock x:Name="Mw_ScheduledEmpty" Text=""
-                                   FontSize="13"
+                                   FontSize="{StaticResource FontSizeBodyLarge}"
                                    Foreground="{DynamicResource TextSecondaryBrush}"
                                    HorizontalAlignment="Center" Margin="0,0,0,8"/>
                         <Button x:Name="Mw_ScheduledCreateBtn" Content=""
@@ -1159,7 +1186,7 @@
                     <TabItem x:Name="Mw_SettingsTabGeneral" Style="{StaticResource ThemedTabItemStyle}">
                         <ScrollViewer VerticalScrollBarVisibility="Auto">
                             <StackPanel Margin="{StaticResource SpacingLg}" MaxWidth="600">
-                                <Border Padding="{StaticResource SpacingLg}" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="10" Margin="0,0,0,16">
+                                <Border Padding="{StaticResource SpacingLg}" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource CornerRadiusLg}" Margin="0,0,0,16">
                                     <StackPanel>
                                         <TextBlock x:Name="Mw_SettingsAppearanceTitle" Text="" FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,12"/>
                                         <Grid>
@@ -1202,7 +1229,7 @@
                     <TabItem x:Name="Mw_SettingsTabTerminal" Style="{StaticResource ThemedTabItemStyle}">
                         <ScrollViewer VerticalScrollBarVisibility="Auto">
                             <StackPanel Margin="{StaticResource SpacingLg}" MaxWidth="600">
-                                <Border Padding="{StaticResource SpacingLg}" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="10">
+                                <Border Padding="{StaticResource SpacingLg}" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource CornerRadiusLg}">
                                     <StackPanel>
                                         <TextBlock x:Name="Mw_SettingsTerminalTitle" Text="" FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,12"/>
                                         <Grid>
@@ -1238,7 +1265,7 @@
                                                 <ComboBoxItem Content="Unrestricted" Tag="Unrestricted"/>
                                                 <ComboBoxItem Content="AllSigned" Tag="AllSigned"/>
                                             </ComboBox>
-                                            <TextBlock x:Name="Mw_SettingsPsPolicyHint" Text="" Foreground="{DynamicResource TextTertiaryBrush}" FontSize="10" Margin="0,4,0,0" TextWrapping="Wrap"/>
+                                            <TextBlock x:Name="Mw_SettingsPsPolicyHint" Text="" Foreground="{DynamicResource TextTertiaryBrush}" FontSize="{StaticResource FontSizeCaption}" Margin="0,4,0,0" TextWrapping="Wrap"/>
                                         </StackPanel>
                                     </StackPanel>
                                 </Border>
@@ -1250,7 +1277,7 @@
                     <TabItem x:Name="Mw_SettingsTabSsh" Style="{StaticResource ThemedTabItemStyle}">
                         <ScrollViewer VerticalScrollBarVisibility="Auto">
                             <StackPanel Margin="{StaticResource SpacingLg}" MaxWidth="600">
-                                <Border Padding="{StaticResource SpacingLg}" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="10" Margin="0,0,0,16">
+                                <Border Padding="{StaticResource SpacingLg}" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource CornerRadiusLg}" Margin="0,0,0,16">
                                     <StackPanel>
                                         <TextBlock x:Name="Mw_SettingsSshTitle" Text="" FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,12"/>
                                         <TextBlock x:Name="Mw_SettingsPlinkPathLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,0,4"/>
@@ -1286,7 +1313,7 @@
                                 </Border>
 
                                 <!-- SSH Gateways -->
-                                <Border Padding="{StaticResource SpacingLg}" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="10">
+                                <Border Padding="{StaticResource SpacingLg}" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource CornerRadiusLg}">
                                     <StackPanel>
                                         <DockPanel Margin="0,0,0,12">
                                             <TextBlock x:Name="Mw_SettingsGatewaysTitle" Text="" FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
@@ -1304,7 +1331,7 @@
                                                         <TextBlock Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis">
                                                             <Run Text="{Binding User, Mode=OneWay}"/><Run Text="@"/><Run Text="{Binding Host, Mode=OneWay}"/><Run Text=":"/><Run Text="{Binding Port, Mode=OneWay}"/>
                                                         </TextBlock>
-                                                        <TextBlock Text=" &#xE8D7;" FontFamily="Segoe MDL2 Assets" FontSize="10" Foreground="{DynamicResource SshBadgeBrush}" VerticalAlignment="Center" Visibility="{Binding HasKey, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                                                        <TextBlock Text=" &#xE8D7;" FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeCaption}" Foreground="{DynamicResource SshBadgeBrush}" VerticalAlignment="Center" Visibility="{Binding HasKey, Converter={StaticResource BoolToVisibilityConverter}}"/>
                                                     </StackPanel>
                                                 </DataTemplate>
                                             </ListBox.ItemTemplate>
@@ -1319,7 +1346,7 @@
                     <TabItem x:Name="Mw_SettingsTabRdp" Style="{StaticResource ThemedTabItemStyle}">
                         <ScrollViewer VerticalScrollBarVisibility="Auto">
                             <StackPanel Margin="{StaticResource SpacingLg}" MaxWidth="600">
-                                <Border Padding="{StaticResource SpacingLg}" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="10">
+                                <Border Padding="{StaticResource SpacingLg}" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource CornerRadiusLg}">
                                     <StackPanel>
                                         <TextBlock x:Name="Mw_SettingsRdpDefaultsTitle" Text="" FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,12"/>
                                         <StackPanel Margin="0,0,0,8">
@@ -1379,7 +1406,7 @@
                     <TabItem x:Name="Mw_SettingsTabSecurity" Style="{StaticResource ThemedTabItemStyle}">
                         <ScrollViewer VerticalScrollBarVisibility="Auto">
                             <StackPanel Margin="{StaticResource SpacingLg}" MaxWidth="600">
-                                <Border Padding="{StaticResource SpacingLg}" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="10">
+                                <Border Padding="{StaticResource SpacingLg}" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource CornerRadiusLg}">
                                     <StackPanel>
                                         <TextBlock x:Name="Mw_SettingsCredProviderTitle" Text="" FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,12"/>
                                         <CheckBox x:Name="Mw_SettingsCredProviderEnabled" Content="" IsChecked="{Binding Settings.UseExternalCredentialProvider}" Foreground="{DynamicResource TextPrimaryBrush}"/>
@@ -1403,7 +1430,7 @@
                         <ScrollViewer VerticalScrollBarVisibility="Auto">
                             <StackPanel Margin="{StaticResource SpacingLg}" MaxWidth="600">
                                 <!-- Logging -->
-                                <Border Padding="{StaticResource SpacingLg}" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="10" Margin="0,0,0,16">
+                                <Border Padding="{StaticResource SpacingLg}" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource CornerRadiusLg}" Margin="0,0,0,16">
                                     <StackPanel>
                                         <TextBlock x:Name="Mw_SettingsSessionLoggingTitle" Text="" FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,12"/>
                                         <CheckBox x:Name="Mw_SettingsEnableLogging" Content="" IsChecked="{Binding Settings.EnableLogging}" Foreground="{DynamicResource TextPrimaryBrush}"/>
@@ -1416,7 +1443,7 @@
                                 </Border>
 
                                 <!-- Timeouts -->
-                                <Border Padding="{StaticResource SpacingLg}" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="10" Margin="0,0,0,16">
+                                <Border Padding="{StaticResource SpacingLg}" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource CornerRadiusLg}" Margin="0,0,0,16">
                                     <StackPanel>
                                         <TextBlock x:Name="Mw_SettingsTimeoutsTitle" Text="" FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,12"/>
                                         <Grid>
@@ -1437,7 +1464,7 @@
                                 </Border>
 
                                 <!-- External Tools -->
-                                <Border Padding="{StaticResource SpacingLg}" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="10">
+                                <Border Padding="{StaticResource SpacingLg}" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource CornerRadiusLg}">
                                     <StackPanel>
                                         <DockPanel Margin="0,0,0,12">
                                             <TextBlock x:Name="Mw_SettingsExtToolsTitle" Text="" FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
@@ -1458,7 +1485,7 @@
                                         </ListBox>
 
                                         <!-- Inline edit panel for selected tool -->
-                                        <Border Margin="0,12,0,0" Padding="{StaticResource SpacingMd}" Background="{DynamicResource BackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="6"
+                                        <Border Margin="0,12,0,0" Padding="{StaticResource SpacingMd}" Background="{DynamicResource BackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource CornerRadiusMd}"
                                                 DataContext="{Binding Settings.SelectedExternalTool}"
                                                 Visibility="{Binding DataContext.Settings.SelectedExternalTool, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource NullToVisibilityConverter}}">
                                             <Grid>
@@ -1480,7 +1507,7 @@
 
                                                 <TextBlock x:Name="Mw_ExtToolLblPath" Grid.Row="1" Grid.Column="0" Text="" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeBody}"/>
                                                 <DockPanel Grid.Row="1" Grid.Column="1" Margin="0,0,0,6">
-                                                    <Button x:Name="Mw_ExtToolBrowseBtn" DockPanel.Dock="Right" Content="..." Padding="6,2" Margin="4,0,0,0" Click="OnExtToolBrowseClick" Style="{DynamicResource SecondaryButtonStyle}" FontSize="{StaticResource FontSizeCaption}"/>
+                                                    <Button x:Name="Mw_ExtToolBrowseBtn" DockPanel.Dock="Right" Content="..." Padding="6,2" Margin="4,0,0,0" Click="OnExtToolBrowseClick" Style="{DynamicResource SecondaryButtonStyle}" FontSize="{StaticResource FontSizeCaption}" AutomationProperties.Name="Browse for executable"/>
                                                     <TextBox Text="{Binding ExecutablePath, UpdateSourceTrigger=PropertyChanged}" FontSize="{StaticResource FontSizeBody}"/>
                                                 </DockPanel>
 
@@ -1497,7 +1524,7 @@
 
                                                 <TextBlock Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="2"
                                                            Text="{}{Host}  {Port}  {User}  {ServerName}  {Protocol}  {Project}"
-                                                           Foreground="{DynamicResource TextSecondaryBrush}" FontSize="10" FontFamily="Consolas" Opacity="0.7" Margin="0,2,0,0"/>
+                                                           Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" FontFamily="Consolas" Opacity="0.7" Margin="0,2,0,0"/>
                                             </Grid>
                                         </Border>
                                     </StackPanel>
@@ -1521,22 +1548,22 @@
                             Background="{DynamicResource CardBrush}"
                             BorderBrush="{DynamicResource BorderBrush}"
                             BorderThickness="1"
-                            CornerRadius="14">
+                            CornerRadius="{StaticResource CornerRadiusXl}">
                         <StackPanel>
                             <!-- Logo + Title -->
                             <StackPanel HorizontalAlignment="Center" Margin="0,0,0,20">
                                 <TextBlock Text="&#xE7F4;"
                                            FontFamily="Segoe MDL2 Assets"
-                                           FontSize="48"
+                                           FontSize="{StaticResource IconSizeHero}"
                                            Foreground="{DynamicResource AccentBrush}"
                                            HorizontalAlignment="Center"
                                            Margin="0,0,0,10"/>
                                 <TextBlock x:Name="Mw_AboutAppName" Text=""
-                                           FontSize="28" FontWeight="Bold"
+                                           FontSize="{StaticResource FontSizeHeadline}" FontWeight="Bold"
                                            Foreground="{DynamicResource TextPrimaryBrush}"
                                            HorizontalAlignment="Center"/>
                                 <TextBlock x:Name="AboutVersionText"
-                                           FontSize="13"
+                                           FontSize="{StaticResource FontSizeBodyLarge}"
                                            Foreground="{DynamicResource TextSecondaryBrush}"
                                            HorizontalAlignment="Center"
                                            Margin="0,4,0,0"/>
@@ -1584,7 +1611,7 @@
                             <Border Height="1" Background="{DynamicResource BorderBrush}" Margin="0,16,0,16"/>
 
                             <!-- Features -->
-                            <TextBlock x:Name="Mw_AboutFeaturesTitle" Text="" FontSize="13" FontWeight="SemiBold"
+                            <TextBlock x:Name="Mw_AboutFeaturesTitle" Text="" FontSize="{StaticResource FontSizeBodyLarge}" FontWeight="SemiBold"
                                        Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,8"/>
                             <StackPanel Margin="8,0,0,0">
                                 <TextBlock x:Name="Mw_AboutFeature1" FontSize="{StaticResource FontSizeBody}" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,3"
@@ -1621,7 +1648,8 @@
                 Visibility="Collapsed"
                 Panel.ZIndex="999"
                 Opacity="0.6"
-                Cursor="Hand">
+                Cursor="Hand"
+                AutomationProperties.Name="Exit fullscreen">
             <Button.Style>
                 <Style TargetType="Button">
                     <Setter Property="Background" Value="Transparent"/>
@@ -1631,7 +1659,7 @@
                         <Setter.Value>
                             <ControlTemplate TargetType="Button">
                                 <Border Background="{TemplateBinding Background}"
-                                        CornerRadius="4" Padding="2">
+                                        CornerRadius="{StaticResource CornerRadiusSm}" Padding="2">
                                     <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                 </Border>
                                 <ControlTemplate.Triggers>
@@ -1664,17 +1692,18 @@
                     <TextBlock x:Name="Mw_SharingStatus"
                                FontSize="{StaticResource FontSizeCaption}" Margin="0,0,12,0"
                                VerticalAlignment="Center"
-                               Foreground="{DynamicResource SuccessBrush}"
+                               Foreground="{DynamicResource SuccessTextBrush}"
                                Visibility="Collapsed"/>
                     <!-- Tunnel panel toggle badge -->
                     <Button x:Name="Mw_StatusTunnelToggle" Command="{Binding ToggleTunnelPanelCommand}"
                             Padding="4,2" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,8,0"
                             VerticalAlignment="Center"
-                            Style="{DynamicResource ToolbarGhostButtonStyle}">
+                            Style="{DynamicResource ToolbarGhostButtonStyle}"
+                            AutomationProperties.Name="Toggle tunnel panel">
                         <Button.Content>
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="&#xE945;" FontFamily="Segoe MDL2 Assets"
-                                           FontSize="10" VerticalAlignment="Center" Margin="0,0,3,0"/>
+                                           FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center" Margin="0,0,3,0"/>
                                 <TextBlock VerticalAlignment="Center">
                                     <Run Text="{Binding TunnelCount, Mode=OneWay}"/>
                                 </TextBlock>
@@ -1685,12 +1714,13 @@
                     <Button Command="{Binding ToggleBroadcastCommand}"
                             ToolTip="{Binding BroadcastToggleTooltip}"
                             Padding="4,2" FontSize="{StaticResource FontSizeSubtitle}" Margin="0,0,8,0"
-                            VerticalAlignment="Center">
+                            VerticalAlignment="Center"
+                            AutomationProperties.Name="Toggle broadcast mode">
                         <Button.Content>
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="&#xE704;" FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeCaption}"
                                            VerticalAlignment="Center" Margin="0,0,3,0"/>
-                                <TextBlock x:Name="Mw_BroadcastLabel" Text="" FontWeight="SemiBold" FontSize="10"
+                                <TextBlock x:Name="Mw_BroadcastLabel" Text="" FontWeight="SemiBold" FontSize="{StaticResource FontSizeCaption}"
                                            VerticalAlignment="Center"/>
                             </StackPanel>
                         </Button.Content>
@@ -1699,7 +1729,7 @@
                                 <Style.Triggers>
                                     <DataTrigger Binding="{Binding IsBroadcastMode}" Value="True">
                                         <Setter Property="Background" Value="#33FF5555"/>
-                                        <Setter Property="Foreground" Value="{DynamicResource ErrorBrush}"/>
+                                        <Setter Property="Foreground" Value="{DynamicResource ErrorTextBrush}"/>
                                     </DataTrigger>
                                 </Style.Triggers>
                             </Style>
@@ -1725,12 +1755,12 @@
                     HorizontalAlignment="Center"
                     Background="{DynamicResource SurfaceBrush}"
                     BorderBrush="{DynamicResource BorderBrush}"
-                    BorderThickness="1" CornerRadius="10"
+                    BorderThickness="1" CornerRadius="{StaticResource CornerRadiusLg}"
                     MouseDown="OnPaletteBorderClick">
                 <StackPanel>
                     <TextBox x:Name="PaletteInput"
                              Text="{Binding PaletteSearchText, UpdateSourceTrigger=PropertyChanged}"
-                             FontSize="15" Padding="14,10"
+                             FontSize="{StaticResource FontSizeSubtitle}" Padding="14,10"
                              BorderThickness="0"
                              Background="Transparent"
                              Foreground="{DynamicResource TextPrimaryBrush}"
@@ -1768,7 +1798,7 @@
                                                 </MultiBinding>
                                             </Ellipse.Fill>
                                         </Ellipse>
-                                        <TextBlock Text="{Binding DisplayName}" FontSize="13"
+                                        <TextBlock Text="{Binding DisplayName}" FontSize="{StaticResource FontSizeBodyLarge}"
                                                    Foreground="{DynamicResource TextPrimaryBrush}"
                                                    VerticalAlignment="Center"/>
                                         <!-- Endpoint hint -->

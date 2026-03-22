@@ -5,11 +5,16 @@
     <!-- ========================================================= -->
     <!-- Design Tokens: Typography                                 -->
     <!-- ========================================================= -->
+    <sys:Double x:Key="FontSizeSmallCaption">9</sys:Double>
     <sys:Double x:Key="FontSizeCaption">11</sys:Double>
     <sys:Double x:Key="FontSizeBody">12</sys:Double>
+    <sys:Double x:Key="FontSizeBodyLarge">13</sys:Double>
     <sys:Double x:Key="FontSizeSubtitle">14</sys:Double>
+    <sys:Double x:Key="FontSizeLarge">16</sys:Double>
     <sys:Double x:Key="FontSizeTitle">18</sys:Double>
+    <sys:Double x:Key="FontSizeDisplay">20</sys:Double>
     <sys:Double x:Key="FontSizeHeadline">24</sys:Double>
+    <sys:Double x:Key="FontSizeHero">64</sys:Double>
 
     <!-- Design Tokens: Spacing                                    -->
     <Thickness x:Key="SpacingXs">4</Thickness>
@@ -18,6 +23,27 @@
     <Thickness x:Key="SpacingLg">16</Thickness>
     <Thickness x:Key="SpacingXl">24</Thickness>
 
+    <!-- Design Tokens: Corner Radius                              -->
+    <CornerRadius x:Key="CornerRadiusXs">2</CornerRadius>
+    <CornerRadius x:Key="CornerRadiusSm">4</CornerRadius>
+    <CornerRadius x:Key="CornerRadiusMd">8</CornerRadius>
+    <CornerRadius x:Key="CornerRadiusLg">10</CornerRadius>
+    <CornerRadius x:Key="CornerRadiusXl">12</CornerRadius>
+
+    <!-- Design Tokens: Opacity                                    -->
+    <sys:Double x:Key="OpacityDisabled">0.55</sys:Double>
+    <sys:Double x:Key="OpacityReadOnly">0.75</sys:Double>
+    <sys:Double x:Key="OpacityOverlay">0.20</sys:Double>
+    <sys:Double x:Key="OpacityAccentOverlay">0.20</sys:Double>
+
+    <!-- Design Tokens: Icon Sizes                                 -->
+    <sys:Double x:Key="IconSizeSmall">12</sys:Double>
+    <sys:Double x:Key="IconSizeMedium">16</sys:Double>
+    <sys:Double x:Key="IconSizeLarge">20</sys:Double>
+    <sys:Double x:Key="IconSizeXLarge">36</sys:Double>
+    <sys:Double x:Key="IconSizeEmptyState">32</sys:Double>
+    <sys:Double x:Key="IconSizeHero">48</sys:Double>
+
     <!-- ========================================================= -->
     <!-- Window                                                    -->
     <!-- ========================================================= -->
@@ -25,7 +51,7 @@
         <Setter Property="Background" Value="{DynamicResource BackgroundBrush}"/>
         <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
         <Setter Property="TextElement.Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
-        <Setter Property="TextElement.FontSize" Value="12"/>
+        <Setter Property="TextElement.FontSize" Value="{StaticResource FontSizeBody}"/>
     </Style>
 
     <Style TargetType="{x:Type Window}" BasedOn="{StaticResource ThemedWindowStyle}"/>
@@ -62,7 +88,7 @@
         <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
         <Setter Property="BorderThickness" Value="1"/>
         <Setter Property="Padding" Value="16,8"/>
-        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="FontSize" Value="{StaticResource FontSizeBody}"/>
         <Setter Property="Cursor" Value="Hand"/>
         <Setter Property="Template">
             <Setter.Value>
@@ -71,7 +97,7 @@
                             Background="{TemplateBinding Background}"
                             BorderBrush="{TemplateBinding BorderBrush}"
                             BorderThickness="{TemplateBinding BorderThickness}"
-                            CornerRadius="8"
+                            CornerRadius="{StaticResource CornerRadiusMd}"
                             Padding="{TemplateBinding Padding}"
                             SnapsToDevicePixels="True">
                         <ContentPresenter HorizontalAlignment="Center"
@@ -108,7 +134,7 @@
         <Setter Property="BorderThickness" Value="1"/>
         <Setter Property="Padding" Value="8,6"/>
         <Setter Property="MinHeight" Value="32"/>
-        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="FontSize" Value="{StaticResource FontSizeBody}"/>
         <Setter Property="Cursor" Value="Hand"/>
         <Setter Property="Template">
             <Setter.Value>
@@ -117,7 +143,7 @@
                             Background="{TemplateBinding Background}"
                             BorderBrush="{TemplateBinding BorderBrush}"
                             BorderThickness="{TemplateBinding BorderThickness}"
-                            CornerRadius="8"
+                            CornerRadius="{StaticResource CornerRadiusMd}"
                             Padding="{TemplateBinding Padding}"
                             SnapsToDevicePixels="True">
                         <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
@@ -133,7 +159,7 @@
                             <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
-                            <Setter Property="Opacity" Value="0.55"/>
+                            <Setter Property="Opacity" Value="{StaticResource OpacityDisabled}"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -147,7 +173,7 @@
         <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
         <Setter Property="BorderThickness" Value="1"/>
         <Setter Property="Padding" Value="16,8"/>
-        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="FontSize" Value="{StaticResource FontSizeBody}"/>
         <Setter Property="Cursor" Value="Hand"/>
         <Setter Property="Template">
             <Setter.Value>
@@ -156,7 +182,7 @@
                             Background="{TemplateBinding Background}"
                             BorderBrush="{TemplateBinding BorderBrush}"
                             BorderThickness="{TemplateBinding BorderThickness}"
-                            CornerRadius="8"
+                            CornerRadius="{StaticResource CornerRadiusMd}"
                             Padding="{TemplateBinding Padding}"
                             SnapsToDevicePixels="True">
                         <ContentPresenter HorizontalAlignment="Center"
@@ -192,8 +218,8 @@
         <StackPanel>
             <AdornedElementPlaceholder x:Name="AdornedElement"/>
             <TextBlock Text="{Binding ElementName=AdornedElement, Path=AdornedElement.(Validation.Errors)/ErrorContent}"
-                       Foreground="{DynamicResource ErrorBrush}"
-                       FontSize="11"
+                       Foreground="{DynamicResource ErrorTextBrush}"
+                       FontSize="{StaticResource FontSizeCaption}"
                        Margin="4,2,0,0"/>
         </StackPanel>
     </ControlTemplate>
@@ -217,7 +243,7 @@
                             Background="{TemplateBinding Background}"
                             BorderBrush="{TemplateBinding BorderBrush}"
                             BorderThickness="{TemplateBinding BorderThickness}"
-                            CornerRadius="8"
+                            CornerRadius="{StaticResource CornerRadiusMd}"
                             SnapsToDevicePixels="True">
                         <ScrollViewer x:Name="PART_ContentHost"
                                       Margin="0"
@@ -236,7 +262,7 @@
                             <Setter TargetName="TextBoxBorder" Property="Opacity" Value="0.75"/>
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
-                            <Setter TargetName="TextBoxBorder" Property="Opacity" Value="0.55"/>
+                            <Setter TargetName="TextBoxBorder" Property="Opacity" Value="{StaticResource OpacityDisabled}"/>
                         </Trigger>
                         <Trigger Property="Validation.HasError" Value="True">
                             <Setter TargetName="TextBoxBorder" Property="BorderBrush" Value="{DynamicResource ErrorBrush}"/>
@@ -258,7 +284,7 @@
                             Background="{TemplateBinding Background}"
                             BorderBrush="{TemplateBinding BorderBrush}"
                             BorderThickness="{TemplateBinding BorderThickness}"
-                            CornerRadius="8"
+                            CornerRadius="{StaticResource CornerRadiusMd}"
                             SnapsToDevicePixels="True">
                         <Grid>
                             <ScrollViewer x:Name="PART_ContentHost"
@@ -285,7 +311,7 @@
                             <Setter TargetName="TextBoxBorder" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
-                            <Setter TargetName="TextBoxBorder" Property="Opacity" Value="0.55"/>
+                            <Setter TargetName="TextBoxBorder" Property="Opacity" Value="{StaticResource OpacityDisabled}"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -310,7 +336,7 @@
                             Background="{TemplateBinding Background}"
                             BorderBrush="{TemplateBinding BorderBrush}"
                             BorderThickness="{TemplateBinding BorderThickness}"
-                            CornerRadius="8"
+                            CornerRadius="{StaticResource CornerRadiusMd}"
                             SnapsToDevicePixels="True">
                         <ScrollViewer x:Name="PART_ContentHost"
                                       Margin="0"
@@ -324,7 +350,7 @@
                             <Setter TargetName="PasswordBorder" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
-                            <Setter TargetName="PasswordBorder" Property="Opacity" Value="0.55"/>
+                            <Setter TargetName="PasswordBorder" Property="Opacity" Value="{StaticResource OpacityDisabled}"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -349,7 +375,7 @@
                             Background="{TemplateBinding Background}"
                             BorderBrush="{TemplateBinding BorderBrush}"
                             BorderThickness="{TemplateBinding BorderThickness}"
-                            CornerRadius="4"
+                            CornerRadius="{StaticResource CornerRadiusSm}"
                             SnapsToDevicePixels="True">
                         <ContentPresenter HorizontalAlignment="Center"
                                           VerticalAlignment="Center"/>
@@ -388,7 +414,7 @@
                     <Border x:Name="ThumbBorder"
                             Margin="2"
                             Background="{TemplateBinding Background}"
-                            CornerRadius="4"
+                            CornerRadius="{StaticResource CornerRadiusSm}"
                             SnapsToDevicePixels="True"/>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
@@ -423,7 +449,7 @@
                                               Command="ScrollBar.LineUpCommand">
                                     <TextBlock Text="&#9652;"
                                                Foreground="{DynamicResource TextSecondaryBrush}"
-                                               FontSize="8"
+                                               FontSize="{StaticResource FontSizeSmallCaption}"
                                                HorizontalAlignment="Center"
                                                VerticalAlignment="Center"/>
                                 </RepeatButton>
@@ -445,7 +471,7 @@
                                               Command="ScrollBar.LineDownCommand">
                                     <TextBlock Text="&#9662;"
                                                Foreground="{DynamicResource TextSecondaryBrush}"
-                                               FontSize="8"
+                                               FontSize="{StaticResource FontSizeSmallCaption}"
                                                HorizontalAlignment="Center"
                                                VerticalAlignment="Center"/>
                                 </RepeatButton>
@@ -470,7 +496,7 @@
                                               Command="ScrollBar.LineLeftCommand">
                                     <TextBlock Text="&#9666;"
                                                Foreground="{DynamicResource TextSecondaryBrush}"
-                                               FontSize="8"
+                                               FontSize="{StaticResource FontSizeSmallCaption}"
                                                HorizontalAlignment="Center"
                                                VerticalAlignment="Center"/>
                                 </RepeatButton>
@@ -492,7 +518,7 @@
                                               Command="ScrollBar.LineRightCommand">
                                     <TextBlock Text="&#9656;"
                                                Foreground="{DynamicResource TextSecondaryBrush}"
-                                               FontSize="8"
+                                               FontSize="{StaticResource FontSizeSmallCaption}"
                                                HorizontalAlignment="Center"
                                                VerticalAlignment="Center"/>
                                 </RepeatButton>
@@ -521,7 +547,7 @@
                             Background="{TemplateBinding Background}"
                             BorderBrush="{TemplateBinding BorderBrush}"
                             BorderThickness="{TemplateBinding BorderThickness}"
-                            CornerRadius="8"
+                            CornerRadius="{StaticResource CornerRadiusMd}"
                             SnapsToDevicePixels="True">
                         <Grid>
                             <Grid.ColumnDefinitions>
@@ -552,7 +578,7 @@
                             <Setter TargetName="Arrow" Property="Fill" Value="{DynamicResource TextPrimaryBrush}"/>
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
-                            <Setter TargetName="ToggleBorder" Property="Opacity" Value="0.55"/>
+                            <Setter TargetName="ToggleBorder" Property="Opacity" Value="{StaticResource OpacityDisabled}"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -576,7 +602,7 @@
                             Background="{TemplateBinding Background}"
                             BorderBrush="{TemplateBinding BorderBrush}"
                             BorderThickness="{TemplateBinding BorderThickness}"
-                            CornerRadius="6"
+                            CornerRadius="{StaticResource CornerRadiusMd}"
                             SnapsToDevicePixels="True">
                         <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
                                           VerticalAlignment="Center"
@@ -591,12 +617,12 @@
                             <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
                             <Setter TargetName="ItemBorder" Property="Background">
                                 <Setter.Value>
-                                    <SolidColorBrush Color="{DynamicResource AccentColor}" Opacity="0.2"/>
+                                    <SolidColorBrush Color="{DynamicResource AccentColor}" Opacity="{StaticResource OpacityAccentOverlay}"/>
                                 </Setter.Value>
                             </Setter>
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
-                            <Setter TargetName="ItemBorder" Property="Opacity" Value="0.55"/>
+                            <Setter TargetName="ItemBorder" Property="Opacity" Value="{StaticResource OpacityDisabled}"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -612,7 +638,7 @@
         <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
         <Setter Property="BorderThickness" Value="1"/>
         <Setter Property="Padding" Value="10,6"/>
-        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="FontSize" Value="{StaticResource FontSizeBody}"/>
         <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Auto"/>
         <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto"/>
         <Setter Property="ItemContainerStyle" Value="{StaticResource ThemedComboBoxItemStyle}"/>
@@ -658,7 +684,7 @@
                                     Background="{DynamicResource SurfaceBrush}"
                                     BorderBrush="{DynamicResource BorderBrush}"
                                     BorderThickness="1"
-                                    CornerRadius="10"
+                                    CornerRadius="{StaticResource CornerRadiusLg}"
                                     SnapsToDevicePixels="True">
                                 <ScrollViewer Margin="4"
                                               CanContentScroll="True"
@@ -688,7 +714,7 @@
                             <Setter TargetName="PART_EditableTextBox" Property="Visibility" Value="Visible"/>
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
-                            <Setter TargetName="DropDownToggle" Property="Opacity" Value="0.55"/>
+                            <Setter TargetName="DropDownToggle" Property="Opacity" Value="{StaticResource OpacityDisabled}"/>
                             <Setter Property="Foreground" Value="{DynamicResource TextDisabledBrush}"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
@@ -713,7 +739,7 @@
                     <Border Background="{TemplateBinding Background}"
                             BorderBrush="{TemplateBinding BorderBrush}"
                             BorderThickness="{TemplateBinding BorderThickness}"
-                            CornerRadius="12"
+                            CornerRadius="{StaticResource CornerRadiusXl}"
                             SnapsToDevicePixels="True">
                         <Grid KeyboardNavigation.TabNavigation="Local">
                             <Grid.RowDefinitions>
@@ -795,7 +821,7 @@
                             <Setter TargetName="TabBorder" Property="BorderThickness" Value="0,0,0,2"/>
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
-                            <Setter TargetName="TabBorder" Property="Opacity" Value="0.55"/>
+                            <Setter TargetName="TabBorder" Property="Opacity" Value="{StaticResource OpacityDisabled}"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -843,7 +869,7 @@
                 <ControlTemplate TargetType="{x:Type ToggleButton}">
                     <Border x:Name="ExpanderBorder"
                             Background="{TemplateBinding Background}"
-                            CornerRadius="4">
+                            CornerRadius="{StaticResource CornerRadiusSm}">
                         <Path x:Name="Arrow"
                               Width="7"
                               Height="12"
@@ -878,7 +904,7 @@
 
     <Style x:Key="ThemedTreeViewItemStyle" TargetType="{x:Type TreeViewItem}">
         <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
-        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="FontSize" Value="{StaticResource FontSizeBody}"/>
         <Setter Property="Padding" Value="2,1"/>
         <Setter Property="Template">
             <Setter.Value>
@@ -937,7 +963,7 @@
                             <Setter TargetName="SelectionBorder" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
-                            <Setter TargetName="SelectionBorder" Property="Opacity" Value="0.55"/>
+                            <Setter TargetName="SelectionBorder" Property="Opacity" Value="{StaticResource OpacityDisabled}"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -964,7 +990,7 @@
                     <Border Background="{TemplateBinding Background}"
                             BorderBrush="{TemplateBinding BorderBrush}"
                             BorderThickness="{TemplateBinding BorderThickness}"
-                            CornerRadius="10"
+                            CornerRadius="{StaticResource CornerRadiusLg}"
                             Padding="{TemplateBinding Padding}"
                             SnapsToDevicePixels="True">
                         <StackPanel IsItemsHost="True"
@@ -1004,7 +1030,7 @@
                                 Background="{TemplateBinding Background}"
                                 BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="6"
+                                CornerRadius="{StaticResource CornerRadiusMd}"
                                 Padding="6,0">
                             <Grid MinWidth="180" Height="32">
                                 <Grid.ColumnDefinitions>
@@ -1064,7 +1090,7 @@
                                     Background="{DynamicResource SurfaceBrush}"
                                     BorderBrush="{DynamicResource BorderBrush}"
                                     BorderThickness="1"
-                                    CornerRadius="10"
+                                    CornerRadius="{StaticResource CornerRadiusLg}"
                                     Padding="6"
                                     SnapsToDevicePixels="True">
                                 <StackPanel IsItemsHost="True"
@@ -1086,7 +1112,7 @@
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
                             <Setter Property="Foreground" Value="{DynamicResource TextDisabledBrush}"/>
-                            <Setter TargetName="ItemBorder" Property="Opacity" Value="0.55"/>
+                            <Setter TargetName="ItemBorder" Property="Opacity" Value="{StaticResource OpacityDisabled}"/>
                         </Trigger>
                         <MultiTrigger>
                             <MultiTrigger.Conditions>
@@ -1110,7 +1136,7 @@
         <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
         <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
         <Setter Property="Background" Value="{DynamicResource CardBrush}"/>
-        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="FontSize" Value="{StaticResource FontSizeBody}"/>
         <Setter Property="Cursor" Value="Hand"/>
         <Setter Property="Template">
             <Setter.Value>
@@ -1123,7 +1149,7 @@
                                     Background="{TemplateBinding Background}"
                                     BorderBrush="{TemplateBinding BorderBrush}"
                                     BorderThickness="1"
-                                    CornerRadius="4"
+                                    CornerRadius="{StaticResource CornerRadiusSm}"
                                     VerticalAlignment="Center">
                                 <Grid>
                                     <Path x:Name="CheckGlyph"
@@ -1167,7 +1193,7 @@
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
                             <Setter Property="Foreground" Value="{DynamicResource TextDisabledBrush}"/>
-                            <Setter TargetName="BoxBorder" Property="Opacity" Value="0.55"/>
+                            <Setter TargetName="BoxBorder" Property="Opacity" Value="{StaticResource OpacityDisabled}"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -1181,7 +1207,7 @@
         <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
         <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
         <Setter Property="Background" Value="{DynamicResource CardBrush}"/>
-        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="FontSize" Value="{StaticResource FontSizeBody}"/>
         <Setter Property="Cursor" Value="Hand"/>
         <Setter Property="Template">
             <Setter.Value>
@@ -1218,7 +1244,7 @@
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
                             <Setter Property="Foreground" Value="{DynamicResource TextDisabledBrush}"/>
-                            <Setter TargetName="OuterCircle" Property="Opacity" Value="0.55"/>
+                            <Setter TargetName="OuterCircle" Property="Opacity" Value="{StaticResource OpacityDisabled}"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -1243,7 +1269,7 @@
                     <Border Background="{TemplateBinding Background}"
                             BorderBrush="{TemplateBinding BorderBrush}"
                             BorderThickness="{TemplateBinding BorderThickness}"
-                            CornerRadius="8"
+                            CornerRadius="{StaticResource CornerRadiusMd}"
                             Padding="{TemplateBinding Padding}"
                             SnapsToDevicePixels="True">
                         <ContentPresenter/>
@@ -1270,7 +1296,7 @@
                     <Border Background="{TemplateBinding Background}"
                             BorderBrush="{TemplateBinding BorderBrush}"
                             BorderThickness="{TemplateBinding BorderThickness}"
-                            CornerRadius="10"
+                            CornerRadius="{StaticResource CornerRadiusLg}"
                             Padding="{TemplateBinding Padding}">
                         <ScrollViewer Focusable="False">
                             <ItemsPresenter/>
@@ -1299,7 +1325,7 @@
                             Background="{TemplateBinding Background}"
                             BorderBrush="{TemplateBinding BorderBrush}"
                             BorderThickness="{TemplateBinding BorderThickness}"
-                            CornerRadius="8">
+                            CornerRadius="{StaticResource CornerRadiusMd}">
                         <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
                                           VerticalAlignment="Center"/>
                     </Border>
@@ -1311,7 +1337,7 @@
                             <Setter TargetName="ItemBorder" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
                             <Setter TargetName="ItemBorder" Property="Background">
                                 <Setter.Value>
-                                    <SolidColorBrush Color="{DynamicResource AccentColor}" Opacity="0.2"/>
+                                    <SolidColorBrush Color="{DynamicResource AccentColor}" Opacity="{StaticResource OpacityAccentOverlay}"/>
                                 </Setter.Value>
                             </Setter>
                             <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
@@ -1320,7 +1346,7 @@
                             <Setter TargetName="ItemBorder" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
-                            <Setter TargetName="ItemBorder" Property="Opacity" Value="0.55"/>
+                            <Setter TargetName="ItemBorder" Property="Opacity" Value="{StaticResource OpacityDisabled}"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -1346,7 +1372,7 @@
                             Background="{TemplateBinding Background}"
                             BorderBrush="{TemplateBinding BorderBrush}"
                             BorderThickness="{TemplateBinding BorderThickness}"
-                            CornerRadius="10">
+                            CornerRadius="{StaticResource CornerRadiusLg}">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto"/>
@@ -1398,7 +1424,7 @@
                 <ControlTemplate TargetType="{x:Type Expander}">
                     <Border BorderBrush="{TemplateBinding BorderBrush}"
                             BorderThickness="{TemplateBinding BorderThickness}"
-                            CornerRadius="10"
+                            CornerRadius="{StaticResource CornerRadiusLg}"
                             Background="{DynamicResource SurfaceBrush}">
                         <DockPanel>
                             <ToggleButton x:Name="HeaderSite"
@@ -1444,13 +1470,13 @@
                     <Border Background="{TemplateBinding Background}"
                             BorderBrush="{TemplateBinding BorderBrush}"
                             BorderThickness="{TemplateBinding BorderThickness}"
-                            CornerRadius="7"
+                            CornerRadius="{StaticResource CornerRadiusMd}"
                             SnapsToDevicePixels="True">
                         <Grid x:Name="PART_Track" ClipToBounds="True">
                             <Border x:Name="PART_Indicator"
                                     HorizontalAlignment="Left"
                                     Background="{TemplateBinding Foreground}"
-                                    CornerRadius="7"/>
+                                    CornerRadius="{StaticResource CornerRadiusMd}"/>
                         </Grid>
                     </Border>
                     <ControlTemplate.Triggers>
@@ -1475,7 +1501,7 @@
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type RepeatButton}">
                     <Border Background="{TemplateBinding Background}"
-                            CornerRadius="2"/>
+                            CornerRadius="{StaticResource CornerRadiusXs}"/>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
@@ -1492,7 +1518,7 @@
                             Background="{TemplateBinding Background}"
                             BorderBrush="{DynamicResource BackgroundBrush}"
                             BorderThickness="1"
-                            CornerRadius="7"
+                            CornerRadius="{StaticResource CornerRadiusMd}"
                             SnapsToDevicePixels="True"/>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
@@ -1567,7 +1593,7 @@
                 <Setter TargetName="BottomTick" Property="Visibility" Value="Visible"/>
             </Trigger>
             <Trigger Property="IsEnabled" Value="False">
-                <Setter Property="Opacity" Value="0.55"/>
+                <Setter Property="Opacity" Value="{StaticResource OpacityDisabled}"/>
             </Trigger>
         </ControlTemplate.Triggers>
     </ControlTemplate>
@@ -1633,7 +1659,7 @@
                 <Setter TargetName="RightTick" Property="Visibility" Value="Visible"/>
             </Trigger>
             <Trigger Property="IsEnabled" Value="False">
-                <Setter Property="Opacity" Value="0.55"/>
+                <Setter Property="Opacity" Value="{StaticResource OpacityDisabled}"/>
             </Trigger>
         </ControlTemplate.Triggers>
     </ControlTemplate>
@@ -1782,7 +1808,7 @@
                     <Border Background="{TemplateBinding Background}"
                             BorderBrush="{TemplateBinding BorderBrush}"
                             BorderThickness="{TemplateBinding BorderThickness}"
-                            CornerRadius="8"
+                            CornerRadius="{StaticResource CornerRadiusMd}"
                             SnapsToDevicePixels="True">
                         <Grid>
                             <ScrollViewer x:Name="PART_ContentHost"

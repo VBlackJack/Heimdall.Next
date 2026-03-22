@@ -58,7 +58,7 @@
                             />
                     <TextBox x:Name="TxtPort" DockPanel.Dock="Right"
                              Text="443" Width="70"
-                             FontSize="13" FontFamily="Consolas"
+                             FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
                              Padding="8,6" Margin="8,0,0,0"
                              Background="{DynamicResource CardBrush}"
                              Foreground="{DynamicResource TextPrimaryBrush}"
@@ -66,13 +66,13 @@
                              VerticalAlignment="Center"
                              />
                     <TextBlock DockPanel.Dock="Right" Text=":"
-                               FontSize="13" Margin="4,0,0,0"
+                               FontSize="{StaticResource FontSizeBodyLarge}" Margin="4,0,0,0"
                                Foreground="{DynamicResource TextSecondaryBrush}"
                                VerticalAlignment="Center"/>
                     <TextBox x:Name="TxtHost" Text=""
                              Style="{StaticResource WatermarkTextBoxStyle}"
                              Tag="hostname"
-                             FontSize="13" FontFamily="Consolas"
+                             FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
                              Padding="8,6"
                              Background="{DynamicResource CardBrush}"
                              Foreground="{DynamicResource TextPrimaryBrush}"
@@ -98,7 +98,7 @@
                 <!-- Error message -->
                 <TextBlock x:Name="TxtError" Text="" Visibility="Collapsed"
                            FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,12" TextWrapping="Wrap"
-                           Foreground="{DynamicResource ErrorBrush}"/>
+                           Foreground="{DynamicResource ErrorTextBrush}"/>
 
                 <!-- Loading indicator -->
                 <ProgressBar x:Name="LoadingBar" IsIndeterminate="True"
@@ -106,17 +106,17 @@
 
                 <!-- Expiration status banner -->
                 <Border x:Name="ExpirationBanner" Visibility="Collapsed"
-                        CornerRadius="4" Padding="12,8" Margin="0,0,0,12">
+                        CornerRadius="{StaticResource CornerRadiusSm}" Padding="12,8" Margin="0,0,0,12">
                     <TextBlock x:Name="TxtExpiration" Text=""
-                               FontSize="13" FontWeight="SemiBold"
-                               Foreground="White"/>
+                               FontSize="{StaticResource FontSizeBodyLarge}" FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextOnAccentBrush}"/>
                 </Border>
 
                 <!-- Certificate details -->
                 <Border x:Name="DetailsPanel" Visibility="Collapsed"
                         Background="{DynamicResource CardBrush}"
                         BorderBrush="{DynamicResource BorderBrush}"
-                        BorderThickness="1" CornerRadius="4"
+                        BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
                         Padding="16,12">
                     <Grid>
                         <Grid.ColumnDefinitions>
@@ -148,53 +148,53 @@
                         <TextBlock x:Name="LblSubject" Grid.Row="0" Grid.Column="0" Text=""
                                    FontSize="{StaticResource FontSizeBody}" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Top"/>
                         <TextBlock x:Name="TxtSubject" Grid.Row="0" Grid.Column="2" Text=""
-                                   FontSize="13" FontFamily="Consolas" Foreground="{DynamicResource TextPrimaryBrush}"
+                                   FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas" Foreground="{DynamicResource TextPrimaryBrush}"
                                    TextWrapping="Wrap" VerticalAlignment="Center"/>
 
                         <!-- Row 2: Issuer -->
                         <TextBlock x:Name="LblIssuer" Grid.Row="2" Grid.Column="0" Text=""
                                    FontSize="{StaticResource FontSizeBody}" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Top"/>
                         <TextBlock x:Name="TxtIssuer" Grid.Row="2" Grid.Column="2" Text=""
-                                   FontSize="13" FontFamily="Consolas" Foreground="{DynamicResource TextPrimaryBrush}"
+                                   FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas" Foreground="{DynamicResource TextPrimaryBrush}"
                                    TextWrapping="Wrap" VerticalAlignment="Center"/>
 
                         <!-- Row 4: Valid From -->
                         <TextBlock x:Name="LblValidFrom" Grid.Row="4" Grid.Column="0" Text=""
                                    FontSize="{StaticResource FontSizeBody}" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                         <TextBlock x:Name="TxtValidFrom" Grid.Row="4" Grid.Column="2" Text=""
-                                   FontSize="13" FontFamily="Consolas" Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
+                                   FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas" Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
 
                         <!-- Row 6: Valid To -->
                         <TextBlock x:Name="LblValidTo" Grid.Row="6" Grid.Column="0" Text=""
                                    FontSize="{StaticResource FontSizeBody}" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                         <TextBlock x:Name="TxtValidTo" Grid.Row="6" Grid.Column="2" Text=""
-                                   FontSize="13" FontFamily="Consolas" Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
+                                   FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas" Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
 
                         <!-- Row 8: Serial Number -->
                         <TextBlock x:Name="LblSerial" Grid.Row="8" Grid.Column="0" Text=""
                                    FontSize="{StaticResource FontSizeBody}" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                         <TextBlock x:Name="TxtSerial" Grid.Row="8" Grid.Column="2" Text=""
-                                   FontSize="13" FontFamily="Consolas" Foreground="{DynamicResource TextPrimaryBrush}"
+                                   FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas" Foreground="{DynamicResource TextPrimaryBrush}"
                                    TextWrapping="Wrap" VerticalAlignment="Center"/>
 
                         <!-- Row 10: Thumbprint (SHA256) -->
                         <TextBlock x:Name="LblThumbprint" Grid.Row="10" Grid.Column="0" Text=""
                                    FontSize="{StaticResource FontSizeBody}" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                         <TextBlock x:Name="TxtThumbprint" Grid.Row="10" Grid.Column="2" Text=""
-                                   FontSize="13" FontFamily="Consolas" Foreground="{DynamicResource TextPrimaryBrush}"
+                                   FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas" Foreground="{DynamicResource TextPrimaryBrush}"
                                    TextWrapping="Wrap" VerticalAlignment="Center"/>
 
                         <!-- Row 12: Signature Algorithm -->
                         <TextBlock x:Name="LblSigAlg" Grid.Row="12" Grid.Column="0" Text=""
                                    FontSize="{StaticResource FontSizeBody}" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                         <TextBlock x:Name="TxtSigAlg" Grid.Row="12" Grid.Column="2" Text=""
-                                   FontSize="13" FontFamily="Consolas" Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
+                                   FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas" Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
 
                         <!-- Row 14: Key Size -->
                         <TextBlock x:Name="LblKeySize" Grid.Row="14" Grid.Column="0" Text=""
                                    FontSize="{StaticResource FontSizeBody}" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                         <TextBlock x:Name="TxtKeySize" Grid.Row="14" Grid.Column="2" Text=""
-                                   FontSize="13" FontFamily="Consolas" Foreground="{DynamicResource AccentBrush}"
+                                   FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas" Foreground="{DynamicResource AccentBrush}"
                                    FontWeight="SemiBold" VerticalAlignment="Center"/>
 
                         <!-- Row 16: SANs -->
@@ -215,7 +215,7 @@
                 <Border x:Name="TlsHostPanel" Visibility="Collapsed"
                         Background="{DynamicResource CardBrush}"
                         BorderBrush="{DynamicResource BorderBrush}"
-                        BorderThickness="1" CornerRadius="4"
+                        BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
                         Padding="16,12" Margin="0,12,0,0">
                     <StackPanel>
                         <!-- TLS Version -->
@@ -224,7 +224,7 @@
                                        FontSize="{StaticResource FontSizeBody}" Foreground="{DynamicResource TextSecondaryBrush}"
                                        VerticalAlignment="Center" Width="120"/>
                             <TextBlock x:Name="TxtTlsVersion" Text=""
-                                       FontSize="13" FontFamily="Consolas"
+                                       FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
                                        Foreground="{DynamicResource AccentBrush}"
                                        FontWeight="SemiBold" VerticalAlignment="Center"/>
                         </DockPanel>
@@ -241,11 +241,11 @@
                 <Border x:Name="ChainPanel" Visibility="Collapsed"
                         Background="{DynamicResource CardBrush}"
                         BorderBrush="{DynamicResource BorderBrush}"
-                        BorderThickness="1" CornerRadius="4"
+                        BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
                         Padding="16,12" Margin="0,12,0,0">
                     <StackPanel>
                         <TextBlock x:Name="LblChainTitle" Text=""
-                                   FontSize="13" FontWeight="SemiBold"
+                                   FontSize="{StaticResource FontSizeBodyLarge}" FontWeight="SemiBold"
                                    Foreground="{DynamicResource TextPrimaryBrush}"
                                    Margin="0,0,0,8"/>
                         <ItemsControl x:Name="ChainList">

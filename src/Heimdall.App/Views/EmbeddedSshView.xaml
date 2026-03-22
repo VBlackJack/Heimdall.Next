@@ -28,7 +28,8 @@
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="8,2"
                         FontSize="{StaticResource FontSizeCaption}"
-                        Margin="8,0,0,0"/>
+                        Margin="8,0,0,0"
+                        AutomationProperties.Name="Disconnect session"/>
 
                 <Button x:Name="ReconnectButton"
                         DockPanel.Dock="Right"
@@ -37,7 +38,8 @@
                         Padding="8,2"
                         FontSize="{StaticResource FontSizeCaption}"
                         Margin="8,0,0,0"
-                        Visibility="Collapsed"/>
+                        Visibility="Collapsed"
+                        AutomationProperties.Name="Reconnect session"/>
 
                 <Button x:Name="HealthToggleButton"
                         DockPanel.Dock="Right"
@@ -45,7 +47,8 @@
                         FontFamily="Segoe MDL2 Assets"
                         Click="OnHealthToggleClick"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
-                        Padding="6,2" FontSize="{StaticResource FontSizeBody}" Margin="4,0"/>
+                        Padding="6,2" FontSize="{StaticResource FontSizeBody}" Margin="4,0"
+                        AutomationProperties.Name="Toggle health monitoring"/>
 
                 <Button x:Name="SplitButton"
                         DockPanel.Dock="Right"
@@ -53,7 +56,8 @@
                         FontFamily="Segoe MDL2 Assets"
                         Click="OnSplitClick"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
-                        Padding="6,2" FontSize="{StaticResource FontSizeBody}" Margin="4,0"/>
+                        Padding="6,2" FontSize="{StaticResource FontSizeBody}" Margin="4,0"
+                        AutomationProperties.Name="Split session view"/>
 
                 <Button x:Name="ElevateButton"
                         DockPanel.Dock="Right"
@@ -62,20 +66,21 @@
                         Click="OnElevateClick"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
                         Padding="6,2" FontSize="{StaticResource FontSizeBody}" Margin="4,0"
-                        Visibility="Collapsed"/>
+                        Visibility="Collapsed"
+                        AutomationProperties.Name="Elevate to root"/>
 
                 <!-- Admin badge (visible when session is elevated) -->
                 <Border x:Name="AdminBadge"
                         DockPanel.Dock="Right"
                         Background="{DynamicResource WarningBrush}"
-                        CornerRadius="4"
+                        CornerRadius="{StaticResource CornerRadiusSm}"
                         Padding="6,1"
                         Margin="4,0"
                         VerticalAlignment="Center"
                         Visibility="Collapsed">
                     <TextBlock x:Name="AdminBadgeText" Text=""
-                               FontSize="9" FontWeight="Bold"
-                               Foreground="Black"/>
+                               FontSize="{StaticResource FontSizeSmallCaption}" FontWeight="Bold"
+                               Foreground="{DynamicResource BadgeTextBrush}"/>
                 </Border>
 
                 <!-- Broadcast mode indicator -->
@@ -83,14 +88,14 @@
                         DockPanel.Dock="Right"
                         Visibility="Collapsed"
                         Background="{DynamicResource BroadcastActiveBrush}"
-                        CornerRadius="3"
+                        CornerRadius="{StaticResource CornerRadiusSm}"
                         Padding="6,1"
                         Margin="8,0,0,0"
                         VerticalAlignment="Center">
                     <TextBlock x:Name="BroadcastBadgeText"
-                               FontSize="9"
+                               FontSize="{StaticResource FontSizeSmallCaption}"
                                FontWeight="Bold"
-                               Foreground="{DynamicResource ErrorBrush}"/>
+                               Foreground="{DynamicResource ErrorTextBrush}"/>
                 </Border>
 
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
@@ -156,7 +161,7 @@
                                     HorizontalAlignment="Center"
                                     MaxWidth="420">
                             <TextBlock x:Name="FallbackTitleText"
-                                       FontSize="20"
+                                       FontSize="{StaticResource FontSizeDisplay}"
                                        FontWeight="SemiBold"
                                        TextAlignment="Center"
                                        Foreground="{DynamicResource TextPrimaryBrush}" />
@@ -179,7 +184,7 @@
                                     HorizontalAlignment="Center"
                                     MaxWidth="400">
                             <TextBlock x:Name="ReconnectMessageText"
-                                       FontSize="15"
+                                       FontSize="{StaticResource FontSizeSubtitle}"
                                        FontWeight="SemiBold"
                                        TextAlignment="Center"
                                        TextWrapping="Wrap"
@@ -191,13 +196,13 @@
                                         Click="OnOverlayReconnectClick"
                                         Style="{DynamicResource PrimaryButtonStyle}"
                                         Padding="16,6"
-                                        FontSize="13"
+                                        FontSize="{StaticResource FontSizeBodyLarge}"
                                         Margin="0,0,8,0"/>
                                 <Button x:Name="OverlayCloseButton"
                                         Click="OnOverlayCloseClick"
                                         Style="{DynamicResource SecondaryButtonStyle}"
                                         Padding="16,6"
-                                        FontSize="13"
+                                        FontSize="{StaticResource FontSizeBodyLarge}"
                                         Margin="8,0,0,0"/>
                             </StackPanel>
                         </StackPanel>

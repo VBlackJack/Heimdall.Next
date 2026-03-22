@@ -56,7 +56,7 @@
             <Border Grid.Row="0" Padding="{StaticResource SpacingMd}"
                     Background="{DynamicResource SurfaceBrush}"
                     BorderBrush="{DynamicResource BorderBrush}"
-                    BorderThickness="1" CornerRadius="4"
+                    BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
                     Margin="0,0,0,12">
                 <StackPanel>
                     <!-- Algorithm -->
@@ -117,7 +117,7 @@
             <Border Grid.Row="2" Padding="{StaticResource SpacingSm}"
                     Background="{DynamicResource SurfaceBrush}"
                     BorderBrush="{DynamicResource BorderBrush}"
-                    BorderThickness="1" CornerRadius="4"
+                    BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
                     Margin="0,0,0,12"
                     Visibility="Collapsed" x:Name="FingerprintPanel">
                 <DockPanel>
@@ -145,7 +145,7 @@
             <Border Grid.Row="3" Padding="{StaticResource SpacingSm}"
                     Background="{DynamicResource SurfaceBrush}"
                     BorderBrush="{DynamicResource BorderBrush}"
-                    BorderThickness="1" CornerRadius="4"
+                    BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
                     Margin="0,0,0,12"
                     Visibility="Collapsed" x:Name="PublicKeyPanel">
                 <DockPanel>
@@ -181,7 +181,7 @@
             <Border Grid.Row="4" Padding="{StaticResource SpacingSm}"
                     Background="{DynamicResource SurfaceBrush}"
                     BorderBrush="{DynamicResource BorderBrush}"
-                    BorderThickness="1" CornerRadius="4"
+                    BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
                     Margin="0,0,0,12"
                     Visibility="Collapsed" x:Name="PrivateKeyPanel">
                 <DockPanel>

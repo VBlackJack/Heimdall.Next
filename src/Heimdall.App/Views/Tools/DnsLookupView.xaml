@@ -59,7 +59,7 @@
                     <TextBox x:Name="TxtHostname" Text=""
                              Style="{StaticResource WatermarkTextBoxStyle}"
                              Tag="example.com"
-                             FontSize="13" FontFamily="Consolas"
+                             FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
                              Padding="8,6"
                              Background="{DynamicResource CardBrush}"
                              Foreground="{DynamicResource TextPrimaryBrush}"
@@ -85,18 +85,18 @@
                 <!-- Error message -->
                 <TextBlock x:Name="TxtError" Text="" Visibility="Collapsed"
                            FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,12" TextWrapping="Wrap"
-                           Foreground="{DynamicResource ErrorBrush}"/>
+                           Foreground="{DynamicResource ErrorTextBrush}"/>
 
                 <!-- Empty state hint (hidden once results appear) -->
                 <Border x:Name="EmptyStatePanel"
                         Style="{StaticResource ToolEmptyStateStyle}"
                         Margin="0,24,0,0">
                     <StackPanel HorizontalAlignment="Center">
-                        <TextBlock Text="&#xE774;" FontFamily="Segoe MDL2 Assets" FontSize="32"
+                        <TextBlock Text="&#xE774;" FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource IconSizeEmptyState}"
                                    HorizontalAlignment="Center"
                                    Foreground="{DynamicResource TextDisabledBrush}" Margin="0,0,0,8"/>
                         <TextBlock x:Name="TxtEmptyState" Text=""
-                                   FontSize="13" TextAlignment="Center"
+                                   FontSize="{StaticResource FontSizeBodyLarge}" TextAlignment="Center"
                                    Foreground="{DynamicResource TextSecondaryBrush}"/>
                     </StackPanel>
                 </Border>
@@ -105,7 +105,7 @@
                 <Border x:Name="ResultsPanel" Visibility="Collapsed"
                         Background="{DynamicResource CardBrush}"
                         BorderBrush="{DynamicResource BorderBrush}"
-                        BorderThickness="1" CornerRadius="4"
+                        BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
                         Padding="16,12">
                     <StackPanel>
                         <DockPanel Margin="0,0,0,8">
@@ -113,12 +113,12 @@
                                     Style="{DynamicResource SecondaryButtonStyle}"
                                     Padding="8,2" FontSize="{StaticResource FontSizeCaption}" Margin="8,0,0,0" VerticalAlignment="Center"/>
                             <TextBlock x:Name="TxtResultHeader" Text=""
-                                       FontSize="13" FontWeight="SemiBold"
+                                       FontSize="{StaticResource FontSizeBodyLarge}" FontWeight="SemiBold"
                                        Foreground="{DynamicResource AccentBrush}"
                                        VerticalAlignment="Center"/>
                         </DockPanel>
                         <TextBlock x:Name="TxtResults" Text=""
-                                   FontSize="13" FontFamily="Consolas"
+                                   FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
                                    Foreground="{DynamicResource TextPrimaryBrush}"
                                    TextWrapping="Wrap"/>
                     </StackPanel>

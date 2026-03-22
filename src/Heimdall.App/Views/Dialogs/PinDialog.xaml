@@ -8,7 +8,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
         Title=""
-        Width="380" Height="280"
+        Width="380" SizeToContent="Height" MaxHeight="400"
         WindowStartupLocation="CenterOwner"
         Background="{DynamicResource BackgroundBrush}"
         ResizeMode="CanResizeWithGrip"
@@ -46,7 +46,7 @@
                      TabIndex="0"
                      MaxLength="8"
                      IsEnabled="{Binding IsLockedOut, Converter={StaticResource InvertBoolConverter}, FallbackValue=True}"
-                     FontSize="20"
+                     FontSize="{StaticResource FontSizeDisplay}"
                      HorizontalContentAlignment="Center"
                      Background="{DynamicResource CardBrush}"
                      Foreground="{DynamicResource TextPrimaryBrush}"
@@ -59,7 +59,7 @@
         <!-- Error message (visible when non-empty) -->
         <TextBlock Grid.Row="2"
                    Text="{Binding ErrorMessage}"
-                   Foreground="{DynamicResource ErrorBrush}"
+                   Foreground="{DynamicResource ErrorTextBrush}"
                    FontSize="{StaticResource FontSizeBody}"
                    HorizontalAlignment="Center"
                    Margin="0,8,0,0"
@@ -69,12 +69,12 @@
         <!-- Lockout message (visible when locked out) -->
         <Border Grid.Row="3"
                 Background="{DynamicResource CardBrush}"
-                CornerRadius="4"
+                CornerRadius="{StaticResource CornerRadiusSm}"
                 Padding="12,8"
                 Margin="0,12,0,0"
                 Visibility="{Binding IsLockedOut, Converter={StaticResource BoolToVisibilityConverter}}">
             <TextBlock Text="{Binding LockoutMessage}"
-                       Foreground="{DynamicResource WarningBrush}"
+                       Foreground="{DynamicResource WarningTextBrush}"
                        FontSize="{StaticResource FontSizeBody}"
                        TextWrapping="Wrap"
                        HorizontalAlignment="Center"/>

@@ -46,22 +46,22 @@
                     <RadioButton x:Name="RbSupernet" GroupName="Mode"
                                  IsChecked="True" Checked="OnModeChanged"
                                  Foreground="{DynamicResource TextPrimaryBrush}"
-                                 Margin="0,0,16,4" FontSize="13"/>
+                                 Margin="0,0,16,4" FontSize="{StaticResource FontSizeBodyLarge}"/>
                     <RadioButton x:Name="RbRangeToCidr" GroupName="Mode"
                                  Checked="OnModeChanged"
                                  Foreground="{DynamicResource TextPrimaryBrush}"
-                                 Margin="0,0,16,4" FontSize="13"/>
+                                 Margin="0,0,16,4" FontSize="{StaticResource FontSizeBodyLarge}"/>
                     <RadioButton x:Name="RbVlanPlanner" GroupName="Mode"
                                  Checked="OnModeChanged"
                                  Foreground="{DynamicResource TextPrimaryBrush}"
-                                 Margin="0,0,0,4" FontSize="13"/>
+                                 Margin="0,0,0,4" FontSize="{StaticResource FontSizeBodyLarge}"/>
                 </WrapPanel>
 
                 <!-- ═══ Supernet panel ═══ -->
                 <Border x:Name="PanelSupernet"
                         Background="{DynamicResource SurfaceBrush}"
                         BorderBrush="{DynamicResource BorderBrush}"
-                        BorderThickness="1" CornerRadius="4"
+                        BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
                         Padding="16,12" Margin="0,0,0,12">
                     <StackPanel>
                         <TextBlock x:Name="LblSupernetInput" Text=""
@@ -87,7 +87,7 @@
                 <Border x:Name="PanelRangeToCidr" Visibility="Collapsed"
                         Background="{DynamicResource SurfaceBrush}"
                         BorderBrush="{DynamicResource BorderBrush}"
-                        BorderThickness="1" CornerRadius="4"
+                        BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
                         Padding="16,12" Margin="0,0,0,12">
                     <StackPanel>
                         <Grid>
@@ -127,7 +127,7 @@
                 <Border x:Name="PanelVlanPlanner" Visibility="Collapsed"
                         Background="{DynamicResource SurfaceBrush}"
                         BorderBrush="{DynamicResource BorderBrush}"
-                        BorderThickness="1" CornerRadius="4"
+                        BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
                         Padding="16,12" Margin="0,0,0,12">
                     <StackPanel>
                         <Grid>
@@ -170,13 +170,13 @@
                 <!-- Error -->
                 <TextBlock x:Name="TxtError" Text="" Visibility="Collapsed"
                            FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,8" TextWrapping="Wrap"
-                           Foreground="{DynamicResource ErrorBrush}"/>
+                           Foreground="{DynamicResource ErrorTextBrush}"/>
 
                 <!-- Results -->
                 <Border x:Name="ResultsPanel" Visibility="Collapsed"
                         Background="{DynamicResource CardBrush}"
                         BorderBrush="{DynamicResource BorderBrush}"
-                        BorderThickness="1" CornerRadius="4"
+                        BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
                         Padding="16,12" Margin="0,0,0,8">
                     <DockPanel>
                         <Button x:Name="BtnCopyResult" DockPanel.Dock="Top"
@@ -186,7 +186,7 @@
                                 HorizontalAlignment="Left" FontSize="{StaticResource FontSizeCaption}"/>
                         <TextBox x:Name="TxtResult"
                                  IsReadOnly="True"
-                                 FontFamily="Consolas" FontSize="13"
+                                 FontFamily="Consolas" FontSize="{StaticResource FontSizeBodyLarge}"
                                  TextWrapping="Wrap"
                                  AcceptsReturn="True"
                                  VerticalScrollBarVisibility="Auto"

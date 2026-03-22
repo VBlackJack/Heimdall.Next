@@ -29,7 +29,7 @@
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
                 <ComboBox x:Name="CmbAlgorithm"
                           Margin="0,0,0,16"
-                          Padding="8,6" FontSize="13"
+                          Padding="8,6" FontSize="{StaticResource FontSizeBodyLarge}"
                           Background="{DynamicResource CardBrush}"
                           Foreground="{DynamicResource TextPrimaryBrush}"
                           BorderBrush="{DynamicResource BorderBrush}"
@@ -47,10 +47,11 @@
                             Click="OnToggleKeyVisibility"
                             Style="{DynamicResource SecondaryButtonStyle}"
                             Padding="8,6" Margin="6,0,0,0"
+                            AutomationProperties.Name="Toggle key visibility"
                             VerticalAlignment="Stretch"/>
                     <Grid>
                         <PasswordBox x:Name="PwdKey"
-                                     FontSize="13" FontFamily="Consolas"
+                                     FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
                                      Padding="8,6"
                                      Background="{DynamicResource CardBrush}"
                                      Foreground="{DynamicResource TextPrimaryBrush}"
@@ -59,7 +60,7 @@
                                      />
                         <TextBox x:Name="TxtKey" Text=""
                                  Style="{DynamicResource WatermarkTextBoxStyle}"
-                                 FontSize="13" FontFamily="Consolas"
+                                 FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
                                  Padding="8,6"
                                  Background="{DynamicResource CardBrush}"
                                  Foreground="{DynamicResource TextPrimaryBrush}"
@@ -76,7 +77,7 @@
                            FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,4"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
                 <TextBox x:Name="TxtInput" Text=""
-                         FontSize="13" FontFamily="Consolas"
+                         FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
                          Padding="8,6" Height="120"
                          AcceptsReturn="True" AcceptsTab="True"
                          TextWrapping="Wrap"
@@ -115,7 +116,7 @@
                             Padding="12,6" Margin="8,0,0,0"
                             VerticalAlignment="Stretch"/>
                     <TextBox x:Name="TxtOutput" Text=""
-                             FontSize="13" FontFamily="Consolas"
+                             FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
                              Padding="8,6"
                              IsReadOnly="True"
                              Background="{DynamicResource CardBrush}"
@@ -136,7 +137,7 @@
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
                 <TextBox x:Name="TxtVerify" Text=""
                          Style="{DynamicResource WatermarkTextBoxStyle}"
-                         FontSize="13" FontFamily="Consolas"
+                         FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
                          Padding="8,6" Margin="0,0,0,4"
                          Background="{DynamicResource CardBrush}"
                          Foreground="{DynamicResource TextPrimaryBrush}"

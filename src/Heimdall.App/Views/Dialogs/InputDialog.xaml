@@ -11,7 +11,7 @@
         ShowInTaskbar="False"
         WindowStyle="ToolWindow">
 
-    <Border CornerRadius="12"
+    <Border CornerRadius="{StaticResource CornerRadiusXl}"
             Background="{DynamicResource BackgroundBrush}"
             BorderBrush="{DynamicResource BorderBrush}"
             BorderThickness="1">
@@ -28,14 +28,14 @@
                    Grid.Row="0"
                    TextWrapping="Wrap"
                    Foreground="{DynamicResource TextPrimaryBrush}"
-                   FontSize="13"
+                   FontSize="{StaticResource FontSizeBodyLarge}"
                    Margin="0,0,0,12"/>
 
         <!-- Input -->
         <TextBox x:Name="InputTextBox"
                  Grid.Row="1"
                  TabIndex="0"
-                 FontSize="13"
+                 FontSize="{StaticResource FontSizeBodyLarge}"
                  Padding="8,6"
                  Background="{DynamicResource CardBrush}"
                  Foreground="{DynamicResource TextPrimaryBrush}"
