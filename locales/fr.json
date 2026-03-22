@@ -1203,8 +1203,6 @@
   "SettingsUnsavedIndicator": "*",
   "SettingsUnsavedWarning": "Vous avez des modifications non enregistr\u00e9es. Les appliquer avant de quitter ?",
   "SettingsUnsavedWarningTitle": "Modifications non enregistr\u00e9es",
-  "TooltipExpandAll": "Tout d\u00e9plier (Ctrl+Shift+E)",
-  "TooltipCollapseAll": "Tout replier (Ctrl+Shift+C)",
   "ProjectColorBlue": "Bleu",
   "ProjectColorGreen": "Vert",
   "ProjectColorRed": "Rouge",
@@ -1571,6 +1569,7 @@
   "FileBrowserPropertiesAttributes": "Attributs",
 
   "NavTabServers": "Serveurs",
+  "NavTabSessions": "Sessions",
   "NavTabTunnels": "Tunnels",
   "NavTabScheduled": "Planifi\u00e9",
   "NavTabSettings": "Param\u00e8tres",
@@ -1583,9 +1582,9 @@
   "AddMenuFolder": "Nouveau dossier",
   "TooltipHideSidebar": "Masquer le panneau (Ctrl+B)",
   "TooltipShowSidebar": "Afficher le panneau (Ctrl+B)",
-  "TooltipAddMenu": "Ajouter un serveur, dossier ou passerelle",
-  "TooltipExpandAll": "D\u00e9plier tous les dossiers",
-  "TooltipCollapseAll": "Replier tous les dossiers",
+  "TooltipAddMenu": "Ajouter un serveur, dossier ou passerelle (Ctrl+N)",
+  "TooltipExpandAll": "D\u00e9plier tous les dossiers (Ctrl+Shift+E)",
+  "TooltipCollapseAll": "Replier tous les dossiers (Ctrl+Shift+C)",
 
   "DetailLabelGroup": "Groupe :",
   "DetailLabelEnvironment": "Environnement :",
@@ -3146,6 +3145,8 @@
   "ToolCtxCopyIp": "Copier l'adresse IP",
   "ToolCtxCopyHostname": "Copier le nom d'h\u00f4te",
   "ToolCtxCopyRow": "Copier la ligne",
+  "ToolCtxCopyAll": "Copier toutes les lignes",
+  "ToolCtxExportCsv": "Exporter CSV...",
   "ToolCtxCopyPort": "Copier le port",
   "ToolCtxCopyService": "Copier le service",
   "ToolCtxCopyBanner": "Copier la banni\u00e8re",
@@ -3167,5 +3168,11 @@
   "ToolDiagramBtnExportPng": "Exporter PNG",
   "ToolDiagramBtnEdit": "\u00c9diter le diagramme",
   "ToolDescDIAGRAM": "Cr\u00e9er et \u00e9diter des diagrammes r\u00e9seau avec l'\u00e9diteur draw.io int\u00e9gr\u00e9",
-  "ToolHelpDIAGRAM": "\u00c9diteur de diagrammes\n\nCr\u00e9ez et \u00e9ditez des diagrammes r\u00e9seau avec l'\u00e9diteur draw.io.\n\nFonctionnalit\u00e9s :\n- \u00c9diteur draw.io complet int\u00e9gr\u00e9 hors ligne\n- Ouvrir/Enregistrer des fichiers .drawio\n- Exporter en PNG\n- G\u00e9n\u00e9ration automatique depuis les scans de cartographie r\u00e9seau\n\nUtilisation :\n1. Cliquez sur Nouveau pour un diagramme vierge, ou Ouvrir pour charger un fichier .drawio existant\n2. Utilisez la barre d'outils draw.io pour ajouter des formes, connexions et \u00e9tiquettes\n3. Enregistrez en .drawio ou exportez en PNG"
+  "ToolHelpDIAGRAM": "\u00c9diteur de diagrammes\n\nCr\u00e9ez et \u00e9ditez des diagrammes r\u00e9seau avec l'\u00e9diteur draw.io.\n\nFonctionnalit\u00e9s :\n- \u00c9diteur draw.io complet int\u00e9gr\u00e9 hors ligne\n- Ouvrir/Enregistrer des fichiers .drawio\n- Exporter en PNG\n- G\u00e9n\u00e9ration automatique depuis les scans de cartographie r\u00e9seau\n\nUtilisation :\n1. Cliquez sur Nouveau pour un diagramme vierge, ou Ouvrir pour charger un fichier .drawio existant\n2. Utilisez la barre d'outils draw.io pour ajouter des formes, connexions et \u00e9tiquettes\n3. Enregistrez en .drawio ou exportez en PNG",
+
+  "ToolEmptyStateDns": "Entrez un nom d'h\u00f4te et cliquez sur Rechercher pour voir les enregistrements DNS",
+  "ToolEmptyStatePortScan": "Entrez un h\u00f4te cible et cliquez sur Scanner pour d\u00e9couvrir les ports ouverts",
+  "ToolEmptyStateNetMap": "Configurez une plage de sous-r\u00e9seau et cliquez sur Scanner pour d\u00e9couvrir les h\u00f4tes",
+  "ToolEmptyStateWhois": "Entrez un domaine ou une IP et cliquez sur Rechercher pour voir les donn\u00e9es WHOIS",
+  "ToolEmptyStateCert": "Entrez un nom d'h\u00f4te et cliquez sur Inspecter pour voir le certificat TLS"
 }

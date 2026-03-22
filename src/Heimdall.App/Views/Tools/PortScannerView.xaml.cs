@@ -167,6 +167,8 @@ public partial class PortScannerView : UserControl, IToolView
 
         BtnHelp.ToolTip = L("ToolHelpTooltip");
         System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
+
+        TxtEmptyState.Text = L("ToolEmptyStatePortScan");
     }
 
     private void OnHelpClick(object sender, RoutedEventArgs e)
@@ -252,6 +254,7 @@ public partial class PortScannerView : UserControl, IToolView
         TxtProgressPercent.Text = "0%";
         TxtProgressCount.Text = string.Format(L("ToolPortScanProgressCount"), 0, ports.Count);
         ProgressPanel.Visibility = Visibility.Visible;
+        EmptyStatePanel.Visibility = Visibility.Collapsed;
 
         var openCount = 0;
         var closedCount = 0;
@@ -708,6 +711,9 @@ public partial class PortScannerView : UserControl, IToolView
         menu.Items.Add(new Separator());
         var csvText = $"{row.Port}\t{row.Status}\t{row.Service}\t{row.ResponseTime}\t{row.Banner}";
         menu.Items.Add(ToolContextMenuHelper.BuildCopyRowAction(csvText, _localizer));
+        menu.Items.Add(ToolContextMenuHelper.BuildCopyAllAction(ResultsGrid, _localizer));
+        menu.Items.Add(new Separator());
+        menu.Items.Add(ToolContextMenuHelper.BuildExportCsvAction(ResultsGrid, _localizer));
 
         ResultsGrid.ContextMenu = menu;
     }

@@ -31,4 +31,10 @@ public interface IToolView : IDisposable
     /// <param name="context">Optional context carrying target host/port from the selected server.</param>
     /// <param name="localizer">Localization manager for i18n strings.</param>
     void Initialize(ToolContext? context, LocalizationManager? localizer);
+
+    /// <summary>
+    /// Returns true if the tool can be safely closed. Override to return false
+    /// when an async operation is in progress (e.g. scan, export).
+    /// </summary>
+    bool CanClose() => true;
 }

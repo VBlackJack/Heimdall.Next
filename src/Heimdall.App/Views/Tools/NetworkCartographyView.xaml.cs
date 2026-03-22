@@ -126,6 +126,8 @@ public partial class NetworkCartographyView : UserControl, IToolView
 
         BtnHelp.ToolTip = L("ToolHelpTooltip");
         System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
+
+        TxtEmptyState.Text = L("ToolEmptyStateNetMap");
     }
 
     private void OnHelpClick(object sender, RoutedEventArgs e)
@@ -204,6 +206,7 @@ public partial class NetworkCartographyView : UserControl, IToolView
         ChkSkipPing.IsEnabled = false;
         ChkReverseDns.IsEnabled = false;
         ProgressPanel.Visibility = Visibility.Visible;
+        EmptyStatePanel.Visibility = Visibility.Collapsed;
         ScanProgress.Value = 0;
         TxtStatus.Text = "";
         TxtStats.Text = "";
@@ -696,6 +699,9 @@ public partial class NetworkCartographyView : UserControl, IToolView
         // Copy row as CSV
         var csvText = $"{row.IpAddress},{row.Hostname},{row.PortSummary},{row.ServiceSummary},{row.PrimaryRoleName}";
         menu.Items.Add(ToolContextMenuHelper.BuildCopyRowAction(csvText, _localizer));
+        menu.Items.Add(ToolContextMenuHelper.BuildCopyAllAction(ResultsGrid, _localizer));
+        menu.Items.Add(new Separator());
+        menu.Items.Add(ToolContextMenuHelper.BuildExportCsvAction(ResultsGrid, _localizer));
 
         ResultsGrid.ContextMenu = menu;
     }

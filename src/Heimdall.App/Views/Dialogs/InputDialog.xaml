@@ -34,6 +34,7 @@
         <!-- Input -->
         <TextBox x:Name="InputTextBox"
                  Grid.Row="1"
+                 TabIndex="0"
                  FontSize="13"
                  Padding="8,6"
                  Background="{DynamicResource CardBrush}"
@@ -49,12 +50,14 @@
                     Margin="0,16,0,0">
             <Button x:Name="CancelBtn"
                     IsCancel="True"
-                    Width="80"
+                    TabIndex="2"
+                    MinWidth="80"
                     Margin="0,0,8,0"
                     Style="{DynamicResource SecondaryButtonStyle}"/>
             <Button x:Name="OkBtn"
                     IsDefault="True"
-                    Width="80"
+                    TabIndex="1"
+                    MinWidth="80"
                     Click="OnOkClick"
                     Style="{DynamicResource PrimaryButtonStyle}"/>
         </StackPanel>

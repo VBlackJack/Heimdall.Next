@@ -97,9 +97,11 @@
                      Style="{StaticResource FormTextBoxStyle}"
                      MaxLength="200"
                      TextWrapping="Wrap"
-                     AcceptsReturn="False"
+                     AcceptsReturn="True"
+                     MaxLines="4"
                      Height="60"
                      VerticalContentAlignment="Top"
+                     VerticalScrollBarVisibility="Auto"
                      x:Name="TxtDescription"/>
             <TextBlock Foreground="{DynamicResource TextDisabledBrush}" FontSize="11"
                        HorizontalAlignment="Right" Margin="0,2,0,0">

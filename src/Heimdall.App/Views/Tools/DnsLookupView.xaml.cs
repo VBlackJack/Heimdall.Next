@@ -124,6 +124,8 @@ public partial class DnsLookupView : UserControl, IToolView
 
         BtnHelp.ToolTip = L("ToolHelpTooltip");
         System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
+
+        TxtEmptyState.Text = L("ToolEmptyStateDns");
     }
 
     private void OnHelpClick(object sender, RoutedEventArgs e)
@@ -151,6 +153,7 @@ public partial class DnsLookupView : UserControl, IToolView
         var hostname = TxtHostname.Text.Trim();
         TxtError.Visibility = Visibility.Collapsed;
         ResultsPanel.Visibility = Visibility.Collapsed;
+        EmptyStatePanel.Visibility = Visibility.Visible;
         TxtStatus.Text = string.Empty;
 
         if (string.IsNullOrWhiteSpace(hostname))
@@ -204,6 +207,7 @@ public partial class DnsLookupView : UserControl, IToolView
             TxtResultHeader.Text = string.Format(L("ToolDnsResultHeader"), recordType, hostname);
             TxtResults.Text = results;
             ResultsPanel.Visibility = Visibility.Visible;
+            EmptyStatePanel.Visibility = Visibility.Collapsed;
             TxtStatus.Text = string.Format(L("ToolDnsStatusComplete"), stopwatch.ElapsedMilliseconds);
         }
         catch (OperationCanceledException)
