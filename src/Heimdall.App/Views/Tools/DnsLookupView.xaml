@@ -18,10 +18,10 @@
                 <Button x:Name="BtnHelp" DockPanel.Dock="Right" Content="?"
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="6,2" FontSize="12" FontWeight="Bold"
+                        Padding="6,2" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
                         Width="24" Height="24" Margin="8,0,0,0"/>
                 <TextBlock x:Name="HeaderTitle" Text=""
-                           FontSize="14" FontWeight="SemiBold"
+                           FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
                            VerticalAlignment="Center"/>
             </DockPanel>
@@ -33,7 +33,7 @@
 
                 <!-- Input Row -->
                 <TextBlock x:Name="LblHostname" Text=""
-                           FontSize="12" Margin="0,0,0,4"
+                           FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,4"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
                 <DockPanel Margin="0,0,0,16">
                     <Button x:Name="BtnLookup" DockPanel.Dock="Right"
@@ -69,7 +69,7 @@
                 <!-- Route via gateway -->
                 <DockPanel Margin="0,0,0,8">
                     <TextBlock x:Name="LblRouteVia" Text=""
-                               FontSize="12" Margin="0,0,8,0"
+                               FontSize="{StaticResource FontSizeBody}" Margin="0,0,8,0"
                                Foreground="{DynamicResource TextSecondaryBrush}"
                                VerticalAlignment="Center"/>
                     <ComboBox x:Name="CmbRouteVia" Width="240"
@@ -82,7 +82,7 @@
 
                 <!-- Error message -->
                 <TextBlock x:Name="TxtError" Text="" Visibility="Collapsed"
-                           FontSize="12" Margin="0,0,0,12" TextWrapping="Wrap"
+                           FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,12" TextWrapping="Wrap"
                            Foreground="{DynamicResource ErrorBrush}"/>
 
                 <!-- Empty state hint (hidden once results appear) -->
@@ -109,7 +109,7 @@
                         <DockPanel Margin="0,0,0,8">
                             <Button x:Name="BtnCopyResults" DockPanel.Dock="Right" Click="OnCopyResultsClick"
                                     Style="{DynamicResource SecondaryButtonStyle}"
-                                    Padding="8,2" FontSize="11" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                                    Padding="8,2" FontSize="{StaticResource FontSizeCaption}" Margin="8,0,0,0" VerticalAlignment="Center"/>
                             <TextBlock x:Name="TxtResultHeader" Text=""
                                        FontSize="13" FontWeight="SemiBold"
                                        Foreground="{DynamicResource AccentBrush}"
@@ -131,7 +131,7 @@
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,1,0,0">
             <TextBlock x:Name="TxtStatus" Text=""
-                       FontSize="12" FontFamily="Consolas"
+                       FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                        Foreground="{DynamicResource TextSecondaryBrush}"/>
         </Border>
     </Grid>

@@ -18,14 +18,14 @@
                 <Button x:Name="BtnHelp" DockPanel.Dock="Right" Content="?"
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="6,2" FontSize="12" FontWeight="Bold"
+                        Padding="6,2" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
                         Width="24" Height="24" Margin="8,0,0,0"/>
                 <TextBlock x:Name="HeaderTitle" Text=""
-                           FontSize="14" FontWeight="SemiBold"
+                           FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
                            VerticalAlignment="Center" DockPanel.Dock="Left"/>
                 <TextBlock x:Name="TxtPingCount" Text=""
-                           FontSize="12" Margin="12,0,0,0"
+                           FontSize="{StaticResource FontSizeBody}" Margin="12,0,0,0"
                            Foreground="{DynamicResource TextSecondaryBrush}"
                            VerticalAlignment="Center" DockPanel.Dock="Right"
                            HorizontalAlignment="Right"/>
@@ -67,7 +67,7 @@
 
                     <TextBlock x:Name="LblInterval" Text=""
                                Foreground="{DynamicResource TextSecondaryBrush}"
-                               FontSize="12" VerticalAlignment="Center" Margin="8,0,4,0"/>
+                               FontSize="{StaticResource FontSizeBody}" VerticalAlignment="Center" Margin="8,0,4,0"/>
                     <ComboBox x:Name="CmbInterval" Width="70"
                               SelectedIndex="1"
                               VerticalAlignment="Center"
@@ -83,9 +83,9 @@
 
                     <TextBlock x:Name="LblTimeout" Text=""
                                Foreground="{DynamicResource TextSecondaryBrush}"
-                               FontSize="12" VerticalAlignment="Center" Margin="8,0,4,0"/>
+                               FontSize="{StaticResource FontSizeBody}" VerticalAlignment="Center" Margin="8,0,4,0"/>
                     <TextBox x:Name="TxtTimeout" Text="2000" Width="60"
-                             FontSize="12" FontFamily="Consolas"
+                             FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                              Padding="4,4"
                              Background="{DynamicResource CardBrush}"
                              Foreground="{DynamicResource TextPrimaryBrush}"
@@ -94,9 +94,9 @@
 
                     <TextBlock x:Name="LblCount" Text=""
                                Foreground="{DynamicResource TextSecondaryBrush}"
-                               FontSize="12" VerticalAlignment="Center" Margin="8,0,4,0"/>
+                               FontSize="{StaticResource FontSizeBody}" VerticalAlignment="Center" Margin="8,0,4,0"/>
                     <TextBox x:Name="TxtCount" Text="0" Width="50"
-                             FontSize="12" FontFamily="Consolas"
+                             FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                              Padding="4,4"
                              Background="{DynamicResource CardBrush}"
                              Foreground="{DynamicResource TextPrimaryBrush}"
@@ -151,7 +151,7 @@
                               VerticalScrollBarVisibility="Auto"
                               Padding="8,4">
                     <TextBlock x:Name="TxtLog" Text=""
-                               FontSize="12" FontFamily="Consolas"
+                               FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                                Foreground="{DynamicResource TextPrimaryBrush}"
                                TextWrapping="Wrap"/>
                 </ScrollViewer>
@@ -164,41 +164,41 @@
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,1,0,0">
             <StackPanel Orientation="Horizontal">
-                <TextBlock x:Name="LblMin" Text="" FontSize="12" FontFamily="Consolas"
+                <TextBlock x:Name="LblMin" Text="" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                            Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,4,0"/>
-                <TextBlock x:Name="TxtMin" Text="—" FontSize="12" FontFamily="Consolas"
+                <TextBlock x:Name="TxtMin" Text="—" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                            Foreground="{DynamicResource SuccessBrush}" FontWeight="SemiBold"/>
 
-                <TextBlock Text="  |  " FontSize="12"
+                <TextBlock Text="  |  " FontSize="{StaticResource FontSizeBody}"
                            Foreground="{DynamicResource BorderBrush}"/>
 
-                <TextBlock x:Name="LblAvg" Text="" FontSize="12" FontFamily="Consolas"
+                <TextBlock x:Name="LblAvg" Text="" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                            Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,4,0"/>
-                <TextBlock x:Name="TxtAvg" Text="—" FontSize="12" FontFamily="Consolas"
+                <TextBlock x:Name="TxtAvg" Text="—" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                            Foreground="{DynamicResource AccentBrush}" FontWeight="SemiBold"/>
 
-                <TextBlock Text="  |  " FontSize="12"
+                <TextBlock Text="  |  " FontSize="{StaticResource FontSizeBody}"
                            Foreground="{DynamicResource BorderBrush}"/>
 
-                <TextBlock x:Name="LblMax" Text="" FontSize="12" FontFamily="Consolas"
+                <TextBlock x:Name="LblMax" Text="" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                            Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,4,0"/>
-                <TextBlock x:Name="TxtMax" Text="—" FontSize="12" FontFamily="Consolas"
+                <TextBlock x:Name="TxtMax" Text="—" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                            Foreground="{DynamicResource WarningBrush}" FontWeight="SemiBold"/>
 
-                <TextBlock Text="  |  " FontSize="12"
+                <TextBlock Text="  |  " FontSize="{StaticResource FontSizeBody}"
                            Foreground="{DynamicResource BorderBrush}"/>
 
-                <TextBlock x:Name="LblJitter" Text="" FontSize="12" FontFamily="Consolas"
+                <TextBlock x:Name="LblJitter" Text="" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                            Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,4,0"/>
-                <TextBlock x:Name="TxtJitter" Text="—" FontSize="12" FontFamily="Consolas"
+                <TextBlock x:Name="TxtJitter" Text="—" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                            Foreground="{DynamicResource TextPrimaryBrush}" FontWeight="SemiBold"/>
 
-                <TextBlock Text="  |  " FontSize="12"
+                <TextBlock Text="  |  " FontSize="{StaticResource FontSizeBody}"
                            Foreground="{DynamicResource BorderBrush}"/>
 
-                <TextBlock x:Name="LblLoss" Text="" FontSize="12" FontFamily="Consolas"
+                <TextBlock x:Name="LblLoss" Text="" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                            Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,4,0"/>
-                <TextBlock x:Name="TxtLoss" Text="—" FontSize="12" FontFamily="Consolas"
+                <TextBlock x:Name="TxtLoss" Text="—" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                            Foreground="{DynamicResource ErrorBrush}" FontWeight="SemiBold"/>
             </StackPanel>
         </Border>

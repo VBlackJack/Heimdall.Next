@@ -29,7 +29,7 @@
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,0,0,1"
                 Margin="0,0,0,12">
-            <TextBlock x:Name="TitleText" FontSize="14" FontWeight="SemiBold"
+            <TextBlock x:Name="TitleText" FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                        Foreground="{DynamicResource TextPrimaryBrush}"/>
         </Border>
 
@@ -57,7 +57,7 @@
             </StackPanel>
             <TextBlock x:Name="InputLabel"
                        Foreground="{DynamicResource TextSecondaryBrush}"
-                       FontSize="12" VerticalAlignment="Center"/>
+                       FontSize="{StaticResource FontSizeBody}" VerticalAlignment="Center"/>
         </DockPanel>
 
         <!-- Input text area -->
@@ -94,7 +94,7 @@
             </Grid.RowDefinitions>
             <TextBlock x:Name="OutputLabel" Grid.Row="0"
                        Foreground="{DynamicResource TextSecondaryBrush}"
-                       FontSize="12" Margin="0,0,0,4"/>
+                       FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,4"/>
             <TextBox x:Name="OutputText" Grid.Row="1"
                      IsReadOnly="True"
                      AcceptsReturn="True"
@@ -123,7 +123,7 @@
                     Visibility="Collapsed"/>
             <TextBlock x:Name="StatusText"
                        Foreground="{DynamicResource TextSecondaryBrush}"
-                       FontSize="11" VerticalAlignment="Center"/>
+                       FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center"/>
         </DockPanel>
         </Grid>
     </Grid>

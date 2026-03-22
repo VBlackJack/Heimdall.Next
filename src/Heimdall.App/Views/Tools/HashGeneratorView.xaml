@@ -18,10 +18,10 @@
                 <Button x:Name="BtnHelp" DockPanel.Dock="Right" Content="?"
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="6,2" FontSize="12" FontWeight="Bold"
+                        Padding="6,2" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
                         Width="24" Height="24" Margin="8,0,0,0"/>
                 <TextBlock x:Name="HeaderTitle" Text=""
-                           FontSize="14" FontWeight="SemiBold"
+                           FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
                            VerticalAlignment="Center"/>
             </DockPanel>
@@ -33,7 +33,7 @@
 
                 <!-- Input text -->
                 <TextBlock x:Name="LblInput" Text=""
-                           FontSize="12" Margin="0,0,0,4"
+                           FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,4"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
                 <TextBox x:Name="TxtInput" Text=""
                          FontSize="13" FontFamily="Consolas"
@@ -61,7 +61,7 @@
                                 Padding="12,6" Margin="8,0,0,0"
                                 VerticalAlignment="Center"/>
                         <TextBlock x:Name="TxtFileDropZone"
-                                   FontSize="12"
+                                   FontSize="{StaticResource FontSizeBody}"
                                    Foreground="{DynamicResource TextSecondaryBrush}"
                                    VerticalAlignment="Center"
                                    TextWrapping="Wrap"/>
@@ -84,14 +84,14 @@
                             Visibility="Collapsed"
                             VerticalAlignment="Center"/>
                     <TextBlock x:Name="TxtFileStatus" Text=""
-                               FontSize="11"
+                               FontSize="{StaticResource FontSizeCaption}"
                                Foreground="{DynamicResource TextSecondaryBrush}"
                                VerticalAlignment="Center"/>
                 </DockPanel>
 
                 <!-- All hash results -->
                 <TextBlock x:Name="LblResults" Text=""
-                           FontSize="12" Margin="0,16,0,8"
+                           FontSize="{StaticResource FontSizeBody}" Margin="0,16,0,8"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
                 <Border Background="{DynamicResource CardBrush}"
                         BorderBrush="{DynamicResource BorderBrush}"
@@ -102,12 +102,12 @@
 
                 <!-- Byte length indicator -->
                 <TextBlock x:Name="TxtByteLength" Text=""
-                           FontSize="11"
+                           FontSize="{StaticResource FontSizeCaption}"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
 
                 <!-- Verify field -->
                 <TextBlock x:Name="LblVerify" Text=""
-                           FontSize="12" Margin="0,16,0,4"
+                           FontSize="{StaticResource FontSizeBody}" Margin="0,16,0,4"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
                 <TextBox x:Name="TxtVerify" Text=""
                          FontSize="13" FontFamily="Consolas"
@@ -118,7 +118,7 @@
                          TextChanged="OnVerifyTextChanged"
                          />
                 <TextBlock x:Name="TxtVerifyResult" Text=""
-                           FontSize="12" Margin="0,0,0,8"
+                           FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,8"
                            FontWeight="SemiBold"/>
 
             </StackPanel>

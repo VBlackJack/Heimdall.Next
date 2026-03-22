@@ -69,6 +69,11 @@ public partial class ProjectDialog : Window
                     var label = vm.Localizer[key];
                     System.Windows.Automation.AutomationProperties.SetName(rb, label);
                     rb.ToolTip = label;
+                    rb.Checked += (_, _) => SelectedColorLabel.Text = label;
+                    if (rb.IsChecked == true)
+                    {
+                        SelectedColorLabel.Text = label;
+                    }
                 }
             }
         };

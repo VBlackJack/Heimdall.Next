@@ -20,10 +20,10 @@
                 <Button x:Name="BtnHelp" DockPanel.Dock="Right" Content="?"
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="6,2" FontSize="12" FontWeight="Bold"
+                        Padding="6,2" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
                         Width="24" Height="24" Margin="8,0,0,0"/>
                 <TextBlock x:Name="HeaderTitle" Text=""
-                           FontSize="14" FontWeight="SemiBold"
+                           FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
                            VerticalAlignment="Center" DockPanel.Dock="Left"/>
                 <StackPanel Orientation="Horizontal" Margin="16,0,0,0" VerticalAlignment="Center">
@@ -44,7 +44,7 @@
                              VerticalAlignment="Center"
 />
                     <TextBlock x:Name="LblRouteVia" Text=""
-                               FontSize="11" VerticalAlignment="Center" Margin="12,0,4,0"
+                               FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center" Margin="12,0,4,0"
                                Foreground="{DynamicResource TextSecondaryBrush}"/>
                     <ComboBox x:Name="CmbRouteVia" Width="180"
                               SelectionChanged="OnRouteViaChanged"
@@ -75,26 +75,26 @@
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <Button x:Name="BtnPresetWeb" Click="OnPresetClick" Tag="80,443,8080,8443"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="8,3" Margin="0,0,4,0" FontSize="11"/>
+                            Padding="8,3" Margin="0,0,4,0" FontSize="{StaticResource FontSizeCaption}"/>
                     <Button x:Name="BtnPresetSshRemote" Click="OnPresetClick" Tag="22,23,3389,5900"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="8,3" Margin="0,0,4,0" FontSize="11"/>
+                            Padding="8,3" Margin="0,0,4,0" FontSize="{StaticResource FontSizeCaption}"/>
                     <Button x:Name="BtnPresetDatabase" Click="OnPresetClick" Tag="3306,5432,1433,6379,27017"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="8,3" Margin="0,0,4,0" FontSize="11"/>
+                            Padding="8,3" Margin="0,0,4,0" FontSize="{StaticResource FontSizeCaption}"/>
                     <Button x:Name="BtnPresetCommon" Click="OnPresetClick" Tag="21,22,23,25,53,80,110,143,443,993,995,3389,5900,8080"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="8,3" Margin="0,0,4,0" FontSize="11"/>
+                            Padding="8,3" Margin="0,0,4,0" FontSize="{StaticResource FontSizeCaption}"/>
                     <Button x:Name="BtnPresetFull" Click="OnPresetClick" Tag="1-1024"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="8,3" FontSize="11"/>
+                            Padding="8,3" FontSize="{StaticResource FontSizeCaption}"/>
                 </StackPanel>
             </DockPanel>
         </Border>
 
         <!-- Validation error -->
         <TextBlock x:Name="TxtError" Grid.Row="2" Text="" Visibility="Collapsed"
-                   FontSize="12" Margin="12,4,12,0" TextWrapping="Wrap"
+                   FontSize="{StaticResource FontSizeBody}" Margin="12,4,12,0" TextWrapping="Wrap"
                    Foreground="{DynamicResource ErrorBrush}"/>
 
         <!-- Progress bar with percentage overlay -->
@@ -106,12 +106,12 @@
                          Background="{DynamicResource SurfaceBrush}"/>
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
                 <TextBlock x:Name="TxtProgressPercent" Text="0%"
-                           FontSize="11" FontWeight="SemiBold"
+                           FontSize="{StaticResource FontSizeCaption}" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"/>
-                <TextBlock Text="  —  " FontSize="11"
+                <TextBlock Text="  —  " FontSize="{StaticResource FontSizeCaption}"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
                 <TextBlock x:Name="TxtProgressCount" Text="0 / 0"
-                           FontSize="11"
+                           FontSize="{StaticResource FontSizeCaption}"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
             </StackPanel>
         </Grid>
@@ -185,25 +185,25 @@
                         VerticalAlignment="Center"
 />
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <TextBlock x:Name="LblOpen" Text="" FontSize="12" FontFamily="Consolas"
+                    <TextBlock x:Name="LblOpen" Text="" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                                Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,4,0"/>
-                    <TextBlock x:Name="TxtOpen" Text="—" FontSize="12" FontFamily="Consolas"
+                    <TextBlock x:Name="TxtOpen" Text="—" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                                Foreground="{DynamicResource SuccessBrush}" FontWeight="SemiBold"/>
 
-                    <TextBlock Text="  |  " FontSize="12"
+                    <TextBlock Text="  |  " FontSize="{StaticResource FontSizeBody}"
                                Foreground="{DynamicResource BorderBrush}"/>
 
-                    <TextBlock x:Name="LblClosed" Text="" FontSize="12" FontFamily="Consolas"
+                    <TextBlock x:Name="LblClosed" Text="" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                                Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,4,0"/>
-                    <TextBlock x:Name="TxtClosed" Text="—" FontSize="12" FontFamily="Consolas"
+                    <TextBlock x:Name="TxtClosed" Text="—" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                                Foreground="{DynamicResource ErrorBrush}" FontWeight="SemiBold"/>
 
-                    <TextBlock Text="  |  " FontSize="12"
+                    <TextBlock Text="  |  " FontSize="{StaticResource FontSizeBody}"
                                Foreground="{DynamicResource BorderBrush}"/>
 
-                    <TextBlock x:Name="LblTotal" Text="" FontSize="12" FontFamily="Consolas"
+                    <TextBlock x:Name="LblTotal" Text="" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                                Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,4,0"/>
-                    <TextBlock x:Name="TxtTotal" Text="—" FontSize="12" FontFamily="Consolas"
+                    <TextBlock x:Name="TxtTotal" Text="—" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                                Foreground="{DynamicResource AccentBrush}" FontWeight="SemiBold"/>
                 </StackPanel>
             </DockPanel>

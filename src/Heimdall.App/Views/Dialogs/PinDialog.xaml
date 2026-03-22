@@ -35,7 +35,7 @@
 
         <!-- Title -->
         <TextBlock x:Name="PinTitleText" Grid.Row="0"
-                   FontSize="18" FontWeight="SemiBold"
+                   FontSize="{StaticResource FontSizeTitle}" FontWeight="SemiBold"
                    Foreground="{DynamicResource TextPrimaryBrush}"
                    HorizontalAlignment="Center"
                    Margin="0,0,0,16"/>
@@ -60,7 +60,7 @@
         <TextBlock Grid.Row="2"
                    Text="{Binding ErrorMessage}"
                    Foreground="{DynamicResource ErrorBrush}"
-                   FontSize="12"
+                   FontSize="{StaticResource FontSizeBody}"
                    HorizontalAlignment="Center"
                    Margin="0,8,0,0"
                    TextWrapping="Wrap"
@@ -75,7 +75,7 @@
                 Visibility="{Binding IsLockedOut, Converter={StaticResource BoolToVisibilityConverter}}">
             <TextBlock Text="{Binding LockoutMessage}"
                        Foreground="{DynamicResource WarningBrush}"
-                       FontSize="12"
+                       FontSize="{StaticResource FontSizeBody}"
                        TextWrapping="Wrap"
                        HorizontalAlignment="Center"/>
         </Border>

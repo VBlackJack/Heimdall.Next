@@ -36,10 +36,10 @@
                 <Button x:Name="BtnHelp" DockPanel.Dock="Right" Content="?"
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="6,2" FontSize="12" FontWeight="Bold"
+                        Padding="6,2" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
                         Width="24" Height="24" Margin="8,0,0,0"/>
                 <TextBlock x:Name="HeaderTitle" Text=""
-                           FontSize="14" FontWeight="SemiBold"
+                           FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
                            VerticalAlignment="Center"/>
             </DockPanel>
@@ -51,7 +51,7 @@
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,0,0,1">
             <WrapPanel VerticalAlignment="Center">
-                <TextBlock x:Name="LblSubnet" Text="" FontSize="12"
+                <TextBlock x:Name="LblSubnet" Text="" FontSize="{StaticResource FontSizeBody}"
                            Foreground="{DynamicResource TextSecondaryBrush}"
                            VerticalAlignment="Center" Margin="0,0,6,0"/>
                 <TextBox x:Name="TxtSubnet" Text="192.168.1.0/24" Width="180"
@@ -62,7 +62,7 @@
                          BorderBrush="{DynamicResource BorderBrush}"
                          VerticalAlignment="Center"/>
 
-                <TextBlock x:Name="LblDepth" Text="" FontSize="12"
+                <TextBlock x:Name="LblDepth" Text="" FontSize="{StaticResource FontSizeBody}"
                            Foreground="{DynamicResource TextSecondaryBrush}"
                            VerticalAlignment="Center" Margin="16,0,6,0"/>
                 <ComboBox x:Name="CmbDepth" Width="160"
@@ -79,7 +79,7 @@
                           VerticalAlignment="Center" Margin="16,0,0,0"/>
 
                 <TextBlock x:Name="LblRouteVia" Text=""
-                           FontSize="11" VerticalAlignment="Center" Margin="16,0,4,0"
+                           FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center" Margin="16,0,4,0"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
                 <ComboBox x:Name="CmbRouteVia" Width="180"
                           SelectionChanged="OnRouteViaChanged"
@@ -107,7 +107,7 @@
                          Minimum="0" Maximum="100"
                          Foreground="{DynamicResource AccentBrush}"
                          Background="{DynamicResource SurfaceBrush}"/>
-            <TextBlock x:Name="TxtStatus" Text="" FontSize="11"
+            <TextBlock x:Name="TxtStatus" Text="" FontSize="{StaticResource FontSizeCaption}"
                        Foreground="{DynamicResource TextSecondaryBrush}"
                        Margin="12,2,12,4"/>
         </StackPanel>
@@ -199,7 +199,7 @@
                             Padding="12,6"
                             VerticalAlignment="Center"/>
                 </StackPanel>
-                <TextBlock x:Name="TxtStats" Text="" FontSize="12" FontFamily="Consolas"
+                <TextBlock x:Name="TxtStats" Text="" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                            Foreground="{DynamicResource TextSecondaryBrush}"
                            VerticalAlignment="Center"/>
             </DockPanel>
@@ -211,7 +211,7 @@
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,1,0,0">
-            <TextBlock x:Name="TxtDiff" Text="" FontSize="12" FontFamily="Consolas"
+            <TextBlock x:Name="TxtDiff" Text="" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                        Foreground="{DynamicResource AccentBrush}"
                        TextWrapping="Wrap"/>
         </Border>
