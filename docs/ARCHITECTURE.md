@@ -10,7 +10,7 @@
 
 # Architecture
 
-Heimdall.Next is a .NET 10 WPF application organized as a multi-project solution with strict dependency boundaries. Supports RDP, SSH, SFTP, FTP, VNC, Telnet, Citrix, and Local Shell connection types with ~3,035 i18n keys per locale (EN/FR), 33 built-in sysops tools with contextual help, cross-tool navigation, and 1,213 automated tests. Health monitor polls in parallel (Task.WhenAll), XML importers hardened against XXE, all Debug.WriteLine replaced with FileLogger.
+Heimdall.Next is a .NET 10 WPF application organized as a multi-project solution with strict dependency boundaries. Supports RDP, SSH, SFTP, FTP, VNC, Telnet, Citrix, and Local Shell connection types with ~3,029 i18n keys per locale (EN/FR), 33 built-in sysops tools with contextual help, cross-tool navigation, and 1,213 automated tests. Health monitor polls in parallel (Task.WhenAll), XML importers hardened against XXE, all Debug.WriteLine replaced with FileLogger. Design System with typography/spacing tokens, micro-animations, and per-category tool icons.
 
 ## Solution Structure
 
@@ -280,6 +280,34 @@ Toolbar toggle button switches directory listing from SFTP `ListDirectory` to `s
 
 **Solution**: `X11ServerManager` detects running X server processes by scanning known process names. If none is found, it searches known installation paths and starts the first available server automatically. The `DISPLAY` environment variable is set to `localhost:0.0` for the SSH session. The manager disposes the started process on shutdown.
 
+## Design System (CommonControls.xaml)
+
+The application uses a centralized Design System defined in `CommonControls.xaml`:
+
+**Typography tokens** — `sys:Double` resources for consistent font sizing:
+- `FontSizeCaption` (11), `FontSizeBody` (12), `FontSizeSubtitle` (14), `FontSizeTitle` (18), `FontSizeHeadline` (24)
+- Usage: `FontSize="{StaticResource FontSizeBody}"` instead of `FontSize="12"`
+- Asymmetric sizes (9, 13, 15, 20, 36) remain hardcoded as one-off values
+
+**Spacing tokens** — `Thickness` resources for uniform margins/padding:
+- `SpacingXs` (4), `SpacingSm` (8), `SpacingMd` (12), `SpacingLg` (16), `SpacingXl` (24)
+- Only applicable to uniform margins (`Margin="8"` → `{StaticResource SpacingSm}`)
+- Asymmetric margins (`Margin="0,0,8,0"`) stay hardcoded — XAML `Thickness` resources are always uniform
+
+**Tool category brushes** — 4 distinct colors per tool category (defined in both Light/Dark themes):
+- `ToolNetworkBrush` (blue), `ToolSecurityBrush` (amber), `ToolEncodingBrush` (purple), `ToolSystemBrush` (teal)
+- Each tool has a per-tool glyph (Segoe MDL2 Assets) + category color in tree view and palette
+
+**Micro-animations** — Subtle transitions for panels toggling visibility:
+- `FadeInPanelStyle`: `DoubleAnimation` opacity 0→1 in 150ms on `Visibility=Visible`
+- Duration tokens: `AnimationFast` (150ms), `AnimationMedium` (250ms)
+- Applied to: session loading overlay, SSH/RDP/VNC reconnect overlays
+
+**Global defaults**:
+- `DataGrid.ClipboardCopyMode="IncludeHeader"` — enables native Ctrl+C on all DataGrids
+- `TextBox.IsReadOnly` trigger — `SurfaceBrush` background + `Opacity=0.75` for read-only fields
+- `TreeViewItem`/`ListBoxItem` — `IsKeyboardFocused` trigger with `AccentBrush` border
+
 ## Connection Flow
 
 ```
@@ -413,7 +441,7 @@ Build editions:
 
 ### ToolRegistry (Single Source of Truth)
 
-All 31 built-in tools are registered in `ToolRegistry` (singleton). Each tool is described by a `ToolDescriptor` record:
+All 33 built-in tools are registered in `ToolRegistry` (singleton). Each tool is described by a `ToolDescriptor` record:
 
 ```csharp
 public record ToolDescriptor(
@@ -438,10 +466,20 @@ The registry eliminates three formerly-duplicated lists (menu definitions, palet
 public interface IToolView : IDisposable
 {
     void Initialize(ToolContext? context, LocalizationManager? localizer);
+    bool CanClose() => true; // default implementation, override to prevent close during async ops
 }
 ```
 
-All tool views implement this contract. `EmbeddedSessionManager.CreateToolControl()` uses the registry's factory delegate to instantiate views without any protocol-specific switch logic.
+All tool views implement this contract. `EmbeddedSessionManager.CreateToolControl()` uses the registry's factory delegate to instantiate views without any protocol-specific switch logic. `ConnectionViewModel.CloseSessionInternal()` checks `CanClose()` before disposing tool tabs.
+
+### ToolContextMenuHelper (Shared DataGrid Actions)
+
+Standard context menu actions shared across tool DataGrids:
+- `BuildHostActions()`: cross-tool navigation (Ping, PortScan, DNS, Whois, Cert, Browser, Add to servers)
+- `BuildCopyRowAction()`: copy selected row as tab-separated text
+- `BuildCopyAllAction()`: copy all rows with headers
+- `BuildExportCsvAction()`: export DataGrid to CSV file via SaveFileDialog
+- `SelectRowOnRightClick()`: select row under cursor on right-click
 
 ### ToolContext (Enriched Server Context)
 
