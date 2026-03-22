@@ -386,6 +386,7 @@ public partial class MainWindow : Window
         System.Windows.Automation.AutomationProperties.SetName(CollapseAllButton, vm.Localize("TooltipCollapseAll"));
         System.Windows.Automation.AutomationProperties.SetName(AddButton, vm.Localize("TooltipAddMenu"));
         System.Windows.Automation.AutomationProperties.SetName(SessionTabControl, vm.Localize("NavTabSessions"));
+        System.Windows.Automation.AutomationProperties.SetName(QuickConnectButton, vm.Localize("QuickConnectShortcut"));
         System.Windows.Automation.AutomationProperties.SetName(BtnCollapseTools, vm.Localize("ToolsPanelCollapse"));
     }
 

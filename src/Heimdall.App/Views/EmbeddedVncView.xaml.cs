@@ -82,6 +82,12 @@ public partial class EmbeddedVncView : UserControl, IDisposable
 
         // Localize static UI elements
         DisconnectButton.Content = localizer?["BtnDisconnectSession"] ?? "Disconnect";
+        ReconnectButton.Content = localizer?["BtnReconnectSession"] ?? "Reconnect";
+        SplitButton.ToolTip = localizer?["TooltipSplitSession"] ?? "Split pane";
+        ReconnectMessageText.Text = localizer?["VncDisconnectedOverlay"] ?? "VNC session disconnected";
+        OverlayReconnectButton.Content = localizer?["BtnReconnectSession"] ?? "Reconnect";
+        OverlayCloseButton.Content = localizer?["BtnCloseOverlay"] ?? "Close";
+        System.Windows.Automation.AutomationProperties.SetName(SplitButton, localizer?["TooltipSplitSession"] ?? "Split pane");
         FallbackTitleText.Text = localizer?["VncFallbackTitle"] ?? "Embedded VNC viewer unavailable";
         FallbackMessageText.Text = localizer?["VncFallbackMessage"] ?? "WebView2 could not be initialized on this machine.";
 
@@ -335,6 +341,52 @@ public partial class EmbeddedVncView : UserControl, IDisposable
         PostWebMessage("disconnect:");
         Dispose();
     }
+
+    private void OnReconnectClick(object sender, RoutedEventArgs e)
+    {
+        ReconnectOverlay.Visibility = Visibility.Collapsed;
+        ReconnectButton.Visibility = Visibility.Collapsed;
+        RequestReconnect?.Invoke(_session?.ServerId ?? "");
+    }
+
+    private void OnOverlayReconnectClick(object sender, RoutedEventArgs e)
+    {
+        ReconnectOverlay.Visibility = Visibility.Collapsed;
+        ReconnectButton.Visibility = Visibility.Collapsed;
+        RequestReconnect?.Invoke(_session?.ServerId ?? "");
+    }
+
+    private void OnOverlayCloseClick(object sender, RoutedEventArgs e)
+    {
+        ReconnectOverlay.Visibility = Visibility.Collapsed;
+        Dispose();
+    }
+
+    private void OnSplitClick(object sender, RoutedEventArgs e)
+    {
+        RequestSplit?.Invoke(_sessionTab);
+    }
+
+    /// <summary>Shows the reconnect overlay and header button after an unexpected disconnect.</summary>
+    public void ShowReconnectOverlay(string? message = null)
+    {
+        Dispatcher.Invoke(() =>
+        {
+            if (!string.IsNullOrEmpty(message))
+            {
+                ReconnectMessageText.Text = message;
+            }
+
+            ReconnectOverlay.Visibility = Visibility.Visible;
+            ReconnectButton.Visibility = Visibility.Visible;
+        });
+    }
+
+    /// <summary>Raised to request a reconnect. Parameter: ServerId.</summary>
+    public event Action<string>? RequestReconnect;
+
+    /// <summary>Raised to request a split pane. Parameter: SessionTab.</summary>
+    public event Action<SessionTabViewModel?>? RequestSplit;
 
     public void Dispose()
     {

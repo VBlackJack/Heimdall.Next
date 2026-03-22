@@ -41,6 +41,12 @@
                                Foreground="{DynamicResource TextPrimaryBrush}"
                                VerticalAlignment="Center"
                                TextTrimming="CharacterEllipsis"/>
+                    <TextBlock Text=" - " Foreground="{DynamicResource TextSecondaryBrush}"
+                               FontSize="11" VerticalAlignment="Center"/>
+                    <TextBlock x:Name="StatusText" Text=""
+                               FontSize="11"
+                               Foreground="{DynamicResource TextPrimaryBrush}"
+                               VerticalAlignment="Center"/>
                     <TextBlock x:Name="TunnelRouteText" Text=""
                                FontSize="9"
                                Foreground="{DynamicResource TextSecondaryBrush}"

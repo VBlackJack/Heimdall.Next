@@ -36,12 +36,28 @@ public partial class ServerDialog : Window
         InitializeComponent();
         WindowThemeHelper.ApplyCurrentTheme(this);
         ApplyLocalization();
+        RegisterTabFallback();
     }
 
     public ServerDialog()
     {
         InitializeComponent();
         WindowThemeHelper.ApplyCurrentTheme(this);
+        RegisterTabFallback();
+    }
+
+    private void RegisterTabFallback()
+    {
+        DlgSrv_TabTunneling.IsVisibleChanged += OnTabVisibilityChanged;
+        DlgSrv_TabAuthentication.IsVisibleChanged += OnTabVisibilityChanged;
+    }
+
+    private void OnTabVisibilityChanged(object sender, DependencyPropertyChangedEventArgs e)
+    {
+        if (e.NewValue is false && sender is System.Windows.Controls.TabItem tab && tab.IsSelected)
+        {
+            MainTabControl.SelectedItem = DlgSrv_TabConnection;
+        }
     }
 
     private void OnSaveClick(object sender, RoutedEventArgs e)

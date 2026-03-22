@@ -2034,6 +2034,7 @@
 
   "VncFallbackTitle": "Embedded VNC viewer unavailable",
   "VncFallbackMessage": "WebView2 could not be initialized on this machine.",
+  "VncDisconnectedOverlay": "VNC session disconnected unexpectedly",
 
   "VncViewerNotFound": "VNC viewer HTML not found.",
   "StatusCitrixConnecting": "Connecting to Citrix...",
