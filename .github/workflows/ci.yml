@@ -18,7 +18,7 @@ jobs:
           dotnet-version: '10.0.x'
 
       - name: Restore
-        run: dotnet restore Heimdall.slnx
+        run: dotnet restore Heimdall.slnx --source https://api.nuget.org/v3/index.json
 
       - name: Check code formatting
         run: dotnet format Heimdall.slnx --no-restore --verify-no-changes --verbosity diagnostic
