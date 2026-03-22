@@ -1752,9 +1752,12 @@
         </Style.Triggers>
     </Style>
 
-    <!-- Enable Ctrl+C copy on all DataGrids by default -->
-    <Style TargetType="{x:Type DataGrid}">
+    <!-- Apply themed styles to all DataGrids by default -->
+    <Style TargetType="{x:Type DataGrid}" BasedOn="{StaticResource ThemedDataGridStyle}">
         <Setter Property="ClipboardCopyMode" Value="IncludeHeader"/>
+        <Setter Property="ColumnHeaderStyle" Value="{StaticResource ThemedDataGridColumnHeaderStyle}"/>
+        <Setter Property="CellStyle" Value="{StaticResource ThemedDataGridCellStyle}"/>
+        <Setter Property="RowStyle" Value="{StaticResource ThemedDataGridRowStyle}"/>
     </Style>
 
     <!-- ========================================================= -->
