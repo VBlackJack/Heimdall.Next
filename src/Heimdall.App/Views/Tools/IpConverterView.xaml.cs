@@ -85,6 +85,9 @@ public partial class IpConverterView : UserControl, IToolView
         BtnCopyIpv6.ToolTip = copyTooltip;
 
         System.Windows.Automation.AutomationProperties.SetName(TxtInput, L("ToolIpConvInputLabel"));
+
+        BtnHelp.ToolTip = L("ToolHelpTooltip");
+        System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
     }
 
     private void OnInputTextChanged(object sender, TextChangedEventArgs e)
@@ -204,6 +207,12 @@ public partial class IpConverterView : UserControl, IToolView
             Clipboard.SetText(text);
             CopyFeedbackHelper.ShowCopyFeedback(btn);
         }
+    }
+
+    private void OnHelpClick(object sender, RoutedEventArgs e)
+    {
+        var helpText = L("ToolHelpIPCONV");
+        MessageBox.Show(helpText, L("ToolHelpTitle"), MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
     private string L(string key) => _localizer?[key] ?? key;

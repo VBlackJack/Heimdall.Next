@@ -22,7 +22,7 @@
             <!-- Main content -->
             <RowDefinition Height="*"/>
             <!-- Status bar -->
-            <RowDefinition x:Name="StatusBarRow" Height="28"/>
+            <RowDefinition x:Name="StatusBarRow" Height="36"/>
         </Grid.RowDefinitions>
 
         <!-- TOOLBAR -->
@@ -360,7 +360,7 @@
                                             <Setter TargetName="TypeIcon" Property="Text" Value="&#xE8B7;"/>
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding ConnectionType}" Value="Local">
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE756;"/>
+                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE770;"/>
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding ConnectionType}" Value="Citrix">
                                             <Setter TargetName="TypeIcon" Property="Text" Value="&#xE753;"/>
@@ -369,10 +369,10 @@
                                             <Setter TargetName="TypeIcon" Property="Text" Value="&#xE7F4;"/>
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding ConnectionType}" Value="Telnet">
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE756;"/>
+                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE968;"/>
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding ConnectionType}" Value="FTP">
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE8B7;"/>
+                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE896;"/>
                                         </DataTrigger>
                                         <!-- ── Network tools (blue) ── -->
                                         <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:PING">

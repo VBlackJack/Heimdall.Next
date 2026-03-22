@@ -65,7 +65,7 @@
                 BorderThickness="0,0,0,1">
             <TextBox x:Name="PathTextBox"
                      Style="{DynamicResource ThemedTextBoxStyle}"
-                     FontSize="{StaticResource FontSizeCaption}" FontFamily="Consolas"
+                     FontSize="{StaticResource FontSizeCaption}" FontFamily="{StaticResource FontFamilyMonospace}"
                      VerticalContentAlignment="Center"
                      KeyDown="OnPathKeyDown"/>
         </Border>
@@ -120,7 +120,7 @@
                     <Setter Property="Background" Value="Transparent"/>
                     <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
                     <Setter Property="Padding" Value="3,3"/>
-                    <Setter Property="MinHeight" Value="24"/>
+                    <Setter Property="MinHeight" Value="26"/>
                     <Setter Property="BorderBrush" Value="Transparent"/>
                     <Setter Property="BorderThickness" Value="1"/>
                     <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
@@ -139,8 +139,8 @@
                         </Trigger>
                         <Trigger Property="IsFocused" Value="True">
                             <Setter Property="Background" Value="{DynamicResource CardBrush}"/>
-                            <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
-                            <Setter Property="BorderThickness" Value="3,0,0,0"/>
+                            <Setter Property="BorderBrush" Value="{DynamicResource FocusIndicatorBrush}"/>
+                            <Setter Property="BorderThickness" Value="1,1,1,1"/>
                         </Trigger>
                     </Style.Triggers>
                 </Style>
@@ -220,7 +220,7 @@
                    Visibility="Collapsed"/>
 
         <!-- Status bar -->
-        <Border Grid.Row="3" Padding="8,3"
+        <Border Grid.Row="3" Padding="{StaticResource SessionHeaderPadding}"
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,1,0,0">

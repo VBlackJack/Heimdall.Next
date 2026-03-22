@@ -35,7 +35,7 @@
         <!-- AvalonEdit Editor -->
         <avalon:TextEditor x:Name="Editor"
                            Grid.Row="1"
-                           FontFamily="Consolas"
+                           FontFamily="{StaticResource FontFamilyMonospace}"
                            FontSize="{StaticResource FontSizeBodyLarge}"
                            ShowLineNumbers="True"
                            WordWrap="False"
@@ -43,7 +43,7 @@
                            VerticalScrollBarVisibility="Auto"/>
 
         <!-- Status bar -->
-        <Border Grid.Row="2" Padding="8,3"
+        <Border Grid.Row="2" Padding="{StaticResource SessionHeaderPadding}"
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,1,0,0">

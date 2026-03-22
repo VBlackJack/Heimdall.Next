@@ -30,7 +30,7 @@
 
         <!-- Row 0: Header strip -->
         <Border Grid.Row="0"
-                Padding="10,5"
+                Padding="{StaticResource SessionHeaderPadding}"
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,0,0,1">
@@ -98,7 +98,7 @@
                     <TextBox x:Name="FilterTextBox"
                              Width="160"
                              Style="{DynamicResource SearchTextBoxStyle}"
-                             Tag="Filter..."
+                             Tag=""
                              FontSize="{StaticResource FontSizeCaption}"
                              VerticalContentAlignment="Center"
                              Margin="8,0,0,0"
@@ -234,7 +234,7 @@
                 <TextBox x:Name="PathTextBox"
                          Style="{DynamicResource ThemedTextBoxStyle}"
                          FontSize="{StaticResource FontSizeBody}"
-                         FontFamily="Consolas"
+                         FontFamily="{StaticResource FontFamilyMonospace}"
                          VerticalContentAlignment="Center"
                          KeyDown="OnPathKeyDown"/>
             </DockPanel>
@@ -332,11 +332,11 @@
                             <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
                             <Setter Property="BorderThickness" Value="3,0,0,0"/>
                         </Trigger>
-                        <!-- Keyboard focus -->
+                        <!-- Keyboard focus: dotted border to distinguish from selected -->
                         <Trigger Property="IsFocused" Value="True">
                             <Setter Property="Background" Value="{DynamicResource CardBrush}"/>
-                            <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
-                            <Setter Property="BorderThickness" Value="3,0,0,0"/>
+                            <Setter Property="BorderBrush" Value="{DynamicResource FocusIndicatorBrush}"/>
+                            <Setter Property="BorderThickness" Value="1,1,1,1"/>
                         </Trigger>
                     </Style.Triggers>
                 </Style>
@@ -476,7 +476,7 @@
 
         <!-- Row 5: Status bar -->
         <Border Grid.Row="5"
-                Padding="8,3"
+                Padding="{StaticResource SessionHeaderPadding}"
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,1,0,0">

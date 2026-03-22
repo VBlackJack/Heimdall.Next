@@ -131,6 +131,9 @@ public partial class DateTimeConverterView : UserControl, IToolView
         BtnCopyIsoLocal.ToolTip = L("ToolBtnCopyToClipboard");
         BtnCopyLocalTime.ToolTip = L("ToolBtnCopyToClipboard");
         BtnCopyTzTime.ToolTip = L("ToolBtnCopyToClipboard");
+
+        BtnHelp.ToolTip = L("ToolHelpTooltip");
+        System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
     }
 
     private void OnInputTextChanged(object sender, TextChangedEventArgs e)
@@ -327,6 +330,12 @@ public partial class DateTimeConverterView : UserControl, IToolView
                 Core.Logging.FileLogger.Warn($"DateTimeConverter clipboard copy failed: {ex.Message}");
             }
         }
+    }
+
+    private void OnHelpClick(object sender, RoutedEventArgs e)
+    {
+        var helpText = L("ToolHelpDATETIME");
+        MessageBox.Show(helpText, L("ToolHelpTitle"), MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
     private string L(string key) => _localizer?[key] ?? key;

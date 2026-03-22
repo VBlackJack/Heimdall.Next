@@ -9,12 +9,12 @@
     <Color x:Key="PrimaryColor">#F5F5F5</Color>
     <Color x:Key="SecondaryColor">#FFFFFF</Color>
     <Color x:Key="SurfaceColor">#FAFAFA</Color>
-    <Color x:Key="AccentColor">#6D28D9</Color>
-    <Color x:Key="AccentHoverColor">#5B21B6</Color>
-    <Color x:Key="AccentPressedColor">#4C1D95</Color>
+    <Color x:Key="AccentColor">#5B21B6</Color>
+    <Color x:Key="AccentHoverColor">#4C1D95</Color>
+    <Color x:Key="AccentPressedColor">#3B0F7A</Color>
     <Color x:Key="TextPrimaryColor">#1A1A2E</Color>
     <Color x:Key="TextSecondaryColor">#4B5563</Color>
-    <Color x:Key="TextDisabledColor">#8892A2</Color>
+    <Color x:Key="TextDisabledColor">#6B7888</Color>
     <Color x:Key="SuccessColor">#15803D</Color>
     <Color x:Key="WarningColor">#B45309</Color>
     <Color x:Key="ErrorColor">#DC2626</Color>
@@ -46,8 +46,8 @@
 
     <!-- Protocol accent color brushes (light theme — darker for readability on white) -->
     <SolidColorBrush x:Key="ProtocolRdpBrush" Color="#2563EB"/>
-    <SolidColorBrush x:Key="ProtocolSshBrush" Color="#16A34A"/>
-    <SolidColorBrush x:Key="ProtocolSftpBrush" Color="#D97706"/>
+    <SolidColorBrush x:Key="ProtocolSshBrush" Color="#0D6E3F"/>
+    <SolidColorBrush x:Key="ProtocolSftpBrush" Color="#B8620A"/>
     <SolidColorBrush x:Key="ProtocolVncBrush" Color="#0891B2"/>
     <SolidColorBrush x:Key="ProtocolTelnetBrush" Color="#6B7280"/>
     <SolidColorBrush x:Key="ProtocolFtpBrush" Color="#1D4ED8"/>
@@ -84,6 +84,9 @@
 
     <!-- Explicit white text for content displayed on accent-colored backgrounds -->
     <SolidColorBrush x:Key="TextOnAccentBrush" Color="#FFFFFF"/>
+
+    <!-- Keyboard focus indicator (high-contrast ring for accessibility) -->
+    <SolidColorBrush x:Key="FocusIndicatorBrush" Color="#1D4ED8"/>
 
     <!-- Overlay and feedback brushes -->
     <SolidColorBrush x:Key="OverlayBackground" Color="#A0FFFFFF"/>

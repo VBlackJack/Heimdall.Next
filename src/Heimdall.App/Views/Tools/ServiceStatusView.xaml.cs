@@ -88,6 +88,9 @@ public partial class ServiceStatusView : UserControl, IToolView
         AutomationProperties.SetName(BtnCopy, L("ToolServicesBtnCopy"));
         AutomationProperties.SetName(ChkRunningOnly, L("ToolServicesRunningOnly"));
         AutomationProperties.SetName(ChkAutoRefresh, L("ToolServicesAutoRefresh"));
+
+        BtnHelp.ToolTip = L("ToolHelpTooltip");
+        AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
     }
 
     // ── Data Loading ────────────────────────────────────────────
@@ -353,6 +356,12 @@ public partial class ServiceStatusView : UserControl, IToolView
             Clipboard.SetText(sb.ToString());
             CopyFeedbackHelper.ShowCopyFeedback(sender as Button);
         }
+    }
+
+    private void OnHelpClick(object sender, RoutedEventArgs e)
+    {
+        var helpText = L("ToolHelpSERVICES");
+        MessageBox.Show(helpText, L("ToolHelpTitle"), MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
     private string L(string key) => _localizer?[key] ?? key;

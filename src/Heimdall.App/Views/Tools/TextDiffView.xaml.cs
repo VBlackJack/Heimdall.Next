@@ -86,6 +86,9 @@ public partial class TextDiffView : UserControl, IToolView
         System.Windows.Automation.AutomationProperties.SetName(ChkIgnoreWhitespace, L("ToolDiffChkIgnoreWhitespace"));
         System.Windows.Automation.AutomationProperties.SetName(ChkIgnoreCase, L("ToolDiffChkIgnoreCase"));
         System.Windows.Automation.AutomationProperties.SetName(ChkAutoCompare, L("ToolDiffChkAutoCompare"));
+
+        BtnHelp.ToolTip = L("ToolHelpTooltip");
+        System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
     }
 
     private void OnDiffOptionChanged(object sender, RoutedEventArgs e)
@@ -416,6 +419,12 @@ public partial class TextDiffView : UserControl, IToolView
 
         result.Reverse();
         return result;
+    }
+
+    private void OnHelpClick(object sender, RoutedEventArgs e)
+    {
+        var helpText = L("ToolHelpDIFF");
+        MessageBox.Show(helpText, L("ToolHelpTitle"), MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
     private string L(string key) => _localizer?[key] ?? key;

@@ -107,6 +107,9 @@ public partial class ChmodCalculatorView : UserControl, IToolView
         BtnCopyOctal.ToolTip = L("ToolBtnCopyToClipboard");
         BtnCopySymbolic.ToolTip = L("ToolBtnCopyToClipboard");
         BtnCopyCommand.ToolTip = L("ToolBtnCopyToClipboard");
+
+        BtnHelp.ToolTip = L("ToolHelpTooltip");
+        System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
     }
 
     private void OnPermissionChanged(object sender, RoutedEventArgs e)
@@ -356,6 +359,12 @@ public partial class ChmodCalculatorView : UserControl, IToolView
             if (c < '0' || c > '7') return false;
         }
         return true;
+    }
+
+    private void OnHelpClick(object sender, RoutedEventArgs e)
+    {
+        var helpText = L("ToolHelpCHMOD");
+        MessageBox.Show(helpText, L("ToolHelpTitle"), MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
     private string L(string key) => _localizer?[key] ?? key;

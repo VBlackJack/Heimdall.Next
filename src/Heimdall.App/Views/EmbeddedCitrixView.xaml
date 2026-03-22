@@ -16,7 +16,7 @@
 
         <!-- Session header bar -->
         <Border Grid.Row="0"
-                Padding="8,3"
+                Padding="{StaticResource SessionHeaderPadding}"
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,0,0,1">
@@ -61,7 +61,7 @@
 
         <!-- Embedded window host (SetParent mode) -->
         <Grid x:Name="EmbeddedContainer" Grid.Row="1" Visibility="Collapsed"
-              ClipToBounds="True" Background="Black">
+              ClipToBounds="True" Background="{DynamicResource BackgroundBrush}">
             <wfi:WindowsFormsHost x:Name="FormsHost"/>
         </Grid>
 

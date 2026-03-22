@@ -114,6 +114,9 @@ public partial class HmacGeneratorView : UserControl, IToolView
 
         BtnCopy.ToolTip = L("ToolBtnCopyToClipboard");
         BtnToggleKey.ToolTip = L("ToolHmacToggleKeyVisibility");
+
+        BtnHelp.ToolTip = L("ToolHelpTooltip");
+        System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
     }
 
     private void OnToggleKeyVisibility(object sender, RoutedEventArgs e)
@@ -319,6 +322,12 @@ public partial class HmacGeneratorView : UserControl, IToolView
         "HMAC-SHA512" => new HMACSHA512(key),
         _ => null
     };
+
+    private void OnHelpClick(object sender, RoutedEventArgs e)
+    {
+        var helpText = L("ToolHelpHMAC");
+        MessageBox.Show(helpText, L("ToolHelpTitle"), MessageBoxButton.OK, MessageBoxImage.Information);
+    }
 
     private string L(string key) => _localizer?[key] ?? key;
 

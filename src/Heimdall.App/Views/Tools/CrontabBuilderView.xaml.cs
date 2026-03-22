@@ -99,6 +99,9 @@ public partial class CrontabBuilderView : UserControl, IToolView
         AutomationProperties.SetName(CmbDayOfWeek, L("ToolCronDayOfWeek"));
 
         BtnCopy.ToolTip = L("ToolBtnCopyToClipboard");
+
+        BtnHelp.ToolTip = L("ToolHelpTooltip");
+        System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
     }
 
     private void PopulateComboBoxes()
@@ -524,6 +527,12 @@ public partial class CrontabBuilderView : UserControl, IToolView
             Clipboard.SetText(TxtCronExpression.Text);
             CopyFeedbackHelper.ShowCopyFeedback(sender as Button);
         }
+    }
+
+    private void OnHelpClick(object sender, RoutedEventArgs e)
+    {
+        var helpText = L("ToolHelpCRONTAB");
+        MessageBox.Show(helpText, L("ToolHelpTitle"), MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
     private string L(string key) => _localizer?[key] ?? key;

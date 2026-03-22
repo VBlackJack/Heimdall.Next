@@ -42,7 +42,7 @@
             </DockPanel>
         </Border>
 
-        <Grid Grid.Row="1" Margin="16,0,16,16">
+        <Grid Grid.Row="1" Margin="{StaticResource ContentAreaMargin}">
         <Grid.RowDefinitions>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>

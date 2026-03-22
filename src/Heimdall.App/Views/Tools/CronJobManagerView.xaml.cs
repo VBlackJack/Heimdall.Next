@@ -90,6 +90,9 @@ public partial class CronJobManagerView : UserControl, IToolView
         AutomationProperties.SetName(BtnClearPaste, L("ToolCronJobBtnClear"));
         AutomationProperties.SetName(BtnRefreshTasks, L("ToolCronJobBtnRefresh"));
         AutomationProperties.SetName(BtnCopyAll, L("ToolCronJobBtnCopy"));
+
+        BtnHelp.ToolTip = L("ToolHelpTooltip");
+        AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
     }
 
     // ── Paste Crontab Mode ──────────────────────────────────────
@@ -521,6 +524,12 @@ public partial class CronJobManagerView : UserControl, IToolView
             Clipboard.SetText(sb.ToString());
             CopyFeedbackHelper.ShowCopyFeedback(sender as Button);
         }
+    }
+
+    private void OnHelpClick(object sender, RoutedEventArgs e)
+    {
+        var helpText = L("ToolHelpCRONJOB");
+        MessageBox.Show(helpText, L("ToolHelpTitle"), MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
     private string L(string key) => _localizer?[key] ?? key;

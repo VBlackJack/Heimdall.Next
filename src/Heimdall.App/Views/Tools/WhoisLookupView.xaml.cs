@@ -78,6 +78,9 @@ public partial class WhoisLookupView : UserControl, IToolView
         System.Windows.Automation.AutomationProperties.SetName(BtnLookup, L("ToolWhoisBtnLookup"));
         System.Windows.Automation.AutomationProperties.SetName(BtnCopyResults, L("ToolWhoisBtnCopy"));
         System.Windows.Automation.AutomationProperties.SetName(TxtResults, L("ToolWhoisResults"));
+
+        BtnHelp.ToolTip = L("ToolHelpTooltip");
+        System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
     }
 
     private void OnDomainKeyDown(object sender, KeyEventArgs e)
@@ -206,6 +209,12 @@ public partial class WhoisLookupView : UserControl, IToolView
                 Core.Logging.FileLogger.Warn($"WhoisLookup clipboard copy failed: {ex.Message}");
             }
         }
+    }
+
+    private void OnHelpClick(object sender, RoutedEventArgs e)
+    {
+        var helpText = L("ToolHelpWHOIS");
+        MessageBox.Show(helpText, L("ToolHelpTitle"), MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
     private string L(string key) => _localizer?[key] ?? key;
