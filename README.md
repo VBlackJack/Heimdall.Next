@@ -158,17 +158,19 @@ All tools open as session tabs (split, detach, reorder). Accessible via **Ctrl+K
 - Screenshot capture to clipboard (Ctrl+Shift+S)
 
 ### User Interface
-- Runtime Dark and Light theme switching (1,700+ lines of WPF control styles)
+- Runtime Dark and Light theme switching (1,760+ lines of WPF control styles with Design Tokens)
+- Design System: typography scale (Caption/Body/Subtitle/Title/Headline), spacing tokens, micro-animations (150ms fade-in)
 - 5 terminal color schemes: Dracula, Solarized Dark, Monokai, Nord, Default
 - Configurable terminal font family and size
 - Settings panel with 6 left-navigation sub-tabs (General, Terminal, SSH & SFTP, RDP, Security, Advanced)
-- Server Dialog: protocol-aware tabs (credentials on Authentication, options per protocol, hidden tabs for irrelevant sections)
-- TreeView hierarchy: Project > Group > Server with merged status dots
+- Server Dialog: protocol-aware stable tabs (disabled with tooltip when not applicable, never hidden)
+- TreeView hierarchy: Project > Group > Server with category-colored tool icons and status dots
+- Command Palette (Ctrl+K): protocol icons, status dots, endpoint hints, Ctrl+Enter for split
 - Connection inheritance: group-level defaults for gateway, SSH username, key path
-- Empty state with welcome panel and import call-to-action
+- Empty states: tool views show guidance before first query, welcome panel with import CTA
 - Fullscreen mode (F11), toggle sidebar (Ctrl+B), filter (Ctrl+F)
-- Bilingual interface: English and French (~3,035 i18n keys)
-- WCAG 2.1 AA accessibility: AutomationProperties on all interactive controls, keyboard focus indicators, TextTrimming on dynamic content
+- Bilingual interface: English and French (~3,029 i18n keys)
+- WCAG 2.1 AA accessibility: 385+ AutomationProperties via code-behind, keyboard focus indicators, disabled state tooltips
 
 ### Security
 - DPAPI encryption + HMAC-SHA256 integrity via unified `CredentialProtector`
@@ -301,7 +303,7 @@ Release mode also produces Inno Setup `.exe` installers in `Dist/installers/` wi
 | RDP | ActiveX MsTscAx (WindowsFormsHost) |
 | Citrix | StoreBrowse CLI integration |
 | Crypto | System.Security.Cryptography.ProtectedData (DPAPI) |
-| Testing | xUnit + Moq (1,213 tests) |
+| Testing | xUnit + Moq + FluentAssertions (1,213 tests) |
 | Built-in Tools | 33 sysops tools (Ctrl+K → `tools` or Ctrl+Shift+T) |
 | Serialization | System.Text.Json |
 
