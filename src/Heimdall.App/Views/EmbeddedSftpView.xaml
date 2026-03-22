@@ -184,20 +184,28 @@
 
                     <Border Width="1" Margin="8,2" Background="{DynamicResource BorderBrush}"/>
 
-                    <Button x:Name="BtnBookmark"
+                    <!-- Bookmarks overflow menu -->
+                    <Button x:Name="BtnBookmarkMenu"
                             Content="&#xE734;"
                             FontFamily="Segoe MDL2 Assets"
-                            Click="OnBookmarkClick"
                             Style="{DynamicResource ToolbarGhostButtonStyle}"
                             Padding="8,2" FontSize="12"
-                            />
-                    <Button x:Name="BtnBookmarks"
-                            Content="&#xE735;"
-                            FontFamily="Segoe MDL2 Assets"
-                            Click="OnBookmarksClick"
-                            Style="{DynamicResource ToolbarGhostButtonStyle}"
-                            Padding="8,2" FontSize="12" Margin="4,0,0,0"
-                            />
+                            Click="OnBookmarkMenuClick">
+                        <Button.ContextMenu>
+                            <ContextMenu x:Name="BookmarkContextMenu">
+                                <MenuItem x:Name="MnuBookmarkAdd" Click="OnBookmarkClick">
+                                    <MenuItem.Icon>
+                                        <TextBlock Text="&#xE734;" FontFamily="Segoe MDL2 Assets" FontSize="11"/>
+                                    </MenuItem.Icon>
+                                </MenuItem>
+                                <MenuItem x:Name="MnuBookmarkManage" Click="OnBookmarksClick">
+                                    <MenuItem.Icon>
+                                        <TextBlock Text="&#xE735;" FontFamily="Segoe MDL2 Assets" FontSize="11"/>
+                                    </MenuItem.Icon>
+                                </MenuItem>
+                            </ContextMenu>
+                        </Button.ContextMenu>
+                    </Button>
                 </StackPanel>
             </DockPanel>
         </Border>

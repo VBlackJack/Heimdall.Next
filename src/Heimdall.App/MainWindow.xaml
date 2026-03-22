@@ -635,6 +635,7 @@
                                         Orientation="{Binding SplitOrientation}"/>
                                     <!-- Loading overlay (visible while HostControl is null during connection) -->
                                     <Border x:Name="SessionLoadingOverlay"
+                                            Style="{StaticResource FadeInPanelStyle}"
                                             Background="{DynamicResource OverlayBackground}"
                                             Visibility="Collapsed">
                                         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">

@@ -34,9 +34,9 @@
                 <Button x:Name="BtnHelp" DockPanel.Dock="Right" Content="?"
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="6,2" FontSize="12" FontWeight="Bold"
+                        Padding="6,2" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
                         Width="24" Height="24" Margin="8,0,0,0"/>
-                <TextBlock x:Name="TitleText" FontSize="14" FontWeight="SemiBold"
+                <TextBlock x:Name="TitleText" FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
                            VerticalAlignment="Center"/>
             </DockPanel>
@@ -58,7 +58,7 @@
             </Grid.RowDefinitions>
             <TextBlock x:Name="InputLabel" Grid.Row="0"
                        Foreground="{DynamicResource TextSecondaryBrush}"
-                       FontSize="12" Margin="0,0,0,4"/>
+                       FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,4"/>
             <TextBox x:Name="InputText" Grid.Row="1"
                      AcceptsReturn="True" AcceptsTab="True"
                      TextWrapping="Wrap"
@@ -93,7 +93,7 @@
             </Grid.RowDefinitions>
             <TextBlock x:Name="OutputLabel" Grid.Row="0"
                        Foreground="{DynamicResource TextSecondaryBrush}"
-                       FontSize="12" Margin="0,0,0,4"/>
+                       FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,4"/>
             <TextBox x:Name="OutputText" Grid.Row="1"
                      IsReadOnly="True"
                      AcceptsReturn="True"
@@ -117,7 +117,7 @@
                     Padding="10,4"/>
             <TextBlock x:Name="StatusText"
                        Foreground="{DynamicResource TextSecondaryBrush}"
-                       FontSize="11" VerticalAlignment="Center"/>
+                       FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center"/>
         </DockPanel>
         </Grid>
     </Grid>

@@ -48,11 +48,11 @@ public partial class ServerDialog : Window
 
     private void RegisterTabFallback()
     {
-        DlgSrv_TabTunneling.IsVisibleChanged += OnTabVisibilityChanged;
-        DlgSrv_TabAuthentication.IsVisibleChanged += OnTabVisibilityChanged;
+        DlgSrv_TabTunneling.IsEnabledChanged += OnTabEnabledChanged;
+        DlgSrv_TabAuthentication.IsEnabledChanged += OnTabEnabledChanged;
     }
 
-    private void OnTabVisibilityChanged(object sender, DependencyPropertyChangedEventArgs e)
+    private void OnTabEnabledChanged(object sender, DependencyPropertyChangedEventArgs e)
     {
         if (e.NewValue is false && sender is System.Windows.Controls.TabItem tab && tab.IsSelected)
         {

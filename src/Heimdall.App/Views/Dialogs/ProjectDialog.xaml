@@ -21,16 +21,16 @@
 
         <Style x:Key="LabelStyle" TargetType="TextBlock">
             <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
-            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontSize" Value="{StaticResource FontSizeBody}"/>
             <Setter Property="Margin" Value="0,0,0,4"/>
         </Style>
 
         <Style x:Key="FormTextBoxStyle" TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
-            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontSize" Value="{StaticResource FontSizeBody}"/>
         </Style>
 
         <Style x:Key="FormComboBoxStyle" TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
-            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontSize" Value="{StaticResource FontSizeBody}"/>
         </Style>
 
         <!-- Color swatch radio button style -->
@@ -83,7 +83,7 @@
                      Style="{StaticResource FormTextBoxStyle}"
                      MaxLength="50"
                      x:Name="TxtName"/>
-            <TextBlock Foreground="{DynamicResource TextDisabledBrush}" FontSize="11"
+            <TextBlock Foreground="{DynamicResource TextDisabledBrush}" FontSize="{StaticResource FontSizeCaption}"
                        HorizontalAlignment="Right" Margin="0,2,0,0">
                 <TextBlock.Text>
                     <MultiBinding StringFormat="{}{0}/50">
@@ -103,7 +103,7 @@
                      VerticalContentAlignment="Top"
                      VerticalScrollBarVisibility="Auto"
                      x:Name="TxtDescription"/>
-            <TextBlock Foreground="{DynamicResource TextDisabledBrush}" FontSize="11"
+            <TextBlock Foreground="{DynamicResource TextDisabledBrush}" FontSize="{StaticResource FontSizeCaption}"
                        HorizontalAlignment="Right" Margin="0,2,0,0">
                 <TextBlock.Text>
                     <MultiBinding StringFormat="{}{0}/200">
@@ -147,6 +147,9 @@
                              IsChecked="{Binding Color, Converter={x:Static converters:ColorRadioConverter.Instance}, ConverterParameter=#F97316}"
                              x:Name="RbColorOrange"/>
             </WrapPanel>
+            <TextBlock x:Name="SelectedColorLabel" Text=""
+                       FontSize="{StaticResource FontSizeCaption}" Margin="0,4,0,0"
+                       Foreground="{DynamicResource TextSecondaryBrush}"/>
 
             <TextBlock x:Name="LblSshDefaults" Style="{StaticResource LabelStyle}"
                        FontWeight="SemiBold" Margin="0,16,0,4"/>
@@ -166,7 +169,7 @@
         <TextBlock Grid.Row="1"
                    Text="{Binding ValidationError}"
                    Foreground="{DynamicResource ErrorBrush}"
-                   FontSize="12"
+                   FontSize="{StaticResource FontSizeBody}"
                    Margin="0,8,0,0"
                    TextWrapping="Wrap"
                    Visibility="{Binding ValidationError, Converter={StaticResource NullToVisibilityConverter}}"/>

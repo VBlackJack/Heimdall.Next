@@ -87,6 +87,7 @@
 
             <!-- Reconnect overlay (shown on unexpected disconnect) -->
             <Border x:Name="ReconnectOverlay"
+                    Style="{StaticResource FadeInPanelStyle}"
                     Visibility="Collapsed"
                     Background="{DynamicResource OverlayBackground}"
                     HorizontalAlignment="Stretch"

@@ -202,8 +202,9 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
         BtnUploadText.Text = _localizer["SftpBtnUpload"];
         BtnNewFolderText.Text = _localizer["SftpBtnNewFolder"];
         BtnCancelTransfer.Content = _localizer["SftpBtnCancelTransfer"];
-        BtnBookmark.ToolTip = _localizer["SftpBtnBookmark"];
-        BtnBookmarks.ToolTip = _localizer["SftpBtnBookmarks"];
+        BtnBookmarkMenu.ToolTip = _localizer["SftpBtnBookmark"];
+        MnuBookmarkAdd.Header = _localizer["SftpBtnBookmark"];
+        MnuBookmarkManage.Header = _localizer["SftpBtnBookmarks"];
         ToggleHiddenCheckBox.ToolTip = _localizer["SftpToggleHidden"];
         SplitButton.ToolTip = _localizer["ToolTipSplitPane"];
         BtnSudoMode.ToolTip = _localizer["SftpSudoModeTooltip"];
@@ -233,8 +234,7 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
         System.Windows.Automation.AutomationProperties.SetName(BtnRefresh, _localizer["SftpBtnRefresh"]);
         System.Windows.Automation.AutomationProperties.SetName(BtnUpload, _localizer["SftpBtnUpload"]);
         System.Windows.Automation.AutomationProperties.SetName(BtnNewFolder, _localizer["SftpBtnNewFolder"]);
-        System.Windows.Automation.AutomationProperties.SetName(BtnBookmark, _localizer["SftpBtnBookmark"]);
-        System.Windows.Automation.AutomationProperties.SetName(BtnBookmarks, _localizer["SftpBtnBookmarks"]);
+        System.Windows.Automation.AutomationProperties.SetName(BtnBookmarkMenu, _localizer["SftpBtnBookmark"]);
         System.Windows.Automation.AutomationProperties.SetName(BtnSudoMode, _localizer["SftpSudoModeTooltip"]);
         System.Windows.Automation.AutomationProperties.SetName(DisconnectButton, _localizer["SftpBtnClose"]);
         System.Windows.Automation.AutomationProperties.SetName(SplitButton, _localizer["ToolTipSplitPane"]);
@@ -673,6 +673,15 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
         }
     }
 
+    private void OnBookmarkMenuClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is System.Windows.Controls.Button btn && btn.ContextMenu is not null)
+        {
+            btn.ContextMenu.PlacementTarget = btn;
+            btn.ContextMenu.IsOpen = true;
+        }
+    }
+
     private void OnBookmarkClick(object sender, RoutedEventArgs e)
     {
         if (!_bookmarks.Contains(_currentPath))
@@ -693,7 +702,7 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
 
         var menu = new ContextMenu
         {
-            PlacementTarget = BtnBookmarks,
+            PlacementTarget = BtnBookmarkMenu,
             Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom
         };
 
@@ -1906,7 +1915,7 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
         BtnUpload.IsEnabled = enabled;
         BtnNewFolder.IsEnabled = enabled;
         BtnGoPath.IsEnabled = enabled;
-        BtnBookmark.IsEnabled = enabled;
+        BtnBookmarkMenu.IsEnabled = enabled;
         PathTextBox.IsEnabled = enabled;
     }
 

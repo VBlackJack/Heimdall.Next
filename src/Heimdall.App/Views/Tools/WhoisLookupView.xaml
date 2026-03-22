@@ -15,7 +15,7 @@
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,0,0,1">
             <TextBlock x:Name="HeaderTitle" Text=""
-                       FontSize="14" FontWeight="SemiBold"
+                       FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                        Foreground="{DynamicResource TextPrimaryBrush}"
                        VerticalAlignment="Center"/>
         </Border>
@@ -26,7 +26,7 @@
 
                 <!-- Input Row -->
                 <TextBlock x:Name="LblDomain" Text=""
-                           FontSize="12" Margin="0,0,0,4"
+                           FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,4"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
                 <DockPanel Margin="0,0,0,16">
                     <Button x:Name="BtnLookup" DockPanel.Dock="Right"
@@ -45,7 +45,7 @@
 
                 <!-- Error message -->
                 <TextBlock x:Name="TxtError" Text="" Visibility="Collapsed"
-                           FontSize="12" Margin="0,0,0,12" TextWrapping="Wrap"
+                           FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,12" TextWrapping="Wrap"
                            Foreground="{DynamicResource ErrorBrush}"/>
 
                 <!-- Results -->
@@ -58,14 +58,14 @@
                         <DockPanel Margin="0,0,0,8">
                             <Button x:Name="BtnCopyResults" DockPanel.Dock="Right" Click="OnCopyResultsClick"
                                     Style="{DynamicResource SecondaryButtonStyle}"
-                                    Padding="8,2" FontSize="11" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                                    Padding="8,2" FontSize="{StaticResource FontSizeCaption}" Margin="8,0,0,0" VerticalAlignment="Center"/>
                             <TextBlock x:Name="TxtResultHeader" Text=""
                                        FontSize="13" FontWeight="SemiBold"
                                        Foreground="{DynamicResource AccentBrush}"
                                        VerticalAlignment="Center"/>
                         </DockPanel>
                         <TextBox x:Name="TxtResults" Text=""
-                                 FontSize="12" FontFamily="Consolas"
+                                 FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                                  Foreground="{DynamicResource TextPrimaryBrush}"
                                  IsReadOnly="True"
                                  AcceptsReturn="True"
@@ -86,7 +86,7 @@
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,1,0,0">
             <TextBlock x:Name="TxtStatus" Text=""
-                       FontSize="12" FontFamily="Consolas"
+                       FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                        Foreground="{DynamicResource TextSecondaryBrush}"/>
         </Border>
     </Grid>

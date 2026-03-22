@@ -24,7 +24,7 @@
 
         <Style x:Key="LabelStyle" TargetType="TextBlock">
             <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
-            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontSize" Value="{StaticResource FontSizeBody}"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Margin" Value="0,0,0,4"/>
         </Style>
@@ -37,14 +37,14 @@
 
         <Style x:Key="SectionDescriptionStyle" TargetType="TextBlock">
             <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
-            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontSize" Value="{StaticResource FontSizeBody}"/>
             <Setter Property="TextWrapping" Value="Wrap"/>
             <Setter Property="Margin" Value="0,6,0,0"/>
         </Style>
 
         <Style x:Key="HintTextStyle" TargetType="TextBlock">
             <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
-            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="FontSize" Value="{StaticResource FontSizeCaption}"/>
             <Setter Property="TextWrapping" Value="Wrap"/>
             <Setter Property="Margin" Value="0,6,0,0"/>
         </Style>
@@ -78,26 +78,26 @@
 
         <Style x:Key="ArrowCaptionStyle" TargetType="TextBlock">
             <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
-            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="FontSize" Value="{StaticResource FontSizeCaption}"/>
             <Setter Property="HorizontalAlignment" Value="Center"/>
             <Setter Property="TextAlignment" Value="Center"/>
             <Setter Property="TextWrapping" Value="Wrap"/>
         </Style>
 
         <Style x:Key="FormTextBoxStyle" TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
-            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontSize" Value="{StaticResource FontSizeBody}"/>
         </Style>
 
         <Style x:Key="FormComboBoxStyle" TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
-            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontSize" Value="{StaticResource FontSizeBody}"/>
         </Style>
 
         <Style x:Key="FormCheckBoxStyle" TargetType="CheckBox" BasedOn="{StaticResource {x:Type CheckBox}}">
-            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontSize" Value="{StaticResource FontSizeBody}"/>
         </Style>
 
         <Style x:Key="FormPasswordBoxStyle" TargetType="PasswordBox" BasedOn="{StaticResource {x:Type PasswordBox}}">
-            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontSize" Value="{StaticResource FontSizeBody}"/>
         </Style>
 
         <Style x:Key="RdpOnlySectionStyle" TargetType="FrameworkElement">
@@ -370,7 +370,7 @@
                                 </Border>
                                 <TextBlock Text="{Binding GatewayTestMessage}"
                                            Foreground="{DynamicResource InfoBrush}"
-                                           FontSize="12"
+                                           FontSize="{StaticResource FontSizeBody}"
                                            Margin="0,10,0,0"
                                            TextWrapping="Wrap"
                                            Visibility="{Binding GatewayTestMessage, Converter={StaticResource NullToVisibilityConverter}}"/>
@@ -392,7 +392,7 @@
                                         </StackPanel>
                                     </Border>
                                     <StackPanel Margin="12,16,12,0" Width="78">
-                                        <TextBlock Text="->" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="18" HorizontalAlignment="Center"/>
+                                        <TextBlock Text="->" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="{StaticResource FontSizeTitle}" HorizontalAlignment="Center"/>
                                         <TextBlock Text="{Binding SessionKindLabel}" Style="{StaticResource ArrowCaptionStyle}" Margin="0,6,0,0"/>
                                     </StackPanel>
                                     <Border Style="{StaticResource DiagramNodeStyle}">
@@ -415,7 +415,7 @@
                                             </StackPanel>
                                         </Border>
                                         <StackPanel Margin="12,16,12,0" Width="78">
-                                            <TextBlock Text="&#x2192;" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="18" HorizontalAlignment="Center"/>
+                                            <TextBlock Text="&#x2192;" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="{StaticResource FontSizeTitle}" HorizontalAlignment="Center"/>
                                             <TextBlock Text="{Binding ClientToGatewayLabel}" Style="{StaticResource ArrowCaptionStyle}" Margin="0,6,0,0"/>
                                         </StackPanel>
                                         <Border Style="{StaticResource DiagramNodeStyle}">
@@ -426,7 +426,7 @@
                                             </StackPanel>
                                         </Border>
                                         <StackPanel Margin="12,16,12,0" Width="78">
-                                            <TextBlock Text="&#x2192;" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="18" HorizontalAlignment="Center"/>
+                                            <TextBlock Text="&#x2192;" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="{StaticResource FontSizeTitle}" HorizontalAlignment="Center"/>
                                             <TextBlock Text="{Binding GatewayToServerLabel}" Style="{StaticResource ArrowCaptionStyle}" Margin="0,6,0,0"/>
                                         </StackPanel>
                                         <Border Style="{StaticResource DiagramNodeStyle}">
@@ -446,21 +446,22 @@
             <TabItem x:Name="DlgSrv_TabTunneling">
                 <TabItem.Style>
                     <Style TargetType="TabItem" BasedOn="{StaticResource ThemedTabItemStyle}">
+                        <Setter Property="IsEnabled" Value="True"/>
                         <Style.Triggers>
                             <DataTrigger Binding="{Binding ConnectionType}" Value="FTP">
-                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Setter Property="IsEnabled" Value="False"/>
                             </DataTrigger>
                             <DataTrigger Binding="{Binding ConnectionType}" Value="VNC">
-                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Setter Property="IsEnabled" Value="False"/>
                             </DataTrigger>
                             <DataTrigger Binding="{Binding ConnectionType}" Value="Telnet">
-                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Setter Property="IsEnabled" Value="False"/>
                             </DataTrigger>
                             <DataTrigger Binding="{Binding ConnectionType}" Value="Citrix">
-                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Setter Property="IsEnabled" Value="False"/>
                             </DataTrigger>
                             <DataTrigger Binding="{Binding ConnectionType}" Value="Local">
-                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Setter Property="IsEnabled" Value="False"/>
                             </DataTrigger>
                         </Style.Triggers>
                     </Style>
@@ -570,12 +571,13 @@
             <TabItem x:Name="DlgSrv_TabAuthentication">
                 <TabItem.Style>
                     <Style TargetType="TabItem" BasedOn="{StaticResource ThemedTabItemStyle}">
+                        <Setter Property="IsEnabled" Value="True"/>
                         <Style.Triggers>
                             <DataTrigger Binding="{Binding ConnectionType}" Value="Citrix">
-                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Setter Property="IsEnabled" Value="False"/>
                             </DataTrigger>
                             <DataTrigger Binding="{Binding ConnectionType}" Value="Local">
-                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Setter Property="IsEnabled" Value="False"/>
                             </DataTrigger>
                         </Style.Triggers>
                     </Style>
@@ -1162,7 +1164,7 @@
         <TextBlock Grid.Row="1"
                    Text="{Binding ValidationError}"
                    Foreground="{DynamicResource ErrorBrush}"
-                   FontSize="12"
+                   FontSize="{StaticResource FontSizeBody}"
                    Margin="0,8,0,0"
                    TextWrapping="Wrap"
                    Visibility="{Binding ValidationError, Converter={StaticResource NullToVisibilityConverter}}"/>

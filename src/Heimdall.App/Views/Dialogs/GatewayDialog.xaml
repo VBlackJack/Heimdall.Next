@@ -21,20 +21,20 @@
 
         <Style x:Key="LabelStyle" TargetType="TextBlock">
             <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
-            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontSize" Value="{StaticResource FontSizeBody}"/>
             <Setter Property="Margin" Value="0,0,0,4"/>
         </Style>
 
         <Style x:Key="FormTextBoxStyle" TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
-            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontSize" Value="{StaticResource FontSizeBody}"/>
         </Style>
 
         <Style x:Key="FormComboBoxStyle" TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
-            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontSize" Value="{StaticResource FontSizeBody}"/>
         </Style>
 
         <Style x:Key="FormPasswordBoxStyle" TargetType="PasswordBox" BasedOn="{StaticResource {x:Type PasswordBox}}">
-            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontSize" Value="{StaticResource FontSizeBody}"/>
         </Style>
     </Window.Resources>
 
@@ -107,7 +107,7 @@
         <TextBlock Grid.Row="1"
                    Text="{Binding ValidationError}"
                    Foreground="{DynamicResource ErrorBrush}"
-                   FontSize="12"
+                   FontSize="{StaticResource FontSizeBody}"
                    Margin="0,8,0,0"
                    TextWrapping="Wrap"
                    Visibility="{Binding ValidationError, Converter={StaticResource NullToVisibilityConverter}}"/>
