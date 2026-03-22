@@ -25,7 +25,7 @@ Heimdall.slnx (8 projects)
 │   └── Heimdall.App           net10.0-windows WPF application (MVVM, views, themes, DI)
 │       ├── Views: MainWindow, EmbeddedRdpView, EmbeddedSshView, EmbeddedSftpView,
 │       │          EmbeddedCitrixView, EmbeddedVncView, FloatingSessionWindow
-│       ├── Views/Tools: 31 built-in sysops tools (IToolView interface)
+│       ├── Views/Tools: 33 built-in sysops tools (IToolView interface)
 │       └── Services: ConnectionService (.Rdp/.Ssh/.Sftp/.Ftp/.Vnc/.Telnet/.Citrix/.Local/.Tunnel),
 │                     EmbeddedSessionManager, ToolRegistry, TaskSchedulerService, MacroService,
 │                     EphemeralFileServer, X11ServerManager, WebSocketVncProxy
@@ -508,7 +508,7 @@ When opening a tool from a server context menu, all available server metadata is
 - **Network Cartography engine**: `Heimdall.Core.Discovery/` namespace with CartographyEngine, RoleClassifier (50+ roles, 60+ banner fingerprints), OuiDatabase (140 MAC prefixes), VlanDetector, DrawIoExporter, ScanHistoryManager
 - **PowerShell Execution Policy**: Configurable in Settings > Terminal, applied as `-ExecutionPolicy` flag on local shell launch
 
-### Tool Categories (31 tools)
+### Tool Categories (33 tools)
 
 | Category | Count | Tools |
 |----------|-------|-------|
