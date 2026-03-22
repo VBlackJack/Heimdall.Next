@@ -94,7 +94,7 @@
 
         <!-- Validation error -->
         <TextBlock x:Name="TxtError" Grid.Row="2" Text="" Visibility="Collapsed"
-                   FontSize="12" Margin="12,4,12,0"
+                   FontSize="12" Margin="12,4,12,0" TextWrapping="Wrap"
                    Foreground="{DynamicResource ErrorBrush}"/>
 
         <!-- Progress bar with percentage overlay -->

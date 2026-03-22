@@ -265,7 +265,7 @@
                             </DataTemplate>
                         </GridViewColumn.CellTemplate>
                     </GridViewColumn>
-                    <GridViewColumn Width="100">
+                    <GridViewColumn Width="80">
                         <GridViewColumn.CellTemplate>
                             <DataTemplate>
                                 <TextBlock Text="{Binding Size, Converter={StaticResource FileSizeConverter}, ConverterParameter=dir}"
@@ -273,11 +273,11 @@
                             </DataTemplate>
                         </GridViewColumn.CellTemplate>
                     </GridViewColumn>
-                    <GridViewColumn Width="160"
+                    <GridViewColumn Width="140"
                                     DisplayMemberBinding="{Binding LastModified, StringFormat='{}{0:yyyy-MM-dd HH:mm}'}"/>
-                    <GridViewColumn Width="100"
+                    <GridViewColumn Width="80"
                                     DisplayMemberBinding="{Binding Permissions}"/>
-                    <GridViewColumn Width="60"
+                    <GridViewColumn Width="55"
                                     DisplayMemberBinding="{Binding Owner}"/>
                 </GridView>
             </ListView.View>

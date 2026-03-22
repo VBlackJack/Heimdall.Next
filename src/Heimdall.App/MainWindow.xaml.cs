@@ -150,6 +150,7 @@ public partial class MainWindow : Window
         FullscreenBar.ToolTip = vm.Localize("TooltipExitFullscreenEsc");
 
         Mw_StatusTunnelToggle.ToolTip = vm.Localize("TunnelPanelToggle");
+        Mw_BroadcastLabel.Text = vm.Localize("BroadcastBadgeLabel");
         Mw_StatusBarServersLabel.Text = " " + vm.Localize("StatusBarServers") + " " + vm.Localize("StatusBarSeparator");
         Mw_StatusBarTunnelsLabel.Text = " " + vm.Localize("StatusBarTunnels");
 
