@@ -12,7 +12,7 @@
 
 All notable changes to Heimdall.Next are documented in this file.
 
-## [Unreleased]
+## [v2026.032204] - 2026-03-22
 
 ### Network Cartography — Enhanced Device Detection
 - OS fingerprinting via ICMP TTL analysis (Windows/Linux/Network Equipment) and banner pattern matching (33 patterns)
