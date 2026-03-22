@@ -29,7 +29,7 @@
                      Width="160"
                      Style="{DynamicResource SearchTextBoxStyle}"
                      Tag=""
-                     FontSize="11"
+                     FontSize="{StaticResource FontSizeCaption}"
                      VerticalContentAlignment="Center"
                      Margin="8,0,0,0"
                      TextChanged="OnFilterTextChanged"/>
@@ -37,19 +37,19 @@
                 <Button Content="&#xE72B;" FontFamily="Segoe MDL2 Assets"
                         x:Name="BtnBack" Click="OnBackClick"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
-                        Padding="6,2" FontSize="11" IsEnabled="False"/>
+                        Padding="6,2" FontSize="{StaticResource FontSizeCaption}" IsEnabled="False"/>
                 <Button x:Name="BtnUp" Content="&#xE74A;" FontFamily="Segoe MDL2 Assets"
                         Click="OnUpClick"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
-                        Padding="6,2" FontSize="11" Margin="3,0,0,0"/>
+                        Padding="6,2" FontSize="{StaticResource FontSizeCaption}" Margin="3,0,0,0"/>
                 <Button x:Name="BtnHome" Content="&#xE80F;" FontFamily="Segoe MDL2 Assets"
                         Click="OnHomeClick"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
-                        Padding="6,2" FontSize="11" Margin="3,0,0,0"/>
+                        Padding="6,2" FontSize="{StaticResource FontSizeCaption}" Margin="3,0,0,0"/>
                 <Button x:Name="BtnRefresh" Content="&#xE72C;" FontFamily="Segoe MDL2 Assets"
                         Click="OnRefreshClick"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
-                        Padding="6,2" FontSize="11" Margin="3,0,0,0"/>
+                        Padding="6,2" FontSize="{StaticResource FontSizeCaption}" Margin="3,0,0,0"/>
             </StackPanel>
             </DockPanel>
         </Border>
@@ -61,7 +61,7 @@
                 BorderThickness="0,0,0,1">
             <TextBox x:Name="PathTextBox"
                      Style="{DynamicResource ThemedTextBoxStyle}"
-                     FontSize="11" FontFamily="Consolas"
+                     FontSize="{StaticResource FontSizeCaption}" FontFamily="Consolas"
                      VerticalContentAlignment="Center"
                      KeyDown="OnPathKeyDown"/>
         </Border>
@@ -85,7 +85,7 @@
                                     <TextBlock x:Name="Icon"
                                                Text="{Binding Name, Converter={StaticResource FileIconConverter}}"
                                                Foreground="{Binding Name, Converter={StaticResource FileIconColorConverter}}"
-                                               FontFamily="Segoe MDL2 Assets" FontSize="12"
+                                               FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeBody}"
                                                Margin="0,0,5,0" VerticalAlignment="Center"/>
                                     <TextBlock Text="{Binding Name}" VerticalAlignment="Center"/>
                                 </StackPanel>
@@ -145,49 +145,49 @@
             <ListView.ContextMenu>
                 <ContextMenu Opened="OnContextMenuOpened">
                     <MenuItem x:Name="CtxOpen" Header="" Click="OnCtxOpen" InputGestureText="Enter">
-                        <MenuItem.Icon><TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE8E5;" FontSize="14"/></MenuItem.Icon>
+                        <MenuItem.Icon><TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE8E5;" FontSize="{StaticResource FontSizeSubtitle}"/></MenuItem.Icon>
                     </MenuItem>
                     <MenuItem x:Name="CtxOpenWith" Header="" Click="OnCtxOpenWith">
-                        <MenuItem.Icon><TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE7AC;" FontSize="14"/></MenuItem.Icon>
+                        <MenuItem.Icon><TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE7AC;" FontSize="{StaticResource FontSizeSubtitle}"/></MenuItem.Icon>
                     </MenuItem>
                     <MenuItem x:Name="CtxOpenInExplorer" Header="" Click="OnCtxOpenInExplorer">
-                        <MenuItem.Icon><TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE838;" FontSize="14"/></MenuItem.Icon>
+                        <MenuItem.Icon><TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE838;" FontSize="{StaticResource FontSizeSubtitle}"/></MenuItem.Icon>
                     </MenuItem>
                     <MenuItem x:Name="CtxOpenInTerminal" Header="" Click="OnCtxOpenInTerminal">
-                        <MenuItem.Icon><TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE756;" FontSize="14"/></MenuItem.Icon>
+                        <MenuItem.Icon><TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE756;" FontSize="{StaticResource FontSizeSubtitle}"/></MenuItem.Icon>
                     </MenuItem>
                     <MenuItem x:Name="CtxOpenInEditor" Header="" Click="OnCtxOpenInEditor">
-                        <MenuItem.Icon><TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE70F;" FontSize="14"/></MenuItem.Icon>
+                        <MenuItem.Icon><TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE70F;" FontSize="{StaticResource FontSizeSubtitle}"/></MenuItem.Icon>
                     </MenuItem>
                     <MenuItem x:Name="CtxRunInShell" Header="" Click="OnCtxRunInShell">
-                        <MenuItem.Icon><TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE768;" FontSize="14"/></MenuItem.Icon>
+                        <MenuItem.Icon><TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE768;" FontSize="{StaticResource FontSizeSubtitle}"/></MenuItem.Icon>
                     </MenuItem>
                     <Separator/>
                     <MenuItem x:Name="CtxCopy" Header="" Click="OnCtxCopy" InputGestureText="Ctrl+C">
-                        <MenuItem.Icon><TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE8C8;" FontSize="14"/></MenuItem.Icon>
+                        <MenuItem.Icon><TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE8C8;" FontSize="{StaticResource FontSizeSubtitle}"/></MenuItem.Icon>
                     </MenuItem>
                     <MenuItem x:Name="CtxPaste" Header="" Click="OnCtxPaste" InputGestureText="Ctrl+V">
-                        <MenuItem.Icon><TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE77F;" FontSize="14"/></MenuItem.Icon>
+                        <MenuItem.Icon><TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE77F;" FontSize="{StaticResource FontSizeSubtitle}"/></MenuItem.Icon>
                     </MenuItem>
                     <MenuItem x:Name="CtxCopyPath" Header="" Click="OnCtxCopyPath">
-                        <MenuItem.Icon><TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE71B;" FontSize="14"/></MenuItem.Icon>
+                        <MenuItem.Icon><TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE71B;" FontSize="{StaticResource FontSizeSubtitle}"/></MenuItem.Icon>
                     </MenuItem>
                     <Separator/>
                     <MenuItem x:Name="CtxRename" Header="" Click="OnCtxRename" InputGestureText="F2">
-                        <MenuItem.Icon><TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE8AC;" FontSize="14"/></MenuItem.Icon>
+                        <MenuItem.Icon><TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE8AC;" FontSize="{StaticResource FontSizeSubtitle}"/></MenuItem.Icon>
                     </MenuItem>
                     <MenuItem x:Name="CtxDelete" Header="" Click="OnCtxDelete" InputGestureText="Del">
-                        <MenuItem.Icon><TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE74D;" FontSize="14"/></MenuItem.Icon>
+                        <MenuItem.Icon><TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE74D;" FontSize="{StaticResource FontSizeSubtitle}"/></MenuItem.Icon>
                     </MenuItem>
                     <MenuItem x:Name="CtxNewFolder" Header="" Click="OnCtxNewFolder">
-                        <MenuItem.Icon><TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE8F4;" FontSize="14"/></MenuItem.Icon>
+                        <MenuItem.Icon><TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE8F4;" FontSize="{StaticResource FontSizeSubtitle}"/></MenuItem.Icon>
                     </MenuItem>
                     <Separator/>
                     <MenuItem x:Name="CtxProperties" Header="" Click="OnCtxProperties">
-                        <MenuItem.Icon><TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE946;" FontSize="14"/></MenuItem.Icon>
+                        <MenuItem.Icon><TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE946;" FontSize="{StaticResource FontSizeSubtitle}"/></MenuItem.Icon>
                     </MenuItem>
                     <MenuItem x:Name="CtxRefresh" Header="" Click="OnRefreshClick" InputGestureText="F5">
-                        <MenuItem.Icon><TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE72C;" FontSize="14"/></MenuItem.Icon>
+                        <MenuItem.Icon><TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE72C;" FontSize="{StaticResource FontSizeSubtitle}"/></MenuItem.Icon>
                     </MenuItem>
                 </ContextMenu>
             </ListView.ContextMenu>
@@ -221,7 +221,7 @@
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,1,0,0">
             <TextBlock x:Name="StatusBarText"
-                       FontSize="11"
+                       FontSize="{StaticResource FontSizeCaption}"
                        Foreground="{DynamicResource TextSecondaryBrush}"/>
         </Border>
     </Grid>

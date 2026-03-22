@@ -27,7 +27,7 @@
                         Click="OnDisconnectClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="8,2"
-                        FontSize="11"
+                        FontSize="{StaticResource FontSizeCaption}"
                         Margin="8,0,0,0"/>
 
                 <Button x:Name="ReconnectButton"
@@ -35,7 +35,7 @@
                         Click="OnReconnectClick"
                         Style="{DynamicResource PrimaryButtonStyle}"
                         Padding="8,2"
-                        FontSize="11"
+                        FontSize="{StaticResource FontSizeCaption}"
                         Margin="8,0,0,0"
                         Visibility="Collapsed"/>
 
@@ -45,23 +45,23 @@
                         FontFamily="Segoe MDL2 Assets"
                         Click="OnSplitClick"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
-                        Padding="6,2" FontSize="12" Margin="4,0"/>
+                        Padding="6,2" FontSize="{StaticResource FontSizeBody}" Margin="4,0"/>
 
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <TextBlock x:Name="SessionTitleText"
-                               FontSize="12"
+                               FontSize="{StaticResource FontSizeBody}"
                                FontWeight="SemiBold"
                                Foreground="{DynamicResource TextPrimaryBrush}"
                                VerticalAlignment="Center"/>
                     <TextBlock x:Name="EndpointTextBlock"
                                Margin="8,0,0,0"
-                               FontSize="11"
+                               FontSize="{StaticResource FontSizeCaption}"
                                Foreground="{DynamicResource TextSecondaryBrush}"
                                VerticalAlignment="Center"/>
                     <TextBlock Text=" - " Foreground="{DynamicResource TextSecondaryBrush}"
-                               FontSize="11" VerticalAlignment="Center"/>
+                               FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center"/>
                     <TextBlock x:Name="StatusTextBlock"
-                               FontSize="11"
+                               FontSize="{StaticResource FontSizeCaption}"
                                Foreground="{DynamicResource TextPrimaryBrush}"
                                VerticalAlignment="Center"/>
                 </StackPanel>

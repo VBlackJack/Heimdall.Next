@@ -15,7 +15,7 @@
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,0,0,1">
             <TextBlock x:Name="HeaderTitle" Text=""
-                       FontSize="14" FontWeight="SemiBold"
+                       FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                        Foreground="{DynamicResource TextPrimaryBrush}"
                        VerticalAlignment="Center"/>
         </Border>
@@ -29,7 +29,7 @@
 
             <!-- Paste Crontab Mode -->
             <TabItem x:Name="TabPasteCrontab">
-                <Grid Margin="12">
+                <Grid Margin="{StaticResource SpacingMd}">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="120"/>
@@ -41,7 +41,7 @@
 
                     <!-- Instructions -->
                     <TextBlock x:Name="LblPasteInstructions" Grid.Row="0" Text=""
-                               FontSize="12" Margin="0,0,0,8"
+                               FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,8"
                                Foreground="{DynamicResource TextSecondaryBrush}"
                                TextWrapping="Wrap"/>
 
@@ -70,7 +70,7 @@
 
                     <!-- Error message -->
                     <TextBlock x:Name="TxtCronError" Grid.Row="3" Text="" Visibility="Collapsed"
-                               FontSize="12" Margin="0,8,0,0"
+                               FontSize="{StaticResource FontSizeBody}" Margin="0,8,0,0"
                                Foreground="{DynamicResource ErrorBrush}"/>
 
                     <!-- Parsed entries DataGrid -->
@@ -117,16 +117,16 @@
                                        Foreground="{DynamicResource AccentBrush}"
                                        Margin="0,0,0,4"/>
                             <TextBlock x:Name="TxtDetailSchedule" Text=""
-                                       FontSize="12" FontFamily="Consolas"
+                                       FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                                        Foreground="{DynamicResource TextPrimaryBrush}"
                                        Margin="0,0,0,2"/>
                             <TextBlock x:Name="TxtDetailCommand" Text=""
-                                       FontSize="12" FontFamily="Consolas"
+                                       FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                                        Foreground="{DynamicResource TextPrimaryBrush}"
                                        TextWrapping="Wrap"
                                        Margin="0,0,0,2"/>
                             <TextBlock x:Name="TxtDetailDescription" Text=""
-                                       FontSize="12"
+                                       FontSize="{StaticResource FontSizeBody}"
                                        Foreground="{DynamicResource TextSecondaryBrush}"
                                        TextWrapping="Wrap"/>
                         </StackPanel>
@@ -136,7 +136,7 @@
 
             <!-- Windows Tasks Mode -->
             <TabItem x:Name="TabWindowsTasks">
-                <Grid Margin="12">
+                <Grid Margin="{StaticResource SpacingMd}">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
@@ -150,14 +150,14 @@
                                 Style="{DynamicResource PrimaryButtonStyle}"
                                 Padding="16,6" DockPanel.Dock="Left"/>
                         <TextBlock x:Name="TxtTasksLoading" Text="" Visibility="Collapsed"
-                                   FontSize="12" Margin="12,0,0,0"
+                                   FontSize="{StaticResource FontSizeBody}" Margin="12,0,0,0"
                                    Foreground="{DynamicResource TextSecondaryBrush}"
                                    VerticalAlignment="Center"/>
                     </DockPanel>
 
                     <!-- Error message -->
                     <TextBlock x:Name="TxtTasksError" Grid.Row="1" Text="" Visibility="Collapsed"
-                               FontSize="12" Margin="0,0,0,8"
+                               FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,8"
                                Foreground="{DynamicResource ErrorBrush}"/>
 
                     <!-- Windows Tasks DataGrid -->
@@ -208,7 +208,7 @@
                         Padding="12,6" DockPanel.Dock="Right"
                         VerticalAlignment="Center"/>
                 <TextBlock x:Name="TxtStatus" Text=""
-                           FontSize="12" FontFamily="Consolas"
+                           FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                            Foreground="{DynamicResource TextSecondaryBrush}"
                            VerticalAlignment="Center"/>
             </DockPanel>

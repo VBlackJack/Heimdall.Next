@@ -15,7 +15,7 @@
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,0,0,1">
             <TextBlock x:Name="HeaderTitle" Text=""
-                       FontSize="14" FontWeight="SemiBold"
+                       FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                        Foreground="{DynamicResource TextPrimaryBrush}"
                        VerticalAlignment="Center"/>
         </Border>
@@ -27,7 +27,7 @@
                 BorderThickness="0,0,0,1">
             <DockPanel>
                 <TextBlock x:Name="TxtCopyHint" DockPanel.Dock="Right"
-                           FontSize="11" FontStyle="Italic"
+                           FontSize="{StaticResource FontSizeCaption}" FontStyle="Italic"
                            Foreground="{DynamicResource TextSecondaryBrush}"
                            VerticalAlignment="Center" Margin="8,0,0,0"/>
                 <TextBox x:Name="TxtFilter" Text=""
@@ -75,14 +75,14 @@
             <ListView.ItemTemplate>
                 <DataTemplate>
                     <DockPanel>
-                        <TextBlock Text="{Binding Code}" FontSize="14" FontWeight="Bold"
+                        <TextBlock Text="{Binding Code}" FontSize="{StaticResource FontSizeSubtitle}" FontWeight="Bold"
                                    FontFamily="Consolas" Width="40"
                                    Foreground="{Binding CategoryBrush}"
                                    VerticalAlignment="Center"/>
                         <StackPanel Margin="12,0,0,0">
                             <TextBlock Text="{Binding Name}" FontSize="13" FontWeight="SemiBold"
                                        Foreground="{DynamicResource TextPrimaryBrush}"/>
-                            <TextBlock Text="{Binding Description}" FontSize="11"
+                            <TextBlock Text="{Binding Description}" FontSize="{StaticResource FontSizeCaption}"
                                        Foreground="{DynamicResource TextSecondaryBrush}"
                                        TextWrapping="Wrap"/>
                         </StackPanel>

@@ -29,7 +29,7 @@
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,0,0,1"
                 Margin="0,0,0,12">
-            <TextBlock x:Name="TitleText" FontSize="14" FontWeight="SemiBold"
+            <TextBlock x:Name="TitleText" FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                        Foreground="{DynamicResource TextPrimaryBrush}"/>
         </Border>
 
@@ -123,7 +123,7 @@
         </Grid>
 
         <!-- Octal + Symbolic display -->
-        <Border Grid.Row="1" Padding="12"
+        <Border Grid.Row="1" Padding="{StaticResource SpacingMd}"
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="1" CornerRadius="4"
@@ -161,7 +161,7 @@
         </Border>
 
         <!-- Symbolic input -->
-        <Border Grid.Row="2" Padding="12"
+        <Border Grid.Row="2" Padding="{StaticResource SpacingMd}"
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="1" CornerRadius="4"
@@ -169,9 +169,9 @@
             <StackPanel>
                 <TextBlock x:Name="SymbolicInputLabel"
                            Foreground="{DynamicResource TextSecondaryBrush}"
-                           FontSize="12" Margin="0,0,0,4"/>
+                           FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,4"/>
                 <TextBox x:Name="SymbolicInput"
-                         FontFamily="Consolas" FontSize="14"
+                         FontFamily="Consolas" FontSize="{StaticResource FontSizeSubtitle}"
                          Background="Transparent"
                          Foreground="{DynamicResource TextPrimaryBrush}"
                          BorderBrush="{DynamicResource BorderBrush}"
@@ -180,13 +180,13 @@
                          KeyDown="OnSymbolicInputKeyDown"/>
                 <TextBlock x:Name="SymbolicInputError"
                            Foreground="{DynamicResource ErrorBrush}"
-                           FontSize="11" Margin="0,2,0,0"
+                           FontSize="{StaticResource FontSizeCaption}" Margin="0,2,0,0"
                            Visibility="Collapsed"/>
             </StackPanel>
         </Border>
 
         <!-- Command preview -->
-        <Border Grid.Row="3" Padding="12"
+        <Border Grid.Row="3" Padding="{StaticResource SpacingMd}"
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="1" CornerRadius="4"
@@ -201,7 +201,7 @@
                            Foreground="{DynamicResource TextSecondaryBrush}"
                            VerticalAlignment="Center" Margin="0,0,8,0"/>
                 <TextBlock x:Name="CommandPreviewText" Grid.Column="1"
-                           FontFamily="Consolas" FontSize="14"
+                           FontFamily="Consolas" FontSize="{StaticResource FontSizeSubtitle}"
                            Foreground="{DynamicResource AccentBrush}"
                            VerticalAlignment="Center"/>
                 <Button x:Name="BtnCopyCommand" Grid.Column="2"
@@ -224,7 +224,7 @@
         <!-- Presets -->
         <StackPanel Grid.Row="5">
             <TextBlock x:Name="PresetsLabel"
-                       FontSize="12" FontWeight="SemiBold"
+                       FontSize="{StaticResource FontSizeBody}" FontWeight="SemiBold"
                        Foreground="{DynamicResource TextSecondaryBrush}"
                        Margin="0,0,0,6"/>
             <WrapPanel Orientation="Horizontal">

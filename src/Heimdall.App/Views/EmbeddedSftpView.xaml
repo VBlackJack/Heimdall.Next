@@ -41,14 +41,14 @@
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Foreground="{DynamicResource ErrorBrush}"
                         Padding="8,2"
-                        FontSize="11"
+                        FontSize="{StaticResource FontSizeCaption}"
                         Margin="8,0,0,0"/>
                 <Button x:Name="ReconnectButton"
                         DockPanel.Dock="Right"
                         Click="OnReconnectClick"
                         Style="{DynamicResource PrimaryButtonStyle}"
                         Padding="8,2"
-                        FontSize="11"
+                        FontSize="{StaticResource FontSizeCaption}"
                         Margin="8,0,0,0"
                         Visibility="Collapsed"/>
                 <Button x:Name="SplitButton"
@@ -57,7 +57,7 @@
                         FontFamily="Segoe MDL2 Assets"
                         Click="OnSplitClick"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
-                        Padding="6,2" FontSize="12" Margin="4,0"/>
+                        Padding="6,2" FontSize="{StaticResource FontSizeBody}" Margin="4,0"/>
 
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <TextBlock x:Name="SessionTitleText"
@@ -69,15 +69,15 @@
                                MaxWidth="300"/>
                     <TextBlock x:Name="EndpointTextBlock"
                                Margin="8,0,0,0"
-                               FontSize="11"
+                               FontSize="{StaticResource FontSizeCaption}"
                                Foreground="{DynamicResource TextSecondaryBrush}"
                                VerticalAlignment="Center"
                                TextTrimming="CharacterEllipsis"
                                MaxWidth="250"/>
                     <TextBlock Text=" - " Foreground="{DynamicResource TextSecondaryBrush}"
-                               FontSize="11" VerticalAlignment="Center"/>
+                               FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center"/>
                     <TextBlock x:Name="StatusTextBlock"
-                               FontSize="11"
+                               FontSize="{StaticResource FontSizeCaption}"
                                Foreground="{DynamicResource TextPrimaryBrush}"
                                VerticalAlignment="Center"/>
                 </StackPanel>
@@ -97,7 +97,7 @@
                              Width="160"
                              Style="{DynamicResource SearchTextBoxStyle}"
                              Tag="Filter..."
-                             FontSize="11"
+                             FontSize="{StaticResource FontSizeCaption}"
                              VerticalContentAlignment="Center"
                              Margin="8,0,0,0"
                              TextChanged="OnFilterTextChanged"/>
@@ -105,7 +105,7 @@
                               Content=".*"
                               VerticalAlignment="Center"
                               Foreground="{DynamicResource TextSecondaryBrush}"
-                              FontSize="11"
+                              FontSize="{StaticResource FontSizeCaption}"
                               Margin="8,0,0,0"
                               IsChecked="True"
                               Checked="OnToggleHiddenChanged"
@@ -119,27 +119,27 @@
                             FontFamily="Segoe MDL2 Assets"
                             Click="OnBackClick"
                             Style="{DynamicResource ToolbarGhostButtonStyle}"
-                            Padding="8,2" FontSize="12"
+                            Padding="8,2" FontSize="{StaticResource FontSizeBody}"
                             IsEnabled="False"/>
                     <Button x:Name="BtnUp"
                             Content="&#xE74A;"
                             FontFamily="Segoe MDL2 Assets"
                             Click="OnUpClick"
                             Style="{DynamicResource ToolbarGhostButtonStyle}"
-                            Padding="8,2" FontSize="12" Margin="4,0,0,0"/>
+                            Padding="8,2" FontSize="{StaticResource FontSizeBody}" Margin="4,0,0,0"/>
                     <Button x:Name="BtnHome"
                             Content="&#xE80F;"
                             FontFamily="Segoe MDL2 Assets"
                             Click="OnHomeClick"
                             Style="{DynamicResource ToolbarGhostButtonStyle}"
-                            Padding="8,2" FontSize="12" Margin="4,0,0,0"
+                            Padding="8,2" FontSize="{StaticResource FontSizeBody}" Margin="4,0,0,0"
                             />
                     <Button x:Name="BtnRefresh"
                             Content="&#xE72C;"
                             FontFamily="Segoe MDL2 Assets"
                             Click="OnRefreshClick"
                             Style="{DynamicResource ToolbarGhostButtonStyle}"
-                            Padding="8,2" FontSize="12" Margin="4,0,0,0"
+                            Padding="8,2" FontSize="{StaticResource FontSizeBody}" Margin="4,0,0,0"
                             />
 
                     <Border Width="1" Margin="8,2" Background="{DynamicResource BorderBrush}"/>
@@ -147,9 +147,9 @@
                     <Button x:Name="BtnUpload"
                             Click="OnUploadClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="8,2" FontSize="11" Margin="0,0,4,0">
+                            Padding="8,2" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,4,0">
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="&#xE898;" FontFamily="Segoe MDL2 Assets" FontSize="12"
+                            <TextBlock Text="&#xE898;" FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeBody}"
                                        VerticalAlignment="Center" Margin="0,0,4,0"/>
                             <TextBlock x:Name="BtnUploadText" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
                         </StackPanel>
@@ -157,9 +157,9 @@
                     <Button x:Name="BtnNewFolder"
                             Click="OnNewFolderClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="8,2" FontSize="11">
+                            Padding="8,2" FontSize="{StaticResource FontSizeCaption}">
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="&#xE8F4;" FontFamily="Segoe MDL2 Assets" FontSize="12"
+                            <TextBlock Text="&#xE8F4;" FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeBody}"
                                        VerticalAlignment="Center" Margin="0,0,4,0"/>
                             <TextBlock x:Name="BtnNewFolderText" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
                         </StackPanel>
@@ -169,16 +169,16 @@
 
                     <ToggleButton x:Name="BtnSudoMode"
                                   Click="OnSudoModeToggle"
-                                  Padding="8,2" FontSize="11"
+                                  Padding="8,2" FontSize="{StaticResource FontSizeCaption}"
                                   Foreground="{DynamicResource TextPrimaryBrush}"
                                   Background="Transparent"
                                   BorderThickness="1"
                                   BorderBrush="{DynamicResource BorderBrush}">
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="&#xE7EF;" FontFamily="Segoe MDL2 Assets" FontSize="12"
+                            <TextBlock Text="&#xE7EF;" FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeBody}"
                                        VerticalAlignment="Center" Margin="0,0,4,0"/>
                             <TextBlock x:Name="BtnSudoModeText" Text="" VerticalAlignment="Center"
-                                       FontSize="11" FontWeight="SemiBold"/>
+                                       FontSize="{StaticResource FontSizeCaption}" FontWeight="SemiBold"/>
                         </StackPanel>
                     </ToggleButton>
 
@@ -189,18 +189,18 @@
                             Content="&#xE734;"
                             FontFamily="Segoe MDL2 Assets"
                             Style="{DynamicResource ToolbarGhostButtonStyle}"
-                            Padding="8,2" FontSize="12"
+                            Padding="8,2" FontSize="{StaticResource FontSizeBody}"
                             Click="OnBookmarkMenuClick">
                         <Button.ContextMenu>
                             <ContextMenu x:Name="BookmarkContextMenu">
                                 <MenuItem x:Name="MnuBookmarkAdd" Click="OnBookmarkClick">
                                     <MenuItem.Icon>
-                                        <TextBlock Text="&#xE734;" FontFamily="Segoe MDL2 Assets" FontSize="11"/>
+                                        <TextBlock Text="&#xE734;" FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeCaption}"/>
                                     </MenuItem.Icon>
                                 </MenuItem>
                                 <MenuItem x:Name="MnuBookmarkManage" Click="OnBookmarksClick">
                                     <MenuItem.Icon>
-                                        <TextBlock Text="&#xE735;" FontFamily="Segoe MDL2 Assets" FontSize="11"/>
+                                        <TextBlock Text="&#xE735;" FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeCaption}"/>
                                     </MenuItem.Icon>
                                 </MenuItem>
                             </ContextMenu>
@@ -223,11 +223,11 @@
                         FontFamily="Segoe MDL2 Assets"
                         Click="OnGoPathClick"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
-                        Padding="8,2" FontSize="12"
+                        Padding="8,2" FontSize="{StaticResource FontSizeBody}"
                         Margin="4,0,0,0"/>
                 <TextBox x:Name="PathTextBox"
                          Style="{DynamicResource ThemedTextBoxStyle}"
-                         FontSize="12"
+                         FontSize="{StaticResource FontSizeBody}"
                          FontFamily="Consolas"
                          VerticalContentAlignment="Center"
                          KeyDown="OnPathKeyDown"/>
@@ -341,61 +341,61 @@
                              Opened="OnContextMenuOpened">
                     <MenuItem x:Name="CtxOpen" Click="OnCtxOpenClick" InputGestureText="Enter">
                         <MenuItem.Icon>
-                            <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE8E5;" FontSize="14"/>
+                            <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE8E5;" FontSize="{StaticResource FontSizeSubtitle}"/>
                         </MenuItem.Icon>
                     </MenuItem>
                     <MenuItem x:Name="CtxEdit" Click="OnCtxEditClick">
                         <MenuItem.Icon>
-                            <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE70F;" FontSize="14"/>
+                            <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE70F;" FontSize="{StaticResource FontSizeSubtitle}"/>
                         </MenuItem.Icon>
                     </MenuItem>
                     <MenuItem x:Name="CtxEditExternal" Click="OnCtxEditExternalClick">
                         <MenuItem.Icon>
-                            <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE8A7;" FontSize="14"/>
+                            <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE8A7;" FontSize="{StaticResource FontSizeSubtitle}"/>
                         </MenuItem.Icon>
                     </MenuItem>
                     <MenuItem x:Name="CtxDownload" Click="OnCtxDownloadClick">
                         <MenuItem.Icon>
-                            <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE896;" FontSize="14"/>
+                            <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE896;" FontSize="{StaticResource FontSizeSubtitle}"/>
                         </MenuItem.Icon>
                     </MenuItem>
                     <Separator/>
                     <MenuItem x:Name="CtxRename" Click="OnCtxRenameClick" InputGestureText="F2">
                         <MenuItem.Icon>
-                            <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE8AC;" FontSize="14"/>
+                            <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE8AC;" FontSize="{StaticResource FontSizeSubtitle}"/>
                         </MenuItem.Icon>
                     </MenuItem>
                     <MenuItem x:Name="CtxDelete" Click="OnCtxDeleteClick" InputGestureText="Del">
                         <MenuItem.Icon>
-                            <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE74D;" FontSize="14"
+                            <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE74D;" FontSize="{StaticResource FontSizeSubtitle}"
                                        Foreground="{DynamicResource ErrorBrush}"/>
                         </MenuItem.Icon>
                     </MenuItem>
                     <MenuItem x:Name="CtxChmod" Click="OnCtxChmodClick">
                         <MenuItem.Icon>
-                            <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE8D7;" FontSize="14"/>
+                            <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE8D7;" FontSize="{StaticResource FontSizeSubtitle}"/>
                         </MenuItem.Icon>
                     </MenuItem>
                     <Separator/>
                     <MenuItem x:Name="CtxCopyPath" Click="OnCtxCopyPathClick" InputGestureText="Ctrl+C">
                         <MenuItem.Icon>
-                            <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE8C8;" FontSize="14"/>
+                            <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE8C8;" FontSize="{StaticResource FontSizeSubtitle}"/>
                         </MenuItem.Icon>
                     </MenuItem>
                     <MenuItem x:Name="CtxProperties" Click="OnCtxPropertiesClick">
                         <MenuItem.Icon>
-                            <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE946;" FontSize="14"/>
+                            <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE946;" FontSize="{StaticResource FontSizeSubtitle}"/>
                         </MenuItem.Icon>
                     </MenuItem>
                     <Separator/>
                     <MenuItem x:Name="CtxUploadHere" Click="OnUploadClick">
                         <MenuItem.Icon>
-                            <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE898;" FontSize="14"/>
+                            <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE898;" FontSize="{StaticResource FontSizeSubtitle}"/>
                         </MenuItem.Icon>
                     </MenuItem>
                     <MenuItem x:Name="CtxOpenInTerminal" Click="OnCtxOpenInTerminalClick">
                         <MenuItem.Icon>
-                            <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE756;" FontSize="14"/>
+                            <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE756;" FontSize="{StaticResource FontSizeSubtitle}"/>
                         </MenuItem.Icon>
                     </MenuItem>
                 </ContextMenu>
@@ -453,11 +453,11 @@
                         DockPanel.Dock="Right"
                         Click="OnCancelTransferClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="8,2" FontSize="11"
+                        Padding="8,2" FontSize="{StaticResource FontSizeCaption}"
                         Margin="8,0,0,0"/>
                 <StackPanel>
                     <TextBlock x:Name="TransferText"
-                               FontSize="11"
+                               FontSize="{StaticResource FontSizeCaption}"
                                Foreground="{DynamicResource TextPrimaryBrush}"/>
                     <ProgressBar x:Name="TransferProgressBar"
                                  Height="6" Margin="0,4,0,0"
@@ -477,11 +477,11 @@
             <DockPanel>
                 <TextBlock x:Name="ItemCountText"
                            DockPanel.Dock="Right"
-                           FontSize="11"
+                           FontSize="{StaticResource FontSizeCaption}"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
                 <TextBlock x:Name="SelectionInfoText"
                            DockPanel.Dock="Right"
-                           FontSize="11"
+                           FontSize="{StaticResource FontSizeCaption}"
                            Margin="0,0,12,0"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
                 <!-- Connection health dot -->
@@ -491,7 +491,7 @@
                          Fill="{DynamicResource SuccessBrush}"
                          VerticalAlignment="Center"/>
                 <TextBlock x:Name="StatusBarText"
-                           FontSize="11"
+                           FontSize="{StaticResource FontSizeCaption}"
                            Foreground="{DynamicResource TextSecondaryBrush}"
                            TextTrimming="CharacterEllipsis"/>
             </DockPanel>

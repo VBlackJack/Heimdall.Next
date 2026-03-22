@@ -16,7 +16,7 @@
                 BorderThickness="0,0,0,1">
             <DockPanel>
                 <TextBlock x:Name="HeaderTitle" Text=""
-                           FontSize="14" FontWeight="SemiBold"
+                           FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
                            VerticalAlignment="Center" DockPanel.Dock="Left"/>
                 <StackPanel Orientation="Horizontal" Margin="16,0,0,0" VerticalAlignment="Center">
@@ -46,12 +46,12 @@
 
         <!-- Error message -->
         <TextBlock x:Name="TxtError" Grid.Row="1" Text="" Visibility="Collapsed"
-                   FontSize="12" Margin="12,8,12,0" TextWrapping="Wrap"
+                   FontSize="{StaticResource FontSizeBody}" Margin="12,8,12,0" TextWrapping="Wrap"
                    Foreground="{DynamicResource ErrorBrush}"
                    VerticalAlignment="Top"/>
 
         <!-- Services DataGrid -->
-        <Border Grid.Row="1" Margin="8"
+        <Border Grid.Row="1" Margin="{StaticResource SpacingSm}"
                 Background="{DynamicResource CardBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="1" CornerRadius="4">
@@ -100,25 +100,25 @@
                         Padding="12,6" DockPanel.Dock="Right"
                         VerticalAlignment="Center"/>
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <TextBlock x:Name="LblTotal" Text="" FontSize="12" FontFamily="Consolas"
+                    <TextBlock x:Name="LblTotal" Text="" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                                Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,4,0"/>
-                    <TextBlock x:Name="TxtTotal" Text="—" FontSize="12" FontFamily="Consolas"
+                    <TextBlock x:Name="TxtTotal" Text="—" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                                Foreground="{DynamicResource AccentBrush}" FontWeight="SemiBold"/>
 
-                    <TextBlock Text="  |  " FontSize="12"
+                    <TextBlock Text="  |  " FontSize="{StaticResource FontSizeBody}"
                                Foreground="{DynamicResource BorderBrush}"/>
 
-                    <TextBlock x:Name="LblRunning" Text="" FontSize="12" FontFamily="Consolas"
+                    <TextBlock x:Name="LblRunning" Text="" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                                Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,4,0"/>
-                    <TextBlock x:Name="TxtRunning" Text="—" FontSize="12" FontFamily="Consolas"
+                    <TextBlock x:Name="TxtRunning" Text="—" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                                Foreground="{DynamicResource SuccessBrush}" FontWeight="SemiBold"/>
 
-                    <TextBlock Text="  |  " FontSize="12"
+                    <TextBlock Text="  |  " FontSize="{StaticResource FontSizeBody}"
                                Foreground="{DynamicResource BorderBrush}"/>
 
-                    <TextBlock x:Name="LblStopped" Text="" FontSize="12" FontFamily="Consolas"
+                    <TextBlock x:Name="LblStopped" Text="" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                                Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,4,0"/>
-                    <TextBlock x:Name="TxtStopped" Text="—" FontSize="12" FontFamily="Consolas"
+                    <TextBlock x:Name="TxtStopped" Text="—" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                                Foreground="{DynamicResource ErrorBrush}" FontWeight="SemiBold"/>
                 </StackPanel>
             </DockPanel>

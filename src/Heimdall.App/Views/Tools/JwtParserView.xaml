@@ -14,21 +14,21 @@
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,0,0,1">
             <TextBlock x:Name="HeaderTitle" Text=""
-                       FontSize="14" FontWeight="SemiBold"
+                       FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                        Foreground="{DynamicResource TextPrimaryBrush}"
                        VerticalAlignment="Center"/>
         </Border>
 
         <!-- Content -->
-        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="16">
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="{StaticResource SpacingLg}">
             <StackPanel MaxWidth="700">
 
                 <!-- Input -->
                 <TextBlock x:Name="LblInput" Text=""
-                           FontSize="12" Margin="0,0,0,4"
+                           FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,4"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
                 <TextBox x:Name="TxtInput" Text=""
-                         FontSize="12" FontFamily="Consolas"
+                         FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                          Padding="8,6" Height="80"
                          AcceptsReturn="True"
                          TextWrapping="Wrap"
@@ -44,12 +44,12 @@
                         Padding="10,6" CornerRadius="4"
                         Visibility="Collapsed">
                     <TextBlock x:Name="TxtExpiration" Text=""
-                               FontSize="12" FontWeight="SemiBold"/>
+                               FontSize="{StaticResource FontSizeBody}" FontWeight="SemiBold"/>
                 </Border>
 
                 <!-- Error message -->
                 <TextBlock x:Name="TxtError" Text=""
-                           FontSize="12" Margin="0,12,0,0"
+                           FontSize="{StaticResource FontSizeBody}" Margin="0,12,0,0"
                            Foreground="{DynamicResource ErrorBrush}"
                            TextWrapping="Wrap"
                            Visibility="Collapsed"/>
@@ -58,16 +58,16 @@
                 <DockPanel Margin="0,16,0,4">
                     <Button x:Name="BtnCopyHeader" DockPanel.Dock="Right" Click="OnCopyHeaderClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="6,2" FontSize="11" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                            Padding="6,2" FontSize="{StaticResource FontSizeCaption}" Margin="8,0,0,0" VerticalAlignment="Center"/>
                     <TextBlock x:Name="LblHeader" Text=""
-                               FontSize="12" FontWeight="SemiBold"
+                               FontSize="{StaticResource FontSizeBody}" FontWeight="SemiBold"
                                Foreground="{DynamicResource JwtHeaderBrush}" VerticalAlignment="Center"/>
                 </DockPanel>
                 <Border Background="{DynamicResource CardBrush}"
                         BorderBrush="{DynamicResource JwtHeaderBrush}" BorderThickness="1"
-                        CornerRadius="4" Padding="8" Margin="0,0,0,12">
+                        CornerRadius="4" Padding="{StaticResource SpacingSm}" Margin="0,0,0,12">
                     <TextBox x:Name="TxtHeader" Text=""
-                             FontSize="12" FontFamily="Consolas"
+                             FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                              IsReadOnly="True"
                              AcceptsReturn="True"
                              TextWrapping="Wrap"
@@ -81,16 +81,16 @@
                 <DockPanel Margin="0,4,0,4">
                     <Button x:Name="BtnCopyPayload" DockPanel.Dock="Right" Click="OnCopyPayloadClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="6,2" FontSize="11" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                            Padding="6,2" FontSize="{StaticResource FontSizeCaption}" Margin="8,0,0,0" VerticalAlignment="Center"/>
                     <TextBlock x:Name="LblPayload" Text=""
-                               FontSize="12" FontWeight="SemiBold"
+                               FontSize="{StaticResource FontSizeBody}" FontWeight="SemiBold"
                                Foreground="{DynamicResource JwtPayloadBrush}" VerticalAlignment="Center"/>
                 </DockPanel>
                 <Border Background="{DynamicResource CardBrush}"
                         BorderBrush="{DynamicResource JwtPayloadBrush}" BorderThickness="1"
-                        CornerRadius="4" Padding="8" Margin="0,0,0,12">
+                        CornerRadius="4" Padding="{StaticResource SpacingSm}" Margin="0,0,0,12">
                     <TextBox x:Name="TxtPayload" Text=""
-                             FontSize="12" FontFamily="Consolas"
+                             FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                              IsReadOnly="True"
                              AcceptsReturn="True"
                              TextWrapping="Wrap"
@@ -104,16 +104,16 @@
                 <DockPanel Margin="0,4,0,4">
                     <Button x:Name="BtnCopySignature" DockPanel.Dock="Right" Click="OnCopySignatureClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="6,2" FontSize="11" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                            Padding="6,2" FontSize="{StaticResource FontSizeCaption}" Margin="8,0,0,0" VerticalAlignment="Center"/>
                     <TextBlock x:Name="LblSignature" Text=""
-                               FontSize="12" FontWeight="SemiBold"
+                               FontSize="{StaticResource FontSizeBody}" FontWeight="SemiBold"
                                Foreground="{DynamicResource JwtSignatureBrush}" VerticalAlignment="Center"/>
                 </DockPanel>
                 <Border Background="{DynamicResource CardBrush}"
                         BorderBrush="{DynamicResource JwtSignatureBrush}" BorderThickness="1"
-                        CornerRadius="4" Padding="8" Margin="0,0,0,12">
+                        CornerRadius="4" Padding="{StaticResource SpacingSm}" Margin="0,0,0,12">
                     <TextBox x:Name="TxtSignature" Text=""
-                             FontSize="12" FontFamily="Consolas"
+                             FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                              IsReadOnly="True"
                              TextWrapping="Wrap"
                              BorderThickness="0"
@@ -127,24 +127,24 @@
                         Background="{DynamicResource CardBrush}"
                         BorderBrush="{DynamicResource BorderBrush}"
                         BorderThickness="1" CornerRadius="4"
-                        Padding="12" Margin="0,0,0,12">
+                        Padding="{StaticResource SpacingMd}" Margin="0,0,0,12">
                     <StackPanel>
                         <TextBlock x:Name="LblVerifyTitle" Text=""
-                                   FontSize="12" FontWeight="SemiBold"
+                                   FontSize="{StaticResource FontSizeBody}" FontWeight="SemiBold"
                                    Foreground="{DynamicResource TextPrimaryBrush}"
                                    Margin="0,0,0,8"/>
 
                         <!-- Unsupported algorithm message (for RS/ES) -->
                         <TextBlock x:Name="TxtUnsupportedAlg" Text=""
                                    Visibility="Collapsed"
-                                   FontSize="12"
+                                   FontSize="{StaticResource FontSizeBody}"
                                    Foreground="{DynamicResource TextSecondaryBrush}"
                                    TextWrapping="Wrap"/>
 
                         <!-- HMAC verification controls -->
                         <StackPanel x:Name="HmacVerifyPanel" Visibility="Collapsed">
                             <TextBlock x:Name="LblSecret" Text=""
-                                       FontSize="12" Margin="0,0,0,4"
+                                       FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,4"
                                        Foreground="{DynamicResource TextSecondaryBrush}"/>
                             <DockPanel Margin="0,0,0,8">
                                 <Button x:Name="BtnVerify" DockPanel.Dock="Right"
@@ -153,7 +153,7 @@
                                         Padding="16,6" Margin="8,0,0,0"
                                         VerticalAlignment="Center"/>
                                 <TextBox x:Name="TxtSecret" Text=""
-                                         FontSize="12" FontFamily="Consolas"
+                                         FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                                          Padding="8,6"
                                          Background="{DynamicResource BackgroundBrush}"
                                          Foreground="{DynamicResource TextPrimaryBrush}"
@@ -162,7 +162,7 @@
                             </DockPanel>
                             <TextBlock x:Name="TxtVerifyResult" Text=""
                                        Visibility="Collapsed"
-                                       FontSize="12" FontWeight="SemiBold"/>
+                                       FontSize="{StaticResource FontSizeBody}" FontWeight="SemiBold"/>
                         </StackPanel>
                     </StackPanel>
                 </Border>

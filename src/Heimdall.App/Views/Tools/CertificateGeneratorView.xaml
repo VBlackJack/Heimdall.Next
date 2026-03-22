@@ -29,13 +29,13 @@
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,0,0,1">
             <TextBlock x:Name="TitleText"
-                       FontSize="14" FontWeight="SemiBold"
+                       FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                        Foreground="{DynamicResource TextPrimaryBrush}"
                        VerticalAlignment="Center"/>
         </Border>
 
     <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="0">
-        <Grid Margin="16">
+        <Grid Margin="{StaticResource SpacingLg}">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
@@ -49,7 +49,7 @@
             </Grid.RowDefinitions>
 
             <!-- Subject section -->
-            <Border Grid.Row="0" Padding="12"
+            <Border Grid.Row="0" Padding="{StaticResource SpacingMd}"
                     Background="{DynamicResource SurfaceBrush}"
                     BorderBrush="{DynamicResource BorderBrush}"
                     BorderThickness="1" CornerRadius="4"
@@ -95,7 +95,7 @@
             </Border>
 
             <!-- Options section -->
-            <Border Grid.Row="1" Padding="12"
+            <Border Grid.Row="1" Padding="{StaticResource SpacingMd}"
                     Background="{DynamicResource SurfaceBrush}"
                     BorderBrush="{DynamicResource BorderBrush}"
                     BorderThickness="1" CornerRadius="4"
@@ -141,14 +141,14 @@
                                  Padding="4,2"/>
                     </DockPanel>
                     <TextBlock x:Name="SanHint"
-                               FontSize="11"
+                               FontSize="{StaticResource FontSizeCaption}"
                                Foreground="{DynamicResource TextSecondaryBrush}"
                                Margin="160,0,0,0"/>
                 </StackPanel>
             </Border>
 
             <!-- Type selector -->
-            <Border Grid.Row="2" Padding="12"
+            <Border Grid.Row="2" Padding="{StaticResource SpacingMd}"
                     Background="{DynamicResource SurfaceBrush}"
                     BorderBrush="{DynamicResource BorderBrush}"
                     BorderThickness="1" CornerRadius="4"
@@ -176,7 +176,7 @@
                     HorizontalAlignment="Left"/>
 
             <!-- Fingerprint -->
-            <Border Grid.Row="4" Padding="8"
+            <Border Grid.Row="4" Padding="{StaticResource SpacingSm}"
                     Background="{DynamicResource SurfaceBrush}"
                     BorderBrush="{DynamicResource BorderBrush}"
                     BorderThickness="1" CornerRadius="4"
@@ -194,7 +194,7 @@
                             VerticalAlignment="Center"/>
                     <TextBox x:Name="FingerprintOutput"
                              IsReadOnly="True"
-                             FontFamily="Consolas" FontSize="12"
+                             FontFamily="Consolas" FontSize="{StaticResource FontSizeBody}"
                              Background="Transparent"
                              Foreground="{DynamicResource TextPrimaryBrush}"
                              BorderThickness="0"
@@ -203,7 +203,7 @@
             </Border>
 
             <!-- Certificate PEM (self-signed) / CA Certificate (CA+Leaf) -->
-            <Border Grid.Row="5" Padding="8"
+            <Border Grid.Row="5" Padding="{StaticResource SpacingSm}"
                     Background="{DynamicResource SurfaceBrush}"
                     BorderBrush="{DynamicResource BorderBrush}"
                     BorderThickness="1" CornerRadius="4"
@@ -222,7 +222,7 @@
                     </StackPanel>
                     <TextBox x:Name="CertOutput"
                              IsReadOnly="True"
-                             FontFamily="Consolas" FontSize="12"
+                             FontFamily="Consolas" FontSize="{StaticResource FontSizeBody}"
                              TextWrapping="Wrap"
                              MaxHeight="200"
                              VerticalScrollBarVisibility="Auto"
@@ -233,7 +233,7 @@
             </Border>
 
             <!-- Private Key -->
-            <Border Grid.Row="6" Padding="8"
+            <Border Grid.Row="6" Padding="{StaticResource SpacingSm}"
                     Background="{DynamicResource SurfaceBrush}"
                     BorderBrush="{DynamicResource BorderBrush}"
                     BorderThickness="1" CornerRadius="4"
@@ -257,7 +257,7 @@
                     </StackPanel>
                     <TextBox x:Name="KeyOutput"
                              IsReadOnly="True"
-                             FontFamily="Consolas" FontSize="12"
+                             FontFamily="Consolas" FontSize="{StaticResource FontSizeBody}"
                              TextWrapping="Wrap"
                              MaxHeight="200"
                              VerticalScrollBarVisibility="Auto"
@@ -268,7 +268,7 @@
             </Border>
 
             <!-- Leaf Certificate (CA+Leaf mode only) -->
-            <Border Grid.Row="7" Padding="8"
+            <Border Grid.Row="7" Padding="{StaticResource SpacingSm}"
                     Background="{DynamicResource SurfaceBrush}"
                     BorderBrush="{DynamicResource BorderBrush}"
                     BorderThickness="1" CornerRadius="4"
@@ -288,7 +288,7 @@
                     </StackPanel>
                     <TextBox x:Name="LeafCertOutput"
                              IsReadOnly="True"
-                             FontFamily="Consolas" FontSize="12"
+                             FontFamily="Consolas" FontSize="{StaticResource FontSizeBody}"
                              TextWrapping="Wrap"
                              MaxHeight="160"
                              VerticalScrollBarVisibility="Auto"
@@ -314,7 +314,7 @@
                     </StackPanel>
                     <TextBox x:Name="LeafKeyOutput"
                              IsReadOnly="True"
-                             FontFamily="Consolas" FontSize="12"
+                             FontFamily="Consolas" FontSize="{StaticResource FontSizeBody}"
                              TextWrapping="Wrap"
                              MaxHeight="160"
                              VerticalScrollBarVisibility="Auto"

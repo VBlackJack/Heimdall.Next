@@ -14,18 +14,18 @@
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,0,0,1">
             <TextBlock x:Name="HeaderTitle" Text=""
-                       FontSize="14" FontWeight="SemiBold"
+                       FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                        Foreground="{DynamicResource TextPrimaryBrush}"
                        VerticalAlignment="Center"/>
         </Border>
 
         <!-- Content -->
-        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="16">
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="{StaticResource SpacingLg}">
             <StackPanel MaxWidth="600">
 
                 <!-- Secret key input -->
                 <TextBlock x:Name="LblSecret" Text=""
-                           FontSize="12" Margin="0,0,0,4"
+                           FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,4"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
                 <DockPanel Margin="0,0,0,16">
                     <Button x:Name="BtnGenerate" DockPanel.Dock="Right"
@@ -44,7 +44,7 @@
 
                 <!-- Error message -->
                 <TextBlock x:Name="TxtError" Text="" Visibility="Collapsed"
-                           FontSize="12" Margin="0,0,0,12" TextWrapping="Wrap"
+                           FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,12" TextWrapping="Wrap"
                            Foreground="{DynamicResource ErrorBrush}"/>
 
                 <!-- TOTP code display -->
@@ -55,7 +55,7 @@
                         Padding="24,16" Margin="0,0,0,16">
                     <StackPanel HorizontalAlignment="Center">
                         <TextBlock x:Name="LblCode" Text=""
-                                   FontSize="12" Margin="0,0,0,8"
+                                   FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,8"
                                    Foreground="{DynamicResource TextSecondaryBrush}"
                                    HorizontalAlignment="Center"/>
                         <DockPanel HorizontalAlignment="Center" Margin="0,0,0,12">
@@ -73,7 +73,7 @@
 
                         <!-- Time remaining -->
                         <TextBlock x:Name="LblTimeRemaining" Text=""
-                                   FontSize="12" Margin="0,0,0,4"
+                                   FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,4"
                                    Foreground="{DynamicResource TextSecondaryBrush}"
                                    HorizontalAlignment="Center"/>
                         <ProgressBar x:Name="ProgressTime"
@@ -86,7 +86,7 @@
 
                 <!-- Info -->
                 <TextBlock x:Name="TxtInfo" Text=""
-                           FontSize="11" TextWrapping="Wrap"
+                           FontSize="{StaticResource FontSizeCaption}" TextWrapping="Wrap"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
 
             </StackPanel>

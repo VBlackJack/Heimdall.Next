@@ -33,9 +33,9 @@
                 <Button x:Name="BtnHelp" DockPanel.Dock="Right" Content="?"
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="6,2" FontSize="12" FontWeight="Bold"
+                        Padding="6,2" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
                         Width="24" Height="24" Margin="8,0,0,0"/>
-                <TextBlock x:Name="TitleText" FontSize="14" FontWeight="SemiBold"
+                <TextBlock x:Name="TitleText" FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
                            VerticalAlignment="Center"/>
             </DockPanel>
@@ -55,7 +55,7 @@
         <DockPanel Grid.Row="0" Margin="0,0,0,8">
             <TextBlock x:Name="PatternLabel" DockPanel.Dock="Top"
                        Foreground="{DynamicResource TextSecondaryBrush}"
-                       FontSize="12" Margin="0,0,0,4"/>
+                       FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,4"/>
             <TextBox x:Name="PatternText"
                      FontFamily="Consolas" FontSize="13"
                      Background="{DynamicResource SurfaceBrush}"
@@ -93,7 +93,7 @@
             </Grid.RowDefinitions>
             <TextBlock x:Name="TestTextLabel" Grid.Row="0"
                        Foreground="{DynamicResource TextSecondaryBrush}"
-                       FontSize="12" Margin="0,0,0,4"/>
+                       FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,4"/>
             <Grid Grid.Row="1">
                 <TextBox x:Name="TestText"
                          AcceptsReturn="True" AcceptsTab="True"
@@ -127,10 +127,10 @@
         <DockPanel Grid.Row="3" Margin="0,8">
             <TextBlock x:Name="MatchCountText"
                        Foreground="{DynamicResource TextSecondaryBrush}"
-                       FontSize="12" VerticalAlignment="Center"/>
+                       FontSize="{StaticResource FontSizeBody}" VerticalAlignment="Center"/>
             <TextBlock x:Name="StatusText" DockPanel.Dock="Right"
                        Foreground="{DynamicResource TextSecondaryBrush}"
-                       FontSize="11" VerticalAlignment="Center"
+                       FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center"
                        HorizontalAlignment="Right"/>
         </DockPanel>
 
@@ -142,7 +142,7 @@
             </Grid.RowDefinitions>
             <TextBlock x:Name="MatchesLabel" Grid.Row="0"
                        Foreground="{DynamicResource TextSecondaryBrush}"
-                       FontSize="12" Margin="0,0,0,4"/>
+                       FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,4"/>
             <ListBox x:Name="MatchesList" Grid.Row="1"
                      Background="{DynamicResource SurfaceBrush}"
                      Foreground="{DynamicResource TextPrimaryBrush}"

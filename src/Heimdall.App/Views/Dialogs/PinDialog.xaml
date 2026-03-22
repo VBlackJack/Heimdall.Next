@@ -23,7 +23,7 @@
         <converters:InvertBoolConverter x:Key="InvertBoolConverter"/>
     </Window.Resources>
 
-    <Grid Margin="24">
+    <Grid Margin="{StaticResource SpacingXl}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>

@@ -29,38 +29,38 @@
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,0,0,1">
             <TextBlock x:Name="HeaderTitle" Text=""
-                       FontSize="14" FontWeight="SemiBold"
+                       FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                        Foreground="{DynamicResource TextPrimaryBrush}"
                        VerticalAlignment="Center"/>
         </Border>
 
         <!-- Content -->
-        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="16">
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="{StaticResource SpacingLg}">
             <StackPanel MaxWidth="600">
 
                 <!-- Quick presets -->
                 <TextBlock x:Name="LblPresets" Text=""
-                           FontSize="12" Margin="0,0,0,6"
+                           FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,6"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
                 <WrapPanel Margin="0,0,0,16">
                     <Button x:Name="BtnPresetEveryMin" Click="OnPresetClick" Tag="* * * * *"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="10,4" Margin="0,0,6,6" FontSize="12"/>
+                            Padding="10,4" Margin="0,0,6,6" FontSize="{StaticResource FontSizeBody}"/>
                     <Button x:Name="BtnPresetEveryHour" Click="OnPresetClick" Tag="0 * * * *"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="10,4" Margin="0,0,6,6" FontSize="12"/>
+                            Padding="10,4" Margin="0,0,6,6" FontSize="{StaticResource FontSizeBody}"/>
                     <Button x:Name="BtnPresetDailyMidnight" Click="OnPresetClick" Tag="0 0 * * *"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="10,4" Margin="0,0,6,6" FontSize="12"/>
+                            Padding="10,4" Margin="0,0,6,6" FontSize="{StaticResource FontSizeBody}"/>
                     <Button x:Name="BtnPresetWeekdays9am" Click="OnPresetClick" Tag="0 9 * * 1-5"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="10,4" Margin="0,0,6,6" FontSize="12"/>
+                            Padding="10,4" Margin="0,0,6,6" FontSize="{StaticResource FontSizeBody}"/>
                     <Button x:Name="BtnPresetWeeklySunday" Click="OnPresetClick" Tag="0 0 * * 0"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="10,4" Margin="0,0,6,6" FontSize="12"/>
+                            Padding="10,4" Margin="0,0,6,6" FontSize="{StaticResource FontSizeBody}"/>
                     <Button x:Name="BtnPresetMonthly1st" Click="OnPresetClick" Tag="0 0 1 * *"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="10,4" Margin="0,0,6,6" FontSize="12"/>
+                            Padding="10,4" Margin="0,0,6,6" FontSize="{StaticResource FontSizeBody}"/>
                 </WrapPanel>
 
                 <!-- Selectors -->
@@ -83,7 +83,7 @@
 
                     <!-- Minute -->
                     <TextBlock x:Name="LblMinute" Grid.Row="0" Grid.Column="0" Text=""
-                               FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}"
+                               FontSize="{StaticResource FontSizeBody}" Foreground="{DynamicResource TextSecondaryBrush}"
                                VerticalAlignment="Center"/>
                     <ComboBox x:Name="CmbMinute" Grid.Row="0" Grid.Column="1"
                               SelectionChanged="OnSelectorChanged"
@@ -94,7 +94,7 @@
 
                     <!-- Hour -->
                     <TextBlock x:Name="LblHour" Grid.Row="2" Grid.Column="0" Text=""
-                               FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}"
+                               FontSize="{StaticResource FontSizeBody}" Foreground="{DynamicResource TextSecondaryBrush}"
                                VerticalAlignment="Center"/>
                     <ComboBox x:Name="CmbHour" Grid.Row="2" Grid.Column="1"
                               SelectionChanged="OnSelectorChanged"
@@ -105,7 +105,7 @@
 
                     <!-- Day of Month -->
                     <TextBlock x:Name="LblDayOfMonth" Grid.Row="4" Grid.Column="0" Text=""
-                               FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}"
+                               FontSize="{StaticResource FontSizeBody}" Foreground="{DynamicResource TextSecondaryBrush}"
                                VerticalAlignment="Center"/>
                     <ComboBox x:Name="CmbDayOfMonth" Grid.Row="4" Grid.Column="1"
                               SelectionChanged="OnSelectorChanged"
@@ -116,7 +116,7 @@
 
                     <!-- Month -->
                     <TextBlock x:Name="LblMonth" Grid.Row="6" Grid.Column="0" Text=""
-                               FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}"
+                               FontSize="{StaticResource FontSizeBody}" Foreground="{DynamicResource TextSecondaryBrush}"
                                VerticalAlignment="Center"/>
                     <ComboBox x:Name="CmbMonth" Grid.Row="6" Grid.Column="1"
                               SelectionChanged="OnSelectorChanged"
@@ -127,7 +127,7 @@
 
                     <!-- Day of Week -->
                     <TextBlock x:Name="LblDayOfWeek" Grid.Row="8" Grid.Column="0" Text=""
-                               FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}"
+                               FontSize="{StaticResource FontSizeBody}" Foreground="{DynamicResource TextSecondaryBrush}"
                                VerticalAlignment="Center"/>
                     <ComboBox x:Name="CmbDayOfWeek" Grid.Row="8" Grid.Column="1"
                               SelectionChanged="OnSelectorChanged"
@@ -141,7 +141,7 @@
                 <Border Background="{DynamicResource SurfaceBrush}"
                         BorderBrush="{DynamicResource BorderBrush}"
                         BorderThickness="1" CornerRadius="4"
-                        Padding="12" Margin="0,0,0,8">
+                        Padding="{StaticResource SpacingMd}" Margin="0,0,0,8">
                     <DockPanel>
                         <Button x:Name="BtnCopy" DockPanel.Dock="Right"
                                 Click="OnCopyClick"
@@ -168,7 +168,7 @@
 
                 <!-- Manual edit -->
                 <TextBlock x:Name="LblManualEdit" Text=""
-                           FontSize="12" Margin="0,0,0,4"
+                           FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,4"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
                 <TextBox x:Name="TxtManualInput" Text=""
                          FontSize="13" FontFamily="Consolas"
@@ -179,7 +179,7 @@
                          TextChanged="OnManualInputChanged"
                          />
                 <TextBlock x:Name="TxtValidationError" Text=""
-                           FontSize="11" Margin="0,0,0,12"
+                           FontSize="{StaticResource FontSizeCaption}" Margin="0,0,0,12"
                            FontWeight="SemiBold"
                            Foreground="Red"
                            TextWrapping="Wrap"
@@ -187,7 +187,7 @@
 
                 <!-- Next executions -->
                 <TextBlock x:Name="LblNextRuns" Text=""
-                           FontSize="12" FontWeight="SemiBold" Margin="0,0,0,6"
+                           FontSize="{StaticResource FontSizeBody}" FontWeight="SemiBold" Margin="0,0,0,6"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
                 <Border Background="{DynamicResource CardBrush}"
                         BorderBrush="{DynamicResource BorderBrush}"
@@ -196,7 +196,7 @@
                     <ItemsControl x:Name="NextRunsList">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <TextBlock Text="{Binding}" FontSize="12" FontFamily="Consolas"
+                                <TextBlock Text="{Binding}" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                                            Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,2"/>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>

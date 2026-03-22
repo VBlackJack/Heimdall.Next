@@ -34,15 +34,15 @@
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
                     <Button x:Name="BtnReload" Click="OnReloadClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="10,4" Margin="0,0,6,0" FontSize="12"
+                            Padding="10,4" Margin="0,0,6,0" FontSize="{StaticResource FontSizeBody}"
                             VerticalAlignment="Center"/>
                     <Button x:Name="BtnSave" Click="OnSaveClick"
                             Style="{DynamicResource PrimaryButtonStyle}"
-                            Padding="10,4" FontSize="12"
+                            Padding="10,4" FontSize="{StaticResource FontSizeBody}"
                             VerticalAlignment="Center"/>
                 </StackPanel>
                 <TextBlock x:Name="HeaderTitle" Text=""
-                           FontSize="14" FontWeight="SemiBold"
+                           FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
                            VerticalAlignment="Center"/>
             </DockPanel>
@@ -81,10 +81,10 @@
         <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="12,8">
             <Button x:Name="BtnAddEntry" Click="OnAddEntryClick"
                     Style="{DynamicResource SecondaryButtonStyle}"
-                    Padding="10,4" Margin="0,0,6,0" FontSize="12"/>
+                    Padding="10,4" Margin="0,0,6,0" FontSize="{StaticResource FontSizeBody}"/>
             <Button x:Name="BtnDeleteSelected" Click="OnDeleteSelectedClick"
                     Style="{DynamicResource SecondaryButtonStyle}"
-                    Padding="10,4" FontSize="12"/>
+                    Padding="10,4" FontSize="{StaticResource FontSizeBody}"/>
         </StackPanel>
 
         <!-- Status bar -->
@@ -94,11 +94,11 @@
                 BorderThickness="0,1,0,0">
             <DockPanel>
                 <TextBlock x:Name="TxtLastModified" DockPanel.Dock="Right"
-                           FontSize="11"
+                           FontSize="{StaticResource FontSizeCaption}"
                            Foreground="{DynamicResource TextSecondaryBrush}"
                            VerticalAlignment="Center"/>
                 <TextBlock x:Name="TxtFilePath"
-                           FontSize="11" FontFamily="Consolas"
+                           FontSize="{StaticResource FontSizeCaption}" FontFamily="Consolas"
                            Foreground="{DynamicResource TextSecondaryBrush}"
                            VerticalAlignment="Center"
                            TextTrimming="CharacterEllipsis"/>

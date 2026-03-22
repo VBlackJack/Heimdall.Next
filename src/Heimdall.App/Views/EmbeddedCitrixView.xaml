@@ -26,31 +26,31 @@
                         Click="OnTerminateClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="8,2"
-                        FontSize="11"
+                        FontSize="{StaticResource FontSizeCaption}"
                         Margin="8,0,0,0"/>
                 <Button x:Name="BringToFrontButton"
                         DockPanel.Dock="Right"
                         Click="OnBringToFrontClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="8,2"
-                        FontSize="11"
+                        FontSize="{StaticResource FontSizeCaption}"
                         Margin="4,0,0,0"
                         Visibility="Collapsed"/>
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <TextBlock x:Name="SessionTitleText"
-                               FontSize="12"
+                               FontSize="{StaticResource FontSizeBody}"
                                FontWeight="SemiBold"
                                Foreground="{DynamicResource TextPrimaryBrush}"
                                VerticalAlignment="Center"/>
                     <TextBlock Text=" - " Foreground="{DynamicResource TextSecondaryBrush}"
-                               FontSize="11" VerticalAlignment="Center"/>
+                               FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center"/>
                     <Ellipse x:Name="HealthDot"
                              Width="8" Height="8"
                              Fill="{DynamicResource SuccessBrush}"
                              VerticalAlignment="Center"
                              Margin="0,0,6,0"/>
                     <TextBlock x:Name="StatusTextBlock"
-                               FontSize="11"
+                               FontSize="{StaticResource FontSizeCaption}"
                                Foreground="{DynamicResource TextPrimaryBrush}"
                                VerticalAlignment="Center"/>
                 </StackPanel>
@@ -65,8 +65,8 @@
 
         <!-- External session info panel (fallback mode) -->
         <Border x:Name="InfoPanel" Grid.Row="1"
-                Margin="24"
-                Padding="24"
+                Margin="{StaticResource SpacingXl}"
+                Padding="{StaticResource SpacingXl}"
                 CornerRadius="16"
                 Background="{DynamicResource CardBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
@@ -87,19 +87,19 @@
                            HorizontalAlignment="Center"/>
                 <TextBlock x:Name="StoreFrontText"
                            Margin="0,12,0,0"
-                           FontSize="12"
+                           FontSize="{StaticResource FontSizeBody}"
                            Foreground="{DynamicResource TextSecondaryBrush}"
                            HorizontalAlignment="Center"
                            TextWrapping="Wrap"/>
                 <TextBlock x:Name="AppNameText"
                            Margin="0,4,0,0"
-                           FontSize="12"
+                           FontSize="{StaticResource FontSizeBody}"
                            Foreground="{DynamicResource TextSecondaryBrush}"
                            HorizontalAlignment="Center"
                            TextWrapping="Wrap"/>
                 <TextBlock x:Name="SessionInfoText"
                            Margin="0,16,0,0"
-                           FontSize="12"
+                           FontSize="{StaticResource FontSizeBody}"
                            Foreground="{DynamicResource TextSecondaryBrush}"
                            HorizontalAlignment="Center"
                            TextWrapping="Wrap"

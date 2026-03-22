@@ -14,18 +14,18 @@
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,0,0,1">
             <TextBlock x:Name="HeaderTitle" Text=""
-                       FontSize="14" FontWeight="SemiBold"
+                       FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                        Foreground="{DynamicResource TextPrimaryBrush}"
                        VerticalAlignment="Center"/>
         </Border>
 
         <!-- Content -->
-        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="16">
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="{StaticResource SpacingLg}">
             <StackPanel MaxWidth="700">
 
                 <!-- Input -->
                 <TextBlock x:Name="LblInput" Text=""
-                           FontSize="12" Margin="0,0,0,4"
+                           FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,4"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
                 <TextBox x:Name="TxtInput" Text=""
                          FontSize="13" FontFamily="Consolas"
@@ -40,7 +40,7 @@
 
                 <!-- Conversion buttons -->
                 <TextBlock x:Name="LblConversions" Text=""
-                           FontSize="12" Margin="0,16,0,8"
+                           FontSize="{StaticResource FontSizeBody}" Margin="0,16,0,8"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
                 <WrapPanel Margin="0,0,0,16">
                     <Button x:Name="BtnCamelCase" Content="" Click="OnCamelCaseClick"
@@ -71,7 +71,7 @@
 
                 <!-- Output -->
                 <TextBlock x:Name="LblOutput" Text=""
-                           FontSize="12" Margin="0,0,0,4"
+                           FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,4"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
                 <DockPanel Margin="0,0,0,8">
                     <Button x:Name="BtnCopy" DockPanel.Dock="Right"

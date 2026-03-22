@@ -14,18 +14,18 @@
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,0,0,1">
             <TextBlock x:Name="HeaderTitle" Text=""
-                       FontSize="14" FontWeight="SemiBold"
+                       FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                        Foreground="{DynamicResource TextPrimaryBrush}"
                        VerticalAlignment="Center"/>
         </Border>
 
         <!-- Content -->
-        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="16">
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="{StaticResource SpacingLg}">
             <StackPanel MaxWidth="600">
 
                 <!-- Input -->
                 <TextBlock x:Name="LblInput" Text=""
-                           FontSize="12" Margin="0,0,0,4"
+                           FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,4"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
                 <DockPanel Margin="0,0,0,8">
                     <Button x:Name="BtnNow" DockPanel.Dock="Right"
@@ -46,12 +46,12 @@
 
                 <!-- Detected format -->
                 <TextBlock x:Name="TxtDetectedFormat" Text=""
-                           FontSize="11" Margin="0,0,0,16"
+                           FontSize="{StaticResource FontSizeCaption}" Margin="0,0,0,16"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
 
                 <!-- Unix Timestamp -->
                 <TextBlock x:Name="LblUnixTimestamp" Text=""
-                           FontSize="12" Margin="0,0,0,4"
+                           FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,4"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
                 <DockPanel Margin="0,0,0,12">
                     <Button x:Name="BtnCopyUnix" DockPanel.Dock="Right"
@@ -70,7 +70,7 @@
 
                 <!-- ISO 8601 UTC -->
                 <TextBlock x:Name="LblIsoUtc" Text=""
-                           FontSize="12" Margin="0,0,0,4"
+                           FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,4"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
                 <DockPanel Margin="0,0,0,12">
                     <Button x:Name="BtnCopyIsoUtc" DockPanel.Dock="Right"
@@ -89,7 +89,7 @@
 
                 <!-- ISO 8601 Local -->
                 <TextBlock x:Name="LblIsoLocal" Text=""
-                           FontSize="12" Margin="0,0,0,4"
+                           FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,4"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
                 <DockPanel Margin="0,0,0,12">
                     <Button x:Name="BtnCopyIsoLocal" DockPanel.Dock="Right"
@@ -108,7 +108,7 @@
 
                 <!-- Local time display -->
                 <TextBlock x:Name="LblLocalTime" Text=""
-                           FontSize="12" Margin="0,0,0,4"
+                           FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,4"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
                 <DockPanel Margin="0,0,0,12">
                     <Button x:Name="BtnCopyLocalTime" DockPanel.Dock="Right"
@@ -127,7 +127,7 @@
 
                 <!-- Timezone converter -->
                 <TextBlock x:Name="LblTimezone" Text=""
-                           FontSize="12" Margin="0,0,0,4"
+                           FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,4"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
                 <DockPanel Margin="0,0,0,4">
                     <Button x:Name="BtnCopyTzTime" DockPanel.Dock="Right"
@@ -152,7 +152,7 @@
 
                 <!-- Relative time -->
                 <TextBlock x:Name="LblRelativeTime" Text=""
-                           FontSize="12" Margin="0,12,0,4"
+                           FontSize="{StaticResource FontSizeBody}" Margin="0,12,0,4"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
                 <TextBlock x:Name="TxtRelativeTime" Text=""
                            FontSize="13" FontFamily="Consolas"
