@@ -30,6 +30,23 @@
                         FontSize="11"
                         Margin="8,0,0,0"/>
 
+                <Button x:Name="ReconnectButton"
+                        DockPanel.Dock="Right"
+                        Click="OnReconnectClick"
+                        Style="{DynamicResource PrimaryButtonStyle}"
+                        Padding="8,2"
+                        FontSize="11"
+                        Margin="8,0,0,0"
+                        Visibility="Collapsed"/>
+
+                <Button x:Name="SplitButton"
+                        DockPanel.Dock="Right"
+                        Content="&#xE8A9;"
+                        FontFamily="Segoe MDL2 Assets"
+                        Click="OnSplitClick"
+                        Style="{DynamicResource ToolbarGhostButtonStyle}"
+                        Padding="6,2" FontSize="12" Margin="4,0"/>
+
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <TextBlock x:Name="SessionTitleText"
                                FontSize="12"
@@ -67,6 +84,40 @@
         <Grid Grid.Row="1" ClipToBounds="True">
             <wv2:WebView2 x:Name="VncWebView"
                           Focusable="True" />
+
+            <!-- Reconnect overlay (shown on unexpected disconnect) -->
+            <Border x:Name="ReconnectOverlay"
+                    Visibility="Collapsed"
+                    Background="{DynamicResource OverlayBackground}"
+                    HorizontalAlignment="Stretch"
+                    VerticalAlignment="Stretch">
+                <StackPanel VerticalAlignment="Center"
+                            HorizontalAlignment="Center"
+                            MaxWidth="400">
+                    <TextBlock x:Name="ReconnectMessageText"
+                               FontSize="15"
+                               FontWeight="SemiBold"
+                               TextAlignment="Center"
+                               TextWrapping="Wrap"
+                               Foreground="{DynamicResource TextPrimaryBrush}" />
+                    <StackPanel Orientation="Horizontal"
+                                HorizontalAlignment="Center"
+                                Margin="0,16,0,0">
+                        <Button x:Name="OverlayReconnectButton"
+                                Click="OnOverlayReconnectClick"
+                                Style="{DynamicResource PrimaryButtonStyle}"
+                                Padding="16,6"
+                                FontSize="13"
+                                Margin="0,0,8,0"/>
+                        <Button x:Name="OverlayCloseButton"
+                                Click="OnOverlayCloseClick"
+                                Style="{DynamicResource SecondaryButtonStyle}"
+                                Padding="16,6"
+                                FontSize="13"
+                                Margin="8,0,0,0"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
 
             <Border x:Name="FallbackPanel"
                     Visibility="Collapsed"

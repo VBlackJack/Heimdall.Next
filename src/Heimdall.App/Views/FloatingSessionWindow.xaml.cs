@@ -59,6 +59,7 @@ public partial class FloatingSessionWindow : Window
     {
         Title = string.Format(_localizer["SessionDetachTitle"], _session.Title);
         SessionTitle.Text = _session.Title;
+        StatusText.Text = _session.Status;
         TunnelRouteText.Text = _session.TunnelRoute;
         ReattachButton.Content = _localizer["SessionCtxReattach"];
         System.Windows.Automation.AutomationProperties.SetName(ReattachButton, _localizer["SessionCtxReattach"]);

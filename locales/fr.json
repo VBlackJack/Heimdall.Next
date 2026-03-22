@@ -2033,6 +2033,7 @@
 
   "VncFallbackTitle": "Visionneuse VNC int\u00e9gr\u00e9e indisponible",
   "VncFallbackMessage": "WebView2 n'a pas pu \u00eatre initialis\u00e9 sur cette machine.",
+  "VncDisconnectedOverlay": "Session VNC d\u00e9connect\u00e9e de mani\u00e8re inattendue",
 
   "VncViewerNotFound": "Fichier HTML du visualiseur VNC introuvable.",
   "StatusCitrixConnecting": "Connexion \u00e0 Citrix...",

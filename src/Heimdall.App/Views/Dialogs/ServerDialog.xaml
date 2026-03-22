@@ -188,7 +188,7 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <TabControl Grid.Row="0" Style="{DynamicResource ThemedTabControlStyle}">
+        <TabControl x:Name="MainTabControl" Grid.Row="0" Style="{DynamicResource ThemedTabControlStyle}">
             <TabItem x:Name="DlgSrv_TabConnection" Style="{DynamicResource ThemedTabItemStyle}">
                 <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                     <StackPanel Margin="8">
