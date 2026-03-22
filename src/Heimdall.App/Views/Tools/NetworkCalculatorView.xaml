@@ -169,7 +169,7 @@
 
                 <!-- Error -->
                 <TextBlock x:Name="TxtError" Text="" Visibility="Collapsed"
-                           FontSize="12" Margin="0,0,0,8"
+                           FontSize="12" Margin="0,0,0,8" TextWrapping="Wrap"
                            Foreground="{DynamicResource ErrorBrush}"/>
 
                 <!-- Results -->

@@ -1140,7 +1140,7 @@
                 <!-- Action buttons pinned at bottom -->
                 <WrapPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="24,8,24,16">
                     <Button x:Name="Mw_SettingsSaveBtn" Content="" Command="{Binding Settings.SaveCommand}"
-                            Style="{DynamicResource PrimaryButtonStyle}" Width="130" Margin="0,0,8,4"/>
+                            Style="{DynamicResource PrimaryButtonStyle}" MinWidth="130" Margin="0,0,16,4"/>
                     <Button x:Name="Mw_SettingsResetBtn" Content="" Command="{Binding Settings.ResetToDefaultsCommand}"
                             Style="{DynamicResource SecondaryButtonStyle}" Width="130" Margin="0,0,8,4"/>
                     <Button x:Name="Mw_SettingsExportBtn" Content="" Command="{Binding Settings.ExportConfigCommand}"
@@ -1686,7 +1686,12 @@
                             Padding="4,2" FontSize="14" Margin="0,0,8,0"
                             VerticalAlignment="Center">
                         <Button.Content>
-                            <TextBlock Text="B" FontWeight="Bold" FontSize="11"/>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE704;" FontFamily="Segoe MDL2 Assets" FontSize="11"
+                                           VerticalAlignment="Center" Margin="0,0,3,0"/>
+                                <TextBlock x:Name="Mw_BroadcastLabel" Text="" FontWeight="SemiBold" FontSize="10"
+                                           VerticalAlignment="Center"/>
+                            </StackPanel>
                         </Button.Content>
                         <Button.Style>
                             <Style TargetType="Button" BasedOn="{StaticResource ToolbarGhostButtonStyle}">

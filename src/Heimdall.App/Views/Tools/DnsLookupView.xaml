@@ -82,7 +82,7 @@
 
                 <!-- Error message -->
                 <TextBlock x:Name="TxtError" Text="" Visibility="Collapsed"
-                           FontSize="12" Margin="0,0,0,12"
+                           FontSize="12" Margin="0,0,0,12" TextWrapping="Wrap"
                            Foreground="{DynamicResource ErrorBrush}"/>
 
                 <!-- Empty state hint (hidden once results appear) -->
