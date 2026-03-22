@@ -12,6 +12,51 @@
 
 All notable changes to Heimdall.Next are documented in this file.
 
+## [v2026.032210] - 2026-03-22
+
+### Comprehensive UX Audit — WCAG AA, Design Tokens, Accessibility
+
+#### Design System (40 tokens, WCAG AA compliant)
+- Add `ContentAreaMargin`, `SessionHeaderPadding`, `ToolHeaderPadding`, `ToolFooterPadding` spacing tokens
+- Add `FontFamilyMonospace` token for path boxes and code editors
+- Add `FocusIndicatorBrush` (cyan on dark, blue on light) for keyboard focus on all button styles
+- PrimaryButton foreground changed to `TextOnAccentBrush` (white on accent surfaces)
+- 19 themed control styles with complete hover/pressed/focused/disabled states
+- DataGrid column header, cell, and row styles now applied globally (fixes unthemed DataGrid in tools)
+
+#### WCAG AA Contrast Fixes
+- Dark theme: AccentColor adjusted for 4.53:1 contrast with white text (was 2.41:1)
+- Dark theme: TextSecondary and TextDisabled colors lightened for better readability on card surfaces
+- Light theme: AccentColor darkened for stronger contrast
+- Light theme: TextDisabled darkened to 4.51:1 (was 2.88:1)
+- Light theme: ProtocolSsh and ProtocolSftp brushes darkened to meet AA on white backgrounds
+
+#### Tool Views (33 tools)
+- Help button ("?") added to all 21 tools that were missing it (33/33 complete)
+- Help keys follow UPPERCASE convention (e.g., `ToolHelpBASE64`)
+- Hardcoded `Margin="16,0,16,16"` replaced with `ContentAreaMargin` token in 6 tools
+- CrontabBuilder `Foreground="Red"` replaced with `ErrorTextBrush`
+- DiagramEditor header padding unified to `12,8` (was `8,6`)
+
+#### Views and Dialogs
+- Unique protocol glyphs in TreeView: Local (`E770`), Telnet (`E968`), FTP (`E896`)
+- `Background="Black"` replaced with theme-aware `BackgroundBrush` in RDP and Citrix views
+- Session header strips use `SessionHeaderPadding` token (RDP, SSH, VNC, Citrix, SFTP)
+- `FontFamilyMonospace` token applied to SFTP, LocalFileBrowser, and Editor path boxes
+- Focus vs Selected states distinguished in ListView items (`FocusIndicatorBrush`)
+- Status bar height increased from 28px to 36px
+- Dialog buttons: `Width` changed to `MinWidth` across all dialogs (Gateway, Project, Pin, Server, Message)
+- PinDialog buttons right-aligned (was centered)
+- Hardcoded placeholder text removed (code-behind i18n binding)
+
+#### App Icon
+- Rebuilt from clean ARGB source (`icon-flat.png`) with proper transparency
+- No more white haze/shadow on dark taskbar backgrounds
+
+#### Documentation
+- ARCHITECTURE.md: rewritten design system section with 40 tokens, WCAG AA, help system
+- README.md: updated test count, tool count, design system description, i18n key count
+
 ## [v2026.032204] - 2026-03-22
 
 ### Network Cartography — Enhanced Device Detection
