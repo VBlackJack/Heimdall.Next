@@ -43,6 +43,7 @@
         <!-- PIN input (disabled when locked out) -->
         <PasswordBox x:Name="PinBox"
                      Grid.Row="1"
+                     TabIndex="0"
                      MaxLength="8"
                      IsEnabled="{Binding IsLockedOut, Converter={StaticResource InvertBoolConverter}, FallbackValue=True}"
                      FontSize="20"
@@ -86,13 +87,15 @@
                     Margin="0,16,0,0">
             <Button x:Name="CancelBtn"
                     IsCancel="True"
-                    Width="80"
+                    TabIndex="2"
+                    MinWidth="80"
                     Margin="0,0,8,0"
                     Style="{DynamicResource SecondaryButtonStyle}"
                     Click="OnCancelClick"/>
             <Button x:Name="UnlockBtn"
                     IsDefault="True"
-                    Width="80"
+                    TabIndex="1"
+                    MinWidth="80"
                     Click="OnUnlockClick"
                     IsEnabled="{Binding IsLockedOut, Converter={StaticResource InvertBoolConverter}, FallbackValue=True}"
                     Style="{DynamicResource PrimaryButtonStyle}"/>

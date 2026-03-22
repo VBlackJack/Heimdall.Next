@@ -55,6 +55,11 @@
     <SolidColorBrush x:Key="SftpBadgeBrush" Color="#FFB86C"/>
     <Color x:Key="ToolBadgeColor">#36D7B7</Color>
     <SolidColorBrush x:Key="ToolBadgeBrush" Color="#36D7B7"/>
+    <!-- Per-category tool icon brushes -->
+    <SolidColorBrush x:Key="ToolNetworkBrush" Color="#5B9FFF"/>
+    <SolidColorBrush x:Key="ToolSecurityBrush" Color="#F59E0B"/>
+    <SolidColorBrush x:Key="ToolEncodingBrush" Color="#BD93F9"/>
+    <SolidColorBrush x:Key="ToolSystemBrush" Color="#36D7B7"/>
 
     <!-- JWT section colors -->
     <Color x:Key="JwtHeaderColor">#5B9BD5</Color>

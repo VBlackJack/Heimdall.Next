@@ -112,6 +112,20 @@
                        Margin="12,2,12,4"/>
         </StackPanel>
 
+        <!-- Empty state hint -->
+        <Border x:Name="EmptyStatePanel" Grid.Row="3"
+                Style="{StaticResource ToolEmptyStateStyle}"
+                Margin="0,24,0,0">
+            <StackPanel HorizontalAlignment="Center">
+                <TextBlock Text="&#xE826;" FontFamily="Segoe MDL2 Assets" FontSize="32"
+                           HorizontalAlignment="Center"
+                           Foreground="{DynamicResource TextDisabledBrush}" Margin="0,0,0,8"/>
+                <TextBlock x:Name="TxtEmptyState" Text=""
+                           FontSize="13" TextAlignment="Center"
+                           Foreground="{DynamicResource TextSecondaryBrush}"/>
+            </StackPanel>
+        </Border>
+
         <!-- Row 3: Results DataGrid -->
         <Border Grid.Row="3" Margin="8"
                 Background="{DynamicResource CardBrush}"

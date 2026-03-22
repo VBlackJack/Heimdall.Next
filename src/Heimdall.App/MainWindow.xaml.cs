@@ -145,8 +145,7 @@ public partial class MainWindow : Window
         TabSettings.Content = vm.Localize("NavTabSettings");
         TabAbout.Content = vm.Localize("NavTabAbout");
 
-        SearchBox.Tag = vm.Localize("SearchPlaceholder");
-        Mw_FilterBox.Tag = vm.Localize("FilterServersPlaceholder");
+        Mw_FilterBox.Tag = vm.Localize("SearchPlaceholder");
 
         FullscreenBar.ToolTip = vm.Localize("TooltipExitFullscreenEsc");
 
@@ -379,14 +378,13 @@ public partial class MainWindow : Window
         System.Windows.Automation.AutomationProperties.SetName(TabScheduled, vm.Localize("NavTabScheduled"));
         System.Windows.Automation.AutomationProperties.SetName(TabSettings, vm.Localize("NavTabSettings"));
         System.Windows.Automation.AutomationProperties.SetName(TabAbout, vm.Localize("NavTabAbout"));
-        System.Windows.Automation.AutomationProperties.SetName(SearchBox, vm.Localize("SearchPlaceholder"));
-        System.Windows.Automation.AutomationProperties.SetName(Mw_FilterBox, vm.Localize("FilterServersPlaceholder"));
+        System.Windows.Automation.AutomationProperties.SetName(Mw_FilterBox, vm.Localize("SearchPlaceholder"));
         System.Windows.Automation.AutomationProperties.SetName(ToggleSidebarButton, vm.Localize("TooltipHideSidebar"));
         System.Windows.Automation.AutomationProperties.SetName(ShowSidebarButton, vm.Localize("TooltipShowSidebar"));
         System.Windows.Automation.AutomationProperties.SetName(ExpandAllButton, vm.Localize("TooltipExpandAll"));
         System.Windows.Automation.AutomationProperties.SetName(CollapseAllButton, vm.Localize("TooltipCollapseAll"));
         System.Windows.Automation.AutomationProperties.SetName(AddButton, vm.Localize("TooltipAddMenu"));
-        System.Windows.Automation.AutomationProperties.SetName(SessionTabControl, vm.Localize("NavTabServers"));
+        System.Windows.Automation.AutomationProperties.SetName(SessionTabControl, vm.Localize("NavTabSessions"));
         System.Windows.Automation.AutomationProperties.SetName(BtnCollapseTools, vm.Localize("ToolsPanelCollapse"));
     }
 
@@ -633,8 +631,8 @@ public partial class MainWindow : Window
 
             case Key.F when Keyboard.Modifiers == ModifierKeys.Control:
                 if (terminalHasFocus) break;
-                SearchBox.Focus();
-                SearchBox.SelectAll();
+                Mw_FilterBox.Focus();
+                Mw_FilterBox.SelectAll();
                 e.Handled = true;
                 break;
 

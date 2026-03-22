@@ -15,6 +15,7 @@
  */
 
 using System.Windows;
+using Heimdall.App.Theming;
 
 namespace Heimdall.App.Views.Dialogs;
 
@@ -29,6 +30,7 @@ public partial class MessageDialog : Window
     public MessageDialog()
     {
         InitializeComponent();
+        WindowThemeHelper.ApplyCurrentTheme(this);
     }
 
     /// <summary>

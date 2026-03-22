@@ -110,6 +110,11 @@ public partial class ConnectionViewModel : ObservableObject
         // Tool tabs bypass ConnectionStateMachine, history, and tunnels
         if (session.ConnectionType.StartsWith("TOOL:", StringComparison.OrdinalIgnoreCase))
         {
+            if (session.HostControl is Core.Models.IToolView tool && !tool.CanClose())
+            {
+                return;
+            }
+
             SafeDispose(session.HostControl as IDisposable);
             ActiveSessions.Remove(session);
 

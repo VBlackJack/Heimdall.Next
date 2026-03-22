@@ -1203,8 +1203,6 @@
   "SettingsUnsavedIndicator": "*",
   "SettingsUnsavedWarning": "You have unsaved settings changes. Apply them before leaving?",
   "SettingsUnsavedWarningTitle": "Unsaved Changes",
-  "TooltipExpandAll": "Expand all (Ctrl+Shift+E)",
-  "TooltipCollapseAll": "Collapse all (Ctrl+Shift+C)",
   "ProjectColorBlue": "Blue",
   "ProjectColorGreen": "Green",
   "ProjectColorRed": "Red",
@@ -1571,6 +1569,7 @@
   "FileBrowserPropertiesAttributes": "Attributes",
 
   "NavTabServers": "Servers",
+  "NavTabSessions": "Sessions",
   "NavTabTunnels": "Tunnels",
   "NavTabScheduled": "Scheduled",
   "NavTabSettings": "Settings",
@@ -1583,9 +1582,9 @@
   "AddMenuFolder": "New Folder",
   "TooltipHideSidebar": "Hide sidebar (Ctrl+B)",
   "TooltipShowSidebar": "Show sidebar (Ctrl+B)",
-  "TooltipAddMenu": "Add server, folder, or gateway",
-  "TooltipExpandAll": "Expand all folders",
-  "TooltipCollapseAll": "Collapse all folders",
+  "TooltipAddMenu": "Add server, folder, or gateway (Ctrl+N)",
+  "TooltipExpandAll": "Expand all folders (Ctrl+Shift+E)",
+  "TooltipCollapseAll": "Collapse all folders (Ctrl+Shift+C)",
 
   "DetailLabelGroup": "Group:",
   "DetailLabelEnvironment": "Environment:",
@@ -3147,6 +3146,8 @@
   "ToolCtxCopyIp": "Copy IP Address",
   "ToolCtxCopyHostname": "Copy Hostname",
   "ToolCtxCopyRow": "Copy Row",
+  "ToolCtxCopyAll": "Copy All Rows",
+  "ToolCtxExportCsv": "Export CSV...",
   "ToolCtxCopyPort": "Copy Port",
   "ToolCtxCopyService": "Copy Service",
   "ToolCtxCopyBanner": "Copy Banner",
@@ -3168,5 +3169,11 @@
   "ToolDiagramBtnExportPng": "Export PNG",
   "ToolDiagramBtnEdit": "Edit Diagram",
   "ToolDescDIAGRAM": "Create and edit network diagrams with the embedded draw.io editor",
-  "ToolHelpDIAGRAM": "Diagram Editor\n\nCreate and edit network diagrams using the draw.io editor.\n\nFeatures:\n- Full draw.io editor embedded offline\n- Open/Save .drawio files\n- Export to PNG\n- Auto-generate from Network Cartography scans\n\nUsage:\n1. Click New for a blank diagram, or Open to load an existing .drawio file\n2. Use the draw.io toolbar to add shapes, connections, and labels\n3. Save as .drawio or export as PNG"
+  "ToolHelpDIAGRAM": "Diagram Editor\n\nCreate and edit network diagrams using the draw.io editor.\n\nFeatures:\n- Full draw.io editor embedded offline\n- Open/Save .drawio files\n- Export to PNG\n- Auto-generate from Network Cartography scans\n\nUsage:\n1. Click New for a blank diagram, or Open to load an existing .drawio file\n2. Use the draw.io toolbar to add shapes, connections, and labels\n3. Save as .drawio or export as PNG",
+
+  "ToolEmptyStateDns": "Enter a hostname and click Lookup to see DNS records",
+  "ToolEmptyStatePortScan": "Enter a target host and click Scan to discover open ports",
+  "ToolEmptyStateNetMap": "Configure a subnet range and click Scan to discover hosts",
+  "ToolEmptyStateWhois": "Enter a domain or IP and click Lookup to see WHOIS data",
+  "ToolEmptyStateCert": "Enter a hostname and click Inspect to view the TLS certificate"
 }

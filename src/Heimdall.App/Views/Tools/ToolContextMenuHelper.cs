@@ -144,6 +144,74 @@ public static class ToolContextMenuHelper
     }
 
     /// <summary>
+    /// Builds a "Copy All Rows" menu item that copies all DataGrid rows as tab-separated text.
+    /// </summary>
+    public static MenuItem BuildCopyAllAction(System.Windows.Controls.DataGrid grid, LocalizationManager? localizer)
+    {
+        var item = new MenuItem { Header = L(localizer, "ToolCtxCopyAll") };
+        item.Click += (_, _) =>
+        {
+            var sb = new System.Text.StringBuilder();
+            // Header row
+            var headers = grid.Columns.Select(c => c.Header?.ToString() ?? "");
+            sb.AppendLine(string.Join('\t', headers));
+            // Data rows
+            foreach (var row in grid.Items)
+            {
+                var cells = grid.Columns.Select(c => c.GetCellContent(row) switch
+                {
+                    TextBlock tb => tb.Text,
+                    _ => ""
+                });
+                sb.AppendLine(string.Join('\t', cells));
+            }
+            Clipboard.SetText(sb.ToString());
+        };
+        return item;
+    }
+
+    /// <summary>
+    /// Builds an "Export CSV" menu item that saves DataGrid contents as a CSV file.
+    /// </summary>
+    public static MenuItem BuildExportCsvAction(System.Windows.Controls.DataGrid grid, LocalizationManager? localizer)
+    {
+        var item = new MenuItem { Header = L(localizer, "ToolCtxExportCsv") };
+        item.Click += (_, _) =>
+        {
+            var dialog = new Microsoft.Win32.SaveFileDialog
+            {
+                Filter = "CSV files (*.csv)|*.csv",
+                DefaultExt = ".csv",
+            };
+            if (dialog.ShowDialog() != true) return;
+
+            var sb = new System.Text.StringBuilder();
+            var headers = grid.Columns.Select(c => EscapeCsv(c.Header?.ToString() ?? ""));
+            sb.AppendLine(string.Join(',', headers));
+            foreach (var row in grid.Items)
+            {
+                var cells = grid.Columns.Select(c => EscapeCsv(c.GetCellContent(row) switch
+                {
+                    TextBlock tb => tb.Text,
+                    _ => ""
+                }));
+                sb.AppendLine(string.Join(',', cells));
+            }
+            System.IO.File.WriteAllText(dialog.FileName, sb.ToString(), System.Text.Encoding.UTF8);
+        };
+        return item;
+    }
+
+    private static string EscapeCsv(string value)
+    {
+        if (value.Contains(',') || value.Contains('"') || value.Contains('\n'))
+        {
+            return $"\"{value.Replace("\"", "\"\"")}\"";
+        }
+        return value;
+    }
+
+    /// <summary>
     /// Extracts the <see cref="Action{String, String, ToolContext}"/> open-tool callback
     /// from a <see cref="ToolContext.OpenToolAction"/> delegate.
     /// Returns null if the delegate is not set or has an incompatible signature.

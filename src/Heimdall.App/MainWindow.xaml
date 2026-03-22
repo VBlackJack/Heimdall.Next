@@ -105,12 +105,6 @@
                                        Foreground="{DynamicResource TextSecondaryBrush}"/>
                         </StackPanel>
                     </Button>
-                    <TextBox x:Name="SearchBox"
-                             Width="200"
-                             Text="{Binding ServerList.SearchText, UpdateSourceTrigger=PropertyChanged}"
-                             Style="{DynamicResource SearchTextBoxStyle}"
-                             Tag=""
-                             Margin="4,0"/>
                 </StackPanel>
             </DockPanel>
         </Border>
@@ -157,7 +151,6 @@
                                     DockPanel.Dock="Right"
                                     Content="&#xE89F;"
                                     FontFamily="Segoe MDL2 Assets"
-                                    ToolTip=""
                                     Click="OnToggleSidebarClick"
                                     Style="{DynamicResource SecondaryButtonStyle}"
                                     Padding="6,6" FontSize="12"
@@ -183,7 +176,6 @@
                                     Margin="2,0,0,0"/>
                             <Button x:Name="AddButton"
                                     DockPanel.Dock="Right"
-                                    ToolTip=""
                                     Click="OnAddButtonClick"
                                     Style="{DynamicResource ToolbarGhostButtonStyle}"
                                     Padding="6,6" FontSize="12"
@@ -359,138 +351,141 @@
                                         <DataTrigger Binding="{Binding ConnectionType}" Value="FTP">
                                             <Setter TargetName="TypeIcon" Property="Text" Value="&#xE8B7;"/>
                                         </DataTrigger>
-                                        <!-- All TOOL:* types use wrench glyph with ToolBadgeBrush -->
+                                        <!-- ── Network tools (blue) ── -->
                                         <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:PING">
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE90F;"/>
-                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolBadgeBrush}"/>
+                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE93E;"/>
+                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolNetworkBrush}"/>
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:DNS">
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE90F;"/>
-                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolBadgeBrush}"/>
+                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE774;"/>
+                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolNetworkBrush}"/>
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:CERT">
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE90F;"/>
-                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolBadgeBrush}"/>
+                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE8D7;"/>
+                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolNetworkBrush}"/>
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:NETMAP">
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE90F;"/>
-                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolBadgeBrush}"/>
+                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE826;"/>
+                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolNetworkBrush}"/>
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:PORTSCAN">
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE90F;"/>
-                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolBadgeBrush}"/>
+                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE71E;"/>
+                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolNetworkBrush}"/>
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:SUBNET">
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE90F;"/>
-                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolBadgeBrush}"/>
-                                        </DataTrigger>
-                                        <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:HASH">
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE90F;"/>
-                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolBadgeBrush}"/>
-                                        </DataTrigger>
-                                        <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:PASSWORD">
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE90F;"/>
-                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolBadgeBrush}"/>
-                                        </DataTrigger>
-                                        <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:SSHKEY">
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE90F;"/>
-                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolBadgeBrush}"/>
-                                        </DataTrigger>
-                                        <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:JWT">
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE90F;"/>
-                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolBadgeBrush}"/>
-                                        </DataTrigger>
-                                        <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:BASE64">
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE90F;"/>
-                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolBadgeBrush}"/>
-                                        </DataTrigger>
-                                        <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:URLENC">
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE90F;"/>
-                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolBadgeBrush}"/>
-                                        </DataTrigger>
-                                        <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:JSON">
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE90F;"/>
-                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolBadgeBrush}"/>
-                                        </DataTrigger>
-                                        <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:REGEX">
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE90F;"/>
-                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolBadgeBrush}"/>
-                                        </DataTrigger>
-                                        <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:DIFF">
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE90F;"/>
-                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolBadgeBrush}"/>
-                                        </DataTrigger>
-                                        <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:CHMOD">
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE90F;"/>
-                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolBadgeBrush}"/>
-                                        </DataTrigger>
-                                        <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:DATETIME">
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE90F;"/>
-                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolBadgeBrush}"/>
-                                        </DataTrigger>
-                                        <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:UUID">
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE90F;"/>
-                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolBadgeBrush}"/>
-                                        </DataTrigger>
-                                        <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:CRONTAB">
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE90F;"/>
-                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolBadgeBrush}"/>
-                                        </DataTrigger>
-                                        <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:HMAC">
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE90F;"/>
-                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolBadgeBrush}"/>
+                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE8EF;"/>
+                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolNetworkBrush}"/>
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:IPCONV">
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE90F;"/>
-                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolBadgeBrush}"/>
+                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE8AB;"/>
+                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolNetworkBrush}"/>
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:HTTP">
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE90F;"/>
-                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolBadgeBrush}"/>
+                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE774;"/>
+                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolNetworkBrush}"/>
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:WHOIS">
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE90F;"/>
-                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolBadgeBrush}"/>
+                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE946;"/>
+                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolNetworkBrush}"/>
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:NETCALC">
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE90F;"/>
-                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolBadgeBrush}"/>
+                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE8EF;"/>
+                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolNetworkBrush}"/>
+                                        </DataTrigger>
+                                        <!-- ── Security tools (amber) ── -->
+                                        <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:HASH">
+                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE72E;"/>
+                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolSecurityBrush}"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:PASSWORD">
+                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE8D7;"/>
+                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolSecurityBrush}"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:SSHKEY">
+                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE8F7;"/>
+                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolSecurityBrush}"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:JWT">
+                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE8AC;"/>
+                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolSecurityBrush}"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:HMAC">
+                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE72E;"/>
+                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolSecurityBrush}"/>
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:CERTGEN">
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE90F;"/>
-                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolBadgeBrush}"/>
+                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE8D7;"/>
+                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolSecurityBrush}"/>
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:TOTP">
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE90F;"/>
-                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolBadgeBrush}"/>
+                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE823;"/>
+                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolSecurityBrush}"/>
+                                        </DataTrigger>
+                                        <!-- ── Encoding & Format tools (purple) ── -->
+                                        <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:BASE64">
+                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE8AB;"/>
+                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolEncodingBrush}"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:URLENC">
+                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE774;"/>
+                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolEncodingBrush}"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:JSON">
+                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE7BC;"/>
+                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolEncodingBrush}"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:REGEX">
+                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE71E;"/>
+                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolEncodingBrush}"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:DIFF">
+                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE8AC;"/>
+                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolEncodingBrush}"/>
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:TEXTCASE">
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE90F;"/>
-                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolBadgeBrush}"/>
+                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE8AB;"/>
+                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolEncodingBrush}"/>
+                                        </DataTrigger>
+                                        <!-- ── System tools (teal) ── -->
+                                        <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:CHMOD">
+                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE72E;"/>
+                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolSystemBrush}"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:DATETIME">
+                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE823;"/>
+                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolSystemBrush}"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:UUID">
+                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE8C3;"/>
+                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolSystemBrush}"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:CRONTAB">
+                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE823;"/>
+                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolSystemBrush}"/>
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:LOGVIEW">
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE90F;"/>
-                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolBadgeBrush}"/>
+                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE7BC;"/>
+                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolSystemBrush}"/>
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:HOSTS">
                                             <Setter TargetName="TypeIcon" Property="Text" Value="&#xE90F;"/>
-                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolBadgeBrush}"/>
+                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolSystemBrush}"/>
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:SSHCONFIG">
                                             <Setter TargetName="TypeIcon" Property="Text" Value="&#xE90F;"/>
-                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolBadgeBrush}"/>
+                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolSystemBrush}"/>
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:CRONJOB">
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE90F;"/>
-                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolBadgeBrush}"/>
+                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE823;"/>
+                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolSystemBrush}"/>
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:SERVICES">
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE90F;"/>
-                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolBadgeBrush}"/>
+                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE7BC;"/>
+                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolSystemBrush}"/>
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:DIAGRAM">
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE90F;"/>
-                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolBadgeBrush}"/>
+                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE826;"/>
+                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolSystemBrush}"/>
                                         </DataTrigger>
                                     </DataTemplate.Triggers>
                                 </DataTemplate>
@@ -551,7 +546,6 @@
                         VerticalAlignment="Top"
                         Content="&#xE76C;"
                         FontFamily="Segoe MDL2 Assets"
-                        ToolTip=""
                         Click="OnToggleSidebarClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="4,6" FontSize="11"
@@ -633,11 +627,37 @@
                         </TabControl.ItemTemplate>
                         <TabControl.ContentTemplate>
                             <DataTemplate DataType="{x:Type vm:SessionTabViewModel}">
-                                <views:SplitPaneHost
-                                    PrimaryContent="{Binding HostControl}"
-                                    SecondaryContent="{Binding SecondaryHostControl}"
-                                    IsSplit="{Binding IsSplit}"
-                                    Orientation="{Binding SplitOrientation}"/>
+                                <Grid>
+                                    <views:SplitPaneHost
+                                        PrimaryContent="{Binding HostControl}"
+                                        SecondaryContent="{Binding SecondaryHostControl}"
+                                        IsSplit="{Binding IsSplit}"
+                                        Orientation="{Binding SplitOrientation}"/>
+                                    <!-- Loading overlay (visible while HostControl is null during connection) -->
+                                    <Border x:Name="SessionLoadingOverlay"
+                                            Background="{DynamicResource BackgroundBrush}"
+                                            Visibility="Collapsed">
+                                        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                            <ProgressBar IsIndeterminate="True"
+                                                         Width="200" Height="3"
+                                                         Margin="0,0,0,12"/>
+                                            <TextBlock Text="{Binding Status}"
+                                                       FontSize="13"
+                                                       Foreground="{DynamicResource TextSecondaryBrush}"
+                                                       HorizontalAlignment="Center"/>
+                                            <TextBlock Text="{Binding TunnelRoute}"
+                                                       FontSize="11"
+                                                       Foreground="{DynamicResource TextDisabledBrush}"
+                                                       HorizontalAlignment="Center"
+                                                       Margin="0,4,0,0"/>
+                                        </StackPanel>
+                                    </Border>
+                                </Grid>
+                                <DataTemplate.Triggers>
+                                    <DataTrigger Binding="{Binding HostControl}" Value="{x:Null}">
+                                        <Setter TargetName="SessionLoadingOverlay" Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </DataTemplate.Triggers>
                             </DataTemplate>
                         </TabControl.ContentTemplate>
                     </TabControl>
@@ -808,7 +828,6 @@
                                             Content="&#xE70D;"
                                             FontFamily="Segoe MDL2 Assets"
                                             FontSize="10"
-                                            ToolTip=""
                                             Command="{Binding ToggleTunnelPanelCommand}"
                                             Style="{DynamicResource ToolbarGhostButtonStyle}"
                                             Padding="6,2" Margin="4,0,0,0"/>
@@ -1119,18 +1138,18 @@
             <DockPanel Visibility="{Binding IsSettingsTabSelected, Converter={StaticResource BoolToVisibilityConverter}}">
 
                 <!-- Action buttons pinned at bottom -->
-                <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="24,8,24,16">
+                <WrapPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="24,8,24,16">
                     <Button x:Name="Mw_SettingsSaveBtn" Content="" Command="{Binding Settings.SaveCommand}"
-                            Style="{DynamicResource PrimaryButtonStyle}" Width="130" Margin="0,0,8,0"/>
+                            Style="{DynamicResource PrimaryButtonStyle}" Width="130" Margin="0,0,8,4"/>
                     <Button x:Name="Mw_SettingsResetBtn" Content="" Command="{Binding Settings.ResetToDefaultsCommand}"
-                            Style="{DynamicResource SecondaryButtonStyle}" Width="130" Margin="0,0,8,0"/>
+                            Style="{DynamicResource SecondaryButtonStyle}" Width="130" Margin="0,0,8,4"/>
                     <Button x:Name="Mw_SettingsExportBtn" Content="" Command="{Binding Settings.ExportConfigCommand}"
-                            Style="{DynamicResource SecondaryButtonStyle}" Width="130" Margin="0,0,8,0"/>
+                            Style="{DynamicResource SecondaryButtonStyle}" Width="130" Margin="0,0,8,4"/>
                     <Button x:Name="Mw_SettingsImportBtn" Content="" Command="{Binding Settings.ImportConfigCommand}"
-                            Style="{DynamicResource SecondaryButtonStyle}" Width="130" Margin="0,0,8,0"/>
+                            Style="{DynamicResource SecondaryButtonStyle}" Width="130" Margin="0,0,8,4"/>
                     <Button x:Name="Mw_SettingsCitrixBtn" Content="" Command="{Binding Settings.ImportCitrixAppsCommand}"
-                            Style="{DynamicResource SecondaryButtonStyle}" Width="160"/>
-                </StackPanel>
+                            Style="{DynamicResource SecondaryButtonStyle}" Width="160" Margin="0,0,8,4"/>
+                </WrapPanel>
 
                 <TabControl TabStripPlacement="Top" Margin="16,8,16,0"
                             Background="Transparent" BorderThickness="0">
@@ -1597,7 +1616,6 @@
                 Width="24" Height="24"
                 Content="⛶"
                 FontSize="14"
-                ToolTip=""
                 Click="OnExitFullscreenClick"
                 Visibility="Collapsed"
                 Panel.ZIndex="999"
@@ -1649,7 +1667,6 @@
                                Visibility="Collapsed"/>
                     <!-- Tunnel panel toggle badge -->
                     <Button x:Name="Mw_StatusTunnelToggle" Command="{Binding ToggleTunnelPanelCommand}"
-                            ToolTip=""
                             Padding="4,2" FontSize="11" Margin="0,0,8,0"
                             VerticalAlignment="Center"
                             Style="{DynamicResource ToolbarGhostButtonStyle}">

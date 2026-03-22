@@ -402,38 +402,41 @@
                                         </StackPanel>
                                     </Border>
                                 </StackPanel>
-                                <StackPanel Margin="0,16,0,0"
-                                            Orientation="Horizontal"
-                                            HorizontalAlignment="Center"
-                                            Style="{StaticResource GatewaySectionStyle}">
-                                    <Border Style="{StaticResource DiagramNodeStyle}">
-                                        <StackPanel>
-                                            <TextBlock x:Name="DlgSrv_GatewayYourPc" Foreground="{DynamicResource TextPrimaryBrush}" FontWeight="SemiBold"/>
-                                            <TextBlock Text="{Binding ClientNodeCaption}" Style="{StaticResource HintTextStyle}"/>
+                                <Viewbox Margin="0,16,0,0"
+                                         Stretch="Uniform"
+                                         StretchDirection="DownOnly"
+                                         Style="{StaticResource GatewaySectionStyle}">
+                                    <StackPanel Orientation="Horizontal"
+                                                HorizontalAlignment="Center">
+                                        <Border Style="{StaticResource DiagramNodeStyle}">
+                                            <StackPanel>
+                                                <TextBlock x:Name="DlgSrv_GatewayYourPc" Foreground="{DynamicResource TextPrimaryBrush}" FontWeight="SemiBold"/>
+                                                <TextBlock Text="{Binding ClientNodeCaption}" Style="{StaticResource HintTextStyle}"/>
+                                            </StackPanel>
+                                        </Border>
+                                        <StackPanel Margin="12,16,12,0" Width="78">
+                                            <TextBlock Text="&#x2192;" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="18" HorizontalAlignment="Center"/>
+                                            <TextBlock Text="{Binding ClientToGatewayLabel}" Style="{StaticResource ArrowCaptionStyle}" Margin="0,6,0,0"/>
                                         </StackPanel>
-                                    </Border>
-                                    <StackPanel Margin="12,16,12,0" Width="78">
-                                        <TextBlock Text="->" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="18" HorizontalAlignment="Center"/>
-                                        <TextBlock Text="{Binding ClientToGatewayLabel}" Style="{StaticResource ArrowCaptionStyle}" Margin="0,6,0,0"/>
+                                        <Border Style="{StaticResource DiagramNodeStyle}">
+                                            <StackPanel>
+                                                <TextBlock x:Name="DlgSrv_GatewayNode" Foreground="{DynamicResource TextPrimaryBrush}" FontWeight="SemiBold"/>
+                                                <TextBlock Text="{Binding SelectedGatewayTitle}" Style="{StaticResource HintTextStyle}"/>
+                                                <TextBlock Text="{Binding SelectedGatewayEndpoint}" Style="{StaticResource HintTextStyle}" Margin="0,4,0,0"/>
+                                            </StackPanel>
+                                        </Border>
+                                        <StackPanel Margin="12,16,12,0" Width="78">
+                                            <TextBlock Text="&#x2192;" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="18" HorizontalAlignment="Center"/>
+                                            <TextBlock Text="{Binding GatewayToServerLabel}" Style="{StaticResource ArrowCaptionStyle}" Margin="0,6,0,0"/>
+                                        </StackPanel>
+                                        <Border Style="{StaticResource DiagramNodeStyle}">
+                                            <StackPanel>
+                                                <TextBlock x:Name="DlgSrv_GatewayDestination" Foreground="{DynamicResource TextPrimaryBrush}" FontWeight="SemiBold"/>
+                                                <TextBlock Text="{Binding DestinationNodeCaption}" Style="{StaticResource HintTextStyle}"/>
+                                            </StackPanel>
+                                        </Border>
                                     </StackPanel>
-                                    <Border Style="{StaticResource DiagramNodeStyle}">
-                                        <StackPanel>
-                                            <TextBlock x:Name="DlgSrv_GatewayNode" Foreground="{DynamicResource TextPrimaryBrush}" FontWeight="SemiBold"/>
-                                            <TextBlock Text="{Binding SelectedGatewayTitle}" Style="{StaticResource HintTextStyle}"/>
-                                            <TextBlock Text="{Binding SelectedGatewayEndpoint}" Style="{StaticResource HintTextStyle}" Margin="0,4,0,0"/>
-                                        </StackPanel>
-                                    </Border>
-                                    <StackPanel Margin="12,16,12,0" Width="78">
-                                        <TextBlock Text="->" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="18" HorizontalAlignment="Center"/>
-                                        <TextBlock Text="{Binding GatewayToServerLabel}" Style="{StaticResource ArrowCaptionStyle}" Margin="0,6,0,0"/>
-                                    </StackPanel>
-                                    <Border Style="{StaticResource DiagramNodeStyle}">
-                                        <StackPanel>
-                                            <TextBlock x:Name="DlgSrv_GatewayDestination" Foreground="{DynamicResource TextPrimaryBrush}" FontWeight="SemiBold"/>
-                                            <TextBlock Text="{Binding DestinationNodeCaption}" Style="{StaticResource HintTextStyle}"/>
-                                        </StackPanel>
-                                    </Border>
-                                </StackPanel>
+                                </Viewbox>
                             </StackPanel>
                         </Border>
                     </StackPanel>
