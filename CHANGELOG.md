@@ -12,6 +12,45 @@
 
 All notable changes to Heimdall.Next are documented in this file.
 
+## [v2026.032203] - 2026-03-22
+
+### UX Audit (6 passes, cross-audited by Opus, Codex, Gemini)
+- Gateway diagram: Viewbox auto-scaling prevents truncation
+- ServerDialog: tabs stay visible but disabled (not hidden), with tooltip explanation
+- 33 tool icons: 4 category colors + per-tool glyphs replace uniform wrench
+- Ctrl+K palette: protocol icons, status dots, endpoint hints
+- VNC session parity: Split, Reconnect, overlay — fully wired in EmbeddedSessionManager
+- Settings bar: WrapPanel, Save button separated from secondary actions
+- SFTP: bookmark overflow menu, optimized column widths
+- Broadcast button: icon + localized label replaces cryptic "B"
+- Session loading overlay: semi-transparent with progress bar + status
+- Empty states: DNS, PortScanner, NetworkCartography show guidance before first query
+- Error text wrapping on all 10 tool error TextBlocks
+- Merged duplicate search fields into single sidebar filter
+- Project dialog: multi-line description, inline color name label
+- MessageDialog DWM dark mode, removed 6 empty ToolTip flashes
+- FloatingSessionWindow: connection status displayed
+
+### Design System
+- Typography tokens: FontSizeCaption/Body/Subtitle/Title/Headline
+- Spacing tokens: SpacingXs/Sm/Md/Lg/Xl
+- 506 hardcoded FontSize values migrated across 45 files
+- Micro-animations: FadeInPanelStyle (150ms) on 4 overlays
+- DataGrid: global Ctrl+C copy via ClipboardCopyMode
+- TextBox IsReadOnly: triple visual signal (background + border + opacity)
+
+### Accessibility
+- 385+ AutomationProperties.SetName via code-behind
+- Keyboard focus indicators on TreeView/ListBox items
+- Disabled tab tooltips, BtnGoPath/PaletteInput labels
+- Toolbar tooltips with keyboard shortcuts
+
+### Developer
+- IToolView.CanClose() default interface method
+- ToolContextMenuHelper: CopyAll + ExportCSV for DataGrid tools
+- Build.ps1: regex fix for suffixed folders, GitHub release collision check
+- CI: nuget.org source for offline-first NuGet.Config
+
 ## [v2026.032012] - 2026-03-20
 
 ### Features

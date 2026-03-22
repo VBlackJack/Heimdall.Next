@@ -6,7 +6,7 @@ This file provides guidance to Claude Code when working with code in this reposi
 
 **Heimdall.Next** is a ground-up rewrite of Heimdall (PowerShell 5.1 + WPF) as a modern .NET 10 + WPF application. It is a secure Windows connection manager supporting 8 protocols (RDP, SSH, SFTP, VNC, Telnet, FTP, Citrix, Local Shell), designed as a MobaXterm and mRemoteNG alternative with superior security and modern UX.
 
-**Current build**: v2026.032012 (Release)
+**Current build**: v2026.032203 (Release)
 
 ## Repository Layout
 
