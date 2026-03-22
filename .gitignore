@@ -37,3 +37,4 @@ runtimes/
 config/settings.json
 config/servers.json
 logs/
+CLAUDE.md
