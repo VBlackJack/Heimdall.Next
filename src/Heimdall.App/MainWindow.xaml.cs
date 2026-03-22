@@ -146,6 +146,7 @@ public partial class MainWindow : Window
         TabAbout.Content = vm.Localize("NavTabAbout");
 
         Mw_FilterBox.Tag = vm.Localize("SearchPlaceholder");
+        Mw_FilterBox.TextChanged += OnFilterBoxTextChanged;
 
         FullscreenBar.ToolTip = vm.Localize("TooltipExitFullscreenEsc");
 
@@ -389,6 +390,42 @@ public partial class MainWindow : Window
         System.Windows.Automation.AutomationProperties.SetName(SessionTabControl, vm.Localize("NavTabSessions"));
         System.Windows.Automation.AutomationProperties.SetName(QuickConnectButton, vm.Localize("QuickConnectShortcut"));
         System.Windows.Automation.AutomationProperties.SetName(BtnCollapseTools, vm.Localize("ToolsPanelCollapse"));
+
+        // Server detail and empty state buttons
+        System.Windows.Automation.AutomationProperties.SetName(Mw_DetailConnectBtn, vm.Localize("AccessDetailConnect"));
+        System.Windows.Automation.AutomationProperties.SetName(Mw_ToolDetailOpenBtn, vm.Localize("AccessDetailOpen"));
+        System.Windows.Automation.AutomationProperties.SetName(Mw_EmptyBtnAddServer, vm.Localize("AccessEmptyAddServer"));
+        System.Windows.Automation.AutomationProperties.SetName(Mw_EmptyBtnImport, vm.Localize("AccessEmptyImport"));
+
+        // Tunnel tab buttons
+        System.Windows.Automation.AutomationProperties.SetName(Mw_TunnelsCloseSelectedBtn, vm.Localize("AccessTunnelsCloseSelected"));
+        System.Windows.Automation.AutomationProperties.SetName(Mw_TunnelsCloseAllBtn, vm.Localize("AccessTunnelsCloseAll"));
+
+        // Gateway management buttons
+        System.Windows.Automation.AutomationProperties.SetName(Mw_GatewaysAddBtn, vm.Localize("AccessGatewaysAdd"));
+        System.Windows.Automation.AutomationProperties.SetName(Mw_GatewaysEditBtn, vm.Localize("AccessGatewaysEdit"));
+        System.Windows.Automation.AutomationProperties.SetName(Mw_GatewaysDeleteBtn, vm.Localize("AccessGatewaysDelete"));
+
+        // Scheduled task buttons
+        System.Windows.Automation.AutomationProperties.SetName(Mw_ScheduledAddBtn, vm.Localize("AccessScheduledAdd"));
+        System.Windows.Automation.AutomationProperties.SetName(Mw_ScheduledDeleteBtn, vm.Localize("AccessScheduledDelete"));
+        System.Windows.Automation.AutomationProperties.SetName(Mw_ScheduledCreateBtn, vm.Localize("AccessScheduledCreate"));
+
+        // Settings action buttons
+        System.Windows.Automation.AutomationProperties.SetName(Mw_SettingsSaveBtn, vm.Localize("AccessSettingsSave"));
+        System.Windows.Automation.AutomationProperties.SetName(Mw_SettingsResetBtn, vm.Localize("AccessSettingsReset"));
+        System.Windows.Automation.AutomationProperties.SetName(Mw_SettingsExportBtn, vm.Localize("AccessSettingsExport"));
+        System.Windows.Automation.AutomationProperties.SetName(Mw_SettingsImportBtn, vm.Localize("AccessSettingsImport"));
+        System.Windows.Automation.AutomationProperties.SetName(Mw_SettingsCitrixBtn, vm.Localize("AccessSettingsCitrix"));
+
+        // Settings gateway sub-panel buttons
+        System.Windows.Automation.AutomationProperties.SetName(Mw_SettingsGatewaysAddBtn, vm.Localize("AccessSettingsGatewaysAdd"));
+        System.Windows.Automation.AutomationProperties.SetName(Mw_SettingsGatewaysEditBtn, vm.Localize("AccessSettingsGatewaysEdit"));
+        System.Windows.Automation.AutomationProperties.SetName(Mw_SettingsGatewaysDeleteBtn, vm.Localize("AccessSettingsGatewaysDelete"));
+
+        // External tools management buttons
+        System.Windows.Automation.AutomationProperties.SetName(Mw_SettingsExtToolsAddBtn, vm.Localize("AccessSettingsExtToolsAdd"));
+        System.Windows.Automation.AutomationProperties.SetName(Mw_SettingsExtToolsRemoveBtn, vm.Localize("AccessSettingsExtToolsRemove"));
     }
 
     private async void OnServersTabChecked(object sender, RoutedEventArgs e)
@@ -575,6 +612,32 @@ public partial class MainWindow : Window
             btn.ContextMenu.PlacementTarget = btn;
             btn.ContextMenu.Placement = PlacementMode.Bottom;
             btn.ContextMenu.IsOpen = true;
+        }
+    }
+
+    private void OnFilterClearClick(object sender, RoutedEventArgs e)
+    {
+        Mw_FilterBox.Text = string.Empty;
+        Mw_FilterBox.Focus();
+    }
+
+    private void OnFilterBoxTextChanged(object sender, TextChangedEventArgs e)
+    {
+        var hasText = !string.IsNullOrEmpty(Mw_FilterBox.Text);
+        Mw_FilterClearBtn.Visibility = hasText ? Visibility.Visible : Visibility.Collapsed;
+
+        if (DataContext is ViewModels.MainViewModel vm)
+        {
+            var count = vm.ServerList.FilteredCount;
+            if (hasText)
+            {
+                Mw_FilterResultCount.Text = string.Format(vm.Localize("SearchResultCount"), count);
+                Mw_FilterResultCount.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                Mw_FilterResultCount.Visibility = Visibility.Collapsed;
+            }
         }
     }
 

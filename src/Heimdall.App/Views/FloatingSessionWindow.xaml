@@ -37,7 +37,7 @@
                                Foreground="{DynamicResource InfoBrush}"
                                VerticalAlignment="Center" Margin="0,0,6,0"/>
                     <TextBlock x:Name="SessionTitle" Text=""
-                               FontSize="13" FontWeight="SemiBold"
+                               FontSize="{StaticResource FontSizeBodyLarge}" FontWeight="SemiBold"
                                Foreground="{DynamicResource TextPrimaryBrush}"
                                VerticalAlignment="Center"
                                TextTrimming="CharacterEllipsis"/>
@@ -48,7 +48,7 @@
                                Foreground="{DynamicResource TextPrimaryBrush}"
                                VerticalAlignment="Center"/>
                     <TextBlock x:Name="TunnelRouteText" Text=""
-                               FontSize="9"
+                               FontSize="{StaticResource FontSizeSmallCaption}"
                                Foreground="{DynamicResource TextSecondaryBrush}"
                                VerticalAlignment="Center" Margin="6,0,0,0"/>
                 </StackPanel>

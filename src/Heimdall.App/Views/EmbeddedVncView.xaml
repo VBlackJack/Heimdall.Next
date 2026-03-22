@@ -28,7 +28,8 @@
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="8,2"
                         FontSize="{StaticResource FontSizeCaption}"
-                        Margin="8,0,0,0"/>
+                        Margin="8,0,0,0"
+                        AutomationProperties.Name="Disconnect session"/>
 
                 <Button x:Name="ReconnectButton"
                         DockPanel.Dock="Right"
@@ -37,7 +38,8 @@
                         Padding="8,2"
                         FontSize="{StaticResource FontSizeCaption}"
                         Margin="8,0,0,0"
-                        Visibility="Collapsed"/>
+                        Visibility="Collapsed"
+                        AutomationProperties.Name="Reconnect session"/>
 
                 <Button x:Name="SplitButton"
                         DockPanel.Dock="Right"
@@ -45,7 +47,8 @@
                         FontFamily="Segoe MDL2 Assets"
                         Click="OnSplitClick"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
-                        Padding="6,2" FontSize="{StaticResource FontSizeBody}" Margin="4,0"/>
+                        Padding="6,2" FontSize="{StaticResource FontSizeBody}" Margin="4,0"
+                        AutomationProperties.Name="Split session view"/>
 
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <TextBlock x:Name="SessionTitleText"
@@ -96,7 +99,7 @@
                             HorizontalAlignment="Center"
                             MaxWidth="400">
                     <TextBlock x:Name="ReconnectMessageText"
-                               FontSize="15"
+                               FontSize="{StaticResource FontSizeSubtitle}"
                                FontWeight="SemiBold"
                                TextAlignment="Center"
                                TextWrapping="Wrap"
@@ -108,13 +111,13 @@
                                 Click="OnOverlayReconnectClick"
                                 Style="{DynamicResource PrimaryButtonStyle}"
                                 Padding="16,6"
-                                FontSize="13"
+                                FontSize="{StaticResource FontSizeBodyLarge}"
                                 Margin="0,0,8,0"/>
                         <Button x:Name="OverlayCloseButton"
                                 Click="OnOverlayCloseClick"
                                 Style="{DynamicResource SecondaryButtonStyle}"
                                 Padding="16,6"
-                                FontSize="13"
+                                FontSize="{StaticResource FontSizeBodyLarge}"
                                 Margin="8,0,0,0"/>
                     </StackPanel>
                 </StackPanel>
@@ -128,7 +131,7 @@
                             HorizontalAlignment="Center"
                             MaxWidth="420">
                     <TextBlock x:Name="FallbackTitleText"
-                               FontSize="20"
+                               FontSize="{StaticResource FontSizeDisplay}"
                                FontWeight="SemiBold"
                                TextAlignment="Center"
                                Foreground="{DynamicResource TextPrimaryBrush}" />

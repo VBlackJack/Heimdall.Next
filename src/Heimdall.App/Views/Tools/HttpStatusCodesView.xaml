@@ -31,7 +31,7 @@
                            Foreground="{DynamicResource TextSecondaryBrush}"
                            VerticalAlignment="Center" Margin="8,0,0,0"/>
                 <TextBox x:Name="TxtFilter" Text=""
-                         FontSize="13" Padding="8,6"
+                         FontSize="{StaticResource FontSizeBodyLarge}" Padding="8,6"
                          Background="{DynamicResource CardBrush}"
                          Foreground="{DynamicResource TextPrimaryBrush}"
                          BorderBrush="{DynamicResource BorderBrush}"
@@ -80,7 +80,7 @@
                                    Foreground="{Binding CategoryBrush}"
                                    VerticalAlignment="Center"/>
                         <StackPanel Margin="12,0,0,0">
-                            <TextBlock Text="{Binding Name}" FontSize="13" FontWeight="SemiBold"
+                            <TextBlock Text="{Binding Name}" FontSize="{StaticResource FontSizeBodyLarge}" FontWeight="SemiBold"
                                        Foreground="{DynamicResource TextPrimaryBrush}"/>
                             <TextBlock Text="{Binding Description}" FontSize="{StaticResource FontSizeCaption}"
                                        Foreground="{DynamicResource TextSecondaryBrush}"
@@ -96,7 +96,7 @@
                         <DataTemplate>
                             <Border Padding="12,8,12,4"
                                     Background="{DynamicResource BackgroundBrush}">
-                                <TextBlock Text="{Binding Name}" FontSize="13" FontWeight="SemiBold"
+                                <TextBlock Text="{Binding Name}" FontSize="{StaticResource FontSizeBodyLarge}" FontWeight="SemiBold"
                                            Foreground="{DynamicResource AccentBrush}"/>
                             </Border>
                         </DataTemplate>

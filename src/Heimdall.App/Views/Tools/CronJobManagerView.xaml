@@ -50,7 +50,7 @@
                              AcceptsReturn="True" AcceptsTab="True"
                              VerticalScrollBarVisibility="Auto"
                              HorizontalScrollBarVisibility="Auto"
-                             FontSize="13" FontFamily="Consolas"
+                             FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
                              Padding="8,6"
                              Background="{DynamicResource CardBrush}"
                              Foreground="{DynamicResource TextPrimaryBrush}"
@@ -71,13 +71,13 @@
                     <!-- Error message -->
                     <TextBlock x:Name="TxtCronError" Grid.Row="3" Text="" Visibility="Collapsed"
                                FontSize="{StaticResource FontSizeBody}" Margin="0,8,0,0"
-                               Foreground="{DynamicResource ErrorBrush}"/>
+                               Foreground="{DynamicResource ErrorTextBrush}"/>
 
                     <!-- Parsed entries DataGrid -->
                     <Border Grid.Row="4" Margin="0,8,0,0"
                             Background="{DynamicResource CardBrush}"
                             BorderBrush="{DynamicResource BorderBrush}"
-                            BorderThickness="1" CornerRadius="4">
+                            BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}">
                         <DataGrid x:Name="CronResultsGrid"
                                   AutoGenerateColumns="False"
                                   IsReadOnly="True"
@@ -110,10 +110,10 @@
                             Margin="0,8,0,0" Padding="12,8"
                             Background="{DynamicResource CardBrush}"
                             BorderBrush="{DynamicResource AccentBrush}"
-                            BorderThickness="1" CornerRadius="4">
+                            BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}">
                         <StackPanel>
                             <TextBlock x:Name="TxtDetailHeader" Text=""
-                                       FontSize="13" FontWeight="SemiBold"
+                                       FontSize="{StaticResource FontSizeBodyLarge}" FontWeight="SemiBold"
                                        Foreground="{DynamicResource AccentBrush}"
                                        Margin="0,0,0,4"/>
                             <TextBlock x:Name="TxtDetailSchedule" Text=""
@@ -158,13 +158,13 @@
                     <!-- Error message -->
                     <TextBlock x:Name="TxtTasksError" Grid.Row="1" Text="" Visibility="Collapsed"
                                FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,8"
-                               Foreground="{DynamicResource ErrorBrush}"/>
+                               Foreground="{DynamicResource ErrorTextBrush}"/>
 
                     <!-- Windows Tasks DataGrid -->
                     <Border Grid.Row="2"
                             Background="{DynamicResource CardBrush}"
                             BorderBrush="{DynamicResource BorderBrush}"
-                            BorderThickness="1" CornerRadius="4">
+                            BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}">
                         <DataGrid x:Name="TasksResultsGrid"
                                   AutoGenerateColumns="False"
                                   IsReadOnly="True"

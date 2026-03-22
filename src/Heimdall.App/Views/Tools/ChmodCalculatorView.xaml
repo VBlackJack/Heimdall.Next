@@ -126,7 +126,7 @@
         <Border Grid.Row="1" Padding="{StaticResource SpacingMd}"
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
-                BorderThickness="1" CornerRadius="4"
+                BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
                 Margin="0,0,0,12">
             <Grid>
                 <Grid.ColumnDefinitions>
@@ -141,7 +141,7 @@
                            Foreground="{DynamicResource TextSecondaryBrush}"
                            VerticalAlignment="Center" Margin="0,0,8,0"/>
                 <TextBox x:Name="OctalInput" Grid.Column="1"
-                         FontFamily="Consolas" FontSize="20" FontWeight="Bold"
+                         FontFamily="Consolas" FontSize="{StaticResource FontSizeDisplay}" FontWeight="Bold"
                          MaxLength="3"
                          Background="Transparent"
                          Foreground="{DynamicResource AccentBrush}"
@@ -154,7 +154,7 @@
                            Foreground="{DynamicResource TextSecondaryBrush}"
                            VerticalAlignment="Center" Margin="0,0,8,0"/>
                 <TextBlock x:Name="SymbolicDisplay" Grid.Column="4"
-                           FontFamily="Consolas" FontSize="20" FontWeight="Bold"
+                           FontFamily="Consolas" FontSize="{StaticResource FontSizeDisplay}" FontWeight="Bold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
                            VerticalAlignment="Center"/>
             </Grid>
@@ -164,7 +164,7 @@
         <Border Grid.Row="2" Padding="{StaticResource SpacingMd}"
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
-                BorderThickness="1" CornerRadius="4"
+                BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
                 Margin="0,0,0,12">
             <StackPanel>
                 <TextBlock x:Name="SymbolicInputLabel"
@@ -179,7 +179,7 @@
                          Padding="4,2"
                          KeyDown="OnSymbolicInputKeyDown"/>
                 <TextBlock x:Name="SymbolicInputError"
-                           Foreground="{DynamicResource ErrorBrush}"
+                           Foreground="{DynamicResource ErrorTextBrush}"
                            FontSize="{StaticResource FontSizeCaption}" Margin="0,2,0,0"
                            Visibility="Collapsed"/>
             </StackPanel>
@@ -189,7 +189,7 @@
         <Border Grid.Row="3" Padding="{StaticResource SpacingMd}"
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
-                BorderThickness="1" CornerRadius="4"
+                BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
                 Margin="0,0,0,12">
             <Grid>
                 <Grid.ColumnDefinitions>

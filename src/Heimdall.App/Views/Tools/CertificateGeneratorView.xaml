@@ -52,7 +52,7 @@
             <Border Grid.Row="0" Padding="{StaticResource SpacingMd}"
                     Background="{DynamicResource SurfaceBrush}"
                     BorderBrush="{DynamicResource BorderBrush}"
-                    BorderThickness="1" CornerRadius="4"
+                    BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
                     Margin="0,0,0,12">
                 <StackPanel>
                     <TextBlock x:Name="SubjectSectionLabel"
@@ -98,7 +98,7 @@
             <Border Grid.Row="1" Padding="{StaticResource SpacingMd}"
                     Background="{DynamicResource SurfaceBrush}"
                     BorderBrush="{DynamicResource BorderBrush}"
-                    BorderThickness="1" CornerRadius="4"
+                    BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
                     Margin="0,0,0,12">
                 <StackPanel>
                     <TextBlock x:Name="OptionsSectionLabel"
@@ -151,7 +151,7 @@
             <Border Grid.Row="2" Padding="{StaticResource SpacingMd}"
                     Background="{DynamicResource SurfaceBrush}"
                     BorderBrush="{DynamicResource BorderBrush}"
-                    BorderThickness="1" CornerRadius="4"
+                    BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
                     Margin="0,0,0,12">
                 <StackPanel>
                     <TextBlock x:Name="TypeSectionLabel"
@@ -179,7 +179,7 @@
             <Border Grid.Row="4" Padding="{StaticResource SpacingSm}"
                     Background="{DynamicResource SurfaceBrush}"
                     BorderBrush="{DynamicResource BorderBrush}"
-                    BorderThickness="1" CornerRadius="4"
+                    BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
                     Margin="0,0,0,12"
                     Visibility="Collapsed" x:Name="FingerprintPanel">
                 <DockPanel>
@@ -206,7 +206,7 @@
             <Border Grid.Row="5" Padding="{StaticResource SpacingSm}"
                     Background="{DynamicResource SurfaceBrush}"
                     BorderBrush="{DynamicResource BorderBrush}"
-                    BorderThickness="1" CornerRadius="4"
+                    BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
                     Margin="0,0,0,12"
                     Visibility="Collapsed" x:Name="CertPanel">
                 <DockPanel>
@@ -236,7 +236,7 @@
             <Border Grid.Row="6" Padding="{StaticResource SpacingSm}"
                     Background="{DynamicResource SurfaceBrush}"
                     BorderBrush="{DynamicResource BorderBrush}"
-                    BorderThickness="1" CornerRadius="4"
+                    BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
                     Margin="0,0,0,12"
                     Visibility="Collapsed" x:Name="KeyPanel">
                 <DockPanel>
@@ -271,7 +271,7 @@
             <Border Grid.Row="7" Padding="{StaticResource SpacingSm}"
                     Background="{DynamicResource SurfaceBrush}"
                     BorderBrush="{DynamicResource BorderBrush}"
-                    BorderThickness="1" CornerRadius="4"
+                    BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
                     Margin="0,0,0,12"
                     Visibility="Collapsed" x:Name="LeafPanel">
                 <StackPanel>

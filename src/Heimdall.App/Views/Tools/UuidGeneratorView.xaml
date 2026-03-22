@@ -39,7 +39,7 @@
                             Padding="12,6" Margin="8,0,0,0"
                             VerticalAlignment="Stretch"/>
                     <TextBox x:Name="TxtResult" Text=""
-                             FontSize="13" FontFamily="Consolas"
+                             FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
                              Padding="8,6" IsReadOnly="True"
                              Background="{DynamicResource CardBrush}"
                              Foreground="{DynamicResource AccentBrush}"
@@ -89,7 +89,7 @@
                                            Foreground="{DynamicResource TextSecondaryBrush}"
                                            VerticalAlignment="Center"/>
                                 <TextBox x:Name="TxtCount" Text="10"
-                                         FontSize="13" Width="60"
+                                         FontSize="{StaticResource FontSizeBodyLarge}" Width="60"
                                          Padding="8,6"
                                          Background="{DynamicResource CardBrush}"
                                          Foreground="{DynamicResource TextPrimaryBrush}"

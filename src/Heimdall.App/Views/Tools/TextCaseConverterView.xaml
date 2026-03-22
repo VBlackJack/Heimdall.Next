@@ -28,7 +28,7 @@
                            FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,4"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
                 <TextBox x:Name="TxtInput" Text=""
-                         FontSize="13" FontFamily="Consolas"
+                         FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
                          Padding="8,6" Height="100"
                          AcceptsReturn="True"
                          TextWrapping="Wrap"
@@ -81,7 +81,7 @@
                             Padding="12,6" Margin="8,0,0,0"
                             VerticalAlignment="Top"/>
                     <TextBox x:Name="TxtOutput" Text=""
-                             FontSize="13" FontFamily="Consolas"
+                             FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
                              Padding="8,6" Height="100"
                              IsReadOnly="True"
                              AcceptsReturn="True"

@@ -8,7 +8,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
         Title="{Binding DialogTitle}"
-        Width="500" Height="520"
+        Width="500" SizeToContent="Height" MaxHeight="700"
         WindowStartupLocation="CenterOwner"
         Background="{DynamicResource BackgroundBrush}"
         ResizeMode="CanResizeWithGrip"
@@ -50,24 +50,24 @@
                 <TextBlock x:Name="LblName" Style="{StaticResource LabelStyle}"/>
                 <TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}"
                          Style="{StaticResource FormTextBoxStyle}"
-                         x:Name="TxtName"/>
+                         x:Name="TxtName" TabIndex="0"/>
 
                 <TextBlock x:Name="LblHost" Style="{StaticResource LabelStyle}" Margin="0,12,0,4"/>
                 <TextBox Text="{Binding Host, UpdateSourceTrigger=PropertyChanged}"
                          Style="{StaticResource FormTextBoxStyle}"
-                         x:Name="TxtHost"/>
+                         x:Name="TxtHost" TabIndex="1"/>
 
                 <TextBlock x:Name="LblPort" Style="{StaticResource LabelStyle}" Margin="0,12,0,4"/>
                 <TextBox Text="{Binding Port}"
                          Style="{StaticResource FormTextBoxStyle}"
                          Width="100" HorizontalAlignment="Left"
                          MaxLength="5"
-                         x:Name="TxtPort"/>
+                         x:Name="TxtPort" TabIndex="2"/>
 
                 <TextBlock x:Name="LblUsername" Style="{StaticResource LabelStyle}" Margin="0,12,0,4"/>
                 <TextBox Text="{Binding User, UpdateSourceTrigger=PropertyChanged}"
                          Style="{StaticResource FormTextBoxStyle}"
-                         x:Name="TxtUsername"/>
+                         x:Name="TxtUsername" TabIndex="3"/>
 
                 <TextBlock x:Name="LblKeyPath" Style="{StaticResource LabelStyle}" Margin="0,12,0,4"/>
                 <DockPanel>
@@ -79,13 +79,13 @@
                             Click="OnBrowseKeyClick"/>
                     <TextBox Text="{Binding KeyPath}"
                              Style="{StaticResource FormTextBoxStyle}"
-                             x:Name="TxtKeyPath"/>
+                             x:Name="TxtKeyPath" TabIndex="4"/>
                 </DockPanel>
 
                 <TextBlock x:Name="LblPassword" Style="{StaticResource LabelStyle}" Margin="0,12,0,4"/>
                 <PasswordBox x:Name="PasswordBox"
                              Style="{StaticResource FormPasswordBoxStyle}"
-                             />
+                             TabIndex="5"/>
 
                 <TextBlock x:Name="LblParentGateway" Style="{StaticResource LabelStyle}" Margin="0,12,0,4"/>
                 <ComboBox ItemsSource="{Binding AvailableParents}"
@@ -93,7 +93,7 @@
                           SelectedValuePath="Id"
                           DisplayMemberPath="DisplayText"
                           Style="{StaticResource FormComboBoxStyle}"
-                          x:Name="CmbParentGateway"/>
+                          x:Name="CmbParentGateway" TabIndex="6"/>
 
                 <TextBlock x:Name="LblHostKeyFingerprint" Style="{StaticResource LabelStyle}" Margin="0,12,0,4"/>
                 <TextBox Text="{Binding HostKeyFingerprint, Mode=OneWay}"
@@ -106,7 +106,7 @@
         <!-- Validation error -->
         <TextBlock Grid.Row="1"
                    Text="{Binding ValidationError}"
-                   Foreground="{DynamicResource ErrorBrush}"
+                   Foreground="{DynamicResource ErrorTextBrush}"
                    FontSize="{StaticResource FontSizeBody}"
                    Margin="0,8,0,0"
                    TextWrapping="Wrap"

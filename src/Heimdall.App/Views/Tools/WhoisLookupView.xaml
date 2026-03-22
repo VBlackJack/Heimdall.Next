@@ -37,7 +37,7 @@
                     <TextBox x:Name="TxtDomain" Text=""
                              Style="{StaticResource WatermarkTextBoxStyle}"
                              Tag="example.com or IP address"
-                             FontSize="13" FontFamily="Consolas"
+                             FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
                              Padding="8,6"
                              Background="{DynamicResource CardBrush}"
                              Foreground="{DynamicResource TextPrimaryBrush}"
@@ -48,13 +48,13 @@
                 <!-- Error message -->
                 <TextBlock x:Name="TxtError" Text="" Visibility="Collapsed"
                            FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,12" TextWrapping="Wrap"
-                           Foreground="{DynamicResource ErrorBrush}"/>
+                           Foreground="{DynamicResource ErrorTextBrush}"/>
 
                 <!-- Results -->
                 <Border x:Name="ResultsPanel" Visibility="Collapsed"
                         Background="{DynamicResource CardBrush}"
                         BorderBrush="{DynamicResource BorderBrush}"
-                        BorderThickness="1" CornerRadius="4"
+                        BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
                         Padding="16,12">
                     <StackPanel>
                         <DockPanel Margin="0,0,0,8">
@@ -62,7 +62,7 @@
                                     Style="{DynamicResource SecondaryButtonStyle}"
                                     Padding="8,2" FontSize="{StaticResource FontSizeCaption}" Margin="8,0,0,0" VerticalAlignment="Center"/>
                             <TextBlock x:Name="TxtResultHeader" Text=""
-                                       FontSize="13" FontWeight="SemiBold"
+                                       FontSize="{StaticResource FontSizeBodyLarge}" FontWeight="SemiBold"
                                        Foreground="{DynamicResource AccentBrush}"
                                        VerticalAlignment="Center"/>
                         </DockPanel>

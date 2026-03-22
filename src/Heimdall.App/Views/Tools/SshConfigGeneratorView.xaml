@@ -41,7 +41,7 @@
                 <!-- Form fields -->
                 <Border Background="{DynamicResource SurfaceBrush}"
                         BorderBrush="{DynamicResource BorderBrush}"
-                        BorderThickness="1" CornerRadius="4"
+                        BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
                         Padding="16,12" Margin="0,0,0,12">
                     <Grid>
                         <Grid.ColumnDefinitions>
@@ -153,7 +153,7 @@
                 <!-- Output -->
                 <Border Background="{DynamicResource CardBrush}"
                         BorderBrush="{DynamicResource BorderBrush}"
-                        BorderThickness="1" CornerRadius="4"
+                        BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
                         Padding="12,8" Margin="0,0,0,8">
                     <DockPanel>
                         <Button x:Name="BtnCopy" DockPanel.Dock="Top"

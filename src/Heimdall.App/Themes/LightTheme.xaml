@@ -9,18 +9,23 @@
     <Color x:Key="PrimaryColor">#F5F5F5</Color>
     <Color x:Key="SecondaryColor">#FFFFFF</Color>
     <Color x:Key="SurfaceColor">#FAFAFA</Color>
-    <Color x:Key="AccentColor">#7C3AED</Color>
-    <Color x:Key="AccentHoverColor">#6D28D9</Color>
-    <Color x:Key="AccentPressedColor">#5B21B6</Color>
+    <Color x:Key="AccentColor">#6D28D9</Color>
+    <Color x:Key="AccentHoverColor">#5B21B6</Color>
+    <Color x:Key="AccentPressedColor">#4C1D95</Color>
     <Color x:Key="TextPrimaryColor">#1A1A2E</Color>
-    <Color x:Key="TextSecondaryColor">#6B7280</Color>
-    <Color x:Key="TextDisabledColor">#B0B0B0</Color>
-    <Color x:Key="SuccessColor">#16A34A</Color>
-    <Color x:Key="WarningColor">#D97706</Color>
+    <Color x:Key="TextSecondaryColor">#4B5563</Color>
+    <Color x:Key="TextDisabledColor">#8892A2</Color>
+    <Color x:Key="SuccessColor">#15803D</Color>
+    <Color x:Key="WarningColor">#B45309</Color>
     <Color x:Key="ErrorColor">#DC2626</Color>
-    <Color x:Key="InfoColor">#2563EB</Color>
-    <Color x:Key="BorderColor">#E0E0E0</Color>
-    <Color x:Key="HighlightColor">#F0F0F0</Color>
+    <Color x:Key="InfoColor">#1D4ED8</Color>
+    <Color x:Key="BorderColor">#CBD5E1</Color>
+    <Color x:Key="HighlightColor">#EEF2FF</Color>
+
+    <!-- WCAG-safe text variants for semantic colors on light backgrounds -->
+    <Color x:Key="SuccessTextColor">#15803D</Color>
+    <Color x:Key="WarningTextColor">#B45309</Color>
+    <Color x:Key="ErrorTextColor">#DC2626</Color>
 
     <!-- Brushes -->
     <SolidColorBrush x:Key="BackgroundBrush" Color="{StaticResource PrimaryColor}"/>
@@ -68,6 +73,11 @@
     <SolidColorBrush x:Key="JwtPayloadBrush" Color="{StaticResource JwtPayloadColor}"/>
     <Color x:Key="JwtSignatureColor">#C05621</Color>
     <SolidColorBrush x:Key="JwtSignatureBrush" Color="{StaticResource JwtSignatureColor}"/>
+
+    <!-- WCAG-safe semantic text brushes (for text rendered on light backgrounds) -->
+    <SolidColorBrush x:Key="SuccessTextBrush" Color="{StaticResource SuccessTextColor}"/>
+    <SolidColorBrush x:Key="WarningTextBrush" Color="{StaticResource WarningTextColor}"/>
+    <SolidColorBrush x:Key="ErrorTextBrush" Color="{StaticResource ErrorTextColor}"/>
 
     <!-- Badge text (white on dark badge backgrounds) -->
     <SolidColorBrush x:Key="BadgeTextBrush" Color="#FFFFFF"/>

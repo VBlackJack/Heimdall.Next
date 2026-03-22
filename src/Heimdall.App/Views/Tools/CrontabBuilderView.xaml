@@ -140,7 +140,7 @@
                 <!-- Generated cron expression -->
                 <Border Background="{DynamicResource SurfaceBrush}"
                         BorderBrush="{DynamicResource BorderBrush}"
-                        BorderThickness="1" CornerRadius="4"
+                        BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
                         Padding="{StaticResource SpacingMd}" Margin="0,0,0,8">
                     <DockPanel>
                         <Button x:Name="BtnCopy" DockPanel.Dock="Right"
@@ -150,7 +150,7 @@
                                 VerticalAlignment="Center"
                                 />
                         <TextBox x:Name="TxtCronExpression" Text="* * * * *"
-                                 FontSize="22" FontFamily="Consolas" FontWeight="Bold"
+                                 FontSize="{StaticResource FontSizeHeadline}" FontFamily="Consolas" FontWeight="Bold"
                                  IsReadOnly="True"
                                  Background="Transparent"
                                  Foreground="{DynamicResource AccentBrush}"
@@ -162,7 +162,7 @@
 
                 <!-- Human-readable description -->
                 <TextBlock x:Name="TxtDescription" Text=""
-                           FontSize="13" Margin="0,0,0,16"
+                           FontSize="{StaticResource FontSizeBodyLarge}" Margin="0,0,0,16"
                            Foreground="{DynamicResource TextPrimaryBrush}"
                            TextWrapping="Wrap"/>
 
@@ -172,7 +172,7 @@
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
                 <TextBox x:Name="TxtManualInput" Text=""
                          Style="{DynamicResource WatermarkTextBoxStyle}"
-                         FontSize="13" FontFamily="Consolas"
+                         FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
                          Padding="8,6" Margin="0,0,0,4"
                          Background="{DynamicResource CardBrush}"
                          Foreground="{DynamicResource TextPrimaryBrush}"
@@ -193,7 +193,7 @@
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
                 <Border Background="{DynamicResource CardBrush}"
                         BorderBrush="{DynamicResource BorderBrush}"
-                        BorderThickness="1" CornerRadius="4"
+                        BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
                         Padding="12,8">
                     <ItemsControl x:Name="NextRunsList">
                         <ItemsControl.ItemTemplate>

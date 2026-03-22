@@ -33,7 +33,7 @@
                     <TextBox x:Name="TxtHost" Text="" Width="240"
                              Style="{StaticResource WatermarkTextBoxStyle}"
                              Tag="hostname or IP"
-                             FontSize="13" FontFamily="Consolas"
+                             FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
                              Padding="8,6"
                              Background="{DynamicResource CardBrush}"
                              Foreground="{DynamicResource TextPrimaryBrush}"
@@ -120,20 +120,20 @@
             <Border Grid.Row="0" Margin="8,8,8,4"
                     Background="{DynamicResource CardBrush}"
                     BorderBrush="{DynamicResource BorderBrush}"
-                    BorderThickness="1" CornerRadius="4">
+                    BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}">
                 <Grid>
                     <Canvas x:Name="GraphCanvas" ClipToBounds="True"
                             SizeChanged="OnGraphCanvasSizeChanged"/>
                     <!-- Y-axis labels -->
-                    <TextBlock x:Name="TxtYMax" Text="" FontSize="10"
+                    <TextBlock x:Name="TxtYMax" Text="" FontSize="{StaticResource FontSizeCaption}"
                                FontFamily="Consolas" Margin="4,4,0,0"
                                Foreground="{DynamicResource TextSecondaryBrush}"
                                VerticalAlignment="Top" HorizontalAlignment="Left"/>
-                    <TextBlock x:Name="TxtYMid" Text="" FontSize="10"
+                    <TextBlock x:Name="TxtYMid" Text="" FontSize="{StaticResource FontSizeCaption}"
                                FontFamily="Consolas" Margin="4,0,0,0"
                                Foreground="{DynamicResource TextSecondaryBrush}"
                                VerticalAlignment="Center" HorizontalAlignment="Left"/>
-                    <TextBlock Text="0 ms" FontSize="10"
+                    <TextBlock Text="0 ms" FontSize="{StaticResource FontSizeCaption}"
                                FontFamily="Consolas" Margin="4,0,0,4"
                                Foreground="{DynamicResource TextSecondaryBrush}"
                                VerticalAlignment="Bottom" HorizontalAlignment="Left"/>
@@ -148,7 +148,7 @@
             <Border Grid.Row="2" Margin="8,4,8,8"
                     Background="{DynamicResource CardBrush}"
                     BorderBrush="{DynamicResource BorderBrush}"
-                    BorderThickness="1" CornerRadius="4">
+                    BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}">
                 <ScrollViewer x:Name="LogScrollViewer"
                               VerticalScrollBarVisibility="Auto"
                               Padding="8,4">
@@ -169,7 +169,7 @@
                 <TextBlock x:Name="LblMin" Text="" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                            Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,4,0"/>
                 <TextBlock x:Name="TxtMin" Text="—" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
-                           Foreground="{DynamicResource SuccessBrush}" FontWeight="SemiBold"/>
+                           Foreground="{DynamicResource SuccessTextBrush}" FontWeight="SemiBold"/>
 
                 <TextBlock Text="  |  " FontSize="{StaticResource FontSizeBody}"
                            Foreground="{DynamicResource BorderBrush}"/>
@@ -185,7 +185,7 @@
                 <TextBlock x:Name="LblMax" Text="" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                            Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,4,0"/>
                 <TextBlock x:Name="TxtMax" Text="—" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
-                           Foreground="{DynamicResource WarningBrush}" FontWeight="SemiBold"/>
+                           Foreground="{DynamicResource WarningTextBrush}" FontWeight="SemiBold"/>
 
                 <TextBlock Text="  |  " FontSize="{StaticResource FontSizeBody}"
                            Foreground="{DynamicResource BorderBrush}"/>
@@ -201,7 +201,7 @@
                 <TextBlock x:Name="LblLoss" Text="" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                            Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,4,0"/>
                 <TextBlock x:Name="TxtLoss" Text="—" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
-                           Foreground="{DynamicResource ErrorBrush}" FontWeight="SemiBold"/>
+                           Foreground="{DynamicResource ErrorTextBrush}" FontWeight="SemiBold"/>
             </StackPanel>
         </Border>
     </Grid>

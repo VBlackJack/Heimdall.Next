@@ -39,10 +39,10 @@
                         DockPanel.Dock="Right"
                         Click="OnDisconnectClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
-                        Foreground="{DynamicResource ErrorBrush}"
                         Padding="8,2"
                         FontSize="{StaticResource FontSizeCaption}"
-                        Margin="8,0,0,0"/>
+                        Margin="8,0,0,0"
+                        AutomationProperties.Name="Disconnect session"/>
                 <Button x:Name="ReconnectButton"
                         DockPanel.Dock="Right"
                         Click="OnReconnectClick"
@@ -50,18 +50,20 @@
                         Padding="8,2"
                         FontSize="{StaticResource FontSizeCaption}"
                         Margin="8,0,0,0"
-                        Visibility="Collapsed"/>
+                        Visibility="Collapsed"
+                        AutomationProperties.Name="Reconnect session"/>
                 <Button x:Name="SplitButton"
                         DockPanel.Dock="Right"
                         Content="&#xE8A9;"
                         FontFamily="Segoe MDL2 Assets"
                         Click="OnSplitClick"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
-                        Padding="6,2" FontSize="{StaticResource FontSizeBody}" Margin="4,0"/>
+                        Padding="6,2" FontSize="{StaticResource FontSizeBody}" Margin="4,0"
+                        AutomationProperties.Name="Split session view"/>
 
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <TextBlock x:Name="SessionTitleText"
-                               FontSize="13"
+                               FontSize="{StaticResource FontSizeBodyLarge}"
                                FontWeight="SemiBold"
                                Foreground="{DynamicResource TextPrimaryBrush}"
                                VerticalAlignment="Center"
@@ -120,34 +122,37 @@
                             Click="OnBackClick"
                             Style="{DynamicResource ToolbarGhostButtonStyle}"
                             Padding="8,2" FontSize="{StaticResource FontSizeBody}"
-                            IsEnabled="False"/>
+                            IsEnabled="False"
+                            AutomationProperties.Name="Navigate back"/>
                     <Button x:Name="BtnUp"
                             Content="&#xE74A;"
                             FontFamily="Segoe MDL2 Assets"
                             Click="OnUpClick"
                             Style="{DynamicResource ToolbarGhostButtonStyle}"
-                            Padding="8,2" FontSize="{StaticResource FontSizeBody}" Margin="4,0,0,0"/>
+                            Padding="8,2" FontSize="{StaticResource FontSizeBody}" Margin="4,0,0,0"
+                            AutomationProperties.Name="Navigate up"/>
                     <Button x:Name="BtnHome"
                             Content="&#xE80F;"
                             FontFamily="Segoe MDL2 Assets"
                             Click="OnHomeClick"
                             Style="{DynamicResource ToolbarGhostButtonStyle}"
                             Padding="8,2" FontSize="{StaticResource FontSizeBody}" Margin="4,0,0,0"
-                            />
+                            AutomationProperties.Name="Navigate to home"/>
                     <Button x:Name="BtnRefresh"
                             Content="&#xE72C;"
                             FontFamily="Segoe MDL2 Assets"
                             Click="OnRefreshClick"
                             Style="{DynamicResource ToolbarGhostButtonStyle}"
                             Padding="8,2" FontSize="{StaticResource FontSizeBody}" Margin="4,0,0,0"
-                            />
+                            AutomationProperties.Name="Refresh directory"/>
 
                     <Border Width="1" Margin="8,2" Background="{DynamicResource BorderBrush}"/>
 
                     <Button x:Name="BtnUpload"
                             Click="OnUploadClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="8,2" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,4,0">
+                            Padding="8,2" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,4,0"
+                            AutomationProperties.Name="Upload files">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="&#xE898;" FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeBody}"
                                        VerticalAlignment="Center" Margin="0,0,4,0"/>
@@ -157,7 +162,8 @@
                     <Button x:Name="BtnNewFolder"
                             Click="OnNewFolderClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="8,2" FontSize="{StaticResource FontSizeCaption}">
+                            Padding="8,2" FontSize="{StaticResource FontSizeCaption}"
+                            AutomationProperties.Name="Create new folder">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="&#xE8F4;" FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeBody}"
                                        VerticalAlignment="Center" Margin="0,0,4,0"/>
@@ -251,14 +257,14 @@
                   VirtualizingPanel.VirtualizationMode="Recycling">
             <ListView.View>
                 <GridView>
-                    <GridViewColumn Width="320">
+                    <GridViewColumn x:Name="ColName" Width="320">
                         <GridViewColumn.CellTemplate>
                             <DataTemplate>
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock x:Name="FileIcon"
                                                Text="&#xE7C3;"
                                                FontFamily="Segoe MDL2 Assets"
-                                               FontSize="13"
+                                               FontSize="{StaticResource FontSizeBodyLarge}"
                                                Foreground="{DynamicResource TextSecondaryBrush}"
                                                Margin="0,0,6,0"
                                                VerticalAlignment="Center"/>
@@ -273,7 +279,7 @@
                             </DataTemplate>
                         </GridViewColumn.CellTemplate>
                     </GridViewColumn>
-                    <GridViewColumn Width="80">
+                    <GridViewColumn x:Name="ColSize" Width="80">
                         <GridViewColumn.CellTemplate>
                             <DataTemplate>
                                 <TextBlock Text="{Binding Size, Converter={StaticResource FileSizeConverter}, ConverterParameter=dir}"
@@ -281,11 +287,11 @@
                             </DataTemplate>
                         </GridViewColumn.CellTemplate>
                     </GridViewColumn>
-                    <GridViewColumn Width="140"
+                    <GridViewColumn x:Name="ColDate" Width="140"
                                     DisplayMemberBinding="{Binding LastModified, StringFormat='{}{0:yyyy-MM-dd HH:mm}'}"/>
-                    <GridViewColumn Width="80"
+                    <GridViewColumn x:Name="ColPermissions" Width="80"
                                     DisplayMemberBinding="{Binding Permissions}"/>
-                    <GridViewColumn Width="55"
+                    <GridViewColumn x:Name="ColOwner" Width="55"
                                     DisplayMemberBinding="{Binding Owner}"/>
                 </GridView>
             </ListView.View>
@@ -368,7 +374,7 @@
                     <MenuItem x:Name="CtxDelete" Click="OnCtxDeleteClick" InputGestureText="Del">
                         <MenuItem.Icon>
                             <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE74D;" FontSize="{StaticResource FontSizeSubtitle}"
-                                       Foreground="{DynamicResource ErrorBrush}"/>
+                                       Foreground="{DynamicResource ErrorTextBrush}"/>
                         </MenuItem.Icon>
                     </MenuItem>
                     <MenuItem x:Name="CtxChmod" Click="OnCtxChmodClick">
@@ -419,7 +425,7 @@
                    Grid.Row="3"
                    VerticalAlignment="Center"
                    HorizontalAlignment="Center"
-                   FontSize="13"
+                   FontSize="{StaticResource FontSizeBodyLarge}"
                    Foreground="{DynamicResource TextSecondaryBrush}"
                    IsHitTestVisible="False"
                    Visibility="Collapsed"/>
@@ -430,12 +436,12 @@
                 Background="{DynamicResource DragDropOverlayBackground}"
                 BorderBrush="{DynamicResource AccentBrush}"
                 BorderThickness="2"
-                CornerRadius="4"
+                CornerRadius="{StaticResource CornerRadiusSm}"
                 IsHitTestVisible="False"
                 Visibility="Collapsed">
             <TextBlock x:Name="DragDropOverlayText"
                        Text=""
-                       FontSize="16" FontWeight="SemiBold"
+                       FontSize="{StaticResource FontSizeLarge}" FontWeight="SemiBold"
                        Foreground="{DynamicResource TextPrimaryBrush}"
                        HorizontalAlignment="Center" VerticalAlignment="Center"/>
         </Border>

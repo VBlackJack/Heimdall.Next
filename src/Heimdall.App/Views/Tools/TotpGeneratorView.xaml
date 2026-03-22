@@ -35,7 +35,7 @@
                             VerticalAlignment="Center"/>
                     <TextBox x:Name="TxtSecret" Text=""
                              Style="{DynamicResource WatermarkTextBoxStyle}"
-                             FontSize="13" FontFamily="Consolas"
+                             FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
                              Padding="8,6"
                              Background="{DynamicResource CardBrush}"
                              Foreground="{DynamicResource TextPrimaryBrush}"
@@ -48,13 +48,13 @@
                 <!-- Error message -->
                 <TextBlock x:Name="TxtError" Text="" Visibility="Collapsed"
                            FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,12" TextWrapping="Wrap"
-                           Foreground="{DynamicResource ErrorBrush}"/>
+                           Foreground="{DynamicResource ErrorTextBrush}"/>
 
                 <!-- TOTP code display -->
                 <Border x:Name="CodePanel" Visibility="Collapsed"
                         Background="{DynamicResource CardBrush}"
                         BorderBrush="{DynamicResource BorderBrush}"
-                        BorderThickness="1" CornerRadius="4"
+                        BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
                         Padding="24,16" Margin="0,0,0,16">
                     <StackPanel HorizontalAlignment="Center">
                         <TextBlock x:Name="LblCode" Text=""
@@ -68,7 +68,7 @@
                                     Padding="12,6" Margin="12,0,0,0"
                                     VerticalAlignment="Center"/>
                             <TextBlock x:Name="TxtCode" Text="------"
-                                       FontSize="36" FontWeight="Bold"
+                                       FontSize="{StaticResource IconSizeXLarge}" FontWeight="Bold"
                                        FontFamily="Consolas"
                                        Foreground="{DynamicResource AccentBrush}"
                                        VerticalAlignment="Center"/>

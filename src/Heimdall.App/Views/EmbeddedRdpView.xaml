@@ -26,21 +26,24 @@
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="8,2"
                         FontSize="{StaticResource FontSizeCaption}"
-                        Margin="8,0,0,0"/>
+                        Margin="8,0,0,0"
+                        AutomationProperties.Name="Disconnect session"/>
                 <Button x:Name="SplitButton"
                         DockPanel.Dock="Right"
                         Content="&#xE8A9;"
                         FontFamily="Segoe MDL2 Assets"
                         Click="OnSplitClick"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
-                        Padding="6,2" FontSize="{StaticResource FontSizeBody}" Margin="4,0"/>
+                        Padding="6,2" FontSize="{StaticResource FontSizeBody}" Margin="4,0"
+                        AutomationProperties.Name="Split session view"/>
                 <Button x:Name="ResolutionButton"
                         DockPanel.Dock="Right"
                         Content="&#xE740;"
                         FontFamily="Segoe MDL2 Assets"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
                         Padding="6,2" FontSize="{StaticResource FontSizeBody}" Margin="4,0"
-                        Click="OnResolutionButtonClick">
+                        Click="OnResolutionButtonClick"
+                        AutomationProperties.Name="Change resolution">
                     <Button.ContextMenu>
                         <ContextMenu x:Name="ResolutionMenu" FontFamily="Segoe UI">
                             <MenuItem x:Name="ResMenuFit" Click="OnResolutionMenuClick" Tag="Fit"/>
@@ -90,7 +93,7 @@
                     Background="Black"
                     BorderBrush="{DynamicResource BorderBrush}"
                     BorderThickness="1"
-                    CornerRadius="14">
+                    CornerRadius="{StaticResource CornerRadiusXl}">
                 <Grid x:Name="SurfaceContainer" ClipToBounds="True">
                     <wfi:WindowsFormsHost x:Name="FormsHost"/>
                 </Grid>
@@ -107,7 +110,7 @@
                             HorizontalAlignment="Center"
                             MaxWidth="400">
                     <TextBlock x:Name="ReconnectMessageText"
-                               FontSize="15"
+                               FontSize="{StaticResource FontSizeSubtitle}"
                                FontWeight="SemiBold"
                                TextAlignment="Center"
                                TextWrapping="Wrap"
@@ -119,13 +122,13 @@
                                 Click="OnOverlayReconnectClick"
                                 Style="{DynamicResource PrimaryButtonStyle}"
                                 Padding="16,6"
-                                FontSize="13"
+                                FontSize="{StaticResource FontSizeBodyLarge}"
                                 Margin="0,0,8,0"/>
                         <Button x:Name="OverlayCloseButton"
                                 Click="OnOverlayCloseClick"
                                 Style="{DynamicResource SecondaryButtonStyle}"
                                 Padding="16,6"
-                                FontSize="13"
+                                FontSize="{StaticResource FontSizeBodyLarge}"
                                 Margin="8,0,0,0"/>
                     </StackPanel>
                 </StackPanel>

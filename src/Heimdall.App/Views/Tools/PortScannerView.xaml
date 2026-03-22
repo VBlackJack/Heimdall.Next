@@ -30,7 +30,7 @@
                     <TextBox x:Name="TxtHost" Text="" Width="200"
                              Style="{StaticResource WatermarkTextBoxStyle}"
                              Tag="hostname or IP"
-                             FontSize="13" FontFamily="Consolas"
+                             FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
                              Padding="8,6"
                              Background="{DynamicResource CardBrush}"
                              Foreground="{DynamicResource TextPrimaryBrush}"
@@ -40,7 +40,7 @@
                     <TextBox x:Name="TxtPorts" Text="22,80,443,3389,5900,8080" Width="260"
                              Style="{StaticResource WatermarkTextBoxStyle}"
                              Tag="22, 80, 443 or 1-1024"
-                             FontSize="13" FontFamily="Consolas"
+                             FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
                              Padding="8,6" Margin="8,0,0,0"
                              Background="{DynamicResource CardBrush}"
                              Foreground="{DynamicResource TextPrimaryBrush}"
@@ -99,7 +99,7 @@
         <!-- Validation error -->
         <TextBlock x:Name="TxtError" Grid.Row="2" Text="" Visibility="Collapsed"
                    FontSize="{StaticResource FontSizeBody}" Margin="12,4,12,0" TextWrapping="Wrap"
-                   Foreground="{DynamicResource ErrorBrush}"/>
+                   Foreground="{DynamicResource ErrorTextBrush}"/>
 
         <!-- Progress bar with percentage overlay -->
         <Grid Grid.Row="2" x:Name="ProgressPanel" Visibility="Collapsed">
@@ -125,11 +125,11 @@
                 Style="{StaticResource ToolEmptyStateStyle}"
                 Margin="0,24,0,0">
             <StackPanel HorizontalAlignment="Center">
-                <TextBlock Text="&#xE71E;" FontFamily="Segoe MDL2 Assets" FontSize="32"
+                <TextBlock Text="&#xE71E;" FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource IconSizeEmptyState}"
                            HorizontalAlignment="Center"
                            Foreground="{DynamicResource TextDisabledBrush}" Margin="0,0,0,8"/>
                 <TextBlock x:Name="TxtEmptyState" Text=""
-                           FontSize="13" TextAlignment="Center"
+                           FontSize="{StaticResource FontSizeBodyLarge}" TextAlignment="Center"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
             </StackPanel>
         </Border>
@@ -138,7 +138,7 @@
         <Border Grid.Row="3" Margin="{StaticResource SpacingSm}"
                 Background="{DynamicResource CardBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
-                BorderThickness="1" CornerRadius="4">
+                BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}">
             <DataGrid x:Name="ResultsGrid"
                       AutoGenerateColumns="False"
                       IsReadOnly="True"
@@ -194,7 +194,7 @@
                     <TextBlock x:Name="LblOpen" Text="" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                                Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,4,0"/>
                     <TextBlock x:Name="TxtOpen" Text="—" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
-                               Foreground="{DynamicResource SuccessBrush}" FontWeight="SemiBold"/>
+                               Foreground="{DynamicResource SuccessTextBrush}" FontWeight="SemiBold"/>
 
                     <TextBlock Text="  |  " FontSize="{StaticResource FontSizeBody}"
                                Foreground="{DynamicResource BorderBrush}"/>
@@ -202,7 +202,7 @@
                     <TextBlock x:Name="LblClosed" Text="" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                                Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,4,0"/>
                     <TextBlock x:Name="TxtClosed" Text="—" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
-                               Foreground="{DynamicResource ErrorBrush}" FontWeight="SemiBold"/>
+                               Foreground="{DynamicResource ErrorTextBrush}" FontWeight="SemiBold"/>
 
                     <TextBlock Text="  |  " FontSize="{StaticResource FontSizeBody}"
                                Foreground="{DynamicResource BorderBrush}"/>
