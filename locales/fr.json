@@ -1363,6 +1363,7 @@
   "SftpPathHistoryEmpty": "Aucun historique de navigation",
   "SftpEmptyDirectory": "Ce r\u00e9pertoire est vide.",
   "SftpToggleHidden": "Afficher les fichiers cachés",
+  "SftpBtnGoPath": "Naviguer vers le chemin",
   "SftpFilterPlaceholder": "Filtrer les fichiers...",
   "SftpBtnHome": "Accueil",
   "SftpCtxChmod": "Modifier les permissions...",
@@ -1687,6 +1688,7 @@
   "ServerDialogTabAuthentication": "Authentification",
   "ServerDialogTabOptions": "Options",
   "ServerDialogTabInfo": "Info",
+  "ServerDialogTabDisabledHint": "Non disponible pour ce type de connexion",
 
   "ServerDialogConnectionBasics": "Param\u00e8tres de connexion",
   "ServerDialogConnectionBasicsDesc": "Choisissez le protocole, l'h\u00f4te de destination et le port de service \u00e0 ouvrir.",
@@ -2003,6 +2005,7 @@
   "ConnectionTypeVnc": "VNC",
   "StatusVncConnecting": "Connexion au serveur VNC...",
   "StatusVncConnected": "Session VNC active",
+  "StatusVncDisconnected": "Session VNC d\u00e9connect\u00e9e",
   "ErrorVncConnectionFailed": "\u00c9chec de la connexion VNC : {0}",
   "LogVncLaunching": "Lancement de la session VNC",
   "ServerDialogVncTitle": "Connexion VNC",

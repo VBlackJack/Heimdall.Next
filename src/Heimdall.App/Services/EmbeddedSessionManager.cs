@@ -209,6 +209,8 @@ public sealed class EmbeddedSessionManager
                 sessionTab.Status = localizedMsg;
                 Core.Logging.FileLogger.Error($"VNC error for {serverId}: {errorMsg}");
             };
+            WireVncSplitRequested(view, sessionTab);
+            WireVncReconnectRequested(view, sessionTab);
             _ = view.InitializeSessionAsync(vnc, sessionTab, displayName, _localizer)
                 .ContinueWith(t =>
                 {
@@ -338,6 +340,20 @@ public sealed class EmbeddedSessionManager
     private void WireSplitRequested(EmbeddedSftpView view, SessionTabViewModel tab)
     {
         view.SplitRequested += () => SplitRequestedCallback?.Invoke(tab);
+    }
+
+    private void WireVncSplitRequested(EmbeddedVncView view, SessionTabViewModel tab)
+    {
+        view.RequestSplit += (_) => SplitRequestedCallback?.Invoke(tab);
+    }
+
+    private void WireVncReconnectRequested(EmbeddedVncView view, SessionTabViewModel tab)
+    {
+        view.RequestReconnect += (_) =>
+            ReconnectRequestedCallback?.Invoke(
+                tab,
+                !string.IsNullOrEmpty(tab.OriginalServerId) ? tab.OriginalServerId : tab.ServerId,
+                tab.ConnectionType);
     }
 
     /// <summary>

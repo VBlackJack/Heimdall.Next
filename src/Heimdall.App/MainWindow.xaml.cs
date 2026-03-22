@@ -156,6 +156,7 @@ public partial class MainWindow : Window
 
         Mw_PaletteNoResults.Text = vm.Localize("QuickConnectNoResults");
         Mw_PaletteHints.Text = vm.Localize("QuickConnectHints");
+        System.Windows.Automation.AutomationProperties.SetName(PaletteInput, vm.Localize("QuickConnectShortcut"));
     }
 
     private void ApplyToolbarLocalization(MainViewModel vm)

@@ -443,7 +443,8 @@
                 </ScrollViewer>
             </TabItem>
 
-            <TabItem x:Name="DlgSrv_TabTunneling">
+            <TabItem x:Name="DlgSrv_TabTunneling"
+                     ToolTipService.ShowOnDisabled="True">
                 <TabItem.Style>
                     <Style TargetType="TabItem" BasedOn="{StaticResource ThemedTabItemStyle}">
                         <Setter Property="IsEnabled" Value="True"/>
@@ -568,7 +569,8 @@
                 </ScrollViewer>
             </TabItem>
 
-            <TabItem x:Name="DlgSrv_TabAuthentication">
+            <TabItem x:Name="DlgSrv_TabAuthentication"
+                     ToolTipService.ShowOnDisabled="True">
                 <TabItem.Style>
                     <Style TargetType="TabItem" BasedOn="{StaticResource ThemedTabItemStyle}">
                         <Setter Property="IsEnabled" Value="True"/>

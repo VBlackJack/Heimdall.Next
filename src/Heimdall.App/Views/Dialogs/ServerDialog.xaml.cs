@@ -148,7 +148,9 @@ public partial class ServerDialog : Window
         // Tab headers
         DlgSrv_TabConnection.Header = _localizer["ServerDialogTabConnection"];
         DlgSrv_TabTunneling.Header = _localizer["ServerDialogTabTunneling"];
+        DlgSrv_TabTunneling.ToolTip = _localizer["ServerDialogTabDisabledHint"];
         DlgSrv_TabAuthentication.Header = _localizer["ServerDialogTabAuthentication"];
+        DlgSrv_TabAuthentication.ToolTip = _localizer["ServerDialogTabDisabledHint"];
         DlgSrv_TabOptions.Header = _localizer["ServerDialogTabOptions"];
         DlgSrv_TabInfo.Header = _localizer["ServerDialogTabInfo"];
 

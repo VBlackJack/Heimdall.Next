@@ -1363,6 +1363,7 @@
   "SftpPathHistoryEmpty": "No navigation history",
   "SftpEmptyDirectory": "This directory is empty.",
   "SftpToggleHidden": "Show hidden files",
+  "SftpBtnGoPath": "Navigate to path",
   "SftpFilterPlaceholder": "Filter files...",
   "SftpBtnHome": "Home",
   "SftpCtxChmod": "Change permissions...",
@@ -1687,6 +1688,7 @@
   "ServerDialogTabAuthentication": "Authentication",
   "ServerDialogTabOptions": "Options",
   "ServerDialogTabInfo": "Info",
+  "ServerDialogTabDisabledHint": "Not available for this connection type",
 
   "ServerDialogConnectionBasics": "Connection basics",
   "ServerDialogConnectionBasicsDesc": "Choose the protocol, destination host, and service port Heimdall should open.",
@@ -2004,6 +2006,7 @@
   "ConnectionTypeVnc": "VNC",
   "StatusVncConnecting": "Connecting to VNC server...",
   "StatusVncConnected": "VNC session active",
+  "StatusVncDisconnected": "VNC session disconnected",
   "ErrorVncConnectionFailed": "VNC connection failed: {0}",
   "LogVncLaunching": "Launching VNC session",
   "ServerDialogVncTitle": "VNC Connection",

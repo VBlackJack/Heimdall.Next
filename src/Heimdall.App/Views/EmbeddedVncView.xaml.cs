@@ -223,7 +223,8 @@ public partial class EmbeddedVncView : UserControl, IDisposable
         {
             Dispatcher.Invoke(() =>
             {
-                StatusTextBlock.Text = _localizer?["BtnDisconnectSession"] ?? "Disconnected";
+                StatusTextBlock.Text = _localizer?["StatusVncDisconnected"] ?? "Disconnected";
+                ShowReconnectOverlay();
             });
             return;
         }
