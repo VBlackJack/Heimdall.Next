@@ -92,6 +92,26 @@ xterm.js  <--  stdout pipe <--  plink     <---------+
 
 ConPTY (`ConPtySession`) is kept for local shell scenarios only.
 
+### 2b. Local Shell Elevation Strategy
+
+**Problem**: gsudo's `ServiceHelper.StartService` crashes when endpoint privilege managers (AdminByRequest, CyberArk, BeyondTrust) intercept the UAC prompt and invalidate process handles mid-elevation.
+
+**Solution**: Configurable `ElevationMode` enum with fallback chain:
+
+| Mode | Mechanism | Embedded Terminal | AdminByRequest Compatible |
+|------|-----------|-------------------|---------------------------|
+| `None` | No elevation | Yes | N/A |
+| `Auto` | gsudo `--direct` → external window fallback | Yes (gsudo) / No (fallback) | Yes |
+| `Gsudo` | gsudo `--direct` only | Yes | Partial |
+| `Runas` | `ShellExecute` with `runas` verb | No (external window) | Yes |
+
+Key design decisions:
+- `--direct` flag bypasses gsudo's service/cache mechanism, avoiding the `ServiceHelper.StartService` crash
+- `Auto` mode tries gsudo first (best UX: embedded terminal), catches `InvalidOperationException`, retries as external window
+- `Runas` mode uses `Process.Start` with `Verb="runas"` and `UseShellExecute=true` — cannot redirect stdin/stdout (Windows limitation), so the terminal opens in a separate window
+- UAC cancellation (Win32 error 1223) caught and reported as user-friendly message
+- Backward compatible: legacy `LocalShellElevated=true` maps to `Auto` via `EffectiveElevationMode` computed property
+
 ### 3. WebView2 + xterm.js for Terminal Rendering
 
 **Problem**: WPF has no native terminal control. Microsoft.Terminal.Control requires ConPTY, which breaks SSH (see above).
@@ -529,6 +549,7 @@ When opening a tool from a server context menu, all available server metadata is
 - **Cross-tool navigation**: `ToolContextMenuHelper` with `OpenToolAction` callback enables right-click → open another tool with prefilled context
 - **Network Cartography engine**: `Heimdall.Core.Discovery/` namespace with CartographyEngine (ping sweep + TTL capture, port scan, banner grab, HTTP/HTTPS header extraction, TLS cert inspection, NetBIOS/SNMP/mDNS UDP probes, OS fingerprinting), UdpProbeEngine (raw NetBIOS NBSTAT + SNMPv2c GET + mDNS service discovery), OsFingerprinter (TTL + 33 banner patterns), RoleClassifier (46+ port patterns, 96+ banner fingerprints, multi-source ClassifyEnriched), OuiDatabase (300+ MAC prefixes), VlanDetector, DrawIoExporter, ScanHistoryManager (typed HostChange diff)
 - **PowerShell Execution Policy**: Configurable in Settings > Terminal, applied as `-ExecutionPolicy` flag on local shell launch
+- **Elevation modes**: `None` / `Auto` (gsudo `--direct` → external window fallback) / `Gsudo` / `Runas` — `Auto` default for AdminByRequest/CyberArk/BeyondTrust compatibility, configurable per server profile
 
 ### Tool Categories (33 tools)
 
