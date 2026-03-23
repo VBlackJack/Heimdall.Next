@@ -130,7 +130,23 @@ public sealed class EmbeddedSessionManager
         if (string.Equals(connectionType, "LOCAL", StringComparison.OrdinalIgnoreCase) &&
             session is LocalShellBundle localBundle)
         {
-            var termView = CreateTerminalSshView(sessionTab, localBundle.Session, displayName, 0, settings, localBundle.IsElevated);
+            // External elevated window: no embedded terminal, show info panel
+            if (localBundle.IsExternal)
+            {
+                var infoPanel = new System.Windows.Controls.TextBlock
+                {
+                    Text = _localizer?["LocalShellExternalElevated"] ?? "Elevated shell launched in external window.",
+                    FontSize = 14,
+                    HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
+                    VerticalAlignment = System.Windows.VerticalAlignment.Center,
+                    Foreground = GetBrush("TextSecondaryBrush", System.Windows.Media.Brushes.Gray),
+                    TextWrapping = System.Windows.TextWrapping.Wrap,
+                    TextAlignment = System.Windows.TextAlignment.Center
+                };
+                return infoPanel;
+            }
+
+            var termView = CreateTerminalSshView(sessionTab, localBundle.Session!, displayName, 0, settings, localBundle.IsElevated);
 
             // Auto-attach local file browser panel in a vertical split
             var fileBrowser = new Views.LocalFileBrowserView(
@@ -139,13 +155,13 @@ public sealed class EmbeddedSessionManager
             fileBrowser.NavigateToPathRequested += (path) =>
             {
                 var cdCommand = FormatCdCommand(localBundle.ShellExecutable, path);
-                localBundle.Session.Write(System.Text.Encoding.UTF8.GetBytes(cdCommand));
+                localBundle.Session!.Write(System.Text.Encoding.UTF8.GetBytes(cdCommand));
             };
 
             fileBrowser.RunInShellRequested += (path) =>
             {
                 var command = FormatRunCommand(localBundle.ShellExecutable, path);
-                localBundle.Session.Write(System.Text.Encoding.UTF8.GetBytes(command));
+                localBundle.Session!.Write(System.Text.Encoding.UTF8.GetBytes(command));
             };
 
             // Edit in embedded editor: swap file browser with AvalonEdit editor
