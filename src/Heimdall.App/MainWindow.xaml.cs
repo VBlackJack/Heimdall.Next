@@ -2653,24 +2653,22 @@ public partial class MainWindow : Window
 
     /// <summary>
     /// Connects the clicked palette item on single click.
-    /// Resolves the item from the clicked ListBoxItem itself instead of relying on
-    /// SelectedItem, which updates after the preview mouse event.
+    /// Captures split state synchronously BEFORE the async command runs,
+    /// preventing a race condition where Popup deactivation clears
+    /// <c>_splitPaletteSession</c> before <c>ConnectFromPaletteAsync</c> reads it.
     /// </summary>
     private void OnPaletteItemClick(object sender, MouseButtonEventArgs e)
     {
         if (DataContext is not MainViewModel vm) return;
 
         if (FindAncestor<System.Windows.Controls.ListBoxItem>(e.OriginalSource as DependencyObject) is not
-            { DataContext: ViewModels.ServerItemViewModel item } container)
+            { DataContext: ViewModels.ServerItemViewModel item })
         {
             return;
         }
 
-        container.IsSelected = true;
-        container.Focus();
-        PaletteResultsList.SelectedItem = item;
         e.Handled = true;
-        _ = vm.ConnectFromPaletteCommand.ExecuteAsync(item);
+        vm.ExecutePaletteSelection(item);
     }
 
     private void OnQuickConnectButtonClick(object sender, RoutedEventArgs e)
