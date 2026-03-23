@@ -15,11 +15,13 @@
  */
 
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
+using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using Heimdall.App.Services;
@@ -34,6 +36,15 @@ namespace Heimdall.App;
 /// </summary>
 public partial class MainWindow : Window
 {
+    [DllImport("user32.dll")]
+    private static extern bool SetForegroundWindow(IntPtr hWnd);
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr SetActiveWindow(IntPtr hWnd);
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr SetFocus(IntPtr hWnd);
+
     /// <summary>
     /// Centralized tool registry — injected from the ViewModel. Replaces the former
     /// static <c>ToolTypeDefinitions</c> and <c>NetworkTools</c> arrays.
@@ -715,7 +726,7 @@ public partial class MainWindow : Window
             case Key.K when Keyboard.Modifiers == ModifierKeys.Control:
                 if (terminalHasFocus) break;
                 vm.OpenCommandPaletteCommand.Execute(null);
-                Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Input, PaletteInput.Focus);
+                BeginFocusCommandPalette();
                 e.Handled = true;
                 break;
 
@@ -2290,7 +2301,7 @@ public partial class MainWindow : Window
         // which scales to any number of servers (replaces the old ContextMenu approach
         // that became unusable with 100+ servers).
         vm.OpenSplitPalette(session, orientation);
-        PaletteInput.Focus();
+        BeginFocusCommandPalette();
     }
 
     private void UnsplitSession(SessionTabViewModel session)
@@ -2547,6 +2558,38 @@ public partial class MainWindow : Window
 
     // --- Command Palette event handlers ---
 
+    private void OnCommandPaletteOpened(object sender, EventArgs e)
+    {
+        BeginFocusCommandPalette();
+    }
+
+    private void BeginFocusCommandPalette()
+    {
+        _ = Dispatcher.BeginInvoke(
+            System.Windows.Threading.DispatcherPriority.Input,
+            new Action(FocusCommandPalette));
+    }
+
+    private void FocusCommandPalette()
+    {
+        if (!CommandPalettePopup.IsOpen || !PaletteInput.IsVisible)
+        {
+            return;
+        }
+
+        if (PresentationSource.FromVisual(PaletteInput) is HwndSource source &&
+            source.Handle != IntPtr.Zero)
+        {
+            _ = SetForegroundWindow(source.Handle);
+            _ = SetActiveWindow(source.Handle);
+            _ = SetFocus(source.Handle);
+        }
+
+        Keyboard.Focus(PaletteInput);
+        PaletteInput.Focus();
+        PaletteInput.SelectAll();
+    }
+
     private void OnPaletteKeyDown(object sender, KeyEventArgs e)
     {
         if (DataContext is not MainViewModel vm) return;
@@ -2572,13 +2615,19 @@ public partial class MainWindow : Window
         else if (e.Key == Key.Down)
         {
             if (PaletteResultsList.SelectedIndex < PaletteResultsList.Items.Count - 1)
+            {
                 PaletteResultsList.SelectedIndex++;
+                PaletteResultsList.ScrollIntoView(PaletteResultsList.SelectedItem);
+            }
             e.Handled = true;
         }
         else if (e.Key == Key.Up)
         {
             if (PaletteResultsList.SelectedIndex > 0)
+            {
                 PaletteResultsList.SelectedIndex--;
+                PaletteResultsList.ScrollIntoView(PaletteResultsList.SelectedItem);
+            }
             e.Handled = true;
         }
     }
@@ -2603,20 +2652,25 @@ public partial class MainWindow : Window
     }
 
     /// <summary>
-    /// Connects the clicked palette item on single click (PreviewMouseLeftButtonUp).
-    /// Skips if the click landed on the search TextBox (allows normal text selection).
+    /// Connects the clicked palette item on single click.
+    /// Resolves the item from the clicked ListBoxItem itself instead of relying on
+    /// SelectedItem, which updates after the preview mouse event.
     /// </summary>
     private void OnPaletteItemClick(object sender, MouseButtonEventArgs e)
     {
         if (DataContext is not MainViewModel vm) return;
 
-        // Only act if the click landed on a ListBoxItem (not on empty space)
-        var source = e.OriginalSource as DependencyObject;
-        if (FindAncestor<System.Windows.Controls.ListBoxItem>(source) is null) return;
+        if (FindAncestor<System.Windows.Controls.ListBoxItem>(e.OriginalSource as DependencyObject) is not
+            { DataContext: ViewModels.ServerItemViewModel item } container)
+        {
+            return;
+        }
 
-        var item = vm.SelectedPaletteItem ?? PaletteResultsList.SelectedItem as ViewModels.ServerItemViewModel;
-        if (item is not null)
-            _ = vm.ConnectFromPaletteCommand.ExecuteAsync(item);
+        container.IsSelected = true;
+        container.Focus();
+        PaletteResultsList.SelectedItem = item;
+        e.Handled = true;
+        _ = vm.ConnectFromPaletteCommand.ExecuteAsync(item);
     }
 
     private void OnQuickConnectButtonClick(object sender, RoutedEventArgs e)
@@ -2624,7 +2678,7 @@ public partial class MainWindow : Window
         if (DataContext is MainViewModel vm)
         {
             vm.OpenCommandPaletteCommand.Execute(null);
-            PaletteInput.Focus();
+            BeginFocusCommandPalette();
         }
     }
 

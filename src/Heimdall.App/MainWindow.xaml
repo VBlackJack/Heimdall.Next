@@ -1808,11 +1808,13 @@
                StaysOpen="True"
                AllowsTransparency="True"
                Placement="Center"
-               PlacementTarget="{Binding ElementName=MainContentArea}">
+               PlacementTarget="{Binding ElementName=MainContentArea}"
+               Opened="OnCommandPaletteOpened">
             <Border Width="550"
                     Background="{DynamicResource SurfaceBrush}"
                     BorderBrush="{DynamicResource BorderBrush}"
                     BorderThickness="1" CornerRadius="{StaticResource CornerRadiusLg}"
+                    PreviewKeyDown="OnPaletteKeyDown"
                     MouseDown="OnPaletteBorderClick">
                 <Border.Effect>
                     <DropShadowEffect BlurRadius="24" ShadowDepth="8" Opacity="0.4" Direction="270"/>
@@ -1823,8 +1825,7 @@
                              FontSize="{StaticResource FontSizeSubtitle}" Padding="14,10"
                              BorderThickness="0"
                              Background="Transparent"
-                             Foreground="{DynamicResource TextPrimaryBrush}"
-                             KeyDown="OnPaletteKeyDown"/>
+                             Foreground="{DynamicResource TextPrimaryBrush}"/>
                     <Border Height="1" Background="{DynamicResource BorderBrush}"/>
                     <ListBox x:Name="PaletteResultsList"
                              ItemsSource="{Binding PaletteResults}"
@@ -1833,7 +1834,7 @@
                              Background="Transparent"
                              BorderThickness="0"
                              ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                             PreviewMouseLeftButtonUp="OnPaletteItemClick">
+                             PreviewMouseLeftButtonDown="OnPaletteItemClick">
                         <ListBox.ItemTemplate>
                             <DataTemplate>
                                 <DockPanel Margin="8,4">
