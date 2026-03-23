@@ -54,12 +54,19 @@ public class OuiDatabaseTests
     }
 
     [Theory]
-    [InlineData("AA:BB:CC:DD:EE:FF")]
     [InlineData("112233445566")]
     [InlineData("99-99-99-99-99-99")]
     public void LookupManufacturer_UnknownPrefix_ReturnsNull(string mac)
     {
         Assert.Null(OuiDatabase.LookupManufacturer(mac));
+    }
+
+    [Fact]
+    public void LookupManufacturer_LocallyAdministeredMac_ReturnsRandomized()
+    {
+        // 0xAA has bit 1 set = locally administered (randomized MAC)
+        var result = OuiDatabase.LookupManufacturer("AA:BB:CC:DD:EE:FF");
+        Assert.Equal("Private (Randomized MAC)", result);
     }
 
     [Theory]

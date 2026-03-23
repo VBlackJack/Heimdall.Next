@@ -157,13 +157,14 @@ public static class UdpProbeEngine
         if (data.Length < 25) return (null, null, null);
 
         // Header: TxID(2) + Flags(2) + QDCount(2) + ANCount(2) + NSCount(2) + ARCount(2) = 12 bytes
-        var qdCount = (data[4] << 8) | data[5];
+        var qdCount = Math.Min((data[4] << 8) | data[5], 4); // cap to prevent malicious loops
         var offset = 12;
 
         // Skip question section (echoed query): name + QTYPE(2) + QCLASS(2)
         for (var q = 0; q < qdCount && offset < data.Length; q++)
         {
             offset = SkipNetBiosName(data, offset);
+            if (offset + 4 > data.Length) return (null, null, null);
             offset += 4; // QTYPE + QCLASS
         }
 
@@ -171,6 +172,7 @@ public static class UdpProbeEngine
 
         // Answer section: name + TYPE(2) + CLASS(2) + TTL(4) + RDLENGTH(2) + RDATA
         offset = SkipNetBiosName(data, offset); // answer name (often a compression pointer)
+        if (offset + 10 > data.Length) return (null, null, null);
         offset += 10; // TYPE(2) + CLASS(2) + TTL(4) + RDLENGTH(2)
 
         if (offset >= data.Length) return (null, null, null);
@@ -267,12 +269,15 @@ public static class UdpProbeEngine
         }
     }
 
-    // OIDs for sysDescr.0, sysName.0, sysLocation.0
+    // OIDs for system group queries
     private static readonly int[][] SnmpOids =
     [
-        [1, 3, 6, 1, 2, 1, 1, 1, 0], // sysDescr
-        [1, 3, 6, 1, 2, 1, 1, 5, 0], // sysName
-        [1, 3, 6, 1, 2, 1, 1, 6, 0], // sysLocation
+        [1, 3, 6, 1, 2, 1, 1, 1, 0], // sysDescr (0x04 OCTET STRING)
+        [1, 3, 6, 1, 2, 1, 1, 5, 0], // sysName (0x04 OCTET STRING)
+        [1, 3, 6, 1, 2, 1, 1, 6, 0], // sysLocation (0x04 OCTET STRING)
+        [1, 3, 6, 1, 2, 1, 1, 2, 0], // sysObjectID (0x06 OID)
+        [1, 3, 6, 1, 2, 1, 1, 3, 0], // sysUpTime (0x43 TimeTicks, centiseconds)
+        [1, 3, 6, 1, 2, 1, 1, 7, 0], // sysServices (0x02 INTEGER, OSI layer bitmask)
     ];
 
     internal static byte[] BuildSnmpGetRequest(string community)
@@ -338,11 +343,15 @@ public static class UdpProbeEngine
             var (_, varbindListContent) = Asn1ReadTlv(pduContent, pduOffset);
             if (varbindListContent is null) return null;
 
-            // Extract string values from varbinds
-            var values = new string?[3];
+            // Extract values from varbinds (6 OIDs)
+            var stringValues = new string?[3]; // sysDescr, sysName, sysLocation
+            string? sysObjectId = null;
+            long? sysUpTime = null;
+            int? sysServices = null;
+
             var vbOffset = 0;
             var idx = 0;
-            while (vbOffset < varbindListContent.Length && idx < 3)
+            while (vbOffset < varbindListContent.Length && idx < 6)
             {
                 var (vbLen, vbContent) = Asn1ReadTlv(varbindListContent, vbOffset);
                 if (vbContent is not null)
@@ -353,9 +362,23 @@ public static class UdpProbeEngine
                     {
                         var valueTag = vbContent[oidLen];
                         var (_, valContent) = Asn1ReadTlv(vbContent, oidLen);
-                        if (valContent is not null && valueTag == 0x04) // OCTET STRING
+                        if (valContent is not null)
                         {
-                            values[idx] = Encoding.UTF8.GetString(valContent).Trim();
+                            switch (idx)
+                            {
+                                case < 3 when valueTag == 0x04: // OCTET STRING
+                                    stringValues[idx] = Encoding.UTF8.GetString(valContent).Trim();
+                                    break;
+                                case 3 when valueTag == 0x06: // OID (sysObjectID)
+                                    sysObjectId = Asn1DecodeOid(valContent);
+                                    break;
+                                case 4 when valueTag == 0x43: // TimeTicks (sysUpTime)
+                                    sysUpTime = Asn1DecodeUnsignedInt(valContent) / 100; // centiseconds → seconds
+                                    break;
+                                case 5 when valueTag == 0x02: // INTEGER (sysServices)
+                                    sysServices = (int)Asn1DecodeUnsignedInt(valContent);
+                                    break;
+                            }
                         }
                     }
                 }
@@ -363,10 +386,12 @@ public static class UdpProbeEngine
                 idx++;
             }
 
-            if (values[0] is null && values[1] is null && values[2] is null)
+            if (stringValues[0] is null && stringValues[1] is null && stringValues[2] is null &&
+                sysObjectId is null)
                 return null;
 
-            return new SnmpInfo(values[0], values[1], values[2]);
+            return new SnmpInfo(stringValues[0], stringValues[1], stringValues[2],
+                sysObjectId, sysUpTime, sysServices);
         }
         catch
         {
@@ -593,10 +618,27 @@ public static class UdpProbeEngine
 
                     if (!targetSet.Contains(senderIp)) continue;
 
-                    var info = ParseSsdpResponse(Encoding.ASCII.GetString(result.Buffer));
+                    var responseText = Encoding.ASCII.GetString(result.Buffer);
+                    var info = ParseSsdpResponse(responseText);
                     if (info is not null && !results.ContainsKey(senderIp))
                     {
                         results[senderIp] = info;
+                        // Attempt rootDesc.xml fetch if LOCATION present
+                        var locMatch = System.Text.RegularExpressions.Regex.Match(
+                            responseText, @"LOCATION:\s*(\S+)",
+                            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                        if (locMatch.Success)
+                        {
+                            try
+                            {
+                                var enriched = await FetchRootDescAsync(
+                                    locMatch.Groups[1].Value, info, 3000, cts.Token)
+                                    .ConfigureAwait(false);
+                                if (enriched is not null)
+                                    results[senderIp] = enriched;
+                            }
+                            catch { /* rootDesc fetch failed */ }
+                        }
                     }
                 }
                 catch (OperationCanceledException) { break; }
@@ -630,11 +672,16 @@ public static class UdpProbeEngine
         string? deviceType = null;
         string? server = null;
         string? usn = null;
+        string? location = null;
 
         foreach (var line in response.Split('\n'))
         {
             var trimmed = line.Trim();
-            if (trimmed.StartsWith("ST:", StringComparison.OrdinalIgnoreCase))
+            if (trimmed.StartsWith("LOCATION:", StringComparison.OrdinalIgnoreCase))
+            {
+                location = trimmed[9..].Trim();
+            }
+            else if (trimmed.StartsWith("ST:", StringComparison.OrdinalIgnoreCase))
             {
                 var st = trimmed[3..].Trim();
                 // Extract device type from URN (e.g., urn:schemas-upnp-org:device:InternetGatewayDevice:1)
@@ -670,6 +717,83 @@ public static class UdpProbeEngine
         }
 
         return new SsdpInfo(deviceType, friendlyName, manufacturer, modelName, server);
+    }
+
+    /// <summary>
+    /// Fetches a UPnP rootDesc.xml from the SSDP LOCATION URL and enriches
+    /// the SsdpInfo with friendlyName, manufacturer, modelName, modelNumber,
+    /// serialNumber, and presentationURL.
+    /// </summary>
+    public static async Task<SsdpInfo?> FetchRootDescAsync(
+        string locationUrl, SsdpInfo? existing, int timeoutMs, CancellationToken ct)
+    {
+        try
+        {
+            using var client = new TcpClient();
+            var uri = new Uri(locationUrl);
+            using var cts = new CancellationTokenSource(timeoutMs);
+            using var linked = CancellationTokenSource.CreateLinkedTokenSource(ct, cts.Token);
+
+            await client.ConnectAsync(uri.Host, uri.Port, linked.Token).ConfigureAwait(false);
+            var stream = client.GetStream();
+
+            var request = $"GET {uri.PathAndQuery} HTTP/1.0\r\nHost: {uri.Host}\r\n\r\n";
+            await stream.WriteAsync(Encoding.ASCII.GetBytes(request), linked.Token)
+                .ConfigureAwait(false);
+
+            using var ms = new MemoryStream();
+            var buf = new byte[8192];
+            int n;
+            while ((n = await stream.ReadAsync(buf, linked.Token).ConfigureAwait(false)) > 0)
+            {
+                ms.Write(buf, 0, n);
+                if (ms.Length > 65536) break;
+            }
+
+            var response = Encoding.UTF8.GetString(ms.ToArray());
+            // Find XML body after headers
+            var bodyStart = response.IndexOf("<?xml", StringComparison.OrdinalIgnoreCase);
+            if (bodyStart < 0) bodyStart = response.IndexOf("<root", StringComparison.OrdinalIgnoreCase);
+            if (bodyStart < 0) return existing;
+
+            var xml = response[bodyStart..];
+            return ParseRootDesc(xml, existing);
+        }
+        catch
+        {
+            return existing;
+        }
+    }
+
+    private static SsdpInfo? ParseRootDesc(string xml, SsdpInfo? existing)
+    {
+        // Simple regex-based XML parsing (avoids System.Xml dependency overhead)
+        var friendlyName = ExtractXmlTag(xml, "friendlyName");
+        var manufacturer = ExtractXmlTag(xml, "manufacturer");
+        var modelName = ExtractXmlTag(xml, "modelName");
+        var modelNumber = ExtractXmlTag(xml, "modelNumber");
+        var serialNumber = ExtractXmlTag(xml, "serialNumber");
+        var presentationUrl = ExtractXmlTag(xml, "presentationURL");
+        var deviceType = ExtractXmlTag(xml, "deviceType");
+
+        return new SsdpInfo(
+            existing?.DeviceType ?? deviceType,
+            friendlyName ?? existing?.FriendlyName,
+            manufacturer ?? existing?.Manufacturer,
+            modelName ?? existing?.ModelName,
+            existing?.Server,
+            modelNumber,
+            serialNumber,
+            presentationUrl);
+    }
+
+    private static string? ExtractXmlTag(string xml, string tagName)
+    {
+        var pattern = $"<{tagName}>(.*?)</{tagName}>";
+        var match = System.Text.RegularExpressions.Regex.Match(xml, pattern,
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase |
+            System.Text.RegularExpressions.RegexOptions.Singleline);
+        return match.Success ? match.Groups[1].Value.Trim() : null;
     }
 
     // ── ASN.1/BER helpers (for SNMP) ─────────────────────────────────
@@ -793,5 +917,44 @@ public static class UdpProbeEngine
         var value = new byte[length];
         Array.Copy(data, offset, value, 0, length);
         return (offset - start + length, value);
+    }
+
+    /// <summary>
+    /// Decodes a BER-encoded OID value (content bytes only, without tag/length).
+    /// Returns dotted-decimal string like "1.3.6.1.4.1.9.1.1745".
+    /// </summary>
+    private static string? Asn1DecodeOid(byte[] content)
+    {
+        if (content.Length < 1) return null;
+        var components = new List<int>
+        {
+            content[0] / 40,
+            content[0] % 40
+        };
+
+        var val = 0;
+        for (var i = 1; i < content.Length; i++)
+        {
+            val = (val << 7) | (content[i] & 0x7F);
+            if ((content[i] & 0x80) == 0)
+            {
+                components.Add(val);
+                val = 0;
+            }
+        }
+        return string.Join('.', components);
+    }
+
+    /// <summary>
+    /// Decodes a BER-encoded unsigned integer (TimeTicks, Counter, Gauge, INTEGER).
+    /// </summary>
+    private static long Asn1DecodeUnsignedInt(byte[] content)
+    {
+        long result = 0;
+        foreach (var b in content)
+        {
+            result = (result << 8) | b;
+        }
+        return result;
     }
 }

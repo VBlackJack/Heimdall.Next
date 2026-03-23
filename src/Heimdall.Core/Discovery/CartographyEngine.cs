@@ -107,6 +107,7 @@ public sealed class CartographyEngine
         var hosts = new ConcurrentBag<HostScanResult>();
 
         var ipList = ParseCidr(profile.Subnet);
+        ShuffleInPlace(ipList); // Randomize probe order to reduce IDS triggering
 
         Dictionary<string, (long LatencyMs, int Ttl)> pingResults;
         List<string> aliveHosts;
@@ -159,7 +160,7 @@ public sealed class CartographyEngine
             _ => StandardPorts
         };
 
-        // Retrieve local ARP table for MAC/OUI enrichment
+        // Initial ARP table snapshot (will be refreshed after scan)
         var arpTable = GetArpTable();
 
         // Detect OS default gateway IPs for automatic router classification
@@ -190,8 +191,8 @@ public sealed class CartographyEngine
         }, ct);
 
         await Task.WhenAll(mdnsTask, ssdpTask).ConfigureAwait(false);
-        mdnsResults = await mdnsTask.ConfigureAwait(false);
-        ssdpResults = await ssdpTask.ConfigureAwait(false);
+        mdnsResults = mdnsTask.Result;
+        ssdpResults = ssdpTask.Result;
 
         var semaphore = new SemaphoreSlim(profile.MaxConcurrency);
         var ttlConfig = knowledgeBase?.TtlConfig;
@@ -222,6 +223,20 @@ public sealed class CartographyEngine
                 var ssdpInfo = ssdpResults.TryGetValue(ip, out var ss) ? ss : null;
                 var result = await ScanHostAsync(ip, ports, profile, arpTable,
                     gatewayIps, ttl, latency, mdnsServices, ssdpInfo, ct).ConfigureAwait(false);
+
+                // Backfill null fields from KB (OS/hostname may exist from prior scans)
+                if (knowledgeBase is not null)
+                {
+                    var prior = KnowledgeBaseManager.Lookup(knowledgeBase, ip);
+                    if (prior is not null)
+                    {
+                        if (result.OsFingerprint is null && prior.OsFingerprint is not null)
+                            result = result with { OsFingerprint = prior.OsFingerprint.Value };
+                        if (result.Hostname is null && prior.Hostname is not null)
+                            result = result with { Hostname = prior.Hostname.Value };
+                    }
+                }
+
                 hosts.Add(result);
                 HostCompleted?.Invoke(result);
             }
@@ -230,10 +245,52 @@ public sealed class CartographyEngine
 
         await Task.WhenAll(tasks).ConfigureAwait(false);
 
-        var orderedHosts = hosts.OrderBy(h => IpToLong(h.IpAddress)).ToList();
+        // Refresh ARP table after scan (ping+TCP connections populated it)
+        var freshArp = GetArpTable();
+        var hostList = hosts.ToList();
+        for (var i = 0; i < hostList.Count; i++)
+        {
+            var h = hostList[i];
 
-        // Passive VLAN detection from discovered host IPs
-        var detectedVlans = VlanDetector.InferFromHosts(orderedHosts);
+            // Enrich MAC/Manufacturer from fresh ARP
+            if (h.MacAddress is null && freshArp.TryGetValue(h.IpAddress, out var mac))
+            {
+                var mfr = OuiDatabase.LookupManufacturer(mac);
+                h = h with { MacAddress = mac, Manufacturer = mfr };
+            }
+            // Re-resolve manufacturer if MAC exists but manufacturer was not found previously
+            else if (h.MacAddress is not null && h.Manufacturer is null)
+            {
+                var mfr = OuiDatabase.LookupManufacturer(h.MacAddress);
+                if (mfr is not null)
+                    h = h with { Manufacturer = mfr };
+            }
+
+            // Backfill null fields from KB (OS, hostname, etc. may exist from prior scans)
+            if (knowledgeBase is not null)
+            {
+                var cached = KnowledgeBaseManager.Lookup(knowledgeBase, h.IpAddress);
+                if (cached is not null)
+                {
+                    if (h.OsFingerprint is null && cached.OsFingerprint is not null)
+                        h = h with { OsFingerprint = cached.OsFingerprint.Value };
+                    if (h.Hostname is null && cached.Hostname is not null)
+                        h = h with { Hostname = cached.Hostname.Value };
+                    if (h.MacAddress is null && cached.MacAddress is not null)
+                    {
+                        var mfr = cached.Manufacturer?.Value ?? OuiDatabase.LookupManufacturer(cached.MacAddress.Value);
+                        h = h with { MacAddress = cached.MacAddress.Value, Manufacturer = mfr };
+                    }
+                }
+            }
+
+            hostList[i] = h;
+        }
+
+        var orderedHosts = hostList.OrderBy(h => IpToLong(h.IpAddress)).ToList();
+
+        // Passive VLAN detection from discovered host IPs using scan CIDR
+        var detectedVlans = VlanDetector.InferFromHosts(orderedHosts, profile.Subnet);
 
         return new NetworkScanSnapshot(
             Guid.NewGuid().ToString("N"),
@@ -332,12 +389,75 @@ public sealed class CartographyEngine
 
         var openServices = services.Where(s => s.IsOpen).ToList();
         var openPorts = openServices.Select(s => s.Port).ToList();
+        var openPortSet = new HashSet<int>(openPorts);
         var banners = openServices.Select(s => s.Banner).ToList();
 
-        // OS fingerprinting from TTL and banners
+        // Advanced probes in parallel: NTLM+SMB (445), SSH HASSH (22), Favicon+HTTP (80/443)
+        EnrichmentProgress?.Invoke(ip, "NTLM/SSH/HTTP");
+        var probeTmo = Math.Min(profile.TimeoutMs, 3000);
+
+        var smbTask = openPortSet.Contains(445)
+            ? NtlmProbe.ProbeWithSmbInfoAsync(ip, probeTmo, ct)
+            : Task.FromResult<(NtlmInfo?, SmbNegotiateInfo?)>((null, null));
+
+        var hasshTask = openPortSet.Contains(22)
+            ? SshFingerprinter.ComputeHashAsync(ip, 22, probeTmo, ct)
+            : Task.FromResult<string?>(null);
+
+        // HTTP port selection (prefer TLS)
+        var httpPort = openPortSet.Contains(443) ? 443
+            : openPortSet.Contains(80) ? 80
+            : openPortSet.Contains(8443) ? 8443
+            : openPortSet.Contains(8080) ? 8080
+            : openPortSet.Contains(9090) ? 9090
+            : 0;
+        var httpIsTls = httpPort > 0 && TlsPorts.Contains(httpPort);
+
+        var faviconTask = httpPort > 0
+            ? FaviconHasher.HashAsync(ip, httpPort, httpIsTls, probeTmo, ct)
+            : Task.FromResult<int?>(null);
+
+        var httpProbeTask = httpPort > 0
+            ? HttpFingerprinter.ProbeProductUrlsAsync(ip, httpPort, httpIsTls, probeTmo, ct)
+            : Task.FromResult<(string?, string?)>((null, null));
+
+        await Task.WhenAll(smbTask, hasshTask, faviconTask, httpProbeTask).ConfigureAwait(false);
+        var (ntlmInfo, smbInfo) = smbTask.Result;
+        var sshHash = hasshTask.Result;
+        var faviconHash = faviconTask.Result;
+        var (httpProduct, httpProductUrl) = httpProbeTask.Result;
+
+        // HTTP framework detection from banner cookies/errors
+        string? httpFramework = null;
+        foreach (var svc in openServices)
+        {
+            if (svc.Banner is null) continue;
+            httpFramework = HttpFingerprinter.DetectFrameworkFromCookies(svc.Banner)
+                ?? HttpFingerprinter.DetectFrameworkFromErrorPage(svc.Banner);
+            if (httpFramework is not null) break;
+        }
+
+        var httpFingerprint = (httpProduct ?? httpFramework) is not null
+            ? new HttpFingerprint(httpFramework, httpProductUrl, httpProduct)
+            : null;
+
+        // Merge NTLM data into NetBIOS name/domain (NTLM is more reliable)
+        if (ntlmInfo is not null)
+        {
+            nbName ??= ntlmInfo.NetBiosComputerName;
+            nbDomain ??= ntlmInfo.NetBiosDomainName;
+            hostname ??= ntlmInfo.DnsComputerName;
+        }
+
+        // OS fingerprinting from TTL, banners, open ports, SNMP, and NTLM
         var ttlOs = OsFingerprinter.GuessFromTtl(ttl);
         var bannerOs = OsFingerprinter.GuessFromBanners(openServices);
-        var osFingerprint = OsFingerprinter.Merge(ttlOs, bannerOs);
+        var portOs = OsFingerprinter.GuessFromPorts(openPorts);
+        var snmpOs = OsFingerprinter.GuessFromSnmp(snmpInfo?.SysDescr);
+        var ntlmOs = ntlmInfo?.OsBuild is not null
+            ? OsFingerprinter.GuessFromNtlm(ntlmInfo.OsBuild)
+            : null;
+        var osFingerprint = OsFingerprinter.MergeAll(ttlOs, bannerOs, portOs, snmpOs, ntlmOs);
 
         // Aggregate HTTP headers from all services
         var allHttpHeaders = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -391,6 +511,12 @@ public sealed class CartographyEngine
         var mac = arpTable.TryGetValue(ip, out var m) ? m : nbMac;
         var manufacturer = mac is not null ? OuiDatabase.LookupManufacturer(mac) : null;
 
+        // SNMP sysObjectID → IANA PEN vendor decode (fallback if OUI didn't identify)
+        if (manufacturer is null && snmpInfo?.SysObjectId is not null)
+        {
+            manufacturer = IanaPenDatabase.LookupVendor(snmpInfo.SysObjectId);
+        }
+
         // MAC-based role inference for devices with no ports and no role
         if (primaryRole is null && manufacturer is not null)
         {
@@ -411,7 +537,12 @@ public sealed class CartographyEngine
             SnmpInfo: snmpInfo,
             MdnsServices: mdnsServices,
             HttpHeaders: allHttpHeaders.Count > 0 ? allHttpHeaders : null,
-            SsdpInfo: ssdpInfo);
+            SsdpInfo: ssdpInfo,
+            NtlmInfo: ntlmInfo,
+            SshHashFingerprint: sshHash,
+            FaviconHash: faviconHash,
+            SmbInfo: smbInfo,
+            HttpFingerprint: httpFingerprint);
     }
 
     private static async Task<ServiceResult> ProbePortAsync(
@@ -528,7 +659,12 @@ public sealed class CartographyEngine
 
             return (certInfo, httpBanner);
         }
-        catch { return (null, null); }
+        catch (Exception ex)
+        {
+            Logging.FileLogger.Log("DEBUG",
+                $"TLS inspection failed for {host}:{port}: {ex.GetType().Name}: {ex.Message}");
+            return (null, null);
+        }
     }
 
     private static CertificateInfo? ExtractCertInfo(SslStream ssl)
@@ -714,6 +850,16 @@ public sealed class CartographyEngine
         return result;
     }
 
+    /// <summary>Fisher-Yates in-place shuffle for probe order randomization.</summary>
+    private static void ShuffleInPlace<T>(List<T> list)
+    {
+        for (var i = list.Count - 1; i > 0; i--)
+        {
+            var j = Random.Shared.Next(i + 1);
+            (list[i], list[j]) = (list[j], list[i]);
+        }
+    }
+
     public static long IpToLong(string ip)
     {
         var parts = ip.Split('.');
@@ -773,6 +919,7 @@ public sealed class CartographyEngine
                 if (!proc.WaitForExit(5000)) { try { proc.Kill(); } catch { /* already exited */ } }
 
                 // Parse lines like: "  10.0.0.1             aa-bb-cc-dd-ee-ff     dynamic"
+                // Skip "Interface:" header lines (contain "---" which is not a valid MAC)
                 foreach (var line in output.Split('\n'))
                 {
                     var parts = line.Trim().Split([' '], StringSplitOptions.RemoveEmptyEntries);
@@ -780,7 +927,9 @@ public sealed class CartographyEngine
                     {
                         var ip = parts[0];
                         var mac = parts[1];
-                        if (IPAddress.TryParse(ip, out _) && mac.Contains('-'))
+                        // Validate MAC format: exactly 5 dashes (aa-bb-cc-dd-ee-ff)
+                        if (IPAddress.TryParse(ip, out _) &&
+                            mac.Length == 17 && mac.Count(c => c == '-') == 5)
                         {
                             result[ip] = mac;
                         }

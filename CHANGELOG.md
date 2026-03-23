@@ -12,6 +12,77 @@
 
 All notable changes to Heimdall.Next are documented in this file.
 
+## [v2026.032312] - 2026-03-23
+
+### Network Cartography — Deep Fingerprinting Engine
+
+#### OS fingerprinting overhaul
+- **Port-based OS inference**: RDP/WinRM → Windows, SSH-only → Linux, Kerberos+LDAP → Windows Server
+- **SNMP sysDescr OS detection**: 19 patterns (VMware ESXi, Cisco IOS, Ubuntu, Debian, Red Hat, Windows, FreeBSD, etc.)
+- **NTLM OS build mapping**: Extracts exact Windows version from SMB2 NTLM challenge (e.g., "Windows Server 2022 Build 20348")
+- **MergeAll()**: Combines 5 sources (TTL, banner, ports, SNMP, NTLM) with multi-source confidence boosting
+
+#### New probe modules
+- **NtlmProbe**: SMB2 Negotiate + NTLMSSP Type 1/2 exchange — extracts hostname, domain, DNS forest, OS build, SMB dialect, signing policy, server GUID, uptime without credentials
+- **SshFingerprinter**: HASSH fingerprint (MD5 of KEX_INIT algorithm lists) — identifies SSH implementation precisely
+- **FaviconHasher**: Shodan-compatible MurmurHash3 favicon fingerprinting with 30+ known device hashes (FortiGate, VMware ESXi, Synology, Grafana, Jenkins, Freebox, TP-Link, Hikvision...)
+- **HttpFingerprinter**: Cookie detection (12 frameworks), error page regex (7 patterns), product URL probing (13 vendor-specific paths: Hikvision, Synology, QNAP, MikroTik, FortiGate, ESXi...)
+- **IanaPenDatabase**: SNMP sysObjectID → vendor decode via 50+ IANA Private Enterprise Numbers
+
+#### Role classification improvements
+- 4 new role definitions: LDAP Directory, Syslog Server (TLS/6514), HTTP Proxy (3128), Windows Server
+- 6 conflict resolution rules: LDAP suppresses SSH, Windows Server suppresses generic RDP, AD suppresses partial roles
+- Removed 3 dead UDP-only role definitions (Syslog/514, DHCP/67, UPnP/1900) unreachable via TCP scan
+- Manufacturer-based role inference: Arlo → IP Camera, Verisure → Alarm System, Hikvision/Dahua → IP Camera
+- Randomized MAC detection → "Smartphone/Tablet" role for devices with privacy MAC
+- Certificate enrichment: issuer O=/OU= parsing, self-signed + 10yr validity → appliance default cert detection
+- Chromecast confidence raised (70 base) to outrank generic "Web Server (HTTPS-Alt)"
+
+#### SNMP enhancements
+- 3 additional OIDs: sysObjectID (vendor/model), sysUpTime (uptime), sysServices (OSI layer bitmask)
+- ASN.1 OID and TimeTicks decoders for response parsing
+- NetBIOS parser bounds hardening: qdCount cap, strict offset validation
+
+#### UPnP / SSDP deep discovery
+- Fetch rootDesc.xml from SSDP LOCATION URL
+- Parse friendlyName, manufacturer, modelName, modelNumber, serialNumber, presentationURL
+- SsdpInfo extended with 3 new optional fields
+
+#### OUI database expansion
+- Added: Hikvision (BCBAC2, 4CF5DC, 54C4A5, C4A36E), Free/Freebox (DC00B0), Arlo Technologies (B8060D, 9C7B6B), Securitas Direct/Verisure (0023C1), Samsung (58B568)
+- Locally administered MAC detection → "Private (Randomized MAC)" for smartphone/tablet identification
+
+#### Knowledge base & scan engine
+- KB persistence fixed: removed SecureFileWriter double-write that could corrupt the file
+- AreUdpProbesFresh: null observations use LastSeen as proxy instead of being treated as "fresh"
+- ARP table refresh post-scan (ping+TCP populates ARP cache during scan)
+- Manufacturer re-resolution post-scan when MAC exists but OUI was previously unresolved
+- KB backfill: null OS/hostname fields populated from prior scan observations
+- IP probe order randomization (Fisher-Yates shuffle) to reduce IDS triggering
+
+#### UX improvements
+- Progress bar shows IsIndeterminate animation immediately on scan start
+- ProgressPanel stays visible after scan when status message is displayed (0-hosts warning no longer vanishes)
+- "No hosts responded" message with Skip Ping / gateway suggestion
+- Gateway tunnel scan: batched port probes (single SSH command per host instead of per-port, ~24x faster)
+- Cross-thread fix: UI checkbox state captured before ConfigureAwait(false)
+
+#### VlanDetector
+- Dynamic subnet grouping from scan profile CIDR instead of hardcoded /24
+- Proper uint mask computation for edge cases (prefix ≥ 32)
+
+#### CSV export
+- 6 new columns: SNMP_ObjectID, NTLM_DNS, NTLM_Domain, NTLM_Build, SSH_HASSH, Favicon_Hash (27 total)
+- SSDP column enriched with FriendlyName/Manufacturer/Model/Server
+
+#### Tooltip enrichment
+- SMB: dialect version, signing policy, server GUID, calculated uptime
+- NTLM: DNS computer/domain/forest, OS build
+- SSH: HASSH fingerprint
+- Favicon: hash value + known device name lookup
+- HTTP: detected framework + product identification
+- UPnP: friendlyName, manufacturer, model, model number, serial number
+
 ## [v2026.032309] - 2026-03-23
 
 ### Split & Merge Sessions + Airspace Fix + RDP Improvements

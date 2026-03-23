@@ -37,7 +37,16 @@ public static class OuiDatabase
         if (normalized.Length < 6) return null;
         var oui = normalized[..6];
 
-        return OuiTable.TryGetValue(oui, out var manufacturer) ? manufacturer : null;
+        if (OuiTable.TryGetValue(oui, out var manufacturer))
+            return manufacturer;
+
+        // Detect locally administered MAC (bit 1 of first byte set)
+        // — indicates randomized MAC from smartphones, tablets, or modern OS privacy features
+        var firstByte = Convert.ToByte(oui[..2], 16);
+        if ((firstByte & 0x02) != 0)
+            return "Private (Randomized MAC)";
+
+        return null;
     }
 
     private static readonly Dictionary<string, string> OuiTable = new(StringComparer.OrdinalIgnoreCase)
@@ -66,6 +75,10 @@ public static class OuiDatabase
         ["A42B8C"] = "Netgear",
         ["C43DC7"] = "Netgear",
         ["0024B2"] = "Netgear",
+        ["B8060D"] = "Arlo Technologies",
+        ["9C7B6B"] = "Arlo Technologies",
+        ["001A2B"] = "Arlo Technologies",
+        ["0023C1"] = "Securitas Direct (Verisure)",
         ["207918"] = "Juniper",
         ["001BED"] = "Juniper",
         ["406C8F"] = "Apple",
@@ -225,6 +238,7 @@ public static class OuiDatabase
         ["0024D4"] = "Free (Freebox)",
         ["70FC8F"] = "Free (Freebox)",
         ["000E6F"] = "Freebox (Free SAS)",
+        ["DC00B0"] = "Free (Freebox)",
         ["000F0B"] = "Huawei (CPE/Router)",
         ["0025AB"] = "Huawei",
         ["B4A984"] = "Huawei",
@@ -376,6 +390,7 @@ public static class OuiDatabase
         ["A08E78"] = "Samsung",
         ["00215C"] = "Samsung",
         ["501AC5"] = "Samsung",
+        ["58B568"] = "Samsung",
         ["1CBFCE"] = "Xiaomi",
         ["34802D"] = "Xiaomi",
         ["F8E9EF"] = "Xiaomi",
@@ -398,6 +413,10 @@ public static class OuiDatabase
         ["20F173"] = "Dahua",
         ["E00ECE"] = "Dahua",
         ["D87CF7"] = "Dahua",
+        ["BCBAC2"] = "Hikvision",
+        ["4CF5DC"] = "Hikvision",
+        ["54C4A5"] = "Hikvision",
+        ["C4A36E"] = "Hikvision",
         ["00408C"] = "AXIS Communications",
         ["001A07"] = "AXIS Communications",
         ["00129A"] = "Vivotek",

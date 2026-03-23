@@ -177,7 +177,7 @@ public class CartographyEngineTests
 
     // ── CSV export header localization ─────────────────────────────
 
-    private const int ExpectedCsvColumns = 21;
+    private const int ExpectedCsvColumns = 27;
 
     [Theory]
     [InlineData("en")]

@@ -41,12 +41,16 @@ public static class RoleClassifier
         new("Database (Oracle)", [1521], [], 85),
         new("Database (MongoDB)", [27017], [27018, 27019], 85),
         new("Mail Server", [25], [587, 465, 993, 995, 143, 110], 80),
+        new("LDAP Directory", [389], [636, 22], 75),
+        new("Syslog Server", [6514], [22], 65),
+        new("HTTP Proxy", [3128], [8080, 80, 443], 70),
         new("SSH Server", [22], [], 50),
-        new("Windows RDP", [3389], [445, 135, 139], 70),
+        new("Windows Server", [3389, 445], [135, 139, 5985, 5986, 80, 443], 80),
+        new("Windows RDP", [3389], [445, 135, 139, 5985], 70),
         new("VNC Server", [5900], [5901, 5902], 65),
         new("Proxy/Load Balancer", [8080], [8443, 3128, 80, 443], 55),
-        new("Syslog Server", [514], [6514], 30),   // UDP-only (514/udp), unreliable with TCP scan
-        new("DHCP Server", [67], [68], 30),         // UDP-only (67-68/udp), unreliable with TCP scan
+        // Syslog (514/udp) and DHCP (67-68/udp) are UDP-only — detected via
+        // banner fingerprints or SNMP, not TCP port scan.
         new("FTP Server", [21], [990], 60),
         new("Redis", [6379], [], 75),
         new("Elasticsearch", [9200], [9300], 75),
@@ -81,8 +85,8 @@ public static class RoleClassifier
         new("Smart Home Hub", [8123], [80, 443, 1883], 65),
         new("MQTT Broker", [1883], [8883, 9001], 75),
         new("Apple Device", [62078], [5353, 3689], 70),
-        new("Chromecast/Smart TV", [8008], [8443, 9000], 55),
-        new("UPnP Device", [1900], [5000, 80], 25),  // UDP-only (1900/udp SSDP), unreliable with TCP scan
+        new("Chromecast/Smart TV", [8008], [8443, 9000], 70),
+        // UPnP/SSDP (1900/udp) is UDP multicast — detected via SSDP probe, not TCP port scan.
 
         // ── Telephony / VoIP ───────────────────────────────────────────
         new("VoIP/SIP Server", [5060], [5061, 80, 443], 75),
@@ -201,6 +205,15 @@ public static class RoleClassifier
         // Directory / File Servers
         ("Samba", "File Server (Samba)", 80),
         ("OpenLDAP", "LDAP Server (OpenLDAP)", 85),
+        ("389 Directory", "LDAP Server (389DS)", 85),
+
+        // Proxy Servers
+        ("squid", "HTTP Proxy (Squid)", 90),
+        ("Varnish", "HTTP Cache (Varnish)", 85),
+
+        // Syslog / Log Collectors
+        ("rsyslog", "Syslog Server (rsyslog)", 85),
+        ("syslog-ng", "Syslog Server (syslog-ng)", 85),
 
         // Server Management
         ("iDRAC", "Server Management (Dell iDRAC)", 95),
@@ -293,6 +306,11 @@ public static class RoleClassifier
         ("Google", "Smart Device (Google)", 35),
         ("Amazon", "Smart Device (Amazon)", 35),
         ("Ring", "IoT (Ring)", 45),
+        ("Arlo", "IP Camera (Arlo)", 50),
+        ("Securitas", "Alarm System (Verisure)", 55),
+        ("Verisure", "Alarm System (Verisure)", 55),
+        ("Hikvision", "IP Camera (Hikvision)", 55),
+        ("Dahua", "IP Camera (Dahua)", 55),
         ("Sony", "PlayStation/Smart TV (Sony)", 30),
         ("Nintendo", "Game Console (Nintendo)", 40),
         ("Microsoft", "Windows Device", 30),
@@ -308,6 +326,7 @@ public static class RoleClassifier
         ("Roku", "Media Streamer (Roku)", 50),
         ("Free (Freebox)", "Router/Gateway (Freebox)", 50),
         ("Freebox", "Router/Gateway (Freebox)", 50),
+        ("Private (Randomized MAC)", "Smartphone/Tablet", 35),
         ("Sagemcom", "Router/Gateway (ISP CPE)", 40),
         ("Technicolor", "Router/Gateway (ISP CPE)", 40),
         ("AVM", "Router (Fritz!Box)", 45),
@@ -588,9 +607,16 @@ public static class RoleClassifier
             BoostMatchesContaining(matches, "Windows", 5, $"os: {os.OsGuess}");
             BoostMatchesContaining(matches, "RDP", 5, $"os: {os.OsGuess}");
         }
-        else if (os.OsGuess.Contains("Linux", StringComparison.OrdinalIgnoreCase))
+        else if (os.OsGuess.Contains("Linux", StringComparison.OrdinalIgnoreCase) ||
+                 os.OsGuess.Contains("Ubuntu", StringComparison.OrdinalIgnoreCase) ||
+                 os.OsGuess.Contains("Debian", StringComparison.OrdinalIgnoreCase) ||
+                 os.OsGuess.Contains("CentOS", StringComparison.OrdinalIgnoreCase) ||
+                 os.OsGuess.Contains("Red Hat", StringComparison.OrdinalIgnoreCase))
         {
             BoostMatchesContaining(matches, "SSH", 5, $"os: {os.OsGuess}");
+            BoostMatchesContaining(matches, "LDAP", 5, $"os: {os.OsGuess}");
+            BoostMatchesContaining(matches, "Syslog", 5, $"os: {os.OsGuess}");
+            BoostMatchesContaining(matches, "Proxy", 5, $"os: {os.OsGuess}");
         }
     }
 
@@ -630,7 +656,35 @@ public static class RoleClassifier
             if (cert.SubjectAltNames is { Length: > 0 })
                 domains.AddRange(cert.SubjectAltNames);
 
+            // Also check issuer O= field for vendor identification
+            var issuerO = ExtractField(cert.Issuer, "O=");
+            if (issuerO is not null) domains.Add(issuerO);
+
+            // Check subject O= and OU= for appliance identification
+            var subjectO = ExtractField(cert.Subject, "O=");
+            if (subjectO is not null) domains.Add(subjectO);
+            var subjectOu = ExtractField(cert.Subject, "OU=");
+            if (subjectOu is not null) domains.Add(subjectOu);
+
             if (domains.Count == 0) continue;
+
+            // Self-signed cert with ~10-year validity = appliance default cert
+            var isSelfSigned = cert.Subject == cert.Issuer;
+            var validityDays = (cert.NotAfter - cert.NotBefore).TotalDays;
+            if (isSelfSigned && validityDays is >= 3640 and <= 3660)
+            {
+                // Typical appliance default cert (3650 days = 10 years)
+                for (var i = 0; i < matches.Count; i++)
+                {
+                    if (matches[i].Role.Contains("Web Server", StringComparison.OrdinalIgnoreCase))
+                    {
+                        matches[i] = matches[i] with
+                        {
+                            Evidence = [.. matches[i].Evidence, "cert: self-signed 10yr (appliance default)"]
+                        };
+                    }
+                }
+            }
 
             foreach (var (pattern, role, boost) in CertificateDomainFingerprints)
             {
@@ -735,17 +789,56 @@ public static class RoleClassifier
         // DNS port open → suppress camera roles (DNS servers are not cameras)
         if (portSet.Contains(53))
         {
-            for (var i = 0; i < matches.Count; i++)
+            SuppressRoles(matches, ["Camera", "DVR", "NVR"], 25, "conflict: DNS suppresses camera");
+        }
+
+        // LDAP (389/636) present → suppress generic SSH Server (LDAP is the primary role)
+        if (portSet.Contains(389) || portSet.Contains(636))
+        {
+            SuppressRoles(matches, ["SSH Server"], 20, "conflict: LDAP suppresses generic SSH");
+        }
+
+        // Windows Server (3389+445) present → suppress generic Windows RDP
+        if (portSet.Contains(3389) && portSet.Contains(445))
+        {
+            SuppressRoles(matches, ["Windows RDP"], 15, "conflict: Windows Server suppresses generic RDP");
+        }
+
+        // Active Directory present → suppress generic LDAP Directory and Windows Server
+        if (portSet.Contains(88) && portSet.Contains(389) && portSet.Contains(53))
+        {
+            SuppressRoles(matches, ["LDAP Directory", "Windows Server", "DNS Server"],
+                20, "conflict: AD suppresses partial roles");
+        }
+
+        // Syslog-TLS (6514) present → suppress generic SSH Server
+        if (portSet.Contains(6514))
+        {
+            SuppressRoles(matches, ["SSH Server"], 15, "conflict: Syslog suppresses generic SSH");
+        }
+
+        // HTTP Proxy (3128) present → suppress generic SSH Server
+        if (portSet.Contains(3128))
+        {
+            SuppressRoles(matches, ["SSH Server"], 15, "conflict: Proxy suppresses generic SSH");
+        }
+    }
+
+    private static void SuppressRoles(
+        List<RoleMatch> matches, string[] roleFragments, int penalty, string evidence)
+    {
+        for (var i = 0; i < matches.Count; i++)
+        {
+            foreach (var fragment in roleFragments)
             {
-                if (matches[i].Role.Contains("Camera", StringComparison.OrdinalIgnoreCase) ||
-                    matches[i].Role.Contains("DVR", StringComparison.OrdinalIgnoreCase) ||
-                    matches[i].Role.Contains("NVR", StringComparison.OrdinalIgnoreCase))
+                if (matches[i].Role.Contains(fragment, StringComparison.OrdinalIgnoreCase))
                 {
                     matches[i] = matches[i] with
                     {
-                        Confidence = Math.Max(0, matches[i].Confidence - 25),
-                        Evidence = [.. matches[i].Evidence, "conflict: DNS suppresses camera"]
+                        Confidence = Math.Max(0, matches[i].Confidence - penalty),
+                        Evidence = [.. matches[i].Evidence, evidence]
                     };
+                    break;
                 }
             }
         }
@@ -809,6 +902,16 @@ public static class RoleClassifier
         37777 => "Dahua-DVR", 62078 => "Apple-Lockdown",
         _ => $"Port-{port}"
     };
+
+    /// <summary>Extracts a single field value from an X.500 DN string.</summary>
+    private static string? ExtractField(string dn, string field)
+    {
+        var idx = dn.IndexOf(field, StringComparison.OrdinalIgnoreCase);
+        if (idx < 0) return null;
+        var start = idx + field.Length;
+        var end = dn.IndexOf(',', start);
+        return end > start ? dn[start..end].Trim() : dn[start..].Trim();
+    }
 
     private record RoleDefinition(
         string RoleName,

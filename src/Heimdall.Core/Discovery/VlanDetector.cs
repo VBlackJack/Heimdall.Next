@@ -26,12 +26,21 @@ namespace Heimdall.Core.Discovery;
 public static class VlanDetector
 {
     /// <summary>
-    /// Infer VLAN/subnet segments from discovered hosts by grouping
-    /// IPs into their /24 subnets. This is a passive detection method
-    /// that works without access to network equipment.
+    /// Infer VLAN/subnet segments from discovered hosts by grouping IPs
+    /// using the scanned CIDR prefix length. Falls back to /24 if no
+    /// prefix is provided.
     /// </summary>
-    public static List<VlanInfo> InferFromHosts(IReadOnlyList<HostScanResult> hosts)
+    public static List<VlanInfo> InferFromHosts(
+        IReadOnlyList<HostScanResult> hosts, string? scannedCidr = null)
     {
+        var prefixLen = 24;
+        if (scannedCidr is not null)
+        {
+            var slashIdx = scannedCidr.IndexOf('/');
+            if (slashIdx >= 0 && int.TryParse(scannedCidr[(slashIdx + 1)..], out var p) && p >= 16 && p <= 30)
+                prefixLen = p;
+        }
+
         var segments = new Dictionary<string, List<string>>();
 
         foreach (var host in hosts.Where(h => h.IsAlive))
@@ -40,12 +49,12 @@ public static class VlanDetector
             var bytes = ip.GetAddressBytes();
             if (bytes.Length != 4) continue;
 
-            var subnet = $"{bytes[0]}.{bytes[1]}.{bytes[2]}.0/24";
+            var subnetKey = ComputeSubnetKey(bytes, prefixLen);
 
-            if (!segments.TryGetValue(subnet, out var members))
+            if (!segments.TryGetValue(subnetKey, out var members))
             {
                 members = [];
-                segments[subnet] = members;
+                segments[subnetKey] = members;
             }
             members.Add(host.IpAddress);
         }
@@ -55,23 +64,40 @@ public static class VlanDetector
 
         foreach (var (subnet, members) in segments.OrderBy(s => s.Key))
         {
-            // Try to detect gateway (.1 or .254)
+            // Try to detect gateway (first or last usable address)
             string? gateway = null;
-            var subnetPrefix = subnet[..subnet.LastIndexOf('.')];
-            var gw1 = $"{subnetPrefix}.1";
-            var gw254 = $"{subnetPrefix}.254";
-            if (members.Contains(gw1)) gateway = gw1;
-            else if (members.Contains(gw254)) gateway = gw254;
+            foreach (var member in members)
+            {
+                if (!IPAddress.TryParse(member, out var mip)) continue;
+                var lastOctet = mip.GetAddressBytes()[3];
+                if (lastOctet is 1 or 254)
+                {
+                    gateway = member;
+                    break;
+                }
+            }
 
+            var segmentName = subnet.Replace('/', '-').Replace('.', '-');
             vlans.Add(new VlanInfo(
                 VlanId: vlanId++,
-                Name: $"Segment-{subnet.Replace("/24", "").Replace('.', '-')}",
+                Name: $"Segment-{segmentName}",
                 Subnet: subnet,
                 Gateway: gateway,
                 MemberIps: members.OrderBy(IpSortKey).ToList()));
         }
 
         return vlans;
+    }
+
+    /// <summary>
+    /// Computes the network address string for a given IP and prefix length.
+    /// </summary>
+    private static string ComputeSubnetKey(byte[] ipBytes, int prefixLen)
+    {
+        var ipUint = (uint)(ipBytes[0] << 24 | ipBytes[1] << 16 | ipBytes[2] << 8 | ipBytes[3]);
+        var mask = prefixLen >= 32 ? uint.MaxValue : prefixLen == 0 ? 0u : uint.MaxValue << (32 - prefixLen);
+        var network = ipUint & mask;
+        return $"{(network >> 24) & 0xFF}.{(network >> 16) & 0xFF}.{(network >> 8) & 0xFF}.{network & 0xFF}/{prefixLen}";
     }
 
     /// <summary>
