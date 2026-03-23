@@ -221,7 +221,8 @@ public partial class NetworkCartographyView : UserControl, IToolView
         ProgressPanel.Visibility = Visibility.Visible;
         EmptyStatePanel.Visibility = Visibility.Collapsed;
         ScanProgress.Value = 0;
-        TxtStatus.Text = "";
+        ScanProgress.IsIndeterminate = true;
+        TxtStatus.Text = string.Format(L("ToolNetMapStatusDiscovery"), 0, ipList.Count);
         TxtStats.Text = "";
 
         var depth = CmbDepth.SelectedItem is ComboBoxItem item && item.Tag is ScanDepth d
@@ -236,11 +237,14 @@ public partial class NetworkCartographyView : UserControl, IToolView
             SkipPing: ChkSkipPing.IsChecked == true,
             ReverseDns: ChkReverseDns.IsChecked == true);
 
+        // Capture UI state before leaving the UI thread
+        var useKb = ChkUseKnowledgeBase.IsChecked == true;
+
         // Load knowledge base (for cache if checkbox checked, for merge after scan)
         try { _knowledgeBase = await KnowledgeBaseManager.LoadAsync().ConfigureAwait(false); }
         catch { _knowledgeBase = KnowledgeBaseManager.CreateEmpty(); }
 
-        var kb = ChkUseKnowledgeBase.IsChecked == true ? _knowledgeBase : null;
+        var kb = useKb ? _knowledgeBase : null;
 
         var engine = new CartographyEngine();
 
@@ -256,6 +260,7 @@ public partial class NetworkCartographyView : UserControl, IToolView
         {
             Dispatcher.InvokeAsync(() =>
             {
+                ScanProgress.IsIndeterminate = false;
                 ScanProgress.Maximum = total;
                 ScanProgress.Value = completed;
                 TxtStatus.Text = string.Format(L("ToolNetMapStatusDiscovery"), completed, total);
@@ -330,9 +335,17 @@ public partial class NetworkCartographyView : UserControl, IToolView
                     ? $"{snapshot.Duration.TotalSeconds:F1}s"
                     : $"{snapshot.Duration.TotalMinutes:F1}m";
 
-                TxtStatus.Text = string.Format(
-                    L("ToolNetMapStatusComplete"),
-                    snapshot.Hosts.Count, totalServices, totalRoles, durationText);
+                if (snapshot.Hosts.Count == 0)
+                {
+                    TxtStatus.Text = L("ToolNetMapNoHostsFound");
+                    EmptyStatePanel.Visibility = Visibility.Visible;
+                }
+                else
+                {
+                    TxtStatus.Text = string.Format(
+                        L("ToolNetMapStatusComplete"),
+                        snapshot.Hosts.Count, totalServices, totalRoles, durationText);
+                }
 
                 var totalPorts = snapshot.Hosts.Sum(h => h.Services.Count);
                 var serviceNames = snapshot.Hosts
@@ -412,28 +425,32 @@ public partial class NetworkCartographyView : UserControl, IToolView
 
             var openServices = new List<ServiceResult>();
 
-            foreach (var port in ports)
+            // Batch all port probes into a single SSH command for performance
+            // (one command per host instead of one per port)
+            var portList = string.Join(" ", ports.Where(p => p is >= 1 and <= 65535));
+            try
             {
-                if (port is < 1 or > 65535) continue;
+                using var cmd = sshClient.CreateCommand(
+                    $"for p in {portList}; do (echo >/dev/tcp/{ip}/$p) 2>/dev/null && echo $p; done");
+                cmd.CommandTimeout = TimeSpan.FromSeconds(Math.Max(10, ports.Length / 2));
+                var result = await Task.Run(() => cmd.Execute(), ct).ConfigureAwait(false);
 
-                try
+                if (result is not null)
                 {
-                    using var cmd = sshClient.CreateCommand(
-                        $"(echo >/dev/tcp/{ip}/{port}) 2>/dev/null && echo OPEN || echo CLOSED");
-                    cmd.CommandTimeout = TimeSpan.FromMilliseconds(profile.TimeoutMs);
-                    var result = await Task.Run(() => cmd.Execute(), ct).ConfigureAwait(false);
-
-                    if (result?.Trim() == "OPEN")
+                    foreach (var line in result.Split('\n', StringSplitOptions.RemoveEmptyEntries))
                     {
-                        var svcName = RoleClassifier.GetPortServiceName(port);
-                        openServices.Add(new ServiceResult(port, true,
-                            svcName != $"Port-{port}" ? svcName : null,
-                            null, null, 0));
+                        if (int.TryParse(line.Trim(), out var port))
+                        {
+                            var svcName = RoleClassifier.GetPortServiceName(port);
+                            openServices.Add(new ServiceResult(port, true,
+                                svcName != $"Port-{port}" ? svcName : null,
+                                null, null, 0));
+                        }
                     }
                 }
-                catch (OperationCanceledException) { throw; }
-                catch { /* probe failed, port closed or filtered */ }
             }
+            catch (OperationCanceledException) { throw; }
+            catch { /* probe failed */ }
 
             // Reverse DNS via gateway
             string? hostname = null;
@@ -467,6 +484,7 @@ public partial class NetworkCartographyView : UserControl, IToolView
             completed++;
             await Dispatcher.InvokeAsync(() =>
             {
+                ScanProgress.IsIndeterminate = false;
                 ScanProgress.Maximum = ipList.Count;
                 ScanProgress.Value = completed;
                 TxtStatus.Text = string.Format(L("ToolNetMapStatusScanning"),
@@ -477,7 +495,7 @@ public partial class NetworkCartographyView : UserControl, IToolView
         sshClient.Disconnect();
 
         var orderedHosts = hosts.OrderBy(h => CartographyEngine.IpToLong(h.IpAddress)).ToList();
-        var vlans = VlanDetector.InferFromHosts(orderedHosts);
+        var vlans = VlanDetector.InferFromHosts(orderedHosts, profile.Subnet);
 
         return new NetworkScanSnapshot(
             Guid.NewGuid().ToString("N"),
@@ -503,7 +521,11 @@ public partial class NetworkCartographyView : UserControl, IToolView
         CmbDepth.IsEnabled = true;
         ChkSkipPing.IsEnabled = true;
         ChkReverseDns.IsEnabled = true;
-        ProgressPanel.Visibility = Visibility.Collapsed;
+
+        // Keep progress panel visible if there's a status message to show
+        // (0-hosts warning, error, or completion summary)
+        if (string.IsNullOrEmpty(TxtStatus.Text))
+            ProgressPanel.Visibility = Visibility.Collapsed;
     }
 
     private CartographyRowViewModel ToRow(HostScanResult host)
@@ -541,6 +563,16 @@ public partial class NetworkCartographyView : UserControl, IToolView
             detailParts.Add($"mDNS:{host.MdnsServices.Count}");
         if (host.SsdpInfo?.DeviceType is not null)
             detailParts.Add($"UPnP:{host.SsdpInfo.DeviceType}");
+        if (host.NtlmInfo?.DnsComputerName is not null)
+            detailParts.Add($"NTLM:{host.NtlmInfo.DnsComputerName}");
+        if (host.SshHashFingerprint is not null)
+            detailParts.Add($"HASSH:{host.SshHashFingerprint[..8]}");
+        if (host.FaviconHash is not null && FaviconHasher.KnownHashes.TryGetValue(host.FaviconHash.Value, out var favName))
+            detailParts.Add($"Fav:{favName}");
+        if (host.HttpFingerprint?.ProductName is not null)
+            detailParts.Add($"HTTP:{host.HttpFingerprint.ProductName}");
+        if (host.SmbInfo is not null)
+            detailParts.Add($"SMB:{host.SmbInfo.DialectRevision:X4}");
         var detailsSummary = detailParts.Count > 0 ? string.Join(" | ", detailParts) : "\u2014";
 
         // Full tooltip (localized labels)
@@ -566,10 +598,65 @@ public partial class NetworkCartographyView : UserControl, IToolView
             tooltipParts.Add($"{L("ToolNetMapTipMdns")}: {string.Join(", ", host.MdnsServices)}");
         if (host.SsdpInfo is not null)
         {
+            if (host.SsdpInfo.FriendlyName is not null)
+                tooltipParts.Add($"UPnP Name: {host.SsdpInfo.FriendlyName}");
+            if (host.SsdpInfo.Manufacturer is not null)
+                tooltipParts.Add($"UPnP Mfr: {host.SsdpInfo.Manufacturer}");
+            if (host.SsdpInfo.ModelName is not null)
+                tooltipParts.Add($"UPnP Model: {host.SsdpInfo.ModelName}");
+            if (host.SsdpInfo.ModelNumber is not null)
+                tooltipParts.Add($"UPnP Model#: {host.SsdpInfo.ModelNumber}");
+            if (host.SsdpInfo.SerialNumber is not null)
+                tooltipParts.Add($"UPnP S/N: {host.SsdpInfo.SerialNumber}");
             if (host.SsdpInfo.DeviceType is not null)
                 tooltipParts.Add($"{L("ToolNetMapTipSsdpDevice")}: {host.SsdpInfo.DeviceType}");
             if (host.SsdpInfo.Server is not null)
                 tooltipParts.Add($"{L("ToolNetMapTipSsdpServer")}: {host.SsdpInfo.Server}");
+        }
+        if (host.NtlmInfo is not null)
+        {
+            if (host.NtlmInfo.DnsComputerName is not null)
+                tooltipParts.Add($"NTLM DNS: {host.NtlmInfo.DnsComputerName}");
+            if (host.NtlmInfo.DnsDomainName is not null)
+                tooltipParts.Add($"NTLM Domain: {host.NtlmInfo.DnsDomainName}");
+            if (host.NtlmInfo.DnsForestName is not null)
+                tooltipParts.Add($"NTLM Forest: {host.NtlmInfo.DnsForestName}");
+            if (host.NtlmInfo.OsBuild is not null)
+                tooltipParts.Add($"NTLM Build: {host.NtlmInfo.OsBuild}");
+        }
+        if (host.SshHashFingerprint is not null)
+            tooltipParts.Add($"HASSH: {host.SshHashFingerprint}");
+        if (host.SmbInfo is not null)
+        {
+            var dialectStr = host.SmbInfo.DialectRevision switch
+            {
+                0x0202 => "SMB 2.0.2", 0x0210 => "SMB 2.1", 0x0300 => "SMB 3.0",
+                0x0302 => "SMB 3.0.2", 0x0311 => "SMB 3.1.1",
+                _ => $"SMB 0x{host.SmbInfo.DialectRevision:X4}"
+            };
+            tooltipParts.Add($"SMB: {dialectStr}{(host.SmbInfo.SigningRequired ? " (signing required)" : "")}");
+            if (host.SmbInfo.ServerGuid is not null)
+                tooltipParts.Add($"SMB GUID: {host.SmbInfo.ServerGuid}");
+            if (host.SmbInfo.ServerStartTime is not null)
+            {
+                var uptime = DateTime.UtcNow - host.SmbInfo.ServerStartTime.Value;
+                tooltipParts.Add($"Uptime: {uptime.Days}d {uptime.Hours}h");
+            }
+        }
+        if (host.HttpFingerprint is not null)
+        {
+            if (host.HttpFingerprint.Framework is not null)
+                tooltipParts.Add($"HTTP Framework: {host.HttpFingerprint.Framework}");
+            if (host.HttpFingerprint.ProductName is not null)
+                tooltipParts.Add($"HTTP Product: {host.HttpFingerprint.ProductName}");
+        }
+        if (host.FaviconHash is not null)
+        {
+            var deviceName = FaviconHasher.KnownHashes.TryGetValue(host.FaviconHash.Value, out var name)
+                ? name : null;
+            tooltipParts.Add(deviceName is not null
+                ? $"Favicon: {host.FaviconHash.Value} ({deviceName})"
+                : $"Favicon: {host.FaviconHash.Value}");
         }
         if (host.HttpHeaders is { Count: > 0 })
         {
@@ -612,9 +699,27 @@ public partial class NetworkCartographyView : UserControl, IToolView
             SnmpSysDescr = host.SnmpInfo?.SysDescr,
             SnmpSysLocation = host.SnmpInfo?.SysLocation,
             MdnsServicesList = mdnsServicesList,
-            SsdpDeviceType = host.SsdpInfo?.DeviceType,
+            SsdpDeviceType = host.SsdpInfo is not null
+                ? FormatSsdpSummary(host.SsdpInfo) : null,
+            SnmpObjectId = host.SnmpInfo?.SysObjectId,
+            NtlmDns = host.NtlmInfo?.DnsComputerName,
+            NtlmDomain = host.NtlmInfo?.DnsDomainName,
+            NtlmBuild = host.NtlmInfo?.OsBuild,
+            SshHashFingerprint = host.SshHashFingerprint,
+            FaviconHashValue = host.FaviconHash?.ToString(),
             OpenPorts = openPortsList
         };
+    }
+
+    private static string FormatSsdpSummary(SsdpInfo ssdp)
+    {
+        var parts = new List<string>();
+        if (ssdp.FriendlyName is not null) parts.Add(ssdp.FriendlyName);
+        else if (ssdp.ModelName is not null) parts.Add(ssdp.ModelName);
+        else if (ssdp.DeviceType is not null) parts.Add(ssdp.DeviceType);
+        if (ssdp.Manufacturer is not null) parts.Add(ssdp.Manufacturer);
+        if (ssdp.Server is not null) parts.Add(ssdp.Server);
+        return parts.Count > 0 ? string.Join(" | ", parts) : "";
     }
 
     private void OnExportCsvClick(object sender, RoutedEventArgs e)
@@ -655,7 +760,13 @@ public partial class NetworkCartographyView : UserControl, IToolView
                 var manufacturer = (r.Manufacturer ?? "").Replace("\"", "\"\"");
                 var vlan = (r.VlanSegment ?? "").Replace("\"", "\"\"");
                 var ssdpDevice = (r.SsdpDeviceType ?? "").Replace("\"", "\"\"");
-                sb.AppendLine($"{r.IpAddress},\"{hostname}\",\"{os}\",\"{ports}\",\"{services}\",\"{tls}\",\"{certSubject}\",\"{certExpires}\",\"{certAlgorithm}\",\"{certStatus}\",\"{role}\",{r.Confidence},\"{nbName}\",\"{nbDomain}\",\"{snmpName}\",\"{snmpDescr}\",\"{snmpLoc}\",\"{mdns}\",\"{manufacturer}\",\"{vlan}\",\"{ssdpDevice}\"");
+                var snmpOid = (r.SnmpObjectId ?? "").Replace("\"", "\"\"");
+                var ntlmDns = (r.NtlmDns ?? "").Replace("\"", "\"\"");
+                var ntlmDomain = (r.NtlmDomain ?? "").Replace("\"", "\"\"");
+                var ntlmBuild = (r.NtlmBuild ?? "").Replace("\"", "\"\"");
+                var sshHash = (r.SshHashFingerprint ?? "").Replace("\"", "\"\"");
+                var favHash = r.FaviconHashValue ?? "";
+                sb.AppendLine($"{r.IpAddress},\"{hostname}\",\"{os}\",\"{ports}\",\"{services}\",\"{tls}\",\"{certSubject}\",\"{certExpires}\",\"{certAlgorithm}\",\"{certStatus}\",\"{role}\",{r.Confidence},\"{nbName}\",\"{nbDomain}\",\"{snmpName}\",\"{snmpDescr}\",\"{snmpLoc}\",\"{snmpOid}\",\"{mdns}\",\"{manufacturer}\",\"{vlan}\",\"{ssdpDevice}\",\"{ntlmDns}\",\"{ntlmDomain}\",\"{ntlmBuild}\",\"{sshHash}\",\"{favHash}\"");
             }
 
             File.WriteAllText(dialog.FileName, sb.ToString(), Encoding.UTF8);
@@ -1152,6 +1263,12 @@ public partial class NetworkCartographyView : UserControl, IToolView
         public string? SnmpSysLocation { get; init; }
         public string? MdnsServicesList { get; init; }
         public string? SsdpDeviceType { get; init; }
+        public string? SnmpObjectId { get; init; }
+        public string? NtlmDns { get; init; }
+        public string? NtlmDomain { get; init; }
+        public string? NtlmBuild { get; init; }
+        public string? SshHashFingerprint { get; init; }
+        public string? FaviconHashValue { get; init; }
 
         /// <summary>
         /// Raw list of open ports for cross-tool context menu actions.

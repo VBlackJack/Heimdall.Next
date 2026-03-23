@@ -51,7 +51,42 @@ public record NetworkScanSnapshot(
 public record SnmpInfo(
     string? SysDescr,
     string? SysName,
-    string? SysLocation);
+    string? SysLocation,
+    string? SysObjectId = null,
+    long? SysUpTimeSeconds = null,
+    int? SysServices = null);
+
+/// <summary>
+/// NTLM challenge information extracted from SMB2/HTTP NTLMSSP exchange.
+/// Provides hostname, domain, and OS build without credentials.
+/// </summary>
+public record NtlmInfo(
+    string? NetBiosComputerName,
+    string? NetBiosDomainName,
+    string? DnsComputerName,
+    string? DnsDomainName,
+    string? DnsForestName,
+    string? OsBuild);
+
+/// <summary>
+/// SMB2 Negotiate response metadata extracted without authentication.
+/// </summary>
+public record SmbNegotiateInfo(
+    string? ServerGuid,
+    ushort DialectRevision,
+    bool SigningRequired,
+    bool SigningEnabled,
+    DateTime? SystemTime,
+    DateTime? ServerStartTime,
+    uint Capabilities);
+
+/// <summary>
+/// HTTP fingerprint evidence collected from cookies, error pages, and URL probes.
+/// </summary>
+public record HttpFingerprint(
+    string? Framework,
+    string? ProductUrl,
+    string? ProductName);
 
 /// <summary>
 /// SSDP/UPnP device information retrieved via M-SEARCH multicast discovery.
@@ -61,7 +96,10 @@ public record SsdpInfo(
     string? FriendlyName,
     string? Manufacturer,
     string? ModelName,
-    string? Server);
+    string? Server,
+    string? ModelNumber = null,
+    string? SerialNumber = null,
+    string? PresentationUrl = null);
 
 /// <summary>
 /// Inferred operating system with confidence and detection source.
@@ -90,7 +128,12 @@ public record HostScanResult(
     SnmpInfo? SnmpInfo = null,
     List<string>? MdnsServices = null,
     Dictionary<string, string>? HttpHeaders = null,
-    SsdpInfo? SsdpInfo = null);
+    SsdpInfo? SsdpInfo = null,
+    NtlmInfo? NtlmInfo = null,
+    string? SshHashFingerprint = null,
+    int? FaviconHash = null,
+    SmbNegotiateInfo? SmbInfo = null,
+    HttpFingerprint? HttpFingerprint = null);
 
 /// <summary>
 /// Result of probing a single port on a host.
@@ -204,6 +247,9 @@ public record KnownHost(
     Observation<List<string>>? MdnsServices,
     Observation<Dictionary<string, string>>? HttpHeaders,
     Observation<SsdpInfo>? SsdpInfo,
+    Observation<NtlmInfo>? NtlmInfo = null,
+    Observation<string>? SshHashFingerprint = null,
+    Observation<int>? FaviconHash = null,
     string? Notes = null);
 
 /// <summary>

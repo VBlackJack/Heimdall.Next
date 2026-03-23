@@ -67,12 +67,12 @@ public static class KnowledgeBaseManager
 
     /// <summary>
     /// Persists the knowledge base to disk using atomic temp-then-rename.
-    /// On Windows, applies restrictive ACL via <see cref="Security.SecureFileWriter"/>.
     /// </summary>
     public static async Task SaveAsync(NetworkKnowledgeBase kb)
     {
         var path = GetKbPath();
-        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        var dir = Path.GetDirectoryName(path)!;
+        Directory.CreateDirectory(dir);
 
         var updated = kb with { LastUpdated = DateTime.UtcNow };
         var json = JsonSerializer.Serialize(updated, SerializeOptions);
@@ -82,17 +82,14 @@ public static class KnowledgeBaseManager
         {
             await File.WriteAllTextAsync(tempPath, json).ConfigureAwait(false);
             File.Move(tempPath, path, overwrite: true);
+            Logging.FileLogger.Log("DEBUG",
+                $"Knowledge base saved: {kb.Hosts.Count} hosts, {json.Length} bytes → {path}");
         }
-        catch
+        catch (Exception ex)
         {
+            Logging.FileLogger.Warn($"Knowledge base save failed: {ex.Message} (path={path})");
             try { File.Delete(tempPath); } catch { /* best effort */ }
             throw;
-        }
-
-        if (OperatingSystem.IsWindows())
-        {
-            try { Security.SecureFileWriter.WriteAndProtect(path, json); }
-            catch { /* ACL enforcement is best-effort */ }
         }
     }
 
@@ -170,6 +167,11 @@ public static class KnowledgeBaseManager
             MdnsServices = MergeObservation(existing.MdnsServices, scanned.MdnsServices, scanTime, source),
             HttpHeaders = MergeObservation(existing.HttpHeaders, scanned.HttpHeaders, scanTime, source),
             SsdpInfo = MergeObservation(existing.SsdpInfo, scanned.SsdpInfo, scanTime, source),
+            NtlmInfo = MergeObservation(existing.NtlmInfo, scanned.NtlmInfo, scanTime, source),
+            SshHashFingerprint = MergeObservation(existing.SshHashFingerprint, scanned.SshHashFingerprint, scanTime, source),
+            FaviconHash = scanned.FaviconHash is not null
+                ? new Observation<int>(scanned.FaviconHash.Value, scanTime, source)
+                : existing.FaviconHash,
         };
     }
 
@@ -193,11 +195,28 @@ public static class KnowledgeBaseManager
         host.IsAlive is not null && IsFresh(host.IsAlive.ObservedAt, ttl.HostAliveHours);
 
     /// <summary>
-    /// Checks whether UDP probe data (NetBIOS, SNMP, mDNS) is fresh.
+    /// Checks whether UDP probe data (NetBIOS, SNMP) is fresh.
+    /// Returns false if probes were never run (null observations) so the
+    /// host gets re-probed on next scan rather than served from cache.
+    /// Also returns false if the last probe timestamp exceeds the TTL.
     /// </summary>
-    public static bool AreUdpProbesFresh(KnownHost host, KnowledgeBaseTtlConfig ttl) =>
-        (host.NetBiosName is null || IsFresh(host.NetBiosName.ObservedAt, ttl.UdpProbeHours)) &&
-        (host.SnmpInfo is null || IsFresh(host.SnmpInfo.ObservedAt, ttl.UdpProbeHours));
+    public static bool AreUdpProbesFresh(KnownHost host, KnowledgeBaseTtlConfig ttl)
+    {
+        // If we have at least one UDP observation with a timestamp, check freshness.
+        // If we have NO observations at all, consider stale so the host gets probed.
+        var hasAnyUdpData = host.NetBiosName is not null || host.SnmpInfo is not null;
+        if (!hasAnyUdpData)
+        {
+            // Check if the host was scanned recently (use LastSeen as proxy for
+            // "UDP probes were attempted but returned null"). If the host was seen
+            // within the UDP TTL window, the null result is still valid — the host
+            // simply doesn't respond to UDP probes and re-probing won't help.
+            return IsFresh(host.LastSeen, ttl.UdpProbeHours);
+        }
+
+        return (host.NetBiosName is null || IsFresh(host.NetBiosName.ObservedAt, ttl.UdpProbeHours)) &&
+               (host.SnmpInfo is null || IsFresh(host.SnmpInfo.ObservedAt, ttl.UdpProbeHours));
+    }
 
     /// <summary>
     /// Checks whether DNS data is fresh.
@@ -260,7 +279,10 @@ public static class KnowledgeBaseManager
         host.SnmpInfo?.Value,
         host.MdnsServices?.Value,
         host.HttpHeaders?.Value,
-        host.SsdpInfo?.Value);
+        host.SsdpInfo?.Value,
+        host.NtlmInfo?.Value,
+        host.SshHashFingerprint?.Value,
+        host.FaviconHash?.Value);
 
     // ── Private helpers ──────────────────────────────────────────────
 
@@ -286,7 +308,10 @@ public static class KnowledgeBaseManager
         SnmpInfo: r.SnmpInfo is not null ? new(r.SnmpInfo, scanTime, source) : null,
         MdnsServices: r.MdnsServices is not null ? new(r.MdnsServices, scanTime, source) : null,
         HttpHeaders: r.HttpHeaders is not null ? new(r.HttpHeaders, scanTime, source) : null,
-        SsdpInfo: r.SsdpInfo is not null ? new(r.SsdpInfo, scanTime, source) : null);
+        SsdpInfo: r.SsdpInfo is not null ? new(r.SsdpInfo, scanTime, source) : null,
+        NtlmInfo: r.NtlmInfo is not null ? new(r.NtlmInfo, scanTime, source) : null,
+        SshHashFingerprint: r.SshHashFingerprint is not null ? new(r.SshHashFingerprint, scanTime, source) : null,
+        FaviconHash: r.FaviconHash is not null ? new(r.FaviconHash.Value, scanTime, source) : null);
 
     /// <summary>
     /// Newest-non-null-wins merge for nullable string observations.
