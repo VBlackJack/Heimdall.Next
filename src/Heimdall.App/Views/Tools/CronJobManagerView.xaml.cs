@@ -93,12 +93,14 @@ public partial class CronJobManagerView : UserControl, IToolView
 
         BtnHelp.ToolTip = L("ToolHelpTooltip");
         AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
+        TxtEmptyState.Text = L("ToolCronJobEmptyState");
     }
 
     // ── Paste Crontab Mode ──────────────────────────────────────
 
     private void OnParseClick(object sender, RoutedEventArgs e)
     {
+        EmptyStatePanel.Visibility = Visibility.Collapsed;
         var content = TxtCrontabInput.Text;
         TxtCronError.Visibility = Visibility.Collapsed;
         CronDetailPanel.Visibility = Visibility.Collapsed;
@@ -183,6 +185,7 @@ public partial class CronJobManagerView : UserControl, IToolView
 
     private void OnRefreshTasksClick(object sender, RoutedEventArgs e)
     {
+        EmptyStatePanel.Visibility = Visibility.Collapsed;
         _ = LoadWindowsTasksAsync();
     }
 

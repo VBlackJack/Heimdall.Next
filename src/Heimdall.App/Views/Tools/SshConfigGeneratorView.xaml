@@ -32,7 +32,7 @@
                 <Button x:Name="BtnHelp" DockPanel.Dock="Right" Content="?"
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="6,2" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
+                        Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
                         Width="24" Height="24" Margin="8,0,0,0"/>
                 <TextBlock x:Name="HeaderTitle" Text=""
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
@@ -157,8 +157,22 @@
                             Padding="14,6" FontSize="{StaticResource FontSizeBody}"/>
                 </WrapPanel>
 
+                <!-- Empty state hint (hidden once output is generated) -->
+                <Border x:Name="EmptyStatePanel"
+                        Style="{StaticResource ToolEmptyStateStyle}"
+                        Margin="0,24,0,0">
+                    <StackPanel HorizontalAlignment="Center">
+                        <TextBlock Text="&#xE756;" FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource IconSizeEmptyState}"
+                                   HorizontalAlignment="Center"
+                                   Foreground="{DynamicResource TextDisabledBrush}" Margin="0,0,0,8"/>
+                        <TextBlock x:Name="TxtEmptyState" Text=""
+                                   FontSize="{StaticResource FontSizeBodyLarge}" TextAlignment="Center"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"/>
+                    </StackPanel>
+                </Border>
+
                 <!-- Output -->
-                <Border Background="{DynamicResource CardBrush}"
+                <Border x:Name="OutputPanel" Visibility="Collapsed" Background="{DynamicResource CardBrush}"
                         BorderBrush="{DynamicResource BorderBrush}"
                         BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
                         Padding="12,8" Margin="0,0,0,8">
@@ -166,7 +180,7 @@
                         <Button x:Name="BtnCopy" DockPanel.Dock="Top"
                                 Click="OnCopyClick"
                                 Style="{DynamicResource SecondaryButtonStyle}"
-                                Padding="10,4" Margin="0,0,0,8"
+                                Padding="{StaticResource PaddingButtonCopy}" Margin="0,0,0,8"
                                 HorizontalAlignment="Left" FontSize="{StaticResource FontSizeBody}"/>
                         <TextBox x:Name="TxtOutput"
                                  IsReadOnly="True"

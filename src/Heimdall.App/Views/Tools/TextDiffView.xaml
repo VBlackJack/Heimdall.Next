@@ -28,15 +28,14 @@
         <Border Grid.Row="0" Padding="12,8"
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
-                BorderThickness="0,0,0,1"
-                Margin="0,0,0,12">
+                BorderThickness="0,0,0,1">
             <DockPanel>
                 <Button x:Name="BtnHelp" DockPanel.Dock="Right" Content="?"
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="6,2" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
+                        Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
                         Width="24" Height="24" Margin="8,0,0,0"/>
-                <TextBlock x:Name="TitleText" DockPanel.Dock="Left"
+                <TextBlock x:Name="HeaderTitle" DockPanel.Dock="Left"
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
                            VerticalAlignment="Center"/>
@@ -132,7 +131,7 @@
             <Button x:Name="BtnCopyDiff" DockPanel.Dock="Right"
                     Click="OnCopyDiffClick"
                     Style="{DynamicResource SecondaryButtonStyle}"
-                    Padding="10,4" HorizontalAlignment="Right"/>
+                    Padding="{StaticResource PaddingButtonCopy}" HorizontalAlignment="Right"/>
             <StackPanel Orientation="Horizontal" Margin="16,0,8,0" VerticalAlignment="Center">
                 <CheckBox x:Name="ChkIgnoreWhitespace"
                           Foreground="{DynamicResource TextPrimaryBrush}"

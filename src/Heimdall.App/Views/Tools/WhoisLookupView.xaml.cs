@@ -81,6 +81,9 @@ public partial class WhoisLookupView : UserControl, IToolView
 
         BtnHelp.ToolTip = L("ToolHelpTooltip");
         System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
+
+        TxtDomain.Tag = L("ToolWatermarkExampleDomainOrIp");
+        TxtEmptyState.Text = L("ToolWhoisEmptyState");
     }
 
     private void OnDomainKeyDown(object sender, KeyEventArgs e)
@@ -102,6 +105,7 @@ public partial class WhoisLookupView : UserControl, IToolView
         var domain = TxtDomain.Text.Trim();
         TxtError.Visibility = Visibility.Collapsed;
         ResultsPanel.Visibility = Visibility.Collapsed;
+        EmptyStatePanel.Visibility = Visibility.Visible;
         TxtStatus.Text = string.Empty;
 
         if (string.IsNullOrWhiteSpace(domain))
@@ -131,6 +135,7 @@ public partial class WhoisLookupView : UserControl, IToolView
             TxtResultHeader.Text = string.Format(L("ToolWhoisResultHeader"), domain);
             TxtResults.Text = result;
             ResultsPanel.Visibility = Visibility.Visible;
+            EmptyStatePanel.Visibility = Visibility.Collapsed;
             TxtStatus.Text = string.Format(L("ToolWhoisStatusComplete"), stopwatch.ElapsedMilliseconds);
         }
         catch (OperationCanceledException)

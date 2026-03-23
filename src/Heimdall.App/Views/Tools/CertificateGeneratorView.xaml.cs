@@ -78,7 +78,7 @@ public partial class CertificateGeneratorView : UserControl, IToolView
 
     private void ApplyLocalization()
     {
-        TitleText.Text = L("ToolCertGenTitle");
+        HeaderTitle.Text = L("ToolCertGenTitle");
         SubjectSectionLabel.Text = L("ToolCertGenSubjectSection");
         CnLabel.Text = L("ToolCertGenCn");
         OrgLabel.Text = L("ToolCertGenOrg");

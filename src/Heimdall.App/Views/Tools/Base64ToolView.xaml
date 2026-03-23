@@ -27,16 +27,16 @@
         <Border Grid.Row="0" Padding="12,8"
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
-                BorderThickness="0,0,0,1"
-                Margin="0,0,0,12">
+                BorderThickness="0,0,0,1">
             <DockPanel>
                 <Button x:Name="BtnHelp" DockPanel.Dock="Right" Content="?"
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="6,2" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
+                        Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
                         Width="24" Height="24" Margin="8,0,0,0"/>
-                <TextBlock x:Name="TitleText" FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
-                           Foreground="{DynamicResource TextPrimaryBrush}"/>
+                <TextBlock x:Name="HeaderTitle" FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextPrimaryBrush}"
+                           VerticalAlignment="Center"/>
             </DockPanel>
         </Border>
 
@@ -104,7 +104,7 @@
                        Foreground="{DynamicResource TextSecondaryBrush}"
                        FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,4"/>
             <TextBox x:Name="OutputText" Grid.Row="1"
-                     IsReadOnly="True"
+                     IsReadOnly="True" AutomationProperties.LiveSetting="Polite"
                      AcceptsReturn="True"
                      TextWrapping="Wrap"
                      VerticalScrollBarVisibility="Auto"
@@ -123,11 +123,11 @@
             <Button x:Name="BtnCopyOutput" DockPanel.Dock="Right"
                     Click="OnCopyOutputClick"
                     Style="{DynamicResource SecondaryButtonStyle}"
-                    Padding="10,4"/>
+                    Padding="{StaticResource PaddingButtonCopy}"/>
             <Button x:Name="BtnBrowseFile" DockPanel.Dock="Right"
                     Click="OnBrowseFileClick"
                     Style="{DynamicResource SecondaryButtonStyle}"
-                    Padding="10,4" Margin="0,0,8,0"
+                    Padding="{StaticResource PaddingButtonCopy}" Margin="0,0,8,0"
                     Visibility="Collapsed"/>
             <TextBlock x:Name="StatusText"
                        Foreground="{DynamicResource TextSecondaryBrush}"

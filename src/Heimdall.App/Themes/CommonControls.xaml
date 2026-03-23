@@ -30,6 +30,15 @@
     <Thickness x:Key="ToolHeaderPadding">12,8</Thickness>
     <Thickness x:Key="ToolFooterPadding">12,6</Thickness>
 
+    <!-- Button padding by role -->
+    <Thickness x:Key="PaddingButtonHelp">6,2</Thickness>
+    <Thickness x:Key="PaddingButtonCopy">10,4</Thickness>
+    <Thickness x:Key="PaddingButtonPrimary">12,6</Thickness>
+    <Thickness x:Key="PaddingButtonPreset">8,2</Thickness>
+
+    <!-- Input field padding -->
+    <Thickness x:Key="PaddingInput">8,6</Thickness>
+
     <!-- Session header strip padding (horizontal=8, vertical=4) -->
     <Thickness x:Key="SessionHeaderPadding">8,4</Thickness>
 

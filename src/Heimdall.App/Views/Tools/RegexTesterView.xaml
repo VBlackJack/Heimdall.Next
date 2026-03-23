@@ -27,15 +27,14 @@
         <Border Grid.Row="0" Padding="12,8"
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
-                BorderThickness="0,0,0,1"
-                Margin="0,0,0,12">
+                BorderThickness="0,0,0,1">
             <DockPanel>
                 <Button x:Name="BtnHelp" DockPanel.Dock="Right" Content="?"
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="6,2" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
+                        Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
                         Width="24" Height="24" Margin="8,0,0,0"/>
-                <TextBlock x:Name="TitleText" FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
+                <TextBlock x:Name="HeaderTitle" FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
                            VerticalAlignment="Center"/>
             </DockPanel>
@@ -137,8 +136,22 @@
                        HorizontalAlignment="Right"/>
         </DockPanel>
 
+        <!-- Empty state hint (hidden once matches appear) -->
+        <Border x:Name="EmptyStatePanel" Grid.Row="4"
+                Style="{StaticResource ToolEmptyStateStyle}"
+                Margin="0,8,0,0">
+            <StackPanel HorizontalAlignment="Center">
+                <TextBlock Text="&#xE71E;" FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource IconSizeEmptyState}"
+                           HorizontalAlignment="Center"
+                           Foreground="{DynamicResource TextDisabledBrush}" Margin="0,0,0,8"/>
+                <TextBlock x:Name="TxtEmptyState" Text=""
+                           FontSize="{StaticResource FontSizeBodyLarge}" TextAlignment="Center"
+                           Foreground="{DynamicResource TextSecondaryBrush}"/>
+            </StackPanel>
+        </Border>
+
         <!-- Matches output -->
-        <Grid Grid.Row="4">
+        <Grid x:Name="MatchesPanel" Grid.Row="4" Visibility="Collapsed">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
@@ -152,6 +165,7 @@
                      BorderBrush="{DynamicResource BorderBrush}"
                      BorderThickness="1"
                      FontFamily="Consolas" FontSize="{StaticResource FontSizeBodyLarge}"
+                     AutomationProperties.LiveSetting="Polite"
 />
         </Grid>
 
@@ -160,7 +174,7 @@
             <Button x:Name="BtnCopyMatches" DockPanel.Dock="Right"
                     Click="OnCopyMatchesClick"
                     Style="{DynamicResource SecondaryButtonStyle}"
-                    Padding="10,4"/>
+                    Padding="{StaticResource PaddingButtonCopy}"/>
         </DockPanel>
         </Grid>
     </Grid>

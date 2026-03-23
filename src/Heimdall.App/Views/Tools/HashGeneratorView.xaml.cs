@@ -194,6 +194,9 @@ public partial class HashGeneratorView : UserControl, IToolView
 
         BtnHelp.ToolTip = L("ToolHelpTooltip");
         System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
+
+        TxtInput.Tag = L("ToolWatermarkTextToHash");
+        TxtVerify.Tag = L("ToolWatermarkPasteHashVerify");
     }
 
     private void OnHelpClick(object sender, RoutedEventArgs e)

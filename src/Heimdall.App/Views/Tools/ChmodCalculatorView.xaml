@@ -27,16 +27,16 @@
         <Border Grid.Row="0" Padding="12,8"
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
-                BorderThickness="0,0,0,1"
-                Margin="0,0,0,12">
+                BorderThickness="0,0,0,1">
             <DockPanel>
                 <Button x:Name="BtnHelp" DockPanel.Dock="Right" Content="?"
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="6,2" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
+                        Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
                         Width="24" Height="24" Margin="8,0,0,0"/>
-                <TextBlock x:Name="TitleText" FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
-                           Foreground="{DynamicResource TextPrimaryBrush}"/>
+                <TextBlock x:Name="HeaderTitle" FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextPrimaryBrush}"
+                           VerticalAlignment="Center"/>
             </DockPanel>
         </Border>
 
@@ -214,7 +214,7 @@
                 <Button x:Name="BtnCopyCommand" Grid.Column="2"
                         Click="OnCopyCommandClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="10,4" Margin="8,0,0,0"/>
+                        Padding="{StaticResource PaddingButtonCopy}" Margin="8,0,0,0"/>
             </Grid>
         </Border>
 
@@ -222,10 +222,10 @@
         <StackPanel Grid.Row="4" Orientation="Horizontal" Margin="0,0,0,16">
             <Button x:Name="BtnCopyOctal" Click="OnCopyOctalClick"
                     Style="{DynamicResource SecondaryButtonStyle}"
-                    Padding="12,4" Margin="0,0,8,0"/>
+                    Padding="{StaticResource PaddingButtonCopy}" Margin="0,0,8,0"/>
             <Button x:Name="BtnCopySymbolic" Click="OnCopySymbolicClick"
                     Style="{DynamicResource SecondaryButtonStyle}"
-                    Padding="12,4"/>
+                    Padding="{StaticResource PaddingButtonCopy}"/>
         </StackPanel>
 
         <!-- Presets -->

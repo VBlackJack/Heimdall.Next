@@ -1,3 +1,18 @@
+<!--
+  Copyright 2026 Julien Bombled
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
 <UserControl x:Class="Heimdall.App.Views.Tools.SubnetCalculatorView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -17,7 +32,7 @@
                 <Button x:Name="BtnHelp" DockPanel.Dock="Right" Content="?"
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="6,2" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
+                        Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
                         Width="24" Height="24" Margin="8,0,0,0"/>
                 <TextBlock x:Name="HeaderTitle" Text=""
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
@@ -39,7 +54,7 @@
                              Style="{StaticResource WatermarkTextBoxStyle}"
                              Tag="192.168.1.0/24"
                              FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
-                             Padding="8,6"
+                             Padding="{StaticResource PaddingInput}"
                              Background="{DynamicResource CardBrush}"
                              Foreground="{DynamicResource TextPrimaryBrush}"
                              BorderBrush="{DynamicResource BorderBrush}"
@@ -52,12 +67,27 @@
                            FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,12" TextWrapping="Wrap"
                            Foreground="{DynamicResource ErrorTextBrush}"/>
 
+                <!-- Empty state hint (hidden once results appear) -->
+                <Border x:Name="EmptyStatePanel"
+                        Style="{StaticResource ToolEmptyStateStyle}"
+                        Margin="0,24,0,0">
+                    <StackPanel HorizontalAlignment="Center">
+                        <TextBlock Text="&#xE968;" FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource IconSizeEmptyState}"
+                                   HorizontalAlignment="Center"
+                                   Foreground="{DynamicResource TextDisabledBrush}" Margin="0,0,0,8"/>
+                        <TextBlock x:Name="TxtEmptyState" Text=""
+                                   FontSize="{StaticResource FontSizeBodyLarge}" TextAlignment="Center"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"/>
+                    </StackPanel>
+                </Border>
+
                 <!-- Results -->
                 <Border x:Name="ResultsPanel" Visibility="Collapsed"
                         Background="{DynamicResource CardBrush}"
                         BorderBrush="{DynamicResource BorderBrush}"
                         BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
-                        Padding="16,12">
+                        Padding="16,12"
+                        AutomationProperties.LiveSetting="Polite">
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto"/>
@@ -90,7 +120,7 @@
                                    FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas" Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
                         <Button x:Name="BtnCopyNetwork" Grid.Row="0" Grid.Column="3" Click="OnCopyValueClick"
                                 Tag="Network" Style="{DynamicResource SecondaryButtonStyle}"
-                                Padding="6,2" Margin="8,0,0,0" FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center"/>
+                                Padding="{StaticResource PaddingButtonHelp}" Margin="8,0,0,0" FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center"/>
 
                         <!-- Row 2: Broadcast Address -->
                         <TextBlock x:Name="LblBroadcast" Grid.Row="2" Grid.Column="0" Text=""
@@ -99,7 +129,7 @@
                                    FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas" Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
                         <Button x:Name="BtnCopyBroadcast" Grid.Row="2" Grid.Column="3" Click="OnCopyValueClick"
                                 Tag="Broadcast" Style="{DynamicResource SecondaryButtonStyle}"
-                                Padding="6,2" Margin="8,0,0,0" FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center"/>
+                                Padding="{StaticResource PaddingButtonHelp}" Margin="8,0,0,0" FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center"/>
 
                         <!-- Row 4: Subnet Mask -->
                         <TextBlock x:Name="LblSubnetMask" Grid.Row="4" Grid.Column="0" Text=""
@@ -108,7 +138,7 @@
                                    FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas" Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
                         <Button x:Name="BtnCopyMask" Grid.Row="4" Grid.Column="3" Click="OnCopyValueClick"
                                 Tag="Mask" Style="{DynamicResource SecondaryButtonStyle}"
-                                Padding="6,2" Margin="8,0,0,0" FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center"/>
+                                Padding="{StaticResource PaddingButtonHelp}" Margin="8,0,0,0" FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center"/>
 
                         <!-- Row 6: First Host -->
                         <TextBlock x:Name="LblFirstHost" Grid.Row="6" Grid.Column="0" Text=""
@@ -117,7 +147,7 @@
                                    FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas" Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
                         <Button x:Name="BtnCopyFirstHost" Grid.Row="6" Grid.Column="3" Click="OnCopyValueClick"
                                 Tag="FirstHost" Style="{DynamicResource SecondaryButtonStyle}"
-                                Padding="6,2" Margin="8,0,0,0" FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center"/>
+                                Padding="{StaticResource PaddingButtonHelp}" Margin="8,0,0,0" FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center"/>
 
                         <!-- Row 8: Last Host -->
                         <TextBlock x:Name="LblLastHost" Grid.Row="8" Grid.Column="0" Text=""
@@ -126,7 +156,7 @@
                                    FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas" Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
                         <Button x:Name="BtnCopyLastHost" Grid.Row="8" Grid.Column="3" Click="OnCopyValueClick"
                                 Tag="LastHost" Style="{DynamicResource SecondaryButtonStyle}"
-                                Padding="6,2" Margin="8,0,0,0" FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center"/>
+                                Padding="{StaticResource PaddingButtonHelp}" Margin="8,0,0,0" FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center"/>
 
                         <!-- Row 10: Total Hosts -->
                         <TextBlock x:Name="LblTotalHosts" Grid.Row="10" Grid.Column="0" Text=""
@@ -135,7 +165,7 @@
                                    FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas" Foreground="{DynamicResource AccentBrush}" FontWeight="SemiBold" VerticalAlignment="Center"/>
                         <Button x:Name="BtnCopyTotalHosts" Grid.Row="10" Grid.Column="3" Click="OnCopyValueClick"
                                 Tag="TotalHosts" Style="{DynamicResource SecondaryButtonStyle}"
-                                Padding="6,2" Margin="8,0,0,0" FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center"/>
+                                Padding="{StaticResource PaddingButtonHelp}" Margin="8,0,0,0" FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center"/>
 
                         <!-- Row 12: CIDR Notation -->
                         <TextBlock x:Name="LblCidr" Grid.Row="12" Grid.Column="0" Text=""
@@ -144,7 +174,7 @@
                                    FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas" Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
                         <Button x:Name="BtnCopyCidr" Grid.Row="12" Grid.Column="3" Click="OnCopyValueClick"
                                 Tag="Cidr" Style="{DynamicResource SecondaryButtonStyle}"
-                                Padding="6,2" Margin="8,0,0,0" FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center"/>
+                                Padding="{StaticResource PaddingButtonHelp}" Margin="8,0,0,0" FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center"/>
 
                         <!-- Row 14: Wildcard Mask -->
                         <TextBlock x:Name="LblWildcard" Grid.Row="14" Grid.Column="0" Text=""
@@ -153,7 +183,7 @@
                                    FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas" Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
                         <Button x:Name="BtnCopyWildcard" Grid.Row="14" Grid.Column="3" Click="OnCopyValueClick"
                                 Tag="Wildcard" Style="{DynamicResource SecondaryButtonStyle}"
-                                Padding="6,2" Margin="8,0,0,0" FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center"/>
+                                Padding="{StaticResource PaddingButtonHelp}" Margin="8,0,0,0" FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center"/>
                     </Grid>
                 </Border>
 

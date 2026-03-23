@@ -134,6 +134,8 @@ public partial class DateTimeConverterView : UserControl, IToolView
 
         BtnHelp.ToolTip = L("ToolHelpTooltip");
         System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
+
+        TxtInput.Tag = L("ToolWatermarkDateTimeInput");
     }
 
     private void OnInputTextChanged(object sender, TextChangedEventArgs e)

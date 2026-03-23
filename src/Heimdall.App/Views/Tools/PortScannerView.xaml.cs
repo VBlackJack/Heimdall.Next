@@ -49,6 +49,7 @@ public partial class PortScannerView : UserControl, IToolView
     private List<SshGatewayDto>? _gateways;
     private SshGatewayDto? _selectedGateway;
     private Action<string, string, ToolContext?>? _openToolAction;
+    private Action<bool>? _setBusy;
 
     private readonly ObservableCollection<PortScanResult> _results = [];
     private readonly List<PortScanResult> _allResults = [];
@@ -99,6 +100,7 @@ public partial class PortScannerView : UserControl, IToolView
     {
         _localizer = localizer;
         _openToolAction = ToolContextMenuHelper.GetOpenToolAction(context);
+        _setBusy = context?.SetBusyAction;
         ApplyLocalization();
 
         // Pre-fill with sensible defaults; context overrides if provided
@@ -169,6 +171,9 @@ public partial class PortScannerView : UserControl, IToolView
         System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
 
         TxtEmptyState.Text = L("ToolEmptyStatePortScan");
+
+        TxtHost.Tag = L("ToolWatermarkHostnameOrIp");
+        TxtPorts.Tag = L("ToolWatermarkPortList");
     }
 
     private void OnHelpClick(object sender, RoutedEventArgs e)
@@ -242,6 +247,7 @@ public partial class PortScannerView : UserControl, IToolView
         _allResults.Clear();
         _cts = new CancellationTokenSource();
         _isScanning = true;
+        _setBusy?.Invoke(true);
         BtnScan.Content = L("ToolPortScanBtnStop");
         BtnScan.Foreground = (System.Windows.Media.Brush)FindResource("ErrorBrush");
         BtnScan.Style = (Style)FindResource("SecondaryButtonStyle");
@@ -364,6 +370,7 @@ public partial class PortScannerView : UserControl, IToolView
         _cts?.Dispose();
         _cts = null;
         _isScanning = false;
+        _setBusy?.Invoke(false);
         BtnScan.Content = L("ToolPortScanBtnStart");
         BtnScan.Foreground = (System.Windows.Media.Brush)FindResource("TextPrimaryBrush");
         BtnScan.Style = (Style)FindResource("PrimaryButtonStyle");

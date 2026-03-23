@@ -280,7 +280,7 @@ Toolbar toggle button switches directory listing from SFTP `ListDirectory` to `s
 
 **Solution**: `X11ServerManager` detects running X server processes by scanning known process names. If none is found, it searches known installation paths and starts the first available server automatically. The `DISPLAY` environment variable is set to `localhost:0.0` for the SSH session. The manager disposes the started process on shutdown.
 
-## Design System (CommonControls.xaml — 1,870+ lines, 40 tokens, WCAG AA)
+## Design System (CommonControls.xaml — 1,880+ lines, 45 tokens, WCAG AA)
 
 The application uses a centralized Design System defined in `CommonControls.xaml` with full WCAG AA contrast compliance across both Dark and Light themes.
 
@@ -294,6 +294,8 @@ The application uses a centralized Design System defined in `CommonControls.xaml
 **Spacing tokens (5 uniform + 3 asymmetric)** — `Thickness` resources for margins/padding:
 - Uniform: `SpacingXs` (4), `SpacingSm` (8), `SpacingMd` (12), `SpacingLg` (16), `SpacingXl` (24)
 - Asymmetric: `ContentAreaMargin` (16,0,16,16) for tool content areas, `SessionHeaderPadding` (8,4) for session header strips, `ToolHeaderPadding` (12,8) / `ToolFooterPadding` (12,6) for tool panel headers/footers
+- Button padding by role: `PaddingButtonHelp` (6,2), `PaddingButtonCopy` (10,4), `PaddingButtonPrimary` (12,6), `PaddingButtonPreset` (8,2)
+- Input field padding: `PaddingInput` (8,6) for all TextBox inputs
 - Truly one-off asymmetric margins (`Margin="0,0,8,0"`) stay hardcoded — standard WPF practice
 
 **Corner radius tokens (5)**: `CornerRadiusXs` (2), `CornerRadiusSm` (4), `CornerRadiusMd` (8), `CornerRadiusLg` (10), `CornerRadiusXl` (12)

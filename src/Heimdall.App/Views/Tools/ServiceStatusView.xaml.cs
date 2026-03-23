@@ -91,6 +91,7 @@ public partial class ServiceStatusView : UserControl, IToolView
 
         BtnHelp.ToolTip = L("ToolHelpTooltip");
         AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
+        TxtEmptyState.Text = L("ToolServiceStatusEmptyState");
     }
 
     // ── Data Loading ────────────────────────────────────────────
@@ -118,6 +119,8 @@ public partial class ServiceStatusView : UserControl, IToolView
 
             _allServices.Clear();
             _allServices.AddRange(services);
+            EmptyStatePanel.Visibility = Visibility.Collapsed;
+            ServicesPanel.Visibility = Visibility.Visible;
             ApplyFilter();
         }
         catch (OperationCanceledException)

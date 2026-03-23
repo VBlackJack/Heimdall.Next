@@ -36,7 +36,7 @@
                 <Button x:Name="BtnHelp" DockPanel.Dock="Right" Content="?"
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="6,2" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
+                        Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
                         Width="24" Height="24" Margin="8,0,0,0"/>
                 <TextBlock x:Name="HeaderTitle" Text=""
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
@@ -58,7 +58,7 @@
                          Style="{StaticResource WatermarkTextBoxStyle}"
                          Tag="192.168.1.0/24"
                          FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
-                         Padding="8,6"
+                         Padding="{StaticResource PaddingInput}"
                          Background="{DynamicResource CardBrush}"
                          Foreground="{DynamicResource TextPrimaryBrush}"
                          BorderBrush="{DynamicResource BorderBrush}"
@@ -98,7 +98,7 @@
                 <Button x:Name="BtnStop" Content=""
                         Click="OnStopClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="12,6" Margin="8,0,0,0"
+                        Padding="{StaticResource PaddingButtonPrimary}" Margin="8,0,0,0"
                         VerticalAlignment="Center" IsEnabled="False"/>
             </WrapPanel>
         </Border>
@@ -201,17 +201,17 @@
                     <Button x:Name="BtnExportDrawio" Content=""
                             Click="OnExportDrawioClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="12,6" Margin="0,0,4,0"
+                            Padding="{StaticResource PaddingButtonPrimary}" Margin="0,0,4,0"
                             VerticalAlignment="Center"/>
                     <Button x:Name="BtnEditDiagram" Content=""
                             Click="OnEditDiagramClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="12,6" Margin="0,0,4,0"
+                            Padding="{StaticResource PaddingButtonPrimary}" Margin="0,0,4,0"
                             VerticalAlignment="Center"/>
                     <Button x:Name="BtnExportCsv" Content=""
                             Click="OnExportCsvClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="12,6"
+                            Padding="{StaticResource PaddingButtonPrimary}"
                             VerticalAlignment="Center"/>
                 </StackPanel>
                 <TextBlock x:Name="TxtStats" Text="" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"

@@ -72,7 +72,7 @@ public partial class Base64ToolView : UserControl, IToolView
 
     private void ApplyLocalization()
     {
-        TitleText.Text = L("ToolBase64Title");
+        HeaderTitle.Text = L("ToolBase64Title");
         InputLabel.Text = L("ToolBase64InputLabel");
         OutputLabel.Text = L("ToolBase64OutputLabel");
         BtnEncode.Content = L("ToolBase64BtnEncode");
@@ -95,6 +95,8 @@ public partial class Base64ToolView : UserControl, IToolView
 
         BtnHelp.ToolTip = L("ToolHelpTooltip");
         System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
+
+        InputText.Tag = L("ToolWatermarkTextToEncode");
     }
 
     private void OnEncodeClick(object sender, RoutedEventArgs e)

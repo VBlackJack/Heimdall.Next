@@ -1,3 +1,18 @@
+<!--
+  Copyright 2026 Julien Bombled
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
 <UserControl x:Class="Heimdall.App.Views.Tools.HashGeneratorView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -18,7 +33,7 @@
                 <Button x:Name="BtnHelp" DockPanel.Dock="Right" Content="?"
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="6,2" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
+                        Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
                         Width="24" Height="24" Margin="8,0,0,0"/>
                 <TextBlock x:Name="HeaderTitle" Text=""
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
@@ -37,7 +52,7 @@
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
                 <TextBox x:Name="TxtInput" Text=""
                          FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
-                         Padding="8,6" Height="120"
+                         Padding="{StaticResource PaddingInput}" Height="120"
                          AcceptsReturn="True" AcceptsTab="True"
                          TextWrapping="Wrap"
                          VerticalScrollBarVisibility="Auto"
@@ -59,7 +74,7 @@
                         <Button x:Name="BtnBrowseFile" DockPanel.Dock="Right"
                                 Click="OnBrowseFileClick"
                                 Style="{DynamicResource SecondaryButtonStyle}"
-                                Padding="12,6" Margin="8,0,0,0"
+                                Padding="{StaticResource PaddingButtonPrimary}" Margin="8,0,0,0"
                                 VerticalAlignment="Center"/>
                         <TextBlock x:Name="TxtFileDropZone"
                                    FontSize="{StaticResource FontSizeBody}"
@@ -81,7 +96,7 @@
                     <Button x:Name="BtnClearFile" DockPanel.Dock="Right"
                             Content="" Click="OnClearFileClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="10,4" Margin="8,0,0,0"
+                            Padding="{StaticResource PaddingButtonCopy}" Margin="8,0,0,0"
                             Visibility="Collapsed"
                             VerticalAlignment="Center"/>
                     <TextBlock x:Name="TxtFileStatus" Text=""
@@ -98,7 +113,8 @@
                         BorderBrush="{DynamicResource BorderBrush}"
                         BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
                         Padding="12,8" Margin="0,0,0,8">
-                    <StackPanel x:Name="HashResultsPanel" />
+                    <StackPanel x:Name="HashResultsPanel"
+                                AutomationProperties.LiveSetting="Polite"/>
                 </Border>
 
                 <!-- Byte length indicator -->
@@ -113,7 +129,7 @@
                 <TextBox x:Name="TxtVerify" Text=""
                          Style="{DynamicResource WatermarkTextBoxStyle}"
                          FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
-                         Padding="8,6" Margin="0,0,0,4"
+                         Padding="{StaticResource PaddingInput}" Margin="0,0,0,4"
                          Background="{DynamicResource CardBrush}"
                          Foreground="{DynamicResource TextPrimaryBrush}"
                          BorderBrush="{DynamicResource BorderBrush}"

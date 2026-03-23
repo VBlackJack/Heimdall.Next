@@ -101,6 +101,7 @@ public partial class SshConfigGeneratorView : UserControl, IToolView
 
         BtnHelp.ToolTip = L("ToolHelpTooltip");
         AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
+        TxtEmptyState.Text = L("ToolSshConfigEmptyState");
     }
 
     private void OnGenerateClick(object sender, RoutedEventArgs e)
@@ -130,6 +131,8 @@ public partial class SshConfigGeneratorView : UserControl, IToolView
             ParseInt(TxtServerAliveInterval.Text, DefaultAliveInterval));
 
         TxtOutput.Text = block;
+        EmptyStatePanel.Visibility = Visibility.Collapsed;
+        OutputPanel.Visibility = Visibility.Visible;
     }
 
     private void OnGenerateAllClick(object sender, RoutedEventArgs e)
@@ -138,6 +141,8 @@ public partial class SshConfigGeneratorView : UserControl, IToolView
         // requires dependency injection which tools don't have direct access to.
         // The context-based prefill covers the single-server use case.
         TxtOutput.Text = L("ToolSshConfigGenerateAllHint");
+        EmptyStatePanel.Visibility = Visibility.Collapsed;
+        OutputPanel.Visibility = Visibility.Visible;
     }
 
     private void OnCopyClick(object sender, RoutedEventArgs e)

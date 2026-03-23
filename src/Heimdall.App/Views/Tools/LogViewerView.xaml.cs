@@ -71,14 +71,13 @@ public partial class LogViewerView : UserControl, IToolView
 
     private void ApplyLocalization()
     {
-        TitleText.Text = L("ToolLogViewTitle");
+        HeaderTitle.Text = L("ToolLogViewTitle");
         BtnBrowse.Content = L("ToolLogViewBtnBrowse");
         BtnTail.Content = L("ToolLogViewBtnTail");
         BtnApplyFilter.Content = L("ToolLogViewBtnFilter");
         BtnClearFilter.Content = L("ToolLogViewBtnClear");
         ChkCaseSensitive.Content = L("ToolLogViewCaseSensitive");
         EncodingLabel.Text = L("ToolLogViewEncoding");
-        FilePathInput.Tag = L("ToolLogViewFilePathHint");
 
         // Accessibility
         System.Windows.Automation.AutomationProperties.SetName(BtnBrowse, L("ToolLogViewBtnBrowse"));
@@ -92,6 +91,10 @@ public partial class LogViewerView : UserControl, IToolView
 
         BtnHelp.ToolTip = L("ToolHelpTooltip");
         System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
+
+        FilePathInput.Tag = L("ToolWatermarkLogFilePath");
+        FilterInput.Tag = L("ToolWatermarkFilterText");
+        TxtEmptyState.Text = L("ToolLogViewEmptyState");
     }
 
     private void OnBrowseClick(object sender, RoutedEventArgs e)
@@ -124,6 +127,7 @@ public partial class LogViewerView : UserControl, IToolView
     private void LoadFile(string filePath)
     {
         StopTail();
+        EmptyStatePanel.Visibility = Visibility.Collapsed;
 
         if (!File.Exists(filePath))
         {

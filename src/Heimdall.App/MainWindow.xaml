@@ -242,9 +242,19 @@
                                             Padding="4,4" FontSize="{StaticResource FontSizeCaption}"
                                             HorizontalAlignment="Right"/>
                                 </DockPanel>
-                                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="4,0,4,4">
-                                    <StackPanel x:Name="ToolsCategoryStack"/>
-                                </ScrollViewer>
+                                <Grid>
+                                    <ScrollViewer x:Name="ToolsPanelScroll"
+                                                  VerticalScrollBarVisibility="Auto" Padding="4,0,4,4"
+                                                  ScrollChanged="OnToolsPanelScrollChanged">
+                                        <StackPanel x:Name="ToolsCategoryStack"/>
+                                    </ScrollViewer>
+                                    <Border x:Name="ToolsPanelScrollHint" Height="20" VerticalAlignment="Bottom"
+                                            IsHitTestVisible="False" Visibility="Collapsed">
+                                        <TextBlock Text="&#xE70D;" FontFamily="Segoe MDL2 Assets"
+                                                   FontSize="10" HorizontalAlignment="Center"
+                                                   Foreground="{DynamicResource TextDisabledBrush}"/>
+                                    </Border>
+                                </Grid>
                             </DockPanel>
                         </Border>
 
@@ -635,6 +645,33 @@
                                             <TextBlock x:Name="TunnelRouteText" Text="{Binding TunnelRoute}" FontSize="{StaticResource FontSizeSmallCaption}"
                                                        Foreground="{DynamicResource TextSecondaryBrush}"
                                                        VerticalAlignment="Center" Margin="5,0,0,0"/>
+                                            <TextBlock x:Name="BusyIndicator" Text="&#x25CF;" FontSize="8"
+                                                       Foreground="{DynamicResource AccentBrush}"
+                                                       VerticalAlignment="Center" Margin="5,0,0,0"
+                                                       Visibility="Collapsed"
+                                                       AutomationProperties.Name="Operation in progress">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Style.Resources>
+                                                            <Storyboard x:Key="PulseAnimation">
+                                                                <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                                                                 From="1" To="0.2" Duration="0:0:0.6"
+                                                                                 AutoReverse="True" RepeatBehavior="Forever"/>
+                                                            </Storyboard>
+                                                        </Style.Resources>
+                                                        <Style.Triggers>
+                                                            <Trigger Property="Visibility" Value="Visible">
+                                                                <Trigger.EnterActions>
+                                                                    <BeginStoryboard Name="PulseStoryboard" Storyboard="{StaticResource PulseAnimation}"/>
+                                                                </Trigger.EnterActions>
+                                                                <Trigger.ExitActions>
+                                                                    <StopStoryboard BeginStoryboardName="PulseStoryboard"/>
+                                                                </Trigger.ExitActions>
+                                                            </Trigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
                                         </StackPanel>
                                     </DockPanel>
                                 </Border>
@@ -645,6 +682,9 @@
                                     </Trigger>
                                     <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=TabItem}}" Value="True">
                                         <Setter TargetName="TabCloseButton" Property="Opacity" Value="1"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding IsBusy}" Value="True">
+                                        <Setter TargetName="BusyIndicator" Property="Visibility" Value="Visible"/>
                                     </DataTrigger>
                                 </DataTemplate.Triggers>
                             </DataTemplate>

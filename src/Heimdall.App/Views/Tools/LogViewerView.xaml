@@ -35,9 +35,9 @@
                 <Button x:Name="BtnHelp" DockPanel.Dock="Right" Content="?"
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="6,2" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
+                        Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
                         Width="24" Height="24" Margin="8,0,0,0"/>
-                <TextBlock x:Name="TitleText"
+                <TextBlock x:Name="HeaderTitle"
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
                            VerticalAlignment="Center"/>
@@ -53,12 +53,12 @@
                 <ToggleButton x:Name="BtnTail" DockPanel.Dock="Right"
                               Checked="OnTailChecked"
                               Unchecked="OnTailUnchecked"
-                              Padding="10,4" Margin="4,0,0,0"
+                              Padding="{StaticResource PaddingButtonCopy}" Margin="4,0,0,0"
                               VerticalAlignment="Center"/>
                 <Button x:Name="BtnBrowse" DockPanel.Dock="Right"
                         Click="OnBrowseClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="10,4" Margin="4,0,0,0"
+                        Padding="{StaticResource PaddingButtonCopy}" Margin="4,0,0,0"
                         VerticalAlignment="Center"/>
                 <TextBox x:Name="FilePathInput"
                          Style="{DynamicResource WatermarkTextBoxStyle}"
@@ -97,12 +97,12 @@
                 <Button x:Name="BtnClearFilter" DockPanel.Dock="Right"
                         Click="OnClearFilterClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="8,2" Margin="4,0,0,0"
+                        Padding="{StaticResource PaddingButtonPreset}" Margin="4,0,0,0"
                         VerticalAlignment="Center"/>
                 <Button x:Name="BtnApplyFilter" DockPanel.Dock="Right"
                         Click="OnApplyFilterClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="8,2" Margin="4,0,0,0"
+                        Padding="{StaticResource PaddingButtonPreset}" Margin="4,0,0,0"
                         VerticalAlignment="Center"/>
                 <TextBox x:Name="FilterInput"
                          Style="{DynamicResource WatermarkTextBoxStyle}"
@@ -114,6 +114,20 @@
                          Tag="filter text"
                          KeyDown="OnFilterKeyDown"/>
             </DockPanel>
+        </Border>
+
+        <!-- Empty state hint (hidden once a file is loaded) -->
+        <Border x:Name="EmptyStatePanel" Grid.Row="3"
+                Style="{StaticResource ToolEmptyStateStyle}"
+                Margin="0,24,0,0">
+            <StackPanel HorizontalAlignment="Center">
+                <TextBlock Text="&#xE7BC;" FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource IconSizeEmptyState}"
+                           HorizontalAlignment="Center"
+                           Foreground="{DynamicResource TextDisabledBrush}" Margin="0,0,0,8"/>
+                <TextBlock x:Name="TxtEmptyState" Text=""
+                           FontSize="{StaticResource FontSizeBodyLarge}" TextAlignment="Center"
+                           Foreground="{DynamicResource TextSecondaryBrush}"/>
+            </StackPanel>
         </Border>
 
         <!-- Log display -->

@@ -144,7 +144,7 @@ All tools open as session tabs (split, detach, reorder). Accessible via **Ctrl+K
 
 | Category | Tools |
 |----------|-------|
-| **Network** | **Network Cartography** (ping sweep + OS fingerprinting, port scan, banner grab, HTTP/HTTPS header analysis, TLS cert inspection, NetBIOS NBSTAT probe, SNMPv2c query, mDNS/Bonjour discovery, 300+ OUI MAC lookup, multi-source role classification, VLAN detection, Draw.io topology export, scan history/diff), Ping Monitor, DNS Lookup (custom server + via tunnel), SSL Cert Inspector (chain + TLS version + via tunnel), Port Scanner (progress + banner grab + via tunnel), Subnet Calculator (IPv4 + IPv6), IP Converter, HTTP Status Codes, Whois Lookup, Network Calculator (supernet + VLAN planner) |
+| **Network** | **Network Cartography** (ping sweep + OS fingerprinting, port scan, banner grab, HTTP/HTTPS header analysis, TLS cert inspection, NetBIOS NBSTAT probe, SNMPv2c query, mDNS/Bonjour discovery, 300+ OUI MAC lookup, multi-source role classification, VLAN detection, Draw.io topology export, scan history/diff, **remote subnet auto-detection via SSH gateway**), Ping Monitor, DNS Lookup (custom server + via tunnel), SSL Cert Inspector (chain + TLS version + via tunnel), Port Scanner (progress + banner grab + via tunnel), Subnet Calculator (IPv4 + IPv6), IP Converter, HTTP Status Codes, Whois Lookup, Network Calculator (supernet + VLAN planner) |
 | **Security** | Password Generator (crack time + history + saveable presets), SSH Key Generator (RSA + Ed25519), Hash Generator (SHA3 + progress), HMAC Generator, JWT Parser (HMAC signature verify), Certificate Generator (self-signed + CA/leaf), TOTP Generator (RFC 6238) |
 | **Encoding** | Base64 Encoder (URL-safe RFC 4648), URL Encoder, JSON Formatter (error position), Regex Tester (match highlighting), Text Diff (word-level), Text Case Converter (8 formats) |
 | **System** | Chmod Calculator, Crontab Builder, DateTime Converter (timezone + relative), UUID Generator (v4 + v7), Hosts File Editor, SSH Config Generator, Log Viewer / Tail (regex filter), Cron Job Manager (crontab + Windows tasks), Service Status Dashboard, **Diagram Editor** (draw.io embedded offline, New/Open/Save/Export PNG) |
@@ -159,7 +159,7 @@ All tools open as session tabs (split, detach, reorder). Accessible via **Ctrl+K
 
 ### User Interface
 - Runtime Dark and Light theme switching (1,870+ lines of WPF control styles)
-- Design System with 40 tokens: typography (10 sizes), spacing (8 tokens incl. asymmetric), corner radius, opacity, icon sizes, monospace font family, micro-animations (150ms/250ms)
+- Design System with 45 tokens: typography (10 sizes), spacing (8 tokens incl. asymmetric), button padding (4 roles), input padding, corner radius, opacity, icon sizes, monospace font family, micro-animations (150ms/250ms)
 - WCAG AA compliant: all foreground/background pairs verified at 4.5:1+ contrast ratio
 - FocusIndicatorBrush for keyboard navigation accessibility on all button styles
 - Unique protocol icons per connection type (RDP, SSH, SFTP, VNC, Telnet, FTP, Citrix, Local Shell)
@@ -171,8 +171,10 @@ All tools open as session tabs (split, detach, reorder). Accessible via **Ctrl+K
 - TreeView hierarchy: Project > Group > Server with category-colored tool icons and status dots
 - Command Palette (Ctrl+K): protocol icons, status dots, endpoint hints, Ctrl+Enter for split
 - Connection inheritance: group-level defaults for gateway, SSH username, key path
-- Empty states: tool views show guidance before first query, welcome panel with import CTA
+- Empty states: 11 tool views show guidance before first query, welcome panel with import CTA
 - Built-in help button ("?") on all 33 tools with localized usage instructions
+- Tab busy indicator: pulsing accent dot on tabs during long-running tool operations
+- Tools Panel: category fallback icons, scroll-more indicator
 - Fullscreen mode (F11), toggle sidebar (Ctrl+B), filter (Ctrl+F)
 - Bilingual interface: English and French (~3,061 i18n keys)
 - WCAG 2.1 AA accessibility: 385+ AutomationProperties via code-behind, keyboard focus indicators, disabled state tooltips

@@ -49,6 +49,13 @@ public partial class SessionTabViewModel : ObservableObject
     private string _environmentColor = "";
 
     /// <summary>
+    /// Indicates the session is performing a long-running operation
+    /// (scan, export, etc.). Drives the tab header busy indicator.
+    /// </summary>
+    [ObservableProperty]
+    private bool _isBusy;
+
+    /// <summary>
     /// Visual tunnel chain route text, e.g. "via GatewayA → GatewayB".
     /// Empty string when using a direct connection.
     /// </summary>

@@ -524,6 +524,12 @@ public sealed class EmbeddedSessionManager
             };
         }
 
+        // Inject busy state callback so tools can signal long-running operations
+        context = (context ?? new ToolContext()) with
+        {
+            SetBusyAction = busy => sessionTab.IsBusy = busy
+        };
+
         view.Initialize(context, _localizer);
         return view;
     }

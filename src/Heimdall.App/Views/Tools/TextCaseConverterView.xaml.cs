@@ -85,6 +85,8 @@ public partial class TextCaseConverterView : UserControl, IToolView
 
         BtnHelp.ToolTip = L("ToolHelpTooltip");
         System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
+
+        TxtInput.Tag = L("ToolWatermarkTextToConvert");
     }
 
     private void OnInputChanged(object sender, TextChangedEventArgs e)
