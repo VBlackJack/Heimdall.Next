@@ -2598,14 +2598,25 @@ public partial class MainWindow : Window
 
     private void OnPaletteBorderClick(object sender, MouseButtonEventArgs e)
     {
-        // Prevent closing when clicking inside the palette
-        e.Handled = true;
+        // No-op: the Popup is a separate HWND, so clicks inside it never
+        // reach the Window's PreviewMouseDown handler. Kept for XAML binding.
     }
 
-    private void OnPaletteItemDoubleClick(object sender, MouseButtonEventArgs e)
+    /// <summary>
+    /// Connects the clicked palette item on single click (PreviewMouseLeftButtonUp).
+    /// Skips if the click landed on the search TextBox (allows normal text selection).
+    /// </summary>
+    private void OnPaletteItemClick(object sender, MouseButtonEventArgs e)
     {
-        if (DataContext is MainViewModel vm && vm.SelectedPaletteItem is not null)
-            _ = vm.ConnectFromPaletteCommand.ExecuteAsync(vm.SelectedPaletteItem);
+        if (DataContext is not MainViewModel vm) return;
+
+        // Only act if the click landed on a ListBoxItem (not on empty space)
+        var source = e.OriginalSource as DependencyObject;
+        if (FindAncestor<System.Windows.Controls.ListBoxItem>(source) is null) return;
+
+        var item = vm.SelectedPaletteItem ?? PaletteResultsList.SelectedItem as ViewModels.ServerItemViewModel;
+        if (item is not null)
+            _ = vm.ConnectFromPaletteCommand.ExecuteAsync(item);
     }
 
     private void OnQuickConnectButtonClick(object sender, RoutedEventArgs e)
