@@ -12,6 +12,24 @@
 
 All notable changes to Heimdall.Next are documented in this file.
 
+## [v2026.032302] - 2026-03-23
+
+### Local Shell Elevation — ElevationMode + AdminByRequest Compatibility
+
+#### Elevation Mode (replaces checkbox)
+- New `ElevationMode` enum: `None`, `Auto`, `Gsudo`, `Runas`
+- `Auto` mode: tries gsudo with `--direct` flag first (bypasses ServiceHelper), falls back to external elevated window on failure
+- `Gsudo` mode: gsudo only (embedded terminal, fails if gsudo is blocked)
+- `Runas` mode: ShellExecute `runas` verb in external window (compatible with AdminByRequest, CyberArk, BeyondTrust)
+- Server Dialog: checkbox replaced with "Elevation" dropdown ComboBox
+- Backward compatible: existing `LocalShellElevated=true` maps to `Auto` via `EffectiveElevationMode`
+
+#### gsudo + Endpoint Privilege Manager Fix
+- Added `--direct` flag to all gsudo invocations (bypasses `ServiceHelper.StartService` crash caused by AdminByRequest invalidating process handles)
+- Graceful fallback chain in `Auto` mode: gsudo `--direct` → external elevated window → clear error message
+- UAC cancellation (Win32 error 1223) handled with user-friendly message
+- External elevated sessions show info panel in tab ("Elevated shell launched in external window")
+
 ## [v2026.032301] - 2026-03-23
 
 ### Tools UX Harmonization & Network Cartography Remote Subnet Detection

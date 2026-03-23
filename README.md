@@ -89,6 +89,13 @@ Built with .NET 10 and WPF. Secure, feature-rich Windows connection manager with
 - SSO (Kerberos) authentication support
 - Embedded session tabs with the same UX as RDP
 
+### Local Shell
+- Embedded PowerShell, cmd, bash, or custom shell via ConPTY
+- Configurable elevation mode: **Auto** (gsudo `--direct` with fallback), **gsudo**, **Runas** (external window), or **None**
+- Compatible with endpoint privilege managers (AdminByRequest, CyberArk, BeyondTrust) via `--direct` flag and runas fallback
+- Side-by-side local file browser with cd synchronization and embedded AvalonEdit editor
+- HEIMDALL_* environment variables injected for contextual scripting
+
 ### Multi-Exec Broadcast
 - Send keystrokes simultaneously to multiple active SSH sessions
 - Visual indicators: colored border and BROADCAST badge on receiving terminals
