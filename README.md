@@ -14,7 +14,7 @@
 
 [![CI](https://github.com/VBlackJack/Heimdall.Next/actions/workflows/ci.yml/badge.svg)](https://github.com/VBlackJack/Heimdall.Next/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-1324%20passing-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/tests-1417%20passing-brightgreen.svg)]()
 [![Tools](https://img.shields.io/badge/tools-33%20sysops-blue.svg)]()
 [![.NET](https://img.shields.io/badge/.NET-10.0-purple.svg)]()
 
@@ -43,6 +43,7 @@ Built with .NET 10 and WPF. Secure, feature-rich Windows connection manager with
 - Aspect ratio management (Stretch, 16:9, 4:3, 21:9) and anti-idle prevention
 - Full redirection surface: clipboard, drives, printers, COM ports, smart cards, webcam, USB, audio
 - Credential autofill for CredUI dialogs (EnumThreadWindows + UI Automation)
+- **Performance**: COM pre-warm at startup, DNS pre-resolution on server selection, per-server experience flags (wallpaper/themes/animations), TCP-only mode for firewall-heavy environments
 
 ### SSH Terminal
 - Embedded terminal via WebView2 + xterm.js (full VT100/xterm rendering)
@@ -151,7 +152,7 @@ All tools open as session tabs (split, detach, reorder). Accessible via **Ctrl+K
 
 | Category | Tools |
 |----------|-------|
-| **Network** | **Network Cartography** (ping sweep + OS fingerprinting, port scan, banner grab, HTTP/HTTPS header analysis, TLS cert inspection, NetBIOS NBSTAT probe, SNMPv2c query, mDNS/Bonjour discovery, 300+ OUI MAC lookup, multi-source role classification, VLAN detection, Draw.io topology export, scan history/diff, **remote subnet auto-detection via SSH gateway**), Ping Monitor, DNS Lookup (custom server + via tunnel), SSL Cert Inspector (chain + TLS version + via tunnel), Port Scanner (progress + banner grab + via tunnel), Subnet Calculator (IPv4 + IPv6), IP Converter, HTTP Status Codes, Whois Lookup, Network Calculator (supernet + VLAN planner) |
+| **Network** | **Network Cartography** (ping sweep + OS fingerprinting, port scan, banner grab, HTTP/HTTPS header analysis, TLS cert inspection, NetBIOS NBSTAT probe, SNMPv2c query, mDNS/Bonjour discovery, 300+ OUI MAC lookup, multi-source role classification, VLAN detection, Draw.io topology export, scan history/diff, remote subnet auto-detection via SSH gateway, **persistent Knowledge Base with TTL-based cache acceleration**), Ping Monitor, DNS Lookup (custom server + via tunnel), SSL Cert Inspector (chain + TLS version + via tunnel), Port Scanner (progress + banner grab + via tunnel), Subnet Calculator (IPv4 + IPv6), IP Converter, HTTP Status Codes, Whois Lookup, Network Calculator (supernet + VLAN planner) |
 | **Security** | Password Generator (crack time + history + saveable presets), SSH Key Generator (RSA + Ed25519), Hash Generator (SHA3 + progress), HMAC Generator, JWT Parser (HMAC signature verify), Certificate Generator (self-signed + CA/leaf), TOTP Generator (RFC 6238) |
 | **Encoding** | Base64 Encoder (URL-safe RFC 4648), URL Encoder, JSON Formatter (error position), Regex Tester (match highlighting), Text Diff (word-level), Text Case Converter (8 formats) |
 | **System** | Chmod Calculator, Crontab Builder, DateTime Converter (timezone + relative), UUID Generator (v4 + v7), Hosts File Editor, SSH Config Generator, Log Viewer / Tail (regex filter), Cron Job Manager (crontab + Windows tasks), Service Status Dashboard, **Diagram Editor** (draw.io embedded offline, New/Open/Save/Export PNG) |

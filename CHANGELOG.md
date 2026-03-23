@@ -12,6 +12,58 @@
 
 All notable changes to Heimdall.Next are documented in this file.
 
+## [v2026.032303] - 2026-03-23
+
+### Network Cartography — Knowledge Base + Security Hardening
+
+#### Knowledge Base (persistent host data across scans)
+- New `KnowledgeBaseManager` with per-field `Observation<T>` timestamps and source tracking
+- Merge-on-scan: every scan enriches the persistent KB (`config/network-kb.json`)
+- TTL-based cache acceleration: ping (4h), ports (24h), banners (7d), UDP probes (7d), certs (30d)
+- `CacheHitProgress` event for real-time UI feedback during cache-accelerated scans
+- KB stats in footer (host count + time-ago), Clear KB button with confirmation dialog
+- Checkbox to enable/disable cache usage per scan; KB always enriched regardless
+- `PurgeStaleHosts()` for automatic cleanup of old entries
+- `ToScanResult()` round-trip conversion for cached data
+- 28 unit tests covering merge, confidence, serialization round-trip, purge, TTL
+
+#### Security hardening (audit-driven)
+- Shell injection prevention: `IPAddress.TryParse()` + port range validation before SSH `/dev/tcp` and `host` commands (CWE-78)
+- Process timeout: `WaitForExit(5000)` + `Kill()` on ARP table process (Windows + macOS)
+- TLS callback documented as intentional (scanner inspecting certs, not trusting connections)
+- Atomic writes: temp-file-then-rename for scan snapshots and KB persistence
+- ACL enforcement: `SecureFileWriter.WriteAndProtect()` on scan history and KB files (Windows)
+- Path traversal prevention: `Path.GetFileName()` + `..` rejection + `scan_` prefix whitelist in `LoadSnapshot()`
+- Scan snapshot retention policy: max 20 files, oldest auto-deleted
+
+#### Performance optimizations
+- Compiled regex cache: `ServerHeaderRegex`, `TitleTagRegex`, 7 HTTP header regexes (static readonly + `RegexOptions.Compiled`)
+- `RoleClassifier.CnRegex`: compiled static regex for X.500 CN extraction
+- Concurrent collections: `ConcurrentBag<HostScanResult>`, `ConcurrentDictionary` for ping results (eliminates lock contention)
+- Ping sweep respects `MaxConcurrency` (`Math.Min(64, profile.MaxConcurrency)`)
+- `GetProbeStrategy()` called once per port (was called twice)
+- Layout flush reduced from 3 to 2 in `EmbeddedRdpView.BeginConnect()`
+
+#### RDP connection performance
+- COM pre-warm: background STA thread creates/disposes throwaway `RdpActiveXHost` at app startup (~400ms saved on first connection)
+- DNS pre-resolution: `Dns.GetHostEntryAsync()` fire-and-forget on server selection in tree view
+- TCP keep-alive: `KeepAliveIntervalMs = 60_000` named constant via `AdvancedSettings9.KeepAliveInterval`
+- Performance flags: per-server bitmask (wallpaper, themes, animations, drag, cursor shadow, composition) via `AdvancedSettings9.PerformanceFlags`
+- Disable UDP: per-server TCP-only option via `TransportSettings3` (avoids UDP probe timeout behind firewalls)
+- ServerDialog UI: new "Experience" expander with 7 checkboxes + bitmask recomposition on save
+
+#### UI and i18n
+- Scan error feedback: `ToolNetMapErrorScanFailed` key with error message in status bar
+- 21 new i18n keys (KB UI, cache hit, RDP experience, scan errors) in EN + FR
+- 7 `AutomationProperties.SetName()` on RDP experience checkboxes (accessibility)
+- 13 `AutomationProperties.SetName()` on Network Cartography controls
+
+#### Tests
+- 93 new tests: KnowledgeBaseManager (28), VlanDetector (16), ScanHistoryManager (16), DrawIoExporter (10), RdpRedirectionOptions (20), CartographyEngine round-trip (3)
+- Total: 1,417 xUnit tests (was 1,324)
+
+---
+
 ## [v2026.032302] - 2026-03-23
 
 ### Local Shell Elevation — ElevationMode + AdminByRequest Compatibility

@@ -23,6 +23,10 @@ namespace Heimdall.Core.Discovery;
 /// </summary>
 public static class RoleClassifier
 {
+    /// <summary>Cached compiled regex for extracting CN from X.500 subject strings.</summary>
+    private static readonly System.Text.RegularExpressions.Regex CnRegex = new(
+        @"CN=([^,]+)", System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Compiled);
+
     private static readonly RoleDefinition[] Definitions =
     [
         // ── Enterprise servers ─────────────────────────────────────────
@@ -619,8 +623,7 @@ public static class RoleClassifier
             var domains = new List<string>();
 
             // Parse CN from X.500 subject string (e.g., "CN=foo.bar, O=Org")
-            var cnMatch = System.Text.RegularExpressions.Regex.Match(
-                cert.Subject, @"CN=([^,]+)", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            var cnMatch = CnRegex.Match(cert.Subject);
             if (cnMatch.Success)
                 domains.Add(cnMatch.Groups[1].Value.Trim());
 

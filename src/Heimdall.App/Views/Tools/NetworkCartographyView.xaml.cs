@@ -44,6 +44,8 @@ public partial class NetworkCartographyView : UserControl, IToolView
     private Action<string, string, ToolContext?>? _openToolAction;
     private Action<bool>? _setBusy;
 
+    private NetworkKnowledgeBase? _knowledgeBase;
+
     private readonly ObservableCollection<CartographyRowViewModel> _results = [];
 
     public NetworkCartographyView()
@@ -76,6 +78,7 @@ public partial class NetworkCartographyView : UserControl, IToolView
         }
         PopulateRouteSelector();
         PopulateHistory();
+        _ = LoadKbStatsAsync();
 
         Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, () =>
         {
@@ -99,6 +102,8 @@ public partial class NetworkCartographyView : UserControl, IToolView
 
         BtnExportDrawio.Content = L("ToolNetMapBtnExportDrawio");
         BtnEditDiagram.Content = L("ToolDiagramBtnEdit");
+        ChkUseKnowledgeBase.Content = L("ToolNetMapUseKb");
+        BtnClearKb.Content = L("ToolNetMapBtnClearKb");
 
         ColIp.Header = L("ToolNetMapColIp");
         ColHostname.Header = L("ToolNetMapColHostname");
@@ -128,6 +133,8 @@ public partial class NetworkCartographyView : UserControl, IToolView
         System.Windows.Automation.AutomationProperties.SetName(CmbHistory, L("ToolNetMapCompareWith"));
         System.Windows.Automation.AutomationProperties.SetName(ChkSkipPing, L("ToolNetMapSkipPing"));
         System.Windows.Automation.AutomationProperties.SetName(ChkReverseDns, L("ToolNetMapReverseDns"));
+        System.Windows.Automation.AutomationProperties.SetName(ChkUseKnowledgeBase, L("ToolNetMapUseKb"));
+        System.Windows.Automation.AutomationProperties.SetName(BtnClearKb, L("ToolNetMapBtnClearKb"));
 
         BtnHelp.ToolTip = L("ToolHelpTooltip");
         System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
@@ -229,7 +236,21 @@ public partial class NetworkCartographyView : UserControl, IToolView
             SkipPing: ChkSkipPing.IsChecked == true,
             ReverseDns: ChkReverseDns.IsChecked == true);
 
+        // Load knowledge base (for cache if checkbox checked, for merge after scan)
+        try { _knowledgeBase = await KnowledgeBaseManager.LoadAsync().ConfigureAwait(false); }
+        catch { _knowledgeBase = KnowledgeBaseManager.CreateEmpty(); }
+
+        var kb = ChkUseKnowledgeBase.IsChecked == true ? _knowledgeBase : null;
+
         var engine = new CartographyEngine();
+
+        engine.CacheHitProgress += (host, phase) =>
+        {
+            Dispatcher.InvokeAsync(() =>
+            {
+                TxtStatus.Text = string.Format(L("ToolNetMapKbCacheHit"), host, phase);
+            });
+        };
 
         engine.HostDiscoveryProgress += (completed, total) =>
         {
@@ -275,7 +296,7 @@ public partial class NetworkCartographyView : UserControl, IToolView
             }
             else
             {
-                snapshot = await engine.ScanAsync(profile, _cts.Token).ConfigureAwait(false);
+                snapshot = await engine.ScanAsync(profile, kb, _cts.Token).ConfigureAwait(false);
             }
 
             try
@@ -285,6 +306,19 @@ public partial class NetworkCartographyView : UserControl, IToolView
             catch (Exception ex)
             {
                 Core.Logging.FileLogger.Warn($"NetworkCartography history save failed: {ex.Message}");
+            }
+
+            // Merge into knowledge base (always, even if KB checkbox unchecked)
+            // Reuse the instance loaded before scan if available, avoid redundant I/O
+            try
+            {
+                _knowledgeBase ??= await KnowledgeBaseManager.LoadAsync().ConfigureAwait(false);
+                _knowledgeBase = KnowledgeBaseManager.MergeSnapshot(_knowledgeBase, snapshot);
+                await KnowledgeBaseManager.SaveAsync(_knowledgeBase).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                Core.Logging.FileLogger.Warn($"NetworkCartography KB merge failed: {ex.Message}");
             }
 
             await Dispatcher.InvokeAsync(() =>
@@ -311,6 +345,7 @@ public partial class NetworkCartographyView : UserControl, IToolView
                     L("ToolNetMapStats"),
                     snapshot.Hosts.Count, totalPorts, serviceNames);
 
+                UpdateKbStats();
                 PopulateHistory();
             });
         }
@@ -321,6 +356,10 @@ public partial class NetworkCartographyView : UserControl, IToolView
         catch (Exception ex)
         {
             Core.Logging.FileLogger.Warn($"NetworkCartography scan failed: {ex.Message}");
+            await Dispatcher.InvokeAsync(() =>
+            {
+                TxtStatus.Text = string.Format(L("ToolNetMapErrorScanFailed"), ex.Message);
+            });
         }
 
         await Dispatcher.InvokeAsync(StopScan);
@@ -367,10 +406,16 @@ public partial class NetworkCartographyView : UserControl, IToolView
         foreach (var ip in ipList)
         {
             ct.ThrowIfCancellationRequested();
+
+            // Validate IP to prevent shell injection (CWE-78)
+            if (!System.Net.IPAddress.TryParse(ip, out _)) continue;
+
             var openServices = new List<ServiceResult>();
 
             foreach (var port in ports)
             {
+                if (port is < 1 or > 65535) continue;
+
                 try
                 {
                     using var cmd = sshClient.CreateCommand(
@@ -1005,6 +1050,64 @@ public partial class NetworkCartographyView : UserControl, IToolView
             !string.IsNullOrEmpty(row.DetailTooltip))
         {
             e.Row.ToolTip = row.DetailTooltip;
+        }
+    }
+
+    private async Task LoadKbStatsAsync()
+    {
+        try
+        {
+            _knowledgeBase = await KnowledgeBaseManager.LoadAsync().ConfigureAwait(false);
+            await Dispatcher.InvokeAsync(UpdateKbStats);
+        }
+        catch { /* KB load failed, stats remain empty */ }
+    }
+
+    private void UpdateKbStats()
+    {
+        if (_knowledgeBase is null || KnowledgeBaseManager.HostCount(_knowledgeBase) == 0)
+        {
+            TxtKbStats.Text = L("ToolNetMapKbStatsNever");
+            return;
+        }
+        var count = KnowledgeBaseManager.HostCount(_knowledgeBase);
+        var ago = FormatTimeAgo(_knowledgeBase.LastUpdated);
+        TxtKbStats.Text = string.Format(L("ToolNetMapKbStats"), count, ago);
+    }
+
+    private string FormatTimeAgo(DateTime utcTime)
+    {
+        var elapsed = DateTime.UtcNow - utcTime;
+        if (elapsed.TotalMinutes < 5)
+            return L("ToolNetMapKbTimeAgoJustNow");
+        if (elapsed.TotalHours < 24)
+            return string.Format(L("ToolNetMapKbTimeAgo1h"), (int)elapsed.TotalHours);
+        return string.Format(L("ToolNetMapKbTimeAgo1d"), (int)elapsed.TotalDays);
+    }
+
+    private async void OnClearKbClick(object sender, RoutedEventArgs e)
+    {
+        var result = MessageBox.Show(
+            L("ToolNetMapKbClearConfirm"),
+            L("ToolNetMapTitle"),
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Question);
+
+        if (result != MessageBoxResult.Yes) return;
+
+        try
+        {
+            _knowledgeBase = KnowledgeBaseManager.CreateEmpty();
+            await KnowledgeBaseManager.SaveAsync(_knowledgeBase).ConfigureAwait(false);
+            await Dispatcher.InvokeAsync(() =>
+            {
+                UpdateKbStats();
+                TxtStatus.Text = L("ToolNetMapKbCleared");
+            });
+        }
+        catch (Exception ex)
+        {
+            Core.Logging.FileLogger.Warn($"KB clear failed: {ex.Message}");
         }
     }
 

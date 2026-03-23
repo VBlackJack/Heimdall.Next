@@ -77,6 +77,16 @@ public partial class ServerDialog : Window
             return;
         }
 
+        // Recompose performance flags bitmask from individual checkboxes
+        var flags = 0;
+        if (DlgSrv_PerfDisableWallpaperCb.IsChecked == true) flags |= 0x01;
+        if (DlgSrv_PerfDisableDragCb.IsChecked == true) flags |= 0x02;
+        if (DlgSrv_PerfDisableAnimationsCb.IsChecked == true) flags |= 0x04;
+        if (DlgSrv_PerfDisableThemesCb.IsChecked == true) flags |= 0x08;
+        if (DlgSrv_PerfDisableCursorShadowCb.IsChecked == true) flags |= 0x20;
+        if (DlgSrv_PerfEnableCompositionCb.IsChecked == true) flags |= 0x80;
+        vm.RdpPerformanceFlags = flags;
+
         // Transfer PasswordBox values if they exist in the visual tree
         var sshPwBox = FindName("SshPasswordBox") as System.Windows.Controls.PasswordBox;
         var rdpPwBox = FindName("RdpPasswordBox") as System.Windows.Controls.PasswordBox;
@@ -258,6 +268,35 @@ public partial class ServerDialog : Window
         DlgSrv_BitmapCacheCb.Content = _localizer["ServerDialogBitmapCaching"];
         DlgSrv_RdpCompressionCb.Content = _localizer["ServerDialogRdpCompressionCb"];
         DlgSrv_AutoReconnectCb.Content = _localizer["ServerDialogAutoReconnect"];
+
+        // RDP Experience
+        DlgSrv_RdpExperienceExpander.Header = _localizer["RdpPerformanceTitle"];
+        DlgSrv_PerfDisableWallpaperCb.Content = _localizer["RdpPerfDisableWallpaper"];
+        DlgSrv_PerfDisableThemesCb.Content = _localizer["RdpPerfDisableThemes"];
+        DlgSrv_PerfDisableAnimationsCb.Content = _localizer["RdpPerfDisableAnimations"];
+        DlgSrv_PerfDisableDragCb.Content = _localizer["RdpPerfDisableDrag"];
+        DlgSrv_PerfDisableCursorShadowCb.Content = _localizer["RdpPerfDisableCursorShadow"];
+        DlgSrv_PerfEnableCompositionCb.Content = _localizer["RdpPerfEnableComposition"];
+        DlgSrv_DisableUdpCb.Content = _localizer["RdpDisableUdp"];
+
+        System.Windows.Automation.AutomationProperties.SetName(DlgSrv_PerfDisableWallpaperCb, _localizer["RdpPerfDisableWallpaper"]);
+        System.Windows.Automation.AutomationProperties.SetName(DlgSrv_PerfDisableThemesCb, _localizer["RdpPerfDisableThemes"]);
+        System.Windows.Automation.AutomationProperties.SetName(DlgSrv_PerfDisableAnimationsCb, _localizer["RdpPerfDisableAnimations"]);
+        System.Windows.Automation.AutomationProperties.SetName(DlgSrv_PerfDisableDragCb, _localizer["RdpPerfDisableDrag"]);
+        System.Windows.Automation.AutomationProperties.SetName(DlgSrv_PerfDisableCursorShadowCb, _localizer["RdpPerfDisableCursorShadow"]);
+        System.Windows.Automation.AutomationProperties.SetName(DlgSrv_PerfEnableCompositionCb, _localizer["RdpPerfEnableComposition"]);
+        System.Windows.Automation.AutomationProperties.SetName(DlgSrv_DisableUdpCb, _localizer["RdpDisableUdp"]);
+
+        // Decompose bitmask into individual checkboxes
+        if (DataContext is ViewModels.Dialogs.ServerDialogViewModel vm)
+        {
+            DlgSrv_PerfDisableWallpaperCb.IsChecked = (vm.RdpPerformanceFlags & 0x01) != 0;
+            DlgSrv_PerfDisableDragCb.IsChecked = (vm.RdpPerformanceFlags & 0x02) != 0;
+            DlgSrv_PerfDisableAnimationsCb.IsChecked = (vm.RdpPerformanceFlags & 0x04) != 0;
+            DlgSrv_PerfDisableThemesCb.IsChecked = (vm.RdpPerformanceFlags & 0x08) != 0;
+            DlgSrv_PerfDisableCursorShadowCb.IsChecked = (vm.RdpPerformanceFlags & 0x20) != 0;
+            DlgSrv_PerfEnableCompositionCb.IsChecked = (vm.RdpPerformanceFlags & 0x80) != 0;
+        }
 
         // SSH options
         DlgSrv_SshOptionsTitle.Text = _localizer["ServerDialogSshOptions"];

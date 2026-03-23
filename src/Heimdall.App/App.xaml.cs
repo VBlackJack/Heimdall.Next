@@ -106,6 +106,11 @@ public partial class App : System.Windows.Application
         // Apply sleep prevention setting
         SleepPrevention.Enabled = settings.PreventSleepDuringSession;
 
+        // Pre-warm RDP COM/DLL chain and WinForms runtime on a background STA thread.
+        // Forces loading of mstscax.dll + 22 static dependencies (~300-500ms) at startup
+        // instead of on the first RDP connection.
+        PreWarmRdpRuntime();
+
         // Initialize HMAC key for credential protection
         await InitializeHmacKeyAsync(configManager, settings);
 
@@ -272,6 +277,41 @@ public partial class App : System.Windows.Application
     /// <see cref="CredentialProtector"/> for use across the application.
     /// Generates a new key on first run.
     /// </summary>
+    /// <summary>
+    /// Pre-warms the RDP COM control and WinForms runtime on a background STA thread.
+    /// This forces mstscax.dll and its 22+ static dependencies into process memory,
+    /// eliminating the 300-500ms cold-start penalty on the first actual RDP connection.
+    /// </summary>
+    private static void PreWarmRdpRuntime()
+    {
+        var thread = new System.Threading.Thread(() =>
+        {
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+            try
+            {
+                // Force WinForms runtime initialization (GDI+, visual styles, message loop integration)
+                _ = new System.Windows.Forms.Integration.WindowsFormsHost();
+
+                // Force COM activation of MsTscAx — loads mstscax.dll + all static dependencies
+                using var host = new Heimdall.Rdp.ActiveX.RdpActiveXHost();
+                _ = host.Handle;
+
+                sw.Stop();
+                Heimdall.Core.Logging.FileLogger.Info(
+                    $"RDP COM pre-warm completed in {sw.ElapsedMilliseconds}ms");
+            }
+            catch (Exception ex)
+            {
+                sw.Stop();
+                Heimdall.Core.Logging.FileLogger.Warn(
+                    $"RDP COM pre-warm failed after {sw.ElapsedMilliseconds}ms: {ex.Message}");
+            }
+        });
+        thread.SetApartmentState(System.Threading.ApartmentState.STA);
+        thread.IsBackground = true;
+        thread.Start();
+    }
+
     private static async Task InitializeHmacKeyAsync(
         ConfigManager configManager, AppSettings settings)
     {

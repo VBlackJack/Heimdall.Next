@@ -865,6 +865,28 @@
                             </StackPanel>
                         </Expander>
 
+                        <Expander x:Name="DlgSrv_RdpExperienceExpander" IsExpanded="False">
+                            <Expander.Style>
+                                <Style TargetType="Expander" BasedOn="{StaticResource ThemedExpanderStyle}">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ConnectionType}" Value="RDP">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Expander.Style>
+                            <StackPanel Margin="0,12,0,0">
+                                <CheckBox x:Name="DlgSrv_PerfDisableWallpaperCb" TabIndex="80" Style="{StaticResource FormCheckBoxStyle}"/>
+                                <CheckBox x:Name="DlgSrv_PerfDisableThemesCb" TabIndex="81" Style="{StaticResource FormCheckBoxStyle}" Margin="0,6,0,0"/>
+                                <CheckBox x:Name="DlgSrv_PerfDisableAnimationsCb" TabIndex="82" Style="{StaticResource FormCheckBoxStyle}" Margin="0,6,0,0"/>
+                                <CheckBox x:Name="DlgSrv_PerfDisableDragCb" TabIndex="83" Style="{StaticResource FormCheckBoxStyle}" Margin="0,6,0,0"/>
+                                <CheckBox x:Name="DlgSrv_PerfDisableCursorShadowCb" TabIndex="84" Style="{StaticResource FormCheckBoxStyle}" Margin="0,6,0,0"/>
+                                <CheckBox x:Name="DlgSrv_PerfEnableCompositionCb" TabIndex="85" Style="{StaticResource FormCheckBoxStyle}" Margin="0,6,0,0"/>
+                                <CheckBox x:Name="DlgSrv_DisableUdpCb" TabIndex="86" IsChecked="{Binding RdpDisableUdp}" Style="{StaticResource FormCheckBoxStyle}" Margin="0,12,0,0"/>
+                            </StackPanel>
+                        </Expander>
+
                         <Border>
                             <Border.Style>
                                 <Style TargetType="Border" BasedOn="{StaticResource SectionCardStyle}">

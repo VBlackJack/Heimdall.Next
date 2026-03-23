@@ -79,6 +79,9 @@
                 <CheckBox x:Name="ChkReverseDns" IsChecked="True"
                           Foreground="{DynamicResource TextPrimaryBrush}"
                           VerticalAlignment="Center" Margin="16,0,0,0"/>
+                <CheckBox x:Name="ChkUseKnowledgeBase"
+                          Foreground="{DynamicResource TextPrimaryBrush}"
+                          VerticalAlignment="Center" Margin="16,0,0,0"/>
 
                 <TextBlock x:Name="LblRouteVia" Text=""
                            FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center" Margin="16,0,4,0"
@@ -217,6 +220,15 @@
                 <TextBlock x:Name="TxtStats" Text="" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                            Foreground="{DynamicResource TextSecondaryBrush}"
                            VerticalAlignment="Center"/>
+                <TextBlock Text=" | " Foreground="{DynamicResource TextDisabledBrush}" VerticalAlignment="Center"
+                           FontSize="{StaticResource FontSizeBody}" Margin="4,0"/>
+                <TextBlock x:Name="TxtKbStats" Text="" FontSize="{StaticResource FontSizeCaption}" FontFamily="Consolas"
+                           Foreground="{DynamicResource TextSecondaryBrush}"
+                           VerticalAlignment="Center"/>
+                <Button x:Name="BtnClearKb" Content="" Click="OnClearKbClick"
+                        Style="{DynamicResource SecondaryButtonStyle}"
+                        Padding="8,2" Margin="8,0,0,0" FontSize="{StaticResource FontSizeCaption}"
+                        VerticalAlignment="Center"/>
             </DockPanel>
         </Border>
 
