@@ -78,6 +78,8 @@ public partial class TotpGeneratorView : UserControl, IToolView
 
         BtnHelp.ToolTip = L("ToolHelpTooltip");
         System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
+
+        TxtSecret.Tag = L("ToolWatermarkBase32Secret");
     }
 
     private void OnInputKeyDown(object sender, System.Windows.Input.KeyEventArgs e)

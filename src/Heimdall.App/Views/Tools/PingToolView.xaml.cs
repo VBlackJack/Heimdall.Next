@@ -41,6 +41,7 @@ public partial class PingToolView : UserControl, IToolView
     private CancellationTokenSource? _cts;
     private bool _isRunning;
     private bool _disposed;
+    private Action<bool>? _setBusy;
 
     private readonly List<PingDataPoint> _dataPoints = new(MaxDataPoints + 1);
     private readonly StringBuilder _logBuilder = new();
@@ -70,6 +71,7 @@ public partial class PingToolView : UserControl, IToolView
     public void Initialize(ToolContext? context, LocalizationManager? localizer)
     {
         _localizer = localizer;
+        _setBusy = context?.SetBusyAction;
         ApplyLocalization();
 
         // Pre-fill with a sensible default; context overrides if provided
@@ -117,6 +119,8 @@ public partial class PingToolView : UserControl, IToolView
 
         BtnHelp.ToolTip = L("ToolHelpTooltip");
         System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
+
+        TxtHost.Tag = L("ToolWatermarkHostnameOrIp");
     }
 
     private void OnHostKeyDown(object sender, KeyEventArgs e)
@@ -234,6 +238,7 @@ public partial class PingToolView : UserControl, IToolView
 
         _cts = new CancellationTokenSource();
         _isRunning = true;
+        _setBusy?.Invoke(true);
         BtnToggle.Content = L("ToolPingBtnStop");
         BtnToggle.Foreground = (Brush)FindResource("ErrorBrush");
         BtnToggle.Style = (Style)FindResource("SecondaryButtonStyle");
@@ -264,6 +269,7 @@ public partial class PingToolView : UserControl, IToolView
         _cts?.Dispose();
         _cts = null;
         _isRunning = false;
+        _setBusy?.Invoke(false);
         BtnToggle.Content = L("ToolPingBtnStart");
         BtnToggle.Foreground = (Brush)FindResource("TextPrimaryBrush");
         BtnToggle.Style = (Style)FindResource("PrimaryButtonStyle");

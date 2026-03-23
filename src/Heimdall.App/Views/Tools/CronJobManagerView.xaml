@@ -1,3 +1,18 @@
+<!--
+  Copyright 2026 Julien Bombled
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
 <UserControl x:Class="Heimdall.App.Views.Tools.CronJobManagerView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -18,13 +33,27 @@
                 <Button x:Name="BtnHelp" DockPanel.Dock="Right" Content="?"
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="6,2" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
+                        Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
                         Width="24" Height="24" Margin="8,0,0,0"/>
                 <TextBlock x:Name="HeaderTitle" Text=""
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
                            VerticalAlignment="Center"/>
             </DockPanel>
+        </Border>
+
+        <!-- Empty state hint (hidden once content is loaded) -->
+        <Border x:Name="EmptyStatePanel" Grid.Row="1"
+                Style="{StaticResource ToolEmptyStateStyle}"
+                Margin="0,24,0,0">
+            <StackPanel HorizontalAlignment="Center">
+                <TextBlock Text="&#xE787;" FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource IconSizeEmptyState}"
+                           HorizontalAlignment="Center"
+                           Foreground="{DynamicResource TextDisabledBrush}" Margin="0,0,0,8"/>
+                <TextBlock x:Name="TxtEmptyState" Text=""
+                           FontSize="{StaticResource FontSizeBodyLarge}" TextAlignment="Center"
+                           Foreground="{DynamicResource TextSecondaryBrush}"/>
+            </StackPanel>
         </Border>
 
         <!-- Content -->
@@ -58,7 +87,7 @@
                              VerticalScrollBarVisibility="Auto"
                              HorizontalScrollBarVisibility="Auto"
                              FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
-                             Padding="8,6"
+                             Padding="{StaticResource PaddingInput}"
                              Background="{DynamicResource CardBrush}"
                              Foreground="{DynamicResource TextPrimaryBrush}"
                              BorderBrush="{DynamicResource BorderBrush}"/>
@@ -212,7 +241,7 @@
                 <Button x:Name="BtnCopyAll" Content=""
                         Click="OnCopyAllClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="12,6" DockPanel.Dock="Right"
+                        Padding="{StaticResource PaddingButtonPrimary}" DockPanel.Dock="Right"
                         VerticalAlignment="Center"/>
                 <TextBlock x:Name="TxtStatus" Text=""
                            FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"

@@ -108,6 +108,8 @@ public partial class JwtParserView : UserControl, IToolView
 
         BtnHelp.ToolTip = L("ToolHelpTooltip");
         AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
+
+        TxtInput.Tag = L("ToolWatermarkPasteJwt");
     }
 
     private void OnInputTextChanged(object sender, TextChangedEventArgs e)

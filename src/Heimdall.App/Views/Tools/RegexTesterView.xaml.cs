@@ -79,7 +79,7 @@ public partial class RegexTesterView : UserControl, IToolView
 
     private void ApplyLocalization()
     {
-        TitleText.Text = L("ToolRegexTitle");
+        HeaderTitle.Text = L("ToolRegexTitle");
         PatternLabel.Text = L("ToolRegexPatternLabel");
         TestTextLabel.Text = L("ToolRegexTestTextLabel");
         MatchesLabel.Text = L("ToolRegexMatchesLabel");
@@ -103,6 +103,10 @@ public partial class RegexTesterView : UserControl, IToolView
 
         BtnHelp.ToolTip = L("ToolHelpTooltip");
         System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
+
+        PatternText.Tag = L("ToolWatermarkRegexPattern");
+        TestText.Tag = L("ToolWatermarkTestString");
+        TxtEmptyState.Text = L("ToolRegexEmptyState");
     }
 
     private void OnHelpClick(object sender, RoutedEventArgs e)
@@ -144,6 +148,8 @@ public partial class RegexTesterView : UserControl, IToolView
         if (string.IsNullOrEmpty(pattern))
         {
             StatusText.Text = string.Empty;
+            EmptyStatePanel.Visibility = Visibility.Visible;
+            MatchesPanel.Visibility = Visibility.Collapsed;
             return;
         }
 
@@ -174,6 +180,8 @@ public partial class RegexTesterView : UserControl, IToolView
             var matches = regex.Matches(testText);
             int totalCount = matches.Count;
             MatchCountText.Text = string.Format(L("ToolRegexMatchCount"), totalCount);
+            EmptyStatePanel.Visibility = Visibility.Collapsed;
+            MatchesPanel.Visibility = Visibility.Visible;
 
             // Build inline highlight display
             if (totalCount > 0)

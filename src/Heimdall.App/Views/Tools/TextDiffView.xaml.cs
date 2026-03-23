@@ -60,7 +60,7 @@ public partial class TextDiffView : UserControl, IToolView
 
     private void ApplyLocalization()
     {
-        TitleText.Text = L("ToolDiffTitle");
+        HeaderTitle.Text = L("ToolDiffTitle");
         OriginalLabel.Text = L("ToolDiffOriginalLabel");
         ModifiedLabel.Text = L("ToolDiffModifiedLabel");
         DiffOutputLabel.Text = L("ToolDiffOutputLabel");
@@ -89,6 +89,9 @@ public partial class TextDiffView : UserControl, IToolView
 
         BtnHelp.ToolTip = L("ToolHelpTooltip");
         System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
+
+        OriginalText.Tag = L("ToolWatermarkOriginalText");
+        ModifiedText.Tag = L("ToolWatermarkModifiedText");
     }
 
     private void OnDiffOptionChanged(object sender, RoutedEventArgs e)

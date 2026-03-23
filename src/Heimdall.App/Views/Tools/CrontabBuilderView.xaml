@@ -32,7 +32,7 @@
                 <Button x:Name="BtnHelp" DockPanel.Dock="Right" Content="?"
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="6,2" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
+                        Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
                         Width="24" Height="24" Margin="8,0,0,0"/>
                 <TextBlock x:Name="HeaderTitle" Text=""
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
@@ -52,22 +52,22 @@
                 <WrapPanel Margin="0,0,0,16">
                     <Button x:Name="BtnPresetEveryMin" Click="OnPresetClick" Tag="* * * * *"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="10,4" Margin="0,0,6,6" FontSize="{StaticResource FontSizeBody}"/>
+                            Padding="{StaticResource PaddingButtonCopy}" Margin="0,0,6,6" FontSize="{StaticResource FontSizeBody}"/>
                     <Button x:Name="BtnPresetEveryHour" Click="OnPresetClick" Tag="0 * * * *"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="10,4" Margin="0,0,6,6" FontSize="{StaticResource FontSizeBody}"/>
+                            Padding="{StaticResource PaddingButtonCopy}" Margin="0,0,6,6" FontSize="{StaticResource FontSizeBody}"/>
                     <Button x:Name="BtnPresetDailyMidnight" Click="OnPresetClick" Tag="0 0 * * *"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="10,4" Margin="0,0,6,6" FontSize="{StaticResource FontSizeBody}"/>
+                            Padding="{StaticResource PaddingButtonCopy}" Margin="0,0,6,6" FontSize="{StaticResource FontSizeBody}"/>
                     <Button x:Name="BtnPresetWeekdays9am" Click="OnPresetClick" Tag="0 9 * * 1-5"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="10,4" Margin="0,0,6,6" FontSize="{StaticResource FontSizeBody}"/>
+                            Padding="{StaticResource PaddingButtonCopy}" Margin="0,0,6,6" FontSize="{StaticResource FontSizeBody}"/>
                     <Button x:Name="BtnPresetWeeklySunday" Click="OnPresetClick" Tag="0 0 * * 0"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="10,4" Margin="0,0,6,6" FontSize="{StaticResource FontSizeBody}"/>
+                            Padding="{StaticResource PaddingButtonCopy}" Margin="0,0,6,6" FontSize="{StaticResource FontSizeBody}"/>
                     <Button x:Name="BtnPresetMonthly1st" Click="OnPresetClick" Tag="0 0 1 * *"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="10,4" Margin="0,0,6,6" FontSize="{StaticResource FontSizeBody}"/>
+                            Padding="{StaticResource PaddingButtonCopy}" Margin="0,0,6,6" FontSize="{StaticResource FontSizeBody}"/>
                 </WrapPanel>
 
                 <!-- Selectors -->
@@ -153,7 +153,7 @@
                         <Button x:Name="BtnCopy" DockPanel.Dock="Right"
                                 Click="OnCopyClick"
                                 Style="{DynamicResource SecondaryButtonStyle}"
-                                Padding="12,4" Margin="8,0,0,0"
+                                Padding="{StaticResource PaddingButtonCopy}" Margin="8,0,0,0"
                                 VerticalAlignment="Center"
                                 />
                         <TextBox x:Name="TxtCronExpression" Text="* * * * *"
@@ -180,7 +180,7 @@
                 <TextBox x:Name="TxtManualInput" Text=""
                          Style="{DynamicResource WatermarkTextBoxStyle}"
                          FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
-                         Padding="8,6" Margin="0,0,0,4"
+                         Padding="{StaticResource PaddingInput}" Margin="0,0,0,4"
                          Background="{DynamicResource CardBrush}"
                          Foreground="{DynamicResource TextPrimaryBrush}"
                          BorderBrush="{DynamicResource BorderBrush}"

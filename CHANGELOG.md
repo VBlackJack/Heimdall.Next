@@ -12,6 +12,51 @@
 
 All notable changes to Heimdall.Next are documented in this file.
 
+## [v2026.032301] - 2026-03-23
+
+### Tools UX Harmonization & Network Cartography Remote Subnet Detection
+
+#### Design System
+- Add `PaddingButtonHelp`, `PaddingButtonCopy`, `PaddingButtonPrimary`, `PaddingButtonPreset`, `PaddingInput` tokens in CommonControls.xaml
+- 181 hardcoded padding values replaced with design tokens across all 33 tool views
+- All tools now use consistent tokenized spacing (global change via a single file)
+
+#### Tool Views (33 tools) — Structural Harmonization
+- Unified header Border: `Padding="12,8"`, no extra margin, across all 33 tools
+- Unified title TextBlock `x:Name="HeaderTitle"` (was split between `HeaderTitle` and `TitleText`)
+- Added `VerticalAlignment="Center"` on all title TextBlocks
+- Apache 2.0 licence headers added to 17 XAML files that were missing them
+- Copy button padding standardized to `PaddingButtonCopy` token
+
+#### Watermark Localization (i18n)
+- 24 watermark placeholder strings extracted from XAML `Tag` attributes into i18n locale files
+- 17 code-behind files updated to set `Tag` via `L()` helper in `ApplyLocalization()`
+- Full EN/FR translations for all watermark placeholders
+
+#### Empty State Panels
+- Added `ToolEmptyStateStyle` panels with Segoe MDL2 icons to 8 tool views: Whois, Cert Inspector, Subnet Calculator, SSH Config Generator, Service Status, Cron Job Manager, Log Viewer, Regex Tester
+- Panels shown before first action, hidden when results appear
+
+#### Accessibility (a11y)
+- `AutomationProperties.LiveSetting="Polite"` added to 15 tool result areas (was 5)
+- Screen readers now notified of dynamic result updates across all major tools
+
+#### Tools Panel (Sidebar)
+- Category-based fallback icons (Segoe MDL2 glyphs) when tool vector/bitmap icon is missing
+- Scroll-more indicator (chevron) at bottom of panel when content overflows
+
+#### Tab Busy Indicator
+- New `IsBusy` property on `SessionTabViewModel` with pulsing accent dot in tab header
+- `SetBusyAction` callback in `ToolContext` for tools to signal long-running operations
+- Wired on Ping, Port Scanner, Network Cartography (pulse visible during active scans)
+
+#### Network Cartography — Remote Subnet Auto-Detection
+- Selecting an SSH gateway in "Route via" now auto-detects remote subnets
+- SSH connection to gateway, runs `ip -4 addr show` (Linux), `ifconfig` (Unix/macOS), `ipconfig` (Windows)
+- Parses non-loopback IPv4 CIDRs, normalizes to network addresses, pre-fills TxtSubnet
+- Multiple detected subnets accessible via tooltip on the subnet field
+- Localized status messages (EN/FR) during detection
+
 ## [v2026.032210] - 2026-03-22
 
 ### Comprehensive UX Audit — WCAG AA, Design Tokens, Accessibility

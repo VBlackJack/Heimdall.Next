@@ -84,6 +84,9 @@ public partial class UrlEncoderView : UserControl, IToolView
 
         BtnHelp.ToolTip = L("ToolHelpTooltip");
         System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
+
+        TxtDecoded.Tag = L("ToolWatermarkUrlToEncode");
+        TxtEncoded.Tag = L("ToolWatermarkEncodedUrl");
     }
 
     private void OnDecodedTextChanged(object sender, TextChangedEventArgs e)

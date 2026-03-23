@@ -88,6 +88,8 @@ public partial class IpConverterView : UserControl, IToolView
 
         BtnHelp.ToolTip = L("ToolHelpTooltip");
         System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
+
+        TxtInput.Tag = L("ToolWatermarkIpOrInteger");
     }
 
     private void OnInputTextChanged(object sender, TextChangedEventArgs e)

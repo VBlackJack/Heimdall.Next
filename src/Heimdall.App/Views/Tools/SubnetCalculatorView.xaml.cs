@@ -103,6 +103,7 @@ public partial class SubnetCalculatorView : UserControl, IToolView
 
         BtnHelp.ToolTip = L("ToolHelpTooltip");
         System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
+        TxtEmptyState.Text = L("ToolSubnetEmptyState");
     }
 
     private void OnHelpClick(object sender, RoutedEventArgs e)
@@ -134,6 +135,7 @@ public partial class SubnetCalculatorView : UserControl, IToolView
 
         if (string.IsNullOrWhiteSpace(input))
         {
+            EmptyStatePanel.Visibility = Visibility.Visible;
             return;
         }
 
@@ -141,6 +143,7 @@ public partial class SubnetCalculatorView : UserControl, IToolView
         {
             TxtError.Text = L("ToolSubnetErrorInvalidCidr");
             TxtError.Visibility = Visibility.Visible;
+            EmptyStatePanel.Visibility = Visibility.Visible;
             return;
         }
 
@@ -155,6 +158,7 @@ public partial class SubnetCalculatorView : UserControl, IToolView
             CalculateIpv4(address, prefixLength);
         }
 
+        EmptyStatePanel.Visibility = Visibility.Collapsed;
         ResultsPanel.Visibility = Visibility.Visible;
     }
 

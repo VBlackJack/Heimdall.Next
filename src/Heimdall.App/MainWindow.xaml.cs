@@ -1353,6 +1353,29 @@ public partial class MainWindow : Window
                         VerticalAlignment = VerticalAlignment.Center
                     });
                 }
+                else
+                {
+                    // Fallback: category glyph from Segoe MDL2 Assets
+                    var glyph = descriptor.Category switch
+                    {
+                        Core.Models.ToolCategory.Network  => "\uE968",
+                        Core.Models.ToolCategory.Security => "\uE72E",
+                        Core.Models.ToolCategory.Encoding => "\uE943",
+                        Core.Models.ToolCategory.System   => "\uE770",
+                        _ => "\uE946"
+                    };
+                    btnContent.Children.Add(new TextBlock
+                    {
+                        Text = glyph,
+                        FontFamily = new System.Windows.Media.FontFamily("Segoe MDL2 Assets"),
+                        FontSize = 14,
+                        Foreground = (Brush)FindResource("TextSecondaryBrush"),
+                        Width = 16,
+                        TextAlignment = System.Windows.TextAlignment.Center,
+                        VerticalAlignment = VerticalAlignment.Center,
+                        Margin = new Thickness(0, 0, 6, 0)
+                    });
+                }
             }
 
             btnContent.Children.Add(new TextBlock
@@ -1375,6 +1398,13 @@ public partial class MainWindow : Window
             btn.Click += OnToolsPanelItemClick;
             ToolsCategoryStack.Children.Add(btn);
         }
+    }
+
+    private void OnToolsPanelScrollChanged(object sender, ScrollChangedEventArgs e)
+    {
+        if (sender is not ScrollViewer sv) return;
+        var hasMore = sv.VerticalOffset + sv.ViewportHeight < sv.ExtentHeight - 2;
+        ToolsPanelScrollHint.Visibility = hasMore ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private async void OnToolsPanelItemClick(object sender, RoutedEventArgs e)

@@ -32,9 +32,9 @@
                 <Button x:Name="BtnHelp" DockPanel.Dock="Right" Content="?"
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="6,2" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
+                        Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
                         Width="24" Height="24" Margin="8,0,0,0"/>
-                <TextBlock x:Name="TitleText"
+                <TextBlock x:Name="HeaderTitle"
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
                            VerticalAlignment="Center"/>
@@ -197,7 +197,7 @@
                     <Button x:Name="BtnCopyFingerprint" DockPanel.Dock="Right"
                             Click="OnCopyFingerprintClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="10,4" Margin="8,0,0,0"
+                            Padding="{StaticResource PaddingButtonCopy}" Margin="8,0,0,0"
                             VerticalAlignment="Center"/>
                     <TextBox x:Name="FingerprintOutput"
                              IsReadOnly="True"
@@ -224,7 +224,7 @@
                         <Button x:Name="BtnCopyCert"
                                 Click="OnCopyCertClick"
                                 Style="{DynamicResource SecondaryButtonStyle}"
-                                Padding="10,4" Margin="8,0,0,0"
+                                Padding="{StaticResource PaddingButtonCopy}" Margin="8,0,0,0"
                                 VerticalAlignment="Center"/>
                     </StackPanel>
                     <TextBox x:Name="CertOutput"
@@ -254,12 +254,12 @@
                         <Button x:Name="BtnCopyKey"
                                 Click="OnCopyKeyClick"
                                 Style="{DynamicResource SecondaryButtonStyle}"
-                                Padding="10,4" Margin="8,0,0,0"
+                                Padding="{StaticResource PaddingButtonCopy}" Margin="8,0,0,0"
                                 VerticalAlignment="Center"/>
                         <Button x:Name="BtnShowKey"
                                 Click="OnToggleKeyClick"
                                 Style="{DynamicResource SecondaryButtonStyle}"
-                                Padding="10,4" Margin="4,0,0,0"
+                                Padding="{StaticResource PaddingButtonCopy}" Margin="4,0,0,0"
                                 VerticalAlignment="Center"/>
                     </StackPanel>
                     <TextBox x:Name="KeyOutput"
@@ -290,7 +290,7 @@
                         <Button x:Name="BtnCopyLeafCert"
                                 Click="OnCopyLeafCertClick"
                                 Style="{DynamicResource SecondaryButtonStyle}"
-                                Padding="10,4" Margin="8,0,0,0"
+                                Padding="{StaticResource PaddingButtonCopy}" Margin="8,0,0,0"
                                 VerticalAlignment="Center"/>
                     </StackPanel>
                     <TextBox x:Name="LeafCertOutput"
@@ -311,12 +311,12 @@
                         <Button x:Name="BtnCopyLeafKey"
                                 Click="OnCopyLeafKeyClick"
                                 Style="{DynamicResource SecondaryButtonStyle}"
-                                Padding="10,4" Margin="8,0,0,0"
+                                Padding="{StaticResource PaddingButtonCopy}" Margin="8,0,0,0"
                                 VerticalAlignment="Center"/>
                         <Button x:Name="BtnShowLeafKey"
                                 Click="OnToggleLeafKeyClick"
                                 Style="{DynamicResource SecondaryButtonStyle}"
-                                Padding="10,4" Margin="4,0,0,0"
+                                Padding="{StaticResource PaddingButtonCopy}" Margin="4,0,0,0"
                                 VerticalAlignment="Center"/>
                     </StackPanel>
                     <TextBox x:Name="LeafKeyOutput"

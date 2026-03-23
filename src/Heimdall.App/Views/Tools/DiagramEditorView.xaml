@@ -35,7 +35,7 @@
             <DockPanel>
                 <Button x:Name="BtnHelp" DockPanel.Dock="Right" Content="?" Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="6,2" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
+                        Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
                         Width="24" Height="24" Margin="8,0,0,0"/>
                 <StackPanel Orientation="Horizontal">
                     <TextBlock x:Name="HeaderTitle" Text="" FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"

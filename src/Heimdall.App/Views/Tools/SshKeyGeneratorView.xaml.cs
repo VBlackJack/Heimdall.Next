@@ -81,7 +81,7 @@ public partial class SshKeyGeneratorView : UserControl, IToolView
 
     private void ApplyLocalization()
     {
-        TitleText.Text = L("ToolSshKeyGenTitle");
+        HeaderTitle.Text = L("ToolSshKeyGenTitle");
         AlgorithmLabel.Text = L("ToolSshKeyGenAlgorithm");
         CommentLabel.Text = L("ToolSshKeyGenComment");
         PassphraseLabel.Text = L("ToolSshKeyGenPassphrase");

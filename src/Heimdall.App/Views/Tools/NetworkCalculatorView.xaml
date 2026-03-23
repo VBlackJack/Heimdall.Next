@@ -32,7 +32,7 @@
                 <Button x:Name="BtnHelp" DockPanel.Dock="Right" Content="?"
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="6,2" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
+                        Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
                         Width="24" Height="24" Margin="8,0,0,0"/>
                 <TextBlock x:Name="HeaderTitle" Text=""
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
@@ -83,7 +83,7 @@
                                  Foreground="{DynamicResource TextPrimaryBrush}"
                                  Background="{DynamicResource CardBrush}"
                                  BorderBrush="{DynamicResource BorderBrush}"
-                                 Padding="8,6" Margin="0,0,0,8"/>
+                                 Padding="{StaticResource PaddingInput}" Margin="0,0,0,8"/>
                         <Button x:Name="BtnSupernetCompute" Click="OnSupernetComputeClick"
                                 Style="{DynamicResource PrimaryButtonStyle}"
                                 Padding="14,6" HorizontalAlignment="Left" FontSize="{StaticResource FontSizeBody}"/>
@@ -189,7 +189,7 @@
                         <Button x:Name="BtnCopyResult" DockPanel.Dock="Top"
                                 Click="OnCopyResultClick"
                                 Style="{DynamicResource SecondaryButtonStyle}"
-                                Padding="10,4" Margin="0,0,0,8"
+                                Padding="{StaticResource PaddingButtonCopy}" Margin="0,0,0,8"
                                 HorizontalAlignment="Left" FontSize="{StaticResource FontSizeCaption}"/>
                         <TextBox x:Name="TxtResult"
                                  IsReadOnly="True"

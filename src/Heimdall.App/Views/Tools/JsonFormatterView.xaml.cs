@@ -63,7 +63,7 @@ public partial class JsonFormatterView : UserControl, IToolView
 
     private void ApplyLocalization()
     {
-        TitleText.Text = L("ToolJsonTitle");
+        HeaderTitle.Text = L("ToolJsonTitle");
         InputLabel.Text = L("ToolJsonInputLabel");
         OutputLabel.Text = L("ToolJsonOutputLabel");
         BtnPrettify.Content = L("ToolJsonBtnPrettify");
@@ -80,6 +80,8 @@ public partial class JsonFormatterView : UserControl, IToolView
 
         BtnHelp.ToolTip = L("ToolHelpTooltip");
         System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
+
+        InputText.Tag = L("ToolWatermarkPasteJson");
     }
 
     private void OnHelpClick(object sender, RoutedEventArgs e)

@@ -72,7 +72,7 @@ public partial class ChmodCalculatorView : UserControl, IToolView
 
     private void ApplyLocalization()
     {
-        TitleText.Text = L("ToolChmodTitle");
+        HeaderTitle.Text = L("ToolChmodTitle");
         HeaderRead.Text = L("ToolChmodRead");
         HeaderWrite.Text = L("ToolChmodWrite");
         HeaderExecute.Text = L("ToolChmodExecute");

@@ -42,6 +42,7 @@ public partial class NetworkCartographyView : UserControl, IToolView
     private List<Heimdall.Core.Configuration.SshGatewayDto>? _gateways;
     private Heimdall.Core.Configuration.SshGatewayDto? _selectedGateway;
     private Action<string, string, ToolContext?>? _openToolAction;
+    private Action<bool>? _setBusy;
 
     private readonly ObservableCollection<CartographyRowViewModel> _results = [];
 
@@ -60,6 +61,7 @@ public partial class NetworkCartographyView : UserControl, IToolView
     {
         _localizer = localizer;
         _openToolAction = ToolContextMenuHelper.GetOpenToolAction(context);
+        _setBusy = context?.SetBusyAction;
         ApplyLocalization();
 
         if (!string.IsNullOrWhiteSpace(context?.TargetHost))
@@ -201,6 +203,7 @@ public partial class NetworkCartographyView : UserControl, IToolView
         _results.Clear();
         _cts = new CancellationTokenSource();
         _isScanning = true;
+        _setBusy?.Invoke(true);
 
         BtnStart.IsEnabled = false;
         BtnStop.IsEnabled = true;
@@ -447,6 +450,7 @@ public partial class NetworkCartographyView : UserControl, IToolView
         _cts?.Dispose();
         _cts = null;
         _isScanning = false;
+        _setBusy?.Invoke(false);
 
         BtnStart.IsEnabled = true;
         BtnStop.IsEnabled = false;
@@ -744,6 +748,211 @@ public partial class NetworkCartographyView : UserControl, IToolView
         }
         var idx = CmbRouteVia.SelectedIndex - 1;
         _selectedGateway = idx < _gateways.Count ? _gateways[idx] : null;
+
+        if (_selectedGateway is not null)
+        {
+            _ = DetectRemoteSubnetsAsync(_selectedGateway);
+        }
+    }
+
+    /// <summary>
+    /// Connects to the selected gateway via SSH, discovers its network
+    /// interfaces, and auto-populates TxtSubnet with the first non-loopback
+    /// IPv4 CIDR found.
+    /// </summary>
+    private async Task DetectRemoteSubnetsAsync(Core.Configuration.SshGatewayDto gateway)
+    {
+        await Dispatcher.InvokeAsync(() =>
+            TxtStatus.Text = string.Format(L("ToolNetMapDetectingSubnet"), gateway.Name));
+
+        try
+        {
+            var password = !string.IsNullOrEmpty(gateway.SshPasswordEncrypted)
+                ? Core.Security.CredentialProtector.Unprotect(gateway.SshPasswordEncrypted)
+                : null;
+
+            var connParams = new Ssh.SshConnectionParams
+            {
+                Host = gateway.Host,
+                Port = gateway.Port,
+                Username = gateway.User,
+                Password = password,
+                KeyPath = gateway.KeyPath
+            };
+
+            var connInfo = Ssh.SshConnectionFactory.Create(connParams);
+            using var sshClient = new Renci.SshNet.SshClient(connInfo);
+
+            await Task.Run(() => sshClient.Connect()).ConfigureAwait(false);
+
+            // Try Linux first: ip -4 addr show
+            var output = ExecuteSshCommand(sshClient, "ip -4 addr show 2>/dev/null");
+            var subnets = ParseLinuxInterfaces(output);
+
+            // Fallback: ifconfig (older Linux, macOS, BSD)
+            if (subnets.Count == 0)
+            {
+                output = ExecuteSshCommand(sshClient, "ifconfig 2>/dev/null");
+                subnets = ParseIfconfigInterfaces(output);
+            }
+
+            // Fallback: Windows ipconfig
+            if (subnets.Count == 0)
+            {
+                output = ExecuteSshCommand(sshClient, "ipconfig 2>nul");
+                subnets = ParseWindowsIpconfig(output);
+            }
+
+            sshClient.Disconnect();
+
+            if (subnets.Count > 0)
+            {
+                await Dispatcher.InvokeAsync(() =>
+                {
+                    TxtSubnet.Text = subnets[0];
+                    TxtStatus.Text = string.Format(
+                        L("ToolNetMapSubnetDetected"),
+                        subnets.Count,
+                        gateway.Name);
+                    if (subnets.Count > 1)
+                    {
+                        TxtSubnet.ToolTip = string.Join("\n", subnets);
+                    }
+                });
+            }
+            else
+            {
+                await Dispatcher.InvokeAsync(() =>
+                    TxtStatus.Text = L("ToolNetMapSubnetDetectFailed"));
+            }
+        }
+        catch (Exception ex)
+        {
+            Core.Logging.FileLogger.Warn($"Subnet detection failed for {gateway.Name}: {ex.Message}");
+            await Dispatcher.InvokeAsync(() =>
+                TxtStatus.Text = L("ToolNetMapSubnetDetectFailed"));
+        }
+    }
+
+    private static string ExecuteSshCommand(Renci.SshNet.SshClient client, string command)
+    {
+        using var cmd = client.CreateCommand(command);
+        cmd.CommandTimeout = TimeSpan.FromSeconds(5);
+        return cmd.Execute();
+    }
+
+    /// <summary>
+    /// Parses output of <c>ip -4 addr show</c> to extract non-loopback CIDRs.
+    /// </summary>
+    private static List<string> ParseLinuxInterfaces(string output)
+    {
+        var subnets = new List<string>();
+        if (string.IsNullOrWhiteSpace(output)) return subnets;
+
+        // Match lines like: "    inet 192.168.1.5/24 brd 192.168.1.255 scope global eth0"
+        var regex = new System.Text.RegularExpressions.Regex(
+            @"inet\s+(\d+\.\d+\.\d+\.\d+/\d+)", System.Text.RegularExpressions.RegexOptions.Compiled);
+
+        foreach (System.Text.RegularExpressions.Match match in regex.Matches(output))
+        {
+            var cidr = match.Groups[1].Value;
+            // Skip loopback 127.x.x.x
+            if (cidr.StartsWith("127.", StringComparison.Ordinal)) continue;
+            // Normalize to network address: 192.168.1.5/24 -> 192.168.1.0/24
+            subnets.Add(NormalizeCidr(cidr));
+        }
+        return subnets.Distinct().ToList();
+    }
+
+    /// <summary>
+    /// Parses output of <c>ifconfig</c> to extract non-loopback CIDRs.
+    /// </summary>
+    private static List<string> ParseIfconfigInterfaces(string output)
+    {
+        var subnets = new List<string>();
+        if (string.IsNullOrWhiteSpace(output)) return subnets;
+
+        // Match "inet 192.168.1.5 netmask 255.255.255.0" or "inet addr:192.168.1.5 Mask:255.255.255.0"
+        var regex = new System.Text.RegularExpressions.Regex(
+            @"inet\s+(?:addr:)?(\d+\.\d+\.\d+\.\d+)\s+.*?(?:netmask|Mask:?)\s*(\d+\.\d+\.\d+\.\d+)",
+            System.Text.RegularExpressions.RegexOptions.Compiled | System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+        foreach (System.Text.RegularExpressions.Match match in regex.Matches(output))
+        {
+            var ip = match.Groups[1].Value;
+            var mask = match.Groups[2].Value;
+            if (ip.StartsWith("127.", StringComparison.Ordinal)) continue;
+            var prefix = MaskToPrefix(mask);
+            if (prefix > 0)
+                subnets.Add(NormalizeCidrFromIpAndPrefix(ip, prefix));
+        }
+        return subnets.Distinct().ToList();
+    }
+
+    /// <summary>
+    /// Parses output of <c>ipconfig</c> (Windows) to extract non-loopback CIDRs.
+    /// </summary>
+    private static List<string> ParseWindowsIpconfig(string output)
+    {
+        var subnets = new List<string>();
+        if (string.IsNullOrWhiteSpace(output)) return subnets;
+
+        string? lastIp = null;
+        foreach (var line in output.Split('\n'))
+        {
+            var trimmed = line.Trim();
+            // "IPv4 Address. . . . . . . . . . . : 192.168.1.5"
+            if (trimmed.Contains("IPv4", StringComparison.OrdinalIgnoreCase) && trimmed.Contains(':'))
+            {
+                lastIp = trimmed[(trimmed.LastIndexOf(':') + 1)..].Trim();
+            }
+            // "Subnet Mask . . . . . . . . . . . : 255.255.255.0"
+            else if (lastIp is not null && trimmed.Contains("Mask", StringComparison.OrdinalIgnoreCase) && trimmed.Contains(':'))
+            {
+                var mask = trimmed[(trimmed.LastIndexOf(':') + 1)..].Trim();
+                if (!lastIp.StartsWith("127.", StringComparison.Ordinal))
+                {
+                    var prefix = MaskToPrefix(mask);
+                    if (prefix > 0)
+                        subnets.Add(NormalizeCidrFromIpAndPrefix(lastIp, prefix));
+                }
+                lastIp = null;
+            }
+        }
+        return subnets.Distinct().ToList();
+    }
+
+    /// <summary>
+    /// Converts "192.168.1.5/24" to "192.168.1.0/24" (network address).
+    /// </summary>
+    private static string NormalizeCidr(string cidr)
+    {
+        var parts = cidr.Split('/');
+        if (parts.Length != 2 || !int.TryParse(parts[1], out var prefix)) return cidr;
+        return NormalizeCidrFromIpAndPrefix(parts[0], prefix);
+    }
+
+    private static string NormalizeCidrFromIpAndPrefix(string ip, int prefix)
+    {
+        if (!System.Net.IPAddress.TryParse(ip, out var addr)) return $"{ip}/{prefix}";
+        var bytes = addr.GetAddressBytes();
+        var maskBits = prefix;
+        for (int i = 0; i < 4; i++)
+        {
+            if (maskBits >= 8) { maskBits -= 8; continue; }
+            bytes[i] = (byte)(bytes[i] & (0xFF << (8 - maskBits)));
+            maskBits = 0;
+        }
+        return $"{new System.Net.IPAddress(bytes)}/{prefix}";
+    }
+
+    private static int MaskToPrefix(string mask)
+    {
+        if (!System.Net.IPAddress.TryParse(mask, out var addr)) return 0;
+        var bits = BitConverter.ToUInt32(addr.GetAddressBytes().Reverse().ToArray(), 0);
+        int count = 0;
+        while ((bits & 0x80000000) != 0) { count++; bits <<= 1; }
+        return count;
     }
 
     private void OnResultsContextMenuOpening(object sender, ContextMenuEventArgs e)

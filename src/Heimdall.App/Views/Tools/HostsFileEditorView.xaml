@@ -34,16 +34,16 @@
                 <Button x:Name="BtnHelp" DockPanel.Dock="Right" Content="?"
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="6,2" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
+                        Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
                         Width="24" Height="24" Margin="8,0,0,0"/>
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
                     <Button x:Name="BtnReload" Click="OnReloadClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="10,4" Margin="0,0,6,0" FontSize="{StaticResource FontSizeBody}"
+                            Padding="{StaticResource PaddingButtonCopy}" Margin="0,0,6,0" FontSize="{StaticResource FontSizeBody}"
                             VerticalAlignment="Center"/>
                     <Button x:Name="BtnSave" Click="OnSaveClick"
                             Style="{DynamicResource PrimaryButtonStyle}"
-                            Padding="10,4" FontSize="{StaticResource FontSizeBody}"
+                            Padding="{StaticResource PaddingButtonCopy}" FontSize="{StaticResource FontSizeBody}"
                             VerticalAlignment="Center"/>
                 </StackPanel>
                 <TextBlock x:Name="HeaderTitle" Text=""
@@ -86,10 +86,10 @@
         <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="12,8">
             <Button x:Name="BtnAddEntry" Click="OnAddEntryClick"
                     Style="{DynamicResource SecondaryButtonStyle}"
-                    Padding="10,4" Margin="0,0,6,0" FontSize="{StaticResource FontSizeBody}"/>
+                    Padding="{StaticResource PaddingButtonCopy}" Margin="0,0,6,0" FontSize="{StaticResource FontSizeBody}"/>
             <Button x:Name="BtnDeleteSelected" Click="OnDeleteSelectedClick"
                     Style="{DynamicResource SecondaryButtonStyle}"
-                    Padding="10,4" FontSize="{StaticResource FontSizeBody}"/>
+                    Padding="{StaticResource PaddingButtonCopy}" FontSize="{StaticResource FontSizeBody}"/>
         </StackPanel>
 
         <!-- Status bar -->

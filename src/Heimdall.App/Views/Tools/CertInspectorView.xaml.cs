@@ -160,6 +160,9 @@ public partial class CertInspectorView : UserControl, IToolView
 
         BtnHelp.ToolTip = L("ToolHelpTooltip");
         AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
+
+        TxtHost.Tag = L("ToolWatermarkHostname");
+        TxtEmptyState.Text = L("ToolCertEmptyState");
     }
 
     private void OnHelpClick(object sender, RoutedEventArgs e)
@@ -210,6 +213,7 @@ public partial class CertInspectorView : UserControl, IToolView
         TlsHostPanel.Visibility = Visibility.Collapsed;
         ChainPanel.Visibility = Visibility.Collapsed;
         BtnCopy.Visibility = Visibility.Collapsed;
+        EmptyStatePanel.Visibility = Visibility.Collapsed;
         LoadingBar.Visibility = Visibility.Visible;
         BtnCheck.IsEnabled = false;
 

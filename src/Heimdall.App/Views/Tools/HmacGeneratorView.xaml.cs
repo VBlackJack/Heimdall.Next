@@ -117,6 +117,10 @@ public partial class HmacGeneratorView : UserControl, IToolView
 
         BtnHelp.ToolTip = L("ToolHelpTooltip");
         System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
+
+        TxtKey.Tag = L("ToolWatermarkSecretKey");
+        TxtInput.Tag = L("ToolWatermarkMessage");
+        TxtVerify.Tag = L("ToolWatermarkPasteHmacVerify");
     }
 
     private void OnToggleKeyVisibility(object sender, RoutedEventArgs e)

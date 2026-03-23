@@ -214,7 +214,7 @@ public partial class PasswordGeneratorView : UserControl, IToolView
 
     private void ApplyLocalization()
     {
-        TitleText.Text = L("ToolPwdGenTitle");
+        HeaderTitle.Text = L("ToolPwdGenTitle");
         ModeLabel.Text = L("ToolPwdGenMode");
         ModeDescription.Text = L("ToolPwdGenModeRandomDesc");
         BtnRegenerate.Content = L("ToolPwdGenBtnGenerate");

@@ -32,7 +32,7 @@
                 <Button x:Name="BtnHelp" DockPanel.Dock="Right" Content="?"
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="6,2" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
+                        Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
                         Width="24" Height="24" Margin="8,0,0,0"/>
                 <TextBlock x:Name="HeaderTitle" Text=""
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
@@ -59,7 +59,7 @@
                     <TextBox x:Name="TxtPort" DockPanel.Dock="Right"
                              Text="443" Width="70"
                              FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
-                             Padding="8,6" Margin="8,0,0,0"
+                             Padding="{StaticResource PaddingInput}" Margin="8,0,0,0"
                              Background="{DynamicResource CardBrush}"
                              Foreground="{DynamicResource TextPrimaryBrush}"
                              BorderBrush="{DynamicResource BorderBrush}"
@@ -73,7 +73,7 @@
                              Style="{StaticResource WatermarkTextBoxStyle}"
                              Tag="hostname"
                              FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
-                             Padding="8,6"
+                             Padding="{StaticResource PaddingInput}"
                              Background="{DynamicResource CardBrush}"
                              Foreground="{DynamicResource TextPrimaryBrush}"
                              BorderBrush="{DynamicResource BorderBrush}"
@@ -100,6 +100,20 @@
                            FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,12" TextWrapping="Wrap"
                            Foreground="{DynamicResource ErrorTextBrush}"/>
 
+                <!-- Empty state hint (hidden once results appear) -->
+                <Border x:Name="EmptyStatePanel"
+                        Style="{StaticResource ToolEmptyStateStyle}"
+                        Margin="0,24,0,0">
+                    <StackPanel HorizontalAlignment="Center">
+                        <TextBlock Text="&#xEB95;" FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource IconSizeEmptyState}"
+                                   HorizontalAlignment="Center"
+                                   Foreground="{DynamicResource TextDisabledBrush}" Margin="0,0,0,8"/>
+                        <TextBlock x:Name="TxtEmptyState" Text=""
+                                   FontSize="{StaticResource FontSizeBodyLarge}" TextAlignment="Center"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"/>
+                    </StackPanel>
+                </Border>
+
                 <!-- Loading indicator -->
                 <ProgressBar x:Name="LoadingBar" IsIndeterminate="True"
                              Visibility="Collapsed" Height="4" Margin="0,0,0,12"/>
@@ -117,7 +131,8 @@
                         Background="{DynamicResource CardBrush}"
                         BorderBrush="{DynamicResource BorderBrush}"
                         BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
-                        Padding="16,12">
+                        Padding="16,12"
+                        AutomationProperties.LiveSetting="Polite">
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto"/>
@@ -271,7 +286,7 @@
                 <Button x:Name="BtnCopy" Click="OnCopyClick"
                         Visibility="Collapsed"
                         Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="12,4" Margin="0,12,0,0"
+                        Padding="{StaticResource PaddingButtonCopy}" Margin="0,12,0,0"
                         HorizontalAlignment="Left"
                         />
 
