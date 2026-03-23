@@ -2277,6 +2277,43 @@ public partial class MainWindow : Window
             var splitV = new System.Windows.Controls.MenuItem { Header = vm.Localize("SplitVertical") };
             splitV.Click += (_, _) => RequestSplitSession(session, Heimdall.Core.Models.SplitOrientation.Vertical);
             menu.Items.Add(splitV);
+
+            // "Merge with..." submenu — lists other active sessions for direct merge
+            var otherSessions = vm.Connection.ActiveSessions
+                .Where(s => s != session
+                    && s.HostControl is not null
+                    && s.ConnectionType?.StartsWith("TOOL:", StringComparison.OrdinalIgnoreCase) != true)
+                .ToList();
+
+            if (otherSessions.Count > 0)
+            {
+                var mergeMenu = new System.Windows.Controls.MenuItem { Header = vm.Localize("SplitMergeWith") };
+
+                foreach (var other in otherSessions)
+                {
+                    var sourceTab = other;
+                    var mergeH = new System.Windows.Controls.MenuItem
+                    {
+                        Header = $"{sourceTab.Title}  ({vm.Localize("SplitHorizontal")})"
+                    };
+                    mergeH.Click += (_, _) => vm.MergeExistingSession(
+                        session, sourceTab.ServerId, Heimdall.Core.Models.SplitOrientation.Horizontal);
+                    mergeMenu.Items.Add(mergeH);
+
+                    var mergeV = new System.Windows.Controls.MenuItem
+                    {
+                        Header = $"{sourceTab.Title}  ({vm.Localize("SplitVertical")})"
+                    };
+                    mergeV.Click += (_, _) => vm.MergeExistingSession(
+                        session, sourceTab.ServerId, Heimdall.Core.Models.SplitOrientation.Vertical);
+                    mergeMenu.Items.Add(mergeV);
+
+                    if (sourceTab != otherSessions[^1])
+                        mergeMenu.Items.Add(new System.Windows.Controls.Separator());
+                }
+
+                menu.Items.Add(mergeMenu);
+            }
         }
         else
         {

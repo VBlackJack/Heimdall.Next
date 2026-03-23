@@ -2201,6 +2201,7 @@
   "SplitPaletteHint": "Rechercher un serveur ou choisir une session active...",
   "SplitMergeActiveSession": "Session active — fusionner sans reconnecter",
   "SplitActiveSessionsHeader": "Sessions actives",
+  "SplitMergeWith": "Fusionner avec...",
   "RdpDisconnectedMessage": "La session Bureau a distance s'est terminee.",
 
   "HelpShortcutsTitle": "Raccourcis clavier",

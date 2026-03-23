@@ -2202,6 +2202,7 @@
   "SplitPaletteHint": "Search server or pick active session to split with...",
   "SplitMergeActiveSession": "Active session — merge without reconnecting",
   "SplitActiveSessionsHeader": "Active Sessions",
+  "SplitMergeWith": "Merge with...",
   "RdpDisconnectedMessage": "The Remote Desktop session has ended.",
 
   "HelpShortcutsTitle": "Keyboard Shortcuts",
