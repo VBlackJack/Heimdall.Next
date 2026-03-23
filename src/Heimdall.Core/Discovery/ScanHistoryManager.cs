@@ -36,19 +36,48 @@ public static class ScanHistoryManager
         PropertyNameCaseInsensitive = true
     };
 
+    /// <summary>Maximum number of scan snapshots to retain on disk.</summary>
+    internal const int MaxRetainedSnapshots = 20;
+
     private static string GetScanDir() =>
         Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "config", "network-scans");
 
     /// <summary>
     /// Persists a scan snapshot to the history directory as JSON.
+    /// Uses atomic temp-file-then-rename to prevent corruption on crash.
+    /// On Windows, applies restrictive ACL via <see cref="Security.SecureFileWriter"/>.
     /// </summary>
     public static async Task SaveSnapshotAsync(NetworkScanSnapshot snapshot)
     {
         var dir = GetScanDir();
         Directory.CreateDirectory(dir);
         var fileName = $"scan_{snapshot.Timestamp:yyyyMMdd_HHmmss}_{snapshot.Profile.Subnet.Replace('/', '-')}.json";
+        var targetPath = Path.Combine(dir, fileName);
         var json = JsonSerializer.Serialize(snapshot, SerializeOptions);
-        await File.WriteAllTextAsync(Path.Combine(dir, fileName), json).ConfigureAwait(false);
+
+        // Atomic write: write to temp file, then rename
+        var tempPath = targetPath + ".tmp";
+        try
+        {
+            await File.WriteAllTextAsync(tempPath, json).ConfigureAwait(false);
+            File.Move(tempPath, targetPath, overwrite: true);
+        }
+        catch
+        {
+            // Clean up temp file on failure
+            try { File.Delete(tempPath); } catch { /* best effort */ }
+            throw;
+        }
+
+        // Apply restrictive ACL on Windows
+        if (OperatingSystem.IsWindows())
+        {
+            try { Security.SecureFileWriter.WriteAndProtect(targetPath, json); }
+            catch { /* ACL enforcement is best-effort for scan history */ }
+        }
+
+        // Enforce retention policy
+        EnforceRetentionPolicy(dir);
     }
 
     /// <summary>
@@ -80,7 +109,13 @@ public static class ScanHistoryManager
     /// </summary>
     public static NetworkScanSnapshot? LoadSnapshot(string fileName)
     {
-        var path = Path.Combine(GetScanDir(), fileName);
+        // Path traversal prevention (CWE-22) + filename whitelist
+        if (string.IsNullOrWhiteSpace(fileName)) return null;
+        var sanitized = Path.GetFileName(fileName);
+        if (sanitized != fileName || fileName.Contains("..")) return null;
+        if (!sanitized.StartsWith("scan_", StringComparison.Ordinal)) return null;
+
+        var path = Path.Combine(GetScanDir(), sanitized);
         if (!File.Exists(path)) return null;
         var json = File.ReadAllText(path);
         return JsonSerializer.Deserialize<NetworkScanSnapshot>(json, DeserializeOptions);
@@ -133,5 +168,27 @@ public static class ScanHistoryManager
         }
 
         return new ScanDiff(newHosts, removedHosts, modified);
+    }
+
+    /// <summary>
+    /// Removes the oldest scan snapshots when the count exceeds <see cref="MaxRetainedSnapshots"/>.
+    /// </summary>
+    internal static void EnforceRetentionPolicy(string dir)
+    {
+        try
+        {
+            var files = Directory.GetFiles(dir, "scan_*.json")
+                .OrderByDescending(f => File.GetLastWriteTimeUtc(f))
+                .ToList();
+
+            if (files.Count <= MaxRetainedSnapshots) return;
+
+            foreach (var file in files.Skip(MaxRetainedSnapshots))
+            {
+                try { File.Delete(file); }
+                catch { /* best effort cleanup */ }
+            }
+        }
+        catch { /* retention enforcement is best-effort */ }
     }
 }

@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Net;
 using System.Net.NetworkInformation;
@@ -32,6 +33,32 @@ namespace Heimdall.Core.Discovery;
 /// </summary>
 public sealed class CartographyEngine
 {
+    // Cached compiled regexes for banner parsing
+    private static readonly Regex ServerHeaderRegex = new(
+        @"Server:\s*(.+)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+    private static readonly Regex TitleTagRegex = new(
+        @"<title>(.*?)</title>",
+        RegexOptions.IgnoreCase | RegexOptions.Singleline | RegexOptions.Compiled);
+
+    /// <summary>Pre-compiled regex cache for HTTP header extraction (one per target header).</summary>
+    private static readonly Dictionary<string, Regex> HttpHeaderRegexCache;
+
+    static CartographyEngine()
+    {
+        string[] targetHeaders =
+        [
+            "Server", "X-Powered-By", "X-Generator", "X-AspNet-Version",
+            "WWW-Authenticate", "X-Frame-Options", "Strict-Transport-Security"
+        ];
+        HttpHeaderRegexCache = new(StringComparer.OrdinalIgnoreCase);
+        foreach (var name in targetHeaders)
+        {
+            HttpHeaderRegexCache[name] = new Regex(
+                $@"(?:^|\n){Regex.Escape(name)}:\s*(.+?)(?:\r?\n|$)",
+                RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        }
+    }
+
     /// <summary>Ports that typically serve TLS-encrypted traffic.</summary>
     internal static readonly HashSet<int> TlsPorts = [443, 8443, 636, 993, 995, 465, 990, 3269, 9443];
 
@@ -63,15 +90,21 @@ public sealed class CartographyEngine
     /// <summary>Fires during UDP enrichment phases (NetBIOS, SNMP).</summary>
     public event Action<string, string>? EnrichmentProgress;
 
+    /// <summary>Fires when a host is served from the knowledge base cache.</summary>
+    public event Action<string, string>? CacheHitProgress;
+
     /// <summary>
     /// Runs a full cartography scan against the specified profile.
+    /// When <paramref name="knowledgeBase"/> is provided, fresh cached data
+    /// is reused and redundant probes are skipped based on TTL configuration.
     /// </summary>
     public async Task<NetworkScanSnapshot> ScanAsync(
         ScanProfile profile,
+        NetworkKnowledgeBase? knowledgeBase = null,
         CancellationToken ct = default)
     {
         var startTime = DateTime.UtcNow;
-        var hosts = new List<HostScanResult>();
+        var hosts = new ConcurrentBag<HostScanResult>();
 
         var ipList = ParseCidr(profile.Subnet);
 
@@ -84,8 +117,39 @@ public sealed class CartographyEngine
         }
         else
         {
-            pingResults = await PingSweepAsync(ipList, profile, ct).ConfigureAwait(false);
+            // KB cache: hosts known alive within TTL can skip ping
+            var skipPingIps = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            if (knowledgeBase is not null)
+            {
+                foreach (var ip in ipList)
+                {
+                    var cached = KnowledgeBaseManager.Lookup(knowledgeBase, ip);
+                    if (cached is not null &&
+                        KnowledgeBaseManager.IsAliveFresh(cached, knowledgeBase.TtlConfig) &&
+                        cached.IsAlive?.Value == true)
+                    {
+                        skipPingIps.Add(ip);
+                    }
+                }
+            }
+
+            var toPing = ipList.Where(ip => !skipPingIps.Contains(ip)).ToList();
+            pingResults = toPing.Count > 0
+                ? await PingSweepAsync(toPing, profile, ct).ConfigureAwait(false)
+                : [];
+
+            // Combine pinged results with KB-cached alive hosts
             aliveHosts = [.. pingResults.Keys];
+            foreach (var ip in skipPingIps)
+            {
+                if (!aliveHosts.Contains(ip))
+                {
+                    aliveHosts.Add(ip);
+                    var cached = KnowledgeBaseManager.Lookup(knowledgeBase!, ip)!;
+                    pingResults[ip] = (cached.PingLatencyMs?.Value ?? 0, 0);
+                    CacheHitProgress?.Invoke(ip, "ping");
+                }
+            }
         }
 
         var ports = profile.CustomPorts ?? profile.Depth switch
@@ -130,17 +194,35 @@ public sealed class CartographyEngine
         ssdpResults = await ssdpTask.ConfigureAwait(false);
 
         var semaphore = new SemaphoreSlim(profile.MaxConcurrency);
+        var ttlConfig = knowledgeBase?.TtlConfig;
         var tasks = aliveHosts.Select(async ip =>
         {
             await semaphore.WaitAsync(ct).ConfigureAwait(false);
             try
             {
+                // KB cache: if all probe data is fresh, reuse cached result
+                if (knowledgeBase is not null && ttlConfig is not null)
+                {
+                    var cached = KnowledgeBaseManager.Lookup(knowledgeBase, ip);
+                    if (cached is not null &&
+                        KnowledgeBaseManager.IsAliveFresh(cached, ttlConfig) &&
+                        KnowledgeBaseManager.ArePortsFresh(cached, ttlConfig) &&
+                        KnowledgeBaseManager.AreUdpProbesFresh(cached, ttlConfig))
+                    {
+                        var cachedResult = KnowledgeBaseManager.ToScanResult(cached);
+                        hosts.Add(cachedResult);
+                        CacheHitProgress?.Invoke(ip, "all");
+                        HostCompleted?.Invoke(cachedResult);
+                        return;
+                    }
+                }
+
                 var (latency, ttl) = pingResults.TryGetValue(ip, out var p) ? p : (0L, 0);
                 var mdnsServices = mdnsResults.TryGetValue(ip, out var ms) ? ms : null;
                 var ssdpInfo = ssdpResults.TryGetValue(ip, out var ss) ? ss : null;
                 var result = await ScanHostAsync(ip, ports, profile, arpTable,
                     gatewayIps, ttl, latency, mdnsServices, ssdpInfo, ct).ConfigureAwait(false);
-                lock (hosts) hosts.Add(result);
+                hosts.Add(result);
                 HostCompleted?.Invoke(result);
             }
             finally { semaphore.Release(); }
@@ -166,9 +248,9 @@ public sealed class CartographyEngine
     private async Task<Dictionary<string, (long LatencyMs, int Ttl)>> PingSweepAsync(
         List<string> ips, ScanProfile profile, CancellationToken ct)
     {
-        var alive = new Dictionary<string, (long LatencyMs, int Ttl)>();
+        var alive = new ConcurrentDictionary<string, (long LatencyMs, int Ttl)>();
         var completed = 0;
-        var semaphore = new SemaphoreSlim(64);
+        var semaphore = new SemaphoreSlim(Math.Min(64, profile.MaxConcurrency));
 
         var tasks = ips.Select(async ip =>
         {
@@ -182,7 +264,7 @@ public sealed class CartographyEngine
                 {
                     var ttl = reply.Options?.Ttl ?? 0;
                     var latency = reply.RoundtripTime;
-                    lock (alive) alive[ip] = (latency, ttl);
+                    alive[ip] = (latency, ttl);
                 }
                 Interlocked.Increment(ref completed);
                 HostDiscoveryProgress?.Invoke(completed, ips.Count);
@@ -196,7 +278,7 @@ public sealed class CartographyEngine
         });
 
         await Task.WhenAll(tasks).ConfigureAwait(false);
-        return alive;
+        return new Dictionary<string, (long LatencyMs, int Ttl)>(alive);
     }
 
     private async Task<HostScanResult> ScanHostAsync(
@@ -205,7 +287,7 @@ public sealed class CartographyEngine
         int ttl, long latencyMs,
         List<string>? mdnsServices, SsdpInfo? ssdpInfo, CancellationToken ct)
     {
-        var services = new List<ServiceResult>();
+        var services = new ConcurrentBag<ServiceResult>();
         var portCompleted = 0;
 
         var hostSemaphore = new SemaphoreSlim(Math.Min(20, profile.MaxConcurrency));
@@ -218,7 +300,7 @@ public sealed class CartographyEngine
                     .ConfigureAwait(false);
                 if (result.IsOpen)
                 {
-                    lock (services) services.Add(result);
+                    services.Add(result);
                 }
                 Interlocked.Increment(ref portCompleted);
                 PortScanProgress?.Invoke(ip, portCompleted, ports.Length);
@@ -321,7 +403,7 @@ public sealed class CartographyEngine
         }
 
         return new HostScanResult(
-            ip, hostname, true, latencyMs, services, primaryRole, roles,
+            ip, hostname, true, latencyMs, [.. services], primaryRole, roles,
             mac, manufacturer,
             OsFingerprint: osFingerprint,
             NetBiosName: nbName,
@@ -345,6 +427,7 @@ public sealed class CartographyEngine
             await client.ConnectAsync(host, port, linked.Token).ConfigureAwait(false);
             sw.Stop();
 
+            var probeStrategy = GetProbeStrategy(port);
             string? banner = null;
             try
             {
@@ -359,10 +442,7 @@ public sealed class CartographyEngine
                         banner = Encoding.ASCII.GetString(buf, 0, read).Trim();
                 }
 
-                // Use centralized probe strategy to decide what to do
-                var strategy = GetProbeStrategy(port);
-
-                if (banner is null && strategy.PlaintextHttp)
+                if (banner is null && probeStrategy.PlaintextHttp)
                 {
                     var probe = Encoding.ASCII.GetBytes("GET / HTTP/1.0\r\nHost: " + host + "\r\n\r\n");
                     await stream.WriteAsync(probe, linked.Token).ConfigureAwait(false);
@@ -379,7 +459,6 @@ public sealed class CartographyEngine
             catch { /* banner grab failed, port is still open */ }
 
             CertificateInfo? certInfo = null;
-            var probeStrategy = GetProbeStrategy(port);
             if (probeStrategy.TlsInspection)
             {
                 var (cert, tlsBanner) = await InspectTlsWithHttpAsync(
@@ -417,6 +496,8 @@ public sealed class CartographyEngine
             using var linked = CancellationTokenSource.CreateLinkedTokenSource(ct, cts.Token);
             await tcp.ConnectAsync(host, port, linked.Token).ConfigureAwait(false);
 
+            // Accept all certificates: this is a network scanner inspecting cert metadata,
+            // not a client trusting the connection. Validation is intentionally disabled.
             using var ssl = new SslStream(tcp.GetStream(), false, (_, _, _, _) => true);
             await ssl.AuthenticateAsClientAsync(new SslClientAuthenticationOptions
             {
@@ -522,12 +603,11 @@ public sealed class CartographyEngine
 
         if (banner.StartsWith("HTTP/", StringComparison.Ordinal))
         {
-            var serverMatch = Regex.Match(banner, @"Server:\s*(.+)", RegexOptions.IgnoreCase);
+            var serverMatch = ServerHeaderRegex.Match(banner);
             var serverVersion = serverMatch.Success ? serverMatch.Groups[1].Value.Trim() : null;
 
             // Extract <title> for device identification (login pages often reveal appliance type)
-            var titleMatch = Regex.Match(banner, @"<title>(.*?)</title>",
-                RegexOptions.IgnoreCase | RegexOptions.Singleline);
+            var titleMatch = TitleTagRegex.Match(banner);
             if (titleMatch.Success)
             {
                 var title = titleMatch.Groups[1].Value.Trim();
@@ -563,17 +643,10 @@ public sealed class CartographyEngine
             return null;
 
         var headers = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        string[] targetHeaders =
-        [
-            "Server", "X-Powered-By", "X-Generator", "X-AspNet-Version",
-            "WWW-Authenticate", "X-Frame-Options", "Strict-Transport-Security"
-        ];
 
-        foreach (var headerName in targetHeaders)
+        foreach (var (headerName, regex) in HttpHeaderRegexCache)
         {
-            var match = Regex.Match(banner,
-                $@"(?:^|\n){Regex.Escape(headerName)}:\s*(.+?)(?:\r?\n|$)",
-                RegexOptions.IgnoreCase);
+            var match = regex.Match(banner);
             if (match.Success)
                 headers[headerName] = match.Groups[1].Value.Trim();
         }
@@ -697,7 +770,7 @@ public sealed class CartographyEngine
                 if (proc is null) return result;
 
                 var output = proc.StandardOutput.ReadToEnd();
-                proc.WaitForExit();
+                if (!proc.WaitForExit(5000)) { try { proc.Kill(); } catch { /* already exited */ } }
 
                 // Parse lines like: "  10.0.0.1             aa-bb-cc-dd-ee-ff     dynamic"
                 foreach (var line in output.Split('\n'))
@@ -747,7 +820,7 @@ public sealed class CartographyEngine
                 using var proc = Process.Start(psi);
                 if (proc is null) return result;
                 var output = proc.StandardOutput.ReadToEnd();
-                proc.WaitForExit();
+                if (!proc.WaitForExit(5000)) { try { proc.Kill(); } catch { /* already exited */ } }
 
                 // Parse lines like: "? (192.168.1.1) at 00:11:22:33:44:55 on en0 ifscope [ether]"
                 foreach (var line in output.Split('\n'))

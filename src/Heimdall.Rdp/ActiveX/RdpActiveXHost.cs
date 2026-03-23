@@ -35,6 +35,9 @@ public class RdpActiveXHost : AxHost, IRdpSession
     public const string DefaultMsTscAxClsid = "7cacbd7b-0d99-468f-ac33-22e495c0afe5";
     public const string NotSafeForScriptingClsid = "A0F46F0A-3B66-4B79-A7A1-1C70A6BF37E1";
 
+    /// <summary>TCP keep-alive interval in milliseconds (60 seconds).</summary>
+    private const int KeepAliveIntervalMs = 60_000;
+
     private object? _activeX;
     private bool _disposed;
     private ConnectionPointCookie? _cookie;
@@ -481,6 +484,17 @@ public class RdpActiveXHost : AxHost, IRdpSession
         // when it does not have focus, silently breaking anti-idle.
         try { adv.allowBackgroundInput = 1; } catch (Exception ex) { Heimdall.Core.Logging.FileLogger.Warn($"[RdpActiveXHost] allowBackgroundInput: {ex.Message}"); }
 
+        // TCP keep-alive interval for network break detection
+        try { adv.KeepAliveInterval = KeepAliveIntervalMs; }
+        catch (Exception ex) { Heimdall.Core.Logging.FileLogger.Warn($"[RdpActiveXHost] KeepAliveInterval: {ex.Message}"); }
+
+        // Performance flags (disable visual effects for bandwidth optimization)
+        if (_pendingRedirections.PerformanceFlags > 0)
+        {
+            try { adv.PerformanceFlags = _pendingRedirections.PerformanceFlags; }
+            catch (Exception ex) { Heimdall.Core.Logging.FileLogger.Warn($"[RdpActiveXHost] PerformanceFlags: {ex.Message}"); }
+        }
+
         // Multi-monitor (requires IMsRdpClientNonScriptable5)
         if (_pendingRedirections.MultiMonitor)
         {
@@ -491,6 +505,21 @@ public class RdpActiveXHost : AxHost, IRdpSession
             catch (Exception ex)
             {
                 Heimdall.Core.Logging.FileLogger.Warn($"[RdpActiveXHost] UseMultimon: {ex.Message}");
+            }
+        }
+
+        // Disable UDP transport (force TCP-only) to avoid UDP probe timeout behind firewalls
+        if (_pendingRedirections.DisableUdp)
+        {
+            try
+            {
+                // IMsRdpClientTransportSettings3.GatewayDefaultUsageMethod includes UDP flag,
+                // but the most reliable method is setting the connection property directly.
+                ax.TransportSettings3.GatewayDefaultUsageMethod = 2; // TSC_PROXY_MODE_DIRECT
+            }
+            catch (Exception ex)
+            {
+                Heimdall.Core.Logging.FileLogger.Warn($"[RdpActiveXHost] DisableUdp: {ex.Message}");
             }
         }
     }

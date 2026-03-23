@@ -267,6 +267,12 @@ public partial class ServerDialogViewModel : ObservableValidator
     private bool _rdpAutoReconnect = true;
 
     [ObservableProperty]
+    private int _rdpPerformanceFlags;
+
+    [ObservableProperty]
+    private bool _rdpDisableUdp;
+
+    [ObservableProperty]
     private string _rdpGateway = "";
 
     // --- Gateway ---
@@ -541,6 +547,8 @@ public partial class ServerDialogViewModel : ObservableValidator
             RdpBitmapCaching = RdpBitmapCaching,
             RdpCompression = RdpCompression,
             RdpAutoReconnect = RdpAutoReconnect,
+            RdpPerformanceFlags = RdpPerformanceFlags,
+            RdpDisableUdp = RdpDisableUdp,
             RdpGateway = string.IsNullOrWhiteSpace(RdpGateway) ? null : RdpGateway,
             SshGatewayId = string.IsNullOrWhiteSpace(SelectedGatewayId) ? null : SelectedGatewayId,
             UseDirectConnection = DirectConnection,
@@ -623,6 +631,8 @@ public partial class ServerDialogViewModel : ObservableValidator
             RdpBitmapCaching = dto.RdpBitmapCaching,
             RdpCompression = dto.RdpCompression,
             RdpAutoReconnect = dto.RdpAutoReconnect,
+            RdpPerformanceFlags = dto.RdpPerformanceFlags,
+            RdpDisableUdp = dto.RdpDisableUdp,
             RdpGateway = dto.RdpGateway ?? "",
             SelectedGatewayId = dto.SshGatewayId ?? "",
             DirectConnection = dto.UseDirectConnection,

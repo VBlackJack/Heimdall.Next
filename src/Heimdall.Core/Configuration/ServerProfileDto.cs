@@ -72,6 +72,8 @@ public class ServerProfileDto
     public bool RdpBitmapCaching { get; set; } = true;
     public bool RdpCompression { get; set; } = true;
     public bool RdpAutoReconnect { get; set; } = true;
+    public int RdpPerformanceFlags { get; set; }
+    public bool RdpDisableUdp { get; set; }
     public string? RdpGateway { get; set; }
     public string? Environment { get; set; }
 

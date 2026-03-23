@@ -169,3 +169,75 @@ public record ScanDiff(
     List<HostScanResult> NewHosts,
     List<HostScanResult> RemovedHosts,
     List<(HostScanResult Old, HostScanResult New, List<HostChange> Changes)> ModifiedHosts);
+
+// ── Knowledge Base models ────────────────────────────────────────
+
+/// <summary>
+/// Timestamp-tagged wrapper enabling per-field freshness tracking
+/// in the knowledge base. The <paramref name="Source"/> field identifies
+/// the scan vantage point (gateway name or "local").
+/// </summary>
+public record Observation<T>(T Value, DateTime ObservedAt, string? Source = null);
+
+/// <summary>
+/// Accumulated knowledge about a single host, merged from multiple scans.
+/// Keyed by IP address. Each field carries its own observation timestamp
+/// so the merge engine can apply "newest wins" per field.
+/// </summary>
+public record KnownHost(
+    string IpAddress,
+    DateTime FirstSeen,
+    DateTime LastSeen,
+    int ScanCount,
+    Observation<string>? Hostname,
+    Observation<bool>? IsAlive,
+    Observation<long>? PingLatencyMs,
+    List<KnownService> Services,
+    Observation<RoleMatch>? PrimaryRole,
+    List<Observation<RoleMatch>> AllRoles,
+    Observation<string>? MacAddress,
+    Observation<string>? Manufacturer,
+    Observation<OsFingerprint>? OsFingerprint,
+    Observation<string>? NetBiosName,
+    Observation<string>? NetBiosDomain,
+    Observation<SnmpInfo>? SnmpInfo,
+    Observation<List<string>>? MdnsServices,
+    Observation<Dictionary<string, string>>? HttpHeaders,
+    Observation<SsdpInfo>? SsdpInfo,
+    string? Notes = null);
+
+/// <summary>
+/// A service/port observation with its own timestamp for TTL-based cache invalidation.
+/// </summary>
+public record KnownService(
+    int Port,
+    bool IsOpen,
+    string? ServiceName,
+    string? Banner,
+    string? Version,
+    CertificateInfo? Certificate,
+    Dictionary<string, string>? HttpHeaders,
+    DateTime ObservedAt,
+    string? Source = null);
+
+/// <summary>
+/// Root container for the entire knowledge base.
+/// </summary>
+public record NetworkKnowledgeBase(
+    int Version,
+    DateTime LastUpdated,
+    KnowledgeBaseTtlConfig TtlConfig,
+    Dictionary<string, KnownHost> Hosts);
+
+/// <summary>
+/// Configurable TTL values (in hours) that control when cached data is
+/// considered stale and should be re-probed.
+/// </summary>
+public record KnowledgeBaseTtlConfig(
+    int HostAliveHours = 4,
+    int PortScanHours = 24,
+    int BannerGrabHours = 168,
+    int DnsHours = 72,
+    int UdpProbeHours = 168,
+    int CertificateHours = 720,
+    int MacAddressHours = 720);

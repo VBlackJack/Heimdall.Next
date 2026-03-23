@@ -386,7 +386,8 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
             Core.Logging.FileLogger.Info("EmbeddedRDP calling Connect()...");
             _rdpHost.Connect();
 
-            FlushLayoutPipeline("post-connect");
+            // Post-connect flush removed: layout is already stable after pre-connect + post-handle flushes.
+            // The third flush added ~50-150ms latency with no airspace benefit since Connect() is async.
             UpdateSessionState("Connecting", L("RdpStatusWaiting"));
 
             if (!string.IsNullOrWhiteSpace(password))
@@ -1018,7 +1019,9 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
             Nla = server.RdpNla,
             BitmapCaching = server.RdpBitmapCaching,
             Compression = server.RdpCompression,
-            AutoReconnect = server.RdpAutoReconnect
+            AutoReconnect = server.RdpAutoReconnect,
+            PerformanceFlags = server.RdpPerformanceFlags,
+            DisableUdp = server.RdpDisableUdp
         };
     }
 

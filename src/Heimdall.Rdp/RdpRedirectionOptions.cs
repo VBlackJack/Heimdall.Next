@@ -65,4 +65,16 @@ public class RdpRedirectionOptions
 
     /// <summary>Enable automatic reconnection on network interruption.</summary>
     public bool AutoReconnect { get; set; } = true;
+
+    /// <summary>
+    /// RDP experience performance flags bitmask to disable visual effects.
+    /// 0x01 = Disable wallpaper, 0x02 = Disable full-window drag,
+    /// 0x04 = Disable menu animations, 0x08 = Disable themes,
+    /// 0x20 = Disable cursor shadow, 0x40 = Disable cursor blinking,
+    /// 0x80 = Enable desktop composition.
+    /// </summary>
+    public int PerformanceFlags { get; set; }
+
+    /// <summary>Disable UDP transport, forcing TCP-only RDP connections.</summary>
+    public bool DisableUdp { get; set; }
 }

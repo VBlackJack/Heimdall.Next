@@ -887,6 +887,13 @@ public partial class MainWindow : Window
         {
             vm.ServerList.SelectedServer = server;
 
+            // Pre-resolve DNS to warm the OS cache before the user clicks Connect
+            if (!string.IsNullOrWhiteSpace(server.RemoteServer))
+            {
+                _ = System.Net.Dns.GetHostEntryAsync(server.RemoteServer)
+                    .ContinueWith(_ => { }, System.Threading.Tasks.TaskContinuationOptions.OnlyOnFaulted);
+            }
+
             var isTool = server.ConnectionType?.StartsWith("TOOL:", StringComparison.OrdinalIgnoreCase) == true;
             if (isTool)
             {
