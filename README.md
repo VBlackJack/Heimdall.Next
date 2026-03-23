@@ -106,6 +106,7 @@ Built with .NET 10 and WPF. Secure, feature-rich Windows connection manager with
 - Supports `user@host:port` format with optional protocol prefix
 - Bare IP or hostname input auto-proposes SSH and RDP connections
 - Also used as split session server picker (fuzzy search scales to any inventory size)
+- Renders as a WPF `Popup` (own HWND) so it displays above RDP/VNC ActiveX surfaces
 - Recent connection history for quick re-use
 
 ### Tunnel Panel

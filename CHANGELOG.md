@@ -12,6 +12,35 @@
 
 All notable changes to Heimdall.Next are documented in this file.
 
+## [v2026.032304] - 2026-03-23
+
+### Split Session Fix + RDP Improvements
+
+#### Airspace fix (Command Palette over RDP/VNC)
+- **Fix**: Command Palette (Ctrl+K) was invisible over RDP sessions due to WPF airspace issue — `WindowsFormsHost` HWND always rendered above WPF overlay content
+- Replaced the `Grid` overlay with a WPF `Popup` that creates its own HWND, rendering above all Win32 surfaces
+- Drop shadow and proper `PlacementTarget` for consistent positioning
+- Deferred focus via `Dispatcher.BeginInvoke` (Popup content enters visual tree asynchronously)
+- Dismiss on outside click via `PreviewMouseDown` on the main Window
+
+#### Split session
+- **Fix**: split session was silently failing because default RDP/SSH mode was "External" — embedded mode is now the default
+- Force embedded mode for split pane connections (external mstsc.exe cannot be docked)
+- Add missing VNC, FTP, Citrix protocol cases in split session switch
+
+#### RDP ActiveX enhancements
+- Auto-reconnect events (`LoginComplete`, `AutoReconnecting`, `AutoReconnected`) with bounded retry count and cancel support
+- Disconnect reason decoder with localized messages (24 reason codes)
+- UPN credential format support (`user@domain.com`)
+- USB device redirection, bandwidth auto-detect, network connection type
+- Performance flags and DisableUdp options in `.rdp` file generation
+- Fix `AudioCaptureRedirectionMode` COM property type (int, not bool)
+- Fix COM dispose — let AxHost handle RCW cleanup (prevents "COM object separated" errors)
+
+#### Settings
+- Default connection mode changed from "External" to "Embedded" for both RDP and SSH
+- "Apply to all servers" button for bulk SSH/RDP mode switching
+
 ## [v2026.032303] - 2026-03-23
 
 ### Network Cartography — Knowledge Base + Security Hardening

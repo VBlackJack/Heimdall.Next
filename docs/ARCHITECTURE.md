@@ -134,7 +134,7 @@ The terminal page (`terminal.html`) is loaded via `NavigateToString` (no externa
 
 ### 4. RDP ActiveX with Layout Flush Protocol
 
-**Problem**: WPF's `WindowsFormsHost` has an "airspace" issue where the rendering surface is not properly bound to the visible HWND if layout hasn't been flushed before `Connect()`.
+**Problem**: WPF's `WindowsFormsHost` has an "airspace" issue where the rendering surface is not properly bound to the visible HWND if layout hasn't been flushed before `Connect()`. Additionally, the Win32 HWND always renders above WPF content in the same window — `Panel.ZIndex` has no effect.
 
 **Solution**: Mandatory layout flush before every `Connect()`:
 
@@ -142,16 +142,20 @@ The terminal page (`terminal.html`) is loaded via `NavigateToString` (no externa
 UpdateLayout() -> DoEvents() -> Dispatcher.Invoke(Render) -> EnsureHandle -> Connect()
 ```
 
+**Airspace overlay rule**: Any WPF UI that must render above a `WindowsFormsHost` surface (RDP, VNC) MUST use a WPF `Popup`. A Popup creates its own top-level HWND that the OS composites above the embedded ActiveX surface. The Command Palette uses this pattern — it was originally a `Grid` overlay with `Panel.ZIndex="9999"` which was invisible over RDP sessions.
+
 Additional guards:
 - Resolution updates blocked for 5 seconds after `OnConnected` (prevents disconnect code 4360)
-- COM dispose follows strict order: collapse visibility, detach from tree, disconnect, detach event sink, dispose
+- COM dispose follows strict order: collapse visibility, detach from tree, disconnect, detach event sink, dispose — do NOT call `Marshal.ReleaseComObject` (let AxHost handle RCW cleanup)
+- Auto-reconnect with bounded retry (`MaxReconnectAttempts = 20`) and cancel support via COM event sink
+- Disconnect reason decoder: `GetDisconnectReasonKey()` maps 24 MsTscAx codes to i18n keys
 
 **Performance optimizations** (cold-start mitigation):
 - **COM pre-warm**: Background STA thread creates/disposes throwaway `RdpActiveXHost` at startup, forcing mstscax.dll + 22 static dependencies into memory (~400ms saved on first connection)
 - **DNS pre-resolution**: `Dns.GetHostEntryAsync()` fire-and-forget on server selection in tree view
 - **TCP keep-alive**: `KeepAliveIntervalMs = 60_000` for network break detection
 - **Per-server experience flags**: `AdvancedSettings9.PerformanceFlags` bitmask (wallpaper, themes, animations, drag, cursor shadow, composition) configurable in Server Dialog
-- **TCP-only mode**: `TransportSettings3.GatewayDefaultUsageMethod` disables UDP transport to avoid firewall probe timeouts
+- **TCP-only mode**: `BandwidthDetection = false` + `NetworkConnectionType = 6` (LAN) disables UDP probe to avoid firewall timeouts
 
 ### 5. Credential Autofill via EnumThreadWindows
 
@@ -195,7 +199,7 @@ All connection operations return an `ISessionResult` (defined in `Heimdall.Core/
 
 ### 11. Quick Connect (Ctrl+K)
 
-**Architecture**: A modal overlay (`QuickConnectOverlay`) parses connection strings of the form `[protocol://]user@host[:port]`. The parser infers protocol from port if omitted (22=SSH, 3389=RDP, 1494=Citrix, 5900=VNC, 23=Telnet, 21=FTP). A `ServerProfileDto` is created transiently (not persisted) and passed to `ConnectionService.ConnectAsync()`. Recent connections are stored in `settings.json` for quick re-use.
+**Architecture**: A `Popup`-based Command Palette (own HWND, renders above ActiveX/WindowsFormsHost surfaces) parses connection strings of the form `[protocol://]user@host[:port]`. The parser infers protocol from port if omitted (22=SSH, 3389=RDP, 1494=Citrix, 5900=VNC, 23=Telnet, 21=FTP). A `ServerProfileDto` is created transiently (not persisted) and passed to `ConnectionService.ConnectAsync()`. Recent connections are stored in `settings.json` for quick re-use. When opened in split mode, the palette forces Embedded connection mode and attaches the new session as the secondary pane of the active tab.
 
 ### 12. Tunnel Panel (Retractable)
 

@@ -123,7 +123,7 @@
                      Visibility="{Binding IsBusy, Converter={StaticResource BoolToVisibilityConverter}}"/>
 
         <!-- MAIN CONTENT -->
-        <Grid Grid.Row="1"
+        <Grid x:Name="MainContentArea" Grid.Row="1"
               ClipToBounds="True">
 
             <!-- ============================================================ -->
@@ -1801,18 +1801,22 @@
                 </StackPanel>
             </DockPanel>
         </Border>
-        <!-- Quick Connect Command Palette (Ctrl+K) -->
-        <Grid x:Name="CommandPaletteOverlay"
-              Visibility="{Binding IsCommandPaletteOpen, Converter={StaticResource BoolToVisibilityConverter}}"
-              Background="{DynamicResource OverlayBackground}"
-              Panel.ZIndex="9999"
-              MouseDown="OnPaletteBackdropClick">
-            <Border Width="550" VerticalAlignment="Top" Margin="0,80,0,0"
-                    HorizontalAlignment="Center"
+        <!-- Quick Connect Command Palette (Ctrl+K) — uses a Popup so it gets its own
+             HWND and renders above WindowsFormsHost / ActiveX surfaces (airspace fix). -->
+        <Popup x:Name="CommandPalettePopup"
+               IsOpen="{Binding IsCommandPaletteOpen}"
+               StaysOpen="True"
+               AllowsTransparency="True"
+               Placement="Center"
+               PlacementTarget="{Binding ElementName=MainContentArea}">
+            <Border Width="550"
                     Background="{DynamicResource SurfaceBrush}"
                     BorderBrush="{DynamicResource BorderBrush}"
                     BorderThickness="1" CornerRadius="{StaticResource CornerRadiusLg}"
                     MouseDown="OnPaletteBorderClick">
+                <Border.Effect>
+                    <DropShadowEffect BlurRadius="24" ShadowDepth="8" Opacity="0.4" Direction="270"/>
+                </Border.Effect>
                 <StackPanel>
                     <TextBox x:Name="PaletteInput"
                              Text="{Binding PaletteSearchText, UpdateSourceTrigger=PropertyChanged}"
@@ -1892,7 +1896,7 @@
                                Foreground="{DynamicResource TextSecondaryBrush}"/>
                 </StackPanel>
             </Border>
-        </Grid>
+        </Popup>
 
     </Grid>
 </Window>
