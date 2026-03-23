@@ -2198,7 +2198,9 @@
   "ErrorInvalidOctalPermission": "Valeur de permission octale invalide.",
   "ErrorTerminalRendererCrashed": "Le moteur de rendu du terminal a plante.",
   "ErrorInvalidFileName": "Nom de fichier invalide.",
-  "SplitPaletteHint": "Rechercher un serveur pour diviser...",
+  "SplitPaletteHint": "Rechercher un serveur ou choisir une session active...",
+  "SplitMergeActiveSession": "Session active — fusionner sans reconnecter",
+  "SplitActiveSessionsHeader": "Sessions actives",
   "RdpDisconnectedMessage": "La session Bureau a distance s'est terminee.",
 
   "HelpShortcutsTitle": "Raccourcis clavier",

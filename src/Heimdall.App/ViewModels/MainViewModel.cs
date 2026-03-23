@@ -882,7 +882,28 @@ public partial class MainViewModel : ObservableObject
         {
             var initialResults = new List<ServerItemViewModel>();
 
-            // Show recent servers first
+            // In split mode, show active sessions first (merge candidates)
+            if (_splitPaletteSession is not null)
+            {
+                foreach (var s in Connection.ActiveSessions)
+                {
+                    // Skip the session being split and tool tabs
+                    if (s == _splitPaletteSession) continue;
+                    if (s.ConnectionType?.StartsWith("TOOL:", StringComparison.OrdinalIgnoreCase) == true) continue;
+                    if (s.HostControl is null) continue;
+
+                    initialResults.Add(new ServerItemViewModel
+                    {
+                        Id = $"session-{s.ServerId}",
+                        DisplayName = $"\u2194 {s.Title}",
+                        RemoteServer = _localizer["SplitMergeActiveSession"],
+                        ConnectionType = s.ConnectionType ?? "",
+                        Group = _localizer["SplitActiveSessionsHeader"]
+                    });
+                }
+            }
+
+            // Show recent servers
             initialResults.AddRange(ServerList.Servers.Take(10));
 
             // Then recent tools at the bottom (if any)
@@ -989,6 +1010,38 @@ public partial class MainViewModel : ObservableObject
         IsCommandPaletteOpen = false;
     }
 
+    /// <summary>
+    /// Synchronous entry point for palette item selection (used by mouse click handler).
+    /// Captures split state immediately to avoid race conditions with Popup deactivation.
+    /// </summary>
+    public void ExecutePaletteSelection(ServerItemViewModel item)
+    {
+        var splitSession = _splitPaletteSession;
+        var splitOrientation = _splitPaletteOrientation;
+        _splitPaletteSession = null;
+        IsCommandPaletteOpen = false;
+
+        if (splitSession is not null)
+        {
+            // Check if this is an active session merge (prefix "session-")
+            if (item.Id.StartsWith("session-", StringComparison.Ordinal))
+            {
+                var sourceSessionId = item.Id["session-".Length..];
+                MergeExistingSession(splitSession, sourceSessionId, splitOrientation);
+                return;
+            }
+
+            if (!item.Id.StartsWith("adhoc-", StringComparison.Ordinal))
+            {
+                _ = SplitSessionWithServerAsync(splitSession, item.Id, splitOrientation);
+                return;
+            }
+        }
+
+        // Fall through to normal palette behavior
+        _ = ConnectFromPaletteInternalAsync(item);
+    }
+
     [RelayCommand]
     private async Task ConnectFromPaletteAsync(ServerItemViewModel? server)
     {
@@ -1002,6 +1055,14 @@ public partial class MainViewModel : ObservableObject
         // If the palette was opened in split mode, route to split logic
         if (splitSession is not null && !server.Id.StartsWith("adhoc-", StringComparison.Ordinal))
         {
+            // Check if this is an active session merge
+            if (server.Id.StartsWith("session-", StringComparison.Ordinal))
+            {
+                var sourceSessionId = server.Id["session-".Length..];
+                MergeExistingSession(splitSession, sourceSessionId, splitOrientation);
+                return;
+            }
+
             await SplitSessionWithServerAsync(splitSession, server.Id, splitOrientation);
             return;
         }
@@ -1022,6 +1083,84 @@ public partial class MainViewModel : ObservableObject
         {
             ServerList.ConnectCommand.Execute(server);
         }
+    }
+
+    /// <summary>
+    /// Normal (non-split) palette action — extracted so <see cref="ExecutePaletteSelection"/>
+    /// can call it after the split check without duplicating the routing logic.
+    /// </summary>
+    private async Task ConnectFromPaletteInternalAsync(ServerItemViewModel server)
+    {
+        if (server.Id.StartsWith("tool-", StringComparison.Ordinal))
+        {
+            await OpenToolFromPaletteAsync(server);
+        }
+        else if (server.Id.StartsWith("ext-tool-", StringComparison.Ordinal))
+        {
+            LaunchExternalToolFromPalette(server);
+        }
+        else if (server.Id.StartsWith("adhoc-", StringComparison.Ordinal))
+        {
+            await ConnectAdHocAsync(server);
+        }
+        else
+        {
+            ServerList.ConnectCommand.Execute(server);
+        }
+    }
+
+    /// <summary>
+    /// Merges an existing session tab into the split pane of the target session.
+    /// Reparents the source tab's <see cref="SessionTabViewModel.HostControl"/>
+    /// into the target's secondary pane without reconnecting.
+    /// </summary>
+    private void MergeExistingSession(
+        SessionTabViewModel target,
+        string sourceSessionId,
+        Core.Models.SplitOrientation orientation)
+    {
+        var source = Connection.ActiveSessions.FirstOrDefault(
+            s => string.Equals(s.ServerId, sourceSessionId, StringComparison.Ordinal));
+
+        if (source is null || source == target || source.HostControl is null)
+        {
+            StatusText = _localizer["ErrorSplitSessionFailed"];
+            return;
+        }
+
+        // Capture source metadata before removing the tab
+        var hostControl = source.HostControl;
+        var serverId = source.ServerId;
+        var originalServerId = source.OriginalServerId;
+        var connType = source.ConnectionType;
+        var title = source.Title;
+        var status = source.Status;
+        var tunnelRoute = source.TunnelRoute;
+        var envColor = source.EnvironmentColor;
+
+        // Detach from source tab (prevents Dispose when tab is removed)
+        source.HostControl = null;
+
+        // Remove the source tab from the session list
+        Connection.ActiveSessions.Remove(source);
+        if (Connection.ActiveSession == source)
+            Connection.ActiveSession = target;
+        Connection.HasActiveSessions = Connection.ActiveSessions.Count > 0;
+
+        // Attach to target's secondary pane
+        target.SecondaryHostControl = hostControl;
+        target.SecondaryServerId = serverId;
+        target.SecondaryOriginalServerId = originalServerId;
+        target.SecondaryConnectionType = connType;
+        target.SecondaryTitle = title;
+        target.SecondaryStatus = status;
+        target.SecondaryTunnelRoute = tunnelRoute;
+        target.SecondaryEnvironmentColor = envColor;
+        target.SplitOrientation = orientation;
+        target.IsSplit = true;
+
+        Core.Logging.FileLogger.Info(
+            $"Merged session '{title}' into '{target.Title}' as {orientation} split.");
     }
 
     [RelayCommand]
