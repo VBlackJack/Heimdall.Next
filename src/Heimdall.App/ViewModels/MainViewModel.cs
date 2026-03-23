@@ -799,68 +799,78 @@ public partial class MainViewModel : ObservableObject
         string serverId,
         Core.Models.SplitOrientation orientation)
     {
-        var servers = await _configManager.LoadServersAsync();
-        var settings = await _configManager.LoadSettingsAsync();
-
-        var serverDto = servers.FirstOrDefault(
-            s => string.Equals(s.Id, serverId, StringComparison.Ordinal));
-
-        if (serverDto is null) return;
-
-        // Force embedded mode for split pane — external processes cannot be docked.
-        if (string.Equals(serverDto.ConnectionType, "RDP", StringComparison.OrdinalIgnoreCase))
-            serverDto.RdpMode = "Embedded";
-        if (string.Equals(serverDto.ConnectionType, "SSH", StringComparison.OrdinalIgnoreCase))
-            serverDto.SshMode = "Embedded";
-
-        var connService = ServerList.ConnectionService;
-        Services.ConnectionResult result;
-        switch (serverDto.ConnectionType?.ToUpperInvariant())
+        try
         {
-            case "SSH":
-                result = await connService.ConnectSshAsync(serverDto, settings);
-                break;
-            case "SFTP":
-                result = await connService.ConnectSftpAsync(serverDto, settings);
-                break;
-            case "LOCAL":
-                result = await connService.ConnectLocalShellAsync(serverDto, settings);
-                break;
-            case "TELNET":
-                result = await connService.ConnectTelnetAsync(serverDto, settings);
-                break;
-            case "VNC":
-                result = await connService.ConnectVncAsync(serverDto, settings);
-                break;
-            case "FTP":
-                result = await connService.ConnectFtpAsync(serverDto, settings);
-                break;
-            case "CITRIX":
-                result = await connService.ConnectCitrixAsync(serverDto, settings);
-                break;
-            default:
-                result = await connService.ConnectRdpAsync(serverDto, settings);
-                break;
-        }
+            var servers = await _configManager.LoadServersAsync();
+            var settings = await _configManager.LoadSettingsAsync();
 
-        if (!result.Success || result.Session is null)
+            var serverDto = servers.FirstOrDefault(
+                s => string.Equals(s.Id, serverId, StringComparison.Ordinal));
+
+            if (serverDto is null) return;
+
+            // Force embedded mode for split pane — external processes cannot be docked.
+            if (string.Equals(serverDto.ConnectionType, "RDP", StringComparison.OrdinalIgnoreCase))
+                serverDto.RdpMode = "Embedded";
+            if (string.Equals(serverDto.ConnectionType, "SSH", StringComparison.OrdinalIgnoreCase))
+                serverDto.SshMode = "Embedded";
+
+            var connService = ServerList.ConnectionService;
+            Services.ConnectionResult result;
+            switch (serverDto.ConnectionType?.ToUpperInvariant())
+            {
+                case "SSH":
+                    result = await connService.ConnectSshAsync(serverDto, settings);
+                    break;
+                case "SFTP":
+                    result = await connService.ConnectSftpAsync(serverDto, settings);
+                    break;
+                case "LOCAL":
+                    result = await connService.ConnectLocalShellAsync(serverDto, settings);
+                    break;
+                case "TELNET":
+                    result = await connService.ConnectTelnetAsync(serverDto, settings);
+                    break;
+                case "VNC":
+                    result = await connService.ConnectVncAsync(serverDto, settings);
+                    break;
+                case "FTP":
+                    result = await connService.ConnectFtpAsync(serverDto, settings);
+                    break;
+                case "CITRIX":
+                    result = await connService.ConnectCitrixAsync(serverDto, settings);
+                    break;
+                default:
+                    result = await connService.ConnectRdpAsync(serverDto, settings);
+                    break;
+            }
+
+            if (!result.Success || result.Session is null)
+            {
+                StatusText = result.ErrorMessage ?? _localizer["ErrorSplitSessionFailed"];
+                Core.Logging.FileLogger.Warn(
+                    $"Split session failed for {serverDto.DisplayName}: {result.ErrorMessage}");
+                return;
+            }
+
+            var hostControl = _embeddedSessionManager.CreateHostControl(
+                session, serverDto.DisplayName, serverDto.ConnectionType ?? "SSH",
+                result.Session, settings);
+
+            session.SecondaryHostControl = hostControl;
+            session.SecondaryServerId = serverDto.Id;
+            session.SecondaryOriginalServerId = serverDto.Id;
+            session.SecondaryConnectionType = serverDto.ConnectionType ?? "";
+            session.SecondaryTitle = serverDto.DisplayName;
+            session.SecondaryStatus = "Connected";
+            session.SplitOrientation = orientation;
+            session.IsSplit = true;
+        }
+        catch (Exception ex)
         {
-            StatusText = result.ErrorMessage ?? _localizer["ErrorSplitSessionFailed"];
-            return;
+            Core.Logging.FileLogger.Error($"Split session error: {ex.Message}", ex);
+            StatusText = _localizer.Format("ErrorSplitSessionFailed") + $" — {ex.Message}";
         }
-
-        var hostControl = _embeddedSessionManager.CreateHostControl(
-            session, serverDto.DisplayName, serverDto.ConnectionType ?? "SSH",
-            result.Session, settings);
-
-        session.SecondaryHostControl = hostControl;
-        session.SecondaryServerId = serverDto.Id;
-        session.SecondaryOriginalServerId = serverDto.Id;
-        session.SecondaryConnectionType = serverDto.ConnectionType ?? "";
-        session.SecondaryTitle = serverDto.DisplayName;
-        session.SecondaryStatus = "Connected";
-        session.SplitOrientation = orientation;
-        session.IsSplit = true;
     }
 
     // --- Command Palette logic ---

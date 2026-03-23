@@ -1833,7 +1833,7 @@
                              Background="Transparent"
                              BorderThickness="0"
                              ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                             MouseDoubleClick="OnPaletteItemDoubleClick">
+                             PreviewMouseLeftButtonUp="OnPaletteItemClick">
                         <ListBox.ItemTemplate>
                             <DataTemplate>
                                 <DockPanel Margin="8,4">
