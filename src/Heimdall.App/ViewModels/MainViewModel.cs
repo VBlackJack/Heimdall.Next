@@ -1114,7 +1114,7 @@ public partial class MainViewModel : ObservableObject
     /// Reparents the source tab's <see cref="SessionTabViewModel.HostControl"/>
     /// into the target's secondary pane without reconnecting.
     /// </summary>
-    private void MergeExistingSession(
+    public void MergeExistingSession(
         SessionTabViewModel target,
         string sourceSessionId,
         Core.Models.SplitOrientation orientation)
