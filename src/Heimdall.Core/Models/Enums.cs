@@ -109,3 +109,18 @@ public enum ToolCategory
     Encoding,
     System
 }
+
+/// <summary>
+/// Elevation strategy for local shell sessions.
+/// </summary>
+public enum ElevationMode
+{
+    /// <summary>No elevation requested.</summary>
+    None,
+    /// <summary>Try gsudo first, fall back to runas on failure (default when elevated).</summary>
+    Auto,
+    /// <summary>Force gsudo (fails if gsudo not available or blocked by endpoint manager).</summary>
+    Gsudo,
+    /// <summary>Use ShellExecute runas verb (compatible with AdminByRequest, CyberArk, etc.).</summary>
+    Runas
+}

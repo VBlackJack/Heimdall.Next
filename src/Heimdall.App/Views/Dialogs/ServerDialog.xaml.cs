@@ -275,7 +275,8 @@ public partial class ServerDialog : Window
         DlgSrv_ExecutableLabel.Text = _localizer["ServerDialogLabelExecutable"];
         DlgSrv_ArgumentsLabel.Text = _localizer["ServerDialogLabelArguments"];
         DlgSrv_WorkingDirLabel.Text = _localizer["ServerDialogLabelWorkingDir"];
-        DlgSrv_RunAsAdminCb.Content = _localizer["ServerDialogRunAsAdmin"];
+        DlgSrv_ElevationModeLabel.Text = _localizer["ServerDialogElevationMode"];
+        PopulateElevationModeCombo();
 
         // Citrix
         DlgSrv_CitrixTitle.Text = _localizer["ServerDialogCitrixWorkspace"];
@@ -351,5 +352,55 @@ public partial class ServerDialog : Window
         System.Windows.Automation.AutomationProperties.SetName(FtpPasswordBox, _localizer["ServerDialogFtpPassword"]);
         System.Windows.Automation.AutomationProperties.SetName(VncPasswordBox, _localizer["ServerDialogVncPassword"]);
         System.Windows.Automation.AutomationProperties.SetName(TelnetPasswordBox, _localizer["ServerDialogLabelPassword"]);
+    }
+
+    private void PopulateElevationModeCombo()
+    {
+        if (DataContext is not ServerDialogViewModel vm || _localizer is null) return;
+
+        DlgSrv_ElevationModeCmb.Items.Clear();
+        DlgSrv_ElevationModeCmb.Items.Add(new System.Windows.Controls.ComboBoxItem
+        {
+            Content = _localizer["ElevationModeNone"],
+            Tag = Core.Models.ElevationMode.None
+        });
+        DlgSrv_ElevationModeCmb.Items.Add(new System.Windows.Controls.ComboBoxItem
+        {
+            Content = _localizer["ElevationModeAuto"],
+            Tag = Core.Models.ElevationMode.Auto
+        });
+        DlgSrv_ElevationModeCmb.Items.Add(new System.Windows.Controls.ComboBoxItem
+        {
+            Content = _localizer["ElevationModeGsudo"],
+            Tag = Core.Models.ElevationMode.Gsudo
+        });
+        DlgSrv_ElevationModeCmb.Items.Add(new System.Windows.Controls.ComboBoxItem
+        {
+            Content = _localizer["ElevationModeRunas"],
+            Tag = Core.Models.ElevationMode.Runas
+        });
+
+        // Select current value
+        for (int i = 0; i < DlgSrv_ElevationModeCmb.Items.Count; i++)
+        {
+            if (DlgSrv_ElevationModeCmb.Items[i] is System.Windows.Controls.ComboBoxItem item
+                && item.Tag is Core.Models.ElevationMode mode && mode == vm.ElevationMode)
+            {
+                DlgSrv_ElevationModeCmb.SelectedIndex = i;
+                break;
+            }
+        }
+
+        DlgSrv_ElevationModeCmb.SelectionChanged += (_, _) =>
+        {
+            if (DlgSrv_ElevationModeCmb.SelectedItem is System.Windows.Controls.ComboBoxItem selected
+                && selected.Tag is Core.Models.ElevationMode selectedMode)
+            {
+                vm.ElevationMode = selectedMode;
+            }
+        };
+
+        System.Windows.Automation.AutomationProperties.SetName(
+            DlgSrv_ElevationModeCmb, _localizer["ServerDialogElevationMode"]);
     }
 }

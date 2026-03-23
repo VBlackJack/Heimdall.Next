@@ -83,6 +83,18 @@ public class ServerProfileDto
     public string? LocalShellArguments { get; set; }
     public string? LocalShellWorkingDirectory { get; set; }
     public bool LocalShellElevated { get; set; }
+    public Models.ElevationMode ElevationMode { get; set; } = Models.ElevationMode.None;
+
+    /// <summary>
+    /// Returns the effective elevation mode: if <see cref="ElevationMode"/> is
+    /// <see cref="Models.ElevationMode.None"/> but legacy <see cref="LocalShellElevated"/>
+    /// is true, returns <see cref="Models.ElevationMode.Auto"/> for backward compatibility.
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public Models.ElevationMode EffectiveElevationMode =>
+        ElevationMode != Models.ElevationMode.None ? ElevationMode
+        : LocalShellElevated ? Models.ElevationMode.Auto
+        : Models.ElevationMode.None;
 
     // Citrix settings
     public string? CitrixStoreFrontUrl { get; set; }

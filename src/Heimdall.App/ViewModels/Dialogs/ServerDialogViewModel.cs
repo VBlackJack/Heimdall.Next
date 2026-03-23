@@ -126,6 +126,9 @@ public partial class ServerDialogViewModel : ObservableValidator
     [ObservableProperty]
     private bool _localShellElevated;
 
+    [ObservableProperty]
+    private Core.Models.ElevationMode _elevationMode = Core.Models.ElevationMode.None;
+
     // --- Citrix settings ---
 
     [ObservableProperty]
@@ -490,7 +493,8 @@ public partial class ServerDialogViewModel : ObservableValidator
             LocalShellExecutable = string.IsNullOrWhiteSpace(LocalShellExecutable) ? null : LocalShellExecutable,
             LocalShellArguments = string.IsNullOrWhiteSpace(LocalShellArguments) ? null : LocalShellArguments,
             LocalShellWorkingDirectory = string.IsNullOrWhiteSpace(LocalShellWorkingDirectory) ? null : LocalShellWorkingDirectory,
-            LocalShellElevated = LocalShellElevated,
+            LocalShellElevated = ElevationMode != Core.Models.ElevationMode.None,
+            ElevationMode = ElevationMode,
             CitrixStoreFrontUrl = string.IsNullOrWhiteSpace(CitrixStoreFrontUrl) ? null : CitrixStoreFrontUrl,
             CitrixAppName = string.IsNullOrWhiteSpace(CitrixAppName) ? null : CitrixAppName,
             CitrixIcaFilePath = string.IsNullOrWhiteSpace(CitrixIcaFilePath) ? null : CitrixIcaFilePath,
@@ -580,6 +584,7 @@ public partial class ServerDialogViewModel : ObservableValidator
             LocalShellArguments = dto.LocalShellArguments ?? "",
             LocalShellWorkingDirectory = dto.LocalShellWorkingDirectory ?? "",
             LocalShellElevated = dto.LocalShellElevated,
+            ElevationMode = dto.ElevationMode,
             CitrixStoreFrontUrl = dto.CitrixStoreFrontUrl ?? "",
             CitrixAppName = dto.CitrixAppName ?? "",
             CitrixIcaFilePath = dto.CitrixIcaFilePath ?? "",

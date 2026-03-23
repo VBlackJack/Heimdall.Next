@@ -68,21 +68,42 @@ public partial class ConnectionService
             ? server.LocalShellWorkingDirectory
             : Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
 
-        // Elevation: wrap command with gsudo or Windows 11 sudo
-        if (server.LocalShellElevated)
+        var elevationMode = server.EffectiveElevationMode;
+        var originalExe = executable;
+        var originalArgs = arguments;
+        var usedGsudo = false;
+
+        if (elevationMode == Core.Models.ElevationMode.Runas)
+        {
+            // Runas mode: launch an external elevated window (non-embedded).
+            // Compatible with AdminByRequest, CyberArk, BeyondTrust, etc.
+            return LaunchExternalElevated(server, executable, arguments, workingDir);
+        }
+
+        if (elevationMode is Core.Models.ElevationMode.Auto or Core.Models.ElevationMode.Gsudo)
         {
             var elevationWrapper = ResolveElevationWrapper();
             if (elevationWrapper is not null)
             {
-                // Use structured quoting — executable is resolved from PATH or config,
-                // arguments are passed through as-is (user-configurable shell args)
+                // --direct bypasses gsudo's service/cache mechanism, avoiding
+                // crashes when endpoint privilege managers (AdminByRequest, etc.)
+                // intercept the elevation and invalidate process handles.
+                var directFlag = Path.GetFileNameWithoutExtension(elevationWrapper)
+                    .Equals("gsudo", StringComparison.OrdinalIgnoreCase) ? "--direct " : "";
                 var quotedExe = $"\"{executable}\"";
                 arguments = string.IsNullOrWhiteSpace(arguments)
-                    ? quotedExe
-                    : $"{quotedExe} {arguments}";
+                    ? $"{directFlag}{quotedExe}"
+                    : $"{directFlag}{quotedExe} {arguments}";
                 executable = elevationWrapper;
+                usedGsudo = true;
                 Core.Logging.FileLogger.Info(
                     $"Elevation via {Path.GetFileName(elevationWrapper)}: {executable} {arguments}");
+            }
+            else if (elevationMode == Core.Models.ElevationMode.Gsudo)
+            {
+                Core.Logging.FileLogger.Warn("gsudo mode requested but gsudo not found.");
+                _connectionSm.SetError(server.Id, "gsudo not found");
+                return new ConnectionResult(false, "gsudo not found. Install gsudo or switch elevation mode to Auto.", null);
             }
             else
             {
@@ -105,7 +126,6 @@ public partial class ConnectionService
             session = new Heimdall.Terminal.PipeModeSession();
         }
 
-        // Inject server metadata as environment variables for contextual shells
         session.EnvironmentVariables = BuildContextEnvironment(server);
 
         try
@@ -113,6 +133,14 @@ public partial class ConnectionService
             await session.StartAsync(executable, arguments, workingDirectory: workingDir);
             Core.Logging.FileLogger.Info(
                 $"Local shell started: PID={session.ProcessId} via {(session is Heimdall.Terminal.ConPty.ConPtySession ? "ConPTY" : "PipeMode")}");
+        }
+        catch (Exception ex) when (usedGsudo && elevationMode == Core.Models.ElevationMode.Auto)
+        {
+            // gsudo --direct also failed — fall back to external elevated window
+            session.Dispose();
+            Core.Logging.FileLogger.Warn(
+                $"gsudo elevation failed ({ex.Message}), falling back to external elevated window");
+            return LaunchExternalElevated(server, originalExe, originalArgs, workingDir);
         }
         catch (Exception ex)
         {
@@ -124,6 +152,58 @@ public partial class ConnectionService
 
         _connectionSm.TryTransition(server.Id, Core.Models.ConnectionState.Connected);
         return new ConnectionResult(true, null, new LocalShellBundle(session, workingDir, executable, server.LocalShellElevated));
+    }
+
+    /// <summary>
+    /// Launches an elevated shell in a separate window via ShellExecute "runas"
+    /// verb. The session is NOT embedded in a tab (Windows limitation: runas
+    /// cannot redirect stdin/stdout). Compatible with endpoint privilege managers
+    /// (AdminByRequest, CyberArk, BeyondTrust) that intercept UAC prompts.
+    /// </summary>
+    private ConnectionResult LaunchExternalElevated(
+        ServerProfileDto server, string executable, string arguments, string workingDir)
+    {
+        Core.Logging.FileLogger.Info(
+            $"Launching external elevated shell via runas: {executable} {arguments} (cwd={workingDir})");
+
+        try
+        {
+            var psi = new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = executable,
+                Arguments = arguments,
+                Verb = "runas",
+                UseShellExecute = true,
+                WorkingDirectory = workingDir
+            };
+
+            var process = System.Diagnostics.Process.Start(psi);
+            if (process is null)
+            {
+                _connectionSm.SetError(server.Id, "Failed to start elevated process");
+                return new ConnectionResult(false, "Failed to start elevated process", null);
+            }
+
+            Core.Logging.FileLogger.Info(
+                $"External elevated shell started: PID={process.Id}");
+
+            _connectionSm.TryTransition(server.Id, Core.Models.ConnectionState.Connected);
+            return new ConnectionResult(true, null,
+                new LocalShellBundle(null, workingDir, executable, true, ExternalProcessId: process.Id));
+        }
+        catch (System.ComponentModel.Win32Exception ex) when (ex.NativeErrorCode == 1223)
+        {
+            // ERROR_CANCELLED — user declined UAC prompt
+            Core.Logging.FileLogger.Info("User cancelled elevation prompt");
+            _connectionSm.SetError(server.Id, "Elevation cancelled by user");
+            return new ConnectionResult(false, "Elevation cancelled by user", null);
+        }
+        catch (Exception ex)
+        {
+            Core.Logging.FileLogger.Error("External elevated shell launch failed", ex);
+            _connectionSm.SetError(server.Id, ex.Message);
+            return new ConnectionResult(false, ex.Message, null);
+        }
     }
 
     /// <summary>
