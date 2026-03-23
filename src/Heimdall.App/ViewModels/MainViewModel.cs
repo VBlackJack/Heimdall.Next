@@ -807,6 +807,12 @@ public partial class MainViewModel : ObservableObject
 
         if (serverDto is null) return;
 
+        // Force embedded mode for split pane — external processes cannot be docked.
+        if (string.Equals(serverDto.ConnectionType, "RDP", StringComparison.OrdinalIgnoreCase))
+            serverDto.RdpMode = "Embedded";
+        if (string.Equals(serverDto.ConnectionType, "SSH", StringComparison.OrdinalIgnoreCase))
+            serverDto.SshMode = "Embedded";
+
         var connService = ServerList.ConnectionService;
         Services.ConnectionResult result;
         switch (serverDto.ConnectionType?.ToUpperInvariant())
@@ -822,6 +828,15 @@ public partial class MainViewModel : ObservableObject
                 break;
             case "TELNET":
                 result = await connService.ConnectTelnetAsync(serverDto, settings);
+                break;
+            case "VNC":
+                result = await connService.ConnectVncAsync(serverDto, settings);
+                break;
+            case "FTP":
+                result = await connService.ConnectFtpAsync(serverDto, settings);
+                break;
+            case "CITRIX":
+                result = await connService.ConnectCitrixAsync(serverDto, settings);
                 break;
             default:
                 result = await connService.ConnectRdpAsync(serverDto, settings);

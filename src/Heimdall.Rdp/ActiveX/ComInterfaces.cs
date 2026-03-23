@@ -54,8 +54,17 @@ public interface IMsTscAxEvents
     [DispId(4)]
     void OnDisconnected(int discReason);
 
+    [DispId(8)]
+    void OnLoginComplete();
+
     [DispId(10)]
     void OnFatalError(int errorCode);
+
+    [DispId(22)]
+    void OnAutoReconnecting(int disconnectReason, int attemptCount, out bool continueReconnect);
+
+    [DispId(23)]
+    void OnAutoReconnected();
 }
 
 /// <summary>
@@ -74,5 +83,14 @@ public class MsTscAxEventSink : IMsTscAxEvents
 
     public void OnConnected() => _host.RaiseConnected();
     public void OnDisconnected(int discReason) => _host.RaiseDisconnected(discReason);
+    public void OnLoginComplete() => _host.RaiseLoginComplete();
     public void OnFatalError(int errorCode) => _host.RaiseFatalError(errorCode);
+
+    public void OnAutoReconnecting(int disconnectReason, int attemptCount, out bool continueReconnect)
+    {
+        continueReconnect = !_host.CancelAutoReconnect;
+        _host.RaiseAutoReconnecting(disconnectReason, attemptCount);
+    }
+
+    public void OnAutoReconnected() => _host.RaiseAutoReconnected();
 }

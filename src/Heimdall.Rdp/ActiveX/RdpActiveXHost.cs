@@ -64,6 +64,23 @@ public class RdpActiveXHost : AxHost, IRdpSession
     /// <inheritdoc />
     public event Action<int>? FatalError;
 
+    /// <summary>Raised when the server has accepted credentials and login is complete.</summary>
+    public event Action? LoginComplete;
+
+    /// <summary>Raised when the client begins an auto-reconnect attempt (args: disconnectReason, attemptCount).</summary>
+    public event Action<int, int>? AutoReconnecting;
+
+    /// <summary>Raised when an auto-reconnect attempt succeeds.</summary>
+    public event Action? AutoReconnected;
+
+    /// <summary>
+    /// Set to <c>true</c> to cancel any in-progress auto-reconnect attempt.
+    /// The COM event sink checks this flag on each <c>OnAutoReconnecting</c> callback.
+    /// </summary>
+    [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
+    [System.ComponentModel.Browsable(false)]
+    public bool CancelAutoReconnect { get; set; }
+
     /// <summary>Stores the last error message for diagnostics.</summary>
     public string? LastError { get; private set; }
 
@@ -385,6 +402,61 @@ public class RdpActiveXHost : AxHost, IRdpSession
         FatalError?.Invoke(errorCode);
     }
 
+    internal void RaiseLoginComplete()
+    {
+        LoginComplete?.Invoke();
+    }
+
+    internal void RaiseAutoReconnecting(int disconnectReason, int attemptCount)
+    {
+        IsConnected = false;
+        AutoReconnecting?.Invoke(disconnectReason, attemptCount);
+    }
+
+    internal void RaiseAutoReconnected()
+    {
+        IsConnected = true;
+        AutoReconnected?.Invoke();
+    }
+
+    #endregion
+
+    #region Disconnect reason decoder
+
+    /// <summary>
+    /// Translates an MsTscAx disconnect reason code into an i18n key suffix.
+    /// The caller prepends "RdpDisconnect" to build the full i18n key.
+    /// Returns <c>null</c> for unknown codes (caller falls back to the raw number).
+    /// </summary>
+    public static string? GetDisconnectReasonKey(int reason) => reason switch
+    {
+        0 => "NoInfo",
+        1 => "LocalUser",
+        2 => "UserLogoff",
+        3 => "AdminDisconnect",
+        260 => "DnsLookupFailed",
+        262 => "OutOfMemory",
+        264 => "ConnectionTimeout",
+        516 => "SocketConnectFailed",
+        772 => "NetworkError",
+        1030 => "SecurityError",
+        1796 => "InternalError",
+        2055 => "BadCredentials",
+        2056 => "LicensingError",
+        2308 => "SocketClosed",
+        2311 => "CertificateWarning",
+        2567 => "UserNotFound",
+        2822 => "EncryptionError",
+        2825 => "DecompressionError",
+        3080 => "ClientDecompressionFailed",
+        3335 => "AccountLockedOut",
+        3591 => "AccountExpired",
+        3847 => "PasswordExpired",
+        3848 => "CredSspPolicyError",
+        4360 => "ResolutionChangeTimeout",
+        _ => null
+    };
+
     #endregion
 
     #region Private apply methods (late-bound COM property access)
@@ -464,8 +536,8 @@ public class RdpActiveXHost : AxHost, IRdpSession
             _ => 2  // Disabled
         };
 
-        // Audio capture
-        adv.AudioCaptureRedirectionMode = _pendingRedirections.AudioCapture;
+        // Audio capture (COM property expects int: 0=disabled, 1=enabled)
+        adv.AudioCaptureRedirectionMode = _pendingRedirections.AudioCapture ? 1 : 0;
 
         // NLA
         adv.EnableCredSspSupport = _pendingRedirections.Nla;
@@ -476,8 +548,27 @@ public class RdpActiveXHost : AxHost, IRdpSession
         // Compression
         adv.Compress = _pendingRedirections.Compression ? 1 : 0;
 
-        // Auto-reconnect
+        // Auto-reconnect with bounded retry count
         adv.EnableAutoReconnect = _pendingRedirections.AutoReconnect;
+        if (_pendingRedirections.AutoReconnect)
+        {
+            try { adv.MaxReconnectAttempts = 20; }
+            catch (Exception ex) { Heimdall.Core.Logging.FileLogger.Warn($"[RdpActiveXHost] MaxReconnectAttempts: {ex.Message}"); }
+        }
+
+        // USB / PnP device redirection
+        if (_pendingRedirections.Usb)
+        {
+            try { adv.RedirectDevices = true; }
+            catch (Exception ex) { Heimdall.Core.Logging.FileLogger.Warn($"[RdpActiveXHost] RedirectDevices: {ex.Message}"); }
+        }
+
+        // NOTE: Webcam (camerastoredirect) requires IMsRdpClientNonScriptable7
+        // CameraRedirConfigCollection which is not available via simple IDispatch.
+        // Webcam redirection works in external mode (.rdp file) only.
+
+        // NOTE: DynamicResolution is handled at the view layer via UpdateResolution()
+        // after connect, not via a COM property on the ActiveX control.
 
         // Allow background input — CRITICAL for anti-idle on background tabs.
         // Without this, the RDP ActiveX control discards PostMessage input
@@ -495,6 +586,17 @@ public class RdpActiveXHost : AxHost, IRdpSession
             catch (Exception ex) { Heimdall.Core.Logging.FileLogger.Warn($"[RdpActiveXHost] PerformanceFlags: {ex.Message}"); }
         }
 
+        // Network auto-detect: let the server continuously adapt encoding to bandwidth.
+        // Skipped when DisableUdp is set (that path forces LAN profile instead).
+        if (!_pendingRedirections.DisableUdp)
+        {
+            try { adv.BandwidthDetection = true; }
+            catch (Exception ex) { Heimdall.Core.Logging.FileLogger.Warn($"[RdpActiveXHost] BandwidthDetection: {ex.Message}"); }
+
+            try { adv.NetworkConnectionType = 7; } // CONNECTION_TYPE_AUTODETECT
+            catch (Exception ex) { Heimdall.Core.Logging.FileLogger.Warn($"[RdpActiveXHost] NetworkConnectionType: {ex.Message}"); }
+        }
+
         // Multi-monitor (requires IMsRdpClientNonScriptable5)
         if (_pendingRedirections.MultiMonitor)
         {
@@ -508,41 +610,24 @@ public class RdpActiveXHost : AxHost, IRdpSession
             }
         }
 
-        // Disable UDP transport (force TCP-only) to avoid UDP probe timeout behind firewalls
+        // Force TCP-only: disable bandwidth auto-detection (which uses UDP probes)
+        // and set an explicit network type so the client does not attempt UDP transport.
+        // The MsTscAx ActiveX control has no direct "DisableUDP" COM property;
+        // disabling BandwidthDetection + explicit NetworkConnectionType achieves the
+        // same result by preventing the UDP probe that times out behind firewalls.
         if (_pendingRedirections.DisableUdp)
         {
-            try
-            {
-                // IMsRdpClientTransportSettings3.GatewayDefaultUsageMethod includes UDP flag,
-                // but the most reliable method is setting the connection property directly.
-                ax.TransportSettings3.GatewayDefaultUsageMethod = 2; // TSC_PROXY_MODE_DIRECT
-            }
-            catch (Exception ex)
-            {
-                Heimdall.Core.Logging.FileLogger.Warn($"[RdpActiveXHost] DisableUdp: {ex.Message}");
-            }
+            try { adv.BandwidthDetection = false; }
+            catch (Exception ex) { Heimdall.Core.Logging.FileLogger.Warn($"[RdpActiveXHost] DisableUdp BandwidthDetection: {ex.Message}"); }
+
+            try { adv.NetworkConnectionType = 6; } // LAN — no probing needed
+            catch (Exception ex) { Heimdall.Core.Logging.FileLogger.Warn($"[RdpActiveXHost] DisableUdp NetworkConnectionType: {ex.Message}"); }
         }
     }
 
     #endregion
 
     #region Cleanup
-
-    private void ReleaseActiveX()
-    {
-        if (_activeX is not null)
-        {
-            try
-            {
-                Marshal.ReleaseComObject(_activeX);
-            }
-            catch (Exception ex)
-            {
-                LastError = ex.Message;
-            }
-            _activeX = null;
-        }
-    }
 
     /// <inheritdoc />
     protected override void Dispose(bool disposing)
@@ -557,8 +642,11 @@ public class RdpActiveXHost : AxHost, IRdpSession
                 catch (Exception ex) { Heimdall.Core.Logging.FileLogger.Warn($"[RdpActiveXHost] Dispose DetachEventSink: {ex.Message}"); }
             }
 
-            try { ReleaseActiveX(); }
-            catch (Exception ex) { Heimdall.Core.Logging.FileLogger.Warn($"[RdpActiveXHost] Dispose ReleaseActiveX: {ex.Message}"); }
+            // Clear our cached reference; let AxHost.Dispose handle COM cleanup.
+            // Do NOT call Marshal.ReleaseComObject here — AxHost holds its own
+            // internal reference to the same RCW, and releasing it first causes
+            // "COM object separated from its underlying RCW" in base.Dispose().
+            _activeX = null;
         }
 
         base.Dispose(disposing);

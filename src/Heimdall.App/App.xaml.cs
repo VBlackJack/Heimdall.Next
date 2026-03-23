@@ -273,11 +273,6 @@ public partial class App : System.Windows.Application
     }
 
     /// <summary>
-    /// Ensures an HMAC key exists in settings and initializes the
-    /// <see cref="CredentialProtector"/> for use across the application.
-    /// Generates a new key on first run.
-    /// </summary>
-    /// <summary>
     /// Pre-warms the RDP COM control and WinForms runtime on a background STA thread.
     /// This forces mstscax.dll and its 22+ static dependencies into process memory,
     /// eliminating the 300-500ms cold-start penalty on the first actual RDP connection.
@@ -289,10 +284,10 @@ public partial class App : System.Windows.Application
             var sw = System.Diagnostics.Stopwatch.StartNew();
             try
             {
-                // Force WinForms runtime initialization (GDI+, visual styles, message loop integration)
-                _ = new System.Windows.Forms.Integration.WindowsFormsHost();
-
-                // Force COM activation of MsTscAx — loads mstscax.dll + all static dependencies
+                // Force COM activation of MsTscAx — loads mstscax.dll + all static dependencies.
+                // Do NOT create WindowsFormsHost here: it is a WPF FrameworkElement and
+                // initializing the WPF-WinForms bridge on a background thread corrupts
+                // the interop layer for the real UI thread.
                 using var host = new Heimdall.Rdp.ActiveX.RdpActiveXHost();
                 _ = host.Handle;
 
@@ -312,6 +307,11 @@ public partial class App : System.Windows.Application
         thread.Start();
     }
 
+    /// <summary>
+    /// Ensures an HMAC key exists in settings and initializes the
+    /// <see cref="CredentialProtector"/> for use across the application.
+    /// Generates a new key on first run.
+    /// </summary>
     private static async Task InitializeHmacKeyAsync(
         ConfigManager configManager, AppSettings settings)
     {

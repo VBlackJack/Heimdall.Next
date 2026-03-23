@@ -296,10 +296,13 @@ public partial class MainWindow : Window
         Mw_SettingsGatewaysEditBtn.Content = vm.Localize("GatewaysBtnEdit");
         Mw_SettingsGatewaysDeleteBtn.Content = vm.Localize("GatewaysBtnDelete");
 
+        Mw_ApplySshModeAll.Content = vm.Localize("SettingsApplyModeToAll");
+
         Mw_SettingsRdpDefaultsTitle.Text = vm.Localize("SettingsSectionRdpDefaults");
         Mw_SettingsRdpModeLabel.Text = vm.Localize("SettingsLabelRdpMode");
         Mw_RdpModeEmbedded.Content = vm.Localize("SettingsSshModeEmbedded");
         Mw_RdpModeExternal.Content = vm.Localize("SettingsSshModeExternal");
+        Mw_ApplyRdpModeAll.Content = vm.Localize("SettingsApplyModeToAll");
         Mw_SettingsRdpWidthLabel.Text = vm.Localize("SettingsLabelRdpWidth");
         Mw_SettingsRdpHeightLabel.Text = vm.Localize("SettingsLabelRdpHeight");
         Mw_SettingsRdpColorDepthLabel.Text = vm.Localize("SettingsLabelRdpColorDepth");

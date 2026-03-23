@@ -67,11 +67,13 @@ public class RdpRedirectionOptions
     public bool AutoReconnect { get; set; } = true;
 
     /// <summary>
-    /// RDP experience performance flags bitmask to disable visual effects.
+    /// RDP experience performance flags bitmask (TS_PERF_* constants).
     /// 0x01 = Disable wallpaper, 0x02 = Disable full-window drag,
     /// 0x04 = Disable menu animations, 0x08 = Disable themes,
+    /// 0x10 = Enable enhanced graphics (RemoteFX),
     /// 0x20 = Disable cursor shadow, 0x40 = Disable cursor blinking,
-    /// 0x80 = Enable desktop composition.
+    /// 0x80 = Enable font smoothing (ClearType),
+    /// 0x100 = Enable desktop composition (Aero/DWM).
     /// </summary>
     public int PerformanceFlags { get; set; }
 

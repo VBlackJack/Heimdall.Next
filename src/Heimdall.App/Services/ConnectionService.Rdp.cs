@@ -59,7 +59,7 @@ public partial class ConnectionService
 
         _connectionSm.TryTransition(server.Id, Core.Models.ConnectionState.LaunchingRdp);
 
-        var rdpMode = server.RdpMode ?? "External";
+        var rdpMode = server.RdpMode ?? "Embedded";
         Core.Logging.FileLogger.Info($"RDP mode: {rdpMode}");
 
         if (string.Equals(rdpMode, "Embedded", StringComparison.OrdinalIgnoreCase))
@@ -104,6 +104,7 @@ public partial class ConnectionService
                 Host = rdpHost,
                 Port = rdpPort,
                 Username = server.RdpUsername,
+                ColorDepth = server.RdpColorDepth > 0 ? server.RdpColorDepth : 32,
                 FullScreen = false,
                 AdminMode = false,
                 GatewayHostname = server.RdpGateway,
@@ -123,7 +124,9 @@ public partial class ConnectionService
                     Nla = server.RdpNla,
                     BitmapCaching = server.RdpBitmapCaching,
                     Compression = server.RdpCompression,
-                    AutoReconnect = server.RdpAutoReconnect
+                    AutoReconnect = server.RdpAutoReconnect,
+                    PerformanceFlags = server.RdpPerformanceFlags,
+                    DisableUdp = server.RdpDisableUdp
                 }
             });
             // Create .rdp file with restrictive ACL from the start (no TOCTOU window).
@@ -205,7 +208,8 @@ public partial class ConnectionService
         }
         finally
         {
-            // Clear plaintext password from managed memory deterministically
+            // Remove reference to plaintext password (the immutable string remains on
+            // the managed heap until GC; .NET strings cannot be zeroed in place).
             rdpPassword = null;
         }
     }

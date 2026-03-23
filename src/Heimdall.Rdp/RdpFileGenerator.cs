@@ -53,7 +53,7 @@ public static class RdpFileGenerator
         sb.AppendLine($"desktopwidth:i:{options.Width}");
         sb.AppendLine($"desktopheight:i:{options.Height}");
         sb.AppendLine($"screen mode id:i:{(options.FullScreen ? 2 : 1)}");
-        sb.AppendLine($"session bpp:i:{options.Redirections.BitmapCaching switch { true => 32, _ => 16 }}");
+        sb.AppendLine($"session bpp:i:{options.ColorDepth}");
 
         // Admin mode
         if (options.AdminMode)
@@ -98,6 +98,37 @@ public static class RdpFileGenerator
         {
             sb.AppendLine("smart sizing:i:1");
             sb.AppendLine("dynamic resolution:i:1");
+        }
+
+        // USB / Webcam
+        if (r.Usb) sb.AppendLine("usbdevicestoredirect:s:*");
+        if (r.Webcam) sb.AppendLine("camerastoredirect:s:*");
+
+        // Performance experience flags
+        var pf = r.PerformanceFlags;
+        if (pf > 0)
+        {
+            sb.AppendLine($"disable wallpaper:i:{((pf & 0x01) != 0 ? 1 : 0)}");
+            sb.AppendLine($"disable full window drag:i:{((pf & 0x02) != 0 ? 1 : 0)}");
+            sb.AppendLine($"disable menu anims:i:{((pf & 0x04) != 0 ? 1 : 0)}");
+            sb.AppendLine($"disable themes:i:{((pf & 0x08) != 0 ? 1 : 0)}");
+            sb.AppendLine($"disable cursor setting:i:{((pf & 0x20) != 0 ? 1 : 0)}");
+            sb.AppendLine($"allow font smoothing:i:{((pf & 0x80) != 0 ? 1 : 0)}");
+            sb.AppendLine($"allow desktop composition:i:{((pf & 0x100) != 0 ? 1 : 0)}");
+        }
+
+        // Force TCP-only: disable network auto-detection to prevent UDP probing
+        if (r.DisableUdp)
+        {
+            sb.AppendLine("networkautodetect:i:0");
+            sb.AppendLine("bandwidthautodetect:i:0");
+            sb.AppendLine("connection type:i:6");
+        }
+        else
+        {
+            sb.AppendLine("networkautodetect:i:1");
+            sb.AppendLine("bandwidthautodetect:i:1");
+            sb.AppendLine("connection type:i:7");
         }
 
         // RD Gateway — validate hostname before writing to .rdp file
@@ -200,9 +231,10 @@ public static class RdpFileGenerator
 
             fileInfo.SetAccessControl(security);
         }
-        catch
+        catch (Exception ex)
         {
             // Best effort — ACL may fail on network paths or restricted environments
+            Core.Logging.FileLogger.Warn($"[RdpFileGenerator] ACL restriction failed: {ex.Message}");
         }
     }
 }
@@ -229,6 +261,9 @@ public class RdpFileOptions
 
     /// <summary>Desktop height in pixels.</summary>
     public int Height { get; init; } = 1080;
+
+    /// <summary>Color depth in bits per pixel (16, 24, or 32).</summary>
+    public int ColorDepth { get; init; } = 32;
 
     /// <summary>Whether to launch in full-screen mode.</summary>
     public bool FullScreen { get; init; }

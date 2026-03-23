@@ -64,11 +64,11 @@ public class ServerProfileDtoTests
     }
 
     [Fact]
-    public void DefaultValues_RdpMode_IsExternal()
+    public void DefaultValues_RdpMode_IsEmbedded()
     {
         var dto = new ServerProfileDto();
 
-        Assert.Equal("External", dto.RdpMode);
+        Assert.Equal("Embedded", dto.RdpMode);
     }
 
     [Fact]
@@ -179,8 +179,8 @@ public class ServerProfileDtoTests
         Assert.Equal(3389, dto.RemotePort);
         Assert.Equal(33890, dto.LocalPort);
         Assert.Equal(22, dto.SshPort);
-        Assert.Equal("External", dto.RdpMode);
-        Assert.Equal("External", dto.SshMode);
+        Assert.Equal("Embedded", dto.RdpMode);
+        Assert.Equal("Embedded", dto.SshMode);
         Assert.False(dto.LocalShellElevated);
     }
 }
