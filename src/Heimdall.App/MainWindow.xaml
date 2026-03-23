@@ -1324,10 +1324,18 @@
                                         <TextBox Text="{Binding Settings.PlinkPath}"/>
                                         <StackPanel Margin="0,12,0,0">
                                             <TextBlock x:Name="Mw_SettingsSshModeLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,0,4"/>
-                                            <ComboBox SelectedValue="{Binding Settings.SshDefaultMode}" SelectedValuePath="Tag" Width="200" HorizontalAlignment="Left">
-                                                <ComboBoxItem x:Name="Mw_SshModeEmbedded" Content="Embedded" Tag="Embedded"/>
-                                                <ComboBoxItem x:Name="Mw_SshModeExternal" Content="External" Tag="External"/>
-                                            </ComboBox>
+                                            <StackPanel Orientation="Horizontal">
+                                                <ComboBox SelectedValue="{Binding Settings.SshDefaultMode}" SelectedValuePath="Tag" Width="200" HorizontalAlignment="Left">
+                                                    <ComboBoxItem x:Name="Mw_SshModeEmbedded" Content="Embedded" Tag="Embedded"/>
+                                                    <ComboBoxItem x:Name="Mw_SshModeExternal" Content="External" Tag="External"/>
+                                                </ComboBox>
+                                                <Button x:Name="Mw_ApplySshModeAll"
+                                                        Content=""
+                                                        Command="{Binding Settings.ApplySshModeToAllCommand}"
+                                                        Style="{DynamicResource SecondaryButtonStyle}"
+                                                        Padding="8,2" FontSize="{StaticResource FontSizeCaption}"
+                                                        Margin="8,0,0,0" VerticalAlignment="Center"/>
+                                            </StackPanel>
                                         </StackPanel>
                                         <Grid Margin="0,12,0,0">
                                             <Grid.ColumnDefinitions>
@@ -1391,10 +1399,18 @@
                                         <TextBlock x:Name="Mw_SettingsRdpDefaultsTitle" Text="" FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,12"/>
                                         <StackPanel Margin="0,0,0,8">
                                             <TextBlock x:Name="Mw_SettingsRdpModeLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,0,4"/>
-                                            <ComboBox SelectedValue="{Binding Settings.RdpDefaultMode}" SelectedValuePath="Tag" Width="200" HorizontalAlignment="Left">
-                                                <ComboBoxItem x:Name="Mw_RdpModeEmbedded" Content="Embedded" Tag="Embedded"/>
-                                                <ComboBoxItem x:Name="Mw_RdpModeExternal" Content="External" Tag="External"/>
-                                            </ComboBox>
+                                            <StackPanel Orientation="Horizontal">
+                                                <ComboBox SelectedValue="{Binding Settings.RdpDefaultMode}" SelectedValuePath="Tag" Width="200" HorizontalAlignment="Left">
+                                                    <ComboBoxItem x:Name="Mw_RdpModeEmbedded" Content="Embedded" Tag="Embedded"/>
+                                                    <ComboBoxItem x:Name="Mw_RdpModeExternal" Content="External" Tag="External"/>
+                                                </ComboBox>
+                                                <Button x:Name="Mw_ApplyRdpModeAll"
+                                                        Content=""
+                                                        Command="{Binding Settings.ApplyRdpModeToAllCommand}"
+                                                        Style="{DynamicResource SecondaryButtonStyle}"
+                                                        Padding="8,2" FontSize="{StaticResource FontSizeCaption}"
+                                                        Margin="8,0,0,0" VerticalAlignment="Center"/>
+                                            </StackPanel>
                                         </StackPanel>
                                         <Grid Margin="0,8,0,0">
                                             <Grid.ColumnDefinitions>

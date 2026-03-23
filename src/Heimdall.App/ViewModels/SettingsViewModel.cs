@@ -235,6 +235,62 @@ public partial class SettingsViewModel : ObservableObject
     }
 
     /// <summary>
+    /// Applies the current <see cref="SshDefaultMode"/> to every server in the inventory.
+    /// </summary>
+    [RelayCommand]
+    private async Task ApplySshModeToAllAsync()
+    {
+        var servers = await _configManager.LoadServersAsync();
+        var mode = SshDefaultMode;
+        var count = 0;
+
+        foreach (var server in servers)
+        {
+            if (!string.Equals(server.SshMode, mode, StringComparison.Ordinal))
+            {
+                server.SshMode = mode;
+                count++;
+            }
+        }
+
+        if (count > 0)
+        {
+            await _configManager.SaveServersAsync(servers);
+            ConfigurationChanged?.Invoke();
+        }
+
+        FileLogger.Info($"Applied SSH mode '{mode}' to {count}/{servers.Count} servers.");
+    }
+
+    /// <summary>
+    /// Applies the current <see cref="RdpDefaultMode"/> to every server in the inventory.
+    /// </summary>
+    [RelayCommand]
+    private async Task ApplyRdpModeToAllAsync()
+    {
+        var servers = await _configManager.LoadServersAsync();
+        var mode = RdpDefaultMode;
+        var count = 0;
+
+        foreach (var server in servers)
+        {
+            if (!string.Equals(server.RdpMode, mode, StringComparison.Ordinal))
+            {
+                server.RdpMode = mode;
+                count++;
+            }
+        }
+
+        if (count > 0)
+        {
+            await _configManager.SaveServersAsync(servers);
+            ConfigurationChanged?.Invoke();
+        }
+
+        FileLogger.Info($"Applied RDP mode '{mode}' to {count}/{servers.Count} servers.");
+    }
+
+    /// <summary>
     /// Populates ViewModel properties from the loaded <see cref="AppSettings"/>.
     /// Does not mark the ViewModel as dirty.
     /// </summary>

@@ -882,8 +882,9 @@
                                 <CheckBox x:Name="DlgSrv_PerfDisableAnimationsCb" TabIndex="82" Style="{StaticResource FormCheckBoxStyle}" Margin="0,6,0,0"/>
                                 <CheckBox x:Name="DlgSrv_PerfDisableDragCb" TabIndex="83" Style="{StaticResource FormCheckBoxStyle}" Margin="0,6,0,0"/>
                                 <CheckBox x:Name="DlgSrv_PerfDisableCursorShadowCb" TabIndex="84" Style="{StaticResource FormCheckBoxStyle}" Margin="0,6,0,0"/>
-                                <CheckBox x:Name="DlgSrv_PerfEnableCompositionCb" TabIndex="85" Style="{StaticResource FormCheckBoxStyle}" Margin="0,6,0,0"/>
-                                <CheckBox x:Name="DlgSrv_DisableUdpCb" TabIndex="86" IsChecked="{Binding RdpDisableUdp}" Style="{StaticResource FormCheckBoxStyle}" Margin="0,12,0,0"/>
+                                <CheckBox x:Name="DlgSrv_PerfEnableFontSmoothingCb" TabIndex="85" Style="{StaticResource FormCheckBoxStyle}" Margin="0,6,0,0"/>
+                                <CheckBox x:Name="DlgSrv_PerfEnableCompositionCb" TabIndex="86" Style="{StaticResource FormCheckBoxStyle}" Margin="0,6,0,0"/>
+                                <CheckBox x:Name="DlgSrv_DisableUdpCb" TabIndex="87" IsChecked="{Binding RdpDisableUdp}" Style="{StaticResource FormCheckBoxStyle}" Margin="0,12,0,0"/>
                             </StackPanel>
                         </Expander>
 

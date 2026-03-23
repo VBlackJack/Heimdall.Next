@@ -77,14 +77,15 @@ public partial class ServerDialog : Window
             return;
         }
 
-        // Recompose performance flags bitmask from individual checkboxes
+        // Recompose performance flags bitmask from individual checkboxes (TS_PERF_* constants)
         var flags = 0;
         if (DlgSrv_PerfDisableWallpaperCb.IsChecked == true) flags |= 0x01;
         if (DlgSrv_PerfDisableDragCb.IsChecked == true) flags |= 0x02;
         if (DlgSrv_PerfDisableAnimationsCb.IsChecked == true) flags |= 0x04;
         if (DlgSrv_PerfDisableThemesCb.IsChecked == true) flags |= 0x08;
         if (DlgSrv_PerfDisableCursorShadowCb.IsChecked == true) flags |= 0x20;
-        if (DlgSrv_PerfEnableCompositionCb.IsChecked == true) flags |= 0x80;
+        if (DlgSrv_PerfEnableFontSmoothingCb.IsChecked == true) flags |= 0x80;
+        if (DlgSrv_PerfEnableCompositionCb.IsChecked == true) flags |= 0x100;
         vm.RdpPerformanceFlags = flags;
 
         // Transfer PasswordBox values if they exist in the visual tree
@@ -276,6 +277,7 @@ public partial class ServerDialog : Window
         DlgSrv_PerfDisableAnimationsCb.Content = _localizer["RdpPerfDisableAnimations"];
         DlgSrv_PerfDisableDragCb.Content = _localizer["RdpPerfDisableDrag"];
         DlgSrv_PerfDisableCursorShadowCb.Content = _localizer["RdpPerfDisableCursorShadow"];
+        DlgSrv_PerfEnableFontSmoothingCb.Content = _localizer["RdpPerfEnableFontSmoothing"];
         DlgSrv_PerfEnableCompositionCb.Content = _localizer["RdpPerfEnableComposition"];
         DlgSrv_DisableUdpCb.Content = _localizer["RdpDisableUdp"];
 
@@ -284,6 +286,7 @@ public partial class ServerDialog : Window
         System.Windows.Automation.AutomationProperties.SetName(DlgSrv_PerfDisableAnimationsCb, _localizer["RdpPerfDisableAnimations"]);
         System.Windows.Automation.AutomationProperties.SetName(DlgSrv_PerfDisableDragCb, _localizer["RdpPerfDisableDrag"]);
         System.Windows.Automation.AutomationProperties.SetName(DlgSrv_PerfDisableCursorShadowCb, _localizer["RdpPerfDisableCursorShadow"]);
+        System.Windows.Automation.AutomationProperties.SetName(DlgSrv_PerfEnableFontSmoothingCb, _localizer["RdpPerfEnableFontSmoothing"]);
         System.Windows.Automation.AutomationProperties.SetName(DlgSrv_PerfEnableCompositionCb, _localizer["RdpPerfEnableComposition"]);
         System.Windows.Automation.AutomationProperties.SetName(DlgSrv_DisableUdpCb, _localizer["RdpDisableUdp"]);
 
@@ -295,7 +298,8 @@ public partial class ServerDialog : Window
             DlgSrv_PerfDisableAnimationsCb.IsChecked = (vm.RdpPerformanceFlags & 0x04) != 0;
             DlgSrv_PerfDisableThemesCb.IsChecked = (vm.RdpPerformanceFlags & 0x08) != 0;
             DlgSrv_PerfDisableCursorShadowCb.IsChecked = (vm.RdpPerformanceFlags & 0x20) != 0;
-            DlgSrv_PerfEnableCompositionCb.IsChecked = (vm.RdpPerformanceFlags & 0x80) != 0;
+            DlgSrv_PerfEnableFontSmoothingCb.IsChecked = (vm.RdpPerformanceFlags & 0x80) != 0;
+            DlgSrv_PerfEnableCompositionCb.IsChecked = (vm.RdpPerformanceFlags & 0x100) != 0;
         }
 
         // SSH options

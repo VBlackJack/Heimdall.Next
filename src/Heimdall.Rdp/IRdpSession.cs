@@ -32,6 +32,15 @@ public interface IRdpSession : IDisposable
     /// <summary>Raised on a fatal RDP error. Parameter is the error code.</summary>
     event Action<int>? FatalError;
 
+    /// <summary>Raised when the server has accepted credentials and login is complete.</summary>
+    event Action? LoginComplete;
+
+    /// <summary>Raised when the client begins an auto-reconnect attempt (args: disconnectReason, attemptCount).</summary>
+    event Action<int, int>? AutoReconnecting;
+
+    /// <summary>Raised when an auto-reconnect attempt succeeds.</summary>
+    event Action? AutoReconnected;
+
     /// <summary>Whether an active RDP connection is established.</summary>
     bool IsConnected { get; }
 

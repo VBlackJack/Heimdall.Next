@@ -220,13 +220,9 @@ public class RdpFileGeneratorTests
     // ── Color depth and resolution ────────────────────────────────────
 
     [Fact]
-    public void Generate_BitmapCachingTrue_SessionBpp32()
+    public void Generate_DefaultColorDepth_SessionBpp32()
     {
-        var options = new RdpFileOptions
-        {
-            Host = "srv",
-            Redirections = new RdpRedirectionOptions { BitmapCaching = true }
-        };
+        var options = new RdpFileOptions { Host = "srv" };
 
         var content = RdpFileGenerator.Generate(options);
 
@@ -234,13 +230,9 @@ public class RdpFileGeneratorTests
     }
 
     [Fact]
-    public void Generate_BitmapCachingFalse_SessionBpp16()
+    public void Generate_CustomColorDepth_SessionBpp16()
     {
-        var options = new RdpFileOptions
-        {
-            Host = "srv",
-            Redirections = new RdpRedirectionOptions { BitmapCaching = false }
-        };
+        var options = new RdpFileOptions { Host = "srv", ColorDepth = 16 };
 
         var content = RdpFileGenerator.Generate(options);
 
@@ -413,5 +405,163 @@ public class RdpFileGeneratorTests
 
         Assert.Contains("smart sizing:i:1", content);
         Assert.Contains("dynamic resolution:i:1", content);
+    }
+
+    // ── Performance flags ────────────────────────────────────────────
+
+    [Fact]
+    public void Generate_PerformanceFlags_DecomposesToRdpSettings()
+    {
+        var options = new RdpFileOptions
+        {
+            Host = "srv",
+            Redirections = new RdpRedirectionOptions
+            {
+                PerformanceFlags = 0x01 | 0x04 | 0x80 | 0x100
+            }
+        };
+
+        var content = RdpFileGenerator.Generate(options);
+
+        Assert.Contains("disable wallpaper:i:1", content);
+        Assert.Contains("disable full window drag:i:0", content);
+        Assert.Contains("disable menu anims:i:1", content);
+        Assert.Contains("disable themes:i:0", content);
+        Assert.Contains("allow font smoothing:i:1", content);
+        Assert.Contains("allow desktop composition:i:1", content);
+    }
+
+    [Fact]
+    public void Generate_PerformanceFlagsZero_OmitsPerformanceSettings()
+    {
+        var options = new RdpFileOptions
+        {
+            Host = "srv",
+            Redirections = new RdpRedirectionOptions { PerformanceFlags = 0 }
+        };
+
+        var content = RdpFileGenerator.Generate(options);
+
+        Assert.DoesNotContain("disable wallpaper:i:", content);
+        Assert.DoesNotContain("allow font smoothing:i:", content);
+    }
+
+    // ── DisableUdp / network auto-detect ─────────────────────────────
+
+    [Fact]
+    public void Generate_DisableUdp_ForcesTcpOnly()
+    {
+        var options = new RdpFileOptions
+        {
+            Host = "srv",
+            Redirections = new RdpRedirectionOptions { DisableUdp = true }
+        };
+
+        var content = RdpFileGenerator.Generate(options);
+
+        Assert.Contains("networkautodetect:i:0", content);
+        Assert.Contains("bandwidthautodetect:i:0", content);
+        Assert.Contains("connection type:i:6", content);
+    }
+
+    [Fact]
+    public void Generate_DefaultUdp_EnablesAutoDetect()
+    {
+        var options = new RdpFileOptions
+        {
+            Host = "srv",
+            Redirections = new RdpRedirectionOptions { DisableUdp = false }
+        };
+
+        var content = RdpFileGenerator.Generate(options);
+
+        Assert.Contains("networkautodetect:i:1", content);
+        Assert.Contains("bandwidthautodetect:i:1", content);
+        Assert.Contains("connection type:i:7", content);
+    }
+
+    // ── USB / Webcam ─────────────────────────────────────────────────
+
+    [Fact]
+    public void Generate_UsbRedirect_IncludesUsbDevices()
+    {
+        var options = new RdpFileOptions
+        {
+            Host = "srv",
+            Redirections = new RdpRedirectionOptions { Usb = true }
+        };
+
+        var content = RdpFileGenerator.Generate(options);
+
+        Assert.Contains("usbdevicestoredirect:s:*", content);
+    }
+
+    [Fact]
+    public void Generate_WebcamRedirect_IncludesCameraRedirect()
+    {
+        var options = new RdpFileOptions
+        {
+            Host = "srv",
+            Redirections = new RdpRedirectionOptions { Webcam = true }
+        };
+
+        var content = RdpFileGenerator.Generate(options);
+
+        Assert.Contains("camerastoredirect:s:*", content);
+    }
+
+    [Fact]
+    public void Generate_NoUsbWebcam_OmitsDeviceStrings()
+    {
+        var options = new RdpFileOptions { Host = "srv" };
+
+        var content = RdpFileGenerator.Generate(options);
+
+        Assert.DoesNotContain("usbdevicestoredirect", content);
+        Assert.DoesNotContain("camerastoredirect", content);
+    }
+
+    // ── Audio mode ───────────────────────────────────────────────────
+
+    [Fact]
+    public void Generate_AudioModeLocal_MapsToRdpMode0()
+    {
+        var options = new RdpFileOptions
+        {
+            Host = "srv",
+            Redirections = new RdpRedirectionOptions { AudioMode = 1 }
+        };
+
+        var content = RdpFileGenerator.Generate(options);
+
+        Assert.Contains("audiomode:i:0", content);
+    }
+
+    [Fact]
+    public void Generate_AudioModeRemote_MapsToRdpMode1()
+    {
+        var options = new RdpFileOptions
+        {
+            Host = "srv",
+            Redirections = new RdpRedirectionOptions { AudioMode = 2 }
+        };
+
+        var content = RdpFileGenerator.Generate(options);
+
+        Assert.Contains("audiomode:i:1", content);
+    }
+
+    [Fact]
+    public void Generate_AudioModeDisabled_MapsToRdpMode2()
+    {
+        var options = new RdpFileOptions
+        {
+            Host = "srv",
+            Redirections = new RdpRedirectionOptions { AudioMode = 0 }
+        };
+
+        var content = RdpFileGenerator.Generate(options);
+
+        Assert.Contains("audiomode:i:2", content);
     }
 }

@@ -39,7 +39,7 @@ public class ServerProfileDto
     // SSH settings
     public string? SshUsername { get; set; }
     public int SshPort { get; set; } = 22;
-    public string SshMode { get; set; } = "External";
+    public string SshMode { get; set; } = "Embedded";
     public bool SshAgentForwarding { get; set; }
     public string? SshKeyPath { get; set; }
     public string? SshPasswordEncrypted { get; set; }
@@ -54,7 +54,7 @@ public class ServerProfileDto
     public string? Tags { get; set; }
 
     // RDP mode and device redirection
-    public string RdpMode { get; set; } = "External";
+    public string RdpMode { get; set; } = "Embedded";
     public bool RdpUseGlobalDefaults { get; set; } = true;
     public bool RdpRedirectClipboard { get; set; } = true;
     public bool RdpRedirectDrives { get; set; }

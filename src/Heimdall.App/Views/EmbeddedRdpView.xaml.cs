@@ -182,6 +182,11 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
             _rdpHost.Connected -= OnRdpConnected;
             _rdpHost.Disconnected -= OnRdpDisconnected;
             _rdpHost.FatalError -= OnRdpFatalError;
+            _rdpHost.LoginComplete -= OnRdpLoginComplete;
+            _rdpHost.AutoReconnecting -= OnRdpAutoReconnecting;
+            _rdpHost.AutoReconnected -= OnRdpAutoReconnected;
+
+            _rdpHost.CancelAutoReconnect = true;
 
             try { _rdpHost.Disconnect(); }
             catch (Exception ex)
@@ -496,10 +501,14 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
             StopAntiIdleTimer();
             ReleaseSleepPrevention();
             _allowResolutionUpdates = false;
-            UpdateSessionState(
-                "Disconnected",
-                _localizer?.Format("RdpStatusDisconnectedDetail", reason)
+
+            var reasonKey = RdpActiveXHost.GetDisconnectReasonKey(reason);
+            var message = reasonKey is not null
+                ? (_localizer?[$"RdpDisconnect{reasonKey}"] ?? $"Remote Desktop disconnected with code {reason}.")
+                : (_localizer?.Format("RdpStatusDisconnectedDetail", reason)
                     ?? $"Remote Desktop disconnected with code {reason}.");
+
+            UpdateSessionState("Disconnected", message);
             ShowReconnectOverlay();
         });
     }
@@ -524,6 +533,49 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         });
     }
 
+    private void OnRdpLoginComplete()
+    {
+        Core.Logging.FileLogger.Info("EmbeddedRDP OnLoginComplete fired");
+        if (_disposed) return;
+
+        Dispatcher.Invoke(() =>
+        {
+            try { _rdpHost?.ClearPassword(); }
+            catch (Exception ex) { Core.Logging.FileLogger.Warn($"EmbeddedRDP ClearPassword (login): {ex.Message}"); }
+        });
+    }
+
+    private void OnRdpAutoReconnecting(int disconnectReason, int attemptCount)
+    {
+        Core.Logging.FileLogger.Info($"EmbeddedRDP OnAutoReconnecting: reason={disconnectReason} attempt={attemptCount}");
+        if (_disposed) return;
+
+        Dispatcher.Invoke(() =>
+        {
+            _allowResolutionUpdates = false;
+            UpdateSessionState(
+                "Reconnecting",
+                _localizer?.Format("RdpStatusReconnecting", attemptCount)
+                    ?? $"Reconnecting (attempt {attemptCount})...");
+        });
+    }
+
+    private void OnRdpAutoReconnected()
+    {
+        Core.Logging.FileLogger.Info("EmbeddedRDP OnAutoReconnected fired");
+        if (_disposed) return;
+
+        Dispatcher.Invoke(() =>
+        {
+            UpdateSessionState("Connected", L("RdpStatusConnectedDetail"));
+
+            if (_server is not null && _server.RdpDynamicResolution)
+            {
+                _ = EnableResolutionUpdatesAsync();
+            }
+        });
+    }
+
     private void CreateHostControl()
     {
         _rdpHost = new RdpActiveXHost
@@ -534,6 +586,9 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         _rdpHost.Connected += OnRdpConnected;
         _rdpHost.Disconnected += OnRdpDisconnected;
         _rdpHost.FatalError += OnRdpFatalError;
+        _rdpHost.LoginComplete += OnRdpLoginComplete;
+        _rdpHost.AutoReconnecting += OnRdpAutoReconnecting;
+        _rdpHost.AutoReconnected += OnRdpAutoReconnected;
 
         FormsHost.Child = _rdpHost.GetHostControl();
 
@@ -952,12 +1007,22 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
             return (string.Empty, null);
         }
 
+        // DOMAIN\user format (NetBIOS)
         var separatorIndex = username.IndexOf('\\');
         if (separatorIndex > 0 && separatorIndex < username.Length - 1)
         {
             return (
                 username[(separatorIndex + 1)..],
                 username[..separatorIndex]);
+        }
+
+        // user@domain.com format (UPN) — pass the full UPN as the username
+        // and extract the domain for logging/diagnostics. The RDP ActiveX control
+        // accepts UPN directly in the UserName field.
+        var atIndex = username.IndexOf('@');
+        if (atIndex > 0 && atIndex < username.Length - 1)
+        {
+            return (username, username[(atIndex + 1)..]);
         }
 
         return (username, null);
