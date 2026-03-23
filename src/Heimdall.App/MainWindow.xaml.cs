@@ -87,6 +87,7 @@ public partial class MainWindow : Window
         };
 
         KeyDown += OnKeyDown;
+        PreviewMouseDown += OnWindowPreviewMouseDown;
     }
 
     /// <summary>
@@ -714,7 +715,7 @@ public partial class MainWindow : Window
             case Key.K when Keyboard.Modifiers == ModifierKeys.Control:
                 if (terminalHasFocus) break;
                 vm.OpenCommandPaletteCommand.Execute(null);
-                PaletteInput.Focus();
+                Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Input, PaletteInput.Focus);
                 e.Handled = true;
                 break;
 
@@ -2582,10 +2583,17 @@ public partial class MainWindow : Window
         }
     }
 
-    private void OnPaletteBackdropClick(object sender, MouseButtonEventArgs e)
+    /// <summary>
+    /// Dismiss the command palette when the user clicks anywhere in the main window
+    /// (outside the Popup). The Popup is a separate HWND, so clicks on the main
+    /// window surface never reach it — we intercept them here instead.
+    /// </summary>
+    private void OnWindowPreviewMouseDown(object sender, MouseButtonEventArgs e)
     {
-        if (DataContext is MainViewModel vm)
+        if (DataContext is MainViewModel { IsCommandPaletteOpen: true } vm)
+        {
             vm.CloseCommandPaletteCommand.Execute(null);
+        }
     }
 
     private void OnPaletteBorderClick(object sender, MouseButtonEventArgs e)
