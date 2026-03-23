@@ -161,7 +161,9 @@ All tools open as session tabs (split, detach, reorder). Accessible via **Ctrl+K
 ### Session Management
 - Tabbed sessions with drag-to-reorder
 - Tab detach to floating window (Chrome-style drag-out or context menu)
-- Split pane with full metadata preservation across split/unsplit
+- Split pane: connect a new session or **merge an existing tab** (right-click → "Merge with...")
+- Merge reparents the live connection without reconnecting; unsplit restores as independent tab
+- Command Palette renders as a WPF `Popup` (own HWND) above RDP/VNC ActiveX surfaces
 - Session transcript logging with ANSI code stripping
 - Connection history log (JSONL with auto-rotation)
 - Screenshot capture to clipboard (Ctrl+Shift+S)

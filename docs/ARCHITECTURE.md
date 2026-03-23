@@ -251,7 +251,19 @@ Toolbar toggle button switches directory listing from SFTP `ListDirectory` to `s
 - **`ls -la` output parsing**: The `--time-style=long-iso` format produces **8 columns** (permissions, links, owner, group, size, date, time, name). Early parser expected 9 columns and silently skipped all entries. Filename column must be the last split part to handle spaces.
 - **Sudo toggle hidden for FTP**: FTP sessions have no SSH channel, so the sudo button is collapsed.
 
-### 16. Tab Detach to Floating Window
+### 16. Split Pane & Session Merge
+
+**Split new connection**: Click the split button or right-click tab → "Split Horizontal/Vertical" → Command Palette opens in split mode → select a server → new embedded connection is created in the secondary pane.
+
+**Merge existing session**: Right-click tab → "Merge with..." → submenu lists active sessions with orientation choice → the selected tab's `HostControl` is reparented into the secondary pane without reconnecting. The source tab is removed from the tab bar.
+
+**Unsplit**: Restores the secondary pane as an independent tab with all metadata preserved (title, status, tunnel route, environment color).
+
+**Implementation**: `MergeExistingSession()` detaches `HostControl` from the source `SessionTabViewModel`, removes the source from `ActiveSessions`, and attaches it as `SecondaryHostControl` on the target. `UnsplitSession()` performs the inverse. Both operations are synchronous reparenting — no connection teardown or recreation.
+
+**Airspace constraint**: The Command Palette uses a WPF `Popup` (own HWND) so it renders above `WindowsFormsHost` ActiveX surfaces. Win32 focus is forced via P/Invoke (`SetForegroundWindow` + `SetActiveWindow` + `SetFocus`). The context menu merge path bypasses the Popup entirely — native context menus have their own HWND.
+
+### 16b. Tab Detach to Floating Window
 
 **Problem**: Users need to view multiple sessions side by side, or move a session to a second monitor.
 
