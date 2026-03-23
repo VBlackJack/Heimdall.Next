@@ -12,6 +12,22 @@
 
 All notable changes to Heimdall.Next are documented in this file.
 
+## [v2026.032309] - 2026-03-23
+
+### Split & Merge Sessions + Airspace Fix + RDP Improvements
+
+#### Session merge (new feature)
+- Right-click tab → **"Merge with..."** submenu lists all active sessions with horizontal/vertical orientation
+- Merges the selected session into the current tab's split pane without reconnecting — the live connection is reparented instantly
+- Unsplit restores the merged session as an independent tab
+- Split palette also shows active sessions at the top for merge via keyboard (Enter)
+
+#### Airspace fix (Command Palette over RDP/VNC)
+- Command Palette converted from WPF Grid overlay to `Popup` (own HWND) — renders above WindowsFormsHost/ActiveX surfaces
+- Win32 focus forced via `SetForegroundWindow`/`SetActiveWindow`/`SetFocus` P/Invoke on Popup open
+- Keyboard navigation via `PreviewKeyDown` on Border parent (intercepted before TextBox consumes arrows)
+- Click item resolved from `ListBoxItem.DataContext` via `PreviewMouseLeftButtonDown`
+
 ## [v2026.032304] - 2026-03-23
 
 ### Split Session Fix + RDP Improvements
