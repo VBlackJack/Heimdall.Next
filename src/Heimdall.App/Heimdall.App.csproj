@@ -26,10 +26,13 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="Assets\**\*">
+    <Content Include="Assets\**\*" Exclude="Assets\milkdown-editor\**">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="lib\webview2\WebView2Loader.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="lib\webview2\WebView2Loader.dll" Link="WebView2Loader.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="..\..\config\settings.default.json" Link="config\settings.default.json">

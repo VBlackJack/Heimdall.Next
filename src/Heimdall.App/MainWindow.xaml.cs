@@ -1209,6 +1209,10 @@ public partial class MainWindow : Window
             menu.Items.Add(wolItem);
         }
 
+        // Notes submenu
+        menu.Items.Add(new Separator());
+        menu.Items.Add(CreateNotesSubmenu(vm, server));
+
         // External tools submenu
         var externalToolsMenu = CreateExternalToolsMenu(vm, server);
         if (externalToolsMenu is not null)
@@ -1227,6 +1231,43 @@ public partial class MainWindow : Window
         menu.Items.Add(deleteItem);
 
         return menu;
+    }
+
+    private MenuItem CreateNotesSubmenu(MainViewModel vm, ServerItemViewModel server)
+    {
+        var submenu = new MenuItem { Header = vm.Localize("TreeCtxNotes") };
+
+        var blankItem = new MenuItem { Header = vm.Localize("ToolNotesBtnNew") };
+        blankItem.Click += (_, _) => OpenNotesForServer(vm, server);
+        submenu.Items.Add(blankItem);
+
+        var dailyItem = new MenuItem { Header = vm.Localize("ToolNotesBtnDaily") };
+        dailyItem.Click += (_, _) => OpenNotesForServer(vm, server);
+        submenu.Items.Add(dailyItem);
+
+        var incidentItem = new MenuItem { Header = vm.Localize("ToolNotesBtnIncident") };
+        incidentItem.Click += (_, _) => OpenNotesForServer(vm, server);
+        submenu.Items.Add(incidentItem);
+
+        var procedureItem = new MenuItem { Header = vm.Localize("ToolNotesBtnProcedure") };
+        procedureItem.Click += (_, _) => OpenNotesForServer(vm, server);
+        submenu.Items.Add(procedureItem);
+
+        return submenu;
+    }
+
+    private static void OpenNotesForServer(MainViewModel vm, ServerItemViewModel server)
+    {
+        var context = new Core.Models.ToolContext(
+            TargetHost: server.RemoteServer,
+            TargetPort: server.RemotePort > 0 ? server.RemotePort : null,
+            DisplayName: server.DisplayName,
+            Username: server.Username,
+            ProjectName: server.ProjectName,
+            GroupName: server.Group,
+            ConnectionType: server.ConnectionType);
+
+        _ = vm.OpenToolTabAsync("NOTES", server.DisplayName, context);
     }
 
     /// <summary>
@@ -2041,10 +2082,30 @@ public partial class MainWindow : Window
                 return typed;
             }
 
-            current = VisualTreeHelper.GetParent(current);
+            current = GetParentObject(current);
         }
 
         return null;
+    }
+
+    private static DependencyObject? GetParentObject(DependencyObject current)
+    {
+        if (current is FrameworkContentElement frameworkContentElement)
+        {
+            return frameworkContentElement.Parent;
+        }
+
+        if (current is ContentElement contentElement)
+        {
+            return ContentOperations.GetParent(contentElement);
+        }
+
+        if (current is Visual || current is System.Windows.Media.Media3D.Visual3D)
+        {
+            return VisualTreeHelper.GetParent(current);
+        }
+
+        return LogicalTreeHelper.GetParent(current);
     }
 
     // ── Tab detachment ─────────────────────────────────────────────────
@@ -2161,6 +2222,14 @@ public partial class MainWindow : Window
         // Check the visual tree source to avoid overriding them.
         if (clickSource is not null)
         {
+            // Notes owns a TreeView-specific context menu in its sidebar.
+            // Skip the session menu so the tool can open its own commands.
+            if (FindAncestor<Views.Tools.NotesToolView>(clickSource) is not null
+                && FindAncestor<System.Windows.Controls.TreeView>(clickSource) is not null)
+            {
+                return;
+            }
+
             // Check for any ancestor that has its own context menu
             if (FindAncestor<Views.EmbeddedSftpView>(clickSource) is not null
                 || FindAncestor<Views.LocalFileBrowserView>(clickSource) is not null)
@@ -2173,6 +2242,13 @@ public partial class MainWindow : Window
             if (dataGrid is not null && session.ConnectionType?.StartsWith("TOOL:", StringComparison.OrdinalIgnoreCase) == true)
             {
                 return; // Let the tool's own ContextMenuOpening handler take over
+            }
+
+            // Tool views with TreeView context menus (e.g. NotesToolView)
+            var treeView = FindAncestor<System.Windows.Controls.TreeView>(clickSource);
+            if (treeView is not null && session.ConnectionType?.StartsWith("TOOL:", StringComparison.OrdinalIgnoreCase) == true)
+            {
+                return;
             }
 
             // Also check for ListViewItem inside a split pane (the view might not

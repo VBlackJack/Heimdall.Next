@@ -94,6 +94,7 @@ public class AppSettings
     public bool PreventSleepDuringSession { get; set; } = true;
     public bool SessionLoggingEnabled { get; set; }
     public string SessionLogDirectory { get; set; } = @"logs\sessions";
+    public string NotesDirectory { get; set; } = @"config\notes";
 
     // UI state
     public bool SidebarCollapsed { get; set; }

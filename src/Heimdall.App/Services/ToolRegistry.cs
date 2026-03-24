@@ -77,6 +77,7 @@ public sealed class ToolRegistry
             Entry("SSHCONFIG",ToolCategory.System,   "ToolCategorySystem",   "PaletteToolSshConfig",null,                      ["sshconfig","ssh-config"], false, () => new Views.Tools.SshConfigGeneratorView(), "Icon.Tool.SshConfigGenerator"),
             Entry("CRONJOB",  ToolCategory.System,   "ToolCategorySystem",   "PaletteToolCronJob",  null,                      ["cronjob","crontab-manager","tasks"], false, () => new Views.Tools.CronJobManagerView(), "Icon.Tool.CronJobManager"),
             Entry("SERVICES", ToolCategory.System,   "ToolCategorySystem",   "PaletteToolServices", null,                      ["services","svc","systemctl"],        false, () => new Views.Tools.ServiceStatusView(),  "Icon.Tool.ServiceStatusDashboard"),
+            Entry("NOTES",    ToolCategory.System,   "ToolCategorySystem",   "PaletteToolNotes",    "PaletteToolNotesWith",    ["notes","note","markdown","md","confluence"], false, () => new Views.Tools.NotesToolView(), "Icon.Tool.Notes"),
             Entry("DIAGRAM",  ToolCategory.System,   "ToolCategorySystem",   "PaletteToolDiagram",  null,                      ["diagram","drawio","schema"],         false, () => new Views.Tools.DiagramEditorView(),  "Icon.Tool.Diagram"),
         };
 

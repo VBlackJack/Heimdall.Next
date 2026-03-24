@@ -1,0 +1,194 @@
+:root {
+  color-scheme: light;
+  --editor-font-family: "Segoe UI", sans-serif;
+  --editor-text: #1b1f24;
+  --editor-subtle-text: #57606a;
+  --editor-surface: rgba(255, 255, 255, 0.92);
+  --editor-panel: rgba(246, 248, 250, 0.95);
+  --editor-border: rgba(31, 35, 40, 0.14);
+  --editor-shadow: rgba(31, 35, 40, 0.08);
+  --editor-link: #0969da;
+  --editor-accent: #0969da;
+  --editor-accent-soft: rgba(9, 105, 218, 0.12);
+  --editor-code-bg: rgba(175, 184, 193, 0.2);
+  --editor-quote-border: rgba(9, 105, 218, 0.35);
+  --editor-selection: rgba(9, 105, 218, 0.18);
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --editor-text: #e6edf3;
+  --editor-subtle-text: #9da7b3;
+  --editor-surface: rgba(13, 17, 23, 0.9);
+  --editor-panel: rgba(22, 27, 34, 0.92);
+  --editor-border: rgba(240, 246, 252, 0.12);
+  --editor-shadow: rgba(0, 0, 0, 0.3);
+  --editor-link: #58a6ff;
+  --editor-accent: #58a6ff;
+  --editor-accent-soft: rgba(88, 166, 255, 0.16);
+  --editor-code-bg: rgba(110, 118, 129, 0.22);
+  --editor-quote-border: rgba(88, 166, 255, 0.4);
+  --editor-selection: rgba(88, 166, 255, 0.22);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+}
+
+html,
+body {
+  overflow: hidden;
+  background: transparent;
+  color: var(--editor-text);
+  font-family: var(--editor-font-family);
+}
+
+body {
+  padding: 0;
+}
+
+#app {
+  display: flex;
+  min-height: 0;
+  min-width: 0;
+}
+
+.editor-shell {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  background: transparent;
+}
+
+.editor-host {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  overflow: auto;
+  padding: 12px 14px;
+  background: transparent;
+}
+
+.editor-host::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.editor-host::-webkit-scrollbar-thumb {
+  background: var(--editor-border);
+  border-radius: 999px;
+}
+
+.editor-host::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.milkdown {
+  color: var(--editor-text);
+  font-family: var(--editor-font-family);
+}
+
+.milkdown .editor {
+  min-height: calc(100vh - 24px);
+  padding: 20px 24px 40px;
+  color: inherit;
+  background: var(--editor-surface);
+  border: 1px solid var(--editor-border);
+  border-radius: 14px;
+  box-shadow: 0 12px 40px var(--editor-shadow);
+}
+
+.milkdown .ProseMirror {
+  min-height: 100%;
+  color: inherit;
+  background: transparent;
+  caret-color: var(--editor-accent);
+  font-family: var(--editor-font-family);
+}
+
+.milkdown .ProseMirror:focus {
+  outline: none;
+}
+
+.milkdown .ProseMirror ::selection,
+.milkdown .ProseMirror::selection {
+  background: var(--editor-selection);
+}
+
+.milkdown :is(h1, h2, h3, h4, h5, h6) {
+  color: var(--editor-text);
+}
+
+.milkdown p,
+.milkdown li,
+.milkdown blockquote,
+.milkdown td,
+.milkdown th {
+  color: inherit;
+}
+
+.milkdown a {
+  color: var(--editor-link);
+}
+
+.milkdown code {
+  border-radius: 6px;
+  background: var(--editor-code-bg);
+  color: inherit;
+  font-family: "Cascadia Code", Consolas, monospace;
+  padding: 0.12rem 0.35rem;
+}
+
+.milkdown pre {
+  border-radius: 10px;
+  background: var(--editor-panel);
+  border: 1px solid var(--editor-border);
+}
+
+.milkdown blockquote {
+  border-left: 3px solid var(--editor-quote-border);
+}
+
+.milkdown table {
+  border-collapse: collapse;
+}
+
+.milkdown th,
+.milkdown td {
+  border-color: var(--editor-border);
+}
+
+.milkdown tr:nth-child(2n) {
+  background: transparent;
+}
+
+.milkdown .wiki-link {
+  color: var(--editor-link);
+  cursor: pointer;
+  font-style: italic;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 2px;
+}
+
+.milkdown .wiki-link:hover {
+  color: var(--editor-accent);
+  background: var(--editor-accent-soft);
+}
+
+.milkdown .wiki-link.is-readonly {
+  cursor: pointer;
+}
+
+.editor-host.is-readonly .milkdown .editor {
+  border-style: dashed;
+}
