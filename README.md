@@ -14,7 +14,7 @@
 
 [![CI](https://github.com/VBlackJack/Heimdall.Next/actions/workflows/ci.yml/badge.svg)](https://github.com/VBlackJack/Heimdall.Next/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-1417%20passing-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/tests-1469%20passing-brightgreen.svg)]()
 [![Tools](https://img.shields.io/badge/tools-33%20sysops-blue.svg)]()
 [![.NET](https://img.shields.io/badge/.NET-10.0-purple.svg)]()
 
@@ -161,8 +161,16 @@ All tools open as session tabs (split, detach, reorder). Accessible via **Ctrl+K
 ### Session Management
 - Tabbed sessions with drag-to-reorder
 - Tab detach to floating window (Chrome-style drag-out or context menu)
-- Split pane: connect a new session or **merge an existing tab** (right-click → "Merge with...")
-- Merge reparents the live connection without reconnecting; unsplit restores as independent tab
+- **Recursive N-pane split**: up to 8 panes per tab in any layout (2x2, L-shape, 3 side-by-side, etc.)
+- Split any pane further: right-click → "Split..." → Horizontal | Vertical, or Command Palette
+- **Merge existing tab**: right-click → "Merge with..." → session → Horizontal | Vertical (reparents live connection without reconnecting)
+- **Drag-to-split**: drag a tab onto the content area of another tab to merge (orientation auto-detected from drop position)
+- Swap panes, toggle orientation (Ctrl+Shift+O), detach any pane to floating window
+- Unsplit restores panes as independent tabs with all metadata preserved
+- Per-pane disconnect overlay with Reconnect and Close buttons (accessible labels for screen readers)
+- Loading overlay with spinner during pane connection
+- Splitter ratio remembered per pane across tab switches; restored on merge from split layout history
+- Split layout persistence: previously paired servers suggested in Command Palette (all servers visible in split mode)
 - Command Palette renders as a WPF `Popup` (own HWND) above RDP/VNC ActiveX surfaces
 - Session transcript logging with ANSI code stripping
 - Connection history log (JSONL with auto-rotation)
@@ -260,6 +268,7 @@ Download the latest release from the [Releases](../../releases) page. Run the in
 | Ctrl+Del | Delete selected server |
 | Ctrl+Shift+N | Network Scanner |
 | Ctrl+Shift+S | Screenshot to clipboard |
+| Ctrl+Shift+O | Toggle split orientation (H/V) |
 | Ctrl+B | Toggle sidebar |
 | Ctrl+F | Focus search/filter |
 | Ctrl+Enter | Execute action (JSON Formatter, etc.) |
@@ -321,7 +330,7 @@ Release mode also produces Inno Setup `.exe` installers in `Dist/installers/` wi
 | RDP | ActiveX MsTscAx (WindowsFormsHost) |
 | Citrix | StoreBrowse CLI integration |
 | Crypto | System.Security.Cryptography.ProtectedData (DPAPI) |
-| Testing | xUnit + Moq + FluentAssertions (1,324 tests) |
+| Testing | xUnit + Moq + FluentAssertions (1,469 tests) |
 | Built-in Tools | 33 sysops tools (Ctrl+K → `tools` or Ctrl+Shift+T) |
 | Serialization | System.Text.Json |
 

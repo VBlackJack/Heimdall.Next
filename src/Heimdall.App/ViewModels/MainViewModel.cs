@@ -45,6 +45,7 @@ public partial class MainViewModel : ObservableObject
     private readonly IDialogService _dialogService;
     private readonly EmbeddedSessionManager _embeddedSessionManager;
     private readonly TaskSchedulerService _taskScheduler;
+    private readonly Core.Configuration.SplitLayoutMemory _splitLayoutMemory;
 
     private AppSettings? _currentSettings;
 
@@ -91,6 +92,7 @@ public partial class MainViewModel : ObservableObject
     /// </summary>
     private SessionTabViewModel? _splitPaletteSession;
     private Core.Models.SplitOrientation _splitPaletteOrientation;
+    private string? _splitPalettePaneId;
 
     [ObservableProperty]
     private string _palettePlaceholder = "";
@@ -238,6 +240,8 @@ public partial class MainViewModel : ObservableObject
             TaskDueCallback = OnScheduledTaskDueAsync,
             PersistCallback = SaveScheduledTasksAsync
         };
+
+        _splitLayoutMemory = new Core.Configuration.SplitLayoutMemory(configManager.ConfigPath);
 
         _appStatus.StatusChanged += OnApplicationStatusChanged;
         _tunnelManager.TunnelOpened += OnTunnelOpened;
@@ -448,23 +452,28 @@ public partial class MainViewModel : ObservableObject
                 return;
             }
 
-            // Create the SFTP host control on the UI thread
+            // Create the SFTP host control on the UI thread and wrap root in a split container
             System.Windows.Application.Current.Dispatcher.Invoke(() =>
             {
-                tab.SecondaryHostControl = _embeddedSessionManager.CreateHostControl(
-                    tab,
-                    tab.Title,
-                    "SFTP",
-                    sftpResult.Session,
-                    _currentSettings);
+                var sftpPane = new Core.Models.SessionPaneModel
+                {
+                    ServerId = serverId,
+                    OriginalServerId = tab.OriginalServerId,
+                    ConnectionType = "SFTP",
+                    Title = tab.Title,
+                    Status = "Connected"
+                };
+                sftpPane.HostControl = _embeddedSessionManager.CreateHostControl(
+                    tab, tab.Title, "SFTP", sftpResult.Session, _currentSettings);
 
-                tab.SecondaryServerId = serverId;
-                tab.SecondaryOriginalServerId = tab.OriginalServerId;
-                tab.SecondaryConnectionType = "SFTP";
-                tab.SecondaryTitle = tab.Title;
-                tab.SecondaryStatus = "Connected";
-                tab.SplitOrientation = Core.Models.SplitOrientation.Vertical;
-                tab.IsSplit = true;
+                var currentRoot = tab.RootContent;
+                tab.RootContent = new Core.Models.SplitContainerModel
+                {
+                    First = currentRoot,
+                    Second = sftpPane,
+                    Orientation = Core.Models.SplitOrientation.Vertical,
+                    SplitRatio = 0.5
+                };
             });
 
             Core.Logging.FileLogger.Info(
@@ -790,17 +799,35 @@ public partial class MainViewModel : ObservableObject
         }
     }
 
+    private const int MaxPanesPerTab = 8;
+
     /// <summary>
-    /// Connects to a server and attaches the resulting session as the secondary
-    /// pane of an existing session tab. Extracted from code-behind.
+    /// Connects to a server and splits the target pane, inserting the new session
+    /// as a sibling. The target pane is identified by <paramref name="paneId"/>.
+    /// Also supports the legacy call path (paneId = null → splits the primary pane).
     /// </summary>
     public async Task SplitSessionWithServerAsync(
         SessionTabViewModel session,
         string serverId,
-        Core.Models.SplitOrientation orientation)
+        Core.Models.SplitOrientation orientation,
+        string? paneId = null)
     {
         try
         {
+            // Resolve the target pane (default to primary if no paneId provided)
+            var targetPane = !string.IsNullOrEmpty(paneId)
+                ? Core.Models.SplitTreeHelper.FindPane(session.RootContent, paneId)
+                : session.PrimaryPane;
+
+            if (targetPane is null) return;
+
+            // Guard: max panes per tab
+            if (Core.Models.SplitTreeHelper.CountLeaves(session.RootContent) >= MaxPanesPerTab)
+            {
+                StatusText = _localizer["SplitMaxPanesReached"];
+                return;
+            }
+
             var servers = await _configManager.LoadServersAsync();
             var settings = await _configManager.LoadSettingsAsync();
 
@@ -815,6 +842,25 @@ public partial class MainViewModel : ObservableObject
             if (string.Equals(serverDto.ConnectionType, "SSH", StringComparison.OrdinalIgnoreCase))
                 serverDto.SshMode = "Embedded";
 
+            // Create loading pane and insert it into the tree immediately (shows loading overlay)
+            var newPane = new Core.Models.SessionPaneModel
+            {
+                ServerId = "",
+                ConnectionType = serverDto.ConnectionType ?? "",
+                Title = serverDto.DisplayName,
+                Status = _localizer["SplitSecondaryConnecting"],
+            };
+            var container = new Core.Models.SplitContainerModel
+            {
+                First = targetPane,
+                Second = newPane,
+                Orientation = orientation,
+                SplitRatio = 0.5
+            };
+            session.RootContent = Core.Models.SplitTreeHelper.ReplacePane(
+                session.RootContent, targetPane.PaneId, container);
+
+            // Connect the server asynchronously
             var connService = ServerList.ConnectionService;
             Services.ConnectionResult result;
             switch (serverDto.ConnectionType?.ToUpperInvariant())
@@ -847,9 +893,28 @@ public partial class MainViewModel : ObservableObject
 
             if (!result.Success || result.Session is null)
             {
+                // Revert: remove the new pane from the tree
+                session.RootContent = Core.Models.SplitTreeHelper.RemovePane(
+                    session.RootContent, newPane.PaneId) ?? session.PrimaryPane;
+
                 StatusText = result.ErrorMessage ?? _localizer["ErrorSplitSessionFailed"];
                 Core.Logging.FileLogger.Warn(
                     $"Split session failed for {serverDto.DisplayName}: {result.ErrorMessage}");
+                return;
+            }
+
+            // Guard: if the tab was closed or the pane was removed during the async connection,
+            // dispose the result and abort.
+            if (!Connection.ActiveSessions.Contains(session)
+                || Core.Models.SplitTreeHelper.FindPane(session.RootContent, newPane.PaneId) is null)
+            {
+                if (result.Session is IDisposable sessionDisposable)
+                {
+                    try { sessionDisposable.Dispose(); }
+                    catch (ObjectDisposedException) { /* Expected */ }
+                }
+                Core.Logging.FileLogger.Info(
+                    $"Split cancelled for {serverDto.DisplayName} — pane was removed during connection.");
                 return;
             }
 
@@ -857,14 +922,16 @@ public partial class MainViewModel : ObservableObject
                 session, serverDto.DisplayName, serverDto.ConnectionType ?? "SSH",
                 result.Session, settings);
 
-            session.SecondaryHostControl = hostControl;
-            session.SecondaryServerId = serverDto.Id;
-            session.SecondaryOriginalServerId = serverDto.Id;
-            session.SecondaryConnectionType = serverDto.ConnectionType ?? "";
-            session.SecondaryTitle = serverDto.DisplayName;
-            session.SecondaryStatus = "Connected";
-            session.SplitOrientation = orientation;
-            session.IsSplit = true;
+            // Finalize the new pane with connected state
+            newPane.HostControl = hostControl;
+            newPane.ServerId = serverDto.Id;
+            newPane.OriginalServerId = serverDto.Id;
+            newPane.Status = "Connected";
+
+            // Persist split layout for future suggestions
+            _splitLayoutMemory.Record(
+                targetPane.OriginalServerId, serverDto.Id,
+                orientation, container.SplitRatio);
         }
         catch (Exception ex)
         {
@@ -903,8 +970,35 @@ public partial class MainViewModel : ObservableObject
                 }
             }
 
-            // Show recent servers
-            initialResults.AddRange(ServerList.Servers.Take(10));
+            // In split mode, boost previously paired servers to the top
+            var boostedIds = new HashSet<string>(StringComparer.Ordinal);
+            if (_splitPaletteSession is not null)
+            {
+                var sessionServerId = _splitPaletteSession.OriginalServerId;
+                var partners = _splitLayoutMemory.FindAllPartners(sessionServerId);
+                foreach (var entry in partners)
+                {
+                    var partnerId = string.Equals(entry.PrimaryServerId, sessionServerId, StringComparison.Ordinal)
+                        ? entry.SecondaryServerId
+                        : entry.PrimaryServerId;
+
+                    var serverVm = ServerList.Servers.FirstOrDefault(
+                        s => string.Equals(s.Id, partnerId, StringComparison.Ordinal));
+                    if (serverVm is not null && boostedIds.Add(partnerId))
+                    {
+                        initialResults.Add(serverVm);
+                    }
+                }
+            }
+
+            // Show servers (skip already-boosted ones).
+            // In split mode, show ALL servers so every treeview entry is reachable.
+            // In normal palette mode, limit to 10 recent servers.
+            var availableServers = ServerList.Servers
+                .Where(s => !boostedIds.Contains(s.Id));
+            if (_splitPaletteSession is null)
+                availableServers = availableServers.Take(10);
+            initialResults.AddRange(availableServers);
 
             // Then recent tools at the bottom (if any)
             foreach (var toolId in _recentToolIds)
@@ -992,10 +1086,11 @@ public partial class MainViewModel : ObservableObject
     /// the given session instead of opening a new tab. This replaces the old
     /// ContextMenu approach that did not scale beyond ~20 servers.
     /// </summary>
-    public void OpenSplitPalette(SessionTabViewModel session, Core.Models.SplitOrientation orientation)
+    public void OpenSplitPalette(SessionTabViewModel session, Core.Models.SplitOrientation orientation, string? paneId = null)
     {
         _splitPaletteSession = session;
         _splitPaletteOrientation = orientation;
+        _splitPalettePaneId = paneId;
         PalettePlaceholder = _localizer["SplitPaletteHint"];
         PaletteSearchText = "";
         IsCommandPaletteOpen = true;
@@ -1018,7 +1113,9 @@ public partial class MainViewModel : ObservableObject
     {
         var splitSession = _splitPaletteSession;
         var splitOrientation = _splitPaletteOrientation;
+        var splitPaneId = _splitPalettePaneId;
         _splitPaletteSession = null;
+        _splitPalettePaneId = null;
         IsCommandPaletteOpen = false;
 
         if (splitSession is not null)
@@ -1027,13 +1124,13 @@ public partial class MainViewModel : ObservableObject
             if (item.Id.StartsWith("session-", StringComparison.Ordinal))
             {
                 var sourceSessionId = item.Id["session-".Length..];
-                MergeExistingSession(splitSession, sourceSessionId, splitOrientation);
+                MergeExistingSession(splitSession, sourceSessionId, splitOrientation, splitPaneId);
                 return;
             }
 
             if (!item.Id.StartsWith("adhoc-", StringComparison.Ordinal))
             {
-                _ = SplitSessionWithServerAsync(splitSession, item.Id, splitOrientation);
+                _ = SplitSessionWithServerAsync(splitSession, item.Id, splitOrientation, splitPaneId);
                 return;
             }
         }
@@ -1049,7 +1146,9 @@ public partial class MainViewModel : ObservableObject
 
         var splitSession = _splitPaletteSession;
         var splitOrientation = _splitPaletteOrientation;
+        var splitPaneId = _splitPalettePaneId;
         _splitPaletteSession = null;
+        _splitPalettePaneId = null;
         IsCommandPaletteOpen = false;
 
         // If the palette was opened in split mode, route to split logic
@@ -1059,11 +1158,11 @@ public partial class MainViewModel : ObservableObject
             if (server.Id.StartsWith("session-", StringComparison.Ordinal))
             {
                 var sourceSessionId = server.Id["session-".Length..];
-                MergeExistingSession(splitSession, sourceSessionId, splitOrientation);
+                MergeExistingSession(splitSession, sourceSessionId, splitOrientation, splitPaneId);
                 return;
             }
 
-            await SplitSessionWithServerAsync(splitSession, server.Id, splitOrientation);
+            await SplitSessionWithServerAsync(splitSession, server.Id, splitOrientation, splitPaneId);
             return;
         }
 
@@ -1110,17 +1209,18 @@ public partial class MainViewModel : ObservableObject
     }
 
     /// <summary>
-    /// Merges an existing session tab into the split pane of the target session.
-    /// Reparents the source tab's <see cref="SessionTabViewModel.HostControl"/>
-    /// into the target's secondary pane without reconnecting.
+    /// Merges an existing session tab into the target session's split tree.
+    /// Reparents the source tab's content without reconnecting.
     /// </summary>
     public void MergeExistingSession(
         SessionTabViewModel target,
         string sourceSessionId,
-        Core.Models.SplitOrientation orientation)
+        Core.Models.SplitOrientation orientation,
+        string? targetPaneId = null)
     {
         var source = Connection.ActiveSessions.FirstOrDefault(
-            s => string.Equals(s.ServerId, sourceSessionId, StringComparison.Ordinal));
+            s => string.Equals(s.ServerId, sourceSessionId, StringComparison.Ordinal)
+                 || string.Equals(s.OriginalServerId, sourceSessionId, StringComparison.Ordinal));
 
         if (source is null || source == target || source.HostControl is null)
         {
@@ -1128,40 +1228,360 @@ public partial class MainViewModel : ObservableObject
             return;
         }
 
-        // Capture source metadata before removing the tab
-        var hostControl = source.HostControl;
-        var serverId = source.ServerId;
-        var originalServerId = source.OriginalServerId;
-        var connType = source.ConnectionType;
-        var title = source.Title;
-        var status = source.Status;
-        var tunnelRoute = source.TunnelRoute;
-        var envColor = source.EnvironmentColor;
+        // Guard: max panes per tab
+        var sourceLeafCount = Core.Models.SplitTreeHelper.CountLeaves(source.RootContent);
+        if (Core.Models.SplitTreeHelper.CountLeaves(target.RootContent) + sourceLeafCount > MaxPanesPerTab)
+        {
+            StatusText = _localizer["SplitMaxPanesReached"];
+            return;
+        }
 
-        // Detach from source tab (prevents Dispose when tab is removed)
-        source.HostControl = null;
+        // Resolve the target pane to split at (default to primary)
+        var targetPane = !string.IsNullOrEmpty(targetPaneId)
+            ? Core.Models.SplitTreeHelper.FindPane(target.RootContent, targetPaneId)
+            : target.PrimaryPane;
 
-        // Remove the source tab from the session list
+        if (targetPane is null) return;
+
+        // Do NOT release tunnel or reset state machine here — the connection is
+        // still alive, just visually reparented. CloseSessionInternal handles cleanup.
+
+        // Step 1: Save all host control references from the source tree
+        var hostControls = new Dictionary<string, object?>();
+        foreach (var pane in Core.Models.SplitTreeHelper.EnumerateLeaves(source.RootContent))
+        {
+            hostControls[pane.PaneId] = pane.HostControl;
+            pane.HostControl = null; // Detach from WPF visual tree (UIElement single-parent rule)
+        }
+
+        // Step 2: Detach source from the tab system
+        var sourceContent = source.RootContent;
+        source.RootContent = new Core.Models.SessionPaneModel(); // empty root for safe removal
         Connection.ActiveSessions.Remove(source);
         if (Connection.ActiveSession == source)
             Connection.ActiveSession = target;
         Connection.HasActiveSessions = Connection.ActiveSessions.Count > 0;
 
-        // Attach to target's secondary pane
-        target.SecondaryHostControl = hostControl;
-        target.SecondaryServerId = serverId;
-        target.SecondaryOriginalServerId = originalServerId;
-        target.SecondaryConnectionType = connType;
-        target.SecondaryTitle = title;
-        target.SecondaryStatus = status;
-        target.SecondaryTunnelRoute = tunnelRoute;
-        target.SecondaryEnvironmentColor = envColor;
-        target.SplitOrientation = orientation;
-        target.IsSplit = true;
+        // Step 3: Wrap target pane and source content in a new split container.
+        // Restore prior ratio from split layout memory if available.
+        var sourceOrigId = Core.Models.SplitTreeHelper.FirstLeaf(sourceContent)?.OriginalServerId ?? "";
+        var priorLayout = _splitLayoutMemory.FindPartner(targetPane.OriginalServerId);
+        var mergeRatio = priorLayout is not null
+            && (string.Equals(priorLayout.SecondaryServerId, sourceOrigId, StringComparison.Ordinal)
+                || string.Equals(priorLayout.PrimaryServerId, sourceOrigId, StringComparison.Ordinal))
+            ? priorLayout.Ratio
+            : Core.Models.SplitContainerModel.DefaultRatio;
+
+        var container = new Core.Models.SplitContainerModel
+        {
+            First = targetPane,
+            Second = sourceContent,
+            Orientation = orientation,
+            SplitRatio = mergeRatio
+        };
+        target.RootContent = Core.Models.SplitTreeHelper.ReplacePane(
+            target.RootContent, targetPane.PaneId, container);
+
+        // Step 4: Restore host controls now that panes are in the new tree
+        foreach (var (paneId, control) in hostControls)
+        {
+            var pane = Core.Models.SplitTreeHelper.FindPane(target.RootContent, paneId);
+            if (pane is not null)
+            {
+                pane.HostControl = control;
+            }
+        }
+
+        var sourceTitle = Core.Models.SplitTreeHelper.FirstLeaf(sourceContent)?.Title ?? "";
+        Core.Logging.FileLogger.Info(
+            $"Merged session '{sourceTitle}' into '{target.Title}' as {orientation} split.");
+
+        // Persist split layout for future suggestions
+        var sourceOriginalId = Core.Models.SplitTreeHelper.FirstLeaf(sourceContent)?.OriginalServerId ?? "";
+        _splitLayoutMemory.Record(
+            targetPane.OriginalServerId, sourceOriginalId,
+            orientation, container.SplitRatio);
+    }
+
+    // ── Split pane operations ────────────────────────────────────────
+
+    /// <summary>
+    /// Swaps the First and Second children of a pane's parent container.
+    /// If <paramref name="paneId"/> is null, swaps the root container's children.
+    /// </summary>
+    public void SwapSplitPanes(SessionTabViewModel session, string? paneId = null)
+    {
+        if (!session.IsSplit) return;
+
+        // Find the container to swap
+        SplitContainerModel? container;
+        if (!string.IsNullOrEmpty(paneId))
+        {
+            container = Core.Models.SplitTreeHelper.FindParent(session.RootContent, paneId);
+        }
+        else
+        {
+            container = session.RootContent as SplitContainerModel;
+        }
+
+        if (container is null) return;
+
+        // Detach all host controls in both subtrees (UIElement single-parent rule)
+        var hostControls = new Dictionary<string, object?>();
+        foreach (var pane in Core.Models.SplitTreeHelper.EnumerateLeaves(container))
+        {
+            hostControls[pane.PaneId] = pane.HostControl;
+            pane.HostControl = null;
+        }
+
+        // Swap children
+        (container.First, container.Second) = (container.Second, container.First);
+
+        // Notify shim properties (tab header binds to PrimaryPane which changed)
+        session.NotifyShimPropertiesChanged();
+
+        // Restore host controls
+        foreach (var (id, control) in hostControls)
+        {
+            var pane = Core.Models.SplitTreeHelper.FindPane(session.RootContent, id);
+            if (pane is not null) pane.HostControl = control;
+        }
 
         Core.Logging.FileLogger.Info(
-            $"Merged session '{title}' into '{target.Title}' as {orientation} split.");
+            string.Format(_localizer["LogSplitSwapped"], session.Title));
     }
+
+    /// <summary>
+    /// Toggles the orientation of a pane's parent container (or root container if paneId is null).
+    /// </summary>
+    public void ToggleSplitOrientation(SessionTabViewModel session, string? paneId = null)
+    {
+        if (!session.IsSplit) return;
+
+        SplitContainerModel? container;
+        if (!string.IsNullOrEmpty(paneId))
+        {
+            container = Core.Models.SplitTreeHelper.FindParent(session.RootContent, paneId);
+        }
+        else
+        {
+            container = session.RootContent as SplitContainerModel;
+        }
+
+        if (container is null) return;
+
+        container.Orientation = container.Orientation == Core.Models.SplitOrientation.Horizontal
+            ? Core.Models.SplitOrientation.Vertical
+            : Core.Models.SplitOrientation.Horizontal;
+
+        Core.Logging.FileLogger.Info(
+            string.Format(_localizer["LogSplitOrientationToggled"],
+                session.Title, container.Orientation));
+    }
+
+    /// <summary>
+    /// Closes a specific pane in the split tree, promoting its sibling.
+    /// Falls back to closing the secondary pane (root.Second) if no paneId specified.
+    /// </summary>
+    [RelayCommand]
+    private void CloseSecondaryPane(SessionTabViewModel? session)
+    {
+        if (session is null || !session.IsSplit) return;
+
+        // Default to the first leaf of the second child (legacy "close secondary" behavior)
+        var secondaryPane = session.RootContent is SplitContainerModel c
+            ? Core.Models.SplitTreeHelper.FirstLeaf(c.Second)
+            : null;
+        if (secondaryPane is not null)
+        {
+            ClosePane(session, secondaryPane.PaneId);
+        }
+    }
+
+    /// <summary>
+    /// Closes a specific pane in the split tree by its PaneId. Disposes the pane's
+    /// connection, releases tunnel, resets state machine, and promotes the sibling.
+    /// </summary>
+    public void ClosePane(SessionTabViewModel session, string paneId)
+    {
+        var pane = Core.Models.SplitTreeHelper.FindPane(session.RootContent, paneId);
+        if (pane is null) return;
+
+        // Record disconnect
+        if (!string.IsNullOrEmpty(pane.ServerId))
+        {
+            var historyId = !string.IsNullOrEmpty(pane.OriginalServerId)
+                ? pane.OriginalServerId : pane.ServerId;
+            Core.Logging.ConnectionHistory.RecordDisconnect(
+                historyId, pane.Title, pane.ConnectionType);
+
+            var stateData = _connectionSm.GetStateData(pane.ServerId);
+            if (stateData?.TunnelLocalPort is int localPort)
+                _tunnelManager.ReleaseReference(localPort);
+            _connectionSm.Reset(pane.ServerId);
+        }
+
+        // Dispose host control
+        if (pane.HostControl is IDisposable disposable)
+        {
+            try { disposable.Dispose(); }
+            catch (ObjectDisposedException) { /* Expected */ }
+        }
+        pane.HostControl = null;
+
+        // Remove from tree and promote sibling
+        var newRoot = Core.Models.SplitTreeHelper.RemovePane(session.RootContent, paneId);
+        session.RootContent = newRoot ?? new Core.Models.SessionPaneModel();
+    }
+
+    /// <summary>
+    /// Reconnects a pane by its PaneId. Disposes the old connection and re-connects.
+    /// Also supports the legacy call path via CommandParameter binding.
+    /// </summary>
+    [RelayCommand]
+    private async Task ReconnectSecondaryAsync(SessionTabViewModel? session)
+    {
+        if (session is null || !session.IsSplit) return;
+
+        // Legacy path: reconnect the first leaf of the second child
+        var secondaryPane = session.RootContent is SplitContainerModel c
+            ? Core.Models.SplitTreeHelper.FirstLeaf(c.Second)
+            : null;
+        if (secondaryPane is not null)
+        {
+            await ReconnectPaneAsync(session, secondaryPane.PaneId);
+        }
+    }
+
+    /// <summary>
+    /// Reconnects a specific pane. Releases old tunnel/state, disposes host control,
+    /// re-connects, and updates the pane in-place in the tree.
+    /// </summary>
+    public async Task ReconnectPaneAsync(SessionTabViewModel session, string paneId)
+    {
+        var pane = Core.Models.SplitTreeHelper.FindPane(session.RootContent, paneId);
+        if (pane is null) return;
+
+        // Guard: if HostControl is already null, a reconnect is in progress
+        if (pane.HostControl is null) return;
+
+        var serverId = pane.OriginalServerId;
+        if (string.IsNullOrEmpty(serverId))
+        {
+            StatusText = _localizer["ErrorSplitSessionFailed"];
+            return;
+        }
+
+        // Release tunnel + state machine for old connection
+        if (!string.IsNullOrEmpty(pane.ServerId))
+        {
+            var stateData = _connectionSm.GetStateData(pane.ServerId);
+            if (stateData?.TunnelLocalPort is int port)
+                _tunnelManager.ReleaseReference(port);
+            _connectionSm.Reset(pane.ServerId);
+        }
+
+        // Dispose current host control
+        if (pane.HostControl is IDisposable disposable)
+        {
+            try { disposable.Dispose(); }
+            catch (ObjectDisposedException) { /* Expected */ }
+        }
+        pane.HostControl = null;
+        pane.Status = _localizer["SplitSecondaryConnecting"];
+
+        // Determine orientation from parent container for suggestions recording
+        var parent = Core.Models.SplitTreeHelper.FindParent(session.RootContent, paneId);
+        var orientation = parent?.Orientation ?? Core.Models.SplitOrientation.Vertical;
+
+        // Re-connect
+        var servers = await _configManager.LoadServersAsync();
+        var settings = await _configManager.LoadSettingsAsync();
+        var serverDto = servers.FirstOrDefault(
+            s => string.Equals(s.Id, serverId, StringComparison.Ordinal));
+
+        if (serverDto is null)
+        {
+            pane.Status = "Error";
+            return;
+        }
+
+        // Force embedded mode
+        if (string.Equals(serverDto.ConnectionType, "RDP", StringComparison.OrdinalIgnoreCase))
+            serverDto.RdpMode = "Embedded";
+        if (string.Equals(serverDto.ConnectionType, "SSH", StringComparison.OrdinalIgnoreCase))
+            serverDto.SshMode = "Embedded";
+
+        var connService = ServerList.ConnectionService;
+        Services.ConnectionResult result;
+        switch (serverDto.ConnectionType?.ToUpperInvariant())
+        {
+            case "SSH": result = await connService.ConnectSshAsync(serverDto, settings); break;
+            case "SFTP": result = await connService.ConnectSftpAsync(serverDto, settings); break;
+            case "LOCAL": result = await connService.ConnectLocalShellAsync(serverDto, settings); break;
+            case "TELNET": result = await connService.ConnectTelnetAsync(serverDto, settings); break;
+            case "VNC": result = await connService.ConnectVncAsync(serverDto, settings); break;
+            case "FTP": result = await connService.ConnectFtpAsync(serverDto, settings); break;
+            case "CITRIX": result = await connService.ConnectCitrixAsync(serverDto, settings); break;
+            default: result = await connService.ConnectRdpAsync(serverDto, settings); break;
+        }
+
+        if (!result.Success || result.Session is null)
+        {
+            pane.Status = "Error";
+            StatusText = result.ErrorMessage ?? _localizer["ErrorSplitSessionFailed"];
+            return;
+        }
+
+        // Guard: verify tab and pane still exist after async connect
+        if (!Connection.ActiveSessions.Contains(session)
+            || Core.Models.SplitTreeHelper.FindPane(session.RootContent, paneId) is null)
+        {
+            if (result.Session is IDisposable sessionDisposable)
+            {
+                try { sessionDisposable.Dispose(); }
+                catch (ObjectDisposedException) { /* Expected */ }
+            }
+            return;
+        }
+
+        var hostControl = _embeddedSessionManager.CreateHostControl(
+            session, serverDto.DisplayName, serverDto.ConnectionType ?? "SSH",
+            result.Session, settings);
+
+        pane.HostControl = hostControl;
+        pane.ServerId = serverDto.Id;
+        pane.Status = "Connected";
+    }
+
+    /// <summary>
+    /// Releases tunnel reference and resets state machine for a pane's session
+    /// that was orphaned by unsplit or detach while still connecting.
+    /// </summary>
+    public void CleanupOrphanedPane(string serverId)
+    {
+        if (string.IsNullOrEmpty(serverId)) return;
+
+        var stateData = _connectionSm.GetStateData(serverId);
+        if (stateData?.TunnelLocalPort is int port)
+            _tunnelManager.ReleaseReference(port);
+        _connectionSm.Reset(serverId);
+    }
+
+    /// <summary>
+    /// Localized button text for the secondary pane reconnect button.
+    /// </summary>
+    public string ReconnectSecondaryButtonText => _localizer["SplitReconnectSecondary"];
+
+    /// <summary>
+    /// Localized button text for the secondary pane close button.
+    /// </summary>
+    public string CloseSecondaryButtonText => _localizer["SplitCloseSecondary"];
+
+    /// <summary>
+    /// Localized text for the drag-to-split drop zone.
+    /// </summary>
+    public string DropToMergeText => _localizer["SplitDropToMerge"];
 
     [RelayCommand]
     private async Task ConnectSplitFromPaletteAsync(ServerItemViewModel? server)
@@ -1593,14 +2013,12 @@ public partial class MainViewModel : ObservableObject
     {
         foreach (var session in Connection.ActiveSessions)
         {
-            if (session.HostControl is Views.EmbeddedSshView primarySsh)
+            foreach (var pane in Core.Models.SplitTreeHelper.EnumerateLeaves(session.RootContent))
             {
-                primarySsh.SetBroadcastIndicator(active);
-            }
-
-            if (session.IsSplit && session.SecondaryHostControl is Views.EmbeddedSshView secondarySsh)
-            {
-                secondarySsh.SetBroadcastIndicator(active);
+                if (pane.HostControl is Views.EmbeddedSshView sshView)
+                {
+                    sshView.SetBroadcastIndicator(active);
+                }
             }
         }
     }
@@ -1618,11 +2036,9 @@ public partial class MainViewModel : ObservableObject
 
         foreach (var session in Connection.ActiveSessions)
         {
-            BroadcastToHostControl(session.HostControl, data, sender);
-
-            if (session.IsSplit)
+            foreach (var pane in Core.Models.SplitTreeHelper.EnumerateLeaves(session.RootContent))
             {
-                BroadcastToHostControl(session.SecondaryHostControl, data, sender);
+                BroadcastToHostControl(pane.HostControl, data, sender);
             }
         }
     }

@@ -173,16 +173,40 @@ public sealed class EmbeddedSessionManager
                 // When editor closes, restore the file browser
                 editorView.CloseRequested += () =>
                 {
-                    sessionTab.SecondaryHostControl = fileBrowser;
+                    var browserPane = Heimdall.Core.Models.SplitTreeHelper.FindPaneByHostControl(
+                        sessionTab.RootContent, editorView);
+                    if (browserPane is not null)
+                    {
+                        browserPane.HostControl = fileBrowser;
+                    }
                     fileBrowser.RefreshCurrentDirectory();
                 };
 
-                sessionTab.SecondaryHostControl = editorView;
+                var editorPane = Heimdall.Core.Models.SplitTreeHelper.FindPaneByHostControl(
+                    sessionTab.RootContent, fileBrowser);
+                if (editorPane is not null)
+                {
+                    editorPane.HostControl = editorView;
+                }
             };
 
-            sessionTab.SecondaryHostControl = fileBrowser;
-            sessionTab.SplitOrientation = Heimdall.Core.Models.SplitOrientation.Vertical;
-            sessionTab.IsSplit = true;
+            // Wrap the terminal view's pane with a file browser in a vertical split
+            var fileBrowserPane = new Heimdall.Core.Models.SessionPaneModel
+            {
+                ConnectionType = "LOCAL",
+                Title = displayName,
+                Status = "Connected"
+            };
+            fileBrowserPane.HostControl = fileBrowser;
+
+            var currentRoot = sessionTab.RootContent;
+            sessionTab.RootContent = new Heimdall.Core.Models.SplitContainerModel
+            {
+                First = currentRoot,
+                Second = fileBrowserPane,
+                Orientation = Heimdall.Core.Models.SplitOrientation.Vertical,
+                SplitRatio = 0.5
+            };
 
             return termView;
         }
@@ -315,18 +339,17 @@ public sealed class EmbeddedSessionManager
             browser, tab, displayName, string.Empty,
             _localizer, _dialogService, sshParams, _hostKeyStore);
 
-        // Wire "Open in Terminal" to send a cd command to the SSH session
-        // sharing the same tab (primary host is an SSH terminal).
+        // Wire "Open in Terminal" to send a cd command to any SSH terminal
+        // in the same tab's split tree.
         view.OpenInTerminalRequested += (path) =>
         {
-            // Check both primary and secondary host for a terminal
-            if (tab.HostControl is EmbeddedSshView primarySsh)
+            foreach (var pane in Heimdall.Core.Models.SplitTreeHelper.EnumerateLeaves(tab.RootContent))
             {
-                primarySsh.WriteCommand($"cd \"{path}\"");
-            }
-            else if (tab.SecondaryHostControl is EmbeddedSshView secondarySsh)
-            {
-                secondarySsh.WriteCommand($"cd \"{path}\"");
+                if (pane.HostControl is EmbeddedSshView sshView)
+                {
+                    sshView.WriteCommand($"cd \"{path}\"");
+                    break;
+                }
             }
         };
 

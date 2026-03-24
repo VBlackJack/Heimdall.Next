@@ -10,7 +10,7 @@
 
 # Architecture
 
-Heimdall.Next is a .NET 10 WPF application organized as a multi-project solution with strict dependency boundaries. Supports RDP, SSH, SFTP, FTP, VNC, Telnet, Citrix, and Local Shell connection types with ~3,061 i18n keys per locale (EN/FR), 33 built-in sysops tools with contextual help, cross-tool navigation, and 1,324 automated tests. Health monitor polls in parallel (Task.WhenAll), XML importers hardened against XXE, all Debug.WriteLine replaced with FileLogger. WCAG AA compliant Design System with 40 design tokens (typography, spacing, corner radius, opacity, icon sizes, font family), micro-animations, FocusIndicatorBrush for keyboard accessibility, unique protocol icons, and per-category tool color coding.
+Heimdall.Next is a .NET 10 WPF application organized as a multi-project solution with strict dependency boundaries. Supports RDP, SSH, SFTP, FTP, VNC, Telnet, Citrix, and Local Shell connection types with ~3,061 i18n keys per locale (EN/FR), 33 built-in sysops tools with contextual help, cross-tool navigation, and 1,464 automated tests. Health monitor polls in parallel (Task.WhenAll), XML importers hardened against XXE, all Debug.WriteLine replaced with FileLogger. WCAG AA compliant Design System with 40 design tokens (typography, spacing, corner radius, opacity, icon sizes, font family), micro-animations, FocusIndicatorBrush for keyboard accessibility, unique protocol icons, and per-category tool color coding.
 
 ## Solution Structure
 
@@ -23,7 +23,8 @@ Heimdall.slnx (8 projects)
 │   ├── Heimdall.Sftp          net10.0         SFTP/FTP browser (SSH.NET + FtpWebRequest), remote file editing
 │   ├── Heimdall.Terminal      net10.0-windows Terminal sessions (pipe mode, ConPTY, Telnet)
 │   └── Heimdall.App           net10.0-windows WPF application (MVVM, views, themes, DI)
-│       ├── Views: MainWindow, EmbeddedRdpView, EmbeddedSshView, EmbeddedSftpView,
+│       ├── Views: MainWindow, SessionPaneControl, SplitContainerControl,
+│       │          EmbeddedRdpView, EmbeddedSshView, EmbeddedSftpView,
 │       │          EmbeddedCitrixView, EmbeddedVncView, FloatingSessionWindow
 │       ├── Views/Tools: 33 built-in sysops tools (IToolView interface)
 │       └── Services: ConnectionService (.Rdp/.Ssh/.Sftp/.Ftp/.Vnc/.Telnet/.Citrix/.Local/.Tunnel),
@@ -251,23 +252,47 @@ Toolbar toggle button switches directory listing from SFTP `ListDirectory` to `s
 - **`ls -la` output parsing**: The `--time-style=long-iso` format produces **8 columns** (permissions, links, owner, group, size, date, time, name). Early parser expected 9 columns and silently skipped all entries. Filename column must be the last split part to handle spaces.
 - **Sudo toggle hidden for FTP**: FTP sessions have no SSH channel, so the sudo button is collapsed.
 
-### 16. Split Pane & Session Merge
+### 16. Recursive N-Pane Split System
 
-**Split new connection**: Click the split button or right-click tab → "Split Horizontal/Vertical" → Command Palette opens in split mode → select a server → new embedded connection is created in the secondary pane.
+**Architecture**: The split layout is modeled as a binary tree of `ISplitContent` nodes:
 
-**Merge existing session**: Right-click tab → "Merge with..." → submenu lists active sessions with orientation choice → the selected tab's `HostControl` is reparented into the secondary pane without reconnecting. The source tab is removed from the tab bar.
+```
+ISplitContent (marker interface)
+├── SessionPaneModel     Leaf: PaneId (GUID), HostControl, ServerId, Title, Status, ...
+└── SplitContainerModel  Branch: First, Second (ISplitContent), Orientation, SplitRatio
+                         Constants: MinRatio (0.1), MaxRatio (0.9), DefaultRatio (0.5), SplitterThickness (4)
+                         Auto-clamping: OnSplitRatioChanged clamps to [MinRatio, MaxRatio]
+```
 
-**Unsplit**: Restores the secondary pane as an independent tab with all metadata preserved (title, status, tunnel route, environment color).
+`SessionTabViewModel.RootContent` holds the tree root. A single pane is a `SessionPaneModel`. A split is a `SplitContainerModel` whose children can themselves be split — enabling arbitrary layouts (2x2, L-shape, 3 side-by-side, etc.) up to 8 panes per tab. `SplitTreeHelper` provides static traversal: `EnumerateLeaves`, `FindPane`, `FindParent`, `FindSibling`, `RemovePane`, `ReplacePane`, `CountLeaves`, `FirstLeaf`. Internal mutations use `bool`-returning helpers (`ReplacePaneRecursive`, `ReplaceContainer`) for short-circuit after first match.
 
-**Implementation**: `MergeExistingSession()` detaches `HostControl` from the source `SessionTabViewModel`, removes the source from `ActiveSessions`, and attaches it as `SecondaryHostControl` on the target. `UnsplitSession()` performs the inverse. Both operations are synchronous reparenting — no connection teardown or recreation.
+**Rendering**: WPF implicit `DataTemplate`s in `Window.Resources` recursively instantiate `SessionPaneControl` (leaf) and `SplitContainerControl` (branch with `GridSplitter`). Each leaf manages its own overlays (loading spinner, disconnect with Reconnect/Close buttons, accessible labels). Focus accent (`IsKeyboardFocusWithin`) works independently per pane. Both controls subscribe in constructor and detach all event handlers in `Unloaded` (PropertyChanged, Click, DragCompleted) to prevent memory leaks.
 
-**Airspace constraint**: The Command Palette uses a WPF `Popup` (own HWND) so it renders above `WindowsFormsHost` ActiveX surfaces. Win32 focus is forced via P/Invoke (`SetForegroundWindow` + `SetActiveWindow` + `SetFocus`). The context menu merge path bypasses the Popup entirely — native context menus have their own HWND.
+**Split new connection**: Right-click → "Split..." → Horizontal | Vertical → Command Palette in split mode → select server → new `SessionPaneModel` inserted into tree via `SplitContainerModel` wrapping. Loading overlay visible during async connection. Post-await guard aborts if pane was removed or tab closed during connection. Split palette shows ALL servers from inventory (not limited to recent).
+
+**Merge existing session**: Right-click → "Merge with..." → session → Horizontal | Vertical → `MergeExistingSession()` reparents the live `HostControl` into a new pane without reconnecting. Uses `OriginalServerId` as stable lookup key (fallback from `ServerId` which may be empty during connection). Consults `SplitLayoutMemory` to restore prior ratio for previously-paired servers. State machine entries are preserved (not released) — cleanup happens when the tab is eventually closed.
+
+**Drag-to-split**: Drag a tab onto the content area of another tab. Orientation is auto-detected from drop position (closest edge). Works on already-split sessions to create 3+ pane layouts.
+
+**Operations**: Swap panes, toggle orientation (Ctrl+Shift+O), detach any pane to `FloatingSessionWindow`, close individual pane (disposes connection + releases tunnel + resets state machine + promotes sibling in tree), unsplit (restores pane as independent tab).
+
+**Splitter ratio**: Model auto-clamps `SplitRatio` to `[0.1, 0.9]` in the `OnSplitRatioChanged` partial method — the view reads the ratio directly without redundant clamping. Captured via `GridSplitter.DragCompleted` per `SplitContainerControl`, persisted in the tree model. Restored on tab switch via layout rebuild.
+
+**Split layout persistence**: `SplitLayoutMemory` records server pair associations in `config/split-layouts.json`. Thread-safe via `lock` on all public methods. Atomic save via unique temp file (`Guid`-suffixed) + `File.Move(overwrite: true)` with `finally` cleanup. When opening the Command Palette in split mode, previously paired servers are boosted to the top of results.
+
+**Race condition guards**:
+- Post-await check `!Connection.ActiveSessions.Contains(session)` prevents orphaned connections when tab is closed during async split
+- `CountLeaves >= 8` gate prevents unbounded tree growth
+- Anti-double-reconnect via `pane.HostControl is null` check (overlay hides button when connection starts)
+- `RemovePane` null subtree guard: promotes sibling instead of assigning null to container children
+
+**Backward compatibility**: `SessionTabViewModel` exposes shim properties (`ServerId`, `Title`, `Status`, `HostControl`, `IsSplit`, `SplitOrientation`, etc.) that delegate to `PrimaryPane` (first leaf). `Secondary*` shim properties target the first leaf of the second child at root level. `NotifyShimPropertiesChanged()` is called after in-place tree mutations (swap).
 
 ### 16b. Tab Detach to Floating Window
 
 **Problem**: Users need to view multiple sessions side by side, or move a session to a second monitor.
 
-**Solution**: `FloatingSessionWindow` hosts a single detached `SessionTabViewModel`. The session's view (RDP, SSH, SFTP, VNC, etc.) is reparented from the main tab control to the floating window. The window applies the current theme via `WindowThemeHelper`, displays session metadata (title, tunnel route), and provides a reattach button. On close, if not explicitly reattached, the session is returned to the main window.
+**Solution**: `FloatingSessionWindow` hosts a single detached `SessionTabViewModel`. Any individual pane can be detached from a split tree via `DetachPaneToFloatingWindow(paneId)` — the pane is extracted from the tree, promoted to an independent tab, then detached to a floating window. The window applies the current theme via `WindowThemeHelper`, displays session metadata (title, tunnel route), and provides a reattach button. On close, if not explicitly reattached, the session is returned to the main window for proper cleanup.
 
 ### 17. Tunnel Ref-Counting for Shared Tunnels
 

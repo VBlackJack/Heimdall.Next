@@ -87,7 +87,10 @@ public partial class ConnectionViewModel : ObservableObject
             return;
         }
 
-        if (string.Equals(session.Status, "Connected", StringComparison.Ordinal))
+        // Check ALL panes in the split tree for connected status (not just the primary shim)
+        var anyConnected = Core.Models.SplitTreeHelper.EnumerateLeaves(session.RootContent)
+            .Any(p => string.Equals(p.Status, "Connected", StringComparison.Ordinal));
+        if (anyConnected)
         {
             var title = _localizer["ConfirmCloseSessionTitle"];
             var message = _localizer.Format("ConfirmCloseSessionMessage", session.Title);
@@ -104,6 +107,7 @@ public partial class ConnectionViewModel : ObservableObject
     /// <summary>
     /// Closes a session without showing a confirmation dialog.
     /// Used by <see cref="CloseAllSessions"/> to avoid multiple prompts.
+    /// Recursively cleans up all panes in the split tree.
     /// </summary>
     private void CloseSessionInternal(SessionTabViewModel session)
     {
@@ -127,55 +131,30 @@ public partial class ConnectionViewModel : ObservableObject
             return;
         }
 
-        var historyId = !string.IsNullOrEmpty(session.OriginalServerId)
-            ? session.OriginalServerId : session.ServerId;
-        Core.Logging.ConnectionHistory.RecordDisconnect(
-            historyId, session.Title, session.ConnectionType);
-
-        // Close tunnel if the server has one bound to a local port
-        var stateData = _connectionSm.GetStateData(session.ServerId);
-        if (stateData?.TunnelLocalPort is int localPort)
+        // Recursively clean up all panes in the tree (primary + all splits)
+        foreach (var pane in Core.Models.SplitTreeHelper.EnumerateLeaves(session.RootContent))
         {
-            _tunnelManager.ReleaseReference(localPort);
-        }
-
-        // Dispose secondary pane first if split
-        if (session.IsSplit)
-        {
-            // Record disconnect and clean up state for the secondary session
-            if (!string.IsNullOrEmpty(session.SecondaryServerId))
+            if (!string.IsNullOrEmpty(pane.ServerId))
             {
-                var secondaryHistoryId = !string.IsNullOrEmpty(session.SecondaryOriginalServerId)
-                    ? session.SecondaryOriginalServerId : session.SecondaryServerId;
+                var historyId = !string.IsNullOrEmpty(pane.OriginalServerId)
+                    ? pane.OriginalServerId : pane.ServerId;
                 Core.Logging.ConnectionHistory.RecordDisconnect(
-                    secondaryHistoryId,
-                    session.SecondaryTitle,
-                    session.SecondaryConnectionType);
+                    historyId, pane.Title, pane.ConnectionType);
 
-                var secondaryStateData = _connectionSm.GetStateData(session.SecondaryServerId);
-                if (secondaryStateData?.TunnelLocalPort is int secondaryPort)
+                var stateData = _connectionSm.GetStateData(pane.ServerId);
+                if (stateData?.TunnelLocalPort is int localPort)
                 {
-                    _tunnelManager.ReleaseReference(secondaryPort);
+                    _tunnelManager.ReleaseReference(localPort);
                 }
 
-                _connectionSm.Reset(session.SecondaryServerId);
+                _connectionSm.Reset(pane.ServerId);
             }
 
-            SafeDispose(session.SecondaryHostControl as IDisposable);
-            session.SecondaryHostControl = null;
-            session.SecondaryServerId = "";
-            session.SecondaryConnectionType = "";
-            session.SecondaryTitle = "";
-            session.SecondaryStatus = "";
-            session.SecondaryTunnelRoute = "";
-            session.SecondaryEnvironmentColor = "";
-            session.IsSplit = false;
+            SafeDispose(pane.HostControl as IDisposable);
+            pane.HostControl = null;
         }
 
-        SafeDispose(session.HostControl as IDisposable);
-
         ActiveSessions.Remove(session);
-        _connectionSm.Reset(session.ServerId);
 
         if (ActiveSession == session)
         {
