@@ -12,9 +12,33 @@
 
 All notable changes to Heimdall.Next are documented in this file.
 
-## [v2026.032404] - 2026-03-24
+## [v2026.032403] - 2026-03-24
 
-### Split/Merge system audit — SplitService extraction + race condition fixes
+### Split/Merge audit — 7 fixes (bugs, robustness, cleanup dedup)
+
+#### Bug fixes
+- **CancellationTokenSource leak**: `CancelSession` now disposes the CTS after a 5-second delay (deferred dispose) — previously cancelled but never disposed, leaking one CTS per tab close
+- **GridSplitter cursor**: cursor now updates dynamically (`SizeNS` for Horizontal, `SizeWE` for Vertical) in `ApplyLayout()` — previously hardcoded `SizeWE` regardless of orientation
+- **Reconnect self-referential LayoutMemory**: `ReconnectPaneAsync` no longer calls `LayoutMemory.Record` (was recording the same server as both primary and secondary, polluting palette suggestions)
+- **MergeExistingSession HostControl check**: now checks all source tree leaves via `EnumerateLeaves().Any(p => p.HostControl is not null)` instead of the primary shim — split tabs with a disconnected primary were incorrectly blocked from merging
+
+#### Robustness
+- **CancellationToken propagation**: `ConnectByProtocolAsync` now passes `ct` to all `ConnectionService.Connect*Async` protocol handlers — closing a tab during a slow tunnel or SSH handshake now actually cancels the connection attempt
+- **Merge blocked feedback**: `MergeExistingSession` now shows a status bar message (`SplitMergeBlockedByTool`) when a busy tool pane prevents the merge — previously returned silently with no user feedback
+
+#### Cleanup deduplication
+- **`CloseAllPanes` extracted to SplitService**: centralized tab teardown (CanClose gate, cancellation, disconnect history, tunnel release, state reset, disposal) — `ConnectionViewModel.CloseSessionInternal` now delegates entirely to `SplitService.CloseAllPanes`, eliminating 30 lines of duplicated cleanup logic
+- **ConnectionViewModel slimmed**: removed 3 unused DI dependencies (`ConnectionStateMachine`, `TunnelManager`, `ConfigManager`) and their imports after cleanup extraction
+
+#### i18n
+- Added `SplitMergeBlockedByTool` key (EN/FR)
+
+#### Tests
+- **1,479 tests** (1,196 Core + 283 SSH), all passing
+
+## [v2026.032402] - 2026-03-24
+
+### SplitService extraction + race condition fixes
 
 #### Architecture
 - **SplitService extracted**: All split/merge orchestration (`SplitSessionWithServerAsync`, `SplitSessionWithTool`, `MergeExistingSession`, `ClosePane`, `ReconnectPaneAsync`, `SwapSplitPanes`, `ToggleSplitOrientation`) moved from `MainViewModel` to dedicated `SplitService` singleton (~500 lines extracted, ~350 lines removed from MainViewModel)
@@ -35,7 +59,7 @@ All notable changes to Heimdall.Next are documented in this file.
 - **Double-click splitter reset**: Double-clicking the `GridSplitter` resets split ratio to 50/50 (`SplitContainerModel.DefaultRatio`)
 - **NaN/Infinity guard**: `OnSplitterDragCompleted` now guards against `NaN`/`Infinity` ratios from collapsed panes (falls back to `DefaultRatio`)
 - **Hover border on panes**: `SessionPaneControl` now shows a subtle 1px border on `IsMouseOver` (in addition to the existing 2px accent border on `IsKeyboardFocusWithin`) for better active pane feedback in split views
-- **Splitter cursor**: Explicit `Cursor="SizeWE"` set on `GridSplitter` for visual feedback (overridden dynamically by code-behind based on orientation)
+- **Splitter cursor**: `Cursor="SizeWE"` set on `GridSplitter` for visual feedback
 
 #### Code quality
 - **NotifyTreeDependentProperties**: Shared method replaces duplicated 12-line `OnPropertyChanged` blocks in both `OnRootContentChanged` and `NotifyShimPropertiesChanged` (DRY)
