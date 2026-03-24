@@ -152,7 +152,9 @@ public partial class TextDiffView : UserControl, IToolView
             return;
         }
 
-        var diffOps = await Task.Run(() => ComputeDiff(originalLines, modifiedLines));
+        var ignoreWhitespace = ChkIgnoreWhitespace?.IsChecked == true;
+        var ignoreCase = ChkIgnoreCase?.IsChecked == true;
+        var diffOps = await Task.Run(() => ComputeDiff(originalLines, modifiedLines, ignoreWhitespace, ignoreCase));
         var displayItems = new List<DiffLineViewModel>();
         var unifiedBuilder = new StringBuilder();
 
@@ -337,15 +339,15 @@ public partial class TextDiffView : UserControl, IToolView
     /// Normalizes a line for comparison, applying whitespace and case options.
     /// The original text is preserved for display; only comparison uses the normalized form.
     /// </summary>
-    private string NormalizeLine(string line)
+    private static string NormalizeLine(string line, bool ignoreWhitespace, bool ignoreCase)
     {
         var result = line;
-        if (ChkIgnoreWhitespace?.IsChecked == true)
+        if (ignoreWhitespace)
         {
             result = Regex.Replace(result.Trim(), @"\s+", " ");
         }
 
-        if (ChkIgnoreCase?.IsChecked == true)
+        if (ignoreCase)
         {
             result = result.ToLowerInvariant();
         }
@@ -357,7 +359,7 @@ public partial class TextDiffView : UserControl, IToolView
     /// Computes a line-based diff using the Longest Common Subsequence (LCS) algorithm.
     /// Comparison uses normalized lines; display preserves original text.
     /// </summary>
-    private List<DiffOperation> ComputeDiff(string[] original, string[] modified)
+    private static List<DiffOperation> ComputeDiff(string[] original, string[] modified, bool ignoreWhitespace, bool ignoreCase)
     {
         int n = original.Length;
         int m = modified.Length;
@@ -368,12 +370,12 @@ public partial class TextDiffView : UserControl, IToolView
 
         for (int i = 0; i < n; i++)
         {
-            normalizedOriginal[i] = NormalizeLine(original[i]);
+            normalizedOriginal[i] = NormalizeLine(original[i], ignoreWhitespace, ignoreCase);
         }
 
         for (int j = 0; j < m; j++)
         {
-            normalizedModified[j] = NormalizeLine(modified[j]);
+            normalizedModified[j] = NormalizeLine(modified[j], ignoreWhitespace, ignoreCase);
         }
 
         // Build LCS length matrix using normalized lines
