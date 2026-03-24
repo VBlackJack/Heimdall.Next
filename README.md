@@ -168,15 +168,17 @@ All tools open as session tabs (split with any session or tool, detach, reorder)
 - **Drag-to-split**: drag a tab onto the content area of another tab to merge (orientation auto-detected from drop position)
 - Swap panes, toggle orientation (Ctrl+Shift+O), detach any pane to floating window
 - Unsplit restores panes as independent tabs with all metadata preserved
-- **Dedicated SplitService**: split/merge orchestration extracted into a dedicated service with per-session cancellation tokens, deferred state machine cleanup, and diagnostic logging at all guard points
+- **Dedicated SplitService**: split/merge orchestration in a dedicated service with per-session cancellation tokens (deferred CTS dispose), CancellationToken propagated to all protocol handlers, centralized `CloseAllPanes` tab teardown
 - Per-pane disconnect overlay with Reconnect and Close buttons (accessible labels for screen readers)
 - Loading overlay with spinner during pane connection
 - **Minimum pane size enforcement**: 120×80px prevents splitter from collapsing panes to unusable size
 - **Double-click splitter** resets ratio to 50/50; hover border on panes for better active pane feedback
+- **Dynamic splitter cursor**: SizeNS for horizontal splits, SizeWE for vertical (updates on orientation toggle)
 - Splitter ratio remembered per pane across tab switches; restored on merge from split layout history
 - Split layout persistence (versioned JSON schema): previously paired servers suggested in Command Palette (all servers visible in split mode)
-- **Per-session cancellation**: closing a tab cancels any in-progress split or reconnect operation gracefully
+- **Per-session cancellation**: closing a tab cancels any in-progress split or reconnect operation gracefully (token propagated to SSH/RDP/VNC connection handlers)
 - **Deferred state machine cleanup**: reconnect releases old tunnel/state only after new connection succeeds or definitively fails
+- **Merge feedback**: status bar message when a busy tool blocks a merge operation
 - Command Palette renders as a WPF `Popup` (own HWND) above RDP/VNC ActiveX surfaces
 - Session transcript logging with ANSI code stripping
 - Connection history log (JSONL with auto-rotation)
