@@ -615,11 +615,36 @@ When opening a tool from a server context menu, all available server metadata is
 - **Recent tools**: Last 5 used tools shown at top of palette when opened
 - **Singleton behavior**: Context-free tools (UUID, Password, Chmod) reuse existing tab
 - **External tools**: Also searchable in Ctrl+K palette
-- **Help system**: "?" button on all 33 tools shows localized description, usage instructions, and examples (i18n key pattern: `ToolHelp<UPPERCASE_ID>`, e.g., `ToolHelpBASE64`)
+- **Help system**: "?" button on all 34 tools shows localized description, usage instructions, and examples (i18n key pattern: `ToolHelp<UPPERCASE_ID>`, e.g., `ToolHelpBASE64`)
 - **Detail panel**: Selecting a tool in TreeView shows dedicated panel (name, category, description, "Open in Tab")
 - **Password presets**: Custom presets saved to `config/password-presets.json`, restored on click, deleted via right-click
 - **Protocol colors**: Theme-aware brushes (bright on dark, darker on light) defined per-theme, not globally
 - **Cross-tool navigation**: `ToolContextMenuHelper` with `OpenToolAction` callback enables right-click → open another tool with prefilled context
+
+### Notes Tool (Obsidian-style)
+
+The Notes tool (#34) provides a local-first Markdown editing experience inspired by Obsidian:
+
+**Editor stack**:
+- **Primary**: Milkdown WYSIWYG editor (ProseMirror-based, MIT) hosted via WebView2. Bundled as a single `Assets/milkdown/index.html` (Vite + vite-plugin-singlefile). Source in `Assets/milkdown-editor/`.
+- **Fallback**: AvalonEdit with `MarkdownHighlighting` (XSHD) + `MarkdownLivePreviewTransformer` (header scaling, strikethrough decorations, dimmed syntax chars).
+- **Selection**: `MilkdownEditorControl.IsAvailable` checks for `index.html` asset; WebView2 init deferred to `Loaded` event via `WaitUntilLoadedAsync()` dispatcher yield.
+
+**C# ↔ JS bridge** (`MilkdownEditorControl`):
+- JS → C#: `ready`, `change { markdown, dirty }`, `open-link { payload }`
+- C# → JS: `set-content`, `set-theme`, `set-readonly`, `focus`, `insert`
+- Content sync via `ContentChanged` event (debounced 200ms on JS side)
+
+**File management** (`NotesStorageService`):
+- Storage: `config/notes/` (configurable via `AppSettings.NotesDirectory`)
+- `NoteTreeNode.BuildTree()`: builds filesystem-mirroring tree from flat note list, includes empty folders via `AddEmptyFolders()`
+- Inter-note links: `FindNotePathAsync()` resolves by title → filename → slug → relative path; `ResolveOrCreateNoteAsync()` creates on miss
+- Tags: extracted from `> tags: x, y` metadata lines in blockquotes
+- Path traversal: `ValidatePathWithinRoot()` on all I/O operations
+
+**Context menu**: `OnTreeViewContextMenuOpening` builds dynamic menu; `OnTreeViewPreviewRightClick` stops tunneling to prevent `MainWindow.OnSessionTabRightClick` interception. `MainWindow` also excludes `TreeView` inside `TOOL:*` sessions from session tab menu.
+
+**Drag & drop**: Internal (move note between folders via `MoveNoteToFolderAsync`) + external (.md file import via copy to notes root)
 - **Network Cartography engine**: `Heimdall.Core.Discovery/` namespace with CartographyEngine (ping sweep + TTL capture, port scan, banner grab, HTTP/HTTPS header extraction, TLS cert inspection, NetBIOS/SNMP/mDNS UDP probes, OS fingerprinting, KB cache-skip), UdpProbeEngine (raw NetBIOS NBSTAT + SNMPv2c GET + mDNS service discovery), OsFingerprinter (TTL + 33 banner patterns), RoleClassifier (46+ port patterns, 96+ banner fingerprints, compiled CnRegex, multi-source ClassifyEnriched), OuiDatabase (300+ MAC prefixes), VlanDetector, DrawIoExporter, ScanHistoryManager (atomic write, ACL, retention, typed HostChange diff), KnowledgeBaseManager (persistent per-field Observation\<T\> timestamps, merge-on-scan, TTL-based cache acceleration, host purge)
 - **PowerShell Execution Policy**: Configurable in Settings > Terminal, applied as `-ExecutionPolicy` flag on local shell launch
 - **Elevation modes**: `None` / `Auto` (gsudo `--direct` → external window fallback) / `Gsudo` / `Runas` — `Auto` default for AdminByRequest/CyberArk/BeyondTrust compatibility, configurable per server profile
