@@ -144,6 +144,9 @@
     <!-- Log Viewer: scrolling document with play triangle -->
     <Geometry x:Key="Geo.Tool.LogViewer">M3,1 L13,1 L13,15 L3,15 Z M5,4 L11,4 M5,6.5 L11,6.5 M5,9 L8,9 M10,8 L10,13 L14,10.5 Z</Geometry>
 
+    <!-- Notes: page with pencil -->
+    <Geometry x:Key="Geo.Tool.Notes">M3,1 L11,1 L13,3 L13,15 L3,15 Z M11,1 L11,3 L13,3 M5,5 L11,5 M5,7.5 L10,7.5 M5,10 L8,10 M14,9 L10,13 L8.5,13.5 L9,12 L13,8 Z</Geometry>
+
     <!-- Network Calculator: grid blocks with calculator -->
     <Geometry x:Key="Geo.Tool.NetworkCalculator">M1,1 L7,1 L7,7 L1,7 Z M9,1 L15,1 L15,7 L9,7 Z M1,9 L7,9 L7,15 L1,15 Z M9,9 L15,9 L15,15 L9,15 Z M10,3 L14,3 M12,1.5 L12,4.5 M10,11 L14,11 M10,13 L14,13</Geometry>
 

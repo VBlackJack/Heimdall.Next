@@ -1,0 +1,22 @@
+{
+  "name": "heimdall-milkdown-editor",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@milkdown/core": "^7.19.2",
+    "@milkdown/crepe": "^7.19.2",
+    "@milkdown/kit": "^7.19.2",
+    "@milkdown/plugin-listener": "^7.19.2",
+    "@milkdown/theme-nord": "^7.19.2"
+  },
+  "devDependencies": {
+    "vite": "^7.1.12",
+    "vite-plugin-singlefile": "^2.3.0"
+  }
+}

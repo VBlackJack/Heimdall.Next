@@ -15,7 +15,7 @@
 [![CI](https://github.com/VBlackJack/Heimdall.Next/actions/workflows/ci.yml/badge.svg)](https://github.com/VBlackJack/Heimdall.Next/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 [![Tests](https://img.shields.io/badge/tests-1479%20passing-brightgreen.svg)]()
-[![Tools](https://img.shields.io/badge/tools-33%20sysops-blue.svg)]()
+[![Tools](https://img.shields.io/badge/tools-34%20sysops-blue.svg)]()
 [![.NET](https://img.shields.io/badge/.NET-10.0-purple.svg)]()
 
 **The secure, all-in-one Windows connection manager for RDP, SSH, SFTP, VNC, Telnet, FTP, Citrix, and local terminals.**
@@ -147,7 +147,7 @@ Built with .NET 10 and WPF. Secure, feature-rich Windows connection manager with
 - HTTP: directory listing, MIME types, path traversal protection
 - TFTP: RFC 1350 read-only implementation
 
-### Built-in Sysops Toolbox (33 tools)
+### Built-in Sysops Toolbox (34 tools)
 
 All tools open as session tabs (split with any session or tool, detach, reorder). Accessible via **Ctrl+K** palette, **Ctrl+Shift+T** sidebar panel, or **"+" → Add Tool** menu. Tools can be saved in the TreeView alongside servers. Centralized `ToolRegistry` with vector icons, categories, and command aliases. Recent tools shown in palette on open. Singleton behavior for context-free tools. Built-in help system with usage examples (? button). Dedicated detail panel for tools with descriptions. Password Generator supports saveable custom presets (JSON persistence). Cross-tool navigation via right-click context menus (IP → Port Scanner → Cert Inspector). Network tools support scanning via SSH tunnel ("Route via" gateway selector).
 
@@ -156,7 +156,7 @@ All tools open as session tabs (split with any session or tool, detach, reorder)
 | **Network** | **Network Cartography** (ping sweep + OS fingerprinting, port scan, banner grab, HTTP/HTTPS header analysis, TLS cert inspection, NetBIOS NBSTAT probe, SNMPv2c query, mDNS/Bonjour discovery, 300+ OUI MAC lookup, multi-source role classification, VLAN detection, Draw.io topology export, scan history/diff, remote subnet auto-detection via SSH gateway, **persistent Knowledge Base with TTL-based cache acceleration**), Ping Monitor, DNS Lookup (custom server + via tunnel), SSL Cert Inspector (chain + TLS version + via tunnel), Port Scanner (progress + banner grab + via tunnel), Subnet Calculator (IPv4 + IPv6), IP Converter, HTTP Status Codes, Whois Lookup, Network Calculator (supernet + VLAN planner) |
 | **Security** | Password Generator (crack time + history + saveable presets), SSH Key Generator (RSA + Ed25519), Hash Generator (SHA3 + progress), HMAC Generator, JWT Parser (HMAC signature verify), Certificate Generator (self-signed + CA/leaf), TOTP Generator (RFC 6238) |
 | **Encoding** | Base64 Encoder (URL-safe RFC 4648), URL Encoder, JSON Formatter (error position), Regex Tester (match highlighting), Text Diff (word-level), Text Case Converter (8 formats) |
-| **System** | Chmod Calculator, Crontab Builder, DateTime Converter (timezone + relative), UUID Generator (v4 + v7), Hosts File Editor, SSH Config Generator, Log Viewer / Tail (regex filter), Cron Job Manager (crontab + Windows tasks), Service Status Dashboard, **Diagram Editor** (draw.io embedded offline, New/Open/Save/Export PNG) |
+| **System** | Chmod Calculator, Crontab Builder, DateTime Converter (timezone + relative), UUID Generator (v4 + v7), Hosts File Editor, SSH Config Generator, Log Viewer / Tail (regex filter), Cron Job Manager (crontab + Windows tasks), Service Status Dashboard, **Notes** (Markdown notes with autosave, preview, and Confluence Storage export), **Diagram Editor** (draw.io embedded offline, New/Open/Save/Export PNG) |
 
 ### Session Management
 - Tabbed sessions with drag-to-reorder
