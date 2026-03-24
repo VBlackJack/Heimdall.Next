@@ -12,6 +12,26 @@
 
 All notable changes to Heimdall.Next are documented in this file.
 
+## [v2026.032403] - 2026-03-24
+
+### Symmetric split/merge between sessions and tools
+
+#### New features
+- **Mixed session + tool splits**: sessions and built-in tools can now be freely split and merged in any combination (e.g., SSH terminal left + Network Cartography right)
+- **`SplitSessionWithTool`**: new method docks a built-in tool directly into a split pane without requiring a network connection — tool creation is synchronous, no loading overlay needed
+- **Command Palette split mode**: tool tabs now appear as merge candidates alongside sessions; selecting a tool from search results in split mode docks it as a pane
+- **Context menu merge**: "Merge with..." submenu now lists both sessions and tool tabs
+
+#### Cleanup hardening
+- **Per-pane cleanup in `CloseSessionInternal`**: refactored from early-exit tool check to per-pane handling in the recursive leaf loop — mixed splits (session + tool in same tab) now clean up correctly: tool panes respect `CanClose()` and skip state machine/tunnel teardown, while connection panes get full disconnect/tunnel/state-machine cleanup
+- **`ClosePane` tool awareness**: closing a tool pane in a split tree now checks `IToolView.CanClose()` (e.g., blocks close during active scan) and skips state machine/tunnel operations
+- **Busy tool blocks tab close**: if any tool pane in a split tree has `CanClose() == false`, the entire tab close is blocked (consistent with standalone tool tab behavior)
+
+#### Routing
+- `ExecutePaletteSelection`: added `tool-*` branch before generic server split path
+- `ConnectFromPaletteAsync`: added `tool-*` branch in split mode routing
+- `ConnectSplitFromPaletteAsync`: tools now split into active session pane instead of opening a new tab
+
 ## [v2026.032402] - 2026-03-24
 
 ### Split/Merge system hardening
