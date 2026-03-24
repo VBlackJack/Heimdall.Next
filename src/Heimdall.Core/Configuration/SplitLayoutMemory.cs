@@ -1,0 +1,181 @@
+/*
+ * Copyright 2026 Julien Bombled
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using Heimdall.Core.Models;
+
+namespace Heimdall.Core.Configuration;
+
+/// <summary>
+/// Persists split layout preferences so that when a user reconnects to
+/// a server, previously paired servers are suggested at the top of the palette.
+/// Thread-safe: all public methods are synchronized via lock.
+/// </summary>
+public sealed class SplitLayoutMemory
+{
+    private const int MaxEntries = 50;
+    private const string FileName = "split-layouts.json";
+
+    private readonly string _filePath;
+    private readonly object _lock = new();
+    private List<SplitLayoutEntry> _entries = [];
+
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        WriteIndented = true,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+    };
+
+    public SplitLayoutMemory(string configDir)
+    {
+        _filePath = Path.Combine(configDir, FileName);
+        lock (_lock)
+        {
+            Load();
+        }
+    }
+
+    /// <summary>
+    /// Records that two servers were split together with the given orientation and ratio.
+    /// Updates existing entries or creates new ones, evicting oldest when at capacity.
+    /// </summary>
+    public void Record(string primaryServerId, string secondaryServerId,
+        SplitOrientation orientation, double ratio = 0.5)
+    {
+        if (string.IsNullOrEmpty(primaryServerId) || string.IsNullOrEmpty(secondaryServerId))
+            return;
+
+        lock (_lock)
+        {
+            // Remove any existing entry for this pair (either direction)
+            _entries.RemoveAll(e =>
+                (string.Equals(e.PrimaryServerId, primaryServerId, StringComparison.Ordinal)
+                 && string.Equals(e.SecondaryServerId, secondaryServerId, StringComparison.Ordinal))
+                || (string.Equals(e.PrimaryServerId, secondaryServerId, StringComparison.Ordinal)
+                    && string.Equals(e.SecondaryServerId, primaryServerId, StringComparison.Ordinal)));
+
+            _entries.Insert(0, new SplitLayoutEntry
+            {
+                PrimaryServerId = primaryServerId,
+                SecondaryServerId = secondaryServerId,
+                Orientation = orientation,
+                Ratio = ratio,
+                LastUsed = DateTime.UtcNow
+            });
+
+            // Trim to max
+            if (_entries.Count > MaxEntries)
+                _entries.RemoveRange(MaxEntries, _entries.Count - MaxEntries);
+
+            Save();
+        }
+    }
+
+    /// <summary>
+    /// Finds the most recent split partner for a given server ID.
+    /// Returns null if no history is found.
+    /// </summary>
+    public SplitLayoutEntry? FindPartner(string serverId)
+    {
+        if (string.IsNullOrEmpty(serverId)) return null;
+
+        lock (_lock)
+        {
+            return _entries.FirstOrDefault(e =>
+                string.Equals(e.PrimaryServerId, serverId, StringComparison.Ordinal)
+                || string.Equals(e.SecondaryServerId, serverId, StringComparison.Ordinal));
+        }
+    }
+
+    /// <summary>
+    /// Returns all known split partners for a given server ID, ordered by most recent.
+    /// </summary>
+    public IReadOnlyList<SplitLayoutEntry> FindAllPartners(string serverId)
+    {
+        if (string.IsNullOrEmpty(serverId)) return [];
+
+        lock (_lock)
+        {
+            return _entries.Where(e =>
+                string.Equals(e.PrimaryServerId, serverId, StringComparison.Ordinal)
+                || string.Equals(e.SecondaryServerId, serverId, StringComparison.Ordinal))
+                .ToList();
+        }
+    }
+
+    private void Load()
+    {
+        try
+        {
+            if (!File.Exists(_filePath)) return;
+            var json = File.ReadAllText(_filePath);
+            _entries = JsonSerializer.Deserialize<List<SplitLayoutEntry>>(json, JsonOptions) ?? [];
+        }
+        catch (Exception ex)
+        {
+            Logging.FileLogger.Warn($"Failed to load split layout memory: {ex.Message}");
+            _entries = [];
+        }
+    }
+
+    /// <summary>
+    /// Atomic save via unique-temp-then-rename to prevent corruption on crash
+    /// or concurrent writes from multiple processes.
+    /// </summary>
+    private void Save()
+    {
+        string? tempPath = null;
+        try
+        {
+            var dir = Path.GetDirectoryName(_filePath);
+            if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+                Directory.CreateDirectory(dir);
+
+            var json = JsonSerializer.Serialize(_entries, JsonOptions);
+            tempPath = Path.Combine(dir ?? ".", $"split-layouts.{Guid.NewGuid():N}.tmp");
+            File.WriteAllText(tempPath, json);
+            File.Move(tempPath, _filePath, overwrite: true);
+            tempPath = null; // Move succeeded, nothing to clean up
+        }
+        catch (Exception ex)
+        {
+            Logging.FileLogger.Warn($"Failed to save split layout memory: {ex.Message}");
+        }
+        finally
+        {
+            // Clean up orphaned temp file if move failed
+            if (tempPath is not null)
+            {
+                try { File.Delete(tempPath); }
+                catch { /* best-effort cleanup */ }
+            }
+        }
+    }
+}
+
+/// <summary>
+/// A recorded split layout pairing between two servers.
+/// </summary>
+public sealed class SplitLayoutEntry
+{
+    public string PrimaryServerId { get; set; } = "";
+    public string SecondaryServerId { get; set; } = "";
+    public SplitOrientation Orientation { get; set; }
+    public double Ratio { get; set; } = 0.5;
+    public DateTime LastUsed { get; set; }
+}

@@ -1287,33 +1287,26 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
 
                     if (parentTab is not null)
                     {
-                        // If this SFTP view is the secondary in a split, swap back
-                        if (parentTab.SecondaryHostControl == editorView)
+                        // Find the pane containing the editor and swap back to SFTP
+                        var editorPane = Heimdall.Core.Models.SplitTreeHelper.FindPaneByHostControl(
+                            parentTab.RootContent, editorView);
+                        if (editorPane is not null)
                         {
-                            parentTab.SecondaryHostControl = sftpPanel;
+                            editorPane.HostControl = sftpPanel;
                         }
                     }
                     _ = LoadDirectoryAsync(_currentPath);
                 };
 
-                // Replace this SFTP view with the editor in the split pane
-                if (_sessionTab is not null && _sessionTab.IsSplit &&
-                    _sessionTab.SecondaryHostControl == this)
+                // Replace this SFTP view with the editor in the pane that contains it
+                if (_sessionTab is not null)
                 {
-                    _sessionTab.SecondaryHostControl = editorView;
-                }
-                else if (_sessionTab is not null && _sessionTab.HostControl == this)
-                {
-                    // SFTP is the primary — swap to editor
-                    _sessionTab.HostControl = editorView;
-                    editorView.CloseRequested += () =>
+                    var sftpPane = Heimdall.Core.Models.SplitTreeHelper.FindPaneByHostControl(
+                        _sessionTab.RootContent, this);
+                    if (sftpPane is not null)
                     {
-                        if (isSaving) return;
-                        if (_sessionTab.HostControl == editorView)
-                        {
-                            _sessionTab.HostControl = sftpPanel;
-                        }
-                    };
+                        sftpPane.HostControl = editorView;
+                    }
                 }
 
                 // Cleanup temp on close

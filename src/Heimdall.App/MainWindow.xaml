@@ -5,6 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="clr-namespace:Heimdall.App.ViewModels"
         xmlns:views="clr-namespace:Heimdall.App.Views"
+        xmlns:models="clr-namespace:Heimdall.Core.Models;assembly=Heimdall.Core"
         mc:Ignorable="d"
         d:DataContext="{d:DesignInstance Type=vm:MainViewModel}"
         Title="{Binding WindowTitle}"
@@ -14,6 +15,16 @@
         FontFamily="Segoe UI"
         TextOptions.TextFormattingMode="Display"
         Background="{DynamicResource BackgroundBrush}">
+
+    <Window.Resources>
+        <!-- Implicit DataTemplates for recursive split pane tree rendering -->
+        <DataTemplate DataType="{x:Type models:SessionPaneModel}">
+            <views:SessionPaneControl/>
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type models:SplitContainerModel}">
+            <views:SplitContainerControl/>
+        </DataTemplate>
+    </Window.Resources>
 
     <Grid>
         <Grid.RowDefinitions>
@@ -692,11 +703,7 @@
                         <TabControl.ContentTemplate>
                             <DataTemplate DataType="{x:Type vm:SessionTabViewModel}">
                                 <Grid>
-                                    <views:SplitPaneHost
-                                        PrimaryContent="{Binding HostControl}"
-                                        SecondaryContent="{Binding SecondaryHostControl}"
-                                        IsSplit="{Binding IsSplit}"
-                                        Orientation="{Binding SplitOrientation}"/>
+                                    <ContentPresenter Content="{Binding RootContent}" ClipToBounds="True"/>
                                     <!-- Loading overlay (visible while HostControl is null during connection) -->
                                     <Border x:Name="SessionLoadingOverlay"
                                             Style="{StaticResource FadeInPanelStyle}"
@@ -726,6 +733,23 @@
                             </DataTemplate>
                         </TabControl.ContentTemplate>
                     </TabControl>
+
+                    <!-- Drop zone overlay for drag-to-split (shown during tab drag over content area) -->
+                    <Border x:Name="ContentDropZone" Grid.Row="0"
+                            Visibility="Collapsed"
+                            Background="#300078D7"
+                            BorderBrush="{DynamicResource AccentBrush}"
+                            BorderThickness="2"
+                            CornerRadius="4"
+                            IsHitTestVisible="False"
+                            Margin="0,32,0,0">
+                        <TextBlock Text="{Binding DataContext.DropToMergeText, RelativeSource={RelativeSource AncestorType=Window}, FallbackValue='Drop to split'}"
+                                   FontSize="{StaticResource FontSizeSubtitle}"
+                                   Foreground="{DynamicResource AccentBrush}"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"
+                                   Opacity="0.8"/>
+                    </Border>
 
                     <!-- SERVER DETAILS (visible when no sessions) -->
                     <Grid Grid.Row="0"

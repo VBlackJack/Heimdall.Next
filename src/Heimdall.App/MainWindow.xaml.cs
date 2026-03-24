@@ -745,6 +745,14 @@ public partial class MainWindow : Window
                 e.Handled = true;
                 break;
 
+            case Key.O when Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift):
+                if (vm.Connection.ActiveSession is { IsSplit: true } splitSession)
+                {
+                    vm.ToggleSplitOrientation(splitSession);
+                }
+                e.Handled = true;
+                break;
+
             case Key.F1:
                 ShowKeyboardShortcutHelp();
                 e.Handled = true;
@@ -1899,6 +1907,7 @@ public partial class MainWindow : Window
             var result = DragDrop.DoDragDrop(SessionTabControl, data, System.Windows.DragDropEffects.Move);
             _tabDragItem = null;
             ClearTabDropHighlight();
+            ContentDropZone.Visibility = Visibility.Collapsed;
 
             // If the drop landed outside the TabControl (no target accepted it),
             // detach the tab to a floating window
@@ -1935,6 +1944,18 @@ public partial class MainWindow : Window
                 targetTab.BorderThickness = new Thickness(2, 0, 0, 0);
                 targetTab.BorderBrush = TryFindResource("AccentBrush") as Brush ?? Brushes.DodgerBlue;
                 _lastTabDropHighlight = targetTab;
+                ContentDropZone.Visibility = Visibility.Collapsed;
+            }
+            else if (targetTab is null && _tabDragItem is not null)
+            {
+                // Dragging over the content area — show split drop zone
+                // Allow merging into already-split sessions (N-pane support)
+                if (DataContext is MainViewModel vm
+                    && vm.Connection.ActiveSession is not null
+                    && vm.Connection.ActiveSession != _tabDragItem)
+                {
+                    ContentDropZone.Visibility = Visibility.Visible;
+                }
             }
         }
         else
@@ -1947,6 +1968,7 @@ public partial class MainWindow : Window
     private void OnTabDrop(object sender, System.Windows.DragEventArgs e)
     {
         ClearTabDropHighlight();
+        ContentDropZone.Visibility = Visibility.Collapsed;
 
         if (DataContext is not MainViewModel vm) return;
         if (!e.Data.GetDataPresent("SessionTab")) return;
@@ -1958,15 +1980,42 @@ public partial class MainWindow : Window
         var dropTarget = FindAncestor<System.Windows.Controls.TabItem>(e.OriginalSource as DependencyObject);
         var targetItem = dropTarget?.DataContext as SessionTabViewModel;
 
-        if (targetItem is null || targetItem == draggedItem) return;
-
-        var sessions = vm.Connection.ActiveSessions;
-        int oldIndex = sessions.IndexOf(draggedItem);
-        int newIndex = sessions.IndexOf(targetItem);
-
-        if (oldIndex >= 0 && newIndex >= 0 && oldIndex != newIndex)
+        if (targetItem is not null && targetItem != draggedItem)
         {
-            sessions.Move(oldIndex, newIndex);
+            // Drop on tab header → reorder
+            var sessions = vm.Connection.ActiveSessions;
+            int oldIndex = sessions.IndexOf(draggedItem);
+            int newIndex = sessions.IndexOf(targetItem);
+
+            if (oldIndex >= 0 && newIndex >= 0 && oldIndex != newIndex)
+            {
+                sessions.Move(oldIndex, newIndex);
+            }
+        }
+        else if (targetItem is null)
+        {
+            // Drop on content area → merge with active session as split
+            var activeSession = vm.Connection.ActiveSession;
+            if (activeSession is not null && activeSession != draggedItem)
+            {
+                // Determine orientation based on drop position relative to content area
+                var pos = e.GetPosition(SessionTabControl);
+                var width = SessionTabControl.ActualWidth;
+                var height = SessionTabControl.ActualHeight;
+
+                // If aspect ratio favors horizontal proximity, split horizontal
+                var relY = (height > 0) ? pos.Y / height : 0.5;
+                var relX = (width > 0) ? pos.X / width : 0.5;
+                var distFromHEdge = Math.Min(relY, 1 - relY);
+                var distFromVEdge = Math.Min(relX, 1 - relX);
+                var orientation = distFromHEdge < distFromVEdge
+                    ? Heimdall.Core.Models.SplitOrientation.Horizontal
+                    : Heimdall.Core.Models.SplitOrientation.Vertical;
+
+                vm.MergeExistingSession(activeSession, draggedItem.ServerId, orientation);
+                e.Handled = true;
+                return; // Prevent detach-to-floating-window fallback
+            }
         }
     }
 
@@ -2034,6 +2083,59 @@ public partial class MainWindow : Window
 
         Heimdall.Core.Logging.FileLogger.Info(
             string.Format(localizer["LogSessionDetached"], session.Title));
+    }
+
+    /// <summary>
+    /// Detaches the secondary pane from a split session into its own floating window.
+    /// Legacy entry point — delegates to <see cref="DetachPaneToFloatingWindow"/>.
+    /// </summary>
+    private void DetachSecondaryToFloatingWindow(SessionTabViewModel session)
+    {
+        if (!session.IsSplit) return;
+        if (session.RootContent is not Heimdall.Core.Models.SplitContainerModel rootContainer) return;
+
+        var secondaryPane = Heimdall.Core.Models.SplitTreeHelper.FirstLeaf(rootContainer.Second);
+        if (secondaryPane is not null && secondaryPane.HostControl is not null)
+        {
+            DetachPaneToFloatingWindow(session, secondaryPane.PaneId);
+        }
+    }
+
+    /// <summary>
+    /// Detaches a specific pane from the split tree into a floating window.
+    /// The pane is extracted to a new tab and then detached.
+    /// </summary>
+    private void DetachPaneToFloatingWindow(SessionTabViewModel session, string paneId)
+    {
+        if (DataContext is not MainViewModel vm) return;
+
+        var pane = Heimdall.Core.Models.SplitTreeHelper.FindPane(session.RootContent, paneId);
+        if (pane is null || pane.HostControl is null) return;
+
+        // Capture pane metadata
+        var hostControl = pane.HostControl;
+        var serverId = pane.ServerId;
+        var originalServerId = pane.OriginalServerId;
+        var connType = pane.ConnectionType;
+        var title = pane.Title;
+        var status = pane.Status;
+        var tunnelRoute = pane.TunnelRoute;
+        var envColor = pane.EnvironmentColor;
+
+        // Detach host control and remove pane from tree
+        pane.HostControl = null;
+        var newRoot = Heimdall.Core.Models.SplitTreeHelper.RemovePane(session.RootContent, paneId);
+        session.RootContent = newRoot ?? new Heimdall.Core.Models.SessionPaneModel();
+
+        // Create a new independent tab and detach it
+        var newTab = vm.Connection.AddSession(serverId, title, connType);
+        newTab.OriginalServerId = originalServerId;
+        newTab.HostControl = hostControl;
+        newTab.Status = !string.IsNullOrEmpty(status) ? status : "Connected";
+        newTab.TunnelRoute = tunnelRoute;
+        newTab.EnvironmentColor = envColor;
+
+        DetachSessionToFloatingWindow(newTab);
     }
 
     // ── Session tab context menu handlers ──────────────────────────────
@@ -2141,6 +2243,17 @@ public partial class MainWindow : Window
             var detachItem = new System.Windows.Controls.MenuItem { Header = vm.Localize("SessionCtxDetach") };
             detachItem.Click += (_, _) => DetachSessionToFloatingWindow(session);
             menu.Items.Add(detachItem);
+        }
+        else
+        {
+            // Detach secondary pane to its own floating window (disabled while secondary is loading)
+            var detachSecondaryItem = new System.Windows.Controls.MenuItem
+            {
+                Header = vm.Localize("SplitDetachSecondary"),
+                IsEnabled = session.SecondaryHostControl is not null
+            };
+            detachSecondaryItem.Click += (_, _) => DetachSecondaryToFloatingWindow(session);
+            menu.Items.Add(detachSecondaryItem);
         }
 
         // Transcript toggle for SSH sessions
@@ -2270,15 +2383,20 @@ public partial class MainWindow : Window
 
         if (!session.IsSplit)
         {
-            var splitH = new System.Windows.Controls.MenuItem { Header = vm.Localize("SplitHorizontal") };
+            // "Split..." submenu with orientation sub-items (mirrors "Merge with..." pattern)
+            var splitMenu = new System.Windows.Controls.MenuItem { Header = vm.Localize("SplitMenu") };
+
+            var splitH = new System.Windows.Controls.MenuItem { Header = vm.Localize("OrientationHorizontal") };
             splitH.Click += (_, _) => RequestSplitSession(session, Heimdall.Core.Models.SplitOrientation.Horizontal);
-            menu.Items.Add(splitH);
+            splitMenu.Items.Add(splitH);
 
-            var splitV = new System.Windows.Controls.MenuItem { Header = vm.Localize("SplitVertical") };
+            var splitV = new System.Windows.Controls.MenuItem { Header = vm.Localize("OrientationVertical") };
             splitV.Click += (_, _) => RequestSplitSession(session, Heimdall.Core.Models.SplitOrientation.Vertical);
-            menu.Items.Add(splitV);
+            splitMenu.Items.Add(splitV);
 
-            // "Merge with..." submenu — lists other active sessions for direct merge
+            menu.Items.Add(splitMenu);
+
+            // "Merge with..." submenu — nested per session with orientation sub-items
             var otherSessions = vm.Connection.ActiveSessions
                 .Where(s => s != session
                     && s.HostControl is not null
@@ -2292,24 +2410,24 @@ public partial class MainWindow : Window
                 foreach (var other in otherSessions)
                 {
                     var sourceTab = other;
-                    var mergeH = new System.Windows.Controls.MenuItem
-                    {
-                        Header = $"{sourceTab.Title}  ({vm.Localize("SplitHorizontal")})"
-                    };
+                    var sessionMenu = new System.Windows.Controls.MenuItem { Header = sourceTab.Title };
+
+                    // Use OriginalServerId as stable lookup key (ServerId may be empty during connection)
+                    var mergeId = !string.IsNullOrEmpty(sourceTab.OriginalServerId)
+                        ? sourceTab.OriginalServerId
+                        : sourceTab.ServerId;
+
+                    var mergeH = new System.Windows.Controls.MenuItem { Header = vm.Localize("OrientationHorizontal") };
                     mergeH.Click += (_, _) => vm.MergeExistingSession(
-                        session, sourceTab.ServerId, Heimdall.Core.Models.SplitOrientation.Horizontal);
-                    mergeMenu.Items.Add(mergeH);
+                        session, mergeId, Heimdall.Core.Models.SplitOrientation.Horizontal);
+                    sessionMenu.Items.Add(mergeH);
 
-                    var mergeV = new System.Windows.Controls.MenuItem
-                    {
-                        Header = $"{sourceTab.Title}  ({vm.Localize("SplitVertical")})"
-                    };
+                    var mergeV = new System.Windows.Controls.MenuItem { Header = vm.Localize("OrientationVertical") };
                     mergeV.Click += (_, _) => vm.MergeExistingSession(
-                        session, sourceTab.ServerId, Heimdall.Core.Models.SplitOrientation.Vertical);
-                    mergeMenu.Items.Add(mergeV);
+                        session, mergeId, Heimdall.Core.Models.SplitOrientation.Vertical);
+                    sessionMenu.Items.Add(mergeV);
 
-                    if (sourceTab != otherSessions[^1])
-                        mergeMenu.Items.Add(new System.Windows.Controls.Separator());
+                    mergeMenu.Items.Add(sessionMenu);
                 }
 
                 menu.Items.Add(mergeMenu);
@@ -2320,6 +2438,22 @@ public partial class MainWindow : Window
             var unsplit = new System.Windows.Controls.MenuItem { Header = vm.Localize("SplitUnsplit") };
             unsplit.Click += (_, _) => UnsplitSession(session);
             menu.Items.Add(unsplit);
+
+            var swapItem = new System.Windows.Controls.MenuItem { Header = vm.Localize("SplitSwapPanes") };
+            swapItem.Click += (_, _) => vm.SwapSplitPanes(session);
+            menu.Items.Add(swapItem);
+
+            var toggleItem = new System.Windows.Controls.MenuItem
+            {
+                Header = vm.Localize("SplitToggleOrientation"),
+                InputGestureText = "Ctrl+Shift+O"
+            };
+            toggleItem.Click += (_, _) => vm.ToggleSplitOrientation(session);
+            menu.Items.Add(toggleItem);
+
+            var closeSecItem = new System.Windows.Controls.MenuItem { Header = vm.Localize("SplitCloseSecondary") };
+            closeSecItem.Click += (_, _) => vm.CloseSecondaryPaneCommand.Execute(session);
+            menu.Items.Add(closeSecItem);
         }
 
         menu.PlacementTarget = SessionTabControl;
@@ -2341,49 +2475,67 @@ public partial class MainWindow : Window
         BeginFocusCommandPalette();
     }
 
+    /// <summary>
+    /// Legacy unsplit: detaches the root's second child to a new tab.
+    /// </summary>
     private void UnsplitSession(SessionTabViewModel session)
     {
         if (!session.IsSplit) return;
+        if (session.RootContent is not Heimdall.Core.Models.SplitContainerModel rootContainer) return;
+
+        var secondaryPane = Heimdall.Core.Models.SplitTreeHelper.FirstLeaf(rootContainer.Second);
+        if (secondaryPane is not null)
+        {
+            DetachPaneToTab(session, secondaryPane.PaneId);
+        }
+    }
+
+    /// <summary>
+    /// Detaches a specific pane from the split tree into its own independent tab.
+    /// </summary>
+    private void DetachPaneToTab(SessionTabViewModel session, string paneId)
+    {
         if (DataContext is not MainViewModel vm) return;
 
-        // Capture all secondary metadata before clearing
-        var secondaryControl = session.SecondaryHostControl;
-        var secondaryServerId = session.SecondaryServerId;
-        var secondaryOriginalServerId = session.SecondaryOriginalServerId;
-        var secondaryType = session.SecondaryConnectionType;
-        var secondaryTitle = session.SecondaryTitle;
-        var secondaryStatus = session.SecondaryStatus;
-        var secondaryTunnelRoute = session.SecondaryTunnelRoute;
-        var secondaryEnvironmentColor = session.SecondaryEnvironmentColor;
+        var pane = Heimdall.Core.Models.SplitTreeHelper.FindPane(session.RootContent, paneId);
+        if (pane is null) return;
 
-        // Clear split state
-        session.SecondaryHostControl = null;
-        session.SecondaryServerId = "";
-        session.SecondaryOriginalServerId = "";
-        session.SecondaryConnectionType = "";
-        session.SecondaryTitle = "";
-        session.SecondaryStatus = "";
-        session.SecondaryTunnelRoute = "";
-        session.SecondaryEnvironmentColor = "";
-        session.IsSplit = false;
+        // Capture metadata
+        var hostControl = pane.HostControl;
+        var serverId = pane.ServerId;
+        var originalServerId = pane.OriginalServerId;
+        var connType = pane.ConnectionType;
+        var title = pane.Title;
+        var status = pane.Status;
+        var tunnelRoute = pane.TunnelRoute;
+        var envColor = pane.EnvironmentColor;
 
-        // Restore as independent tab with original metadata (not synthetic values)
-        if (secondaryControl is not null && !string.IsNullOrEmpty(secondaryServerId))
+        // Detach host control (UIElement single-parent rule)
+        pane.HostControl = null;
+
+        // Remove pane from tree
+        var newRoot = Heimdall.Core.Models.SplitTreeHelper.RemovePane(session.RootContent, paneId);
+        session.RootContent = newRoot ?? new Heimdall.Core.Models.SessionPaneModel();
+
+        // If the pane was still connecting (no host control), clean up state and abort
+        if (hostControl is null)
         {
-            // Use the preserved original title, falling back to a generated one only if empty
-            var title = !string.IsNullOrEmpty(secondaryTitle)
-                ? secondaryTitle
-                : secondaryServerId;
+            vm.CleanupOrphanedPane(serverId);
+            Core.Logging.FileLogger.Info(
+                $"Detach cancelled connecting pane '{title}'.");
+            return;
+        }
 
-            var restoredTab = vm.Connection.AddSession(
-                secondaryServerId,
-                title,
-                secondaryType);
-            restoredTab.OriginalServerId = secondaryOriginalServerId;
-            restoredTab.HostControl = secondaryControl;
-            restoredTab.Status = !string.IsNullOrEmpty(secondaryStatus) ? secondaryStatus : "Connected";
-            restoredTab.TunnelRoute = secondaryTunnelRoute;
-            restoredTab.EnvironmentColor = secondaryEnvironmentColor;
+        // Restore as independent tab with original metadata
+        if (!string.IsNullOrEmpty(serverId))
+        {
+            var displayTitle = !string.IsNullOrEmpty(title) ? title : serverId;
+            var restoredTab = vm.Connection.AddSession(serverId, displayTitle, connType);
+            restoredTab.OriginalServerId = originalServerId;
+            restoredTab.HostControl = hostControl;
+            restoredTab.Status = !string.IsNullOrEmpty(status) ? status : "Connected";
+            restoredTab.TunnelRoute = tunnelRoute;
+            restoredTab.EnvironmentColor = envColor;
         }
     }
 

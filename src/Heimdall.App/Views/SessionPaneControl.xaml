@@ -1,0 +1,84 @@
+<UserControl x:Class="Heimdall.App.Views.SessionPaneControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             d:DesignHeight="300"
+             d:DesignWidth="400">
+    <Grid x:Name="RootGrid" ClipToBounds="True">
+        <Border x:Name="PaneBorder" ClipToBounds="True"
+                BorderThickness="0" BorderBrush="Transparent">
+            <Border.Style>
+                <Style TargetType="Border">
+                    <Style.Triggers>
+                        <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                            <Setter Property="BorderThickness" Value="2"/>
+                            <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                        </Trigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
+            <ContentPresenter x:Name="HostPresenter" ClipToBounds="True"/>
+        </Border>
+
+        <!-- Loading overlay (visible while HostControl is null during connection) -->
+        <Border x:Name="LoadingOverlay"
+                Visibility="Collapsed"
+                Background="{DynamicResource OverlayBackground}"
+                IsHitTestVisible="False">
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                <ProgressBar IsIndeterminate="True"
+                             Width="160" Height="3"
+                             Margin="0,0,0,8"/>
+                <TextBlock Text="{Binding Title}"
+                           FontSize="{StaticResource FontSizeBody}"
+                           Foreground="{DynamicResource TextSecondaryBrush}"
+                           HorizontalAlignment="Center"/>
+                <TextBlock Text="{Binding Status}"
+                           FontSize="{StaticResource FontSizeCaption}"
+                           Foreground="{DynamicResource TextDisabledBrush}"
+                           HorizontalAlignment="Center"
+                           Margin="0,4,0,0"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Disconnect overlay (visible when status is Disconnected/Error and content exists) -->
+        <Border x:Name="DisconnectedOverlay"
+                Visibility="Collapsed"
+                Background="{DynamicResource OverlayBackground}"
+                IsHitTestVisible="True">
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center"
+                        MaxWidth="280">
+                <TextBlock Text="&#xE711;"
+                           FontFamily="Segoe MDL2 Assets"
+                           FontSize="{StaticResource FontSizeHeadline}"
+                           Foreground="{DynamicResource ErrorTextBrush}"
+                           HorizontalAlignment="Center"
+                           Margin="0,0,0,8"
+                           AutomationProperties.Name="Disconnected"/>
+                <TextBlock Text="{Binding Title}"
+                           FontSize="{StaticResource FontSizeSubtitle}"
+                           Foreground="{DynamicResource TextPrimaryBrush}"
+                           HorizontalAlignment="Center"
+                           TextTrimming="CharacterEllipsis"/>
+                <TextBlock Text="{Binding Status}"
+                           FontSize="{StaticResource FontSizeCaption}"
+                           Foreground="{DynamicResource TextSecondaryBrush}"
+                           HorizontalAlignment="Center"
+                           Margin="0,4,0,16"/>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                    <Button x:Name="ReconnectButton"
+                            AutomationProperties.Name="Reconnect pane"
+                            Content="{Binding DataContext.ReconnectSecondaryButtonText, RelativeSource={RelativeSource AncestorType=Window}}"
+                            Margin="0,0,8,0"
+                            Padding="16,6"/>
+                    <Button x:Name="ClosePaneButton"
+                            AutomationProperties.Name="Close pane"
+                            Content="{Binding DataContext.CloseSecondaryButtonText, RelativeSource={RelativeSource AncestorType=Window}}"
+                            Padding="16,6"/>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+    </Grid>
+</UserControl>

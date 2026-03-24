@@ -12,6 +12,102 @@
 
 All notable changes to Heimdall.Next are documented in this file.
 
+## [v2026.032402] - 2026-03-24
+
+### Split/Merge system hardening
+
+#### Bug fixes
+- **`ReplacePane` short-circuit**: extracted `ReplacePaneRecursive` with `bool` return — stops traversing after first match instead of processing both children
+- **`RemovePane` null subtree**: when recursive removal empties a subtree, promotes the sibling instead of assigning `null` to `First`/`Second` (prevented potential `NullReferenceException`)
+- **`ReplaceContainer` short-circuit**: converted from `void` to `bool` return for early exit after match
+- **`MergeExistingSession` lookup**: added `OriginalServerId` fallback — context menu and palette merge no longer silently fail if `ServerId` is empty during connection
+- **`OnSplitterDragCompleted` orientation guard**: explicit `SplitOrientation.Vertical` check prevents fallthrough to column calculation when horizontal grid is misconfigured
+
+#### Memory leak fixes
+- **`SessionPaneControl`**: added `Unloaded` handler — detaches `PropertyChanged`, `Button.Click`, `DataContextChanged`, `Loaded` subscriptions
+- **`SplitContainerControl`**: added `Unloaded` handler — detaches `PropertyChanged`, `DragCompleted`, `DataContextChanged`, `Loaded` subscriptions
+
+#### Thread-safety & I/O hardening
+- **`SplitLayoutMemory`**: all public methods (`Record`, `FindPartner`, `FindAllPartners`) synchronized via `lock`; constructor `Load()` also under lock
+- **Atomic save**: unique temp file per write (`Guid`-suffixed) with `finally` cleanup on failure — prevents corruption on concurrent writes or crash
+
+#### Zero-hardcoding cleanup
+- `SessionPaneControl.xaml`: replaced `Background="#B0000000"` → `{DynamicResource OverlayBackground}`, `FontSize="28"` → `{StaticResource FontSizeHeadline}`, `Foreground="#AAAAAA"/"White"` → theme brushes, removed English `FallbackValue`
+- `SessionPaneControl.xaml.cs`: `"Disconnected"`/`"Error"` magic strings → `nameof(ConnectionState.Disconnected)`/`.Error`
+- `SessionPaneModel.cs`: default `_status` changed from `"Connecting"` to `""` (set by caller via i18n)
+- `SplitContainerModel.cs`: named constants `MinRatio` (0.1), `MaxRatio` (0.9), `DefaultRatio` (0.5), `SplitterThickness` (4)
+- `SplitContainerControl.xaml.cs`: all magic numbers replaced with model constants; removed redundant `SetRowSpan/SetColumnSpan(1)` calls
+- `SplitLayoutMemory.cs`: extracted `FileName` constant
+
+#### Model improvements
+- **`SplitRatio` auto-clamping**: `OnSplitRatioChanged` partial method clamps to `[MinRatio, MaxRatio]` — view no longer double-clamps
+- **Merge ratio restoration**: `MergeExistingSession` consults `SplitLayoutMemory` for prior ratio when merging a previously-paired server pair
+- **`SyncContent` optimization**: `ReferenceEquals` check prevents unnecessary `ContentPresenter.Content` reassignment
+
+#### Menu restructure
+- **"Split..." submenu**: replaced two top-level items with nested submenu (Split... → Horizontal | Vertical), matching "Merge with..." pattern
+- **Palette split mode**: shows ALL servers from inventory (previously limited to 10 recent)
+- New i18n keys: `SplitMenu`, `OrientationHorizontal`, `OrientationVertical` (EN + FR)
+
+#### Accessibility
+- `GridSplitter`: added `AutomationProperties.Name="Split pane resizer"`
+- Disconnect icon: added `AutomationProperties.Name="Disconnected"`
+- Overlay buttons: added `AutomationProperties.Name` for Reconnect/Close
+
+#### Tests
+- 5 new unit tests: deep `ReplacePane` (3+ levels), non-existent pane, short-circuit verification, deep `RemovePane` subtree promotion, `SplitRatio` clamping
+- Total: **1,469 tests** (1,186 Core + 283 SSH), all passing
+
+## [v2026.032401] - 2026-03-24
+
+### Recursive N-Pane Split System
+
+#### Architecture overhaul
+- **Recursive split tree**: replaced flat `Secondary*` properties with binary tree model (`ISplitContent` → `SessionPaneModel` | `SplitContainerModel`)
+- Up to **8 panes per tab** in any layout: 2x2, L-shape, 3 side-by-side, deeply nested splits
+- All operations addressed by `PaneId` (GUID) — split, merge, swap, close, reconnect, detach
+- WPF rendering via implicit `DataTemplate` resolution: `SessionPaneControl` (leaf) + `SplitContainerControl` (recursive container with `GridSplitter`)
+- `SplitTreeHelper` static utilities: `EnumerateLeaves`, `FindPane`, `FindParent`, `FindSibling`, `RemovePane`, `ReplacePane`, `CountLeaves`, `FirstLeaf`
+- 37 new unit tests for tree operations
+
+#### New split features
+- **Swap panes**: right-click → "Swap Panes" exchanges primary and secondary content
+- **Toggle orientation**: Ctrl+Shift+O switches split between horizontal and vertical
+- **Detach any pane**: extract any individual pane from a split tree into a floating window
+- **Drag-to-split**: drag a tab onto the content area of another tab to merge (works on already-split targets for 3+ panes, orientation auto-detected from drop position)
+- **Per-pane loading overlay**: spinner shown during connection with server title and status
+- **Per-pane disconnect overlay**: Reconnect and Close buttons when a pane disconnects
+- **Splitter ratio memory**: each pane's splitter position preserved across tab switches
+- **Split layout persistence**: `SplitLayoutMemory` records server pairs in `config/split-layouts.json`, boosts previously paired servers in Command Palette
+
+#### Context menu improvements
+- "Merge with..." uses nested submenu per session (Session Name → Horizontal | Vertical)
+- Split actions (Swap, Toggle Orientation, Close Secondary, Detach Secondary) shown when split is active
+- "Detach Secondary" disabled while pane is still connecting
+
+#### Safety and cleanup
+- Post-await guard: `!Connection.ActiveSessions.Contains(session)` prevents orphaned connections when tab is closed during async split
+- `CleanupOrphanedSecondary()` exposed for code-behind to clean up state machine/tunnel entries
+- Close confirmation checks all panes in the tree (not just primary)
+- State machine reset and tunnel reference release in `ClosePane` for each individual pane
+- MergeExistingSession preserves state machine entries (connections are alive, just reparented)
+- Anti-double-reconnect guard via `HostControl is null` check
+- Layout coalescing: `_layoutDirty` flag prevents redundant grid rebuilds
+
+#### Backward compatibility
+- `SessionTabViewModel` exposes shim properties (`ServerId`, `Title`, `Status`, `HostControl`, `IsSplit`, `SplitOrientation`, `SplitRatio`, `Secondary*`) delegating to tree leaves
+- `NotifyShimPropertiesChanged()` for in-place tree mutations (swap)
+- Legacy `CloseSecondaryPane` and `ReconnectSecondaryAsync` relay commands preserved
+
+#### Files added
+- `Heimdall.Core/Models/ISplitContent.cs`, `SessionPaneModel.cs`, `SplitContainerModel.cs`, `SplitTreeHelper.cs`
+- `Heimdall.App/Views/SessionPaneControl.xaml/.cs`, `SplitContainerControl.xaml/.cs`
+- `Heimdall.Core/Configuration/SplitLayoutMemory.cs`
+- `Heimdall.Core.Tests/SplitTreeHelperTests.cs`
+
+#### Files removed
+- `Heimdall.App/Views/SplitPaneHost.xaml/.cs` (replaced by `SessionPaneControl` + `SplitContainerControl`)
+
 ## [v2026.032312] - 2026-03-23
 
 ### Network Cartography — Deep Fingerprinting Engine
