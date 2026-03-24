@@ -2399,8 +2399,7 @@ public partial class MainWindow : Window
             // "Merge with..." submenu — nested per session with orientation sub-items
             var otherSessions = vm.Connection.ActiveSessions
                 .Where(s => s != session
-                    && s.HostControl is not null
-                    && s.ConnectionType?.StartsWith("TOOL:", StringComparison.OrdinalIgnoreCase) != true)
+                    && s.HostControl is not null)
                 .ToList();
 
             if (otherSessions.Count > 0)

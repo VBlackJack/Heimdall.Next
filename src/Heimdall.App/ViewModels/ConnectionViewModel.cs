@@ -111,30 +111,25 @@ public partial class ConnectionViewModel : ObservableObject
     /// </summary>
     private void CloseSessionInternal(SessionTabViewModel session)
     {
-        // Tool tabs bypass ConnectionStateMachine, history, and tunnels
-        if (session.ConnectionType.StartsWith("TOOL:", StringComparison.OrdinalIgnoreCase))
+        var leaves = Core.Models.SplitTreeHelper.EnumerateLeaves(session.RootContent).ToList();
+
+        // Check CanClose for all tool panes before proceeding (any busy tool blocks the close)
+        foreach (var pane in leaves)
         {
-            if (session.HostControl is Core.Models.IToolView tool && !tool.CanClose())
+            if (pane.ConnectionType.StartsWith("TOOL:", StringComparison.OrdinalIgnoreCase)
+                && pane.HostControl is Core.Models.IToolView toolView
+                && !toolView.CanClose())
             {
                 return;
             }
-
-            SafeDispose(session.HostControl as IDisposable);
-            ActiveSessions.Remove(session);
-
-            if (ActiveSession == session)
-            {
-                ActiveSession = ActiveSessions.LastOrDefault();
-            }
-
-            HasActiveSessions = ActiveSessions.Count > 0;
-            return;
         }
 
         // Recursively clean up all panes in the tree (primary + all splits)
-        foreach (var pane in Core.Models.SplitTreeHelper.EnumerateLeaves(session.RootContent))
+        foreach (var pane in leaves)
         {
-            if (!string.IsNullOrEmpty(pane.ServerId))
+            // Tool panes bypass ConnectionStateMachine, history, and tunnels
+            if (!pane.ConnectionType.StartsWith("TOOL:", StringComparison.OrdinalIgnoreCase)
+                && !string.IsNullOrEmpty(pane.ServerId))
             {
                 var historyId = !string.IsNullOrEmpty(pane.OriginalServerId)
                     ? pane.OriginalServerId : pane.ServerId;
