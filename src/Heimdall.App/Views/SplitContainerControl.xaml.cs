@@ -39,6 +39,7 @@ public partial class SplitContainerControl : UserControl
         Loaded += OnLoaded;
         Unloaded += OnUnloaded;
         Splitter.DragCompleted += OnSplitterDragCompleted;
+        Splitter.MouseDoubleClick += OnSplitterDoubleClick;
     }
 
     private void OnLoaded(object sender, RoutedEventArgs e)
@@ -55,6 +56,7 @@ public partial class SplitContainerControl : UserControl
         }
 
         Splitter.DragCompleted -= OnSplitterDragCompleted;
+        Splitter.MouseDoubleClick -= OnSplitterDoubleClick;
         DataContextChanged -= OnDataContextChanged;
         Loaded -= OnLoaded;
         Unloaded -= OnUnloaded;
@@ -152,6 +154,7 @@ public partial class SplitContainerControl : UserControl
             Splitter.HorizontalAlignment = System.Windows.HorizontalAlignment.Stretch;
             Splitter.VerticalAlignment = VerticalAlignment.Center;
             Splitter.ResizeDirection = GridResizeDirection.Rows;
+            Splitter.Cursor = System.Windows.Input.Cursors.SizeNS;
 
             Grid.SetRow(SecondPresenter, 2);
             Grid.SetColumn(SecondPresenter, 0);
@@ -174,10 +177,21 @@ public partial class SplitContainerControl : UserControl
             Splitter.HorizontalAlignment = System.Windows.HorizontalAlignment.Center;
             Splitter.VerticalAlignment = VerticalAlignment.Stretch;
             Splitter.ResizeDirection = GridResizeDirection.Columns;
+            Splitter.Cursor = System.Windows.Input.Cursors.SizeWE;
 
             Grid.SetRow(SecondPresenter, 0);
             Grid.SetColumn(SecondPresenter, 2);
         }
+    }
+
+    /// <summary>
+    /// Resets the split ratio to 50/50 when the splitter is double-clicked.
+    /// </summary>
+    private void OnSplitterDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        if (_model is null) return;
+        _model.SplitRatio = SplitContainerModel.DefaultRatio;
+        e.Handled = true;
     }
 
     /// <summary>
@@ -208,6 +222,10 @@ public partial class SplitContainerControl : UserControl
         {
             return;
         }
+
+        // Guard against NaN/Infinity from collapsed panes
+        if (double.IsNaN(ratio) || double.IsInfinity(ratio))
+            ratio = SplitContainerModel.DefaultRatio;
 
         // Model setter clamps to [MinRatio, MaxRatio]
         _model.SplitRatio = ratio;

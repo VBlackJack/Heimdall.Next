@@ -14,7 +14,7 @@
 
 [![CI](https://github.com/VBlackJack/Heimdall.Next/actions/workflows/ci.yml/badge.svg)](https://github.com/VBlackJack/Heimdall.Next/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-1469%20passing-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/tests-1479%20passing-brightgreen.svg)]()
 [![Tools](https://img.shields.io/badge/tools-33%20sysops-blue.svg)]()
 [![.NET](https://img.shields.io/badge/.NET-10.0-purple.svg)]()
 
@@ -168,10 +168,15 @@ All tools open as session tabs (split with any session or tool, detach, reorder)
 - **Drag-to-split**: drag a tab onto the content area of another tab to merge (orientation auto-detected from drop position)
 - Swap panes, toggle orientation (Ctrl+Shift+O), detach any pane to floating window
 - Unsplit restores panes as independent tabs with all metadata preserved
+- **Dedicated SplitService**: split/merge orchestration extracted into a dedicated service with per-session cancellation tokens, deferred state machine cleanup, and diagnostic logging at all guard points
 - Per-pane disconnect overlay with Reconnect and Close buttons (accessible labels for screen readers)
 - Loading overlay with spinner during pane connection
+- **Minimum pane size enforcement**: 120×80px prevents splitter from collapsing panes to unusable size
+- **Double-click splitter** resets ratio to 50/50; hover border on panes for better active pane feedback
 - Splitter ratio remembered per pane across tab switches; restored on merge from split layout history
-- Split layout persistence: previously paired servers suggested in Command Palette (all servers visible in split mode)
+- Split layout persistence (versioned JSON schema): previously paired servers suggested in Command Palette (all servers visible in split mode)
+- **Per-session cancellation**: closing a tab cancels any in-progress split or reconnect operation gracefully
+- **Deferred state machine cleanup**: reconnect releases old tunnel/state only after new connection succeeds or definitively fails
 - Command Palette renders as a WPF `Popup` (own HWND) above RDP/VNC ActiveX surfaces
 - Session transcript logging with ANSI code stripping
 - Connection history log (JSONL with auto-rotation)
@@ -331,7 +336,7 @@ Release mode also produces Inno Setup `.exe` installers in `Dist/installers/` wi
 | RDP | ActiveX MsTscAx (WindowsFormsHost) |
 | Citrix | StoreBrowse CLI integration |
 | Crypto | System.Security.Cryptography.ProtectedData (DPAPI) |
-| Testing | xUnit + Moq + FluentAssertions (1,469 tests) |
+| Testing | xUnit + Moq + FluentAssertions (1,479 tests) |
 | Built-in Tools | 33 sysops tools (Ctrl+K → `tools` or Ctrl+Shift+T) |
 | Serialization | System.Text.Json |
 

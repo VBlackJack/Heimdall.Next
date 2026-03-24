@@ -2214,6 +2214,7 @@
   "SplitSecondaryConnecting": "Connexion en cours...",
   "SplitDropToMerge": "Deposer pour diviser",
   "SplitMaxPanesReached": "Nombre maximum de panneaux atteint (8).",
+  "SplitMergeBlockedByTool": "Fusion bloquee : un outil dans l'onglet source est occupe.",
   "LogSplitSwapped": "Panneaux inverses pour '{0}'.",
   "LogSplitOrientationToggled": "Orientation changee pour '{0}' en {1}.",
   "RdpDisconnectedMessage": "La session Bureau a distance s'est terminee.",

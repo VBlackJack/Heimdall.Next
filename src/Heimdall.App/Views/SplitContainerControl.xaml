@@ -7,7 +7,8 @@
              d:DesignHeight="400"
              d:DesignWidth="800">
     <Grid x:Name="RootGrid" ClipToBounds="True">
-        <ContentPresenter x:Name="FirstPresenter" ClipToBounds="True"/>
+        <ContentPresenter x:Name="FirstPresenter" ClipToBounds="True"
+                          MinWidth="120" MinHeight="80"/>
         <GridSplitter x:Name="Splitter"
                       Visibility="Visible"
                       Background="{DynamicResource CardBrush}"
@@ -25,6 +26,7 @@
                 </Style>
             </GridSplitter.Style>
         </GridSplitter>
-        <ContentPresenter x:Name="SecondPresenter" ClipToBounds="True"/>
+        <ContentPresenter x:Name="SecondPresenter" ClipToBounds="True"
+                          MinWidth="120" MinHeight="80"/>
     </Grid>
 </UserControl>

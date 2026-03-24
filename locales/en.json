@@ -2215,6 +2215,7 @@
   "SplitSecondaryConnecting": "Connecting...",
   "SplitDropToMerge": "Drop to split",
   "SplitMaxPanesReached": "Maximum number of panes reached (8).",
+  "SplitMergeBlockedByTool": "Merge blocked: a tool in the source tab is busy.",
   "LogSplitSwapped": "Swapped split panes for '{0}'.",
   "LogSplitOrientationToggled": "Toggled split orientation for '{0}' to {1}.",
   "RdpDisconnectedMessage": "The Remote Desktop session has ended.",

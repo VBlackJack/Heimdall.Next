@@ -18,10 +18,7 @@ using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Heimdall.App.Services;
-using Heimdall.Core.Configuration;
 using Heimdall.Core.Localization;
-using Heimdall.Core.StateMachine;
-using Heimdall.Ssh;
 
 namespace Heimdall.App.ViewModels;
 
@@ -30,11 +27,9 @@ namespace Heimdall.App.ViewModels;
 /// </summary>
 public partial class ConnectionViewModel : ObservableObject
 {
-    private readonly ConnectionStateMachine _connectionSm;
     private readonly LocalizationManager _localizer;
-    private readonly ConfigManager _configManager;
-    private readonly TunnelManager _tunnelManager;
     private readonly IDialogService _dialogService;
+    private readonly SplitService _splitService;
 
     [ObservableProperty]
     private ObservableCollection<SessionTabViewModel> _activeSessions = [];
@@ -46,17 +41,13 @@ public partial class ConnectionViewModel : ObservableObject
     private bool _hasActiveSessions;
 
     public ConnectionViewModel(
-        ConnectionStateMachine connectionSm,
         LocalizationManager localizer,
-        ConfigManager configManager,
-        TunnelManager tunnelManager,
-        IDialogService dialogService)
+        IDialogService dialogService,
+        SplitService splitService)
     {
-        _connectionSm = connectionSm;
         _localizer = localizer;
-        _configManager = configManager;
-        _tunnelManager = tunnelManager;
         _dialogService = dialogService;
+        _splitService = splitService;
     }
 
     /// <summary>
@@ -72,6 +63,7 @@ public partial class ConnectionViewModel : ObservableObject
             Status = "Connecting",
         };
 
+        _splitService.RegisterSession(session);
         ActiveSessions.Add(session);
         ActiveSession = session;
         HasActiveSessions = ActiveSessions.Count > 0;
@@ -107,47 +99,12 @@ public partial class ConnectionViewModel : ObservableObject
     /// <summary>
     /// Closes a session without showing a confirmation dialog.
     /// Used by <see cref="CloseAllSessions"/> to avoid multiple prompts.
-    /// Recursively cleans up all panes in the split tree.
+    /// Delegates per-pane cleanup to <see cref="SplitService.CloseAllPanes"/>.
     /// </summary>
     private void CloseSessionInternal(SessionTabViewModel session)
     {
-        var leaves = Core.Models.SplitTreeHelper.EnumerateLeaves(session.RootContent).ToList();
-
-        // Check CanClose for all tool panes before proceeding (any busy tool blocks the close)
-        foreach (var pane in leaves)
-        {
-            if (pane.ConnectionType.StartsWith("TOOL:", StringComparison.OrdinalIgnoreCase)
-                && pane.HostControl is Core.Models.IToolView toolView
-                && !toolView.CanClose())
-            {
-                return;
-            }
-        }
-
-        // Recursively clean up all panes in the tree (primary + all splits)
-        foreach (var pane in leaves)
-        {
-            // Tool panes bypass ConnectionStateMachine, history, and tunnels
-            if (!pane.ConnectionType.StartsWith("TOOL:", StringComparison.OrdinalIgnoreCase)
-                && !string.IsNullOrEmpty(pane.ServerId))
-            {
-                var historyId = !string.IsNullOrEmpty(pane.OriginalServerId)
-                    ? pane.OriginalServerId : pane.ServerId;
-                Core.Logging.ConnectionHistory.RecordDisconnect(
-                    historyId, pane.Title, pane.ConnectionType);
-
-                var stateData = _connectionSm.GetStateData(pane.ServerId);
-                if (stateData?.TunnelLocalPort is int localPort)
-                {
-                    _tunnelManager.ReleaseReference(localPort);
-                }
-
-                _connectionSm.Reset(pane.ServerId);
-            }
-
-            SafeDispose(pane.HostControl as IDisposable);
-            pane.HostControl = null;
-        }
+        if (!_splitService.CloseAllPanes(session))
+            return; // Blocked by a busy tool pane
 
         ActiveSessions.Remove(session);
 
@@ -181,17 +138,6 @@ public partial class ConnectionViewModel : ObservableObject
         {
             CloseSessionInternal(session);
         }
-    }
-
-    /// <summary>
-    /// Safely disposes a host control, ignoring ObjectDisposedException
-    /// which is expected when tearing down already-closed controls.
-    /// </summary>
-    private static void SafeDispose(IDisposable? disposable)
-    {
-        if (disposable is null) return;
-        try { disposable.Dispose(); }
-        catch (ObjectDisposedException) { /* Expected when disposing already-closed host controls */ }
     }
 
     [RelayCommand]
