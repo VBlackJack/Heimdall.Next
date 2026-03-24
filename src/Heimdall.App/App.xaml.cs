@@ -224,6 +224,7 @@ public partial class App : System.Windows.Application
         services.AddSingleton<ToolRegistry>();
         services.AddSingleton<ConnectionService>();
         services.AddSingleton<EmbeddedSessionManager>();
+        services.AddSingleton<SplitService>();
         services.AddSingleton<IDialogService, WpfDialogService>();
 
         // ViewModels

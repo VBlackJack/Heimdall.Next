@@ -28,6 +28,7 @@ namespace Heimdall.Core.Configuration;
 public sealed class SplitLayoutMemory
 {
     private const int MaxEntries = 50;
+    private const int CurrentSchemaVersion = 1;
     private const string FileName = "split-layouts.json";
 
     private readonly string _filePath;
@@ -124,7 +125,18 @@ public sealed class SplitLayoutMemory
         {
             if (!File.Exists(_filePath)) return;
             var json = File.ReadAllText(_filePath);
-            _entries = JsonSerializer.Deserialize<List<SplitLayoutEntry>>(json, JsonOptions) ?? [];
+
+            // Try versioned format first, fall back to legacy array format
+            var wrapper = JsonSerializer.Deserialize<SplitLayoutFile>(json, JsonOptions);
+            if (wrapper?.Entries is not null)
+            {
+                _entries = wrapper.Entries;
+            }
+            else
+            {
+                // Legacy format: bare array without version wrapper
+                _entries = JsonSerializer.Deserialize<List<SplitLayoutEntry>>(json, JsonOptions) ?? [];
+            }
         }
         catch (Exception ex)
         {
@@ -146,11 +158,16 @@ public sealed class SplitLayoutMemory
             if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
                 Directory.CreateDirectory(dir);
 
-            var json = JsonSerializer.Serialize(_entries, JsonOptions);
+            var wrapper = new SplitLayoutFile
+            {
+                Version = CurrentSchemaVersion,
+                Entries = _entries
+            };
+            var json = JsonSerializer.Serialize(wrapper, JsonOptions);
             tempPath = Path.Combine(dir ?? ".", $"split-layouts.{Guid.NewGuid():N}.tmp");
             File.WriteAllText(tempPath, json);
             File.Move(tempPath, _filePath, overwrite: true);
-            tempPath = null; // Move succeeded, nothing to clean up
+            tempPath = null;
         }
         catch (Exception ex)
         {
@@ -158,7 +175,6 @@ public sealed class SplitLayoutMemory
         }
         finally
         {
-            // Clean up orphaned temp file if move failed
             if (tempPath is not null)
             {
                 try { File.Delete(tempPath); }
@@ -166,6 +182,16 @@ public sealed class SplitLayoutMemory
             }
         }
     }
+}
+
+/// <summary>
+/// Versioned file wrapper for split layout persistence.
+/// Enables future schema migrations without data loss.
+/// </summary>
+internal sealed class SplitLayoutFile
+{
+    public int Version { get; set; } = 1;
+    public List<SplitLayoutEntry> Entries { get; set; } = [];
 }
 
 /// <summary>

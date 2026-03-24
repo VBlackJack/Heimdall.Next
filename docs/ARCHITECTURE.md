@@ -28,8 +28,8 @@ Heimdall.slnx (8 projects)
 │       │          EmbeddedCitrixView, EmbeddedVncView, FloatingSessionWindow
 │       ├── Views/Tools: 33 built-in sysops tools (IToolView interface)
 │       └── Services: ConnectionService (.Rdp/.Ssh/.Sftp/.Ftp/.Vnc/.Telnet/.Citrix/.Local/.Tunnel),
-│                     EmbeddedSessionManager, ToolRegistry, TaskSchedulerService, MacroService,
-│                     EphemeralFileServer, X11ServerManager, WebSocketVncProxy
+│                     SplitService, EmbeddedSessionManager, ToolRegistry, TaskSchedulerService,
+│                     MacroService, EphemeralFileServer, X11ServerManager, WebSocketVncProxy
 └── tests/
     ├── Heimdall.Core.Tests    State machine, HMAC integrity, input validation, PIN manager, config manager tests
     └── Heimdall.Ssh.Tests     SSH engine tests (failure classifier, preflight, TOFU, Pageant, Plink)
@@ -258,37 +258,57 @@ Toolbar toggle button switches directory listing from SFTP `ListDirectory` to `s
 
 ```
 ISplitContent (marker interface)
-├── SessionPaneModel     Leaf: PaneId (GUID), HostControl, ServerId, Title, Status, ...
+├── SessionPaneModel     Leaf: PaneId (GUID), HostControl, ServerId, OriginalServerId, Title, Status, ...
 └── SplitContainerModel  Branch: First, Second (ISplitContent), Orientation, SplitRatio
                          Constants: MinRatio (0.1), MaxRatio (0.9), DefaultRatio (0.5), SplitterThickness (4)
-                         Auto-clamping: OnSplitRatioChanged clamps to [MinRatio, MaxRatio]
+                         Auto-clamping: SplitRatio setter clamps to [MinRatio, MaxRatio] BEFORE PropertyChanged
 ```
 
-`SessionTabViewModel.RootContent` holds the tree root. A single pane is a `SessionPaneModel`. A split is a `SplitContainerModel` whose children can themselves be split — enabling arbitrary layouts (2x2, L-shape, 3 side-by-side, etc.) up to 8 panes per tab. `SplitTreeHelper` provides static traversal: `EnumerateLeaves`, `FindPane`, `FindParent`, `FindSibling`, `RemovePane`, `ReplacePane`, `CountLeaves`, `FirstLeaf`. Internal mutations use `bool`-returning helpers (`ReplacePaneRecursive`, `ReplaceContainer`) for short-circuit after first match.
+**Pane identity** — two distinct IDs serve different purposes:
+- `ServerId` (session-scoped): assigned AFTER successful connection; used as state machine key and tunnel tracking key. Empty during connection phase.
+- `OriginalServerId` (stable): set at pane creation from server inventory ID; never changes. Used for reconnect lookups, disconnect history, and `SplitLayoutMemory` pairing. Set early in `SplitSessionWithServerAsync` for proper cleanup if the pane is closed during connection.
 
-**Rendering**: WPF implicit `DataTemplate`s in `Window.Resources` recursively instantiate `SessionPaneControl` (leaf) and `SplitContainerControl` (branch with `GridSplitter`). Each leaf manages its own overlays (loading spinner, disconnect with Reconnect/Close buttons, accessible labels). Focus accent (`IsKeyboardFocusWithin`) works independently per pane. Both controls subscribe in constructor and detach all event handlers in `Unloaded` (PropertyChanged, Click, DragCompleted) to prevent memory leaks.
+`SessionTabViewModel.RootContent` holds the tree root. A single pane is a `SessionPaneModel`. A split is a `SplitContainerModel` whose children can themselves be split — enabling arbitrary layouts (2x2, L-shape, 3 side-by-side, etc.) up to 8 panes per tab. `SplitTreeHelper` provides static traversal: `EnumerateLeaves`, `FindPane`, `FindPaneByServerId`, `FindPaneByHostControl`, `FindParent`, `FindSibling`, `RemovePane`, `ReplacePane`, `CountLeaves`, `FirstLeaf`. Internal mutations use `bool`-returning helpers (`ReplacePaneRecursive`, `ReplaceContainer`) for short-circuit after first match.
 
-**Split new connection**: Right-click → "Split..." → Horizontal | Vertical → Command Palette in split mode → select server → new `SessionPaneModel` inserted into tree via `SplitContainerModel` wrapping. Loading overlay visible during async connection. Post-await guard aborts if pane was removed or tab closed during connection. Split palette shows ALL servers from inventory (not limited to recent).
+**SplitService** (extracted from MainViewModel): All split/merge orchestration lives in `Heimdall.App.Services.SplitService`, a singleton DI service that owns:
+- `SplitSessionWithServerAsync` — async connection + tree insertion with CancellationToken
+- `SplitSessionWithTool` — synchronous tool docking
+- `MergeExistingSession` — live reparent with CanClose() check on source tool panes
+- `ClosePane` — type-aware cleanup with fixed disposal order (detach → remove → dispose)
+- `ReconnectPaneAsync` — deferred old state machine cleanup (released only after new connection succeeds)
+- `SwapSplitPanes`, `ToggleSplitOrientation` — in-place tree mutations
+- `ConnectByProtocolAsync` — unified 8-protocol dispatch helper
+- Per-session `CancellationTokenSource` lifecycle (`RegisterSession`/`CancelSession`)
+- `SplitLayoutMemory` instance for layout persistence
+
+Callbacks to `ConnectionViewModel` (ActiveSessions, ActiveSession, HasActiveSessions, StatusText) are wired by `MainViewModel` at construction time, following the same pattern as `EmbeddedSessionManager`.
+
+**Rendering**: WPF implicit `DataTemplate`s in `Window.Resources` recursively instantiate `SessionPaneControl` (leaf) and `SplitContainerControl` (branch with `GridSplitter`). Each leaf manages its own overlays (loading spinner, disconnect with Reconnect/Close buttons, accessible labels). Focus accent (`IsKeyboardFocusWithin`) on active pane + hover border (`IsMouseOver`) for visual feedback. Both controls subscribe in constructor and detach all event handlers in `Unloaded` (PropertyChanged, Click, DragCompleted, MouseDoubleClick) to prevent memory leaks. Minimum pane size enforced (MinWidth=120, MinHeight=80). Double-click splitter resets ratio to 50/50. NaN/Infinity guard on drag completion.
+
+**Split new connection**: Right-click → "Split..." → Horizontal | Vertical → Command Palette in split mode → select server → new `SessionPaneModel` inserted into tree via `SplitContainerModel` wrapping. Loading overlay visible during async connection. Post-await guard aborts if pane was removed or tab closed during connection. Per-session CancellationToken ensures graceful abort when tab is closed. Split palette shows ALL servers from inventory (not limited to recent).
 
 **Split with tool**: When a built-in tool is selected in split mode (palette search or recent tools), `SplitSessionWithTool()` creates the tool control synchronously via `EmbeddedSessionManager.CreateToolControl()` and docks it directly into the split pane — no loading overlay or async connection needed. Tool panes use `ConnectionType = "TOOL:<ID>"` and a GUID-based `ServerId` for tree addressing.
 
-**Merge existing session or tool**: Right-click → "Merge with..." → session or tool → Horizontal | Vertical → `MergeExistingSession()` reparents the live `HostControl` into a new pane without reconnecting. Works symmetrically for both connection tabs and tool tabs. Uses `OriginalServerId` as stable lookup key (fallback from `ServerId` which may be empty during connection; tool tabs use `ServerId` directly). Consults `SplitLayoutMemory` to restore prior ratio for previously-paired servers. State machine entries preserved during merge (connections alive, just reparented) — cleanup happens when the tab is eventually closed.
+**Merge existing session or tool**: Right-click → "Merge with..." → session or tool → Horizontal | Vertical → `MergeExistingSession()` reparents the live `HostControl` into a new pane without reconnecting. Checks `CanClose()` on all source tool panes before proceeding (busy tool blocks merge). Works symmetrically for both connection tabs and tool tabs. Uses `OriginalServerId` as stable lookup key (fallback from `ServerId` which may be empty during connection; tool tabs use `ServerId` directly). Consults `SplitLayoutMemory` to restore prior ratio for previously-paired servers. Cancels any in-progress operations for the source session. State machine entries preserved during merge (connections alive, just reparented) — cleanup happens when the tab is eventually closed.
 
 **Drag-to-split**: Drag a tab onto the content area of another tab. Orientation is auto-detected from drop position (closest edge). Works on already-split sessions to create 3+ pane layouts.
 
-**Operations**: Swap panes, toggle orientation (Ctrl+Shift+O), detach any pane to `FloatingSessionWindow`, close individual pane (promotes sibling in tree), unsplit (restores pane as independent tab). Pane close is type-aware: connection panes get disconnect history + tunnel release + state machine reset; tool panes check `IToolView.CanClose()` and skip state machine/tunnel teardown.
+**Operations**: Swap panes, toggle orientation (Ctrl+Shift+O), detach any pane to `FloatingSessionWindow`, close individual pane (promotes sibling in tree), unsplit (restores pane as independent tab). Pane close is type-aware: connection panes get disconnect history + tunnel release + state machine reset; tool panes check `IToolView.CanClose()` and skip state machine/tunnel teardown. Disposal order is fixed: detach HostControl from visual tree → remove pane from tree → dispose host control (prevents RDP/ActiveX airspace issues).
 
-**Splitter ratio**: Model auto-clamps `SplitRatio` to `[0.1, 0.9]` in the `OnSplitRatioChanged` partial method — the view reads the ratio directly without redundant clamping. Captured via `GridSplitter.DragCompleted` per `SplitContainerControl`, persisted in the tree model. Restored on tab switch via layout rebuild.
+**Splitter ratio**: Model auto-clamps `SplitRatio` to `[0.1, 0.9]` in the setter (before PropertyChanged fires) — the view reads the ratio directly without redundant clamping. Captured via `GridSplitter.DragCompleted` per `SplitContainerControl` with NaN/Infinity guard, persisted in the tree model. Restored on tab switch via layout rebuild. Double-click splitter resets to `DefaultRatio` (0.5).
 
-**Split layout persistence**: `SplitLayoutMemory` records server pair associations in `config/split-layouts.json`. Thread-safe via `lock` on all public methods. Atomic save via unique temp file (`Guid`-suffixed) + `File.Move(overwrite: true)` with `finally` cleanup. When opening the Command Palette in split mode, previously paired servers are boosted to the top of results.
+**Split layout persistence**: `SplitLayoutMemory` records server pair associations in `config/split-layouts.json` with versioned JSON schema (`{ "version": 1, "entries": [...] }`). Backward-compatible with legacy bare-array format. Thread-safe via `lock` on all public methods. Atomic save via unique temp file (`Guid`-suffixed) + `File.Move(overwrite: true)` with `finally` cleanup. When opening the Command Palette in split mode, previously paired servers are boosted to the top of results.
 
 **Race condition guards**:
-- Post-await check `!Connection.ActiveSessions.Contains(session)` prevents orphaned connections when tab is closed during async split
+- Per-session `CancellationToken` aborts in-progress split/reconnect when tab is closed (`CancelSession` called from `CloseSessionInternal`)
+- Post-await check `!ActiveSessions.Contains(session) || FindPane(...) is null` prevents orphaned connections
 - `CountLeaves >= 8` gate prevents unbounded tree growth
 - Anti-double-reconnect via `pane.HostControl is null` check (overlay hides button when connection starts)
 - `RemovePane` null subtree guard: promotes sibling instead of assigning null to container children
+- Deferred state machine cleanup in reconnect: old tunnel/state released only after new connection definitively succeeds or fails (prevents state loss on reconnect failure)
+- `OriginalServerId` set at pane creation (not post-connection) for proper cleanup if pane closed during async connection
 
-**Backward compatibility**: `SessionTabViewModel` exposes shim properties (`ServerId`, `Title`, `Status`, `HostControl`, `IsSplit`, `SplitOrientation`, etc.) that delegate to `PrimaryPane` (first leaf). `Secondary*` shim properties target the first leaf of the second child at root level. `NotifyShimPropertiesChanged()` is called after in-place tree mutations (swap).
+**Backward compatibility**: `SessionTabViewModel` exposes shim properties (`ServerId`, `Title`, `Status`, `HostControl`, `IsSplit`, `SplitOrientation`, etc.) that delegate to `PrimaryPane` (first leaf). `Secondary*` shim properties target the first leaf of the second child at root level. `NotifyTreeDependentProperties()` (shared method) is called after both `RootContent` changes and in-place tree mutations (swap). `_emptyPane` is per-instance (not static) to prevent cross-session state leakage.
 
 ### 16b. Tab Detach to Floating Window
 

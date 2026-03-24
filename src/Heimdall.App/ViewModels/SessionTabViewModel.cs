@@ -52,22 +52,7 @@ public partial class SessionTabViewModel : ObservableObject
     public SessionPaneModel PrimaryPane =>
         SplitTreeHelper.FirstLeaf(RootContent) ?? _emptyPane;
 
-    partial void OnRootContentChanged(ISplitContent value)
-    {
-        // Notify all shim property bindings that depend on the tree structure
-        OnPropertyChanged(nameof(PrimaryPane));
-        OnPropertyChanged(nameof(ServerId));
-        OnPropertyChanged(nameof(OriginalServerId));
-        OnPropertyChanged(nameof(Title));
-        OnPropertyChanged(nameof(ConnectionType));
-        OnPropertyChanged(nameof(Status));
-        OnPropertyChanged(nameof(HostControl));
-        OnPropertyChanged(nameof(TunnelRoute));
-        OnPropertyChanged(nameof(EnvironmentColor));
-        OnPropertyChanged(nameof(IsSplit));
-        OnPropertyChanged(nameof(SplitOrientation));
-        OnPropertyChanged(nameof(SplitRatio));
-    }
+    partial void OnRootContentChanged(ISplitContent value) => NotifyTreeDependentProperties();
 
     // ── Backward-compatibility shim properties ────────────────────
     // These delegate to PrimaryPane so existing consumers (tab header
@@ -286,7 +271,13 @@ public partial class SessionTabViewModel : ObservableObject
     /// Called externally after in-place tree mutations (e.g., swap) that don't
     /// change the <see cref="RootContent"/> reference.
     /// </summary>
-    public void NotifyShimPropertiesChanged()
+    public void NotifyShimPropertiesChanged() => NotifyTreeDependentProperties();
+
+    /// <summary>
+    /// Shared notification for all tree-dependent shim properties.
+    /// Used by both <see cref="OnRootContentChanged"/> and <see cref="NotifyShimPropertiesChanged"/>.
+    /// </summary>
+    private void NotifyTreeDependentProperties()
     {
         OnPropertyChanged(nameof(PrimaryPane));
         OnPropertyChanged(nameof(ServerId));
@@ -302,5 +293,8 @@ public partial class SessionTabViewModel : ObservableObject
         OnPropertyChanged(nameof(SplitRatio));
     }
 
-    private static readonly SessionPaneModel _emptyPane = new();
+    /// <summary>
+    /// Fallback pane for when the tree is empty. Per-instance to avoid shared state.
+    /// </summary>
+    private readonly SessionPaneModel _emptyPane = new();
 }
