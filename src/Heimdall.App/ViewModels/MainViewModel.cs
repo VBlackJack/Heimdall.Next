@@ -940,6 +940,71 @@ public partial class MainViewModel : ObservableObject
         }
     }
 
+    /// <summary>
+    /// Splits the target session by docking a built-in tool into a new pane.
+    /// Unlike <see cref="SplitSessionWithServerAsync"/>, no network connection is needed.
+    /// </summary>
+    /// <param name="session">The session tab to split.</param>
+    /// <param name="paletteToolPayload">Tool payload from palette ID (after "tool-" prefix): "toolid" or "toolid|argument".</param>
+    /// <param name="orientation">Split direction.</param>
+    /// <param name="paneId">Optional target pane ID within the split tree.</param>
+    private void SplitSessionWithTool(
+        SessionTabViewModel session,
+        string paletteToolPayload,
+        Core.Models.SplitOrientation orientation,
+        string? paneId = null)
+    {
+        // Parse tool ID and optional argument from palette format
+        var pipeIndex = paletteToolPayload.IndexOf('|');
+        var toolId = pipeIndex >= 0 ? paletteToolPayload[..pipeIndex] : paletteToolPayload;
+        var argument = pipeIndex >= 0 ? paletteToolPayload[(pipeIndex + 1)..] : null;
+
+        var descriptor = ToolRegistry.GetById(toolId);
+        if (descriptor is null) return;
+
+        var targetPane = !string.IsNullOrEmpty(paneId)
+            ? Core.Models.SplitTreeHelper.FindPane(session.RootContent, paneId)
+            : session.PrimaryPane;
+        if (targetPane is null) return;
+
+        if (Core.Models.SplitTreeHelper.CountLeaves(session.RootContent) >= MaxPanesPerTab)
+        {
+            StatusText = _localizer["SplitMaxPanesReached"];
+            return;
+        }
+
+        var connectionType = $"TOOL:{toolId.ToUpperInvariant()}";
+        var title = _localizer[descriptor.LabelKey];
+        ToolContext? context = !string.IsNullOrEmpty(argument)
+            ? new ToolContext(Argument: argument)
+            : null;
+
+        var newPane = new Core.Models.SessionPaneModel
+        {
+            ServerId = $"tool-{toolId.ToLowerInvariant()}-{Guid.NewGuid():N}",
+            ConnectionType = connectionType,
+            Title = title,
+            Status = _localizer["StatusReady"],
+        };
+
+        newPane.HostControl = _embeddedSessionManager.CreateToolControl(
+            session, toolId, context, _currentSettings);
+
+        var container = new Core.Models.SplitContainerModel
+        {
+            First = targetPane,
+            Second = newPane,
+            Orientation = orientation,
+            SplitRatio = Core.Models.SplitContainerModel.DefaultRatio
+        };
+        session.RootContent = Core.Models.SplitTreeHelper.ReplacePane(
+            session.RootContent, targetPane.PaneId, container);
+
+        TrackRecentTool(toolId.ToUpperInvariant());
+        Core.Logging.FileLogger.Info(
+            $"Split session '{session.Title}' with tool '{title}' as {orientation}.");
+    }
+
     // --- Command Palette logic ---
 
     partial void OnPaletteSearchTextChanged(string value)
@@ -954,9 +1019,8 @@ public partial class MainViewModel : ObservableObject
             {
                 foreach (var s in Connection.ActiveSessions)
                 {
-                    // Skip the session being split and tool tabs
+                    // Skip the session being split
                     if (s == _splitPaletteSession) continue;
-                    if (s.ConnectionType?.StartsWith("TOOL:", StringComparison.OrdinalIgnoreCase) == true) continue;
                     if (s.HostControl is null) continue;
 
                     initialResults.Add(new ServerItemViewModel
@@ -1128,6 +1192,13 @@ public partial class MainViewModel : ObservableObject
                 return;
             }
 
+            // Built-in tool selected in split mode — dock tool in split pane
+            if (item.Id.StartsWith("tool-", StringComparison.Ordinal))
+            {
+                SplitSessionWithTool(splitSession, item.Id["tool-".Length..], splitOrientation, splitPaneId);
+                return;
+            }
+
             if (!item.Id.StartsWith("adhoc-", StringComparison.Ordinal))
             {
                 _ = SplitSessionWithServerAsync(splitSession, item.Id, splitOrientation, splitPaneId);
@@ -1159,6 +1230,13 @@ public partial class MainViewModel : ObservableObject
             {
                 var sourceSessionId = server.Id["session-".Length..];
                 MergeExistingSession(splitSession, sourceSessionId, splitOrientation, splitPaneId);
+                return;
+            }
+
+            // Built-in tool selected in split mode
+            if (server.Id.StartsWith("tool-", StringComparison.Ordinal))
+            {
+                SplitSessionWithTool(splitSession, server.Id["tool-".Length..], splitOrientation, splitPaneId);
                 return;
             }
 
@@ -1407,9 +1485,17 @@ public partial class MainViewModel : ObservableObject
         var pane = Core.Models.SplitTreeHelper.FindPane(session.RootContent, paneId);
         if (pane is null) return;
 
-        // Record disconnect
-        if (!string.IsNullOrEmpty(pane.ServerId))
+        var isToolPane = pane.ConnectionType.StartsWith("TOOL:", StringComparison.OrdinalIgnoreCase);
+
+        // Tool panes: respect CanClose (e.g., scan in progress)
+        if (isToolPane)
         {
+            if (pane.HostControl is Core.Models.IToolView toolView && !toolView.CanClose())
+                return;
+        }
+        else if (!string.IsNullOrEmpty(pane.ServerId))
+        {
+            // Connection panes: record disconnect, release tunnel, reset state machine
             var historyId = !string.IsNullOrEmpty(pane.OriginalServerId)
                 ? pane.OriginalServerId : pane.ServerId;
             Core.Logging.ConnectionHistory.RecordDisconnect(
@@ -1591,6 +1677,14 @@ public partial class MainViewModel : ObservableObject
 
         if (server.Id.StartsWith("tool-", StringComparison.Ordinal))
         {
+            var activeForTool = Connection.ActiveSession;
+            if (activeForTool is not null)
+            {
+                SplitSessionWithTool(activeForTool, server.Id["tool-".Length..],
+                    Core.Models.SplitOrientation.Vertical);
+                return;
+            }
+
             await OpenToolFromPaletteAsync(server);
             return;
         }
