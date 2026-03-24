@@ -270,11 +270,13 @@ ISplitContent (marker interface)
 
 **Split new connection**: Right-click → "Split..." → Horizontal | Vertical → Command Palette in split mode → select server → new `SessionPaneModel` inserted into tree via `SplitContainerModel` wrapping. Loading overlay visible during async connection. Post-await guard aborts if pane was removed or tab closed during connection. Split palette shows ALL servers from inventory (not limited to recent).
 
-**Merge existing session**: Right-click → "Merge with..." → session → Horizontal | Vertical → `MergeExistingSession()` reparents the live `HostControl` into a new pane without reconnecting. Uses `OriginalServerId` as stable lookup key (fallback from `ServerId` which may be empty during connection). Consults `SplitLayoutMemory` to restore prior ratio for previously-paired servers. State machine entries are preserved (not released) — cleanup happens when the tab is eventually closed.
+**Split with tool**: When a built-in tool is selected in split mode (palette search or recent tools), `SplitSessionWithTool()` creates the tool control synchronously via `EmbeddedSessionManager.CreateToolControl()` and docks it directly into the split pane — no loading overlay or async connection needed. Tool panes use `ConnectionType = "TOOL:<ID>"` and a GUID-based `ServerId` for tree addressing.
+
+**Merge existing session or tool**: Right-click → "Merge with..." → session or tool → Horizontal | Vertical → `MergeExistingSession()` reparents the live `HostControl` into a new pane without reconnecting. Works symmetrically for both connection tabs and tool tabs. Uses `OriginalServerId` as stable lookup key (fallback from `ServerId` which may be empty during connection; tool tabs use `ServerId` directly). Consults `SplitLayoutMemory` to restore prior ratio for previously-paired servers. State machine entries preserved during merge (connections alive, just reparented) — cleanup happens when the tab is eventually closed.
 
 **Drag-to-split**: Drag a tab onto the content area of another tab. Orientation is auto-detected from drop position (closest edge). Works on already-split sessions to create 3+ pane layouts.
 
-**Operations**: Swap panes, toggle orientation (Ctrl+Shift+O), detach any pane to `FloatingSessionWindow`, close individual pane (disposes connection + releases tunnel + resets state machine + promotes sibling in tree), unsplit (restores pane as independent tab).
+**Operations**: Swap panes, toggle orientation (Ctrl+Shift+O), detach any pane to `FloatingSessionWindow`, close individual pane (promotes sibling in tree), unsplit (restores pane as independent tab). Pane close is type-aware: connection panes get disconnect history + tunnel release + state machine reset; tool panes check `IToolView.CanClose()` and skip state machine/tunnel teardown.
 
 **Splitter ratio**: Model auto-clamps `SplitRatio` to `[0.1, 0.9]` in the `OnSplitRatioChanged` partial method — the view reads the ratio directly without redundant clamping. Captured via `GridSplitter.DragCompleted` per `SplitContainerControl`, persisted in the tree model. Restored on tab switch via layout rebuild.
 
@@ -560,7 +562,7 @@ public interface IToolView : IDisposable
 }
 ```
 
-All tool views implement this contract. `EmbeddedSessionManager.CreateToolControl()` uses the registry's factory delegate to instantiate views without any protocol-specific switch logic. `ConnectionViewModel.CloseSessionInternal()` checks `CanClose()` before disposing tool tabs.
+All tool views implement this contract. `EmbeddedSessionManager.CreateToolControl()` uses the registry's factory delegate to instantiate views without any protocol-specific switch logic. `ConnectionViewModel.CloseSessionInternal()` checks `CanClose()` per-pane before disposing — works for both standalone tool tabs and tool panes inside mixed splits (e.g., SSH + tool in the same tab). `MainViewModel.ClosePane()` also checks `CanClose()` when closing an individual tool pane in a split tree.
 
 ### ToolContextMenuHelper (Shared DataGrid Actions)
 

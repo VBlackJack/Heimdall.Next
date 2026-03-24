@@ -105,7 +105,7 @@ Built with .NET 10 and WPF. Secure, feature-rich Windows connection manager with
 - Command palette for ad-hoc connections without saving a server profile
 - Supports `user@host:port` format with optional protocol prefix
 - Bare IP or hostname input auto-proposes SSH and RDP connections
-- Also used as split session server picker (fuzzy search scales to any inventory size)
+- Also used as split session server and tool picker (fuzzy search scales to any inventory size)
 - Renders as a WPF `Popup` (own HWND) so it displays above RDP/VNC ActiveX surfaces
 - Recent connection history for quick re-use
 
@@ -149,7 +149,7 @@ Built with .NET 10 and WPF. Secure, feature-rich Windows connection manager with
 
 ### Built-in Sysops Toolbox (33 tools)
 
-All tools open as session tabs (split, detach, reorder). Accessible via **Ctrl+K** palette, **Ctrl+Shift+T** sidebar panel, or **"+" → Add Tool** menu. Tools can be saved in the TreeView alongside servers. Centralized `ToolRegistry` with vector icons, categories, and command aliases. Recent tools shown in palette on open. Singleton behavior for context-free tools. Built-in help system with usage examples (? button). Dedicated detail panel for tools with descriptions. Password Generator supports saveable custom presets (JSON persistence). Cross-tool navigation via right-click context menus (IP → Port Scanner → Cert Inspector). Network tools support scanning via SSH tunnel ("Route via" gateway selector).
+All tools open as session tabs (split with any session or tool, detach, reorder). Accessible via **Ctrl+K** palette, **Ctrl+Shift+T** sidebar panel, or **"+" → Add Tool** menu. Tools can be saved in the TreeView alongside servers. Centralized `ToolRegistry` with vector icons, categories, and command aliases. Recent tools shown in palette on open. Singleton behavior for context-free tools. Built-in help system with usage examples (? button). Dedicated detail panel for tools with descriptions. Password Generator supports saveable custom presets (JSON persistence). Cross-tool navigation via right-click context menus (IP → Port Scanner → Cert Inspector). Network tools support scanning via SSH tunnel ("Route via" gateway selector).
 
 | Category | Tools |
 |----------|-------|
@@ -163,7 +163,8 @@ All tools open as session tabs (split, detach, reorder). Accessible via **Ctrl+K
 - Tab detach to floating window (Chrome-style drag-out or context menu)
 - **Recursive N-pane split**: up to 8 panes per tab in any layout (2x2, L-shape, 3 side-by-side, etc.)
 - Split any pane further: right-click → "Split..." → Horizontal | Vertical, or Command Palette
-- **Merge existing tab**: right-click → "Merge with..." → session → Horizontal | Vertical (reparents live connection without reconnecting)
+- **Merge existing tab**: right-click → "Merge with..." → session or tool → Horizontal | Vertical (reparents live connection without reconnecting)
+- **Mixed session + tool splits**: freely combine connections and built-in tools in the same tab (e.g., SSH terminal left + Network Cartography right)
 - **Drag-to-split**: drag a tab onto the content area of another tab to merge (orientation auto-detected from drop position)
 - Swap panes, toggle orientation (Ctrl+Shift+O), detach any pane to floating window
 - Unsplit restores panes as independent tabs with all metadata preserved
