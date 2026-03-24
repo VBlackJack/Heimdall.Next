@@ -566,4 +566,174 @@ public class SplitTreeHelperTests
         Assert.NotNull(SplitTreeHelper.FindPane(root, "C"));
         Assert.NotNull(SplitTreeHelper.FindPane(root, "D"));
     }
+
+    // ── RemovePane: 8-leaf max tree ─────────────────────────────────
+
+    [Fact]
+    public void RemovePane_EightLeafTree_RemovesCorrectly()
+    {
+        //          root
+        //        /      \
+        //      L1        L2
+        //     / \       / \
+        //   L3   L4   L5   L6
+        //  / \  / \  / \  / \
+        // A  B C  D E  F G  H
+        var a = MakePane("A"); var b = MakePane("B");
+        var c = MakePane("C"); var d = MakePane("D");
+        var e = MakePane("E"); var f = MakePane("F");
+        var g = MakePane("G"); var h = MakePane("H");
+        var root = MakeSplit(
+            MakeSplit(MakeSplit(a, b), MakeSplit(c, d)),
+            MakeSplit(MakeSplit(e, f), MakeSplit(g, h)));
+
+        Assert.Equal(8, SplitTreeHelper.CountLeaves(root));
+
+        // Remove D from L4 (C,D) → L4 becomes C, L1 becomes (L3, C)
+        var result = SplitTreeHelper.RemovePane(root, "D");
+        Assert.Equal(7, SplitTreeHelper.CountLeaves(result));
+        Assert.NotNull(SplitTreeHelper.FindPane(result!, "C"));
+        Assert.Null(SplitTreeHelper.FindPane(result!, "D"));
+
+        // Remove A from L3 (A,B) → L3 becomes B
+        result = SplitTreeHelper.RemovePane(result!, "A");
+        Assert.Equal(6, SplitTreeHelper.CountLeaves(result));
+        Assert.Null(SplitTreeHelper.FindPane(result!, "A"));
+    }
+
+    // ── FindSibling: deep nested tree ────────────────────────────────
+
+    [Fact]
+    public void FindSibling_DeepTree_ReturnsCorrectSibling()
+    {
+        //        root
+        //       /    \
+        //    inner    C
+        //    /    \
+        //   A      B
+        var a = MakePane("A");
+        var b = MakePane("B");
+        var c = MakePane("C");
+        var inner = MakeSplit(a, b);
+        var root = MakeSplit(inner, c);
+
+        // A's sibling is B (within inner)
+        Assert.Same(b, SplitTreeHelper.FindSibling(root, "A"));
+        // B's sibling is A (within inner)
+        Assert.Same(a, SplitTreeHelper.FindSibling(root, "B"));
+        // inner's child C — C's sibling is the inner container
+        Assert.Same(inner, SplitTreeHelper.FindSibling(root, "C"));
+    }
+
+    // ── Swap idempotence (swap twice returns original) ───────────────
+
+    [Fact]
+    public void SwapChildren_TwiceRestoresOriginalOrder()
+    {
+        var a = MakePane("A");
+        var b = MakePane("B");
+        var container = MakeSplit(a, b);
+
+        // Swap once
+        (container.First, container.Second) = (container.Second, container.First);
+        Assert.Same(b, container.First);
+        Assert.Same(a, container.Second);
+
+        // Swap again — back to original
+        (container.First, container.Second) = (container.Second, container.First);
+        Assert.Same(a, container.First);
+        Assert.Same(b, container.Second);
+    }
+
+    // ── SplitRatio: clamping via OnSplitRatioChanging ────────────────
+
+    [Fact]
+    public void SplitRatio_ClampedBeforePropertyChanged()
+    {
+        var model = new SplitContainerModel
+        {
+            First = MakePane("A"),
+            Second = MakePane("B"),
+        };
+
+        // Values below MinRatio are clamped up
+        model.SplitRatio = 0.05;
+        Assert.Equal(SplitContainerModel.MinRatio, model.SplitRatio);
+
+        // Values above MaxRatio are clamped down
+        model.SplitRatio = 0.95;
+        Assert.Equal(SplitContainerModel.MaxRatio, model.SplitRatio);
+
+        // Values within range are preserved exactly
+        model.SplitRatio = 0.33;
+        Assert.Equal(0.33, model.SplitRatio);
+    }
+
+    [Fact]
+    public void SplitRatio_PropertyChanged_ReportsClampedValue()
+    {
+        var model = new SplitContainerModel
+        {
+            First = MakePane("A"),
+            Second = MakePane("B"),
+            SplitRatio = 0.5
+        };
+
+        double? reportedValue = null;
+        model.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(SplitContainerModel.SplitRatio))
+                reportedValue = model.SplitRatio;
+        };
+
+        model.SplitRatio = 0.01; // Will be clamped to MinRatio
+        Assert.NotNull(reportedValue);
+        Assert.Equal(SplitContainerModel.MinRatio, reportedValue);
+    }
+
+    // ── FindPaneByServerId: duplicate server IDs ─────────────────────
+
+    [Fact]
+    public void FindPaneByServerId_Duplicates_ReturnsFirst()
+    {
+        var a = MakePane("A", serverId: "srv-same");
+        var b = MakePane("B", serverId: "srv-same");
+        var root = MakeSplit(a, b);
+
+        // Should return the first match (depth-first = A)
+        var found = SplitTreeHelper.FindPaneByServerId(root, "srv-same");
+        Assert.Same(a, found);
+    }
+
+    // ── Defensive: null First/Second on uninitialized container ──────
+
+    [Fact]
+    public void EnumerateLeaves_NullChildren_DoesNotCrash()
+    {
+        var container = new SplitContainerModel();
+        // First and Second are null! by default — should not throw
+        var leaves = SplitTreeHelper.EnumerateLeaves(container).ToList();
+        Assert.Empty(leaves);
+    }
+
+    [Fact]
+    public void CountLeaves_NullChildren_ReturnsZero()
+    {
+        var container = new SplitContainerModel();
+        Assert.Equal(0, SplitTreeHelper.CountLeaves(container));
+    }
+
+    [Fact]
+    public void FirstLeaf_NullFirst_ReturnsNull()
+    {
+        var container = new SplitContainerModel();
+        Assert.Null(SplitTreeHelper.FirstLeaf(container));
+    }
+
+    [Fact]
+    public void FindPane_NullChildren_ReturnsNull()
+    {
+        var container = new SplitContainerModel();
+        Assert.Null(SplitTreeHelper.FindPane(container, "any"));
+    }
 }

@@ -43,16 +43,17 @@ public partial class SplitContainerModel : ObservableObject, ISplitContent
     /// Splitter position ratio (0.0–1.0) between the first and second child.
     /// Automatically clamped to [<see cref="MinRatio"/>, <see cref="MaxRatio"/>].
     /// Preserved when switching tabs and persisted via split layout memory.
+    /// Manual property (not [ObservableProperty]) to clamp BEFORE PropertyChanged fires.
     /// </summary>
-    [ObservableProperty]
     private double _splitRatio = DefaultRatio;
 
-    partial void OnSplitRatioChanged(double value)
+    public double SplitRatio
     {
-        var clamped = Math.Clamp(value, MinRatio, MaxRatio);
-        if (clamped != value)
+        get => _splitRatio;
+        set
         {
-            _splitRatio = clamped;
+            var clamped = Math.Clamp(value, MinRatio, MaxRatio);
+            SetProperty(ref _splitRatio, clamped);
         }
     }
 }

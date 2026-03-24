@@ -904,7 +904,7 @@ public partial class MainViewModel : ObservableObject
             }
 
             // Guard: if the tab was closed or the pane was removed during the async connection,
-            // dispose the result and abort.
+            // dispose the result, release any orphaned tunnel, and abort.
             if (!Connection.ActiveSessions.Contains(session)
                 || Core.Models.SplitTreeHelper.FindPane(session.RootContent, newPane.PaneId) is null)
             {
@@ -913,6 +913,7 @@ public partial class MainViewModel : ObservableObject
                     try { sessionDisposable.Dispose(); }
                     catch (ObjectDisposedException) { /* Expected */ }
                 }
+                CleanupOrphanedPane(serverDto.Id);
                 Core.Logging.FileLogger.Info(
                     $"Split cancelled for {serverDto.DisplayName} — pane was removed during connection.");
                 return;
@@ -1619,7 +1620,8 @@ public partial class MainViewModel : ObservableObject
             return;
         }
 
-        // Guard: verify tab and pane still exist after async connect
+        // Guard: verify tab and pane still exist after async connect.
+        // Release any orphaned tunnel/state machine entry if the pane was removed.
         if (!Connection.ActiveSessions.Contains(session)
             || Core.Models.SplitTreeHelper.FindPane(session.RootContent, paneId) is null)
         {
@@ -1628,6 +1630,7 @@ public partial class MainViewModel : ObservableObject
                 try { sessionDisposable.Dispose(); }
                 catch (ObjectDisposedException) { /* Expected */ }
             }
+            CleanupOrphanedPane(serverDto.Id);
             return;
         }
 

@@ -35,10 +35,16 @@ public static class SplitTreeHelper
         }
         else if (root is SplitContainerModel container)
         {
-            foreach (var leaf in EnumerateLeaves(container.First))
-                yield return leaf;
-            foreach (var leaf in EnumerateLeaves(container.Second))
-                yield return leaf;
+            if (container.First is not null)
+            {
+                foreach (var leaf in EnumerateLeaves(container.First))
+                    yield return leaf;
+            }
+            if (container.Second is not null)
+            {
+                foreach (var leaf in EnumerateLeaves(container.Second))
+                    yield return leaf;
+            }
         }
     }
 
@@ -263,22 +269,26 @@ public static class SplitTreeHelper
 
     /// <summary>
     /// Returns the total number of leaf panes in the tree.
+    /// Defensive: guards against null First/Second from uninitialized containers.
     /// </summary>
     public static int CountLeaves(ISplitContent? root) => root switch
     {
         null => 0,
         SessionPaneModel => 1,
+        SplitContainerModel { First: null, Second: null } => 0,
         SplitContainerModel c => CountLeaves(c.First) + CountLeaves(c.Second),
         _ => 0
     };
 
     /// <summary>
     /// Returns the first leaf pane in depth-first order (the "primary" pane).
+    /// Defensive: guards against null First from uninitialized containers.
     /// </summary>
     public static SessionPaneModel? FirstLeaf(ISplitContent? root) => root switch
     {
         null => null,
         SessionPaneModel pane => pane,
+        SplitContainerModel { First: null } => null,
         SplitContainerModel c => FirstLeaf(c.First),
         _ => null
     };
