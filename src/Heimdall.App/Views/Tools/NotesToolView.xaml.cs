@@ -650,7 +650,13 @@ public partial class NotesToolView : UserControl, IToolView
         EditorEmptyTitleText.Text = L("ToolNotesEmptyTitle");
         EditorEmptyBodyText.Text = L("ToolNotesEmptyBody");
 
+        BtnCollapseAll.ToolTip = L("ToolNotesCollapseAll");
+        BtnExpandAll.ToolTip = L("ToolNotesExpandAll");
+        BtnMarkdownHelp.Content = L("ToolNotesMarkdownHelpBtn");
         BtnHelp.ToolTip = L("ToolHelpTooltip");
+        System.Windows.Automation.AutomationProperties.SetName(BtnCollapseAll, L("ToolNotesCollapseAll"));
+        System.Windows.Automation.AutomationProperties.SetName(BtnExpandAll, L("ToolNotesExpandAll"));
+        System.Windows.Automation.AutomationProperties.SetName(BtnMarkdownHelp, L("ToolNotesMarkdownHelpBtn"));
         System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
         System.Windows.Automation.AutomationProperties.SetName(BtnOpenFolder, L("ToolNotesBtnOpenFolder"));
         System.Windows.Automation.AutomationProperties.SetName(BtnNewNote, L("ToolNotesBtnNew"));
@@ -1327,9 +1333,38 @@ public partial class NotesToolView : UserControl, IToolView
         window.Closed += (_, _) => _completionWindow = null;
     }
 
+    // ── TreeView collapse/expand ──────────────────────────────────
+
+    private void OnCollapseAllClick(object sender, RoutedEventArgs e)
+        => SetAllTreeItemsExpanded(NotesTreeView, false);
+
+    private void OnExpandAllClick(object sender, RoutedEventArgs e)
+        => SetAllTreeItemsExpanded(NotesTreeView, true);
+
+    private static void SetAllTreeItemsExpanded(ItemsControl parent, bool expanded)
+    {
+        foreach (var item in parent.Items)
+        {
+            if (parent.ItemContainerGenerator.ContainerFromItem(item) is TreeViewItem tvi)
+            {
+                tvi.IsExpanded = expanded;
+                SetAllTreeItemsExpanded(tvi, expanded);
+            }
+        }
+    }
+
+    // ── Help ────────────────────────────────────────────────────────
+
     private void OnHelpClick(object sender, RoutedEventArgs e)
     {
         MessageBox.Show(L("ToolHelpNOTES"), L("ToolHelpTitle"), MessageBoxButton.OK, MessageBoxImage.Information);
+    }
+
+    private void OnMarkdownHelpClick(object sender, RoutedEventArgs e)
+    {
+        var help = L("ToolNotesMarkdownHelp");
+        MessageBox.Show(help, L("ToolNotesMarkdownHelpTitle"),
+            MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
     public void Dispose()
