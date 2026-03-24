@@ -37,4 +37,12 @@ runtimes/
 config/settings.json
 config/servers.json
 logs/
+
+## Temporary/diagnostic files
+*.log
+audit_report_detailed.*
+.dotnet-home/
+.dotnet-home-audit/
+TestResults/
+
 CLAUDE.md
