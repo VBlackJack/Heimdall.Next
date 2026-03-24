@@ -12,6 +12,39 @@
 
 All notable changes to Heimdall.Next are documented in this file.
 
+## [v2026.032404] - 2026-03-24
+
+### Notes tool — Obsidian-style Markdown editor with Milkdown
+
+#### New tool: Notes (#34 NOTES)
+- **Milkdown WYSIWYG editor** via WebView2 (ProseMirror-based, MIT licensed) with AvalonEdit + syntax highlighting fallback
+- **TreeView file explorer** mirroring filesystem hierarchy with folder icons, drag-and-drop between folders, and folder creation
+- **4 templates**: Blank, Daily, Incident, Procedure — with contextual server metadata pre-fill
+- **`[[wiki-link]]` support**: click navigation, back/forward history, auto-completion popup on `[[` keystroke
+- **Tag filtering**: `> tags: infra, prod` metadata line, dynamic filter buttons
+- **Export**: Confluence Storage Format XML (copy/export), HTML standalone
+- **Drag-and-drop import** of external `.md` files
+- **Context menu**: New/Daily/Incident/Procedure, New Folder, Rename, Duplicate, Delete, Open in Explorer
+- **Autosave** with 850ms debounce, path traversal protection, atomic writes
+- **Configurable storage path** via `NotesDirectory` in settings.json
+
+#### Integration
+- Server right-click → "Notes" submenu with all templates (pre-filled ToolContext)
+- Command Palette: `Ctrl+K → notes`
+- Dedicated `Geo.Tool.Notes` icon
+
+#### Infrastructure
+- New `Heimdall.App.Tests` project: **97 tests** (SimpleMarkdownConverter, ConfluenceStorageConverter, NotesTemplateFactory, NotesStorageService)
+- Session tab context menu exclusion for tool TreeViews (prevents Split/Merge menu from intercepting tool-owned context menus)
+- `WebView2Loader.dll` copied to bin root for `dotnet run` compatibility
+- `PlaceholderRegex` fix: removed `^$` anchors that prevented inline placeholder restoration
+
+#### i18n
+- 3,298 keys (EN/FR parity confirmed)
+
+#### Tests
+- **1,576 tests** (1,196 Core + 283 SSH + 97 App), all passing
+
 ## [v2026.032403] - 2026-03-24
 
 ### Split/Merge audit — 7 fixes (bugs, robustness, cleanup dedup)
