@@ -3454,5 +3454,10 @@
   "ToolNotesStatusMoved": "Moved: {0}",
   "ToolNotesNewFolder": "New Folder",
   "ToolNotesNewFolderPrompt": "Enter folder name:",
+  "ToolNotesCollapseAll": "Collapse all",
+  "ToolNotesExpandAll": "Expand all",
+  "ToolNotesMarkdownHelpBtn": "Markdown",
+  "ToolNotesMarkdownHelpTitle": "Markdown Cheat Sheet",
+  "ToolNotesMarkdownHelp": "HEADINGS\n# Heading 1\n## Heading 2\n### Heading 3\n\nTEXT FORMATTING\n**bold** or __bold__\n*italic* or _italic_\n~~strikethrough~~\n`inline code`\n\nLISTS\n- Bullet item\n  - Nested item\n1. Numbered item\n- [ ] Unchecked task\n- [x] Checked task\n\nLINKS & IMAGES\n[Link text](https://url)\n![Alt text](image.png)\n[[Note name]] (inter-note link)\n\nCODE BLOCKS\n```language\ncode here\n```\n\nOTHER\n> Blockquote\n---  (horizontal rule)\n| H1 | H2 |\\n|---|---|\\n| A | B |  (table)\n\nMETADATA (in blockquote)\n> tags: tag1, tag2",
   "ToolHelpNOTES": "Create and manage local Markdown notes for your work. Use templates for daily notes, incidents, and procedures. Notes autosave locally under config/notes and can be exported as Confluence Storage Format XML. Supports Markdown preview with syntax highlighting, strikethrough (~~text~~), nested lists, tables, inter-note links ([[note]]), and drag-and-drop import."
 }

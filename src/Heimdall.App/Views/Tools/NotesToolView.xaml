@@ -35,6 +35,10 @@
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
                         Width="24" Height="24" Margin="8,0,0,0"/>
+                <Button x:Name="BtnMarkdownHelp" DockPanel.Dock="Right"
+                        Click="OnMarkdownHelpClick"
+                        Style="{DynamicResource SecondaryButtonStyle}"
+                        Padding="10,5" Margin="8,0,0,0"/>
                 <Button x:Name="BtnOpenFolder" DockPanel.Dock="Right"
                         Click="OnOpenFolderClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
@@ -70,14 +74,28 @@
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
-                    <!-- Compact toolbar: new + search -->
+                    <!-- Compact toolbar: search + buttons -->
                     <DockPanel Margin="0,0,0,8">
-                        <Button x:Name="BtnNewNote" DockPanel.Dock="Right"
-                                Click="OnNewNoteClick"
-                                Style="{DynamicResource SecondaryButtonStyle}"
-                                Padding="8,4" Margin="8,0,0,0"
-                                FontSize="{StaticResource FontSizeBody}"
-                                Content="+"/>
+                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                            <Button x:Name="BtnCollapseAll"
+                                    Click="OnCollapseAllClick"
+                                    Style="{DynamicResource SecondaryButtonStyle}"
+                                    Padding="6,4" Margin="4,0,0,0"
+                                    FontSize="{StaticResource FontSizeCaption}"
+                                    Content="&#x25B2;"/>
+                            <Button x:Name="BtnExpandAll"
+                                    Click="OnExpandAllClick"
+                                    Style="{DynamicResource SecondaryButtonStyle}"
+                                    Padding="6,4" Margin="4,0,0,0"
+                                    FontSize="{StaticResource FontSizeCaption}"
+                                    Content="&#x25BC;"/>
+                            <Button x:Name="BtnNewNote"
+                                    Click="OnNewNoteClick"
+                                    Style="{DynamicResource SecondaryButtonStyle}"
+                                    Padding="8,4" Margin="4,0,0,0"
+                                    FontSize="{StaticResource FontSizeBody}"
+                                    Content="+"/>
+                        </StackPanel>
                         <TextBox x:Name="SearchTextBox"
                                  Padding="{StaticResource PaddingInput}"
                                  TextChanged="OnSearchTextChanged"

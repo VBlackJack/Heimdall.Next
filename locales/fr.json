@@ -3453,5 +3453,10 @@
   "ToolNotesStatusMoved": "D\u00e9plac\u00e9 : {0}",
   "ToolNotesNewFolder": "Nouveau dossier",
   "ToolNotesNewFolderPrompt": "Nom du dossier :",
+  "ToolNotesCollapseAll": "Tout replier",
+  "ToolNotesExpandAll": "Tout d\u00e9plier",
+  "ToolNotesMarkdownHelpBtn": "Markdown",
+  "ToolNotesMarkdownHelpTitle": "Aide Markdown",
+  "ToolNotesMarkdownHelp": "TITRES\n# Titre 1\n## Titre 2\n### Titre 3\n\nMISE EN FORME\n**gras** ou __gras__\n*italique* ou _italique_\n~~barr\u00e9~~\n`code en ligne`\n\nLISTES\n- \u00c9l\u00e9ment\n  - Sous-\u00e9l\u00e9ment\n1. \u00c9l\u00e9ment num\u00e9rot\u00e9\n- [ ] T\u00e2che non coch\u00e9e\n- [x] T\u00e2che coch\u00e9e\n\nLIENS & IMAGES\n[Texte du lien](https://url)\n![Texte alt](image.png)\n[[Nom de note]] (lien inter-notes)\n\nBLOCS DE CODE\n```langage\ncode ici\n```\n\nAUTRES\n> Citation\n---  (ligne horizontale)\n| H1 | H2 |\\n|---|---|\\n| A | B |  (tableau)\n\nM\u00c9TADONN\u00c9ES (dans une citation)\n> tags: tag1, tag2",
   "ToolHelpNOTES": "Cr\u00e9ez et g\u00e9rez des notes Markdown locales pour suivre votre travail. Utilisez des mod\u00e8les pour les journaux quotidiens, incidents et proc\u00e9dures. Les notes sont auto-enregistr\u00e9es localement dans config/notes et peuvent \u00eatre export\u00e9es en XML Confluence Storage Format. Prend en charge l'aper\u00e7u avec coloration syntaxique, le barr\u00e9 (~~texte~~), les listes imbriqu\u00e9es, les tableaux, les liens inter-notes ([[note]]) et l'import par glisser-d\u00e9poser."
 }
