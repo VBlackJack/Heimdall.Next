@@ -119,8 +119,8 @@
                         <ComboBox x:Name="KeySizeCombo"
                                   SelectedIndex="0"
                                   MinWidth="200">
-                            <ComboBoxItem Content="RSA 2048"/>
-                            <ComboBoxItem Content="RSA 4096"/>
+                            <ComboBoxItem x:Name="CertRsa2048Item" Content="" Tag="RSA2048"/>
+                            <ComboBoxItem x:Name="CertRsa4096Item" Content="" Tag="RSA4096"/>
                         </ComboBox>
                     </DockPanel>
                     <!-- Validity Days -->

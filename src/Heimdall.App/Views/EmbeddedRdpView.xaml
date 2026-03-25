@@ -27,7 +27,7 @@
                         Padding="8,2"
                         FontSize="{StaticResource FontSizeCaption}"
                         Margin="8,0,0,0"
-                        AutomationProperties.Name="Disconnect session"/>
+                        AutomationProperties.Name=""/>
                 <Button x:Name="SplitButton"
                         DockPanel.Dock="Right"
                         Content="&#xE8A9;"
@@ -35,7 +35,7 @@
                         Click="OnSplitClick"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
                         Padding="6,2" FontSize="{StaticResource FontSizeBody}" Margin="4,0"
-                        AutomationProperties.Name="Split session view"/>
+                        AutomationProperties.Name=""/>
                 <Button x:Name="ResolutionButton"
                         DockPanel.Dock="Right"
                         Content="&#xE740;"
@@ -43,7 +43,7 @@
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
                         Padding="6,2" FontSize="{StaticResource FontSizeBody}" Margin="4,0"
                         Click="OnResolutionButtonClick"
-                        AutomationProperties.Name="Change resolution">
+                        AutomationProperties.Name="">
                     <Button.ContextMenu>
                         <ContextMenu x:Name="ResolutionMenu" FontFamily="Segoe UI">
                             <MenuItem x:Name="ResMenuFit" Click="OnResolutionMenuClick" Tag="Fit"/>

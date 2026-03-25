@@ -15,7 +15,7 @@
                       ShowsPreview="True"
                       HorizontalAlignment="Stretch"
                       VerticalAlignment="Stretch"
-                      AutomationProperties.Name="Split pane resizer">
+                      AutomationProperties.Name="">
             <GridSplitter.Style>
                 <Style TargetType="GridSplitter">
                     <Style.Triggers>

@@ -32,10 +32,10 @@
 
                 <!-- Left: Connection type icon + title -->
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <TextBlock x:Name="TypeIcon" Text="&#xE7F4;"
-                               FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeBody}"
-                               Foreground="{DynamicResource InfoBrush}"
-                               VerticalAlignment="Center" Margin="0,0,6,0"/>
+                    <Path x:Name="TypeIcon"
+                          Style="{StaticResource GeoIconSmall}"
+                          Fill="{DynamicResource InfoBrush}"
+                          VerticalAlignment="Center" Margin="0,0,6,0"/>
                     <TextBlock x:Name="SessionTitle" Text=""
                                FontSize="{StaticResource FontSizeBodyLarge}" FontWeight="SemiBold"
                                Foreground="{DynamicResource TextPrimaryBrush}"

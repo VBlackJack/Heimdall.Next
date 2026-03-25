@@ -17,23 +17,13 @@
         ShowInTaskbar="False">
 
     <Window.Resources>
-        <converters:NullToVisibilityConverter x:Key="NullToVisibilityConverter"/>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/Themes/DialogCommonStyles.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+            <converters:NullToVisibilityConverter x:Key="NullToVisibilityConverter"/>
 
-        <Style x:Key="LabelStyle" TargetType="TextBlock">
-            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
-            <Setter Property="FontSize" Value="{StaticResource FontSizeBody}"/>
-            <Setter Property="Margin" Value="0,0,0,4"/>
-        </Style>
-
-        <Style x:Key="FormTextBoxStyle" TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
-            <Setter Property="FontSize" Value="{StaticResource FontSizeBody}"/>
-        </Style>
-
-        <Style x:Key="FormComboBoxStyle" TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
-            <Setter Property="FontSize" Value="{StaticResource FontSizeBody}"/>
-        </Style>
-
-        <!-- Color swatch radio button style -->
+            <!-- Color swatch radio button style -->
         <Style x:Key="ColorSwatchStyle" TargetType="RadioButton">
             <Setter Property="Width" Value="32"/>
             <Setter Property="Height" Value="32"/>
@@ -68,6 +58,7 @@
                 </Setter.Value>
             </Setter>
         </Style>
+        </ResourceDictionary>
     </Window.Resources>
 
     <Grid Margin="{StaticResource SpacingLg}">
@@ -78,9 +69,9 @@
         </Grid.RowDefinitions>
 
         <StackPanel Grid.Row="0">
-            <TextBlock x:Name="LblName" Style="{StaticResource LabelStyle}"/>
+            <TextBlock x:Name="LblName" Style="{StaticResource DialogLabelStyle}"/>
             <TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}"
-                     Style="{StaticResource FormTextBoxStyle}"
+                     Style="{StaticResource DialogFormTextBoxStyle}"
                      MaxLength="50"
                      x:Name="TxtName" TabIndex="0"/>
             <TextBlock Foreground="{DynamicResource TextDisabledBrush}" FontSize="{StaticResource FontSizeCaption}"
@@ -92,9 +83,9 @@
                 </TextBlock.Text>
             </TextBlock>
 
-            <TextBlock x:Name="LblDescription" Style="{StaticResource LabelStyle}" Margin="0,8,0,4"/>
+            <TextBlock x:Name="LblDescription" Style="{StaticResource DialogLabelStyle}" Margin="0,8,0,4"/>
             <TextBox Text="{Binding Description, UpdateSourceTrigger=PropertyChanged}"
-                     Style="{StaticResource FormTextBoxStyle}"
+                     Style="{StaticResource DialogFormTextBoxStyle}"
                      MaxLength="200"
                      TextWrapping="Wrap"
                      AcceptsReturn="True"
@@ -112,7 +103,7 @@
                 </TextBlock.Text>
             </TextBlock>
 
-            <TextBlock x:Name="LblColor" Style="{StaticResource LabelStyle}" Margin="0,8,0,4"/>
+            <TextBlock x:Name="LblColor" Style="{StaticResource DialogLabelStyle}" Margin="0,8,0,4"/>
             <WrapPanel>
                 <RadioButton GroupName="ProjectColor" Tag="#3B82F6"
                              Background="#3B82F6" Style="{StaticResource ColorSwatchStyle}"
@@ -151,17 +142,17 @@
                        FontSize="{StaticResource FontSizeCaption}" Margin="0,4,0,0"
                        Foreground="{DynamicResource TextSecondaryBrush}"/>
 
-            <TextBlock x:Name="LblSshDefaults" Style="{StaticResource LabelStyle}"
+            <TextBlock x:Name="LblSshDefaults" Style="{StaticResource DialogLabelStyle}"
                        FontWeight="SemiBold" Margin="0,16,0,4"/>
 
-            <TextBlock x:Name="LblDefaultSshUsername" Style="{StaticResource LabelStyle}" Margin="0,4,0,4"/>
+            <TextBlock x:Name="LblDefaultSshUsername" Style="{StaticResource DialogLabelStyle}" Margin="0,4,0,4"/>
             <TextBox Text="{Binding DefaultSshUsername}"
-                     Style="{StaticResource FormTextBoxStyle}"
+                     Style="{StaticResource DialogFormTextBoxStyle}"
                      x:Name="TxtDefaultSshUsername" TabIndex="2"/>
 
-            <TextBlock x:Name="LblDefaultSshKeyPath" Style="{StaticResource LabelStyle}" Margin="0,12,0,4"/>
+            <TextBlock x:Name="LblDefaultSshKeyPath" Style="{StaticResource DialogLabelStyle}" Margin="0,12,0,4"/>
             <TextBox Text="{Binding DefaultSshKeyPath}"
-                     Style="{StaticResource FormTextBoxStyle}"
+                     Style="{StaticResource DialogFormTextBoxStyle}"
                      x:Name="TxtDefaultSshKeyPath" TabIndex="3"/>
         </StackPanel>
 

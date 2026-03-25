@@ -103,6 +103,12 @@
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonPrimary}" Margin="8,0,0,0"
                         VerticalAlignment="Center" IsEnabled="False"/>
+                <TextBlock x:Name="TxtScanProgress" Text=""
+                           FontSize="{StaticResource FontSizeCaption}"
+                           Foreground="{DynamicResource TextSecondaryBrush}"
+                           VerticalAlignment="Center"
+                           Visibility="Collapsed"
+                           Margin="8,0,0,0"/>
             </WrapPanel>
         </Border>
 

@@ -29,7 +29,7 @@
                         Padding="8,2"
                         FontSize="{StaticResource FontSizeCaption}"
                         Margin="8,0,0,0"
-                        AutomationProperties.Name="Disconnect session"/>
+                        AutomationProperties.Name=""/>
 
                 <Button x:Name="ReconnectButton"
                         DockPanel.Dock="Right"
@@ -39,7 +39,7 @@
                         FontSize="{StaticResource FontSizeCaption}"
                         Margin="8,0,0,0"
                         Visibility="Collapsed"
-                        AutomationProperties.Name="Reconnect session"/>
+                        AutomationProperties.Name=""/>
 
                 <Button x:Name="HealthToggleButton"
                         DockPanel.Dock="Right"
@@ -48,7 +48,7 @@
                         Click="OnHealthToggleClick"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
                         Padding="6,2" FontSize="{StaticResource FontSizeBody}" Margin="4,0"
-                        AutomationProperties.Name="Toggle health monitoring"/>
+                        AutomationProperties.Name=""/>
 
                 <Button x:Name="SplitButton"
                         DockPanel.Dock="Right"
@@ -57,7 +57,7 @@
                         Click="OnSplitClick"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
                         Padding="6,2" FontSize="{StaticResource FontSizeBody}" Margin="4,0"
-                        AutomationProperties.Name="Split session view"/>
+                        AutomationProperties.Name=""/>
 
                 <Button x:Name="ElevateButton"
                         DockPanel.Dock="Right"
@@ -67,7 +67,7 @@
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
                         Padding="6,2" FontSize="{StaticResource FontSizeBody}" Margin="4,0"
                         Visibility="Collapsed"
-                        AutomationProperties.Name="Elevate to root"/>
+                        AutomationProperties.Name=""/>
 
                 <!-- Admin badge (visible when session is elevated) -->
                 <Border x:Name="AdminBadge"

@@ -50,10 +50,18 @@
                         FontFamily="{StaticResource FontFamilyMonospace}"
                         FontSize="{StaticResource FontSizeBody}"
                         Content="&#x2630;"/>
-                <TextBlock x:Name="HeaderTitle"
-                           FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
-                           Foreground="{DynamicResource TextPrimaryBrush}"
-                           VerticalAlignment="Center"/>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock x:Name="HeaderTitle"
+                               FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextPrimaryBrush}"
+                               VerticalAlignment="Center"/>
+                    <TextBlock x:Name="TxtUnsaved" Text=""
+                               FontSize="{StaticResource FontSizeCaption}"
+                               Foreground="{DynamicResource WarningBrush}"
+                               VerticalAlignment="Center"
+                               Visibility="Collapsed"
+                               Margin="8,0,0,0"/>
+                </StackPanel>
             </DockPanel>
         </Border>
 

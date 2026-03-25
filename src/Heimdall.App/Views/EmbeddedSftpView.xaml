@@ -42,7 +42,7 @@
                         Padding="8,2"
                         FontSize="{StaticResource FontSizeCaption}"
                         Margin="8,0,0,0"
-                        AutomationProperties.Name="Disconnect session"/>
+                        AutomationProperties.Name=""/>
                 <Button x:Name="ReconnectButton"
                         DockPanel.Dock="Right"
                         Click="OnReconnectClick"
@@ -51,7 +51,7 @@
                         FontSize="{StaticResource FontSizeCaption}"
                         Margin="8,0,0,0"
                         Visibility="Collapsed"
-                        AutomationProperties.Name="Reconnect session"/>
+                        AutomationProperties.Name=""/>
                 <Button x:Name="SplitButton"
                         DockPanel.Dock="Right"
                         Content="&#xE8A9;"
@@ -59,7 +59,7 @@
                         Click="OnSplitClick"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
                         Padding="6,2" FontSize="{StaticResource FontSizeBody}" Margin="4,0"
-                        AutomationProperties.Name="Split session view"/>
+                        AutomationProperties.Name=""/>
 
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <TextBlock x:Name="SessionTitleText"
@@ -123,28 +123,28 @@
                             Style="{DynamicResource ToolbarGhostButtonStyle}"
                             Padding="8,2" FontSize="{StaticResource FontSizeBody}"
                             IsEnabled="False"
-                            AutomationProperties.Name="Navigate back"/>
+                            AutomationProperties.Name=""/>
                     <Button x:Name="BtnUp"
                             Content="&#xE74A;"
                             FontFamily="Segoe MDL2 Assets"
                             Click="OnUpClick"
                             Style="{DynamicResource ToolbarGhostButtonStyle}"
                             Padding="8,2" FontSize="{StaticResource FontSizeBody}" Margin="4,0,0,0"
-                            AutomationProperties.Name="Navigate up"/>
+                            AutomationProperties.Name=""/>
                     <Button x:Name="BtnHome"
                             Content="&#xE80F;"
                             FontFamily="Segoe MDL2 Assets"
                             Click="OnHomeClick"
                             Style="{DynamicResource ToolbarGhostButtonStyle}"
                             Padding="8,2" FontSize="{StaticResource FontSizeBody}" Margin="4,0,0,0"
-                            AutomationProperties.Name="Navigate to home"/>
+                            AutomationProperties.Name=""/>
                     <Button x:Name="BtnRefresh"
                             Content="&#xE72C;"
                             FontFamily="Segoe MDL2 Assets"
                             Click="OnRefreshClick"
                             Style="{DynamicResource ToolbarGhostButtonStyle}"
                             Padding="8,2" FontSize="{StaticResource FontSizeBody}" Margin="4,0,0,0"
-                            AutomationProperties.Name="Refresh directory"/>
+                            AutomationProperties.Name=""/>
 
                     <Border Width="1" Margin="8,2" Background="{DynamicResource BorderBrush}"/>
 
@@ -152,7 +152,7 @@
                             Click="OnUploadClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
                             Padding="8,2" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,4,0"
-                            AutomationProperties.Name="Upload files">
+                            AutomationProperties.Name="">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="&#xE898;" FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeBody}"
                                        VerticalAlignment="Center" Margin="0,0,4,0"/>
@@ -163,7 +163,7 @@
                             Click="OnNewFolderClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
                             Padding="8,2" FontSize="{StaticResource FontSizeCaption}"
-                            AutomationProperties.Name="Create new folder">
+                            AutomationProperties.Name="">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="&#xE8F4;" FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeBody}"
                                        VerticalAlignment="Center" Margin="0,0,4,0"/>

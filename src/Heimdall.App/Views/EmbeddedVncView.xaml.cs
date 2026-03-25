@@ -83,13 +83,21 @@ public partial class EmbeddedVncView : UserControl, IDisposable
         // Localize static UI elements
         DisconnectButton.Content = localizer?["BtnDisconnectSession"] ?? "Disconnect";
         ReconnectButton.Content = localizer?["BtnReconnectSession"] ?? "Reconnect";
-        SplitButton.ToolTip = localizer?["TooltipSplitSession"] ?? "Split pane";
         ReconnectMessageText.Text = localizer?["VncDisconnectedOverlay"] ?? "VNC session disconnected";
         OverlayReconnectButton.Content = localizer?["BtnReconnectSession"] ?? "Reconnect";
         OverlayCloseButton.Content = localizer?["BtnCloseOverlay"] ?? "Close";
-        System.Windows.Automation.AutomationProperties.SetName(SplitButton, localizer?["TooltipSplitSession"] ?? "Split pane");
         FallbackTitleText.Text = localizer?["VncFallbackTitle"] ?? "Embedded VNC viewer unavailable";
         FallbackMessageText.Text = localizer?["VncFallbackMessage"] ?? "WebView2 could not be initialized on this machine.";
+
+        // Tooltips
+        DisconnectButton.ToolTip = localizer?["TooltipDisconnectSession"] ?? "Disconnect session";
+        ReconnectButton.ToolTip = localizer?["TooltipReconnectSession"] ?? "Reconnect session";
+        SplitButton.ToolTip = localizer?["TooltipSplitSession"] ?? "Split session";
+
+        // Accessibility
+        System.Windows.Automation.AutomationProperties.SetName(DisconnectButton, localizer?["A11yDisconnectSession"] ?? "Disconnect session");
+        System.Windows.Automation.AutomationProperties.SetName(ReconnectButton, localizer?["A11yReconnectSession"] ?? "Reconnect session");
+        System.Windows.Automation.AutomationProperties.SetName(SplitButton, localizer?["A11ySplitSession"] ?? "Split session view");
 
         // Start the WebSocket-to-TCP proxy
         _proxy = new WebSocketVncProxy(session.Host, session.Port);

@@ -27,7 +27,7 @@ namespace Heimdall.Core.Models;
 /// <param name="LabelWithArgKey">i18n key for "tool with argument" variant, e.g. "PaletteToolPingWith". Null if not supported.</param>
 /// <param name="CommandPrefixes">Palette search aliases, e.g. ["ping"] or ["dns","nslookup","dig"].</param>
 /// <param name="IsNetworkTool">True if the tool should prompt for a target host when opened standalone.</param>
-/// <param name="IconResourceKey">Optional XAML resource key for the tool's icon (e.g. "Icon.Tool.PortScanner"). Null if no icon available.</param>
+/// <param name="IconResourceKey">Optional XAML resource key for the tool's vector geometry icon (e.g. "Geo.Tool.PortScanner"). Null if no icon available.</param>
 public record ToolDescriptor(
     string Id,
     ToolCategory Category,

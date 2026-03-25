@@ -50,6 +50,9 @@ public partial class ServerDialogViewModel : ObservableValidator
     [ObservableProperty]
     private bool _isEditMode;
 
+    [ObservableProperty]
+    private bool _isAdvancedMode;
+
     // --- Identity ---
 
     [ObservableProperty]

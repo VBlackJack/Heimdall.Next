@@ -69,7 +69,7 @@
                             Click="OnToggleKeyVisibility"
                             Style="{DynamicResource SecondaryButtonStyle}"
                             Padding="8,6" Margin="6,0,0,0"
-                            AutomationProperties.Name="Toggle key visibility"
+                            AutomationProperties.Name=""
                             VerticalAlignment="Stretch"/>
                     <Grid>
                         <PasswordBox x:Name="PwdKey"
@@ -116,12 +116,12 @@
                            FontSize="{StaticResource FontSizeBody}" Margin="0,16,0,4"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
                 <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
-                    <RadioButton x:Name="RdoHex" Content="Hex" IsChecked="True"
+                    <RadioButton x:Name="RdoHex" Content="" IsChecked="True"
                                  Foreground="{DynamicResource TextPrimaryBrush}"
                                  Margin="0,0,16,0"
                                  Checked="OnFormatChanged"
                                  />
-                    <RadioButton x:Name="RdoBase64" Content="Base64"
+                    <RadioButton x:Name="RdoBase64" Content=""
                                  Foreground="{DynamicResource TextPrimaryBrush}"
                                  Checked="OnFormatChanged"
                                  />

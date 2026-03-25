@@ -85,6 +85,8 @@ public partial class CertificateGeneratorView : UserControl, IToolView
         CountryLabel.Text = L("ToolCertGenCountry");
         OptionsSectionLabel.Text = L("ToolCertGenOptionsSection");
         KeySizeLabel.Text = L("ToolCertGenKeySize");
+        CertRsa2048Item.Content = L("ToolCertGenRsa2048");
+        CertRsa4096Item.Content = L("ToolCertGenRsa4096");
         ValidityLabel.Text = L("ToolCertGenValidity");
         SanLabel.Text = L("ToolCertGenSan");
         SanHint.Text = L("ToolCertGenSanHint");

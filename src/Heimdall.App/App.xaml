@@ -8,8 +8,6 @@
             <ResourceDictionary.MergedDictionaries>
                 <!-- Default theme: Dark -->
                 <ResourceDictionary Source="Themes/DarkTheme.xaml"/>
-                <!-- Icon assets -->
-                <ResourceDictionary Source="Assets/IconResources.xaml"/>
                 <!-- Vector icon geometries -->
                 <ResourceDictionary Source="Themes/IconGeometries.xaml"/>
             </ResourceDictionary.MergedDictionaries>
@@ -20,9 +18,7 @@
             <converters:ConnectionStateToBrushConverter x:Key="ConnectionStateToBrushConverter"/>
             <converters:NullToVisibilityConverter x:Key="NullToVisibilityConverter"/>
             <converters:ServerStatusToColorConverter x:Key="ServerStatusToColorConverter"/>
-            <converters:ConnectionTypeToIconConverter x:Key="TypeToIconConverter"/>
-            <converters:ConnectionStateToIconConverter x:Key="StateToIconConverter"/>
-            <converters:ConnectionTypeToGeometryConverter x:Key="TypeToGeoConverter"/>
+<converters:ConnectionTypeToGeometryConverter x:Key="TypeToGeoConverter"/>
             <converters:ConnectionTypeToColorConverter x:Key="TypeToColorConverter"/>
             <converters:ConnectionStateToGeometryConverter x:Key="StateToGeoConverter"/>
 

@@ -92,15 +92,17 @@ public partial class LocalFileBrowserView : UserControl
         // Filter placeholder
         FilterTextBox.Tag = L10n("FileBrowserFilterPlaceholder");
 
-        // Toolbar tooltips + accessibility
-        BtnBack.ToolTip = L10n("FileBrowserToolTipBack");
-        BtnUp.ToolTip = L10n("FileBrowserToolTipUp");
-        BtnHome.ToolTip = L10n("FileBrowserToolTipHome");
-        BtnRefresh.ToolTip = L10n("FileBrowserToolTipRefresh");
-        System.Windows.Automation.AutomationProperties.SetName(BtnBack, L10n("FileBrowserToolTipBack"));
-        System.Windows.Automation.AutomationProperties.SetName(BtnUp, L10n("FileBrowserToolTipUp"));
-        System.Windows.Automation.AutomationProperties.SetName(BtnHome, L10n("FileBrowserToolTipHome"));
-        System.Windows.Automation.AutomationProperties.SetName(BtnRefresh, L10n("FileBrowserToolTipRefresh"));
+        // Toolbar tooltips
+        BtnBack.ToolTip = L10n("TooltipNavigateBack");
+        BtnUp.ToolTip = L10n("TooltipNavigateUp");
+        BtnHome.ToolTip = L10n("TooltipNavigateHome");
+        BtnRefresh.ToolTip = L10n("TooltipRefreshDirectory");
+
+        // Accessibility: automation names for toolbar buttons
+        System.Windows.Automation.AutomationProperties.SetName(BtnBack, L10n("A11yNavigateBack"));
+        System.Windows.Automation.AutomationProperties.SetName(BtnUp, L10n("A11yNavigateUp"));
+        System.Windows.Automation.AutomationProperties.SetName(BtnHome, L10n("A11yNavigateHome"));
+        System.Windows.Automation.AutomationProperties.SetName(BtnRefresh, L10n("A11yRefreshDirectory"));
 
         // Column headers
         if (FileListView.View is GridView gridView && gridView.Columns.Count >= 3)

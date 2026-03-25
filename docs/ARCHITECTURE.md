@@ -10,7 +10,7 @@
 
 # Architecture
 
-Heimdall.Next is a .NET 10 WPF application organized as a multi-project solution with strict dependency boundaries. Supports RDP, SSH, SFTP, FTP, VNC, Telnet, Citrix, and Local Shell connection types with ~3,061 i18n keys per locale (EN/FR), 33 built-in sysops tools with contextual help, cross-tool navigation, and 1,479 automated tests. Health monitor polls in parallel (Task.WhenAll), XML importers hardened against XXE, all Debug.WriteLine replaced with FileLogger. WCAG AA compliant Design System with 40 design tokens (typography, spacing, corner radius, opacity, icon sizes, font family), micro-animations, FocusIndicatorBrush for keyboard accessibility, unique protocol icons, and per-category tool color coding.
+Heimdall.Next is a .NET 10 WPF application organized as a multi-project solution with strict dependency boundaries. Supports RDP, SSH, SFTP, FTP, VNC, Telnet, Citrix, and Local Shell connection types with ~3,457 i18n keys per locale (EN/FR), 33 built-in sysops tools with contextual help, cross-tool navigation, and 1,586 automated tests. Health monitor polls in parallel (Task.WhenAll), XML importers hardened against XXE, all Debug.WriteLine replaced with FileLogger. WCAG AA compliant Design System with 45 design tokens (typography min 11px, spacing, corner radius, opacity, icon sizes, font family), micro-animations, FocusIndicatorBrush for keyboard accessibility, unified two-tier icon system (vector geometries + MDL2), per-category tool color coding, declarative i18n via `{loc:Translate}` markup extension, and progressive disclosure ServerDialog.
 
 ## Solution Structure
 
@@ -666,3 +666,43 @@ The Notes tool (#34) provides a local-first Markdown editing experience inspired
 | **Security** | 7 | Password (crack time+history), SSH Key (RSA+Ed25519), Hash (SHA3+progress), HMAC, JWT (signature verify), Certificate Generator (CA+leaf), TOTP (RFC 6238) |
 | **Encoding** | 6 | Base64 (URL-safe), URL Encoder, JSON (error position), Regex (match highlight), Text Diff (word-level), Text Case (8 formats) |
 | **System** | 10 | Chmod, Crontab Builder, DateTime (timezone+relative), UUID (v4+v7), Hosts Editor, SSH Config Generator, Log Viewer/Tail, Cron Job Manager, Service Status Dashboard, **Diagram Editor** (draw.io embedded offline) |
+
+### Declarative i18n (`{loc:Translate}` Markup Extension)
+
+**Problem**: The legacy `ApplyLocalization()` code-behind pattern requires ~385 manual `L("key")` calls, makes the WPF designer show empty controls, and adds boilerplate to every new view.
+
+**Solution**: Custom `MarkupExtension` enabling declarative i18n directly in XAML:
+```xml
+<TextBlock Text="{loc:Translate StatusReady}"/>
+<Button AutomationProperties.Name="{loc:Translate BtnUnlock}"/>
+```
+
+**Architecture** (`src/Heimdall.App/Localization/`):
+- `TranslateExtension` — `MarkupExtension` that creates a live `Binding` to `LocalizationSource.Instance[Key]` for DependencyProperty targets (auto-updates on locale change). Falls back to static string for non-DP targets. Shows `[Key]` in designer mode.
+- `LocalizationSource` — Singleton bridge implementing `INotifyPropertyChanged`. Wraps `LocalizationManager` indexer and fires `PropertyChanged("Item[]")` on `LocaleChanged`, causing all bindings to re-evaluate.
+- Initialized in `App.xaml.cs` after locale load: `LocalizationSource.Instance.Initialize(localization)`
+
+**Migration strategy**: Coexists with `ApplyLocalization()`. New views use `{loc:Translate}`, legacy views migrate incrementally. PinDialog fully migrated as POC.
+
+### Two-Tier Icon System
+
+**Problem**: Three parallel icon systems (BitmapImage, Vector Geometry, MDL2 glyphs) complicated maintenance and caused visual inconsistencies between tree view, tabs, and tools.
+
+**Solution**: Unified to two tiers:
+1. **Tier 1 — Vector Geometries** (`IconGeometries.xaml`): Named `Geo.<Category>.<Name>` resources (Protocol.Rdp, Status.Connected, Tool.Ping, Tree.Group, etc.). Consumed via `Path` elements + `ConnectionTypeToGeometryConverter` / `ConnectionStateToGeometryConverter`.
+2. **Tier 2 — Segoe MDL2 Assets**: Inline in XAML for standard UI chrome (toolbar, navigation, menus). Not centralized — used as `TextBlock` with font-family.
+
+**Key changes**: `ToolRegistry` stores `Geo.Tool.*` keys per tool with `FrozenDictionary` lookups. Converters resolve `TOOL:*` connection types via `ToolRegistry.GetGeometryKey()` / `GetCategoryBrushKey()`. TreeView uses 2 converter bindings instead of ~180 lines of DataTriggers.
+
+### Progressive Disclosure (ServerDialog)
+
+**Problem**: The server add/edit dialog presented 5 tabs of options on first open, overwhelming new users for what is usually a simple "name + host + port" operation.
+
+**Solution**: Two-mode dialog:
+- **Simple mode** (default): Shows only essential fields — Name, Connection Type, Host, Port, Project, Gateway.
+- **Advanced mode** (toggle): Animated slide-down (ScaleY + Opacity, 300ms ease-out / 250ms ease-in) reveals the full TabControl with protocol-specific options.
+- Mode preference persisted to `AppSettings.ServerDialogAdvancedMode` via `ConfigManager.MergeSettingAsync()`.
+
+### DialogCommonStyles.xaml
+
+Shared resource dictionary (`src/Heimdall.App/Themes/DialogCommonStyles.xaml`) with 8 reusable styles extracted from ServerDialog/GatewayDialog/ProjectDialog: `DialogLabelStyle`, `DialogSectionTitleStyle`, `DialogSectionDescriptionStyle`, `DialogHintTextStyle`, `DialogSectionCardStyle`, `DialogFormTextBoxStyle`, `DialogFormComboBoxStyle`, `DialogFormPasswordBoxStyle`.

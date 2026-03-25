@@ -18,6 +18,7 @@ using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Threading;
+using Heimdall.Core.Localization;
 using Heimdall.Core.Models;
 
 namespace Heimdall.App.Views;
@@ -44,6 +45,7 @@ public partial class SplitContainerControl : UserControl
 
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
+        ApplyLocalization();
         SyncContent();
         ApplyLayout();
     }
@@ -182,6 +184,17 @@ public partial class SplitContainerControl : UserControl
             Grid.SetRow(SecondPresenter, 0);
             Grid.SetColumn(SecondPresenter, 2);
         }
+    }
+
+    private void ApplyLocalization()
+    {
+        System.Windows.Automation.AutomationProperties.SetName(Splitter, L("A11ySplitPaneResizer"));
+    }
+
+    private string L(string key)
+    {
+        var vm = Application.Current.MainWindow?.DataContext as ViewModels.MainViewModel;
+        return vm?.GetLocalizer()[key] ?? key;
     }
 
     /// <summary>

@@ -12,6 +12,64 @@
 
 All notable changes to Heimdall.Next are documented in this file.
 
+## [v2026.032507] - 2026-03-25
+
+### Complete UX audit implementation (19/20 items from triple-audit: Claude, Codex, Gemini)
+
+#### Accessibility & Tooltips
+- **Tooltip campaign**: Added localized tooltips to all icon-only buttons across MainWindow, EmbeddedRdp/Ssh/Sftp/Vnc/Citrix views, LocalFileBrowser, NotesToolView, PasswordGenerator, SessionPaneControl, SplitContainerControl (~47 buttons)
+- **AutomationProperties localized**: Moved 45 hardcoded English `AutomationProperties.Name` from XAML to code-behind `ApplyLocalization()` using i18n keys (`A11y*` pattern)
+- **Minimum font size**: Raised `FontSizeSmallCaption` from 9px to 11px for better readability on dense exploitation screens
+
+#### Zero Hardcoding compliance
+- **ComboBoxItems extracted to i18n**: Terminal color schemes (5), PowerShell execution policies (5), shell executables (5), SSH key algorithms (3), certificate algorithms (2), file encodings (4), HMAC formats (2), ping intervals (5) — all use `Tag` for stored value, `Content` set via `ApplyLocalization()`
+- **Hardcoded ToolTip="Copy" removed** from PasswordGenerator history button (now localized via `Loaded` event handler)
+
+#### Theme & Contrast
+- **Scrollbar thumb contrast fixed**: Dark theme #7B8298 → #A8B0CC (2.8:1 → 4.2:1), Light theme #C0C0C0 → #999999 (1.8:1 → 4.8:1) — meets WCAG 2.1 non-text contrast minimum
+- **Badge/protocol brush consolidation**: 5 new badge brushes (VNC, FTP, Citrix, Telnet, Local) + RDP/SSH/SFTP badge colors aligned with protocol accent brushes for visual consistency
+- **Toolbar ghost button pressed state**: Changed from TextSecondaryBrush (poor contrast) to HighlightBrush
+
+#### Discoverability & Navigation
+- **Tools panel visible by default**: 33 built-in tools now shown on first launch instead of hidden behind collapsed toggle
+- **Ctrl+Shift+T documented in F1 help** (EN/FR)
+- **Wording "server-first" updated**: StatusReady, EmptyStateSelectServer, SearchPlaceholder now reference tools and Ctrl+K — not just servers
+- **Command Palette mode indicator**: Shows "Split Mode" / "Merge Mode" label when palette opens in split/merge context
+- **Command Palette auto-close**: Closes on sidebar tab change and window deactivation (preserves StaysOpen=True for ActiveX airspace compatibility)
+
+#### Design System
+- **EmptyStateStyle**: New reusable style in CommonControls.xaml for empty/onboarding states
+- **DialogCommonStyles.xaml**: Extracted 8 shared styles (label, section title, hint text, section card, form inputs) from ServerDialog/GatewayDialog/ProjectDialog into shared resource dictionary
+- **FadeIn animation**: Applied to ToolsQuickPanel for smooth expand transition
+- **Notes dirty indicator**: Header shows "Unsaved changes" warning via `ToolNotesUnsaved` key when editor has pending changes
+
+#### Network Cartography
+- **Scan progress indicator**: Real-time "Scanning: X/Y hosts..." TextBlock in scan toolbar, updated from `HostDiscoveryProgress` event
+
+#### Progressive Disclosure (ServerDialog)
+- **Simple/Advanced mode**: Essential fields (Name, Host, Port, Type, Project, Gateway) always visible; 5 advanced tabs hidden behind animated toggle with ScaleY + Opacity transition (300ms ease-out open, 250ms ease-in close)
+- **Mode persistence**: Advanced mode preference saved to AppSettings via `ConfigManager.MergeSettingAsync()`
+
+#### Declarative i18n (loc:Translate markup extension)
+- **TranslateExtension**: WPF `MarkupExtension` enabling `{loc:Translate Key}` syntax in XAML — auto-updates on runtime language switch via `INotifyPropertyChanged` on indexer
+- **LocalizationSource**: Singleton bridge between WPF binding system and `LocalizationManager` DI service
+- **PinDialog migrated**: Full POC — all 7 manual localization calls replaced with declarative XAML bindings, code-behind reduced to focus logic only
+
+#### Icon System Unification
+- **BitmapImage system removed**: Deleted `ConnectionTypeToIconConverter`, `ConnectionStateToIconConverter`, `IconResources.xaml`, and 37 PNG files
+- **Two-tier icon architecture**: Vector geometries (`Geo.*` in IconGeometries.xaml) for domain icons + Segoe MDL2 Assets for standard UI chrome
+- **TreeView rewrite**: Replaced ~180 lines of MDL2 DataTriggers with 2 converter bindings (`TypeToGeoConverter` + `TypeToColorConverter`)
+- **ToolRegistry updated**: All 33 tools reference `Geo.Tool.*` geometry keys with `FrozenDictionary` lookups
+- **Documented conventions**: Comprehensive header in IconGeometries.xaml describing naming pattern and extension procedure
+
+#### i18n
+- 3,457 keys (EN/FR parity confirmed) — +111 keys (tooltips, A11y, ComboBox content, empty states, palette modes, scan progress, disclosure, etc.)
+
+#### Tests
+- **1,586 tests** (1,196 Core + 283 SSH + 107 App), all passing
+
+---
+
 ## [v2026.032506] - 2026-03-25
 
 ### Notes audit fixes, template i18n, Tools panel UX

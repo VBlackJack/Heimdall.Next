@@ -195,10 +195,6 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
 
         DisconnectButton.Content = _localizer["SftpBtnClose"];
         ReconnectButton.Content = _localizer["SftpBtnReconnect"];
-        BtnBack.ToolTip = _localizer["SftpBtnBack"];
-        BtnUp.ToolTip = _localizer["SftpBtnUp"];
-        BtnHome.ToolTip = _localizer["SftpHomeDir"];
-        BtnRefresh.ToolTip = _localizer["SftpBtnRefresh"];
         BtnUploadText.Text = _localizer["SftpBtnUpload"];
         BtnNewFolderText.Text = _localizer["SftpBtnNewFolder"];
         BtnCancelTransfer.Content = _localizer["SftpBtnCancelTransfer"];
@@ -206,9 +202,19 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
         MnuBookmarkAdd.Header = _localizer["SftpBtnBookmark"];
         MnuBookmarkManage.Header = _localizer["SftpBtnBookmarks"];
         ToggleHiddenCheckBox.ToolTip = _localizer["SftpToggleHidden"];
-        SplitButton.ToolTip = _localizer["ToolTipSplitPane"];
         BtnSudoMode.ToolTip = _localizer["SftpSudoModeTooltip"];
         BtnSudoModeText.Text = _localizer["SftpSudoModeLabel"];
+
+        // Tooltips
+        BtnBack.ToolTip = _localizer["TooltipNavigateBack"];
+        BtnUp.ToolTip = _localizer["TooltipNavigateUp"];
+        BtnHome.ToolTip = _localizer["TooltipNavigateHome"];
+        BtnRefresh.ToolTip = _localizer["TooltipRefreshDirectory"];
+        BtnUpload.ToolTip = _localizer["TooltipUploadFiles"];
+        BtnNewFolder.ToolTip = _localizer["TooltipCreateFolder"];
+        DisconnectButton.ToolTip = _localizer["TooltipDisconnectSession"];
+        ReconnectButton.ToolTip = _localizer["TooltipReconnectSession"];
+        SplitButton.ToolTip = _localizer["TooltipSplitSession"];
 
         BtnGoPath.ToolTip = _localizer["SftpBtnGoPath"];
         System.Windows.Automation.AutomationProperties.SetName(BtnGoPath, _localizer["SftpBtnGoPath"]);
@@ -231,16 +237,17 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
         DragDropOverlayText.Text = _localizer["SftpDragDropOverlay"];
 
         // Accessibility: automation names for toolbar buttons
-        System.Windows.Automation.AutomationProperties.SetName(BtnBack, _localizer["SftpBtnBack"]);
-        System.Windows.Automation.AutomationProperties.SetName(BtnUp, _localizer["SftpBtnUp"]);
-        System.Windows.Automation.AutomationProperties.SetName(BtnHome, _localizer["SftpHomeDir"]);
-        System.Windows.Automation.AutomationProperties.SetName(BtnRefresh, _localizer["SftpBtnRefresh"]);
-        System.Windows.Automation.AutomationProperties.SetName(BtnUpload, _localizer["SftpBtnUpload"]);
-        System.Windows.Automation.AutomationProperties.SetName(BtnNewFolder, _localizer["SftpBtnNewFolder"]);
+        System.Windows.Automation.AutomationProperties.SetName(BtnBack, _localizer["A11yNavigateBack"]);
+        System.Windows.Automation.AutomationProperties.SetName(BtnUp, _localizer["A11yNavigateUp"]);
+        System.Windows.Automation.AutomationProperties.SetName(BtnHome, _localizer["A11yNavigateHome"]);
+        System.Windows.Automation.AutomationProperties.SetName(BtnRefresh, _localizer["A11yRefreshDirectory"]);
+        System.Windows.Automation.AutomationProperties.SetName(BtnUpload, _localizer["A11yUploadFiles"]);
+        System.Windows.Automation.AutomationProperties.SetName(BtnNewFolder, _localizer["A11yCreateFolder"]);
         System.Windows.Automation.AutomationProperties.SetName(BtnBookmarkMenu, _localizer["SftpBtnBookmark"]);
         System.Windows.Automation.AutomationProperties.SetName(BtnSudoMode, _localizer["SftpSudoModeTooltip"]);
-        System.Windows.Automation.AutomationProperties.SetName(DisconnectButton, _localizer["SftpBtnClose"]);
-        System.Windows.Automation.AutomationProperties.SetName(SplitButton, _localizer["ToolTipSplitPane"]);
+        System.Windows.Automation.AutomationProperties.SetName(DisconnectButton, _localizer["A11yDisconnectSession"]);
+        System.Windows.Automation.AutomationProperties.SetName(ReconnectButton, _localizer["A11yReconnectSession"]);
+        System.Windows.Automation.AutomationProperties.SetName(SplitButton, _localizer["A11ySplitSession"]);
         System.Windows.Automation.AutomationProperties.SetName(ToggleHiddenCheckBox, _localizer["SftpToggleHidden"]);
 
         if (FileListView.View is GridView gridView)

@@ -5,7 +5,7 @@
     <!-- ========================================================= -->
     <!-- Design Tokens: Typography                                 -->
     <!-- ========================================================= -->
-    <sys:Double x:Key="FontSizeSmallCaption">9</sys:Double>
+    <sys:Double x:Key="FontSizeSmallCaption">11</sys:Double>
     <sys:Double x:Key="FontSizeCaption">11</sys:Double>
     <sys:Double x:Key="FontSizeBody">12</sys:Double>
     <sys:Double x:Key="FontSizeBodyLarge">13</sys:Double>
@@ -101,6 +101,14 @@
         </Style.Triggers>
     </Style>
 
+    <!-- Empty State — centered container for "no content" placeholders -->
+    <Style x:Key="EmptyStateStyle" TargetType="{x:Type Border}">
+        <Setter Property="HorizontalAlignment" Value="Center"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="Padding" Value="{StaticResource SpacingXl}"/>
+        <Setter Property="MaxWidth" Value="400"/>
+    </Style>
+
     <!-- ========================================================= -->
     <!-- Buttons                                                   -->
     <!-- ========================================================= -->
@@ -175,7 +183,8 @@
                             <Setter TargetName="Bd" Property="Background" Value="{DynamicResource CardBrush}"/>
                         </Trigger>
                         <Trigger Property="IsPressed" Value="True">
-                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource TextSecondaryBrush}"/>
+                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource HighlightBrush}"/>
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
                         </Trigger>
                         <Trigger Property="IsFocused" Value="True">
                             <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource FocusIndicatorBrush}"/>

@@ -15,170 +15,161 @@
         Background="{DynamicResource BackgroundBrush}"
         ResizeMode="CanResizeWithGrip"
         MinWidth="550"
-        MinHeight="500"
+        MinHeight="350"
         ShowInTaskbar="False"
         Closing="OnWindowClosing">
 
     <Window.Resources>
-        <converters:NullToVisibilityConverter x:Key="NullToVisibilityConverter"/>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/Themes/DialogCommonStyles.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+            <converters:NullToVisibilityConverter x:Key="NullToVisibilityConverter"/>
+            <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
 
-        <Style x:Key="LabelStyle" TargetType="TextBlock">
-            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
-            <Setter Property="FontSize" Value="{StaticResource FontSizeBody}"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Margin" Value="0,0,0,4"/>
-        </Style>
+            <!-- ServerDialog label extends DialogLabelStyle with SemiBold weight -->
+            <Style x:Key="LabelStyle" TargetType="TextBlock" BasedOn="{StaticResource DialogLabelStyle}">
+                <Setter Property="FontWeight" Value="SemiBold"/>
+            </Style>
 
-        <Style x:Key="SectionTitleStyle" TargetType="TextBlock">
-            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
-            <Setter Property="FontSize" Value="{StaticResource FontSizeSubtitle}"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
-        </Style>
+            <Style x:Key="InsetCardStyle" TargetType="Border">
+                <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
+                <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+                <Setter Property="BorderThickness" Value="1"/>
+                <Setter Property="CornerRadius" Value="10"/>
+                <Setter Property="Padding" Value="12"/>
+            </Style>
 
-        <Style x:Key="SectionDescriptionStyle" TargetType="TextBlock">
-            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
-            <Setter Property="FontSize" Value="{StaticResource FontSizeBody}"/>
-            <Setter Property="TextWrapping" Value="Wrap"/>
-            <Setter Property="Margin" Value="0,6,0,0"/>
-        </Style>
+            <Style x:Key="DiagramNodeStyle" TargetType="Border">
+                <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
+                <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+                <Setter Property="BorderThickness" Value="1"/>
+                <Setter Property="CornerRadius" Value="10"/>
+                <Setter Property="Padding" Value="12"/>
+                <Setter Property="Width" Value="165"/>
+                <Setter Property="MinHeight" Value="86"/>
+            </Style>
 
-        <Style x:Key="HintTextStyle" TargetType="TextBlock">
-            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
-            <Setter Property="FontSize" Value="{StaticResource FontSizeCaption}"/>
-            <Setter Property="TextWrapping" Value="Wrap"/>
-            <Setter Property="Margin" Value="0,6,0,0"/>
-        </Style>
+            <Style x:Key="ArrowCaptionStyle" TargetType="TextBlock">
+                <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+                <Setter Property="FontSize" Value="{StaticResource FontSizeCaption}"/>
+                <Setter Property="HorizontalAlignment" Value="Center"/>
+                <Setter Property="TextAlignment" Value="Center"/>
+                <Setter Property="TextWrapping" Value="Wrap"/>
+            </Style>
 
-        <Style x:Key="SectionCardStyle" TargetType="Border">
-            <Setter Property="Background" Value="{DynamicResource CardBrush}"/>
-            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="CornerRadius" Value="12"/>
-            <Setter Property="Padding" Value="16"/>
-            <Setter Property="Margin" Value="0,0,0,12"/>
-        </Style>
+            <Style x:Key="RdpOnlySectionStyle" TargetType="FrameworkElement">
+                <Setter Property="Visibility" Value="Collapsed"/>
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding ConnectionType}" Value="RDP">
+                        <Setter Property="Visibility" Value="Visible"/>
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
 
-        <Style x:Key="InsetCardStyle" TargetType="Border">
-            <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
-            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="CornerRadius" Value="10"/>
-            <Setter Property="Padding" Value="12"/>
-        </Style>
+            <Style x:Key="SshOnlySectionStyle" TargetType="FrameworkElement">
+                <Setter Property="Visibility" Value="Collapsed"/>
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding ConnectionType}" Value="SSH">
+                        <Setter Property="Visibility" Value="Visible"/>
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
 
-        <Style x:Key="DiagramNodeStyle" TargetType="Border">
-            <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
-            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="CornerRadius" Value="10"/>
-            <Setter Property="Padding" Value="12"/>
-            <Setter Property="Width" Value="165"/>
-            <Setter Property="MinHeight" Value="86"/>
-        </Style>
+            <Style x:Key="SshFamilySectionStyle" TargetType="FrameworkElement">
+                <Setter Property="Visibility" Value="Collapsed"/>
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding ConnectionType}" Value="SSH">
+                        <Setter Property="Visibility" Value="Visible"/>
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding ConnectionType}" Value="SFTP">
+                        <Setter Property="Visibility" Value="Visible"/>
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
 
-        <Style x:Key="ArrowCaptionStyle" TargetType="TextBlock">
-            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
-            <Setter Property="FontSize" Value="{StaticResource FontSizeCaption}"/>
-            <Setter Property="HorizontalAlignment" Value="Center"/>
-            <Setter Property="TextAlignment" Value="Center"/>
-            <Setter Property="TextWrapping" Value="Wrap"/>
-        </Style>
+            <!-- Gateway/routing sections: hidden for Local shell, Citrix, VNC, FTP -->
+            <Style x:Key="NetworkSectionStyle" TargetType="FrameworkElement">
+                <Setter Property="Visibility" Value="Visible"/>
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding ConnectionType}" Value="Local">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding ConnectionType}" Value="Citrix">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding ConnectionType}" Value="VNC">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding ConnectionType}" Value="FTP">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
 
-        <Style x:Key="FormTextBoxStyle" TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
-            <Setter Property="FontSize" Value="{StaticResource FontSizeBody}"/>
-        </Style>
+            <Style x:Key="GatewaySectionStyle" TargetType="FrameworkElement">
+                <Setter Property="Visibility" Value="Collapsed"/>
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding UsesGateway}" Value="True">
+                        <Setter Property="Visibility" Value="Visible"/>
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
 
-        <Style x:Key="FormComboBoxStyle" TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
-            <Setter Property="FontSize" Value="{StaticResource FontSizeBody}"/>
-        </Style>
+            <Style x:Key="DirectSectionStyle" TargetType="FrameworkElement">
+                <Setter Property="Visibility" Value="Collapsed"/>
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding UsesGateway}" Value="False">
+                        <Setter Property="Visibility" Value="Visible"/>
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
 
-        <Style x:Key="FormCheckBoxStyle" TargetType="CheckBox" BasedOn="{StaticResource {x:Type CheckBox}}">
-            <Setter Property="FontSize" Value="{StaticResource FontSizeBody}"/>
-        </Style>
+            <Style x:Key="ManualTunnelPortStyle" TargetType="FrameworkElement">
+                <Setter Property="Visibility" Value="Collapsed"/>
+                <Style.Triggers>
+                    <MultiDataTrigger>
+                        <MultiDataTrigger.Conditions>
+                            <Condition Binding="{Binding UsesGateway}" Value="True"/>
+                            <Condition Binding="{Binding UseAutomaticTunnelPort}" Value="False"/>
+                        </MultiDataTrigger.Conditions>
+                        <Setter Property="Visibility" Value="Visible"/>
+                    </MultiDataTrigger>
+                </Style.Triggers>
+            </Style>
 
-        <Style x:Key="FormPasswordBoxStyle" TargetType="PasswordBox" BasedOn="{StaticResource {x:Type PasswordBox}}">
-            <Setter Property="FontSize" Value="{StaticResource FontSizeBody}"/>
-        </Style>
-
-        <Style x:Key="RdpOnlySectionStyle" TargetType="FrameworkElement">
-            <Setter Property="Visibility" Value="Collapsed"/>
-            <Style.Triggers>
-                <DataTrigger Binding="{Binding ConnectionType}" Value="RDP">
-                    <Setter Property="Visibility" Value="Visible"/>
-                </DataTrigger>
-            </Style.Triggers>
-        </Style>
-
-        <Style x:Key="SshOnlySectionStyle" TargetType="FrameworkElement">
-            <Setter Property="Visibility" Value="Collapsed"/>
-            <Style.Triggers>
-                <DataTrigger Binding="{Binding ConnectionType}" Value="SSH">
-                    <Setter Property="Visibility" Value="Visible"/>
-                </DataTrigger>
-            </Style.Triggers>
-        </Style>
-
-        <Style x:Key="SshFamilySectionStyle" TargetType="FrameworkElement">
-            <Setter Property="Visibility" Value="Collapsed"/>
-            <Style.Triggers>
-                <DataTrigger Binding="{Binding ConnectionType}" Value="SSH">
-                    <Setter Property="Visibility" Value="Visible"/>
-                </DataTrigger>
-                <DataTrigger Binding="{Binding ConnectionType}" Value="SFTP">
-                    <Setter Property="Visibility" Value="Visible"/>
-                </DataTrigger>
-            </Style.Triggers>
-        </Style>
-
-        <!-- Gateway/routing sections: hidden for Local shell, Citrix, and VNC -->
-        <Style x:Key="NetworkSectionStyle" TargetType="FrameworkElement">
-            <Setter Property="Visibility" Value="Visible"/>
-            <Style.Triggers>
-                <DataTrigger Binding="{Binding ConnectionType}" Value="Local">
-                    <Setter Property="Visibility" Value="Collapsed"/>
-                </DataTrigger>
-                <DataTrigger Binding="{Binding ConnectionType}" Value="Citrix">
-                    <Setter Property="Visibility" Value="Collapsed"/>
-                </DataTrigger>
-                <DataTrigger Binding="{Binding ConnectionType}" Value="VNC">
-                    <Setter Property="Visibility" Value="Collapsed"/>
-                </DataTrigger>
-                <DataTrigger Binding="{Binding ConnectionType}" Value="FTP">
-                    <Setter Property="Visibility" Value="Collapsed"/>
-                </DataTrigger>
-            </Style.Triggers>
-        </Style>
-
-        <Style x:Key="GatewaySectionStyle" TargetType="FrameworkElement">
-            <Setter Property="Visibility" Value="Collapsed"/>
-            <Style.Triggers>
-                <DataTrigger Binding="{Binding UsesGateway}" Value="True">
-                    <Setter Property="Visibility" Value="Visible"/>
-                </DataTrigger>
-            </Style.Triggers>
-        </Style>
-
-        <Style x:Key="DirectSectionStyle" TargetType="FrameworkElement">
-            <Setter Property="Visibility" Value="Collapsed"/>
-            <Style.Triggers>
-                <DataTrigger Binding="{Binding UsesGateway}" Value="False">
-                    <Setter Property="Visibility" Value="Visible"/>
-                </DataTrigger>
-            </Style.Triggers>
-        </Style>
-
-        <Style x:Key="ManualTunnelPortStyle" TargetType="FrameworkElement">
-            <Setter Property="Visibility" Value="Collapsed"/>
-            <Style.Triggers>
-                <MultiDataTrigger>
-                    <MultiDataTrigger.Conditions>
-                        <Condition Binding="{Binding UsesGateway}" Value="True"/>
-                        <Condition Binding="{Binding UseAutomaticTunnelPort}" Value="False"/>
-                    </MultiDataTrigger.Conditions>
-                    <Setter Property="Visibility" Value="Visible"/>
-                </MultiDataTrigger>
-            </Style.Triggers>
-        </Style>
+            <!-- Advanced settings toggle button style -->
+            <Style x:Key="AdvancedToggleStyle" TargetType="ToggleButton">
+                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="BorderThickness" Value="0"/>
+                <Setter Property="Cursor" Value="Hand"/>
+                <Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
+                <Setter Property="FontSize" Value="{StaticResource FontSizeBody}"/>
+                <Setter Property="FontWeight" Value="SemiBold"/>
+                <Setter Property="Padding" Value="0"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ToggleButton">
+                            <StackPanel Orientation="Horizontal" Background="Transparent">
+                                <TextBlock x:Name="Arrow" Text="&#x25B8;"
+                                           Margin="0,0,6,0"
+                                           Foreground="{TemplateBinding Foreground}"
+                                           FontSize="{TemplateBinding FontSize}"/>
+                                <ContentPresenter VerticalAlignment="Center"/>
+                            </StackPanel>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsChecked" Value="True">
+                                    <Setter TargetName="Arrow" Property="Text" Value="&#x25BE;"/>
+                                </Trigger>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Opacity" Value="0.8"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+        </ResourceDictionary>
     </Window.Resources>
 
     <Grid Margin="{StaticResource SpacingLg}">
@@ -188,132 +179,119 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <TabControl x:Name="MainTabControl" Grid.Row="0" Style="{DynamicResource ThemedTabControlStyle}">
-            <TabItem x:Name="DlgSrv_TabConnection" Style="{DynamicResource ThemedTabItemStyle}">
-                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                    <StackPanel Margin="{StaticResource SpacingSm}">
-                        <Border Style="{StaticResource SectionCardStyle}">
-                            <StackPanel>
-                                <TextBlock x:Name="DlgSrv_ConnectionBasicsTitle" Style="{StaticResource SectionTitleStyle}"/>
-                                <TextBlock x:Name="DlgSrv_ConnectionBasicsDesc"
-                                           Style="{StaticResource SectionDescriptionStyle}"/>
-                                <Grid Margin="0,16,0,0">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="150"/>
-                                    </Grid.ColumnDefinitions>
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="Auto"/>
-                                    </Grid.RowDefinitions>
-                                    <TextBlock x:Name="DlgSrv_DisplayNameLabel" Grid.Row="0" Grid.Column="0" Style="{StaticResource LabelStyle}"/>
-                                    <TextBlock x:Name="DlgSrv_ConnectionTypeLabel" Grid.Row="0" Grid.Column="1" Style="{StaticResource LabelStyle}" Margin="12,0,0,4"/>
-                                    <TextBox Grid.Row="1" Grid.Column="0"
-                                             TabIndex="0"
-                                             Text="{Binding DisplayName, UpdateSourceTrigger=PropertyChanged}"
-                                             Style="{StaticResource FormTextBoxStyle}"/>
-                                    <ComboBox Grid.Row="1" Grid.Column="1"
-                                              TabIndex="1"
-                                              Margin="12,0,0,0"
-                                              SelectedValue="{Binding ConnectionType}"
-                                              SelectedValuePath="Content"
-                                              Style="{StaticResource FormComboBoxStyle}">
-                                        <ComboBoxItem Content="RDP"/>
-                                        <ComboBoxItem Content="SSH"/>
-                                        <ComboBoxItem Content="SFTP"/>
-                                        <ComboBoxItem Content="FTP"/>
-                                        <ComboBoxItem Content="Local"/>
-                                        <ComboBoxItem Content="Citrix"/>
-                                        <ComboBoxItem Content="VNC"/>
-                                        <ComboBoxItem Content="Telnet"/>
-                                    </ComboBox>
-                                    <!-- Server/Port row: hidden for Local shell and Citrix -->
-                                    <TextBlock x:Name="DlgSrv_ServerLabel" Grid.Row="2" Grid.Column="0" Margin="0,14,0,4">
-                                        <TextBlock.Style>
-                                            <Style TargetType="TextBlock" BasedOn="{StaticResource LabelStyle}">
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding ConnectionType}" Value="Local">
-                                                        <Setter Property="Visibility" Value="Collapsed"/>
-                                                    </DataTrigger>
-                                                    <DataTrigger Binding="{Binding ConnectionType}" Value="Citrix">
-                                                        <Setter Property="Visibility" Value="Collapsed"/>
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </TextBlock.Style>
-                                    </TextBlock>
-                                    <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding EndpointPortLabel}" Margin="12,14,0,4">
-                                        <TextBlock.Style>
-                                            <Style TargetType="TextBlock" BasedOn="{StaticResource LabelStyle}">
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding ConnectionType}" Value="Local">
-                                                        <Setter Property="Visibility" Value="Collapsed"/>
-                                                    </DataTrigger>
-                                                    <DataTrigger Binding="{Binding ConnectionType}" Value="Citrix">
-                                                        <Setter Property="Visibility" Value="Collapsed"/>
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </TextBlock.Style>
-                                    </TextBlock>
-                                    <TextBox Grid.Row="3" Grid.Column="0"
-                                             TabIndex="2"
-                                             Text="{Binding RemoteServer, UpdateSourceTrigger=PropertyChanged}">
-                                        <TextBox.Style>
-                                            <Style TargetType="TextBox" BasedOn="{StaticResource FormTextBoxStyle}">
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding ConnectionType}" Value="Local">
-                                                        <Setter Property="Visibility" Value="Collapsed"/>
-                                                    </DataTrigger>
-                                                    <DataTrigger Binding="{Binding ConnectionType}" Value="Citrix">
-                                                        <Setter Property="Visibility" Value="Collapsed"/>
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </TextBox.Style>
-                                    </TextBox>
-                                    <TextBox Grid.Row="3" Grid.Column="1"
-                                             TabIndex="3"
-                                             Margin="12,0,0,0"
-                                             Width="120"
-                                             HorizontalAlignment="Left"
-                                             Text="{Binding EndpointPort, UpdateSourceTrigger=PropertyChanged}">
-                                        <TextBox.Style>
-                                            <Style TargetType="TextBox" BasedOn="{StaticResource FormTextBoxStyle}">
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding ConnectionType}" Value="Local">
-                                                        <Setter Property="Visibility" Value="Collapsed"/>
-                                                    </DataTrigger>
-                                                    <DataTrigger Binding="{Binding ConnectionType}" Value="Citrix">
-                                                        <Setter Property="Visibility" Value="Collapsed"/>
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </TextBox.Style>
-                                    </TextBox>
-                                </Grid>
-                                <TextBlock Text="{Binding EndpointPortHelpText}">
-                                    <TextBlock.Style>
-                                        <Style TargetType="TextBlock" BasedOn="{StaticResource HintTextStyle}">
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding ConnectionType}" Value="Local">
-                                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                                </DataTrigger>
-                                                <DataTrigger Binding="{Binding ConnectionType}" Value="Citrix">
-                                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </TextBlock.Style>
-                                </TextBlock>
-                            </StackPanel>
-                        </Border>
+        <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <StackPanel Margin="{StaticResource SpacingSm}">
 
-                        <Border>
-                            <Border.Style>
-                                <Style TargetType="Border" BasedOn="{StaticResource SectionCardStyle}">
+                <!-- ================================================================ -->
+                <!-- ESSENTIAL FIELDS (always visible, covers 90% of use cases)       -->
+                <!-- ================================================================ -->
+
+                <!-- Connection basics: Name, Type, Host, Port -->
+                <Border Style="{StaticResource DialogSectionCardStyle}">
+                    <StackPanel>
+                        <TextBlock x:Name="DlgSrv_ConnectionBasicsTitle" Style="{StaticResource DialogSectionTitleStyle}"/>
+                        <TextBlock x:Name="DlgSrv_ConnectionBasicsDesc"
+                                   Style="{StaticResource DialogSectionDescriptionStyle}"/>
+                        <Grid Margin="0,16,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="150"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <TextBlock x:Name="DlgSrv_DisplayNameLabel" Grid.Row="0" Grid.Column="0" Style="{StaticResource LabelStyle}"/>
+                            <TextBlock x:Name="DlgSrv_ConnectionTypeLabel" Grid.Row="0" Grid.Column="1" Style="{StaticResource LabelStyle}" Margin="12,0,0,4"/>
+                            <TextBox Grid.Row="1" Grid.Column="0"
+                                     TabIndex="0"
+                                     Text="{Binding DisplayName, UpdateSourceTrigger=PropertyChanged}"
+                                     Style="{StaticResource DialogFormTextBoxStyle}"/>
+                            <ComboBox Grid.Row="1" Grid.Column="1"
+                                      TabIndex="1"
+                                      Margin="12,0,0,0"
+                                      SelectedValue="{Binding ConnectionType}"
+                                      SelectedValuePath="Content"
+                                      Style="{StaticResource DialogFormComboBoxStyle}">
+                                <ComboBoxItem Content="RDP"/>
+                                <ComboBoxItem Content="SSH"/>
+                                <ComboBoxItem Content="SFTP"/>
+                                <ComboBoxItem Content="FTP"/>
+                                <ComboBoxItem Content="Local"/>
+                                <ComboBoxItem Content="Citrix"/>
+                                <ComboBoxItem Content="VNC"/>
+                                <ComboBoxItem Content="Telnet"/>
+                            </ComboBox>
+                            <!-- Server/Port row: hidden for Local shell and Citrix -->
+                            <TextBlock x:Name="DlgSrv_ServerLabel" Grid.Row="2" Grid.Column="0" Margin="0,14,0,4">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock" BasedOn="{StaticResource LabelStyle}">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding ConnectionType}" Value="Local">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding ConnectionType}" Value="Citrix">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                            <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding EndpointPortLabel}" Margin="12,14,0,4">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock" BasedOn="{StaticResource LabelStyle}">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding ConnectionType}" Value="Local">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding ConnectionType}" Value="Citrix">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                            <TextBox Grid.Row="3" Grid.Column="0"
+                                     TabIndex="2"
+                                     Text="{Binding RemoteServer, UpdateSourceTrigger=PropertyChanged}">
+                                <TextBox.Style>
+                                    <Style TargetType="TextBox" BasedOn="{StaticResource DialogFormTextBoxStyle}">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding ConnectionType}" Value="Local">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding ConnectionType}" Value="Citrix">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBox.Style>
+                            </TextBox>
+                            <TextBox Grid.Row="3" Grid.Column="1"
+                                     TabIndex="3"
+                                     Margin="12,0,0,0"
+                                     Width="120"
+                                     HorizontalAlignment="Left"
+                                     Text="{Binding EndpointPort, UpdateSourceTrigger=PropertyChanged}">
+                                <TextBox.Style>
+                                    <Style TargetType="TextBox" BasedOn="{StaticResource DialogFormTextBoxStyle}">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding ConnectionType}" Value="Local">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding ConnectionType}" Value="Citrix">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBox.Style>
+                            </TextBox>
+                        </Grid>
+                        <TextBlock Text="{Binding EndpointPortHelpText}">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource DialogHintTextStyle}">
                                     <Style.Triggers>
                                         <DataTrigger Binding="{Binding ConnectionType}" Value="Local">
                                             <Setter Property="Visibility" Value="Collapsed"/>
@@ -323,904 +301,1022 @@
                                         </DataTrigger>
                                     </Style.Triggers>
                                 </Style>
-                            </Border.Style>
-                            <StackPanel>
-                                <TextBlock x:Name="DlgSrv_GatewayRoutingTitle" Style="{StaticResource SectionTitleStyle}"/>
-                                <TextBlock x:Name="DlgSrv_GatewayRoutingDesc"
-                                           Style="{StaticResource SectionDescriptionStyle}"/>
-                                <CheckBox x:Name="DlgSrv_DirectConnectCb"
-                                          TabIndex="4"
-                                          IsChecked="{Binding DirectConnection}"
-                                          Style="{StaticResource FormCheckBoxStyle}"
-                                          Margin="0,14,0,0"/>
-                                <Grid Margin="0,12,0,0">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                    </Grid.ColumnDefinitions>
-                                    <ComboBox Grid.Column="0"
-                                              TabIndex="5"
-                                              ItemsSource="{Binding AvailableGateways}"
-                                              SelectedValue="{Binding SelectedGatewayId}"
-                                              SelectedValuePath="Id"
-                                              DisplayMemberPath="DisplayText"
-                                              IsEnabled="{Binding CanSelectGateway}"
-                                              Style="{StaticResource FormComboBoxStyle}"/>
-                                    <Button Grid.Column="1"
-                                            Margin="8,0,0,0"
-                                            Padding="12,6"
-                                            x:Name="DlgSrv_TestConnectionBtn"
-                                            Command="{Binding TestGatewayCommand}"
-                                            Style="{DynamicResource SecondaryButtonStyle}"/>
-                                </Grid>
-                                <TextBlock Text="{Binding GatewayExplanation}" Style="{StaticResource HintTextStyle}"/>
-                                <Border Margin="0,12,0,0">
-                                    <Border.Style>
-                                        <Style TargetType="Border" BasedOn="{StaticResource InsetCardStyle}">
-                                            <Setter Property="Visibility" Value="Collapsed"/>
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding UsesGateway}" Value="True">
-                                                    <Setter Property="Visibility" Value="Visible"/>
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </Border.Style>
-                                    <StackPanel>
-                                        <TextBlock Text="{Binding SelectedGatewayTitle}"
-                                                   Foreground="{DynamicResource TextPrimaryBrush}"
-                                                   FontSize="{StaticResource FontSizeBodyLarge}"
-                                                   FontWeight="SemiBold"/>
-                                        <TextBlock Text="{Binding SelectedGatewayEndpoint}" Style="{StaticResource HintTextStyle}" Margin="0,4,0,0"/>
-                                        <TextBlock Text="{Binding GatewayRouteText}" Style="{StaticResource HintTextStyle}" Margin="0,4,0,0"/>
-                                    </StackPanel>
-                                </Border>
-                                <TextBlock Text="{Binding GatewayTestMessage}"
-                                           Foreground="{DynamicResource InfoBrush}"
-                                           FontSize="{StaticResource FontSizeBody}"
-                                           Margin="0,10,0,0"
-                                           TextWrapping="Wrap"
-                                           Visibility="{Binding GatewayTestMessage, Converter={StaticResource NullToVisibilityConverter}}"/>
-                            </StackPanel>
-                        </Border>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </StackPanel>
+                </Border>
 
-                        <Border Style="{StaticResource SectionCardStyle}">
-                            <StackPanel>
-                                <TextBlock x:Name="DlgSrv_ConnectionPathTitle" Style="{StaticResource SectionTitleStyle}"/>
-                                <TextBlock Text="{Binding ConnectionPathHeadline}" Style="{StaticResource SectionDescriptionStyle}"/>
-                                <StackPanel Margin="0,16,0,0"
-                                            Orientation="Horizontal"
-                                            HorizontalAlignment="Center"
-                                            Style="{StaticResource DirectSectionStyle}">
-                                    <Border Style="{StaticResource DiagramNodeStyle}">
+                <!-- Project + Gateway routing (compact) -->
+                <Border Style="{StaticResource DialogSectionCardStyle}">
+                    <StackPanel>
+                        <TextBlock x:Name="DlgSrv_ProjectLabel" Style="{StaticResource LabelStyle}"/>
+                        <ComboBox TabIndex="4"
+                                  ItemsSource="{Binding AvailableProjects}"
+                                  SelectedValue="{Binding SelectedProjectId}"
+                                  SelectedValuePath="Id"
+                                  DisplayMemberPath="Name"
+                                  Style="{StaticResource DialogFormComboBoxStyle}"/>
+
+                        <!-- Gateway section (hidden for Local, Citrix, VNC, FTP) -->
+                        <StackPanel Style="{StaticResource NetworkSectionStyle}" Margin="0,14,0,0">
+                            <TextBlock x:Name="DlgSrv_GatewayRoutingTitle" Style="{StaticResource DialogSectionTitleStyle}"/>
+                            <TextBlock x:Name="DlgSrv_GatewayRoutingDesc"
+                                       Style="{StaticResource DialogSectionDescriptionStyle}"/>
+                            <CheckBox x:Name="DlgSrv_DirectConnectCb"
+                                      TabIndex="5"
+                                      IsChecked="{Binding DirectConnection}"
+                                      Style="{StaticResource DialogFormCheckBoxStyle}"
+                                      Margin="0,14,0,0"/>
+                            <Grid Margin="0,12,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <ComboBox Grid.Column="0"
+                                          TabIndex="6"
+                                          ItemsSource="{Binding AvailableGateways}"
+                                          SelectedValue="{Binding SelectedGatewayId}"
+                                          SelectedValuePath="Id"
+                                          DisplayMemberPath="DisplayText"
+                                          IsEnabled="{Binding CanSelectGateway}"
+                                          Style="{StaticResource DialogFormComboBoxStyle}"/>
+                                <Button Grid.Column="1"
+                                        Margin="8,0,0,0"
+                                        Padding="12,6"
+                                        x:Name="DlgSrv_TestConnectionBtn"
+                                        Command="{Binding TestGatewayCommand}"
+                                        Style="{DynamicResource SecondaryButtonStyle}"/>
+                            </Grid>
+                            <TextBlock Text="{Binding GatewayExplanation}" Style="{StaticResource DialogHintTextStyle}"/>
+                            <TextBlock Text="{Binding GatewayTestMessage}"
+                                       Foreground="{DynamicResource InfoBrush}"
+                                       FontSize="{StaticResource FontSizeBody}"
+                                       Margin="0,10,0,0"
+                                       TextWrapping="Wrap"
+                                       Visibility="{Binding GatewayTestMessage, Converter={StaticResource NullToVisibilityConverter}}"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- ================================================================ -->
+                <!-- ADVANCED SETTINGS TOGGLE                                         -->
+                <!-- ================================================================ -->
+
+                <ToggleButton x:Name="DlgSrv_AdvancedToggle"
+                              IsChecked="{Binding IsAdvancedMode}"
+                              Style="{StaticResource AdvancedToggleStyle}"
+                              Margin="0,0,0,12"
+                              AutomationProperties.Name="Advanced settings"/>
+
+                <!-- ================================================================ -->
+                <!-- ADVANCED PANEL (slide-down animation)                            -->
+                <!-- ================================================================ -->
+
+                <Border ClipToBounds="True">
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Setter Property="LayoutTransform">
+                                <Setter.Value>
+                                    <ScaleTransform ScaleY="0"/>
+                                </Setter.Value>
+                            </Setter>
+                            <Setter Property="Opacity" Value="0"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsAdvancedMode}" Value="True">
+                                    <Setter Property="LayoutTransform">
+                                        <Setter.Value>
+                                            <ScaleTransform ScaleY="1"/>
+                                        </Setter.Value>
+                                    </Setter>
+                                    <Setter Property="Opacity" Value="1"/>
+                                    <DataTrigger.EnterActions>
+                                        <BeginStoryboard>
+                                            <Storyboard>
+                                                <DoubleAnimation Storyboard.TargetProperty="(UIElement.LayoutTransform).(ScaleTransform.ScaleY)"
+                                                                 From="0" To="1" Duration="0:0:0.3">
+                                                    <DoubleAnimation.EasingFunction>
+                                                        <CubicEase EasingMode="EaseOut"/>
+                                                    </DoubleAnimation.EasingFunction>
+                                                </DoubleAnimation>
+                                                <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                                                 From="0" To="1" Duration="0:0:0.25"/>
+                                            </Storyboard>
+                                        </BeginStoryboard>
+                                    </DataTrigger.EnterActions>
+                                    <DataTrigger.ExitActions>
+                                        <BeginStoryboard>
+                                            <Storyboard>
+                                                <DoubleAnimation Storyboard.TargetProperty="(UIElement.LayoutTransform).(ScaleTransform.ScaleY)"
+                                                                 From="1" To="0" Duration="0:0:0.25">
+                                                    <DoubleAnimation.EasingFunction>
+                                                        <CubicEase EasingMode="EaseIn"/>
+                                                    </DoubleAnimation.EasingFunction>
+                                                </DoubleAnimation>
+                                                <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                                                 From="1" To="0" Duration="0:0:0.2"/>
+                                            </Storyboard>
+                                        </BeginStoryboard>
+                                    </DataTrigger.ExitActions>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+
+                    <TabControl x:Name="MainTabControl" Style="{DynamicResource ThemedTabControlStyle}">
+
+                        <!-- ============================================ -->
+                        <!-- Tab: Connection details (path diagram)       -->
+                        <!-- ============================================ -->
+                        <TabItem x:Name="DlgSrv_TabConnection" Style="{DynamicResource ThemedTabItemStyle}">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                                <StackPanel Margin="{StaticResource SpacingSm}">
+                                    <!-- Gateway detail card (visible only when gateway selected) -->
+                                    <Border Margin="0,0,0,12">
+                                        <Border.Style>
+                                            <Style TargetType="Border" BasedOn="{StaticResource DialogSectionCardStyle}">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding UsesGateway}" Value="True">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
                                         <StackPanel>
-                                            <TextBlock x:Name="DlgSrv_DirectYourPc" Foreground="{DynamicResource TextPrimaryBrush}" FontWeight="SemiBold"/>
-                                            <TextBlock Text="{Binding ClientNodeCaption}" Style="{StaticResource HintTextStyle}"/>
+                                            <TextBlock Text="{Binding SelectedGatewayTitle}"
+                                                       Foreground="{DynamicResource TextPrimaryBrush}"
+                                                       FontSize="{StaticResource FontSizeBodyLarge}"
+                                                       FontWeight="SemiBold"/>
+                                            <TextBlock Text="{Binding SelectedGatewayEndpoint}" Style="{StaticResource DialogHintTextStyle}" Margin="0,4,0,0"/>
+                                            <TextBlock Text="{Binding GatewayRouteText}" Style="{StaticResource DialogHintTextStyle}" Margin="0,4,0,0"/>
                                         </StackPanel>
                                     </Border>
-                                    <StackPanel Margin="12,16,12,0" Width="78">
-                                        <TextBlock Text="->" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="{StaticResource FontSizeTitle}" HorizontalAlignment="Center"/>
-                                        <TextBlock Text="{Binding SessionKindLabel}" Style="{StaticResource ArrowCaptionStyle}" Margin="0,6,0,0"/>
-                                    </StackPanel>
-                                    <Border Style="{StaticResource DiagramNodeStyle}">
+
+                                    <!-- Connection path diagram -->
+                                    <Border Style="{StaticResource DialogSectionCardStyle}">
                                         <StackPanel>
-                                            <TextBlock x:Name="DlgSrv_DirectDestination" Foreground="{DynamicResource TextPrimaryBrush}" FontWeight="SemiBold"/>
-                                            <TextBlock Text="{Binding DestinationNodeCaption}" Style="{StaticResource HintTextStyle}"/>
+                                            <TextBlock x:Name="DlgSrv_ConnectionPathTitle" Style="{StaticResource DialogSectionTitleStyle}"/>
+                                            <TextBlock Text="{Binding ConnectionPathHeadline}" Style="{StaticResource DialogSectionDescriptionStyle}"/>
+                                            <StackPanel Margin="0,16,0,0"
+                                                        Orientation="Horizontal"
+                                                        HorizontalAlignment="Center"
+                                                        Style="{StaticResource DirectSectionStyle}">
+                                                <Border Style="{StaticResource DiagramNodeStyle}">
+                                                    <StackPanel>
+                                                        <TextBlock x:Name="DlgSrv_DirectYourPc" Foreground="{DynamicResource TextPrimaryBrush}" FontWeight="SemiBold"/>
+                                                        <TextBlock Text="{Binding ClientNodeCaption}" Style="{StaticResource DialogHintTextStyle}"/>
+                                                    </StackPanel>
+                                                </Border>
+                                                <StackPanel Margin="12,16,12,0" Width="78">
+                                                    <TextBlock Text="->" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="{StaticResource FontSizeTitle}" HorizontalAlignment="Center"/>
+                                                    <TextBlock Text="{Binding SessionKindLabel}" Style="{StaticResource ArrowCaptionStyle}" Margin="0,6,0,0"/>
+                                                </StackPanel>
+                                                <Border Style="{StaticResource DiagramNodeStyle}">
+                                                    <StackPanel>
+                                                        <TextBlock x:Name="DlgSrv_DirectDestination" Foreground="{DynamicResource TextPrimaryBrush}" FontWeight="SemiBold"/>
+                                                        <TextBlock Text="{Binding DestinationNodeCaption}" Style="{StaticResource DialogHintTextStyle}"/>
+                                                    </StackPanel>
+                                                </Border>
+                                            </StackPanel>
+                                            <Viewbox Margin="0,16,0,0"
+                                                     Stretch="Uniform"
+                                                     StretchDirection="DownOnly"
+                                                     Style="{StaticResource GatewaySectionStyle}">
+                                                <StackPanel Orientation="Horizontal"
+                                                            HorizontalAlignment="Center">
+                                                    <Border Style="{StaticResource DiagramNodeStyle}">
+                                                        <StackPanel>
+                                                            <TextBlock x:Name="DlgSrv_GatewayYourPc" Foreground="{DynamicResource TextPrimaryBrush}" FontWeight="SemiBold"/>
+                                                            <TextBlock Text="{Binding ClientNodeCaption}" Style="{StaticResource DialogHintTextStyle}"/>
+                                                        </StackPanel>
+                                                    </Border>
+                                                    <StackPanel Margin="12,16,12,0" Width="78">
+                                                        <TextBlock Text="&#x2192;" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="{StaticResource FontSizeTitle}" HorizontalAlignment="Center"/>
+                                                        <TextBlock Text="{Binding ClientToGatewayLabel}" Style="{StaticResource ArrowCaptionStyle}" Margin="0,6,0,0"/>
+                                                    </StackPanel>
+                                                    <Border Style="{StaticResource DiagramNodeStyle}">
+                                                        <StackPanel>
+                                                            <TextBlock x:Name="DlgSrv_GatewayNode" Foreground="{DynamicResource TextPrimaryBrush}" FontWeight="SemiBold"/>
+                                                            <TextBlock Text="{Binding SelectedGatewayTitle}" Style="{StaticResource DialogHintTextStyle}"/>
+                                                            <TextBlock Text="{Binding SelectedGatewayEndpoint}" Style="{StaticResource DialogHintTextStyle}" Margin="0,4,0,0"/>
+                                                        </StackPanel>
+                                                    </Border>
+                                                    <StackPanel Margin="12,16,12,0" Width="78">
+                                                        <TextBlock Text="&#x2192;" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="{StaticResource FontSizeTitle}" HorizontalAlignment="Center"/>
+                                                        <TextBlock Text="{Binding GatewayToServerLabel}" Style="{StaticResource ArrowCaptionStyle}" Margin="0,6,0,0"/>
+                                                    </StackPanel>
+                                                    <Border Style="{StaticResource DiagramNodeStyle}">
+                                                        <StackPanel>
+                                                            <TextBlock x:Name="DlgSrv_GatewayDestination" Foreground="{DynamicResource TextPrimaryBrush}" FontWeight="SemiBold"/>
+                                                            <TextBlock Text="{Binding DestinationNodeCaption}" Style="{StaticResource DialogHintTextStyle}"/>
+                                                        </StackPanel>
+                                                    </Border>
+                                                </StackPanel>
+                                            </Viewbox>
                                         </StackPanel>
                                     </Border>
                                 </StackPanel>
-                                <Viewbox Margin="0,16,0,0"
-                                         Stretch="Uniform"
-                                         StretchDirection="DownOnly"
-                                         Style="{StaticResource GatewaySectionStyle}">
-                                    <StackPanel Orientation="Horizontal"
-                                                HorizontalAlignment="Center">
-                                        <Border Style="{StaticResource DiagramNodeStyle}">
-                                            <StackPanel>
-                                                <TextBlock x:Name="DlgSrv_GatewayYourPc" Foreground="{DynamicResource TextPrimaryBrush}" FontWeight="SemiBold"/>
-                                                <TextBlock Text="{Binding ClientNodeCaption}" Style="{StaticResource HintTextStyle}"/>
-                                            </StackPanel>
-                                        </Border>
-                                        <StackPanel Margin="12,16,12,0" Width="78">
-                                            <TextBlock Text="&#x2192;" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="{StaticResource FontSizeTitle}" HorizontalAlignment="Center"/>
-                                            <TextBlock Text="{Binding ClientToGatewayLabel}" Style="{StaticResource ArrowCaptionStyle}" Margin="0,6,0,0"/>
-                                        </StackPanel>
-                                        <Border Style="{StaticResource DiagramNodeStyle}">
-                                            <StackPanel>
-                                                <TextBlock x:Name="DlgSrv_GatewayNode" Foreground="{DynamicResource TextPrimaryBrush}" FontWeight="SemiBold"/>
-                                                <TextBlock Text="{Binding SelectedGatewayTitle}" Style="{StaticResource HintTextStyle}"/>
-                                                <TextBlock Text="{Binding SelectedGatewayEndpoint}" Style="{StaticResource HintTextStyle}" Margin="0,4,0,0"/>
-                                            </StackPanel>
-                                        </Border>
-                                        <StackPanel Margin="12,16,12,0" Width="78">
-                                            <TextBlock Text="&#x2192;" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="{StaticResource FontSizeTitle}" HorizontalAlignment="Center"/>
-                                            <TextBlock Text="{Binding GatewayToServerLabel}" Style="{StaticResource ArrowCaptionStyle}" Margin="0,6,0,0"/>
-                                        </StackPanel>
-                                        <Border Style="{StaticResource DiagramNodeStyle}">
-                                            <StackPanel>
-                                                <TextBlock x:Name="DlgSrv_GatewayDestination" Foreground="{DynamicResource TextPrimaryBrush}" FontWeight="SemiBold"/>
-                                                <TextBlock Text="{Binding DestinationNodeCaption}" Style="{StaticResource HintTextStyle}"/>
-                                            </StackPanel>
-                                        </Border>
-                                    </StackPanel>
-                                </Viewbox>
-                            </StackPanel>
-                        </Border>
-                    </StackPanel>
-                </ScrollViewer>
-            </TabItem>
+                            </ScrollViewer>
+                        </TabItem>
 
-            <TabItem x:Name="DlgSrv_TabTunneling"
-                     ToolTipService.ShowOnDisabled="True">
-                <TabItem.Style>
-                    <Style TargetType="TabItem" BasedOn="{StaticResource ThemedTabItemStyle}">
-                        <Setter Property="IsEnabled" Value="True"/>
-                        <Style.Triggers>
-                            <DataTrigger Binding="{Binding ConnectionType}" Value="FTP">
-                                <Setter Property="IsEnabled" Value="False"/>
-                            </DataTrigger>
-                            <DataTrigger Binding="{Binding ConnectionType}" Value="VNC">
-                                <Setter Property="IsEnabled" Value="False"/>
-                            </DataTrigger>
-                            <DataTrigger Binding="{Binding ConnectionType}" Value="Telnet">
-                                <Setter Property="IsEnabled" Value="False"/>
-                            </DataTrigger>
-                            <DataTrigger Binding="{Binding ConnectionType}" Value="Citrix">
-                                <Setter Property="IsEnabled" Value="False"/>
-                            </DataTrigger>
-                            <DataTrigger Binding="{Binding ConnectionType}" Value="Local">
-                                <Setter Property="IsEnabled" Value="False"/>
-                            </DataTrigger>
-                        </Style.Triggers>
-                    </Style>
-                </TabItem.Style>
-                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                    <StackPanel Margin="{StaticResource SpacingSm}">
-                        <Border Style="{StaticResource SectionCardStyle}">
-                            <StackPanel>
-                                <TextBlock x:Name="DlgSrv_TunnelingTitle" Style="{StaticResource SectionTitleStyle}"/>
-                                <TextBlock x:Name="DlgSrv_TunnelingDesc"
-                                           Style="{StaticResource SectionDescriptionStyle}"/>
-                                <TextBlock x:Name="DlgSrv_TunnelingHint"
-                                           Style="{StaticResource HintTextStyle}" Margin="0,10,0,0"/>
-                            </StackPanel>
-                        </Border>
-
-                        <Border>
-                            <Border.Style>
-                                <Style TargetType="Border" BasedOn="{StaticResource SectionCardStyle}">
-                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding UsesGateway}" Value="False">
-                                            <Setter Property="Visibility" Value="Visible"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Border.Style>
-                            <StackPanel>
-                                <TextBlock x:Name="DlgSrv_DirectConnTitle" Style="{StaticResource SectionTitleStyle}"/>
-                                <TextBlock x:Name="DlgSrv_DirectConnDesc"
-                                           Style="{StaticResource SectionDescriptionStyle}"/>
-                            </StackPanel>
-                        </Border>
-
-                        <Border>
-                            <Border.Style>
-                                <Style TargetType="Border" BasedOn="{StaticResource SectionCardStyle}">
-                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding UsesGateway}" Value="True">
-                                            <Setter Property="Visibility" Value="Visible"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Border.Style>
-                            <StackPanel>
-                                <TextBlock x:Name="DlgSrv_LocalTunnelPortTitle" Style="{StaticResource SectionTitleStyle}"/>
-                                <TextBlock x:Name="DlgSrv_LocalTunnelPortDesc"
-                                           Style="{StaticResource SectionDescriptionStyle}"/>
-                                <CheckBox x:Name="DlgSrv_AutoTunnelPortCb"
-                                          TabIndex="20"
-                                          IsChecked="{Binding UseAutomaticTunnelPort}"
-                                          Style="{StaticResource FormCheckBoxStyle}"
-                                          Margin="0,14,0,0"/>
-                                <TextBlock Text="{Binding LocalTunnelPortDisplay}" Style="{StaticResource HintTextStyle}" Margin="0,8,0,0"/>
-                                <Grid Margin="0,12,0,0" Style="{StaticResource ManualTunnelPortStyle}">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="140"/>
-                                        <ColumnDefinition Width="*"/>
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock x:Name="DlgSrv_ManualPortLabel" Grid.Column="0" Style="{StaticResource LabelStyle}" Margin="0,6,0,0"/>
-                                    <TextBox Grid.Column="1"
-                                             TabIndex="21"
-                                             Width="140"
-                                             HorizontalAlignment="Left"
-                                             Text="{Binding LocalPort, UpdateSourceTrigger=PropertyChanged}"
-                                             Style="{StaticResource FormTextBoxStyle}"/>
-                                </Grid>
-                            </StackPanel>
-                        </Border>
-
-                        <Border>
-                            <Border.Style>
-                                <Style TargetType="Border" BasedOn="{StaticResource SectionCardStyle}">
-                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding UsesGateway}" Value="True">
-                                            <Setter Property="Visibility" Value="Visible"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Border.Style>
-                            <StackPanel>
-                                <TextBlock x:Name="DlgSrv_TunnelMappingTitle" Style="{StaticResource SectionTitleStyle}"/>
-                                <TextBlock Text="{Binding TunnelSummary}" Style="{StaticResource SectionDescriptionStyle}"/>
-                                <Grid Margin="0,14,0,0">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="150"/>
-                                        <ColumnDefinition Width="*"/>
-                                    </Grid.ColumnDefinitions>
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="Auto"/>
-                                    </Grid.RowDefinitions>
-                                    <TextBlock x:Name="DlgSrv_ChainLabel" Grid.Row="0" Grid.Column="0" Style="{StaticResource LabelStyle}"/>
-                                    <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding GatewayRouteText}" Style="{StaticResource HintTextStyle}" Margin="0,0,0,0"/>
-                                    <TextBlock x:Name="DlgSrv_LocalEndpointLabel" Grid.Row="1" Grid.Column="0" Style="{StaticResource LabelStyle}" Margin="0,12,0,0"/>
-                                    <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding ClientNodeCaption}" Style="{StaticResource HintTextStyle}" Margin="0,12,0,0"/>
-                                    <TextBlock x:Name="DlgSrv_RemoteDestLabel" Grid.Row="2" Grid.Column="0" Style="{StaticResource LabelStyle}" Margin="0,12,0,0"/>
-                                    <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding DestinationNodeCaption}" Style="{StaticResource HintTextStyle}" Margin="0,12,0,0"/>
-                                </Grid>
-                            </StackPanel>
-                        </Border>
-                    </StackPanel>
-                </ScrollViewer>
-            </TabItem>
-
-            <TabItem x:Name="DlgSrv_TabAuthentication"
-                     ToolTipService.ShowOnDisabled="True">
-                <TabItem.Style>
-                    <Style TargetType="TabItem" BasedOn="{StaticResource ThemedTabItemStyle}">
-                        <Setter Property="IsEnabled" Value="True"/>
-                        <Style.Triggers>
-                            <DataTrigger Binding="{Binding ConnectionType}" Value="Citrix">
-                                <Setter Property="IsEnabled" Value="False"/>
-                            </DataTrigger>
-                            <DataTrigger Binding="{Binding ConnectionType}" Value="Local">
-                                <Setter Property="IsEnabled" Value="False"/>
-                            </DataTrigger>
-                        </Style.Triggers>
-                    </Style>
-                </TabItem.Style>
-                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                    <StackPanel Margin="{StaticResource SpacingSm}">
-                        <Border>
-                            <Border.Style>
-                                <Style TargetType="Border" BasedOn="{StaticResource SectionCardStyle}">
-                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding ConnectionType}" Value="RDP">
-                                            <Setter Property="Visibility" Value="Visible"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Border.Style>
-                            <StackPanel>
-                                <TextBlock x:Name="DlgSrv_RdpCredentialsTitle" Style="{StaticResource SectionTitleStyle}"/>
-                                <TextBlock x:Name="DlgSrv_RdpCredentialsDesc"
-                                           Style="{StaticResource SectionDescriptionStyle}"/>
-                                <TextBlock x:Name="DlgSrv_RdpUsernameLabel" Style="{StaticResource LabelStyle}" Margin="0,14,0,4"/>
-                                <TextBox TabIndex="40" Text="{Binding RdpUsername, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBoxStyle}"/>
-                                <TextBlock x:Name="DlgSrv_RdpPasswordLabel" Style="{StaticResource LabelStyle}" Margin="0,12,0,4"/>
-                                <PasswordBox x:Name="RdpPasswordBox" TabIndex="41" Style="{StaticResource FormPasswordBoxStyle}"/>
-                            </StackPanel>
-                        </Border>
-
-                        <Border>
-                            <Border.Style>
-                                <Style TargetType="Border" BasedOn="{StaticResource SectionCardStyle}">
-                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding ConnectionType}" Value="SSH">
-                                            <Setter Property="Visibility" Value="Visible"/>
-                                        </DataTrigger>
-                                        <DataTrigger Binding="{Binding ConnectionType}" Value="SFTP">
-                                            <Setter Property="Visibility" Value="Visible"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Border.Style>
-                            <StackPanel>
-                                <TextBlock x:Name="DlgSrv_SshCredentialsTitle" Style="{StaticResource SectionTitleStyle}"/>
-                                <TextBlock x:Name="DlgSrv_SshCredentialsDesc"
-                                           Style="{StaticResource SectionDescriptionStyle}"/>
-                                <TextBlock x:Name="DlgSrv_SshUsernameLabel" Style="{StaticResource LabelStyle}" Margin="0,14,0,4"/>
-                                <TextBox TabIndex="42" Text="{Binding SshUsername, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBoxStyle}"/>
-                                <TextBlock x:Name="DlgSrv_SshKeyLabel" Style="{StaticResource LabelStyle}" Margin="0,12,0,4"/>
-                                <DockPanel>
-                                    <Button x:Name="DlgSrv_BrowseBtn"
-                                            DockPanel.Dock="Right"
-                                            Command="{Binding BrowseSshKeyCommand}"
-                                            Style="{DynamicResource SecondaryButtonStyle}"
-                                            Margin="8,0,0,0"
-                                            Click="OnBrowseSshKeyClick"/>
-                                    <TextBox TabIndex="43" Text="{Binding SshKeyPath, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBoxStyle}"/>
-                                </DockPanel>
-                                <TextBlock x:Name="DlgSrv_PassphraseLabel" Style="{StaticResource LabelStyle}" Margin="0,12,0,4"/>
-                                <PasswordBox x:Name="SshPasswordBox" TabIndex="44" Style="{StaticResource FormPasswordBoxStyle}"/>
-                                <TextBlock x:Name="DlgSrv_SshAuthHint"
-                                           Style="{StaticResource HintTextStyle}" Margin="0,8,0,0"
-                                           TextWrapping="Wrap"/>
-                            </StackPanel>
-                        </Border>
-
-                        <!-- FTP credentials (visible only for FTP type) -->
-                        <Border>
-                            <Border.Style>
-                                <Style TargetType="Border" BasedOn="{StaticResource SectionCardStyle}">
-                                    <Setter Property="Visibility" Value="Collapsed"/>
+                        <!-- ============================================ -->
+                        <!-- Tab: Tunneling                               -->
+                        <!-- ============================================ -->
+                        <TabItem x:Name="DlgSrv_TabTunneling"
+                                 ToolTipService.ShowOnDisabled="True">
+                            <TabItem.Style>
+                                <Style TargetType="TabItem" BasedOn="{StaticResource ThemedTabItemStyle}">
+                                    <Setter Property="IsEnabled" Value="True"/>
                                     <Style.Triggers>
                                         <DataTrigger Binding="{Binding ConnectionType}" Value="FTP">
-                                            <Setter Property="Visibility" Value="Visible"/>
+                                            <Setter Property="IsEnabled" Value="False"/>
                                         </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Border.Style>
-                            <StackPanel>
-                                <TextBlock x:Name="DlgSrv_FtpCredentialsTitle" Style="{StaticResource SectionTitleStyle}"/>
-                                <TextBlock x:Name="DlgSrv_FtpCredentialsDesc"
-                                           Style="{StaticResource SectionDescriptionStyle}"/>
-                                <TextBlock x:Name="DlgSrv_FtpUsernameLabel" Style="{StaticResource LabelStyle}" Margin="0,14,0,4"/>
-                                <TextBox TabIndex="45" Text="{Binding FtpUsername, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBoxStyle}"/>
-                                <TextBlock x:Name="DlgSrv_FtpPasswordLabel" Style="{StaticResource LabelStyle}" Margin="0,12,0,4"/>
-                                <PasswordBox x:Name="FtpPasswordBox" TabIndex="46" Style="{StaticResource FormPasswordBoxStyle}"/>
-                            </StackPanel>
-                        </Border>
-
-                        <!-- VNC credentials (visible only for VNC type) -->
-                        <Border>
-                            <Border.Style>
-                                <Style TargetType="Border" BasedOn="{StaticResource SectionCardStyle}">
-                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                    <Style.Triggers>
                                         <DataTrigger Binding="{Binding ConnectionType}" Value="VNC">
-                                            <Setter Property="Visibility" Value="Visible"/>
+                                            <Setter Property="IsEnabled" Value="False"/>
                                         </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Border.Style>
-                            <StackPanel>
-                                <TextBlock x:Name="DlgSrv_VncCredentialsTitle" Style="{StaticResource SectionTitleStyle}"/>
-                                <TextBlock x:Name="DlgSrv_VncCredentialsDesc"
-                                           Style="{StaticResource SectionDescriptionStyle}"/>
-                                <TextBlock x:Name="DlgSrv_VncPasswordLabel" Style="{StaticResource LabelStyle}" Margin="0,14,0,4"/>
-                                <PasswordBox x:Name="VncPasswordBox" TabIndex="47" Style="{StaticResource FormPasswordBoxStyle}"/>
-                            </StackPanel>
-                        </Border>
-
-                        <!-- Telnet credentials (visible only for Telnet type) -->
-                        <Border>
-                            <Border.Style>
-                                <Style TargetType="Border" BasedOn="{StaticResource SectionCardStyle}">
-                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                    <Style.Triggers>
                                         <DataTrigger Binding="{Binding ConnectionType}" Value="Telnet">
-                                            <Setter Property="Visibility" Value="Visible"/>
+                                            <Setter Property="IsEnabled" Value="False"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding ConnectionType}" Value="Citrix">
+                                            <Setter Property="IsEnabled" Value="False"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding ConnectionType}" Value="Local">
+                                            <Setter Property="IsEnabled" Value="False"/>
                                         </DataTrigger>
                                     </Style.Triggers>
                                 </Style>
-                            </Border.Style>
-                            <StackPanel>
-                                <TextBlock x:Name="DlgSrv_TelnetCredentialsTitle" Style="{StaticResource SectionTitleStyle}"/>
-                                <TextBlock x:Name="DlgSrv_TelnetCredentialsDesc"
-                                           Style="{StaticResource SectionDescriptionStyle}"/>
-                                <TextBlock x:Name="DlgSrv_TelnetUsernameLabel" Style="{StaticResource LabelStyle}" Margin="0,14,0,4"/>
-                                <TextBox TabIndex="48" Text="{Binding TelnetUsername, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBoxStyle}"/>
-                                <TextBlock x:Name="DlgSrv_TelnetPasswordLabel" Style="{StaticResource LabelStyle}" Margin="0,12,0,4"/>
-                                <PasswordBox x:Name="TelnetPasswordBox" TabIndex="49" Style="{StaticResource FormPasswordBoxStyle}"/>
-                            </StackPanel>
-                        </Border>
+                            </TabItem.Style>
+                            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                                <StackPanel Margin="{StaticResource SpacingSm}">
+                                    <Border Style="{StaticResource DialogSectionCardStyle}">
+                                        <StackPanel>
+                                            <TextBlock x:Name="DlgSrv_TunnelingTitle" Style="{StaticResource DialogSectionTitleStyle}"/>
+                                            <TextBlock x:Name="DlgSrv_TunnelingDesc"
+                                                       Style="{StaticResource DialogSectionDescriptionStyle}"/>
+                                            <TextBlock x:Name="DlgSrv_TunnelingHint"
+                                                       Style="{StaticResource DialogHintTextStyle}" Margin="0,10,0,0"/>
+                                        </StackPanel>
+                                    </Border>
 
-                        <Border>
-                            <Border.Style>
-                                <Style TargetType="Border" BasedOn="{StaticResource SectionCardStyle}">
-                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding UsesGateway}" Value="True">
-                                            <Setter Property="Visibility" Value="Visible"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Border.Style>
-                            <StackPanel>
-                                <TextBlock x:Name="DlgSrv_GatewayAuthTitle" Style="{StaticResource SectionTitleStyle}"/>
-                                <TextBlock x:Name="DlgSrv_GatewayAuthDesc"
-                                           Style="{StaticResource SectionDescriptionStyle}"/>
-                                <TextBlock Text="{Binding SelectedGatewayTitle}" Style="{StaticResource HintTextStyle}" Margin="0,10,0,0"/>
-                                <TextBlock Text="{Binding SelectedGatewayEndpoint}" Style="{StaticResource HintTextStyle}" Margin="0,4,0,0"/>
-                            </StackPanel>
-                        </Border>
-                    </StackPanel>
-                </ScrollViewer>
-            </TabItem>
+                                    <Border>
+                                        <Border.Style>
+                                            <Style TargetType="Border" BasedOn="{StaticResource DialogSectionCardStyle}">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding UsesGateway}" Value="False">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <StackPanel>
+                                            <TextBlock x:Name="DlgSrv_DirectConnTitle" Style="{StaticResource DialogSectionTitleStyle}"/>
+                                            <TextBlock x:Name="DlgSrv_DirectConnDesc"
+                                                       Style="{StaticResource DialogSectionDescriptionStyle}"/>
+                                        </StackPanel>
+                                    </Border>
 
-            <TabItem x:Name="DlgSrv_TabOptions" Style="{DynamicResource ThemedTabItemStyle}">
-                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                    <StackPanel Margin="{StaticResource SpacingSm}">
-                        <Border>
-                            <Border.Style>
-                                <Style TargetType="Border" BasedOn="{StaticResource SectionCardStyle}">
-                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding ConnectionType}" Value="RDP">
-                                            <Setter Property="Visibility" Value="Visible"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Border.Style>
-                            <StackPanel>
-                                <TextBlock x:Name="DlgSrv_RdpOptionsTitle" Style="{StaticResource SectionTitleStyle}"/>
-                                <TextBlock x:Name="DlgSrv_RdpOptionsDesc"
-                                           Style="{StaticResource SectionDescriptionStyle}"/>
-                                <Grid Margin="0,16,0,0">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="*"/>
-                                    </Grid.ColumnDefinitions>
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="Auto"/>
-                                    </Grid.RowDefinitions>
-                                    <TextBlock x:Name="DlgSrv_SessionModeLabel" Grid.Row="0" Grid.Column="0" Style="{StaticResource LabelStyle}"/>
-                                    <TextBlock x:Name="DlgSrv_AspectRatioLabel" Grid.Row="0" Grid.Column="1" Style="{StaticResource LabelStyle}" Margin="12,0,0,4"/>
-                                    <ComboBox Grid.Row="1" Grid.Column="0"
-                                              TabIndex="60"
-                                              SelectedValue="{Binding RdpMode}"
-                                              SelectedValuePath="Tag"
-                                              Style="{StaticResource FormComboBoxStyle}">
-                                        <ComboBoxItem x:Name="DlgSrv_RdpModeEmbedded" Content="" Tag="Embedded"/>
-                                        <ComboBoxItem x:Name="DlgSrv_RdpModeExternal" Content="" Tag="External"/>
-                                    </ComboBox>
-                                    <ComboBox Grid.Row="1" Grid.Column="1"
-                                              TabIndex="61"
-                                              Margin="12,0,0,0"
-                                              SelectedValue="{Binding RdpAspectRatio}"
-                                              SelectedValuePath="Tag"
-                                              Style="{StaticResource FormComboBoxStyle}">
-                                        <ComboBoxItem x:Name="DlgSrv_AspectStretch" Content="" Tag="Stretch"/>
-                                        <ComboBoxItem x:Name="DlgSrv_AspectPreserve" Content="" Tag="Preserve"/>
-                                    </ComboBox>
-                                    <TextBlock x:Name="DlgSrv_AudioModeLabel" Grid.Row="2" Grid.Column="0" Style="{StaticResource LabelStyle}" Margin="0,14,0,4"/>
-                                    <TextBlock x:Name="DlgSrv_ColorDepthLabel" Grid.Row="2" Grid.Column="1" Style="{StaticResource LabelStyle}" Margin="12,14,0,4"/>
-                                    <ComboBox Grid.Row="3" Grid.Column="0"
-                                              TabIndex="62"
-                                              SelectedValue="{Binding RdpAudioMode}"
-                                              SelectedValuePath="Tag"
-                                              Style="{StaticResource FormComboBoxStyle}">
-                                        <ComboBoxItem x:Name="DlgSrv_AudioDisabled" Tag="0"/>
-                                        <ComboBoxItem x:Name="DlgSrv_AudioLocal" Tag="1"/>
-                                        <ComboBoxItem x:Name="DlgSrv_AudioRemote" Tag="2"/>
-                                    </ComboBox>
-                                    <ComboBox Grid.Row="3" Grid.Column="1"
-                                              TabIndex="63"
-                                              Margin="12,0,0,0"
-                                              SelectedValue="{Binding RdpColorDepth}"
-                                              SelectedValuePath="Tag"
-                                              Style="{StaticResource FormComboBoxStyle}">
-                                        <ComboBoxItem x:Name="DlgSrv_Color16" Tag="16"/>
-                                        <ComboBoxItem x:Name="DlgSrv_Color24" Tag="24"/>
-                                        <ComboBoxItem x:Name="DlgSrv_Color32" Tag="32"/>
-                                    </ComboBox>
-                                </Grid>
-                                <StackPanel Margin="0,14,0,0">
-                                    <CheckBox x:Name="DlgSrv_NlaCb" TabIndex="64" IsChecked="{Binding RdpNla}" Style="{StaticResource FormCheckBoxStyle}"/>
-                                    <CheckBox x:Name="DlgSrv_MultiMonitorCb" TabIndex="65" IsChecked="{Binding RdpMultiMonitor}" Style="{StaticResource FormCheckBoxStyle}" Margin="0,6,0,0"/>
-                                    <CheckBox x:Name="DlgSrv_DynamicResCb" TabIndex="66" IsChecked="{Binding RdpDynamicResolution}" Style="{StaticResource FormCheckBoxStyle}" Margin="0,6,0,0"/>
-                                    <CheckBox x:Name="DlgSrv_AudioCaptureCb" TabIndex="67" IsChecked="{Binding RdpAudioCapture}" Style="{StaticResource FormCheckBoxStyle}" Margin="0,6,0,0"/>
+                                    <Border>
+                                        <Border.Style>
+                                            <Style TargetType="Border" BasedOn="{StaticResource DialogSectionCardStyle}">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding UsesGateway}" Value="True">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <StackPanel>
+                                            <TextBlock x:Name="DlgSrv_LocalTunnelPortTitle" Style="{StaticResource DialogSectionTitleStyle}"/>
+                                            <TextBlock x:Name="DlgSrv_LocalTunnelPortDesc"
+                                                       Style="{StaticResource DialogSectionDescriptionStyle}"/>
+                                            <CheckBox x:Name="DlgSrv_AutoTunnelPortCb"
+                                                      TabIndex="20"
+                                                      IsChecked="{Binding UseAutomaticTunnelPort}"
+                                                      Style="{StaticResource DialogFormCheckBoxStyle}"
+                                                      Margin="0,14,0,0"/>
+                                            <TextBlock Text="{Binding LocalTunnelPortDisplay}" Style="{StaticResource DialogHintTextStyle}" Margin="0,8,0,0"/>
+                                            <Grid Margin="0,12,0,0" Style="{StaticResource ManualTunnelPortStyle}">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="140"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock x:Name="DlgSrv_ManualPortLabel" Grid.Column="0" Style="{StaticResource LabelStyle}" Margin="0,6,0,0"/>
+                                                <TextBox Grid.Column="1"
+                                                         TabIndex="21"
+                                                         Width="140"
+                                                         HorizontalAlignment="Left"
+                                                         Text="{Binding LocalPort, UpdateSourceTrigger=PropertyChanged}"
+                                                         Style="{StaticResource DialogFormTextBoxStyle}"/>
+                                            </Grid>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <Border>
+                                        <Border.Style>
+                                            <Style TargetType="Border" BasedOn="{StaticResource DialogSectionCardStyle}">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding UsesGateway}" Value="True">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <StackPanel>
+                                            <TextBlock x:Name="DlgSrv_TunnelMappingTitle" Style="{StaticResource DialogSectionTitleStyle}"/>
+                                            <TextBlock Text="{Binding TunnelSummary}" Style="{StaticResource DialogSectionDescriptionStyle}"/>
+                                            <Grid Margin="0,14,0,0">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="150"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                </Grid.RowDefinitions>
+                                                <TextBlock x:Name="DlgSrv_ChainLabel" Grid.Row="0" Grid.Column="0" Style="{StaticResource LabelStyle}"/>
+                                                <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding GatewayRouteText}" Style="{StaticResource DialogHintTextStyle}" Margin="0,0,0,0"/>
+                                                <TextBlock x:Name="DlgSrv_LocalEndpointLabel" Grid.Row="1" Grid.Column="0" Style="{StaticResource LabelStyle}" Margin="0,12,0,0"/>
+                                                <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding ClientNodeCaption}" Style="{StaticResource DialogHintTextStyle}" Margin="0,12,0,0"/>
+                                                <TextBlock x:Name="DlgSrv_RemoteDestLabel" Grid.Row="2" Grid.Column="0" Style="{StaticResource LabelStyle}" Margin="0,12,0,0"/>
+                                                <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding DestinationNodeCaption}" Style="{StaticResource DialogHintTextStyle}" Margin="0,12,0,0"/>
+                                            </Grid>
+                                        </StackPanel>
+                                    </Border>
                                 </StackPanel>
-                            </StackPanel>
-                        </Border>
+                            </ScrollViewer>
+                        </TabItem>
 
-                        <Expander x:Name="DlgSrv_DeviceRedirExpander" IsExpanded="True">
-                            <Expander.Style>
-                                <Style TargetType="Expander" BasedOn="{StaticResource ThemedExpanderStyle}">
-                                    <Setter Property="Visibility" Value="Collapsed"/>
+                        <!-- ============================================ -->
+                        <!-- Tab: Authentication                          -->
+                        <!-- ============================================ -->
+                        <TabItem x:Name="DlgSrv_TabAuthentication"
+                                 ToolTipService.ShowOnDisabled="True">
+                            <TabItem.Style>
+                                <Style TargetType="TabItem" BasedOn="{StaticResource ThemedTabItemStyle}">
+                                    <Setter Property="IsEnabled" Value="True"/>
                                     <Style.Triggers>
-                                        <DataTrigger Binding="{Binding ConnectionType}" Value="RDP">
-                                            <Setter Property="Visibility" Value="Visible"/>
+                                        <DataTrigger Binding="{Binding ConnectionType}" Value="Citrix">
+                                            <Setter Property="IsEnabled" Value="False"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding ConnectionType}" Value="Local">
+                                            <Setter Property="IsEnabled" Value="False"/>
                                         </DataTrigger>
                                     </Style.Triggers>
                                 </Style>
-                            </Expander.Style>
-                            <StackPanel Margin="0,12,0,0">
-                                <CheckBox x:Name="DlgSrv_RedirClipboardCb" TabIndex="68" IsChecked="{Binding RedirectClipboard}" Style="{StaticResource FormCheckBoxStyle}"/>
-                                <CheckBox x:Name="DlgSrv_RedirDrivesCb" TabIndex="69" IsChecked="{Binding RedirectDrives}" Style="{StaticResource FormCheckBoxStyle}" Margin="0,6,0,0"/>
-                                <CheckBox x:Name="DlgSrv_RedirPrintersCb" TabIndex="70" IsChecked="{Binding RedirectPrinters}" Style="{StaticResource FormCheckBoxStyle}" Margin="0,6,0,0"/>
-                                <CheckBox x:Name="DlgSrv_RedirComPortsCb" TabIndex="71" IsChecked="{Binding RdpRedirectComPorts}" Style="{StaticResource FormCheckBoxStyle}" Margin="0,6,0,0"/>
-                                <CheckBox x:Name="DlgSrv_RedirSmartCardsCb" TabIndex="72" IsChecked="{Binding RdpRedirectSmartCards}" Style="{StaticResource FormCheckBoxStyle}" Margin="0,6,0,0"/>
-                                <CheckBox x:Name="DlgSrv_RedirWebcamCb" TabIndex="73" IsChecked="{Binding RdpRedirectWebcam}" Style="{StaticResource FormCheckBoxStyle}" Margin="0,6,0,0"/>
-                                <CheckBox x:Name="DlgSrv_RedirUsbCb" TabIndex="74" IsChecked="{Binding RdpRedirectUsb}" Style="{StaticResource FormCheckBoxStyle}" Margin="0,6,0,0"/>
-                            </StackPanel>
-                        </Expander>
+                            </TabItem.Style>
+                            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                                <StackPanel Margin="{StaticResource SpacingSm}">
+                                    <!-- RDP credentials -->
+                                    <Border>
+                                        <Border.Style>
+                                            <Style TargetType="Border" BasedOn="{StaticResource DialogSectionCardStyle}">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding ConnectionType}" Value="RDP">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <StackPanel>
+                                            <TextBlock x:Name="DlgSrv_RdpCredentialsTitle" Style="{StaticResource DialogSectionTitleStyle}"/>
+                                            <TextBlock x:Name="DlgSrv_RdpCredentialsDesc"
+                                                       Style="{StaticResource DialogSectionDescriptionStyle}"/>
+                                            <TextBlock x:Name="DlgSrv_RdpUsernameLabel" Style="{StaticResource LabelStyle}" Margin="0,14,0,4"/>
+                                            <TextBox TabIndex="40" Text="{Binding RdpUsername, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource DialogFormTextBoxStyle}"/>
+                                            <TextBlock x:Name="DlgSrv_RdpPasswordLabel" Style="{StaticResource LabelStyle}" Margin="0,12,0,4"/>
+                                            <PasswordBox x:Name="RdpPasswordBox" TabIndex="41" Style="{StaticResource DialogFormPasswordBoxStyle}"/>
+                                        </StackPanel>
+                                    </Border>
 
-                        <Expander x:Name="DlgSrv_AdvancedRdpExpander" IsExpanded="False">
-                            <Expander.Style>
-                                <Style TargetType="Expander" BasedOn="{StaticResource ThemedExpanderStyle}">
-                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding ConnectionType}" Value="RDP">
-                                            <Setter Property="Visibility" Value="Visible"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Expander.Style>
-                            <StackPanel Margin="0,12,0,0">
-                                <CheckBox x:Name="DlgSrv_GlobalDefaultsCb" TabIndex="75" IsChecked="{Binding RdpUseGlobalDefaults}" Style="{StaticResource FormCheckBoxStyle}"/>
-                                <CheckBox x:Name="DlgSrv_AntiIdleCb" TabIndex="76" IsChecked="{Binding RdpAntiIdle}" Style="{StaticResource FormCheckBoxStyle}" Margin="0,6,0,0"/>
-                                <CheckBox x:Name="DlgSrv_BitmapCacheCb" TabIndex="77" IsChecked="{Binding RdpBitmapCaching}" Style="{StaticResource FormCheckBoxStyle}" Margin="0,6,0,0"/>
-                                <CheckBox x:Name="DlgSrv_RdpCompressionCb" TabIndex="78" IsChecked="{Binding RdpCompression}" Style="{StaticResource FormCheckBoxStyle}" Margin="0,6,0,0"/>
-                                <CheckBox x:Name="DlgSrv_AutoReconnectCb" TabIndex="79" IsChecked="{Binding RdpAutoReconnect}" Style="{StaticResource FormCheckBoxStyle}" Margin="0,6,0,0"/>
-                            </StackPanel>
-                        </Expander>
-
-                        <Expander x:Name="DlgSrv_RdpExperienceExpander" IsExpanded="False">
-                            <Expander.Style>
-                                <Style TargetType="Expander" BasedOn="{StaticResource ThemedExpanderStyle}">
-                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding ConnectionType}" Value="RDP">
-                                            <Setter Property="Visibility" Value="Visible"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Expander.Style>
-                            <StackPanel Margin="0,12,0,0">
-                                <CheckBox x:Name="DlgSrv_PerfDisableWallpaperCb" TabIndex="80" Style="{StaticResource FormCheckBoxStyle}"/>
-                                <CheckBox x:Name="DlgSrv_PerfDisableThemesCb" TabIndex="81" Style="{StaticResource FormCheckBoxStyle}" Margin="0,6,0,0"/>
-                                <CheckBox x:Name="DlgSrv_PerfDisableAnimationsCb" TabIndex="82" Style="{StaticResource FormCheckBoxStyle}" Margin="0,6,0,0"/>
-                                <CheckBox x:Name="DlgSrv_PerfDisableDragCb" TabIndex="83" Style="{StaticResource FormCheckBoxStyle}" Margin="0,6,0,0"/>
-                                <CheckBox x:Name="DlgSrv_PerfDisableCursorShadowCb" TabIndex="84" Style="{StaticResource FormCheckBoxStyle}" Margin="0,6,0,0"/>
-                                <CheckBox x:Name="DlgSrv_PerfEnableFontSmoothingCb" TabIndex="85" Style="{StaticResource FormCheckBoxStyle}" Margin="0,6,0,0"/>
-                                <CheckBox x:Name="DlgSrv_PerfEnableCompositionCb" TabIndex="86" Style="{StaticResource FormCheckBoxStyle}" Margin="0,6,0,0"/>
-                                <CheckBox x:Name="DlgSrv_DisableUdpCb" TabIndex="87" IsChecked="{Binding RdpDisableUdp}" Style="{StaticResource FormCheckBoxStyle}" Margin="0,12,0,0"/>
-                            </StackPanel>
-                        </Expander>
-
-                        <Border>
-                            <Border.Style>
-                                <Style TargetType="Border" BasedOn="{StaticResource SectionCardStyle}">
-                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding ConnectionType}" Value="SSH">
-                                            <Setter Property="Visibility" Value="Visible"/>
-                                        </DataTrigger>
-                                        <DataTrigger Binding="{Binding ConnectionType}" Value="SFTP">
-                                            <Setter Property="Visibility" Value="Visible"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Border.Style>
-                            <StackPanel>
-                                <TextBlock x:Name="DlgSrv_SshOptionsTitle" Style="{StaticResource SectionTitleStyle}"/>
-                                <TextBlock x:Name="DlgSrv_SshOptionsDesc"
-                                           Style="{StaticResource SectionDescriptionStyle}"/>
-                                <Grid Margin="0,16,0,0">
-                                    <Grid.Style>
-                                        <Style TargetType="Grid">
-                                            <Setter Property="Visibility" Value="Collapsed"/>
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding ConnectionType}" Value="SSH">
-                                                    <Setter Property="Visibility" Value="Visible"/>
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </Grid.Style>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="140"/>
-                                        <ColumnDefinition Width="*"/>
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock x:Name="DlgSrv_SshModeLabel" Grid.Column="0" Style="{StaticResource LabelStyle}" Margin="0,6,0,0"/>
-                                    <ComboBox Grid.Column="1"
-                                              TabIndex="80"
-                                              SelectedValue="{Binding SshMode}"
-                                              SelectedValuePath="Tag"
-                                              Style="{StaticResource FormComboBoxStyle}">
-                                        <ComboBoxItem x:Name="DlgSrv_SshModeEmbedded" Content="" Tag="Embedded"/>
-                                        <ComboBoxItem x:Name="DlgSrv_SshModeExternal" Content="" Tag="External"/>
-                                    </ComboBox>
-                                </Grid>
-                                <StackPanel Margin="0,14,0,0">
-                                    <CheckBox x:Name="DlgSrv_SshCompressionCb" TabIndex="81" IsChecked="{Binding SshCompression}" Style="{StaticResource FormCheckBoxStyle}"/>
-                                    <CheckBox x:Name="DlgSrv_SshAgentFwdCb" TabIndex="82" IsChecked="{Binding SshAgentForwarding}" Style="{StaticResource FormCheckBoxStyle}" Margin="0,6,0,0"/>
-                                    <CheckBox x:Name="DlgSrv_SshX11Cb"
-                                              TabIndex="83"
-                                              IsChecked="{Binding SshX11Forwarding}"
-                                              Margin="0,6,0,0">
-                                        <CheckBox.Style>
-                                            <Style TargetType="CheckBox" BasedOn="{StaticResource FormCheckBoxStyle}">
+                                    <!-- SSH/SFTP credentials -->
+                                    <Border>
+                                        <Border.Style>
+                                            <Style TargetType="Border" BasedOn="{StaticResource DialogSectionCardStyle}">
                                                 <Setter Property="Visibility" Value="Collapsed"/>
                                                 <Style.Triggers>
                                                     <DataTrigger Binding="{Binding ConnectionType}" Value="SSH">
                                                         <Setter Property="Visibility" Value="Visible"/>
                                                     </DataTrigger>
+                                                    <DataTrigger Binding="{Binding ConnectionType}" Value="SFTP">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
                                                 </Style.Triggers>
                                             </Style>
-                                        </CheckBox.Style>
-                                    </CheckBox>
+                                        </Border.Style>
+                                        <StackPanel>
+                                            <TextBlock x:Name="DlgSrv_SshCredentialsTitle" Style="{StaticResource DialogSectionTitleStyle}"/>
+                                            <TextBlock x:Name="DlgSrv_SshCredentialsDesc"
+                                                       Style="{StaticResource DialogSectionDescriptionStyle}"/>
+                                            <TextBlock x:Name="DlgSrv_SshUsernameLabel" Style="{StaticResource LabelStyle}" Margin="0,14,0,4"/>
+                                            <TextBox TabIndex="42" Text="{Binding SshUsername, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource DialogFormTextBoxStyle}"/>
+                                            <TextBlock x:Name="DlgSrv_SshKeyLabel" Style="{StaticResource LabelStyle}" Margin="0,12,0,4"/>
+                                            <DockPanel>
+                                                <Button x:Name="DlgSrv_BrowseBtn"
+                                                        DockPanel.Dock="Right"
+                                                        Command="{Binding BrowseSshKeyCommand}"
+                                                        Style="{DynamicResource SecondaryButtonStyle}"
+                                                        Margin="8,0,0,0"
+                                                        Click="OnBrowseSshKeyClick"/>
+                                                <TextBox TabIndex="43" Text="{Binding SshKeyPath, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource DialogFormTextBoxStyle}"/>
+                                            </DockPanel>
+                                            <TextBlock x:Name="DlgSrv_PassphraseLabel" Style="{StaticResource LabelStyle}" Margin="0,12,0,4"/>
+                                            <PasswordBox x:Name="SshPasswordBox" TabIndex="44" Style="{StaticResource DialogFormPasswordBoxStyle}"/>
+                                            <TextBlock x:Name="DlgSrv_SshAuthHint"
+                                                       Style="{StaticResource DialogHintTextStyle}" Margin="0,8,0,0"
+                                                       TextWrapping="Wrap"/>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- FTP credentials -->
+                                    <Border>
+                                        <Border.Style>
+                                            <Style TargetType="Border" BasedOn="{StaticResource DialogSectionCardStyle}">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding ConnectionType}" Value="FTP">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <StackPanel>
+                                            <TextBlock x:Name="DlgSrv_FtpCredentialsTitle" Style="{StaticResource DialogSectionTitleStyle}"/>
+                                            <TextBlock x:Name="DlgSrv_FtpCredentialsDesc"
+                                                       Style="{StaticResource DialogSectionDescriptionStyle}"/>
+                                            <TextBlock x:Name="DlgSrv_FtpUsernameLabel" Style="{StaticResource LabelStyle}" Margin="0,14,0,4"/>
+                                            <TextBox TabIndex="45" Text="{Binding FtpUsername, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource DialogFormTextBoxStyle}"/>
+                                            <TextBlock x:Name="DlgSrv_FtpPasswordLabel" Style="{StaticResource LabelStyle}" Margin="0,12,0,4"/>
+                                            <PasswordBox x:Name="FtpPasswordBox" TabIndex="46" Style="{StaticResource DialogFormPasswordBoxStyle}"/>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- VNC credentials -->
+                                    <Border>
+                                        <Border.Style>
+                                            <Style TargetType="Border" BasedOn="{StaticResource DialogSectionCardStyle}">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding ConnectionType}" Value="VNC">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <StackPanel>
+                                            <TextBlock x:Name="DlgSrv_VncCredentialsTitle" Style="{StaticResource DialogSectionTitleStyle}"/>
+                                            <TextBlock x:Name="DlgSrv_VncCredentialsDesc"
+                                                       Style="{StaticResource DialogSectionDescriptionStyle}"/>
+                                            <TextBlock x:Name="DlgSrv_VncPasswordLabel" Style="{StaticResource LabelStyle}" Margin="0,14,0,4"/>
+                                            <PasswordBox x:Name="VncPasswordBox" TabIndex="47" Style="{StaticResource DialogFormPasswordBoxStyle}"/>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Telnet credentials -->
+                                    <Border>
+                                        <Border.Style>
+                                            <Style TargetType="Border" BasedOn="{StaticResource DialogSectionCardStyle}">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding ConnectionType}" Value="Telnet">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <StackPanel>
+                                            <TextBlock x:Name="DlgSrv_TelnetCredentialsTitle" Style="{StaticResource DialogSectionTitleStyle}"/>
+                                            <TextBlock x:Name="DlgSrv_TelnetCredentialsDesc"
+                                                       Style="{StaticResource DialogSectionDescriptionStyle}"/>
+                                            <TextBlock x:Name="DlgSrv_TelnetUsernameLabel" Style="{StaticResource LabelStyle}" Margin="0,14,0,4"/>
+                                            <TextBox TabIndex="48" Text="{Binding TelnetUsername, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource DialogFormTextBoxStyle}"/>
+                                            <TextBlock x:Name="DlgSrv_TelnetPasswordLabel" Style="{StaticResource LabelStyle}" Margin="0,12,0,4"/>
+                                            <PasswordBox x:Name="TelnetPasswordBox" TabIndex="49" Style="{StaticResource DialogFormPasswordBoxStyle}"/>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Gateway auth info -->
+                                    <Border>
+                                        <Border.Style>
+                                            <Style TargetType="Border" BasedOn="{StaticResource DialogSectionCardStyle}">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding UsesGateway}" Value="True">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <StackPanel>
+                                            <TextBlock x:Name="DlgSrv_GatewayAuthTitle" Style="{StaticResource DialogSectionTitleStyle}"/>
+                                            <TextBlock x:Name="DlgSrv_GatewayAuthDesc"
+                                                       Style="{StaticResource DialogSectionDescriptionStyle}"/>
+                                            <TextBlock Text="{Binding SelectedGatewayTitle}" Style="{StaticResource DialogHintTextStyle}" Margin="0,10,0,0"/>
+                                            <TextBlock Text="{Binding SelectedGatewayEndpoint}" Style="{StaticResource DialogHintTextStyle}" Margin="0,4,0,0"/>
+                                        </StackPanel>
+                                    </Border>
                                 </StackPanel>
-                            </StackPanel>
-                        </Border>
+                            </ScrollViewer>
+                        </TabItem>
 
-                        <!-- Local Shell settings (visible only for Local type) -->
-                        <Border>
-                            <Border.Style>
-                                <Style TargetType="Border" BasedOn="{StaticResource SectionCardStyle}">
-                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding ConnectionType}" Value="Local">
-                                            <Setter Property="Visibility" Value="Visible"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Border.Style>
-                            <StackPanel>
-                                <TextBlock x:Name="DlgSrv_LocalShellTitle" Style="{StaticResource SectionTitleStyle}"/>
-                                <TextBlock x:Name="DlgSrv_LocalShellDesc"
-                                           Style="{StaticResource SectionDescriptionStyle}"/>
-                                <Grid Margin="0,16,0,0">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="140"/>
-                                        <ColumnDefinition Width="*"/>
-                                    </Grid.ColumnDefinitions>
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="Auto"/>
-                                    </Grid.RowDefinitions>
-                                    <TextBlock x:Name="DlgSrv_ExecutableLabel" Grid.Row="0" Grid.Column="0" Style="{StaticResource LabelStyle}"/>
-                                    <ComboBox Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
-                                              TabIndex="84"
-                                              IsEditable="True"
-                                              Text="{Binding LocalShellExecutable, UpdateSourceTrigger=PropertyChanged}"
-                                              Style="{StaticResource FormComboBoxStyle}">
-                                        <ComboBoxItem Content="powershell.exe"/>
-                                        <ComboBoxItem Content="pwsh.exe"/>
-                                        <ComboBoxItem Content="cmd.exe"/>
-                                        <ComboBoxItem Content="bash"/>
-                                        <ComboBoxItem Content="wsl.exe"/>
-                                    </ComboBox>
-                                    <TextBlock x:Name="DlgSrv_ArgumentsLabel" Grid.Row="2" Grid.Column="0" Style="{StaticResource LabelStyle}" Margin="0,14,0,4"/>
-                                    <TextBox Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2"
-                                             TabIndex="85"
-                                             Text="{Binding LocalShellArguments, UpdateSourceTrigger=PropertyChanged}"
-                                             Style="{StaticResource FormTextBoxStyle}"/>
-                                    <TextBlock x:Name="DlgSrv_WorkingDirLabel" Grid.Row="4" Grid.Column="0" Style="{StaticResource LabelStyle}" Margin="0,14,0,4"/>
-                                    <TextBox Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="2"
-                                             TabIndex="86"
-                                             Text="{Binding LocalShellWorkingDirectory, UpdateSourceTrigger=PropertyChanged}"
-                                             Style="{StaticResource FormTextBoxStyle}"/>
-                                </Grid>
-                                <DockPanel Margin="0,12,0,0">
-                                    <TextBlock x:Name="DlgSrv_ElevationModeLabel" Text=""
-                                               Foreground="{DynamicResource TextSecondaryBrush}"
-                                               VerticalAlignment="Center" Margin="0,0,8,0"/>
-                                    <ComboBox x:Name="DlgSrv_ElevationModeCmb"
-                                              TabIndex="87" Width="200"
-                                              Background="{DynamicResource CardBrush}"
-                                              Foreground="{DynamicResource TextPrimaryBrush}"
-                                              BorderBrush="{DynamicResource BorderBrush}"
-                                              VerticalAlignment="Center"/>
-                                </DockPanel>
-                            </StackPanel>
-                        </Border>
+                        <!-- ============================================ -->
+                        <!-- Tab: Options                                 -->
+                        <!-- ============================================ -->
+                        <TabItem x:Name="DlgSrv_TabOptions" Style="{DynamicResource ThemedTabItemStyle}">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                                <StackPanel Margin="{StaticResource SpacingSm}">
+                                    <!-- RDP options -->
+                                    <Border>
+                                        <Border.Style>
+                                            <Style TargetType="Border" BasedOn="{StaticResource DialogSectionCardStyle}">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding ConnectionType}" Value="RDP">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <StackPanel>
+                                            <TextBlock x:Name="DlgSrv_RdpOptionsTitle" Style="{StaticResource DialogSectionTitleStyle}"/>
+                                            <TextBlock x:Name="DlgSrv_RdpOptionsDesc"
+                                                       Style="{StaticResource DialogSectionDescriptionStyle}"/>
+                                            <Grid Margin="0,16,0,0">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                </Grid.RowDefinitions>
+                                                <TextBlock x:Name="DlgSrv_SessionModeLabel" Grid.Row="0" Grid.Column="0" Style="{StaticResource LabelStyle}"/>
+                                                <TextBlock x:Name="DlgSrv_AspectRatioLabel" Grid.Row="0" Grid.Column="1" Style="{StaticResource LabelStyle}" Margin="12,0,0,4"/>
+                                                <ComboBox Grid.Row="1" Grid.Column="0"
+                                                          TabIndex="60"
+                                                          SelectedValue="{Binding RdpMode}"
+                                                          SelectedValuePath="Tag"
+                                                          Style="{StaticResource DialogFormComboBoxStyle}">
+                                                    <ComboBoxItem x:Name="DlgSrv_RdpModeEmbedded" Content="" Tag="Embedded"/>
+                                                    <ComboBoxItem x:Name="DlgSrv_RdpModeExternal" Content="" Tag="External"/>
+                                                </ComboBox>
+                                                <ComboBox Grid.Row="1" Grid.Column="1"
+                                                          TabIndex="61"
+                                                          Margin="12,0,0,0"
+                                                          SelectedValue="{Binding RdpAspectRatio}"
+                                                          SelectedValuePath="Tag"
+                                                          Style="{StaticResource DialogFormComboBoxStyle}">
+                                                    <ComboBoxItem x:Name="DlgSrv_AspectStretch" Content="" Tag="Stretch"/>
+                                                    <ComboBoxItem x:Name="DlgSrv_AspectPreserve" Content="" Tag="Preserve"/>
+                                                </ComboBox>
+                                                <TextBlock x:Name="DlgSrv_AudioModeLabel" Grid.Row="2" Grid.Column="0" Style="{StaticResource LabelStyle}" Margin="0,14,0,4"/>
+                                                <TextBlock x:Name="DlgSrv_ColorDepthLabel" Grid.Row="2" Grid.Column="1" Style="{StaticResource LabelStyle}" Margin="12,14,0,4"/>
+                                                <ComboBox Grid.Row="3" Grid.Column="0"
+                                                          TabIndex="62"
+                                                          SelectedValue="{Binding RdpAudioMode}"
+                                                          SelectedValuePath="Tag"
+                                                          Style="{StaticResource DialogFormComboBoxStyle}">
+                                                    <ComboBoxItem x:Name="DlgSrv_AudioDisabled" Tag="0"/>
+                                                    <ComboBoxItem x:Name="DlgSrv_AudioLocal" Tag="1"/>
+                                                    <ComboBoxItem x:Name="DlgSrv_AudioRemote" Tag="2"/>
+                                                </ComboBox>
+                                                <ComboBox Grid.Row="3" Grid.Column="1"
+                                                          TabIndex="63"
+                                                          Margin="12,0,0,0"
+                                                          SelectedValue="{Binding RdpColorDepth}"
+                                                          SelectedValuePath="Tag"
+                                                          Style="{StaticResource DialogFormComboBoxStyle}">
+                                                    <ComboBoxItem x:Name="DlgSrv_Color16" Tag="16"/>
+                                                    <ComboBoxItem x:Name="DlgSrv_Color24" Tag="24"/>
+                                                    <ComboBoxItem x:Name="DlgSrv_Color32" Tag="32"/>
+                                                </ComboBox>
+                                            </Grid>
+                                            <StackPanel Margin="0,14,0,0">
+                                                <CheckBox x:Name="DlgSrv_NlaCb" TabIndex="64" IsChecked="{Binding RdpNla}" Style="{StaticResource DialogFormCheckBoxStyle}"/>
+                                                <CheckBox x:Name="DlgSrv_MultiMonitorCb" TabIndex="65" IsChecked="{Binding RdpMultiMonitor}" Style="{StaticResource DialogFormCheckBoxStyle}" Margin="0,6,0,0"/>
+                                                <CheckBox x:Name="DlgSrv_DynamicResCb" TabIndex="66" IsChecked="{Binding RdpDynamicResolution}" Style="{StaticResource DialogFormCheckBoxStyle}" Margin="0,6,0,0"/>
+                                                <CheckBox x:Name="DlgSrv_AudioCaptureCb" TabIndex="67" IsChecked="{Binding RdpAudioCapture}" Style="{StaticResource DialogFormCheckBoxStyle}" Margin="0,6,0,0"/>
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </Border>
 
-                        <!-- Citrix settings (visible only for Citrix type) -->
-                        <Border>
-                            <Border.Style>
-                                <Style TargetType="Border" BasedOn="{StaticResource SectionCardStyle}">
-                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding ConnectionType}" Value="Citrix">
-                                            <Setter Property="Visibility" Value="Visible"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Border.Style>
-                            <StackPanel>
-                                <TextBlock x:Name="DlgSrv_CitrixTitle" Style="{StaticResource SectionTitleStyle}"/>
-                                <TextBlock x:Name="DlgSrv_CitrixDesc"
-                                           Style="{StaticResource SectionDescriptionStyle}"/>
-                                <Grid Margin="0,16,0,0">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="140"/>
-                                        <ColumnDefinition Width="*"/>
-                                    </Grid.ColumnDefinitions>
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="Auto"/>
-                                    </Grid.RowDefinitions>
-                                    <TextBlock x:Name="DlgSrv_StoreFrontLabel" Grid.Row="0" Grid.Column="0" Style="{StaticResource LabelStyle}"/>
-                                    <TextBox Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
-                                             TabIndex="88"
-                                             Text="{Binding CitrixStoreFrontUrl, UpdateSourceTrigger=PropertyChanged}"
-                                             Style="{StaticResource FormTextBoxStyle}"/>
-                                    <TextBlock x:Name="DlgSrv_AppNameLabel" Grid.Row="2" Grid.Column="0" Style="{StaticResource LabelStyle}" Margin="0,14,0,4"/>
-                                    <TextBox Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2"
-                                             TabIndex="89"
-                                             Text="{Binding CitrixAppName, UpdateSourceTrigger=PropertyChanged}"
-                                             Style="{StaticResource FormTextBoxStyle}"/>
-                                    <TextBlock x:Name="DlgSrv_IcaFileLabel" Grid.Row="4" Grid.Column="0" Style="{StaticResource LabelStyle}" Margin="0,14,0,4"/>
-                                    <TextBox Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="2"
-                                             TabIndex="90"
-                                             Text="{Binding CitrixIcaFilePath, UpdateSourceTrigger=PropertyChanged}"
-                                             Style="{StaticResource FormTextBoxStyle}"/>
-                                </Grid>
-                                <TextBlock x:Name="DlgSrv_CitrixHint"
-                                           Style="{StaticResource HintTextStyle}"/>
-                                <CheckBox x:Name="DlgSrv_SeamlessCb"
-                                          TabIndex="91"
-                                          IsChecked="{Binding CitrixSeamlessMode}"
-                                          Foreground="{DynamicResource TextPrimaryBrush}"
-                                          Margin="0,12,0,0"/>
-                                <CheckBox x:Name="DlgSrv_SsoCb"
-                                          TabIndex="92"
-                                          IsChecked="{Binding CitrixUseSso}"
-                                          Foreground="{DynamicResource TextPrimaryBrush}"
-                                          Margin="0,8,0,0"/>
-                            </StackPanel>
-                        </Border>
+                                    <!-- RDP device redirection -->
+                                    <Expander x:Name="DlgSrv_DeviceRedirExpander" IsExpanded="True">
+                                        <Expander.Style>
+                                            <Style TargetType="Expander" BasedOn="{StaticResource ThemedExpanderStyle}">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding ConnectionType}" Value="RDP">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Expander.Style>
+                                        <StackPanel Margin="0,12,0,0">
+                                            <CheckBox x:Name="DlgSrv_RedirClipboardCb" TabIndex="68" IsChecked="{Binding RedirectClipboard}" Style="{StaticResource DialogFormCheckBoxStyle}"/>
+                                            <CheckBox x:Name="DlgSrv_RedirDrivesCb" TabIndex="69" IsChecked="{Binding RedirectDrives}" Style="{StaticResource DialogFormCheckBoxStyle}" Margin="0,6,0,0"/>
+                                            <CheckBox x:Name="DlgSrv_RedirPrintersCb" TabIndex="70" IsChecked="{Binding RedirectPrinters}" Style="{StaticResource DialogFormCheckBoxStyle}" Margin="0,6,0,0"/>
+                                            <CheckBox x:Name="DlgSrv_RedirComPortsCb" TabIndex="71" IsChecked="{Binding RdpRedirectComPorts}" Style="{StaticResource DialogFormCheckBoxStyle}" Margin="0,6,0,0"/>
+                                            <CheckBox x:Name="DlgSrv_RedirSmartCardsCb" TabIndex="72" IsChecked="{Binding RdpRedirectSmartCards}" Style="{StaticResource DialogFormCheckBoxStyle}" Margin="0,6,0,0"/>
+                                            <CheckBox x:Name="DlgSrv_RedirWebcamCb" TabIndex="73" IsChecked="{Binding RdpRedirectWebcam}" Style="{StaticResource DialogFormCheckBoxStyle}" Margin="0,6,0,0"/>
+                                            <CheckBox x:Name="DlgSrv_RedirUsbCb" TabIndex="74" IsChecked="{Binding RdpRedirectUsb}" Style="{StaticResource DialogFormCheckBoxStyle}" Margin="0,6,0,0"/>
+                                        </StackPanel>
+                                    </Expander>
 
-                        <!-- FTP options (visible only for FTP type) -->
-                        <Border>
-                            <Border.Style>
-                                <Style TargetType="Border" BasedOn="{StaticResource SectionCardStyle}">
-                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding ConnectionType}" Value="FTP">
-                                            <Setter Property="Visibility" Value="Visible"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Border.Style>
-                            <StackPanel>
-                                <TextBlock x:Name="DlgSrv_FtpOptionsTitle" Style="{StaticResource SectionTitleStyle}"/>
-                                <TextBlock x:Name="DlgSrv_FtpOptionsDesc"
-                                           Style="{StaticResource SectionDescriptionStyle}"/>
-                                <CheckBox x:Name="DlgSrv_FtpPassiveCb"
-                                          TabIndex="93"
-                                          IsChecked="{Binding FtpPassiveMode}"
-                                          Foreground="{DynamicResource TextPrimaryBrush}"
-                                          Margin="0,14,0,0"/>
-                                <CheckBox x:Name="DlgSrv_FtpSslCb"
-                                          TabIndex="94"
-                                          IsChecked="{Binding FtpUseSsl}"
-                                          Foreground="{DynamicResource TextPrimaryBrush}"
-                                          Margin="0,8,0,0"/>
-                            </StackPanel>
-                        </Border>
+                                    <!-- RDP advanced behavior -->
+                                    <Expander x:Name="DlgSrv_AdvancedRdpExpander" IsExpanded="False">
+                                        <Expander.Style>
+                                            <Style TargetType="Expander" BasedOn="{StaticResource ThemedExpanderStyle}">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding ConnectionType}" Value="RDP">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Expander.Style>
+                                        <StackPanel Margin="0,12,0,0">
+                                            <CheckBox x:Name="DlgSrv_GlobalDefaultsCb" TabIndex="75" IsChecked="{Binding RdpUseGlobalDefaults}" Style="{StaticResource DialogFormCheckBoxStyle}"/>
+                                            <CheckBox x:Name="DlgSrv_AntiIdleCb" TabIndex="76" IsChecked="{Binding RdpAntiIdle}" Style="{StaticResource DialogFormCheckBoxStyle}" Margin="0,6,0,0"/>
+                                            <CheckBox x:Name="DlgSrv_BitmapCacheCb" TabIndex="77" IsChecked="{Binding RdpBitmapCaching}" Style="{StaticResource DialogFormCheckBoxStyle}" Margin="0,6,0,0"/>
+                                            <CheckBox x:Name="DlgSrv_RdpCompressionCb" TabIndex="78" IsChecked="{Binding RdpCompression}" Style="{StaticResource DialogFormCheckBoxStyle}" Margin="0,6,0,0"/>
+                                            <CheckBox x:Name="DlgSrv_AutoReconnectCb" TabIndex="79" IsChecked="{Binding RdpAutoReconnect}" Style="{StaticResource DialogFormCheckBoxStyle}" Margin="0,6,0,0"/>
+                                        </StackPanel>
+                                    </Expander>
 
-                        <!-- VNC options (visible only for VNC type) -->
-                        <Border>
-                            <Border.Style>
-                                <Style TargetType="Border" BasedOn="{StaticResource SectionCardStyle}">
-                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding ConnectionType}" Value="VNC">
-                                            <Setter Property="Visibility" Value="Visible"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Border.Style>
-                            <StackPanel>
-                                <TextBlock x:Name="DlgSrv_VncOptionsTitle" Style="{StaticResource SectionTitleStyle}"/>
-                                <TextBlock x:Name="DlgSrv_VncOptionsDesc"
-                                           Style="{StaticResource SectionDescriptionStyle}"/>
-                                <CheckBox x:Name="DlgSrv_VncViewOnlyCb"
-                                          TabIndex="95"
-                                          IsChecked="{Binding VncViewOnly}"
-                                          Foreground="{DynamicResource TextPrimaryBrush}"
-                                          Margin="0,14,0,0"/>
-                            </StackPanel>
-                        </Border>
+                                    <!-- RDP experience/performance -->
+                                    <Expander x:Name="DlgSrv_RdpExperienceExpander" IsExpanded="False">
+                                        <Expander.Style>
+                                            <Style TargetType="Expander" BasedOn="{StaticResource ThemedExpanderStyle}">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding ConnectionType}" Value="RDP">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Expander.Style>
+                                        <StackPanel Margin="0,12,0,0">
+                                            <CheckBox x:Name="DlgSrv_PerfDisableWallpaperCb" TabIndex="80" Style="{StaticResource DialogFormCheckBoxStyle}"/>
+                                            <CheckBox x:Name="DlgSrv_PerfDisableThemesCb" TabIndex="81" Style="{StaticResource DialogFormCheckBoxStyle}" Margin="0,6,0,0"/>
+                                            <CheckBox x:Name="DlgSrv_PerfDisableAnimationsCb" TabIndex="82" Style="{StaticResource DialogFormCheckBoxStyle}" Margin="0,6,0,0"/>
+                                            <CheckBox x:Name="DlgSrv_PerfDisableDragCb" TabIndex="83" Style="{StaticResource DialogFormCheckBoxStyle}" Margin="0,6,0,0"/>
+                                            <CheckBox x:Name="DlgSrv_PerfDisableCursorShadowCb" TabIndex="84" Style="{StaticResource DialogFormCheckBoxStyle}" Margin="0,6,0,0"/>
+                                            <CheckBox x:Name="DlgSrv_PerfEnableFontSmoothingCb" TabIndex="85" Style="{StaticResource DialogFormCheckBoxStyle}" Margin="0,6,0,0"/>
+                                            <CheckBox x:Name="DlgSrv_PerfEnableCompositionCb" TabIndex="86" Style="{StaticResource DialogFormCheckBoxStyle}" Margin="0,6,0,0"/>
+                                            <CheckBox x:Name="DlgSrv_DisableUdpCb" TabIndex="87" IsChecked="{Binding RdpDisableUdp}" Style="{StaticResource DialogFormCheckBoxStyle}" Margin="0,12,0,0"/>
+                                        </StackPanel>
+                                    </Expander>
 
-                        <!-- Telnet options (visible only for Telnet type) -->
-                        <Border>
-                            <Border.Style>
-                                <Style TargetType="Border" BasedOn="{StaticResource SectionCardStyle}">
-                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding ConnectionType}" Value="Telnet">
-                                            <Setter Property="Visibility" Value="Visible"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Border.Style>
-                            <StackPanel>
-                                <TextBlock x:Name="DlgSrv_TelnetOptionsTitle" Style="{StaticResource SectionTitleStyle}"/>
-                                <TextBlock x:Name="DlgSrv_TelnetOptionsDesc"
-                                           Style="{StaticResource SectionDescriptionStyle}"/>
-                                <TextBlock x:Name="DlgSrv_TelnetSecurityWarning"
-                                           Foreground="{DynamicResource WarningTextBrush}"
-                                           TextWrapping="Wrap"
-                                           Margin="0,14,0,0"/>
-                            </StackPanel>
-                        </Border>
-                    </StackPanel>
-                </ScrollViewer>
-            </TabItem>
+                                    <!-- SSH options -->
+                                    <Border>
+                                        <Border.Style>
+                                            <Style TargetType="Border" BasedOn="{StaticResource DialogSectionCardStyle}">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding ConnectionType}" Value="SSH">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding ConnectionType}" Value="SFTP">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <StackPanel>
+                                            <TextBlock x:Name="DlgSrv_SshOptionsTitle" Style="{StaticResource DialogSectionTitleStyle}"/>
+                                            <TextBlock x:Name="DlgSrv_SshOptionsDesc"
+                                                       Style="{StaticResource DialogSectionDescriptionStyle}"/>
+                                            <Grid Margin="0,16,0,0">
+                                                <Grid.Style>
+                                                    <Style TargetType="Grid">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding ConnectionType}" Value="SSH">
+                                                                <Setter Property="Visibility" Value="Visible"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Grid.Style>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="140"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock x:Name="DlgSrv_SshModeLabel" Grid.Column="0" Style="{StaticResource LabelStyle}" Margin="0,6,0,0"/>
+                                                <ComboBox Grid.Column="1"
+                                                          TabIndex="80"
+                                                          SelectedValue="{Binding SshMode}"
+                                                          SelectedValuePath="Tag"
+                                                          Style="{StaticResource DialogFormComboBoxStyle}">
+                                                    <ComboBoxItem x:Name="DlgSrv_SshModeEmbedded" Content="" Tag="Embedded"/>
+                                                    <ComboBoxItem x:Name="DlgSrv_SshModeExternal" Content="" Tag="External"/>
+                                                </ComboBox>
+                                            </Grid>
+                                            <StackPanel Margin="0,14,0,0">
+                                                <CheckBox x:Name="DlgSrv_SshCompressionCb" TabIndex="81" IsChecked="{Binding SshCompression}" Style="{StaticResource DialogFormCheckBoxStyle}"/>
+                                                <CheckBox x:Name="DlgSrv_SshAgentFwdCb" TabIndex="82" IsChecked="{Binding SshAgentForwarding}" Style="{StaticResource DialogFormCheckBoxStyle}" Margin="0,6,0,0"/>
+                                                <CheckBox x:Name="DlgSrv_SshX11Cb"
+                                                          TabIndex="83"
+                                                          IsChecked="{Binding SshX11Forwarding}"
+                                                          Margin="0,6,0,0">
+                                                    <CheckBox.Style>
+                                                        <Style TargetType="CheckBox" BasedOn="{StaticResource DialogFormCheckBoxStyle}">
+                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding ConnectionType}" Value="SSH">
+                                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </CheckBox.Style>
+                                                </CheckBox>
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </Border>
 
-            <TabItem x:Name="DlgSrv_TabInfo" Style="{DynamicResource ThemedTabItemStyle}">
-                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                    <StackPanel Margin="{StaticResource SpacingSm}">
-                        <Border Style="{StaticResource SectionCardStyle}">
-                            <StackPanel>
-                                <TextBlock x:Name="DlgSrv_OrgTitle" Style="{StaticResource SectionTitleStyle}"/>
-                                <TextBlock x:Name="DlgSrv_OrgDesc"
-                                           Style="{StaticResource SectionDescriptionStyle}"/>
-                                <Grid Margin="0,16,0,0">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="*"/>
-                                    </Grid.ColumnDefinitions>
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="Auto"/>
-                                    </Grid.RowDefinitions>
-                                    <TextBlock x:Name="DlgSrv_FolderLabel" Grid.Row="0" Grid.Column="0" Style="{StaticResource LabelStyle}"/>
-                                    <TextBox Grid.Row="1" Grid.Column="0"
-                                             TabIndex="100"
-                                             Text="{Binding Group, UpdateSourceTrigger=PropertyChanged}"
-                                             Style="{StaticResource FormTextBoxStyle}"/>
-                                    <TextBlock x:Name="DlgSrv_EnvironmentLabel" Grid.Row="2" Grid.Column="0" Style="{StaticResource LabelStyle}" Margin="0,14,0,4"/>
-                                    <TextBlock x:Name="DlgSrv_FavoriteLabel" Grid.Row="2" Grid.Column="1" Style="{StaticResource LabelStyle}" Margin="12,14,0,4"/>
-                                    <ComboBox Grid.Row="3" Grid.Column="0"
-                                              TabIndex="101"
-                                              SelectedValue="{Binding Environment}"
-                                              SelectedValuePath="Tag"
-                                              Style="{StaticResource FormComboBoxStyle}">
-                                        <ComboBoxItem x:Name="DlgSrv_EnvNone" Content="" Tag="None"/>
-                                        <ComboBoxItem x:Name="DlgSrv_EnvProduction" Content="" Tag="Production"/>
-                                        <ComboBoxItem x:Name="DlgSrv_EnvStaging" Content="" Tag="Staging"/>
-                                        <ComboBoxItem x:Name="DlgSrv_EnvLab" Content="" Tag="Lab"/>
-                                        <ComboBoxItem x:Name="DlgSrv_EnvPersonal" Content="" Tag="Personal"/>
-                                    </ComboBox>
-                                    <CheckBox Grid.Row="3" Grid.Column="1"
-                                              Margin="12,2,0,0"
-                                              x:Name="DlgSrv_MarkFavoriteCb"
-                                              TabIndex="102"
-                                              IsChecked="{Binding IsFavorite}"
-                                              Style="{StaticResource FormCheckBoxStyle}"/>
-                                </Grid>
-                            </StackPanel>
-                        </Border>
+                                    <!-- Local Shell settings -->
+                                    <Border>
+                                        <Border.Style>
+                                            <Style TargetType="Border" BasedOn="{StaticResource DialogSectionCardStyle}">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding ConnectionType}" Value="Local">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <StackPanel>
+                                            <TextBlock x:Name="DlgSrv_LocalShellTitle" Style="{StaticResource DialogSectionTitleStyle}"/>
+                                            <TextBlock x:Name="DlgSrv_LocalShellDesc"
+                                                       Style="{StaticResource DialogSectionDescriptionStyle}"/>
+                                            <Grid Margin="0,16,0,0">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="140"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                </Grid.RowDefinitions>
+                                                <TextBlock x:Name="DlgSrv_ExecutableLabel" Grid.Row="0" Grid.Column="0" Style="{StaticResource LabelStyle}"/>
+                                                <ComboBox x:Name="DlgSrv_ShellCombo" Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
+                                                          TabIndex="84"
+                                                          IsEditable="True"
+                                                          TextSearch.TextPath="Tag"
+                                                          Text="{Binding LocalShellExecutable, UpdateSourceTrigger=PropertyChanged}"
+                                                          Style="{StaticResource DialogFormComboBoxStyle}">
+                                                    <ComboBoxItem x:Name="DlgSrv_ShellPowershell" Content="" Tag="powershell.exe"/>
+                                                    <ComboBoxItem x:Name="DlgSrv_ShellPwsh" Content="" Tag="pwsh.exe"/>
+                                                    <ComboBoxItem x:Name="DlgSrv_ShellCmd" Content="" Tag="cmd.exe"/>
+                                                    <ComboBoxItem x:Name="DlgSrv_ShellBash" Content="" Tag="bash"/>
+                                                    <ComboBoxItem x:Name="DlgSrv_ShellWsl" Content="" Tag="wsl.exe"/>
+                                                </ComboBox>
+                                                <TextBlock x:Name="DlgSrv_ArgumentsLabel" Grid.Row="2" Grid.Column="0" Style="{StaticResource LabelStyle}" Margin="0,14,0,4"/>
+                                                <TextBox Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2"
+                                                         TabIndex="85"
+                                                         Text="{Binding LocalShellArguments, UpdateSourceTrigger=PropertyChanged}"
+                                                         Style="{StaticResource DialogFormTextBoxStyle}"/>
+                                                <TextBlock x:Name="DlgSrv_WorkingDirLabel" Grid.Row="4" Grid.Column="0" Style="{StaticResource LabelStyle}" Margin="0,14,0,4"/>
+                                                <TextBox Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="2"
+                                                         TabIndex="86"
+                                                         Text="{Binding LocalShellWorkingDirectory, UpdateSourceTrigger=PropertyChanged}"
+                                                         Style="{StaticResource DialogFormTextBoxStyle}"/>
+                                            </Grid>
+                                            <DockPanel Margin="0,12,0,0">
+                                                <TextBlock x:Name="DlgSrv_ElevationModeLabel" Text=""
+                                                           Foreground="{DynamicResource TextSecondaryBrush}"
+                                                           VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                                <ComboBox x:Name="DlgSrv_ElevationModeCmb"
+                                                          TabIndex="87" Width="200"
+                                                          Background="{DynamicResource CardBrush}"
+                                                          Foreground="{DynamicResource TextPrimaryBrush}"
+                                                          BorderBrush="{DynamicResource BorderBrush}"
+                                                          VerticalAlignment="Center"/>
+                                            </DockPanel>
+                                        </StackPanel>
+                                    </Border>
 
-                        <Border Style="{StaticResource SectionCardStyle}">
-                            <StackPanel>
-                                <TextBlock x:Name="DlgSrv_MetadataTitle" Style="{StaticResource SectionTitleStyle}"/>
-                                <TextBlock x:Name="DlgSrv_MetadataDesc"
-                                           Style="{StaticResource SectionDescriptionStyle}"/>
-                                <TextBlock x:Name="DlgSrv_TagsLabel" Style="{StaticResource LabelStyle}" Margin="0,14,0,4"/>
-                                <TextBox TabIndex="103" Text="{Binding Tags, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBoxStyle}"/>
-                                <TextBlock x:Name="DlgSrv_MacAddressLabel" Style="{StaticResource LabelStyle}" Margin="0,12,0,4"/>
-                                <TextBox TabIndex="104" Text="{Binding MacAddress, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBoxStyle}"/>
-                            </StackPanel>
-                        </Border>
-                    </StackPanel>
-                </ScrollViewer>
-            </TabItem>
-        </TabControl>
+                                    <!-- Citrix settings -->
+                                    <Border>
+                                        <Border.Style>
+                                            <Style TargetType="Border" BasedOn="{StaticResource DialogSectionCardStyle}">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding ConnectionType}" Value="Citrix">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <StackPanel>
+                                            <TextBlock x:Name="DlgSrv_CitrixTitle" Style="{StaticResource DialogSectionTitleStyle}"/>
+                                            <TextBlock x:Name="DlgSrv_CitrixDesc"
+                                                       Style="{StaticResource DialogSectionDescriptionStyle}"/>
+                                            <Grid Margin="0,16,0,0">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="140"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                </Grid.RowDefinitions>
+                                                <TextBlock x:Name="DlgSrv_StoreFrontLabel" Grid.Row="0" Grid.Column="0" Style="{StaticResource LabelStyle}"/>
+                                                <TextBox Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
+                                                         TabIndex="88"
+                                                         Text="{Binding CitrixStoreFrontUrl, UpdateSourceTrigger=PropertyChanged}"
+                                                         Style="{StaticResource DialogFormTextBoxStyle}"/>
+                                                <TextBlock x:Name="DlgSrv_AppNameLabel" Grid.Row="2" Grid.Column="0" Style="{StaticResource LabelStyle}" Margin="0,14,0,4"/>
+                                                <TextBox Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2"
+                                                         TabIndex="89"
+                                                         Text="{Binding CitrixAppName, UpdateSourceTrigger=PropertyChanged}"
+                                                         Style="{StaticResource DialogFormTextBoxStyle}"/>
+                                                <TextBlock x:Name="DlgSrv_IcaFileLabel" Grid.Row="4" Grid.Column="0" Style="{StaticResource LabelStyle}" Margin="0,14,0,4"/>
+                                                <TextBox Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="2"
+                                                         TabIndex="90"
+                                                         Text="{Binding CitrixIcaFilePath, UpdateSourceTrigger=PropertyChanged}"
+                                                         Style="{StaticResource DialogFormTextBoxStyle}"/>
+                                            </Grid>
+                                            <TextBlock x:Name="DlgSrv_CitrixHint"
+                                                       Style="{StaticResource DialogHintTextStyle}"/>
+                                            <CheckBox x:Name="DlgSrv_SeamlessCb"
+                                                      TabIndex="91"
+                                                      IsChecked="{Binding CitrixSeamlessMode}"
+                                                      Foreground="{DynamicResource TextPrimaryBrush}"
+                                                      Margin="0,12,0,0"/>
+                                            <CheckBox x:Name="DlgSrv_SsoCb"
+                                                      TabIndex="92"
+                                                      IsChecked="{Binding CitrixUseSso}"
+                                                      Foreground="{DynamicResource TextPrimaryBrush}"
+                                                      Margin="0,8,0,0"/>
+                                        </StackPanel>
+                                    </Border>
 
+                                    <!-- FTP options -->
+                                    <Border>
+                                        <Border.Style>
+                                            <Style TargetType="Border" BasedOn="{StaticResource DialogSectionCardStyle}">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding ConnectionType}" Value="FTP">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <StackPanel>
+                                            <TextBlock x:Name="DlgSrv_FtpOptionsTitle" Style="{StaticResource DialogSectionTitleStyle}"/>
+                                            <TextBlock x:Name="DlgSrv_FtpOptionsDesc"
+                                                       Style="{StaticResource DialogSectionDescriptionStyle}"/>
+                                            <CheckBox x:Name="DlgSrv_FtpPassiveCb"
+                                                      TabIndex="93"
+                                                      IsChecked="{Binding FtpPassiveMode}"
+                                                      Foreground="{DynamicResource TextPrimaryBrush}"
+                                                      Margin="0,14,0,0"/>
+                                            <CheckBox x:Name="DlgSrv_FtpSslCb"
+                                                      TabIndex="94"
+                                                      IsChecked="{Binding FtpUseSsl}"
+                                                      Foreground="{DynamicResource TextPrimaryBrush}"
+                                                      Margin="0,8,0,0"/>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- VNC options -->
+                                    <Border>
+                                        <Border.Style>
+                                            <Style TargetType="Border" BasedOn="{StaticResource DialogSectionCardStyle}">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding ConnectionType}" Value="VNC">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <StackPanel>
+                                            <TextBlock x:Name="DlgSrv_VncOptionsTitle" Style="{StaticResource DialogSectionTitleStyle}"/>
+                                            <TextBlock x:Name="DlgSrv_VncOptionsDesc"
+                                                       Style="{StaticResource DialogSectionDescriptionStyle}"/>
+                                            <CheckBox x:Name="DlgSrv_VncViewOnlyCb"
+                                                      TabIndex="95"
+                                                      IsChecked="{Binding VncViewOnly}"
+                                                      Foreground="{DynamicResource TextPrimaryBrush}"
+                                                      Margin="0,14,0,0"/>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Telnet options -->
+                                    <Border>
+                                        <Border.Style>
+                                            <Style TargetType="Border" BasedOn="{StaticResource DialogSectionCardStyle}">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding ConnectionType}" Value="Telnet">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <StackPanel>
+                                            <TextBlock x:Name="DlgSrv_TelnetOptionsTitle" Style="{StaticResource DialogSectionTitleStyle}"/>
+                                            <TextBlock x:Name="DlgSrv_TelnetOptionsDesc"
+                                                       Style="{StaticResource DialogSectionDescriptionStyle}"/>
+                                            <TextBlock x:Name="DlgSrv_TelnetSecurityWarning"
+                                                       Foreground="{DynamicResource WarningTextBrush}"
+                                                       TextWrapping="Wrap"
+                                                       Margin="0,14,0,0"/>
+                                        </StackPanel>
+                                    </Border>
+                                </StackPanel>
+                            </ScrollViewer>
+                        </TabItem>
+
+                        <!-- ============================================ -->
+                        <!-- Tab: Info (organization + metadata)          -->
+                        <!-- ============================================ -->
+                        <TabItem x:Name="DlgSrv_TabInfo" Style="{DynamicResource ThemedTabItemStyle}">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                                <StackPanel Margin="{StaticResource SpacingSm}">
+                                    <Border Style="{StaticResource DialogSectionCardStyle}">
+                                        <StackPanel>
+                                            <TextBlock x:Name="DlgSrv_OrgTitle" Style="{StaticResource DialogSectionTitleStyle}"/>
+                                            <TextBlock x:Name="DlgSrv_OrgDesc"
+                                                       Style="{StaticResource DialogSectionDescriptionStyle}"/>
+                                            <Grid Margin="0,16,0,0">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                </Grid.RowDefinitions>
+                                                <TextBlock x:Name="DlgSrv_FolderLabel" Grid.Row="0" Grid.Column="0" Style="{StaticResource LabelStyle}"/>
+                                                <TextBox Grid.Row="1" Grid.Column="0"
+                                                         TabIndex="100"
+                                                         Text="{Binding Group, UpdateSourceTrigger=PropertyChanged}"
+                                                         Style="{StaticResource DialogFormTextBoxStyle}"/>
+                                                <TextBlock x:Name="DlgSrv_EnvironmentLabel" Grid.Row="2" Grid.Column="0" Style="{StaticResource LabelStyle}" Margin="0,14,0,4"/>
+                                                <TextBlock x:Name="DlgSrv_FavoriteLabel" Grid.Row="2" Grid.Column="1" Style="{StaticResource LabelStyle}" Margin="12,14,0,4"/>
+                                                <ComboBox Grid.Row="3" Grid.Column="0"
+                                                          TabIndex="101"
+                                                          SelectedValue="{Binding Environment}"
+                                                          SelectedValuePath="Tag"
+                                                          Style="{StaticResource DialogFormComboBoxStyle}">
+                                                    <ComboBoxItem x:Name="DlgSrv_EnvNone" Content="" Tag="None"/>
+                                                    <ComboBoxItem x:Name="DlgSrv_EnvProduction" Content="" Tag="Production"/>
+                                                    <ComboBoxItem x:Name="DlgSrv_EnvStaging" Content="" Tag="Staging"/>
+                                                    <ComboBoxItem x:Name="DlgSrv_EnvLab" Content="" Tag="Lab"/>
+                                                    <ComboBoxItem x:Name="DlgSrv_EnvPersonal" Content="" Tag="Personal"/>
+                                                </ComboBox>
+                                                <CheckBox Grid.Row="3" Grid.Column="1"
+                                                          Margin="12,2,0,0"
+                                                          x:Name="DlgSrv_MarkFavoriteCb"
+                                                          TabIndex="102"
+                                                          IsChecked="{Binding IsFavorite}"
+                                                          Style="{StaticResource DialogFormCheckBoxStyle}"/>
+                                            </Grid>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <Border Style="{StaticResource DialogSectionCardStyle}">
+                                        <StackPanel>
+                                            <TextBlock x:Name="DlgSrv_MetadataTitle" Style="{StaticResource DialogSectionTitleStyle}"/>
+                                            <TextBlock x:Name="DlgSrv_MetadataDesc"
+                                                       Style="{StaticResource DialogSectionDescriptionStyle}"/>
+                                            <TextBlock x:Name="DlgSrv_TagsLabel" Style="{StaticResource LabelStyle}" Margin="0,14,0,4"/>
+                                            <TextBox TabIndex="103" Text="{Binding Tags, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource DialogFormTextBoxStyle}"/>
+                                            <TextBlock x:Name="DlgSrv_MacAddressLabel" Style="{StaticResource LabelStyle}" Margin="0,12,0,4"/>
+                                            <TextBox TabIndex="104" Text="{Binding MacAddress, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource DialogFormTextBoxStyle}"/>
+                                        </StackPanel>
+                                    </Border>
+                                </StackPanel>
+                            </ScrollViewer>
+                        </TabItem>
+                    </TabControl>
+                </Border>
+
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Validation error -->
         <TextBlock Grid.Row="1"
                    Text="{Binding ValidationError}"
                    Foreground="{DynamicResource ErrorTextBrush}"
@@ -1229,6 +1325,7 @@
                    TextWrapping="Wrap"
                    Visibility="{Binding ValidationError, Converter={StaticResource NullToVisibilityConverter}}"/>
 
+        <!-- Action buttons -->
         <StackPanel Grid.Row="2"
                     Orientation="Horizontal"
                     HorizontalAlignment="Right"

@@ -96,6 +96,12 @@ public partial class MainViewModel : ObservableObject
     private Core.Models.SplitOrientation _splitPaletteOrientation;
     private string? _splitPalettePaneId;
 
+    /// <summary>
+    /// Indicates whether the Command Palette is currently in split mode (selecting
+    /// a server will split an existing session rather than opening a new tab).
+    /// </summary>
+    public bool IsPaletteInSplitMode => _splitPaletteSession is not null;
+
     [ObservableProperty]
     private string _palettePlaceholder = "";
 

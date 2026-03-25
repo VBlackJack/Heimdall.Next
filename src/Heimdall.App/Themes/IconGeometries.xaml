@@ -13,6 +13,29 @@
     See the License for the specific language governing permissions and
     limitations under the License.
 -->
+
+<!-- ====================================================================
+     ICON CONVENTION — Two-Tier System
+     ====================================================================
+
+     1. VECTOR GEOMETRIES (this file)
+        Key pattern: Geo.<Category>.<Name>
+        Used for all DOMAIN-SPECIFIC icons: protocols, tools, status, tree nodes.
+        Consumed via XAML Path elements + ConnectionTypeToGeometryConverter,
+        ConnectionStateToGeometryConverter, and ToolRegistry static lookups.
+        Categories: Protocol (8), Tree (7), Status (5), Tool (33).
+
+     2. SEGOE MDL2 ASSETS (inline in XAML)
+        Used for STANDARD UI CHROME only: toolbar buttons, navigation,
+        context menus, file type glyphs (FileIconConverter), message dialog
+        status icons, and decorative empty-state glyphs.
+        These are system-standard icons that render pixel-perfect at all sizes
+        and do not need a centralized registry.
+
+     Adding a new tool: one entry in ToolRegistry.cs (with Geo.Tool.* key)
+     + one Geometry in this file + one View class. No XAML triggers needed.
+     ==================================================================== -->
+
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 

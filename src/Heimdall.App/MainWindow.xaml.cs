@@ -89,6 +89,13 @@ public partial class MainWindow : Window
             }
 
             PopulateAboutSection();
+
+            // Tools panel is visible by default; populate it on first load
+            if (!_toolsPanelPopulated)
+            {
+                PopulateToolsPanel();
+                _toolsPanelPopulated = true;
+            }
         };
 
         // Re-apply all localized strings when the user switches language at runtime
@@ -99,6 +106,7 @@ public partial class MainWindow : Window
 
         KeyDown += OnKeyDown;
         PreviewMouseDown += OnWindowPreviewMouseDown;
+        Deactivated += OnWindowDeactivated;
     }
 
     /// <summary>
@@ -202,7 +210,6 @@ public partial class MainWindow : Window
 
     private void ApplyTunnelLocalization(MainViewModel vm)
     {
-        Mw_TunnelPanelCollapseBtn.ToolTip = vm.Localize("TunnelPanelCollapse");
         Mw_TunnelPanelCloseAllBtn.Content = vm.Localize("TunnelsBtnCloseAll");
         Mw_TunnelPanelEmpty.Text = vm.Localize("TunnelsEmptyState");
 
@@ -290,7 +297,17 @@ public partial class MainWindow : Window
         Mw_SettingsTerminalFontLabel.Text = vm.Localize("SettingsLabelTerminalFont");
         Mw_SettingsTerminalFontSizeLabel.Text = vm.Localize("SettingsLabelTerminalFontSize");
         Mw_SettingsTerminalColorSchemeLabel.Text = vm.Localize("SettingsLabelTerminalColorScheme");
+        Mw_SchemeDefault.Content = vm.Localize("TerminalSchemeDefault");
+        Mw_SchemeDracula.Content = vm.Localize("TerminalSchemeDracula");
+        Mw_SchemeSolarized.Content = vm.Localize("TerminalSchemeSolarizedDark");
+        Mw_SchemeMonokai.Content = vm.Localize("TerminalSchemeMonokai");
+        Mw_SchemeNord.Content = vm.Localize("TerminalSchemeNord");
         Mw_SettingsPsPolicyLabel.Text = vm.Localize("SettingsPsExecutionPolicy");
+        Mw_PsDefault.Content = vm.Localize("PsPolicyDefault");
+        Mw_PsBypass.Content = vm.Localize("PsPolicyBypass");
+        Mw_PsRemoteSigned.Content = vm.Localize("PsPolicyRemoteSigned");
+        Mw_PsUnrestricted.Content = vm.Localize("PsPolicyUnrestricted");
+        Mw_PsAllSigned.Content = vm.Localize("PsPolicyAllSigned");
         Mw_SettingsPsPolicyHint.Text = vm.Localize("SettingsPsExecutionPolicyHint");
 
         Mw_SettingsSshTitle.Text = vm.Localize("SettingsSectionSshDefaults");
@@ -395,21 +412,33 @@ public partial class MainWindow : Window
         System.Windows.Automation.AutomationProperties.SetName(TabScheduled, vm.Localize("NavTabScheduled"));
         System.Windows.Automation.AutomationProperties.SetName(TabSettings, vm.Localize("NavTabSettings"));
         System.Windows.Automation.AutomationProperties.SetName(TabAbout, vm.Localize("NavTabAbout"));
-        System.Windows.Automation.AutomationProperties.SetName(Mw_FilterBox, vm.Localize("SearchPlaceholder"));
+        System.Windows.Automation.AutomationProperties.SetName(Mw_FilterBox, vm.Localize("A11ySearchAndFilter"));
+        System.Windows.Automation.AutomationProperties.SetName(Mw_FilterClearBtn, vm.Localize("A11yClearSearchFilter"));
         System.Windows.Automation.AutomationProperties.SetName(ToggleSidebarButton, vm.Localize("TooltipHideSidebar"));
         System.Windows.Automation.AutomationProperties.SetName(ShowSidebarButton, vm.Localize("TooltipShowSidebar"));
         System.Windows.Automation.AutomationProperties.SetName(ExpandAllButton, vm.Localize("TooltipExpandAll"));
         System.Windows.Automation.AutomationProperties.SetName(CollapseAllButton, vm.Localize("TooltipCollapseAll"));
         System.Windows.Automation.AutomationProperties.SetName(AddButton, vm.Localize("TooltipAddMenu"));
+        System.Windows.Automation.AutomationProperties.SetName(ShareFolderButton, vm.Localize("A11yShareFolder"));
         System.Windows.Automation.AutomationProperties.SetName(SessionTabControl, vm.Localize("NavTabSessions"));
         System.Windows.Automation.AutomationProperties.SetName(QuickConnectButton, vm.Localize("QuickConnectShortcut"));
-        System.Windows.Automation.AutomationProperties.SetName(BtnToggleToolsPanel, vm.Localize("ToolsPanelToggle"));
+        System.Windows.Automation.AutomationProperties.SetName(BtnToggleToolsPanel, vm.Localize("A11yToggleToolsPanel"));
+        BtnToggleToolsPanel.ToolTip = vm.Localize("TooltipToggleToolsPanel");
+
+        // DataTemplate relay: session tab close button and busy indicator bind to ancestor Tag
+        SessionTabControl.Tag = vm.Localize("A11yCloseSessionTab");
+        Mw_SessionsGrid.Tag = vm.Localize("A11yOperationInProgress");
 
         // Server detail and empty state buttons
         System.Windows.Automation.AutomationProperties.SetName(Mw_DetailConnectBtn, vm.Localize("AccessDetailConnect"));
         System.Windows.Automation.AutomationProperties.SetName(Mw_ToolDetailOpenBtn, vm.Localize("AccessDetailOpen"));
         System.Windows.Automation.AutomationProperties.SetName(Mw_EmptyBtnAddServer, vm.Localize("AccessEmptyAddServer"));
         System.Windows.Automation.AutomationProperties.SetName(Mw_EmptyBtnImport, vm.Localize("AccessEmptyImport"));
+
+        // Tunnel panel icon buttons
+        System.Windows.Automation.AutomationProperties.SetName(Mw_TunnelPanelCollapseBtn, vm.Localize("A11yCollapseTunnelPanel"));
+        Mw_TunnelPanelCollapseBtn.ToolTip = vm.Localize("TooltipCollapseTunnelPanel");
+        System.Windows.Automation.AutomationProperties.SetName(Mw_TunnelPanelCloseAllBtn, vm.Localize("A11yCloseAllTunnels"));
 
         // Tunnel tab buttons
         System.Windows.Automation.AutomationProperties.SetName(Mw_TunnelsCloseSelectedBtn, vm.Localize("AccessTunnelsCloseSelected"));
@@ -440,6 +469,12 @@ public partial class MainWindow : Window
         // External tools management buttons
         System.Windows.Automation.AutomationProperties.SetName(Mw_SettingsExtToolsAddBtn, vm.Localize("AccessSettingsExtToolsAdd"));
         System.Windows.Automation.AutomationProperties.SetName(Mw_SettingsExtToolsRemoveBtn, vm.Localize("AccessSettingsExtToolsRemove"));
+        System.Windows.Automation.AutomationProperties.SetName(Mw_ExtToolBrowseBtn, vm.Localize("A11yBrowseExecutable"));
+
+        // Fullscreen and status bar buttons
+        System.Windows.Automation.AutomationProperties.SetName(FullscreenBar, vm.Localize("A11yExitFullscreen"));
+        System.Windows.Automation.AutomationProperties.SetName(Mw_StatusTunnelToggle, vm.Localize("A11yToggleTunnelPanel"));
+        System.Windows.Automation.AutomationProperties.SetName(Mw_BroadcastToggleBtn, vm.Localize("A11yToggleBroadcast"));
     }
 
     private async void OnServersTabChecked(object sender, RoutedEventArgs e)
@@ -607,6 +642,12 @@ public partial class MainWindow : Window
         if (DataContext is not MainViewModel vm)
         {
             return;
+        }
+
+        // Close the Command Palette when switching tabs
+        if (vm.IsCommandPaletteOpen)
+        {
+            vm.CloseCommandPaletteCommand.Execute(null);
         }
 
         Heimdall.Core.Logging.FileLogger.Info(
@@ -1429,57 +1470,20 @@ public partial class MainWindow : Window
 
             var btnContent = new StackPanel { Orientation = System.Windows.Controls.Orientation.Horizontal };
 
-            // Add icon if available (prefer vector geometry, fall back to bitmap)
-            if (descriptor.IconResourceKey is not null)
+            // Add vector geometry icon if available
+            if (descriptor.IconResourceKey is not null
+                && TryFindResource(descriptor.IconResourceKey) is System.Windows.Media.Geometry geo)
             {
-                var geoKey = descriptor.IconResourceKey.Replace("Icon.", "Geo.", StringComparison.Ordinal);
-                if (TryFindResource(geoKey) is System.Windows.Media.Geometry geo)
+                btnContent.Children.Add(new System.Windows.Shapes.Path
                 {
-                    btnContent.Children.Add(new System.Windows.Shapes.Path
-                    {
-                        Data = geo,
-                        Fill = (System.Windows.Media.Brush)FindResource("TextPrimaryBrush"),
-                        Width = 16,
-                        Height = 16,
-                        Stretch = System.Windows.Media.Stretch.Uniform,
-                        VerticalAlignment = VerticalAlignment.Center,
-                        Margin = new Thickness(0, 0, 6, 0)
-                    });
-                }
-                else if (TryFindResource(descriptor.IconResourceKey) is System.Windows.Media.Imaging.BitmapImage icon)
-                {
-                    btnContent.Children.Add(new System.Windows.Controls.Image
-                    {
-                        Source = icon,
-                        Width = 16,
-                        Height = 16,
-                        Margin = new Thickness(0, 0, 6, 0),
-                        VerticalAlignment = VerticalAlignment.Center
-                    });
-                }
-                else
-                {
-                    // Fallback: category glyph from Segoe MDL2 Assets
-                    var glyph = descriptor.Category switch
-                    {
-                        Core.Models.ToolCategory.Network  => "\uE968",
-                        Core.Models.ToolCategory.Security => "\uE72E",
-                        Core.Models.ToolCategory.Encoding => "\uE943",
-                        Core.Models.ToolCategory.System   => "\uE770",
-                        _ => "\uE946"
-                    };
-                    btnContent.Children.Add(new TextBlock
-                    {
-                        Text = glyph,
-                        FontFamily = new System.Windows.Media.FontFamily("Segoe MDL2 Assets"),
-                        FontSize = 14,
-                        Foreground = (Brush)FindResource("TextSecondaryBrush"),
-                        Width = 16,
-                        TextAlignment = System.Windows.TextAlignment.Center,
-                        VerticalAlignment = VerticalAlignment.Center,
-                        Margin = new Thickness(0, 0, 6, 0)
-                    });
-                }
+                    Data = geo,
+                    Fill = (System.Windows.Media.Brush)FindResource("TextPrimaryBrush"),
+                    Width = 16,
+                    Height = 16,
+                    Stretch = System.Windows.Media.Stretch.Uniform,
+                    VerticalAlignment = VerticalAlignment.Center,
+                    Margin = new Thickness(0, 0, 6, 0)
+                });
             }
 
             btnContent.Children.Add(new TextBlock
@@ -2857,7 +2861,21 @@ public partial class MainWindow : Window
 
     private void OnCommandPaletteOpened(object sender, EventArgs e)
     {
+        UpdatePaletteModeLabel();
         BeginFocusCommandPalette();
+    }
+
+    private void UpdatePaletteModeLabel()
+    {
+        if (DataContext is MainViewModel vm && vm.IsPaletteInSplitMode)
+        {
+            PaletteModeLabel.Text = vm.Localize("PaletteModeSplit");
+            PaletteModeLabel.Visibility = Visibility.Visible;
+        }
+        else
+        {
+            PaletteModeLabel.Visibility = Visibility.Collapsed;
+        }
     }
 
     private void BeginFocusCommandPalette()
@@ -2935,6 +2953,19 @@ public partial class MainWindow : Window
     /// window surface never reach it — we intercept them here instead.
     /// </summary>
     private void OnWindowPreviewMouseDown(object sender, MouseButtonEventArgs e)
+    {
+        if (DataContext is MainViewModel { IsCommandPaletteOpen: true } vm)
+        {
+            vm.CloseCommandPaletteCommand.Execute(null);
+        }
+    }
+
+    /// <summary>
+    /// Dismiss the command palette when the window loses focus (e.g., the user
+    /// switches to another application). StaysOpen="True" is required for
+    /// WindowsFormsHost airspace compatibility, so we handle deactivation manually.
+    /// </summary>
+    private void OnWindowDeactivated(object? sender, EventArgs e)
     {
         if (DataContext is MainViewModel { IsCommandPaletteOpen: true } vm)
         {

@@ -218,9 +218,9 @@ public partial class PasswordGeneratorView : UserControl, IToolView
         ModeLabel.Text = L("ToolPwdGenMode");
         ModeDescription.Text = L("ToolPwdGenModeRandomDesc");
         BtnRegenerate.Content = L("ToolPwdGenBtnGenerate");
-        BtnRegenerate.ToolTip = L("ToolPwdGenBtnRegenerate");
+        BtnRegenerate.ToolTip = L("TooltipRegenerate");
         BtnCopy.Content = L("ToolPwdGenBtnCopy");
-        BtnCopy.ToolTip = L("ToolBtnCopyToClipboard");
+        BtnCopy.ToolTip = L("TooltipCopyPassword");
 
         // Random mode
         LengthLabel.Text = L("ToolPwdGenLength");
@@ -253,8 +253,8 @@ public partial class PasswordGeneratorView : UserControl, IToolView
         ChkLayoutSafe.Content = L("ToolPwdGenLayoutSafe");
         PhoneticLabel.Text = L("ToolPwdGenPhonetic");
         BtnCopyPhonetic.Content = L("ToolPwdGenBtnCopyPhonetic");
-        BtnCopyPhonetic.ToolTip = L("ToolBtnCopyToClipboard");
-        System.Windows.Automation.AutomationProperties.SetName(BtnCopyPhonetic, L("ToolPwdGenBtnCopyPhonetic"));
+        BtnCopyPhonetic.ToolTip = L("TooltipCopyPhonetic");
+        System.Windows.Automation.AutomationProperties.SetName(BtnCopyPhonetic, L("TooltipCopyPhonetic"));
 
         // Syllable mode
         SylLengthLabel.Text = L("ToolPwdGenBaseLength");
@@ -308,7 +308,10 @@ public partial class PasswordGeneratorView : UserControl, IToolView
         System.Windows.Automation.AutomationProperties.SetName(BtnPresetSsh, L("ToolPwdGenPresetSsh"));
 
         BtnSavePreset.Content = L("ToolPwdGenBtnSavePreset");
-        System.Windows.Automation.AutomationProperties.SetName(BtnSavePreset, L("ToolPwdGenBtnSavePreset"));
+        BtnSavePreset.ToolTip = L("TooltipSavePreset");
+        System.Windows.Automation.AutomationProperties.SetName(BtnSavePreset, L("TooltipSavePreset"));
+        BtnClearHistory.ToolTip = L("TooltipClearHistory");
+        System.Windows.Automation.AutomationProperties.SetName(BtnClearHistory, L("TooltipClearHistory"));
 
         BtnHelp.ToolTip = L("ToolHelpTooltip");
         System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
@@ -994,6 +997,15 @@ public partial class PasswordGeneratorView : UserControl, IToolView
     {
         _passwordHistory.Clear();
         HistoryList.ItemsSource = null;
+    }
+
+    private void OnHistoryCopyButtonLoaded(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button btn)
+        {
+            btn.ToolTip = L("ToolBtnCopyToClipboard");
+            System.Windows.Automation.AutomationProperties.SetName(btn, L("ToolBtnCopyToClipboard"));
+        }
     }
 
     private void OnHistoryCopyClick(object sender, RoutedEventArgs e)

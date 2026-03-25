@@ -259,6 +259,7 @@ public partial class NotesToolView : UserControl, IToolView
         if (dirty)
         {
             _dirty = true;
+            UpdateDirtyIndicator();
             UpdateSelectedNoteHeader();
             SetStatus(L("ToolNotesStatusModified"));
             _saveTimer.Stop();
@@ -442,6 +443,7 @@ public partial class NotesToolView : UserControl, IToolView
             }
 
             _dirty = false;
+            UpdateDirtyIndicator();
 
             UpdateSelectedNoteHeader();
             UpdateSelectionState();
@@ -458,6 +460,7 @@ public partial class NotesToolView : UserControl, IToolView
         _saveTimer.Stop();
         _currentNotePath = null;
         _dirty = false;
+        UpdateDirtyIndicator();
 
         _isLoadingNote = true;
         try
@@ -610,6 +613,7 @@ public partial class NotesToolView : UserControl, IToolView
         var content = _useMilkdown ? await GetMilkdownContentAsync().ConfigureAwait(true) : Editor.Text;
         await _storage.SaveNoteAsync(_currentNotePath, content).ConfigureAwait(true);
         _dirty = false;
+        UpdateDirtyIndicator();
         SetStatus(string.Format(L("ToolNotesStatusSaved"), DateTime.Now.ToString("HH:mm:ss")));
     }
 
@@ -684,7 +688,6 @@ public partial class NotesToolView : UserControl, IToolView
     {
         HeaderTitle.Text = L("ToolNotesTitle");
         BtnOpenFolder.Content = L("ToolNotesBtnOpenFolder");
-        BtnNewNote.ToolTip = L("ToolNotesBtnNew");
         BtnCopyConfluence.Content = L("ToolNotesBtnCopyConfluence");
         BtnExportConfluence.Content = L("ToolNotesBtnExportConfluence");
         BtnExportHtml.Content = L("ToolNotesBtnExportHtml");
@@ -695,28 +698,38 @@ public partial class NotesToolView : UserControl, IToolView
         EditorEmptyTitleText.Text = L("ToolNotesEmptyTitle");
         EditorEmptyBodyText.Text = L("ToolNotesEmptyBody");
 
-        BtnCollapseAll.ToolTip = L("ToolNotesCollapseAll");
-        BtnExpandAll.ToolTip = L("ToolNotesExpandAll");
         BtnMarkdownHelp.Content = L("ToolNotesMarkdownHelpBtn");
+
+        // Tooltips for icon-only buttons
         BtnHelp.ToolTip = L("ToolHelpTooltip");
-        System.Windows.Automation.AutomationProperties.SetName(BtnCollapseAll, L("ToolNotesCollapseAll"));
-        System.Windows.Automation.AutomationProperties.SetName(BtnExpandAll, L("ToolNotesExpandAll"));
-        System.Windows.Automation.AutomationProperties.SetName(BtnMarkdownHelp, L("ToolNotesMarkdownHelpBtn"));
+        BtnMarkdownHelp.ToolTip = L("TooltipMarkdownHelp");
+        BtnOpenFolder.ToolTip = L("TooltipOpenNotesFolder");
+        BtnToggleSidebar.ToolTip = L("TooltipToggleSidebar");
+        BtnCollapseAll.ToolTip = L("TooltipCollapseAll");
+        BtnExpandAll.ToolTip = L("TooltipExpandAll");
+        BtnNewNote.ToolTip = L("TooltipNewNote");
+        BtnNavBack.ToolTip = L("TooltipNavBack");
+        BtnNavForward.ToolTip = L("TooltipNavForward");
+        BtnCopyConfluence.ToolTip = L("TooltipCopyConfluence");
+        BtnExportConfluence.ToolTip = L("TooltipExportConfluence");
+        BtnExportHtml.ToolTip = L("TooltipExportHtml");
+
+        // Accessibility
+        System.Windows.Automation.AutomationProperties.SetName(BtnCollapseAll, L("TooltipCollapseAll"));
+        System.Windows.Automation.AutomationProperties.SetName(BtnExpandAll, L("TooltipExpandAll"));
+        System.Windows.Automation.AutomationProperties.SetName(BtnMarkdownHelp, L("TooltipMarkdownHelp"));
         System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
-        System.Windows.Automation.AutomationProperties.SetName(BtnOpenFolder, L("ToolNotesBtnOpenFolder"));
-        System.Windows.Automation.AutomationProperties.SetName(BtnNewNote, L("ToolNotesBtnNew"));
-        System.Windows.Automation.AutomationProperties.SetName(BtnCopyConfluence, L("ToolNotesBtnCopyConfluence"));
-        System.Windows.Automation.AutomationProperties.SetName(BtnExportConfluence, L("ToolNotesBtnExportConfluence"));
-        System.Windows.Automation.AutomationProperties.SetName(BtnExportHtml, L("ToolNotesBtnExportHtml"));
+        System.Windows.Automation.AutomationProperties.SetName(BtnOpenFolder, L("TooltipOpenNotesFolder"));
+        System.Windows.Automation.AutomationProperties.SetName(BtnNewNote, L("TooltipNewNote"));
+        System.Windows.Automation.AutomationProperties.SetName(BtnCopyConfluence, L("TooltipCopyConfluence"));
+        System.Windows.Automation.AutomationProperties.SetName(BtnExportConfluence, L("TooltipExportConfluence"));
+        System.Windows.Automation.AutomationProperties.SetName(BtnExportHtml, L("TooltipExportHtml"));
         System.Windows.Automation.AutomationProperties.SetName(SearchTextBox, L("ToolNotesSearchPlaceholder"));
         System.Windows.Automation.AutomationProperties.SetName(NotesTreeView, L("ToolNotesListTitle"));
         System.Windows.Automation.AutomationProperties.SetName(TagFilterWrapPanel, L("ToolNotesTagsLabel"));
-        BtnNavBack.ToolTip = L("ToolNotesNavBack");
-        BtnNavForward.ToolTip = L("ToolNotesNavForward");
-        System.Windows.Automation.AutomationProperties.SetName(BtnNavBack, L("ToolNotesNavBack"));
-        System.Windows.Automation.AutomationProperties.SetName(BtnNavForward, L("ToolNotesNavForward"));
-        BtnToggleSidebar.ToolTip = L("ToolNotesBtnToggleSidebar");
-        System.Windows.Automation.AutomationProperties.SetName(BtnToggleSidebar, L("ToolNotesBtnToggleSidebar"));
+        System.Windows.Automation.AutomationProperties.SetName(BtnNavBack, L("TooltipNavBack"));
+        System.Windows.Automation.AutomationProperties.SetName(BtnNavForward, L("TooltipNavForward"));
+        System.Windows.Automation.AutomationProperties.SetName(BtnToggleSidebar, L("TooltipToggleSidebar"));
 
         RebuildTagFilterButtons();
     }
@@ -742,6 +755,19 @@ public partial class NotesToolView : UserControl, IToolView
         BtnCopyConfluence.IsEnabled = hasSelection;
         BtnExportConfluence.IsEnabled = hasSelection;
         BtnExportHtml.IsEnabled = hasSelection;
+    }
+
+    private void UpdateDirtyIndicator()
+    {
+        if (_dirty)
+        {
+            TxtUnsaved.Text = L("ToolNotesUnsaved");
+            TxtUnsaved.Visibility = Visibility.Visible;
+        }
+        else
+        {
+            TxtUnsaved.Visibility = Visibility.Collapsed;
+        }
     }
 
     private void UpdateSelectedNoteHeader()
@@ -1191,6 +1217,7 @@ public partial class NotesToolView : UserControl, IToolView
         }
 
         _dirty = true;
+        UpdateDirtyIndicator();
         UpdateSelectedNoteHeader();
         SetStatus(L("ToolNotesStatusModified"));
 

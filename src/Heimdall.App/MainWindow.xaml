@@ -93,7 +93,7 @@
                             Padding="6,4" FontSize="{StaticResource FontSizeBody}"
                             Margin="0,0,4,0"
                             VerticalAlignment="Center"
-                            AutomationProperties.Name="Share folder">
+                            AutomationProperties.Name="">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="&#xE72D;" FontFamily="Segoe MDL2 Assets"
                                        FontSize="{StaticResource FontSizeBodyLarge}" VerticalAlignment="Center" Margin="0,0,4,0"/>
@@ -211,7 +211,7 @@
                                 <TextBox x:Name="Mw_FilterBox" Text="{Binding ServerList.SearchText, UpdateSourceTrigger=PropertyChanged}"
                                          Style="{DynamicResource SearchTextBoxStyle}"
                                          Tag="" Padding="10,6,28,6"
-                                         AutomationProperties.Name="Search and filter servers"/>
+                                         AutomationProperties.Name=""/>
                                 <Button x:Name="Mw_FilterClearBtn"
                                         Content="&#xE711;"
                                         FontFamily="Segoe MDL2 Assets"
@@ -223,7 +223,7 @@
                                         MinHeight="0"
                                         Click="OnFilterClearClick"
                                         Visibility="Collapsed"
-                                        AutomationProperties.Name="Clear search filter"/>
+                                        AutomationProperties.Name=""/>
                             </Grid>
                             <TextBlock x:Name="Mw_FilterResultCount"
                                        FontSize="{StaticResource FontSizeSmallCaption}"
@@ -233,13 +233,14 @@
                                        Visibility="Collapsed"/>
                         </DockPanel>
 
-                        <!-- TOOLS: Expandable panel (above toggle, collapsed by default) -->
+                        <!-- TOOLS: Expandable panel (above toggle, visible by default) -->
                         <Border x:Name="ToolsQuickPanel" DockPanel.Dock="Bottom"
                                 Background="{DynamicResource SurfaceBrush}"
                                 BorderBrush="{DynamicResource BorderBrush}"
                                 BorderThickness="0,1,0,0"
                                 MaxHeight="300"
-                                Visibility="Collapsed">
+                                Style="{StaticResource FadeInPanelStyle}"
+                                Visibility="Visible">
                             <Grid>
                                 <ScrollViewer x:Name="ToolsPanelScroll"
                                               VerticalScrollBarVisibility="Auto" Padding="4,4,4,4"
@@ -267,10 +268,10 @@
                                     HorizontalAlignment="Stretch"
                                     HorizontalContentAlignment="Left"
                                     Padding="4,3" FontSize="{StaticResource FontSizeCaption}"
-                                    AutomationProperties.Name="Toggle tools panel">
+                                    AutomationProperties.Name="">
                                 <DockPanel>
                                     <TextBlock x:Name="ToolsToggleChevron" DockPanel.Dock="Right"
-                                               Text="&#xE70E;" FontFamily="Segoe MDL2 Assets"
+                                               Text="&#xE70D;" FontFamily="Segoe MDL2 Assets"
                                                FontSize="{StaticResource FontSizeCaption}"
                                                Foreground="{DynamicResource TextSecondaryBrush}"
                                                VerticalAlignment="Center" Margin="0,0,2,0"/>
@@ -344,11 +345,11 @@
                                 <DataTemplate DataType="{x:Type vm:ServerItemViewModel}">
                                     <StackPanel Orientation="Horizontal" Margin="0,1"
                                                 ToolTip="{Binding DisplayName}">
-                                        <!-- Protocol glyph icon -->
-                                        <TextBlock x:Name="TypeIcon" Text="&#xE7F4;"
-                                                   FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeBody}"
-                                                   Foreground="{Binding ConnectionType, Converter={StaticResource TypeToColorConverter}}"
-                                                   VerticalAlignment="Center" Margin="0,0,4,0"/>
+                                        <!-- Protocol / tool vector icon (resolved by converters) -->
+                                        <Path Data="{Binding ConnectionType, Converter={StaticResource TypeToGeoConverter}}"
+                                              Fill="{Binding ConnectionType, Converter={StaticResource TypeToColorConverter}}"
+                                              Style="{StaticResource GeoIconSmall}"
+                                              VerticalAlignment="Center" Margin="0,0,4,0"/>
                                         <!-- Status dot -->
                                         <Ellipse Width="7" Height="7" Margin="2,0,8,0"
                                                  VerticalAlignment="Center">
@@ -365,166 +366,6 @@
                                                    VerticalAlignment="Center"
                                                    TextTrimming="CharacterEllipsis"/>
                                     </StackPanel>
-                                    <DataTemplate.Triggers>
-                                        <!-- Protocol-specific glyph and color overrides -->
-                                        <DataTrigger Binding="{Binding ConnectionType}" Value="SSH">
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE756;"/>
-                                        </DataTrigger>
-                                        <DataTrigger Binding="{Binding ConnectionType}" Value="SFTP">
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE8B7;"/>
-                                        </DataTrigger>
-                                        <DataTrigger Binding="{Binding ConnectionType}" Value="Local">
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE770;"/>
-                                        </DataTrigger>
-                                        <DataTrigger Binding="{Binding ConnectionType}" Value="Citrix">
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE753;"/>
-                                        </DataTrigger>
-                                        <DataTrigger Binding="{Binding ConnectionType}" Value="VNC">
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE7F4;"/>
-                                        </DataTrigger>
-                                        <DataTrigger Binding="{Binding ConnectionType}" Value="Telnet">
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE968;"/>
-                                        </DataTrigger>
-                                        <DataTrigger Binding="{Binding ConnectionType}" Value="FTP">
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE896;"/>
-                                        </DataTrigger>
-                                        <!-- ── Network tools (blue) ── -->
-                                        <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:PING">
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE93E;"/>
-                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolNetworkBrush}"/>
-                                        </DataTrigger>
-                                        <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:DNS">
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE774;"/>
-                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolNetworkBrush}"/>
-                                        </DataTrigger>
-                                        <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:CERT">
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE8D7;"/>
-                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolNetworkBrush}"/>
-                                        </DataTrigger>
-                                        <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:NETMAP">
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE826;"/>
-                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolNetworkBrush}"/>
-                                        </DataTrigger>
-                                        <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:PORTSCAN">
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE71E;"/>
-                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolNetworkBrush}"/>
-                                        </DataTrigger>
-                                        <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:SUBNET">
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE8EF;"/>
-                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolNetworkBrush}"/>
-                                        </DataTrigger>
-                                        <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:IPCONV">
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE8AB;"/>
-                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolNetworkBrush}"/>
-                                        </DataTrigger>
-                                        <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:HTTP">
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE774;"/>
-                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolNetworkBrush}"/>
-                                        </DataTrigger>
-                                        <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:WHOIS">
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE946;"/>
-                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolNetworkBrush}"/>
-                                        </DataTrigger>
-                                        <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:NETCALC">
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE8EF;"/>
-                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolNetworkBrush}"/>
-                                        </DataTrigger>
-                                        <!-- ── Security tools (amber) ── -->
-                                        <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:HASH">
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE72E;"/>
-                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolSecurityBrush}"/>
-                                        </DataTrigger>
-                                        <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:PASSWORD">
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE8D7;"/>
-                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolSecurityBrush}"/>
-                                        </DataTrigger>
-                                        <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:SSHKEY">
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE8F7;"/>
-                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolSecurityBrush}"/>
-                                        </DataTrigger>
-                                        <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:JWT">
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE8AC;"/>
-                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolSecurityBrush}"/>
-                                        </DataTrigger>
-                                        <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:HMAC">
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE72E;"/>
-                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolSecurityBrush}"/>
-                                        </DataTrigger>
-                                        <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:CERTGEN">
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE8D7;"/>
-                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolSecurityBrush}"/>
-                                        </DataTrigger>
-                                        <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:TOTP">
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE823;"/>
-                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolSecurityBrush}"/>
-                                        </DataTrigger>
-                                        <!-- ── Encoding & Format tools (purple) ── -->
-                                        <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:BASE64">
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE8AB;"/>
-                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolEncodingBrush}"/>
-                                        </DataTrigger>
-                                        <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:URLENC">
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE774;"/>
-                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolEncodingBrush}"/>
-                                        </DataTrigger>
-                                        <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:JSON">
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE7BC;"/>
-                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolEncodingBrush}"/>
-                                        </DataTrigger>
-                                        <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:REGEX">
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE71E;"/>
-                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolEncodingBrush}"/>
-                                        </DataTrigger>
-                                        <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:DIFF">
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE8AC;"/>
-                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolEncodingBrush}"/>
-                                        </DataTrigger>
-                                        <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:TEXTCASE">
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE8AB;"/>
-                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolEncodingBrush}"/>
-                                        </DataTrigger>
-                                        <!-- ── System tools (teal) ── -->
-                                        <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:CHMOD">
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE72E;"/>
-                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolSystemBrush}"/>
-                                        </DataTrigger>
-                                        <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:DATETIME">
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE823;"/>
-                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolSystemBrush}"/>
-                                        </DataTrigger>
-                                        <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:UUID">
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE8C3;"/>
-                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolSystemBrush}"/>
-                                        </DataTrigger>
-                                        <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:CRONTAB">
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE823;"/>
-                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolSystemBrush}"/>
-                                        </DataTrigger>
-                                        <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:LOGVIEW">
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE7BC;"/>
-                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolSystemBrush}"/>
-                                        </DataTrigger>
-                                        <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:HOSTS">
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE90F;"/>
-                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolSystemBrush}"/>
-                                        </DataTrigger>
-                                        <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:SSHCONFIG">
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE90F;"/>
-                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolSystemBrush}"/>
-                                        </DataTrigger>
-                                        <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:CRONJOB">
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE823;"/>
-                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolSystemBrush}"/>
-                                        </DataTrigger>
-                                        <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:SERVICES">
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE7BC;"/>
-                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolSystemBrush}"/>
-                                        </DataTrigger>
-                                        <DataTrigger Binding="{Binding ConnectionType}" Value="TOOL:DIAGRAM">
-                                            <Setter TargetName="TypeIcon" Property="Text" Value="&#xE826;"/>
-                                            <Setter TargetName="TypeIcon" Property="Foreground" Value="{DynamicResource ToolSystemBrush}"/>
-                                        </DataTrigger>
-                                    </DataTemplate.Triggers>
                                 </DataTemplate>
                             </TreeView.Resources>
 
@@ -591,7 +432,7 @@
                         Visibility="Collapsed"/>
 
                 <!-- RIGHT PANEL: sessions + tunnel bottom panel -->
-                <Grid Grid.Column="2"
+                <Grid x:Name="Mw_SessionsGrid" Grid.Column="2"
                       ClipToBounds="True">
                     <Grid.RowDefinitions>
                         <!-- Row 0: Sessions / server details -->
@@ -634,13 +475,13 @@
                                                 Opacity="0.3" IsHitTestVisible="True"
                                                 Command="{Binding DataContext.Connection.CloseSessionCommand, RelativeSource={RelativeSource AncestorType=TabControl}}"
                                                 CommandParameter="{Binding}"
-                                                AutomationProperties.Name="Close session tab"
+                                                AutomationProperties.Name="{Binding Tag, RelativeSource={RelativeSource AncestorType=TabControl}}"
                                                 Style="{DynamicResource SecondaryButtonStyle}"/>
                                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                            <TextBlock Text="&#xE7F4;"
-                                                       FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeBody}"
-                                                       Foreground="{Binding ConnectionType, Converter={StaticResource TypeToColorConverter}}"
-                                                       VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                            <Path Data="{Binding ConnectionType, Converter={StaticResource TypeToGeoConverter}}"
+                                                  Fill="{Binding ConnectionType, Converter={StaticResource TypeToColorConverter}}"
+                                                  Style="{StaticResource GeoIconSmall}"
+                                                  VerticalAlignment="Center" Margin="0,0,5,0"/>
                                             <TextBlock Text="{Binding Title}" FontSize="{StaticResource FontSizeBody}" FontWeight="SemiBold"
                                                        Foreground="{DynamicResource TextPrimaryBrush}"
                                                        VerticalAlignment="Center"
@@ -653,7 +494,7 @@
                                                        Foreground="{DynamicResource AccentBrush}"
                                                        VerticalAlignment="Center" Margin="5,0,0,0"
                                                        Visibility="Collapsed"
-                                                       AutomationProperties.Name="Operation in progress">
+                                                       AutomationProperties.Name="{Binding Tag, RelativeSource={RelativeSource AncestorType=Grid, AncestorLevel=2}}">
                                                 <TextBlock.Style>
                                                     <Style TargetType="TextBlock">
                                                         <Style.Resources>
@@ -913,14 +754,14 @@
                                             Command="{Binding ToggleTunnelPanelCommand}"
                                             Style="{DynamicResource ToolbarGhostButtonStyle}"
                                             Padding="6,2" Margin="4,0,0,0"
-                                            AutomationProperties.Name="Collapse tunnel panel"/>
+                                            AutomationProperties.Name=""/>
                                     <Button x:Name="Mw_TunnelPanelCloseAllBtn" DockPanel.Dock="Right"
                                             Content=""
                                             Command="{Binding CloseAllTunnelsCommand}"
                                             Style="{DynamicResource SecondaryButtonStyle}"
                                             Foreground="{DynamicResource ErrorTextBrush}"
                                             Padding="6,2" FontSize="{StaticResource FontSizeCaption}" Margin="4,0,0,0"
-                                            AutomationProperties.Name="Close all tunnels"/>
+                                            AutomationProperties.Name=""/>
                                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                         <TextBlock Text="&#xE945;" FontFamily="Segoe MDL2 Assets"
                                                    FontSize="{StaticResource FontSizeBody}" Margin="0,0,6,0"
@@ -1005,7 +846,7 @@
                                                             ToolTip="{Binding Tag, RelativeSource={RelativeSource AncestorType=DataGrid}}"
                                                             VerticalAlignment="Center"
                                                             HorizontalAlignment="Center"
-                                                            AutomationProperties.Name="Close tunnel"/>
+                                                            AutomationProperties.Name="{Binding Tag, RelativeSource={RelativeSource AncestorType=DataGrid}}"/>
                                                 </DataTemplate>
                                             </DataGridTemplateColumn.CellTemplate>
                                         </DataGridTemplateColumn>
@@ -1261,8 +1102,8 @@
                                             <StackPanel Grid.Column="1" Margin="8,0,0,0">
                                                 <TextBlock x:Name="Mw_SettingsThemeLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,0,4"/>
                                                 <ComboBox SelectedValue="{Binding Settings.DefaultTheme}" SelectedValuePath="Tag">
-                                                    <ComboBoxItem x:Name="Mw_ThemeDark" Content="Dark" Tag="Dark"/>
-                                                    <ComboBoxItem x:Name="Mw_ThemeLight" Content="Light" Tag="Light"/>
+                                                    <ComboBoxItem x:Name="Mw_ThemeDark" Content="" Tag="Dark"/>
+                                                    <ComboBoxItem x:Name="Mw_ThemeLight" Content="" Tag="Light"/>
                                                 </ComboBox>
                                             </StackPanel>
                                         </Grid>
@@ -1305,22 +1146,22 @@
                                         </Grid>
                                         <StackPanel Margin="0,12,0,0">
                                             <TextBlock x:Name="Mw_SettingsTerminalColorSchemeLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,0,4"/>
-                                            <ComboBox SelectedValue="{Binding Settings.TerminalColorScheme}" SelectedValuePath="Content" Width="200" HorizontalAlignment="Left">
-                                                <ComboBoxItem Content="Default"/>
-                                                <ComboBoxItem Content="Dracula"/>
-                                                <ComboBoxItem Content="Solarized Dark"/>
-                                                <ComboBoxItem Content="Monokai"/>
-                                                <ComboBoxItem Content="Nord"/>
+                                            <ComboBox x:Name="Mw_ColorSchemeCombo" SelectedValue="{Binding Settings.TerminalColorScheme}" SelectedValuePath="Tag" Width="200" HorizontalAlignment="Left">
+                                                <ComboBoxItem x:Name="Mw_SchemeDefault" Content="" Tag="Default"/>
+                                                <ComboBoxItem x:Name="Mw_SchemeDracula" Content="" Tag="Dracula"/>
+                                                <ComboBoxItem x:Name="Mw_SchemeSolarized" Content="" Tag="Solarized Dark"/>
+                                                <ComboBoxItem x:Name="Mw_SchemeMonokai" Content="" Tag="Monokai"/>
+                                                <ComboBoxItem x:Name="Mw_SchemeNord" Content="" Tag="Nord"/>
                                             </ComboBox>
                                         </StackPanel>
                                         <StackPanel Margin="0,12,0,0">
                                             <TextBlock x:Name="Mw_SettingsPsPolicyLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,0,4"/>
                                             <ComboBox SelectedValue="{Binding Settings.PowerShellExecutionPolicy}" SelectedValuePath="Tag" Width="200" HorizontalAlignment="Left">
-                                                <ComboBoxItem Content="Default" Tag="Default"/>
-                                                <ComboBoxItem Content="Bypass" Tag="Bypass"/>
-                                                <ComboBoxItem Content="RemoteSigned" Tag="RemoteSigned"/>
-                                                <ComboBoxItem Content="Unrestricted" Tag="Unrestricted"/>
-                                                <ComboBoxItem Content="AllSigned" Tag="AllSigned"/>
+                                                <ComboBoxItem x:Name="Mw_PsDefault" Content="" Tag="Default"/>
+                                                <ComboBoxItem x:Name="Mw_PsBypass" Content="" Tag="Bypass"/>
+                                                <ComboBoxItem x:Name="Mw_PsRemoteSigned" Content="" Tag="RemoteSigned"/>
+                                                <ComboBoxItem x:Name="Mw_PsUnrestricted" Content="" Tag="Unrestricted"/>
+                                                <ComboBoxItem x:Name="Mw_PsAllSigned" Content="" Tag="AllSigned"/>
                                             </ComboBox>
                                             <TextBlock x:Name="Mw_SettingsPsPolicyHint" Text="" Foreground="{DynamicResource TextTertiaryBrush}" FontSize="{StaticResource FontSizeCaption}" Margin="0,4,0,0" TextWrapping="Wrap"/>
                                         </StackPanel>
@@ -1343,8 +1184,8 @@
                                             <TextBlock x:Name="Mw_SettingsSshModeLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,0,4"/>
                                             <StackPanel Orientation="Horizontal">
                                                 <ComboBox SelectedValue="{Binding Settings.SshDefaultMode}" SelectedValuePath="Tag" Width="200" HorizontalAlignment="Left">
-                                                    <ComboBoxItem x:Name="Mw_SshModeEmbedded" Content="Embedded" Tag="Embedded"/>
-                                                    <ComboBoxItem x:Name="Mw_SshModeExternal" Content="External" Tag="External"/>
+                                                    <ComboBoxItem x:Name="Mw_SshModeEmbedded" Content="" Tag="Embedded"/>
+                                                    <ComboBoxItem x:Name="Mw_SshModeExternal" Content="" Tag="External"/>
                                                 </ComboBox>
                                                 <Button x:Name="Mw_ApplySshModeAll"
                                                         Content=""
@@ -1418,8 +1259,8 @@
                                             <TextBlock x:Name="Mw_SettingsRdpModeLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,0,4"/>
                                             <StackPanel Orientation="Horizontal">
                                                 <ComboBox SelectedValue="{Binding Settings.RdpDefaultMode}" SelectedValuePath="Tag" Width="200" HorizontalAlignment="Left">
-                                                    <ComboBoxItem x:Name="Mw_RdpModeEmbedded" Content="Embedded" Tag="Embedded"/>
-                                                    <ComboBoxItem x:Name="Mw_RdpModeExternal" Content="External" Tag="External"/>
+                                                    <ComboBoxItem x:Name="Mw_RdpModeEmbedded" Content="" Tag="Embedded"/>
+                                                    <ComboBoxItem x:Name="Mw_RdpModeExternal" Content="" Tag="External"/>
                                                 </ComboBox>
                                                 <Button x:Name="Mw_ApplyRdpModeAll"
                                                         Content=""
@@ -1580,7 +1421,7 @@
 
                                                 <TextBlock x:Name="Mw_ExtToolLblPath" Grid.Row="1" Grid.Column="0" Text="" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeBody}"/>
                                                 <DockPanel Grid.Row="1" Grid.Column="1" Margin="0,0,0,6">
-                                                    <Button x:Name="Mw_ExtToolBrowseBtn" DockPanel.Dock="Right" Content="..." Padding="6,2" Margin="4,0,0,0" Click="OnExtToolBrowseClick" Style="{DynamicResource SecondaryButtonStyle}" FontSize="{StaticResource FontSizeCaption}" AutomationProperties.Name="Browse for executable"/>
+                                                    <Button x:Name="Mw_ExtToolBrowseBtn" DockPanel.Dock="Right" Content="..." Padding="6,2" Margin="4,0,0,0" Click="OnExtToolBrowseClick" Style="{DynamicResource SecondaryButtonStyle}" FontSize="{StaticResource FontSizeCaption}" AutomationProperties.Name=""/>
                                                     <TextBox Text="{Binding ExecutablePath, UpdateSourceTrigger=PropertyChanged}" FontSize="{StaticResource FontSizeBody}"/>
                                                 </DockPanel>
 
@@ -1722,7 +1563,7 @@
                 Panel.ZIndex="999"
                 Opacity="0.6"
                 Cursor="Hand"
-                AutomationProperties.Name="Exit fullscreen">
+                AutomationProperties.Name="">
             <Button.Style>
                 <Style TargetType="Button">
                     <Setter Property="Background" Value="Transparent"/>
@@ -1772,7 +1613,7 @@
                             Padding="4,2" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,8,0"
                             VerticalAlignment="Center"
                             Style="{DynamicResource ToolbarGhostButtonStyle}"
-                            AutomationProperties.Name="Toggle tunnel panel">
+                            AutomationProperties.Name="">
                         <Button.Content>
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="&#xE945;" FontFamily="Segoe MDL2 Assets"
@@ -1784,11 +1625,11 @@
                         </Button.Content>
                     </Button>
                     <!-- Broadcast mode toggle -->
-                    <Button Command="{Binding ToggleBroadcastCommand}"
+                    <Button x:Name="Mw_BroadcastToggleBtn" Command="{Binding ToggleBroadcastCommand}"
                             ToolTip="{Binding BroadcastToggleTooltip}"
                             Padding="4,2" FontSize="{StaticResource FontSizeSubtitle}" Margin="0,0,8,0"
                             VerticalAlignment="Center"
-                            AutomationProperties.Name="Toggle broadcast mode">
+                            AutomationProperties.Name="">
                         <Button.Content>
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="&#xE704;" FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeCaption}"
@@ -1837,6 +1678,13 @@
                     <DropShadowEffect BlurRadius="24" ShadowDepth="8" Opacity="0.4" Direction="270"/>
                 </Border.Effect>
                 <StackPanel>
+                    <TextBlock x:Name="PaletteModeLabel"
+                               Text=""
+                               FontSize="{StaticResource FontSizeCaption}"
+                               Foreground="{DynamicResource AccentBrush}"
+                               FontWeight="SemiBold"
+                               Visibility="Collapsed"
+                               Margin="14,8,14,0"/>
                     <TextBox x:Name="PaletteInput"
                              Text="{Binding PaletteSearchText, UpdateSourceTrigger=PropertyChanged}"
                              FontSize="{StaticResource FontSizeSubtitle}" Padding="14,10"

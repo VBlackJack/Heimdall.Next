@@ -98,6 +98,8 @@ public partial class HmacGeneratorView : UserControl, IToolView
         LblInput.Text = L("ToolHmacInputLabel");
         LblOutput.Text = L("ToolHmacOutputLabel");
         LblFormat.Text = L("ToolHmacFormatLabel");
+        RdoHex.Content = L("ToolHmacFormatHex");
+        RdoBase64.Content = L("ToolHmacFormatBase64");
         BtnCopy.Content = L("ToolHmacBtnCopy");
         LblVerify.Text = L("ToolHmacVerifyLabel");
 
