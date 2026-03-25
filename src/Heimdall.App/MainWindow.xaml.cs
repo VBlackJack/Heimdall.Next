@@ -529,8 +529,8 @@ public partial class MainWindow : Window
         if (!vm.Settings.IsDirty) return true;
 
         var discard = await vm.DialogService.ShowConfirmAsync(
-            vm.Localize("SettingsUnsavedTitle"),
-            vm.Localize("SettingsUnsavedMessage"),
+            vm.Localize("SettingsUnsavedWarningTitle"),
+            vm.Localize("SettingsUnsavedWarning"),
             "warning");
 
         if (discard)

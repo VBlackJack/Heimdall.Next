@@ -147,6 +147,9 @@ public partial class ServerItemViewModel : ObservableObject
     }
 
 
+    partial void OnRemoteServerChanged(string value)
+        => Endpoint = string.IsNullOrEmpty(value) ? "" : (RemotePort > 0 ? $"{value}:{RemotePort}" : value);
+
     partial void OnConnectionStateChanged(string value)
         => OnPropertyChanged(nameof(IsActiveSession));
 
@@ -159,11 +162,14 @@ public partial class ServerItemViewModel : ObservableObject
         }
 
         var host = dto.RemoteServer;
+        if (string.IsNullOrEmpty(host)) return "";
+
         var port = type switch
         {
             "SSH" or "SFTP" => dto.SshPort,
             "FTP" => dto.FtpPort,
             "VNC" => dto.VncPort,
+            "TELNET" => dto.TelnetPort,
             _ => dto.RemotePort
         };
 
