@@ -216,7 +216,7 @@ public class NotesStorageServiceTests : IDisposable
 
         Assert.True(File.Exists(path));
         var content = await File.ReadAllTextAsync(path);
-        Assert.Contains("# Working Note", content);
+        Assert.Contains("# ToolNotesTplWorkingNote", content);
     }
 
     [Fact]
@@ -308,6 +308,39 @@ public class NotesStorageServiceTests : IDisposable
     public void IsUnderNotesRoot_FalseForSiblingWithPrefix()
     {
         Assert.False(_service.IsUnderNotesRoot(_testDir + "-evil"));
+    }
+
+    [Fact]
+    public void SaveNoteSync_RoundTrip()
+    {
+        _service.EnsureInitialized();
+        var path = Path.Combine(_testDir, "sync-test.md");
+
+        _service.SaveNote(path, "# Sync Save\n\nContent");
+
+        Assert.True(File.Exists(path));
+        Assert.Equal("# Sync Save\n\nContent", File.ReadAllText(path));
+    }
+
+    [Fact]
+    public void SaveNoteSync_CreatesSubdirectories()
+    {
+        _service.EnsureInitialized();
+        var path = Path.Combine(_testDir, "sub", "sync", "test.md");
+
+        _service.SaveNote(path, "content");
+
+        Assert.True(File.Exists(path));
+    }
+
+    [Fact]
+    public void SaveNoteSync_PathTraversal_Throws()
+    {
+        _service.EnsureInitialized();
+        var escapePath = Path.Combine(_testDir, "..", "escaped.md");
+
+        Assert.Throws<UnauthorizedAccessException>(
+            () => _service.SaveNote(escapePath, "malicious"));
     }
 
     [Fact]
@@ -531,5 +564,33 @@ public class NotesStorageServiceTests : IDisposable
 
         Assert.NotNull(found);
         Assert.EndsWith("wrong.md", found);
+    }
+
+    [Fact]
+    public async Task FindNotePath_AccentInsensitiveTitle()
+    {
+        _service.EnsureInitialized();
+        await _service.SaveNoteAsync(
+            Path.Combine(_testDir, "procedure.md"),
+            "# Proc\u00e9dure\n\nContent with accents");
+
+        var found = await _service.FindNotePathAsync("Procedure");
+
+        Assert.NotNull(found);
+        Assert.EndsWith("procedure.md", found);
+    }
+
+    [Fact]
+    public async Task FindNotePath_AccentedSlugMatchesAsciiReference()
+    {
+        _service.EnsureInitialized();
+        // File created with accented slug (simulating fr locale template)
+        await _service.SaveNoteAsync(
+            Path.Combine(_testDir, "resume-incident.md"),
+            "# R\u00e9sum\u00e9 Incident\n\nContent");
+
+        var found = await _service.FindNotePathAsync("Resume Incident");
+
+        Assert.NotNull(found);
     }
 }

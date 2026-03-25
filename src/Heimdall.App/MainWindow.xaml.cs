@@ -350,7 +350,6 @@ public partial class MainWindow : Window
         Mw_SettingsTunnelDelayLabel.Text = vm.Localize("SettingsLabelTunnelDelay");
         Mw_SettingsRdpTimeoutLabel.Text = vm.Localize("SettingsLabelRdpTimeout");
         Mw_SettingsExtToolsTitle.Text = vm.Localize("SettingsSectionExternalToolsList");
-        Mw_ToolsPanelTitle.Text = vm.Localize("ToolsPanelTitle");
         Mw_ToolsToggleLabel.Text = vm.Localize("ToolsPanelToggle");
         Mw_SettingsExtToolsAddBtn.Content = vm.Localize("BtnAdd");
         Mw_SettingsExtToolsRemoveBtn.Content = vm.Localize("BtnRemove");
@@ -404,7 +403,7 @@ public partial class MainWindow : Window
         System.Windows.Automation.AutomationProperties.SetName(AddButton, vm.Localize("TooltipAddMenu"));
         System.Windows.Automation.AutomationProperties.SetName(SessionTabControl, vm.Localize("NavTabSessions"));
         System.Windows.Automation.AutomationProperties.SetName(QuickConnectButton, vm.Localize("QuickConnectShortcut"));
-        System.Windows.Automation.AutomationProperties.SetName(BtnCollapseTools, vm.Localize("ToolsPanelCollapse"));
+        System.Windows.Automation.AutomationProperties.SetName(BtnToggleToolsPanel, vm.Localize("ToolsPanelToggle"));
 
         // Server detail and empty state buttons
         System.Windows.Automation.AutomationProperties.SetName(Mw_DetailConnectBtn, vm.Localize("AccessDetailConnect"));
@@ -1359,6 +1358,7 @@ public partial class MainWindow : Window
         if (ToolsQuickPanel.Visibility == Visibility.Visible)
         {
             ToolsQuickPanel.Visibility = Visibility.Collapsed;
+            ToolsToggleChevron.Text = "\uE70E"; // ChevronUp
             return;
         }
 
@@ -1369,6 +1369,7 @@ public partial class MainWindow : Window
         }
 
         ToolsQuickPanel.Visibility = Visibility.Visible;
+        ToolsToggleChevron.Text = "\uE70D"; // ChevronDown
     }
 
     private void PopulateToolsPanel()
@@ -1378,19 +1379,51 @@ public partial class MainWindow : Window
         ToolsCategoryStack.Children.Clear();
         string? lastCategory = null;
 
-        foreach (var descriptor in ToolRegistry.All)
+        var sorted = ToolRegistry.All
+            .OrderBy(d => d.Category)
+            .ThenBy(d => vm.Localize(d.LabelKey), StringComparer.OrdinalIgnoreCase);
+
+        foreach (var descriptor in sorted)
         {
             if (!string.Equals(descriptor.CategoryLabelKey, lastCategory, StringComparison.Ordinal))
             {
-                var header = new TextBlock
+                var categoryBrushKey = descriptor.Category switch
                 {
-                    Text = vm.Localize(descriptor.CategoryLabelKey),
+                    Core.Models.ToolCategory.Network  => "ToolNetworkBrush",
+                    Core.Models.ToolCategory.Security => "ToolSecurityBrush",
+                    Core.Models.ToolCategory.Encoding => "ToolEncodingBrush",
+                    Core.Models.ToolCategory.System   => "ToolSystemBrush",
+                    _ => "TextSecondaryBrush"
+                };
+
+                var accentBar = new Border
+                {
+                    Width = 3,
+                    Height = 14,
+                    CornerRadius = new CornerRadius(1.5),
+                    Background = (Brush)FindResource(categoryBrushKey),
+                    VerticalAlignment = VerticalAlignment.Center,
+                    Margin = new Thickness(0, 0, 6, 0)
+                };
+
+                var label = new TextBlock
+                {
+                    Text = vm.Localize(descriptor.CategoryLabelKey).ToUpperInvariant(),
                     FontSize = 10,
                     FontWeight = FontWeights.SemiBold,
-                    Foreground = (Brush)FindResource("TextSecondaryBrush"),
-                    Margin = new Thickness(4, lastCategory is null ? 0 : 8, 0, 2)
+                    Foreground = (Brush)FindResource(categoryBrushKey),
+                    VerticalAlignment = VerticalAlignment.Center
                 };
-                ToolsCategoryStack.Children.Add(header);
+
+                var headerPanel = new StackPanel
+                {
+                    Orientation = System.Windows.Controls.Orientation.Horizontal,
+                    Margin = new Thickness(4, lastCategory is null ? 2 : 10, 0, 4)
+                };
+                headerPanel.Children.Add(accentBar);
+                headerPanel.Children.Add(label);
+
+                ToolsCategoryStack.Children.Add(headerPanel);
                 lastCategory = descriptor.CategoryLabelKey;
             }
 

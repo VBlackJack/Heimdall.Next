@@ -38,7 +38,7 @@ public partial class MilkdownEditorControl : UserControl, IDisposable
     private bool _editorReady;
     private bool _disposed;
     private string? _pendingContent;
-    private bool _pendingReadOnly;
+    private bool? _pendingReadOnly;
 
     /// <summary>Raised when the editor content changes (debounced by JS side).</summary>
     public event Action<string, bool>? ContentChanged;
@@ -48,6 +48,9 @@ public partial class MilkdownEditorControl : UserControl, IDisposable
 
     /// <summary>Raised when the editor is ready to receive commands.</summary>
     public event Action? EditorReady;
+
+    /// <summary>Returns true if the WebView2 host was created (asset found and runtime present).</summary>
+    public bool IsHostInitialized => _initialized;
 
     /// <summary>Returns true if the Milkdown editor initialized successfully.</summary>
     public bool IsReady => _editorReady;
@@ -159,6 +162,7 @@ public partial class MilkdownEditorControl : UserControl, IDisposable
             return;
         }
 
+        _pendingReadOnly = null;
         PostMessage("set-readonly", readOnly);
     }
 
@@ -235,9 +239,10 @@ public partial class MilkdownEditorControl : UserControl, IDisposable
                         System.Windows.Media.SolidColorBrush bg && bg.Color.R < 128;
                     SetTheme(isDark ? "dark" : "light");
 
-                    if (_pendingReadOnly)
+                    if (_pendingReadOnly is { } readOnly)
                     {
-                        SetReadOnly(true);
+                        SetReadOnly(readOnly);
+                        _pendingReadOnly = null;
                     }
 
                     if (_pendingContent is not null)

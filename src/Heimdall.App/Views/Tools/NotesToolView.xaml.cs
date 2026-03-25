@@ -21,10 +21,12 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Threading;
 using Heimdall.App.Services;
+using Heimdall.Core.Configuration;
 using Heimdall.Core.Localization;
 using System.Windows.Input;
 using Heimdall.Core.Models;
 using ICSharpCode.AvalonEdit.CodeCompletion;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Heimdall.App.Views.Tools;
 
@@ -51,7 +53,7 @@ public partial class NotesToolView : UserControl, IToolView
     private string? _currentNotePath;
     private string? _selectedTag;
     private bool _sidebarVisible = true;
-    private GridLength _savedSidebarWidth = new(300);
+    private GridLength _savedSidebarWidth = new(LoadSidebarWidth());
 
     public NotesToolView()
     {
@@ -101,7 +103,7 @@ public partial class NotesToolView : UserControl, IToolView
         try
         {
             var content = _useMilkdown ? _lastMilkdownContent : Editor.Text;
-            _storage.SaveNoteAsync(_currentNotePath, content).GetAwaiter().GetResult();
+            _storage.SaveNote(_currentNotePath, content);
             _dirty = false;
             return true;
         }
@@ -142,6 +144,12 @@ public partial class NotesToolView : UserControl, IToolView
                 $"MilkdownControlLoaded={MilkdownEditor.IsLoaded}, " +
                 $"MilkdownAsset={MilkdownEditorControl.IsAvailable}, " +
                 $"WebView2={Services.WebView2Helper.IsAvailable}");
+
+            // Apply persisted sidebar width
+            if (SidebarBorder.Parent is Grid layoutGrid)
+            {
+                layoutGrid.ColumnDefinitions[0].Width = _savedSidebarWidth;
+            }
 
             _storage.EnsureInitialized();
             UpdateSelectionState();
@@ -186,6 +194,14 @@ public partial class NotesToolView : UserControl, IToolView
             // it until the WebView2 host is fully initialized.
             MilkdownEditor.Visibility = Visibility.Hidden;
             await MilkdownEditor.InitializeAsync().ConfigureAwait(true);
+
+            if (!MilkdownEditor.IsHostInitialized)
+            {
+                Core.Logging.FileLogger.Info("Milkdown init returned without error but WebView2 host not created, using AvalonEdit fallback");
+                MilkdownEditor.Visibility = Visibility.Collapsed;
+                Editor.Visibility = Visibility.Visible;
+                return;
+            }
 
             _useMilkdown = true;
             UpdateSelectionState();
@@ -470,7 +486,7 @@ public partial class NotesToolView : UserControl, IToolView
         try
         {
             await FlushPendingChangesAsync().ConfigureAwait(true);
-            var notePath = await _storage.CreateNoteAsync(templateKind, _context).ConfigureAwait(true);
+            var notePath = await _storage.CreateNoteAsync(templateKind, _context, _localizer).ConfigureAwait(true);
             await ReloadNotesAsync(notePath).ConfigureAwait(true);
 
             _ = Dispatcher.BeginInvoke(DispatcherPriority.Loaded, () =>
@@ -781,18 +797,21 @@ public partial class NotesToolView : UserControl, IToolView
         return _storage.IsUnderNotesRoot(resolved) ? resolved : null;
     }
 
+    private static string SettingsPath
+        => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "config", "settings.json");
+
     private static NotesStorageService CreateStorageService()
     {
         var basePath = AppDomain.CurrentDomain.BaseDirectory;
 
         // Attempt to read NotesDirectory from settings.json (lightweight, no DI)
-        var settingsPath = Path.Combine(basePath, "config", "settings.json");
+        var settingsPath = SettingsPath;
         if (File.Exists(settingsPath))
         {
             try
             {
                 var json = System.Text.Json.JsonDocument.Parse(File.ReadAllText(settingsPath));
-                if (json.RootElement.TryGetProperty("NotesDirectory", out var prop)
+                if (json.RootElement.TryGetProperty("notesDirectory", out var prop)
                     && prop.GetString() is { Length: > 0 } customDir)
                 {
                     var resolved = Path.IsPathRooted(customDir)
@@ -808,6 +827,49 @@ public partial class NotesToolView : UserControl, IToolView
         }
 
         return new NotesStorageService(Path.Combine(basePath, "config", "notes"));
+    }
+
+    private static int LoadSidebarWidth()
+    {
+        try
+        {
+            var settingsPath = SettingsPath;
+            if (File.Exists(settingsPath))
+            {
+                var json = System.Text.Json.JsonDocument.Parse(File.ReadAllText(settingsPath));
+                if (json.RootElement.TryGetProperty("notesSidebarWidth", out var prop)
+                    && prop.TryGetInt32(out var width)
+                    && width >= 240)
+                {
+                    return width;
+                }
+            }
+        }
+        catch
+        {
+            // Fall through to default
+        }
+
+        return 300;
+    }
+
+    private static void PersistSidebarWidth(int width)
+    {
+        try
+        {
+            var configManager = (Application.Current as App)?
+                .Services?.GetService<ConfigManager>();
+            if (configManager is null)
+            {
+                return;
+            }
+
+            _ = configManager.MergeSettingAsync(s => s.NotesSidebarWidth = width);
+        }
+        catch
+        {
+            // Non-critical UI preference — swallow errors
+        }
     }
 
     private static void OpenFolder(string path)
@@ -1490,6 +1552,8 @@ public partial class NotesToolView : UserControl, IToolView
             grid.ColumnDefinitions[1].Width = new GridLength(0);
             SidebarBorder.Visibility = Visibility.Collapsed;
             EditorSplitter.Visibility = Visibility.Collapsed;
+
+            PersistSidebarWidth((int)_savedSidebarWidth.Value);
         }
     }
 
@@ -1524,12 +1588,22 @@ public partial class NotesToolView : UserControl, IToolView
             try
             {
                 var content = _useMilkdown ? _lastMilkdownContent : Editor.Text;
-                _storage.SaveNoteAsync(_currentNotePath, content).GetAwaiter().GetResult();
+                _storage.SaveNote(_currentNotePath, content);
                 _dirty = false;
             }
             catch
             {
                 // Best effort flush during disposal.
+            }
+        }
+
+        // Persist sidebar width if it was resized via the GridSplitter
+        if (_sidebarVisible && SidebarBorder.Parent is Grid layoutGrid)
+        {
+            var currentWidth = (int)layoutGrid.ColumnDefinitions[0].ActualWidth;
+            if (currentWidth >= 240 && currentWidth != (int)_savedSidebarWidth.Value)
+            {
+                PersistSidebarWidth(currentWidth);
             }
         }
 

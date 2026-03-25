@@ -12,6 +12,41 @@
 
 All notable changes to Heimdall.Next are documented in this file.
 
+## [v2026.032506] - 2026-03-25
+
+### Notes audit fixes, template i18n, Tools panel UX
+
+#### Notes tool — bug fixes from multi-model audit (Codex + Gemini)
+- **P1 — Milkdown fallback**: `TryInitializeMilkdownAsync` now checks `MilkdownEditorControl.IsHostInitialized` after `InitializeAsync()` — machines without WebView2 runtime correctly fall back to AvalonEdit instead of showing a non-functional Milkdown host
+- **P1 — camelCase settings mismatch**: `CreateStorageService()` and `LoadSidebarWidth()` now read camelCase property names (`notesDirectory`, `notesSidebarWidth`) matching `ConfigManager`'s `JsonNamingPolicy.CamelCase` serialization — configurable `NotesDirectory` path was silently ignored after any settings round-trip
+- **P2 — Sidebar width persistence race**: replaced ad-hoc `settings.json` direct write with `ConfigManager.MergeSettingAsync()` — prevents concurrent TOFU host key writes or other settings updates from being silently overwritten
+- **P2 — Wiki-link accent regression**: `Slugify()` now strips diacritics via Unicode normalization (`FormD` decomposition + `NonSpacingMark` removal) — `Procédure` slugifies to `procedure`, and `FindNotePathAsync()` uses accent-insensitive title fallback so `[[Procedure]]` resolves `# Procédure`
+- **Sync save in CanClose/Dispose**: new `NotesStorageService.SaveNote()` synchronous method avoids `.GetAwaiter().GetResult()` sync-over-async pattern
+- **`_pendingReadOnly` nullable**: `MilkdownEditorControl` uses `bool?` to correctly handle `SetReadOnly(false)` before editor ready
+
+#### Notes tool — Zero Hardcoding compliance
+- **Template factory i18n**: all 26 hardcoded template strings extracted to locale files (`ToolNotesTpl*` keys) — `NotesTemplateFactory.Create()` accepts optional `LocalizationManager` parameter, propagated from view → storage → factory
+- **French translations**: templates fully localized (Objectifs, Chronologie, Résumé, Étapes, Retour arrière, etc.)
+
+#### Tools panel UX refonte
+- **Removed redundant header**: deleted the "Tools ▾" panel header and its close button — the toggle button at the bottom is the sole open/close control
+- **Chevron state indicator**: toggle button shows `▲` when panel is closed, `▼` when open
+- **Category headers with colored accent**: each category section now displays a 3px colored bar (Network=blue, Security=amber, Encoding=purple, System=teal) with uppercase label in matching color
+- **Alphabetical sort**: tools within each category sorted alphabetically by localized name
+
+#### Infrastructure
+- `ConfigManager.MergeSettingAsync(Action<AppSettings>)`: atomic load-mutate-save under write lock for targeted property updates
+- `App.Services` public accessor for DI service resolution from tool views
+- `NotesTemplateFactory.RemoveDiacritics()`: reusable Unicode diacritics stripping
+
+#### i18n
+- 3,346 keys (EN/FR parity confirmed) — +48 keys (26 template sections + 22 existing updates)
+
+#### Tests
+- **1,586 tests** (1,196 Core + 283 SSH + 107 App), all passing — +10 new (3 sync save, 3 diacritics, 2 accent-insensitive wiki-link, 2 template i18n)
+
+---
+
 ## [v2026.032505] - 2026-03-25
 
 ### Notes tool enhancements and swap panes fix

@@ -230,6 +230,29 @@ public class ConfigManager
     }
 
     /// <summary>
+    /// Atomically loads settings, applies a mutation, and saves back under the write lock.
+    /// Use this for any targeted property update that must not race with other settings writers.
+    /// </summary>
+    public async Task MergeSettingAsync(Action<AppSettings> mutate)
+    {
+        ArgumentNullException.ThrowIfNull(mutate);
+
+        await _writeLock.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            var settings = await LoadSettingsInternalAsync().ConfigureAwait(false);
+            mutate(settings);
+            var json = JsonSerializer.Serialize(settings, JsonOptions);
+            await WriteTextAsync(_settingsPath, json).ConfigureAwait(false);
+            ApplyFileAcl(_settingsPath);
+        }
+        finally
+        {
+            _writeLock.Release();
+        }
+    }
+
+    /// <summary>
     /// Internal settings load that does NOT acquire the write lock (caller must hold it).
     /// </summary>
     private async Task<AppSettings> LoadSettingsInternalAsync()
