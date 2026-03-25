@@ -553,6 +553,14 @@ public partial class ServerDialogViewModel : ObservableValidator
         ValidationError = null;
     }
 
+    private void RefreshValidationSummary()
+    {
+        ValidationError = DisplayNameError ?? RemoteServerError ?? EndpointPortError
+            ?? LocalPortError ?? AudioModeError ?? ColorDepthError;
+        TunnelingTabErrorCount = LocalPortError is not null ? 1 : 0;
+        OptionsTabErrorCount = (AudioModeError is not null ? 1 : 0) + (ColorDepthError is not null ? 1 : 0);
+    }
+
     [RelayCommand]
     private void Validate()
     {
@@ -707,7 +715,9 @@ public partial class ServerDialogViewModel : ObservableValidator
             IsProtocolSelected = true,
             DisplayName = dto.DisplayName,
             RemoteServer = dto.RemoteServer,
-            RemotePort = dto.RemotePort,
+            RemotePort = string.Equals(connectionType, "Telnet", StringComparison.OrdinalIgnoreCase)
+                ? (dto.TelnetPort > 0 ? dto.TelnetPort : DefaultTelnetPort)
+                : dto.RemotePort,
             LocalPort = storedLocalPort,
             UseAutomaticTunnelPort = dto.LocalPort <= 0 || dto.LocalPort == suggestedTunnelPort,
             Group = dto.Group ?? "",
@@ -778,33 +788,47 @@ public partial class ServerDialogViewModel : ObservableValidator
     partial void OnConnectionTypeChanged(string value)
     {
         ClearValidationState();
-        EndpointPort = GetDefaultEndpointPort(value);
 
-        if (UseAutomaticTunnelPort)
+        // In edit mode, preserve the loaded port (FromDto already set the correct value)
+        if (!IsEditMode)
         {
-            LocalPort = GetSuggestedTunnelPort(value);
+            EndpointPort = GetDefaultEndpointPort(value);
+
+            if (UseAutomaticTunnelPort)
+            {
+                LocalPort = GetSuggestedTunnelPort(value);
+            }
         }
 
         RaiseDerivedStateChanged();
     }
 
-    partial void OnRemotePortChanged(int value)
+    partial void OnDisplayNameChanged(string value)
     {
-        RaisePortDerivedStateChanged();
+        if (DisplayNameError is not null) { DisplayNameError = null; RefreshValidationSummary(); }
     }
 
     partial void OnRemoteServerChanged(string value)
     {
+        if (RemoteServerError is not null) { RemoteServerError = null; RefreshValidationSummary(); }
         RaiseDerivedStateChanged();
+    }
+
+    partial void OnRemotePortChanged(int value)
+    {
+        if (EndpointPortError is not null) { EndpointPortError = null; RefreshValidationSummary(); }
+        RaisePortDerivedStateChanged();
     }
 
     partial void OnSshPortChanged(int value)
     {
+        if (EndpointPortError is not null) { EndpointPortError = null; RefreshValidationSummary(); }
         RaisePortDerivedStateChanged();
     }
 
     partial void OnLocalPortChanged(int value)
     {
+        if (LocalPortError is not null) { LocalPortError = null; RefreshValidationSummary(); }
         RaiseDerivedStateChanged();
     }
 
