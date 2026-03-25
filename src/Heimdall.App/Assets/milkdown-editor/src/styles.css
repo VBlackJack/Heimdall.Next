@@ -1,6 +1,7 @@
 :root {
   color-scheme: light;
   --editor-font-family: "Segoe UI", sans-serif;
+  --editor-font-code: "Cascadia Code", Consolas, monospace;
   --editor-text: #1b1f24;
   --editor-subtle-text: #57606a;
   --editor-surface: rgba(255, 255, 255, 0.92);
@@ -17,18 +18,57 @@
 
 :root[data-theme='dark'] {
   color-scheme: dark;
-  --editor-text: #e6edf3;
-  --editor-subtle-text: #9da7b3;
-  --editor-surface: rgba(13, 17, 23, 0.9);
-  --editor-panel: rgba(22, 27, 34, 0.92);
-  --editor-border: rgba(240, 246, 252, 0.12);
-  --editor-shadow: rgba(0, 0, 0, 0.3);
-  --editor-link: #58a6ff;
-  --editor-accent: #58a6ff;
-  --editor-accent-soft: rgba(88, 166, 255, 0.16);
-  --editor-code-bg: rgba(110, 118, 129, 0.22);
-  --editor-quote-border: rgba(88, 166, 255, 0.4);
-  --editor-selection: rgba(88, 166, 255, 0.22);
+  --editor-text: #f8f8f2;
+  --editor-subtle-text: #6272a4;
+  --editor-surface: #282a36;
+  --editor-panel: #44475a;
+  --editor-border: #6272a4;
+  --editor-shadow: rgba(0, 0, 0, 0.4);
+  --editor-link: #8be9fd;
+  --editor-accent: #bd93f9;
+  --editor-accent-soft: rgba(189, 147, 249, 0.2);
+  --editor-code-bg: #44475a;
+  --editor-quote-border: #bd93f9;
+  --editor-selection: rgba(68, 71, 90, 0.8);
+}
+
+/* ── Crepe theme tokens — light ────────────────────────────────── */
+
+.milkdown {
+  --crepe-color-background: transparent;
+  --crepe-color-on-background: var(--editor-text);
+  --crepe-color-surface: var(--editor-panel);
+  --crepe-color-surface-low: var(--editor-code-bg);
+  --crepe-color-on-surface: var(--editor-text);
+  --crepe-color-on-surface-variant: var(--editor-subtle-text);
+  --crepe-color-outline: var(--editor-border);
+  --crepe-color-primary: var(--editor-accent);
+  --crepe-color-secondary: var(--editor-accent-soft);
+  --crepe-color-on-secondary: var(--editor-accent);
+  --crepe-color-inverse: #24292f;
+  --crepe-color-on-inverse: #f6f8fa;
+  --crepe-color-inline-code: #cf222e;
+  --crepe-color-error: #cf222e;
+  --crepe-color-hover: var(--editor-accent-soft);
+  --crepe-color-selected: var(--editor-selection);
+  --crepe-color-inline-area: var(--editor-code-bg);
+
+  --crepe-font-title: var(--editor-font-family);
+  --crepe-font-default: var(--editor-font-family);
+  --crepe-font-code: var(--editor-font-code);
+
+  --crepe-shadow-1: 0px 1px 3px 1px var(--editor-shadow), 0px 1px 2px 0px var(--editor-shadow);
+  --crepe-shadow-2: 0px 2px 6px 2px var(--editor-shadow), 0px 1px 2px 0px var(--editor-shadow);
+}
+
+/* ── Crepe theme tokens — Dracula dark ─────────────────────────── */
+
+:root[data-theme='dark'] .milkdown {
+  --crepe-color-background: #282a36;
+  --crepe-color-inverse: #f8f8f2;
+  --crepe-color-on-inverse: #282a36;
+  --crepe-color-inline-code: #ff79c6;
+  --crepe-color-error: #ff5555;
 }
 
 * {
@@ -144,7 +184,7 @@ body {
   border-radius: 6px;
   background: var(--editor-code-bg);
   color: inherit;
-  font-family: "Cascadia Code", Consolas, monospace;
+  font-family: var(--editor-font-code);
   padding: 0.12rem 0.35rem;
 }
 
@@ -191,4 +231,40 @@ body {
 
 .editor-host.is-readonly .milkdown .editor {
   border-style: dashed;
+}
+
+/* ── Context menu ───────────────────────────────────────────────── */
+
+.ctx-menu {
+  position: fixed;
+  z-index: 9999;
+  min-width: 180px;
+  max-height: calc(100vh - 16px);
+  overflow-y: auto;
+  padding: 4px 0;
+  background: var(--editor-surface);
+  border: 1px solid var(--editor-border);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px var(--editor-shadow);
+  font-family: var(--editor-font-family);
+  font-size: 13px;
+  color: var(--editor-text);
+}
+
+.ctx-menu-item {
+  padding: 6px 14px;
+  cursor: pointer;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.ctx-menu-item:hover {
+  background: var(--editor-accent-soft);
+  color: var(--editor-accent);
+}
+
+.ctx-menu-sep {
+  height: 1px;
+  margin: 4px 8px;
+  background: var(--editor-border);
 }

@@ -43,6 +43,13 @@
                         Click="OnOpenFolderClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="10,5" Margin="8,0,0,0"/>
+                <Button x:Name="BtnToggleSidebar" DockPanel.Dock="Left"
+                        Click="OnToggleSidebarClick"
+                        Style="{DynamicResource SecondaryButtonStyle}"
+                        Padding="8,4" Margin="0,0,8,0"
+                        FontFamily="{StaticResource FontFamilyMonospace}"
+                        FontSize="{StaticResource FontSizeBody}"
+                        Content="&#x2630;"/>
                 <TextBlock x:Name="HeaderTitle"
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
@@ -57,7 +64,7 @@
                 <ColumnDefinition Width="*" MinWidth="400"/>
             </Grid.ColumnDefinitions>
 
-            <Border Grid.Column="0"
+            <Border x:Name="SidebarBorder" Grid.Column="0"
                     Background="{DynamicResource CardBrush}"
                     BorderBrush="{DynamicResource BorderBrush}"
                     BorderThickness="1"
@@ -159,7 +166,7 @@
                 </Grid>
             </Border>
 
-            <GridSplitter Grid.Column="1"
+            <GridSplitter x:Name="EditorSplitter" Grid.Column="1"
                           Width="8"
                           HorizontalAlignment="Stretch"
                           VerticalAlignment="Stretch"
