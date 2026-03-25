@@ -824,40 +824,75 @@ public partial class ServerDialogViewModel : ObservableValidator
 
     partial void OnDisplayNameChanged(string value)
     {
-        if (DisplayNameError is not null) { DisplayNameError = null; RefreshValidationSummary(); }
+        if (DisplayNameError is not null)
+        {
+            ValidateProperty(value, nameof(DisplayName));
+            DisplayNameError = GetLocalizedFieldError(nameof(DisplayName));
+            RefreshValidationSummary();
+        }
     }
 
     partial void OnRemoteServerChanged(string value)
     {
-        if (RemoteServerError is not null) { RemoteServerError = null; RefreshValidationSummary(); }
+        if (RemoteServerError is not null)
+        {
+            ValidateProperty(value, nameof(RemoteServer));
+            RemoteServerError = RequiresNetworkEndpoint ? GetLocalizedFieldError(nameof(RemoteServer)) : null;
+            RefreshValidationSummary();
+        }
         RaiseDerivedStateChanged();
     }
 
     partial void OnRemotePortChanged(int value)
     {
-        if (EndpointPortError is not null) { EndpointPortError = null; RefreshValidationSummary(); }
+        if (EndpointPortError is not null)
+        {
+            ValidateProperty(value, nameof(RemotePort));
+            EndpointPortError = RequiresNetworkEndpoint ? GetEndpointPortError() : null;
+            RefreshValidationSummary();
+        }
         RaisePortDerivedStateChanged();
     }
 
     partial void OnSshPortChanged(int value)
     {
-        if (EndpointPortError is not null) { EndpointPortError = null; RefreshValidationSummary(); }
+        if (EndpointPortError is not null)
+        {
+            ValidateProperty(value, nameof(SshPort));
+            EndpointPortError = IsSshFamilyConnection ? GetLocalizedFieldError(nameof(SshPort)) : null;
+            RefreshValidationSummary();
+        }
         RaisePortDerivedStateChanged();
     }
 
     partial void OnVncPortChanged(int value)
     {
-        if (EndpointPortError is not null) { EndpointPortError = null; RefreshValidationSummary(); }
+        if (EndpointPortError is not null)
+        {
+            ValidateProperty(value, nameof(VncPort));
+            EndpointPortError = IsVncConnection ? GetLocalizedFieldError(nameof(VncPort)) : null;
+            RefreshValidationSummary();
+        }
     }
 
     partial void OnFtpPortChanged(int value)
     {
-        if (EndpointPortError is not null) { EndpointPortError = null; RefreshValidationSummary(); }
+        if (EndpointPortError is not null)
+        {
+            ValidateProperty(value, nameof(FtpPort));
+            EndpointPortError = IsFtpConnection ? GetLocalizedFieldError(nameof(FtpPort)) : null;
+            RefreshValidationSummary();
+        }
     }
 
     partial void OnLocalPortChanged(int value)
     {
-        if (LocalPortError is not null) { LocalPortError = null; RefreshValidationSummary(); }
+        if (LocalPortError is not null)
+        {
+            ValidateProperty(value, nameof(LocalPort));
+            LocalPortError = UsesGateway ? GetLocalizedFieldError(nameof(LocalPort)) : null;
+            RefreshValidationSummary();
+        }
         RaiseDerivedStateChanged();
     }
 
