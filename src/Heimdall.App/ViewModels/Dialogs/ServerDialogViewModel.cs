@@ -53,6 +53,58 @@ public partial class ServerDialogViewModel : ObservableValidator
     [ObservableProperty]
     private bool _isAdvancedMode;
 
+    /// <summary>
+    /// Whether the user has chosen a protocol (Step 1 complete).
+    /// In edit mode this is always true. In add mode it starts false.
+    /// </summary>
+    [ObservableProperty]
+    private bool _isProtocolSelected;
+
+    /// <summary>
+    /// Whether the protocol selector step should be displayed.
+    /// True only in add mode before a protocol has been chosen.
+    /// </summary>
+    public bool ShowProtocolSelector => !IsEditMode && !IsProtocolSelected;
+
+    /// <summary>
+    /// Whether the form fields (Step 2) should be displayed.
+    /// True after a protocol is selected, or always in edit mode.
+    /// </summary>
+    public bool ShowFormFields => IsEditMode || IsProtocolSelected;
+
+    public bool IsLocalConnection => string.Equals(ConnectionType, "Local", StringComparison.OrdinalIgnoreCase);
+
+    partial void OnIsProtocolSelectedChanged(bool value)
+    {
+        OnPropertyChanged(nameof(ShowProtocolSelector));
+        OnPropertyChanged(nameof(ShowFormFields));
+    }
+
+    partial void OnIsEditModeChanged(bool value)
+    {
+        OnPropertyChanged(nameof(ShowProtocolSelector));
+        OnPropertyChanged(nameof(ShowFormFields));
+    }
+
+    /// <summary>
+    /// Selects a protocol and transitions from Step 1 to Step 2.
+    /// </summary>
+    [RelayCommand]
+    private void SelectProtocol(string protocol)
+    {
+        ConnectionType = protocol;
+        IsProtocolSelected = true;
+    }
+
+    /// <summary>
+    /// Returns to the protocol selector (Step 1) from Step 2 in add mode.
+    /// </summary>
+    [RelayCommand]
+    private void BackToProtocolSelector()
+    {
+        IsProtocolSelected = false;
+    }
+
     // --- Identity ---
 
     [ObservableProperty]
@@ -62,6 +114,9 @@ public partial class ServerDialogViewModel : ObservableValidator
     private string _displayName = "";
 
     [ObservableProperty]
+    [NotifyDataErrorInfo]
+    [Required(ErrorMessage = "Server address is required.")]
+    [MinLength(1, ErrorMessage = "Server address cannot be empty.")]
     private string _remoteServer = "";
 
     [ObservableProperty]
@@ -289,9 +344,6 @@ public partial class ServerDialogViewModel : ObservableValidator
     [ObservableProperty]
     private ObservableCollection<GatewayOption> _availableGateways = [];
 
-    [ObservableProperty]
-    private string? _gatewayTestMessage;
-
     // --- Project ---
 
     [ObservableProperty]
@@ -319,6 +371,44 @@ public partial class ServerDialogViewModel : ObservableValidator
     [ObservableProperty]
     private string? _validationError;
 
+    // Per-field inline validation errors (populated by Validate)
+    [ObservableProperty]
+    private string? _displayNameError;
+
+    [ObservableProperty]
+    private string? _remoteServerError;
+
+    [ObservableProperty]
+    private string? _endpointPortError;
+
+    [ObservableProperty]
+    private string? _localPortError;
+
+    [ObservableProperty]
+    private string? _audioModeError;
+
+    [ObservableProperty]
+    private string? _colorDepthError;
+
+    // Tab error counts for badge display
+    [ObservableProperty]
+    private int _tunnelingTabErrorCount;
+
+    [ObservableProperty]
+    private int _optionsTabErrorCount;
+
+    // Name of the first property with an error (for focus management by the View)
+    [ObservableProperty]
+    private string? _firstInvalidField;
+
+    public bool HasTunnelingTabErrors => TunnelingTabErrorCount > 0;
+
+    public bool HasOptionsTabErrors => OptionsTabErrorCount > 0;
+
+    partial void OnTunnelingTabErrorCountChanged(int value) => OnPropertyChanged(nameof(HasTunnelingTabErrors));
+
+    partial void OnOptionsTabErrorCountChanged(int value) => OnPropertyChanged(nameof(HasOptionsTabErrors));
+
     public bool IsRdpConnection => string.Equals(ConnectionType, "RDP", StringComparison.OrdinalIgnoreCase);
 
     public bool IsSshConnection => string.Equals(ConnectionType, "SSH", StringComparison.OrdinalIgnoreCase);
@@ -334,6 +424,10 @@ public partial class ServerDialogViewModel : ObservableValidator
     public bool IsTelnetConnection => string.Equals(ConnectionType, "Telnet", StringComparison.OrdinalIgnoreCase);
 
     public bool IsSshFamilyConnection => IsSshConnection || IsSftpConnection;
+
+    public bool RequiresNetworkEndpoint =>
+        !string.Equals(ConnectionType, "Local", StringComparison.OrdinalIgnoreCase)
+        && !string.Equals(ConnectionType, "Citrix", StringComparison.OrdinalIgnoreCase);
 
     public bool UsesGateway => !DirectConnection && !string.IsNullOrWhiteSpace(SelectedGatewayId);
 
@@ -441,21 +535,46 @@ public partial class ServerDialogViewModel : ObservableValidator
 
     /// <summary>
     /// Triggers full validation of all annotated properties.
-    /// Sets <see cref="ValidationError"/> to the first error found, or null if valid.
+    /// Populates per-field errors, tab error counts, and first invalid field for focus.
     /// </summary>
     [RelayCommand]
     private void Validate()
     {
         ValidateAllProperties();
 
-        if (!HasErrors && UsesGateway && !UseAutomaticTunnelPort && LocalPort <= 0)
+        // Per-field inline errors (localized, ConnectionType-aware)
+        DisplayNameError = GetLocalizedFieldError(nameof(DisplayName));
+        RemoteServerError = RequiresNetworkEndpoint ? GetLocalizedFieldError(nameof(RemoteServer)) : null;
+        EndpointPortError = RequiresNetworkEndpoint ? GetEndpointPortError() : null;
+        LocalPortError = UsesGateway ? GetLocalizedFieldError(nameof(LocalPort)) : null;
+
+        // Custom tunnel port check
+        if (LocalPortError is null && UsesGateway && !UseAutomaticTunnelPort && LocalPort <= 0)
         {
-            ValidationError = Localizer?["ValidationTunnelPortRequired"]
+            LocalPortError = Localizer?["ValidationTunnelPortRequired"]
                 ?? "Enter a local tunnel port or switch back to Auto.";
-            return;
         }
 
-        ValidationError = HasErrors ? GetFirstError() : null;
+        // Options tab errors (RDP-specific)
+        AudioModeError = IsRdpConnection ? GetLocalizedFieldError(nameof(RdpAudioMode)) : null;
+        ColorDepthError = IsRdpConnection ? GetLocalizedFieldError(nameof(RdpColorDepth)) : null;
+
+        // Tab error counts
+        TunnelingTabErrorCount = LocalPortError is not null ? 1 : 0;
+        OptionsTabErrorCount = (AudioModeError is not null ? 1 : 0) + (ColorDepthError is not null ? 1 : 0);
+
+        // First invalid field for auto-focus
+        FirstInvalidField = DisplayNameError is not null ? nameof(DisplayName)
+            : RemoteServerError is not null ? nameof(RemoteServer)
+            : EndpointPortError is not null ? "EndpointPort"
+            : LocalPortError is not null ? nameof(LocalPort)
+            : AudioModeError is not null ? nameof(RdpAudioMode)
+            : ColorDepthError is not null ? nameof(RdpColorDepth)
+            : null;
+
+        // Aggregate summary
+        ValidationError = DisplayNameError ?? RemoteServerError ?? EndpointPortError
+            ?? LocalPortError ?? AudioModeError ?? ColorDepthError;
     }
 
     /// <summary>
@@ -466,14 +585,6 @@ public partial class ServerDialogViewModel : ObservableValidator
     private void BrowseSshKey()
     {
         // Intentionally empty: the View handles the actual file picker interaction.
-    }
-
-    [RelayCommand]
-    private void TestGateway()
-    {
-        GatewayTestMessage = UsesGateway
-            ? Localizer?["GatewayDiagnosticsNotAvailable"] ?? "Gateway diagnostics are not available yet."
-            : Localizer?["GatewayDiagnosticsSelectGateway"] ?? "Select a gateway and disable direct connection to test tunneling.";
     }
 
     /// <summary>
@@ -577,6 +688,7 @@ public partial class ServerDialogViewModel : ObservableValidator
         return new ServerDialogViewModel
         {
             IsEditMode = true,
+            IsProtocolSelected = true,
             DisplayName = dto.DisplayName,
             RemoteServer = dto.RemoteServer,
             RemotePort = dto.RemotePort,
@@ -656,7 +768,6 @@ public partial class ServerDialogViewModel : ObservableValidator
             LocalPort = GetSuggestedTunnelPort(value);
         }
 
-        GatewayTestMessage = null;
         RaiseDerivedStateChanged();
     }
 
@@ -692,13 +803,11 @@ public partial class ServerDialogViewModel : ObservableValidator
 
     partial void OnSelectedGatewayIdChanged(string value)
     {
-        GatewayTestMessage = null;
         RaiseDerivedStateChanged();
     }
 
     partial void OnDirectConnectionChanged(bool value)
     {
-        GatewayTestMessage = null;
         RaiseDerivedStateChanged();
     }
 
@@ -751,6 +860,7 @@ public partial class ServerDialogViewModel : ObservableValidator
         OnPropertyChanged(nameof(IsFtpConnection));
         OnPropertyChanged(nameof(IsCitrixConnection));
         OnPropertyChanged(nameof(IsTelnetConnection));
+        OnPropertyChanged(nameof(IsLocalConnection));
         OnPropertyChanged(nameof(IsSshFamilyConnection));
         OnPropertyChanged(nameof(UsesGateway));
         OnPropertyChanged(nameof(CanSelectGateway));
@@ -778,6 +888,8 @@ public partial class ServerDialogViewModel : ObservableValidator
     {
         ["Display name is required."] = "ValidationDisplayNameRequired",
         ["Display name cannot be empty."] = "ValidationDisplayNameEmpty",
+        ["Server address is required."] = "ValidationServerAddressRequired",
+        ["Server address cannot be empty."] = "ValidationServerAddressEmpty",
         ["Port must be between 1 and 65535."] = "ValidationPortRange",
         ["Local tunnel port must be between 1 and 65535."] = "ValidationLocalPortRange",
         ["SSH port must be between 1 and 65535."] = "ValidationSshPortRange",
@@ -786,13 +898,21 @@ public partial class ServerDialogViewModel : ObservableValidator
         ["FTP port must be between 1 and 65535."] = "ValidationFtpPortRange",
     };
 
-    private string? GetFirstError()
+    private string? GetEndpointPortError()
     {
-        var firstProperty = GetErrors()
+        if (IsRdpConnection || IsTelnetConnection) return GetLocalizedFieldError(nameof(RemotePort));
+        if (IsFtpConnection) return GetLocalizedFieldError(nameof(FtpPort));
+        if (IsSshFamilyConnection) return GetLocalizedFieldError(nameof(SshPort));
+        return null;
+    }
+
+    private string? GetLocalizedFieldError(string propertyName)
+    {
+        var error = GetErrors(propertyName)
             .OfType<System.ComponentModel.DataAnnotations.ValidationResult>()
             .FirstOrDefault();
 
-        var message = firstProperty?.ErrorMessage;
+        var message = error?.ErrorMessage;
         if (message is not null && Localizer is not null
             && ValidationKeyMap.TryGetValue(message, out var key))
         {

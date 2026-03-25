@@ -171,6 +171,53 @@ public partial class ServerDialog : Window
             ftpPwBox?.Clear();
             telnetPwBox?.Clear();
         }
+        else
+        {
+            FocusFirstInvalidField(vm);
+        }
+    }
+
+    private void FocusFirstInvalidField(ServerDialogViewModel vm)
+    {
+        if (vm.FirstInvalidField is null) return;
+
+        System.Windows.UIElement? target = null;
+
+        switch (vm.FirstInvalidField)
+        {
+            case nameof(ServerDialogViewModel.DisplayName):
+                target = DlgSrv_DisplayNameBox;
+                break;
+            case nameof(ServerDialogViewModel.RemoteServer):
+                target = DlgSrv_RemoteServerBox;
+                break;
+            case "EndpointPort":
+                target = DlgSrv_EndpointPortBox;
+                break;
+            case nameof(ServerDialogViewModel.LocalPort):
+                // Ensure advanced mode is expanded and Tunneling tab is visible
+                vm.IsAdvancedMode = true;
+                MainTabControl.SelectedItem = DlgSrv_TabTunneling;
+                target = DlgSrv_LocalPortBox;
+                break;
+            case nameof(ServerDialogViewModel.RdpAudioMode):
+                vm.IsAdvancedMode = true;
+                MainTabControl.SelectedItem = DlgSrv_TabOptions;
+                target = DlgSrv_RdpAudioModeCombo;
+                break;
+            case nameof(ServerDialogViewModel.RdpColorDepth):
+                vm.IsAdvancedMode = true;
+                MainTabControl.SelectedItem = DlgSrv_TabOptions;
+                target = DlgSrv_RdpColorDepthCombo;
+                break;
+        }
+
+        if (target is not null)
+        {
+            // Deferred focus: let layout complete after tab/panel changes
+            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Input,
+                new Action(() => target.Focus()));
+        }
     }
 
     private void OnWindowClosing(object? sender, System.ComponentModel.CancelEventArgs e)
@@ -231,16 +278,41 @@ public partial class ServerDialog : Window
 
         // Tab headers
         DlgSrv_TabConnection.Header = _localizer["ServerDialogTabConnection"];
-        DlgSrv_TabTunneling.Header = _localizer["ServerDialogTabTunneling"];
+        DlgSrv_TabTunnelingText.Text = _localizer["ServerDialogTabTunneling"];
         DlgSrv_TabAuthentication.Header = _localizer["ServerDialogTabAuthentication"];
-        DlgSrv_TabOptions.Header = _localizer["ServerDialogTabOptions"];
+        DlgSrv_TabOptionsText.Text = _localizer["ServerDialogTabOptions"];
         DlgSrv_TabInfo.Header = _localizer["ServerDialogTabInfo"];
+
+        // Protocol selector (Step 1)
+        DlgSrv_ProtocolSelectorTitle.Text = _localizer["ServerDialogProtocolSelectorTitle"];
+        DlgSrv_ProtocolSelectorDesc.Text = _localizer["ServerDialogProtocolSelectorDesc"];
+        DlgSrv_ProtoRdpName.Text = _localizer["ServerDialogProtocolRdpName"];
+        DlgSrv_ProtoRdpDesc.Text = _localizer["ServerDialogProtocolRdpDesc"];
+        DlgSrv_ProtoSshName.Text = _localizer["ServerDialogProtocolSshName"];
+        DlgSrv_ProtoSshDesc.Text = _localizer["ServerDialogProtocolSshDesc"];
+        DlgSrv_ProtoSftpName.Text = _localizer["ServerDialogProtocolSftpName"];
+        DlgSrv_ProtoSftpDesc.Text = _localizer["ServerDialogProtocolSftpDesc"];
+        DlgSrv_ProtoVncName.Text = _localizer["ServerDialogProtocolVncName"];
+        DlgSrv_ProtoVncDesc.Text = _localizer["ServerDialogProtocolVncDesc"];
+        DlgSrv_ProtoTelnetName.Text = _localizer["ServerDialogProtocolTelnetName"];
+        DlgSrv_ProtoTelnetDesc.Text = _localizer["ServerDialogProtocolTelnetDesc"];
+        DlgSrv_ProtoFtpName.Text = _localizer["ServerDialogProtocolFtpName"];
+        DlgSrv_ProtoFtpDesc.Text = _localizer["ServerDialogProtocolFtpDesc"];
+        DlgSrv_ProtoCitrixName.Text = _localizer["ServerDialogProtocolCitrixName"];
+        DlgSrv_ProtoCitrixDesc.Text = _localizer["ServerDialogProtocolCitrixDesc"];
+        DlgSrv_ProtoLocalName.Text = _localizer["ServerDialogProtocolLocalName"];
+        DlgSrv_ProtoLocalDesc.Text = _localizer["ServerDialogProtocolLocalDesc"];
+
+        // Protocol badge (edit mode)
+        DlgSrv_ProtocolBadgeLabel.Text = _localizer["ServerDialogProtocolBadge"];
+
+        // Back button (add mode)
+        DlgSrv_BackBtn.Content = _localizer["ServerDialogBtnBack"];
 
         // Connection basics (essential section)
         DlgSrv_ConnectionBasicsTitle.Text = _localizer["ServerDialogConnectionBasics"];
         DlgSrv_ConnectionBasicsDesc.Text = _localizer["ServerDialogConnectionBasicsDesc"];
         DlgSrv_DisplayNameLabel.Text = _localizer["ServerDialogLabelDisplayName"] + " *";
-        DlgSrv_ConnectionTypeLabel.Text = _localizer["ServerDialogLabelConnectionType"] + " *";
         DlgSrv_ServerLabel.Text = _localizer["ServerDialogLabelServer"] + " *";
 
         // Project + Gateway routing (essential section)
@@ -248,7 +320,6 @@ public partial class ServerDialog : Window
         DlgSrv_GatewayRoutingTitle.Text = _localizer["ServerDialogGatewayRouting"];
         DlgSrv_GatewayRoutingDesc.Text = _localizer["ServerDialogGatewayRoutingDesc"];
         DlgSrv_DirectConnectCb.Content = _localizer["ServerDialogDirectConnect"];
-        DlgSrv_TestConnectionBtn.Content = _localizer["ServerDialogTestConnection"];
 
         // Advanced toggle
         DlgSrv_AdvancedToggle.Content = _localizer["ServerDialogAdvancedSettings"];
@@ -460,8 +531,19 @@ public partial class ServerDialog : Window
         // Action buttons
         DlgSrv_CancelBtn.Content = _localizer["ServerDialogBtnCancel"];
         DlgSrv_SaveBtn.Content = _localizer["ServerDialogBtnSave"];
+        System.Windows.Automation.AutomationProperties.SetName(DlgSrv_BackBtn, _localizer["ServerDialogBtnBack"]);
         System.Windows.Automation.AutomationProperties.SetName(DlgSrv_CancelBtn, _localizer["ServerDialogBtnCancel"]);
         System.Windows.Automation.AutomationProperties.SetName(DlgSrv_SaveBtn, _localizer["ServerDialogBtnSave"]);
+
+        // Accessibility: protocol card automation names
+        System.Windows.Automation.AutomationProperties.SetName(ProtocolCard_Rdp, _localizer["ServerDialogProtocolRdpName"]);
+        System.Windows.Automation.AutomationProperties.SetName(ProtocolCard_Ssh, _localizer["ServerDialogProtocolSshName"]);
+        System.Windows.Automation.AutomationProperties.SetName(ProtocolCard_Sftp, _localizer["ServerDialogProtocolSftpName"]);
+        System.Windows.Automation.AutomationProperties.SetName(ProtocolCard_Vnc, _localizer["ServerDialogProtocolVncName"]);
+        System.Windows.Automation.AutomationProperties.SetName(ProtocolCard_Telnet, _localizer["ServerDialogProtocolTelnetName"]);
+        System.Windows.Automation.AutomationProperties.SetName(ProtocolCard_Ftp, _localizer["ServerDialogProtocolFtpName"]);
+        System.Windows.Automation.AutomationProperties.SetName(ProtocolCard_Citrix, _localizer["ServerDialogProtocolCitrixName"]);
+        System.Windows.Automation.AutomationProperties.SetName(ProtocolCard_Local, _localizer["ServerDialogProtocolLocalName"]);
 
         // Accessibility: automation names for PasswordBox controls
         System.Windows.Automation.AutomationProperties.SetName(RdpPasswordBox, _localizer["ServerDialogLabelPassword"]);

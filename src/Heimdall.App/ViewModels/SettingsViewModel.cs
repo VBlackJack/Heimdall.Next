@@ -53,6 +53,8 @@ public partial class SettingsViewModel : ObservableObject
     private readonly LocalizationManager _localizer;
     private readonly IDialogService _dialogService;
 
+    private string _originalTheme = "";
+
     // --- General ---
 
     [ObservableProperty]
@@ -299,6 +301,7 @@ public partial class SettingsViewModel : ObservableObject
         // General
         DefaultLocale = settings.DefaultLocale;
         DefaultTheme = settings.DefaultTheme;
+        _originalTheme = settings.DefaultTheme;
         MaxEmbeddedSessions = settings.MaxEmbeddedSessions;
         PreventSleepDuringSession = settings.PreventSleepDuringSession;
         ExternalEditorPath = settings.ExternalEditorPath;
@@ -450,6 +453,7 @@ public partial class SettingsViewModel : ObservableObject
         }).ToList();
 
         await _configManager.SaveSettingsAsync(settings);
+        _originalTheme = DefaultTheme;
 
         if (!string.Equals(_localizer.CurrentLocale, DefaultLocale, StringComparison.OrdinalIgnoreCase))
         {
@@ -970,6 +974,13 @@ public partial class SettingsViewModel : ObservableObject
     partial void OnDefaultThemeChanged(string value)
     {
         ThemeChanged?.Invoke(value);
+    }
+
+    public async Task DiscardChangesAsync()
+    {
+        DefaultTheme = _originalTheme;
+        var settings = await _configManager.LoadSettingsAsync();
+        LoadFromSettings(settings);
     }
 
     protected override void OnPropertyChanged(System.ComponentModel.PropertyChangedEventArgs e)

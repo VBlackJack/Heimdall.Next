@@ -76,4 +76,12 @@
         <Setter Property="FontSize" Value="{StaticResource FontSizeBody}"/>
     </Style>
 
+    <!-- Inline field validation error (shown below invalid fields) -->
+    <Style x:Key="FieldValidationErrorStyle" TargetType="TextBlock">
+        <Setter Property="Foreground" Value="{DynamicResource ErrorTextBrush}"/>
+        <Setter Property="FontSize" Value="{StaticResource FontSizeCaption}"/>
+        <Setter Property="Margin" Value="0,2,0,0"/>
+        <Setter Property="TextWrapping" Value="Wrap"/>
+    </Style>
+
 </ResourceDictionary>

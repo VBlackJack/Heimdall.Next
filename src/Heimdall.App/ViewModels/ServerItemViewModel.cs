@@ -70,11 +70,29 @@ public partial class ServerItemViewModel : ObservableObject
     [ObservableProperty]
     private string _macAddress = "";
 
+    /// <summary>
+    /// Formatted endpoint string: "host:port" or just "host" when no port is available.
+    /// </summary>
+    public string Endpoint => RemotePort > 0
+        ? $"{RemoteServer}:{RemotePort}"
+        : RemoteServer;
+
+    public bool IsActiveSession =>
+        !string.IsNullOrEmpty(ConnectionState)
+        && !string.Equals(ConnectionState, "Disconnected", StringComparison.OrdinalIgnoreCase);
+
     public string ConnectionTypeBadge => ConnectionType.ToUpperInvariant() switch
     {
-        "SSH" => "S",
-        "SFTP" => "F",
-        _ => "R"
+        "RDP" => "RDP",
+        "SSH" => "SSH",
+        "SFTP" => "SFTP",
+        "FTP" => "FTP",
+        "VNC" => "VNC",
+        "TELNET" => "TEL",
+        "CITRIX" => "CTX",
+        "LOCAL" => "SH",
+        _ when ConnectionType.StartsWith("TOOL:", StringComparison.OrdinalIgnoreCase) => "TOOL",
+        _ => ConnectionType.ToUpperInvariant()
     };
 
     /// <summary>
@@ -129,6 +147,15 @@ public partial class ServerItemViewModel : ObservableObject
     {
         OnPropertyChanged(nameof(ConnectionTypeBadge));
     }
+
+    partial void OnRemoteServerChanged(string value)
+        => OnPropertyChanged(nameof(Endpoint));
+
+    partial void OnRemotePortChanged(int value)
+        => OnPropertyChanged(nameof(Endpoint));
+
+    partial void OnConnectionStateChanged(string value)
+        => OnPropertyChanged(nameof(IsActiveSession));
 
     private static string GetUsername(ServerProfileDto dto)
     {

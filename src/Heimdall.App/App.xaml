@@ -17,8 +17,9 @@
             <converters:ConnectionTypeToBrushConverter x:Key="ConnectionTypeToBrushConverter"/>
             <converters:ConnectionStateToBrushConverter x:Key="ConnectionStateToBrushConverter"/>
             <converters:NullToVisibilityConverter x:Key="NullToVisibilityConverter"/>
+            <converters:PaletteActiveIndicatorConverter x:Key="PaletteActiveIndicatorConverter"/>
             <converters:ServerStatusToColorConverter x:Key="ServerStatusToColorConverter"/>
-<converters:ConnectionTypeToGeometryConverter x:Key="TypeToGeoConverter"/>
+            <converters:ConnectionTypeToGeometryConverter x:Key="TypeToGeoConverter"/>
             <converters:ConnectionTypeToColorConverter x:Key="TypeToColorConverter"/>
             <converters:ConnectionStateToGeometryConverter x:Key="StateToGeoConverter"/>
 
