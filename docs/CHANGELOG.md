@@ -12,6 +12,58 @@
 
 All notable changes to Heimdall.Next are documented in this file.
 
+## [v2026.032506] - 2026-03-25
+
+### UX audit phase 2: validation, palette redesign, protocol-driven add server
+
+#### Server Dialog — Protocol-Driven Flow
+- **Protocol selector**: New Step 1 with 8 large card buttons (vector icons + protocol colors) replaces the connection type dropdown in add mode
+- **Contextual fields**: Form fields adapt to selected protocol — Local Shell shows only name, SSH shows host+port, etc.
+- **Edit mode**: Read-only protocol badge, form pre-populated, protocol selector bypassed
+- **Back button**: Returns to protocol selector in add mode without losing form data
+
+#### Server Dialog — Inline Validation
+- **Per-field errors**: Inline error messages below DisplayName, Server, Port, LocalPort, AudioMode, ColorDepth
+- **Live re-validation**: Errors clear in real-time as user corrects fields (ValidateProperty per keystroke)
+- **Tab error badges**: Red count badges on Tunneling and Options tabs when they contain errors
+- **Auto-focus**: First invalid field receives focus on save, with automatic tab/advanced mode expansion
+- **Protocol-aware validation**: Only relevant fields validated per protocol; HasErrors stays consistent via ClearErrors per-protocol cleanup
+- **VNC port validation**: Added [Range] validation with i18n support
+- **Reusable style**: FieldValidationErrorStyle in DialogCommonStyles.xaml
+
+#### Command Palette (Ctrl+K) — Redesign
+- **Two-line layout**: Line 1: protocol icon + name + badge; Line 2: host:port + username + project + group
+- **Responsive width**: 550-700px (MinWidth/MaxWidth) instead of fixed 550px, MaxHeight 450px
+- **Active session indicator**: Protocol-colored left rail on connected sessions
+- **Protocol badge**: Short labels (RDP, SSH, TEL, CTX, SH, TOOL) with per-protocol colors
+- **Correct endpoint per protocol**: SSH/SFTP use SshPort, FTP uses FtpPort, VNC uses VncPort, Telnet uses TelnetPort
+- **FTP/Telnet usernames**: Palette now shows credentials for all protocols, not just SSH/RDP
+
+#### Settings
+- **Unsaved changes indicator**: Orange dot on Settings tab when IsDirty, with localized tooltip
+- **Theme revert on discard**: Live theme preview reverts to saved theme when user discards changes
+- **Locale key fix**: Unsaved settings prompt now uses correct i18n keys
+
+#### Bug Fixes
+- **ServerDialog crash**: Fixed LayoutTransform storyboard using `FrameworkElement` instead of `UIElement` (runtime BAML error)
+- **Scrollbar inversion**: Added `IsDirectionReversed="True"` to vertical Track in custom ScrollBar template
+- **Telnet port loss on edit**: Telnet connections now load TelnetPort (not RemotePort) and skip default port reset in edit mode
+- **Focus persistence**: FocusFirstInvalidField no longer permanently changes user's advanced-mode preference
+- **Application.Current null check**: PaletteActiveIndicatorConverter safe during shutdown
+
+#### Detail Panel
+- **Edit/Delete buttons**: Added to server detail panel alongside Connect for better discoverability
+- **Accessibility**: AutomationProperties.Name on all new interactive controls
+
+#### Empty State
+- **"No selection" enriched**: Segoe MDL2 icon + hint text + Ctrl+K quick connect tip when servers exist but none is selected
+
+#### i18n
+- 51+ new keys with full EN/FR parity (validation, protocol cards, hints, palette)
+- 3,478+ keys per locale
+
+---
+
 ## [v2026.032507] - 2026-03-25
 
 ### Complete UX audit implementation (19/20 items from triple-audit: Claude, Codex, Gemini)
