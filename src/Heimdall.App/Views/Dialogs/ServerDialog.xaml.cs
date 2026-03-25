@@ -189,6 +189,9 @@ public partial class ServerDialog : Window
 
         System.Windows.UIElement? target = null;
 
+        // Temporarily suppress advanced-mode persistence during focus management
+        vm.PropertyChanged -= OnViewModelPropertyChanged;
+
         switch (vm.FirstInvalidField)
         {
             case nameof(ServerDialogViewModel.DisplayName):
@@ -201,7 +204,6 @@ public partial class ServerDialog : Window
                 target = DlgSrv_EndpointPortBox;
                 break;
             case nameof(ServerDialogViewModel.LocalPort):
-                // Ensure advanced mode is expanded and Tunneling tab is visible
                 vm.IsAdvancedMode = true;
                 MainTabControl.SelectedItem = DlgSrv_TabTunneling;
                 target = DlgSrv_LocalPortBox;
@@ -217,6 +219,8 @@ public partial class ServerDialog : Window
                 target = DlgSrv_RdpColorDepthCombo;
                 break;
         }
+
+        vm.PropertyChanged += OnViewModelPropertyChanged;
 
         if (target is not null)
         {

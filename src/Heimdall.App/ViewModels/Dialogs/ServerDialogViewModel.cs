@@ -242,6 +242,8 @@ public partial class ServerDialogViewModel : ObservableValidator
     // --- VNC settings ---
 
     [ObservableProperty]
+    [NotifyDataErrorInfo]
+    [Range(1, 65535, ErrorMessage = "VNC port must be between 1 and 65535.")]
     private int _vncPort = 5900;
 
     [ObservableProperty]
@@ -566,6 +568,12 @@ public partial class ServerDialogViewModel : ObservableValidator
     {
         ValidateAllProperties();
 
+        // Clear annotation errors for fields not relevant to this protocol
+        if (!RequiresNetworkEndpoint)
+        {
+            ClearErrors(nameof(RemoteServer));
+        }
+
         // Per-field inline errors (localized, ConnectionType-aware)
         DisplayNameError = GetLocalizedFieldError(nameof(DisplayName));
         RemoteServerError = RequiresNetworkEndpoint ? GetLocalizedFieldError(nameof(RemoteServer)) : null;
@@ -844,11 +852,13 @@ public partial class ServerDialogViewModel : ObservableValidator
 
     partial void OnSelectedGatewayIdChanged(string value)
     {
+        if (LocalPortError is not null) { LocalPortError = null; RefreshValidationSummary(); }
         RaiseDerivedStateChanged();
     }
 
     partial void OnDirectConnectionChanged(bool value)
     {
+        if (LocalPortError is not null) { LocalPortError = null; RefreshValidationSummary(); }
         RaiseDerivedStateChanged();
     }
 
@@ -937,12 +947,14 @@ public partial class ServerDialogViewModel : ObservableValidator
         ["Audio mode must be 0 (disabled), 1 (local), or 2 (remote)."] = "ValidationAudioMode",
         ["Color depth must be between 8 and 32."] = "ValidationColorDepth",
         ["FTP port must be between 1 and 65535."] = "ValidationFtpPortRange",
+        ["VNC port must be between 1 and 65535."] = "ValidationVncPortRange",
     };
 
     private string? GetEndpointPortError()
     {
         if (IsRdpConnection || IsTelnetConnection) return GetLocalizedFieldError(nameof(RemotePort));
         if (IsFtpConnection) return GetLocalizedFieldError(nameof(FtpPort));
+        if (IsVncConnection) return GetLocalizedFieldError(nameof(VncPort));
         if (IsSshFamilyConnection) return GetLocalizedFieldError(nameof(SshPort));
         return null;
     }

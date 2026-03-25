@@ -68,7 +68,7 @@ public sealed class PaletteActiveIndicatorConverter : IMultiValueConverter
                 _ => "BorderBrush"
             };
 
-        return Application.Current.TryFindResource(resourceKey) as Brush
+        return Application.Current?.TryFindResource(resourceKey) as Brush
             ?? Brushes.Transparent;
     }
 }
