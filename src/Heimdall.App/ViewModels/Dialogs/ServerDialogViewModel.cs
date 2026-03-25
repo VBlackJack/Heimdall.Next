@@ -102,6 +102,7 @@ public partial class ServerDialogViewModel : ObservableValidator
     [RelayCommand]
     private void BackToProtocolSelector()
     {
+        ClearValidationState();
         IsProtocolSelected = false;
     }
 
@@ -537,6 +538,21 @@ public partial class ServerDialogViewModel : ObservableValidator
     /// Triggers full validation of all annotated properties.
     /// Populates per-field errors, tab error counts, and first invalid field for focus.
     /// </summary>
+    private void ClearValidationState()
+    {
+        ClearErrors();
+        DisplayNameError = null;
+        RemoteServerError = null;
+        EndpointPortError = null;
+        LocalPortError = null;
+        AudioModeError = null;
+        ColorDepthError = null;
+        TunnelingTabErrorCount = 0;
+        OptionsTabErrorCount = 0;
+        FirstInvalidField = null;
+        ValidationError = null;
+    }
+
     [RelayCommand]
     private void Validate()
     {
@@ -761,6 +777,7 @@ public partial class ServerDialogViewModel : ObservableValidator
 
     partial void OnConnectionTypeChanged(string value)
     {
+        ClearValidationState();
         EndpointPort = GetDefaultEndpointPort(value);
 
         if (UseAutomaticTunnelPort)

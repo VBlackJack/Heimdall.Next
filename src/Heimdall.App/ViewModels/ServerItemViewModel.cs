@@ -70,12 +70,8 @@ public partial class ServerItemViewModel : ObservableObject
     [ObservableProperty]
     private string _macAddress = "";
 
-    /// <summary>
-    /// Formatted endpoint string: "host:port" or just "host" when no port is available.
-    /// </summary>
-    public string Endpoint => RemotePort > 0
-        ? $"{RemoteServer}:{RemotePort}"
-        : RemoteServer;
+    [ObservableProperty]
+    private string _endpoint = "";
 
     public bool IsActiveSession =>
         !string.IsNullOrEmpty(ConnectionState)
@@ -117,6 +113,7 @@ public partial class ServerItemViewModel : ObservableObject
             ProjectName = project?.Name ?? "",
             ProjectColor = project?.Color ?? "",
             Username = GetUsername(dto),
+            Endpoint = FormatEndpoint(dto),
             IsFavorite = dto.IsFavorite,
             SortOrder = dto.SortOrder,
             MacAddress = dto.MacAddress ?? "",
@@ -138,6 +135,7 @@ public partial class ServerItemViewModel : ObservableObject
         ProjectName = project?.Name ?? "";
         ProjectColor = project?.Color ?? "";
         Username = GetUsername(dto);
+        Endpoint = FormatEndpoint(dto);
         IsFavorite = dto.IsFavorite;
         SortOrder = dto.SortOrder;
         MacAddress = dto.MacAddress ?? "";
@@ -148,22 +146,36 @@ public partial class ServerItemViewModel : ObservableObject
         OnPropertyChanged(nameof(ConnectionTypeBadge));
     }
 
-    partial void OnRemoteServerChanged(string value)
-        => OnPropertyChanged(nameof(Endpoint));
-
-    partial void OnRemotePortChanged(int value)
-        => OnPropertyChanged(nameof(Endpoint));
 
     partial void OnConnectionStateChanged(string value)
         => OnPropertyChanged(nameof(IsActiveSession));
 
-    private static string GetUsername(ServerProfileDto dto)
+    private static string FormatEndpoint(ServerProfileDto dto)
     {
-        if (!string.IsNullOrWhiteSpace(dto.SshUsername))
+        var type = dto.ConnectionType?.ToUpperInvariant();
+        if (type is "LOCAL" or "CITRIX")
         {
-            return dto.SshUsername;
+            return "";
         }
 
-        return dto.RdpUsername ?? "";
+        var host = dto.RemoteServer;
+        var port = type switch
+        {
+            "SSH" or "SFTP" => dto.SshPort,
+            "FTP" => dto.FtpPort,
+            "VNC" => dto.VncPort,
+            _ => dto.RemotePort
+        };
+
+        return port > 0 ? $"{host}:{port}" : host;
+    }
+
+    private static string GetUsername(ServerProfileDto dto)
+    {
+        if (!string.IsNullOrWhiteSpace(dto.SshUsername)) return dto.SshUsername;
+        if (!string.IsNullOrWhiteSpace(dto.RdpUsername)) return dto.RdpUsername;
+        if (!string.IsNullOrWhiteSpace(dto.FtpUsername)) return dto.FtpUsername;
+        if (!string.IsNullOrWhiteSpace(dto.TelnetUsername)) return dto.TelnetUsername;
+        return "";
     }
 }

@@ -134,6 +134,12 @@ public partial class ServerDialog : Window
             return;
         }
 
+        // Block save while still on the protocol selection step
+        if (!vm.ShowFormFields)
+        {
+            return;
+        }
+
         // Recompose performance flags bitmask from individual checkboxes (TS_PERF_* constants)
         var flags = 0;
         if (DlgSrv_PerfDisableWallpaperCb.IsChecked == true) flags |= 0x01;
