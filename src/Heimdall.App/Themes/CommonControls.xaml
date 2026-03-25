@@ -484,7 +484,7 @@
                                                HorizontalAlignment="Center"
                                                VerticalAlignment="Center"/>
                                 </RepeatButton>
-                                <Track x:Name="PART_Track" Grid.Row="1">
+                                <Track x:Name="PART_Track" Grid.Row="1" IsDirectionReversed="True">
                                     <Track.DecreaseRepeatButton>
                                         <RepeatButton Style="{StaticResource ScrollBarPageButtonStyle}"
                                                       Command="ScrollBar.PageUpCommand"/>
