@@ -243,14 +243,14 @@
                                        Visibility="Collapsed"/>
                         </DockPanel>
 
-                        <!-- TOOLS: Expandable panel (above toggle, visible by default) -->
+                        <!-- TOOLS: Expandable panel (above toggle, collapsed by default) -->
                         <Border x:Name="ToolsQuickPanel" DockPanel.Dock="Bottom"
                                 Background="{DynamicResource SurfaceBrush}"
                                 BorderBrush="{DynamicResource BorderBrush}"
                                 BorderThickness="0,1,0,0"
                                 MaxHeight="300"
                                 Style="{StaticResource FadeInPanelStyle}"
-                                Visibility="Visible">
+                                Visibility="Collapsed">
                             <Grid>
                                 <ScrollViewer x:Name="ToolsPanelScroll"
                                               VerticalScrollBarVisibility="Auto" Padding="4,4,4,4"
@@ -281,7 +281,7 @@
                                     AutomationProperties.Name="">
                                 <DockPanel>
                                     <TextBlock x:Name="ToolsToggleChevron" DockPanel.Dock="Right"
-                                               Text="&#xE70D;" FontFamily="Segoe MDL2 Assets"
+                                               Text="&#xE70E;" FontFamily="Segoe MDL2 Assets"
                                                FontSize="{StaticResource FontSizeCaption}"
                                                Foreground="{DynamicResource TextSecondaryBrush}"
                                                VerticalAlignment="Center" Margin="0,0,2,0"/>
@@ -736,6 +736,11 @@
                                             Style="{DynamicResource SecondaryButtonStyle}"
                                             Padding="16,8" FontSize="{StaticResource FontSizeBodyLarge}"
                                             Margin="12,0,0,0"/>
+                                    <Button x:Name="Mw_EmptyBtnExploreTools" Content=""
+                                            Style="{DynamicResource SecondaryButtonStyle}"
+                                            Padding="16,8" FontSize="{StaticResource FontSizeBodyLarge}"
+                                            Margin="12,0,0,0"
+                                            Click="OnEmptyExploreToolsClick"/>
                                 </StackPanel>
                             </StackPanel>
 
@@ -912,139 +917,86 @@
             </Grid>
 
             <!-- ============================================================ -->
-            <!-- TUNNELS TAB: Visual tunnel editor + Gateway management        -->
+            <!-- TUNNELS TAB: Active tunnel list                              -->
             <!-- ============================================================ -->
-            <Grid Visibility="{Binding IsTunnelsTabSelected, Converter={StaticResource BoolToVisibilityConverter}}">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="*"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                </Grid.RowDefinitions>
-
-                <!-- Active Tunnels -->
-                <DockPanel Grid.Row="0">
-                    <DockPanel DockPanel.Dock="Top" Margin="16,12,16,8">
-                        <TextBlock x:Name="Mw_TunnelsTitle" Text="" FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
-                                   Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                            <Button x:Name="Mw_TunnelsCloseSelectedBtn" Content=""
-                                    Command="{Binding CloseTunnelCommand}"
-                                    CommandParameter="{Binding SelectedTunnel}"
-                                    Style="{DynamicResource SecondaryButtonStyle}"
-                                    Padding="8,3" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,4,0"/>
-                            <Button x:Name="Mw_TunnelsCloseAllBtn" Content=""
-                                    Command="{Binding CloseAllTunnelsCommand}"
-                                    Style="{DynamicResource SecondaryButtonStyle}"
-                                    Foreground="{DynamicResource ErrorTextBrush}"
-                                    Padding="8,3" FontSize="{StaticResource FontSizeCaption}"/>
-                        </StackPanel>
-                    </DockPanel>
-
-                    <Grid>
-                        <!-- Tunnel DataGrid -->
-                        <DataGrid ItemsSource="{Binding TunnelList}"
-                                  SelectedItem="{Binding SelectedTunnel}"
-                                  AutoGenerateColumns="False"
-                                  IsReadOnly="True"
-                                  SelectionMode="Single"
-                                  Margin="16,0,16,8"
-                                  Style="{DynamicResource ThemedDataGridStyle}"
-                                  ColumnHeaderStyle="{DynamicResource ThemedDataGridColumnHeaderStyle}"
-                                  CellStyle="{DynamicResource ThemedDataGridCellStyle}"
-                                  RowStyle="{DynamicResource ThemedDataGridRowStyle}">
-                            <DataGrid.Columns>
-                                <DataGridTemplateColumn Header="" Width="28">
-                                    <DataGridTemplateColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <Ellipse Width="8" Height="8"
-                                                     HorizontalAlignment="Center"
-                                                     VerticalAlignment="Center">
-                                                <Ellipse.Style>
-                                                    <Style TargetType="Ellipse">
-                                                        <Setter Property="Fill" Value="{DynamicResource SuccessBrush}"/>
-                                                        <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding IsAlive}" Value="False">
-                                                                <Setter Property="Fill" Value="{DynamicResource ErrorBrush}"/>
-                                                            </DataTrigger>
-                                                        </Style.Triggers>
-                                                    </Style>
-                                                </Ellipse.Style>
-                                            </Ellipse>
-                                        </DataTemplate>
-                                    </DataGridTemplateColumn.CellTemplate>
-                                </DataGridTemplateColumn>
-                                <DataGridTextColumn x:Name="Mw_TunnelsColGateway" Header="" Binding="{Binding ServerName}" Width="*"/>
-                                <DataGridTextColumn x:Name="Mw_TunnelsColLocalPort" Header="" Binding="{Binding LocalPort}" Width="90"/>
-                                <DataGridTextColumn x:Name="Mw_TunnelsColRemoteHost" Header="" Binding="{Binding RemoteHost}" Width="*"/>
-                                <DataGridTextColumn x:Name="Mw_TunnelsColRemotePort" Header="" Binding="{Binding RemotePort}" Width="90"/>
-                                <DataGridTextColumn x:Name="Mw_TunnelsColStarted" Header="" Binding="{Binding StartedAt, StringFormat=HH:mm:ss}" Width="80"/>
-                            </DataGrid.Columns>
-                        </DataGrid>
-
-                        <!-- Empty state -->
-                        <TextBlock x:Name="Mw_TunnelsEmpty" Text=""
-                                   FontSize="{StaticResource FontSizeBodyLarge}"
-                                   Foreground="{DynamicResource TextSecondaryBrush}"
-                                   HorizontalAlignment="Center"
-                                   VerticalAlignment="Center"
-                                   Visibility="{Binding HasNoTunnels, Converter={StaticResource BoolToVisibilityConverter}}"/>
-                    </Grid>
+            <DockPanel Visibility="{Binding IsTunnelsTabSelected, Converter={StaticResource BoolToVisibilityConverter}}">
+                <DockPanel DockPanel.Dock="Top" Margin="16,12,16,8">
+                    <TextBlock x:Name="Mw_TunnelsTitle" Text="" FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button x:Name="Mw_TunnelsCloseSelectedBtn" Content=""
+                                Command="{Binding CloseTunnelCommand}"
+                                CommandParameter="{Binding SelectedTunnel}"
+                                Style="{DynamicResource SecondaryButtonStyle}"
+                                Padding="8,3" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,4,0"/>
+                        <Button x:Name="Mw_TunnelsCloseAllBtn" Content=""
+                                Command="{Binding CloseAllTunnelsCommand}"
+                                Style="{DynamicResource SecondaryButtonStyle}"
+                                Foreground="{DynamicResource ErrorTextBrush}"
+                                Padding="8,3" FontSize="{StaticResource FontSizeCaption}"/>
+                    </StackPanel>
                 </DockPanel>
 
-                <!-- Separator -->
-                <Border Grid.Row="1" Height="1" Background="{DynamicResource BorderBrush}" Margin="16,4"/>
+                <!-- Manage gateways link -->
+                <Button x:Name="Mw_TunnelsManageGatewaysLink" DockPanel.Dock="Bottom"
+                        Content=""
+                        Style="{DynamicResource ToolbarGhostButtonStyle}"
+                        FontSize="{StaticResource FontSizeCaption}"
+                        Foreground="{DynamicResource AccentBrush}"
+                        HorizontalAlignment="Center"
+                        Margin="0,8,0,8"
+                        Click="OnNavigateToGatewaySettings"/>
 
-                <!-- SSH Gateways -->
-                <DockPanel Grid.Row="2" MinHeight="180" MaxHeight="300">
-                    <DockPanel DockPanel.Dock="Top" Margin="16,4,16,8">
-                        <TextBlock x:Name="Mw_GatewaysTitle" Text="" FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
-                                   Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                            <Button x:Name="Mw_GatewaysAddBtn" Content="" Command="{Binding Settings.AddGatewayCommand}"
-                                    Style="{DynamicResource PrimaryButtonStyle}" Padding="8,3" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,4,0"/>
-                            <Button x:Name="Mw_GatewaysEditBtn" Content="" Command="{Binding Settings.EditGatewayCommand}"
-                                    Style="{DynamicResource SecondaryButtonStyle}" Padding="8,3" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,4,0"/>
-                            <Button x:Name="Mw_GatewaysDeleteBtn" Content="" Command="{Binding Settings.DeleteGatewayCommand}"
-                                    Style="{DynamicResource SecondaryButtonStyle}" Padding="8,3" FontSize="{StaticResource FontSizeCaption}"/>
-                        </StackPanel>
-                    </DockPanel>
-
-                    <DataGrid ItemsSource="{Binding Settings.Gateways}"
-                              SelectedItem="{Binding Settings.SelectedGateway}"
+                <Grid>
+                    <!-- Tunnel DataGrid -->
+                    <DataGrid ItemsSource="{Binding TunnelList}"
+                              SelectedItem="{Binding SelectedTunnel}"
                               AutoGenerateColumns="False"
                               IsReadOnly="True"
                               SelectionMode="Single"
-                              Margin="16,0,16,12"
+                              Margin="16,0,16,8"
                               Style="{DynamicResource ThemedDataGridStyle}"
                               ColumnHeaderStyle="{DynamicResource ThemedDataGridColumnHeaderStyle}"
                               CellStyle="{DynamicResource ThemedDataGridCellStyle}"
                               RowStyle="{DynamicResource ThemedDataGridRowStyle}">
                         <DataGrid.Columns>
-                            <DataGridTextColumn x:Name="Mw_GatewaysColName" Header="" Binding="{Binding Name}" Width="*"/>
-                            <DataGridTextColumn x:Name="Mw_GatewaysColHost" Header="" Binding="{Binding Host}" Width="*"/>
-                            <DataGridTextColumn x:Name="Mw_GatewaysColPort" Header="" Binding="{Binding Port}" Width="60"/>
-                            <DataGridTextColumn x:Name="Mw_GatewaysColUser" Header="" Binding="{Binding User}" Width="120"/>
-                            <DataGridTemplateColumn x:Name="Mw_GatewaysColAuth" Header="" Width="80">
+                            <DataGridTemplateColumn Header="" Width="28">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
-                                        <StackPanel Orientation="Horizontal">
-                                            <TextBlock Text="&#xE8D7;" FontFamily="Segoe MDL2 Assets"
-                                                       FontSize="{StaticResource FontSizeCaption}"
-                                                       Foreground="{DynamicResource SshBadgeBrush}"
-                                                       Visibility="{Binding HasKey, Converter={StaticResource BoolToVisibilityConverter}}"
-                                                       Margin="0,0,4,0"/>
-                                            <TextBlock Text="&#xE8AC;" FontFamily="Segoe MDL2 Assets"
-                                                       FontSize="{StaticResource FontSizeCaption}"
-                                                       Foreground="{DynamicResource WarningTextBrush}"
-                                                       Visibility="{Binding HasPassword, Converter={StaticResource BoolToVisibilityConverter}}"/>
-                                        </StackPanel>
+                                        <Ellipse Width="8" Height="8"
+                                                 HorizontalAlignment="Center"
+                                                 VerticalAlignment="Center">
+                                            <Ellipse.Style>
+                                                <Style TargetType="Ellipse">
+                                                    <Setter Property="Fill" Value="{DynamicResource SuccessBrush}"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsAlive}" Value="False">
+                                                            <Setter Property="Fill" Value="{DynamicResource ErrorBrush}"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Ellipse.Style>
+                                        </Ellipse>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
+                            <DataGridTextColumn x:Name="Mw_TunnelsColGateway" Header="" Binding="{Binding ServerName}" Width="*"/>
+                            <DataGridTextColumn x:Name="Mw_TunnelsColLocalPort" Header="" Binding="{Binding LocalPort}" Width="90"/>
+                            <DataGridTextColumn x:Name="Mw_TunnelsColRemoteHost" Header="" Binding="{Binding RemoteHost}" Width="*"/>
+                            <DataGridTextColumn x:Name="Mw_TunnelsColRemotePort" Header="" Binding="{Binding RemotePort}" Width="90"/>
+                            <DataGridTextColumn x:Name="Mw_TunnelsColStarted" Header="" Binding="{Binding StartedAt, StringFormat=HH:mm:ss}" Width="80"/>
                         </DataGrid.Columns>
                     </DataGrid>
-                </DockPanel>
-            </Grid>
+
+                    <!-- Empty state -->
+                    <TextBlock x:Name="Mw_TunnelsEmpty" Text=""
+                               FontSize="{StaticResource FontSizeBodyLarge}"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center"
+                               Visibility="{Binding HasNoTunnels, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                </Grid>
+            </DockPanel>
 
             <!-- ============================================================ -->
             <!-- SCHEDULED TAB: Scheduled connection management               -->
@@ -1122,7 +1074,7 @@
                             Style="{DynamicResource SecondaryButtonStyle}" Width="160" Margin="0,0,8,4"/>
                 </WrapPanel>
 
-                <TabControl TabStripPlacement="Top" Margin="16,8,16,0"
+                <TabControl x:Name="Mw_SettingsSubTabControl" TabStripPlacement="Top" Margin="16,8,16,0"
                             Background="Transparent" BorderThickness="0">
 
                     <!-- ═══════ GENERAL ═══════ -->
@@ -1159,7 +1111,14 @@
                                         <CheckBox x:Name="Mw_SettingsPreventSleep" Content="" IsChecked="{Binding Settings.PreventSleepDuringSession}" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,12,0,0"/>
                                         <StackPanel Margin="0,12,0,0">
                                             <TextBlock x:Name="Mw_SettingsEditorPathLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,0,4"/>
-                                            <TextBox Text="{Binding Settings.ExternalEditorPath}"/>
+                                            <DockPanel>
+                                                <Button x:Name="Mw_SettingsBrowseEditorPath" DockPanel.Dock="Right" Content="..."
+                                                        Padding="6,2" Margin="4,0,0,0" Click="OnBrowseEditorPathClick"
+                                                        Style="{DynamicResource SecondaryButtonStyle}"
+                                                        FontSize="{StaticResource FontSizeCaption}"
+                                                        AutomationProperties.Name=""/>
+                                                <TextBox Text="{Binding Settings.ExternalEditorPath}"/>
+                                            </DockPanel>
                                         </StackPanel>
                                     </StackPanel>
                                 </Border>
@@ -1186,7 +1145,10 @@
                                             </StackPanel>
                                             <StackPanel Grid.Column="1" Margin="8,0,0,0">
                                                 <TextBlock x:Name="Mw_SettingsTerminalFontSizeLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,0,4"/>
-                                                <TextBox Text="{Binding Settings.TerminalFontSize}" Width="80" HorizontalAlignment="Left"/>
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBox Text="{Binding Settings.TerminalFontSize}" Width="80"/>
+                                                    <TextBlock Text="px" VerticalAlignment="Center" Margin="6,0,0,0" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Opacity="0.6" IsHitTestVisible="False"/>
+                                                </StackPanel>
                                             </StackPanel>
                                         </Grid>
                                         <StackPanel Margin="0,12,0,0">
@@ -1224,7 +1186,14 @@
                                     <StackPanel>
                                         <TextBlock x:Name="Mw_SettingsSshTitle" Text="" FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,12"/>
                                         <TextBlock x:Name="Mw_SettingsPlinkPathLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,0,4"/>
-                                        <TextBox Text="{Binding Settings.PlinkPath}"/>
+                                        <DockPanel>
+                                            <Button x:Name="Mw_SettingsBrowsePlinkPath" DockPanel.Dock="Right" Content="..."
+                                                    Padding="6,2" Margin="4,0,0,0" Click="OnBrowsePlinkPathClick"
+                                                    Style="{DynamicResource SecondaryButtonStyle}"
+                                                    FontSize="{StaticResource FontSizeCaption}"
+                                                    AutomationProperties.Name=""/>
+                                            <TextBox Text="{Binding Settings.PlinkPath}"/>
+                                        </DockPanel>
                                         <StackPanel Margin="0,12,0,0">
                                             <TextBlock x:Name="Mw_SettingsSshModeLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,0,4"/>
                                             <StackPanel Orientation="Horizontal">
@@ -1247,17 +1216,30 @@
                                             </Grid.ColumnDefinitions>
                                             <StackPanel Grid.Column="0" Margin="0,0,8,0">
                                                 <TextBlock x:Name="Mw_SettingsAntiIdleLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,0,4"/>
-                                                <TextBox Text="{Binding Settings.AntiIdleInterval}" Width="100" HorizontalAlignment="Left"/>
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBox Text="{Binding Settings.AntiIdleInterval}" Width="100"/>
+                                                    <TextBlock Text="s" VerticalAlignment="Center" Margin="6,0,0,0" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Opacity="0.6" IsHitTestVisible="False"/>
+                                                </StackPanel>
                                             </StackPanel>
                                             <StackPanel Grid.Column="1" Margin="8,0,0,0">
                                                 <TextBlock x:Name="Mw_SettingsSshTmoutLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,0,4"/>
-                                                <TextBox Text="{Binding Settings.SshTmoutResetInterval}" Width="100" HorizontalAlignment="Left"/>
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBox Text="{Binding Settings.SshTmoutResetInterval}" Width="100"/>
+                                                    <TextBlock Text="s" VerticalAlignment="Center" Margin="6,0,0,0" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Opacity="0.6" IsHitTestVisible="False"/>
+                                                </StackPanel>
                                             </StackPanel>
                                         </Grid>
                                         <CheckBox x:Name="Mw_SettingsAutoOpenSftp" Content="" IsChecked="{Binding Settings.SftpAutoOpenOnSsh}" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,12,0,0"/>
                                         <StackPanel Margin="0,12,0,0">
                                             <TextBlock x:Name="Mw_SettingsX11PathLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,0,4"/>
-                                            <TextBox Text="{Binding Settings.X11ServerPath}"/>
+                                            <DockPanel>
+                                                <Button x:Name="Mw_SettingsBrowseX11Path" DockPanel.Dock="Right" Content="..."
+                                                        Padding="6,2" Margin="4,0,0,0" Click="OnBrowseX11PathClick"
+                                                        Style="{DynamicResource SecondaryButtonStyle}"
+                                                        FontSize="{StaticResource FontSizeCaption}"
+                                                        AutomationProperties.Name=""/>
+                                                <TextBox Text="{Binding Settings.X11ServerPath}"/>
+                                            </DockPanel>
                                         </StackPanel>
                                         <CheckBox x:Name="Mw_SettingsX11AutoStart" Content="" IsChecked="{Binding Settings.X11AutoStart}" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,8,0,0"/>
                                     </StackPanel>
@@ -1322,11 +1304,17 @@
                                             </Grid.ColumnDefinitions>
                                             <StackPanel Grid.Column="0" Margin="0,0,8,0">
                                                 <TextBlock x:Name="Mw_SettingsRdpWidthLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,0,4"/>
-                                                <TextBox Text="{Binding Settings.DefaultResolutionWidth}" Width="100" HorizontalAlignment="Left"/>
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBox Text="{Binding Settings.DefaultResolutionWidth}" Width="100"/>
+                                                    <TextBlock Text="px" VerticalAlignment="Center" Margin="6,0,0,0" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Opacity="0.6" IsHitTestVisible="False"/>
+                                                </StackPanel>
                                             </StackPanel>
                                             <StackPanel Grid.Column="1" Margin="8,0,0,0">
                                                 <TextBlock x:Name="Mw_SettingsRdpHeightLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,0,4"/>
-                                                <TextBox Text="{Binding Settings.DefaultResolutionHeight}" Width="100" HorizontalAlignment="Left"/>
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBox Text="{Binding Settings.DefaultResolutionHeight}" Width="100"/>
+                                                    <TextBlock Text="px" VerticalAlignment="Center" Margin="6,0,0,0" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Opacity="0.6" IsHitTestVisible="False"/>
+                                                </StackPanel>
                                             </StackPanel>
                                         </Grid>
                                         <StackPanel Margin="0,8,0,0">
@@ -1396,7 +1384,14 @@
                                         <CheckBox x:Name="Mw_SettingsSessionLoggingEnabled" Content="" IsChecked="{Binding Settings.SessionLoggingEnabled}" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,8,0,0"/>
                                         <StackPanel Margin="0,12,0,0" IsEnabled="{Binding Settings.SessionLoggingEnabled}">
                                             <TextBlock x:Name="Mw_SettingsSessionLogDirLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,0,4"/>
-                                            <TextBox Text="{Binding Settings.SessionLogDirectory}"/>
+                                            <DockPanel>
+                                                <Button x:Name="Mw_SettingsBrowseSessionLogDir" DockPanel.Dock="Right" Content="..."
+                                                        Padding="6,2" Margin="4,0,0,0" Click="OnBrowseSessionLogDirClick"
+                                                        Style="{DynamicResource SecondaryButtonStyle}"
+                                                        FontSize="{StaticResource FontSizeCaption}"
+                                                        AutomationProperties.Name=""/>
+                                                <TextBox Text="{Binding Settings.SessionLogDirectory}"/>
+                                            </DockPanel>
                                         </StackPanel>
                                     </StackPanel>
                                 </Border>
@@ -1412,11 +1407,17 @@
                                             </Grid.ColumnDefinitions>
                                             <StackPanel Grid.Column="0" Margin="0,0,8,0">
                                                 <TextBlock x:Name="Mw_SettingsTunnelDelayLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,0,4"/>
-                                                <TextBox Text="{Binding Settings.TunnelEstablishmentDelayMs}" Width="100" HorizontalAlignment="Left"/>
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBox Text="{Binding Settings.TunnelEstablishmentDelayMs}" Width="100"/>
+                                                    <TextBlock Text="ms" VerticalAlignment="Center" Margin="6,0,0,0" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Opacity="0.6" IsHitTestVisible="False"/>
+                                                </StackPanel>
                                             </StackPanel>
                                             <StackPanel Grid.Column="1" Margin="8,0,0,0">
                                                 <TextBlock x:Name="Mw_SettingsRdpTimeoutLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,0,4"/>
-                                                <TextBox Text="{Binding Settings.EmbeddedRdpTimeoutMs}" Width="100" HorizontalAlignment="Left"/>
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBox Text="{Binding Settings.EmbeddedRdpTimeoutMs}" Width="100"/>
+                                                    <TextBlock Text="ms" VerticalAlignment="Center" Margin="6,0,0,0" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Opacity="0.6" IsHitTestVisible="False"/>
+                                                </StackPanel>
                                             </StackPanel>
                                         </Grid>
                                     </StackPanel>
