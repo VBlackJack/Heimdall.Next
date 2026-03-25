@@ -50,6 +50,8 @@ public partial class NotesToolView : UserControl, IToolView
     private bool _suppressSelectionChanged;
     private string? _currentNotePath;
     private string? _selectedTag;
+    private bool _sidebarVisible = true;
+    private GridLength _savedSidebarWidth = new(300);
 
     public NotesToolView()
     {
@@ -67,6 +69,7 @@ public partial class NotesToolView : UserControl, IToolView
         Editor.Options.ConvertTabsToSpaces = false;
         Editor.Options.HighlightCurrentLine = true;
         Editor.Options.EnableHyperlinks = false;
+        Editor.ContextMenu = BuildEditorContextMenu();
 
         try
         {
@@ -199,7 +202,33 @@ public partial class NotesToolView : UserControl, IToolView
 
     private void OnMilkdownReady()
     {
+        SendContextMenuLabels();
         SetStatus(L("ToolNotesStatusReady"));
+    }
+
+    private void SendContextMenuLabels()
+    {
+        var labels = new Dictionary<string, string>
+        {
+            ["bold"] = L("ToolNotesCtxBold"),
+            ["italic"] = L("ToolNotesCtxItalic"),
+            ["strikethrough"] = L("ToolNotesCtxStrikethrough"),
+            ["inlineCode"] = L("ToolNotesCtxInlineCode"),
+            ["codeBlock"] = L("ToolNotesCtxCodeBlock"),
+            ["link"] = L("ToolNotesCtxLink"),
+            ["image"] = L("ToolNotesCtxImage"),
+            ["noteLink"] = L("ToolNotesCtxNoteLink"),
+            ["heading1"] = L("ToolNotesCtxHeading1"),
+            ["heading2"] = L("ToolNotesCtxHeading2"),
+            ["heading3"] = L("ToolNotesCtxHeading3"),
+            ["bulletList"] = L("ToolNotesCtxBulletList"),
+            ["numberedList"] = L("ToolNotesCtxNumberedList"),
+            ["taskList"] = L("ToolNotesCtxTaskList"),
+            ["blockquote"] = L("ToolNotesCtxBlockquote"),
+            ["table"] = L("ToolNotesCtxTable"),
+            ["horizontalRule"] = L("ToolNotesCtxHorizontalRule"),
+        };
+        MilkdownEditor.SetContextMenuLabels(labels);
     }
 
     private void OnMilkdownContentChanged(string markdown, bool dirty)
@@ -670,6 +699,8 @@ public partial class NotesToolView : UserControl, IToolView
         BtnNavForward.ToolTip = L("ToolNotesNavForward");
         System.Windows.Automation.AutomationProperties.SetName(BtnNavBack, L("ToolNotesNavBack"));
         System.Windows.Automation.AutomationProperties.SetName(BtnNavForward, L("ToolNotesNavForward"));
+        BtnToggleSidebar.ToolTip = L("ToolNotesBtnToggleSidebar");
+        System.Windows.Automation.AutomationProperties.SetName(BtnToggleSidebar, L("ToolNotesBtnToggleSidebar"));
 
         RebuildTagFilterButtons();
     }
@@ -1350,6 +1381,115 @@ public partial class NotesToolView : UserControl, IToolView
                 tvi.IsExpanded = expanded;
                 SetAllTreeItemsExpanded(tvi, expanded);
             }
+        }
+    }
+
+    // ── Editor context menu ────────────────────────────────────────────
+
+    private ContextMenu BuildEditorContextMenu()
+    {
+        var menu = new ContextMenu();
+        menu.Opened += (_, _) => RefreshEditorContextMenu(menu);
+        return menu;
+    }
+
+    private void RefreshEditorContextMenu(ContextMenu menu)
+    {
+        menu.Items.Clear();
+
+        AddCtxItem(menu, "ToolNotesCtxBold", () => WrapEditorSelection("**", "**"));
+        AddCtxItem(menu, "ToolNotesCtxItalic", () => WrapEditorSelection("*", "*"));
+        AddCtxItem(menu, "ToolNotesCtxStrikethrough", () => WrapEditorSelection("~~", "~~"));
+        AddCtxItem(menu, "ToolNotesCtxInlineCode", () => WrapEditorSelection("`", "`"));
+        menu.Items.Add(new Separator());
+        AddCtxItem(menu, "ToolNotesCtxCodeBlock", () => WrapEditorSelection("```\n", "\n```"));
+        AddCtxItem(menu, "ToolNotesCtxBlockquote", () => PrefixEditorLines("> "));
+        menu.Items.Add(new Separator());
+        AddCtxItem(menu, "ToolNotesCtxLink", () =>
+        {
+            var sel = Editor.SelectedText;
+            if (!string.IsNullOrEmpty(sel))
+                WrapEditorSelection("[", "](url)");
+            else
+                InsertInEditor("[text](url)");
+        });
+        AddCtxItem(menu, "ToolNotesCtxImage", () => InsertInEditor("![alt](url)"));
+        AddCtxItem(menu, "ToolNotesCtxNoteLink", () => WrapEditorSelection("[[", "]]"));
+        menu.Items.Add(new Separator());
+        AddCtxItem(menu, "ToolNotesCtxHeading1", () => PrefixEditorLines("# "));
+        AddCtxItem(menu, "ToolNotesCtxHeading2", () => PrefixEditorLines("## "));
+        AddCtxItem(menu, "ToolNotesCtxHeading3", () => PrefixEditorLines("### "));
+        menu.Items.Add(new Separator());
+        AddCtxItem(menu, "ToolNotesCtxBulletList", () => PrefixEditorLines("- "));
+        AddCtxItem(menu, "ToolNotesCtxNumberedList", () => PrefixEditorLines("1. "));
+        AddCtxItem(menu, "ToolNotesCtxTaskList", () => PrefixEditorLines("- [ ] "));
+        menu.Items.Add(new Separator());
+        AddCtxItem(menu, "ToolNotesCtxTable", () => InsertInEditor("| H1 | H2 | H3 |\n|---|---|---|\n| a | b | c |\n"));
+        AddCtxItem(menu, "ToolNotesCtxHorizontalRule", () => InsertInEditor("\n---\n"));
+    }
+
+    private void AddCtxItem(ContextMenu menu, string labelKey, Action action)
+    {
+        var item = new MenuItem { Header = L(labelKey) };
+        item.Click += (_, _) => action();
+        menu.Items.Add(item);
+    }
+
+    private void WrapEditorSelection(string prefix, string suffix)
+    {
+        var sel = Editor.SelectedText ?? string.Empty;
+        Editor.SelectedText = prefix + sel + suffix;
+    }
+
+    private void PrefixEditorLines(string prefix)
+    {
+        var sel = Editor.SelectedText;
+        if (!string.IsNullOrEmpty(sel))
+        {
+            var lines = sel.Split('\n');
+            Editor.SelectedText = string.Join("\n", lines.Select(l => prefix + l));
+        }
+        else
+        {
+            InsertInEditor(prefix);
+        }
+    }
+
+    private void InsertInEditor(string text)
+    {
+        var offset = Editor.CaretOffset;
+        Editor.Document.Insert(offset, text);
+        Editor.CaretOffset = offset + text.Length;
+    }
+
+    // ── Sidebar toggle ───────────────────────────────────────────────
+
+    private void OnToggleSidebarClick(object sender, RoutedEventArgs e)
+    {
+        var grid = SidebarBorder.Parent as Grid;
+        if (grid is null)
+        {
+            return;
+        }
+
+        _sidebarVisible = !_sidebarVisible;
+
+        if (_sidebarVisible)
+        {
+            grid.ColumnDefinitions[0].Width = _savedSidebarWidth;
+            grid.ColumnDefinitions[0].MinWidth = 240;
+            grid.ColumnDefinitions[1].Width = new GridLength(8);
+            SidebarBorder.Visibility = Visibility.Visible;
+            EditorSplitter.Visibility = Visibility.Visible;
+        }
+        else
+        {
+            _savedSidebarWidth = grid.ColumnDefinitions[0].Width;
+            grid.ColumnDefinitions[0].MinWidth = 0;
+            grid.ColumnDefinitions[0].Width = new GridLength(0);
+            grid.ColumnDefinitions[1].Width = new GridLength(0);
+            SidebarBorder.Visibility = Visibility.Collapsed;
+            EditorSplitter.Visibility = Visibility.Collapsed;
         }
     }
 

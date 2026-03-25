@@ -26,19 +26,19 @@ public static class MarkdownHighlighting
         <SyntaxDefinition name="Markdown"
             xmlns="http://icsharpcode.net/sharpdevelop/syntaxdefinition/2008">
 
-          <Color name="Heading"     foreground="#4AA3FF" fontWeight="bold" />
-          <Color name="Bold"        foreground="#E8ECF0" fontWeight="bold" />
-          <Color name="Italic"      foreground="#E8ECF0" fontStyle="italic" />
-          <Color name="Strikethrough" foreground="#6B7688" />
-          <Color name="InlineCode"  foreground="#E06C75" background="#1A1F29" />
-          <Color name="CodeBlock"   foreground="#ABB2BF" background="#161B22" />
-          <Color name="Link"        foreground="#4AA3FF" />
-          <Color name="NoteLink"    foreground="#C678DD" fontWeight="bold" />
-          <Color name="Image"       foreground="#56B6C2" />
-          <Color name="Blockquote"  foreground="#7C8694" fontStyle="italic" />
-          <Color name="ListMarker"  foreground="#E5C07B" />
-          <Color name="HRule"       foreground="#3E4451" />
-          <Color name="MetaTag"     foreground="#61AFEF" />
+          <Color name="Heading"     foreground="#bd93f9" fontWeight="bold" />
+          <Color name="Bold"        foreground="#ffb86c" fontWeight="bold" />
+          <Color name="Italic"      foreground="#f1fa8c" fontStyle="italic" />
+          <Color name="Strikethrough" foreground="#6272a4" />
+          <Color name="InlineCode"  foreground="#ff79c6" background="#44475a" />
+          <Color name="CodeBlock"   foreground="#f8f8f2" background="#282a36" />
+          <Color name="Link"        foreground="#8be9fd" />
+          <Color name="NoteLink"    foreground="#50fa7b" fontWeight="bold" />
+          <Color name="Image"       foreground="#8be9fd" />
+          <Color name="Blockquote"  foreground="#6272a4" fontStyle="italic" />
+          <Color name="ListMarker"  foreground="#f1fa8c" />
+          <Color name="HRule"       foreground="#44475a" />
+          <Color name="MetaTag"     foreground="#8be9fd" />
 
           <RuleSet>
             <Span color="CodeBlock" multiline="true">

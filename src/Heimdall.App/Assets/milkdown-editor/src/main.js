@@ -1,6 +1,5 @@
 import { Crepe } from '@milkdown/crepe';
 import '@milkdown/crepe/theme/common/style.css';
-import '@milkdown/theme-nord/style.css';
 import { editorViewCtx } from '@milkdown/kit/core';
 import { Plugin, PluginKey } from '@milkdown/kit/prose/state';
 import { Decoration, DecorationSet } from '@milkdown/kit/prose/view';
@@ -29,6 +28,26 @@ let changeTimer = 0;
 let isReady = false;
 
 const pendingHostMessages = [];
+
+const menuLabels = {
+  bold: 'Bold',
+  italic: 'Italic',
+  strikethrough: 'Strikethrough',
+  inlineCode: 'Inline Code',
+  codeBlock: 'Code Block',
+  link: 'Link',
+  image: 'Image',
+  noteLink: 'Note Link [[...]]',
+  heading1: 'Heading 1',
+  heading2: 'Heading 2',
+  heading3: 'Heading 3',
+  bulletList: 'Bullet List',
+  numberedList: 'Numbered List',
+  taskList: 'Task List',
+  blockquote: 'Blockquote',
+  table: 'Table',
+  horizontalRule: 'Horizontal Rule',
+};
 
 const wikiLinkPlugin = $prose(() => {
   return new Plugin({
@@ -168,6 +187,150 @@ function focusEditor() {
   editorView?.focus();
 }
 
+// ── Context menu ──────────────────────────────────────────────────
+
+let ctxMenuEl = null;
+
+function wrapSelection(prefix, suffix) {
+  if (!editorView) {
+    return;
+  }
+
+  const { state } = editorView;
+  const { from, to } = state.selection;
+  const selected = state.doc.textBetween(from, to);
+  const replacement = prefix + selected + (suffix ?? '');
+  const tr = state.tr.insertText(replacement, from, to);
+  editorView.dispatch(tr.scrollIntoView());
+  editorView.focus();
+}
+
+function insertAtLineStart(prefix) {
+  if (!editorView) {
+    return;
+  }
+
+  const { state } = editorView;
+  const { from, to } = state.selection;
+  const selected = state.doc.textBetween(from, to);
+
+  if (selected) {
+    const lines = selected.split('\n').map((line) => prefix + line);
+    const tr = state.tr.insertText(lines.join('\n'), from, to);
+    editorView.dispatch(tr.scrollIntoView());
+  } else {
+    const tr = state.tr.insertText(prefix, from, to);
+    editorView.dispatch(tr.scrollIntoView());
+  }
+
+  editorView.focus();
+}
+
+function getMenuItems() {
+  return [
+    { label: menuLabels.bold, action: () => wrapSelection('**', '**') },
+    { label: menuLabels.italic, action: () => wrapSelection('*', '*') },
+    { label: menuLabels.strikethrough, action: () => wrapSelection('~~', '~~') },
+    { label: menuLabels.inlineCode, action: () => wrapSelection('`', '`') },
+    { separator: true },
+    { label: menuLabels.codeBlock, action: () => wrapSelection('```\n', '\n```') },
+    { label: menuLabels.blockquote, action: () => insertAtLineStart('> ') },
+    { separator: true },
+    { label: menuLabels.link, action: () => {
+      const { state } = editorView;
+      const { from, to } = state.selection;
+      const selected = state.doc.textBetween(from, to);
+      if (selected) {
+        wrapSelection('[', '](url)');
+      } else {
+        insertText('[text](url)');
+      }
+    }},
+    { label: menuLabels.image, action: () => insertText('![alt](url)') },
+    { label: menuLabels.noteLink, action: () => wrapSelection('[[', ']]') },
+    { separator: true },
+    { label: menuLabels.heading1, action: () => insertAtLineStart('# ') },
+    { label: menuLabels.heading2, action: () => insertAtLineStart('## ') },
+    { label: menuLabels.heading3, action: () => insertAtLineStart('### ') },
+    { separator: true },
+    { label: menuLabels.bulletList, action: () => insertAtLineStart('- ') },
+    { label: menuLabels.numberedList, action: () => insertAtLineStart('1. ') },
+    { label: menuLabels.taskList, action: () => insertAtLineStart('- [ ] ') },
+    { separator: true },
+    { label: menuLabels.table, action: () => insertText('| H1 | H2 | H3 |\n|---|---|---|\n| a | b | c |\n') },
+    { label: menuLabels.horizontalRule, action: () => insertText('\n---\n') },
+  ];
+}
+
+function showContextMenu(x, y) {
+  hideContextMenu();
+
+  ctxMenuEl = document.createElement('div');
+  ctxMenuEl.className = 'ctx-menu';
+  ctxMenuEl.style.left = `${x}px`;
+  ctxMenuEl.style.top = `${y}px`;
+
+  for (const item of getMenuItems()) {
+    if (item.separator) {
+      const sep = document.createElement('div');
+      sep.className = 'ctx-menu-sep';
+      ctxMenuEl.append(sep);
+      continue;
+    }
+
+    const btn = document.createElement('div');
+    btn.className = 'ctx-menu-item';
+    btn.textContent = item.label;
+    btn.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      hideContextMenu();
+      item.action();
+    });
+    ctxMenuEl.append(btn);
+  }
+
+  document.body.append(ctxMenuEl);
+
+  // Clamp to viewport
+  const rect = ctxMenuEl.getBoundingClientRect();
+  if (rect.right > window.innerWidth) {
+    ctxMenuEl.style.left = `${Math.max(0, window.innerWidth - rect.width - 4)}px`;
+  }
+  if (rect.bottom > window.innerHeight) {
+    ctxMenuEl.style.top = `${Math.max(0, window.innerHeight - rect.height - 4)}px`;
+  }
+}
+
+function hideContextMenu() {
+  if (ctxMenuEl) {
+    ctxMenuEl.remove();
+    ctxMenuEl = null;
+  }
+}
+
+document.addEventListener('mousedown', (e) => {
+  if (ctxMenuEl && !ctxMenuEl.contains(e.target)) {
+    hideContextMenu();
+  }
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    hideContextMenu();
+  }
+});
+
+hostElement.addEventListener('contextmenu', (e) => {
+  if (isReadOnly) {
+    return;
+  }
+
+  e.preventDefault();
+  e.stopPropagation();
+  showContextMenu(e.clientX, e.clientY);
+});
+
 function handleHostMessage(event) {
   const message = event?.data ?? event;
   if (!message || typeof message !== 'object') {
@@ -194,6 +357,11 @@ function handleHostMessage(event) {
       break;
     case 'insert':
       insertText(String(message.payload ?? ''));
+      break;
+    case 'set-menu-labels':
+      if (message.payload && typeof message.payload === 'object') {
+        Object.assign(menuLabels, message.payload);
+      }
       break;
     default:
       break;

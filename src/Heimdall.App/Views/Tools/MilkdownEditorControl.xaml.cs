@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
 using System.Windows;
@@ -174,6 +175,14 @@ public partial class MilkdownEditorControl : UserControl, IDisposable
         if (_editorReady)
         {
             PostMessage("insert", text);
+        }
+    }
+
+    public void SetContextMenuLabels(Dictionary<string, string> labels)
+    {
+        if (_editorReady)
+        {
+            PostMessage("set-menu-labels", labels);
         }
     }
 
