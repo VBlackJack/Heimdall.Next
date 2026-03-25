@@ -277,7 +277,8 @@ ISplitContent (marker interface)
 - `ClosePane` — type-aware cleanup with fixed disposal order (detach → remove → dispose)
 - `CloseAllPanes` — centralized tab teardown: CanClose() gate, cancellation, history, tunnel release, state reset, disposal (called by `ConnectionViewModel.CloseSessionInternal`)
 - `ReconnectPaneAsync` — deferred old state machine cleanup (released only after new connection succeeds); no longer creates self-referential LayoutMemory entries
-- `SwapSplitPanes`, `ToggleSplitOrientation` — in-place tree mutations
+- `SwapSplitPanesAsync` — async two-phase swap: detach host controls → await visual tree → swap model → await again → restore (prevents WebView2/ActiveX reparenting race)
+- `ToggleSplitOrientation` — in-place tree mutation
 - `ConnectByProtocolAsync` — unified 8-protocol dispatch with CancellationToken passthrough to all `ConnectionService.Connect*Async` handlers
 - Per-session `CancellationTokenSource` lifecycle (`RegisterSession`/`CancelSession` with deferred dispose to avoid leaks)
 - `SplitLayoutMemory` instance for layout persistence
@@ -632,8 +633,9 @@ The Notes tool (#34) provides a local-first Markdown editing experience inspired
 
 **C# ↔ JS bridge** (`MilkdownEditorControl`):
 - JS → C#: `ready`, `change { markdown, dirty }`, `open-link { payload }`
-- C# → JS: `set-content`, `set-theme`, `set-readonly`, `focus`, `insert`
+- C# → JS: `set-content`, `set-theme`, `set-readonly`, `focus`, `insert`, `set-menu-labels`
 - Content sync via `ContentChanged` event (debounced 200ms on JS side)
+- Theme: Dracula palette in dark mode via Crepe `--crepe-*` CSS tokens (removed legacy `@milkdown/theme-nord`). AvalonEdit highlighting uses matching Dracula colors
 
 **File management** (`NotesStorageService`):
 - Storage: `config/notes/` (configurable via `AppSettings.NotesDirectory`)
@@ -642,7 +644,11 @@ The Notes tool (#34) provides a local-first Markdown editing experience inspired
 - Tags: extracted from `> tags: x, y` metadata lines in blockquotes
 - Path traversal: `ValidatePathWithinRoot()` on all I/O operations
 
-**Context menu**: `OnTreeViewContextMenuOpening` builds dynamic menu; `OnTreeViewPreviewRightClick` stops tunneling to prevent `MainWindow.OnSessionTabRightClick` interception. `MainWindow` also excludes `TreeView` inside `TOOL:*` sessions from session tab menu.
+**Sidebar toggle**: hamburger button in header collapses/expands the TreeView panel. Saves and restores column width across toggles.
+
+**Editor context menu**: right-click in the editor shows 17 Markdown formatting actions (bold, italic, headings, lists, links, code blocks, table, horizontal rule). In Milkdown: JS-native context menu with localized labels via `set-menu-labels` message. In AvalonEdit: WPF `ContextMenu` built dynamically with `WrapEditorSelection`, `PrefixEditorLines`, `InsertInEditor` helpers.
+
+**TreeView context menu**: `OnTreeViewContextMenuOpening` builds dynamic menu; `OnTreeViewPreviewRightClick` stops tunneling to prevent `MainWindow.OnSessionTabRightClick` interception. `MainWindow` also excludes `TreeView` inside `TOOL:*` sessions from session tab menu.
 
 **Drag & drop**: Internal (move note between folders via `MoveNoteToFolderAsync`) + external (.md file import via copy to notes root)
 - **Network Cartography engine**: `Heimdall.Core.Discovery/` namespace with CartographyEngine (ping sweep + TTL capture, port scan, banner grab, HTTP/HTTPS header extraction, TLS cert inspection, NetBIOS/SNMP/mDNS UDP probes, OS fingerprinting, KB cache-skip), UdpProbeEngine (raw NetBIOS NBSTAT + SNMPv2c GET + mDNS service discovery), OsFingerprinter (TTL + 33 banner patterns), RoleClassifier (46+ port patterns, 96+ banner fingerprints, compiled CnRegex, multi-source ClassifyEnriched), OuiDatabase (300+ MAC prefixes), VlanDetector, DrawIoExporter, ScanHistoryManager (atomic write, ACL, retention, typed HostChange diff), KnowledgeBaseManager (persistent per-field Observation\<T\> timestamps, merge-on-scan, TTL-based cache acceleration, host purge)
