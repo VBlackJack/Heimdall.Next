@@ -14,8 +14,10 @@
  * limitations under the License.
  */
 
+using System.Globalization;
 using System.IO;
 using System.Text;
+using Heimdall.Core.Localization;
 using Heimdall.Core.Models;
 
 namespace Heimdall.App.Services;
@@ -34,20 +36,24 @@ public static class NotesTemplateFactory
 {
     public static string SlugifyValue(string value) => Slugify(value);
 
-    public static NoteDraft Create(NoteTemplateKind templateKind, ToolContext? context, DateTime nowLocal)
+    public static NoteDraft Create(
+        NoteTemplateKind templateKind,
+        ToolContext? context,
+        DateTime nowLocal,
+        LocalizationManager? localizer = null)
     {
         return templateKind switch
         {
-            NoteTemplateKind.Daily => BuildDaily(context, nowLocal),
-            NoteTemplateKind.Incident => BuildIncident(context, nowLocal),
-            NoteTemplateKind.Procedure => BuildProcedure(context, nowLocal),
-            _ => BuildBlank(context, nowLocal)
+            NoteTemplateKind.Daily => BuildDaily(context, nowLocal, localizer),
+            NoteTemplateKind.Incident => BuildIncident(context, nowLocal, localizer),
+            NoteTemplateKind.Procedure => BuildProcedure(context, nowLocal, localizer),
+            _ => BuildBlank(context, nowLocal, localizer)
         };
     }
 
-    private static NoteDraft BuildBlank(ToolContext? context, DateTime nowLocal)
+    private static NoteDraft BuildBlank(ToolContext? context, DateTime nowLocal, LocalizationManager? loc)
     {
-        var title = BuildContextualTitle("Working Note", context);
+        var title = BuildContextualTitle(L(loc, "ToolNotesTplWorkingNote"), context);
         var fileName = $"{TimestampPrefix(nowLocal)}-{SlugifyValue(title)}.md";
 
         var content = new StringBuilder()
@@ -55,15 +61,15 @@ public static class NotesTemplateFactory
             .AppendLine()
             .AppendLine(BuildMetadataLine(nowLocal, context))
             .AppendLine()
-            .AppendLine("## Notes")
+            .AppendLine($"## {L(loc, "ToolNotesTplNotes")}")
             .AppendLine()
-            .AppendLine("## Commands")
+            .AppendLine($"## {L(loc, "ToolNotesTplCommands")}")
             .AppendLine()
             .AppendLine("```bash")
             .AppendLine()
             .AppendLine("```")
             .AppendLine()
-            .AppendLine("## Next")
+            .AppendLine($"## {L(loc, "ToolNotesTplNext")}")
             .AppendLine()
             .AppendLine("- ")
             .ToString();
@@ -71,32 +77,33 @@ public static class NotesTemplateFactory
         return new NoteDraft(fileName, content);
     }
 
-    private static NoteDraft BuildDaily(ToolContext? context, DateTime nowLocal)
+    private static NoteDraft BuildDaily(ToolContext? context, DateTime nowLocal, LocalizationManager? loc)
     {
         var relativePath = Path.Combine("daily", nowLocal.ToString("yyyy"), $"{nowLocal:yyyy-MM-dd}.md");
+        var dailyLabel = L(loc, "ToolNotesTplDailyNote");
         var suffix = BuildContextSuffix(context);
         var title = suffix.Length > 0
-            ? $"Daily Note - {nowLocal:yyyy-MM-dd} - {suffix}"
-            : $"Daily Note - {nowLocal:yyyy-MM-dd}";
+            ? $"{dailyLabel} - {nowLocal:yyyy-MM-dd} - {suffix}"
+            : $"{dailyLabel} - {nowLocal:yyyy-MM-dd}";
 
         var content = new StringBuilder()
             .AppendLine($"# {title}")
             .AppendLine()
             .AppendLine(BuildMetadataLine(nowLocal, context))
             .AppendLine()
-            .AppendLine("## Focus")
+            .AppendLine($"## {L(loc, "ToolNotesTplFocus")}")
             .AppendLine()
             .AppendLine("- ")
             .AppendLine()
-            .AppendLine("## Journal")
+            .AppendLine($"## {L(loc, "ToolNotesTplJournal")}")
             .AppendLine()
-            .AppendLine("## Commands")
+            .AppendLine($"## {L(loc, "ToolNotesTplCommands")}")
             .AppendLine()
             .AppendLine("```bash")
             .AppendLine()
             .AppendLine("```")
             .AppendLine()
-            .AppendLine("## Follow-up")
+            .AppendLine($"## {L(loc, "ToolNotesTplFollowUp")}")
             .AppendLine()
             .AppendLine("- ")
             .ToString();
@@ -104,12 +111,13 @@ public static class NotesTemplateFactory
         return new NoteDraft(relativePath, content);
     }
 
-    private static NoteDraft BuildIncident(ToolContext? context, DateTime nowLocal)
+    private static NoteDraft BuildIncident(ToolContext? context, DateTime nowLocal, LocalizationManager? loc)
     {
         var suffix = BuildContextSuffix(context);
+        var incidentLabel = L(loc, "ToolNotesTplIncident");
         var title = suffix.Length > 0
-            ? $"Incident - {suffix}"
-            : "Incident Report";
+            ? $"{incidentLabel} - {suffix}"
+            : L(loc, "ToolNotesTplIncidentReport");
         var fileName = $"{TimestampPrefix(nowLocal)}-{SlugifyValue(title)}.md";
 
         var content = new StringBuilder()
@@ -117,23 +125,23 @@ public static class NotesTemplateFactory
             .AppendLine()
             .AppendLine(BuildMetadataLine(nowLocal, context))
             .AppendLine()
-            .AppendLine("## Summary")
+            .AppendLine($"## {L(loc, "ToolNotesTplSummary")}")
             .AppendLine()
-            .AppendLine("## Impact")
+            .AppendLine($"## {L(loc, "ToolNotesTplImpact")}")
             .AppendLine()
-            .AppendLine("## Timeline")
+            .AppendLine($"## {L(loc, "ToolNotesTplTimeline")}")
             .AppendLine()
-            .AppendLine($"- {nowLocal:HH:mm} - Incident started")
+            .AppendLine($"- {nowLocal:HH:mm} - {L(loc, "ToolNotesTplIncidentStarted")}")
             .AppendLine()
-            .AppendLine("## Investigation")
+            .AppendLine($"## {L(loc, "ToolNotesTplInvestigation")}")
             .AppendLine()
-            .AppendLine("## Actions")
+            .AppendLine($"## {L(loc, "ToolNotesTplActions")}")
             .AppendLine()
             .AppendLine("- ")
             .AppendLine()
-            .AppendLine("## Resolution")
+            .AppendLine($"## {L(loc, "ToolNotesTplResolution")}")
             .AppendLine()
-            .AppendLine("## Follow-up")
+            .AppendLine($"## {L(loc, "ToolNotesTplFollowUp")}")
             .AppendLine()
             .AppendLine("- ")
             .ToString();
@@ -141,12 +149,13 @@ public static class NotesTemplateFactory
         return new NoteDraft(fileName, content);
     }
 
-    private static NoteDraft BuildProcedure(ToolContext? context, DateTime nowLocal)
+    private static NoteDraft BuildProcedure(ToolContext? context, DateTime nowLocal, LocalizationManager? loc)
     {
         var suffix = BuildContextSuffix(context);
+        var procedureLabel = L(loc, "ToolNotesTplProcedure");
         var title = suffix.Length > 0
-            ? $"Procedure - {suffix}"
-            : "Procedure";
+            ? $"{procedureLabel} - {suffix}"
+            : procedureLabel;
         var fileName = $"{TimestampPrefix(nowLocal)}-{SlugifyValue(title)}.md";
 
         var content = new StringBuilder()
@@ -154,23 +163,23 @@ public static class NotesTemplateFactory
             .AppendLine()
             .AppendLine(BuildMetadataLine(nowLocal, context))
             .AppendLine()
-            .AppendLine("## Purpose")
+            .AppendLine($"## {L(loc, "ToolNotesTplPurpose")}")
             .AppendLine()
-            .AppendLine("## Scope")
+            .AppendLine($"## {L(loc, "ToolNotesTplScope")}")
             .AppendLine()
-            .AppendLine("## Preconditions")
+            .AppendLine($"## {L(loc, "ToolNotesTplPreconditions")}")
             .AppendLine()
             .AppendLine("- ")
             .AppendLine()
-            .AppendLine("## Steps")
+            .AppendLine($"## {L(loc, "ToolNotesTplSteps")}")
             .AppendLine()
             .AppendLine("1. ")
             .AppendLine()
-            .AppendLine("## Validation")
+            .AppendLine($"## {L(loc, "ToolNotesTplValidation")}")
             .AppendLine()
-            .AppendLine("## Rollback")
+            .AppendLine($"## {L(loc, "ToolNotesTplRollback")}")
             .AppendLine()
-            .AppendLine("## References")
+            .AppendLine($"## {L(loc, "ToolNotesTplReferences")}")
             .AppendLine()
             .AppendLine("- ")
             .ToString();
@@ -257,12 +266,15 @@ public static class NotesTemplateFactory
 
     private static string TimestampPrefix(DateTime nowLocal) => nowLocal.ToString("yyyyMMdd-HHmmss");
 
+    private static string L(LocalizationManager? loc, string key) => loc?[key] ?? key;
+
     private static string Slugify(string value)
     {
-        var builder = new StringBuilder(value.Length);
+        var normalized = RemoveDiacritics(value);
+        var builder = new StringBuilder(normalized.Length);
         var previousDash = false;
 
-        foreach (var ch in value)
+        foreach (var ch in normalized)
         {
             if (char.IsLetterOrDigit(ch))
             {
@@ -279,5 +291,21 @@ public static class NotesTemplateFactory
         }
 
         return builder.ToString().Trim('-');
+    }
+
+    public static string RemoveDiacritics(string value)
+    {
+        var decomposed = value.Normalize(NormalizationForm.FormD);
+        var builder = new StringBuilder(decomposed.Length);
+
+        foreach (var ch in decomposed)
+        {
+            if (CharUnicodeInfo.GetUnicodeCategory(ch) != UnicodeCategory.NonSpacingMark)
+            {
+                builder.Append(ch);
+            }
+        }
+
+        return builder.ToString().Normalize(NormalizationForm.FormC);
     }
 }

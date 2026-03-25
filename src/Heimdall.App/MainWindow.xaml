@@ -237,36 +237,22 @@
                         <Border x:Name="ToolsQuickPanel" DockPanel.Dock="Bottom"
                                 Background="{DynamicResource SurfaceBrush}"
                                 BorderBrush="{DynamicResource BorderBrush}"
-                                BorderThickness="0,0,0,1"
+                                BorderThickness="0,1,0,0"
                                 MaxHeight="300"
                                 Visibility="Collapsed">
-                            <DockPanel>
-                                <DockPanel DockPanel.Dock="Top" Margin="8,6,8,4">
-                                    <TextBlock x:Name="Mw_ToolsPanelTitle" Text=""
-                                               FontSize="{StaticResource FontSizeBody}" FontWeight="SemiBold"
-                                               Foreground="{DynamicResource TextPrimaryBrush}"
-                                               VerticalAlignment="Center"/>
-                                    <Button x:Name="BtnCollapseTools" DockPanel.Dock="Right"
-                                            Content="&#xE70D;" FontFamily="Segoe MDL2 Assets"
-                                            Click="OnToggleToolsPanel"
-                                            Style="{DynamicResource ToolbarGhostButtonStyle}"
-                                            Padding="4,4" FontSize="{StaticResource FontSizeCaption}"
-                                            HorizontalAlignment="Right"/>
-                                </DockPanel>
-                                <Grid>
-                                    <ScrollViewer x:Name="ToolsPanelScroll"
-                                                  VerticalScrollBarVisibility="Auto" Padding="4,0,4,4"
-                                                  ScrollChanged="OnToolsPanelScrollChanged">
-                                        <StackPanel x:Name="ToolsCategoryStack"/>
-                                    </ScrollViewer>
-                                    <Border x:Name="ToolsPanelScrollHint" Height="20" VerticalAlignment="Bottom"
-                                            IsHitTestVisible="False" Visibility="Collapsed">
-                                        <TextBlock Text="&#xE70D;" FontFamily="Segoe MDL2 Assets"
-                                                   FontSize="10" HorizontalAlignment="Center"
-                                                   Foreground="{DynamicResource TextDisabledBrush}"/>
-                                    </Border>
-                                </Grid>
-                            </DockPanel>
+                            <Grid>
+                                <ScrollViewer x:Name="ToolsPanelScroll"
+                                              VerticalScrollBarVisibility="Auto" Padding="4,4,4,4"
+                                              ScrollChanged="OnToolsPanelScrollChanged">
+                                    <StackPanel x:Name="ToolsCategoryStack"/>
+                                </ScrollViewer>
+                                <Border x:Name="ToolsPanelScrollHint" Height="20" VerticalAlignment="Bottom"
+                                        IsHitTestVisible="False" Visibility="Collapsed">
+                                    <TextBlock Text="&#xE70D;" FontFamily="Segoe MDL2 Assets"
+                                               FontSize="10" HorizontalAlignment="Center"
+                                               Foreground="{DynamicResource TextDisabledBrush}"/>
+                                </Border>
+                            </Grid>
                         </Border>
 
                         <!-- TOOLS: Toggle button (always at bottom) -->
@@ -282,18 +268,25 @@
                                     HorizontalContentAlignment="Left"
                                     Padding="4,3" FontSize="{StaticResource FontSizeCaption}"
                                     AutomationProperties.Name="Toggle tools panel">
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="&#xE90F;" FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeCaption}"
-                                               Foreground="{DynamicResource AccentBrush}"
-                                               VerticalAlignment="Center" Margin="0,0,6,0"/>
-                                    <TextBlock x:Name="Mw_ToolsToggleLabel" Text=""
-                                               Foreground="{DynamicResource TextPrimaryBrush}"
-                                               VerticalAlignment="Center"/>
-                                    <TextBlock Text=" (Ctrl+Shift+T)"
+                                <DockPanel>
+                                    <TextBlock x:Name="ToolsToggleChevron" DockPanel.Dock="Right"
+                                               Text="&#xE70E;" FontFamily="Segoe MDL2 Assets"
                                                FontSize="{StaticResource FontSizeCaption}"
                                                Foreground="{DynamicResource TextSecondaryBrush}"
-                                               VerticalAlignment="Center" Margin="4,0,0,0"/>
-                                </StackPanel>
+                                               VerticalAlignment="Center" Margin="0,0,2,0"/>
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="&#xE90F;" FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeCaption}"
+                                                   Foreground="{DynamicResource AccentBrush}"
+                                                   VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                        <TextBlock x:Name="Mw_ToolsToggleLabel" Text=""
+                                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                                   VerticalAlignment="Center"/>
+                                        <TextBlock Text=" (Ctrl+Shift+T)"
+                                                   FontSize="{StaticResource FontSizeCaption}"
+                                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                                   VerticalAlignment="Center" Margin="4,0,0,0"/>
+                                    </StackPanel>
+                                </DockPanel>
                             </Button>
                         </Border>
 

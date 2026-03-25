@@ -220,8 +220,13 @@ public sealed class NotesStorageService
                 .OrderBy(candidate => candidate.RelativePathWithoutExtension, StringComparer.OrdinalIgnoreCase)
                 .ToList();
 
+            // Accent-insensitive title match (e.g., [[Procedure]] finds "Procédure")
             return candidates.FirstOrDefault(candidate =>
-                    string.Equals(candidate.Title, titleReference, StringComparison.OrdinalIgnoreCase))?.FilePath
+                    string.Equals(candidate.Title, titleReference, StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(
+                        NotesTemplateFactory.RemoveDiacritics(candidate.Title),
+                        NotesTemplateFactory.RemoveDiacritics(titleReference),
+                        StringComparison.OrdinalIgnoreCase))?.FilePath
                 ?? candidates.FirstOrDefault(candidate =>
                     string.Equals(candidate.FileNameWithoutExtension, fileNameReference, StringComparison.OrdinalIgnoreCase)
                     || string.Equals(candidate.FileNameWithoutExtension, slugifiedFileNameReference, StringComparison.OrdinalIgnoreCase))?.FilePath
@@ -242,12 +247,16 @@ public sealed class NotesStorageService
         return await CreateLinkedNoteAsync(noteReference, cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task<string> CreateNoteAsync(NoteTemplateKind templateKind, ToolContext? context, CancellationToken cancellationToken = default)
+    public async Task<string> CreateNoteAsync(
+        NoteTemplateKind templateKind,
+        ToolContext? context,
+        Heimdall.Core.Localization.LocalizationManager? localizer = null,
+        CancellationToken cancellationToken = default)
     {
         EnsureInitialized();
 
         var nowLocal = DateTime.Now;
-        var draft = NotesTemplateFactory.Create(templateKind, context, nowLocal);
+        var draft = NotesTemplateFactory.Create(templateKind, context, nowLocal, localizer);
         var desiredPath = Path.Combine(_notesRootPath, draft.RelativePath);
         if (templateKind == NoteTemplateKind.Daily && File.Exists(desiredPath))
         {
@@ -333,6 +342,32 @@ public sealed class NotesStorageService
 
             await File.WriteAllTextAsync(filePath, content ?? string.Empty, Utf8NoBom, cancellationToken)
                 .ConfigureAwait(false);
+        }
+        finally
+        {
+            _writeLock.Release();
+        }
+    }
+
+    /// <summary>
+    /// Synchronous save for use in <see cref="IToolView.CanClose"/> and
+    /// <see cref="IDisposable.Dispose"/>, which cannot be async.
+    /// </summary>
+    public void SaveNote(string filePath, string content)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
+        ValidatePathWithinRoot(filePath);
+
+        _writeLock.Wait();
+        try
+        {
+            var directory = Path.GetDirectoryName(filePath);
+            if (!string.IsNullOrEmpty(directory))
+            {
+                Directory.CreateDirectory(directory);
+            }
+
+            File.WriteAllText(filePath, content ?? string.Empty, Utf8NoBom);
         }
         finally
         {

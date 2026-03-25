@@ -30,7 +30,7 @@ public class NotesTemplateFactoryTests
 
         Assert.EndsWith(".md", draft.RelativePath);
         Assert.StartsWith("# ", draft.Content);
-        Assert.Contains("Working Note", draft.Content);
+        Assert.Contains("ToolNotesTplWorkingNote", draft.Content);
     }
 
     [Fact]
@@ -40,6 +40,16 @@ public class NotesTemplateFactoryTests
         var draft = NotesTemplateFactory.Create(NoteTemplateKind.Blank, context, TestDate);
 
         Assert.Contains("Server 01", draft.Content);
+    }
+
+    [Fact]
+    public void Blank_HasLocalizedSections()
+    {
+        var draft = NotesTemplateFactory.Create(NoteTemplateKind.Blank, null, TestDate);
+
+        Assert.Contains("## ToolNotesTplNotes", draft.Content);
+        Assert.Contains("## ToolNotesTplCommands", draft.Content);
+        Assert.Contains("## ToolNotesTplNext", draft.Content);
     }
 
     [Fact]
@@ -54,24 +64,24 @@ public class NotesTemplateFactoryTests
     }
 
     [Fact]
-    public void Daily_HasFocusSection()
+    public void Daily_HasLocalizedSections()
     {
         var draft = NotesTemplateFactory.Create(NoteTemplateKind.Daily, null, TestDate);
 
-        Assert.Contains("## Focus", draft.Content);
-        Assert.Contains("## Journal", draft.Content);
-        Assert.Contains("## Follow-up", draft.Content);
+        Assert.Contains("## ToolNotesTplFocus", draft.Content);
+        Assert.Contains("## ToolNotesTplJournal", draft.Content);
+        Assert.Contains("## ToolNotesTplFollowUp", draft.Content);
     }
 
     [Fact]
-    public void Incident_HasTimelineSection()
+    public void Incident_HasLocalizedSections()
     {
         var draft = NotesTemplateFactory.Create(NoteTemplateKind.Incident, null, TestDate);
 
-        Assert.Contains("Incident", draft.Content);
-        Assert.Contains("## Timeline", draft.Content);
-        Assert.Contains("## Investigation", draft.Content);
-        Assert.Contains("## Resolution", draft.Content);
+        Assert.Contains("ToolNotesTplIncidentReport", draft.Content);
+        Assert.Contains("## ToolNotesTplTimeline", draft.Content);
+        Assert.Contains("## ToolNotesTplInvestigation", draft.Content);
+        Assert.Contains("## ToolNotesTplResolution", draft.Content);
         Assert.Contains("14:30", draft.Content);
     }
 
@@ -85,14 +95,14 @@ public class NotesTemplateFactoryTests
     }
 
     [Fact]
-    public void Procedure_HasStepsSection()
+    public void Procedure_HasLocalizedSections()
     {
         var draft = NotesTemplateFactory.Create(NoteTemplateKind.Procedure, null, TestDate);
 
-        Assert.Contains("## Purpose", draft.Content);
-        Assert.Contains("## Steps", draft.Content);
-        Assert.Contains("## Validation", draft.Content);
-        Assert.Contains("## Rollback", draft.Content);
+        Assert.Contains("## ToolNotesTplPurpose", draft.Content);
+        Assert.Contains("## ToolNotesTplSteps", draft.Content);
+        Assert.Contains("## ToolNotesTplValidation", draft.Content);
+        Assert.Contains("## ToolNotesTplRollback", draft.Content);
     }
 
     [Fact]
@@ -138,10 +148,38 @@ public class NotesTemplateFactoryTests
     }
 
     [Fact]
+    public void Slugify_StripsDiacritics()
+    {
+        var slug = NotesTemplateFactory.SlugifyValue("Procédure résumé naïve");
+
+        Assert.Equal("procedure-resume-naive", slug);
+    }
+
+    [Fact]
+    public void RemoveDiacritics_PreservesAscii()
+    {
+        Assert.Equal("Procedure", NotesTemplateFactory.RemoveDiacritics("Procedure"));
+    }
+
+    [Fact]
+    public void RemoveDiacritics_StripsFrenchAccents()
+    {
+        Assert.Equal("Procedure resume naive Etapes", NotesTemplateFactory.RemoveDiacritics("Procédure résumé naïve Étapes"));
+    }
+
+    [Fact]
     public void TimestampPrefix_InFileName()
     {
         var draft = NotesTemplateFactory.Create(NoteTemplateKind.Blank, null, TestDate);
 
         Assert.StartsWith("20260315-143000", draft.RelativePath);
+    }
+
+    [Fact]
+    public void WithNullLocalizer_FallsBackToKeys()
+    {
+        var draft = NotesTemplateFactory.Create(NoteTemplateKind.Blank, null, TestDate, localizer: null);
+
+        Assert.Contains("ToolNotesTplWorkingNote", draft.Content);
     }
 }

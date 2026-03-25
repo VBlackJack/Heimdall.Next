@@ -36,6 +36,8 @@ public partial class App : System.Windows.Application
     private ServiceProvider? _serviceProvider;
     private MainViewModel? _mainViewModel;
 
+    public IServiceProvider? Services => _serviceProvider;
+
     protected override async void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);

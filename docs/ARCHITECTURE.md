@@ -610,7 +610,7 @@ When opening a tool from a server context menu, all available server metadata is
 
 ### Tool Navigation
 
-- **Ctrl+Shift+T**: Toggle retractable Tools sidebar panel (categorized with icons)
+- **Ctrl+Shift+T**: Toggle retractable Tools sidebar panel (categorized with colored accent bars, alphabetically sorted per category)
 - **Ctrl+K → "tools"**: Command palette lists all tools grouped by category
 - **Ctrl+K → "ping 10.0.0.1"**: Opens tool with prefilled argument
 - **Recent tools**: Last 5 used tools shown at top of palette when opened
@@ -629,7 +629,7 @@ The Notes tool (#34) provides a local-first Markdown editing experience inspired
 **Editor stack**:
 - **Primary**: Milkdown WYSIWYG editor (ProseMirror-based, MIT) hosted via WebView2. Bundled as a single `Assets/milkdown/index.html` (Vite + vite-plugin-singlefile). Source in `Assets/milkdown-editor/`.
 - **Fallback**: AvalonEdit with `MarkdownHighlighting` (XSHD) + `MarkdownLivePreviewTransformer` (header scaling, strikethrough decorations, dimmed syntax chars).
-- **Selection**: `MilkdownEditorControl.IsAvailable` checks for `index.html` asset; WebView2 init deferred to `Loaded` event via `WaitUntilLoadedAsync()` dispatcher yield.
+- **Selection**: `MilkdownEditorControl.IsAvailable` checks for `index.html` asset; `IsHostInitialized` verifies WebView2 host was created; WebView2 init deferred to `Loaded` event via `WaitUntilLoadedAsync()` dispatcher yield. Falls back to AvalonEdit if `!IsHostInitialized` after `InitializeAsync()`.
 
 **C# ↔ JS bridge** (`MilkdownEditorControl`):
 - JS → C#: `ready`, `change { markdown, dirty }`, `open-link { payload }`
@@ -640,11 +640,14 @@ The Notes tool (#34) provides a local-first Markdown editing experience inspired
 **File management** (`NotesStorageService`):
 - Storage: `config/notes/` (configurable via `AppSettings.NotesDirectory`)
 - `NoteTreeNode.BuildTree()`: builds filesystem-mirroring tree from flat note list, includes empty folders via `AddEmptyFolders()`
-- Inter-note links: `FindNotePathAsync()` resolves by title → filename → slug → relative path; `ResolveOrCreateNoteAsync()` creates on miss
+- Inter-note links: `FindNotePathAsync()` resolves by title → filename → slug → relative path with accent-insensitive fallback (`RemoveDiacritics`); `ResolveOrCreateNoteAsync()` creates on miss
 - Tags: extracted from `> tags: x, y` metadata lines in blockquotes
 - Path traversal: `ValidatePathWithinRoot()` on all I/O operations
+- Sync save: `SaveNote()` synchronous method for `CanClose()`/`Dispose()` (avoids sync-over-async)
 
-**Sidebar toggle**: hamburger button in header collapses/expands the TreeView panel. Saves and restores column width across toggles.
+**Sidebar toggle**: hamburger button in header collapses/expands the TreeView panel. Width persisted to `AppSettings.NotesSidebarWidth` via `ConfigManager.MergeSettingAsync()` (atomic load-mutate-save under write lock).
+
+**Template localization**: `NotesTemplateFactory.Create()` accepts optional `LocalizationManager` — all section headings use `ToolNotesTpl*` i18n keys. `Slugify()` strips diacritics via Unicode normalization so French titles produce ASCII-safe filenames.
 
 **Editor context menu**: right-click in the editor shows 17 Markdown formatting actions (bold, italic, headings, lists, links, code blocks, table, horizontal rule). In Milkdown: JS-native context menu with localized labels via `set-menu-labels` message. In AvalonEdit: WPF `ContextMenu` built dynamically with `WrapEditorSelection`, `PrefixEditorLines`, `InsertInEditor` helpers.
 

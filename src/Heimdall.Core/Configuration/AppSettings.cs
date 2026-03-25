@@ -95,6 +95,7 @@ public class AppSettings
     public bool SessionLoggingEnabled { get; set; }
     public string SessionLogDirectory { get; set; } = @"logs\sessions";
     public string NotesDirectory { get; set; } = @"config\notes";
+    public int NotesSidebarWidth { get; set; } = 300;
 
     // UI state
     public bool SidebarCollapsed { get; set; }
