@@ -78,6 +78,9 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty]
     private string _selectedTab = "Servers";
 
+    private string _previousTab = "Servers";
+    private bool _suppressTabChangeGuard;
+
     // --- Retractable Tunnel Panel ---
 
     [ObservableProperty]
@@ -173,6 +176,39 @@ public partial class MainViewModel : ObservableObject
     partial void OnSelectedTabChanged(string value)
     {
         Heimdall.Core.Logging.FileLogger.Info($"MainViewModel SelectedTab changed to {value}");
+
+        // Guard: prompt to save unsaved settings when leaving Settings tab
+        if (!_suppressTabChangeGuard
+            && string.Equals(_previousTab, "Settings", StringComparison.Ordinal)
+            && !string.Equals(value, "Settings", StringComparison.Ordinal)
+            && Settings.IsDirty)
+        {
+            var title = _localizer["SettingsUnsavedWarningTitle"];
+            var message = _localizer["SettingsUnsavedWarning"];
+            var result = _dialogService.ShowSaveDiscardCancelAsync(title, message).GetAwaiter().GetResult();
+
+            if (result is null)
+            {
+                // Cancel: revert to Settings tab
+                _suppressTabChangeGuard = true;
+                SelectedTab = "Settings";
+                _suppressTabChangeGuard = false;
+                return;
+            }
+
+            if (result == true)
+            {
+                // Save
+                Settings.SaveCommand.Execute(null);
+            }
+            else
+            {
+                // Discard
+                Settings.DiscardChangesAsync().GetAwaiter().GetResult();
+            }
+        }
+
+        _previousTab = value;
 
         OnPropertyChanged(nameof(IsServersTabSelected));
         OnPropertyChanged(nameof(IsTunnelsTabSelected));

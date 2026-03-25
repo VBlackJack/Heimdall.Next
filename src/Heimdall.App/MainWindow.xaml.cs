@@ -88,6 +88,7 @@ public partial class MainWindow : Window
                 await viewModel.LoadCommand.ExecuteAsync(null);
             }
 
+            RestoreWindowBounds(viewModel);
             PopulateAboutSection();
 
             // Restore tools panel visibility from persisted setting
@@ -813,6 +814,40 @@ public partial class MainWindow : Window
                 }
                 e.Handled = true;
                 break;
+
+            case Key.W when Keyboard.Modifiers == ModifierKeys.Control:
+                if (terminalHasFocus) break;
+                if (vm.Connection.ActiveSession is not null &&
+                    vm.Connection.CloseSessionCommand.CanExecute(vm.Connection.ActiveSession))
+                {
+                    vm.Connection.CloseSessionCommand.Execute(vm.Connection.ActiveSession);
+                }
+                e.Handled = true;
+                break;
+
+            case Key.Tab when Keyboard.Modifiers == ModifierKeys.Control:
+            {
+                var sessions = vm.Connection.ActiveSessions;
+                if (sessions.Count > 1 && vm.Connection.ActiveSession is not null)
+                {
+                    var idx = sessions.IndexOf(vm.Connection.ActiveSession);
+                    vm.Connection.ActiveSession = sessions[(idx + 1) % sessions.Count];
+                }
+                e.Handled = true;
+                break;
+            }
+
+            case Key.Tab when Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift):
+            {
+                var sessions = vm.Connection.ActiveSessions;
+                if (sessions.Count > 1 && vm.Connection.ActiveSession is not null)
+                {
+                    var idx = sessions.IndexOf(vm.Connection.ActiveSession);
+                    vm.Connection.ActiveSession = sessions[(idx - 1 + sessions.Count) % sessions.Count];
+                }
+                e.Handled = true;
+                break;
+            }
 
             case Key.F1:
                 ShowKeyboardShortcutHelp();
@@ -3218,6 +3253,86 @@ public partial class MainWindow : Window
         {
             Mw_ShareFolderLabel.Text = vm.Localize("ToolsShareFolder");
             vm.StatusText = vm.Localize("ToolsSharingStopped");
+        }
+    }
+
+    private void RestoreWindowBounds(MainViewModel vm)
+    {
+        var settings = vm.ConfigManager.LoadSettingsAsync().GetAwaiter().GetResult();
+        if (settings.WindowWidth > 0 && settings.WindowHeight > 0)
+        {
+            // Validate that the saved position is within the virtual screen area
+            var virtualLeft = SystemParameters.VirtualScreenLeft;
+            var virtualTop = SystemParameters.VirtualScreenTop;
+            var virtualRight = virtualLeft + SystemParameters.VirtualScreenWidth;
+            var virtualBottom = virtualTop + SystemParameters.VirtualScreenHeight;
+
+            bool isOnScreen =
+                settings.WindowLeft + settings.WindowWidth > virtualLeft &&
+                settings.WindowLeft < virtualRight &&
+                settings.WindowTop + settings.WindowHeight > virtualTop &&
+                settings.WindowTop < virtualBottom;
+
+            if (isOnScreen)
+            {
+                Left = settings.WindowLeft;
+                Top = settings.WindowTop;
+                Width = settings.WindowWidth;
+                Height = settings.WindowHeight;
+            }
+
+            if (settings.WindowMaximized)
+            {
+                WindowState = WindowState.Maximized;
+            }
+        }
+    }
+
+    private void SaveWindowBounds(MainViewModel vm)
+    {
+        // Save Normal-state bounds even when maximized
+        var bounds = WindowState == WindowState.Maximized
+            ? RestoreBounds
+            : new System.Windows.Rect(Left, Top, Width, Height);
+
+        _ = vm.ConfigManager.MergeSettingAsync(s =>
+        {
+            s.WindowWidth = bounds.Width;
+            s.WindowHeight = bounds.Height;
+            s.WindowLeft = bounds.Left;
+            s.WindowTop = bounds.Top;
+            s.WindowMaximized = WindowState == WindowState.Maximized;
+        });
+    }
+
+    /// <inheritdoc />
+    protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
+    {
+        base.OnClosing(e);
+        if (e.Cancel) return;
+
+        if (DataContext is not MainViewModel vm) return;
+
+        SaveWindowBounds(vm);
+
+        if (vm.Settings.IsDirty)
+        {
+            var title = vm.Localize("SettingsUnsavedWarningTitle");
+            var message = vm.Localize("SettingsUnsavedWarning");
+            var result = vm.DialogService.ShowSaveDiscardCancelAsync(title, message)
+                .GetAwaiter().GetResult();
+
+            if (result is null)
+            {
+                e.Cancel = true;
+                return;
+            }
+
+            if (result == true)
+            {
+                vm.Settings.SaveCommand.Execute(null);
+            }
+            // false = Discard — let the window close without saving
         }
     }
 

@@ -43,6 +43,18 @@ public class WpfDialogService(LocalizationManager localizer, ConfigManager confi
     }
 
     /// <inheritdoc/>
+    public Task<bool?> ShowSaveDiscardCancelAsync(string title, string message)
+    {
+        var save = _localizer["BtnSave"];
+        var discard = _localizer["BtnDiscard"];
+        var cancel = _localizer["BtnCancel"];
+        var result = Views.Dialogs.MessageDialog.ShowThreeWay(
+            GetOwnerWindow(), title, message, "warning", save, discard, cancel);
+
+        return Task.FromResult(result);
+    }
+
+    /// <inheritdoc/>
     public Task<string?> ShowInputAsync(string title, string prompt, string? defaultValue = null)
     {
         var dialog = new InputDialog(_localizer)

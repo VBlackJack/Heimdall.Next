@@ -118,6 +118,14 @@ public partial class App : System.Windows.Application
         // instead of on the first RDP connection.
         PreWarmRdpRuntime();
 
+        // Respect Windows "Show animations" accessibility setting (WCAG 2.1 § 2.3.3).
+        // When disabled, override animation durations to zero for instant state transitions.
+        if (!SystemParameters.MenuAnimation)
+        {
+            Resources["AnimationFast"] = new Duration(TimeSpan.Zero);
+            Resources["AnimationMedium"] = new Duration(TimeSpan.Zero);
+        }
+
         // Initialize HMAC key for credential protection
         await InitializeHmacKeyAsync(configManager, settings);
 

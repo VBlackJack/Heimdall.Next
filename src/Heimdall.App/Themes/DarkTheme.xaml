@@ -17,7 +17,7 @@
     <Color x:Key="TextDisabledColor">#9298B0</Color>
     <Color x:Key="SuccessColor">#50FA7B</Color>
     <Color x:Key="WarningColor">#FFB86C</Color>
-    <Color x:Key="ErrorColor">#FF6E6E</Color>
+    <Color x:Key="ErrorColor">#FF5555</Color>
     <Color x:Key="InfoColor">#8BE9FD</Color>
     <Color x:Key="BorderColor">#6272A4</Color>
     <Color x:Key="HighlightColor">#353A50</Color>
@@ -25,7 +25,7 @@
     <!-- WCAG-safe text variants for semantic colors on dark backgrounds -->
     <Color x:Key="SuccessTextColor">#50FA7B</Color>
     <Color x:Key="WarningTextColor">#FFB86C</Color>
-    <Color x:Key="ErrorTextColor">#FF6E6E</Color>
+    <Color x:Key="ErrorTextColor">#FF5555</Color>
 
     <!-- Brushes -->
     <SolidColorBrush x:Key="BackgroundBrush" Color="{StaticResource PrimaryColor}"/>
@@ -49,7 +49,7 @@
     <SolidColorBrush x:Key="ProtocolSshBrush" Color="#22C55E"/>
     <SolidColorBrush x:Key="ProtocolSftpBrush" Color="#F59E0B"/>
     <SolidColorBrush x:Key="ProtocolVncBrush" Color="#8BE9FD"/>
-    <SolidColorBrush x:Key="ProtocolTelnetBrush" Color="#A0A0B0"/>
+    <SolidColorBrush x:Key="ProtocolTelnetBrush" Color="#B0B4C8"/>
     <SolidColorBrush x:Key="ProtocolFtpBrush" Color="#60A5FA"/>
     <SolidColorBrush x:Key="ProtocolCitrixBrush" Color="#4B6FD1"/>
     <SolidColorBrush x:Key="ProtocolLocalBrush" Color="#A67AF7"/>
@@ -61,7 +61,7 @@
     <SolidColorBrush x:Key="VncBadgeBrush" Color="#8BE9FD"/>
     <SolidColorBrush x:Key="FtpBadgeBrush" Color="#60A5FA"/>
     <SolidColorBrush x:Key="CitrixBadgeBrush" Color="#4B6FD1"/>
-    <SolidColorBrush x:Key="TelnetBadgeBrush" Color="#A0A0B0"/>
+    <SolidColorBrush x:Key="TelnetBadgeBrush" Color="#B0B4C8"/>
     <SolidColorBrush x:Key="LocalBadgeBrush" Color="#A67AF7"/>
     <Color x:Key="ToolBadgeColor">#36D7B7</Color>
     <SolidColorBrush x:Key="ToolBadgeBrush" Color="#36D7B7"/>
@@ -97,6 +97,14 @@
     <SolidColorBrush x:Key="OverlayBackground" Color="#A0000000"/>
     <SolidColorBrush x:Key="DragDropOverlayBackground" Color="#66282A36"/>
     <SolidColorBrush x:Key="BroadcastActiveBrush" Color="#44FF5555"/>
+
+    <!-- File type icon colors (Dracula palette) -->
+    <SolidColorBrush x:Key="FileScriptBrush" Color="#50FA7B"/>
+    <SolidColorBrush x:Key="FileConfigBrush" Color="#8BE9FD"/>
+    <SolidColorBrush x:Key="FileDocumentBrush" Color="#A8B0CC"/>
+    <SolidColorBrush x:Key="FileArchiveBrush" Color="#FFB86C"/>
+    <SolidColorBrush x:Key="FileExecutableBrush" Color="#FF79C6"/>
+    <SolidColorBrush x:Key="FileImageBrush" Color="#F1FA8C"/>
 
     <!-- Scrollbar (Dracula) -->
     <SolidColorBrush x:Key="ScrollBarThumbBrush" Color="#A8B0CC"/>

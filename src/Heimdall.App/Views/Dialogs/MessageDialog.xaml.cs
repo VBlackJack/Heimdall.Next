@@ -27,6 +27,11 @@ public partial class MessageDialog : Window
 {
     public bool Result { get; private set; }
 
+    /// <summary>
+    /// Three-way result: true = primary (Save), false = secondary (Discard), null = tertiary (Cancel).
+    /// </summary>
+    public bool? ThreeWayResult { get; private set; }
+
     public MessageDialog()
     {
         InitializeComponent();
@@ -94,15 +99,55 @@ public partial class MessageDialog : Window
         }
     }
 
+    /// <summary>
+    /// Shows a three-choice dialog (e.g., Save / Discard / Cancel).
+    /// Returns true (primary), false (secondary), or null (tertiary/cancel).
+    /// </summary>
+    public static bool? ShowThreeWay(
+        Window? owner,
+        string title,
+        string message,
+        string severity = "warning",
+        string primaryLabel = "Save",
+        string secondaryLabel = "Discard",
+        string tertiaryLabel = "Cancel")
+    {
+        var dialog = new MessageDialog { Owner = owner };
+        dialog.TitleText.Text = title;
+        dialog.MessageText.Text = message;
+        dialog.BtnPrimary.Content = primaryLabel;
+        dialog.BtnSecondary.Content = secondaryLabel;
+        dialog.BtnSecondary.Visibility = Visibility.Visible;
+        dialog.BtnTertiary.Content = tertiaryLabel;
+        dialog.BtnTertiary.Visibility = Visibility.Visible;
+        System.Windows.Automation.AutomationProperties.SetName(dialog.BtnPrimary, primaryLabel);
+        System.Windows.Automation.AutomationProperties.SetName(dialog.BtnSecondary, secondaryLabel);
+        System.Windows.Automation.AutomationProperties.SetName(dialog.BtnTertiary, tertiaryLabel);
+
+        ApplySeverityStyle(dialog, severity);
+
+        dialog.ShowDialog();
+        return dialog.ThreeWayResult;
+    }
+
     private void OnPrimaryClick(object sender, RoutedEventArgs e)
     {
         Result = true;
+        ThreeWayResult = true;
         DialogResult = true;
     }
 
     private void OnSecondaryClick(object sender, RoutedEventArgs e)
     {
         Result = false;
+        ThreeWayResult = false;
+        DialogResult = true;
+    }
+
+    private void OnTertiaryClick(object sender, RoutedEventArgs e)
+    {
+        Result = false;
+        ThreeWayResult = null;
         DialogResult = false;
     }
 }
