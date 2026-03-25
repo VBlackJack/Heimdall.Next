@@ -12,6 +12,21 @@
 
 All notable changes to Heimdall.Next are documented in this file.
 
+## [v2026.032505] - 2026-03-25
+
+### Notes tool enhancements and swap panes fix
+
+#### Notes: sidebar toggle, context menu, Dracula theme
+- **Sidebar toggle**: collapsible TreeView panel via hamburger button in header bar — saves/restores width across toggles
+- **Editor right-click context menu**: 17 Markdown formatting actions (Bold, Italic, Strikethrough, Inline Code, Code Block, Link, Image, Note Link, Headings 1–3, Bullet/Numbered/Task List, Blockquote, Table, Horizontal Rule) — works in both Milkdown (JS) and AvalonEdit (WPF) editors with localized labels (EN/FR)
+- **Dracula theme**: full Dracula palette for Milkdown dark mode (#282a36 bg, #f8f8f2 fg, #bd93f9 purple accents, #8be9fd cyan links, #ff79c6 pink inline code) via native Crepe `--crepe-*` CSS tokens (removed legacy `@milkdown/theme-nord` import). AvalonEdit syntax highlighting colors updated to match
+
+#### Fix: swap panes freeze
+- **Async two-phase handoff**: `SwapSplitPanesAsync` detaches host controls, awaits visual tree stabilization (`AwaitVisualTreeAsync` at Loaded + ContextIdle priority), swaps model references, awaits again, then restores controls — prevents UIElement single-parent race between old and new `SessionPaneControl` instances
+- **`SessionPaneControl` lifecycle guards**: `SyncContent()` and `UpdateOverlays()` gated by `IsLoaded`; `HostPresenter.Content` cleared in both `OnUnloaded` and `OnDataContextChanged`; PropertyChanged subscription only while loaded — prevents disconnected controls from stealing WebView2/ActiveX children
+
+---
+
 ## [v2026.032404] - 2026-03-24
 
 ### Notes tool — Obsidian-style Markdown editor with Milkdown
