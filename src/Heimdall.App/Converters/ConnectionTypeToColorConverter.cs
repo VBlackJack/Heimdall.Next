@@ -18,12 +18,15 @@ using System.Globalization;
 using System.Windows;
 using System.Windows.Data;
 using System.Windows.Media;
+using Heimdall.App.Services;
 
 namespace Heimdall.App.Converters;
 
 /// <summary>
-/// Converts a connection type string (RDP, SSH, SFTP, etc.) to the corresponding
-/// protocol accent <see cref="Brush"/> from application resources.
+/// Converts a connection type string (RDP, SSH, SFTP, TOOL:PING, etc.) to the
+/// corresponding protocol or tool category accent <see cref="Brush"/>.
+/// Tool types resolve to per-category brushes (Network, Security, Encoding, System)
+/// via <see cref="ToolRegistry"/> static lookup.
 /// </summary>
 public sealed class ConnectionTypeToColorConverter : IValueConverter
 {
@@ -34,7 +37,7 @@ public sealed class ConnectionTypeToColorConverter : IValueConverter
         string resourceKey;
         if (typeStr.StartsWith("TOOL:", StringComparison.Ordinal))
         {
-            resourceKey = "ToolBadgeBrush";
+            resourceKey = ToolRegistry.GetCategoryBrushKey(typeStr);
         }
         else
         {

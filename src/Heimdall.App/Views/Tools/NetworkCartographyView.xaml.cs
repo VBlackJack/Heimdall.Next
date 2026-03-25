@@ -224,6 +224,8 @@ public partial class NetworkCartographyView : UserControl, IToolView
         ScanProgress.IsIndeterminate = true;
         TxtStatus.Text = string.Format(L("ToolNetMapStatusDiscovery"), 0, ipList.Count);
         TxtStats.Text = "";
+        TxtScanProgress.Visibility = Visibility.Visible;
+        TxtScanProgress.Text = string.Format(L("ToolNetMapScanProgress"), 0, ipList.Count);
 
         var depth = CmbDepth.SelectedItem is ComboBoxItem item && item.Tag is ScanDepth d
             ? d : ScanDepth.Quick;
@@ -264,6 +266,7 @@ public partial class NetworkCartographyView : UserControl, IToolView
                 ScanProgress.Maximum = total;
                 ScanProgress.Value = completed;
                 TxtStatus.Text = string.Format(L("ToolNetMapStatusDiscovery"), completed, total);
+                TxtScanProgress.Text = string.Format(L("ToolNetMapScanProgress"), completed, total);
             });
         };
 
@@ -489,6 +492,7 @@ public partial class NetworkCartographyView : UserControl, IToolView
                 ScanProgress.Value = completed;
                 TxtStatus.Text = string.Format(L("ToolNetMapStatusScanning"),
                     ip, completed, ipList.Count);
+                TxtScanProgress.Text = string.Format(L("ToolNetMapScanProgress"), completed, ipList.Count);
             });
         }
 
@@ -521,6 +525,7 @@ public partial class NetworkCartographyView : UserControl, IToolView
         CmbDepth.IsEnabled = true;
         ChkSkipPing.IsEnabled = true;
         ChkReverseDns.IsEnabled = true;
+        TxtScanProgress.Visibility = Visibility.Collapsed;
 
         // Keep progress panel visible if there's a status message to show
         // (0-hosts warning, error, or completion summary)

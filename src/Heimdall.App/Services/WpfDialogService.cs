@@ -17,6 +17,7 @@
 using System.Windows;
 using Heimdall.App.ViewModels.Dialogs;
 using Heimdall.App.Views.Dialogs;
+using Heimdall.Core.Configuration;
 using Heimdall.Core.Localization;
 
 namespace Heimdall.App.Services;
@@ -25,9 +26,10 @@ namespace Heimdall.App.Services;
 /// WPF implementation of <see cref="IDialogService"/>.
 /// Creates and shows modal dialog windows, transferring results back to callers.
 /// </summary>
-public class WpfDialogService(LocalizationManager localizer) : IDialogService
+public class WpfDialogService(LocalizationManager localizer, ConfigManager configManager) : IDialogService
 {
     private readonly LocalizationManager _localizer = localizer;
+    private readonly ConfigManager _configManager = configManager;
 
     /// <inheritdoc/>
     public Task<bool> ShowConfirmAsync(string title, string message, string severity = "info")
@@ -60,7 +62,7 @@ public class WpfDialogService(LocalizationManager localizer) : IDialogService
     {
         var vm = editVm ?? new ServerDialogViewModel();
         vm.Localizer ??= _localizer;
-        var dialog = new ServerDialog(_localizer)
+        var dialog = new ServerDialog(_localizer, _configManager)
         {
             DataContext = vm,
             Owner = GetOwnerWindow()
@@ -114,7 +116,7 @@ public class WpfDialogService(LocalizationManager localizer) : IDialogService
     {
         ArgumentNullException.ThrowIfNull(viewModel);
 
-        var dialog = new PinDialog(_localizer)
+        var dialog = new PinDialog
         {
             DataContext = viewModel,
             Owner = GetOwnerWindow()

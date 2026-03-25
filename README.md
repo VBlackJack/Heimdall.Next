@@ -14,8 +14,8 @@
 
 [![CI](https://github.com/VBlackJack/Heimdall.Next/actions/workflows/ci.yml/badge.svg)](https://github.com/VBlackJack/Heimdall.Next/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-1576%20passing-brightgreen.svg)]()
-[![Tools](https://img.shields.io/badge/tools-34%20sysops-blue.svg)]()
+[![Tests](https://img.shields.io/badge/tests-1586%20passing-brightgreen.svg)]()
+[![Tools](https://img.shields.io/badge/tools-33%20sysops-blue.svg)]()
 [![.NET](https://img.shields.io/badge/.NET-10.0-purple.svg)]()
 
 **The secure, all-in-one Windows connection manager for RDP, SSH, SFTP, VNC, Telnet, FTP, Citrix, and local terminals.**
@@ -186,15 +186,16 @@ All tools open as session tabs (split with any session or tool, detach, reorder)
 
 ### User Interface
 - Runtime Dark and Light theme switching (1,870+ lines of WPF control styles)
-- Design System with 45 tokens: typography (10 sizes), spacing (8 tokens incl. asymmetric), button padding (4 roles), input padding, corner radius, opacity, icon sizes, monospace font family, micro-animations (150ms/250ms)
-- WCAG AA compliant: all foreground/background pairs verified at 4.5:1+ contrast ratio
+- Design System with 45 tokens: typography (10 sizes, min 11px), spacing (8 tokens incl. asymmetric), button padding (4 roles), input padding, corner radius, opacity, icon sizes, monospace font family, micro-animations (150ms/250ms)
+- WCAG AA compliant: all foreground/background pairs verified at 4.5:1+ contrast ratio, scrollbar thumb 4.2:1+ (dark/light)
 - FocusIndicatorBrush for keyboard navigation accessibility on all button styles
-- Unique protocol icons per connection type (RDP, SSH, SFTP, VNC, Telnet, FTP, Citrix, Local Shell)
+- Unified two-tier icon system: vector geometries (`Geo.*`) for domain icons + Segoe MDL2 for UI chrome
+- Localized tooltips on all icon-only buttons; 45+ AutomationProperties set via i18n
 - 19 themed control styles with complete hover/pressed/focused/disabled states
 - 5 terminal color schemes: Dracula, Solarized Dark, Monokai, Nord, Default — Dracula also applied to Notes Milkdown editor
 - Configurable terminal font family and size
 - Settings panel with 6 left-navigation sub-tabs (General, Terminal, SSH & SFTP, RDP, Security, Advanced)
-- Server Dialog: protocol-aware stable tabs (disabled with tooltip when not applicable, never hidden)
+- Server Dialog: progressive disclosure (Simple/Advanced toggle with animated transition), protocol-aware tabs
 - TreeView hierarchy: Project > Group > Server with category-colored tool icons and status dots
 - Command Palette (Ctrl+K): protocol icons, status dots, endpoint hints, Ctrl+Enter for split
 - Connection inheritance: group-level defaults for gateway, SSH username, key path
@@ -203,8 +204,9 @@ All tools open as session tabs (split with any session or tool, detach, reorder)
 - Tab busy indicator: pulsing accent dot on tabs during long-running tool operations
 - Tools Panel: category fallback icons, scroll-more indicator
 - Fullscreen mode (F11), toggle sidebar (Ctrl+B), filter (Ctrl+F)
-- Bilingual interface: English and French (~3,061 i18n keys)
-- WCAG 2.1 AA accessibility: 385+ AutomationProperties via code-behind, keyboard focus indicators, disabled state tooltips
+- Bilingual interface: English and French (~3,457 i18n keys)
+- Declarative i18n: `{loc:Translate Key}` WPF markup extension with runtime language switching (coexists with legacy ApplyLocalization pattern)
+- WCAG 2.1 AA accessibility: 385+ AutomationProperties via code-behind and `{loc:Translate}`, keyboard focus indicators, disabled state tooltips
 
 ### Security
 - DPAPI encryption + HMAC-SHA256 integrity via unified `CredentialProtector`
@@ -338,7 +340,7 @@ Release mode also produces Inno Setup `.exe` installers in `Dist/installers/` wi
 | RDP | ActiveX MsTscAx (WindowsFormsHost) |
 | Citrix | StoreBrowse CLI integration |
 | Crypto | System.Security.Cryptography.ProtectedData (DPAPI) |
-| Testing | xUnit + Moq + FluentAssertions (1,576 tests) |
+| Testing | xUnit + Moq + FluentAssertions (1,586 tests) |
 | Built-in Tools | 33 sysops tools (Ctrl+K → `tools` or Ctrl+Shift+T) |
 | Serialization | System.Text.Json |
 

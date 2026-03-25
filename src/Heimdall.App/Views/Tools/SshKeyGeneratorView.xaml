@@ -68,9 +68,9 @@
                                   SelectedIndex="1"
                                   MinWidth="200"
 >
-                            <ComboBoxItem Content="RSA (2048)"/>
-                            <ComboBoxItem Content="RSA (4096)"/>
-                            <ComboBoxItem Content="Ed25519" x:Name="Ed25519Item"/>
+                            <ComboBoxItem x:Name="Rsa2048Item" Content="" Tag="RSA2048"/>
+                            <ComboBoxItem x:Name="Rsa4096Item" Content="" Tag="RSA4096"/>
+                            <ComboBoxItem x:Name="Ed25519Item" Content="" Tag="Ed25519"/>
                         </ComboBox>
                     </DockPanel>
 

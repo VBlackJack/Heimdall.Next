@@ -112,8 +112,14 @@ public partial class EmbeddedCitrixView : UserControl, IDisposable
 
         TerminateButton.Content = localizer?["BtnTerminateSession"] ?? "Terminate";
         BringToFrontButton.Content = localizer?["BtnBringToFront"] ?? "Bring to Front";
-        System.Windows.Automation.AutomationProperties.SetName(TerminateButton, localizer?["BtnTerminateSession"] ?? "Terminate");
-        System.Windows.Automation.AutomationProperties.SetName(BringToFrontButton, localizer?["BtnBringToFront"] ?? "Bring to Front");
+
+        // Tooltips
+        TerminateButton.ToolTip = localizer?["TooltipDisconnectSession"] ?? "Disconnect session";
+        BringToFrontButton.ToolTip = localizer?["TooltipBringToFront"] ?? "Bring to front";
+
+        // Accessibility
+        System.Windows.Automation.AutomationProperties.SetName(TerminateButton, localizer?["A11yDisconnectSession"] ?? "Disconnect session");
+        System.Windows.Automation.AutomationProperties.SetName(BringToFrontButton, localizer?["A11yBringToFront"] ?? "Bring to front");
 
         SessionTitleText.Text = displayName;
         TitleText.Text = displayName;

@@ -28,7 +28,7 @@
                         Padding="8,2"
                         FontSize="{StaticResource FontSizeCaption}"
                         Margin="8,0,0,0"
-                        AutomationProperties.Name="Disconnect session"/>
+                        AutomationProperties.Name=""/>
                 <Button x:Name="BringToFrontButton"
                         DockPanel.Dock="Right"
                         Click="OnBringToFrontClick"
@@ -37,7 +37,7 @@
                         FontSize="{StaticResource FontSizeCaption}"
                         Margin="4,0,0,0"
                         Visibility="Collapsed"
-                        AutomationProperties.Name="Bring to front"/>
+                        AutomationProperties.Name=""/>
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <TextBlock x:Name="SessionTitleText"
                                FontSize="{StaticResource FontSizeBody}"

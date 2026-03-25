@@ -19,39 +19,22 @@ using System.Windows;
 using System.Windows.Input;
 using Heimdall.App.Theming;
 using Heimdall.App.ViewModels.Dialogs;
-using Heimdall.Core.Localization;
 
 namespace Heimdall.App.Views.Dialogs;
 
 /// <summary>
 /// PIN entry dialog. Code-behind handles PasswordBox interaction
 /// and monitors the ViewModel's IsVerified property to close automatically on success.
+/// Localization is handled declaratively in XAML via <c>{loc:Translate}</c>.
 /// </summary>
 public partial class PinDialog : Window
 {
-    private readonly LocalizationManager? _localizer;
-
-    public PinDialog(LocalizationManager? localizer = null)
+    public PinDialog()
     {
-        _localizer = localizer;
         InitializeComponent();
         WindowThemeHelper.ApplyCurrentTheme(this);
 
-        Loaded += (_, _) =>
-        {
-            PinBox.Focus();
-            if (_localizer is not null)
-            {
-                Title = _localizer["PinDialogTitle"];
-                PinTitleText.Text = _localizer["PinEnterLabel"];
-                CancelBtn.Content = _localizer["BtnCancel"];
-                UnlockBtn.Content = _localizer["BtnUnlock"];
-                System.Windows.Automation.AutomationProperties.SetName(CancelBtn, _localizer["BtnCancel"]);
-                System.Windows.Automation.AutomationProperties.SetName(UnlockBtn, _localizer["BtnUnlock"]);
-                System.Windows.Automation.AutomationProperties.SetName(PinBox, _localizer["PinEnterLabel"]);
-            }
-        };
-
+        Loaded += (_, _) => PinBox.Focus();
         DataContextChanged += OnDataContextChanged;
     }
 

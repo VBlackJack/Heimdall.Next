@@ -91,11 +91,11 @@
                               Background="{DynamicResource CardBrush}"
                               Foreground="{DynamicResource TextPrimaryBrush}"
                               BorderBrush="{DynamicResource BorderBrush}">
-                        <ComboBoxItem Content="0.5s" Tag="500"/>
-                        <ComboBoxItem Content="1s" Tag="1000"/>
-                        <ComboBoxItem Content="2s" Tag="2000"/>
-                        <ComboBoxItem Content="5s" Tag="5000"/>
-                        <ComboBoxItem Content="10s" Tag="10000"/>
+                        <ComboBoxItem x:Name="Ping500ms" Content="" Tag="500"/>
+                        <ComboBoxItem x:Name="Ping1s" Content="" Tag="1000"/>
+                        <ComboBoxItem x:Name="Ping2s" Content="" Tag="2000"/>
+                        <ComboBoxItem x:Name="Ping5s" Content="" Tag="5000"/>
+                        <ComboBoxItem x:Name="Ping10s" Content="" Tag="10000"/>
                     </ComboBox>
 
                     <TextBlock x:Name="LblTimeout" Text=""

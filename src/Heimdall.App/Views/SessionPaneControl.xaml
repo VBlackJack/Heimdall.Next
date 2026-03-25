@@ -60,7 +60,7 @@
                            Foreground="{DynamicResource ErrorTextBrush}"
                            HorizontalAlignment="Center"
                            Margin="0,0,0,8"
-                           AutomationProperties.Name="Disconnected"/>
+                           AutomationProperties.Name=""/>
                 <TextBlock Text="{Binding Title}"
                            FontSize="{StaticResource FontSizeSubtitle}"
                            Foreground="{DynamicResource TextPrimaryBrush}"
@@ -73,12 +73,12 @@
                            Margin="0,4,0,16"/>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                     <Button x:Name="ReconnectButton"
-                            AutomationProperties.Name="Reconnect pane"
+                            AutomationProperties.Name=""
                             Content="{Binding DataContext.ReconnectSecondaryButtonText, RelativeSource={RelativeSource AncestorType=Window}}"
                             Margin="0,0,8,0"
                             Padding="16,6"/>
                     <Button x:Name="ClosePaneButton"
-                            AutomationProperties.Name="Close pane"
+                            AutomationProperties.Name=""
                             Content="{Binding DataContext.CloseSecondaryButtonText, RelativeSource={RelativeSource AncestorType=Window}}"
                             Padding="16,6"/>
                 </StackPanel>

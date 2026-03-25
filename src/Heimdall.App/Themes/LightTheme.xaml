@@ -54,10 +54,15 @@
     <SolidColorBrush x:Key="ProtocolCitrixBrush" Color="#1E3A8A"/>
     <SolidColorBrush x:Key="ProtocolLocalBrush" Color="#7C3AED"/>
 
-    <!-- Connection type badge colors -->
-    <SolidColorBrush x:Key="RdpBadgeBrush" Color="#3B82F6"/>
-    <SolidColorBrush x:Key="SshBadgeBrush" Color="#16A34A"/>
-    <SolidColorBrush x:Key="SftpBadgeBrush" Color="#D97706"/>
+    <!-- Connection type badge colors (aligned with protocol accent brushes) -->
+    <SolidColorBrush x:Key="RdpBadgeBrush" Color="#2563EB"/>
+    <SolidColorBrush x:Key="SshBadgeBrush" Color="#0D6E3F"/>
+    <SolidColorBrush x:Key="SftpBadgeBrush" Color="#B8620A"/>
+    <SolidColorBrush x:Key="VncBadgeBrush" Color="#0891B2"/>
+    <SolidColorBrush x:Key="FtpBadgeBrush" Color="#1D4ED8"/>
+    <SolidColorBrush x:Key="CitrixBadgeBrush" Color="#1E3A8A"/>
+    <SolidColorBrush x:Key="TelnetBadgeBrush" Color="#6B7280"/>
+    <SolidColorBrush x:Key="LocalBadgeBrush" Color="#7C3AED"/>
     <Color x:Key="ToolBadgeColor">#0D9488</Color>
     <SolidColorBrush x:Key="ToolBadgeBrush" Color="#0D9488"/>
     <!-- Per-category tool icon brushes -->
@@ -94,7 +99,7 @@
     <SolidColorBrush x:Key="BroadcastActiveBrush" Color="#44DC2626"/>
 
     <!-- Scrollbar colors -->
-    <SolidColorBrush x:Key="ScrollBarThumbBrush" Color="#C0C0C0"/>
+    <SolidColorBrush x:Key="ScrollBarThumbBrush" Color="#999999"/>
     <SolidColorBrush x:Key="ScrollBarTrackBrush" Color="#F5F5F5"/>
 
 </ResourceDictionary>

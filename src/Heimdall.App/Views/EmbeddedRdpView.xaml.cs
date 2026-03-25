@@ -136,14 +136,17 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         if (_localizer is not null)
         {
             DisconnectButton.Content = L("BtnDisconnectSession");
-            SplitButton.ToolTip = L("ToolTipSplitPane");
-            ResolutionButton.ToolTip = L("RdpTooltipResolution");
             ResMenuFit.Header = L("RdpResolutionFitToWindow");
 
+            // Tooltips
+            DisconnectButton.ToolTip = L("TooltipDisconnectSession");
+            SplitButton.ToolTip = L("TooltipSplitSession");
+            ResolutionButton.ToolTip = L("TooltipChangeResolution");
+
             // Accessibility: automation names for toolbar buttons
-            System.Windows.Automation.AutomationProperties.SetName(DisconnectButton, L("BtnDisconnectSession"));
-            System.Windows.Automation.AutomationProperties.SetName(SplitButton, L("ToolTipSplitPane"));
-            System.Windows.Automation.AutomationProperties.SetName(ResolutionButton, L("RdpTooltipResolution"));
+            System.Windows.Automation.AutomationProperties.SetName(DisconnectButton, L("A11yDisconnectSession"));
+            System.Windows.Automation.AutomationProperties.SetName(SplitButton, L("A11ySplitSession"));
+            System.Windows.Automation.AutomationProperties.SetName(ResolutionButton, L("A11yChangeResolution"));
         }
 
         CreateHostControl();

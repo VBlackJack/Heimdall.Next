@@ -83,10 +83,10 @@
                           MinWidth="120" Margin="8,0,0,0"
                           SelectionChanged="OnEncodingChanged"
                           VerticalAlignment="Center">
-                    <ComboBoxItem Content="UTF-8"/>
-                    <ComboBoxItem Content="ASCII"/>
-                    <ComboBoxItem Content="UTF-16"/>
-                    <ComboBoxItem Content="Windows-1252"/>
+                    <ComboBoxItem x:Name="EncUtf8Item" Content="" Tag="UTF-8"/>
+                    <ComboBoxItem x:Name="EncAsciiItem" Content="" Tag="ASCII"/>
+                    <ComboBoxItem x:Name="EncUtf16Item" Content="" Tag="UTF-16"/>
+                    <ComboBoxItem x:Name="EncWin1252Item" Content="" Tag="Windows-1252"/>
                 </ComboBox>
                 <TextBlock x:Name="EncodingLabel" DockPanel.Dock="Right"
                            Foreground="{DynamicResource TextSecondaryBrush}"

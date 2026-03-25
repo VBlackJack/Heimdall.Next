@@ -96,6 +96,9 @@ public partial class SshKeyGeneratorView : UserControl, IToolView
         BtnCopyPrivateKey.Content = L("ToolSshKeyGenBtnCopy");
         BtnShowPrivateKey.Content = L("ToolSshKeyGenBtnShow");
         BtnSavePrivateKey.Content = L("ToolSshKeyGenBtnSave");
+        Rsa2048Item.Content = L("ToolSshKeyGenRsa2048");
+        Rsa4096Item.Content = L("ToolSshKeyGenRsa4096");
+        Ed25519Item.Content = L("ToolSshKeyGenEd25519");
         Ed25519Notice.Text = L("ToolSshKeyGenEd25519Notice");
         Ed25519Item.ToolTip = L("ToolSshKeyGenEd25519Tooltip");
 

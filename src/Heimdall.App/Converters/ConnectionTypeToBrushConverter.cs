@@ -42,11 +42,11 @@ public sealed class ConnectionTypeToBrushConverter : IValueConverter
                 "RDP" => "RdpBadgeBrush",
                 "SSH" => "SshBadgeBrush",
                 "SFTP" => "SftpBadgeBrush",
-                "FTP" => "SftpBadgeBrush",
-                "VNC" => "RdpBadgeBrush",
-                "TELNET" => "SshBadgeBrush",
-                "CITRIX" => "RdpBadgeBrush",
-                "LOCAL" => "AccentBrush",
+                "FTP" => "FtpBadgeBrush",
+                "VNC" => "VncBadgeBrush",
+                "TELNET" => "TelnetBadgeBrush",
+                "CITRIX" => "CitrixBadgeBrush",
+                "LOCAL" => "LocalBadgeBrush",
                 _ => "InfoBrush"
             };
         }

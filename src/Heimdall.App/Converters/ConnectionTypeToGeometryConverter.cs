@@ -18,12 +18,15 @@ using System.Globalization;
 using System.Windows;
 using System.Windows.Data;
 using System.Windows.Media;
+using Heimdall.App.Services;
 
 namespace Heimdall.App.Converters;
 
 /// <summary>
-/// Converts a connection type string (RDP, SSH, SFTP, etc.) to the corresponding
-/// vector <see cref="Geometry"/> from application resources.
+/// Converts a connection type string (RDP, SSH, SFTP, TOOL:PING, etc.) to the
+/// corresponding vector <see cref="Geometry"/> from application resources.
+/// Protocol types map to <c>Geo.Protocol.*</c>, tool types use
+/// <see cref="ToolRegistry"/> static lookup for <c>Geo.Tool.*</c>.
 /// </summary>
 public sealed class ConnectionTypeToGeometryConverter : IValueConverter
 {
@@ -34,7 +37,7 @@ public sealed class ConnectionTypeToGeometryConverter : IValueConverter
         string resourceKey;
         if (typeStr.StartsWith("TOOL:", StringComparison.Ordinal))
         {
-            resourceKey = "Geo.Tree.Server";
+            resourceKey = ToolRegistry.GetGeometryKey(typeStr) ?? "Geo.Tree.Server";
         }
         else
         {

@@ -17,6 +17,7 @@
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
+using Heimdall.Core.Localization;
 using Heimdall.Core.Models;
 
 namespace Heimdall.App.Views;
@@ -47,6 +48,7 @@ public partial class SessionPaneControl : UserControl
             _model.PropertyChanged -= OnModelPropertyChanged;
             _model.PropertyChanged += OnModelPropertyChanged;
         }
+        ApplyLocalization();
         SyncContent();
         UpdateOverlays();
     }
@@ -176,6 +178,20 @@ public partial class SessionPaneControl : UserControl
                 return;
             }
         }
+    }
+
+    private void ApplyLocalization()
+    {
+        ReconnectButton.ToolTip = L("TooltipReconnectPane");
+        ClosePaneButton.ToolTip = L("TooltipClosePane");
+        System.Windows.Automation.AutomationProperties.SetName(ReconnectButton, L("A11yReconnectPane"));
+        System.Windows.Automation.AutomationProperties.SetName(ClosePaneButton, L("A11yClosePane"));
+    }
+
+    private string L(string key)
+    {
+        var vm = FindMainViewModel();
+        return vm?.GetLocalizer()[key] ?? key;
     }
 
     private ViewModels.MainViewModel? FindMainViewModel()

@@ -78,6 +78,10 @@ public partial class LogViewerView : UserControl, IToolView
         BtnClearFilter.Content = L("ToolLogViewBtnClear");
         ChkCaseSensitive.Content = L("ToolLogViewCaseSensitive");
         EncodingLabel.Text = L("ToolLogViewEncoding");
+        EncUtf8Item.Content = L("EncodingUtf8");
+        EncAsciiItem.Content = L("EncodingAscii");
+        EncUtf16Item.Content = L("EncodingUtf16");
+        EncWin1252Item.Content = L("EncodingWindows1252");
 
         // Accessibility
         System.Windows.Automation.AutomationProperties.SetName(BtnBrowse, L("ToolLogViewBtnBrowse"));

@@ -1156,18 +1156,22 @@ public partial class EmbeddedSshView : UserControl, IDisposable
         OverlayReconnectButton.Content = L("BtnReconnectSession");
         OverlayCloseButton.Content = L("BtnCloseOverlay");
         ReconnectMessageText.Text = L("SshDisconnectedMessage");
-        HealthToggleButton.ToolTip = L("ToolTipServerHealth");
-        SplitButton.ToolTip = L("ToolTipSplitPane");
-        ElevateButton.ToolTip = L("ToolTipElevateShell");
         AdminBadgeText.Text = L("AdminBadgeLabel");
         BroadcastBadgeText.Text = L("BroadcastBadgeLabel");
 
+        // Tooltips
+        DisconnectButton.ToolTip = L("TooltipDisconnectSession");
+        ReconnectButton.ToolTip = L("TooltipReconnectSession");
+        SplitButton.ToolTip = L("TooltipSplitSession");
+        HealthToggleButton.ToolTip = L("TooltipToggleHealthMonitoring");
+        ElevateButton.ToolTip = L("TooltipElevateToRoot");
+
         // Accessibility: automation names for toolbar buttons
-        System.Windows.Automation.AutomationProperties.SetName(DisconnectButton, L("BtnDisconnectSession"));
-        System.Windows.Automation.AutomationProperties.SetName(ReconnectButton, L("BtnReconnectSession"));
-        System.Windows.Automation.AutomationProperties.SetName(HealthToggleButton, L("ToolTipServerHealth"));
-        System.Windows.Automation.AutomationProperties.SetName(SplitButton, L("ToolTipSplitPane"));
-        System.Windows.Automation.AutomationProperties.SetName(ElevateButton, L("ToolTipElevateShell"));
+        System.Windows.Automation.AutomationProperties.SetName(DisconnectButton, L("A11yDisconnectSession"));
+        System.Windows.Automation.AutomationProperties.SetName(ReconnectButton, L("A11yReconnectSession"));
+        System.Windows.Automation.AutomationProperties.SetName(SplitButton, L("A11ySplitSession"));
+        System.Windows.Automation.AutomationProperties.SetName(HealthToggleButton, L("A11yToggleHealthMonitoring"));
+        System.Windows.Automation.AutomationProperties.SetName(ElevateButton, L("A11yElevateToRoot"));
     }
 
     /// <summary>Show/hide the shield button for launching an elevated shell.</summary>

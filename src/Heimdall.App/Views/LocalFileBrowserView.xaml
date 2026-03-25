@@ -38,22 +38,22 @@
                         x:Name="BtnBack" Click="OnBackClick"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
                         Padding="6,2" FontSize="{StaticResource FontSizeCaption}" IsEnabled="False"
-                        AutomationProperties.Name="Navigate back"/>
+                        AutomationProperties.Name=""/>
                 <Button x:Name="BtnUp" Content="&#xE74A;" FontFamily="Segoe MDL2 Assets"
                         Click="OnUpClick"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
                         Padding="6,2" FontSize="{StaticResource FontSizeCaption}" Margin="3,0,0,0"
-                        AutomationProperties.Name="Navigate up"/>
+                        AutomationProperties.Name=""/>
                 <Button x:Name="BtnHome" Content="&#xE80F;" FontFamily="Segoe MDL2 Assets"
                         Click="OnHomeClick"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
                         Padding="6,2" FontSize="{StaticResource FontSizeCaption}" Margin="3,0,0,0"
-                        AutomationProperties.Name="Navigate to home"/>
+                        AutomationProperties.Name=""/>
                 <Button x:Name="BtnRefresh" Content="&#xE72C;" FontFamily="Segoe MDL2 Assets"
                         Click="OnRefreshClick"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
                         Padding="6,2" FontSize="{StaticResource FontSizeCaption}" Margin="3,0,0,0"
-                        AutomationProperties.Name="Refresh directory"/>
+                        AutomationProperties.Name=""/>
             </StackPanel>
             </DockPanel>
         </Border>

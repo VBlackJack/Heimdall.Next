@@ -39,46 +39,46 @@ public sealed class ToolRegistry
         var entries = new List<ToolEntry>
         {
             // ── Network ───────────────────────────────────────────────
-            Entry("PING",     ToolCategory.Network,  "ToolCategoryNetwork",  "PaletteToolPing",     "PaletteToolPingWith",     ["ping"],                true,  () => new Views.Tools.PingToolView(),           "Icon.Tool.NetworkScanner"),
-            Entry("DNS",      ToolCategory.Network,  "ToolCategoryNetwork",  "PaletteToolDns",      "PaletteToolDnsWith",      ["dns","nslookup","dig"],true,  () => new Views.Tools.DnsLookupView(),          "Icon.Tool.DnsLookup"),
-            Entry("CERT",     ToolCategory.Network,  "ToolCategoryNetwork",  "PaletteToolCert",     "PaletteToolCertWith",     ["cert","ssl"],          true,  () => new Views.Tools.CertInspectorView(),     "Icon.Tool.CertInspector"),
-            Entry("PORTSCAN", ToolCategory.Network,  "ToolCategoryNetwork",  "PaletteToolPortScan", "PaletteToolPortScanWith", ["portscan","scan"],     true,  () => new Views.Tools.PortScannerView(),        "Icon.Tool.PortScanner"),
-            Entry("SUBNET",   ToolCategory.Network,  "ToolCategoryNetwork",  "PaletteToolSubnet",   "PaletteToolSubnetWith",   ["subnet"],              false, () => new Views.Tools.SubnetCalculatorView(),   "Icon.Tool.NetworkScanner"),
-            Entry("IPCONV",   ToolCategory.Network,  "ToolCategoryNetwork",  "PaletteToolIpConv",   null,                      ["ip","ipconv"],         false, () => new Views.Tools.IpConverterView(),        "Icon.Tool.IpConverter"),
-            Entry("HTTP",     ToolCategory.Network,  "ToolCategoryNetwork",  "PaletteToolHttp",     null,                      ["http","status"],       false, () => new Views.Tools.HttpStatusCodesView(),   "Icon.Tool.HttpStatus"),
-            Entry("WHOIS",    ToolCategory.Network,  "ToolCategoryNetwork",  "PaletteToolWhois",    "PaletteToolWhoisWith",    ["whois"],               true,  () => new Views.Tools.WhoisLookupView(),       "Icon.Tool.Whois"),
-            Entry("NETMAP",   ToolCategory.Network,  "ToolCategoryNetwork",  "PaletteToolNetMap",   "PaletteToolNetMapWith",   ["netmap","cartography","discover"], false, () => new Views.Tools.NetworkCartographyView(), "Icon.Tool.NetMap"),
-            Entry("NETCALC",  ToolCategory.Network,  "ToolCategoryNetwork",  "PaletteToolNetCalc",  null,                      ["netcalc","vlan","supernet"], false, () => new Views.Tools.NetworkCalculatorView(), "Icon.Tool.NetworkCalculator"),
+            Entry("PING",     ToolCategory.Network,  "ToolCategoryNetwork",  "PaletteToolPing",     "PaletteToolPingWith",     ["ping"],                true,  () => new Views.Tools.PingToolView(),           "Geo.Tool.NetworkScanner"),
+            Entry("DNS",      ToolCategory.Network,  "ToolCategoryNetwork",  "PaletteToolDns",      "PaletteToolDnsWith",      ["dns","nslookup","dig"],true,  () => new Views.Tools.DnsLookupView(),          "Geo.Tool.DnsLookup"),
+            Entry("CERT",     ToolCategory.Network,  "ToolCategoryNetwork",  "PaletteToolCert",     "PaletteToolCertWith",     ["cert","ssl"],          true,  () => new Views.Tools.CertInspectorView(),     "Geo.Tool.CertInspector"),
+            Entry("PORTSCAN", ToolCategory.Network,  "ToolCategoryNetwork",  "PaletteToolPortScan", "PaletteToolPortScanWith", ["portscan","scan"],     true,  () => new Views.Tools.PortScannerView(),        "Geo.Tool.PortScanner"),
+            Entry("SUBNET",   ToolCategory.Network,  "ToolCategoryNetwork",  "PaletteToolSubnet",   "PaletteToolSubnetWith",   ["subnet"],              false, () => new Views.Tools.SubnetCalculatorView(),   "Geo.Tool.NetworkScanner"),
+            Entry("IPCONV",   ToolCategory.Network,  "ToolCategoryNetwork",  "PaletteToolIpConv",   null,                      ["ip","ipconv"],         false, () => new Views.Tools.IpConverterView(),        "Geo.Tool.IpConverter"),
+            Entry("HTTP",     ToolCategory.Network,  "ToolCategoryNetwork",  "PaletteToolHttp",     null,                      ["http","status"],       false, () => new Views.Tools.HttpStatusCodesView(),   "Geo.Tool.HttpStatus"),
+            Entry("WHOIS",    ToolCategory.Network,  "ToolCategoryNetwork",  "PaletteToolWhois",    "PaletteToolWhoisWith",    ["whois"],               true,  () => new Views.Tools.WhoisLookupView(),       "Geo.Tool.Whois"),
+            Entry("NETMAP",   ToolCategory.Network,  "ToolCategoryNetwork",  "PaletteToolNetMap",   "PaletteToolNetMapWith",   ["netmap","cartography","discover"], false, () => new Views.Tools.NetworkCartographyView(), "Geo.Tool.NetMap"),
+            Entry("NETCALC",  ToolCategory.Network,  "ToolCategoryNetwork",  "PaletteToolNetCalc",  null,                      ["netcalc","vlan","supernet"], false, () => new Views.Tools.NetworkCalculatorView(), "Geo.Tool.NetworkCalculator"),
 
             // ── Security ──────────────────────────────────────────────
-            Entry("HASH",     ToolCategory.Security, "ToolCategorySecurity", "PaletteToolHash",     "PaletteToolHashWith",     ["hash"],                false, () => new Views.Tools.HashGeneratorView(),      "Icon.Tool.HashGenerator"),
-            Entry("HMAC",     ToolCategory.Security, "ToolCategorySecurity", "PaletteToolHmac",     null,                      ["hmac"],                false, () => new Views.Tools.HmacGeneratorView(),      "Icon.Tool.HashGenerator"),
-            Entry("PASSWORD", ToolCategory.Security, "ToolCategorySecurity", "PaletteToolPassword", null,                      ["password","pwgen"],    false, () => new Views.Tools.PasswordGeneratorView(),  "Icon.Tool.PasswordGenerator"),
-            Entry("SSHKEY",   ToolCategory.Security, "ToolCategorySecurity", "PaletteToolSshKey",   null,                      ["sshkey","keygen"],     false, () => new Views.Tools.SshKeyGeneratorView(),    "Icon.Tool.SshKeyGenerator"),
-            Entry("CERTGEN",  ToolCategory.Security, "ToolCategorySecurity", "PaletteToolCertGen",  null,                      ["certgen","certificate","openssl"], false, () => new Views.Tools.CertificateGeneratorView(), "Icon.Tool.CertificateGenerator"),
-            Entry("JWT",      ToolCategory.Security, "ToolCategorySecurity", "PaletteToolJwt",      "PaletteToolJwtWith",      ["jwt"],                 false, () => new Views.Tools.JwtParserView(),         "Icon.Tool.Jwt"),
-            Entry("TOTP",     ToolCategory.Security, "ToolCategorySecurity", "PaletteToolTotp",     null,                      ["totp","otp","2fa"],    false, () => new Views.Tools.TotpGeneratorView(),     "Icon.Tool.Totp"),
+            Entry("HASH",     ToolCategory.Security, "ToolCategorySecurity", "PaletteToolHash",     "PaletteToolHashWith",     ["hash"],                false, () => new Views.Tools.HashGeneratorView(),      "Geo.Tool.HashGenerator"),
+            Entry("HMAC",     ToolCategory.Security, "ToolCategorySecurity", "PaletteToolHmac",     null,                      ["hmac"],                false, () => new Views.Tools.HmacGeneratorView(),      "Geo.Tool.HashGenerator"),
+            Entry("PASSWORD", ToolCategory.Security, "ToolCategorySecurity", "PaletteToolPassword", null,                      ["password","pwgen"],    false, () => new Views.Tools.PasswordGeneratorView(),  "Geo.Tool.PasswordGenerator"),
+            Entry("SSHKEY",   ToolCategory.Security, "ToolCategorySecurity", "PaletteToolSshKey",   null,                      ["sshkey","keygen"],     false, () => new Views.Tools.SshKeyGeneratorView(),    "Geo.Tool.SshKeyGenerator"),
+            Entry("CERTGEN",  ToolCategory.Security, "ToolCategorySecurity", "PaletteToolCertGen",  null,                      ["certgen","certificate","openssl"], false, () => new Views.Tools.CertificateGeneratorView(), "Geo.Tool.CertificateGenerator"),
+            Entry("JWT",      ToolCategory.Security, "ToolCategorySecurity", "PaletteToolJwt",      "PaletteToolJwtWith",      ["jwt"],                 false, () => new Views.Tools.JwtParserView(),         "Geo.Tool.Jwt"),
+            Entry("TOTP",     ToolCategory.Security, "ToolCategorySecurity", "PaletteToolTotp",     null,                      ["totp","otp","2fa"],    false, () => new Views.Tools.TotpGeneratorView(),     "Geo.Tool.Totp"),
 
             // ── Encoding & Format ─────────────────────────────────────
-            Entry("BASE64",   ToolCategory.Encoding, "ToolCategoryEncoding", "PaletteToolBase64",   "PaletteToolBase64With",   ["base64"],              false, () => new Views.Tools.Base64ToolView(),         "Icon.Tool.Base64Encoding"),
-            Entry("URLENC",   ToolCategory.Encoding, "ToolCategoryEncoding", "PaletteToolUrlEnc",   null,                      ["url","urlencode"],     false, () => new Views.Tools.UrlEncoderView(),        "Icon.Tool.UrlEncoder"),
-            Entry("JSON",     ToolCategory.Encoding, "ToolCategoryEncoding", "PaletteToolJson",     "PaletteToolJsonWith",     ["json"],                false, () => new Views.Tools.JsonFormatterView(),      "Icon.Tool.JsonFormatter"),
-            Entry("REGEX",    ToolCategory.Encoding, "ToolCategoryEncoding", "PaletteToolRegex",    "PaletteToolRegexWith",    ["regex"],               false, () => new Views.Tools.RegexTesterView(),        "Icon.Tool.RegexTester"),
-            Entry("DIFF",     ToolCategory.Encoding, "ToolCategoryEncoding", "PaletteToolDiff",     null,                      ["diff"],                false, () => new Views.Tools.TextDiffView(),          "Icon.Tool.Diff"),
-            Entry("TEXTCASE", ToolCategory.Encoding, "ToolCategoryEncoding", "PaletteToolTextCase", null,                      ["case","textcase"],     false, () => new Views.Tools.TextCaseConverterView(), "Icon.Tool.TextCase"),
+            Entry("BASE64",   ToolCategory.Encoding, "ToolCategoryEncoding", "PaletteToolBase64",   "PaletteToolBase64With",   ["base64"],              false, () => new Views.Tools.Base64ToolView(),         "Geo.Tool.Base64Encoding"),
+            Entry("URLENC",   ToolCategory.Encoding, "ToolCategoryEncoding", "PaletteToolUrlEnc",   null,                      ["url","urlencode"],     false, () => new Views.Tools.UrlEncoderView(),        "Geo.Tool.UrlEncoder"),
+            Entry("JSON",     ToolCategory.Encoding, "ToolCategoryEncoding", "PaletteToolJson",     "PaletteToolJsonWith",     ["json"],                false, () => new Views.Tools.JsonFormatterView(),      "Geo.Tool.JsonFormatter"),
+            Entry("REGEX",    ToolCategory.Encoding, "ToolCategoryEncoding", "PaletteToolRegex",    "PaletteToolRegexWith",    ["regex"],               false, () => new Views.Tools.RegexTesterView(),        "Geo.Tool.RegexTester"),
+            Entry("DIFF",     ToolCategory.Encoding, "ToolCategoryEncoding", "PaletteToolDiff",     null,                      ["diff"],                false, () => new Views.Tools.TextDiffView(),          "Geo.Tool.Diff"),
+            Entry("TEXTCASE", ToolCategory.Encoding, "ToolCategoryEncoding", "PaletteToolTextCase", null,                      ["case","textcase"],     false, () => new Views.Tools.TextCaseConverterView(), "Geo.Tool.TextCase"),
 
             // ── System ────────────────────────────────────────────────
-            Entry("CHMOD",    ToolCategory.System,   "ToolCategorySystem",   "PaletteToolChmod",    "PaletteToolChmodWith",    ["chmod"],               false, () => new Views.Tools.ChmodCalculatorView(),   "Icon.Tool.Chmod"),
-            Entry("DATETIME", ToolCategory.System,   "ToolCategorySystem",   "PaletteToolDateTime", "PaletteToolDateTimeWith", ["datetime","epoch"],    false, () => new Views.Tools.DateTimeConverterView(), "Icon.Tool.DateTime"),
-            Entry("UUID",     ToolCategory.System,   "ToolCategorySystem",   "PaletteToolUuid",     null,                      ["uuid","guid"],         false, () => new Views.Tools.UuidGeneratorView(),     "Icon.Tool.Uuid"),
-            Entry("CRONTAB",  ToolCategory.System,   "ToolCategorySystem",   "PaletteToolCron",     "PaletteToolCronWith",     ["cron","crontab"],      false, () => new Views.Tools.CrontabBuilderView(),    "Icon.Tool.Crontab"),
-            Entry("LOGVIEW",  ToolCategory.System,   "ToolCategorySystem",   "PaletteToolLogView",  null,                      ["log","tail","logview"], false, () => new Views.Tools.LogViewerView(),          "Icon.Tool.LogViewer"),
-            Entry("HOSTS",    ToolCategory.System,   "ToolCategorySystem",   "PaletteToolHosts",    null,                      ["hosts"],               false, () => new Views.Tools.HostsFileEditorView(),    "Icon.Tool.HostsFileEditor"),
-            Entry("SSHCONFIG",ToolCategory.System,   "ToolCategorySystem",   "PaletteToolSshConfig",null,                      ["sshconfig","ssh-config"], false, () => new Views.Tools.SshConfigGeneratorView(), "Icon.Tool.SshConfigGenerator"),
-            Entry("CRONJOB",  ToolCategory.System,   "ToolCategorySystem",   "PaletteToolCronJob",  null,                      ["cronjob","crontab-manager","tasks"], false, () => new Views.Tools.CronJobManagerView(), "Icon.Tool.CronJobManager"),
-            Entry("SERVICES", ToolCategory.System,   "ToolCategorySystem",   "PaletteToolServices", null,                      ["services","svc","systemctl"],        false, () => new Views.Tools.ServiceStatusView(),  "Icon.Tool.ServiceStatusDashboard"),
-            Entry("NOTES",    ToolCategory.System,   "ToolCategorySystem",   "PaletteToolNotes",    "PaletteToolNotesWith",    ["notes","note","markdown","md","confluence"], false, () => new Views.Tools.NotesToolView(), "Icon.Tool.Notes"),
-            Entry("DIAGRAM",  ToolCategory.System,   "ToolCategorySystem",   "PaletteToolDiagram",  null,                      ["diagram","drawio","schema"],         false, () => new Views.Tools.DiagramEditorView(),  "Icon.Tool.Diagram"),
+            Entry("CHMOD",    ToolCategory.System,   "ToolCategorySystem",   "PaletteToolChmod",    "PaletteToolChmodWith",    ["chmod"],               false, () => new Views.Tools.ChmodCalculatorView(),   "Geo.Tool.Chmod"),
+            Entry("DATETIME", ToolCategory.System,   "ToolCategorySystem",   "PaletteToolDateTime", "PaletteToolDateTimeWith", ["datetime","epoch"],    false, () => new Views.Tools.DateTimeConverterView(), "Geo.Tool.DateTime"),
+            Entry("UUID",     ToolCategory.System,   "ToolCategorySystem",   "PaletteToolUuid",     null,                      ["uuid","guid"],         false, () => new Views.Tools.UuidGeneratorView(),     "Geo.Tool.Uuid"),
+            Entry("CRONTAB",  ToolCategory.System,   "ToolCategorySystem",   "PaletteToolCron",     "PaletteToolCronWith",     ["cron","crontab"],      false, () => new Views.Tools.CrontabBuilderView(),    "Geo.Tool.Crontab"),
+            Entry("LOGVIEW",  ToolCategory.System,   "ToolCategorySystem",   "PaletteToolLogView",  null,                      ["log","tail","logview"], false, () => new Views.Tools.LogViewerView(),          "Geo.Tool.LogViewer"),
+            Entry("HOSTS",    ToolCategory.System,   "ToolCategorySystem",   "PaletteToolHosts",    null,                      ["hosts"],               false, () => new Views.Tools.HostsFileEditorView(),    "Geo.Tool.HostsFileEditor"),
+            Entry("SSHCONFIG",ToolCategory.System,   "ToolCategorySystem",   "PaletteToolSshConfig",null,                      ["sshconfig","ssh-config"], false, () => new Views.Tools.SshConfigGeneratorView(), "Geo.Tool.SshConfigGenerator"),
+            Entry("CRONJOB",  ToolCategory.System,   "ToolCategorySystem",   "PaletteToolCronJob",  null,                      ["cronjob","crontab-manager","tasks"], false, () => new Views.Tools.CronJobManagerView(), "Geo.Tool.CronJobManager"),
+            Entry("SERVICES", ToolCategory.System,   "ToolCategorySystem",   "PaletteToolServices", null,                      ["services","svc","systemctl"],        false, () => new Views.Tools.ServiceStatusView(),  "Geo.Tool.ServiceStatusDashboard"),
+            Entry("NOTES",    ToolCategory.System,   "ToolCategorySystem",   "PaletteToolNotes",    "PaletteToolNotesWith",    ["notes","note","markdown","md","confluence"], false, () => new Views.Tools.NotesToolView(), "Geo.Tool.Notes"),
+            Entry("DIAGRAM",  ToolCategory.System,   "ToolCategorySystem",   "PaletteToolDiagram",  null,                      ["diagram","drawio","schema"],         false, () => new Views.Tools.DiagramEditorView(),  "Geo.Tool.Diagram"),
         };
 
         _entries = entries;
@@ -122,6 +122,88 @@ public sealed class ToolRegistry
     {
         var key = StripPrefix(toolId);
         return _byId.TryGetValue(key, out var entry) && entry.Descriptor.IsNetworkTool;
+    }
+
+    // ── Static lookups for XAML converters (no DI access) ──────────────
+
+    private static readonly FrozenDictionary<string, string> s_geometryKeys = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+    {
+        ["PING"]      = "Geo.Tool.NetworkScanner",
+        ["DNS"]       = "Geo.Tool.DnsLookup",
+        ["CERT"]      = "Geo.Tool.CertInspector",
+        ["PORTSCAN"]  = "Geo.Tool.PortScanner",
+        ["SUBNET"]    = "Geo.Tool.NetworkScanner",
+        ["IPCONV"]    = "Geo.Tool.IpConverter",
+        ["HTTP"]      = "Geo.Tool.HttpStatus",
+        ["WHOIS"]     = "Geo.Tool.Whois",
+        ["NETMAP"]    = "Geo.Tool.NetMap",
+        ["NETCALC"]   = "Geo.Tool.NetworkCalculator",
+        ["HASH"]      = "Geo.Tool.HashGenerator",
+        ["HMAC"]      = "Geo.Tool.HashGenerator",
+        ["PASSWORD"]  = "Geo.Tool.PasswordGenerator",
+        ["SSHKEY"]    = "Geo.Tool.SshKeyGenerator",
+        ["CERTGEN"]   = "Geo.Tool.CertificateGenerator",
+        ["JWT"]       = "Geo.Tool.Jwt",
+        ["TOTP"]      = "Geo.Tool.Totp",
+        ["BASE64"]    = "Geo.Tool.Base64Encoding",
+        ["URLENC"]    = "Geo.Tool.UrlEncoder",
+        ["JSON"]      = "Geo.Tool.JsonFormatter",
+        ["REGEX"]     = "Geo.Tool.RegexTester",
+        ["DIFF"]      = "Geo.Tool.Diff",
+        ["TEXTCASE"]  = "Geo.Tool.TextCase",
+        ["CHMOD"]     = "Geo.Tool.Chmod",
+        ["DATETIME"]  = "Geo.Tool.DateTime",
+        ["UUID"]      = "Geo.Tool.Uuid",
+        ["CRONTAB"]   = "Geo.Tool.Crontab",
+        ["LOGVIEW"]   = "Geo.Tool.LogViewer",
+        ["HOSTS"]     = "Geo.Tool.HostsFileEditor",
+        ["SSHCONFIG"] = "Geo.Tool.SshConfigGenerator",
+        ["CRONJOB"]   = "Geo.Tool.CronJobManager",
+        ["SERVICES"]  = "Geo.Tool.ServiceStatusDashboard",
+        ["NOTES"]     = "Geo.Tool.Notes",
+        ["DIAGRAM"]   = "Geo.Tool.Diagram",
+    }.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
+
+    private static readonly FrozenDictionary<string, string> s_categoryBrushKeys = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+    {
+        ["PING"]      = "ToolNetworkBrush",  ["DNS"]      = "ToolNetworkBrush",
+        ["CERT"]      = "ToolNetworkBrush",  ["PORTSCAN"] = "ToolNetworkBrush",
+        ["SUBNET"]    = "ToolNetworkBrush",  ["IPCONV"]   = "ToolNetworkBrush",
+        ["HTTP"]      = "ToolNetworkBrush",  ["WHOIS"]    = "ToolNetworkBrush",
+        ["NETMAP"]    = "ToolNetworkBrush",  ["NETCALC"]  = "ToolNetworkBrush",
+        ["HASH"]      = "ToolSecurityBrush", ["HMAC"]     = "ToolSecurityBrush",
+        ["PASSWORD"]  = "ToolSecurityBrush", ["SSHKEY"]   = "ToolSecurityBrush",
+        ["CERTGEN"]   = "ToolSecurityBrush", ["JWT"]      = "ToolSecurityBrush",
+        ["TOTP"]      = "ToolSecurityBrush",
+        ["BASE64"]    = "ToolEncodingBrush", ["URLENC"]   = "ToolEncodingBrush",
+        ["JSON"]      = "ToolEncodingBrush", ["REGEX"]    = "ToolEncodingBrush",
+        ["DIFF"]      = "ToolEncodingBrush", ["TEXTCASE"] = "ToolEncodingBrush",
+        ["CHMOD"]     = "ToolSystemBrush",   ["DATETIME"] = "ToolSystemBrush",
+        ["UUID"]      = "ToolSystemBrush",   ["CRONTAB"]  = "ToolSystemBrush",
+        ["LOGVIEW"]   = "ToolSystemBrush",   ["HOSTS"]    = "ToolSystemBrush",
+        ["SSHCONFIG"] = "ToolSystemBrush",   ["CRONJOB"]  = "ToolSystemBrush",
+        ["SERVICES"]  = "ToolSystemBrush",   ["NOTES"]    = "ToolSystemBrush",
+        ["DIAGRAM"]   = "ToolSystemBrush",
+    }.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Returns the Geometry resource key for a tool (e.g. "TOOL:PING" → "Geo.Tool.NetworkScanner").
+    /// Used by XAML converters that lack DI access.
+    /// </summary>
+    internal static string? GetGeometryKey(string toolId)
+    {
+        var key = StripPrefix(toolId);
+        return s_geometryKeys.TryGetValue(key, out var geoKey) ? geoKey : null;
+    }
+
+    /// <summary>
+    /// Returns the category brush resource key for a tool (e.g. "TOOL:PING" → "ToolNetworkBrush").
+    /// Used by XAML converters that lack DI access.
+    /// </summary>
+    internal static string GetCategoryBrushKey(string toolId)
+    {
+        var key = StripPrefix(toolId);
+        return s_categoryBrushKeys.TryGetValue(key, out var brushKey) ? brushKey : "ToolBadgeBrush";
     }
 
     private static string StripPrefix(string toolId)

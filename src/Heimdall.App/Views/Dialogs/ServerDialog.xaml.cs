@@ -17,6 +17,7 @@
 using System.Windows;
 using Heimdall.App.Theming;
 using Heimdall.App.ViewModels.Dialogs;
+using Heimdall.Core.Configuration;
 using Heimdall.Core.Localization;
 using Microsoft.Win32;
 
@@ -24,11 +25,23 @@ namespace Heimdall.App.Views.Dialogs;
 
 /// <summary>
 /// Server add/edit dialog. Code-behind is limited to PasswordBox handling,
-/// file browse, DialogResult assignment, and localization.
+/// file browse, DialogResult assignment, localization, and advanced mode persistence.
 /// </summary>
 public partial class ServerDialog : Window
 {
     private readonly LocalizationManager? _localizer;
+    private readonly ConfigManager? _configManager;
+
+    public ServerDialog(LocalizationManager localizer, ConfigManager configManager)
+    {
+        _localizer = localizer;
+        _configManager = configManager;
+        InitializeComponent();
+        WindowThemeHelper.ApplyCurrentTheme(this);
+        LoadAdvancedModePreference();
+        ApplyLocalization();
+        RegisterTabFallback();
+    }
 
     public ServerDialog(LocalizationManager localizer)
     {
@@ -45,6 +58,46 @@ public partial class ServerDialog : Window
         WindowThemeHelper.ApplyCurrentTheme(this);
         RegisterTabFallback();
     }
+
+    // ------------------------------------------------------------------
+    // Advanced mode persistence
+    // ------------------------------------------------------------------
+
+    private void LoadAdvancedModePreference()
+    {
+        if (_configManager is null || DataContext is not ServerDialogViewModel vm)
+        {
+            Loaded += OnLoadedApplyAdvancedMode;
+            return;
+        }
+
+        var settings = _configManager.LoadSettingsAsync().GetAwaiter().GetResult();
+        vm.IsAdvancedMode = settings.ServerDialogAdvancedMode;
+        vm.PropertyChanged += OnViewModelPropertyChanged;
+    }
+
+    private void OnLoadedApplyAdvancedMode(object sender, RoutedEventArgs e)
+    {
+        Loaded -= OnLoadedApplyAdvancedMode;
+
+        if (_configManager is null || DataContext is not ServerDialogViewModel vm) return;
+
+        var settings = _configManager.LoadSettingsAsync().GetAwaiter().GetResult();
+        vm.IsAdvancedMode = settings.ServerDialogAdvancedMode;
+        vm.PropertyChanged += OnViewModelPropertyChanged;
+    }
+
+    private void OnViewModelPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName != nameof(ServerDialogViewModel.IsAdvancedMode)) return;
+        if (_configManager is null || DataContext is not ServerDialogViewModel vm) return;
+
+        _ = _configManager.MergeSettingAsync(s => s.ServerDialogAdvancedMode = vm.IsAdvancedMode);
+    }
+
+    // ------------------------------------------------------------------
+    // Tab fallback
+    // ------------------------------------------------------------------
 
     private void RegisterTabFallback()
     {
@@ -69,6 +122,10 @@ public partial class ServerDialog : Window
             tab.ToolTip = null;
         }
     }
+
+    // ------------------------------------------------------------------
+    // Save
+    // ------------------------------------------------------------------
 
     private void OnSaveClick(object sender, RoutedEventArgs e)
     {
@@ -118,6 +175,12 @@ public partial class ServerDialog : Window
 
     private void OnWindowClosing(object? sender, System.ComponentModel.CancelEventArgs e)
     {
+        // Detach property changed handler
+        if (DataContext is ServerDialogViewModel vm)
+        {
+            vm.PropertyChanged -= OnViewModelPropertyChanged;
+        }
+
         // Clear all password boxes from UI memory on close (CWE-316)
         (FindName("SshPasswordBox") as System.Windows.Controls.PasswordBox)?.Clear();
         (FindName("RdpPasswordBox") as System.Windows.Controls.PasswordBox)?.Clear();
@@ -173,18 +236,24 @@ public partial class ServerDialog : Window
         DlgSrv_TabOptions.Header = _localizer["ServerDialogTabOptions"];
         DlgSrv_TabInfo.Header = _localizer["ServerDialogTabInfo"];
 
-        // Connection basics
+        // Connection basics (essential section)
         DlgSrv_ConnectionBasicsTitle.Text = _localizer["ServerDialogConnectionBasics"];
         DlgSrv_ConnectionBasicsDesc.Text = _localizer["ServerDialogConnectionBasicsDesc"];
         DlgSrv_DisplayNameLabel.Text = _localizer["ServerDialogLabelDisplayName"] + " *";
         DlgSrv_ConnectionTypeLabel.Text = _localizer["ServerDialogLabelConnectionType"] + " *";
         DlgSrv_ServerLabel.Text = _localizer["ServerDialogLabelServer"] + " *";
 
-        // Gateway routing
+        // Project + Gateway routing (essential section)
+        DlgSrv_ProjectLabel.Text = _localizer["ServerDialogLabelProject"];
         DlgSrv_GatewayRoutingTitle.Text = _localizer["ServerDialogGatewayRouting"];
         DlgSrv_GatewayRoutingDesc.Text = _localizer["ServerDialogGatewayRoutingDesc"];
         DlgSrv_DirectConnectCb.Content = _localizer["ServerDialogDirectConnect"];
         DlgSrv_TestConnectionBtn.Content = _localizer["ServerDialogTestConnection"];
+
+        // Advanced toggle
+        DlgSrv_AdvancedToggle.Content = _localizer["ServerDialogAdvancedSettings"];
+        System.Windows.Automation.AutomationProperties.SetName(
+            DlgSrv_AdvancedToggle, _localizer["ServerDialogAdvancedSettings"]);
 
         // Connection path diagram
         DlgSrv_ConnectionPathTitle.Text = _localizer["ServerDialogConnectionPath"];
@@ -316,6 +385,11 @@ public partial class ServerDialog : Window
         DlgSrv_LocalShellTitle.Text = _localizer["ServerDialogLocalShell"];
         DlgSrv_LocalShellDesc.Text = _localizer["ServerDialogLocalShellDesc"];
         DlgSrv_ExecutableLabel.Text = _localizer["ServerDialogLabelExecutable"];
+        DlgSrv_ShellPowershell.Content = _localizer["LocalShellPowershell"];
+        DlgSrv_ShellPwsh.Content = _localizer["LocalShellPwsh"];
+        DlgSrv_ShellCmd.Content = _localizer["LocalShellCmd"];
+        DlgSrv_ShellBash.Content = _localizer["LocalShellBash"];
+        DlgSrv_ShellWsl.Content = _localizer["LocalShellWsl"];
         DlgSrv_ArgumentsLabel.Text = _localizer["ServerDialogLabelArguments"];
         DlgSrv_WorkingDirLabel.Text = _localizer["ServerDialogLabelWorkingDir"];
         DlgSrv_ElevationModeLabel.Text = _localizer["ServerDialogElevationMode"];

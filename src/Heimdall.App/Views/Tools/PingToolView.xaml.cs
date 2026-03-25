@@ -104,6 +104,11 @@ public partial class PingToolView : UserControl, IToolView
         BtnCopyLog.Content = L("ToolPingBtnCopyLog");
         BtnExportCsv.Content = L("ToolPingBtnExportCsv");
         LblInterval.Text = L("ToolPingIntervalLabel");
+        Ping500ms.Content = L("PingInterval500ms");
+        Ping1s.Content = L("PingInterval1s");
+        Ping2s.Content = L("PingInterval2s");
+        Ping5s.Content = L("PingInterval5s");
+        Ping10s.Content = L("PingInterval10s");
         LblTimeout.Text = L("ToolPingTimeoutLabel");
         LblCount.Text = L("ToolPingCountLabel");
 

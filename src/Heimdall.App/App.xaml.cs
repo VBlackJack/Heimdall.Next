@@ -16,6 +16,7 @@
 
 using System.IO;
 using System.Windows;
+using Heimdall.App.Localization;
 using Heimdall.App.Services;
 using Heimdall.App.ViewModels;
 using Heimdall.Core.Configuration;
@@ -104,6 +105,10 @@ public partial class App : System.Windows.Application
         await localization.LoadAsync(
             Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "locales"),
             settings.DefaultLocale);
+
+        // Bridge the DI LocalizationManager to the WPF binding system
+        // so that {loc:Translate} markup extensions can resolve keys
+        LocalizationSource.Instance.Initialize(localization);
 
         // Apply sleep prevention setting
         SleepPrevention.Enabled = settings.PreventSleepDuringSession;

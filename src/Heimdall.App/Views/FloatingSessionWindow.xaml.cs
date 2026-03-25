@@ -15,6 +15,7 @@
  */
 
 using System.Windows;
+using System.Windows.Media;
 using Heimdall.App.Theming;
 using Heimdall.App.ViewModels;
 using Heimdall.Core.Localization;
@@ -64,33 +65,14 @@ public partial class FloatingSessionWindow : Window
         ReattachButton.Content = _localizer["SessionCtxReattach"];
         System.Windows.Automation.AutomationProperties.SetName(ReattachButton, _localizer["SessionCtxReattach"]);
 
-        // Set connection type icon (mirrors MainWindow tab header triggers)
-        switch (_session.ConnectionType)
-        {
-            case "SSH":
-                TypeIcon.Text = "\uE756";
-                TypeIcon.SetResourceReference(
-                    System.Windows.Controls.TextBlock.ForegroundProperty, "SuccessBrush");
-                break;
-            case "SFTP":
-                TypeIcon.Text = "\uE8B7";
-                TypeIcon.SetResourceReference(
-                    System.Windows.Controls.TextBlock.ForegroundProperty, "WarningBrush");
-                break;
-            case "LOCAL":
-                TypeIcon.Text = "\uE756";
-                TypeIcon.SetResourceReference(
-                    System.Windows.Controls.TextBlock.ForegroundProperty, "AccentBrush");
-                break;
-            case "CITRIX":
-                TypeIcon.Text = "\uE753";
-                TypeIcon.SetResourceReference(
-                    System.Windows.Controls.TextBlock.ForegroundProperty, "InfoBrush");
-                break;
-            default: // RDP
-                TypeIcon.Text = "\uE7F4";
-                break;
-        }
+        // Set connection type icon using vector geometry (mirrors converters)
+        var culture = System.Globalization.CultureInfo.InvariantCulture;
+        var geoConverter = new Converters.ConnectionTypeToGeometryConverter();
+        var colorConverter = new Converters.ConnectionTypeToColorConverter();
+        if (geoConverter.Convert(_session.ConnectionType, typeof(Geometry), null, culture) is Geometry geo)
+            TypeIcon.Data = geo;
+        if (colorConverter.Convert(_session.ConnectionType, typeof(Brush), null, culture) is Brush brush)
+            TypeIcon.Fill = brush;
 
         // Attach the host control to this window's content presenter
         if (_session.HostControl is UIElement hostElement)
