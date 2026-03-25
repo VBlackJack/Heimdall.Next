@@ -1122,9 +1122,9 @@ public partial class MainViewModel : ObservableObject
         Split.MergeExistingSession(target, sourceSessionId, orientation, targetPaneId);
     }
 
-    public void SwapSplitPanes(SessionTabViewModel session, string? paneId = null)
+    public Task SwapSplitPanesAsync(SessionTabViewModel session, string? paneId = null)
     {
-        Split.SwapSplitPanes(session, paneId);
+        return Split.SwapSplitPanesAsync(session, paneId);
     }
 
     public void ToggleSplitOrientation(SessionTabViewModel session, string? paneId = null)
