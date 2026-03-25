@@ -950,6 +950,7 @@ public partial class MainViewModel : ObservableObject
                 Id = $"adhoc-ssh-{query}",
                 DisplayName = _localizer.Format("QuickConnectSshTo", query),
                 RemoteServer = query,
+                Endpoint = query,
                 ConnectionType = "SSH",
                 Group = ""
             });
@@ -958,6 +959,7 @@ public partial class MainViewModel : ObservableObject
                 Id = $"adhoc-rdp-{query}",
                 DisplayName = _localizer.Format("QuickConnectRdpTo", query),
                 RemoteServer = query,
+                Endpoint = query,
                 ConnectionType = "RDP",
                 Group = ""
             });

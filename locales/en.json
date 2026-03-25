@@ -2195,6 +2195,7 @@
   "ServerDialogFtpUsername": "FTP Username",
   "ServerDialogFtpPassword": "FTP Password",
   "ValidationFtpPortRange": "FTP port must be between 1 and 65535.",
+  "ValidationVncPortRange": "VNC port must be between 1 and 65535.",
 
   "ConnectionTypeTelnet": "Telnet",
   "StatusTelnetConnecting": "Connecting via Telnet...",
