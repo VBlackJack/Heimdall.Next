@@ -2515,7 +2515,7 @@ public partial class MainWindow : Window
             menu.Items.Add(unsplit);
 
             var swapItem = new System.Windows.Controls.MenuItem { Header = vm.Localize("SplitSwapPanes") };
-            swapItem.Click += (_, _) => vm.SwapSplitPanes(session);
+            swapItem.Click += async (_, _) => await vm.SwapSplitPanesAsync(session);
             menu.Items.Add(swapItem);
 
             var toggleItem = new System.Windows.Controls.MenuItem

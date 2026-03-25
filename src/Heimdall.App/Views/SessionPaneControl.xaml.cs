@@ -42,6 +42,11 @@ public partial class SessionPaneControl : UserControl
 
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
+        if (_model is not null)
+        {
+            _model.PropertyChanged -= OnModelPropertyChanged;
+            _model.PropertyChanged += OnModelPropertyChanged;
+        }
         SyncContent();
         UpdateOverlays();
     }
@@ -53,16 +58,21 @@ public partial class SessionPaneControl : UserControl
             _model.PropertyChanged -= OnModelPropertyChanged;
         }
 
-        ReconnectButton.Click -= OnReconnectClick;
-        ClosePaneButton.Click -= OnClosePaneClick;
-        DataContextChanged -= OnDataContextChanged;
-        Loaded -= OnLoaded;
-        Unloaded -= OnUnloaded;
-        _model = null;
+        // Release the hosted UIElement so it can be reparented in a new
+        // SessionPaneControl (e.g. after a swap). Without this, the old
+        // control retains the WebView2/ActiveX child, blocking reparenting.
+        HostPresenter.Content = null;
     }
 
     private void OnDataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
     {
+        // ContentPresenter/DataTemplate swaps can reuse the existing
+        // SessionPaneControl instance and only change its DataContext.
+        // Release any previously hosted UIElement before binding to the
+        // next pane model so WebView2/ActiveX controls do not remain
+        // parented to the old presenter.
+        HostPresenter.Content = null;
+
         // Unsubscribe from previous model
         if (_model is not null)
         {
@@ -71,7 +81,8 @@ public partial class SessionPaneControl : UserControl
 
         _model = e.NewValue as SessionPaneModel;
 
-        if (_model is not null)
+        // Only subscribe if we are currently loaded
+        if (_model is not null && IsLoaded)
         {
             _model.PropertyChanged += OnModelPropertyChanged;
         }
@@ -96,11 +107,16 @@ public partial class SessionPaneControl : UserControl
 
     private void SyncContent()
     {
-        HostPresenter.Content = _model?.HostControl;
+        if (IsLoaded)
+        {
+            HostPresenter.Content = _model?.HostControl;
+        }
     }
 
     private void UpdateOverlays()
     {
+        if (!IsLoaded) return;
+
         if (_model is null)
         {
             LoadingOverlay.Visibility = Visibility.Collapsed;

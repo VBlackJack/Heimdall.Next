@@ -582,7 +582,7 @@ public sealed class SplitService
     /// <summary>
     /// Swaps the First and Second children of a pane's parent container.
     /// </summary>
-    public void SwapSplitPanes(SessionTabViewModel session, string? paneId = null)
+    public async Task SwapSplitPanesAsync(SessionTabViewModel session, string? paneId = null)
     {
         if (!session.IsSplit) return;
 
@@ -592,6 +592,9 @@ public sealed class SplitService
 
         if (container is null) return;
 
+        var dispatcher = System.Windows.Application.Current?.Dispatcher;
+        if (dispatcher is null) return;
+
         // Detach all host controls (UIElement single-parent rule)
         var hostControls = new Dictionary<string, object?>();
         foreach (var pane in SplitTreeHelper.EnumerateLeaves(container))
@@ -600,15 +603,29 @@ public sealed class SplitService
             pane.HostControl = null;
         }
 
+        // Let the current SessionPaneControls process HostControl=null and
+        // release their visual children before the subtree swap. Doing the
+        // detach and swap in one dispatcher turn still races WebView2/ActiveX
+        // reparenting because WPF has not stabilized the intermediate state yet.
+        await AwaitVisualTreeAsync(dispatcher);
+
         (container.First, container.Second) = (container.Second, container.First);
         session.NotifyShimPropertiesChanged();
 
-        // Restore host controls
+        // Let ContentPresenters finish rebinding / recreating their template
+        // children against the swapped tree before reattaching the live hosts.
+        await AwaitVisualTreeAsync(dispatcher);
+
         foreach (var (id, control) in hostControls)
         {
             var pane = SplitTreeHelper.FindPane(session.RootContent, id);
             if (pane is not null) pane.HostControl = control;
         }
+
+        // The primary/secondary shim properties are computed from the tree and
+        // do not forward leaf PropertyChanged automatically. Nudge them again
+        // after restore so tab overlays / headers observe the new host owner.
+        session.NotifyShimPropertiesChanged();
 
         Core.Logging.FileLogger.Info(
             string.Format(_localizer["LogSplitSwapped"], session.Title));
@@ -773,5 +790,11 @@ public sealed class SplitService
         {
             Core.Logging.FileLogger.Warn($"Unexpected exception during host control disposal: {ex.Message}");
         }
+    }
+
+    private static async Task AwaitVisualTreeAsync(System.Windows.Threading.Dispatcher dispatcher)
+    {
+        await dispatcher.InvokeAsync(() => { }, System.Windows.Threading.DispatcherPriority.Loaded);
+        await dispatcher.InvokeAsync(() => { }, System.Windows.Threading.DispatcherPriority.ContextIdle);
     }
 }
