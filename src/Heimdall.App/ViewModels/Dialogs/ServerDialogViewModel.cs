@@ -568,11 +568,22 @@ public partial class ServerDialogViewModel : ObservableValidator
     {
         ValidateAllProperties();
 
-        // Clear annotation errors for fields not relevant to this protocol
+        // Clear annotation errors for fields not relevant to this protocol,
+        // so HasErrors stays consistent with the displayed validation state.
         if (!RequiresNetworkEndpoint)
         {
             ClearErrors(nameof(RemoteServer));
+            ClearErrors(nameof(RemotePort));
         }
+        if (!IsSshFamilyConnection) ClearErrors(nameof(SshPort));
+        if (!IsFtpConnection) ClearErrors(nameof(FtpPort));
+        if (!IsVncConnection) ClearErrors(nameof(VncPort));
+        if (!IsRdpConnection)
+        {
+            ClearErrors(nameof(RdpAudioMode));
+            ClearErrors(nameof(RdpColorDepth));
+        }
+        if (!UsesGateway) ClearErrors(nameof(LocalPort));
 
         // Per-field inline errors (localized, ConnectionType-aware)
         DisplayNameError = GetLocalizedFieldError(nameof(DisplayName));
@@ -832,6 +843,16 @@ public partial class ServerDialogViewModel : ObservableValidator
     {
         if (EndpointPortError is not null) { EndpointPortError = null; RefreshValidationSummary(); }
         RaisePortDerivedStateChanged();
+    }
+
+    partial void OnVncPortChanged(int value)
+    {
+        if (EndpointPortError is not null) { EndpointPortError = null; RefreshValidationSummary(); }
+    }
+
+    partial void OnFtpPortChanged(int value)
+    {
+        if (EndpointPortError is not null) { EndpointPortError = null; RefreshValidationSummary(); }
     }
 
     partial void OnLocalPortChanged(int value)
