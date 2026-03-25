@@ -71,11 +71,21 @@
                                  Style="{DynamicResource ToolbarTabStyle}"
                                  Margin="0,0,4,0"/>
                     <RadioButton x:Name="TabSettings"
-                                 Content=""
                                  GroupName="NavTabs"
                                  Focusable="True"
                                  Style="{DynamicResource ToolbarTabStyle}"
-                                 Margin="0,0,4,0"/>
+                                 Margin="0,0,4,0">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock x:Name="Mw_TabSettingsText" Text=""/>
+                            <Ellipse x:Name="Mw_SettingsUnsavedDot"
+                                     Width="8" Height="8"
+                                     Fill="{DynamicResource WarningBrush}"
+                                     Margin="6,0,0,0"
+                                     VerticalAlignment="Center"
+                                     Visibility="{Binding Settings.IsDirty, Converter={StaticResource BoolToVisibilityConverter}}"
+                                     ToolTip=""/>
+                        </StackPanel>
+                    </RadioButton>
                     <RadioButton x:Name="TabAbout"
                                  Content=""
                                  GroupName="NavTabs"
@@ -646,6 +656,19 @@
                                         Style="{DynamicResource PrimaryButtonStyle}"
                                         Width="120" HorizontalAlignment="Left"
                                         Margin="0,20,0,0"/>
+                                <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                                    <Button x:Name="Mw_DetailEditBtn" Content=""
+                                            Command="{Binding ServerList.EditServerCommand}"
+                                            CommandParameter="{Binding ServerList.SelectedServer}"
+                                            Style="{DynamicResource SecondaryButtonStyle}"
+                                            Padding="12,6" Margin="0,0,8,0"/>
+                                    <Button x:Name="Mw_DetailDeleteBtn" Content=""
+                                            Command="{Binding ServerList.DeleteServerCommand}"
+                                            CommandParameter="{Binding ServerList.SelectedServer}"
+                                            Style="{DynamicResource SecondaryButtonStyle}"
+                                            Foreground="{DynamicResource ErrorTextBrush}"
+                                            Padding="12,6"/>
+                                </StackPanel>
                             </StackPanel>
                         </Border>
 
@@ -717,10 +740,32 @@
                             </StackPanel>
 
                             <!-- Show hint when servers exist but none selected -->
-                            <TextBlock x:Name="Mw_EmptySelectServer" Text=""
-                                       Visibility="{Binding ServerList.IsEmpty, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=Invert}"
-                                       HorizontalAlignment="Center" VerticalAlignment="Center"
-                                       Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeSubtitle}"/>
+                            <Border Visibility="{Binding ServerList.IsEmpty, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=Invert}"
+                                    Style="{DynamicResource EmptyStateStyle}">
+                                <StackPanel HorizontalAlignment="Center"
+                                            VerticalAlignment="Center">
+                                    <TextBlock Text="&#xE8B7;"
+                                               FontFamily="Segoe MDL2 Assets"
+                                               FontSize="48"
+                                               Foreground="{DynamicResource TextSecondaryBrush}"
+                                               HorizontalAlignment="Center"
+                                               Opacity="0.5"
+                                               Margin="0,0,0,12"/>
+                                    <TextBlock x:Name="Mw_EmptySelectServer" Text=""
+                                               HorizontalAlignment="Center"
+                                               Foreground="{DynamicResource TextSecondaryBrush}"
+                                               FontSize="{StaticResource FontSizeSubtitle}"
+                                               TextAlignment="Center"
+                                               TextWrapping="Wrap"
+                                               Margin="0,0,0,4"/>
+                                    <TextBlock x:Name="Mw_EmptyQuickConnectHint" Text=""
+                                               HorizontalAlignment="Center"
+                                               Foreground="{DynamicResource TextSecondaryBrush}"
+                                               FontSize="{StaticResource FontSizeCaption}"
+                                               TextAlignment="Center"
+                                               TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </Border>
                         </StackPanel>
                     </Grid>
 
@@ -1668,7 +1713,8 @@
                Placement="Center"
                PlacementTarget="{Binding ElementName=MainContentArea}"
                Opened="OnCommandPaletteOpened">
-            <Border Width="550"
+            <Border MinWidth="550"
+                    MaxWidth="700"
                     Background="{DynamicResource SurfaceBrush}"
                     BorderBrush="{DynamicResource BorderBrush}"
                     BorderThickness="1" CornerRadius="{StaticResource CornerRadiusLg}"
@@ -1695,60 +1741,119 @@
                     <ListBox x:Name="PaletteResultsList"
                              ItemsSource="{Binding PaletteResults}"
                              SelectedItem="{Binding SelectedPaletteItem}"
-                             MaxHeight="350"
+                             MaxHeight="450"
                              Background="Transparent"
                              BorderThickness="0"
                              ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                              PreviewMouseLeftButtonDown="OnPaletteItemClick">
                         <ListBox.ItemTemplate>
                             <DataTemplate>
-                                <DockPanel Margin="8,4">
-                                    <TextBlock DockPanel.Dock="Right"
-                                               Text="{Binding Group}"
-                                               FontSize="{StaticResource FontSizeCaption}"
-                                               Foreground="{DynamicResource TextSecondaryBrush}"
-                                               VerticalAlignment="Center"/>
-                                    <StackPanel Orientation="Horizontal">
-                                        <!-- Protocol icon -->
-                                        <TextBlock x:Name="PaletteTypeIcon" Text="&#xE7F4;"
-                                                   FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeBody}"
-                                                   Foreground="{Binding ConnectionType, Converter={StaticResource TypeToColorConverter}}"
-                                                   VerticalAlignment="Center" Margin="0,0,6,0"/>
-                                        <!-- Status dot -->
-                                        <Ellipse Width="6" Height="6" Margin="0,0,6,0"
-                                                 VerticalAlignment="Center">
-                                            <Ellipse.Fill>
-                                                <MultiBinding Converter="{StaticResource ServerStatusToColorConverter}">
-                                                    <Binding Path="ConnectionType"/>
-                                                    <Binding Path="ConnectionState"/>
-                                                </MultiBinding>
-                                            </Ellipse.Fill>
-                                        </Ellipse>
-                                        <TextBlock Text="{Binding DisplayName}" FontSize="{StaticResource FontSizeBodyLarge}"
-                                                   Foreground="{DynamicResource TextPrimaryBrush}"
-                                                   VerticalAlignment="Center"/>
-                                        <!-- Endpoint hint -->
-                                        <TextBlock Text="{Binding RemoteServer}" FontSize="{StaticResource FontSizeCaption}"
-                                                   Foreground="{DynamicResource TextDisabledBrush}"
-                                                   VerticalAlignment="Center" Margin="8,0,0,0"
-                                                   TextTrimming="CharacterEllipsis" MaxWidth="150"/>
+                                <DockPanel Margin="10,6">
+                                    <Border DockPanel.Dock="Left"
+                                            Width="3"
+                                            CornerRadius="1.5"
+                                            Margin="0,2,8,2"
+                                            VerticalAlignment="Stretch">
+                                        <Border.Background>
+                                            <MultiBinding Converter="{StaticResource PaletteActiveIndicatorConverter}">
+                                                <Binding Path="ConnectionType"/>
+                                                <Binding Path="ConnectionState"/>
+                                            </MultiBinding>
+                                        </Border.Background>
+                                    </Border>
+
+                                    <Grid DockPanel.Dock="Right"
+                                          Margin="8,0,0,0"
+                                          VerticalAlignment="Center">
+                                        <Border CornerRadius="{StaticResource CornerRadiusXs}"
+                                                Background="{Binding ConnectionType, Converter={StaticResource ConnectionTypeToBrushConverter}}"
+                                                Opacity="0.15"/>
+                                        <TextBlock Margin="6,2"
+                                                   Text="{Binding ConnectionTypeBadge}"
+                                                   FontSize="{StaticResource FontSizeSmallCaption}"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="{Binding ConnectionType, Converter={StaticResource ConnectionTypeToBrushConverter}}"/>
+                                    </Grid>
+
+                                    <StackPanel>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <Path Grid.Column="0"
+                                                  Width="14"
+                                                  Height="14"
+                                                  Stretch="Uniform"
+                                                  Data="{Binding ConnectionType, Converter={StaticResource TypeToGeoConverter}}"
+                                                  Fill="{Binding ConnectionType, Converter={StaticResource TypeToColorConverter}}"
+                                                  VerticalAlignment="Center"
+                                                  Margin="0,0,6,0"/>
+                                            <TextBlock Grid.Column="1"
+                                                       Text="{Binding DisplayName}"
+                                                       FontSize="{StaticResource FontSizeBody}"
+                                                       FontWeight="Medium"
+                                                       Foreground="{DynamicResource TextPrimaryBrush}"
+                                                       VerticalAlignment="Center"
+                                                       TextTrimming="CharacterEllipsis"/>
+                                        </Grid>
+
+                                        <StackPanel Orientation="Horizontal"
+                                                    Margin="20,2,0,0">
+                                            <TextBlock Text="{Binding Endpoint}"
+                                                       FontSize="{StaticResource FontSizeCaption}"
+                                                       Foreground="{DynamicResource TextDisabledBrush}"
+                                                       Visibility="{Binding Endpoint, Converter={StaticResource NullToVisibilityConverter}}"
+                                                       TextTrimming="CharacterEllipsis"
+                                                       MaxWidth="220"/>
+                                            <TextBlock Text="{Binding Username, StringFormat={}  ·  {0}}"
+                                                       FontSize="{StaticResource FontSizeCaption}"
+                                                       Foreground="{DynamicResource TextDisabledBrush}"
+                                                       Visibility="{Binding Username, Converter={StaticResource NullToVisibilityConverter}}"/>
+                                            <TextBlock Text="{Binding ProjectName, StringFormat={}  ·  {0}}"
+                                                       FontSize="{StaticResource FontSizeCaption}"
+                                                       Foreground="{DynamicResource AccentBrush}"
+                                                       Visibility="{Binding ProjectName, Converter={StaticResource NullToVisibilityConverter}}"/>
+                                            <TextBlock Text="{Binding Group, StringFormat={}  ·  {0}}"
+                                                       FontSize="{StaticResource FontSizeCaption}"
+                                                       Foreground="{DynamicResource TextSecondaryBrush}"
+                                                       Visibility="{Binding Group, Converter={StaticResource NullToVisibilityConverter}}"/>
+                                        </StackPanel>
                                     </StackPanel>
                                 </DockPanel>
                             </DataTemplate>
                         </ListBox.ItemTemplate>
                         <ListBox.ItemContainerStyle>
                             <Style TargetType="ListBoxItem">
-                                <Setter Property="Padding" Value="4,2"/>
+                                <Setter Property="Padding" Value="0"/>
+                                <Setter Property="Margin" Value="2,0"/>
                                 <Setter Property="Background" Value="Transparent"/>
                                 <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
-                                <Style.Triggers>
-                                    <Trigger Property="IsSelected" Value="True">
-                                        <Setter Property="Background" Value="{DynamicResource CardBrush}"/>
-                                    </Trigger>
-                                    <Trigger Property="IsMouseOver" Value="True">
-                                        <Setter Property="Background" Value="{DynamicResource HighlightBrush}"/>
-                                    </Trigger>
-                                </Style.Triggers>
+                                <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                <Setter Property="VerticalContentAlignment" Value="Stretch"/>
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="ListBoxItem">
+                                            <Border x:Name="Bd"
+                                                    Background="{TemplateBinding Background}"
+                                                    CornerRadius="{StaticResource CornerRadiusSm}"
+                                                    Padding="{TemplateBinding Padding}">
+                                                <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                                                  VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsSelected" Value="True">
+                                                    <Setter TargetName="Bd" Property="Background"
+                                                            Value="{DynamicResource CardBrush}"/>
+                                                </Trigger>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="Bd" Property="Background"
+                                                            Value="{DynamicResource HighlightBrush}"/>
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
                             </Style>
                         </ListBox.ItemContainerStyle>
                     </ListBox>

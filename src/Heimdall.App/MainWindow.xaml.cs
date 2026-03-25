@@ -162,7 +162,8 @@ public partial class MainWindow : Window
         TabServers.Content = vm.Localize("NavTabServers");
         TabTunnels.Content = vm.Localize("NavTabTunnels");
         TabScheduled.Content = vm.Localize("NavTabScheduled");
-        TabSettings.Content = vm.Localize("NavTabSettings");
+        Mw_TabSettingsText.Text = vm.Localize("NavTabSettings");
+        Mw_SettingsUnsavedDot.ToolTip = vm.Localize("SettingsUnsavedChanges");
         TabAbout.Content = vm.Localize("NavTabAbout");
 
         Mw_FilterBox.Tag = vm.Localize("SearchPlaceholder");
@@ -199,6 +200,8 @@ public partial class MainWindow : Window
         Mw_DetailGroupLabel.Text = vm.Localize("DetailLabelGroup");
         Mw_DetailEnvLabel.Text = vm.Localize("DetailLabelEnvironment");
         Mw_DetailConnectBtn.Content = vm.Localize("DetailBtnConnect");
+        Mw_DetailEditBtn.Content = vm.Localize("BtnEdit");
+        Mw_DetailDeleteBtn.Content = vm.Localize("BtnDelete");
 
         Mw_EmptyStateTitle.Text = vm.Localize("EmptyStateTitle");
         Mw_EmptyStateSubtitle.Text = vm.Localize("EmptyStateSubtitle");
@@ -206,6 +209,7 @@ public partial class MainWindow : Window
         Mw_EmptyBtnImport.Content = vm.Localize("EmptyStateBtnImport");
         Mw_EmptyBtnImport.ToolTip = vm.Localize("TooltipImport");
         Mw_EmptySelectServer.Text = vm.Localize("EmptyStateSelectServer");
+        Mw_EmptyQuickConnectHint.Text = vm.Localize("HintQuickConnect");
     }
 
     private void ApplyTunnelLocalization(MainViewModel vm)
@@ -432,6 +436,8 @@ public partial class MainWindow : Window
         // Server detail and empty state buttons
         System.Windows.Automation.AutomationProperties.SetName(Mw_DetailConnectBtn, vm.Localize("AccessDetailConnect"));
         System.Windows.Automation.AutomationProperties.SetName(Mw_ToolDetailOpenBtn, vm.Localize("AccessDetailOpen"));
+        System.Windows.Automation.AutomationProperties.SetName(Mw_DetailEditBtn, vm.Localize("BtnEdit"));
+        System.Windows.Automation.AutomationProperties.SetName(Mw_DetailDeleteBtn, vm.Localize("BtnDelete"));
         System.Windows.Automation.AutomationProperties.SetName(Mw_EmptyBtnAddServer, vm.Localize("AccessEmptyAddServer"));
         System.Windows.Automation.AutomationProperties.SetName(Mw_EmptyBtnImport, vm.Localize("AccessEmptyImport"));
 
@@ -522,10 +528,17 @@ public partial class MainWindow : Window
         if (vm.SelectedTab != "Settings") return true;
         if (!vm.Settings.IsDirty) return true;
 
-        return await vm.DialogService.ShowConfirmAsync(
+        var discard = await vm.DialogService.ShowConfirmAsync(
             vm.Localize("SettingsUnsavedTitle"),
             vm.Localize("SettingsUnsavedMessage"),
             "warning");
+
+        if (discard)
+        {
+            await vm.Settings.DiscardChangesAsync();
+        }
+
+        return discard;
     }
 
     private async void OnAddFolderFromMenu(object sender, RoutedEventArgs e)

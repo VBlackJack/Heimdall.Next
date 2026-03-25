@@ -138,6 +138,44 @@
                 </Style.Triggers>
             </Style>
 
+            <!-- Protocol card button style (Step 1 selector) -->
+            <Style x:Key="ProtocolCardButtonStyle" TargetType="Button">
+                <Setter Property="Background" Value="{DynamicResource CardBrush}"/>
+                <Setter Property="BorderBrush" Value="Transparent"/>
+                <Setter Property="BorderThickness" Value="2"/>
+                <Setter Property="Cursor" Value="Hand"/>
+                <Setter Property="Padding" Value="12"/>
+                <Setter Property="Margin" Value="4"/>
+                <Setter Property="MinHeight" Value="100"/>
+                <Setter Property="VerticalContentAlignment" Value="Center"/>
+                <Setter Property="HorizontalContentAlignment" Value="Center"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="CardBorder"
+                                    Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="{StaticResource CornerRadiusLg}"
+                                    Padding="{TemplateBinding Padding}">
+                                <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                                  VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="CardBorder" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                                    <Setter TargetName="CardBorder" Property="Background" Value="{DynamicResource SurfaceBrush}"/>
+                                </Trigger>
+                                <Trigger Property="IsPressed" Value="True">
+                                    <Setter TargetName="CardBorder" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                                    <Setter Property="Opacity" Value="0.85"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
             <!-- Advanced settings toggle button style -->
             <Style x:Key="AdvancedToggleStyle" TargetType="ToggleButton">
                 <Setter Property="Background" Value="Transparent"/>
@@ -183,8 +221,231 @@
             <StackPanel Margin="{StaticResource SpacingSm}">
 
                 <!-- ================================================================ -->
-                <!-- ESSENTIAL FIELDS (always visible, covers 90% of use cases)       -->
+                <!-- STEP 1: PROTOCOL SELECTOR (add mode only, before selection)      -->
                 <!-- ================================================================ -->
+
+                <StackPanel x:Name="ProtocolSelectorPanel"
+                            Visibility="{Binding ShowProtocolSelector, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <TextBlock x:Name="DlgSrv_ProtocolSelectorTitle"
+                               Style="{StaticResource DialogSectionTitleStyle}"
+                               FontSize="{StaticResource FontSizeTitle}"
+                               Margin="0,0,0,4"/>
+                    <TextBlock x:Name="DlgSrv_ProtocolSelectorDesc"
+                               Style="{StaticResource DialogSectionDescriptionStyle}"
+                               Margin="0,0,0,16"/>
+
+                    <ItemsControl x:Name="ProtocolCards">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <UniformGrid Columns="4"/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+
+                        <!-- RDP -->
+                        <Button x:Name="ProtocolCard_Rdp" Command="{Binding SelectProtocolCommand}" CommandParameter="RDP"
+                                Style="{StaticResource ProtocolCardButtonStyle}">
+                            <StackPanel HorizontalAlignment="Center">
+                                <Path Data="{StaticResource Geo.Protocol.Rdp}"
+                                      Fill="{DynamicResource ProtocolRdpBrush}"
+                                      Stretch="Uniform" Width="28" Height="28"
+                                      HorizontalAlignment="Center" Margin="0,0,0,8"/>
+                                <TextBlock x:Name="DlgSrv_ProtoRdpName" HorizontalAlignment="Center"
+                                           FontWeight="SemiBold" FontSize="{StaticResource FontSizeBody}"
+                                           Foreground="{DynamicResource TextPrimaryBrush}"/>
+                                <TextBlock x:Name="DlgSrv_ProtoRdpDesc" HorizontalAlignment="Center"
+                                           TextAlignment="Center" TextWrapping="Wrap"
+                                           FontSize="{StaticResource FontSizeCaption}"
+                                           Foreground="{DynamicResource TextSecondaryBrush}"
+                                           Margin="0,2,0,0"/>
+                            </StackPanel>
+                        </Button>
+
+                        <!-- SSH -->
+                        <Button x:Name="ProtocolCard_Ssh" Command="{Binding SelectProtocolCommand}" CommandParameter="SSH"
+                                Style="{StaticResource ProtocolCardButtonStyle}">
+                            <StackPanel HorizontalAlignment="Center">
+                                <Path Data="{StaticResource Geo.Protocol.Ssh}"
+                                      Fill="{DynamicResource ProtocolSshBrush}"
+                                      Stretch="Uniform" Width="28" Height="28"
+                                      HorizontalAlignment="Center" Margin="0,0,0,8"/>
+                                <TextBlock x:Name="DlgSrv_ProtoSshName" HorizontalAlignment="Center"
+                                           FontWeight="SemiBold" FontSize="{StaticResource FontSizeBody}"
+                                           Foreground="{DynamicResource TextPrimaryBrush}"/>
+                                <TextBlock x:Name="DlgSrv_ProtoSshDesc" HorizontalAlignment="Center"
+                                           TextAlignment="Center" TextWrapping="Wrap"
+                                           FontSize="{StaticResource FontSizeCaption}"
+                                           Foreground="{DynamicResource TextSecondaryBrush}"
+                                           Margin="0,2,0,0"/>
+                            </StackPanel>
+                        </Button>
+
+                        <!-- SFTP -->
+                        <Button x:Name="ProtocolCard_Sftp" Command="{Binding SelectProtocolCommand}" CommandParameter="SFTP"
+                                Style="{StaticResource ProtocolCardButtonStyle}">
+                            <StackPanel HorizontalAlignment="Center">
+                                <Path Data="{StaticResource Geo.Protocol.Sftp}"
+                                      Fill="{DynamicResource ProtocolSftpBrush}"
+                                      Stretch="Uniform" Width="28" Height="28"
+                                      HorizontalAlignment="Center" Margin="0,0,0,8"/>
+                                <TextBlock x:Name="DlgSrv_ProtoSftpName" HorizontalAlignment="Center"
+                                           FontWeight="SemiBold" FontSize="{StaticResource FontSizeBody}"
+                                           Foreground="{DynamicResource TextPrimaryBrush}"/>
+                                <TextBlock x:Name="DlgSrv_ProtoSftpDesc" HorizontalAlignment="Center"
+                                           TextAlignment="Center" TextWrapping="Wrap"
+                                           FontSize="{StaticResource FontSizeCaption}"
+                                           Foreground="{DynamicResource TextSecondaryBrush}"
+                                           Margin="0,2,0,0"/>
+                            </StackPanel>
+                        </Button>
+
+                        <!-- VNC -->
+                        <Button x:Name="ProtocolCard_Vnc" Command="{Binding SelectProtocolCommand}" CommandParameter="VNC"
+                                Style="{StaticResource ProtocolCardButtonStyle}">
+                            <StackPanel HorizontalAlignment="Center">
+                                <Path Data="{StaticResource Geo.Protocol.Vnc}"
+                                      Fill="{DynamicResource ProtocolVncBrush}"
+                                      Stretch="Uniform" Width="28" Height="28"
+                                      HorizontalAlignment="Center" Margin="0,0,0,8"/>
+                                <TextBlock x:Name="DlgSrv_ProtoVncName" HorizontalAlignment="Center"
+                                           FontWeight="SemiBold" FontSize="{StaticResource FontSizeBody}"
+                                           Foreground="{DynamicResource TextPrimaryBrush}"/>
+                                <TextBlock x:Name="DlgSrv_ProtoVncDesc" HorizontalAlignment="Center"
+                                           TextAlignment="Center" TextWrapping="Wrap"
+                                           FontSize="{StaticResource FontSizeCaption}"
+                                           Foreground="{DynamicResource TextSecondaryBrush}"
+                                           Margin="0,2,0,0"/>
+                            </StackPanel>
+                        </Button>
+
+                        <!-- Telnet -->
+                        <Button x:Name="ProtocolCard_Telnet" Command="{Binding SelectProtocolCommand}" CommandParameter="Telnet"
+                                Style="{StaticResource ProtocolCardButtonStyle}">
+                            <StackPanel HorizontalAlignment="Center">
+                                <Path Data="{StaticResource Geo.Protocol.Telnet}"
+                                      Fill="{DynamicResource ProtocolTelnetBrush}"
+                                      Stretch="Uniform" Width="28" Height="28"
+                                      HorizontalAlignment="Center" Margin="0,0,0,8"/>
+                                <TextBlock x:Name="DlgSrv_ProtoTelnetName" HorizontalAlignment="Center"
+                                           FontWeight="SemiBold" FontSize="{StaticResource FontSizeBody}"
+                                           Foreground="{DynamicResource TextPrimaryBrush}"/>
+                                <TextBlock x:Name="DlgSrv_ProtoTelnetDesc" HorizontalAlignment="Center"
+                                           TextAlignment="Center" TextWrapping="Wrap"
+                                           FontSize="{StaticResource FontSizeCaption}"
+                                           Foreground="{DynamicResource TextSecondaryBrush}"
+                                           Margin="0,2,0,0"/>
+                            </StackPanel>
+                        </Button>
+
+                        <!-- FTP -->
+                        <Button x:Name="ProtocolCard_Ftp" Command="{Binding SelectProtocolCommand}" CommandParameter="FTP"
+                                Style="{StaticResource ProtocolCardButtonStyle}">
+                            <StackPanel HorizontalAlignment="Center">
+                                <Path Data="{StaticResource Geo.Protocol.Ftp}"
+                                      Fill="{DynamicResource ProtocolFtpBrush}"
+                                      Stretch="Uniform" Width="28" Height="28"
+                                      HorizontalAlignment="Center" Margin="0,0,0,8"/>
+                                <TextBlock x:Name="DlgSrv_ProtoFtpName" HorizontalAlignment="Center"
+                                           FontWeight="SemiBold" FontSize="{StaticResource FontSizeBody}"
+                                           Foreground="{DynamicResource TextPrimaryBrush}"/>
+                                <TextBlock x:Name="DlgSrv_ProtoFtpDesc" HorizontalAlignment="Center"
+                                           TextAlignment="Center" TextWrapping="Wrap"
+                                           FontSize="{StaticResource FontSizeCaption}"
+                                           Foreground="{DynamicResource TextSecondaryBrush}"
+                                           Margin="0,2,0,0"/>
+                            </StackPanel>
+                        </Button>
+
+                        <!-- Citrix -->
+                        <Button x:Name="ProtocolCard_Citrix" Command="{Binding SelectProtocolCommand}" CommandParameter="Citrix"
+                                Style="{StaticResource ProtocolCardButtonStyle}">
+                            <StackPanel HorizontalAlignment="Center">
+                                <Path Data="{StaticResource Geo.Protocol.Citrix}"
+                                      Fill="{DynamicResource ProtocolCitrixBrush}"
+                                      Stretch="Uniform" Width="28" Height="28"
+                                      HorizontalAlignment="Center" Margin="0,0,0,8"/>
+                                <TextBlock x:Name="DlgSrv_ProtoCitrixName" HorizontalAlignment="Center"
+                                           FontWeight="SemiBold" FontSize="{StaticResource FontSizeBody}"
+                                           Foreground="{DynamicResource TextPrimaryBrush}"/>
+                                <TextBlock x:Name="DlgSrv_ProtoCitrixDesc" HorizontalAlignment="Center"
+                                           TextAlignment="Center" TextWrapping="Wrap"
+                                           FontSize="{StaticResource FontSizeCaption}"
+                                           Foreground="{DynamicResource TextSecondaryBrush}"
+                                           Margin="0,2,0,0"/>
+                            </StackPanel>
+                        </Button>
+
+                        <!-- Local Shell -->
+                        <Button x:Name="ProtocolCard_Local" Command="{Binding SelectProtocolCommand}" CommandParameter="Local"
+                                Style="{StaticResource ProtocolCardButtonStyle}">
+                            <StackPanel HorizontalAlignment="Center">
+                                <Path Data="{StaticResource Geo.Protocol.LocalShell}"
+                                      Fill="{DynamicResource ProtocolLocalBrush}"
+                                      Stretch="Uniform" Width="28" Height="28"
+                                      HorizontalAlignment="Center" Margin="0,0,0,8"/>
+                                <TextBlock x:Name="DlgSrv_ProtoLocalName" HorizontalAlignment="Center"
+                                           FontWeight="SemiBold" FontSize="{StaticResource FontSizeBody}"
+                                           Foreground="{DynamicResource TextPrimaryBrush}"/>
+                                <TextBlock x:Name="DlgSrv_ProtoLocalDesc" HorizontalAlignment="Center"
+                                           TextAlignment="Center" TextWrapping="Wrap"
+                                           FontSize="{StaticResource FontSizeCaption}"
+                                           Foreground="{DynamicResource TextSecondaryBrush}"
+                                           Margin="0,2,0,0"/>
+                            </StackPanel>
+                        </Button>
+                    </ItemsControl>
+                </StackPanel>
+
+                <!-- ================================================================ -->
+                <!-- STEP 2: FORM FIELDS (visible after protocol selection / edit)     -->
+                <!-- ================================================================ -->
+
+                <StackPanel x:Name="FormFieldsPanel"
+                            Visibility="{Binding ShowFormFields, Converter={StaticResource BoolToVisibilityConverter}}">
+
+                <!-- Protocol badge (edit mode: read-only indicator) -->
+                <Border Margin="0,0,0,12">
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsEditMode}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock x:Name="DlgSrv_ProtocolBadgeLabel"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                   FontSize="{StaticResource FontSizeCaption}"
+                                   VerticalAlignment="Center" Margin="0,0,8,0"/>
+                        <Border CornerRadius="{StaticResource CornerRadiusLg}" Padding="10,4"
+                                Background="{DynamicResource SurfaceBrush}"
+                                BorderBrush="{DynamicResource BorderBrush}"
+                                BorderThickness="1">
+                            <TextBlock Text="{Binding ConnectionType}"
+                                       FontWeight="SemiBold"
+                                       FontSize="{StaticResource FontSizeBody}"
+                                       Foreground="{DynamicResource TextPrimaryBrush}"/>
+                        </Border>
+                    </StackPanel>
+                </Border>
+
+                <!-- Back button (add mode only, after protocol selection) -->
+                <Button x:Name="DlgSrv_BackBtn" Margin="0,0,0,12"
+                        Command="{Binding BackToProtocolSelectorCommand}"
+                        MinWidth="80" HorizontalAlignment="Left">
+                    <Button.Style>
+                        <Style TargetType="Button" BasedOn="{StaticResource SecondaryButtonStyle}">
+                            <Setter Property="Visibility" Value="Visible"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsEditMode}" Value="True">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
 
                 <!-- Connection basics: Name, Type, Host, Port -->
                 <Border Style="{StaticResource DialogSectionCardStyle}">
@@ -202,30 +463,21 @@
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
-                            <TextBlock x:Name="DlgSrv_DisplayNameLabel" Grid.Row="0" Grid.Column="0" Style="{StaticResource LabelStyle}"/>
-                            <TextBlock x:Name="DlgSrv_ConnectionTypeLabel" Grid.Row="0" Grid.Column="1" Style="{StaticResource LabelStyle}" Margin="12,0,0,4"/>
-                            <TextBox Grid.Row="1" Grid.Column="0"
+                            <TextBlock x:Name="DlgSrv_DisplayNameLabel" Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" Style="{StaticResource LabelStyle}"/>
+                            <TextBox x:Name="DlgSrv_DisplayNameBox" Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
                                      TabIndex="0"
                                      Text="{Binding DisplayName, UpdateSourceTrigger=PropertyChanged}"
                                      Style="{StaticResource DialogFormTextBoxStyle}"/>
-                            <ComboBox Grid.Row="1" Grid.Column="1"
-                                      TabIndex="1"
-                                      Margin="12,0,0,0"
-                                      SelectedValue="{Binding ConnectionType}"
-                                      SelectedValuePath="Content"
-                                      Style="{StaticResource DialogFormComboBoxStyle}">
-                                <ComboBoxItem Content="RDP"/>
-                                <ComboBoxItem Content="SSH"/>
-                                <ComboBoxItem Content="SFTP"/>
-                                <ComboBoxItem Content="FTP"/>
-                                <ComboBoxItem Content="Local"/>
-                                <ComboBoxItem Content="Citrix"/>
-                                <ComboBoxItem Content="VNC"/>
-                                <ComboBoxItem Content="Telnet"/>
-                            </ComboBox>
+                            <!-- Inline validation: Display Name -->
+                            <TextBlock Grid.Row="2" Grid.Column="0"
+                                       Text="{Binding DisplayNameError}"
+                                       Style="{StaticResource FieldValidationErrorStyle}"
+                                       Visibility="{Binding DisplayNameError, Converter={StaticResource NullToVisibilityConverter}}"/>
                             <!-- Server/Port row: hidden for Local shell and Citrix -->
-                            <TextBlock x:Name="DlgSrv_ServerLabel" Grid.Row="2" Grid.Column="0" Margin="0,14,0,4">
+                            <TextBlock x:Name="DlgSrv_ServerLabel" Grid.Row="3" Grid.Column="0" Margin="0,14,0,4">
                                 <TextBlock.Style>
                                     <Style TargetType="TextBlock" BasedOn="{StaticResource LabelStyle}">
                                         <Style.Triggers>
@@ -239,7 +491,7 @@
                                     </Style>
                                 </TextBlock.Style>
                             </TextBlock>
-                            <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding EndpointPortLabel}" Margin="12,14,0,4">
+                            <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding EndpointPortLabel}" Margin="12,14,0,4">
                                 <TextBlock.Style>
                                     <Style TargetType="TextBlock" BasedOn="{StaticResource LabelStyle}">
                                         <Style.Triggers>
@@ -253,7 +505,7 @@
                                     </Style>
                                 </TextBlock.Style>
                             </TextBlock>
-                            <TextBox Grid.Row="3" Grid.Column="0"
+                            <TextBox x:Name="DlgSrv_RemoteServerBox" Grid.Row="4" Grid.Column="0"
                                      TabIndex="2"
                                      Text="{Binding RemoteServer, UpdateSourceTrigger=PropertyChanged}">
                                 <TextBox.Style>
@@ -269,7 +521,7 @@
                                     </Style>
                                 </TextBox.Style>
                             </TextBox>
-                            <TextBox Grid.Row="3" Grid.Column="1"
+                            <TextBox x:Name="DlgSrv_EndpointPortBox" Grid.Row="4" Grid.Column="1"
                                      TabIndex="3"
                                      Margin="12,0,0,0"
                                      Width="120"
@@ -288,6 +540,17 @@
                                     </Style>
                                 </TextBox.Style>
                             </TextBox>
+                            <!-- Inline validation: Server address -->
+                            <TextBlock Grid.Row="5" Grid.Column="0"
+                                       Text="{Binding RemoteServerError}"
+                                       Style="{StaticResource FieldValidationErrorStyle}"
+                                       Visibility="{Binding RemoteServerError, Converter={StaticResource NullToVisibilityConverter}}"/>
+                            <!-- Inline validation: Port -->
+                            <TextBlock Grid.Row="5" Grid.Column="1"
+                                       Text="{Binding EndpointPortError}"
+                                       Style="{StaticResource FieldValidationErrorStyle}"
+                                       Margin="12,2,0,0"
+                                       Visibility="{Binding EndpointPortError, Converter={StaticResource NullToVisibilityConverter}}"/>
                         </Grid>
                         <TextBlock Text="{Binding EndpointPortHelpText}">
                             <TextBlock.Style>
@@ -328,11 +591,7 @@
                                       Style="{StaticResource DialogFormCheckBoxStyle}"
                                       Margin="0,14,0,0"/>
                             <Grid Margin="0,12,0,0">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-                                <ComboBox Grid.Column="0"
+                                <ComboBox
                                           TabIndex="6"
                                           ItemsSource="{Binding AvailableGateways}"
                                           SelectedValue="{Binding SelectedGatewayId}"
@@ -340,20 +599,8 @@
                                           DisplayMemberPath="DisplayText"
                                           IsEnabled="{Binding CanSelectGateway}"
                                           Style="{StaticResource DialogFormComboBoxStyle}"/>
-                                <Button Grid.Column="1"
-                                        Margin="8,0,0,0"
-                                        Padding="12,6"
-                                        x:Name="DlgSrv_TestConnectionBtn"
-                                        Command="{Binding TestGatewayCommand}"
-                                        Style="{DynamicResource SecondaryButtonStyle}"/>
                             </Grid>
                             <TextBlock Text="{Binding GatewayExplanation}" Style="{StaticResource DialogHintTextStyle}"/>
-                            <TextBlock Text="{Binding GatewayTestMessage}"
-                                       Foreground="{DynamicResource InfoBrush}"
-                                       FontSize="{StaticResource FontSizeBody}"
-                                       Margin="0,10,0,0"
-                                       TextWrapping="Wrap"
-                                       Visibility="{Binding GatewayTestMessage, Converter={StaticResource NullToVisibilityConverter}}"/>
                         </StackPanel>
                     </StackPanel>
                 </Border>
@@ -392,7 +639,7 @@
                                     <DataTrigger.EnterActions>
                                         <BeginStoryboard>
                                             <Storyboard>
-                                                <DoubleAnimation Storyboard.TargetProperty="(UIElement.LayoutTransform).(ScaleTransform.ScaleY)"
+                                                <DoubleAnimation Storyboard.TargetProperty="(FrameworkElement.LayoutTransform).(ScaleTransform.ScaleY)"
                                                                  From="0" To="1" Duration="0:0:0.3">
                                                     <DoubleAnimation.EasingFunction>
                                                         <CubicEase EasingMode="EaseOut"/>
@@ -406,7 +653,7 @@
                                     <DataTrigger.ExitActions>
                                         <BeginStoryboard>
                                             <Storyboard>
-                                                <DoubleAnimation Storyboard.TargetProperty="(UIElement.LayoutTransform).(ScaleTransform.ScaleY)"
+                                                <DoubleAnimation Storyboard.TargetProperty="(FrameworkElement.LayoutTransform).(ScaleTransform.ScaleY)"
                                                                  From="1" To="0" Duration="0:0:0.25">
                                                     <DoubleAnimation.EasingFunction>
                                                         <CubicEase EasingMode="EaseIn"/>
@@ -524,6 +771,21 @@
                         <!-- ============================================ -->
                         <TabItem x:Name="DlgSrv_TabTunneling"
                                  ToolTipService.ShowOnDisabled="True">
+                            <TabItem.Header>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock x:Name="DlgSrv_TabTunnelingText"/>
+                                    <Border CornerRadius="8"
+                                            Background="{DynamicResource ErrorTextBrush}"
+                                            MinWidth="18" Height="18"
+                                            Padding="5,0" Margin="6,0,0,0"
+                                            VerticalAlignment="Center"
+                                            Visibility="{Binding HasTunnelingTabErrors, Converter={StaticResource BoolToVisibilityConverter}}">
+                                        <TextBlock Text="{Binding TunnelingTabErrorCount}"
+                                                   Foreground="{DynamicResource TextOnAccentBrush}" FontSize="10"
+                                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                </StackPanel>
+                            </TabItem.Header>
                             <TabItem.Style>
                                 <Style TargetType="TabItem" BasedOn="{StaticResource ThemedTabItemStyle}">
                                     <Setter Property="IsEnabled" Value="True"/>
@@ -603,13 +865,17 @@
                                                     <ColumnDefinition Width="*"/>
                                                 </Grid.ColumnDefinitions>
                                                 <TextBlock x:Name="DlgSrv_ManualPortLabel" Grid.Column="0" Style="{StaticResource LabelStyle}" Margin="0,6,0,0"/>
-                                                <TextBox Grid.Column="1"
+                                                <TextBox x:Name="DlgSrv_LocalPortBox" Grid.Column="1"
                                                          TabIndex="21"
                                                          Width="140"
                                                          HorizontalAlignment="Left"
                                                          Text="{Binding LocalPort, UpdateSourceTrigger=PropertyChanged}"
                                                          Style="{StaticResource DialogFormTextBoxStyle}"/>
                                             </Grid>
+                                            <!-- Inline validation: Local tunnel port -->
+                                            <TextBlock Text="{Binding LocalPortError}"
+                                                       Style="{StaticResource FieldValidationErrorStyle}"
+                                                       Visibility="{Binding LocalPortError, Converter={StaticResource NullToVisibilityConverter}}"/>
                                         </StackPanel>
                                     </Border>
 
@@ -827,6 +1093,21 @@
                         <!-- Tab: Options                                 -->
                         <!-- ============================================ -->
                         <TabItem x:Name="DlgSrv_TabOptions" Style="{DynamicResource ThemedTabItemStyle}">
+                            <TabItem.Header>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock x:Name="DlgSrv_TabOptionsText"/>
+                                    <Border CornerRadius="8"
+                                            Background="{DynamicResource ErrorTextBrush}"
+                                            MinWidth="18" Height="18"
+                                            Padding="5,0" Margin="6,0,0,0"
+                                            VerticalAlignment="Center"
+                                            Visibility="{Binding HasOptionsTabErrors, Converter={StaticResource BoolToVisibilityConverter}}">
+                                        <TextBlock Text="{Binding OptionsTabErrorCount}"
+                                                   Foreground="{DynamicResource TextOnAccentBrush}" FontSize="10"
+                                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                </StackPanel>
+                            </TabItem.Header>
                             <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                                 <StackPanel Margin="{StaticResource SpacingSm}">
                                     <!-- RDP options -->
@@ -855,6 +1136,7 @@
                                                     <RowDefinition Height="Auto"/>
                                                     <RowDefinition Height="Auto"/>
                                                     <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
                                                 </Grid.RowDefinitions>
                                                 <TextBlock x:Name="DlgSrv_SessionModeLabel" Grid.Row="0" Grid.Column="0" Style="{StaticResource LabelStyle}"/>
                                                 <TextBlock x:Name="DlgSrv_AspectRatioLabel" Grid.Row="0" Grid.Column="1" Style="{StaticResource LabelStyle}" Margin="12,0,0,4"/>
@@ -877,7 +1159,7 @@
                                                 </ComboBox>
                                                 <TextBlock x:Name="DlgSrv_AudioModeLabel" Grid.Row="2" Grid.Column="0" Style="{StaticResource LabelStyle}" Margin="0,14,0,4"/>
                                                 <TextBlock x:Name="DlgSrv_ColorDepthLabel" Grid.Row="2" Grid.Column="1" Style="{StaticResource LabelStyle}" Margin="12,14,0,4"/>
-                                                <ComboBox Grid.Row="3" Grid.Column="0"
+                                                <ComboBox x:Name="DlgSrv_RdpAudioModeCombo" Grid.Row="3" Grid.Column="0"
                                                           TabIndex="62"
                                                           SelectedValue="{Binding RdpAudioMode}"
                                                           SelectedValuePath="Tag"
@@ -886,7 +1168,7 @@
                                                     <ComboBoxItem x:Name="DlgSrv_AudioLocal" Tag="1"/>
                                                     <ComboBoxItem x:Name="DlgSrv_AudioRemote" Tag="2"/>
                                                 </ComboBox>
-                                                <ComboBox Grid.Row="3" Grid.Column="1"
+                                                <ComboBox x:Name="DlgSrv_RdpColorDepthCombo" Grid.Row="3" Grid.Column="1"
                                                           TabIndex="63"
                                                           Margin="12,0,0,0"
                                                           SelectedValue="{Binding RdpColorDepth}"
@@ -896,6 +1178,16 @@
                                                     <ComboBoxItem x:Name="DlgSrv_Color24" Tag="24"/>
                                                     <ComboBoxItem x:Name="DlgSrv_Color32" Tag="32"/>
                                                 </ComboBox>
+                                                <!-- Inline validation: Audio Mode / Color Depth -->
+                                                <TextBlock Grid.Row="4" Grid.Column="0"
+                                                           Text="{Binding AudioModeError}"
+                                                           Style="{StaticResource FieldValidationErrorStyle}"
+                                                           Visibility="{Binding AudioModeError, Converter={StaticResource NullToVisibilityConverter}}"/>
+                                                <TextBlock Grid.Row="4" Grid.Column="1"
+                                                           Text="{Binding ColorDepthError}"
+                                                           Style="{StaticResource FieldValidationErrorStyle}"
+                                                           Margin="12,2,0,0"
+                                                           Visibility="{Binding ColorDepthError, Converter={StaticResource NullToVisibilityConverter}}"/>
                                             </Grid>
                                             <StackPanel Margin="0,14,0,0">
                                                 <CheckBox x:Name="DlgSrv_NlaCb" TabIndex="64" IsChecked="{Binding RdpNla}" Style="{StaticResource DialogFormCheckBoxStyle}"/>
@@ -1312,6 +1604,8 @@
                         </TabItem>
                     </TabControl>
                 </Border>
+
+                </StackPanel> <!-- end FormFieldsPanel -->
 
             </StackPanel>
         </ScrollViewer>
