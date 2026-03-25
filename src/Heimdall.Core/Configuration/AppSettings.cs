@@ -101,6 +101,11 @@ public class AppSettings
     public bool SidebarCollapsed { get; set; }
     public int SidebarWidth { get; set; } = 220;
     public bool ShowToolsPanel { get; set; }
+    public double WindowWidth { get; set; }
+    public double WindowHeight { get; set; }
+    public double WindowLeft { get; set; }
+    public double WindowTop { get; set; }
+    public bool WindowMaximized { get; set; }
     public List<string> TreeExpandedNodes { get; set; } = new();
     public string? TunnelGridColumnWidths { get; set; }
     public bool ServerDialogAdvancedMode { get; set; }

@@ -86,6 +86,7 @@
   "SshSettingsUserLabel": "SSH Username:",
   "SshSettingsUserHint": "Your username for SSH gateway authentication",
   "BtnSave": "Save",
+  "BtnDiscard": "Discard",
   "BtnCancel": "Cancel",
   "BtnOk": "OK",
   "ErrorSshUserEmpty": "Error: SSH username is required.",
@@ -2265,7 +2266,7 @@
   "RdpDisconnectedMessage": "The Remote Desktop session has ended.",
 
   "HelpShortcutsTitle": "Keyboard Shortcuts",
-  "HelpShortcutsContent": "Navigation\n  Ctrl+N\tAdd new server\n  Ctrl+E\tEdit selected server\n  Ctrl+Del\tDelete selected server\n  Ctrl+F\tSearch servers\n  Ctrl+B\tToggle sidebar\n  F11\tToggle fullscreen\n\nConnections\n  Ctrl+K\tQuick Connect\n  Enter\tConnect to selected server\n\nSession\n  Ctrl+Shift+S\tCapture screenshot\n  Ctrl+Shift+N\tNetwork scanner\n  Ctrl+Shift+O\tToggle split orientation\n  Ctrl+Shift+T\tToggle tools panel\n\nGeneral\n  F1\tShow this help\n  Esc\tExit fullscreen / close palette",
+  "HelpShortcutsContent": "Navigation\n  Ctrl+N\tAdd new server\n  Ctrl+E\tEdit selected server\n  Ctrl+Del\tDelete selected server\n  Ctrl+F\tSearch servers\n  Ctrl+B\tToggle sidebar\n  F11\tToggle fullscreen\n\nConnections\n  Ctrl+K\tQuick Connect\n  Enter\tConnect to selected server\n\nSession\n  Ctrl+W\tClose current tab\n  Ctrl+Tab\tNext tab\n  Ctrl+Shift+Tab\tPrevious tab\n  Ctrl+Shift+S\tCapture screenshot\n  Ctrl+Shift+N\tNetwork scanner\n  Ctrl+Shift+O\tToggle split orientation\n  Ctrl+Shift+T\tToggle tools panel\n\nGeneral\n  F1\tShow this help\n  Esc\tExit fullscreen / close palette",
 
   "BtnYes": "Yes",
   "BtnNo": "No",
@@ -3563,7 +3564,7 @@
   "TooltipBringToFront": "Bring to front",
   "TooltipToggleBroadcast": "Toggle broadcast mode",
   "TooltipToggleToolsPanel": "Toggle tools panel (Ctrl+Shift+T)",
-  "TooltipToggleSidebar": "Toggle sidebar",
+  "TooltipToggleSidebar": "Toggle sidebar (Ctrl+B)",
   "TooltipMarkdownHelp": "Markdown syntax help",
   "TooltipOpenNotesFolder": "Open notes folder",
   "TooltipCollapseAll": "Collapse all",

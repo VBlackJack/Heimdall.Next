@@ -207,6 +207,8 @@ public partial class ServerListViewModel : ObservableObject
         return targets;
     }
 
+    private readonly HashSet<string> _connectingServerIds = new(StringComparer.Ordinal);
+
     [RelayCommand]
     private async Task ConnectAsync(ServerItemViewModel? server, CancellationToken cancellationToken)
     {
@@ -214,6 +216,15 @@ public partial class ServerListViewModel : ObservableObject
         {
             return;
         }
+
+        // Prevent duplicate connections from rapid double-clicks
+        if (!_connectingServerIds.Add(server.Id))
+        {
+            return;
+        }
+
+        try
+        {
 
         var servers = await _configManager.LoadServersAsync();
         var serverDto = servers.FirstOrDefault(
@@ -364,6 +375,12 @@ public partial class ServerListViewModel : ObservableObject
         finally
         {
             serverDto.Id = originalId;
+        }
+
+        }
+        finally
+        {
+            _connectingServerIds.Remove(server.Id);
         }
     }
 

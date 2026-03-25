@@ -55,6 +55,12 @@
                     Style="{DynamicResource SecondaryButtonStyle}"
                     MinWidth="80" Padding="16,6" FontSize="{StaticResource FontSizeBody}"
                     Visibility="Collapsed"
+                    Margin="0,0,8,0"/>
+            <Button x:Name="BtnTertiary"
+                    Click="OnTertiaryClick"
+                    Style="{DynamicResource SecondaryButtonStyle}"
+                    MinWidth="80" Padding="16,6" FontSize="{StaticResource FontSizeBody}"
+                    Visibility="Collapsed"
                     IsCancel="True"/>
         </StackPanel>
     </Grid>

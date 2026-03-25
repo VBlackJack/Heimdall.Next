@@ -19,7 +19,7 @@
     <Color x:Key="WarningColor">#B45309</Color>
     <Color x:Key="ErrorColor">#DC2626</Color>
     <Color x:Key="InfoColor">#1D4ED8</Color>
-    <Color x:Key="BorderColor">#CBD5E1</Color>
+    <Color x:Key="BorderColor">#94A3B8</Color>
     <Color x:Key="HighlightColor">#EEF2FF</Color>
 
     <!-- WCAG-safe text variants for semantic colors on light backgrounds -->
@@ -97,6 +97,14 @@
     <SolidColorBrush x:Key="OverlayBackground" Color="#A0FFFFFF"/>
     <SolidColorBrush x:Key="DragDropOverlayBackground" Color="#66E8E8E8"/>
     <SolidColorBrush x:Key="BroadcastActiveBrush" Color="#44DC2626"/>
+
+    <!-- File type icon colors (WCAG-safe on light backgrounds) -->
+    <SolidColorBrush x:Key="FileScriptBrush" Color="#15803D"/>
+    <SolidColorBrush x:Key="FileConfigBrush" Color="#0891B2"/>
+    <SolidColorBrush x:Key="FileDocumentBrush" Color="#4B5563"/>
+    <SolidColorBrush x:Key="FileArchiveBrush" Color="#B45309"/>
+    <SolidColorBrush x:Key="FileExecutableBrush" Color="#BE185D"/>
+    <SolidColorBrush x:Key="FileImageBrush" Color="#7C3AED"/>
 
     <!-- Scrollbar colors -->
     <SolidColorBrush x:Key="ScrollBarThumbBrush" Color="#999999"/>

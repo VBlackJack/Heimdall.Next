@@ -86,6 +86,7 @@
   "SshSettingsUserLabel": "Identifiant SSH :",
   "SshSettingsUserHint": "Votre nom d'utilisateur pour l'authentification au gateway SSH",
   "BtnSave": "Enregistrer",
+  "BtnDiscard": "Abandonner",
   "BtnCancel": "Annuler",
   "BtnOk": "OK",
   "ErrorSshUserEmpty": "Erreur : L'identifiant SSH est requis.",
@@ -2264,7 +2265,7 @@
   "RdpDisconnectedMessage": "La session Bureau a distance s'est terminee.",
 
   "HelpShortcutsTitle": "Raccourcis clavier",
-  "HelpShortcutsContent": "Navigation\n  Ctrl+N\tAjouter un serveur\n  Ctrl+E\tModifier le serveur selectionne\n  Ctrl+Suppr\tSupprimer le serveur selectionne\n  Ctrl+F\tRechercher des serveurs\n  Ctrl+B\tAfficher/masquer la barre laterale\n  F11\tPlein ecran\n\nConnexions\n  Ctrl+K\tConnexion rapide\n  Entree\tConnecter au serveur selectionne\n\nSession\n  Ctrl+Maj+S\tCapture d'ecran\n  Ctrl+Maj+N\tScanner reseau\n  Ctrl+Maj+O\tChanger l'orientation du split\n  Ctrl+Maj+T\tAfficher/masquer le panneau d'outils\n\nGeneral\n  F1\tAfficher cette aide\n  Echap\tQuitter le plein ecran / fermer la palette",
+  "HelpShortcutsContent": "Navigation\n  Ctrl+N\tAjouter un serveur\n  Ctrl+E\tModifier le serveur selectionne\n  Ctrl+Suppr\tSupprimer le serveur selectionne\n  Ctrl+F\tRechercher des serveurs\n  Ctrl+B\tAfficher/masquer la barre laterale\n  F11\tPlein ecran\n\nConnexions\n  Ctrl+K\tConnexion rapide\n  Entree\tConnecter au serveur selectionne\n\nSession\n  Ctrl+W\tFermer l'onglet actif\n  Ctrl+Tab\tOnglet suivant\n  Ctrl+Maj+Tab\tOnglet precedent\n  Ctrl+Maj+S\tCapture d'ecran\n  Ctrl+Maj+N\tScanner reseau\n  Ctrl+Maj+O\tChanger l'orientation du split\n  Ctrl+Maj+T\tAfficher/masquer le panneau d'outils\n\nGeneral\n  F1\tAfficher cette aide\n  Echap\tQuitter le plein ecran / fermer la palette",
 
   "BtnYes": "Oui",
   "BtnNo": "Non",
@@ -3562,7 +3563,7 @@
   "TooltipBringToFront": "Mettre au premier plan",
   "TooltipToggleBroadcast": "Activer/d\u00e9sactiver la diffusion",
   "TooltipToggleToolsPanel": "Afficher/masquer le panneau d'outils (Ctrl+Shift+T)",
-  "TooltipToggleSidebar": "Afficher/masquer la barre lat\u00e9rale",
+  "TooltipToggleSidebar": "Afficher/masquer la barre lat\u00e9rale (Ctrl+B)",
   "TooltipMarkdownHelp": "Aide syntaxe Markdown",
   "TooltipOpenNotesFolder": "Ouvrir le dossier des notes",
   "TooltipCollapseAll": "Tout r\u00e9duire",

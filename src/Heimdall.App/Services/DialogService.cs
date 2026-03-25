@@ -35,6 +35,12 @@ public interface IDialogService
     Task<bool> ShowConfirmAsync(string title, string message, string severity = "info");
 
     /// <summary>
+    /// Shows a three-choice dialog (Save / Discard / Cancel).
+    /// </summary>
+    /// <returns>True = Save, false = Discard, null = Cancel.</returns>
+    Task<bool?> ShowSaveDiscardCancelAsync(string title, string message);
+
+    /// <summary>
     /// Shows a text input dialog and returns the entered value.
     /// </summary>
     /// <param name="title">Dialog title.</param>

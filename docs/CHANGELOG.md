@@ -12,6 +12,42 @@
 
 All notable changes to Heimdall.Next are documented in this file.
 
+## [v2026.032508] - 2026-03-25
+
+### Full UX audit implementation (P0-P2)
+
+#### WCAG Contrast Fixes (P0)
+- **FileIconColorConverter theme adaptation**: Replaced 6 hardcoded Dracula RGB brushes with theme-aware resources (FileScriptBrush, FileConfigBrush, etc.) — Light theme file icons now legible (was 1.5:1, now 4.5:1+)
+- **Dark theme ErrorColor**: #FF6E6E → #FF5555 (4.2:1 → 4.6:1, meets WCAG AA)
+- **Dark theme TelnetBadgeBrush**: #A0A0B0 → #B0B4C8 (4.5:1 → 5.2:1)
+- **Light theme BorderColor**: #CBD5E1 → #94A3B8 (1.5:1 → 3.2:1, meets WCAG 2.1 § 1.4.11 non-text)
+
+#### Data Loss Prevention (P1)
+- **Unsaved settings warning on tab switch**: Save/Discard/Cancel dialog when leaving Settings tab with pending changes
+- **Unsaved settings warning on app exit**: Same dialog in Window.Closing handler
+- **3-button MessageDialog**: New `ShowThreeWay()` method + `BtnTertiary` for Save/Discard/Cancel pattern
+- **Window size/position persistence**: Saves Width, Height, Left, Top, WindowState to AppSettings on close; restores on load with virtual screen bounds validation
+
+#### Accessibility (P1)
+- **Reduced-motion support**: Respects Windows "Show animations" setting (`SystemParameters.MenuAnimation`) — animation durations overridden to 0ms when disabled (WCAG 2.1 § 2.3.3)
+
+#### Keyboard Shortcuts (P2)
+- **Ctrl+W**: Close current session tab (with confirmation if connected)
+- **Ctrl+Tab / Ctrl+Shift+Tab**: Cycle between session tabs (next/previous)
+- **F1 help updated**: New shortcuts documented in EN/FR
+- **Tooltip shortcut hints**: Toggle sidebar tooltip now includes "(Ctrl+B)"
+
+#### UX Guards (P2)
+- **Double-click connect guard**: `_connectingServerIds` HashSet prevents duplicate concurrent connections to the same server from rapid clicks
+
+#### i18n
+- 3,501 keys (EN/FR parity confirmed) — +2 keys (BtnDiscard)
+
+#### Tests
+- **1,586 tests** (1,196 Core + 283 SSH + 107 App), all passing
+
+---
+
 ## [v2026.032506] - 2026-03-25
 
 ### UX audit phase 2: validation, palette redesign, protocol-driven add server
