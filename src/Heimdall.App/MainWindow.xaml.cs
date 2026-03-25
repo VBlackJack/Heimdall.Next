@@ -90,11 +90,16 @@ public partial class MainWindow : Window
 
             PopulateAboutSection();
 
-            // Tools panel is visible by default; populate it on first load
-            if (!_toolsPanelPopulated)
+            // Restore tools panel visibility from persisted setting
+            if (viewModel.Settings.ShowToolsPanel)
             {
-                PopulateToolsPanel();
-                _toolsPanelPopulated = true;
+                ToolsQuickPanel.Visibility = Visibility.Visible;
+                ToolsToggleChevron.Text = "\uE70D";
+                if (!_toolsPanelPopulated)
+                {
+                    PopulateToolsPanel();
+                    _toolsPanelPopulated = true;
+                }
             }
         };
 
@@ -208,6 +213,7 @@ public partial class MainWindow : Window
         Mw_EmptyBtnAddServer.Content = vm.Localize("EmptyStateBtnAddServer");
         Mw_EmptyBtnImport.Content = vm.Localize("EmptyStateBtnImport");
         Mw_EmptyBtnImport.ToolTip = vm.Localize("TooltipImport");
+        Mw_EmptyBtnExploreTools.Content = vm.Localize("EmptyStateBtnExploreTools");
         Mw_EmptySelectServer.Text = vm.Localize("EmptyStateSelectServer");
         Mw_EmptyQuickConnectHint.Text = vm.Localize("HintQuickConnect");
     }
@@ -250,17 +256,7 @@ public partial class MainWindow : Window
         Mw_TunnelsColRemoteHost.Header = vm.Localize("TunnelsColRemoteHost");
         Mw_TunnelsColRemotePort.Header = vm.Localize("TunnelsColRemotePort");
         Mw_TunnelsColStarted.Header = vm.Localize("TunnelsColStarted");
-
-        Mw_GatewaysTitle.Text = vm.Localize("GatewaysSectionTitle");
-        Mw_GatewaysAddBtn.Content = vm.Localize("GatewaysBtnAdd");
-        Mw_GatewaysEditBtn.Content = vm.Localize("GatewaysBtnEdit");
-        Mw_GatewaysDeleteBtn.Content = vm.Localize("GatewaysBtnDelete");
-
-        Mw_GatewaysColName.Header = vm.Localize("GatewaysColName");
-        Mw_GatewaysColHost.Header = vm.Localize("GatewaysColHost");
-        Mw_GatewaysColPort.Header = vm.Localize("GatewaysColPort");
-        Mw_GatewaysColUser.Header = vm.Localize("GatewaysColUser");
-        Mw_GatewaysColAuth.Header = vm.Localize("GatewaysColAuth");
+        Mw_TunnelsManageGatewaysLink.Content = vm.Localize("TunnelsManageGatewaysLink");
     }
 
     private void ApplyScheduledLocalization(MainViewModel vm)
@@ -440,6 +436,7 @@ public partial class MainWindow : Window
         System.Windows.Automation.AutomationProperties.SetName(Mw_DetailDeleteBtn, vm.Localize("BtnDelete"));
         System.Windows.Automation.AutomationProperties.SetName(Mw_EmptyBtnAddServer, vm.Localize("AccessEmptyAddServer"));
         System.Windows.Automation.AutomationProperties.SetName(Mw_EmptyBtnImport, vm.Localize("AccessEmptyImport"));
+        System.Windows.Automation.AutomationProperties.SetName(Mw_EmptyBtnExploreTools, vm.Localize("AccessEmptyExploreTools"));
 
         // Tunnel panel icon buttons
         System.Windows.Automation.AutomationProperties.SetName(Mw_TunnelPanelCollapseBtn, vm.Localize("A11yCollapseTunnelPanel"));
@@ -450,10 +447,8 @@ public partial class MainWindow : Window
         System.Windows.Automation.AutomationProperties.SetName(Mw_TunnelsCloseSelectedBtn, vm.Localize("AccessTunnelsCloseSelected"));
         System.Windows.Automation.AutomationProperties.SetName(Mw_TunnelsCloseAllBtn, vm.Localize("AccessTunnelsCloseAll"));
 
-        // Gateway management buttons
-        System.Windows.Automation.AutomationProperties.SetName(Mw_GatewaysAddBtn, vm.Localize("AccessGatewaysAdd"));
-        System.Windows.Automation.AutomationProperties.SetName(Mw_GatewaysEditBtn, vm.Localize("AccessGatewaysEdit"));
-        System.Windows.Automation.AutomationProperties.SetName(Mw_GatewaysDeleteBtn, vm.Localize("AccessGatewaysDelete"));
+        // Manage gateways link
+        System.Windows.Automation.AutomationProperties.SetName(Mw_TunnelsManageGatewaysLink, vm.Localize("TunnelsManageGatewaysLink"));
 
         // Scheduled task buttons
         System.Windows.Automation.AutomationProperties.SetName(Mw_ScheduledAddBtn, vm.Localize("AccessScheduledAdd"));
@@ -476,6 +471,12 @@ public partial class MainWindow : Window
         System.Windows.Automation.AutomationProperties.SetName(Mw_SettingsExtToolsAddBtn, vm.Localize("AccessSettingsExtToolsAdd"));
         System.Windows.Automation.AutomationProperties.SetName(Mw_SettingsExtToolsRemoveBtn, vm.Localize("AccessSettingsExtToolsRemove"));
         System.Windows.Automation.AutomationProperties.SetName(Mw_ExtToolBrowseBtn, vm.Localize("A11yBrowseExecutable"));
+
+        // Settings path browse buttons
+        System.Windows.Automation.AutomationProperties.SetName(Mw_SettingsBrowseEditorPath, vm.Localize("A11yBrowseEditorPath"));
+        System.Windows.Automation.AutomationProperties.SetName(Mw_SettingsBrowsePlinkPath, vm.Localize("A11yBrowsePlinkPath"));
+        System.Windows.Automation.AutomationProperties.SetName(Mw_SettingsBrowseX11Path, vm.Localize("A11yBrowseX11Path"));
+        System.Windows.Automation.AutomationProperties.SetName(Mw_SettingsBrowseSessionLogDir, vm.Localize("A11yBrowseSessionLogDir"));
 
         // Fullscreen and status bar buttons
         System.Windows.Automation.AutomationProperties.SetName(FullscreenBar, vm.Localize("A11yExitFullscreen"));
@@ -516,6 +517,13 @@ public partial class MainWindow : Window
     private void OnSettingsTabChecked(object sender, RoutedEventArgs e)
     {
         SwitchToTab("Settings");
+    }
+
+    private void OnNavigateToGatewaySettings(object sender, RoutedEventArgs e)
+    {
+        TabSettings.IsChecked = true;
+        SwitchToTab("Settings");
+        Mw_SettingsSubTabControl.SelectedItem = Mw_SettingsTabSsh;
     }
 
     /// <summary>
@@ -1407,12 +1415,19 @@ public partial class MainWindow : Window
 
     private void OnToggleToolsPanel(object sender, RoutedEventArgs e) => ToggleToolsPanel();
 
+    private void OnEmptyExploreToolsClick(object sender, RoutedEventArgs e)
+    {
+        if (ToolsQuickPanel.Visibility != Visibility.Visible)
+            ToggleToolsPanel();
+    }
+
     private void ToggleToolsPanel()
     {
         if (ToolsQuickPanel.Visibility == Visibility.Visible)
         {
             ToolsQuickPanel.Visibility = Visibility.Collapsed;
             ToolsToggleChevron.Text = "\uE70E"; // ChevronUp
+            PersistToolsPanelState(false);
             return;
         }
 
@@ -1424,6 +1439,14 @@ public partial class MainWindow : Window
 
         ToolsQuickPanel.Visibility = Visibility.Visible;
         ToolsToggleChevron.Text = "\uE70D"; // ChevronDown
+        PersistToolsPanelState(true);
+    }
+
+    private async void PersistToolsPanelState(bool isVisible)
+    {
+        if (DataContext is not MainViewModel vm) return;
+        vm.Settings.ShowToolsPanel = isVisible;
+        await vm.ConfigManager.MergeSettingAsync(s => s.ShowToolsPanel = isVisible);
     }
 
     private void PopulateToolsPanel()
@@ -1579,6 +1602,77 @@ public partial class MainWindow : Window
             vm.Settings.SelectedExternalTool.ExecutablePath = dialog.FileName;
             vm.Settings.IsDirty = true;
         }
+    }
+
+    private void OnBrowseEditorPathClick(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is not MainViewModel vm) return;
+        var dlg = new Microsoft.Win32.OpenFileDialog
+        {
+            Title = vm.Localize("BrowseEditorPathTitle"),
+            Filter = vm.Localize("BrowseEditorPathFilter")
+        };
+        if (!string.IsNullOrEmpty(vm.Settings.ExternalEditorPath))
+        {
+            var dir = System.IO.Path.GetDirectoryName(vm.Settings.ExternalEditorPath);
+            if (!string.IsNullOrEmpty(dir) && System.IO.Directory.Exists(dir))
+                dlg.InitialDirectory = dir;
+        }
+        if (dlg.ShowDialog(this) == true)
+            vm.Settings.ExternalEditorPath = dlg.FileName;
+    }
+
+    private void OnBrowsePlinkPathClick(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is not MainViewModel vm) return;
+        var dlg = new Microsoft.Win32.OpenFileDialog
+        {
+            Title = vm.Localize("BrowsePlinkTitle"),
+            Filter = vm.Localize("BrowsePlinkFilter")
+        };
+        if (!string.IsNullOrEmpty(vm.Settings.PlinkPath))
+        {
+            var dir = System.IO.Path.GetDirectoryName(vm.Settings.PlinkPath);
+            if (!string.IsNullOrEmpty(dir) && System.IO.Directory.Exists(dir))
+                dlg.InitialDirectory = dir;
+        }
+        if (dlg.ShowDialog(this) == true)
+            vm.Settings.PlinkPath = dlg.FileName;
+    }
+
+    private void OnBrowseX11PathClick(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is not MainViewModel vm) return;
+        var dlg = new Microsoft.Win32.OpenFileDialog
+        {
+            Title = vm.Localize("BrowseX11PathTitle"),
+            Filter = vm.Localize("BrowseX11PathFilter")
+        };
+        if (!string.IsNullOrEmpty(vm.Settings.X11ServerPath))
+        {
+            var dir = System.IO.Path.GetDirectoryName(vm.Settings.X11ServerPath);
+            if (!string.IsNullOrEmpty(dir) && System.IO.Directory.Exists(dir))
+                dlg.InitialDirectory = dir;
+        }
+        if (dlg.ShowDialog(this) == true)
+            vm.Settings.X11ServerPath = dlg.FileName;
+    }
+
+    private void OnBrowseSessionLogDirClick(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is not MainViewModel vm) return;
+        using var dlg = new System.Windows.Forms.FolderBrowserDialog
+        {
+            Description = vm.Localize("BrowseSessionLogDirTitle"),
+            ShowNewFolderButton = true
+        };
+        if (!string.IsNullOrEmpty(vm.Settings.SessionLogDirectory)
+            && System.IO.Directory.Exists(vm.Settings.SessionLogDirectory))
+        {
+            dlg.SelectedPath = vm.Settings.SessionLogDirectory;
+        }
+        if (dlg.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+            vm.Settings.SessionLogDirectory = dlg.SelectedPath;
     }
 
     private static void LaunchExternalTool(

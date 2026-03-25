@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright 2026 Julien Bombled
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,6 +15,7 @@
  */
 
 using System.Collections.ObjectModel;
+using System.ComponentModel.DataAnnotations;
 using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -32,7 +33,7 @@ namespace Heimdall.App.ViewModels;
 /// ViewModel for the application settings tab.
 /// Tracks dirty state and delegates persistence to <see cref="ConfigManager"/>.
 /// </summary>
-public partial class SettingsViewModel : ObservableObject
+public partial class SettingsViewModel : ObservableValidator
 {
     private static bool HasUtf8Bom(byte[] bytes) =>
         bytes.Length >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF;
@@ -55,6 +56,13 @@ public partial class SettingsViewModel : ObservableObject
 
     private string _originalTheme = "";
 
+    // Working buffers (mutated by CRUD, flushed to disk on Save)
+    private List<SshGatewayDto> _pendingGateways = new();
+    private List<ProjectDto> _pendingProjects = new();
+
+    // Projects removed before Save — servers are unassigned on flush
+    private readonly List<string> _deletedProjectIds = new();
+
     // --- General ---
 
     [ObservableProperty]
@@ -64,6 +72,8 @@ public partial class SettingsViewModel : ObservableObject
     private string _defaultTheme = "Dark";
 
     [ObservableProperty]
+    [NotifyDataErrorInfo]
+    [Range(1, 20, ErrorMessage = "Max embedded sessions must be between 1 and 20.")]
     private int _maxEmbeddedSessions = 10;
 
     [ObservableProperty]
@@ -78,6 +88,8 @@ public partial class SettingsViewModel : ObservableObject
     private string _terminalFontFamily = "Consolas";
 
     [ObservableProperty]
+    [NotifyDataErrorInfo]
+    [Range(8, 72, ErrorMessage = "Terminal font size must be between 8 and 72.")]
     private int _terminalFontSize = 14;
 
     [ObservableProperty]
@@ -95,9 +107,13 @@ public partial class SettingsViewModel : ObservableObject
     private string _sshDefaultMode = "Embedded";
 
     [ObservableProperty]
+    [NotifyDataErrorInfo]
+    [Range(0, 3600, ErrorMessage = "Anti-idle interval must be between 0 and 3600 seconds.")]
     private int _antiIdleInterval = 60;
 
     [ObservableProperty]
+    [NotifyDataErrorInfo]
+    [Range(0, 3600, ErrorMessage = "SSH TMOUT reset interval must be between 0 and 3600 seconds.")]
     private int _sshTmoutResetInterval = 240;
 
     [ObservableProperty]
@@ -167,6 +183,11 @@ public partial class SettingsViewModel : ObservableObject
     [ObservableProperty]
     private bool _requireCredentialGuard;
 
+    // --- UI state (persisted but not exposed in Settings tab) ---
+
+    [ObservableProperty]
+    private bool _showToolsPanel;
+
     // --- Advanced / Logging ---
 
     [ObservableProperty]
@@ -179,9 +200,13 @@ public partial class SettingsViewModel : ObservableObject
     private string _sessionLogDirectory = @"logs\sessions";
 
     [ObservableProperty]
+    [NotifyDataErrorInfo]
+    [Range(0, 30000, ErrorMessage = "Tunnel establishment delay must be between 0 and 30000 ms.")]
     private int _tunnelEstablishmentDelayMs = 2500;
 
     [ObservableProperty]
+    [NotifyDataErrorInfo]
+    [Range(1000, 120000, ErrorMessage = "Embedded RDP timeout must be between 1000 and 120000 ms.")]
     private int _embeddedRdpTimeoutMs = 30000;
 
     // --- Collections ---
@@ -244,24 +269,29 @@ public partial class SettingsViewModel : ObservableObject
     {
         var servers = await _configManager.LoadServersAsync();
         var mode = SshDefaultMode;
-        var count = 0;
+        var changeCount = servers.Count(s => !string.Equals(s.SshMode, mode, StringComparison.Ordinal));
+
+        if (changeCount == 0)
+        {
+            FileLogger.Info("ApplySshModeToAll: no changes needed.");
+            return;
+        }
+
+        var confirmed = await _dialogService.ShowConfirmAsync(
+            _localizer["ConfirmApplyAllTitle"],
+            _localizer.Format("ConfirmApplySshModeMessage", mode, changeCount, servers.Count),
+            "danger");
+
+        if (!confirmed) return;
 
         foreach (var server in servers)
         {
-            if (!string.Equals(server.SshMode, mode, StringComparison.Ordinal))
-            {
-                server.SshMode = mode;
-                count++;
-            }
+            server.SshMode = mode;
         }
 
-        if (count > 0)
-        {
-            await _configManager.SaveServersAsync(servers);
-            ConfigurationChanged?.Invoke();
-        }
-
-        FileLogger.Info($"Applied SSH mode '{mode}' to {count}/{servers.Count} servers.");
+        await _configManager.SaveServersAsync(servers);
+        ConfigurationChanged?.Invoke();
+        FileLogger.Info($"Applied SSH mode '{mode}' to {changeCount}/{servers.Count} servers.");
     }
 
     /// <summary>
@@ -272,24 +302,29 @@ public partial class SettingsViewModel : ObservableObject
     {
         var servers = await _configManager.LoadServersAsync();
         var mode = RdpDefaultMode;
-        var count = 0;
+        var changeCount = servers.Count(s => !string.Equals(s.RdpMode, mode, StringComparison.Ordinal));
+
+        if (changeCount == 0)
+        {
+            FileLogger.Info("ApplyRdpModeToAll: no changes needed.");
+            return;
+        }
+
+        var confirmed = await _dialogService.ShowConfirmAsync(
+            _localizer["ConfirmApplyAllTitle"],
+            _localizer.Format("ConfirmApplyRdpModeMessage", mode, changeCount, servers.Count),
+            "danger");
+
+        if (!confirmed) return;
 
         foreach (var server in servers)
         {
-            if (!string.Equals(server.RdpMode, mode, StringComparison.Ordinal))
-            {
-                server.RdpMode = mode;
-                count++;
-            }
+            server.RdpMode = mode;
         }
 
-        if (count > 0)
-        {
-            await _configManager.SaveServersAsync(servers);
-            ConfigurationChanged?.Invoke();
-        }
-
-        FileLogger.Info($"Applied RDP mode '{mode}' to {count}/{servers.Count} servers.");
+        await _configManager.SaveServersAsync(servers);
+        ConfigurationChanged?.Invoke();
+        FileLogger.Info($"Applied RDP mode '{mode}' to {changeCount}/{servers.Count} servers.");
     }
 
     /// <summary>
@@ -305,6 +340,9 @@ public partial class SettingsViewModel : ObservableObject
         MaxEmbeddedSessions = settings.MaxEmbeddedSessions;
         PreventSleepDuringSession = settings.PreventSleepDuringSession;
         ExternalEditorPath = settings.ExternalEditorPath;
+
+        // UI state
+        ShowToolsPanel = settings.ShowToolsPanel;
 
         // Terminal
         TerminalFontFamily = settings.TerminalFontFamily;
@@ -383,12 +421,25 @@ public partial class SettingsViewModel : ObservableObject
                 Description = p.Description ?? ""
             }));
 
+        // Seed working buffers from loaded settings
+        _pendingGateways = settings.SshGateways.Select(CloneGateway).ToList();
+        _pendingProjects = settings.Projects.Select(CloneProject).ToList();
+        _deletedProjectIds.Clear();
+
         IsDirty = false;
     }
 
     [RelayCommand]
     private async Task SaveAsync(CancellationToken cancellationToken)
     {
+        ValidateAllProperties();
+        RefreshValidationSummary();
+
+        if (HasErrors)
+        {
+            return;
+        }
+
         var settings = await _configManager.LoadSettingsAsync();
 
         // General
@@ -442,6 +493,9 @@ public partial class SettingsViewModel : ObservableObject
         settings.TunnelEstablishmentDelayMs = TunnelEstablishmentDelayMs;
         settings.EmbeddedRdpTimeoutMs = EmbeddedRdpTimeoutMs;
 
+        // UI state
+        settings.ShowToolsPanel = ShowToolsPanel;
+
         settings.ExternalTools = ExternalTools.Select(t => new ExternalToolDefinition
         {
             Name = t.Name,
@@ -452,7 +506,32 @@ public partial class SettingsViewModel : ObservableObject
             RunHidden = t.RunHidden
         }).ToList();
 
+        // Flush buffered gateways and projects
+        settings.SshGateways = _pendingGateways.Select(CloneGateway).ToList();
+        settings.Projects = _pendingProjects.Select(CloneProject).ToList();
+
         await _configManager.SaveSettingsAsync(settings);
+
+        // Unassign servers from deleted projects
+        if (_deletedProjectIds.Count > 0)
+        {
+            var servers = await _configManager.LoadServersAsync();
+            var changed = false;
+            foreach (var server in servers.Where(s =>
+                s.ProjectId is not null && _deletedProjectIds.Contains(s.ProjectId)))
+            {
+                server.ProjectId = null;
+                changed = true;
+            }
+
+            if (changed)
+            {
+                await _configManager.SaveServersAsync(servers);
+            }
+
+            _deletedProjectIds.Clear();
+        }
+
         _originalTheme = DefaultTheme;
 
         if (!string.Equals(_localizer.CurrentLocale, DefaultLocale, StringComparison.OrdinalIgnoreCase))
@@ -461,6 +540,7 @@ public partial class SettingsViewModel : ObservableObject
         }
 
         IsDirty = false;
+        ConfigurationChanged?.Invoke();
     }
 
     [RelayCommand]
@@ -761,17 +841,14 @@ public partial class SettingsViewModel : ObservableObject
     private async Task AddGatewayAsync(CancellationToken cancellationToken)
     {
         var vm = new GatewayDialogViewModel();
-        // Populate parent gateway options (exclude self)
-        var settings = await _configManager.LoadSettingsAsync();
         vm.AvailableParents = new ObservableCollection<GatewayOption>(
-            settings.SshGateways.Select(g => new GatewayOption(g.Id, $"{g.Name} ({g.Host})")));
+            _pendingGateways.Select(g => new GatewayOption(g.Id, $"{g.Name} ({g.Host})")));
 
         var result = await _dialogService.ShowGatewayDialogAsync(vm);
         if (result?.Saved == true)
         {
             result.Gateway.Id = Guid.NewGuid().ToString();
-            settings.SshGateways.Add(result.Gateway);
-            await _configManager.SaveSettingsAsync(settings);
+            _pendingGateways.Add(result.Gateway);
 
             Gateways.Add(new GatewayItemViewModel
             {
@@ -783,6 +860,8 @@ public partial class SettingsViewModel : ObservableObject
                 HasKey = !string.IsNullOrEmpty(result.Gateway.KeyPath),
                 HasPassword = !string.IsNullOrEmpty(result.Gateway.SshPasswordEncrypted)
             });
+
+            IsDirty = true;
         }
     }
 
@@ -792,25 +871,23 @@ public partial class SettingsViewModel : ObservableObject
     private async Task EditGatewayAsync(CancellationToken cancellationToken)
     {
         var gateway = SelectedGateway!;
-        var settings = await _configManager.LoadSettingsAsync();
-        var gwDto = settings.SshGateways.FirstOrDefault(g => g.Id == gateway.Id);
+        var gwDto = _pendingGateways.FirstOrDefault(g => g.Id == gateway.Id);
         if (gwDto == null) return;
 
         var vm = GatewayDialogViewModel.FromDto(gwDto);
         vm.AvailableParents = new ObservableCollection<GatewayOption>(
-            settings.SshGateways
+            _pendingGateways
                 .Where(g => g.Id != gwDto.Id)
                 .Select(g => new GatewayOption(g.Id, $"{g.Name} ({g.Host})")));
 
         var result = await _dialogService.ShowGatewayDialogAsync(vm);
         if (result?.Saved == true)
         {
-            var idx = settings.SshGateways.FindIndex(g => g.Id == gwDto.Id);
+            var idx = _pendingGateways.FindIndex(g => g.Id == gwDto.Id);
             if (idx >= 0)
             {
                 result.Gateway.Id = gwDto.Id;
-                settings.SshGateways[idx] = result.Gateway;
-                await _configManager.SaveSettingsAsync(settings);
+                _pendingGateways[idx] = result.Gateway;
 
                 gateway.Name = result.Gateway.Name;
                 gateway.Host = result.Gateway.Host;
@@ -819,6 +896,8 @@ public partial class SettingsViewModel : ObservableObject
                 gateway.HasKey = !string.IsNullOrEmpty(result.Gateway.KeyPath);
                 gateway.HasPassword = !string.IsNullOrEmpty(result.Gateway.SshPasswordEncrypted);
             }
+
+            IsDirty = true;
         }
     }
 
@@ -835,12 +914,10 @@ public partial class SettingsViewModel : ObservableObject
 
         if (!confirmed) return;
 
-        var settings = await _configManager.LoadSettingsAsync();
-        settings.SshGateways.RemoveAll(g => g.Id == gateway.Id);
-        await _configManager.SaveSettingsAsync(settings);
-
+        _pendingGateways.RemoveAll(g => g.Id == gateway.Id);
         Gateways.Remove(gateway);
         SelectedGateway = null;
+        IsDirty = true;
     }
 
     [RelayCommand]
@@ -852,15 +929,10 @@ public partial class SettingsViewModel : ObservableObject
         };
 
         var result = await _dialogService.ShowProjectDialogAsync(vm);
-        if (result is not { Saved: true })
-        {
-            return;
-        }
+        if (result is not { Saved: true }) return;
 
-        var settings = await _configManager.LoadSettingsAsync();
         result.Project.Id = Guid.NewGuid().ToString();
-        settings.Projects.Add(result.Project);
-        await _configManager.SaveSettingsAsync(settings);
+        _pendingProjects.Add(result.Project);
 
         Projects.Add(new ProjectItemViewModel
         {
@@ -870,7 +942,7 @@ public partial class SettingsViewModel : ObservableObject
             Description = result.Project.Description ?? ""
         });
 
-        ConfigurationChanged?.Invoke();
+        IsDirty = true;
     }
 
     private bool CanEditProject() => SelectedProject is not null;
@@ -879,8 +951,7 @@ public partial class SettingsViewModel : ObservableObject
     private async Task EditProjectAsync(CancellationToken cancellationToken)
     {
         var project = SelectedProject!;
-        var settings = await _configManager.LoadSettingsAsync();
-        var projectDto = settings.Projects.FirstOrDefault(p => p.Id == project.Id);
+        var projectDto = _pendingProjects.FirstOrDefault(p => p.Id == project.Id);
         if (projectDto is null) return;
 
         var vm = ProjectDialogViewModel.FromDto(projectDto);
@@ -889,19 +960,18 @@ public partial class SettingsViewModel : ObservableObject
         var result = await _dialogService.ShowProjectDialogAsync(vm);
         if (result is not { Saved: true }) return;
 
-        var idx = settings.Projects.FindIndex(p => p.Id == projectDto.Id);
+        var idx = _pendingProjects.FindIndex(p => p.Id == projectDto.Id);
         if (idx >= 0)
         {
             result.Project.Id = projectDto.Id;
-            settings.Projects[idx] = result.Project;
-            await _configManager.SaveSettingsAsync(settings);
+            _pendingProjects[idx] = result.Project;
 
             project.Name = result.Project.Name;
             project.Color = result.Project.Color ?? "#3B82F6";
             project.Description = result.Project.Description ?? "";
         }
 
-        ConfigurationChanged?.Invoke();
+        IsDirty = true;
     }
 
     private bool CanDeleteProject() => SelectedProject is not null;
@@ -910,7 +980,8 @@ public partial class SettingsViewModel : ObservableObject
     private async Task DeleteProjectAsync(CancellationToken cancellationToken)
     {
         var project = SelectedProject!;
-        var settings = await _configManager.LoadSettingsAsync();
+
+        // Check server usage for the confirmation message
         var servers = await _configManager.LoadServersAsync();
         var usageCount = servers.Count(s =>
             string.Equals(s.ProjectId, project.Id, StringComparison.Ordinal));
@@ -927,22 +998,12 @@ public partial class SettingsViewModel : ObservableObject
 
         if (!confirmed) return;
 
-        settings.Projects.RemoveAll(p => p.Id == project.Id);
-
-        // Unassign servers from the deleted project
-        foreach (var server in servers.Where(s =>
-            string.Equals(s.ProjectId, project.Id, StringComparison.Ordinal)))
-        {
-            server.ProjectId = null;
-        }
-
-        await _configManager.SaveSettingsAsync(settings);
-        await _configManager.SaveServersAsync(servers);
+        _pendingProjects.RemoveAll(p => p.Id == project.Id);
+        _deletedProjectIds.Add(project.Id);
 
         Projects.Remove(project);
         SelectedProject = null;
-
-        ConfigurationChanged?.Invoke();
+        IsDirty = true;
     }
 
     [RelayCommand]
@@ -987,10 +1048,83 @@ public partial class SettingsViewModel : ObservableObject
     {
         base.OnPropertyChanged(e);
 
-        // Mark dirty when any settings property changes (except IsDirty itself)
-        if (e.PropertyName is not (nameof(IsDirty)))
+        // Mark dirty when any settings property changes, excluding non-settings properties
+        if (e.PropertyName is not (nameof(IsDirty) or nameof(IsBusy)
+            or nameof(SelectedGateway) or nameof(SelectedProject)
+            or nameof(SelectedExternalTool) or nameof(HasValidationErrors)
+            or nameof(ValidationSummary)))
         {
             IsDirty = true;
         }
     }
+
+    [ObservableProperty]
+    private bool _hasValidationErrors;
+
+    [ObservableProperty]
+    private string? _validationSummary;
+
+    private static readonly Dictionary<string, string> SettingsValidationKeyMap = new(StringComparer.Ordinal)
+    {
+        ["Max embedded sessions must be between 1 and 20."] = "ValidationSettingsMaxSessions",
+        ["Terminal font size must be between 8 and 72."] = "ValidationSettingsFontSize",
+        ["Anti-idle interval must be between 0 and 3600 seconds."] = "ValidationSettingsAntiIdle",
+        ["SSH TMOUT reset interval must be between 0 and 3600 seconds."] = "ValidationSettingsTmoutReset",
+        ["Tunnel establishment delay must be between 0 and 30000 ms."] = "ValidationSettingsTunnelDelay",
+        ["Embedded RDP timeout must be between 1000 and 120000 ms."] = "ValidationSettingsRdpTimeout",
+    };
+
+    private string? GetLocalizedFieldError(string propertyName)
+    {
+        var error = GetErrors(propertyName)
+            .OfType<System.ComponentModel.DataAnnotations.ValidationResult>()
+            .FirstOrDefault();
+
+        var message = error?.ErrorMessage;
+        if (message is not null
+            && SettingsValidationKeyMap.TryGetValue(message, out var key))
+        {
+            return _localizer[key];
+        }
+
+        return message;
+    }
+
+    private void RefreshValidationSummary()
+    {
+        var firstError = GetLocalizedFieldError(nameof(MaxEmbeddedSessions))
+            ?? GetLocalizedFieldError(nameof(TerminalFontSize))
+            ?? GetLocalizedFieldError(nameof(AntiIdleInterval))
+            ?? GetLocalizedFieldError(nameof(SshTmoutResetInterval))
+            ?? GetLocalizedFieldError(nameof(TunnelEstablishmentDelayMs))
+            ?? GetLocalizedFieldError(nameof(EmbeddedRdpTimeoutMs));
+
+        ValidationSummary = firstError;
+        HasValidationErrors = firstError is not null;
+    }
+
+    private static SshGatewayDto CloneGateway(SshGatewayDto g) => new()
+    {
+        Id = g.Id,
+        Name = g.Name,
+        Host = g.Host,
+        Port = g.Port,
+        User = g.User,
+        KeyPath = g.KeyPath,
+        SshPasswordEncrypted = g.SshPasswordEncrypted,
+        IsDefault = g.IsDefault,
+        ParentGatewayId = g.ParentGatewayId,
+        HostKeyFingerprint = g.HostKeyFingerprint
+    };
+
+    private static ProjectDto CloneProject(ProjectDto p) => new()
+    {
+        Id = p.Id,
+        Name = p.Name,
+        Description = p.Description,
+        Color = p.Color,
+        DefaultSshUsername = p.DefaultSshUsername,
+        DefaultSshKeyPath = p.DefaultSshKeyPath,
+        DefaultGatewayId = p.DefaultGatewayId
+    };
 }

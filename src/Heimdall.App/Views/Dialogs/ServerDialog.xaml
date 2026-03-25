@@ -170,6 +170,9 @@
                                     <Setter TargetName="CardBorder" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
                                     <Setter Property="Opacity" Value="0.85"/>
                                 </Trigger>
+                                <Trigger Property="IsFocused" Value="True">
+                                    <Setter TargetName="CardBorder" Property="BorderBrush" Value="{DynamicResource FocusIndicatorBrush}"/>
+                                </Trigger>
                             </ControlTemplate.Triggers>
                         </ControlTemplate>
                     </Setter.Value>
@@ -188,16 +191,25 @@
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="ToggleButton">
-                            <StackPanel Orientation="Horizontal" Background="Transparent">
-                                <TextBlock x:Name="Arrow" Text="&#x25B8;"
-                                           Margin="0,0,6,0"
-                                           Foreground="{TemplateBinding Foreground}"
-                                           FontSize="{TemplateBinding FontSize}"/>
-                                <ContentPresenter VerticalAlignment="Center"/>
-                            </StackPanel>
+                            <Border x:Name="FocusBorder"
+                                    BorderBrush="Transparent"
+                                    BorderThickness="0,0,0,2"
+                                    Padding="2,0,2,2"
+                                    Background="Transparent">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock x:Name="Arrow" Text="&#x25B8;"
+                                               Margin="0,0,6,0"
+                                               Foreground="{TemplateBinding Foreground}"
+                                               FontSize="{TemplateBinding FontSize}"/>
+                                    <ContentPresenter VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
                             <ControlTemplate.Triggers>
                                 <Trigger Property="IsChecked" Value="True">
                                     <Setter TargetName="Arrow" Property="Text" Value="&#x25BE;"/>
+                                </Trigger>
+                                <Trigger Property="IsFocused" Value="True">
+                                    <Setter TargetName="FocusBorder" Property="BorderBrush" Value="{DynamicResource FocusIndicatorBrush}"/>
                                 </Trigger>
                                 <Trigger Property="IsMouseOver" Value="True">
                                     <Setter Property="Opacity" Value="0.8"/>

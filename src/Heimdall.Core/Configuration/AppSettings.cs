@@ -100,6 +100,7 @@ public class AppSettings
     // UI state
     public bool SidebarCollapsed { get; set; }
     public int SidebarWidth { get; set; } = 220;
+    public bool ShowToolsPanel { get; set; }
     public List<string> TreeExpandedNodes { get; set; } = new();
     public string? TunnelGridColumnWidths { get; set; }
     public bool ServerDialogAdvancedMode { get; set; }
