@@ -29,10 +29,8 @@ namespace Heimdall.App.Views.Tools;
 
 /// <summary>
 /// Hollywood-style fake terminal with animated hacking scenarios.
-/// Supports 16 scenarios: Matrix digital rain, penetration test, data exfiltration,
-/// kernel panic, decryption, SQL injection, brute force SSH, ransomware, WiFi cracking,
-/// MITM/ARP spoofing, phishing campaign, cryptomining, Active Directory attack,
-/// firmware backdoor, supply chain attack, and SCADA/ICS attack.
+/// Supports a catalog of demo, ops, and enterprise scenarios ranging from Matrix-style
+/// visual effects to offensive sequences, deployment orchestration, hardening, and identity flows.
 /// </summary>
 public partial class HackerSimulatorView : UserControl, IToolView
 {
@@ -45,7 +43,6 @@ public partial class HackerSimulatorView : UserControl, IToolView
     private const int MatrixMaxTrail = 26;
     private const double MatrixMinSpeed = 50.0;
     private const double MatrixMaxSpeed = 200.0;
-    private const int ScenarioCount = 16;
     private const int CursorBlinkMs = 530;
 
     private const string MatrixChars =
@@ -89,45 +86,7 @@ public partial class HackerSimulatorView : UserControl, IToolView
         return brush;
     }
 
-    // ── Per-scenario color themes ─────────────────────────────
-
     private readonly record struct ScenarioTheme(SolidColorBrush TextColor, System.Windows.Media.Color ShadowColor);
-
-    private static readonly ScenarioTheme[] s_themes =
-    [
-        // 0  Matrix Rain      — green
-        new(s_green,  System.Windows.Media.Color.FromRgb(0, 255, 65)),
-        // 1  Pentest           — green
-        new(s_green,  System.Windows.Media.Color.FromRgb(0, 255, 65)),
-        // 2  Exfil             — cyan
-        new(s_cyan,   System.Windows.Media.Color.FromRgb(0, 255, 255)),
-        // 3  KernelPanic       — amber
-        new(s_amber,  System.Windows.Media.Color.FromRgb(255, 176, 0)),
-        // 4  Decrypt           — cyan
-        new(s_cyan,   System.Windows.Media.Color.FromRgb(0, 255, 255)),
-        // 5  SQLi              — green
-        new(s_green,  System.Windows.Media.Color.FromRgb(0, 255, 65)),
-        // 6  BruteForce        — green
-        new(s_green,  System.Windows.Media.Color.FromRgb(0, 255, 65)),
-        // 7  Ransomware        — red
-        new(s_red,    System.Windows.Media.Color.FromRgb(255, 68, 68)),
-        // 8  WiFi              — cyan
-        new(s_cyan,   System.Windows.Media.Color.FromRgb(0, 255, 255)),
-        // 9  MITM              — green
-        new(s_green,  System.Windows.Media.Color.FromRgb(0, 255, 65)),
-        // 10 Phishing          — amber
-        new(s_amber,  System.Windows.Media.Color.FromRgb(255, 176, 0)),
-        // 11 Cryptomining      — yellow
-        new(s_yellow, System.Windows.Media.Color.FromRgb(255, 215, 0)),
-        // 12 AD                — red
-        new(s_red,    System.Windows.Media.Color.FromRgb(255, 68, 68)),
-        // 13 Firmware          — amber
-        new(s_amber,  System.Windows.Media.Color.FromRgb(255, 176, 0)),
-        // 14 SupplyChain       — amber
-        new(s_amber,  System.Windows.Media.Color.FromRgb(255, 176, 0)),
-        // 15 SCADA             — red
-        new(s_red,    System.Windows.Media.Color.FromRgb(255, 68, 68)),
-    ];
 
     // ── Fake data pools ───────────────────────────────────────
 
@@ -147,28 +106,6 @@ public partial class HackerSimulatorView : UserControl, IToolView
     [
         "svc_sqlserver", "svc_exchange", "svc_backup", "svc_iis",
         "svc_sharepoint", "svc_adfs", "svc_sccm", "svc_crm",
-    ];
-
-    // ── i18n key lookup for scenario names ────────────────────
-
-    private static readonly string[] s_scenarioKeys =
-    [
-        "ToolHackerSimScenarioMatrix",
-        "ToolHackerSimScenarioPentest",
-        "ToolHackerSimScenarioExfil",
-        "ToolHackerSimScenarioPanic",
-        "ToolHackerSimScenarioDecrypt",
-        "ToolHackerSimScenarioSqli",
-        "ToolHackerSimScenarioBrute",
-        "ToolHackerSimScenarioRansom",
-        "ToolHackerSimScenarioWifi",
-        "ToolHackerSimScenarioMitm",
-        "ToolHackerSimScenarioPhishing",
-        "ToolHackerSimScenarioCryptomine",
-        "ToolHackerSimScenarioAd",
-        "ToolHackerSimScenarioFirmware",
-        "ToolHackerSimScenarioSupplyChain",
-        "ToolHackerSimScenarioScada",
     ];
 
     // ── Inner types ───────────────────────────────────────────
@@ -192,14 +129,12 @@ public partial class HackerSimulatorView : UserControl, IToolView
 
     private LocalizationManager? _localizer;
     private DispatcherTimer? _timer;
-    private readonly Random _rng = new();
+    private Random _rng = new();
     private bool _isRunning;
     private bool _disposed;
     private double _speedMultiplier = 1.0;
-    private int _currentScenario;
     private bool _isFullscreen;
     private bool _randomMode;
-    private int _lastRandomScenario = -1;
     private SolidColorBrush _themeText = s_green;
 
     // Matrix rain state
@@ -234,15 +169,26 @@ public partial class HackerSimulatorView : UserControl, IToolView
 
     public void Initialize(ToolContext? context, LocalizationManager? localizer)
     {
+        if (_localizer != null)
+            _localizer.LocaleChanged -= OnLocaleChanged;
+
         _localizer = localizer;
+        if (_localizer != null)
+            _localizer.LocaleChanged += OnLocaleChanged;
+
+        LoadSimulatorPreferences();
+        EnsureScenarioCatalog();
         ApplyLocalization();
-        UpdateScenarioLabel();
-        BuildContextMenu();
+        ApplyVintageMonitorState();
         TerminalGrid.PreviewMouseRightButtonDown += OnTerminalPreviewRightClick;
         TerminalGrid.PreviewMouseLeftButtonDown += OnTerminalPreviewMouseDown;
         Dispatcher.BeginInvoke(DispatcherPriority.Loaded, () =>
         {
-            if (!_disposed) StartScenario();
+            if (_disposed)
+                return;
+
+            RefreshScenarioPicker(restartIfSelectionChanges: false);
+            StartScenario(newSession: true);
         });
     }
 
@@ -250,7 +196,10 @@ public partial class HackerSimulatorView : UserControl, IToolView
     {
         if (_disposed) return;
         _disposed = true;
+        if (_localizer != null)
+            _localizer.LocaleChanged -= OnLocaleChanged;
         StopScenario();
+        StopVintageMonitorFlicker();
         GC.SuppressFinalize(this);
     }
 
@@ -258,7 +207,10 @@ public partial class HackerSimulatorView : UserControl, IToolView
 
     private void OnStartStopClick(object sender, RoutedEventArgs e)
     {
-        if (_isRunning) StopScenario(); else StartScenario();
+        if (_isRunning)
+            StopScenario();
+        else
+            StartScenario(newSession: true);
     }
 
     private void OnSpeedChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
@@ -270,7 +222,7 @@ public partial class HackerSimulatorView : UserControl, IToolView
 
     private void OnMatrixCanvasSizeChanged(object sender, SizeChangedEventArgs e)
     {
-        if (!_disposed && _isRunning && _currentScenario == 0)
+        if (!_disposed && _isRunning && GetCurrentScenario().IsMatrix)
             RebuildMatrixColumns();
     }
 
@@ -295,6 +247,8 @@ public partial class HackerSimulatorView : UserControl, IToolView
 
     private void BuildContextMenu()
     {
+        EnsureScenarioCatalog();
+
         var menu = new ContextMenu
         {
             Background = new SolidColorBrush(System.Windows.Media.Color.FromRgb(15, 15, 15)),
@@ -303,30 +257,55 @@ public partial class HackerSimulatorView : UserControl, IToolView
             Foreground = s_green,
         };
 
-        for (int i = 0; i < ScenarioCount; i++)
+        foreach (var group in GetContextMenuScenarios().GroupBy(s => s.Category).OrderBy(g => g.Key))
         {
-            int scenarioIndex = i;
-            var item = new MenuItem
+            menu.Items.Add(new MenuItem
             {
-                Header = L(s_scenarioKeys[i]),
+                Header = GetCategoryLabel(group.Key),
                 FontFamily = new System.Windows.Media.FontFamily("Consolas"),
-            };
-            item.Click += (_, _) =>
+                IsEnabled = false,
+                Foreground = s_gray,
+            });
+
+            foreach (var scenario in group)
             {
-                _randomMode = false;
-                _currentScenario = scenarioIndex;
-                UpdateScenarioLabel();
-                if (_isRunning) { StopScenario(); StartScenario(); }
-                else StartScenario();
-            };
-            menu.Items.Add(item);
+                string scenarioId = scenario.Id;
+                var item = new MenuItem
+                {
+                    Header = FormatScenarioDisplay(scenario),
+                    FontFamily = new System.Windows.Media.FontFamily("Consolas"),
+                    IsCheckable = true,
+                    IsChecked = string.Equals(_currentScenarioId, scenarioId, StringComparison.OrdinalIgnoreCase),
+                };
+                item.Click += (_, _) =>
+                {
+                    ClearPlaylistSelection();
+                    _randomMode = false;
+                    if (ChkRandomMode != null)
+                        ChkRandomMode.IsChecked = false;
+                    _currentScenarioId = scenarioId;
+                    SyncScenarioSelection();
+                    PersistSimulatorPreferences();
+                    if (_isRunning)
+                    {
+                        StopScenario();
+                        StartScenario(newSession: true);
+                    }
+                };
+                menu.Items.Add(item);
+            }
+
+            menu.Items.Add(new Separator());
         }
+
+        if (menu.Items.Count > 0 && menu.Items[^1] is Separator)
+            menu.Items.RemoveAt(menu.Items.Count - 1);
 
         menu.Items.Add(new Separator());
 
         var randomItem = new MenuItem
         {
-            Header = L("ToolHackerSimRandomMode"),
+            Header = L("ToolHackerSimRandomInFilter"),
             FontFamily = new System.Windows.Media.FontFamily("Consolas"),
             IsCheckable = true,
             IsChecked = _randomMode,
@@ -335,7 +314,10 @@ public partial class HackerSimulatorView : UserControl, IToolView
         randomItem.Click += (_, _) =>
         {
             _randomMode = !_randomMode;
+            if (ChkRandomMode != null)
+                ChkRandomMode.IsChecked = _randomMode;
             UpdateScenarioLabel();
+            PersistSimulatorPreferences();
         };
         menu.Items.Add(randomItem);
 
@@ -345,30 +327,40 @@ public partial class HackerSimulatorView : UserControl, IToolView
         TerminalGrid.ContextMenu = menu;
     }
 
-    // ── Scenario lifecycle ────────────────────────────────────
-
-    private void StartScenario()
+    private void ApplyScenarioTheme(ScenarioDefinition scenario)
     {
-        _isRunning = true;
-        BtnStartStop.Content = $"\u25A0 {L("ToolHackerSimBtnStop")}";
-        UpdateScenarioLabel();
-
-        // Apply theme
-        var theme = s_themes[_currentScenario];
-        _themeText = theme.TextColor;
-        TerminalOutput.Foreground = theme.TextColor;
+        _themeText = scenario.Theme.TextColor;
+        TerminalOutput.Foreground = scenario.Theme.TextColor;
         TerminalOutput.Effect = new DropShadowEffect
         {
-            Color = theme.ShadowColor,
+            Color = scenario.Theme.ShadowColor,
             BlurRadius = 3,
             ShadowDepth = 0,
             Opacity = 0.3,
         };
+    }
 
-        if (_currentScenario == 0)
+    // ── Scenario lifecycle ────────────────────────────────────
+
+    private void StartScenario(bool newSession = false, bool reuseSeed = false)
+    {
+        EnsureScenarioCatalog();
+        if (newSession || _sessionSeed == 0)
+            ResetRunSession(reuseSeed);
+
+        PrepareRandomForScenarioExecution();
+        var scenario = GetCurrentScenario();
+        _isRunning = true;
+        BtnStartStop.Content = $"\u25A0 {L("ToolHackerSimBtnStop")}";
+        UpdateScenarioLabel();
+        ApplyScenarioTheme(scenario);
+        BeginTranscriptSection(scenario);
+
+        if (scenario.IsMatrix)
         {
             TerminalBorder.Visibility = Visibility.Collapsed;
             MatrixCanvas.Visibility = Visibility.Visible;
+            TranscriptAppendLine(Tx("[visual] matrix rain backdrop active", "[visuel] pluie matrix active"));
             RebuildMatrixColumns();
             _timer = new DispatcherTimer(DispatcherPriority.Render)
             { Interval = TimeSpan.FromMilliseconds(MatrixTickMs) };
@@ -380,7 +372,7 @@ public partial class HackerSimulatorView : UserControl, IToolView
             MatrixCanvas.Visibility = Visibility.Collapsed;
             TerminalBorder.Visibility = Visibility.Visible;
             TerminalOutput.Inlines.Clear();
-            _script = BuildScriptForScenario(_currentScenario);
+            _script = scenario.Builder();
             _scriptIndex = 0;
             _ticksRemaining = 0;
             _typingInProgress = false;
@@ -390,6 +382,8 @@ public partial class HackerSimulatorView : UserControl, IToolView
             _timer.Tick += OnScriptTick;
             _timer.Start();
         }
+
+        UpdatePlaybackControls();
     }
 
     private void StopScenario()
@@ -400,47 +394,34 @@ public partial class HackerSimulatorView : UserControl, IToolView
         _typingInProgress = false;
         RestoreGlitch();
         StopBlinkingCursor();
+        TranscriptCompleteTypingLine();
         BtnStartStop.Content = $"\u25B6 {L("ToolHackerSimBtnStart")}";
         _drops.Clear();
         MatrixCanvas.Children.Clear();
+        UpdatePlaybackControls();
     }
-
-    private List<ScriptAction> BuildScriptForScenario(int scenario) => scenario switch
-    {
-        1 => BuildPentestScript(),
-        2 => BuildDataExfilScript(),
-        3 => BuildKernelPanicScript(),
-        4 => BuildDecryptionScript(),
-        5 => BuildSqlInjectionScript(),
-        6 => BuildBruteForceScript(),
-        7 => BuildRansomwareScript(),
-        8 => BuildWifiCrackScript(),
-        9 => BuildMitmScript(),
-        10 => BuildPhishingScript(),
-        11 => BuildCryptominingScript(),
-        12 => BuildAdAttackScript(),
-        13 => BuildFirmwareScript(),
-        14 => BuildSupplyChainScript(),
-        15 => BuildScadaScript(),
-        _ => [],
-    };
 
     private void UpdateScenarioLabel()
     {
-        if (LblCurrentScenario == null) return;
-        if (_randomMode)
-            LblCurrentScenario.Text = $"[{L("ToolHackerSimRandomMode")}] {L(s_scenarioKeys[_currentScenario])}";
-        else
-            LblCurrentScenario.Text = L(s_scenarioKeys[_currentScenario]);
-    }
+        var scenario = GetCurrentScenario();
+        bool isFavorite = _favoriteScenarioIds.Contains(scenario.Id);
 
-    private int PickRandomScenario()
-    {
-        int next;
-        do { next = _rng.Next(1, ScenarioCount); }
-        while (next == _lastRandomScenario);
-        _lastRandomScenario = next;
-        return next;
+        if (LblCurrentScenario != null)
+        {
+            string randomBadge = _randomMode ? $" \u00b7 {L("ToolHackerSimRandom")}" : string.Empty;
+            string favoriteBadge = isFavorite ? "\u2605 " : string.Empty;
+            LblCurrentScenario.Text = $"{favoriteBadge}{GetScenarioTitle(scenario)} \u00b7 {GetCategoryLabel(scenario.Category)} \u00b7 {GetRealismLabel(scenario.Realism)}{randomBadge}";
+        }
+
+        if (LblScenarioSubtitle != null)
+        {
+            string subtitle = GetScenarioSubtitle(scenario);
+            if (GetSelectedPlaylist() is { } playlist)
+                subtitle = $"{subtitle} \u00b7 {L("ToolHackerSimPlaylist")} : {Tx(playlist.Title)}";
+            if (_filterFallbackActive)
+                subtitle = $"{subtitle} \u00b7 {L("ToolHackerSimFilterFallback")}";
+            LblScenarioSubtitle.Text = subtitle;
+        }
     }
 
     // ── Matrix rain engine ────────────────────────────────────
@@ -593,6 +574,7 @@ public partial class HackerSimulatorView : UserControl, IToolView
             {
                 _typingRun.Text += _typingFullText[_typingCharIndex];
                 _typingCharIndex++;
+                TranscriptUpdateTypingLine(_typingRun.Text);
                 TerminalScroller.ScrollToEnd();
 
                 // Calculate delay ticks for next character
@@ -605,6 +587,7 @@ public partial class HackerSimulatorView : UserControl, IToolView
                 _typingRun.Text += "\n";
             _typingInProgress = false;
             _typingRun = null;
+            TranscriptCompleteTypingLine();
             _ticksRemaining = 0;
             return;
         }
@@ -618,6 +601,7 @@ public partial class HackerSimulatorView : UserControl, IToolView
             case Act.AppendLine:
                 TerminalOutput.Inlines.Add(
                     new Run(a.Text + "\n") { Foreground = a.Color ?? _themeText });
+                TranscriptAppendLine(a.Text);
                 TerminalScroller.ScrollToEnd();
                 break;
 
@@ -627,6 +611,7 @@ public partial class HackerSimulatorView : UserControl, IToolView
                     last.Text = a.Text + "\n";
                     if (a.Color != null) last.Foreground = a.Color;
                 }
+                TranscriptUpdateLastLine(a.Text);
                 break;
 
             case Act.Clear:
@@ -639,21 +624,21 @@ public partial class HackerSimulatorView : UserControl, IToolView
             case Act.LoopRestart:
                 // Start blinking cursor during the delay
                 StartBlinkingCursor();
-                // Handle random mode: pick new scenario and rebuild
-                if (_randomMode)
+                // In playlist mode, advance deterministically to the next scripted step.
+                if (GetSelectedPlaylist() is not null)
                 {
-                    _currentScenario = PickRandomScenario();
-                    var theme = s_themes[_currentScenario];
-                    _themeText = theme.TextColor;
-                    TerminalOutput.Foreground = theme.TextColor;
-                    TerminalOutput.Effect = new DropShadowEffect
-                    {
-                        Color = theme.ShadowColor,
-                        BlurRadius = 3,
-                        ShadowDepth = 0,
-                        Opacity = 0.3,
-                    };
+                    AdvancePlaylistScenario();
+                    ApplyScenarioTheme(GetCurrentScenario());
                     UpdateScenarioLabel();
+                }
+                else if (_randomMode)
+                {
+                    var nextScenario = PickRandomScenario();
+                    _currentScenarioId = nextScenario.Id;
+                    ApplyScenarioTheme(nextScenario);
+                    SyncScenarioSelection();
+                    UpdateScenarioLabel();
+                    PersistSimulatorPreferences();
                 }
                 // Delay ticks will be computed below; after delay, clear and restart
                 _ticksRemaining = a.DelayMs > 0
@@ -678,8 +663,9 @@ public partial class HackerSimulatorView : UserControl, IToolView
                         if (_disposed || !_isRunning) return;
                         StopBlinkingCursor();
                         TerminalOutput.Inlines.Clear();
-                        if (_randomMode)
-                            _script = BuildScriptForScenario(_currentScenario);
+                        PrepareRandomForScenarioExecution();
+                        BeginTranscriptSection(GetCurrentScenario());
+                        _script = GetCurrentScenario().Builder();
                         _scriptIndex = 0;
                         _ticksRemaining = 0;
                     };
@@ -697,6 +683,7 @@ public partial class HackerSimulatorView : UserControl, IToolView
                 _typingCharDelay = a.DelayMs;
                 _typingRun = new Run("") { Foreground = a.Color ?? _themeText };
                 TerminalOutput.Inlines.Add(_typingRun);
+                TranscriptBeginTypingLine();
                 TerminalScroller.ScrollToEnd();
                 _ticksRemaining = Math.Max(1,
                     (int)(_typingCharDelay / (ScriptTickMs * _speedMultiplier)));
@@ -2159,7 +2146,20 @@ public partial class HackerSimulatorView : UserControl, IToolView
     private void ApplyLocalization()
     {
         LblSpeed.Text = L("ToolHackerSimSpeed");
-        BtnStartStop.Content = $"\u25B6 {L("ToolHackerSimBtnStart")}";
+        BtnStartStop.Content = _isRunning
+            ? $"\u25A0 {L("ToolHackerSimBtnStop")}"
+            : $"\u25B6 {L("ToolHackerSimBtnStart")}";
+        LblScenario.Text = L("ToolHackerSimLblScenario");
+        LblSearch.Text = L("ToolHackerSimLblSearch");
+        LblCategory.Text = L("ToolHackerSimLblCategory");
+        LblRealism.Text = L("ToolHackerSimLblRealism");
+        LblPlaylist.Text = L("ToolHackerSimLblPlaylist");
+        TxtScenarioSearch.ToolTip = L("ToolHackerSimSearchTip");
+        PopulateFilterControls();
+        PopulatePlaylistControl();
+        UpdateFavoriteButton();
+        UpdateScenarioLabel();
+        UpdatePlaybackControls();
     }
 
     private string L(string key) => _localizer?[key] ?? key;

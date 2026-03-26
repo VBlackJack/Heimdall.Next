@@ -26,37 +26,147 @@
         <!-- Toolbar — dark hacker aesthetic (double-click terminal to toggle) -->
         <Border x:Name="ToolbarBorder" Grid.Row="0" Padding="10,6"
                 Background="#0F0F0F" BorderBrush="#222222" BorderThickness="0,0,0,1">
-            <DockPanel>
-                <Button x:Name="BtnStartStop" DockPanel.Dock="Right"
-                        Click="OnStartStopClick"
-                        FontFamily="Consolas" FontSize="{StaticResource FontSizeBody}"
-                        Foreground="#00FF41" Background="#1A1A1A" BorderBrush="#333333"
-                        Padding="12,4" Margin="8,0,0,0" Cursor="Hand"
-                        AutomationProperties.Name="Start Stop"/>
+            <StackPanel>
+                <WrapPanel VerticalAlignment="Center" ItemHeight="28">
+                    <TextBlock x:Name="LblScenario"
+                               FontFamily="Consolas" FontSize="{StaticResource FontSizeCaption}"
+                               Foreground="#555555" VerticalAlignment="Center"
+                               Margin="0,0,6,0"/>
 
-                <TextBlock x:Name="LblSpeedValue" DockPanel.Dock="Right"
-                           Text="1.00x" FontFamily="Consolas"
-                           FontSize="{StaticResource FontSizeCaption}"
+                    <ComboBox x:Name="CmbScenario"
+                              Width="260" Margin="0,0,8,0"
+                              FontFamily="Consolas" FontSize="{StaticResource FontSizeCaption}"
+                              Background="#151515" Foreground="#D4FFD9" BorderBrush="#333333"
+                              DisplayMemberPath="Display"
+                              SelectionChanged="OnScenarioSelectionChanged"/>
+
+                    <Button x:Name="BtnFavorite"
+                            Click="OnFavoriteClick"
+                            FontFamily="Consolas" FontSize="{StaticResource FontSizeCaption}"
+                            Foreground="#777777" Background="#1A1A1A" BorderBrush="#333333"
+                            Padding="8,4" Margin="0,0,12,0" Cursor="Hand"
+                            AutomationProperties.Name="Favorite"/>
+
+                    <CheckBox x:Name="ChkRandomMode"
+                              Click="OnRandomModeClick"
+                              FontFamily="Consolas" FontSize="{StaticResource FontSizeCaption}"
+                              Foreground="#FFD700" VerticalAlignment="Center"
+                              Margin="0,0,12,0"/>
+
+                    <TextBlock x:Name="LblSearch"
+                               FontFamily="Consolas" FontSize="{StaticResource FontSizeCaption}"
+                               Foreground="#555555" VerticalAlignment="Center"
+                               Margin="0,0,6,0"/>
+
+                    <TextBox x:Name="TxtScenarioSearch"
+                             Width="180" Margin="0,0,12,0"
+                             FontFamily="Consolas" FontSize="{StaticResource FontSizeCaption}"
+                             Background="#151515" Foreground="#D4FFD9" BorderBrush="#333333"
+                             TextChanged="OnScenarioSearchChanged"/>
+
+                    <TextBlock x:Name="LblCategory"
+                               FontFamily="Consolas" FontSize="{StaticResource FontSizeCaption}"
+                               Foreground="#555555" VerticalAlignment="Center"
+                               Margin="0,0,6,0"/>
+
+                    <ComboBox x:Name="CmbCategory"
+                              Width="135" Margin="0,0,12,0"
+                              FontFamily="Consolas" FontSize="{StaticResource FontSizeCaption}"
+                              Background="#151515" Foreground="#D4FFD9" BorderBrush="#333333"
+                              DisplayMemberPath="Display"
+                              SelectionChanged="OnScenarioFilterChanged"/>
+
+                    <TextBlock x:Name="LblRealism"
+                               FontFamily="Consolas" FontSize="{StaticResource FontSizeCaption}"
+                               Foreground="#555555" VerticalAlignment="Center"
+                               Margin="0,0,6,0"/>
+
+                    <ComboBox x:Name="CmbRealism"
+                              Width="135" Margin="0,0,12,0"
+                              FontFamily="Consolas" FontSize="{StaticResource FontSizeCaption}"
+                              Background="#151515" Foreground="#D4FFD9" BorderBrush="#333333"
+                              DisplayMemberPath="Display"
+                              SelectionChanged="OnScenarioFilterChanged"/>
+
+                    <TextBlock x:Name="LblSpeed"
+                               FontFamily="Consolas" FontSize="{StaticResource FontSizeCaption}"
+                               Foreground="#555555" VerticalAlignment="Center"
+                               Margin="0,0,4,0"/>
+
+                    <Slider x:Name="SliderSpeed"
+                            Width="100" Minimum="0.25" Maximum="3.0" Value="1.0"
+                            TickFrequency="0.25" IsSnapToTickEnabled="True"
+                            VerticalAlignment="Center"
+                            ValueChanged="OnSpeedChanged"
+                            AutomationProperties.Name="Speed"/>
+
+                    <TextBlock x:Name="LblSpeedValue"
+                               Text="1.00x" FontFamily="Consolas"
+                               FontSize="{StaticResource FontSizeCaption}"
+                               Foreground="#00FF41" VerticalAlignment="Center"
+                               Margin="4,0,0,0" MinWidth="34"/>
+
+                    <Button x:Name="BtnStartStop"
+                            Click="OnStartStopClick"
+                            FontFamily="Consolas" FontSize="{StaticResource FontSizeBody}"
+                            Foreground="#00FF41" Background="#1A1A1A" BorderBrush="#333333"
+                            Padding="12,4" Margin="12,0,0,0" Cursor="Hand"
+                            AutomationProperties.Name="Start Stop"/>
+                </WrapPanel>
+
+                <TextBlock x:Name="LblCurrentScenario"
+                           FontFamily="Consolas" FontSize="{StaticResource FontSizeCaption}"
                            Foreground="#00FF41" VerticalAlignment="Center"
-                           Margin="4,0,0,0" MinWidth="34"/>
+                           Margin="2,6,0,0"/>
 
-                <Slider x:Name="SliderSpeed" DockPanel.Dock="Right"
-                        Width="100" Minimum="0.25" Maximum="3.0" Value="1.0"
-                        TickFrequency="0.25" IsSnapToTickEnabled="True"
-                        VerticalAlignment="Center"
-                        ValueChanged="OnSpeedChanged"
-                        AutomationProperties.Name="Speed"/>
-
-                <TextBlock x:Name="LblSpeed" DockPanel.Dock="Right"
+                <TextBlock x:Name="LblScenarioSubtitle"
                            FontFamily="Consolas" FontSize="{StaticResource FontSizeCaption}"
-                           Foreground="#555555" VerticalAlignment="Center"
-                           Margin="16,0,4,0"/>
+                           Foreground="#6FAF7C" VerticalAlignment="Center"
+                           Margin="2,2,0,0"
+                           TextWrapping="Wrap"/>
 
-                <TextBlock x:Name="LblCurrentScenario" DockPanel.Dock="Left"
-                           FontFamily="Consolas" FontSize="{StaticResource FontSizeCaption}"
-                           Foreground="#333333" VerticalAlignment="Center"
-                           Margin="4,0,0,0"/>
-            </DockPanel>
+                <WrapPanel VerticalAlignment="Center" ItemHeight="28" Margin="0,8,0,0">
+                    <TextBlock x:Name="LblPlaylist"
+                               FontFamily="Consolas" FontSize="{StaticResource FontSizeCaption}"
+                               Foreground="#555555" VerticalAlignment="Center"
+                               Margin="0,0,6,0"/>
+
+                    <ComboBox x:Name="CmbPlaylist"
+                              Width="220" Margin="0,0,12,0"
+                              FontFamily="Consolas" FontSize="{StaticResource FontSizeCaption}"
+                              Background="#151515" Foreground="#D4FFD9" BorderBrush="#333333"
+                              DisplayMemberPath="Display"
+                              SelectionChanged="OnPlaylistSelectionChanged"/>
+
+                    <Button x:Name="BtnReplaySeed"
+                            Click="OnReplaySeedClick"
+                            FontFamily="Consolas" FontSize="{StaticResource FontSizeCaption}"
+                            Foreground="#D4FFD9" Background="#1A1A1A" BorderBrush="#333333"
+                            Padding="8,4" Margin="0,0,8,0" Cursor="Hand"/>
+
+                    <Button x:Name="BtnExportTranscript"
+                            Click="OnExportTranscriptClick"
+                            FontFamily="Consolas" FontSize="{StaticResource FontSizeCaption}"
+                            Foreground="#D4FFD9" Background="#1A1A1A" BorderBrush="#333333"
+                            Padding="8,4" Margin="0,0,12,0" Cursor="Hand"/>
+
+                    <CheckBox x:Name="ChkVintageMonitor"
+                              Click="OnVintageMonitorClick"
+                              FontFamily="Consolas" FontSize="{StaticResource FontSizeCaption}"
+                              Foreground="#6FAF7C" VerticalAlignment="Center"
+                              Margin="0,0,12,0"/>
+
+                    <TextBlock x:Name="LblSeed"
+                               FontFamily="Consolas" FontSize="{StaticResource FontSizeCaption}"
+                               Foreground="#555555" VerticalAlignment="Center"
+                               Margin="0,0,6,0"/>
+
+                    <TextBlock x:Name="LblSeedValue"
+                               FontFamily="Consolas" FontSize="{StaticResource FontSizeCaption}"
+                               Foreground="#00FF41" VerticalAlignment="Center"
+                               Margin="0,0,6,0"/>
+                </WrapPanel>
+            </StackPanel>
         </Border>
 
         <!-- Terminal area -->
@@ -80,6 +190,23 @@
                     </TextBlock>
                 </ScrollViewer>
             </Border>
+
+            <Grid x:Name="VintageOverlay" Visibility="Collapsed" IsHitTestVisible="False" Opacity="0.16">
+                <Rectangle>
+                    <Rectangle.Fill>
+                        <DrawingBrush TileMode="Tile"
+                                      Viewport="0,0,4,4" ViewportUnits="Absolute"
+                                      Viewbox="0,0,4,4" ViewboxUnits="Absolute">
+                            <DrawingBrush.Drawing>
+                                <GeometryDrawing Brush="#16FFFFFF" Geometry="M 0,0 L 4,0 4,1 0,1 Z"/>
+                            </DrawingBrush.Drawing>
+                        </DrawingBrush>
+                    </Rectangle.Fill>
+                </Rectangle>
+
+                <Border Background="#1000FF41"/>
+                <Border BorderBrush="#2200FF41" BorderThickness="1"/>
+            </Grid>
         </Grid>
     </Grid>
 </UserControl>

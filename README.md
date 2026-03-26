@@ -14,7 +14,7 @@
 
 [![CI](https://github.com/VBlackJack/Heimdall.Next/actions/workflows/ci.yml/badge.svg)](https://github.com/VBlackJack/Heimdall.Next/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-1586%20passing-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/tests-1589%20passing-brightgreen.svg)]()
 [![Tools](https://img.shields.io/badge/tools-33%20sysops-blue.svg)]()
 [![.NET](https://img.shields.io/badge/.NET-10.0-purple.svg)]()
 
@@ -154,7 +154,7 @@ All tools open as session tabs (split with any session or tool, detach, reorder)
 | Category | Tools |
 |----------|-------|
 | **Network** | **Network Cartography** (ping sweep + OS fingerprinting, port scan, banner grab, HTTP/HTTPS header analysis, TLS cert inspection, NetBIOS NBSTAT probe, SNMPv2c query, mDNS/Bonjour discovery, 300+ OUI MAC lookup, multi-source role classification, VLAN detection, Draw.io topology export, scan history/diff, remote subnet auto-detection via SSH gateway, **persistent Knowledge Base with TTL-based cache acceleration**), Ping Monitor, DNS Lookup (custom server + via tunnel), SSL Cert Inspector (chain + TLS version + via tunnel), Port Scanner (progress + banner grab + via tunnel), Subnet Calculator (IPv4 + IPv6), IP Converter, HTTP Status Codes, Whois Lookup, Network Calculator (supernet + VLAN planner) |
-| **Security** | Password Generator (crack time + history + saveable presets), SSH Key Generator (RSA + Ed25519), Hash Generator (SHA3 + progress), HMAC Generator, JWT Parser (HMAC signature verify), Certificate Generator (self-signed + CA/leaf), TOTP Generator (RFC 6238) |
+| **Security** | Password Generator (crack time + history + saveable presets), SSH Key Generator (RSA + Ed25519), Hash Generator (SHA3 + progress), HMAC Generator, JWT Parser (HMAC signature verify), Certificate Generator (self-signed + CA/leaf), TOTP Generator (RFC 6238), **Security Audit** (Hollywood-style terminal simulation with 25 scenarios: attack, deployment, hardening, identity — external JSON scenario packs with template engine, playlists, favorites, transcript export, vintage CRT mode) |
 | **Encoding** | Base64 Encoder (URL-safe RFC 4648), URL Encoder, JSON Formatter (error position), Regex Tester (match highlighting), Text Diff (word-level), Text Case Converter (8 formats) |
 | **System** | Chmod Calculator, Crontab Builder, DateTime Converter (timezone + relative), UUID Generator (v4 + v7), Hosts File Editor, SSH Config Generator, Log Viewer / Tail (regex filter), Cron Job Manager (crontab + Windows tasks), Service Status Dashboard, **Notes** (Obsidian-style Markdown editor with Milkdown WYSIWYG + Dracula theme, collapsible sidebar with persisted width, right-click formatting menu, localized templates EN/FR, TreeView file explorer, accent-insensitive `[[wiki-links]]`, tags, drag-and-drop, Confluence/HTML export), **Diagram Editor** (draw.io embedded offline, New/Open/Save/Export PNG) |
 
