@@ -105,9 +105,9 @@
         }
 
         // Hide draw.io's menu bar after iframe loads.
-        // mxPopupMenu dropdowns cannot open inside a WebView2 iframe
-        // (pointer event routing issue), so we hide the menu bar entirely.
         // Heimdall's own toolbar provides New/Open/Save/Export PNG.
+        // The right-click context menu is handled by draw.io's mxPopupMenu
+        // (requires AreDefaultContextMenusEnabled=false on the WebView2 side).
         frame.onload = function() {
             try {
                 var style = frame.contentDocument.createElement('style');
