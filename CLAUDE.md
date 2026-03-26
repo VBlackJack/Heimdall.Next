@@ -4,7 +4,7 @@
 
 **Heimdall.Next** — .NET 10 + WPF secure Windows connection manager (RDP, SSH, SFTP, VNC, Telnet, FTP, Citrix, Local Shell). MobaXterm/mRemoteNG alternative. Ground-up rewrite of Heimdall (PowerShell 5.1 + WPF).
 
-**Current build**: v2026.032601 (Release)
+**Current build**: v2026.032605 (Release)
 
 ## Repository Layout
 
