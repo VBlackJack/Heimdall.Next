@@ -79,6 +79,7 @@ public sealed class ToolRegistry
             Entry("SERVICES", ToolCategory.System,   "ToolCategorySystem",   "PaletteToolServices", null,                      ["services","svc","systemctl"],        false, () => new Views.Tools.ServiceStatusView(),  "Geo.Tool.ServiceStatusDashboard"),
             Entry("NOTES",    ToolCategory.System,   "ToolCategorySystem",   "PaletteToolNotes",    "PaletteToolNotesWith",    ["notes","note","markdown","md","confluence"], false, () => new Views.Tools.NotesToolView(), "Geo.Tool.Notes"),
             Entry("DIAGRAM",  ToolCategory.System,   "ToolCategorySystem",   "PaletteToolDiagram",  null,                      ["diagram","drawio","schema"],         false, () => new Views.Tools.DiagramEditorView(),  "Geo.Tool.Diagram"),
+            Entry("HACKERSIM",ToolCategory.System,   "ToolCategorySystem",   "PaletteToolHackerSim",null,                      ["hacker","matrix","hackersim"],        false, () => new Views.Tools.HackerSimulatorView(),"Geo.Tool.HackerSimulator"),
         };
 
         _entries = entries;
@@ -162,6 +163,7 @@ public sealed class ToolRegistry
         ["SERVICES"]  = "Geo.Tool.ServiceStatusDashboard",
         ["NOTES"]     = "Geo.Tool.Notes",
         ["DIAGRAM"]   = "Geo.Tool.Diagram",
+        ["HACKERSIM"] = "Geo.Tool.HackerSimulator",
     }.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
 
     private static readonly FrozenDictionary<string, string> s_categoryBrushKeys = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
@@ -184,6 +186,7 @@ public sealed class ToolRegistry
         ["SSHCONFIG"] = "ToolSystemBrush",   ["CRONJOB"]  = "ToolSystemBrush",
         ["SERVICES"]  = "ToolSystemBrush",   ["NOTES"]    = "ToolSystemBrush",
         ["DIAGRAM"]   = "ToolSystemBrush",
+        ["HACKERSIM"] = "ToolSystemBrush",
     }.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
