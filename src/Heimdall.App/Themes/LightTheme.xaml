@@ -19,7 +19,7 @@
     <Color x:Key="WarningColor">#B45309</Color>
     <Color x:Key="ErrorColor">#DC2626</Color>
     <Color x:Key="InfoColor">#1D4ED8</Color>
-    <Color x:Key="BorderColor">#94A3B8</Color>
+    <Color x:Key="BorderColor">#708090</Color>
     <Color x:Key="HighlightColor">#EEF2FF</Color>
 
     <!-- WCAG-safe text variants for semantic colors on light backgrounds -->

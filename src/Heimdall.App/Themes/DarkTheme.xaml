@@ -14,18 +14,18 @@
     <Color x:Key="AccentPressedColor">#8E5FD9</Color>
     <Color x:Key="TextPrimaryColor">#F8F8F2</Color>
     <Color x:Key="TextSecondaryColor">#A8B0CC</Color>
-    <Color x:Key="TextDisabledColor">#9298B0</Color>
+    <Color x:Key="TextDisabledColor">#A8AECA</Color>
     <Color x:Key="SuccessColor">#50FA7B</Color>
     <Color x:Key="WarningColor">#FFB86C</Color>
-    <Color x:Key="ErrorColor">#FF5555</Color>
+    <Color x:Key="ErrorColor">#FF6B6B</Color>
     <Color x:Key="InfoColor">#8BE9FD</Color>
-    <Color x:Key="BorderColor">#6272A4</Color>
+    <Color x:Key="BorderColor">#7B8EC4</Color>
     <Color x:Key="HighlightColor">#353A50</Color>
 
     <!-- WCAG-safe text variants for semantic colors on dark backgrounds -->
     <Color x:Key="SuccessTextColor">#50FA7B</Color>
     <Color x:Key="WarningTextColor">#FFB86C</Color>
-    <Color x:Key="ErrorTextColor">#FF5555</Color>
+    <Color x:Key="ErrorTextColor">#FF6B6B</Color>
 
     <!-- Brushes -->
     <SolidColorBrush x:Key="BackgroundBrush" Color="{StaticResource PrimaryColor}"/>

@@ -14,7 +14,8 @@
         ResizeMode="CanResizeWithGrip"
         MinWidth="380"
         MinHeight="380"
-        ShowInTaskbar="False">
+        ShowInTaskbar="False"
+        Closing="OnWindowClosing">
 
     <Window.Resources>
         <ResourceDictionary>

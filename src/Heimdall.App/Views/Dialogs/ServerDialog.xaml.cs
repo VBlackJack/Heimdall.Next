@@ -232,6 +232,27 @@ public partial class ServerDialog : Window
 
     private void OnWindowClosing(object? sender, System.ComponentModel.CancelEventArgs e)
     {
+        // Dirty guard: warn when closing with unsaved changes (skip when Save was clicked)
+        if (DialogResult != true
+            && DataContext is ServerDialogViewModel { IsDirty: true } dirtyVm)
+        {
+            var title = dirtyVm.Localizer?["DialogUnsavedWarningTitle"]
+                ?? _localizer?["DialogUnsavedWarningTitle"]
+                ?? "Unsaved Changes";
+            var message = dirtyVm.Localizer?["DialogUnsavedWarning"]
+                ?? _localizer?["DialogUnsavedWarning"]
+                ?? "You have unsaved changes. Discard them and close?";
+            var yes = dirtyVm.Localizer?["BtnYes"] ?? _localizer?["BtnYes"] ?? "Yes";
+            var no = dirtyVm.Localizer?["BtnNo"] ?? _localizer?["BtnNo"] ?? "No";
+
+            var discard = MessageDialog.ShowConfirm(this, title, message, "warning", yes, no);
+            if (!discard)
+            {
+                e.Cancel = true;
+                return;
+            }
+        }
+
         // Detach property changed handler
         if (DataContext is ServerDialogViewModel vm)
         {

@@ -1172,6 +1172,9 @@ public partial class EmbeddedSshView : UserControl, IDisposable
         System.Windows.Automation.AutomationProperties.SetName(SplitButton, L("A11ySplitSession"));
         System.Windows.Automation.AutomationProperties.SetName(HealthToggleButton, L("A11yToggleHealthMonitoring"));
         System.Windows.Automation.AutomationProperties.SetName(ElevateButton, L("A11yElevateToRoot"));
+        System.Windows.Automation.AutomationProperties.SetName(OverlayReconnectButton, L("A11yReconnectSession"));
+        System.Windows.Automation.AutomationProperties.SetName(OverlayCloseButton, L("A11yCloseOverlay"));
+        System.Windows.Automation.AutomationProperties.SetName(StatusTextBlock, L("A11yConnectionStatus"));
     }
 
     /// <summary>Show/hide the shield button for launching an elevated shell.</summary>

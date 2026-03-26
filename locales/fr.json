@@ -142,7 +142,7 @@
   "TooltipAdd": "Ajouter un serveur (Ctrl+N)",
   "TooltipEdit": "Modifier le serveur sélectionné (Ctrl+E)",
   "TooltipDuplicate": "Dupliquer le serveur sélectionné (Ctrl+D)",
-  "TooltipDelete": "Supprimer le serveur sélectionné (Suppr)",
+  "TooltipDelete": "Supprimer le serveur sélectionné (Ctrl+Suppr)",
   "TooltipConnect": "Se connecter au serveur sélectionné (Entrée)",
   "TooltipDisconnect": "Fermer le tunnel du serveur sélectionné",
   "TooltipReleasePorts": "Terminer tous les processus plink pour libérer les ports",
@@ -3618,6 +3618,8 @@
   "A11yClosePane": "Fermer le volet",
   "A11yToggleKeyVisibility": "Afficher/masquer la cl\u00e9",
   "A11yCopyToClipboard": "Copier dans le presse-papiers",
+  "A11yCloseOverlay": "Fermer la superposition",
+  "A11yConnectionStatus": "\u00c9tat de la connexion",
 
   "_comment_ux_combobox": "",
   "TerminalSchemeDefault": "Par d\u00e9faut",
@@ -3666,5 +3668,9 @@
 
   "_comment_ux_misc": "",
   "ToolNotesUnsaved": "Modifications non enregistr\u00e9es",
-  "ToolNetMapScanProgress": "Scan\u00a0: {0}/{1} h\u00f4tes..."
+  "ToolNetMapScanProgress": "Scan\u00a0: {0}/{1} h\u00f4tes...",
+
+  "_comment_dirty_guards": "",
+  "DialogUnsavedWarningTitle": "Modifications non enregistr\u00e9es",
+  "DialogUnsavedWarning": "Vous avez des modifications non enregistr\u00e9es. Les abandonner et fermer ?"
 }

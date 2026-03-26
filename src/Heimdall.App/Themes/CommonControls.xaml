@@ -53,7 +53,7 @@
     <CornerRadius x:Key="CornerRadiusXl">12</CornerRadius>
 
     <!-- Design Tokens: Opacity                                    -->
-    <sys:Double x:Key="OpacityDisabled">0.55</sys:Double>
+    <sys:Double x:Key="OpacityDisabled">0.60</sys:Double>
     <sys:Double x:Key="OpacityReadOnly">0.75</sys:Double>
     <sys:Double x:Key="OpacityOverlay">0.20</sys:Double>
     <sys:Double x:Key="OpacityAccentOverlay">0.20</sys:Double>

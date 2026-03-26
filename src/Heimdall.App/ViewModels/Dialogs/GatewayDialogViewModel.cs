@@ -95,6 +95,31 @@ public partial class GatewayDialogViewModel : ObservableValidator
     [ObservableProperty]
     private ObservableCollection<GatewayOption> _availableParents = [];
 
+    // --- Dirty state tracking ---
+
+    [ObservableProperty]
+    private bool _isDirty;
+
+    /// <summary>
+    /// Suppresses dirty tracking during initialization (e.g., FromDto).
+    /// </summary>
+    private bool _isInitializing;
+
+    protected override void OnPropertyChanged(System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        base.OnPropertyChanged(e);
+
+        if (_isInitializing) return;
+
+        // Mark dirty when any user-editable property changes
+        if (e.PropertyName is nameof(Name) or nameof(Host) or nameof(Port)
+            or nameof(User) or nameof(KeyPath) or nameof(Password)
+            or nameof(SelectedParentGatewayId))
+        {
+            IsDirty = true;
+        }
+    }
+
     // --- Validation ---
 
     [ObservableProperty]
@@ -108,6 +133,44 @@ public partial class GatewayDialogViewModel : ObservableValidator
     {
         ValidateAllProperties();
         ValidationError = HasErrors ? GetFirstError() : null;
+    }
+
+    // --- Live re-validation (only when errors are already showing) ---
+
+    partial void OnNameChanged(string value)
+    {
+        if (ValidationError is not null)
+        {
+            ValidateProperty(value, nameof(Name));
+            ValidationError = HasErrors ? GetFirstError() : null;
+        }
+    }
+
+    partial void OnHostChanged(string value)
+    {
+        if (ValidationError is not null)
+        {
+            ValidateProperty(value, nameof(Host));
+            ValidationError = HasErrors ? GetFirstError() : null;
+        }
+    }
+
+    partial void OnPortChanged(int value)
+    {
+        if (ValidationError is not null)
+        {
+            ValidateProperty(value, nameof(Port));
+            ValidationError = HasErrors ? GetFirstError() : null;
+        }
+    }
+
+    partial void OnUserChanged(string value)
+    {
+        if (ValidationError is not null)
+        {
+            ValidateProperty(value, nameof(User));
+            ValidationError = HasErrors ? GetFirstError() : null;
+        }
     }
 
     /// <summary>
@@ -153,18 +216,18 @@ public partial class GatewayDialogViewModel : ObservableValidator
     {
         ArgumentNullException.ThrowIfNull(dto);
 
-        return new GatewayDialogViewModel
-        {
-            IsEditMode = true,
-            Name = dto.Name,
-            Host = dto.Host,
-            Port = dto.Port,
-            User = dto.User,
-            KeyPath = dto.KeyPath ?? "",
-            SelectedParentGatewayId = dto.ParentGatewayId ?? "",
-            HostKeyFingerprint = dto.HostKeyFingerprint ?? "",
-            ExistingSshPasswordEncrypted = dto.SshPasswordEncrypted
-        };
+        var vm = new GatewayDialogViewModel { _isInitializing = true };
+        vm.IsEditMode = true;
+        vm.Name = dto.Name;
+        vm.Host = dto.Host;
+        vm.Port = dto.Port;
+        vm.User = dto.User;
+        vm.KeyPath = dto.KeyPath ?? "";
+        vm.SelectedParentGatewayId = dto.ParentGatewayId ?? "";
+        vm.HostKeyFingerprint = dto.HostKeyFingerprint ?? "";
+        vm.ExistingSshPasswordEncrypted = dto.SshPasswordEncrypted;
+        vm._isInitializing = false;
+        return vm;
     }
 
     private static readonly Dictionary<string, string> ValidationKeyMap = new(StringComparer.Ordinal)

@@ -98,6 +98,9 @@ public partial class EmbeddedVncView : UserControl, IDisposable
         System.Windows.Automation.AutomationProperties.SetName(DisconnectButton, localizer?["A11yDisconnectSession"] ?? "Disconnect session");
         System.Windows.Automation.AutomationProperties.SetName(ReconnectButton, localizer?["A11yReconnectSession"] ?? "Reconnect session");
         System.Windows.Automation.AutomationProperties.SetName(SplitButton, localizer?["A11ySplitSession"] ?? "Split session view");
+        System.Windows.Automation.AutomationProperties.SetName(OverlayReconnectButton, localizer?["A11yReconnectSession"] ?? "Reconnect session");
+        System.Windows.Automation.AutomationProperties.SetName(OverlayCloseButton, localizer?["A11yCloseOverlay"] ?? "Close overlay");
+        System.Windows.Automation.AutomationProperties.SetName(StatusTextBlock, localizer?["A11yConnectionStatus"] ?? "Connection status");
 
         // Start the WebSocket-to-TCP proxy
         _proxy = new WebSocketVncProxy(session.Host, session.Port);

@@ -147,6 +147,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
             System.Windows.Automation.AutomationProperties.SetName(DisconnectButton, L("A11yDisconnectSession"));
             System.Windows.Automation.AutomationProperties.SetName(SplitButton, L("A11ySplitSession"));
             System.Windows.Automation.AutomationProperties.SetName(ResolutionButton, L("A11yChangeResolution"));
+            System.Windows.Automation.AutomationProperties.SetName(StatusTextBlock, L("A11yConnectionStatus"));
         }
 
         CreateHostControl();
@@ -794,6 +795,8 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         ReconnectMessageText.Text = L("RdpDisconnectedMessage");
         OverlayReconnectButton.Content = L("BtnReconnectSession");
         OverlayCloseButton.Content = L("BtnCloseOverlay");
+        System.Windows.Automation.AutomationProperties.SetName(OverlayReconnectButton, L("A11yReconnectSession"));
+        System.Windows.Automation.AutomationProperties.SetName(OverlayCloseButton, L("A11yCloseOverlay"));
         ReconnectOverlay.Visibility = System.Windows.Visibility.Visible;
     }
 
