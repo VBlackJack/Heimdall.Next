@@ -46,6 +46,14 @@ public sealed class NoteTreeNode
     public NoteListItem? Note { get; init; }
     public List<NoteTreeNode> Children { get; } = new();
     public bool IsFolder => FilePath is null;
+    public string DisplayTitle => Note?.Title ?? Name;
+    public string DisplaySummary => Note?.Summary ?? string.Empty;
+    public string DisplayMeta => Note is null
+        ? string.Empty
+        : $"{Note.LastModifiedDisplay} | {Name}";
+    public string DisplayTags => Note?.Tags.Count > 0
+        ? string.Join("   ", Note.Tags.Select(tag => $"#{tag}"))
+        : string.Empty;
 
     public static List<NoteTreeNode> BuildTree(IReadOnlyList<NoteListItem> notes, string notesRootPath)
     {
@@ -396,16 +404,17 @@ public sealed class NotesStorageService
         RemoveEmptyDirectories(Path.GetDirectoryName(filePath));
     }
 
-    public async Task<string> RenameNoteAsync(string filePath, string newFileName, CancellationToken cancellationToken = default)
+    public async Task<string> RenameNoteAsync(string filePath, string newName, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
-        ArgumentException.ThrowIfNullOrWhiteSpace(newFileName);
+        ArgumentException.ThrowIfNullOrWhiteSpace(newName);
         ValidatePathWithinRoot(filePath);
 
-        var sanitized = SanitizeFileName(newFileName);
+        var desiredTitle = StripMarkdownExtension(newName).Trim();
+        var sanitized = SanitizeFileName(newName);
         if (string.IsNullOrWhiteSpace(sanitized))
         {
-            throw new ArgumentException("Invalid file name.", nameof(newFileName));
+            throw new ArgumentException("Invalid file name.", nameof(newName));
         }
 
         if (!sanitized.EndsWith(".md", StringComparison.OrdinalIgnoreCase))
@@ -427,7 +436,14 @@ public sealed class NotesStorageService
         await _writeLock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
+            var content = File.ReadAllText(filePath, Utf8NoBom);
             File.Move(filePath, newPath);
+
+            var updatedContent = UpdatePrimaryHeading(content, desiredTitle);
+            if (!string.Equals(updatedContent, content, StringComparison.Ordinal))
+            {
+                File.WriteAllText(newPath, updatedContent, Utf8NoBom);
+            }
         }
         finally
         {
@@ -438,6 +454,9 @@ public sealed class NotesStorageService
     }
 
     public async Task<string> DuplicateNoteAsync(string filePath, CancellationToken cancellationToken = default)
+        => await DuplicateNoteAsync(filePath, "Copy", cancellationToken).ConfigureAwait(false);
+
+    public async Task<string> DuplicateNoteAsync(string filePath, string duplicateLabel, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
         ValidatePathWithinRoot(filePath);
@@ -445,9 +464,17 @@ public sealed class NotesStorageService
         var content = await LoadNoteAsync(filePath, cancellationToken).ConfigureAwait(false);
         var directory = Path.GetDirectoryName(filePath) ?? _notesRootPath;
         var baseName = Path.GetFileNameWithoutExtension(filePath);
-        var copyPath = GetUniquePath(Path.Combine(directory, $"{baseName}-copy.md"));
+        var fileSuffix = NotesTemplateFactory.SlugifyValue(duplicateLabel);
+        if (string.IsNullOrWhiteSpace(fileSuffix))
+        {
+            fileSuffix = "copy";
+        }
 
-        await SaveNoteAsync(copyPath, content, cancellationToken).ConfigureAwait(false);
+        var copyPath = GetUniquePath(Path.Combine(directory, $"{baseName}-{fileSuffix}.md"));
+        var desiredTitle = BuildDuplicatedTitle(ExtractTitle(filePath, content), duplicateLabel);
+        var duplicatedContent = UpdatePrimaryHeading(content, desiredTitle);
+
+        await SaveNoteAsync(copyPath, duplicatedContent, cancellationToken).ConfigureAwait(false);
         return copyPath;
     }
 
@@ -537,6 +564,51 @@ public sealed class NotesStorageService
         }
 
         return Path.GetFileNameWithoutExtension(filePath);
+    }
+
+    private static string BuildDuplicatedTitle(string title, string duplicateLabel)
+    {
+        var normalizedLabel = string.IsNullOrWhiteSpace(duplicateLabel) ? "Copy" : duplicateLabel.Trim();
+        return $"{title} ({normalizedLabel})";
+    }
+
+    private static string UpdatePrimaryHeading(string content, string newTitle)
+    {
+        if (string.IsNullOrWhiteSpace(content) || string.IsNullOrWhiteSpace(newTitle))
+        {
+            return content;
+        }
+
+        var newline = content.Contains("\r\n", StringComparison.Ordinal) ? "\r\n" : "\n";
+        var normalized = content.Replace("\r\n", "\n", StringComparison.Ordinal);
+        var hasTrailingNewline = normalized.EndsWith('\n');
+        var lines = normalized.Split('\n');
+
+        for (var i = 0; i < lines.Length; i++)
+        {
+            var rawLine = lines[i];
+            var trimmed = rawLine.TrimStart();
+            if (!trimmed.StartsWith("# ", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            var indentLength = rawLine.Length - trimmed.Length;
+            var indentation = indentLength > 0 ? rawLine[..indentLength] : string.Empty;
+            lines[i] = $"{indentation}# {newTitle}";
+
+            var updated = string.Join('\n', lines);
+            if (hasTrailingNewline)
+            {
+                updated += "\n";
+            }
+
+            return newline == "\r\n"
+                ? updated.Replace("\n", "\r\n", StringComparison.Ordinal)
+                : updated;
+        }
+
+        return content;
     }
 
     private static string ExtractSummary(string content)

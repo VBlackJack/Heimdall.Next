@@ -18,6 +18,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Media;
 using System.Windows.Threading;
 using Heimdall.App.Services;
@@ -32,6 +33,8 @@ namespace Heimdall.App.Views.Tools;
 
 public partial class NotesToolView : UserControl, IToolView
 {
+    private readonly record struct NotesLaunchRequest(string? PreferredPath, NoteTemplateKind? TemplateKind);
+
     private readonly NotesStorageService _storage;
     private readonly DispatcherTimer _saveTimer;
     private readonly Stack<string> _backStack = new();
@@ -50,6 +53,7 @@ public partial class NotesToolView : UserControl, IToolView
     private bool _initializeStarted;
     private bool _isLoadingNote;
     private bool _suppressSelectionChanged;
+    private bool _suppressSortSelectionChanged;
     private string? _currentNotePath;
     private string? _selectedTag;
     private bool _sidebarVisible = true;
@@ -157,7 +161,14 @@ public partial class NotesToolView : UserControl, IToolView
 
             await TryInitializeMilkdownAsync().ConfigureAwait(true);
 
-            var requestedPath = ResolveRequestedPath(context);
+            var launchRequest = ResolveLaunchRequest(context);
+            var requestedPath = launchRequest.PreferredPath;
+
+            if (launchRequest.TemplateKind is { } templateKind)
+            {
+                requestedPath = await _storage.CreateNoteAsync(templateKind, _context, _localizer).ConfigureAwait(true);
+            }
+
             await ReloadNotesAsync(requestedPath).ConfigureAwait(true);
 
             Core.Logging.FileLogger.Info(
@@ -279,7 +290,10 @@ public partial class NotesToolView : UserControl, IToolView
         }
     }
 
-    private async Task ReloadNotesAsync(string? preferredPath = null)
+    private async Task ReloadNotesAsync(
+        string? preferredPath = null,
+        bool allowFallbackSelection = true,
+        bool preserveCurrentNoteWhenFilteredOut = false)
     {
         _refreshCts?.Cancel();
         _refreshCts?.Dispose();
@@ -306,23 +320,29 @@ public partial class NotesToolView : UserControl, IToolView
             return;
         }
 
-        await RefreshVisibleNotesAsync(preferredPath).ConfigureAwait(true);
+        await RefreshVisibleNotesAsync(
+            preferredPath,
+            allowFallbackSelection,
+            preserveCurrentNoteWhenFilteredOut).ConfigureAwait(true);
     }
 
-    private async Task RefreshVisibleNotesAsync(string? preferredPath = null)
+    private async Task RefreshVisibleNotesAsync(
+        string? preferredPath = null,
+        bool allowFallbackSelection = true,
+        bool preserveCurrentNoteWhenFilteredOut = false)
     {
-        var selectedNote = ApplyVisibleNotes(preferredPath);
+        var selectedNote = ApplyVisibleNotes(preferredPath, allowFallbackSelection);
         if (selectedNote is not null)
         {
             await OpenNoteAsync(selectedNote.FilePath).ConfigureAwait(true);
         }
-        else
+        else if (!preserveCurrentNoteWhenFilteredOut || _currentNotePath is null)
         {
             ClearCurrentNote();
         }
     }
 
-    private NoteListItem? ApplyVisibleNotes(string? preferredPath = null)
+    private NoteListItem? ApplyVisibleNotes(string? preferredPath = null, bool allowFallbackSelection = true)
     {
         var visibleNotes = GetVisibleNotes();
         var tree = NoteTreeNode.BuildTree(visibleNotes, _storage.NotesRootPath);
@@ -343,7 +363,7 @@ public partial class NotesToolView : UserControl, IToolView
         var target = visibleNotes.FirstOrDefault(n =>
             string.Equals(n.FilePath, targetPath, StringComparison.OrdinalIgnoreCase));
 
-        return target ?? visibleNotes.FirstOrDefault();
+        return target ?? (allowFallbackSelection ? visibleNotes.FirstOrDefault() : null);
     }
 
     private IReadOnlyList<NoteListItem> GetVisibleNotes()
@@ -552,7 +572,7 @@ public partial class NotesToolView : UserControl, IToolView
 
         await FlushPendingChangesAsync().ConfigureAwait(true);
 
-        var currentName = Path.GetFileNameWithoutExtension(_currentNotePath);
+        var currentName = ExtractHeaderTitle(GetCurrentEditorContent(), _currentNotePath);
         var dialog = new Views.Dialogs.InputDialog(_localizer)
         {
             Title = L("ToolNotesRenameTitle"),
@@ -590,7 +610,9 @@ public partial class NotesToolView : UserControl, IToolView
 
         try
         {
-            var copyPath = await _storage.DuplicateNoteAsync(_currentNotePath).ConfigureAwait(true);
+            var copyPath = await _storage
+                .DuplicateNoteAsync(_currentNotePath, L("ToolNotesDuplicateSuffix"))
+                .ConfigureAwait(true);
             await ReloadNotesAsync(copyPath).ConfigureAwait(true);
             SetStatus(string.Format(L("ToolNotesStatusDuplicated"), _storage.GetRelativePath(copyPath)));
         }
@@ -687,12 +709,19 @@ public partial class NotesToolView : UserControl, IToolView
     private void ApplyLocalization()
     {
         HeaderTitle.Text = L("ToolNotesTitle");
+        BtnNewNote.Content = L("ToolNotesBtnNew");
         BtnOpenFolder.Content = L("ToolNotesBtnOpenFolder");
+        BtnNoteActions.Content = L("ToolNotesTplActions");
         BtnCopyConfluence.Content = L("ToolNotesBtnCopyConfluence");
         BtnExportConfluence.Content = L("ToolNotesBtnExportConfluence");
         BtnExportHtml.Content = L("ToolNotesBtnExportHtml");
 
         SearchTextBox.Tag = L("ToolNotesSearchPlaceholder");
+        SortLabelText.Text = L("ToolNotesSortLabel");
+        SortNewestFirstItem.Content = L("ToolNotesSortDateDesc");
+        SortOldestFirstItem.Content = L("ToolNotesSortDateAsc");
+        SortNameAscItem.Content = L("ToolNotesSortNameAsc");
+        SortNameDescItem.Content = L("ToolNotesSortNameDesc");
         TagsLabelText.Text = L("ToolNotesTagsLabel");
 
         EditorEmptyTitleText.Text = L("ToolNotesEmptyTitle");
@@ -710,6 +739,7 @@ public partial class NotesToolView : UserControl, IToolView
         BtnNewNote.ToolTip = L("TooltipNewNote");
         BtnNavBack.ToolTip = L("TooltipNavBack");
         BtnNavForward.ToolTip = L("TooltipNavForward");
+        BtnNoteActions.ToolTip = L("ToolNotesTplActions");
         BtnCopyConfluence.ToolTip = L("TooltipCopyConfluence");
         BtnExportConfluence.ToolTip = L("TooltipExportConfluence");
         BtnExportHtml.ToolTip = L("TooltipExportHtml");
@@ -721,17 +751,33 @@ public partial class NotesToolView : UserControl, IToolView
         System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
         System.Windows.Automation.AutomationProperties.SetName(BtnOpenFolder, L("TooltipOpenNotesFolder"));
         System.Windows.Automation.AutomationProperties.SetName(BtnNewNote, L("TooltipNewNote"));
+        System.Windows.Automation.AutomationProperties.SetName(BtnNoteActions, L("ToolNotesTplActions"));
         System.Windows.Automation.AutomationProperties.SetName(BtnCopyConfluence, L("TooltipCopyConfluence"));
         System.Windows.Automation.AutomationProperties.SetName(BtnExportConfluence, L("TooltipExportConfluence"));
         System.Windows.Automation.AutomationProperties.SetName(BtnExportHtml, L("TooltipExportHtml"));
         System.Windows.Automation.AutomationProperties.SetName(SearchTextBox, L("ToolNotesSearchPlaceholder"));
+        System.Windows.Automation.AutomationProperties.SetName(SortOrderComboBox, L("ToolNotesSortLabel"));
         System.Windows.Automation.AutomationProperties.SetName(NotesTreeView, L("ToolNotesListTitle"));
         System.Windows.Automation.AutomationProperties.SetName(TagFilterWrapPanel, L("ToolNotesTagsLabel"));
         System.Windows.Automation.AutomationProperties.SetName(BtnNavBack, L("TooltipNavBack"));
         System.Windows.Automation.AutomationProperties.SetName(BtnNavForward, L("TooltipNavForward"));
         System.Windows.Automation.AutomationProperties.SetName(BtnToggleSidebar, L("TooltipToggleSidebar"));
 
+        UpdateSortOrderSelection();
         RebuildTagFilterButtons();
+    }
+
+    private void UpdateSortOrderSelection()
+    {
+        _suppressSortSelectionChanged = true;
+        try
+        {
+            SortOrderComboBox.SelectedValue = _sortOrder.ToString();
+        }
+        finally
+        {
+            _suppressSortSelectionChanged = false;
+        }
     }
 
     private void UpdateSelectionState()
@@ -741,17 +787,18 @@ public partial class NotesToolView : UserControl, IToolView
         if (_useMilkdown)
         {
             Editor.Visibility = Visibility.Collapsed;
-            MilkdownEditor.Visibility = Visibility.Visible;
+            MilkdownEditor.Visibility = hasSelection ? Visibility.Visible : Visibility.Collapsed;
             MilkdownEditor.SetReadOnly(!hasSelection);
-            EditorEmptyStatePanel.Visibility = Visibility.Collapsed;
         }
         else
         {
             MilkdownEditor.Visibility = Visibility.Collapsed;
-            Editor.Visibility = Visibility.Visible;
+            Editor.Visibility = hasSelection ? Visibility.Visible : Visibility.Collapsed;
             Editor.IsReadOnly = !hasSelection;
-            EditorEmptyStatePanel.Visibility = hasSelection ? Visibility.Collapsed : Visibility.Visible;
         }
+
+        EditorEmptyStatePanel.Visibility = hasSelection ? Visibility.Collapsed : Visibility.Visible;
+        BtnNoteActions.IsEnabled = hasSelection;
         BtnCopyConfluence.IsEnabled = hasSelection;
         BtnExportConfluence.IsEnabled = hasSelection;
         BtnExportHtml.IsEnabled = hasSelection;
@@ -779,10 +826,12 @@ public partial class NotesToolView : UserControl, IToolView
             return;
         }
 
-        var editorContent = _useMilkdown ? _lastMilkdownContent : Editor.Text;
-        SelectedNoteTitleText.Text = ExtractHeaderTitle(editorContent, _currentNotePath);
+        SelectedNoteTitleText.Text = ExtractHeaderTitle(GetCurrentEditorContent(), _currentNotePath);
         SelectedNotePathText.Text = _storage.GetRelativePath(_currentNotePath);
     }
+
+    private string GetCurrentEditorContent()
+        => _useMilkdown ? _lastMilkdownContent : Editor.Text;
 
     private static string ExtractHeaderTitle(string markdown, string filePath)
     {
@@ -809,18 +858,44 @@ public partial class NotesToolView : UserControl, IToolView
     private Brush GetBrush(string resourceKey)
         => (Brush)(TryFindResource(resourceKey) ?? Brushes.LightGray);
 
-    private string? ResolveRequestedPath(ToolContext? context)
+    private NotesLaunchRequest ResolveLaunchRequest(ToolContext? context)
     {
         if (string.IsNullOrWhiteSpace(context?.Argument))
         {
-            return null;
+            return new NotesLaunchRequest(null, null);
         }
 
-        var resolved = Path.IsPathRooted(context.Argument)
-            ? context.Argument
-            : Path.Combine(_storage.NotesRootPath, context.Argument);
+        var argument = context.Argument.Trim();
+        if (TryParseTemplateArgument(argument, out var templateKind))
+        {
+            return new NotesLaunchRequest(null, templateKind);
+        }
 
-        return _storage.IsUnderNotesRoot(resolved) ? resolved : null;
+        if (argument.StartsWith("template:", StringComparison.OrdinalIgnoreCase))
+        {
+            return new NotesLaunchRequest(null, null);
+        }
+
+        var resolved = Path.IsPathRooted(argument)
+            ? argument
+            : Path.Combine(_storage.NotesRootPath, argument);
+
+        return _storage.IsUnderNotesRoot(resolved)
+            ? new NotesLaunchRequest(resolved, null)
+            : new NotesLaunchRequest(null, null);
+    }
+
+    private static bool TryParseTemplateArgument(string argument, out NoteTemplateKind templateKind)
+    {
+        const string prefix = "template:";
+
+        templateKind = default;
+        if (!argument.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        return Enum.TryParse(argument[prefix.Length..], ignoreCase: true, out templateKind);
     }
 
     private static string SettingsPath
@@ -914,8 +989,80 @@ public partial class NotesToolView : UserControl, IToolView
 
     private string L(string key) => _localizer?[key] ?? key;
 
-    private async void OnNewNoteClick(object sender, RoutedEventArgs e)
-        => await CreateNoteAsync(NoteTemplateKind.Blank).ConfigureAwait(true);
+    private void OnNewNoteClick(object sender, RoutedEventArgs e)
+    {
+        var menu = new ContextMenu
+        {
+            PlacementTarget = BtnNewNote,
+            Placement = PlacementMode.Bottom,
+            StaysOpen = false
+        };
+
+        var newBlank = new MenuItem { Header = L("ToolNotesBtnNew") };
+        newBlank.Click += async (_, _) => await CreateNoteAsync(NoteTemplateKind.Blank).ConfigureAwait(true);
+        menu.Items.Add(newBlank);
+
+        var newDaily = new MenuItem { Header = L("ToolNotesBtnDaily") };
+        newDaily.Click += async (_, _) => await CreateNoteAsync(NoteTemplateKind.Daily).ConfigureAwait(true);
+        menu.Items.Add(newDaily);
+
+        var newIncident = new MenuItem { Header = L("ToolNotesBtnIncident") };
+        newIncident.Click += async (_, _) => await CreateNoteAsync(NoteTemplateKind.Incident).ConfigureAwait(true);
+        menu.Items.Add(newIncident);
+
+        var newProcedure = new MenuItem { Header = L("ToolNotesBtnProcedure") };
+        newProcedure.Click += async (_, _) => await CreateNoteAsync(NoteTemplateKind.Procedure).ConfigureAwait(true);
+        menu.Items.Add(newProcedure);
+
+        menu.Items.Add(new Separator());
+
+        var newFolder = new MenuItem { Header = L("ToolNotesNewFolder") };
+        newFolder.Click += (_, _) => CreateFolderFromContextMenu(null);
+        menu.Items.Add(newFolder);
+
+        BtnNewNote.ContextMenu = menu;
+        menu.IsOpen = true;
+    }
+
+    private void OnNoteActionsClick(object sender, RoutedEventArgs e)
+    {
+        if (_currentNotePath is null)
+        {
+            return;
+        }
+
+        var menu = new ContextMenu
+        {
+            PlacementTarget = BtnNoteActions,
+            Placement = PlacementMode.Bottom,
+            StaysOpen = false
+        };
+
+        var rename = new MenuItem { Header = L("ToolNotesBtnRename") };
+        rename.Click += async (_, _) => await RenameCurrentNoteAsync().ConfigureAwait(true);
+        menu.Items.Add(rename);
+
+        var duplicate = new MenuItem { Header = L("ToolNotesBtnDuplicate") };
+        duplicate.Click += async (_, _) => await DuplicateCurrentNoteAsync().ConfigureAwait(true);
+        menu.Items.Add(duplicate);
+
+        var openFolder = new MenuItem { Header = L("ToolNotesBtnOpenFolder") };
+        openFolder.Click += (_, _) => OpenFolder(Path.GetDirectoryName(_currentNotePath) ?? _storage.NotesRootPath);
+        menu.Items.Add(openFolder);
+
+        menu.Items.Add(new Separator());
+
+        var delete = new MenuItem
+        {
+            Header = L("ToolNotesBtnDelete"),
+            Foreground = Application.Current.TryFindResource("ErrorBrush") as System.Windows.Media.Brush
+                ?? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Colors.Red)
+        };
+        delete.Click += async (_, _) => await DeleteCurrentNoteAsync().ConfigureAwait(true);
+        menu.Items.Add(delete);
+
+        menu.IsOpen = true;
+    }
 
     private async void OnDailyNoteClick(object sender, RoutedEventArgs e)
         => await CreateNoteAsync(NoteTemplateKind.Daily).ConfigureAwait(true);
@@ -949,7 +1096,27 @@ public partial class NotesToolView : UserControl, IToolView
     }
 
     private async void OnSearchTextChanged(object sender, TextChangedEventArgs e)
-        => await ReloadNotesAsync(_currentNotePath).ConfigureAwait(true);
+        => await ReloadNotesAsync(
+            _currentNotePath,
+            allowFallbackSelection: false,
+            preserveCurrentNoteWhenFilteredOut: true).ConfigureAwait(true);
+
+    private async void OnSortOrderSelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_suppressSortSelectionChanged
+            || SortOrderComboBox.SelectedValue is not string selectedValue
+            || !Enum.TryParse<NoteSortOrder>(selectedValue, ignoreCase: true, out var sortOrder)
+            || sortOrder == _sortOrder)
+        {
+            return;
+        }
+
+        _sortOrder = sortOrder;
+        await ReloadNotesAsync(
+            _currentNotePath,
+            allowFallbackSelection: false,
+            preserveCurrentNoteWhenFilteredOut: true).ConfigureAwait(true);
+    }
 
     private void OnTreeViewPreviewRightClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
     {
@@ -1093,7 +1260,10 @@ public partial class NotesToolView : UserControl, IToolView
 
         _selectedTag = button.Tag as string;
         RebuildTagFilterButtons();
-        await RefreshVisibleNotesAsync(_currentNotePath).ConfigureAwait(true);
+        await RefreshVisibleNotesAsync(
+            _currentNotePath,
+            allowFallbackSelection: false,
+            preserveCurrentNoteWhenFilteredOut: true).ConfigureAwait(true);
     }
 
     // ── TreeView internal drag & drop ─────────────────────────────

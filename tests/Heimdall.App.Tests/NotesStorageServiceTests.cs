@@ -242,6 +242,7 @@ public class NotesStorageServiceTests : IDisposable
         Assert.False(File.Exists(path));
         Assert.True(File.Exists(newPath));
         Assert.Contains("renamed", Path.GetFileName(newPath));
+        Assert.Equal("# renamed", await File.ReadAllTextAsync(newPath));
     }
 
     [Fact]
@@ -281,8 +282,34 @@ public class NotesStorageServiceTests : IDisposable
         Assert.True(File.Exists(path));
         Assert.True(File.Exists(copyPath));
         Assert.NotEqual(path, copyPath);
+        Assert.Contains("-copy", Path.GetFileName(copyPath));
         var copyContent = await File.ReadAllTextAsync(copyPath);
-        Assert.Equal("# Original Content", copyContent);
+        Assert.Equal("# Original Content (Copy)", copyContent);
+    }
+
+    [Fact]
+    public async Task DuplicateNote_UsesCustomDuplicateLabelForTitleAndFileName()
+    {
+        _service.EnsureInitialized();
+        var path = Path.Combine(_testDir, "incident.md");
+        await _service.SaveNoteAsync(path, "# Incident");
+
+        var copyPath = await _service.DuplicateNoteAsync(path, "Copie");
+
+        Assert.Contains("-copie", Path.GetFileName(copyPath), StringComparison.OrdinalIgnoreCase);
+        Assert.Equal("# Incident (Copie)", await File.ReadAllTextAsync(copyPath));
+    }
+
+    [Fact]
+    public async Task RenameNote_WithoutHeadingPreservesBodyContent()
+    {
+        _service.EnsureInitialized();
+        var path = Path.Combine(_testDir, "body-only.md");
+        await _service.SaveNoteAsync(path, "body only");
+
+        var newPath = await _service.RenameNoteAsync(path, "renamed");
+
+        Assert.Equal("body only", await File.ReadAllTextAsync(newPath));
     }
 
     [Fact]

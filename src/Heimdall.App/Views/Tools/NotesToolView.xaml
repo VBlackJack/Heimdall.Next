@@ -107,9 +107,8 @@
                             <Button x:Name="BtnNewNote"
                                     Click="OnNewNoteClick"
                                     Style="{DynamicResource SecondaryButtonStyle}"
-                                    Padding="8,4" Margin="4,0,0,0"
-                                    FontSize="{StaticResource FontSizeBody}"
-                                    Content="+"/>
+                                    Padding="10,4" Margin="4,0,0,0"
+                                    FontSize="{StaticResource FontSizeCaption}"/>
                         </StackPanel>
                         <TextBox x:Name="SearchTextBox"
                                  Padding="{StaticResource PaddingInput}"
@@ -120,6 +119,23 @@
                     </DockPanel>
 
                     <StackPanel Grid.Row="1" Margin="0,0,0,4">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,0,8">
+                            <TextBlock x:Name="SortLabelText"
+                                       VerticalAlignment="Center"
+                                       Foreground="{DynamicResource TextSecondaryBrush}"
+                                       FontSize="{StaticResource FontSizeCaption}"/>
+                            <ComboBox x:Name="SortOrderComboBox"
+                                      Margin="8,0,0,0"
+                                      Width="160"
+                                      HorizontalAlignment="Left"
+                                      SelectedValuePath="Tag"
+                                      SelectionChanged="OnSortOrderSelectionChanged">
+                                <ComboBoxItem x:Name="SortNewestFirstItem" Tag="DateDescending"/>
+                                <ComboBoxItem x:Name="SortOldestFirstItem" Tag="DateAscending"/>
+                                <ComboBoxItem x:Name="SortNameAscItem" Tag="NameAscending"/>
+                                <ComboBoxItem x:Name="SortNameDescItem" Tag="NameDescending"/>
+                            </ComboBox>
+                        </StackPanel>
                         <TextBlock x:Name="TagsLabelText"
                                    Foreground="{DynamicResource TextSecondaryBrush}"
                                    FontSize="{StaticResource FontSizeCaption}"
@@ -145,24 +161,65 @@
                         </TreeView.ContextMenu>
                         <TreeView.ItemTemplate>
                             <HierarchicalDataTemplate ItemsSource="{Binding Children}">
-                                <TextBlock Foreground="{DynamicResource TextPrimaryBrush}"
-                                           FontSize="{StaticResource FontSizeBody}"
-                                           Margin="2"
-                                           TextTrimming="CharacterEllipsis">
-                                    <TextBlock.Text>
-                                        <MultiBinding StringFormat="{}{0}{1}">
-                                            <Binding Path="Icon"/>
-                                            <Binding Path="Name"/>
-                                        </MultiBinding>
-                                    </TextBlock.Text>
-                                </TextBlock>
+                                <Grid Margin="2,3,8,3">
+                                    <StackPanel x:Name="FolderPanel"
+                                                Orientation="Horizontal"
+                                                Visibility="Collapsed">
+                                        <TextBlock Text="{Binding Icon}"
+                                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                                   FontSize="{StaticResource FontSizeBody}"
+                                                   VerticalAlignment="Center"/>
+                                        <TextBlock Text="{Binding Name}"
+                                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                                   FontSize="{StaticResource FontSizeBody}"
+                                                   VerticalAlignment="Center"
+                                                   TextTrimming="CharacterEllipsis"/>
+                                    </StackPanel>
+
+                                    <StackPanel x:Name="NotePanel">
+                                        <TextBlock Text="{Binding DisplayTitle}"
+                                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                                   FontSize="{StaticResource FontSizeBody}"
+                                                   FontWeight="SemiBold"
+                                                   TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock x:Name="NoteSummaryText"
+                                                   Text="{Binding DisplaySummary}"
+                                                   Margin="0,2,0,0"
+                                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                                   FontSize="{StaticResource FontSizeCaption}"
+                                                   TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock Text="{Binding DisplayMeta}"
+                                                   Margin="0,4,0,0"
+                                                   Foreground="{DynamicResource TextTertiaryBrush}"
+                                                   FontSize="{StaticResource FontSizeCaption}"
+                                                   TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock x:Name="NoteTagsText"
+                                                   Text="{Binding DisplayTags}"
+                                                   Margin="0,4,0,0"
+                                                   Foreground="{DynamicResource InfoBrush}"
+                                                   FontSize="{StaticResource FontSizeCaption}"
+                                                   TextTrimming="CharacterEllipsis"/>
+                                    </StackPanel>
+                                </Grid>
+                                <HierarchicalDataTemplate.Triggers>
+                                    <DataTrigger Binding="{Binding IsFolder}" Value="True">
+                                        <Setter TargetName="FolderPanel" Property="Visibility" Value="Visible"/>
+                                        <Setter TargetName="NotePanel" Property="Visibility" Value="Collapsed"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding DisplaySummary}" Value="">
+                                        <Setter TargetName="NoteSummaryText" Property="Visibility" Value="Collapsed"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding DisplayTags}" Value="">
+                                        <Setter TargetName="NoteTagsText" Property="Visibility" Value="Collapsed"/>
+                                    </DataTrigger>
+                                </HierarchicalDataTemplate.Triggers>
                             </HierarchicalDataTemplate>
                         </TreeView.ItemTemplate>
                         <TreeView.ItemContainerStyle>
                             <Style TargetType="TreeViewItem" BasedOn="{StaticResource {x:Type TreeViewItem}}">
                                 <Setter Property="IsExpanded" Value="True"/>
                                 <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
-                                <Setter Property="Padding" Value="1"/>
+                                <Setter Property="Padding" Value="2"/>
                             </Style>
                         </TreeView.ItemContainerStyle>
                     </TreeView>
@@ -206,6 +263,11 @@
                                     Style="{DynamicResource SecondaryButtonStyle}"
                                     Padding="8,4" Margin="0,0,8,0"
                                     FontSize="{StaticResource FontSizeBody}"
+                                    IsEnabled="False"/>
+                            <Button x:Name="BtnNoteActions"
+                                    Click="OnNoteActionsClick"
+                                    Style="{DynamicResource SecondaryButtonStyle}"
+                                    Padding="10,4" Margin="0,0,8,0"
                                     IsEnabled="False"/>
                             <Button x:Name="BtnCopyConfluence"
                                     Click="OnCopyConfluenceClick"
