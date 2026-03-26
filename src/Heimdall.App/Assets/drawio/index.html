@@ -244,7 +244,10 @@
 		{
 			if (mxScriptsLoaded && mxWinLoaded)
 			{
-				App.main();				
+				App.main(function(app)
+				{
+					window.heimdallDrawioApp = app;
+				});				
 			}
 		};
 		
