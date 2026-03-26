@@ -12,6 +12,97 @@
 
 All notable changes to Heimdall.Next are documented in this file.
 
+## [v2026.032601] - 2026-03-26
+
+### Comprehensive UX audit and Codex audit implementation
+
+#### WCAG Contrast Fixes (P0)
+- **Dark ErrorColor**: #FF5555 → #FF6B6B (5.13:1 on primary background)
+- **Dark BorderColor**: #6272A4 → #7B8EC4 (4.41:1)
+- **Dark TextDisabledColor**: #9298B0 → #A8AECA (4.17:1 on surface)
+- **Light BorderColor**: #94A3B8 → #708090 (3.72:1)
+- **Dark SurfaceColor**: #44475A → #4A4D64 (improved card/background separation)
+
+#### Accessibility (P0-P1)
+- **14 empty AutomationProperties.Name** replaced with declarative `{loc:Translate}` in MainWindow
+- **Keyboard context menu**: Shift+F10 / Apps key opens context menu on TreeView
+- **LiveSetting="Polite"**: SSH/RDP/VNC status text announced by screen readers
+- **Icon button a11y**: Overlay reconnect/close buttons labeled in all embedded views
+- **59 decorative MDL2 icons**: Hidden from screen readers via `AutomationProperties.Name=""`
+- **Tab focus ring**: Navigation tabs show FocusIndicatorBrush on keyboard focus
+
+#### ServerDialog Redesign (Codex Critique)
+- **Auth fields in basic mode**: Username, password, SSH key now visible without Advanced toggle
+- **Protocol-specific sections**: RDP/SSH/SFTP/VNC/FTP/Telnet/Local/Citrix each show relevant auth fields
+- **Advanced mode reduced**: Only Connection diagram, Tunneling, Options, Info, Gateway Auth remain behind toggle
+
+#### Scheduled Task Dialog (Codex Elevated)
+- **New ScheduledTaskDialog**: Replaces two sequential InputDialogs with structured form
+- **Server ComboBox**: Searchable dropdown from server inventory
+- **Schedule type**: Daily (time picker) or Interval (minutes) with live validation
+- **Next run preview**: "Next execution: tomorrow at 09:30" shown in real-time
+- **Edit support**: Edit button + double-click on DataGrid row
+- **Dirty state guard**: Warns on close with unsaved changes
+
+#### Command Palette Safety (Codex P1)
+- **Click = select only**: Single click highlights without executing
+- **Enter / double-click = execute**: Prevents accidental connection launches
+- **Ctrl+Enter = split**: Unchanged
+
+#### Server Detail Panel Enrichment (Codex P2)
+- **6 new metadata rows**: Project (with color dot), Username, Gateway, Auth summary, Tags, Favorite star
+- **Auth summary**: Per-protocol (e.g., "SSH Key + Password", "Agent", "Prompt")
+- **Gateway name resolution**: Resolved from inventory map
+
+#### Settings Improvements (Codex Elevated)
+- **Layout widened**: MaxWidth 600px → 900px for better desktop utilization
+- **Sticky action bar**: Save/Reset/Import/Export pinned at top with border separator
+- **Explicit Browse buttons**: "..." replaced with folder icon + "Browse" label on all 5 buttons
+- **Search filter**: TextBox filters sub-tabs by keyword (bilingual EN/FR matching)
+
+#### Filter Enrichment (Codex Medium)
+- **8-field search**: Sidebar filter + Command Palette now search DisplayName, RemoteServer, Group, Username, ConnectionType, Environment, Tags, ProjectName
+
+#### Validation Consistency (Codex Medium)
+- **GatewayDialog**: Per-field inline errors (NameError, HostError, PortError, UserError)
+- **ProjectDialog**: Per-field inline errors (NameError, DescriptionError)
+- **Live re-validation**: Both dialogs re-validate on keystroke after first save attempt
+- **Focus on dialog open**: First field auto-focused in GatewayDialog and ProjectDialog
+
+#### Dirty State Guards (P1)
+- **ServerDialog**: IsDirty tracking with _isInitializing guard, confirm on Cancel
+- **GatewayDialog**: Same pattern with per-property tracking
+- **ProjectDialog**: Same pattern
+
+#### Typography & Visual Hierarchy (Codex Medium)
+- **Scale widened**: Caption 11→12, Body 12→13, Subtitle 14→15, Title 18→20
+- **SpacingLg**: 16→20 for more section breathing room
+- **Section title margin**: Added top/bottom spacing in DialogCommonStyles
+- **OpacityDisabled**: 0.55 → 0.60 for better dark theme distinction
+
+#### Keyboard & Navigation
+- **InputGestureText**: Ctrl+E, Ctrl+Del, Ctrl+N shown on context menu items
+- **Tooltip shortcut hints**: Ctrl+Del, Ctrl+K added to toolbar buttons
+- **Scroll position restore**: TreeView scroll offset saved/restored on tab switch
+- **Discoverability hints**: Visible "Ctrl+N · Ctrl+K · F1" in empty state, detail panel, status bar
+
+#### Additional Improvements
+- **Last-used gateway**: Pre-selects in Add Server dialog (persisted in AppSettings)
+- **SFTP cancel**: Icon button with mid-transfer cancellation via progress callback
+- **LocalFileBrowserView**: Dynamic Name column sizing
+- **MessageDialog**: Button order normalized (Cancel → Primary), resizable
+- **InputDialog**: SizeToContent instead of fixed height
+- **Button MinWidth**: Standardized to 80px across all dialogs
+
+#### i18n
+- 3,566 keys (EN/FR parity) — +87 keys
+- `StringToBrushConverter` for project color dots in detail panel
+
+#### Tests
+- **1,586 tests** (1,196 Core + 283 SSH + 107 App), all passing
+
+---
+
 ## [v2026.032508] - 2026-03-25
 
 ### Full UX audit implementation (P0-P2)
