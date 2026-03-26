@@ -86,6 +86,13 @@ public partial class IpConverterView : UserControl, IToolView
 
         System.Windows.Automation.AutomationProperties.SetName(TxtInput, L("ToolIpConvInputLabel"));
 
+        var copyA11y = L("ToolBtnCopyToClipboard");
+        System.Windows.Automation.AutomationProperties.SetName(BtnCopyDotted, copyA11y);
+        System.Windows.Automation.AutomationProperties.SetName(BtnCopyDecimal, copyA11y);
+        System.Windows.Automation.AutomationProperties.SetName(BtnCopyHex, copyA11y);
+        System.Windows.Automation.AutomationProperties.SetName(BtnCopyBinary, copyA11y);
+        System.Windows.Automation.AutomationProperties.SetName(BtnCopyIpv6, copyA11y);
+
         BtnHelp.ToolTip = L("ToolHelpTooltip");
         System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
 

@@ -63,6 +63,7 @@ public partial class HttpStatusCodesView : UserControl, IToolView
 
         BtnHelp.ToolTip = L("ToolHelpTooltip");
         System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
+        TxtNoResults.Text = L("ToolHttpNoResults");
     }
 
     private void BuildStatusCodes()
@@ -175,6 +176,10 @@ public partial class HttpStatusCodesView : UserControl, IToolView
     private void OnFilterTextChanged(object sender, TextChangedEventArgs e)
     {
         _collectionView?.Refresh();
+        var visibleCount = _collectionView?.Cast<object>().Count() ?? 0;
+        TxtNoResults.Visibility = visibleCount == 0 && !string.IsNullOrEmpty(TxtFilter.Text)
+            ? Visibility.Visible
+            : Visibility.Collapsed;
     }
 
     private void OnItemDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)

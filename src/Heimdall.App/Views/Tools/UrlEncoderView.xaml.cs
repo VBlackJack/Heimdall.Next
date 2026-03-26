@@ -82,6 +82,8 @@ public partial class UrlEncoderView : UserControl, IToolView
         BtnCopyDecoded.ToolTip = L("ToolBtnCopyToClipboard");
         BtnCopyEncoded.ToolTip = L("ToolBtnCopyToClipboard");
 
+        System.Windows.Automation.AutomationProperties.SetName(ChkComponentEncoding, L("ToolUrlEncComponentMode"));
+
         BtnHelp.ToolTip = L("ToolHelpTooltip");
         System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
 

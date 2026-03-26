@@ -99,6 +99,10 @@ public partial class LogViewerView : UserControl, IToolView
         FilePathInput.Tag = L("ToolWatermarkLogFilePath");
         FilterInput.Tag = L("ToolWatermarkFilterText");
         TxtEmptyState.Text = L("ToolLogViewEmptyState");
+
+        BtnCopyLog.Content = L("ToolBtnCopyToClipboard");
+        BtnCopyLog.ToolTip = L("ToolBtnCopyToClipboard");
+        System.Windows.Automation.AutomationProperties.SetName(BtnCopyLog, L("ToolBtnCopyToClipboard"));
     }
 
     private void OnBrowseClick(object sender, RoutedEventArgs e)
@@ -430,6 +434,17 @@ public partial class LogViewerView : UserControl, IToolView
         catch (IOException)
         {
             // File info may be temporarily unavailable
+        }
+    }
+
+    private void OnCopyLogClick(object sender, RoutedEventArgs e)
+    {
+        var range = new TextRange(LogDocument.ContentStart, LogDocument.ContentEnd);
+        var text = range.Text.Trim();
+        if (!string.IsNullOrEmpty(text))
+        {
+            Clipboard.SetText(text);
+            CopyFeedbackHelper.ShowCopyFeedback(sender as Button);
         }
     }
 

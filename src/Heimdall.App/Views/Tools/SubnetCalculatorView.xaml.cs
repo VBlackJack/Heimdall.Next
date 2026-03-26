@@ -100,6 +100,17 @@ public partial class SubnetCalculatorView : UserControl, IToolView
         BtnCopyWildcard.ToolTip = copyTooltip;
 
         System.Windows.Automation.AutomationProperties.SetName(TxtCidrInput, L("ToolSubnetCidrInputLabel"));
+        TxtCidrInput.Tag = L("ToolWatermarkCidrNotation");
+
+        var copyA11y = L("ToolBtnCopyToClipboard");
+        System.Windows.Automation.AutomationProperties.SetName(BtnCopyNetwork, copyA11y);
+        System.Windows.Automation.AutomationProperties.SetName(BtnCopyBroadcast, copyA11y);
+        System.Windows.Automation.AutomationProperties.SetName(BtnCopyMask, copyA11y);
+        System.Windows.Automation.AutomationProperties.SetName(BtnCopyFirstHost, copyA11y);
+        System.Windows.Automation.AutomationProperties.SetName(BtnCopyLastHost, copyA11y);
+        System.Windows.Automation.AutomationProperties.SetName(BtnCopyTotalHosts, copyA11y);
+        System.Windows.Automation.AutomationProperties.SetName(BtnCopyCidr, copyA11y);
+        System.Windows.Automation.AutomationProperties.SetName(BtnCopyWildcard, copyA11y);
 
         BtnHelp.ToolTip = L("ToolHelpTooltip");
         System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));

@@ -25,7 +25,7 @@
         </Grid.RowDefinitions>
 
         <!-- Header -->
-        <Border Grid.Row="0" Padding="12,8"
+        <Border Grid.Row="0" Padding="{StaticResource ToolHeaderPadding}"
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,0,0,1">
@@ -43,7 +43,7 @@
         </Border>
 
         <!-- Filter -->
-        <Border Grid.Row="1" Padding="12,8"
+        <Border Grid.Row="1" Padding="{StaticResource ToolHeaderPadding}"
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,0,0,1">
@@ -126,5 +126,11 @@
                 </GroupStyle>
             </ListView.GroupStyle>
         </ListView>
+
+        <!-- No results message -->
+        <TextBlock x:Name="TxtNoResults" Grid.Row="2" Visibility="Collapsed"
+                   Text="" FontSize="{StaticResource FontSizeBodyLarge}"
+                   Foreground="{DynamicResource TextSecondaryBrush}"
+                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
     </Grid>
 </UserControl>

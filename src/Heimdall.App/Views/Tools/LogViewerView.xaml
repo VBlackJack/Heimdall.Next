@@ -27,7 +27,7 @@
         </Grid.RowDefinitions>
 
         <!-- Header -->
-        <Border Grid.Row="0" Padding="12,8"
+        <Border Grid.Row="0" Padding="{StaticResource ToolHeaderPadding}"
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,0,0,1">
@@ -45,7 +45,7 @@
         </Border>
 
         <!-- File path + Browse + Tail -->
-        <Border Grid.Row="1" Padding="12,8"
+        <Border Grid.Row="1" Padding="{StaticResource ToolHeaderPadding}"
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,0,0,1">
@@ -145,19 +145,23 @@
         </RichTextBox>
 
         <!-- Stats bar -->
-        <Border Grid.Row="4" Padding="12,6"
+        <Border Grid.Row="4" Padding="{StaticResource ToolFooterPadding}"
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,1,0,0">
             <DockPanel>
-                <TextBlock x:Name="StatsText"
-                           Foreground="{DynamicResource TextSecondaryBrush}"
-                           FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center"/>
+                <Button x:Name="BtnCopyLog" DockPanel.Dock="Right" Click="OnCopyLogClick"
+                        Style="{DynamicResource SecondaryButtonStyle}"
+                        Padding="{StaticResource PaddingButtonCopy}" FontSize="{StaticResource FontSizeCaption}"
+                        Margin="8,0,0,0" VerticalAlignment="Center"/>
                 <TextBlock x:Name="TailStatusText" DockPanel.Dock="Right"
                            Foreground="{DynamicResource AccentBrush}"
                            FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center"
-                           HorizontalAlignment="Right"
+                           Margin="8,0,0,0"
                            Visibility="Collapsed"/>
+                <TextBlock x:Name="StatsText"
+                           Foreground="{DynamicResource TextSecondaryBrush}"
+                           FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center"/>
             </DockPanel>
         </Border>
     </Grid>

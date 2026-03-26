@@ -125,6 +125,7 @@ public partial class DnsLookupView : UserControl, IToolView
         BtnHelp.ToolTip = L("ToolHelpTooltip");
         System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
 
+        TxtHostname.Tag = L("ToolWatermarkExampleDomain");
         TxtEmptyState.Text = L("ToolEmptyStateDns");
     }
 
@@ -176,6 +177,7 @@ public partial class DnsLookupView : UserControl, IToolView
         _cts.CancelAfter(LookupTimeout);
 
         BtnLookup.IsEnabled = false;
+        LoadingBar.Visibility = Visibility.Visible;
         TxtStatus.Text = L("ToolDnsStatusQuerying");
 
         var stopwatch = Stopwatch.StartNew();
@@ -228,6 +230,7 @@ public partial class DnsLookupView : UserControl, IToolView
         finally
         {
             BtnLookup.IsEnabled = true;
+            LoadingBar.Visibility = Visibility.Collapsed;
         }
     }
 

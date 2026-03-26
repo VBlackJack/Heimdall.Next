@@ -121,6 +121,7 @@ public partial class WhoisLookupView : UserControl, IToolView
         _cts.CancelAfter(QueryTimeout);
 
         BtnLookup.IsEnabled = false;
+        LoadingBar.Visibility = Visibility.Visible;
         TxtStatus.Text = L("ToolWhoisStatusQuerying");
 
         var stopwatch = Stopwatch.StartNew();
@@ -156,6 +157,7 @@ public partial class WhoisLookupView : UserControl, IToolView
         finally
         {
             BtnLookup.IsEnabled = true;
+            LoadingBar.Visibility = Visibility.Collapsed;
         }
     }
 

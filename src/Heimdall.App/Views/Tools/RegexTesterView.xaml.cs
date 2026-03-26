@@ -207,7 +207,7 @@ public partial class RegexTesterView : UserControl, IToolView
                     Content = sb.ToString(),
                     Foreground = (Brush)FindResource("TextPrimaryBrush"),
                     FontFamily = new System.Windows.Media.FontFamily("Consolas"),
-                    FontSize = 13
+                    FontSize = (double)FindResource("FontSizeBody")
                 });
             }
 
@@ -218,7 +218,7 @@ public partial class RegexTesterView : UserControl, IToolView
                     Content = string.Format(L("ToolRegexMatchesTruncated"), MaxDisplayedMatches, totalCount),
                     Foreground = (Brush)FindResource("TextSecondaryBrush"),
                     FontStyle = FontStyles.Italic,
-                    FontSize = 13
+                    FontSize = (double)FindResource("FontSizeBody")
                 });
             }
         }
@@ -255,7 +255,7 @@ public partial class RegexTesterView : UserControl, IToolView
         var doc = new FlowDocument
         {
             FontFamily = new System.Windows.Media.FontFamily("Consolas"),
-            FontSize = 13,
+            FontSize = (double)FindResource("FontSizeBody"),
             PagePadding = new Thickness(0)
         };
         var para = new Paragraph { Margin = new Thickness(0) };

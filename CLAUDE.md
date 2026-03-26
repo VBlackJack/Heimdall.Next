@@ -83,7 +83,7 @@ powershell -File Build.ps1 -SkipTests
 
 - New XAML: `{loc:Translate Key}` markup extension (live-updates on locale change via `LocalizationSource` singleton)
 - Legacy `ApplyLocalization()` coexists; new views use `{loc:Translate}`, migration is incremental
-- ~3,600 keys per locale (EN/FR), CI enforces key parity
+- ~3,630 keys per locale (EN/FR), CI enforces key parity
 
 ## Key Design Gotchas
 
@@ -155,6 +155,7 @@ powershell -File Build.ps1 -SkipTests
 ### Design System (CommonControls.xaml)
 - Typography tokens: `FontSizeSmallCaption(11)` → `FontSizeHeadline(24)`, min 11px
 - Spacing tokens: `SpacingXs(4)` → `SpacingXl(24)` — uniform `Thickness` only
+- Padding tokens: `ToolHeaderPadding(12,8)`, `ToolFooterPadding(12,6)`, `PaddingButtonCopy`, `PaddingButtonPrimary` — all tool headers/footers use these tokens
 - Asymmetric margins stay hardcoded (WPF `Thickness` resources are uniform-only)
 - Icons: `Geo.*` vectors in IconGeometries.xaml + Segoe MDL2 for UI chrome
 - Tool category brushes: Network (blue), Security (amber), Encoding (purple), System (teal)
