@@ -12,6 +12,41 @@
 
 All notable changes to Heimdall.Next are documented in this file.
 
+## [v2026.032606] - 2026-03-26
+
+### Security Audit tool overhaul
+
+#### Extensible scenario system
+- **25 scenarios** across 6 categories (Visual, Attack, Deployment, Hardening, Incident, Identity) and 3 realism levels (Demo, Ops, Enterprise)
+- **External JSON scenario packs**: template engine with `{{pick:...}}`, `{{number:min-max}}`, `{{hex:N}}`, `{{ip}}`, `{{mac}}` variables — add custom scenarios without recompiling
+- **Playlist system**: ordered scenario sequences with 5 built-in playlists (Client Demo, SOC, DevOps, Compliance, Red Team)
+- **Favorites**: star/unstar scenarios, filter by favorites
+- **Toolbar redesign**: scenario picker, category/realism filters, text search, speed slider, playlist selector
+
+#### New infrastructure scenarios (JSON-driven)
+- Ansible Rolling Deployment, Multi-Hop Server Chain, Role Rollout / Hardening
+- Vault Secret Rotation, HAProxy Blue/Green Promotion, Linux Patch Window
+- AWX Job Template Rollout, Helm / Kubernetes Upgrade, PKI / Certificate Renewal
+
+#### Playback features
+- **Seed-based deterministic replay**: same seed reproduces identical scenario output
+- **Transcript export**: text and Markdown format with per-scenario sections
+- **Vintage CRT mode**: scanline overlay with flicker animation
+
+#### Settings persistence
+- Favorites, last scenario, playlist, random mode, vintage monitor state saved to `settings.json`
+- 5 new `HackerSimulator*` properties in `AppSettings`
+
+#### Code quality (post-review cleanup)
+- 35 UI chrome strings extracted from inline `Tx()` to locale files (CI key-parity enforced)
+- 9 redundant C# scenario builders removed (JSON-only, no dead code)
+- Blocking `GetAwaiter().GetResult()` replaced with proper async
+- 4 bare `catch {}` blocks narrowed to `catch (Exception)`
+- 10 magic numbers extracted to named constants
+- Duplicated `JsonSerializerOptions` consolidated to `static readonly` field
+
+---
+
 ## [v2026.032605] - 2026-03-26
 
 ### Diagram Editor audit and embed protocol fixes

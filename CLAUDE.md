@@ -28,8 +28,9 @@ src/
 tests/
 ├── Heimdall.Core.Tests/ # StateMachine tests
 └── Heimdall.Ssh.Tests/  # FailureClassifier, AuthPreflight, HostKeyStore, Pageant, Plink
-config/                  # Factory defaults (settings.default.json, servers.default.json)
-locales/                 # en.json, fr.json (~3,500 keys each)
+config/                  # Factory defaults (settings.default.json, servers.default.json,
+                         #   hacker-simulator.scenarios.default.json, hacker-simulator.playlists.default.json)
+locales/                 # en.json, fr.json (~3,600 keys each)
 ```
 
 ### Dependency Graph
@@ -82,7 +83,7 @@ powershell -File Build.ps1 -SkipTests
 
 - New XAML: `{loc:Translate Key}` markup extension (live-updates on locale change via `LocalizationSource` singleton)
 - Legacy `ApplyLocalization()` coexists; new views use `{loc:Translate}`, migration is incremental
-- ~3,500 keys per locale (EN/FR), CI enforces key parity
+- ~3,600 keys per locale (EN/FR), CI enforces key parity
 
 ## Key Design Gotchas
 

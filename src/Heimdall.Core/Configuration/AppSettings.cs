@@ -110,6 +110,11 @@ public class AppSettings
     public string? TunnelGridColumnWidths { get; set; }
     public bool ServerDialogAdvancedMode { get; set; }
     public string? LastUsedGatewayId { get; set; }
+    public List<string> HackerSimulatorFavoriteScenarioIds { get; set; } = new();
+    public string? HackerSimulatorLastScenarioId { get; set; }
+    public string? HackerSimulatorPlaylistId { get; set; }
+    public bool HackerSimulatorRandomMode { get; set; }
+    public bool HackerSimulatorVintageMonitorEnabled { get; set; }
 
     // Collections
     public List<SshGatewayDto> SshGateways { get; set; } = new();
