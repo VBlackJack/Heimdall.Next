@@ -24,7 +24,7 @@
         </Grid.RowDefinitions>
 
         <!-- Header -->
-        <Border Grid.Row="0" Padding="12,8"
+        <Border Grid.Row="0" Padding="{StaticResource ToolHeaderPadding}"
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,0,0,1">
@@ -97,7 +97,7 @@
                              BorderThickness="0"
                              Background="Transparent"
                              Foreground="{DynamicResource JwtHeaderBrush}"
-                             />
+                             AutomationProperties.LiveSetting="Polite"/>
                 </Border>
 
                 <!-- Payload section -->
@@ -120,7 +120,7 @@
                              BorderThickness="0"
                              Background="Transparent"
                              Foreground="{DynamicResource JwtPayloadBrush}"
-                             />
+                             AutomationProperties.LiveSetting="Polite"/>
                 </Border>
 
                 <!-- Signature section -->
@@ -142,7 +142,7 @@
                              BorderThickness="0"
                              Background="Transparent"
                              Foreground="{DynamicResource JwtSignatureBrush}"
-                             />
+                             AutomationProperties.LiveSetting="Polite"/>
                 </Border>
 
                 <!-- Signature Verification section -->

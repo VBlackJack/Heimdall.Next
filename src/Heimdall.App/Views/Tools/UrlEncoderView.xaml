@@ -24,7 +24,7 @@
         </Grid.RowDefinitions>
 
         <!-- Header -->
-        <Border Grid.Row="0" Padding="12,8"
+        <Border Grid.Row="0" Padding="{StaticResource ToolHeaderPadding}"
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,0,0,1">
@@ -69,7 +69,7 @@
                          BorderBrush="{DynamicResource BorderBrush}"
                          Tag="URL or text to encode/decode"
                          TextChanged="OnDecodedTextChanged"
-/>
+                         AutomationProperties.LiveSetting="Polite"/>
 
                 <!-- Encoded field -->
                 <DockPanel Margin="0,8,0,4">

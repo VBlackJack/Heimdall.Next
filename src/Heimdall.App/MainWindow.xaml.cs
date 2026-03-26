@@ -1809,9 +1809,11 @@ public partial class MainWindow : Window
                     host = await vm.DialogService.ShowInputAsync(
                         vm.Localize("AddToolDialogTitle"),
                         vm.Localize("AddToolDialogHost"));
-                    if (string.IsNullOrWhiteSpace(host)) return;
+                    if (host is null) return; // User cancelled dialog
                 }
-                context = new Core.Models.ToolContext(TargetHost: host);
+
+                if (!string.IsNullOrWhiteSpace(host))
+                    context = new Core.Models.ToolContext(TargetHost: host);
             }
 
             await vm.OpenToolTabAsync(

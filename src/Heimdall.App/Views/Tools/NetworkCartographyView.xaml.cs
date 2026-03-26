@@ -136,6 +136,8 @@ public partial class NetworkCartographyView : UserControl, IToolView
         System.Windows.Automation.AutomationProperties.SetName(ChkUseKnowledgeBase, L("ToolNetMapUseKb"));
         System.Windows.Automation.AutomationProperties.SetName(BtnClearKb, L("ToolNetMapBtnClearKb"));
 
+        TxtSubnet.Tag = L("ToolWatermarkSubnetCidr");
+
         BtnHelp.ToolTip = L("ToolHelpTooltip");
         System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
 
