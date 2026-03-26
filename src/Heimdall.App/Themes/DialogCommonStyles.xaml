@@ -28,6 +28,7 @@
         <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
         <Setter Property="FontSize" Value="{StaticResource FontSizeSubtitle}"/>
         <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Margin" Value="0,4,0,8"/>
     </Style>
 
     <!-- Dialog Section Description -->

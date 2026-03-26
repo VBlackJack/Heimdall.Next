@@ -1,0 +1,121 @@
+<Window x:Class="Heimdall.App.Views.Dialogs.ScheduledTaskDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:converters="clr-namespace:Heimdall.App.Converters"
+        xmlns:vm="clr-namespace:Heimdall.App.ViewModels.Dialogs"
+        d:DataContext="{d:DesignInstance Type=vm:ScheduledTaskDialogViewModel}"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="{Binding DialogTitle}"
+        Width="500" SizeToContent="Height" MaxHeight="600"
+        WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource BackgroundBrush}"
+        ResizeMode="CanResizeWithGrip"
+        MinWidth="400"
+        ShowInTaskbar="False"
+        Closing="OnWindowClosing">
+
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/Themes/DialogCommonStyles.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+            <converters:NullToVisibilityConverter x:Key="NullToVisibilityConverter"/>
+            <BooleanToVisibilityConverter x:Key="BoolToVisibility"/>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <Grid Margin="{StaticResource SpacingLg}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0">
+            <!-- Server selection -->
+            <TextBlock x:Name="LblServer" Style="{StaticResource DialogLabelStyle}"/>
+            <ComboBox ItemsSource="{Binding AvailableServers}"
+                      SelectedItem="{Binding SelectedServer}"
+                      DisplayMemberPath="DisplayText"
+                      Style="{StaticResource DialogFormComboBoxStyle}"
+                      x:Name="CmbServer" TabIndex="0"/>
+
+            <!-- Schedule type -->
+            <TextBlock x:Name="LblScheduleType" Style="{StaticResource DialogLabelStyle}" Margin="0,12,0,4"/>
+            <ComboBox x:Name="CmbScheduleType"
+                      SelectedValue="{Binding ScheduleType}"
+                      SelectedValuePath="Tag"
+                      Style="{StaticResource DialogFormComboBoxStyle}"
+                      TabIndex="1">
+                <ComboBoxItem x:Name="CmbItemDaily" Tag="Daily"/>
+                <ComboBoxItem x:Name="CmbItemInterval" Tag="Interval"/>
+            </ComboBox>
+
+            <!-- Time of day (visible only when Daily) -->
+            <StackPanel Visibility="{Binding IsDailySchedule, Converter={StaticResource BoolToVisibility}}">
+                <TextBlock x:Name="LblTimeOfDay" Style="{StaticResource DialogLabelStyle}" Margin="0,12,0,4"/>
+                <TextBox Text="{Binding TimeOfDay, UpdateSourceTrigger=PropertyChanged}"
+                         Style="{StaticResource DialogFormTextBoxStyle}"
+                         Width="120" HorizontalAlignment="Left"
+                         MaxLength="5"
+                         x:Name="TxtTimeOfDay" TabIndex="2"/>
+                <TextBlock x:Name="HintTimeOfDay"
+                           FontSize="{StaticResource FontSizeCaption}"
+                           Foreground="{DynamicResource TextSecondaryBrush}"
+                           Margin="0,2,0,0"/>
+            </StackPanel>
+
+            <!-- Interval minutes (visible only when Interval) -->
+            <StackPanel Visibility="{Binding IsIntervalSchedule, Converter={StaticResource BoolToVisibility}}">
+                <TextBlock x:Name="LblInterval" Style="{StaticResource DialogLabelStyle}" Margin="0,12,0,4"/>
+                <DockPanel>
+                    <TextBlock x:Name="IntervalSuffix"
+                               DockPanel.Dock="Right"
+                               VerticalAlignment="Center"
+                               Margin="8,0,0,0"
+                               FontSize="{StaticResource FontSizeBody}"
+                               Foreground="{DynamicResource TextSecondaryBrush}"/>
+                    <TextBox Text="{Binding IntervalMinutes, UpdateSourceTrigger=PropertyChanged}"
+                             Style="{StaticResource DialogFormTextBoxStyle}"
+                             Width="100" HorizontalAlignment="Left"
+                             MaxLength="5"
+                             x:Name="TxtInterval" TabIndex="3"/>
+                </DockPanel>
+            </StackPanel>
+
+            <!-- Enabled checkbox -->
+            <CheckBox x:Name="ChkEnabled"
+                      IsChecked="{Binding IsEnabled}"
+                      Margin="0,16,0,0"
+                      TabIndex="4"/>
+        </StackPanel>
+
+        <!-- Validation error -->
+        <TextBlock Grid.Row="1"
+                   Text="{Binding ValidationError}"
+                   Foreground="{DynamicResource ErrorTextBrush}"
+                   FontSize="{StaticResource FontSizeBody}"
+                   Margin="0,8,0,0"
+                   TextWrapping="Wrap"
+                   Visibility="{Binding ValidationError, Converter={StaticResource NullToVisibilityConverter}}"/>
+
+        <!-- Buttons -->
+        <StackPanel Grid.Row="2"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Right"
+                    Margin="0,16,0,0">
+            <Button x:Name="CancelBtn"
+                    IsCancel="True"
+                    MinWidth="80"
+                    Margin="0,0,8,0"
+                    Style="{DynamicResource SecondaryButtonStyle}"/>
+            <Button x:Name="SaveBtn"
+                    IsDefault="True"
+                    MinWidth="80"
+                    Click="OnSaveClick"
+                    Style="{DynamicResource PrimaryButtonStyle}"/>
+        </StackPanel>
+    </Grid>
+</Window>

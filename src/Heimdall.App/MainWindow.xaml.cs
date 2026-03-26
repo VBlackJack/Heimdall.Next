@@ -267,6 +267,7 @@ public partial class MainWindow : Window
     {
         Mw_ScheduledTitle.Text = vm.Localize("ScheduledSectionTitle");
         Mw_ScheduledAddBtn.Content = vm.Localize("ScheduledBtnAdd");
+        Mw_ScheduledEditBtn.Content = vm.Localize("ScheduledBtnEdit");
         Mw_ScheduledDeleteBtn.Content = vm.Localize("ScheduledBtnDelete");
         Mw_ScheduledEmpty.Text = vm.Localize("ScheduledEmptyState");
         Mw_ScheduledCreateBtn.Content = vm.Localize("ScheduledEmptyAddButton");
@@ -450,6 +451,7 @@ public partial class MainWindow : Window
 
         // Scheduled task buttons
         System.Windows.Automation.AutomationProperties.SetName(Mw_ScheduledAddBtn, vm.Localize("AccessScheduledAdd"));
+        System.Windows.Automation.AutomationProperties.SetName(Mw_ScheduledEditBtn, vm.Localize("AccessScheduledEdit"));
         System.Windows.Automation.AutomationProperties.SetName(Mw_ScheduledDeleteBtn, vm.Localize("AccessScheduledDelete"));
         System.Windows.Automation.AutomationProperties.SetName(Mw_ScheduledCreateBtn, vm.Localize("AccessScheduledCreate"));
 
@@ -686,6 +688,14 @@ public partial class MainWindow : Window
             btn.ContextMenu.PlacementTarget = btn;
             btn.ContextMenu.Placement = PlacementMode.Bottom;
             btn.ContextMenu.IsOpen = true;
+        }
+    }
+
+    private void OnScheduledTaskDoubleClick(object sender, MouseButtonEventArgs e)
+    {
+        if (DataContext is ViewModels.MainViewModel vm && vm.SelectedScheduledTask is not null)
+        {
+            vm.EditScheduledTaskCommand.Execute(null);
         }
     }
 

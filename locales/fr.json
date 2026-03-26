@@ -365,6 +365,18 @@
   "ErrorScheduledTaskNameEmpty": "Erreur : Le nom de la tâche est requis.",
   "ErrorScheduledTaskServerEmpty": "Erreur : Veuillez sélectionner un serveur.",
   "ErrorScheduledTaskTimeInvalid": "Erreur : Format d'heure invalide. Utilisez HH:mm.",
+  "ScheduledTaskFieldServerLabel": "Serveur :",
+  "ScheduledTaskFieldScheduleType": "Type de planification :",
+  "ScheduledTaskFieldTimeOfDay": "Heure :",
+  "ScheduledTaskFieldTimeOfDayHint": "Format 24h, ex. 08:00",
+  "ScheduledTaskFieldInterval": "Intervalle (minutes) :",
+  "ScheduledTaskFieldIntervalSuffix": "min",
+  "ScheduledTaskFieldEnabled": "Activ\u00e9e",
+  "ScheduleTypeDaily": "Quotidien",
+  "ScheduleTypeInterval": "Intervalle",
+  "ValidationScheduledTaskServerRequired": "Veuillez s\u00e9lectionner un serveur.",
+  "ValidationScheduledTaskTimeInvalid": "Format d'heure invalide. Utilisez HH:mm (24h).",
+  "ValidationScheduledTaskIntervalInvalid": "L'intervalle doit \u00eatre un nombre positif de minutes.",
   "TooltipAddScheduledTask": "Ajouter une nouvelle connexion planifiée",
   "TooltipEditScheduledTask": "Modifier la tâche planifiée sélectionnée",
   "TooltipDeleteScheduledTask": "Supprimer la tâche planifiée sélectionnée",
@@ -1644,6 +1656,7 @@
 
   "ScheduledSectionTitle": "Connexions planifi\u00e9es",
   "ScheduledBtnAdd": "+ Ajouter",
+  "ScheduledBtnEdit": "Modifier",
   "ScheduledBtnDelete": "Supprimer",
   "ScheduledColEnabled": "Act.",
   "ScheduledColServer": "Serveur",
@@ -3402,6 +3415,7 @@
   "AccessGatewaysEdit": "Modifier la passerelle",
   "AccessGatewaysDelete": "Supprimer la passerelle",
   "AccessScheduledAdd": "Ajouter une t\u00e2che planifi\u00e9e",
+  "AccessScheduledEdit": "Modifier la t\u00e2che planifi\u00e9e",
   "AccessScheduledDelete": "Supprimer la t\u00e2che planifi\u00e9e",
   "AccessScheduledCreate": "Cr\u00e9er une connexion planifi\u00e9e",
   "AccessSettingsSave": "Enregistrer les param\u00e8tres",
@@ -3674,5 +3688,11 @@
 
   "_comment_dirty_guards": "",
   "DialogUnsavedWarningTitle": "Modifications non enregistr\u00e9es",
-  "DialogUnsavedWarning": "Vous avez des modifications non enregistr\u00e9es. Les abandonner et fermer ?"
+  "DialogUnsavedWarning": "Vous avez des modifications non enregistr\u00e9es. Les abandonner et fermer ?",
+
+  "_comment_server_dialog_basic_auth": "",
+  "ServerDialogLocalShellAdvanced": "Options avanc\u00e9es du shell",
+  "ServerDialogLocalShellAdvancedDesc": "R\u00e9pertoire de travail et param\u00e8tres d'\u00e9l\u00e9vation.",
+  "ServerDialogCitrixAdvanced": "Options avanc\u00e9es Citrix",
+  "ServerDialogCitrixAdvancedDesc": "Fichier ICA, mode transparent et authentification unique."
 }

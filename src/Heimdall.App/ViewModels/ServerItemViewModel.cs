@@ -71,6 +71,9 @@ public partial class ServerItemViewModel : ObservableObject
     private string _macAddress = "";
 
     [ObservableProperty]
+    private string _tags = "";
+
+    [ObservableProperty]
     private string _endpoint = "";
 
     public bool IsActiveSession =>
@@ -113,6 +116,7 @@ public partial class ServerItemViewModel : ObservableObject
             ProjectName = project?.Name ?? "",
             ProjectColor = project?.Color ?? "",
             Username = GetUsername(dto),
+            Tags = dto.Tags ?? "",
             Endpoint = FormatEndpoint(dto),
             IsFavorite = dto.IsFavorite,
             SortOrder = dto.SortOrder,
@@ -135,6 +139,7 @@ public partial class ServerItemViewModel : ObservableObject
         ProjectName = project?.Name ?? "";
         ProjectColor = project?.Color ?? "";
         Username = GetUsername(dto);
+        Tags = dto.Tags ?? "";
         Endpoint = FormatEndpoint(dto);
         IsFavorite = dto.IsFavorite;
         SortOrder = dto.SortOrder;

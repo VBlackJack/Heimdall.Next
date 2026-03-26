@@ -380,18 +380,44 @@ public partial class ServerDialog : Window
         DlgSrv_LocalEndpointLabel.Text = _localizer["ServerDialogTunnelLabelLocal"];
         DlgSrv_RemoteDestLabel.Text = _localizer["ServerDialogTunnelLabelRemote"];
 
-        // Authentication tab
-        DlgSrv_RdpCredentialsTitle.Text = _localizer["ServerDialogRdpCredentials"];
-        DlgSrv_RdpCredentialsDesc.Text = _localizer["ServerDialogRdpCredentialsDesc"];
-        DlgSrv_RdpUsernameLabel.Text = _localizer["ServerDialogLabelUsername"];
-        DlgSrv_RdpPasswordLabel.Text = _localizer["ServerDialogLabelPassword"];
-        DlgSrv_SshCredentialsTitle.Text = _localizer["ServerDialogSshCredentials"];
-        DlgSrv_SshCredentialsDesc.Text = _localizer["ServerDialogSshCredentialsDesc"];
-        DlgSrv_SshUsernameLabel.Text = _localizer["ServerDialogLabelUsername"];
-        DlgSrv_SshKeyLabel.Text = _localizer["ServerDialogLabelSshKey"];
-        DlgSrv_BrowseBtn.Content = _localizer["ServerDialogBtnBrowse"];
-        DlgSrv_PassphraseLabel.Text = _localizer["ServerDialogLabelPassphrase"];
-        DlgSrv_SshAuthHint.Text = _localizer["ServerDialogSshAuthHint"];
+        // Basic authentication section (always visible, per-protocol)
+        DlgSrv_BasicRdpCredentialsTitle.Text = _localizer["ServerDialogRdpCredentials"];
+        DlgSrv_BasicRdpCredentialsDesc.Text = _localizer["ServerDialogRdpCredentialsDesc"];
+        DlgSrv_BasicRdpUsernameLabel.Text = _localizer["ServerDialogLabelUsername"];
+        DlgSrv_BasicRdpPasswordLabel.Text = _localizer["ServerDialogLabelPassword"];
+        DlgSrv_BasicSshCredentialsTitle.Text = _localizer["ServerDialogSshCredentials"];
+        DlgSrv_BasicSshCredentialsDesc.Text = _localizer["ServerDialogSshCredentialsDesc"];
+        DlgSrv_BasicSshUsernameLabel.Text = _localizer["ServerDialogLabelUsername"];
+        DlgSrv_BasicSshKeyLabel.Text = _localizer["ServerDialogLabelSshKey"];
+        DlgSrv_BasicBrowseBtn.Content = _localizer["ServerDialogBtnBrowse"];
+        DlgSrv_BasicPassphraseLabel.Text = _localizer["ServerDialogLabelPassphrase"];
+        DlgSrv_BasicSshAuthHint.Text = _localizer["ServerDialogSshAuthHint"];
+        DlgSrv_BasicVncCredentialsTitle.Text = _localizer["ServerDialogVncCredentials"];
+        DlgSrv_BasicVncCredentialsDesc.Text = _localizer["ServerDialogVncCredentialsDesc"];
+        DlgSrv_BasicVncPasswordLabel.Text = _localizer["ServerDialogVncPassword"];
+        DlgSrv_BasicFtpCredentialsTitle.Text = _localizer["ServerDialogFtpCredentials"];
+        DlgSrv_BasicFtpCredentialsDesc.Text = _localizer["ServerDialogFtpCredentialsDesc"];
+        DlgSrv_BasicFtpUsernameLabel.Text = _localizer["ServerDialogFtpUsername"];
+        DlgSrv_BasicFtpPasswordLabel.Text = _localizer["ServerDialogFtpPassword"];
+        DlgSrv_BasicTelnetCredentialsTitle.Text = _localizer["ServerDialogTelnetCredentials"];
+        DlgSrv_BasicTelnetCredentialsDesc.Text = _localizer["ServerDialogTelnetCredentialsDesc"];
+        DlgSrv_BasicTelnetUsernameLabel.Text = _localizer["ServerDialogLabelUsername"];
+        DlgSrv_BasicTelnetPasswordLabel.Text = _localizer["ServerDialogLabelPassword"];
+        DlgSrv_BasicLocalShellTitle.Text = _localizer["ServerDialogLocalShell"];
+        DlgSrv_BasicLocalShellDesc.Text = _localizer["ServerDialogLocalShellDesc"];
+        DlgSrv_BasicExecutableLabel.Text = _localizer["ServerDialogLabelExecutable"];
+        DlgSrv_BasicShellPowershell.Content = _localizer["LocalShellPowershell"];
+        DlgSrv_BasicShellPwsh.Content = _localizer["LocalShellPwsh"];
+        DlgSrv_BasicShellCmd.Content = _localizer["LocalShellCmd"];
+        DlgSrv_BasicShellBash.Content = _localizer["LocalShellBash"];
+        DlgSrv_BasicShellWsl.Content = _localizer["LocalShellWsl"];
+        DlgSrv_BasicArgumentsLabel.Text = _localizer["ServerDialogLabelArguments"];
+        DlgSrv_BasicCitrixTitle.Text = _localizer["ServerDialogCitrixWorkspace"];
+        DlgSrv_BasicCitrixDesc.Text = _localizer["ServerDialogCitrixWorkspaceDesc"];
+        DlgSrv_BasicStoreFrontLabel.Text = _localizer["ServerDialogLabelStoreFrontUrl"];
+        DlgSrv_BasicAppNameLabel.Text = _localizer["ServerDialogLabelAppName"];
+
+        // Gateway authentication tab (advanced, only when gateway is active)
         DlgSrv_GatewayAuthTitle.Text = _localizer["ServerDialogGatewayAuth"];
         DlgSrv_GatewayAuthDesc.Text = _localizer["ServerDialogGatewayAuthDesc"];
 
@@ -483,46 +509,22 @@ public partial class ServerDialog : Window
         DlgSrv_SshAgentFwdCb.Content = _localizer["ServerDialogSshAgentForward"];
         DlgSrv_SshX11Cb.Content = _localizer["ServerDialogSshX11"];
 
-        // Local shell
-        DlgSrv_LocalShellTitle.Text = _localizer["ServerDialogLocalShell"];
-        DlgSrv_LocalShellDesc.Text = _localizer["ServerDialogLocalShellDesc"];
-        DlgSrv_ExecutableLabel.Text = _localizer["ServerDialogLabelExecutable"];
-        DlgSrv_ShellPowershell.Content = _localizer["LocalShellPowershell"];
-        DlgSrv_ShellPwsh.Content = _localizer["LocalShellPwsh"];
-        DlgSrv_ShellCmd.Content = _localizer["LocalShellCmd"];
-        DlgSrv_ShellBash.Content = _localizer["LocalShellBash"];
-        DlgSrv_ShellWsl.Content = _localizer["LocalShellWsl"];
-        DlgSrv_ArgumentsLabel.Text = _localizer["ServerDialogLabelArguments"];
+        // Local shell advanced options
+        DlgSrv_LocalShellTitle.Text = _localizer["ServerDialogLocalShellAdvanced"];
+        DlgSrv_LocalShellDesc.Text = _localizer["ServerDialogLocalShellAdvancedDesc"];
         DlgSrv_WorkingDirLabel.Text = _localizer["ServerDialogLabelWorkingDir"];
         DlgSrv_ElevationModeLabel.Text = _localizer["ServerDialogElevationMode"];
         PopulateElevationModeCombo();
 
-        // Citrix
-        DlgSrv_CitrixTitle.Text = _localizer["ServerDialogCitrixWorkspace"];
-        DlgSrv_CitrixDesc.Text = _localizer["ServerDialogCitrixWorkspaceDesc"];
-        DlgSrv_StoreFrontLabel.Text = _localizer["ServerDialogLabelStoreFrontUrl"];
-        DlgSrv_AppNameLabel.Text = _localizer["ServerDialogLabelAppName"];
+        // Citrix advanced options
+        DlgSrv_CitrixTitle.Text = _localizer["ServerDialogCitrixAdvanced"];
+        DlgSrv_CitrixDesc.Text = _localizer["ServerDialogCitrixAdvancedDesc"];
         DlgSrv_IcaFileLabel.Text = _localizer["ServerDialogLabelIcaFilePath"];
         DlgSrv_CitrixHint.Text = _localizer["ServerDialogCitrixHint"];
         DlgSrv_SeamlessCb.Content = _localizer["ServerDialogCitrixSeamless"];
         DlgSrv_SsoCb.Content = _localizer["ServerDialogCitrixSso"];
 
-        // FTP (Authentication tab)
-        DlgSrv_FtpCredentialsTitle.Text = _localizer["ServerDialogFtpCredentials"];
-        DlgSrv_FtpCredentialsDesc.Text = _localizer["ServerDialogFtpCredentialsDesc"];
-        DlgSrv_FtpUsernameLabel.Text = _localizer["ServerDialogFtpUsername"];
-        DlgSrv_FtpPasswordLabel.Text = _localizer["ServerDialogFtpPassword"];
-
-        // VNC (Authentication tab)
-        DlgSrv_VncCredentialsTitle.Text = _localizer["ServerDialogVncCredentials"];
-        DlgSrv_VncCredentialsDesc.Text = _localizer["ServerDialogVncCredentialsDesc"];
-        DlgSrv_VncPasswordLabel.Text = _localizer["ServerDialogVncPassword"];
-
-        // Telnet (Authentication tab)
-        DlgSrv_TelnetCredentialsTitle.Text = _localizer["ServerDialogTelnetCredentials"];
-        DlgSrv_TelnetCredentialsDesc.Text = _localizer["ServerDialogTelnetCredentialsDesc"];
-        DlgSrv_TelnetUsernameLabel.Text = _localizer["ServerDialogLabelUsername"];
-        DlgSrv_TelnetPasswordLabel.Text = _localizer["ServerDialogLabelPassword"];
+        // (FTP, VNC, Telnet credentials moved to basic auth section above)
 
         // FTP options
         DlgSrv_FtpOptionsTitle.Text = _localizer["ServerDialogFtpOptions"];
@@ -576,12 +578,15 @@ public partial class ServerDialog : Window
         System.Windows.Automation.AutomationProperties.SetName(ProtocolCard_Citrix, _localizer["ServerDialogProtocolCitrixName"]);
         System.Windows.Automation.AutomationProperties.SetName(ProtocolCard_Local, _localizer["ServerDialogProtocolLocalName"]);
 
-        // Accessibility: automation names for PasswordBox controls
+        // Accessibility: automation names for PasswordBox controls (basic auth section)
         System.Windows.Automation.AutomationProperties.SetName(RdpPasswordBox, _localizer["ServerDialogLabelPassword"]);
         System.Windows.Automation.AutomationProperties.SetName(SshPasswordBox, _localizer["ServerDialogLabelPassphrase"]);
         System.Windows.Automation.AutomationProperties.SetName(FtpPasswordBox, _localizer["ServerDialogFtpPassword"]);
         System.Windows.Automation.AutomationProperties.SetName(VncPasswordBox, _localizer["ServerDialogVncPassword"]);
         System.Windows.Automation.AutomationProperties.SetName(TelnetPasswordBox, _localizer["ServerDialogLabelPassword"]);
+
+        // Accessibility: automation names for basic auth browse button
+        System.Windows.Automation.AutomationProperties.SetName(DlgSrv_BasicBrowseBtn, _localizer["ServerDialogBtnBrowse"]);
     }
 
     private void PopulateElevationModeCombo()
