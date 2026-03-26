@@ -129,6 +129,30 @@ public partial class LocalFileBrowserView : UserControl
         CtxRefresh.Header = L10n("FileBrowserCtxRefresh");
     }
 
+    private void OnFileListSizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        if (FileListView?.View is not GridView gv || gv.Columns.Count < 3)
+        {
+            return;
+        }
+
+        double fixedWidth = 0;
+        for (int i = 1; i < gv.Columns.Count; i++)
+        {
+            fixedWidth += gv.Columns[i].ActualWidth;
+        }
+
+        double available = FileListView.ActualWidth
+            - fixedWidth
+            - SystemParameters.VerticalScrollBarWidth
+            - 10;
+
+        if (available > 200)
+        {
+            gv.Columns[0].Width = available;
+        }
+    }
+
     private void LoadDirectory(string path)
     {
         try

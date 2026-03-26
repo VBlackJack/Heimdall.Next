@@ -52,6 +52,10 @@
                                     <Setter TargetName="TabBorder" Property="Background"
                                             Value="{DynamicResource HighlightBrush}"/>
                                 </Trigger>
+                                <Trigger Property="IsFocused" Value="True">
+                                    <Setter TargetName="TabBorder" Property="BorderBrush"
+                                            Value="{DynamicResource FocusIndicatorBrush}"/>
+                                </Trigger>
                             </ControlTemplate.Triggers>
                         </ControlTemplate>
                     </Setter.Value>

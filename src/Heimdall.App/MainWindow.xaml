@@ -107,7 +107,8 @@
                             AutomationProperties.Name="{loc:Translate A11yShareFolder}">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="&#xE72D;" FontFamily="Segoe MDL2 Assets"
-                                       FontSize="{StaticResource FontSizeBodyLarge}" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                                       FontSize="{StaticResource FontSizeBodyLarge}" VerticalAlignment="Center" Margin="0,0,4,0"
+                                       AutomationProperties.Name=""/>
                             <TextBlock x:Name="Mw_ShareFolderLabel" Text="" FontSize="{StaticResource FontSizeBody}"
                                        VerticalAlignment="Center"/>
                         </StackPanel>
@@ -122,7 +123,8 @@
                             >
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="&#xE71E;" FontFamily="Segoe MDL2 Assets"
-                                       FontSize="{StaticResource FontSizeBody}" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                       FontSize="{StaticResource FontSizeBody}" VerticalAlignment="Center" Margin="0,0,6,0"
+                                       AutomationProperties.Name=""/>
                             <TextBlock x:Name="Mw_QuickConnectLabel" Text=""
                                        FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center"
                                        Foreground="{DynamicResource TextSecondaryBrush}"/>
@@ -204,7 +206,8 @@
                                     Padding="6,6" FontSize="{StaticResource FontSizeBody}"
                                     Width="32" Height="32"
                                     Margin="4,0,0,0">
-                                <TextBlock Text="&#xE710;" FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeBody}"/>
+                                <TextBlock Text="&#xE710;" FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeBody}"
+                                           AutomationProperties.Name=""/>
                                 <Button.ContextMenu>
                                     <ContextMenu x:Name="AddMenu"
                                                  DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
@@ -262,7 +265,8 @@
                                         IsHitTestVisible="False" Visibility="Collapsed">
                                     <TextBlock Text="&#xE70D;" FontFamily="Segoe MDL2 Assets"
                                                FontSize="10" HorizontalAlignment="Center"
-                                               Foreground="{DynamicResource TextDisabledBrush}"/>
+                                               Foreground="{DynamicResource TextDisabledBrush}"
+                                               AutomationProperties.Name=""/>
                                 </Border>
                             </Grid>
                         </Border>
@@ -285,11 +289,13 @@
                                                Text="&#xE70E;" FontFamily="Segoe MDL2 Assets"
                                                FontSize="{StaticResource FontSizeCaption}"
                                                Foreground="{DynamicResource TextSecondaryBrush}"
-                                               VerticalAlignment="Center" Margin="0,0,2,0"/>
+                                               VerticalAlignment="Center" Margin="0,0,2,0"
+                                               AutomationProperties.Name=""/>
                                     <StackPanel Orientation="Horizontal">
                                         <TextBlock Text="&#xE90F;" FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeCaption}"
                                                    Foreground="{DynamicResource AccentBrush}"
-                                                   VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                                   VerticalAlignment="Center" Margin="0,0,6,0"
+                                                   AutomationProperties.Name=""/>
                                         <TextBlock x:Name="Mw_ToolsToggleLabel" Text=""
                                                    Foreground="{DynamicResource TextPrimaryBrush}"
                                                    VerticalAlignment="Center"/>
@@ -418,6 +424,7 @@
                                 <TextBlock Text="&#xE784;" FontFamily="Segoe MDL2 Assets"
                                            FontSize="{StaticResource FontSizeSmallCaption}" Foreground="{DynamicResource TextSecondaryBrush}"
                                            HorizontalAlignment="Center" VerticalAlignment="Center"
+                                           AutomationProperties.Name=""
                                            RenderTransformOrigin="0.5,0.5">
                                     <TextBlock.RenderTransform>
                                         <RotateTransform Angle="90"/>
@@ -716,7 +723,8 @@
                                            FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeHero}"
                                            Foreground="{DynamicResource TextSecondaryBrush}"
                                            HorizontalAlignment="Center" Opacity="0.5"
-                                           Margin="0,0,0,16"/>
+                                           Margin="0,0,0,16"
+                                           AutomationProperties.Name=""/>
                                 <TextBlock x:Name="Mw_EmptyStateTitle" Text="" FontSize="{StaticResource FontSizeHeadline}"
                                            FontWeight="SemiBold"
                                            Foreground="{DynamicResource TextPrimaryBrush}"
@@ -756,7 +764,8 @@
                                                Foreground="{DynamicResource TextSecondaryBrush}"
                                                HorizontalAlignment="Center"
                                                Opacity="0.5"
-                                               Margin="0,0,0,12"/>
+                                               Margin="0,0,0,12"
+                                               AutomationProperties.Name=""/>
                                     <TextBlock x:Name="Mw_EmptySelectServer" Text=""
                                                HorizontalAlignment="Center"
                                                Foreground="{DynamicResource TextSecondaryBrush}"
@@ -817,7 +826,8 @@
                                         <TextBlock Text="&#xE945;" FontFamily="Segoe MDL2 Assets"
                                                    FontSize="{StaticResource FontSizeBody}" Margin="0,0,6,0"
                                                    Foreground="{DynamicResource AccentBrush}"
-                                                   VerticalAlignment="Center"/>
+                                                   VerticalAlignment="Center"
+                                                   AutomationProperties.Name=""/>
                                         <TextBlock FontSize="{StaticResource FontSizeBody}" FontWeight="SemiBold"
                                                    Foreground="{DynamicResource TextPrimaryBrush}"
                                                    VerticalAlignment="Center">
@@ -1265,7 +1275,7 @@
                                                         <TextBlock Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis">
                                                             <Run Text="{Binding User, Mode=OneWay}"/><Run Text="@"/><Run Text="{Binding Host, Mode=OneWay}"/><Run Text=":"/><Run Text="{Binding Port, Mode=OneWay}"/>
                                                         </TextBlock>
-                                                        <TextBlock Text=" &#xE8D7;" FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeCaption}" Foreground="{DynamicResource SshBadgeBrush}" VerticalAlignment="Center" Visibility="{Binding HasKey, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                                                        <TextBlock Text=" &#xE8D7;" FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeCaption}" Foreground="{DynamicResource SshBadgeBrush}" VerticalAlignment="Center" Visibility="{Binding HasKey, Converter={StaticResource BoolToVisibilityConverter}}" AutomationProperties.Name=""/>
                                                     </StackPanel>
                                                 </DataTemplate>
                                             </ListBox.ItemTemplate>
@@ -1518,7 +1528,8 @@
                                            FontSize="{StaticResource IconSizeHero}"
                                            Foreground="{DynamicResource AccentBrush}"
                                            HorizontalAlignment="Center"
-                                           Margin="0,0,0,10"/>
+                                           Margin="0,0,0,10"
+                                           AutomationProperties.Name=""/>
                                 <TextBlock x:Name="Mw_AboutAppName" Text=""
                                            FontSize="{StaticResource FontSizeHeadline}" FontWeight="Bold"
                                            Foreground="{DynamicResource TextPrimaryBrush}"
@@ -1664,7 +1675,8 @@
                         <Button.Content>
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="&#xE945;" FontFamily="Segoe MDL2 Assets"
-                                           FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center" Margin="0,0,3,0"/>
+                                           FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center" Margin="0,0,3,0"
+                                           AutomationProperties.Name=""/>
                                 <TextBlock VerticalAlignment="Center">
                                     <Run Text="{Binding TunnelCount, Mode=OneWay}"/>
                                 </TextBlock>
@@ -1680,7 +1692,8 @@
                         <Button.Content>
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="&#xE704;" FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeCaption}"
-                                           VerticalAlignment="Center" Margin="0,0,3,0"/>
+                                           VerticalAlignment="Center" Margin="0,0,3,0"
+                                           AutomationProperties.Name=""/>
                                 <TextBlock x:Name="Mw_BroadcastLabel" Text="" FontWeight="SemiBold" FontSize="{StaticResource FontSizeCaption}"
                                            VerticalAlignment="Center"/>
                             </StackPanel>

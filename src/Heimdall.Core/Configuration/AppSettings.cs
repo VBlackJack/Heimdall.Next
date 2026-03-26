@@ -109,6 +109,7 @@ public class AppSettings
     public List<string> TreeExpandedNodes { get; set; } = new();
     public string? TunnelGridColumnWidths { get; set; }
     public bool ServerDialogAdvancedMode { get; set; }
+    public string? LastUsedGatewayId { get; set; }
 
     // Collections
     public List<SshGatewayDto> SshGateways { get; set; } = new();

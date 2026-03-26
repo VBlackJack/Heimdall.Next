@@ -107,7 +107,8 @@
                     <StackPanel HorizontalAlignment="Center">
                         <TextBlock Text="&#xEB95;" FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource IconSizeEmptyState}"
                                    HorizontalAlignment="Center"
-                                   Foreground="{DynamicResource TextDisabledBrush}" Margin="0,0,0,8"/>
+                                   Foreground="{DynamicResource TextDisabledBrush}" Margin="0,0,0,8"
+                                   AutomationProperties.Name=""/>
                         <TextBlock x:Name="TxtEmptyState" Text=""
                                    FontSize="{StaticResource FontSizeBodyLarge}" TextAlignment="Center"
                                    Foreground="{DynamicResource TextSecondaryBrush}"/>

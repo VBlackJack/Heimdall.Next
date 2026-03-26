@@ -218,6 +218,7 @@ public class SftpBrowser : IRemoteBrowser
                 ct.ThrowIfCancellationRequested();
                 client.DownloadFile(remotePath, fileStream, bytesTransferred =>
                 {
+                    ct.ThrowIfCancellationRequested();
                     TransferProgress?.Invoke(new SftpTransferProgress(
                         fileName,
                         (long)bytesTransferred,
@@ -268,6 +269,7 @@ public class SftpBrowser : IRemoteBrowser
                 ct.ThrowIfCancellationRequested();
                 client.UploadFile(fileStream, remotePath, bytesTransferred =>
                 {
+                    ct.ThrowIfCancellationRequested();
                     TransferProgress?.Invoke(new SftpTransferProgress(
                         fileName,
                         (long)bytesTransferred,
