@@ -715,6 +715,7 @@ public partial class MainViewModel : ObservableObject
             .OrderBy(s => s.DisplayName, StringComparer.OrdinalIgnoreCase)
             .Select(s => new Dialogs.ServerOption(
                 s.Id,
+                s.DisplayName,
                 $"{s.DisplayName} ({s.ConnectionType})",
                 s.ConnectionType ?? "SSH"))
             .ToList();

@@ -224,7 +224,7 @@ public partial class ScheduledTaskDialogViewModel : ObservableValidator
         {
             Id = ExistingTaskId ?? Guid.NewGuid().ToString(),
             ServerId = SelectedServer?.Id ?? string.Empty,
-            ServerName = SelectedServer?.DisplayText ?? string.Empty,
+            ServerName = SelectedServer?.Name ?? string.Empty,
             ConnectionType = SelectedServer?.ConnectionType ?? "SSH",
             Enabled = IsEnabled,
             LastRun = ExistingLastRun,
@@ -297,9 +297,10 @@ public partial class ScheduledTaskDialogViewModel : ObservableValidator
 /// Represents a server option in the scheduled task dialog's server dropdown.
 /// </summary>
 /// <param name="Id">Server inventory ID.</param>
+/// <param name="Name">Raw server display name (for persistence).</param>
 /// <param name="DisplayText">User-visible server name with protocol badge.</param>
 /// <param name="ConnectionType">Protocol type (RDP, SSH, etc.).</param>
-public record ServerOption(string Id, string DisplayText, string ConnectionType);
+public record ServerOption(string Id, string Name, string DisplayText, string ConnectionType);
 
 /// <summary>
 /// Immutable result returned by the scheduled task dialog on close.

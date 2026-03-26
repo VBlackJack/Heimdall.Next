@@ -6,13 +6,13 @@
     <!-- Design Tokens: Typography                                 -->
     <!-- ========================================================= -->
     <sys:Double x:Key="FontSizeSmallCaption">11</sys:Double>
-    <sys:Double x:Key="FontSizeCaption">11</sys:Double>
-    <sys:Double x:Key="FontSizeBody">12</sys:Double>
-    <sys:Double x:Key="FontSizeBodyLarge">13</sys:Double>
-    <sys:Double x:Key="FontSizeSubtitle">14</sys:Double>
-    <sys:Double x:Key="FontSizeLarge">16</sys:Double>
-    <sys:Double x:Key="FontSizeTitle">18</sys:Double>
-    <sys:Double x:Key="FontSizeDisplay">20</sys:Double>
+    <sys:Double x:Key="FontSizeCaption">12</sys:Double>
+    <sys:Double x:Key="FontSizeBody">13</sys:Double>
+    <sys:Double x:Key="FontSizeBodyLarge">14</sys:Double>
+    <sys:Double x:Key="FontSizeSubtitle">15</sys:Double>
+    <sys:Double x:Key="FontSizeLarge">17</sys:Double>
+    <sys:Double x:Key="FontSizeTitle">20</sys:Double>
+    <sys:Double x:Key="FontSizeDisplay">22</sys:Double>
     <sys:Double x:Key="FontSizeHeadline">24</sys:Double>
     <sys:Double x:Key="FontSizeHero">64</sys:Double>
 
@@ -20,7 +20,7 @@
     <Thickness x:Key="SpacingXs">4</Thickness>
     <Thickness x:Key="SpacingSm">8</Thickness>
     <Thickness x:Key="SpacingMd">12</Thickness>
-    <Thickness x:Key="SpacingLg">16</Thickness>
+    <Thickness x:Key="SpacingLg">20</Thickness>
     <Thickness x:Key="SpacingXl">24</Thickness>
 
     <!-- Asymmetric content area margin (below header, sides + bottom) -->
