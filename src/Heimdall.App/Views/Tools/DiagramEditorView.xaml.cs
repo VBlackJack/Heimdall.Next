@@ -14,8 +14,10 @@
  * limitations under the License.
  */
 
+using System.Diagnostics;
 using System.IO;
 using System.Text;
+using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
 using Heimdall.Core.Localization;
@@ -26,7 +28,9 @@ namespace Heimdall.App.Views.Tools;
 
 /// <summary>
 /// Embedded draw.io diagram editor hosted via WebView2 in embed mode.
-/// Supports creating, opening, saving, and exporting .drawio files.
+/// Uses an iframe wrapper (heimdall-host.html) because draw.io's embed
+/// protocol requires (window.opener || window.parent) != window.
+/// draw.io's own menu bar is disabled — Heimdall provides the toolbar.
 /// </summary>
 public partial class DiagramEditorView : UserControl, IToolView
 {
@@ -47,7 +51,6 @@ public partial class DiagramEditorView : UserControl, IToolView
         _localizer = localizer;
         ApplyLocalization();
 
-        // If context has an argument (file path), load it
         if (!string.IsNullOrWhiteSpace(context?.Argument))
         {
             _currentFilePath = context.Argument;
@@ -95,7 +98,7 @@ public partial class DiagramEditorView : UserControl, IToolView
                 }
             };
 
-            // Load the host page
+            // Load the host page (iframe wrapper for draw.io embed protocol)
             core.Navigate($"https://{VirtualHost}/heimdall-host.html");
         }
         catch (Exception ex)
@@ -111,12 +114,18 @@ public partial class DiagramEditorView : UserControl, IToolView
 
         if (message == "ready:")
         {
-            // If we have a file to load, send it
             if (_currentFilePath is not null && File.Exists(_currentFilePath))
             {
                 var xml = File.ReadAllText(_currentFilePath);
+                _lastSavedXml = xml;
                 PostWebMessage($"load:{xml}");
             }
+            return;
+        }
+
+        if (message.StartsWith("open-link:", StringComparison.Ordinal))
+        {
+            OpenExternalLink(message["open-link:".Length..]);
             return;
         }
 
@@ -128,21 +137,13 @@ public partial class DiagramEditorView : UserControl, IToolView
 
         if (message.StartsWith("export:", StringComparison.Ordinal))
         {
-            var data = message["export:".Length..];
-            HandleExportData(data);
-            return;
-        }
-
-        if (message == "exit:")
-        {
-            // User clicked exit in draw.io — could close the tab
+            HandleExportData(message["export:".Length..]);
             return;
         }
     }
 
     private void HandleExportData(string data)
     {
-        // PNG exports are base64 data URIs, SVG exports are XML
         var dialog = new Microsoft.Win32.SaveFileDialog();
 
         if (data.StartsWith("data:image/png", StringComparison.OrdinalIgnoreCase))
@@ -187,6 +188,7 @@ public partial class DiagramEditorView : UserControl, IToolView
         {
             _currentFilePath = dialog.FileName;
             var xml = File.ReadAllText(dialog.FileName);
+            _lastSavedXml = xml;
             PostWebMessage($"load:{xml}");
         }
     }
@@ -225,6 +227,30 @@ public partial class DiagramEditorView : UserControl, IToolView
         if (DiagramWebView.CoreWebView2 is not null)
         {
             DiagramWebView.CoreWebView2.PostWebMessageAsString(message);
+        }
+    }
+
+    private static void OpenExternalLink(string payload)
+    {
+        try
+        {
+            using var document = JsonDocument.Parse(payload);
+            if (!document.RootElement.TryGetProperty("href", out var hrefProperty))
+                return;
+
+            var href = hrefProperty.GetString();
+            if (string.IsNullOrWhiteSpace(href)
+                || !Uri.TryCreate(href, UriKind.Absolute, out var uri)
+                || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
+            {
+                return;
+            }
+
+            Process.Start(new ProcessStartInfo(uri.AbsoluteUri) { UseShellExecute = true });
+        }
+        catch
+        {
+            // Ignore malformed link payloads
         }
     }
 
