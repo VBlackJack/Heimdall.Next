@@ -6,14 +6,80 @@
         * { margin: 0; padding: 0; }
         html, body { width: 100%; height: 100%; overflow: hidden; }
         iframe { width: 100%; height: 100%; border: none; }
+        .heimdall-context-menu {
+            position: fixed;
+            z-index: 2147483647;
+            min-width: 220px;
+            padding: 6px 0;
+            border: 1px solid #4c5168;
+            border-radius: 8px;
+            background: #20232d;
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+            display: none;
+            font: 13px/1.2 "Segoe UI", sans-serif;
+            color: #f4f5f8;
+        }
+        .heimdall-context-menu button {
+            width: 100%;
+            padding: 8px 12px;
+            border: 0;
+            background: transparent;
+            color: inherit;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            text-align: left;
+            cursor: pointer;
+        }
+        .heimdall-context-menu button:hover:not(:disabled) {
+            background: #2e3342;
+        }
+        .heimdall-context-menu button:disabled {
+            color: #80879c;
+            cursor: default;
+        }
+        .heimdall-context-menu hr {
+            height: 1px;
+            border: 0;
+            margin: 6px 0;
+            background: #3a4053;
+        }
+        .heimdall-context-menu .shortcut {
+            color: #9ea5bd;
+            font-size: 12px;
+        }
     </style>
 </head>
 <body>
     <iframe id="drawio-frame" allow="clipboard-read; clipboard-write"></iframe>
+    <div id="heimdall-context-menu" class="heimdall-context-menu"></div>
     <script>
         var currentXml = null;
         var frame = document.getElementById('drawio-frame');
+        var contextMenu = document.getElementById('heimdall-context-menu');
         var editorReady = false;
+        var chromeConfigured = false;
+        var contextMenuBound = false;
+        var contextMenuVisible = false;
+        var contextMenuItems = [
+            { action: 'undo', shortcut: 'Ctrl+Z' },
+            { action: 'redo', shortcut: 'Ctrl+Y' },
+            { separator: true },
+            { action: 'cut', shortcut: 'Ctrl+X' },
+            { action: 'copy', shortcut: 'Ctrl+C' },
+            { action: 'paste', shortcut: 'Ctrl+V' },
+            { separator: true },
+            { action: 'duplicate', shortcut: 'Ctrl+D' },
+            { action: 'delete', shortcut: 'Del' },
+            { separator: true },
+            { action: 'insertEdge' },
+            { action: 'format', labelKey: 'formatPanel', fallbackLabel: 'Format' },
+            { separator: true },
+            { action: 'rounded' },
+            { action: 'curved' },
+            { action: 'clearWaypoints' }
+        ];
 
         function postToHost(message) {
             if (window.chrome && window.chrome.webview) {
@@ -28,6 +94,281 @@
 
         function loadDiagram(xml) {
             postToEditor({ action: 'load', xml: xml || '', autosave: 1 });
+        }
+
+        function getDrawioApp() {
+            try {
+                return frame.contentWindow && frame.contentWindow.heimdallDrawioApp
+                    ? frame.contentWindow.heimdallDrawioApp
+                    : null;
+            } catch (e) {
+                return null;
+            }
+        }
+
+        function configureEditorChrome(attempt) {
+            if (chromeConfigured) {
+                return true;
+            }
+
+            var app = getDrawioApp();
+            if (!app) {
+                if ((attempt || 0) < 20) {
+                    setTimeout(function() {
+                        configureEditorChrome((attempt || 0) + 1);
+                    }, 50);
+                }
+                return false;
+            }
+
+            try {
+                if (app.menubarContainer) {
+                    app.menubarContainer.style.display = 'none';
+                }
+
+                if (app.toolbarContainer) {
+                    app.toolbarContainer.style.display = 'none';
+                }
+
+                app.menubarHeight = 0;
+                app.toolbarHeight = 0;
+
+                if (typeof app.refresh === 'function') {
+                    app.refresh();
+                }
+
+                ensureContextMenuBinding(0);
+                chromeConfigured = true;
+                return true;
+            } catch (e) {
+                if ((attempt || 0) < 20) {
+                    setTimeout(function() {
+                        configureEditorChrome((attempt || 0) + 1);
+                    }, 50);
+                }
+                return false;
+            }
+        }
+
+        function getDrawioAction(actionName) {
+            var app = getDrawioApp();
+            if (!app || !app.actions || typeof app.actions.get !== 'function') {
+                return null;
+            }
+
+            try {
+                return app.actions.get(actionName);
+            } catch (e) {
+                return null;
+            }
+        }
+
+        function isDrawioActionEnabled(actionName) {
+            var action = getDrawioAction(actionName);
+            if (!action || typeof action.funct !== 'function') {
+                return false;
+            }
+
+            try {
+                return typeof action.isEnabled === 'function' ? action.isEnabled() : true;
+            } catch (e) {
+                return false;
+            }
+        }
+
+        function getDrawioLabel(actionName, labelKey, fallbackLabel) {
+            var action = getDrawioAction(actionName);
+            if (action && typeof action.label === 'string' && action.label.length > 0) {
+                return action.label;
+            }
+
+            try {
+                if (frame.contentWindow
+                    && frame.contentWindow.mxResources
+                    && typeof frame.contentWindow.mxResources.get === 'function') {
+                    var label = frame.contentWindow.mxResources.get(labelKey || actionName);
+                    if (label) {
+                        return label;
+                    }
+                }
+            } catch (e) {
+                // Ignore localization lookup failures
+            }
+
+            return fallbackLabel || actionName;
+        }
+
+        function executeDrawioAction(actionName, eventArg) {
+            var action = getDrawioAction(actionName);
+            if (!action || typeof action.funct !== 'function') {
+                return false;
+            }
+
+            if (!isDrawioActionEnabled(actionName)) {
+                return false;
+            }
+
+            try {
+                action.funct(eventArg);
+                return true;
+            } catch (e) {
+                return false;
+            }
+        }
+
+        function focusDrawio() {
+            var app = getDrawioApp();
+
+            try {
+                if (app && app.editor && app.editor.graph && app.editor.graph.container) {
+                    app.editor.graph.container.focus();
+                } else if (frame.contentWindow && typeof frame.contentWindow.focus === 'function') {
+                    frame.contentWindow.focus();
+                }
+            } catch (e) {
+                // Ignore focus errors
+            }
+        }
+
+        function hideContextMenu() {
+            if (!contextMenuVisible) {
+                return;
+            }
+
+            contextMenu.style.display = 'none';
+            frame.style.pointerEvents = '';
+            contextMenuVisible = false;
+        }
+
+        function buildContextMenu() {
+            contextMenu.innerHTML = '';
+
+            contextMenuItems.forEach(function(item) {
+                if (item.separator) {
+                    contextMenu.appendChild(document.createElement('hr'));
+                    return;
+                }
+
+                var button = document.createElement('button');
+                var enabled = isDrawioActionEnabled(item.action);
+
+                button.disabled = !enabled;
+
+                var label = document.createElement('span');
+                label.textContent = getDrawioLabel(item.action, item.labelKey, item.fallbackLabel);
+                button.appendChild(label);
+
+                if (item.shortcut) {
+                    var shortcut = document.createElement('span');
+                    shortcut.className = 'shortcut';
+                    shortcut.textContent = item.shortcut;
+                    button.appendChild(shortcut);
+                }
+
+                button.addEventListener('pointerdown', function(evt) {
+                    evt.preventDefault();
+                    evt.stopPropagation();
+
+                    if (!enabled) {
+                        return;
+                    }
+
+                    hideContextMenu();
+                    focusDrawio();
+                    window.setTimeout(function() {
+                        executeDrawioAction(item.action, evt);
+                    }, 0);
+                });
+
+                contextMenu.appendChild(button);
+            });
+        }
+
+        function showContextMenu(clientX, clientY) {
+            buildContextMenu();
+
+            contextMenu.style.display = 'block';
+
+            var menuWidth = contextMenu.offsetWidth;
+            var menuHeight = contextMenu.offsetHeight;
+            var left = Math.min(clientX, Math.max(8, window.innerWidth - menuWidth - 8));
+            var top = Math.min(clientY, Math.max(8, window.innerHeight - menuHeight - 8));
+
+            contextMenu.style.left = Math.max(8, left) + 'px';
+            contextMenu.style.top = Math.max(8, top) + 'px';
+            frame.style.pointerEvents = 'none';
+            contextMenuVisible = true;
+        }
+
+        function onFrameContextMenu(evt) {
+            if (!editorReady) {
+                return;
+            }
+
+            evt.preventDefault();
+            evt.stopPropagation();
+
+            var frameRect = frame.getBoundingClientRect();
+            showContextMenu(frameRect.left + evt.clientX, frameRect.top + evt.clientY);
+        }
+
+        function onFrameKeyDown(evt) {
+            if (evt.key === 'Escape') {
+                hideContextMenu();
+                return;
+            }
+
+            if (evt.key !== 'ContextMenu' && !(evt.shiftKey && evt.key === 'F10')) {
+                return;
+            }
+
+            evt.preventDefault();
+            evt.stopPropagation();
+
+            var frameRect = frame.getBoundingClientRect();
+            var x = frameRect.left + Math.min(120, Math.max(24, frameRect.width / 4));
+            var y = frameRect.top + Math.min(120, Math.max(24, frameRect.height / 4));
+
+            showContextMenu(x, y);
+        }
+
+        function ensureContextMenuBinding(attempt) {
+            if (contextMenuBound) {
+                return true;
+            }
+
+            try {
+                if (!frame.contentWindow || !frame.contentDocument || !frame.contentDocument.body) {
+                    throw new Error('frame not ready');
+                }
+
+                frame.contentDocument.addEventListener('contextmenu', onFrameContextMenu, true);
+                frame.contentDocument.addEventListener('pointerdown', hideContextMenu, true);
+                frame.contentDocument.addEventListener('wheel', hideContextMenu, true);
+                frame.contentDocument.addEventListener('keydown', onFrameKeyDown, true);
+                frame.contentWindow.addEventListener('blur', hideContextMenu);
+                window.addEventListener('blur', hideContextMenu);
+                window.addEventListener('resize', hideContextMenu);
+                document.addEventListener('pointerdown', function(evt) {
+                    if (!contextMenu.contains(evt.target)) {
+                        hideContextMenu();
+                    }
+                }, true);
+                contextMenu.addEventListener('contextmenu', function(evt) {
+                    evt.preventDefault();
+                    evt.stopPropagation();
+                }, true);
+
+                contextMenuBound = true;
+                return true;
+            } catch (e) {
+                if ((attempt || 0) < 20) {
+                    setTimeout(function() {
+                        ensureContextMenuBinding((attempt || 0) + 1);
+                    }, 50);
+                }
+                return false;
+            }
         }
 
         // Listen for messages from draw.io iframe (embed protocol)
@@ -49,6 +390,8 @@
                 case 'init':
                     editorReady = true;
                     loadDiagram(currentXml);
+                    configureEditorChrome(0);
+                    postToHost('editor-ready:');
                     break;
 
                 case 'autosave':
@@ -99,21 +442,29 @@
                     postToEditor({ action: 'export', format: 'svg', spinKey: 'export' });
                     return;
                 }
+
+                if (msg.indexOf('command:') === 0) {
+                    executeDrawioAction(msg.substring(8));
+                    return;
+                }
             });
 
             postToHost('ready:');
         }
 
-        // Hide draw.io's menu bar after iframe loads.
-        // Heimdall's own toolbar provides New/Open/Save/Export PNG.
-        // The right-click context menu is handled by draw.io's mxPopupMenu
-        // (requires AreDefaultContextMenusEnabled=false on the WebView2 side).
+        // Hide draw.io's native menu and toolbar after iframe loads.
+        // In the WebView2 iframe host these controls can appear interactive
+        // while not dispatching reliably, so Heimdall provides the working
+        // command surface in WPF instead.
         frame.onload = function() {
             try {
                 var style = frame.contentDocument.createElement('style');
-                style.textContent = '.geMenubarContainer { display: none !important; }';
+                style.textContent =
+                    '.geMenubarContainer, .geEditor > .geToolbarContainer { display: none !important; }';
                 frame.contentDocument.head.appendChild(style);
             } catch(e) {}
+
+            ensureContextMenuBinding(0);
         };
 
         // Load draw.io in embed mode inside the iframe.

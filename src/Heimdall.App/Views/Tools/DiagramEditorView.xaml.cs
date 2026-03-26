@@ -30,7 +30,8 @@ namespace Heimdall.App.Views.Tools;
 /// Embedded draw.io diagram editor hosted via WebView2 in embed mode.
 /// Uses an iframe wrapper (heimdall-host.html) because draw.io's embed
 /// protocol requires (window.opener || window.parent) != window.
-/// draw.io's own menu bar is disabled — Heimdall provides the toolbar.
+/// draw.io's own top toolbar is disabled in the iframe host — Heimdall provides
+/// the command surface for reliable actions such as undo/redo and zoom.
 /// </summary>
 public partial class DiagramEditorView : UserControl, IToolView
 {
@@ -216,6 +217,51 @@ public partial class DiagramEditorView : UserControl, IToolView
         PostWebMessage("export-png:");
     }
 
+    private void OnInsertLineClick(object sender, RoutedEventArgs e)
+    {
+        PostEditorCommand("insertEdge");
+    }
+
+    private void OnFormatClick(object sender, RoutedEventArgs e)
+    {
+        PostEditorCommand("format");
+    }
+
+    private void OnUndoClick(object sender, RoutedEventArgs e)
+    {
+        PostEditorCommand("undo");
+    }
+
+    private void OnRedoClick(object sender, RoutedEventArgs e)
+    {
+        PostEditorCommand("redo");
+    }
+
+    private void OnZoomOutClick(object sender, RoutedEventArgs e)
+    {
+        PostEditorCommand("zoomOut");
+    }
+
+    private void OnActualSizeClick(object sender, RoutedEventArgs e)
+    {
+        PostEditorCommand("resetView");
+    }
+
+    private void OnZoomInClick(object sender, RoutedEventArgs e)
+    {
+        PostEditorCommand("zoomIn");
+    }
+
+    private void OnDuplicateClick(object sender, RoutedEventArgs e)
+    {
+        PostEditorCommand("duplicate");
+    }
+
+    private void OnDeleteClick(object sender, RoutedEventArgs e)
+    {
+        PostEditorCommand("delete");
+    }
+
     private void OnHelpClick(object sender, RoutedEventArgs e)
     {
         var helpText = L("ToolHelpDIAGRAM");
@@ -228,6 +274,11 @@ public partial class DiagramEditorView : UserControl, IToolView
         {
             DiagramWebView.CoreWebView2.PostWebMessageAsString(message);
         }
+    }
+
+    private void PostEditorCommand(string action)
+    {
+        PostWebMessage($"command:{action}");
     }
 
     private static void OpenExternalLink(string payload)
@@ -261,6 +312,15 @@ public partial class DiagramEditorView : UserControl, IToolView
         BtnOpen.Content = L("ToolDiagramBtnOpen");
         BtnSave.Content = L("ToolDiagramBtnSave");
         BtnExportPng.Content = L("ToolDiagramBtnExportPng");
+        BtnInsertLine.Content = L("ToolDiagramBtnInsertLine");
+        BtnFormat.Content = L("ToolDiagramBtnFormat");
+        BtnUndo.Content = L("BtnUndo");
+        BtnRedo.Content = L("ToolDiagramBtnRedo");
+        BtnZoomOut.Content = L("ToolDiagramBtnZoomOut");
+        BtnActualSize.Content = L("ToolDiagramBtnActualSize");
+        BtnZoomIn.Content = L("ToolDiagramBtnZoomIn");
+        BtnDuplicate.Content = L("BtnDuplicate");
+        BtnDelete.Content = L("BtnDelete");
 
         BtnHelp.ToolTip = L("ToolHelpTooltip");
         System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
@@ -268,6 +328,15 @@ public partial class DiagramEditorView : UserControl, IToolView
         System.Windows.Automation.AutomationProperties.SetName(BtnOpen, L("ToolDiagramBtnOpen"));
         System.Windows.Automation.AutomationProperties.SetName(BtnSave, L("ToolDiagramBtnSave"));
         System.Windows.Automation.AutomationProperties.SetName(BtnExportPng, L("ToolDiagramBtnExportPng"));
+        System.Windows.Automation.AutomationProperties.SetName(BtnInsertLine, L("ToolDiagramBtnInsertLine"));
+        System.Windows.Automation.AutomationProperties.SetName(BtnFormat, L("ToolDiagramBtnFormat"));
+        System.Windows.Automation.AutomationProperties.SetName(BtnUndo, L("BtnUndo"));
+        System.Windows.Automation.AutomationProperties.SetName(BtnRedo, L("ToolDiagramBtnRedo"));
+        System.Windows.Automation.AutomationProperties.SetName(BtnZoomOut, L("ToolDiagramBtnZoomOut"));
+        System.Windows.Automation.AutomationProperties.SetName(BtnActualSize, L("ToolDiagramBtnActualSize"));
+        System.Windows.Automation.AutomationProperties.SetName(BtnZoomIn, L("ToolDiagramBtnZoomIn"));
+        System.Windows.Automation.AutomationProperties.SetName(BtnDuplicate, L("BtnDuplicate"));
+        System.Windows.Automation.AutomationProperties.SetName(BtnDelete, L("BtnDelete"));
     }
 
     private void ShowFallback(string message)

@@ -48,6 +48,24 @@
                             Style="{DynamicResource PrimaryButtonStyle}" Padding="8,4" Margin="0,0,4,0" FontSize="{StaticResource FontSizeCaption}"/>
                     <Button x:Name="BtnExportPng" Content="" Click="OnExportPngClick"
                             Style="{DynamicResource SecondaryButtonStyle}" Padding="8,4" FontSize="{StaticResource FontSizeCaption}"/>
+                    <Button x:Name="BtnInsertLine" Content="" Click="OnInsertLineClick"
+                            Style="{DynamicResource SecondaryButtonStyle}" Padding="8,4" Margin="12,0,4,0" FontSize="{StaticResource FontSizeCaption}"/>
+                    <Button x:Name="BtnFormat" Content="" Click="OnFormatClick"
+                            Style="{DynamicResource SecondaryButtonStyle}" Padding="8,4" Margin="0,0,4,0" FontSize="{StaticResource FontSizeCaption}"/>
+                    <Button x:Name="BtnUndo" Content="" Click="OnUndoClick"
+                            Style="{DynamicResource SecondaryButtonStyle}" Padding="8,4" Margin="8,0,4,0" FontSize="{StaticResource FontSizeCaption}"/>
+                    <Button x:Name="BtnRedo" Content="" Click="OnRedoClick"
+                            Style="{DynamicResource SecondaryButtonStyle}" Padding="8,4" Margin="0,0,4,0" FontSize="{StaticResource FontSizeCaption}"/>
+                    <Button x:Name="BtnZoomOut" Content="" Click="OnZoomOutClick"
+                            Style="{DynamicResource SecondaryButtonStyle}" Padding="8,4" Margin="0,0,4,0" FontSize="{StaticResource FontSizeCaption}"/>
+                    <Button x:Name="BtnActualSize" Content="" Click="OnActualSizeClick"
+                            Style="{DynamicResource SecondaryButtonStyle}" Padding="8,4" Margin="0,0,4,0" FontSize="{StaticResource FontSizeCaption}"/>
+                    <Button x:Name="BtnZoomIn" Content="" Click="OnZoomInClick"
+                            Style="{DynamicResource SecondaryButtonStyle}" Padding="8,4" Margin="0,0,4,0" FontSize="{StaticResource FontSizeCaption}"/>
+                    <Button x:Name="BtnDuplicate" Content="" Click="OnDuplicateClick"
+                            Style="{DynamicResource SecondaryButtonStyle}" Padding="8,4" Margin="0,0,4,0" FontSize="{StaticResource FontSizeCaption}"/>
+                    <Button x:Name="BtnDelete" Content="" Click="OnDeleteClick"
+                            Style="{DynamicResource SecondaryButtonStyle}" Padding="8,4" FontSize="{StaticResource FontSizeCaption}"/>
                 </StackPanel>
             </DockPanel>
         </Border>
