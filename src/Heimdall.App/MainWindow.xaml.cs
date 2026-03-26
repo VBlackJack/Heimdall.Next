@@ -657,11 +657,23 @@ public partial class MainWindow : Window
             vm.CloseCommandPaletteCommand.Execute(null);
         }
 
+        // Save TreeView scroll position when leaving Servers tab
+        if (vm.IsServersTabSelected && !string.Equals(tabName, "Servers", StringComparison.Ordinal))
+        {
+            SaveTreeViewScrollPosition();
+        }
+
         Heimdall.Core.Logging.FileLogger.Info(
             $"Navigation request: tab={tabName}, current={vm.SelectedTab}, hasSessions={vm.Connection.HasActiveSessions}");
 
         vm.SelectedTab = tabName;
         UpdateTabVisibility(vm);
+
+        // Restore TreeView scroll position when returning to Servers tab
+        if (string.Equals(tabName, "Servers", StringComparison.Ordinal))
+        {
+            RestoreTreeViewScrollPosition();
+        }
 
         Heimdall.Core.Logging.FileLogger.Info(
             $"Navigation applied: tab={vm.SelectedTab}, serversVisible={vm.IsServersTabSelected}, tunnelsVisible={vm.IsTunnelsTabSelected}, scheduledVisible={vm.IsScheduledTabSelected}, settingsVisible={vm.IsSettingsTabSelected}");
@@ -1335,7 +1347,8 @@ public partial class MainWindow : Window
         menu.Items.Add(CreateMenuItem(
             vm.Localize("TreeCtxEdit"),
             vm.ServerList.EditServerCommand,
-            server));
+            server,
+            inputGestureText: "Ctrl+E"));
         menu.Items.Add(CreateMenuItem(
             vm.Localize("TreeCtxDuplicate"),
             vm.ServerList.DuplicateServerCommand,
@@ -1384,7 +1397,8 @@ public partial class MainWindow : Window
         var deleteItem = CreateMenuItem(
             vm.Localize("TreeCtxDelete"),
             vm.ServerList.DeleteServerCommand,
-            server);
+            server,
+            inputGestureText: "Ctrl+Del");
         deleteItem.Foreground = Application.Current.TryFindResource("ErrorBrush") as Brush
             ?? new System.Windows.Media.SolidColorBrush(Colors.Red);
         menu.Items.Add(deleteItem);
@@ -2017,7 +2031,8 @@ public partial class MainWindow : Window
 
         menu.Items.Add(CreateMenuItem(
             vm.Localize("DialogTitleAddServer"),
-            vm.ServerList.AddServerCommand));
+            vm.ServerList.AddServerCommand,
+            inputGestureText: "Ctrl+N"));
         menu.Items.Add(CreateMenuItem(
             vm.Localize("BtnAddGateway"),
             vm.Settings.AddGatewayCommand));
@@ -2134,14 +2149,16 @@ public partial class MainWindow : Window
         string header,
         ICommand command,
         object? parameter = null,
-        bool isEnabled = true)
+        bool isEnabled = true,
+        string? inputGestureText = null)
     {
         return new MenuItem
         {
             Header = header,
             Command = command,
             CommandParameter = parameter,
-            IsEnabled = isEnabled
+            IsEnabled = isEnabled,
+            InputGestureText = inputGestureText ?? string.Empty
         };
     }
 
@@ -2154,6 +2171,49 @@ public partial class MainWindow : Window
             var child = VisualTreeHelper.GetChild(tabControl, i);
             HideTabStripPanelRecursive(child, hide);
         }
+    }
+
+    /// <summary>
+    /// Walks the visual tree of the given element to find a child <see cref="ScrollViewer"/>.
+    /// </summary>
+    private static ScrollViewer? FindScrollViewer(DependencyObject parent)
+    {
+        for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
+        {
+            var child = VisualTreeHelper.GetChild(parent, i);
+            if (child is ScrollViewer sv)
+                return sv;
+            var result = FindScrollViewer(child);
+            if (result is not null)
+                return result;
+        }
+        return null;
+    }
+
+    private void SaveTreeViewScrollPosition()
+    {
+        var sv = FindScrollViewer(ServerTreeView);
+        if (sv is not null)
+        {
+            _treeScrollVerticalOffset = sv.VerticalOffset;
+            _treeScrollHorizontalOffset = sv.HorizontalOffset;
+        }
+    }
+
+    private void RestoreTreeViewScrollPosition()
+    {
+        // Defer to allow the TreeView to re-render before restoring scroll position
+        Dispatcher.BeginInvoke(
+            System.Windows.Threading.DispatcherPriority.Loaded,
+            new Action(() =>
+            {
+                var sv = FindScrollViewer(ServerTreeView);
+                if (sv is not null)
+                {
+                    sv.ScrollToVerticalOffset(_treeScrollVerticalOffset);
+                    sv.ScrollToHorizontalOffset(_treeScrollHorizontalOffset);
+                }
+            }));
     }
 
     // ── Tab drag & drop reordering ───────────────────────────────────
@@ -2973,6 +3033,8 @@ public partial class MainWindow : Window
 
     private bool _sidebarHidden;
     private double _savedSidebarWidth = 260;
+    private double _treeScrollVerticalOffset;
+    private double _treeScrollHorizontalOffset;
 
     private void OnExpandAllClick(object sender, RoutedEventArgs e)
     {

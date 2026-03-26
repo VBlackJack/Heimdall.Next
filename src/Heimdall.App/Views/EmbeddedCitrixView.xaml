@@ -81,7 +81,8 @@
                            FontSize="{StaticResource IconSizeXLarge}"
                            Foreground="{DynamicResource InfoBrush}"
                            HorizontalAlignment="Center"
-                           Margin="0,0,0,16"/>
+                           Margin="0,0,0,16"
+                           AutomationProperties.Name=""/>
                 <TextBlock x:Name="TitleText"
                            FontSize="{StaticResource FontSizeDisplay}"
                            FontWeight="SemiBold"

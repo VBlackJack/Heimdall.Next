@@ -197,7 +197,8 @@ public partial class EmbeddedSftpView : UserControl, IDisposable
         ReconnectButton.Content = _localizer["SftpBtnReconnect"];
         BtnUploadText.Text = _localizer["SftpBtnUpload"];
         BtnNewFolderText.Text = _localizer["SftpBtnNewFolder"];
-        BtnCancelTransfer.Content = _localizer["SftpBtnCancelTransfer"];
+        BtnCancelTransfer.ToolTip = _localizer["TooltipCancelTransfer"];
+        System.Windows.Automation.AutomationProperties.SetName(BtnCancelTransfer, _localizer["A11yCancelTransfer"]);
         BtnBookmarkMenu.ToolTip = _localizer["SftpBtnBookmark"];
         MnuBookmarkAdd.Header = _localizer["SftpBtnBookmark"];
         MnuBookmarkManage.Header = _localizer["SftpBtnBookmarks"];

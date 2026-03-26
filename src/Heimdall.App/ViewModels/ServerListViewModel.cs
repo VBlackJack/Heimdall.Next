@@ -499,11 +499,21 @@ public partial class ServerListViewModel : ObservableObject
         var settings = await _configManager.LoadSettingsAsync();
         PopulateServerDialogOptions(dialogVm, settings);
 
+        // Reset dirty state after initialization (gateway pre-selection is not a user change)
+        dialogVm.IsDirty = false;
+
         var result = await _dialogService.ShowServerDialogAsync(dialogVm);
 
         if (result is not { Saved: true })
         {
             return;
+        }
+
+        // Persist the selected gateway as last-used for future Add Server dialogs
+        var savedGatewayId = result.Server.SshGatewayId;
+        if (!string.Equals(settings.LastUsedGatewayId, savedGatewayId, StringComparison.Ordinal))
+        {
+            await _configManager.MergeSettingAsync(s => s.LastUsedGatewayId = savedGatewayId);
         }
 
         var servers = await _configManager.LoadServersAsync();
@@ -576,6 +586,13 @@ public partial class ServerListViewModel : ObservableObject
         }
 
         result.Server.Id = serverDto.Id;
+
+        // Persist the selected gateway as last-used for future Add Server dialogs
+        var savedGatewayId = result.Server.SshGatewayId;
+        if (!string.Equals(settings.LastUsedGatewayId, savedGatewayId, StringComparison.Ordinal))
+        {
+            await _configManager.MergeSettingAsync(s => s.LastUsedGatewayId = savedGatewayId);
+        }
 
         var index = servers.FindIndex(
             s => string.Equals(s.Id, serverDto.Id, StringComparison.Ordinal));
@@ -1098,9 +1115,19 @@ public partial class ServerListViewModel : ObservableObject
                 .OrderBy(name => name, StringComparer.OrdinalIgnoreCase));
     }
 
-    private void PopulateServerDialogOptions(ServerDialogViewModel dialogVm, AppSettings settings)
+    private static void PopulateServerDialogOptions(ServerDialogViewModel dialogVm, AppSettings settings)
     {
         dialogVm.AvailableGateways = new(BuildGatewayOptions(settings.SshGateways));
+
+        // Pre-select the last-used gateway for new servers (not edit mode)
+        if (!dialogVm.IsEditMode
+            && string.IsNullOrWhiteSpace(dialogVm.SelectedGatewayId)
+            && !string.IsNullOrWhiteSpace(settings.LastUsedGatewayId)
+            && dialogVm.AvailableGateways.Any(gw =>
+                string.Equals(gw.Id, settings.LastUsedGatewayId, StringComparison.Ordinal)))
+        {
+            dialogVm.SelectedGatewayId = settings.LastUsedGatewayId;
+        }
     }
 
     private void SynchronizeSelection(string? preferredSelectedServerId)
