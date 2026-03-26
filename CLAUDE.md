@@ -6,7 +6,7 @@ This file provides guidance to Claude Code when working with code in this reposi
 
 **Heimdall.Next** is a ground-up rewrite of Heimdall (PowerShell 5.1 + WPF) as a modern .NET 10 + WPF application. It is a secure Windows connection manager supporting 8 protocols (RDP, SSH, SFTP, VNC, Telnet, FTP, Citrix, Local Shell), designed as a MobaXterm and mRemoteNG alternative with superior security and modern UX.
 
-**Current build**: v2026.032506 (Release)
+**Current build**: v2026.032601 (Release)
 
 ## Repository Layout
 
@@ -19,7 +19,7 @@ This file provides guidance to Claude Code when working with code in this reposi
 - **~199 C# source files** (~55,000 LOC)
 - **~55 XAML files** (~13,000 LOC)
 - **49 test files** (~16,200 LOC), 1,586 xUnit tests
-- **~3,479 i18n keys** per locale (EN/FR), declarative `{loc:Translate}` markup extension + legacy `ApplyLocalization()` coexistence
+- **~3,566 i18n keys** per locale (EN/FR), declarative `{loc:Translate}` markup extension + legacy `ApplyLocalization()` coexistence
 - **33 built-in sysops tools** (ToolRegistry with IToolView interface, cross-tool navigation, Network Cartography with deep fingerprinting)
 - **1,880+ lines** of theme XAML (CommonControls + Dark/Light + DialogCommonStyles, Design Tokens, micro-animations)
 - **Two-tier icon system**: Vector geometries (`Geo.*` in IconGeometries.xaml) + Segoe MDL2 for UI chrome
@@ -77,11 +77,11 @@ Heimdall.slnx
 │   │
 │   └── Heimdall.App/           # WPF application (net10.0-windows)
 │       ├── ViewModels/         # MainViewModel, ServerListVM, ConnectionVM, SettingsVM, SessionTabVM
-│       │   └── Dialogs/        # ServerDialogVM, GatewayDialogVM, ProjectDialogVM, PinDialogVM
+│       │   └── Dialogs/        # ServerDialogVM, GatewayDialogVM, ProjectDialogVM, PinDialogVM, ScheduledTaskDialogVM
 │       ├── Views/              # MainWindow, SessionPaneControl, SplitContainerControl,
 │       │                       # EmbeddedRdpView, EmbeddedSshView, EmbeddedSftpView, EmbeddedCitrixView,
 │       │                       # EmbeddedVncView, FloatingSessionWindow, LocalFileBrowserView
-│       │   └── Dialogs/        # ServerDialog, GatewayDialog, ProjectDialog, PinDialog, InputDialog
+│       │   └── Dialogs/        # ServerDialog, GatewayDialog, ProjectDialog, PinDialog, InputDialog, ScheduledTaskDialog
 │       ├── Services/           # ConnectionService (9 partial files: .Rdp, .Ssh, .Sftp, .Citrix, .Local, .Tunnel, .Vnc, .Telnet, .Ftp),
 │       │                       # SplitService, EmbeddedSessionManager, MigrationService, DialogService,
 │       │                       # NavigationService, SleepPrevention, TaskSchedulerService, MacroService,
@@ -156,6 +156,7 @@ Heimdall.slnx
 | **SecureFileWriter** | Atomic file creation with restrictive ACL (TOCTOU-safe) |
 | **InvertBoolConverter** | WPF value converter for boolean inversion |
 | **PaletteActiveIndicatorConverter** | IMultiValueConverter: protocol-colored left rail brush for active sessions in Command Palette |
+| **StringToBrushConverter** | Parses hex color strings (e.g., project colors) into `SolidColorBrush` for XAML binding |
 
 ## Technology Stack
 
