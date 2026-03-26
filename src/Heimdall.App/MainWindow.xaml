@@ -480,7 +480,8 @@
                                 ItemContainerStyle="{DynamicResource ThemedTabItemStyle}">
                         <TabControl.ItemTemplate>
                             <DataTemplate DataType="{x:Type vm:SessionTabViewModel}">
-                                <Border x:Name="TabHeaderBorder" Padding="10,6" Background="Transparent">
+                                <Border x:Name="TabHeaderBorder" Padding="10,6" Background="Transparent"
+                                        ToolTip="{Binding HeaderToolTip}">
                                     <DockPanel LastChildFill="True">
                                         <!-- Close button always occupies layout space (Hidden, not Collapsed)
                                              so the tab width stays constant on hover. Only opacity toggles.
@@ -503,11 +504,8 @@
                                             <TextBlock Text="{Binding Title}" FontSize="{StaticResource FontSizeBody}" FontWeight="SemiBold"
                                                        Foreground="{DynamicResource TextPrimaryBrush}"
                                                        VerticalAlignment="Center"
-                                                       ToolTip="{Binding Title}"
+                                                       ToolTip="{Binding HeaderToolTip}"
                                                        TextTrimming="CharacterEllipsis" MaxWidth="160"/>
-                                            <TextBlock x:Name="TunnelRouteText" Text="{Binding TunnelRoute}" FontSize="{StaticResource FontSizeSmallCaption}"
-                                                       Foreground="{DynamicResource TextSecondaryBrush}"
-                                                       VerticalAlignment="Center" Margin="5,0,0,0"/>
                                             <TextBlock x:Name="BusyIndicator" Text="&#x25CF;" FontSize="8"
                                                        Foreground="{DynamicResource AccentBrush}"
                                                        VerticalAlignment="Center" Margin="5,0,0,0"
