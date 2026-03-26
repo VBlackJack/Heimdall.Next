@@ -658,6 +658,111 @@
                                     <Run Text="{Binding ServerList.SelectedServer.Environment, Mode=OneWay}"/>
                                 </TextBlock>
 
+                                <!-- Enriched metadata section -->
+                                <Border Margin="0,12,0,0" Padding="12,8"
+                                        Background="{DynamicResource CardBrush}"
+                                        CornerRadius="{StaticResource CornerRadiusSm}"
+                                        BorderBrush="{DynamicResource BorderBrush}"
+                                        BorderThickness="1">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                        </Grid.RowDefinitions>
+
+                                        <!-- Project -->
+                                        <TextBlock x:Name="Mw_DetailProjectLabel" Grid.Row="0" Grid.Column="0"
+                                                   Text="" FontSize="{StaticResource FontSizeCaption}"
+                                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                                   Margin="0,2,12,2" VerticalAlignment="Center"
+                                                   Visibility="{Binding ServerList.SelectedServer.ProjectName, Converter={StaticResource NullToVisibilityConverter}}"/>
+                                        <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal"
+                                                    Visibility="{Binding ServerList.SelectedServer.ProjectName, Converter={StaticResource NullToVisibilityConverter}}"
+                                                    Margin="0,2,0,2">
+                                            <Ellipse Width="8" Height="8" Margin="0,0,6,0" VerticalAlignment="Center"
+                                                     Fill="{Binding ServerList.SelectedServer.ProjectColor, Converter={StaticResource StringToBrushConverter}, FallbackValue={DynamicResource AccentBrush}}"/>
+                                            <TextBlock Text="{Binding ServerList.SelectedServer.ProjectName}"
+                                                       FontSize="{StaticResource FontSizeCaption}"
+                                                       Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
+                                        </StackPanel>
+
+                                        <!-- Username -->
+                                        <TextBlock x:Name="Mw_DetailUsernameLabel" Grid.Row="1" Grid.Column="0"
+                                                   Text="" FontSize="{StaticResource FontSizeCaption}"
+                                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                                   Margin="0,2,12,2" VerticalAlignment="Center"
+                                                   Visibility="{Binding ServerList.SelectedServer.Username, Converter={StaticResource NullToVisibilityConverter}}"/>
+                                        <TextBlock Grid.Row="1" Grid.Column="1"
+                                                   Text="{Binding ServerList.SelectedServer.Username}"
+                                                   FontSize="{StaticResource FontSizeCaption}"
+                                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                                   Margin="0,2,0,2"
+                                                   Visibility="{Binding ServerList.SelectedServer.Username, Converter={StaticResource NullToVisibilityConverter}}"/>
+
+                                        <!-- Gateway -->
+                                        <TextBlock x:Name="Mw_DetailGatewayLabel" Grid.Row="2" Grid.Column="0"
+                                                   Text="" FontSize="{StaticResource FontSizeCaption}"
+                                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                                   Margin="0,2,12,2" VerticalAlignment="Center"
+                                                   Visibility="{Binding ServerList.SelectedServer.GatewayName, Converter={StaticResource NullToVisibilityConverter}}"/>
+                                        <TextBlock Grid.Row="2" Grid.Column="1"
+                                                   FontSize="{StaticResource FontSizeCaption}"
+                                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                                   Margin="0,2,0,2"
+                                                   Visibility="{Binding ServerList.SelectedServer.GatewayName, Converter={StaticResource NullToVisibilityConverter}}">
+                                            <Run Text="{Binding ServerList.SelectedServer.GatewayName, Mode=OneWay}"/>
+                                        </TextBlock>
+
+                                        <!-- Authentication -->
+                                        <TextBlock x:Name="Mw_DetailAuthLabel" Grid.Row="3" Grid.Column="0"
+                                                   Text="" FontSize="{StaticResource FontSizeCaption}"
+                                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                                   Margin="0,2,12,2" VerticalAlignment="Center"
+                                                   Visibility="{Binding ServerList.SelectedServer.AuthSummary, Converter={StaticResource NullToVisibilityConverter}}"/>
+                                        <TextBlock Grid.Row="3" Grid.Column="1"
+                                                   Text="{Binding ServerList.SelectedServer.AuthSummary}"
+                                                   FontSize="{StaticResource FontSizeCaption}"
+                                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                                   Margin="0,2,0,2"
+                                                   Visibility="{Binding ServerList.SelectedServer.AuthSummary, Converter={StaticResource NullToVisibilityConverter}}"/>
+
+                                        <!-- Tags -->
+                                        <TextBlock x:Name="Mw_DetailTagsLabel" Grid.Row="4" Grid.Column="0"
+                                                   Text="" FontSize="{StaticResource FontSizeCaption}"
+                                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                                   Margin="0,2,12,2" VerticalAlignment="Center"
+                                                   Visibility="{Binding ServerList.SelectedServer.Tags, Converter={StaticResource NullToVisibilityConverter}}"/>
+                                        <TextBlock Grid.Row="4" Grid.Column="1"
+                                                   Text="{Binding ServerList.SelectedServer.Tags}"
+                                                   FontSize="{StaticResource FontSizeCaption}"
+                                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                                   Margin="0,2,0,2" TextWrapping="Wrap"
+                                                   Visibility="{Binding ServerList.SelectedServer.Tags, Converter={StaticResource NullToVisibilityConverter}}"/>
+
+                                        <!-- Favorite -->
+                                        <TextBlock x:Name="Mw_DetailFavoriteLabel" Grid.Row="5" Grid.Column="0"
+                                                   Text="" FontSize="{StaticResource FontSizeCaption}"
+                                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                                   Margin="0,2,12,2" VerticalAlignment="Center"
+                                                   Visibility="{Binding ServerList.SelectedServer.IsFavorite, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                                        <TextBlock Grid.Row="5" Grid.Column="1"
+                                                   Text="&#xE735;" FontFamily="Segoe MDL2 Assets"
+                                                   FontSize="{StaticResource FontSizeBody}"
+                                                   Foreground="{DynamicResource WarningBrush}"
+                                                   Margin="0,2,0,2"
+                                                   Visibility="{Binding ServerList.SelectedServer.IsFavorite, Converter={StaticResource BoolToVisibilityConverter}}"
+                                                   AutomationProperties.Name="Favorite"/>
+                                    </Grid>
+                                </Border>
+
                                 <Button x:Name="Mw_DetailConnectBtn" Content=""
                                         Command="{Binding ServerList.ConnectCommand}"
                                         CommandParameter="{Binding ServerList.SelectedServer}"
@@ -677,6 +782,11 @@
                                             Foreground="{DynamicResource ErrorTextBrush}"
                                             Padding="12,6"/>
                                 </StackPanel>
+                                <!-- Subtle shortcut hints for detail panel actions -->
+                                <TextBlock x:Name="Mw_DetailActionHints" Text=""
+                                           FontSize="{StaticResource FontSizeSmallCaption}"
+                                           Foreground="{DynamicResource TextDisabledBrush}"
+                                           Margin="0,8,0,0"/>
                             </StackPanel>
                         </Border>
 
@@ -751,6 +861,12 @@
                                             Margin="12,0,0,0"
                                             Click="OnEmptyExploreToolsClick"/>
                                 </StackPanel>
+                                <!-- Keyboard shortcut hints for discoverability -->
+                                <TextBlock x:Name="Mw_EmptyStateShortcutHints" Text=""
+                                           FontSize="{StaticResource FontSizeSmallCaption}"
+                                           Foreground="{DynamicResource TextDisabledBrush}"
+                                           HorizontalAlignment="Center" Margin="0,16,0,0"
+                                           TextAlignment="Center"/>
                             </StackPanel>
 
                             <!-- Show hint when servers exist but none selected -->
@@ -1077,6 +1193,7 @@
             <Grid Visibility="{Binding IsSettingsTabSelected, Converter={StaticResource BoolToVisibilityConverter}}">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
 
@@ -1085,21 +1202,48 @@
                         BorderBrush="{DynamicResource BorderBrush}"
                         BorderThickness="0,0,0,1"
                         Padding="{StaticResource SpacingMd}">
-                    <WrapPanel Orientation="Horizontal">
-                        <Button x:Name="Mw_SettingsSaveBtn" Content="" Command="{Binding Settings.SaveCommand}"
-                                Style="{DynamicResource PrimaryButtonStyle}" MinWidth="130" Margin="0,0,16,4"/>
-                        <Button x:Name="Mw_SettingsResetBtn" Content="" Command="{Binding Settings.ResetToDefaultsCommand}"
-                                Style="{DynamicResource SecondaryButtonStyle}" Width="130" Margin="0,0,8,4"/>
-                        <Button x:Name="Mw_SettingsExportBtn" Content="" Command="{Binding Settings.ExportConfigCommand}"
-                                Style="{DynamicResource SecondaryButtonStyle}" Width="130" Margin="0,0,8,4"/>
-                        <Button x:Name="Mw_SettingsImportBtn" Content="" Command="{Binding Settings.ImportConfigCommand}"
-                                Style="{DynamicResource SecondaryButtonStyle}" Width="130" Margin="0,0,8,4"/>
-                        <Button x:Name="Mw_SettingsCitrixBtn" Content="" Command="{Binding Settings.ImportCitrixAppsCommand}"
-                                Style="{DynamicResource SecondaryButtonStyle}" Width="160" Margin="0,0,8,4"/>
-                    </WrapPanel>
+                    <DockPanel>
+                        <!-- Settings search box (right-aligned) -->
+                        <Grid DockPanel.Dock="Right" Width="220" Margin="12,0,0,0" VerticalAlignment="Center">
+                            <TextBox x:Name="Mw_SettingsSearchBox"
+                                     Style="{DynamicResource SearchTextBoxStyle}"
+                                     Tag="" Padding="10,5,28,5"
+                                     TextChanged="OnSettingsSearchTextChanged"
+                                     AutomationProperties.Name="{loc:Translate A11ySettingsSearch}"/>
+                            <Button x:Name="Mw_SettingsSearchClear"
+                                    Content="&#xE711;" FontFamily="Segoe MDL2 Assets"
+                                    FontSize="{StaticResource FontSizeSmallCaption}"
+                                    HorizontalAlignment="Right" VerticalAlignment="Center"
+                                    Margin="0,0,4,0" Padding="4"
+                                    Style="{DynamicResource ToolbarGhostButtonStyle}" MinHeight="0"
+                                    Click="OnSettingsSearchClearClick"
+                                    Visibility="Collapsed"
+                                    AutomationProperties.Name="{loc:Translate A11yClearSearchFilter}"/>
+                        </Grid>
+                        <WrapPanel Orientation="Horizontal">
+                            <Button x:Name="Mw_SettingsSaveBtn" Content="" Command="{Binding Settings.SaveCommand}"
+                                    Style="{DynamicResource PrimaryButtonStyle}" MinWidth="130" Margin="0,0,16,4"/>
+                            <Button x:Name="Mw_SettingsResetBtn" Content="" Command="{Binding Settings.ResetToDefaultsCommand}"
+                                    Style="{DynamicResource SecondaryButtonStyle}" Width="130" Margin="0,0,8,4"/>
+                            <Button x:Name="Mw_SettingsExportBtn" Content="" Command="{Binding Settings.ExportConfigCommand}"
+                                    Style="{DynamicResource SecondaryButtonStyle}" Width="130" Margin="0,0,8,4"/>
+                            <Button x:Name="Mw_SettingsImportBtn" Content="" Command="{Binding Settings.ImportConfigCommand}"
+                                    Style="{DynamicResource SecondaryButtonStyle}" Width="130" Margin="0,0,8,4"/>
+                            <Button x:Name="Mw_SettingsCitrixBtn" Content="" Command="{Binding Settings.ImportCitrixAppsCommand}"
+                                    Style="{DynamicResource SecondaryButtonStyle}" Width="160" Margin="0,0,8,4"/>
+                        </WrapPanel>
+                    </DockPanel>
                 </Border>
 
-                <TabControl Grid.Row="1" x:Name="Mw_SettingsSubTabControl" TabStripPlacement="Top" Margin="16,8,16,0"
+                <!-- Settings search hint (shown when filtering) -->
+                <Border x:Name="Mw_SettingsSearchHint" Grid.Row="1" Visibility="Collapsed"
+                        Padding="16,4" Background="{DynamicResource SurfaceBrush}">
+                    <TextBlock x:Name="Mw_SettingsSearchHintText"
+                               FontSize="{StaticResource FontSizeCaption}"
+                               Foreground="{DynamicResource TextSecondaryBrush}"/>
+                </Border>
+
+                <TabControl Grid.Row="2" x:Name="Mw_SettingsSubTabControl" TabStripPlacement="Top" Margin="16,8,16,0"
                             Background="Transparent" BorderThickness="0">
 
                     <!-- ═══════ GENERAL ═══════ -->
@@ -1699,6 +1843,12 @@
                 <TextBlock Text="{Binding StatusText}"
                            Foreground="{DynamicResource TextSecondaryBrush}"
                            VerticalAlignment="Center" FontSize="{StaticResource FontSizeCaption}"/>
+                <!-- Subtle F1 shortcut hint — visible when status shows default ready text -->
+                <TextBlock x:Name="Mw_StatusBarShortcutHint" Text=""
+                           FontSize="{StaticResource FontSizeSmallCaption}"
+                           Foreground="{DynamicResource TextDisabledBrush}"
+                           VerticalAlignment="Center"
+                           Margin="12,0,0,0"/>
                 <StackPanel Orientation="Horizontal"
                             DockPanel.Dock="Right"
                             HorizontalAlignment="Right"
@@ -1803,7 +1953,7 @@
                              Background="Transparent"
                              BorderThickness="0"
                              ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                             PreviewMouseLeftButtonDown="OnPaletteItemClick">
+                             MouseDoubleClick="OnPaletteItemDoubleClick">
                         <ListBox.ItemTemplate>
                             <DataTemplate>
                                 <DockPanel Margin="10,6">

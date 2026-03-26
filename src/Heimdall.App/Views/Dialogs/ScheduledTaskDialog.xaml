@@ -90,6 +90,13 @@
                       IsChecked="{Binding IsEnabled}"
                       Margin="0,16,0,0"
                       TabIndex="4"/>
+
+            <!-- Next run preview -->
+            <TextBlock x:Name="TxtNextRunPreview"
+                       Text="{Binding NextRunPreview}"
+                       Style="{StaticResource DialogHintTextStyle}"
+                       Margin="0,8,0,0"
+                       Visibility="{Binding NextRunPreview, Converter={StaticResource NullToVisibilityConverter}}"/>
         </StackPanel>
 
         <!-- Validation error -->

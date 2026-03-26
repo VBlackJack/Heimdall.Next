@@ -93,6 +93,14 @@ public partial class ScheduledTaskDialogViewModel : ObservableValidator
     [ObservableProperty]
     private bool _isEnabled = true;
 
+    // --- Next run preview ---
+
+    /// <summary>
+    /// Read-only preview of when the task will next execute, based on current schedule fields.
+    /// </summary>
+    [ObservableProperty]
+    private string? _nextRunPreview;
+
     // --- Computed visibility ---
 
     /// <summary>True when the schedule type is Daily.</summary>
@@ -105,6 +113,7 @@ public partial class ScheduledTaskDialogViewModel : ObservableValidator
     {
         OnPropertyChanged(nameof(IsDailySchedule));
         OnPropertyChanged(nameof(IsIntervalSchedule));
+        UpdateNextRunPreview();
 
         if (ValidationError is not null)
         {
@@ -162,6 +171,8 @@ public partial class ScheduledTaskDialogViewModel : ObservableValidator
 
     partial void OnTimeOfDayChanged(string value)
     {
+        UpdateNextRunPreview();
+
         if (ValidationError is not null)
         {
             Validate();
@@ -170,9 +181,76 @@ public partial class ScheduledTaskDialogViewModel : ObservableValidator
 
     partial void OnIntervalMinutesChanged(string value)
     {
+        UpdateNextRunPreview();
+
         if (ValidationError is not null)
         {
             Validate();
+        }
+    }
+
+    /// <summary>
+    /// Public entry point for refreshing the next-run preview after the Localizer is assigned.
+    /// Called from the dialog code-behind once localization is ready.
+    /// </summary>
+    public void RefreshNextRunPreview() => UpdateNextRunPreview();
+
+    /// <summary>
+    /// Recomputes the <see cref="NextRunPreview"/> text based on the current schedule fields.
+    /// </summary>
+    private void UpdateNextRunPreview()
+    {
+        if (IsDailySchedule)
+        {
+            if (!string.IsNullOrWhiteSpace(TimeOfDay)
+                && TimeSpan.TryParse(TimeOfDay, System.Globalization.CultureInfo.InvariantCulture, out var ts)
+                && ts >= TimeSpan.Zero
+                && ts.TotalHours < 24)
+            {
+                var now = DateTime.Now;
+                var candidate = now.Date.Add(ts);
+                if (candidate <= now.AddMinutes(1))
+                {
+                    candidate = candidate.AddDays(1);
+                }
+
+                var dayLabel = candidate.Date == now.Date
+                    ? (Localizer?["ScheduledTaskNextRunToday"] ?? "today")
+                    : (Localizer?["ScheduledTaskNextRunTomorrow"] ?? "tomorrow");
+
+                var timeLabel = ts.ToString(@"hh\:mm");
+
+                NextRunPreview = string.Format(
+                    System.Globalization.CultureInfo.CurrentCulture,
+                    Localizer?["ScheduledTaskNextRunDaily"] ?? "Next execution: {0} at {1}",
+                    dayLabel,
+                    timeLabel);
+            }
+            else
+            {
+                NextRunPreview = null;
+            }
+        }
+        else if (IsIntervalSchedule)
+        {
+            if (!string.IsNullOrWhiteSpace(IntervalMinutes)
+                && int.TryParse(IntervalMinutes, out var minutes)
+                && minutes > 0)
+            {
+                NextRunPreview = string.Format(
+                    System.Globalization.CultureInfo.CurrentCulture,
+                    Localizer?["ScheduledTaskNextRunInterval"] ?? "Next execution: in {0} minutes (every {1} min)",
+                    minutes,
+                    minutes);
+            }
+            else
+            {
+                NextRunPreview = null;
+            }
+        }
+        else
+        {
+            NextRunPreview = null;
         }
     }
 
