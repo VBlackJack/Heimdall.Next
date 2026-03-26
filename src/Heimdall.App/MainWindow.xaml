@@ -1074,23 +1074,32 @@
             <!-- ============================================================ -->
             <!-- SETTINGS TAB: Left-navigation sub-tabs                        -->
             <!-- ============================================================ -->
-            <DockPanel Visibility="{Binding IsSettingsTabSelected, Converter={StaticResource BoolToVisibilityConverter}}">
+            <Grid Visibility="{Binding IsSettingsTabSelected, Converter={StaticResource BoolToVisibilityConverter}}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
 
-                <!-- Action buttons pinned at bottom -->
-                <WrapPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="24,8,24,16">
-                    <Button x:Name="Mw_SettingsSaveBtn" Content="" Command="{Binding Settings.SaveCommand}"
-                            Style="{DynamicResource PrimaryButtonStyle}" MinWidth="130" Margin="0,0,16,4"/>
-                    <Button x:Name="Mw_SettingsResetBtn" Content="" Command="{Binding Settings.ResetToDefaultsCommand}"
-                            Style="{DynamicResource SecondaryButtonStyle}" Width="130" Margin="0,0,8,4"/>
-                    <Button x:Name="Mw_SettingsExportBtn" Content="" Command="{Binding Settings.ExportConfigCommand}"
-                            Style="{DynamicResource SecondaryButtonStyle}" Width="130" Margin="0,0,8,4"/>
-                    <Button x:Name="Mw_SettingsImportBtn" Content="" Command="{Binding Settings.ImportConfigCommand}"
-                            Style="{DynamicResource SecondaryButtonStyle}" Width="130" Margin="0,0,8,4"/>
-                    <Button x:Name="Mw_SettingsCitrixBtn" Content="" Command="{Binding Settings.ImportCitrixAppsCommand}"
-                            Style="{DynamicResource SecondaryButtonStyle}" Width="160" Margin="0,0,8,4"/>
-                </WrapPanel>
+                <!-- Sticky action bar -->
+                <Border Grid.Row="0"
+                        BorderBrush="{DynamicResource BorderBrush}"
+                        BorderThickness="0,0,0,1"
+                        Padding="{StaticResource SpacingMd}">
+                    <WrapPanel Orientation="Horizontal">
+                        <Button x:Name="Mw_SettingsSaveBtn" Content="" Command="{Binding Settings.SaveCommand}"
+                                Style="{DynamicResource PrimaryButtonStyle}" MinWidth="130" Margin="0,0,16,4"/>
+                        <Button x:Name="Mw_SettingsResetBtn" Content="" Command="{Binding Settings.ResetToDefaultsCommand}"
+                                Style="{DynamicResource SecondaryButtonStyle}" Width="130" Margin="0,0,8,4"/>
+                        <Button x:Name="Mw_SettingsExportBtn" Content="" Command="{Binding Settings.ExportConfigCommand}"
+                                Style="{DynamicResource SecondaryButtonStyle}" Width="130" Margin="0,0,8,4"/>
+                        <Button x:Name="Mw_SettingsImportBtn" Content="" Command="{Binding Settings.ImportConfigCommand}"
+                                Style="{DynamicResource SecondaryButtonStyle}" Width="130" Margin="0,0,8,4"/>
+                        <Button x:Name="Mw_SettingsCitrixBtn" Content="" Command="{Binding Settings.ImportCitrixAppsCommand}"
+                                Style="{DynamicResource SecondaryButtonStyle}" Width="160" Margin="0,0,8,4"/>
+                    </WrapPanel>
+                </Border>
 
-                <TabControl x:Name="Mw_SettingsSubTabControl" TabStripPlacement="Top" Margin="16,8,16,0"
+                <TabControl Grid.Row="1" x:Name="Mw_SettingsSubTabControl" TabStripPlacement="Top" Margin="16,8,16,0"
                             Background="Transparent" BorderThickness="0">
 
                     <!-- ═══════ GENERAL ═══════ -->
@@ -1128,11 +1137,16 @@
                                         <StackPanel Margin="0,12,0,0">
                                             <TextBlock x:Name="Mw_SettingsEditorPathLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,0,4"/>
                                             <DockPanel>
-                                                <Button x:Name="Mw_SettingsBrowseEditorPath" DockPanel.Dock="Right" Content="..."
+                                                <Button x:Name="Mw_SettingsBrowseEditorPath" DockPanel.Dock="Right"
                                                         Padding="6,2" Margin="4,0,0,0" Click="OnBrowseEditorPathClick"
                                                         Style="{DynamicResource SecondaryButtonStyle}"
                                                         FontSize="{StaticResource FontSizeCaption}"
-                                                        AutomationProperties.Name="{loc:Translate A11yBrowseEditorPath}"/>
+                                                        AutomationProperties.Name="{loc:Translate A11yBrowseEditorPath}">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE838;" FontSize="12" VerticalAlignment="Center"/>
+                                                        <TextBlock Text="{loc:Translate BtnBrowse}" Margin="4,0,0,0" VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
                                                 <TextBox Text="{Binding Settings.ExternalEditorPath}"/>
                                             </DockPanel>
                                         </StackPanel>
@@ -1203,11 +1217,16 @@
                                         <TextBlock x:Name="Mw_SettingsSshTitle" Text="" FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,12"/>
                                         <TextBlock x:Name="Mw_SettingsPlinkPathLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,0,4"/>
                                         <DockPanel>
-                                            <Button x:Name="Mw_SettingsBrowsePlinkPath" DockPanel.Dock="Right" Content="..."
+                                            <Button x:Name="Mw_SettingsBrowsePlinkPath" DockPanel.Dock="Right"
                                                     Padding="6,2" Margin="4,0,0,0" Click="OnBrowsePlinkPathClick"
                                                     Style="{DynamicResource SecondaryButtonStyle}"
                                                     FontSize="{StaticResource FontSizeCaption}"
-                                                    AutomationProperties.Name="{loc:Translate A11yBrowsePlinkPath}"/>
+                                                    AutomationProperties.Name="{loc:Translate A11yBrowsePlinkPath}">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE838;" FontSize="12" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="{loc:Translate BtnBrowse}" Margin="4,0,0,0" VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                            </Button>
                                             <TextBox Text="{Binding Settings.PlinkPath}"/>
                                         </DockPanel>
                                         <StackPanel Margin="0,12,0,0">
@@ -1249,11 +1268,16 @@
                                         <StackPanel Margin="0,12,0,0">
                                             <TextBlock x:Name="Mw_SettingsX11PathLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,0,4"/>
                                             <DockPanel>
-                                                <Button x:Name="Mw_SettingsBrowseX11Path" DockPanel.Dock="Right" Content="..."
+                                                <Button x:Name="Mw_SettingsBrowseX11Path" DockPanel.Dock="Right"
                                                         Padding="6,2" Margin="4,0,0,0" Click="OnBrowseX11PathClick"
                                                         Style="{DynamicResource SecondaryButtonStyle}"
                                                         FontSize="{StaticResource FontSizeCaption}"
-                                                        AutomationProperties.Name="{loc:Translate A11yBrowseX11Path}"/>
+                                                        AutomationProperties.Name="{loc:Translate A11yBrowseX11Path}">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE838;" FontSize="12" VerticalAlignment="Center"/>
+                                                        <TextBlock Text="{loc:Translate BtnBrowse}" Margin="4,0,0,0" VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
                                                 <TextBox Text="{Binding Settings.X11ServerPath}"/>
                                             </DockPanel>
                                         </StackPanel>
@@ -1401,11 +1425,16 @@
                                         <StackPanel Margin="0,12,0,0" IsEnabled="{Binding Settings.SessionLoggingEnabled}">
                                             <TextBlock x:Name="Mw_SettingsSessionLogDirLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,0,4"/>
                                             <DockPanel>
-                                                <Button x:Name="Mw_SettingsBrowseSessionLogDir" DockPanel.Dock="Right" Content="..."
+                                                <Button x:Name="Mw_SettingsBrowseSessionLogDir" DockPanel.Dock="Right"
                                                         Padding="6,2" Margin="4,0,0,0" Click="OnBrowseSessionLogDirClick"
                                                         Style="{DynamicResource SecondaryButtonStyle}"
                                                         FontSize="{StaticResource FontSizeCaption}"
-                                                        AutomationProperties.Name="{loc:Translate A11yBrowseSessionLogDir}"/>
+                                                        AutomationProperties.Name="{loc:Translate A11yBrowseSessionLogDir}">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE838;" FontSize="12" VerticalAlignment="Center"/>
+                                                        <TextBlock Text="{loc:Translate BtnBrowse}" Margin="4,0,0,0" VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
                                                 <TextBox Text="{Binding Settings.SessionLogDirectory}"/>
                                             </DockPanel>
                                         </StackPanel>
@@ -1483,7 +1512,16 @@
 
                                                 <TextBlock x:Name="Mw_ExtToolLblPath" Grid.Row="1" Grid.Column="0" Text="" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeBody}"/>
                                                 <DockPanel Grid.Row="1" Grid.Column="1" Margin="0,0,0,6">
-                                                    <Button x:Name="Mw_ExtToolBrowseBtn" DockPanel.Dock="Right" Content="..." Padding="6,2" Margin="4,0,0,0" Click="OnExtToolBrowseClick" Style="{DynamicResource SecondaryButtonStyle}" FontSize="{StaticResource FontSizeCaption}" AutomationProperties.Name="{loc:Translate A11yBrowseExecutable}"/>
+                                                    <Button x:Name="Mw_ExtToolBrowseBtn" DockPanel.Dock="Right"
+                                                            Padding="6,2" Margin="4,0,0,0" Click="OnExtToolBrowseClick"
+                                                            Style="{DynamicResource SecondaryButtonStyle}"
+                                                            FontSize="{StaticResource FontSizeCaption}"
+                                                            AutomationProperties.Name="{loc:Translate A11yBrowseExecutable}">
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE838;" FontSize="12" VerticalAlignment="Center"/>
+                                                            <TextBlock Text="{loc:Translate BtnBrowse}" Margin="4,0,0,0" VerticalAlignment="Center"/>
+                                                        </StackPanel>
+                                                    </Button>
                                                     <TextBox Text="{Binding ExecutablePath, UpdateSourceTrigger=PropertyChanged}" FontSize="{StaticResource FontSizeBody}"/>
                                                 </DockPanel>
 
@@ -1510,7 +1548,7 @@
                     </TabItem>
 
                 </TabControl>
-            </DockPanel>
+            </Grid>
 
             <!-- ============================================================ -->
             <!-- ABOUT TAB: Application info                                   -->

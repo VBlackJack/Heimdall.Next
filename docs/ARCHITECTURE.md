@@ -379,14 +379,14 @@ ISplitContent (marker interface)
 The application uses a centralized Design System defined in `CommonControls.xaml` with full WCAG AA contrast compliance across both Dark and Light themes.
 
 **Typography tokens (10)** — `sys:Double` resources for consistent font sizing:
-- `FontSizeSmallCaption` (9), `FontSizeCaption` (11), `FontSizeBody` (12), `FontSizeBodyLarge` (13), `FontSizeSubtitle` (14), `FontSizeLarge` (16), `FontSizeTitle` (18), `FontSizeDisplay` (20), `FontSizeHeadline` (24), `FontSizeHero` (64)
+- `FontSizeSmallCaption` (11), `FontSizeCaption` (12), `FontSizeBody` (13), `FontSizeBodyLarge` (14), `FontSizeSubtitle` (15), `FontSizeLarge` (17), `FontSizeTitle` (20), `FontSizeDisplay` (22), `FontSizeHeadline` (24), `FontSizeHero` (64)
 - Usage: `FontSize="{StaticResource FontSizeBody}"` instead of `FontSize="12"`
 
 **Font family tokens**:
 - `FontFamilyMonospace` (`Consolas, Courier New, monospace`) — used for path boxes, code editors, terminal text
 
 **Spacing tokens (5 uniform + 3 asymmetric)** — `Thickness` resources for margins/padding:
-- Uniform: `SpacingXs` (4), `SpacingSm` (8), `SpacingMd` (12), `SpacingLg` (16), `SpacingXl` (24)
+- Uniform: `SpacingXs` (4), `SpacingSm` (8), `SpacingMd` (12), `SpacingLg` (20), `SpacingXl` (24)
 - Asymmetric: `ContentAreaMargin` (16,0,16,16) for tool content areas, `SessionHeaderPadding` (8,4) for session header strips, `ToolHeaderPadding` (12,8) / `ToolFooterPadding` (12,6) for tool panel headers/footers
 - Button padding by role: `PaddingButtonHelp` (6,2), `PaddingButtonCopy` (10,4), `PaddingButtonPrimary` (12,6), `PaddingButtonPreset` (8,2)
 - Input field padding: `PaddingInput` (8,6) for all TextBox inputs

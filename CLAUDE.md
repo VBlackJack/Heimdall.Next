@@ -417,8 +417,8 @@ GitHub Actions (`.github/workflows/ci.yml`) runs on push to main/develop and PRs
 - **Accessibility**: `AutomationProperties.Name` set on all interactive controls for screen reader support (385+ via code-behind `ApplyLocalization()`)
 
 ### Design System (CommonControls.xaml + DialogCommonStyles.xaml)
-- **Typography tokens**: `FontSizeSmallCaption(11)`, `FontSizeCaption(11)`, `FontSizeBody(12)`, `FontSizeSubtitle(14)`, `FontSizeTitle(18)`, `FontSizeHeadline(24)` — minimum 11px per UX audit
-- **Spacing tokens**: `SpacingXs(4)`, `SpacingSm(8)`, `SpacingMd(12)`, `SpacingLg(16)`, `SpacingXl(24)` — uniform `Thickness` resources for `Margin`/`Padding`
+- **Typography tokens**: `FontSizeSmallCaption(11)`, `FontSizeCaption(12)`, `FontSizeBody(13)`, `FontSizeSubtitle(15)`, `FontSizeTitle(20)`, `FontSizeHeadline(24)` — minimum 11px per UX audit
+- **Spacing tokens**: `SpacingXs(4)`, `SpacingSm(8)`, `SpacingMd(12)`, `SpacingLg(20)`, `SpacingXl(24)` — uniform `Thickness` resources for `Margin`/`Padding`
 - **Micro-animations**: `FadeInPanelStyle` (150ms opacity fade-in on `Visibility=Visible`), `AnimationFast(150ms)`, `AnimationMedium(250ms)` — applied to Tools panel expand
 - **Tool category brushes**: `ToolNetworkBrush` (blue), `ToolSecurityBrush` (amber), `ToolEncodingBrush` (purple), `ToolSystemBrush` (teal) — per-tool vector geometries + per-category colors in tree view
 - **Badge/protocol brush parity**: `RdpBadgeBrush` = `ProtocolRdpBrush`, etc. (8 protocols, consistent across tree view and tabs)
