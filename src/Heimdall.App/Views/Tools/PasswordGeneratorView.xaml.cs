@@ -79,6 +79,8 @@ public partial class PasswordGeneratorView : UserControl, IToolView
     private static readonly string[] Consonants =
         ["b","c","d","f","g","h","j","k","l","m","n","p","r","s","t","v","w","x","z"];
     private static readonly string[] Vowels = ["a","e","i","o","u","y"];
+    private static readonly string[] EndingConsonants =
+        ["b","d","f","g","k","l","m","n","p","r","s","t"];
 
     private static readonly string[] FallbackEnglishWords =
     [
@@ -136,6 +138,7 @@ public partial class PasswordGeneratorView : UserControl, IToolView
 
         _initialized = true;
         RebuildCustomPresetButtons();
+        UpdateQuickLengthHighlight();
         GeneratePassword();
     }
 
@@ -208,8 +211,7 @@ public partial class PasswordGeneratorView : UserControl, IToolView
         CmbPpLanguage.Items.Clear();
         CmbPpLanguage.Items.Add(L("ToolPwdGenLangEnglish"));
         CmbPpLanguage.Items.Add(L("ToolPwdGenLangFrench"));
-        CmbPpLanguage.SelectedIndex = 0;
-
+        CmbPpLanguage.SelectedIndex = string.Equals(_localizer?.CurrentLocale, "fr", StringComparison.OrdinalIgnoreCase) ? 1 : 0;
     }
 
     private void ApplyLocalization()
@@ -245,23 +247,33 @@ public partial class PasswordGeneratorView : UserControl, IToolView
         BtnPresetPassphrase4.Content = L("ToolPwdGenPresetPassphrase4");
         BtnPresetPassphrase6.Content = L("ToolPwdGenPresetPassphrase6");
         BtnPresetSsh.Content = L("ToolPwdGenPresetSsh");
+        BtnPresetSylEasy.Content = L("ToolPwdGenPresetSylEasy");
+        BtnPresetSylBalanced.Content = L("ToolPwdGenPresetSylBalanced");
+        BtnPresetSylStrong.Content = L("ToolPwdGenPresetSylStrong");
         QuickLengthLabel.Text = L("ToolPwdGenQuickLength");
         HistoryLabel.Text = L("ToolPwdGenHistory");
         BtnClearHistory.Content = L("ToolPwdGenClearHistory");
+        HistoryEmptyText.Text = L("ToolPwdGenHistoryEmpty");
 
-        // Layout-safe + Phonetic
+        // Layout-safe + Phonetic + Keyboard hint
         ChkLayoutSafe.Content = L("ToolPwdGenLayoutSafe");
         PhoneticLabel.Text = L("ToolPwdGenPhonetic");
         BtnCopyPhonetic.Content = L("ToolPwdGenBtnCopyPhonetic");
         BtnCopyPhonetic.ToolTip = L("TooltipCopyPhonetic");
         System.Windows.Automation.AutomationProperties.SetName(BtnCopyPhonetic, L("TooltipCopyPhonetic"));
+        KeyboardHintText.Text = L("ToolPwdGenKeyboardHint");
 
         // Syllable mode
         SylLengthLabel.Text = L("ToolPwdGenBaseLength");
+        SylStepNote.Text = ChkSylCvc.IsChecked == true ? L("ToolPwdGenSylStepNoteCvc") : L("ToolPwdGenSylStepNote");
+        SylSeparatorLabel.Text = L("ToolPwdGenSeparator");
         SylCaseLabel.Text = L("ToolPwdGenCase");
+        ChkSylCvc.Content = L("ToolPwdGenSylCvc");
+        SylCvcHint.Text = L("ToolPwdGenSylCvcHint");
         SylDigitsLabel.Text = L("ToolPwdGenDigits");
         SylSpecialsLabel.Text = L("ToolPwdGenSymbols");
         SylPlacementLabel.Text = L("ToolPwdGenPlacement");
+        SylStructureLabel.Text = L("ToolPwdGenSylStructure");
 
         // Passphrase mode
         PpWordCountLabel.Text = L("ToolPwdGenWordCount");
@@ -292,6 +304,8 @@ public partial class PasswordGeneratorView : UserControl, IToolView
         System.Windows.Automation.AutomationProperties.SetName(CmbSylCase, L("ToolPwdGenCase"));
         System.Windows.Automation.AutomationProperties.SetName(SylDigitsSlider, L("ToolPwdGenDigits"));
         System.Windows.Automation.AutomationProperties.SetName(SylSpecialsSlider, L("ToolPwdGenSymbols"));
+        System.Windows.Automation.AutomationProperties.SetName(TxtSylSeparator, L("ToolPwdGenSeparator"));
+        System.Windows.Automation.AutomationProperties.SetName(ChkSylCvc, L("ToolPwdGenSylCvc"));
         System.Windows.Automation.AutomationProperties.SetName(PpWordCountSlider, L("ToolPwdGenWordCount"));
         System.Windows.Automation.AutomationProperties.SetName(TxtPpSeparator, L("ToolPwdGenSeparator"));
         System.Windows.Automation.AutomationProperties.SetName(CmbPpLanguage, L("ToolPwdGenLanguage"));
@@ -306,6 +320,9 @@ public partial class PasswordGeneratorView : UserControl, IToolView
         System.Windows.Automation.AutomationProperties.SetName(BtnPresetPassphrase4, L("ToolPwdGenPresetPassphrase4"));
         System.Windows.Automation.AutomationProperties.SetName(BtnPresetPassphrase6, L("ToolPwdGenPresetPassphrase6"));
         System.Windows.Automation.AutomationProperties.SetName(BtnPresetSsh, L("ToolPwdGenPresetSsh"));
+        System.Windows.Automation.AutomationProperties.SetName(BtnPresetSylEasy, L("ToolPwdGenPresetSylEasy"));
+        System.Windows.Automation.AutomationProperties.SetName(BtnPresetSylBalanced, L("ToolPwdGenPresetSylBalanced"));
+        System.Windows.Automation.AutomationProperties.SetName(BtnPresetSylStrong, L("ToolPwdGenPresetSylStrong"));
 
         BtnSavePreset.Content = L("ToolPwdGenBtnSavePreset");
         BtnSavePreset.ToolTip = L("TooltipSavePreset");
@@ -315,6 +332,17 @@ public partial class PasswordGeneratorView : UserControl, IToolView
 
         BtnHelp.ToolTip = L("ToolHelpTooltip");
         System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
+
+        // Quick length button accessibility
+        var lengthLabel = L("ToolPwdGenLength");
+        foreach (var child in QuickLengthPanel.Children)
+        {
+            if (child is Button btn && btn.Tag is string tagStr)
+                System.Windows.Automation.AutomationProperties.SetName(btn, $"{lengthLabel} {tagStr}");
+        }
+
+        // Strength bar accessibility
+        System.Windows.Automation.AutomationProperties.SetName(StrengthBar, L("ToolPwdGenStrengthStrong"));
     }
 
     private GeneratorMode CurrentMode =>
@@ -346,8 +374,13 @@ public partial class PasswordGeneratorView : UserControl, IToolView
         // Layout-safe is relevant for Random and Syllable, not Passphrase
         ChkLayoutSafe.Visibility = mode == GeneratorMode.Passphrase ? Visibility.Collapsed : Visibility.Visible;
 
+        // Structure preview only in Syllable mode
+        if (mode != GeneratorMode.Syllable)
+            PanelSylStructure.Visibility = Visibility.Collapsed;
+
         // Built-in presets per mode; save preset + custom presets always visible
         PresetsRandom.Visibility = mode == GeneratorMode.Random ? Visibility.Visible : Visibility.Collapsed;
+        PresetsSyllable.Visibility = mode == GeneratorMode.Syllable ? Visibility.Visible : Visibility.Collapsed;
         PresetsPassphrase.Visibility = mode == GeneratorMode.Passphrase ? Visibility.Visible : Visibility.Collapsed;
 
         // Update inline placement visibility
@@ -401,6 +434,10 @@ public partial class PasswordGeneratorView : UserControl, IToolView
         // Refresh advanced option visibility (custom specials, exclude ambiguous)
         RefreshAdvancedVisibility();
 
+        // Highlight the quick length button matching current slider value
+        if (CurrentMode == GeneratorMode.Random)
+            UpdateQuickLengthHighlight();
+
         GeneratePassword();
     }
 
@@ -418,6 +455,15 @@ public partial class PasswordGeneratorView : UserControl, IToolView
 
         UpdatePpPlacementVisibility();
         RefreshAdvancedVisibility();
+        OnParameterChanged(sender, e);
+    }
+
+    private void OnSylCvcChanged(object sender, RoutedEventArgs e)
+    {
+        if (!_initialized || _suspendGeneration) return;
+        var isCvc = ChkSylCvc.IsChecked == true;
+        SylLengthSlider.TickFrequency = isCvc ? 1 : 2;
+        SylStepNote.Text = isCvc ? L("ToolPwdGenSylStepNoteCvc") : L("ToolPwdGenSylStepNote");
         OnParameterChanged(sender, e);
     }
 
@@ -446,15 +492,17 @@ public partial class PasswordGeneratorView : UserControl, IToolView
         // Exclude ambiguous is only relevant in Random mode
         ChkExcludeAmbiguous.Visibility = mode == GeneratorMode.Random ? Visibility.Visible : Visibility.Collapsed;
 
-        // Show custom specials if: Random mode with Symbols checked, OR Syllable with specials > 0, OR Passphrase with special checked
-        bool showCustomSpecials = mode switch
+        // Specials active: determines CLI-safe and custom specials relevance
+        bool hasSpecials = mode switch
         {
             GeneratorMode.Random => ChkSymbols?.IsChecked == true,
             GeneratorMode.Syllable => (int)SylSpecialsSlider.Value > 0,
             GeneratorMode.Passphrase => ChkPpSpecial?.IsChecked == true,
             _ => false
         };
-        PanelCustomSpecials.Visibility = showCustomSpecials ? Visibility.Visible : Visibility.Collapsed;
+
+        ChkCliSafe.Visibility = hasSpecials ? Visibility.Visible : Visibility.Collapsed;
+        PanelCustomSpecials.Visibility = hasSpecials ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private void GeneratePassword()
@@ -574,93 +622,139 @@ public partial class PasswordGeneratorView : UserControl, IToolView
         SylSpecialsValueText.Text = specialCount.ToString();
         var placement = (Placement)CmbSylPlacement.SelectedIndex;
         var effectiveSymbols = GetEffectiveSymbols();
+        var separator = TxtSylSeparator.Text;
+        var useCvc = ChkSylCvc.IsChecked == true;
 
-        // Build syllable base
         var isLayoutSafe = ChkLayoutSafe.IsChecked == true;
         var consonants = isLayoutSafe ? LayoutSafeConsonants : Consonants;
         var vowels = isLayoutSafe ? LayoutSafeVowels : Vowels;
-        var sb = new StringBuilder();
-        var syllableIndex = 0;
-        var charIndex = 0;
-        while (sb.Length < targetLength)
-        {
-            var consonant = consonants[CryptoRandomInt(consonants.Length)];
-            var vowel = vowels[CryptoRandomInt(vowels.Length)];
+        var endings = isLayoutSafe
+            ? EndingConsonants.Where(c => !LayoutUnsafeChars.Contains(c[0])).ToArray()
+            : EndingConsonants;
 
-            switch (caseMode)
+        // Build syllable groups as raw lowercase strings
+        var groups = new List<string>();
+        var totalSylChars = 0;
+        var cvcCount = 0;
+        while (totalSylChars < targetLength)
+        {
+            var c = consonants[CryptoRandomInt(consonants.Length)];
+            var v = vowels[CryptoRandomInt(vowels.Length)];
+            var remaining = targetLength - totalSylChars;
+
+            if (useCvc && remaining >= 3 && CryptoRandomInt(2) == 0)
             {
-                case SyllableCase.Upper:
-                    consonant = consonant.ToUpperInvariant();
-                    vowel = vowel.ToUpperInvariant();
-                    break;
-                case SyllableCase.Title:
-                    if (sb.Length == 0 || (syllableIndex > 0 && sb.Length % 2 == 0))
-                        consonant = consonant.ToUpperInvariant();
-                    break;
-                case SyllableCase.Mixed:
-                    if (CryptoRandomInt(4) == 0)
-                        consonant = consonant.ToUpperInvariant();
-                    if (CryptoRandomInt(4) == 0)
-                        vowel = vowel.ToUpperInvariant();
-                    break;
-                case SyllableCase.Alternating:
-                    consonant = charIndex % 2 == 0
-                        ? consonant.ToLowerInvariant()
-                        : consonant.ToUpperInvariant();
-                    charIndex++;
-                    vowel = charIndex % 2 == 0
-                        ? vowel.ToLowerInvariant()
-                        : vowel.ToUpperInvariant();
-                    charIndex++;
-                    break;
-                case SyllableCase.WordCase:
-                    consonant = consonant.ToUpperInvariant();
-                    break;
-                case SyllableCase.Inverse:
-                    consonant = consonant.ToUpperInvariant();
-                    vowel = vowel.ToUpperInvariant();
-                    break;
-                // Lower: no changes needed
+                var e = endings[CryptoRandomInt(endings.Length)];
+                groups.Add(c + v + e);
+                totalSylChars += 3;
+                cvcCount++;
             }
-
-            sb.Append(consonant);
-            if (sb.Length < targetLength)
-                sb.Append(vowel);
-
-            syllableIndex++;
+            else if (remaining >= 2)
+            {
+                groups.Add(c + v);
+                totalSylChars += 2;
+            }
+            else
+            {
+                groups.Add(c);
+                totalSylChars += 1;
+            }
         }
 
-        // Truncate to exact target length
-        if (sb.Length > targetLength)
-            sb.Length = targetLength;
-
-        // For Inverse case: lowercase the last character
-        if (caseMode == SyllableCase.Inverse && sb.Length > 0)
+        // Truncate last group if over target
+        if (totalSylChars > targetLength && groups.Count > 0)
         {
-            sb[sb.Length - 1] = char.ToLowerInvariant(sb[sb.Length - 1]);
+            var excess = totalSylChars - targetLength;
+            var last = groups[^1];
+            groups[^1] = last[..^excess];
         }
 
-        // Convert to char array for insertion
-        var chars = new List<char>(sb.ToString());
+        // Apply case transformation per group
+        var charIndex = 0;
+        for (var gi = 0; gi < groups.Count; gi++)
+        {
+            var g = groups[gi];
+            var sb = new StringBuilder(g.Length);
+            for (var ci = 0; ci < g.Length; ci++)
+            {
+                var ch = g[ci];
+                switch (caseMode)
+                {
+                    case SyllableCase.Upper:
+                        ch = char.ToUpperInvariant(ch);
+                        break;
+                    case SyllableCase.Title:
+                        if (ci == 0) ch = char.ToUpperInvariant(ch);
+                        break;
+                    case SyllableCase.Mixed:
+                        if (CryptoRandomInt(4) == 0) ch = char.ToUpperInvariant(ch);
+                        break;
+                    case SyllableCase.Alternating:
+                        ch = charIndex % 2 == 0 ? ch : char.ToUpperInvariant(ch);
+                        break;
+                    case SyllableCase.WordCase:
+                        if (ci == 0) ch = char.ToUpperInvariant(ch);
+                        break;
+                    case SyllableCase.Inverse:
+                        ch = char.ToUpperInvariant(ch);
+                        break;
+                }
+                sb.Append(ch);
+                charIndex++;
+            }
+            groups[gi] = sb.ToString();
+        }
 
-        // Insert digits and specials using the selected placement
+        // Inverse: lowercase the very last character
+        if (caseMode == SyllableCase.Inverse && groups.Count > 0)
+        {
+            var last = groups[^1];
+            if (last.Length > 0)
+                groups[^1] = last[..^1] + char.ToLowerInvariant(last[^1]);
+        }
+
+        // Build structure preview from groups before extras
+        var structureStr = string.Join(" \u00b7 ", groups);
+
+        // Join with separator
+        var joined = string.Join(separator, groups);
+        var chars = new List<char>(joined);
+
+        // Insert extras
         InsertExtras(chars, digitCount, specialCount, placement, effectiveSymbols);
 
         var finalPassword = new string(chars.ToArray());
         PasswordOutput.Text = finalPassword;
         SylTotalLengthText.Text = string.Format(L("ToolPwdGenTotalLength"), finalPassword.Length);
 
-        // Entropy: syllable choices + digit/special insertions
-        var syllablePoolSize = consonants.Length * vowels.Length;
-        var syllableCount = (targetLength + 1) / 2;
-        var entropy = Math.Log2(syllablePoolSize) * syllableCount;
+        // Structure display
+        if (digitCount > 0 || specialCount > 0)
+            structureStr += $"  + {digitCount}# {specialCount}!";
+        UpdateSylStructureDisplay(structureStr);
+
+        // Entropy calculation
+        var cvPool = consonants.Length * vowels.Length;
+        var cvcPool = consonants.Length * vowels.Length * endings.Length;
+        var cvGroups = groups.Count - cvcCount;
+        var entropy = Math.Log2(cvPool) * cvGroups + Math.Log2(cvcPool) * cvcCount;
+        if (useCvc) entropy += groups.Count; // 1 bit per group for CV/CVC choice
         if (digitCount > 0) entropy += Math.Log2(DigitChars.Length) * digitCount;
         if (specialCount > 0 && effectiveSymbols.Length > 0) entropy += Math.Log2(effectiveSymbols.Length) * specialCount;
-        if (caseMode == SyllableCase.Mixed) entropy += syllableCount; // ~1 bit per syllable for case
+        if (caseMode == SyllableCase.Mixed) entropy += groups.Count;
 
-        UpdateStrengthIndicator(entropy, syllablePoolSize);
+        UpdateStrengthIndicator(entropy, cvPool);
         UpdatePhoneticDisplay(finalPassword);
+    }
 
+    private void UpdateSylStructureDisplay(string structure)
+    {
+        if (CurrentMode != GeneratorMode.Syllable || string.IsNullOrEmpty(structure))
+        {
+            PanelSylStructure.Visibility = Visibility.Collapsed;
+            return;
+        }
+        SylStructureText.Text = structure;
+        PanelSylStructure.Visibility = Visibility.Visible;
     }
 
     private void InsertExtras(List<char> chars, int digitCount, int specialCount, Placement placement, string symbols)
@@ -717,9 +811,22 @@ public partial class PasswordGeneratorView : UserControl, IToolView
         }
 
         var words = new string[wordCount];
+        var usedIndices = new HashSet<int>();
         for (var i = 0; i < wordCount; i++)
         {
-            var word = wordList[CryptoRandomInt(wordList.Length)];
+            int idx;
+            if (usedIndices.Count < wordList.Length)
+            {
+                do { idx = CryptoRandomInt(wordList.Length); }
+                while (usedIndices.Contains(idx));
+            }
+            else
+            {
+                idx = CryptoRandomInt(wordList.Length);
+            }
+            usedIndices.Add(idx);
+
+            var word = wordList[idx];
             if (capitalize && word.Length > 0)
                 word = char.ToUpperInvariant(word[0]) + word[1..];
             words[i] = word;
@@ -769,7 +876,7 @@ public partial class PasswordGeneratorView : UserControl, IToolView
                 break;
             case < 60:
                 strengthKey = "ToolPwdGenStrengthFair";
-                barBrush = (Brush)FindResource("WarningBrush");
+                barBrush = (Brush)FindResource("AccentBrush");
                 widthPercent = 0.50;
                 break;
             case < 80:
@@ -784,8 +891,10 @@ public partial class PasswordGeneratorView : UserControl, IToolView
                 break;
         }
 
-        StrengthLabel.Text = $"{L(strengthKey)} ({entropy:F0} {L("ToolPwdGenBits")})";
+        var strengthText = $"{L(strengthKey)} ({entropy:F0} {L("ToolPwdGenBits")})";
+        StrengthLabel.Text = strengthText;
         StrengthBar.Background = barBrush;
+        System.Windows.Automation.AutomationProperties.SetName(StrengthBar, strengthText);
 
         // Update strength bar fill via Grid column proportions
         StrengthBarFillColumn.Width = new GridLength(widthPercent, GridUnitType.Star);
@@ -905,7 +1014,6 @@ public partial class PasswordGeneratorView : UserControl, IToolView
             ChkPpDigit.IsChecked = true;
             ChkPpSpecial.IsChecked = true;
             TxtPpSeparator.Text = "-";
-            CmbPpLanguage.SelectedIndex = 0;
         }
         finally
         {
@@ -975,6 +1083,20 @@ public partial class PasswordGeneratorView : UserControl, IToolView
         }
     }
 
+    private void UpdateQuickLengthHighlight()
+    {
+        var currentLength = (int)LengthSlider.Value;
+        foreach (var child in QuickLengthPanel.Children)
+        {
+            if (child is Button btn && btn.Tag is string tagStr && int.TryParse(tagStr, out var len))
+            {
+                btn.Style = len == currentLength
+                    ? (Style)FindResource("PrimaryButtonStyle")
+                    : (Style)FindResource("SecondaryButtonStyle");
+            }
+        }
+    }
+
     private void AddToHistory(string password)
     {
         if (string.IsNullOrEmpty(password)) return;
@@ -991,12 +1113,14 @@ public partial class PasswordGeneratorView : UserControl, IToolView
 
         HistoryList.ItemsSource = null;
         HistoryList.ItemsSource = _passwordHistory;
+        HistoryEmptyText.Visibility = Visibility.Collapsed;
     }
 
     private void OnClearHistoryClick(object sender, RoutedEventArgs e)
     {
         _passwordHistory.Clear();
         HistoryList.ItemsSource = null;
+        HistoryEmptyText.Visibility = Visibility.Visible;
     }
 
     private void OnHistoryCopyButtonLoaded(object sender, RoutedEventArgs e)
@@ -1053,6 +1177,43 @@ public partial class PasswordGeneratorView : UserControl, IToolView
     private void OnPresetSsh(object sender, RoutedEventArgs e) =>
         ApplyRandomPreset(20, true, true, true, true);
 
+    private void ApplySyllablePreset(int length, int caseIndex, int digits, int specials,
+        string separator = "", bool cvc = false)
+    {
+        if (!_initialized) return;
+        _suspendGeneration = true;
+        try
+        {
+            CmbMode.SelectedIndex = 1;
+            OnModeSelectionChanged(CmbMode, null!);
+            SylLengthSlider.Value = length;
+            CmbSylCase.SelectedIndex = caseIndex;
+            SylDigitsSlider.Value = digits;
+            SylSpecialsSlider.Value = specials;
+            CmbSylPlacement.SelectedIndex = 0;
+            TxtSylSeparator.Text = separator;
+            ChkSylCvc.IsChecked = cvc;
+            ChkLayoutSafe.IsChecked = false;
+            SylLengthSlider.TickFrequency = cvc ? 1 : 2;
+            SylStepNote.Text = cvc ? L("ToolPwdGenSylStepNoteCvc") : L("ToolPwdGenSylStepNote");
+        }
+        finally
+        {
+            _suspendGeneration = false;
+        }
+        RefreshAdvancedVisibility();
+        GeneratePassword();
+    }
+
+    private void OnPresetSylEasy(object sender, RoutedEventArgs e) =>
+        ApplySyllablePreset(12, 3, 1, 0, "-"); // Title case, 1 digit, separator
+
+    private void OnPresetSylBalanced(object sender, RoutedEventArgs e) =>
+        ApplySyllablePreset(16, 0, 2, 1, "-", true); // Mixed case, CVC, separator
+
+    private void OnPresetSylStrong(object sender, RoutedEventArgs e) =>
+        ApplySyllablePreset(24, 0, 3, 2, "", true); // Mixed case, CVC, no separator
+
     private void OnPresetPassphrase6(object sender, RoutedEventArgs e)
     {
         if (!_initialized) return;
@@ -1066,7 +1227,6 @@ public partial class PasswordGeneratorView : UserControl, IToolView
             ChkPpDigit.IsChecked = true;
             ChkPpSpecial.IsChecked = true;
             TxtPpSeparator.Text = "-";
-            CmbPpLanguage.SelectedIndex = 0;
         }
         finally
         {
@@ -1090,9 +1250,17 @@ public partial class PasswordGeneratorView : UserControl, IToolView
         {
             PasswordOutput.Text = string.Empty;
             UpdatePhoneticDisplay(string.Empty);
-
             UpdateStrengthIndicator(0, 0);
             StrengthIssues.Text = string.Empty;
+            e.Handled = true;
+        }
+        else if (e.Key == Key.C && Keyboard.Modifiers == ModifierKeys.Control)
+        {
+            if (!string.IsNullOrEmpty(PasswordOutput.Text))
+            {
+                Clipboard.SetText(PasswordOutput.Text);
+                CopyFeedbackHelper.ShowCopyFeedback(BtnCopy);
+            }
             e.Handled = true;
         }
     }
@@ -1117,11 +1285,21 @@ public partial class PasswordGeneratorView : UserControl, IToolView
         public bool LayoutSafe { get; set; }
         public bool ExcludeAmbiguous { get; set; }
         public bool CliSafe { get; set; }
+        public string CustomSpecials { get; set; } = string.Empty;
         public int SylLength { get; set; } = 16;
+        public int SylCase { get; set; }
         public int SylDigits { get; set; } = 2;
         public int SylSpecials { get; set; } = 1;
+        public int SylPlacement { get; set; }
+        public string SylSeparator { get; set; } = string.Empty;
+        public bool SylCvc { get; set; }
         public int PpWordCount { get; set; } = 4;
         public string PpSeparator { get; set; } = "-";
+        public int PpLanguage { get; set; }
+        public bool PpCapitalize { get; set; } = true;
+        public bool PpDigit { get; set; } = true;
+        public bool PpSpecial { get; set; } = true;
+        public int PpPlacement { get; set; }
     }
 
     private List<PasswordPreset> LoadCustomPresets()
@@ -1186,11 +1364,21 @@ public partial class PasswordGeneratorView : UserControl, IToolView
             LayoutSafe = ChkLayoutSafe.IsChecked == true,
             ExcludeAmbiguous = ChkExcludeAmbiguous.IsChecked == true,
             CliSafe = ChkCliSafe.IsChecked == true,
+            CustomSpecials = TxtCustomSpecials.Text,
             SylLength = (int)SylLengthSlider.Value,
+            SylCase = CmbSylCase.SelectedIndex,
             SylDigits = (int)SylDigitsSlider.Value,
             SylSpecials = (int)SylSpecialsSlider.Value,
+            SylPlacement = CmbSylPlacement.SelectedIndex,
+            SylSeparator = TxtSylSeparator.Text,
+            SylCvc = ChkSylCvc.IsChecked == true,
             PpWordCount = (int)PpWordCountSlider.Value,
             PpSeparator = TxtPpSeparator.Text,
+            PpLanguage = CmbPpLanguage.SelectedIndex,
+            PpCapitalize = ChkPpCapitalize.IsChecked == true,
+            PpDigit = ChkPpDigit.IsChecked == true,
+            PpSpecial = ChkPpSpecial.IsChecked == true,
+            PpPlacement = CmbPpPlacement.SelectedIndex,
         };
 
         var presets = LoadCustomPresets();
@@ -1213,11 +1401,22 @@ public partial class PasswordGeneratorView : UserControl, IToolView
         ChkLayoutSafe.IsChecked = preset.LayoutSafe;
         ChkExcludeAmbiguous.IsChecked = preset.ExcludeAmbiguous;
         ChkCliSafe.IsChecked = preset.CliSafe;
+        if (!string.IsNullOrEmpty(preset.CustomSpecials))
+            TxtCustomSpecials.Text = preset.CustomSpecials;
         SylLengthSlider.Value = preset.SylLength;
+        CmbSylCase.SelectedIndex = preset.SylCase;
         SylDigitsSlider.Value = preset.SylDigits;
         SylSpecialsSlider.Value = preset.SylSpecials;
+        CmbSylPlacement.SelectedIndex = preset.SylPlacement;
+        TxtSylSeparator.Text = preset.SylSeparator;
+        ChkSylCvc.IsChecked = preset.SylCvc;
         PpWordCountSlider.Value = preset.PpWordCount;
         TxtPpSeparator.Text = preset.PpSeparator;
+        CmbPpLanguage.SelectedIndex = preset.PpLanguage;
+        ChkPpCapitalize.IsChecked = preset.PpCapitalize;
+        ChkPpDigit.IsChecked = preset.PpDigit;
+        ChkPpSpecial.IsChecked = preset.PpSpecial;
+        CmbPpPlacement.SelectedIndex = preset.PpPlacement;
 
         _suspendGeneration = false;
 
@@ -1241,16 +1440,19 @@ public partial class PasswordGeneratorView : UserControl, IToolView
                 Style = (Style)FindResource("SecondaryButtonStyle"),
                 Padding = new Thickness(8, 2, 8, 2),
                 Margin = new Thickness(0, 0, 6, 4),
-                FontSize = 11,
+                FontSize = (double)FindResource("FontSizeSmallCaption"),
             };
             btn.Click += (_, _) => ApplyCustomPreset((PasswordPreset)btn.Tag);
             btn.ToolTip = L("ToolPwdGenPresetRightClickHint");
             System.Windows.Automation.AutomationProperties.SetName(btn, preset.Name);
 
-            // Right-click to delete
+            // Right-click to delete (with confirmation)
             var deleteItem = new MenuItem { Header = L("ToolPwdGenDeletePreset") };
             deleteItem.Click += (_, _) =>
             {
+                var confirmMsg = string.Format(L("ToolPwdGenDeletePresetConfirm"), preset.Name);
+                if (MessageBox.Show(confirmMsg, L("ToolPwdGenDeletePreset"), MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
+                    return;
                 var all = LoadCustomPresets();
                 all.RemoveAll(p => string.Equals(p.Name, preset.Name, StringComparison.OrdinalIgnoreCase));
                 SaveCustomPresets(all);
