@@ -125,51 +125,79 @@ public partial class GatewayDialogViewModel : ObservableValidator
     [ObservableProperty]
     private string? _validationError;
 
+    [ObservableProperty]
+    private string? _nameError;
+
+    [ObservableProperty]
+    private string? _hostError;
+
+    [ObservableProperty]
+    private string? _portError;
+
+    [ObservableProperty]
+    private string? _userError;
+
     /// <summary>
     /// Triggers full validation of all annotated properties.
+    /// Populates per-field inline errors and an aggregate summary.
     /// </summary>
     [RelayCommand]
     private void Validate()
     {
         ValidateAllProperties();
-        ValidationError = HasErrors ? GetFirstError() : null;
+
+        NameError = GetLocalizedFieldError(nameof(Name));
+        HostError = GetLocalizedFieldError(nameof(Host));
+        PortError = GetLocalizedFieldError(nameof(Port));
+        UserError = GetLocalizedFieldError(nameof(User));
+
+        RefreshValidationSummary();
+    }
+
+    private void RefreshValidationSummary()
+    {
+        ValidationError = NameError ?? HostError ?? PortError ?? UserError;
     }
 
     // --- Live re-validation (only when errors are already showing) ---
 
     partial void OnNameChanged(string value)
     {
-        if (ValidationError is not null)
+        if (NameError is not null)
         {
             ValidateProperty(value, nameof(Name));
-            ValidationError = HasErrors ? GetFirstError() : null;
+            NameError = GetLocalizedFieldError(nameof(Name));
+            RefreshValidationSummary();
         }
     }
 
     partial void OnHostChanged(string value)
     {
-        if (ValidationError is not null)
+        if (HostError is not null)
         {
             ValidateProperty(value, nameof(Host));
-            ValidationError = HasErrors ? GetFirstError() : null;
+            HostError = GetLocalizedFieldError(nameof(Host));
+            RefreshValidationSummary();
         }
     }
 
     partial void OnPortChanged(int value)
     {
-        if (ValidationError is not null)
+        if (PortError is not null)
         {
             ValidateProperty(value, nameof(Port));
-            ValidationError = HasErrors ? GetFirstError() : null;
+            PortError = GetLocalizedFieldError(nameof(Port));
+            RefreshValidationSummary();
         }
     }
 
     partial void OnUserChanged(string value)
     {
-        if (ValidationError is not null)
+        if (UserError is not null)
         {
             ValidateProperty(value, nameof(User));
-            ValidationError = HasErrors ? GetFirstError() : null;
+            UserError = GetLocalizedFieldError(nameof(User));
+            RefreshValidationSummary();
         }
     }
 
@@ -241,13 +269,13 @@ public partial class GatewayDialogViewModel : ObservableValidator
         ["Username cannot be empty."] = "ValidationUsernameEmpty",
     };
 
-    private string? GetFirstError()
+    private string? GetLocalizedFieldError(string propertyName)
     {
-        var firstProperty = GetErrors()
+        var error = GetErrors(propertyName)
             .OfType<System.ComponentModel.DataAnnotations.ValidationResult>()
             .FirstOrDefault();
 
-        var message = firstProperty?.ErrorMessage;
+        var message = error?.ErrorMessage;
         if (message is not null && Localizer is not null
             && ValidationKeyMap.TryGetValue(message, out var key))
         {

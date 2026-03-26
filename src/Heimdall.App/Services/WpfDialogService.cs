@@ -124,6 +124,24 @@ public class WpfDialogService(LocalizationManager localizer, ConfigManager confi
     }
 
     /// <inheritdoc/>
+    public Task<ScheduledTaskDialogResult?> ShowScheduledTaskDialogAsync(ScheduledTaskDialogViewModel? editVm = null)
+    {
+        var vm = editVm ?? new ScheduledTaskDialogViewModel();
+        vm.Localizer ??= _localizer;
+        var dialog = new Views.Dialogs.ScheduledTaskDialog
+        {
+            DataContext = vm,
+            Owner = GetOwnerWindow()
+        };
+
+        ScheduledTaskDialogResult? result = dialog.ShowDialog() == true
+            ? new ScheduledTaskDialogResult(vm.ToDto(), true)
+            : null;
+
+        return Task.FromResult(result);
+    }
+
+    /// <inheritdoc/>
     public Task ShowPinDialogAsync(PinDialogViewModel viewModel)
     {
         ArgumentNullException.ThrowIfNull(viewModel);

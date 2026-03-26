@@ -75,6 +75,9 @@
                      Style="{StaticResource DialogFormTextBoxStyle}"
                      MaxLength="50"
                      x:Name="TxtName" TabIndex="0"/>
+            <TextBlock Text="{Binding NameError}"
+                       Style="{StaticResource FieldValidationErrorStyle}"
+                       Visibility="{Binding NameError, Converter={StaticResource NullToVisibilityConverter}}"/>
             <TextBlock Foreground="{DynamicResource TextDisabledBrush}" FontSize="{StaticResource FontSizeCaption}"
                        HorizontalAlignment="Right" Margin="0,2,0,0">
                 <TextBlock.Text>
@@ -95,6 +98,9 @@
                      VerticalContentAlignment="Top"
                      VerticalScrollBarVisibility="Auto"
                      x:Name="TxtDescription" TabIndex="1"/>
+            <TextBlock Text="{Binding DescriptionError}"
+                       Style="{StaticResource FieldValidationErrorStyle}"
+                       Visibility="{Binding DescriptionError, Converter={StaticResource NullToVisibilityConverter}}"/>
             <TextBlock Foreground="{DynamicResource TextDisabledBrush}" FontSize="{StaticResource FontSizeCaption}"
                        HorizontalAlignment="Right" Margin="0,2,0,0">
                 <TextBlock.Text>

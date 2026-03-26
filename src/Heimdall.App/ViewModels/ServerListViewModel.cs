@@ -899,7 +899,12 @@ public partial class ServerListViewModel : ObservableObject
             filtered = filtered.Where(s =>
                 s.DisplayName.Contains(term, StringComparison.OrdinalIgnoreCase) ||
                 s.RemoteServer.Contains(term, StringComparison.OrdinalIgnoreCase) ||
-                s.Group.Contains(term, StringComparison.OrdinalIgnoreCase));
+                s.Group.Contains(term, StringComparison.OrdinalIgnoreCase) ||
+                s.Username.Contains(term, StringComparison.OrdinalIgnoreCase) ||
+                s.ConnectionType.Contains(term, StringComparison.OrdinalIgnoreCase) ||
+                s.Environment.Contains(term, StringComparison.OrdinalIgnoreCase) ||
+                s.Tags.Contains(term, StringComparison.OrdinalIgnoreCase) ||
+                s.ProjectName.Contains(term, StringComparison.OrdinalIgnoreCase));
         }
 
         if (!string.IsNullOrWhiteSpace(SelectedProject))

@@ -71,6 +71,13 @@ public interface IDialogService
     Task<ProjectDialogResult?> ShowProjectDialogAsync(ProjectDialogViewModel? editVm = null);
 
     /// <summary>
+    /// Shows the scheduled task add/edit dialog.
+    /// </summary>
+    /// <param name="editVm">Pre-populated ViewModel for edit mode, or null for add mode.</param>
+    /// <returns>The dialog result containing the DTO and save status, or null if cancelled.</returns>
+    Task<ScheduledTaskDialogResult?> ShowScheduledTaskDialogAsync(ScheduledTaskDialogViewModel? editVm = null);
+
+    /// <summary>
     /// Shows the PIN entry dialog for authentication.
     /// </summary>
     /// <param name="viewModel">The PIN dialog ViewModel managing verification state.</param>

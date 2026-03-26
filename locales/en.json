@@ -365,6 +365,18 @@
   "ErrorScheduledTaskNameEmpty": "Error: Task name is required.",
   "ErrorScheduledTaskServerEmpty": "Error: Please select a server.",
   "ErrorScheduledTaskTimeInvalid": "Error: Invalid time format. Use HH:mm.",
+  "ScheduledTaskFieldServerLabel": "Server:",
+  "ScheduledTaskFieldScheduleType": "Schedule Type:",
+  "ScheduledTaskFieldTimeOfDay": "Time of Day:",
+  "ScheduledTaskFieldTimeOfDayHint": "24-hour format, e.g. 08:00",
+  "ScheduledTaskFieldInterval": "Interval (minutes):",
+  "ScheduledTaskFieldIntervalSuffix": "min",
+  "ScheduledTaskFieldEnabled": "Enabled",
+  "ScheduleTypeDaily": "Daily",
+  "ScheduleTypeInterval": "Interval",
+  "ValidationScheduledTaskServerRequired": "Please select a server.",
+  "ValidationScheduledTaskTimeInvalid": "Invalid time format. Use HH:mm (24-hour).",
+  "ValidationScheduledTaskIntervalInvalid": "Interval must be a positive number of minutes.",
   "TooltipAddScheduledTask": "Add a new scheduled connection",
   "TooltipEditScheduledTask": "Edit selected scheduled task",
   "TooltipDeleteScheduledTask": "Delete selected scheduled task",
@@ -1644,6 +1656,7 @@
 
   "ScheduledSectionTitle": "Scheduled Connections",
   "ScheduledBtnAdd": "+ Add",
+  "ScheduledBtnEdit": "Edit",
   "ScheduledBtnDelete": "Delete",
   "ScheduledColEnabled": "On",
   "ScheduledColServer": "Server",
@@ -3403,6 +3416,7 @@
   "AccessGatewaysEdit": "Edit gateway",
   "AccessGatewaysDelete": "Delete gateway",
   "AccessScheduledAdd": "Add scheduled task",
+  "AccessScheduledEdit": "Edit scheduled task",
   "AccessScheduledDelete": "Delete scheduled task",
   "AccessScheduledCreate": "Create scheduled connection",
   "AccessSettingsSave": "Save settings",
@@ -3675,5 +3689,11 @@
 
   "_comment_dirty_guards": "",
   "DialogUnsavedWarningTitle": "Unsaved Changes",
-  "DialogUnsavedWarning": "You have unsaved changes. Discard them and close?"
+  "DialogUnsavedWarning": "You have unsaved changes. Discard them and close?",
+
+  "_comment_server_dialog_basic_auth": "",
+  "ServerDialogLocalShellAdvanced": "Advanced shell options",
+  "ServerDialogLocalShellAdvancedDesc": "Working directory and elevation settings.",
+  "ServerDialogCitrixAdvanced": "Advanced Citrix options",
+  "ServerDialogCitrixAdvancedDesc": "ICA file, seamless mode, and single sign-on settings."
 }

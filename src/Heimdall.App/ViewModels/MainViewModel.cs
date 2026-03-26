@@ -652,103 +652,74 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private async Task AddScheduledTaskAsync(CancellationToken cancellationToken)
     {
-        // Step 1: Ask for server name (ideally from existing servers)
-        var serverName = await _dialogService.ShowInputAsync(
-            _localizer["ScheduledTaskDialogTitleAdd"],
-            _localizer["ScheduledTaskFieldServer"]);
-
-        if (string.IsNullOrWhiteSpace(serverName))
+        var vm = new ScheduledTaskDialogViewModel
         {
-            return;
-        }
-
-        // Resolve server ID and connection type from the server inventory
-        var servers = await _configManager.LoadServersAsync();
-        var serverDto = servers.FirstOrDefault(
-            s => string.Equals(s.DisplayName, serverName, StringComparison.OrdinalIgnoreCase));
-
-        var serverId = serverDto?.Id ?? string.Empty;
-        var connectionType = serverDto?.ConnectionType ?? "SSH";
-
-        // Step 2: Ask for schedule type ("Daily HH:mm" or "Every N min")
-        var scheduleInput = await _dialogService.ShowInputAsync(
-            _localizer["ScheduledTaskDialogTitleAdd"],
-            _localizer["ScheduledTaskFieldTime"],
-            "Daily 08:00");
-
-        if (string.IsNullOrWhiteSpace(scheduleInput))
-        {
-            return;
-        }
-
-        var task = new ScheduledTaskDto
-        {
-            Id = Guid.NewGuid().ToString(),
-            ServerId = serverId,
-            ServerName = serverDto?.DisplayName ?? serverName,
-            ConnectionType = connectionType,
-            Enabled = true
+            DialogTitle = _localizer["ScheduledTaskDialogTitleAdd"]
         };
 
-        // Parse the schedule input to determine type and parameters
-        ParseScheduleInput(scheduleInput, task);
-        TaskSchedulerService.ComputeNextRun(task, DateTime.Now);
+        await PopulateScheduledTaskServersAsync(vm);
 
-        ScheduledTasks.Add(task);
+        var result = await _dialogService.ShowScheduledTaskDialogAsync(vm);
+        if (result is null)
+        {
+            return;
+        }
+
+        TaskSchedulerService.ComputeNextRun(result.Task, DateTime.Now);
+        ScheduledTasks.Add(result.Task);
         OnPropertyChanged(nameof(HasNoScheduledTasks));
         await SaveScheduledTasksAsync();
-        StatusText = _localizer.Format("StatusScheduledTaskAdded", task.ServerName);
+        StatusText = _localizer.Format("StatusScheduledTaskAdded", result.Task.ServerName);
+    }
+
+    [RelayCommand]
+    private async Task EditScheduledTaskAsync(CancellationToken cancellationToken)
+    {
+        if (SelectedScheduledTask is null)
+        {
+            return;
+        }
+
+        var vm = ScheduledTaskDialogViewModel.FromDto(SelectedScheduledTask);
+        vm.DialogTitle = _localizer["ScheduledTaskDialogTitleEdit"];
+        await PopulateScheduledTaskServersAsync(vm);
+        vm.SelectServerById(SelectedScheduledTask.ServerId);
+
+        var result = await _dialogService.ShowScheduledTaskDialogAsync(vm);
+        if (result is null)
+        {
+            return;
+        }
+
+        // Replace the existing task in the collection
+        var index = ScheduledTasks.IndexOf(SelectedScheduledTask);
+        if (index >= 0)
+        {
+            TaskSchedulerService.ComputeNextRun(result.Task, DateTime.Now);
+            ScheduledTasks[index] = result.Task;
+            SelectedScheduledTask = result.Task;
+        }
+
+        await SaveScheduledTasksAsync();
+        StatusText = _localizer.Format("StatusScheduledTaskUpdated", result.Task.ServerName);
     }
 
     /// <summary>
-    /// Parses user input like "Daily 08:00" or "Every 30 min" into structured DTO fields.
+    /// Populates the server options list in the scheduled task dialog ViewModel
+    /// from the current server inventory.
     /// </summary>
-    private static void ParseScheduleInput(string input, ScheduledTaskDto task)
+    private async Task PopulateScheduledTaskServersAsync(ScheduledTaskDialogViewModel vm)
     {
-        var trimmed = input.Trim();
+        var servers = await _configManager.LoadServersAsync();
+        var options = servers
+            .OrderBy(s => s.DisplayName, StringComparer.OrdinalIgnoreCase)
+            .Select(s => new Dialogs.ServerOption(
+                s.Id,
+                $"{s.DisplayName} ({s.ConnectionType})",
+                s.ConnectionType ?? "SSH"))
+            .ToList();
 
-        // Check for interval pattern: "Every N min" or just a number
-        if (trimmed.StartsWith("Every ", StringComparison.OrdinalIgnoreCase))
-        {
-            var parts = trimmed.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            if (parts.Length >= 2 && int.TryParse(parts[1], out var minutes) && minutes > 0)
-            {
-                task.ScheduleType = nameof(Core.Models.ScheduleType.Interval);
-                task.IntervalMinutes = minutes;
-                task.Schedule = $"Every {minutes} min";
-                return;
-            }
-        }
-
-        if (int.TryParse(trimmed, out var intervalOnly) && intervalOnly > 0)
-        {
-            task.ScheduleType = nameof(Core.Models.ScheduleType.Interval);
-            task.IntervalMinutes = intervalOnly;
-            task.Schedule = $"Every {intervalOnly} min";
-            return;
-        }
-
-        // Default: Daily schedule — extract time part
-        task.ScheduleType = nameof(Core.Models.ScheduleType.Daily);
-
-        // Try "Daily HH:mm" format
-        if (trimmed.StartsWith("Daily ", StringComparison.OrdinalIgnoreCase))
-        {
-            task.TimeOfDay = trimmed[6..].Trim();
-        }
-        else
-        {
-            // Assume the input is just HH:mm
-            task.TimeOfDay = trimmed;
-        }
-
-        // Validate the time format; default to 08:00 if invalid
-        if (!TimeSpan.TryParse(task.TimeOfDay, System.Globalization.CultureInfo.InvariantCulture, out _))
-        {
-            task.TimeOfDay = "08:00";
-        }
-
-        task.Schedule = $"Daily {task.TimeOfDay}";
+        vm.AvailableServers = new System.Collections.ObjectModel.ObservableCollection<Dialogs.ServerOption>(options);
     }
 
     [RelayCommand]
@@ -1354,7 +1325,12 @@ public partial class MainViewModel : ObservableObject
         int best = 0;
         best = Math.Max(best, FuzzyScoreString(server.DisplayName, query));
         best = Math.Max(best, FuzzyScoreString(server.RemoteServer ?? "", query));
-        best = Math.Max(best, FuzzyScoreString(server.Group ?? "", query) / 2); // Group matches worth less
+        best = Math.Max(best, FuzzyScoreString(server.Group ?? "", query) / 2);
+        best = Math.Max(best, FuzzyScoreString(server.Username ?? "", query) / 2);
+        best = Math.Max(best, FuzzyScoreString(server.ConnectionType ?? "", query) / 2);
+        best = Math.Max(best, FuzzyScoreString(server.Environment ?? "", query) / 2);
+        best = Math.Max(best, FuzzyScoreString(server.Tags ?? "", query) / 2);
+        best = Math.Max(best, FuzzyScoreString(server.ProjectName ?? "", query) / 2);
         return best;
     }
 

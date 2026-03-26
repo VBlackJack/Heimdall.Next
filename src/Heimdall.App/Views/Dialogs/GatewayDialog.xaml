@@ -39,11 +39,17 @@
                 <TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}"
                          Style="{StaticResource DialogFormTextBoxStyle}"
                          x:Name="TxtName" TabIndex="0"/>
+                <TextBlock Text="{Binding NameError}"
+                           Style="{StaticResource FieldValidationErrorStyle}"
+                           Visibility="{Binding NameError, Converter={StaticResource NullToVisibilityConverter}}"/>
 
                 <TextBlock x:Name="LblHost" Style="{StaticResource DialogLabelStyle}" Margin="0,12,0,4"/>
                 <TextBox Text="{Binding Host, UpdateSourceTrigger=PropertyChanged}"
                          Style="{StaticResource DialogFormTextBoxStyle}"
                          x:Name="TxtHost" TabIndex="1"/>
+                <TextBlock Text="{Binding HostError}"
+                           Style="{StaticResource FieldValidationErrorStyle}"
+                           Visibility="{Binding HostError, Converter={StaticResource NullToVisibilityConverter}}"/>
 
                 <TextBlock x:Name="LblPort" Style="{StaticResource DialogLabelStyle}" Margin="0,12,0,4"/>
                 <TextBox Text="{Binding Port}"
@@ -51,11 +57,17 @@
                          Width="100" HorizontalAlignment="Left"
                          MaxLength="5"
                          x:Name="TxtPort" TabIndex="2"/>
+                <TextBlock Text="{Binding PortError}"
+                           Style="{StaticResource FieldValidationErrorStyle}"
+                           Visibility="{Binding PortError, Converter={StaticResource NullToVisibilityConverter}}"/>
 
                 <TextBlock x:Name="LblUsername" Style="{StaticResource DialogLabelStyle}" Margin="0,12,0,4"/>
                 <TextBox Text="{Binding User, UpdateSourceTrigger=PropertyChanged}"
                          Style="{StaticResource DialogFormTextBoxStyle}"
                          x:Name="TxtUsername" TabIndex="3"/>
+                <TextBlock Text="{Binding UserError}"
+                           Style="{StaticResource FieldValidationErrorStyle}"
+                           Visibility="{Binding UserError, Converter={StaticResource NullToVisibilityConverter}}"/>
 
                 <TextBlock x:Name="LblKeyPath" Style="{StaticResource DialogLabelStyle}" Margin="0,12,0,4"/>
                 <DockPanel>

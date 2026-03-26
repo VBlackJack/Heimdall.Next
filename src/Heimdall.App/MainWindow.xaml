@@ -1022,6 +1022,10 @@
                                 Command="{Binding AddScheduledTaskCommand}"
                                 Style="{DynamicResource PrimaryButtonStyle}"
                                 Padding="8,3" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,4,0"/>
+                        <Button x:Name="Mw_ScheduledEditBtn" Content=""
+                                Command="{Binding EditScheduledTaskCommand}"
+                                Style="{DynamicResource SecondaryButtonStyle}"
+                                Padding="8,3" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,4,0"/>
                         <Button x:Name="Mw_ScheduledDeleteBtn" Content=""
                                 Command="{Binding DeleteScheduledTaskCommand}"
                                 Style="{DynamicResource SecondaryButtonStyle}"
@@ -1036,6 +1040,7 @@
                               AutoGenerateColumns="False"
                               SelectionMode="Single"
                               Margin="16,0,16,8"
+                              MouseDoubleClick="OnScheduledTaskDoubleClick"
                               Style="{DynamicResource ThemedDataGridStyle}"
                               ColumnHeaderStyle="{DynamicResource ThemedDataGridColumnHeaderStyle}"
                               CellStyle="{DynamicResource ThemedDataGridCellStyle}"
@@ -1091,7 +1096,7 @@
                     <!-- ═══════ GENERAL ═══════ -->
                     <TabItem x:Name="Mw_SettingsTabGeneral" Style="{StaticResource ThemedTabItemStyle}">
                         <ScrollViewer VerticalScrollBarVisibility="Auto">
-                            <StackPanel Margin="{StaticResource SpacingLg}" MaxWidth="600">
+                            <StackPanel Margin="{StaticResource SpacingLg}" MaxWidth="900">
                                 <Border Padding="{StaticResource SpacingLg}" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource CornerRadiusLg}" Margin="0,0,0,16">
                                     <StackPanel>
                                         <TextBlock x:Name="Mw_SettingsAppearanceTitle" Text="" FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,12"/>
@@ -1141,7 +1146,7 @@
                     <!-- ═══════ TERMINAL ═══════ -->
                     <TabItem x:Name="Mw_SettingsTabTerminal" Style="{StaticResource ThemedTabItemStyle}">
                         <ScrollViewer VerticalScrollBarVisibility="Auto">
-                            <StackPanel Margin="{StaticResource SpacingLg}" MaxWidth="600">
+                            <StackPanel Margin="{StaticResource SpacingLg}" MaxWidth="900">
                                 <Border Padding="{StaticResource SpacingLg}" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource CornerRadiusLg}">
                                     <StackPanel>
                                         <TextBlock x:Name="Mw_SettingsTerminalTitle" Text="" FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,12"/>
@@ -1192,7 +1197,7 @@
                     <!-- ═══════ SSH & SFTP ═══════ -->
                     <TabItem x:Name="Mw_SettingsTabSsh" Style="{StaticResource ThemedTabItemStyle}">
                         <ScrollViewer VerticalScrollBarVisibility="Auto">
-                            <StackPanel Margin="{StaticResource SpacingLg}" MaxWidth="600">
+                            <StackPanel Margin="{StaticResource SpacingLg}" MaxWidth="900">
                                 <Border Padding="{StaticResource SpacingLg}" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource CornerRadiusLg}" Margin="0,0,0,16">
                                     <StackPanel>
                                         <TextBlock x:Name="Mw_SettingsSshTitle" Text="" FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,12"/>
@@ -1289,7 +1294,7 @@
                     <!-- ═══════ RDP ═══════ -->
                     <TabItem x:Name="Mw_SettingsTabRdp" Style="{StaticResource ThemedTabItemStyle}">
                         <ScrollViewer VerticalScrollBarVisibility="Auto">
-                            <StackPanel Margin="{StaticResource SpacingLg}" MaxWidth="600">
+                            <StackPanel Margin="{StaticResource SpacingLg}" MaxWidth="900">
                                 <Border Padding="{StaticResource SpacingLg}" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource CornerRadiusLg}">
                                     <StackPanel>
                                         <TextBlock x:Name="Mw_SettingsRdpDefaultsTitle" Text="" FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,12"/>
@@ -1363,7 +1368,7 @@
                     <!-- ═══════ SECURITY ═══════ -->
                     <TabItem x:Name="Mw_SettingsTabSecurity" Style="{StaticResource ThemedTabItemStyle}">
                         <ScrollViewer VerticalScrollBarVisibility="Auto">
-                            <StackPanel Margin="{StaticResource SpacingLg}" MaxWidth="600">
+                            <StackPanel Margin="{StaticResource SpacingLg}" MaxWidth="900">
                                 <Border Padding="{StaticResource SpacingLg}" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource CornerRadiusLg}">
                                     <StackPanel>
                                         <TextBlock x:Name="Mw_SettingsCredProviderTitle" Text="" FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,12"/>
@@ -1386,7 +1391,7 @@
                     <!-- ═══════ ADVANCED ═══════ -->
                     <TabItem x:Name="Mw_SettingsTabAdvanced" Style="{StaticResource ThemedTabItemStyle}">
                         <ScrollViewer VerticalScrollBarVisibility="Auto">
-                            <StackPanel Margin="{StaticResource SpacingLg}" MaxWidth="600">
+                            <StackPanel Margin="{StaticResource SpacingLg}" MaxWidth="900">
                                 <!-- Logging -->
                                 <Border Padding="{StaticResource SpacingLg}" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource CornerRadiusLg}" Margin="0,0,0,16">
                                     <StackPanel>

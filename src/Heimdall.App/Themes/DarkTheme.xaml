@@ -8,7 +8,7 @@
     <!-- Dracula Theme — https://draculatheme.com/contribute -->
     <Color x:Key="PrimaryColor">#282A36</Color>
     <Color x:Key="SecondaryColor">#21222C</Color>
-    <Color x:Key="SurfaceColor">#44475A</Color>
+    <Color x:Key="SurfaceColor">#4A4D64</Color>
     <Color x:Key="AccentColor">#A67AF7</Color>
     <Color x:Key="AccentHoverColor">#C4A0FF</Color>
     <Color x:Key="AccentPressedColor">#8E5FD9</Color>

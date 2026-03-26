@@ -109,33 +109,51 @@ public partial class ProjectDialogViewModel : ObservableValidator
     [ObservableProperty]
     private string? _validationError;
 
+    [ObservableProperty]
+    private string? _nameError;
+
+    [ObservableProperty]
+    private string? _descriptionError;
+
     /// <summary>
     /// Triggers full validation of all annotated properties.
+    /// Populates per-field inline errors and an aggregate summary.
     /// </summary>
     [RelayCommand]
     private void Validate()
     {
         ValidateAllProperties();
-        ValidationError = HasErrors ? GetFirstError() : null;
+
+        NameError = GetLocalizedFieldError(nameof(Name));
+        DescriptionError = GetLocalizedFieldError(nameof(Description));
+
+        RefreshValidationSummary();
+    }
+
+    private void RefreshValidationSummary()
+    {
+        ValidationError = NameError ?? DescriptionError;
     }
 
     // --- Live re-validation (only when errors are already showing) ---
 
     partial void OnNameChanged(string value)
     {
-        if (ValidationError is not null)
+        if (NameError is not null)
         {
             ValidateProperty(value, nameof(Name));
-            ValidationError = HasErrors ? GetFirstError() : null;
+            NameError = GetLocalizedFieldError(nameof(Name));
+            RefreshValidationSummary();
         }
     }
 
     partial void OnDescriptionChanged(string value)
     {
-        if (ValidationError is not null)
+        if (DescriptionError is not null)
         {
             ValidateProperty(value, nameof(Description));
-            ValidationError = HasErrors ? GetFirstError() : null;
+            DescriptionError = GetLocalizedFieldError(nameof(Description));
+            RefreshValidationSummary();
         }
     }
 
@@ -184,13 +202,13 @@ public partial class ProjectDialogViewModel : ObservableValidator
         ["Description must not exceed 200 characters."] = "ValidationProjectDescMaxLength",
     };
 
-    private string? GetFirstError()
+    private string? GetLocalizedFieldError(string propertyName)
     {
-        var firstProperty = GetErrors()
+        var error = GetErrors(propertyName)
             .OfType<System.ComponentModel.DataAnnotations.ValidationResult>()
             .FirstOrDefault();
 
-        var message = firstProperty?.ErrorMessage;
+        var message = error?.ErrorMessage;
         if (message is not null && Localizer is not null
             && ValidationKeyMap.TryGetValue(message, out var key))
         {
