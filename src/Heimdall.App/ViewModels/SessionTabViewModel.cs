@@ -74,7 +74,12 @@ public partial class SessionTabViewModel : ObservableObject
     public string Title
     {
         get => PrimaryPane.Title;
-        set { PrimaryPane.Title = value; OnPropertyChanged(); }
+        set
+        {
+            PrimaryPane.Title = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(HeaderToolTip));
+        }
     }
 
     public string ConnectionType
@@ -98,7 +103,12 @@ public partial class SessionTabViewModel : ObservableObject
     public string TunnelRoute
     {
         get => PrimaryPane.TunnelRoute;
-        set { PrimaryPane.TunnelRoute = value; OnPropertyChanged(); }
+        set
+        {
+            PrimaryPane.TunnelRoute = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(HeaderToolTip));
+        }
     }
 
     public object? HostControl
@@ -106,6 +116,11 @@ public partial class SessionTabViewModel : ObservableObject
         get => PrimaryPane.HostControl;
         set { PrimaryPane.HostControl = value; OnPropertyChanged(); }
     }
+
+    public string HeaderToolTip =>
+        string.IsNullOrWhiteSpace(TunnelRoute)
+            ? Title
+            : $"{Title} {TunnelRoute}";
 
     /// <summary>
     /// True when the tree has more than one pane (root is a <see cref="SplitContainerModel"/>).
@@ -287,6 +302,7 @@ public partial class SessionTabViewModel : ObservableObject
         OnPropertyChanged(nameof(Status));
         OnPropertyChanged(nameof(HostControl));
         OnPropertyChanged(nameof(TunnelRoute));
+        OnPropertyChanged(nameof(HeaderToolTip));
         OnPropertyChanged(nameof(EnvironmentColor));
         OnPropertyChanged(nameof(IsSplit));
         OnPropertyChanged(nameof(SplitOrientation));
