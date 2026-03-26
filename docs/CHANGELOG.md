@@ -12,6 +12,24 @@
 
 All notable changes to Heimdall.Next are documented in this file.
 
+## [v2026.032605] - 2026-03-26
+
+### Diagram Editor audit and embed protocol fixes
+
+#### Diagram Editor (P1)
+- **Empty diagram loading**: Canvas now initializes automatically on open (previously blocked on "Loading" until user clicked New)
+- **Native autosave**: Replaced custom polling autosave (manual graph serialization via mxCodec) with draw.io's native `autosave`/`save` embed events — preserves full .drawio context
+- **External link relay**: Help menu and external links now open in the default browser via `openLink` embed event
+- **Menu bar hidden**: draw.io's built-in menu bar (File/Edit/View/Arrange/Extras/Help) disabled — `mxPopupMenu` dropdowns cannot open inside a WebView2 iframe due to pointer event routing limitations; Heimdall's own toolbar provides New/Open/Save/Export PNG
+
+#### Architecture constraint documented
+- draw.io embed mode requires `(window.opener || window.parent) != window` — iframe is mandatory (direct WebView2 load bypasses `initializeEmbedMode`)
+
+#### CLAUDE.md
+- Condensed from 495 to 170 lines (~65% reduction) — removed content derivable from code, kept all bug-prevention gotchas
+
+---
+
 ## [v2026.032601] - 2026-03-26
 
 ### Comprehensive UX audit and Codex audit implementation
