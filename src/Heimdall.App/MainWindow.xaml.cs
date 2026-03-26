@@ -1534,29 +1534,33 @@ public partial class MainWindow : Window
         var submenu = new MenuItem { Header = vm.Localize("TreeCtxNotes") };
 
         var blankItem = new MenuItem { Header = vm.Localize("ToolNotesBtnNew") };
-        blankItem.Click += (_, _) => OpenNotesForServer(vm, server);
+        blankItem.Click += (_, _) => OpenNotesForServer(vm, server, NoteTemplateKind.Blank);
         submenu.Items.Add(blankItem);
 
         var dailyItem = new MenuItem { Header = vm.Localize("ToolNotesBtnDaily") };
-        dailyItem.Click += (_, _) => OpenNotesForServer(vm, server);
+        dailyItem.Click += (_, _) => OpenNotesForServer(vm, server, NoteTemplateKind.Daily);
         submenu.Items.Add(dailyItem);
 
         var incidentItem = new MenuItem { Header = vm.Localize("ToolNotesBtnIncident") };
-        incidentItem.Click += (_, _) => OpenNotesForServer(vm, server);
+        incidentItem.Click += (_, _) => OpenNotesForServer(vm, server, NoteTemplateKind.Incident);
         submenu.Items.Add(incidentItem);
 
         var procedureItem = new MenuItem { Header = vm.Localize("ToolNotesBtnProcedure") };
-        procedureItem.Click += (_, _) => OpenNotesForServer(vm, server);
+        procedureItem.Click += (_, _) => OpenNotesForServer(vm, server, NoteTemplateKind.Procedure);
         submenu.Items.Add(procedureItem);
 
         return submenu;
     }
 
-    private static void OpenNotesForServer(MainViewModel vm, ServerItemViewModel server)
+    private static void OpenNotesForServer(
+        MainViewModel vm,
+        ServerItemViewModel server,
+        NoteTemplateKind templateKind)
     {
         var context = new Core.Models.ToolContext(
             TargetHost: server.RemoteServer,
             TargetPort: server.RemotePort > 0 ? server.RemotePort : null,
+            Argument: $"template:{templateKind.ToString().ToLowerInvariant()}",
             DisplayName: server.DisplayName,
             Username: server.Username,
             ProjectName: server.ProjectName,
