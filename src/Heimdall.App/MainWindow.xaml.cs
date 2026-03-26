@@ -819,16 +819,36 @@ public partial class MainWindow : Window
     }
 
     /// <summary>
-    /// Returns true when the keyboard focus is inside an embedded terminal (WebView2),
-    /// meaning single-modifier shortcuts (Ctrl+B/F/K) should be forwarded to the
-    /// remote session instead of being intercepted by the shell.
+    /// Returns true when the keyboard focus is inside embedded content (terminal
+    /// WebView2 or WebView2-based tool view), meaning single-modifier shortcuts
+    /// should be forwarded to the content instead of being intercepted by the shell.
+    /// Includes a fallback for tool sessions where WebView2 HWND focus tracking
+    /// is unreliable (draw.io iframe, etc.).
     /// </summary>
-    private static bool IsTerminalFocused()
+    private bool IsEmbeddedContentFocused()
     {
         var focused = Keyboard.FocusedElement as DependencyObject;
-        return focused is Microsoft.Web.WebView2.Wpf.WebView2
+
+        // Direct WebView2 focus detection (works when WPF properly tracks HWND focus)
+        if (focused is Microsoft.Web.WebView2.Wpf.WebView2
             || FindAncestor<Views.EmbeddedSshView>(focused) is not null
-            || FindAncestor<Views.EmbeddedVncView>(focused) is not null;
+            || FindAncestor<Views.EmbeddedVncView>(focused) is not null)
+        {
+            return true;
+        }
+
+        // Fallback: when a tool session is active and focus is NOT in the sidebar
+        // TreeView, assume the tool's embedded content should receive keyboard input.
+        // This covers WebView2 focus-tracking gaps (HWND has focus but WPF doesn't see it).
+        if (DataContext is MainViewModel vm
+            && vm.Connection.ActiveSession?.ConnectionType is { } ct
+            && ct.StartsWith("TOOL:", StringComparison.OrdinalIgnoreCase)
+            && FindAncestor<System.Windows.Controls.TreeView>(focused) is null)
+        {
+            return true;
+        }
+
+        return false;
     }
 
     private void OnKeyDown(object sender, KeyEventArgs e)
@@ -840,7 +860,7 @@ public partial class MainWindow : Window
 
         // When a terminal has focus, only intercept Ctrl+Shift combos and F-keys;
         // let single-Ctrl shortcuts (Ctrl+B/F/K) pass through to the remote session.
-        var terminalHasFocus = IsTerminalFocused();
+        var terminalHasFocus = IsEmbeddedContentFocused();
 
         switch (e.Key)
         {

@@ -73,7 +73,7 @@ public partial class DiagramEditorView : UserControl, IToolView
             await DiagramWebView.EnsureCoreWebView2Async(env);
 
             var core = DiagramWebView.CoreWebView2;
-            core.Settings.AreDefaultContextMenusEnabled = true;
+            core.Settings.AreDefaultContextMenusEnabled = false;
             core.Settings.AreDevToolsEnabled = false;
             core.Settings.IsStatusBarEnabled = false;
             core.Settings.IsZoomControlEnabled = false;
