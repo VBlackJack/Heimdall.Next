@@ -52,22 +52,20 @@
             </DockPanel>
         </Border>
 
-        <!-- WebView2 hosting draw.io -->
-        <Grid Grid.Row="1" ClipToBounds="True">
-            <wv2:WebView2 x:Name="DiagramWebView" Focusable="True"/>
+        <!-- WebView2 hosting draw.io via iframe -->
+        <wv2:WebView2 Grid.Row="1" x:Name="DiagramWebView" Focusable="True"/>
 
-            <!-- Fallback if WebView2 unavailable -->
-            <Border x:Name="FallbackPanel" Visibility="Collapsed"
-                    Background="{DynamicResource BackgroundBrush}" Padding="28">
-                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="420">
-                    <TextBlock x:Name="FallbackTitle" FontSize="{StaticResource FontSizeDisplay}" FontWeight="SemiBold"
-                               TextAlignment="Center"
-                               Foreground="{DynamicResource TextPrimaryBrush}"/>
-                    <TextBlock x:Name="FallbackMessage" FontSize="{StaticResource FontSizeBody}" Margin="0,12,0,0"
-                               TextWrapping="Wrap" TextAlignment="Center"
-                               Foreground="{DynamicResource TextSecondaryBrush}"/>
-                </StackPanel>
-            </Border>
-        </Grid>
+        <!-- Fallback if WebView2 unavailable -->
+        <Border Grid.Row="1" x:Name="FallbackPanel" Visibility="Collapsed"
+                Background="{DynamicResource BackgroundBrush}" Padding="28">
+            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="420">
+                <TextBlock x:Name="FallbackTitle" FontSize="{StaticResource FontSizeDisplay}" FontWeight="SemiBold"
+                           TextAlignment="Center"
+                           Foreground="{DynamicResource TextPrimaryBrush}"/>
+                <TextBlock x:Name="FallbackMessage" FontSize="{StaticResource FontSizeBody}" Margin="0,12,0,0"
+                           TextWrapping="Wrap" TextAlignment="Center"
+                           Foreground="{DynamicResource TextSecondaryBrush}"/>
+            </StackPanel>
+        </Border>
     </Grid>
 </UserControl>

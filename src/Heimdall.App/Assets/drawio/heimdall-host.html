@@ -9,20 +9,38 @@
     </style>
 </head>
 <body>
-    <iframe id="drawio-frame"></iframe>
+    <iframe id="drawio-frame" allow="clipboard-read; clipboard-write"></iframe>
     <script>
-        var currentXml = '';
+        var currentXml = null;
         var frame = document.getElementById('drawio-frame');
         var editorReady = false;
-        var autosaveTimer = null;
+
+        function postToHost(message) {
+            if (window.chrome && window.chrome.webview) {
+                window.chrome.webview.postMessage(message);
+            }
+        }
+
+        function postToEditor(payload) {
+            if (!frame.contentWindow) return;
+            frame.contentWindow.postMessage(JSON.stringify(payload), '*');
+        }
+
+        function loadDiagram(xml) {
+            postToEditor({ action: 'load', xml: xml || '', autosave: 1 });
+        }
 
         // Listen for messages from draw.io iframe (embed protocol)
         window.addEventListener('message', function(evt) {
-            if (evt.data && typeof evt.data === 'string') {
-                try {
-                    var msg = JSON.parse(evt.data);
-                    handleDrawioMessage(msg);
-                } catch(e) {}
+            if (!evt.data || typeof evt.data !== 'string') return;
+            // Accept messages from the iframe only
+            if (evt.source !== frame.contentWindow) return;
+
+            try {
+                var msg = JSON.parse(evt.data);
+                handleDrawioMessage(msg);
+            } catch (e) {
+                // Ignore non-protocol messages
             }
         });
 
@@ -30,61 +48,32 @@
             switch(msg.event) {
                 case 'init':
                     editorReady = true;
-                    // draw.io is ready — load initial XML if available
-                    if (currentXml) {
-                        frame.contentWindow.postMessage(JSON.stringify({
-                            action: 'load',
-                            xml: currentXml,
-                            autosave: 1
-                        }), '*');
-                    }
-                    // Start periodic autosave
-                    startAutosave();
+                    loadDiagram(currentXml);
                     break;
 
                 case 'autosave':
                 case 'save':
-                    // Send saved XML to C# host
-                    if (window.chrome && window.chrome.webview) {
-                        window.chrome.webview.postMessage('save:' + msg.xml);
+                    if (typeof msg.xml === 'string') {
+                        postToHost('save:' + msg.xml);
                     }
                     break;
 
                 case 'export':
-                    if (window.chrome && window.chrome.webview) {
-                        window.chrome.webview.postMessage('export:' + msg.data);
+                    if (typeof msg.data === 'string') {
+                        postToHost('export:' + msg.data);
                     }
                     break;
 
                 case 'exit':
-                    if (window.chrome && window.chrome.webview) {
-                        window.chrome.webview.postMessage('exit:');
+                    postToHost('exit:');
+                    break;
+
+                case 'openLink':
+                    if (msg.href) {
+                        postToHost('open-link:' + JSON.stringify({ href: msg.href }));
                     }
                     break;
             }
-        }
-
-        // Periodically extract XML from the editor for autosave
-        function startAutosave() {
-            if (autosaveTimer) return;
-            autosaveTimer = setInterval(function() {
-                try {
-                    var editorUi = frame.contentWindow && frame.contentWindow.geApplication
-                        ? frame.contentWindow.geApplication.editor
-                        : null;
-                    if (!editorUi) return;
-                    var graph = editorUi.graph;
-                    if (!graph) return;
-                    var enc = new frame.contentWindow.mxCodec();
-                    var node = enc.encode(graph.getModel());
-                    var xml = frame.contentWindow.mxUtils.getXml(node);
-                    if (xml && window.chrome && window.chrome.webview) {
-                        window.chrome.webview.postMessage('save:' + xml);
-                    }
-                } catch(e) {
-                    // Editor not yet fully initialized or API unavailable
-                }
-            }, 3000);
         }
 
         // Listen for messages from C# host
@@ -96,43 +85,42 @@
                 if (msg.indexOf('load:') === 0) {
                     currentXml = msg.substring(5);
                     if (editorReady) {
-                        frame.contentWindow.postMessage(JSON.stringify({
-                            action: 'load',
-                            xml: currentXml,
-                            autosave: 1
-                        }), '*');
+                        loadDiagram(currentXml);
                     }
                     return;
                 }
 
                 if (msg === 'export-png:') {
-                    frame.contentWindow.postMessage(JSON.stringify({
-                        action: 'export',
-                        format: 'png',
-                        spinKey: 'export'
-                    }), '*');
+                    postToEditor({ action: 'export', format: 'png', spinKey: 'export' });
                     return;
                 }
 
                 if (msg === 'export-svg:') {
-                    frame.contentWindow.postMessage(JSON.stringify({
-                        action: 'export',
-                        format: 'svg',
-                        spinKey: 'export'
-                    }), '*');
+                    postToEditor({ action: 'export', format: 'svg', spinKey: 'export' });
                     return;
                 }
             });
 
-            window.chrome.webview.postMessage('ready:');
+            postToHost('ready:');
         }
 
-        // Load draw.io in embed mode with full menu bar.
-        // embed=1: required for the postMessage protocol (init/save/export events)
-        // menubar=1: re-enables the menu bar hidden by default in embed mode
-        // noSaveBtn=1 & noExitBtn=1: hide embed-mode buttons (Heimdall has its own)
+        // Hide draw.io's menu bar after iframe loads.
+        // mxPopupMenu dropdowns cannot open inside a WebView2 iframe
+        // (pointer event routing issue), so we hide the menu bar entirely.
+        // Heimdall's own toolbar provides New/Open/Save/Export PNG.
+        frame.onload = function() {
+            try {
+                var style = frame.contentDocument.createElement('style');
+                style.textContent = '.geMenubarContainer { display: none !important; }';
+                frame.contentDocument.head.appendChild(style);
+            } catch(e) {}
+        };
+
+        // Load draw.io in embed mode inside the iframe.
+        // embed=1: required for the postMessage protocol
+        // noSaveBtn=1 & noExitBtn=1: hide embed-mode buttons
         // saveAndExit=0: prevent "Save & Exit" prompt
-        frame.src = 'index.html?embed=1&menubar=1&proto=json&spin=1&libraries=1&ui=dark&noSaveBtn=1&noExitBtn=1&saveAndExit=0';
+        frame.src = 'index.html?embed=1&proto=json&spin=1&libraries=1&ui=dark&noSaveBtn=1&noExitBtn=1&saveAndExit=0';
     </script>
 </body>
 </html>
