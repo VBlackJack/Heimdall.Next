@@ -551,32 +551,8 @@ public partial class CertInspectorView : UserControl, IToolView
         }
     }
 
-    /// <summary>
-    /// Creates a temporary SSH connection to the selected gateway.
-    /// </summary>
     private static Renci.SshNet.SshClient ConnectToGateway(SshGatewayDto gateway)
-    {
-        string? password = null;
-        if (!string.IsNullOrEmpty(gateway.SshPasswordEncrypted))
-        {
-            password = CredentialProtector.Unprotect(gateway.SshPasswordEncrypted);
-        }
-
-        var connParams = new SshConnectionParams
-        {
-            Host = gateway.Host,
-            Port = gateway.Port,
-            Username = gateway.User,
-            KeyPath = gateway.KeyPath,
-            Password = password,
-            ConnectTimeout = TimeSpan.FromSeconds(10)
-        };
-
-        var connInfo = SshConnectionFactory.Create(connParams);
-        var client = new Renci.SshNet.SshClient(connInfo);
-        client.Connect();
-        return client;
-    }
+        => ToolGatewayConnector.Connect(gateway);
 
     /// <summary>
     /// Retrieves certificate details via an SSH gateway using openssl s_client.

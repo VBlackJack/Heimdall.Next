@@ -392,27 +392,11 @@ public partial class NetworkCartographyView : UserControl, IToolView
         var startTime = DateTime.UtcNow;
         var gw = _selectedGateway!;
 
-        // Decrypt gateway password
-        var password = !string.IsNullOrEmpty(gw.SshPasswordEncrypted)
-            ? Heimdall.Core.Security.CredentialProtector.Unprotect(gw.SshPasswordEncrypted)
-            : null;
-
-        var connParams = new Heimdall.Ssh.SshConnectionParams
-        {
-            Host = gw.Host,
-            Port = gw.Port,
-            Username = gw.User,
-            Password = password,
-            KeyPath = gw.KeyPath
-        };
-
-        var connInfo = Heimdall.Ssh.SshConnectionFactory.Create(connParams);
-        using var sshClient = new Renci.SshNet.SshClient(connInfo);
-
         await Dispatcher.InvokeAsync(() =>
             TxtStatus.Text = string.Format(L("ToolTunnelConnecting"), gw.Name));
 
-        await Task.Run(() => sshClient.Connect(), ct).ConfigureAwait(false);
+        using var sshClient = await Task.Run(
+            () => ToolGatewayConnector.Connect(gw), ct).ConfigureAwait(false);
 
         var ipList = CartographyEngine.ParseCidr(profile.Subnet);
         var hosts = new List<HostScanResult>();
