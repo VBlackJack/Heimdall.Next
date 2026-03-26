@@ -369,6 +369,51 @@ public partial class ServerDialogViewModel : ObservableValidator
     [ObservableProperty]
     private bool _isFavorite;
 
+    // --- Dirty state tracking ---
+
+    [ObservableProperty]
+    private bool _isDirty;
+
+    /// <summary>
+    /// Suppresses dirty tracking during initialization (e.g., FromDto).
+    /// </summary>
+    private bool _isInitializing;
+
+    /// <summary>
+    /// Properties excluded from dirty tracking (dialog state, validation, computed).
+    /// </summary>
+    private static readonly HashSet<string> DirtyExcludedProperties = new(StringComparer.Ordinal)
+    {
+        nameof(IsDirty),
+        nameof(DialogTitle),
+        nameof(IsEditMode),
+        nameof(IsAdvancedMode),
+        nameof(IsProtocolSelected),
+        nameof(ValidationError),
+        nameof(DisplayNameError),
+        nameof(RemoteServerError),
+        nameof(EndpointPortError),
+        nameof(LocalPortError),
+        nameof(AudioModeError),
+        nameof(ColorDepthError),
+        nameof(TunnelingTabErrorCount),
+        nameof(OptionsTabErrorCount),
+        nameof(FirstInvalidField),
+        nameof(AvailableGateways),
+        nameof(AvailableProjects),
+    };
+
+    protected override void OnPropertyChanged(System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        base.OnPropertyChanged(e);
+
+        if (_isInitializing) return;
+        if (e.PropertyName is null) return;
+        if (DirtyExcludedProperties.Contains(e.PropertyName)) return;
+
+        IsDirty = true;
+    }
+
     // --- Validation ---
 
     [ObservableProperty]
@@ -728,80 +773,80 @@ public partial class ServerDialogViewModel : ObservableValidator
         var suggestedTunnelPort = GetSuggestedTunnelPort(connectionType);
         var storedLocalPort = dto.LocalPort <= 0 ? suggestedTunnelPort : dto.LocalPort;
 
-        return new ServerDialogViewModel
-        {
-            IsEditMode = true,
-            IsProtocolSelected = true,
-            DisplayName = dto.DisplayName,
-            RemoteServer = dto.RemoteServer,
-            RemotePort = string.Equals(connectionType, "Telnet", StringComparison.OrdinalIgnoreCase)
-                ? (dto.TelnetPort > 0 ? dto.TelnetPort : DefaultTelnetPort)
-                : dto.RemotePort,
-            LocalPort = storedLocalPort,
-            UseAutomaticTunnelPort = dto.LocalPort <= 0 || dto.LocalPort == suggestedTunnelPort,
-            Group = dto.Group ?? "",
-            ConnectionType = connectionType,
-            SshUsername = dto.SshUsername ?? "",
-            SshPort = dto.SshPort,
-            SshKeyPath = dto.SshKeyPath ?? "",
-            SshCompression = dto.SshCompression,
-            SshX11Forwarding = dto.SshX11Forwarding,
-            SshAgentForwarding = dto.SshAgentForwarding,
-            SshMode = dto.SshMode,
-            LocalShellExecutable = dto.LocalShellExecutable ?? "powershell.exe",
-            LocalShellArguments = dto.LocalShellArguments ?? "",
-            LocalShellWorkingDirectory = dto.LocalShellWorkingDirectory ?? "",
-            LocalShellElevated = dto.LocalShellElevated,
-            ElevationMode = dto.ElevationMode,
-            CitrixStoreFrontUrl = dto.CitrixStoreFrontUrl ?? "",
-            CitrixAppName = dto.CitrixAppName ?? "",
-            CitrixIcaFilePath = dto.CitrixIcaFilePath ?? "",
-            CitrixSeamlessMode = dto.CitrixSeamlessMode,
-            CitrixUseSso = dto.CitrixUseSso,
-            FtpPort = dto.FtpPort > 0 ? dto.FtpPort : 21,
-            FtpUsername = dto.FtpUsername ?? "",
-            ExistingFtpPasswordEncrypted = dto.FtpPasswordEncrypted,
-            FtpPassiveMode = dto.FtpPassiveMode,
-            FtpUseSsl = dto.FtpUseSsl,
-            VncPort = dto.VncPort > 0 ? dto.VncPort : 5900,
-            VncViewOnly = dto.VncViewOnly,
-            ExistingVncPasswordEncrypted = dto.VncPassword,
-            TelnetUsername = dto.TelnetUsername ?? "",
-            ExistingTelnetPasswordEncrypted = dto.TelnetPasswordEncrypted,
-            RdpUsername = dto.RdpUsername ?? "",
-            ExistingRdpPasswordEncrypted = dto.RdpPasswordEncrypted,
-            ExistingSshPasswordEncrypted = dto.SshPasswordEncrypted,
-            RdpMode = dto.RdpMode,
-            RdpUseGlobalDefaults = dto.RdpUseGlobalDefaults,
-            RdpAntiIdle = dto.RdpAntiIdle,
-            RedirectClipboard = dto.RdpRedirectClipboard,
-            RedirectDrives = dto.RdpRedirectDrives,
-            RedirectPrinters = dto.RdpRedirectPrinters,
-            RdpRedirectComPorts = dto.RdpRedirectComPorts,
-            RdpRedirectSmartCards = dto.RdpRedirectSmartCards,
-            RdpRedirectWebcam = dto.RdpRedirectWebcam,
-            RdpRedirectUsb = dto.RdpRedirectUsb,
-            RdpAudioMode = dto.RdpAudioMode,
-            RdpAudioCapture = dto.RdpAudioCapture,
-            RdpMultiMonitor = dto.RdpMultiMonitor,
-            RdpDynamicResolution = dto.RdpDynamicResolution,
-            RdpNla = dto.RdpNla,
-            RdpAspectRatio = dto.RdpAspectRatio,
-            RdpColorDepth = dto.RdpColorDepth,
-            RdpBitmapCaching = dto.RdpBitmapCaching,
-            RdpCompression = dto.RdpCompression,
-            RdpAutoReconnect = dto.RdpAutoReconnect,
-            RdpPerformanceFlags = dto.RdpPerformanceFlags,
-            RdpDisableUdp = dto.RdpDisableUdp,
-            RdpGateway = dto.RdpGateway ?? "",
-            SelectedGatewayId = dto.SshGatewayId ?? "",
-            DirectConnection = dto.UseDirectConnection,
-            SelectedProjectId = dto.ProjectId ?? "",
-            Tags = dto.Tags ?? "",
-            MacAddress = dto.MacAddress ?? "",
-            Environment = dto.Environment ?? "None",
-            IsFavorite = dto.IsFavorite
-        };
+        var vm = new ServerDialogViewModel { _isInitializing = true };
+        vm.IsEditMode = true;
+        vm.IsProtocolSelected = true;
+        vm.DisplayName = dto.DisplayName;
+        vm.RemoteServer = dto.RemoteServer;
+        vm.RemotePort = string.Equals(connectionType, "Telnet", StringComparison.OrdinalIgnoreCase)
+            ? (dto.TelnetPort > 0 ? dto.TelnetPort : DefaultTelnetPort)
+            : dto.RemotePort;
+        vm.LocalPort = storedLocalPort;
+        vm.UseAutomaticTunnelPort = dto.LocalPort <= 0 || dto.LocalPort == suggestedTunnelPort;
+        vm.Group = dto.Group ?? "";
+        vm.ConnectionType = connectionType;
+        vm.SshUsername = dto.SshUsername ?? "";
+        vm.SshPort = dto.SshPort;
+        vm.SshKeyPath = dto.SshKeyPath ?? "";
+        vm.SshCompression = dto.SshCompression;
+        vm.SshX11Forwarding = dto.SshX11Forwarding;
+        vm.SshAgentForwarding = dto.SshAgentForwarding;
+        vm.SshMode = dto.SshMode;
+        vm.LocalShellExecutable = dto.LocalShellExecutable ?? "powershell.exe";
+        vm.LocalShellArguments = dto.LocalShellArguments ?? "";
+        vm.LocalShellWorkingDirectory = dto.LocalShellWorkingDirectory ?? "";
+        vm.LocalShellElevated = dto.LocalShellElevated;
+        vm.ElevationMode = dto.ElevationMode;
+        vm.CitrixStoreFrontUrl = dto.CitrixStoreFrontUrl ?? "";
+        vm.CitrixAppName = dto.CitrixAppName ?? "";
+        vm.CitrixIcaFilePath = dto.CitrixIcaFilePath ?? "";
+        vm.CitrixSeamlessMode = dto.CitrixSeamlessMode;
+        vm.CitrixUseSso = dto.CitrixUseSso;
+        vm.FtpPort = dto.FtpPort > 0 ? dto.FtpPort : 21;
+        vm.FtpUsername = dto.FtpUsername ?? "";
+        vm.ExistingFtpPasswordEncrypted = dto.FtpPasswordEncrypted;
+        vm.FtpPassiveMode = dto.FtpPassiveMode;
+        vm.FtpUseSsl = dto.FtpUseSsl;
+        vm.VncPort = dto.VncPort > 0 ? dto.VncPort : 5900;
+        vm.VncViewOnly = dto.VncViewOnly;
+        vm.ExistingVncPasswordEncrypted = dto.VncPassword;
+        vm.TelnetUsername = dto.TelnetUsername ?? "";
+        vm.ExistingTelnetPasswordEncrypted = dto.TelnetPasswordEncrypted;
+        vm.RdpUsername = dto.RdpUsername ?? "";
+        vm.ExistingRdpPasswordEncrypted = dto.RdpPasswordEncrypted;
+        vm.ExistingSshPasswordEncrypted = dto.SshPasswordEncrypted;
+        vm.RdpMode = dto.RdpMode;
+        vm.RdpUseGlobalDefaults = dto.RdpUseGlobalDefaults;
+        vm.RdpAntiIdle = dto.RdpAntiIdle;
+        vm.RedirectClipboard = dto.RdpRedirectClipboard;
+        vm.RedirectDrives = dto.RdpRedirectDrives;
+        vm.RedirectPrinters = dto.RdpRedirectPrinters;
+        vm.RdpRedirectComPorts = dto.RdpRedirectComPorts;
+        vm.RdpRedirectSmartCards = dto.RdpRedirectSmartCards;
+        vm.RdpRedirectWebcam = dto.RdpRedirectWebcam;
+        vm.RdpRedirectUsb = dto.RdpRedirectUsb;
+        vm.RdpAudioMode = dto.RdpAudioMode;
+        vm.RdpAudioCapture = dto.RdpAudioCapture;
+        vm.RdpMultiMonitor = dto.RdpMultiMonitor;
+        vm.RdpDynamicResolution = dto.RdpDynamicResolution;
+        vm.RdpNla = dto.RdpNla;
+        vm.RdpAspectRatio = dto.RdpAspectRatio;
+        vm.RdpColorDepth = dto.RdpColorDepth;
+        vm.RdpBitmapCaching = dto.RdpBitmapCaching;
+        vm.RdpCompression = dto.RdpCompression;
+        vm.RdpAutoReconnect = dto.RdpAutoReconnect;
+        vm.RdpPerformanceFlags = dto.RdpPerformanceFlags;
+        vm.RdpDisableUdp = dto.RdpDisableUdp;
+        vm.RdpGateway = dto.RdpGateway ?? "";
+        vm.SelectedGatewayId = dto.SshGatewayId ?? "";
+        vm.DirectConnection = dto.UseDirectConnection;
+        vm.SelectedProjectId = dto.ProjectId ?? "";
+        vm.Tags = dto.Tags ?? "";
+        vm.MacAddress = dto.MacAddress ?? "";
+        vm.Environment = dto.Environment ?? "None";
+        vm.IsFavorite = dto.IsFavorite;
+        vm._isInitializing = false;
+        return vm;
     }
 
     partial void OnConnectionTypeChanged(string value)

@@ -63,6 +63,8 @@ public partial class GatewayDialog : Window
                 System.Windows.Automation.AutomationProperties.SetName(CmbParentGateway, vm.Localizer["GatewayDialogLabelParentGateway"]);
                 System.Windows.Automation.AutomationProperties.SetName(TxtHostKeyFingerprint, vm.Localizer["GatewayDialogLabelHostKeyFingerprint"]);
             }
+
+            TxtName.Focus();
         };
     }
 
@@ -84,6 +86,25 @@ public partial class GatewayDialog : Window
 
             // Clear password from UI memory (CWE-316)
             PasswordBox.Clear();
+        }
+    }
+
+    private void OnWindowClosing(object? sender, System.ComponentModel.CancelEventArgs e)
+    {
+        // Skip dirty check when the user clicked Save (DialogResult == true)
+        if (DialogResult == true) return;
+        if (DataContext is not GatewayDialogViewModel { IsDirty: true } vm) return;
+
+        var title = vm.Localizer?["DialogUnsavedWarningTitle"] ?? "Unsaved Changes";
+        var message = vm.Localizer?["DialogUnsavedWarning"]
+            ?? "You have unsaved changes. Discard them and close?";
+        var yes = vm.Localizer?["BtnYes"] ?? "Yes";
+        var no = vm.Localizer?["BtnNo"] ?? "No";
+
+        var discard = MessageDialog.ShowConfirm(this, title, message, "warning", yes, no);
+        if (!discard)
+        {
+            e.Cancel = true;
         }
     }
 

@@ -6,7 +6,7 @@
         MinWidth="350" MinHeight="160" MaxHeight="500"
         WindowStartupLocation="CenterOwner"
         Background="{DynamicResource BackgroundBrush}"
-        ResizeMode="NoResize"
+        ResizeMode="CanResizeWithGrip"
         ShowInTaskbar="False"
         WindowStyle="ToolWindow">
 
@@ -44,24 +44,24 @@
         <!-- Buttons -->
         <StackPanel Grid.Row="2" Orientation="Horizontal"
                     HorizontalAlignment="Right">
-            <Button x:Name="BtnPrimary"
-                    Click="OnPrimaryClick"
-                    Style="{DynamicResource PrimaryButtonStyle}"
+            <Button x:Name="BtnTertiary"
+                    Click="OnTertiaryClick"
+                    Style="{DynamicResource SecondaryButtonStyle}"
                     MinWidth="80" Padding="16,6" FontSize="{StaticResource FontSizeBody}"
-                    Margin="0,0,8,0"
-                    IsDefault="True"/>
+                    Visibility="Collapsed"
+                    IsCancel="True"
+                    Margin="0,0,8,0"/>
             <Button x:Name="BtnSecondary"
                     Click="OnSecondaryClick"
                     Style="{DynamicResource SecondaryButtonStyle}"
                     MinWidth="80" Padding="16,6" FontSize="{StaticResource FontSizeBody}"
                     Visibility="Collapsed"
                     Margin="0,0,8,0"/>
-            <Button x:Name="BtnTertiary"
-                    Click="OnTertiaryClick"
-                    Style="{DynamicResource SecondaryButtonStyle}"
+            <Button x:Name="BtnPrimary"
+                    Click="OnPrimaryClick"
+                    Style="{DynamicResource PrimaryButtonStyle}"
                     MinWidth="80" Padding="16,6" FontSize="{StaticResource FontSizeBody}"
-                    Visibility="Collapsed"
-                    IsCancel="True"/>
+                    IsDefault="True"/>
         </StackPanel>
     </Grid>
 </Window>

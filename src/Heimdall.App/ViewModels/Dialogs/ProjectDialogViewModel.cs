@@ -78,6 +78,32 @@ public partial class ProjectDialogViewModel : ObservableValidator
     [ObservableProperty]
     private string _defaultGatewayId = "";
 
+    // --- Dirty state tracking ---
+
+    [ObservableProperty]
+    private bool _isDirty;
+
+    /// <summary>
+    /// Suppresses dirty tracking during initialization (e.g., FromDto).
+    /// </summary>
+    private bool _isInitializing;
+
+    protected override void OnPropertyChanged(System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        base.OnPropertyChanged(e);
+
+        if (_isInitializing) return;
+
+        // Mark dirty when any user-editable property changes
+        if (e.PropertyName is nameof(Name) or nameof(Description)
+            or nameof(Color) or nameof(Icon)
+            or nameof(DefaultSshUsername) or nameof(DefaultSshKeyPath)
+            or nameof(DefaultGatewayId))
+        {
+            IsDirty = true;
+        }
+    }
+
     // --- Validation ---
 
     [ObservableProperty]
@@ -91,6 +117,26 @@ public partial class ProjectDialogViewModel : ObservableValidator
     {
         ValidateAllProperties();
         ValidationError = HasErrors ? GetFirstError() : null;
+    }
+
+    // --- Live re-validation (only when errors are already showing) ---
+
+    partial void OnNameChanged(string value)
+    {
+        if (ValidationError is not null)
+        {
+            ValidateProperty(value, nameof(Name));
+            ValidationError = HasErrors ? GetFirstError() : null;
+        }
+    }
+
+    partial void OnDescriptionChanged(string value)
+    {
+        if (ValidationError is not null)
+        {
+            ValidateProperty(value, nameof(Description));
+            ValidationError = HasErrors ? GetFirstError() : null;
+        }
     }
 
     /// <summary>
@@ -118,16 +164,16 @@ public partial class ProjectDialogViewModel : ObservableValidator
     {
         ArgumentNullException.ThrowIfNull(dto);
 
-        return new ProjectDialogViewModel
-        {
-            IsEditMode = true,
-            Name = dto.Name,
-            Description = dto.Description ?? "",
-            Color = dto.Color ?? "#3B82F6",
-            DefaultSshUsername = dto.DefaultSshUsername ?? "",
-            DefaultSshKeyPath = dto.DefaultSshKeyPath ?? "",
-            DefaultGatewayId = dto.DefaultGatewayId ?? ""
-        };
+        var vm = new ProjectDialogViewModel { _isInitializing = true };
+        vm.IsEditMode = true;
+        vm.Name = dto.Name;
+        vm.Description = dto.Description ?? "";
+        vm.Color = dto.Color ?? "#3B82F6";
+        vm.DefaultSshUsername = dto.DefaultSshUsername ?? "";
+        vm.DefaultSshKeyPath = dto.DefaultSshKeyPath ?? "";
+        vm.DefaultGatewayId = dto.DefaultGatewayId ?? "";
+        vm._isInitializing = false;
+        return vm;
     }
 
     private static readonly Dictionary<string, string> ValidationKeyMap = new(StringComparer.Ordinal)

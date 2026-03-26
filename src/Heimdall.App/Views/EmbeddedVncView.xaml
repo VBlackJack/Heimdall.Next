@@ -28,8 +28,7 @@
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="8,2"
                         FontSize="{StaticResource FontSizeCaption}"
-                        Margin="8,0,0,0"
-                        AutomationProperties.Name=""/>
+                        Margin="8,0,0,0"/>
 
                 <Button x:Name="ReconnectButton"
                         DockPanel.Dock="Right"
@@ -38,8 +37,7 @@
                         Padding="8,2"
                         FontSize="{StaticResource FontSizeCaption}"
                         Margin="8,0,0,0"
-                        Visibility="Collapsed"
-                        AutomationProperties.Name=""/>
+                        Visibility="Collapsed"/>
 
                 <Button x:Name="SplitButton"
                         DockPanel.Dock="Right"
@@ -47,8 +45,7 @@
                         FontFamily="Segoe MDL2 Assets"
                         Click="OnSplitClick"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
-                        Padding="6,2" FontSize="{StaticResource FontSizeBody}" Margin="4,0"
-                        AutomationProperties.Name=""/>
+                        Padding="6,2" FontSize="{StaticResource FontSizeBody}" Margin="4,0"/>
 
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <TextBlock x:Name="SessionTitleText"
@@ -66,7 +63,8 @@
                     <TextBlock x:Name="StatusTextBlock"
                                FontSize="{StaticResource FontSizeCaption}"
                                Foreground="{DynamicResource TextPrimaryBrush}"
-                               VerticalAlignment="Center"/>
+                               VerticalAlignment="Center"
+                               AutomationProperties.LiveSetting="Polite"/>
                 </StackPanel>
             </DockPanel>
         </Border>

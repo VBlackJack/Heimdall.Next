@@ -6,6 +6,7 @@
         xmlns:vm="clr-namespace:Heimdall.App.ViewModels"
         xmlns:views="clr-namespace:Heimdall.App.Views"
         xmlns:models="clr-namespace:Heimdall.Core.Models;assembly=Heimdall.Core"
+        xmlns:loc="clr-namespace:Heimdall.App.Localization"
         mc:Ignorable="d"
         d:DataContext="{d:DesignInstance Type=vm:MainViewModel}"
         Title="{Binding WindowTitle}"
@@ -103,7 +104,7 @@
                             Padding="6,4" FontSize="{StaticResource FontSizeBody}"
                             Margin="0,0,4,0"
                             VerticalAlignment="Center"
-                            AutomationProperties.Name="">
+                            AutomationProperties.Name="{loc:Translate A11yShareFolder}">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="&#xE72D;" FontFamily="Segoe MDL2 Assets"
                                        FontSize="{StaticResource FontSizeBodyLarge}" VerticalAlignment="Center" Margin="0,0,4,0"/>
@@ -221,7 +222,7 @@
                                 <TextBox x:Name="Mw_FilterBox" Text="{Binding ServerList.SearchText, UpdateSourceTrigger=PropertyChanged}"
                                          Style="{DynamicResource SearchTextBoxStyle}"
                                          Tag="" Padding="10,6,28,6"
-                                         AutomationProperties.Name=""/>
+                                         AutomationProperties.Name="{loc:Translate A11ySearchAndFilter}"/>
                                 <Button x:Name="Mw_FilterClearBtn"
                                         Content="&#xE711;"
                                         FontFamily="Segoe MDL2 Assets"
@@ -233,7 +234,7 @@
                                         MinHeight="0"
                                         Click="OnFilterClearClick"
                                         Visibility="Collapsed"
-                                        AutomationProperties.Name=""/>
+                                        AutomationProperties.Name="{loc:Translate A11yClearSearchFilter}"/>
                             </Grid>
                             <TextBlock x:Name="Mw_FilterResultCount"
                                        FontSize="{StaticResource FontSizeSmallCaption}"
@@ -278,7 +279,7 @@
                                     HorizontalAlignment="Stretch"
                                     HorizontalContentAlignment="Left"
                                     Padding="4,3" FontSize="{StaticResource FontSizeCaption}"
-                                    AutomationProperties.Name="">
+                                    AutomationProperties.Name="{loc:Translate A11yToggleToolsPanel}">
                                 <DockPanel>
                                     <TextBlock x:Name="ToolsToggleChevron" DockPanel.Dock="Right"
                                                Text="&#xE70E;" FontFamily="Segoe MDL2 Assets"
@@ -804,14 +805,14 @@
                                             Command="{Binding ToggleTunnelPanelCommand}"
                                             Style="{DynamicResource ToolbarGhostButtonStyle}"
                                             Padding="6,2" Margin="4,0,0,0"
-                                            AutomationProperties.Name=""/>
+                                            AutomationProperties.Name="{loc:Translate A11yCollapseTunnelPanel}"/>
                                     <Button x:Name="Mw_TunnelPanelCloseAllBtn" DockPanel.Dock="Right"
                                             Content=""
                                             Command="{Binding CloseAllTunnelsCommand}"
                                             Style="{DynamicResource SecondaryButtonStyle}"
                                             Foreground="{DynamicResource ErrorTextBrush}"
                                             Padding="6,2" FontSize="{StaticResource FontSizeCaption}" Margin="4,0,0,0"
-                                            AutomationProperties.Name=""/>
+                                            AutomationProperties.Name="{loc:Translate A11yCloseAllTunnels}"/>
                                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                         <TextBlock Text="&#xE945;" FontFamily="Segoe MDL2 Assets"
                                                    FontSize="{StaticResource FontSizeBody}" Margin="0,0,6,0"
@@ -1116,7 +1117,7 @@
                                                         Padding="6,2" Margin="4,0,0,0" Click="OnBrowseEditorPathClick"
                                                         Style="{DynamicResource SecondaryButtonStyle}"
                                                         FontSize="{StaticResource FontSizeCaption}"
-                                                        AutomationProperties.Name=""/>
+                                                        AutomationProperties.Name="{loc:Translate A11yBrowseEditorPath}"/>
                                                 <TextBox Text="{Binding Settings.ExternalEditorPath}"/>
                                             </DockPanel>
                                         </StackPanel>
@@ -1191,7 +1192,7 @@
                                                     Padding="6,2" Margin="4,0,0,0" Click="OnBrowsePlinkPathClick"
                                                     Style="{DynamicResource SecondaryButtonStyle}"
                                                     FontSize="{StaticResource FontSizeCaption}"
-                                                    AutomationProperties.Name=""/>
+                                                    AutomationProperties.Name="{loc:Translate A11yBrowsePlinkPath}"/>
                                             <TextBox Text="{Binding Settings.PlinkPath}"/>
                                         </DockPanel>
                                         <StackPanel Margin="0,12,0,0">
@@ -1237,7 +1238,7 @@
                                                         Padding="6,2" Margin="4,0,0,0" Click="OnBrowseX11PathClick"
                                                         Style="{DynamicResource SecondaryButtonStyle}"
                                                         FontSize="{StaticResource FontSizeCaption}"
-                                                        AutomationProperties.Name=""/>
+                                                        AutomationProperties.Name="{loc:Translate A11yBrowseX11Path}"/>
                                                 <TextBox Text="{Binding Settings.X11ServerPath}"/>
                                             </DockPanel>
                                         </StackPanel>
@@ -1389,7 +1390,7 @@
                                                         Padding="6,2" Margin="4,0,0,0" Click="OnBrowseSessionLogDirClick"
                                                         Style="{DynamicResource SecondaryButtonStyle}"
                                                         FontSize="{StaticResource FontSizeCaption}"
-                                                        AutomationProperties.Name=""/>
+                                                        AutomationProperties.Name="{loc:Translate A11yBrowseSessionLogDir}"/>
                                                 <TextBox Text="{Binding Settings.SessionLogDirectory}"/>
                                             </DockPanel>
                                         </StackPanel>
@@ -1467,7 +1468,7 @@
 
                                                 <TextBlock x:Name="Mw_ExtToolLblPath" Grid.Row="1" Grid.Column="0" Text="" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeBody}"/>
                                                 <DockPanel Grid.Row="1" Grid.Column="1" Margin="0,0,0,6">
-                                                    <Button x:Name="Mw_ExtToolBrowseBtn" DockPanel.Dock="Right" Content="..." Padding="6,2" Margin="4,0,0,0" Click="OnExtToolBrowseClick" Style="{DynamicResource SecondaryButtonStyle}" FontSize="{StaticResource FontSizeCaption}" AutomationProperties.Name=""/>
+                                                    <Button x:Name="Mw_ExtToolBrowseBtn" DockPanel.Dock="Right" Content="..." Padding="6,2" Margin="4,0,0,0" Click="OnExtToolBrowseClick" Style="{DynamicResource SecondaryButtonStyle}" FontSize="{StaticResource FontSizeCaption}" AutomationProperties.Name="{loc:Translate A11yBrowseExecutable}"/>
                                                     <TextBox Text="{Binding ExecutablePath, UpdateSourceTrigger=PropertyChanged}" FontSize="{StaticResource FontSizeBody}"/>
                                                 </DockPanel>
 
@@ -1609,7 +1610,7 @@
                 Panel.ZIndex="999"
                 Opacity="0.6"
                 Cursor="Hand"
-                AutomationProperties.Name="">
+                AutomationProperties.Name="{loc:Translate A11yExitFullscreen}">
             <Button.Style>
                 <Style TargetType="Button">
                     <Setter Property="Background" Value="Transparent"/>
@@ -1659,7 +1660,7 @@
                             Padding="4,2" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,8,0"
                             VerticalAlignment="Center"
                             Style="{DynamicResource ToolbarGhostButtonStyle}"
-                            AutomationProperties.Name="">
+                            AutomationProperties.Name="{loc:Translate A11yToggleTunnelPanel}">
                         <Button.Content>
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="&#xE945;" FontFamily="Segoe MDL2 Assets"
@@ -1675,7 +1676,7 @@
                             ToolTip="{Binding BroadcastToggleTooltip}"
                             Padding="4,2" FontSize="{StaticResource FontSizeSubtitle}" Margin="0,0,8,0"
                             VerticalAlignment="Center"
-                            AutomationProperties.Name="">
+                            AutomationProperties.Name="{loc:Translate A11yToggleBroadcast}">
                         <Button.Content>
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="&#xE704;" FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeCaption}"

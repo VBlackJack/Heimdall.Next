@@ -142,7 +142,7 @@
   "TooltipAdd": "Add new server (Ctrl+N)",
   "TooltipEdit": "Edit selected server (Ctrl+E)",
   "TooltipDuplicate": "Duplicate selected server (Ctrl+D)",
-  "TooltipDelete": "Delete selected server (Del)",
+  "TooltipDelete": "Delete selected server (Ctrl+Del)",
   "TooltipConnect": "Connect to selected server (Enter)",
   "TooltipDisconnect": "Close tunnel for selected server",
   "TooltipReleasePorts": "Kill all plink processes to release locked ports",
@@ -3619,6 +3619,8 @@
   "A11yClosePane": "Close pane",
   "A11yToggleKeyVisibility": "Toggle key visibility",
   "A11yCopyToClipboard": "Copy to clipboard",
+  "A11yCloseOverlay": "Close overlay",
+  "A11yConnectionStatus": "Connection status",
 
   "_comment_ux_combobox": "",
   "TerminalSchemeDefault": "Default",
@@ -3667,5 +3669,9 @@
 
   "_comment_ux_misc": "",
   "ToolNotesUnsaved": "Unsaved changes",
-  "ToolNetMapScanProgress": "Scanning: {0}/{1} hosts..."
+  "ToolNetMapScanProgress": "Scanning: {0}/{1} hosts...",
+
+  "_comment_dirty_guards": "",
+  "DialogUnsavedWarningTitle": "Unsaved Changes",
+  "DialogUnsavedWarning": "You have unsaved changes. Discard them and close?"
 }

@@ -207,7 +207,10 @@ public partial class MainWindow : Window
         Mw_DetailEnvLabel.Text = vm.Localize("DetailLabelEnvironment");
         Mw_DetailConnectBtn.Content = vm.Localize("DetailBtnConnect");
         Mw_DetailEditBtn.Content = vm.Localize("BtnEdit");
+        Mw_DetailEditBtn.ToolTip = vm.Localize("TooltipEdit");
         Mw_DetailDeleteBtn.Content = vm.Localize("BtnDelete");
+        Mw_DetailDeleteBtn.ToolTip = vm.Localize("TooltipDelete");
+        QuickConnectButton.ToolTip = vm.Localize("QuickConnectShortcut");
 
         Mw_EmptyStateTitle.Text = vm.Localize("EmptyStateTitle");
         Mw_EmptyStateSubtitle.Text = vm.Localize("EmptyStateSubtitle");
@@ -413,17 +416,13 @@ public partial class MainWindow : Window
         System.Windows.Automation.AutomationProperties.SetName(TabScheduled, vm.Localize("NavTabScheduled"));
         System.Windows.Automation.AutomationProperties.SetName(TabSettings, vm.Localize("NavTabSettings"));
         System.Windows.Automation.AutomationProperties.SetName(TabAbout, vm.Localize("NavTabAbout"));
-        System.Windows.Automation.AutomationProperties.SetName(Mw_FilterBox, vm.Localize("A11ySearchAndFilter"));
-        System.Windows.Automation.AutomationProperties.SetName(Mw_FilterClearBtn, vm.Localize("A11yClearSearchFilter"));
         System.Windows.Automation.AutomationProperties.SetName(ToggleSidebarButton, vm.Localize("TooltipHideSidebar"));
         System.Windows.Automation.AutomationProperties.SetName(ShowSidebarButton, vm.Localize("TooltipShowSidebar"));
         System.Windows.Automation.AutomationProperties.SetName(ExpandAllButton, vm.Localize("TooltipExpandAll"));
         System.Windows.Automation.AutomationProperties.SetName(CollapseAllButton, vm.Localize("TooltipCollapseAll"));
         System.Windows.Automation.AutomationProperties.SetName(AddButton, vm.Localize("TooltipAddMenu"));
-        System.Windows.Automation.AutomationProperties.SetName(ShareFolderButton, vm.Localize("A11yShareFolder"));
         System.Windows.Automation.AutomationProperties.SetName(SessionTabControl, vm.Localize("NavTabSessions"));
         System.Windows.Automation.AutomationProperties.SetName(QuickConnectButton, vm.Localize("QuickConnectShortcut"));
-        System.Windows.Automation.AutomationProperties.SetName(BtnToggleToolsPanel, vm.Localize("A11yToggleToolsPanel"));
         BtnToggleToolsPanel.ToolTip = vm.Localize("TooltipToggleToolsPanel");
 
         // DataTemplate relay: session tab close button and busy indicator bind to ancestor Tag
@@ -440,9 +439,7 @@ public partial class MainWindow : Window
         System.Windows.Automation.AutomationProperties.SetName(Mw_EmptyBtnExploreTools, vm.Localize("AccessEmptyExploreTools"));
 
         // Tunnel panel icon buttons
-        System.Windows.Automation.AutomationProperties.SetName(Mw_TunnelPanelCollapseBtn, vm.Localize("A11yCollapseTunnelPanel"));
         Mw_TunnelPanelCollapseBtn.ToolTip = vm.Localize("TooltipCollapseTunnelPanel");
-        System.Windows.Automation.AutomationProperties.SetName(Mw_TunnelPanelCloseAllBtn, vm.Localize("A11yCloseAllTunnels"));
 
         // Tunnel tab buttons
         System.Windows.Automation.AutomationProperties.SetName(Mw_TunnelsCloseSelectedBtn, vm.Localize("AccessTunnelsCloseSelected"));
@@ -471,18 +468,6 @@ public partial class MainWindow : Window
         // External tools management buttons
         System.Windows.Automation.AutomationProperties.SetName(Mw_SettingsExtToolsAddBtn, vm.Localize("AccessSettingsExtToolsAdd"));
         System.Windows.Automation.AutomationProperties.SetName(Mw_SettingsExtToolsRemoveBtn, vm.Localize("AccessSettingsExtToolsRemove"));
-        System.Windows.Automation.AutomationProperties.SetName(Mw_ExtToolBrowseBtn, vm.Localize("A11yBrowseExecutable"));
-
-        // Settings path browse buttons
-        System.Windows.Automation.AutomationProperties.SetName(Mw_SettingsBrowseEditorPath, vm.Localize("A11yBrowseEditorPath"));
-        System.Windows.Automation.AutomationProperties.SetName(Mw_SettingsBrowsePlinkPath, vm.Localize("A11yBrowsePlinkPath"));
-        System.Windows.Automation.AutomationProperties.SetName(Mw_SettingsBrowseX11Path, vm.Localize("A11yBrowseX11Path"));
-        System.Windows.Automation.AutomationProperties.SetName(Mw_SettingsBrowseSessionLogDir, vm.Localize("A11yBrowseSessionLogDir"));
-
-        // Fullscreen and status bar buttons
-        System.Windows.Automation.AutomationProperties.SetName(FullscreenBar, vm.Localize("A11yExitFullscreen"));
-        System.Windows.Automation.AutomationProperties.SetName(Mw_StatusTunnelToggle, vm.Localize("A11yToggleTunnelPanel"));
-        System.Windows.Automation.AutomationProperties.SetName(Mw_BroadcastToggleBtn, vm.Localize("A11yToggleBroadcast"));
     }
 
     private async void OnServersTabChecked(object sender, RoutedEventArgs e)
@@ -863,6 +848,13 @@ public partial class MainWindow : Window
                 ToggleFullscreen();
                 e.Handled = true;
                 break;
+
+            case Key.Apps:
+            case Key.F10 when Keyboard.Modifiers == ModifierKeys.Shift:
+                if (terminalHasFocus) break;
+                OpenTreeViewKeyboardContextMenu(vm);
+                e.Handled = true;
+                break;
         }
     }
 
@@ -873,6 +865,77 @@ public partial class MainWindow : Window
         var shortcuts = vm.Localize("HelpShortcutsContent");
         MessageBox.Show(shortcuts, vm.Localize("HelpShortcutsTitle"),
             MessageBoxButton.OK, MessageBoxImage.Information);
+    }
+
+    /// <summary>
+    /// Opens the TreeView context menu via keyboard (Shift+F10 or Apps key).
+    /// Positions the menu at the selected TreeViewItem rather than at the mouse cursor.
+    /// </summary>
+    private void OpenTreeViewKeyboardContextMenu(MainViewModel vm)
+    {
+        if (!ServerTreeView.IsKeyboardFocusWithin)
+        {
+            return;
+        }
+
+        var target = ServerTreeView.SelectedItem;
+        var menu = CreateTreeContextMenu(vm, target);
+
+        // Try to position the menu at the selected item's location
+        var container = FindTreeViewItemContainer(ServerTreeView, target);
+        if (container is not null)
+        {
+            menu.PlacementTarget = container;
+            menu.Placement = PlacementMode.Bottom;
+        }
+        else
+        {
+            menu.PlacementTarget = ServerTreeView;
+            menu.Placement = PlacementMode.Center;
+        }
+
+        ServerTreeView.ContextMenu = menu;
+        menu.IsOpen = true;
+    }
+
+    /// <summary>
+    /// Walks the TreeView item container hierarchy to find the container for a given data item.
+    /// Required because virtualized TreeViews only materialize visible containers.
+    /// </summary>
+    private static TreeViewItem? FindTreeViewItemContainer(ItemsControl parent, object? item)
+    {
+        if (item is null)
+        {
+            return null;
+        }
+
+        // Direct lookup on the immediate container generator
+        if (parent.ItemContainerGenerator.ContainerFromItem(item) is TreeViewItem direct)
+        {
+            return direct;
+        }
+
+        // Recurse into expanded child containers (for nested items)
+        for (var i = 0; i < parent.Items.Count; i++)
+        {
+            if (parent.ItemContainerGenerator.ContainerFromIndex(i) is not TreeViewItem childContainer)
+            {
+                continue;
+            }
+
+            if (childContainer.DataContext == item)
+            {
+                return childContainer;
+            }
+
+            var nested = FindTreeViewItemContainer(childContainer, item);
+            if (nested is not null)
+            {
+                return nested;
+            }
+        }
+
+        return null;
     }
 
     /// <summary>
