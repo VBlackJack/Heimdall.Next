@@ -139,11 +139,13 @@ public partial class ServerListViewModel : ObservableObject
             }
         }
 
+        var gatewayMap = BuildGatewayMap(settings);
         _allServers = serverDtos
             .Select(dto => ServerItemViewModel.FromDto(
                 dto,
                 ResolveProject(projectMap, dto.ProjectId),
-                _connectionSm.GetState(dto.Id).ToString()))
+                _connectionSm.GetState(dto.Id).ToString(),
+                gatewayMap))
             .ToList();
 
         RefreshLookupCollections(settings);
@@ -524,7 +526,8 @@ public partial class ServerListViewModel : ObservableObject
         _allServers.Add(ServerItemViewModel.FromDto(
             result.Server,
             ResolveProject(BuildProjectMap(settings), result.Server.ProjectId),
-            _connectionSm.GetState(result.Server.Id).ToString()));
+            _connectionSm.GetState(result.Server.Id).ToString(),
+            BuildGatewayMap(settings)));
 
         RefreshLookupCollections(settings);
         ApplyFilter(result.Server.Id);
@@ -607,7 +610,8 @@ public partial class ServerListViewModel : ObservableObject
 
         server.UpdateFromDto(
             result.Server,
-            ResolveProject(BuildProjectMap(settings), result.Server.ProjectId));
+            ResolveProject(BuildProjectMap(settings), result.Server.ProjectId),
+            BuildGatewayMap(settings));
 
         RefreshLookupCollections(settings);
         ApplyFilter(server.Id);
@@ -682,7 +686,8 @@ public partial class ServerListViewModel : ObservableObject
         _allServers.Add(ServerItemViewModel.FromDto(
             clone,
             ResolveProject(BuildProjectMap(settings), clone.ProjectId),
-            _connectionSm.GetState(clone.Id).ToString()));
+            _connectionSm.GetState(clone.Id).ToString(),
+            BuildGatewayMap(settings)));
 
         RefreshLookupCollections(settings);
         ApplyFilter(clone.Id);
@@ -1154,6 +1159,14 @@ public partial class ServerListViewModel : ObservableObject
             .Where(project => !string.IsNullOrWhiteSpace(project.Id))
             .GroupBy(project => project.Id, StringComparer.Ordinal)
             .ToDictionary(group => group.Key, group => group.Last(), StringComparer.Ordinal);
+    }
+
+    private static Dictionary<string, SshGatewayDto> BuildGatewayMap(AppSettings settings)
+    {
+        return settings.SshGateways
+            .Where(gw => !string.IsNullOrWhiteSpace(gw.Id))
+            .GroupBy(gw => gw.Id, StringComparer.Ordinal)
+            .ToDictionary(g => g.Key, g => g.Last(), StringComparer.Ordinal);
     }
 
     private static IEnumerable<GatewayOption> BuildGatewayOptions(IEnumerable<SshGatewayDto> gateways)

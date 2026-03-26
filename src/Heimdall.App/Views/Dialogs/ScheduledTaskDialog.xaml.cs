@@ -60,6 +60,10 @@ public partial class ScheduledTaskDialog : Window
                 System.Windows.Automation.AutomationProperties.SetName(TxtTimeOfDay, vm.Localizer["ScheduledTaskFieldTimeOfDay"]);
                 System.Windows.Automation.AutomationProperties.SetName(TxtInterval, vm.Localizer["ScheduledTaskFieldInterval"]);
                 System.Windows.Automation.AutomationProperties.SetName(ChkEnabled, vm.Localizer["ScheduledTaskFieldEnabled"]);
+                System.Windows.Automation.AutomationProperties.SetName(TxtNextRunPreview, vm.Localizer["ScheduledColNextRun"]);
+
+                // Refresh the next-run preview now that Localizer is available
+                vm.RefreshNextRunPreview();
             }
 
             CmbServer.Focus();

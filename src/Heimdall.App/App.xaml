@@ -22,6 +22,7 @@
             <converters:ConnectionTypeToGeometryConverter x:Key="TypeToGeoConverter"/>
             <converters:ConnectionTypeToColorConverter x:Key="TypeToColorConverter"/>
             <converters:ConnectionStateToGeometryConverter x:Key="StateToGeoConverter"/>
+            <converters:StringToBrushConverter x:Key="StringToBrushConverter"/>
 
             <!-- Toolbar navigation tab style (RadioButton as flat tab) -->
             <Style x:Key="ToolbarTabStyle" TargetType="RadioButton">

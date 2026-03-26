@@ -181,6 +181,7 @@ public partial class MainWindow : Window
         Mw_BroadcastLabel.Text = vm.Localize("BroadcastBadgeLabel");
         Mw_StatusBarServersLabel.Text = " " + vm.Localize("StatusBarServers") + " " + vm.Localize("StatusBarSeparator");
         Mw_StatusBarTunnelsLabel.Text = " " + vm.Localize("StatusBarTunnels");
+        Mw_StatusBarShortcutHint.Text = vm.Localize("StatusBarShortcutHint");
 
         Mw_PaletteNoResults.Text = vm.Localize("QuickConnectNoResults");
         Mw_PaletteHints.Text = vm.Localize("QuickConnectHints");
@@ -205,6 +206,12 @@ public partial class MainWindow : Window
 
         Mw_DetailGroupLabel.Text = vm.Localize("DetailLabelGroup");
         Mw_DetailEnvLabel.Text = vm.Localize("DetailLabelEnvironment");
+        Mw_DetailProjectLabel.Text = vm.Localize("DetailLabelProject");
+        Mw_DetailUsernameLabel.Text = vm.Localize("DetailLabelUsername");
+        Mw_DetailGatewayLabel.Text = vm.Localize("DetailLabelGateway");
+        Mw_DetailAuthLabel.Text = vm.Localize("DetailLabelAuth");
+        Mw_DetailTagsLabel.Text = vm.Localize("DetailLabelTags");
+        Mw_DetailFavoriteLabel.Text = vm.Localize("DetailLabelFavorite");
         Mw_DetailConnectBtn.Content = vm.Localize("DetailBtnConnect");
         Mw_DetailEditBtn.Content = vm.Localize("BtnEdit");
         Mw_DetailEditBtn.ToolTip = vm.Localize("TooltipEdit");
@@ -220,6 +227,8 @@ public partial class MainWindow : Window
         Mw_EmptyBtnExploreTools.Content = vm.Localize("EmptyStateBtnExploreTools");
         Mw_EmptySelectServer.Text = vm.Localize("EmptyStateSelectServer");
         Mw_EmptyQuickConnectHint.Text = vm.Localize("HintQuickConnect");
+        Mw_EmptyStateShortcutHints.Text = vm.Localize("EmptyStateShortcutHints");
+        Mw_DetailActionHints.Text = vm.Localize("DetailActionHints");
     }
 
     private void ApplyTunnelLocalization(MainViewModel vm)
@@ -288,6 +297,7 @@ public partial class MainWindow : Window
         Mw_SettingsTabRdp.Header = vm.Localize("SettingsTabRdp");
         Mw_SettingsTabSecurity.Header = vm.Localize("SettingsTabSecurity");
         Mw_SettingsTabAdvanced.Header = vm.Localize("SettingsTabAdvanced");
+        Mw_SettingsSearchBox.Tag = vm.Localize("SettingsSearchPlaceholder");
 
         Mw_SettingsAppearanceTitle.Text = vm.Localize("SettingsSectionAppearance");
         Mw_SettingsLanguageLabel.Text = vm.Localize("SettingsLabelLanguage");
@@ -723,6 +733,89 @@ public partial class MainWindow : Window
                 Mw_FilterResultCount.Visibility = Visibility.Collapsed;
             }
         }
+    }
+
+    // Settings search: keyword map for each sub-tab (English keywords, always match)
+    private static readonly string[][] SettingsTabKeywords =
+    [
+        // General
+        ["language", "theme", "editor", "appearance", "sessions", "sleep", "dark", "light", "langue", "apparence"],
+        // Terminal
+        ["terminal", "font", "color", "scheme", "powershell", "execution", "policy", "dracula", "monokai", "nord", "solarized", "police", "couleur"],
+        // SSH & SFTP
+        ["ssh", "sftp", "plink", "gateway", "tunnel", "anti-idle", "x11", "agent", "key", "passerelle", "cl\u00e9"],
+        // RDP
+        ["rdp", "remote desktop", "resolution", "nla", "multi-monitor", "clipboard", "drives", "printers", "audio", "redirect", "color depth", "bitmap", "reconnect", "bureau \u00e0 distance"],
+        // Security
+        ["security", "credential", "password", "keepass", "provider", "guard", "s\u00e9curit\u00e9", "mot de passe"],
+        // Advanced
+        ["logging", "log", "timeout", "external", "tools", "delay", "session", "journal", "d\u00e9lai", "outils"],
+    ];
+
+    private void OnSettingsSearchTextChanged(object sender, TextChangedEventArgs e)
+    {
+        var query = Mw_SettingsSearchBox.Text?.Trim() ?? "";
+        var hasText = !string.IsNullOrEmpty(query);
+        Mw_SettingsSearchClear.Visibility = hasText ? Visibility.Visible : Visibility.Collapsed;
+
+        var tabs = new TabItem[]
+        {
+            Mw_SettingsTabGeneral, Mw_SettingsTabTerminal, Mw_SettingsTabSsh,
+            Mw_SettingsTabRdp, Mw_SettingsTabSecurity, Mw_SettingsTabAdvanced,
+        };
+
+        if (!hasText)
+        {
+            // Show all tabs
+            foreach (var tab in tabs)
+            {
+                tab.Visibility = Visibility.Visible;
+            }
+
+            Mw_SettingsSearchHint.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        var queryLower = query.ToLowerInvariant();
+        int matchCount = 0;
+        TabItem? firstMatch = null;
+
+        for (int i = 0; i < tabs.Length && i < SettingsTabKeywords.Length; i++)
+        {
+            var keywords = SettingsTabKeywords[i];
+            // Also match against the tab header text
+            var headerText = tabs[i].Header?.ToString()?.ToLowerInvariant() ?? "";
+            bool matches = keywords.Any(k => k.Contains(queryLower, StringComparison.OrdinalIgnoreCase))
+                           || headerText.Contains(queryLower, StringComparison.OrdinalIgnoreCase);
+
+            tabs[i].Visibility = matches ? Visibility.Visible : Visibility.Collapsed;
+
+            if (matches)
+            {
+                matchCount++;
+                firstMatch ??= tabs[i];
+            }
+        }
+
+        // Auto-select the first matching tab if the current selection is hidden
+        if (Mw_SettingsSubTabControl.SelectedItem is TabItem selected && selected.Visibility == Visibility.Collapsed && firstMatch is not null)
+        {
+            Mw_SettingsSubTabControl.SelectedItem = firstMatch;
+        }
+
+        // Show hint text
+        if (DataContext is MainViewModel vm)
+        {
+            Mw_SettingsSearchHintText.Text = string.Format(
+                vm.Localize("SettingsSearchResultCount"), matchCount, tabs.Length);
+            Mw_SettingsSearchHint.Visibility = Visibility.Visible;
+        }
+    }
+
+    private void OnSettingsSearchClearClick(object sender, RoutedEventArgs e)
+    {
+        Mw_SettingsSearchBox.Text = string.Empty;
+        Mw_SettingsSearchBox.Focus();
     }
 
     /// <summary>
@@ -3258,12 +3351,13 @@ public partial class MainWindow : Window
     }
 
     /// <summary>
-    /// Connects the clicked palette item on single click.
+    /// Executes the double-clicked palette item (connects or opens tool).
     /// Captures split state synchronously BEFORE the async command runs,
     /// preventing a race condition where Popup deactivation clears
     /// <c>_splitPaletteSession</c> before <c>ConnectFromPaletteAsync</c> reads it.
+    /// Single click only selects (highlights) via standard ListBox behavior.
     /// </summary>
-    private void OnPaletteItemClick(object sender, MouseButtonEventArgs e)
+    private void OnPaletteItemDoubleClick(object sender, MouseButtonEventArgs e)
     {
         if (DataContext is not MainViewModel vm) return;
 
