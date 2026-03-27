@@ -38,6 +38,7 @@ public partial class CronJobManagerView : UserControl, IToolView
     private Action<bool>? _setBusy;
     private CancellationTokenSource? _cts;
     private bool _disposed;
+    private bool _isLoading;
 
     private readonly ObservableCollection<CrontabDisplayEntry> _cronEntries = [];
     private readonly ObservableCollection<WindowsTaskEntry> _taskEntries = [];
@@ -198,6 +199,7 @@ public partial class CronJobManagerView : UserControl, IToolView
         _cts = new CancellationTokenSource();
         _cts.CancelAfter(TimeSpan.FromSeconds(30));
 
+        _isLoading = true;
         BtnRefreshTasks.IsEnabled = false;
         _setBusy?.Invoke(true);
         TxtTasksLoading.Text = L("ToolCronJobTasksLoading");
@@ -230,6 +232,7 @@ public partial class CronJobManagerView : UserControl, IToolView
         }
         finally
         {
+            _isLoading = false;
             _setBusy?.Invoke(false);
             BtnRefreshTasks.IsEnabled = true;
             TxtTasksLoading.Visibility = Visibility.Collapsed;
@@ -540,6 +543,8 @@ public partial class CronJobManagerView : UserControl, IToolView
     }
 
     private string L(string key) => _localizer?[key] ?? key;
+
+    public bool CanClose() => !_isLoading;
 
     public void Dispose()
     {

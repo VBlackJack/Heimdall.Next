@@ -133,7 +133,7 @@
 
         <!-- Log display -->
         <RichTextBox x:Name="LogViewer" Grid.Row="3"
-                     IsReadOnly="True"
+                     IsReadOnly="True" AutomationProperties.LiveSetting="Polite"
                      FontFamily="Consolas" FontSize="{StaticResource FontSizeBody}"
                      Background="{DynamicResource CardBrush}"
                      Foreground="{DynamicResource TextPrimaryBrush}"

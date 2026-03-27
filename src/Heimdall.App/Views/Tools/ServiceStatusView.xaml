@@ -102,7 +102,8 @@
                       BorderThickness="0"
                       RowBackground="Transparent"
                       AlternatingRowBackground="{DynamicResource SurfaceBrush}"
-                      HorizontalGridLinesBrush="{DynamicResource BorderBrush}">
+                      HorizontalGridLinesBrush="{DynamicResource BorderBrush}"
+                      AutomationProperties.LiveSetting="Polite">
                 <DataGrid.Columns>
                     <DataGridTextColumn x:Name="ColServiceName" Binding="{Binding Name}" Width="*"
                                         Foreground="{DynamicResource TextPrimaryBrush}"/>

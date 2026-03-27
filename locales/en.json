@@ -2414,6 +2414,8 @@
   "ToolPwdGenPlacementMiddle": "Middle",
   "ToolPwdGenCustomSpecials": "Custom specials:",
   "ToolPwdGenCliSafe": "CLI-safe (exclude shell chars)",
+  "ToolPwdGenClipboardAutoClear": "Auto-clear clipboard (30s)",
+  "ToolPwdGenClipboardClearHint": "Clipboard will auto-clear in 30s",
   "ToolPwdGenAdvanced": "Advanced",
   "ToolPwdGenQuickPresets": "Quick presets:",
   "ToolPwdGenBtnRegenerate": "Regenerate",

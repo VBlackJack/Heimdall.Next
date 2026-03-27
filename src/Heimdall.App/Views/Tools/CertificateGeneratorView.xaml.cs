@@ -346,7 +346,8 @@ public partial class CertificateGeneratorView : UserControl, IToolView
     {
         if (!string.IsNullOrEmpty(_fingerprint))
         {
-            Clipboard.SetText(_fingerprint);
+            try { Clipboard.SetText(_fingerprint); }
+            catch (System.Runtime.InteropServices.ExternalException) { return; }
             CopyFeedbackHelper.ShowCopyFeedback(sender as Button);
         }
     }
@@ -356,7 +357,8 @@ public partial class CertificateGeneratorView : UserControl, IToolView
         var text = _isCaLeafMode ? _caCertPem : _certPem;
         if (!string.IsNullOrEmpty(text))
         {
-            Clipboard.SetText(text);
+            try { Clipboard.SetText(text); }
+            catch (System.Runtime.InteropServices.ExternalException) { return; }
             CopyFeedbackHelper.ShowCopyFeedback(sender as Button);
         }
     }
@@ -366,7 +368,8 @@ public partial class CertificateGeneratorView : UserControl, IToolView
         var text = _isCaLeafMode ? _caKeyPem : _keyPem;
         if (!string.IsNullOrEmpty(text))
         {
-            Clipboard.SetText(text);
+            try { Clipboard.SetText(text); }
+            catch (System.Runtime.InteropServices.ExternalException) { return; }
             CopyFeedbackHelper.ShowCopyFeedback(sender as Button);
         }
     }
@@ -385,7 +388,8 @@ public partial class CertificateGeneratorView : UserControl, IToolView
     {
         if (!string.IsNullOrEmpty(_leafCertPem))
         {
-            Clipboard.SetText(_leafCertPem);
+            try { Clipboard.SetText(_leafCertPem); }
+            catch (System.Runtime.InteropServices.ExternalException) { return; }
             CopyFeedbackHelper.ShowCopyFeedback(sender as Button);
         }
     }
@@ -394,7 +398,8 @@ public partial class CertificateGeneratorView : UserControl, IToolView
     {
         if (!string.IsNullOrEmpty(_leafKeyPem))
         {
-            Clipboard.SetText(_leafKeyPem);
+            try { Clipboard.SetText(_leafKeyPem); }
+            catch (System.Runtime.InteropServices.ExternalException) { return; }
             CopyFeedbackHelper.ShowCopyFeedback(sender as Button);
         }
     }

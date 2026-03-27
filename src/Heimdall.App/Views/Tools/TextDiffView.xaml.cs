@@ -317,7 +317,8 @@ public partial class TextDiffView : UserControl, IToolView
     {
         if (!string.IsNullOrEmpty(_unifiedDiff))
         {
-            Clipboard.SetText(_unifiedDiff);
+            try { Clipboard.SetText(_unifiedDiff); }
+            catch (System.Runtime.InteropServices.ExternalException) { return; }
             CopyFeedbackHelper.ShowCopyFeedback(sender as Button);
         }
     }

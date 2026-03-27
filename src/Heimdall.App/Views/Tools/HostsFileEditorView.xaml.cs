@@ -335,14 +335,14 @@ public partial class HostsFileEditorView : UserControl, IToolView
 
         // Copy IP
         var copyIp = new System.Windows.Controls.MenuItem { Header = L("ToolCtxCopyIp") };
-        copyIp.Click += (_, _) => System.Windows.Clipboard.SetText(entry.IpAddress);
+        copyIp.Click += (_, _) => { try { System.Windows.Clipboard.SetText(entry.IpAddress); } catch (System.Runtime.InteropServices.ExternalException) { return; } };
         menu.Items.Add(copyIp);
 
         // Copy Hostname
         if (!string.IsNullOrWhiteSpace(entry.Hostname))
         {
             var copyHost = new System.Windows.Controls.MenuItem { Header = L("ToolCtxCopyHostname") };
-            copyHost.Click += (_, _) => System.Windows.Clipboard.SetText(entry.Hostname);
+            copyHost.Click += (_, _) => { try { System.Windows.Clipboard.SetText(entry.Hostname); } catch (System.Runtime.InteropServices.ExternalException) { return; } };
             menu.Items.Add(copyHost);
         }
 

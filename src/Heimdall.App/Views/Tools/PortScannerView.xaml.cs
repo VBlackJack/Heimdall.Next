@@ -247,20 +247,28 @@ public partial class PortScannerView : UserControl, IToolView
         _allResults.Clear();
         _cts = new CancellationTokenSource();
         _isScanning = true;
-        _setBusy?.Invoke(true);
-        BtnScan.Content = L("ToolPortScanBtnStop");
-        BtnScan.Foreground = (System.Windows.Media.Brush)FindResource("ErrorBrush");
-        BtnScan.Style = (Style)FindResource("SecondaryButtonStyle");
-        System.Windows.Automation.AutomationProperties.SetName(BtnScan, L("ToolPortScanBtnStop"));
-        TxtHost.IsReadOnly = true;
-        TxtPorts.IsReadOnly = true;
-        ScanProgress.IsIndeterminate = false;
-        ScanProgress.Maximum = ports.Count;
-        ScanProgress.Value = 0;
-        TxtProgressPercent.Text = "0%";
-        TxtProgressCount.Text = string.Format(L("ToolPortScanProgressCount"), 0, ports.Count);
-        ProgressPanel.Visibility = Visibility.Visible;
-        EmptyStatePanel.Visibility = Visibility.Collapsed;
+        try
+        {
+            _setBusy?.Invoke(true);
+            BtnScan.Content = L("ToolPortScanBtnStop");
+            BtnScan.Foreground = (System.Windows.Media.Brush)FindResource("ErrorBrush");
+            BtnScan.Style = (Style)FindResource("SecondaryButtonStyle");
+            System.Windows.Automation.AutomationProperties.SetName(BtnScan, L("ToolPortScanBtnStop"));
+            TxtHost.IsReadOnly = true;
+            TxtPorts.IsReadOnly = true;
+            ScanProgress.IsIndeterminate = false;
+            ScanProgress.Maximum = ports.Count;
+            ScanProgress.Value = 0;
+            TxtProgressPercent.Text = "0%";
+            TxtProgressCount.Text = string.Format(L("ToolPortScanProgressCount"), 0, ports.Count);
+            ProgressPanel.Visibility = Visibility.Visible;
+            EmptyStatePanel.Visibility = Visibility.Collapsed;
+        }
+        catch
+        {
+            _isScanning = false;
+            throw;
+        }
 
         var openCount = 0;
         var closedCount = 0;
@@ -268,7 +276,6 @@ public partial class PortScannerView : UserControl, IToolView
 
         TxtTotal.Text = ports.Count.ToString();
 
-        // Connect to SSH gateway if selected (for tunnel-based scanning)
         Renci.SshNet.SshClient? tunnelClient = null;
         if (_selectedGateway is not null)
         {

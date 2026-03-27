@@ -173,7 +173,8 @@ public partial class ChmodCalculatorView : UserControl, IToolView
     {
         if (!string.IsNullOrEmpty(OctalInput.Text))
         {
-            Clipboard.SetText(OctalInput.Text);
+            try { Clipboard.SetText(OctalInput.Text); }
+            catch (System.Runtime.InteropServices.ExternalException) { return; }
             CopyFeedbackHelper.ShowCopyFeedback(sender as Button);
         }
     }
@@ -182,7 +183,8 @@ public partial class ChmodCalculatorView : UserControl, IToolView
     {
         if (!string.IsNullOrEmpty(SymbolicDisplay.Text))
         {
-            Clipboard.SetText(SymbolicDisplay.Text);
+            try { Clipboard.SetText(SymbolicDisplay.Text); }
+            catch (System.Runtime.InteropServices.ExternalException) { return; }
             CopyFeedbackHelper.ShowCopyFeedback(sender as Button);
         }
     }
@@ -191,7 +193,8 @@ public partial class ChmodCalculatorView : UserControl, IToolView
     {
         if (!string.IsNullOrEmpty(CommandPreviewText.Text))
         {
-            Clipboard.SetText(CommandPreviewText.Text);
+            try { Clipboard.SetText(CommandPreviewText.Text); }
+            catch (System.Runtime.InteropServices.ExternalException) { return; }
             CopyFeedbackHelper.ShowCopyFeedback(sender as Button);
         }
     }

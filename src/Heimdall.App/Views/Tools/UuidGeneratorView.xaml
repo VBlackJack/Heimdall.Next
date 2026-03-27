@@ -124,7 +124,7 @@
                         <TextBox x:Name="TxtBatchResults" Text=""
                                  FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                                  Padding="{StaticResource PaddingInput}" MaxHeight="300"
-                                 IsReadOnly="True"
+                                 IsReadOnly="True" AutomationProperties.LiveSetting="Polite"
                                  AcceptsReturn="True"
                                  TextWrapping="NoWrap"
                                  VerticalScrollBarVisibility="Auto"

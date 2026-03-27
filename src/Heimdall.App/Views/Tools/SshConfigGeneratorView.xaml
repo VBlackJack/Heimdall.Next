@@ -185,6 +185,7 @@
                                 HorizontalAlignment="Left" FontSize="{StaticResource FontSizeBody}"/>
                         <TextBox x:Name="TxtOutput"
                                  IsReadOnly="True"
+                                 AutomationProperties.LiveSetting="Polite"
                                  FontFamily="Consolas" FontSize="{StaticResource FontSizeBody}"
                                  TextWrapping="Wrap"
                                  AcceptsReturn="True"

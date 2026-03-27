@@ -243,27 +243,35 @@ public partial class PingToolView : UserControl, IToolView
 
         _cts = new CancellationTokenSource();
         _isRunning = true;
-        _setBusy?.Invoke(true);
-        BtnToggle.Content = L("ToolPingBtnStop");
-        BtnToggle.Foreground = (Brush)FindResource("ErrorBrush");
-        BtnToggle.Style = (Style)FindResource("SecondaryButtonStyle");
-        System.Windows.Automation.AutomationProperties.SetName(BtnToggle, L("ToolPingBtnStop"));
-        TxtHost.IsReadOnly = true;
-        CmbInterval.IsEnabled = false;
-        TxtTimeout.IsReadOnly = true;
-        TxtCount.IsReadOnly = true;
-
-        var intervalMs = GetSelectedIntervalMs();
-
-        _pingTimer = new DispatcherTimer
+        try
         {
-            Interval = TimeSpan.FromMilliseconds(intervalMs)
-        };
-        _pingTimer.Tick += OnPingTimerTick;
-        _pingTimer.Start();
+            _setBusy?.Invoke(true);
+            BtnToggle.Content = L("ToolPingBtnStop");
+            BtnToggle.Foreground = (Brush)FindResource("ErrorBrush");
+            BtnToggle.Style = (Style)FindResource("SecondaryButtonStyle");
+            System.Windows.Automation.AutomationProperties.SetName(BtnToggle, L("ToolPingBtnStop"));
+            TxtHost.IsReadOnly = true;
+            CmbInterval.IsEnabled = false;
+            TxtTimeout.IsReadOnly = true;
+            TxtCount.IsReadOnly = true;
 
-        // Fire first ping immediately
-        _ = SendPingAsync();
+            var intervalMs = GetSelectedIntervalMs();
+
+            _pingTimer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromMilliseconds(intervalMs)
+            };
+            _pingTimer.Tick += OnPingTimerTick;
+            _pingTimer.Start();
+
+            // Fire first ping immediately
+            _ = SendPingAsync();
+        }
+        catch
+        {
+            _isRunning = false;
+            throw;
+        }
     }
 
     private void StopPing()

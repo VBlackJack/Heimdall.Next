@@ -38,6 +38,7 @@ public partial class ServiceStatusView : UserControl, IToolView
     private CancellationTokenSource? _cts;
     private DispatcherTimer? _autoRefreshTimer;
     private bool _disposed;
+    private bool _isLoading;
 
     private readonly ObservableCollection<ServiceEntry> _displayedServices = [];
     private readonly List<ServiceEntry> _allServices = [];
@@ -110,6 +111,7 @@ public partial class ServiceStatusView : UserControl, IToolView
         _cts = new CancellationTokenSource();
         _cts.CancelAfter(TimeSpan.FromSeconds(30));
 
+        _isLoading = true;
         BtnRefresh.IsEnabled = false;
         _setBusy?.Invoke(true);
         TxtError.Visibility = Visibility.Collapsed;
@@ -138,6 +140,7 @@ public partial class ServiceStatusView : UserControl, IToolView
         }
         finally
         {
+            _isLoading = false;
             _setBusy?.Invoke(false);
             BtnRefresh.IsEnabled = true;
         }
@@ -372,6 +375,8 @@ public partial class ServiceStatusView : UserControl, IToolView
     }
 
     private string L(string key) => _localizer?[key] ?? key;
+
+    public bool CanClose() => !_isLoading;
 
     public void Dispose()
     {

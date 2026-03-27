@@ -2413,6 +2413,8 @@
   "ToolPwdGenPlacementMiddle": "Milieu",
   "ToolPwdGenCustomSpecials": "Spéciaux personnalisés :",
   "ToolPwdGenCliSafe": "CLI-safe (exclure les caractères shell)",
+  "ToolPwdGenClipboardAutoClear": "Vidage auto du presse-papiers (30s)",
+  "ToolPwdGenClipboardClearHint": "Presse-papiers vid\u00e9 dans 30s",
   "ToolPwdGenAdvanced": "Avanc\u00e9",
   "ToolPwdGenQuickPresets": "Pr\u00e9r\u00e9glages rapides :",
   "ToolPwdGenBtnRegenerate": "Reg\u00e9n\u00e9rer",

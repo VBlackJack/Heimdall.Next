@@ -149,7 +149,8 @@ public partial class SshConfigGeneratorView : UserControl, IToolView
     {
         if (!string.IsNullOrWhiteSpace(TxtOutput.Text))
         {
-            Clipboard.SetText(TxtOutput.Text);
+            try { Clipboard.SetText(TxtOutput.Text); }
+            catch (System.Runtime.InteropServices.ExternalException) { return; }
             CopyFeedbackHelper.ShowCopyFeedback(sender as Button);
         }
     }
