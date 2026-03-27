@@ -120,6 +120,9 @@ public partial class UuidGeneratorView : UserControl, IToolView
 
     private void OnFormatChanged(object sender, RoutedEventArgs e)
     {
+        // Guard: fired during InitializeComponent before all controls exist
+        if (TxtResult is null || TxtBatchResults is null) return;
+
         // Re-format current single result if present
         if (!string.IsNullOrEmpty(TxtResult.Text))
         {
