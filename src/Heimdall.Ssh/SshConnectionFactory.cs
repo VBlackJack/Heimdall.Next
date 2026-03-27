@@ -166,19 +166,10 @@ public static class SshConnectionFactory
             methods.Add(new PasswordAuthenticationMethod(connectionParams.Username, connectionParams.Password));
         }
 
-        // Pageant agent key authentication (Windows SSH agent)
-        if (connectionParams.AgentForwarding)
-        {
-            var agentMethod = TryCreateAgentAuth(connectionParams.Username);
-            if (agentMethod is not null)
-            {
-                methods.Add(agentMethod);
-            }
-        }
-
-        // When no key/password configured but Pageant is available,
-        // try agent-based auth as primary method
-        if (methods.Count == 0)
+        // Pageant agent key authentication (Windows SSH agent).
+        // Always add Pageant as a supplementary auth method when available,
+        // so SSH.NET can fall back to the agent if key file or password auth
+        // is rejected (e.g., passphrase-protected key loaded only in Pageant).
         {
             var agentMethod = TryCreateAgentAuth(connectionParams.Username);
             if (agentMethod is not null)
