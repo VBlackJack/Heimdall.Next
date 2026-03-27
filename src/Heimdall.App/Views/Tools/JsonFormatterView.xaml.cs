@@ -198,7 +198,8 @@ public partial class JsonFormatterView : UserControl, IToolView
     {
         if (!string.IsNullOrEmpty(OutputText.Text))
         {
-            Clipboard.SetText(OutputText.Text);
+            try { Clipboard.SetText(OutputText.Text); }
+            catch (System.Runtime.InteropServices.ExternalException) { return; }
             CopyFeedbackHelper.ShowCopyFeedback(sender as Button);
         }
     }

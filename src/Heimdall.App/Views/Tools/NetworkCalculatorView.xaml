@@ -196,7 +196,7 @@
                                 Padding="{StaticResource PaddingButtonCopy}" Margin="0,0,0,8"
                                 HorizontalAlignment="Left" FontSize="{StaticResource FontSizeCaption}"/>
                         <TextBox x:Name="TxtResult"
-                                 IsReadOnly="True"
+                                 IsReadOnly="True" AutomationProperties.LiveSetting="Polite"
                                  FontFamily="Consolas" FontSize="{StaticResource FontSizeBodyLarge}"
                                  TextWrapping="Wrap"
                                  AcceptsReturn="True"

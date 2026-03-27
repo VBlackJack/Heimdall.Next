@@ -351,39 +351,47 @@ public partial class HackerSimulatorView : UserControl, IToolView
         PrepareRandomForScenarioExecution();
         var scenario = GetCurrentScenario();
         _isRunning = true;
-        BtnStartStop.Content = $"\u25A0 {L("ToolHackerSimBtnStop")}";
-        UpdateScenarioLabel();
-        ApplyScenarioTheme(scenario);
-        BeginTranscriptSection(scenario);
-
-        if (scenario.IsMatrix)
+        try
         {
-            TerminalBorder.Visibility = Visibility.Collapsed;
-            MatrixCanvas.Visibility = Visibility.Visible;
-            TranscriptAppendLine(Tx("[visual] matrix rain backdrop active", "[visuel] pluie matrix active"));
-            RebuildMatrixColumns();
-            _timer = new DispatcherTimer(DispatcherPriority.Render)
-            { Interval = TimeSpan.FromMilliseconds(MatrixTickMs) };
-            _timer.Tick += OnMatrixTick;
-            _timer.Start();
-        }
-        else
-        {
-            MatrixCanvas.Visibility = Visibility.Collapsed;
-            TerminalBorder.Visibility = Visibility.Visible;
-            TerminalOutput.Inlines.Clear();
-            _script = scenario.Builder();
-            _scriptIndex = 0;
-            _ticksRemaining = 0;
-            _typingInProgress = false;
-            _glitchTicksLeft = 0;
-            _timer = new DispatcherTimer(DispatcherPriority.Background)
-            { Interval = TimeSpan.FromMilliseconds(ScriptTickMs) };
-            _timer.Tick += OnScriptTick;
-            _timer.Start();
-        }
+            BtnStartStop.Content = $"\u25A0 {L("ToolHackerSimBtnStop")}";
+            UpdateScenarioLabel();
+            ApplyScenarioTheme(scenario);
+            BeginTranscriptSection(scenario);
 
-        UpdatePlaybackControls();
+            if (scenario.IsMatrix)
+            {
+                TerminalBorder.Visibility = Visibility.Collapsed;
+                MatrixCanvas.Visibility = Visibility.Visible;
+                TranscriptAppendLine(Tx("[visual] matrix rain backdrop active", "[visuel] pluie matrix active"));
+                RebuildMatrixColumns();
+                _timer = new DispatcherTimer(DispatcherPriority.Render)
+                { Interval = TimeSpan.FromMilliseconds(MatrixTickMs) };
+                _timer.Tick += OnMatrixTick;
+                _timer.Start();
+            }
+            else
+            {
+                MatrixCanvas.Visibility = Visibility.Collapsed;
+                TerminalBorder.Visibility = Visibility.Visible;
+                TerminalOutput.Inlines.Clear();
+                _script = scenario.Builder();
+                _scriptIndex = 0;
+                _ticksRemaining = 0;
+                _typingInProgress = false;
+                _glitchTicksLeft = 0;
+                _timer = new DispatcherTimer(DispatcherPriority.Background)
+                { Interval = TimeSpan.FromMilliseconds(ScriptTickMs) };
+                _timer.Tick += OnScriptTick;
+                _timer.Start();
+            }
+
+            UpdatePlaybackControls();
+        }
+        catch
+        {
+            _isRunning = false;
+            throw;
+        }
     }
 
     private void StopScenario()
@@ -678,15 +686,23 @@ public partial class HackerSimulatorView : UserControl, IToolView
 
             case Act.TypeText:
                 _typingInProgress = true;
-                _typingFullText = a.Text;
-                _typingCharIndex = 0;
-                _typingCharDelay = a.DelayMs;
-                _typingRun = new Run("") { Foreground = a.Color ?? _themeText };
-                TerminalOutput.Inlines.Add(_typingRun);
-                TranscriptBeginTypingLine();
-                TerminalScroller.ScrollToEnd();
-                _ticksRemaining = Math.Max(1,
-                    (int)(_typingCharDelay / (ScriptTickMs * _speedMultiplier)));
+                try
+                {
+                    _typingFullText = a.Text;
+                    _typingCharIndex = 0;
+                    _typingCharDelay = a.DelayMs;
+                    _typingRun = new Run("") { Foreground = a.Color ?? _themeText };
+                    TerminalOutput.Inlines.Add(_typingRun);
+                    TranscriptBeginTypingLine();
+                    TerminalScroller.ScrollToEnd();
+                    _ticksRemaining = Math.Max(1,
+                        (int)(_typingCharDelay / (ScriptTickMs * _speedMultiplier)));
+                }
+                catch
+                {
+                    _typingInProgress = false;
+                    throw;
+                }
                 return;
 
             case Act.GlitchBurst:
@@ -761,13 +777,20 @@ public partial class HackerSimulatorView : UserControl, IToolView
         TerminalOutput.Inlines.Add(_cursorRun);
         TerminalScroller.ScrollToEnd();
         _cursorVisible = true;
-
-        _cursorTimer = new DispatcherTimer(DispatcherPriority.Background)
+        try
         {
-            Interval = TimeSpan.FromMilliseconds(CursorBlinkMs)
-        };
-        _cursorTimer.Tick += OnCursorBlink;
-        _cursorTimer.Start();
+            _cursorTimer = new DispatcherTimer(DispatcherPriority.Background)
+            {
+                Interval = TimeSpan.FromMilliseconds(CursorBlinkMs)
+            };
+            _cursorTimer.Tick += OnCursorBlink;
+            _cursorTimer.Start();
+        }
+        catch
+        {
+            _cursorVisible = false;
+            throw;
+        }
     }
 
     private void StopBlinkingCursor()

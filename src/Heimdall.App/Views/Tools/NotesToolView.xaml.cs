@@ -1425,7 +1425,8 @@ public partial class NotesToolView : UserControl, IToolView
         }
 
         var content = _useMilkdown ? _lastMilkdownContent : (Editor.Text ?? string.Empty);
-        Clipboard.SetText(ConfluenceStorageConverter.Convert(content));
+        try { Clipboard.SetText(ConfluenceStorageConverter.Convert(content)); }
+        catch (System.Runtime.InteropServices.ExternalException) { return; }
         CopyFeedbackHelper.ShowCopyFeedback(sender as Button);
     }
 

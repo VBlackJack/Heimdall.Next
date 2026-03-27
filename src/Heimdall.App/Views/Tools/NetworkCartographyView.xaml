@@ -145,7 +145,7 @@
                 BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}">
             <DataGrid x:Name="ResultsGrid"
                       AutoGenerateColumns="False"
-                      IsReadOnly="True"
+                      IsReadOnly="True" AutomationProperties.LiveSetting="Polite"
                       HeadersVisibility="Column"
                       GridLinesVisibility="Horizontal"
                       CanUserSortColumns="True"

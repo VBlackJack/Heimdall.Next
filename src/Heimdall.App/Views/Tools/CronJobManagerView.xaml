@@ -128,6 +128,7 @@
                                   RowBackground="Transparent"
                                   AlternatingRowBackground="{DynamicResource SurfaceBrush}"
                                   HorizontalGridLinesBrush="{DynamicResource BorderBrush}"
+                                  AutomationProperties.LiveSetting="Polite"
                                   SelectionChanged="OnCronEntrySelected">
                             <DataGrid.Columns>
                                 <DataGridTextColumn x:Name="ColCronSchedule" Binding="{Binding Schedule}" Width="160"
@@ -214,7 +215,8 @@
                                   BorderThickness="0"
                                   RowBackground="Transparent"
                                   AlternatingRowBackground="{DynamicResource SurfaceBrush}"
-                                  HorizontalGridLinesBrush="{DynamicResource BorderBrush}">
+                                  HorizontalGridLinesBrush="{DynamicResource BorderBrush}"
+                                  AutomationProperties.LiveSetting="Polite">
                             <DataGrid.Columns>
                                 <DataGridTextColumn x:Name="ColTaskName" Binding="{Binding Name}" Width="*"
                                                     Foreground="{DynamicResource TextPrimaryBrush}"/>

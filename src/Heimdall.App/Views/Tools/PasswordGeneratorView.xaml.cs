@@ -22,6 +22,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Threading;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Models;
 
@@ -39,6 +40,7 @@ public partial class PasswordGeneratorView : UserControl, IToolView
     private const string AmbiguousChars = "0Oo1lI|";
     private const string ShellDangerousChars = "$^&*'\"\\|`(){}[]<>!~;";
     private const int PhoneticMaxLength = 32;
+    private const int ClipboardClearDelaySeconds = 30;
 
     // NATO phonetic alphabet — internationally standardized (ICAO), not translated.
     private static readonly Dictionary<char, string> NatoAlphabet = new()
@@ -108,6 +110,9 @@ public partial class PasswordGeneratorView : UserControl, IToolView
     private string[] _englishWords = [];
     private string[] _frenchWords = [];
     private readonly List<string> _passwordHistory = new();
+    private DispatcherTimer? _clipboardClearTimer;
+    private string? _lastCopiedPassword;
+    private List<PasswordPreset>? _cachedPresets;
 
     private enum GeneratorMode { Random, Syllable, Passphrase }
 
@@ -235,6 +240,7 @@ public partial class PasswordGeneratorView : UserControl, IToolView
         AdvancedExpander.Header = L("ToolPwdGenAdvanced");
         ChkExcludeAmbiguous.Content = L("ToolPwdGenExcludeAmbiguous");
         ChkCliSafe.Content = L("ToolPwdGenCliSafe");
+        ChkClipboardAutoClear.Content = L("ToolPwdGenClipboardAutoClear");
         CustomSpecialsLabel.Text = L("ToolPwdGenCustomSpecials");
 
         // Presets
@@ -296,6 +302,7 @@ public partial class PasswordGeneratorView : UserControl, IToolView
         System.Windows.Automation.AutomationProperties.SetName(ChkSymbols, L("ToolPwdGenSymbols"));
         System.Windows.Automation.AutomationProperties.SetName(ChkExcludeAmbiguous, L("ToolPwdGenExcludeAmbiguous"));
         System.Windows.Automation.AutomationProperties.SetName(ChkCliSafe, L("ToolPwdGenCliSafe"));
+        System.Windows.Automation.AutomationProperties.SetName(ChkClipboardAutoClear, L("ToolPwdGenClipboardAutoClear"));
         System.Windows.Automation.AutomationProperties.SetName(TxtCustomSpecials, L("ToolPwdGenCustomSpecials"));
         System.Windows.Automation.AutomationProperties.SetName(CmbSylPlacement, L("ToolPwdGenPlacement"));
         System.Windows.Automation.AutomationProperties.SetName(CmbPpPlacement, L("ToolPwdGenPlacement"));
@@ -382,6 +389,7 @@ public partial class PasswordGeneratorView : UserControl, IToolView
         PresetsRandom.Visibility = mode == GeneratorMode.Random ? Visibility.Visible : Visibility.Collapsed;
         PresetsSyllable.Visibility = mode == GeneratorMode.Syllable ? Visibility.Visible : Visibility.Collapsed;
         PresetsPassphrase.Visibility = mode == GeneratorMode.Passphrase ? Visibility.Visible : Visibility.Collapsed;
+        RebuildCustomPresetButtons();
 
         // Update inline placement visibility
         UpdateSylPlacementVisibility();
@@ -403,7 +411,10 @@ public partial class PasswordGeneratorView : UserControl, IToolView
     {
         if (!string.IsNullOrEmpty(PasswordOutput.Text))
         {
-            Clipboard.SetText(PasswordOutput.Text);
+            try { Clipboard.SetText(PasswordOutput.Text); }
+            catch (System.Runtime.InteropServices.ExternalException) { return; }
+            StartClipboardClearTimer(PasswordOutput.Text);
+            ShowClipboardClearHint();
             CopyFeedbackHelper.ShowCopyFeedback(sender as Button);
         }
     }
@@ -412,7 +423,8 @@ public partial class PasswordGeneratorView : UserControl, IToolView
     {
         if (!string.IsNullOrEmpty(PhoneticText.Text))
         {
-            Clipboard.SetText(PhoneticText.Text);
+            try { Clipboard.SetText(PhoneticText.Text); }
+            catch (System.Runtime.InteropServices.ExternalException) { return; }
             CopyFeedbackHelper.ShowCopyFeedback(sender as Button);
         }
     }
@@ -684,7 +696,7 @@ public partial class PasswordGeneratorView : UserControl, IToolView
                         ch = char.ToUpperInvariant(ch);
                         break;
                     case SyllableCase.Title:
-                        if (ci == 0) ch = char.ToUpperInvariant(ch);
+                        if (gi == 0 && ci == 0) ch = char.ToUpperInvariant(ch);
                         break;
                     case SyllableCase.Mixed:
                         if (CryptoRandomInt(4) == 0) ch = char.ToUpperInvariant(ch);
@@ -858,6 +870,18 @@ public partial class PasswordGeneratorView : UserControl, IToolView
 
     private void UpdateStrengthIndicator(double entropy, int poolSize)
     {
+        if (string.IsNullOrEmpty(PasswordOutput.Text))
+        {
+            StrengthBarBorder.Visibility = Visibility.Collapsed;
+            StrengthLabel.Visibility = Visibility.Collapsed;
+            CrackTimeText.Text = string.Empty;
+            StrengthIssues.Text = string.Empty;
+            return;
+        }
+
+        StrengthBarBorder.Visibility = Visibility.Visible;
+        StrengthLabel.Visibility = Visibility.Visible;
+
         string strengthKey;
         Brush barBrush;
         double widthPercent;
@@ -983,6 +1007,7 @@ public partial class PasswordGeneratorView : UserControl, IToolView
             _suspendGeneration = false;
         }
         RefreshAdvancedVisibility();
+        UpdateQuickLengthHighlight();
         GeneratePassword();
     }
 
@@ -1136,7 +1161,10 @@ public partial class PasswordGeneratorView : UserControl, IToolView
     {
         if (sender is Button btn && btn.Tag is string password)
         {
-            Clipboard.SetText(password);
+            try { Clipboard.SetText(password); }
+            catch (System.Runtime.InteropServices.ExternalException) { return; }
+            StartClipboardClearTimer(password);
+            ShowClipboardClearHint();
             CopyFeedbackHelper.ShowCopyFeedback(btn);
         }
     }
@@ -1258,7 +1286,10 @@ public partial class PasswordGeneratorView : UserControl, IToolView
         {
             if (!string.IsNullOrEmpty(PasswordOutput.Text))
             {
-                Clipboard.SetText(PasswordOutput.Text);
+                try { Clipboard.SetText(PasswordOutput.Text); }
+                catch (System.Runtime.InteropServices.ExternalException) { return; }
+                StartClipboardClearTimer(PasswordOutput.Text);
+                ShowClipboardClearHint();
                 CopyFeedbackHelper.ShowCopyFeedback(BtnCopy);
             }
             e.Handled = true;
@@ -1304,22 +1335,24 @@ public partial class PasswordGeneratorView : UserControl, IToolView
 
     private List<PasswordPreset> LoadCustomPresets()
     {
+        if (_cachedPresets != null) return _cachedPresets;
         try
         {
             var path = GetPresetsFilePath();
-            if (!File.Exists(path)) return [];
+            if (!File.Exists(path)) return _cachedPresets = [];
 
             var json = File.ReadAllText(path, Encoding.UTF8);
-            return JsonSerializer.Deserialize<List<PasswordPreset>>(json) ?? [];
+            return _cachedPresets = JsonSerializer.Deserialize<List<PasswordPreset>>(json) ?? [];
         }
         catch
         {
-            return [];
+            return _cachedPresets = [];
         }
     }
 
     private void SaveCustomPresets(List<PasswordPreset> presets)
     {
+        _cachedPresets = null;
         try
         {
             var path = GetPresetsFilePath();
@@ -1391,37 +1424,42 @@ public partial class PasswordGeneratorView : UserControl, IToolView
     private void ApplyCustomPreset(PasswordPreset preset)
     {
         _suspendGeneration = true;
-
-        CmbMode.SelectedIndex = preset.Mode;
-        LengthSlider.Value = preset.Length;
-        ChkUppercase.IsChecked = preset.Upper;
-        ChkLowercase.IsChecked = preset.Lower;
-        ChkDigits.IsChecked = preset.Digits;
-        ChkSymbols.IsChecked = preset.Symbols;
-        ChkLayoutSafe.IsChecked = preset.LayoutSafe;
-        ChkExcludeAmbiguous.IsChecked = preset.ExcludeAmbiguous;
-        ChkCliSafe.IsChecked = preset.CliSafe;
-        if (!string.IsNullOrEmpty(preset.CustomSpecials))
-            TxtCustomSpecials.Text = preset.CustomSpecials;
-        SylLengthSlider.Value = preset.SylLength;
-        CmbSylCase.SelectedIndex = preset.SylCase;
-        SylDigitsSlider.Value = preset.SylDigits;
-        SylSpecialsSlider.Value = preset.SylSpecials;
-        CmbSylPlacement.SelectedIndex = preset.SylPlacement;
-        TxtSylSeparator.Text = preset.SylSeparator;
-        ChkSylCvc.IsChecked = preset.SylCvc;
-        PpWordCountSlider.Value = preset.PpWordCount;
-        TxtPpSeparator.Text = preset.PpSeparator;
-        CmbPpLanguage.SelectedIndex = preset.PpLanguage;
-        ChkPpCapitalize.IsChecked = preset.PpCapitalize;
-        ChkPpDigit.IsChecked = preset.PpDigit;
-        ChkPpSpecial.IsChecked = preset.PpSpecial;
-        CmbPpPlacement.SelectedIndex = preset.PpPlacement;
-
-        _suspendGeneration = false;
+        try
+        {
+            CmbMode.SelectedIndex = preset.Mode;
+            LengthSlider.Value = preset.Length;
+            ChkUppercase.IsChecked = preset.Upper;
+            ChkLowercase.IsChecked = preset.Lower;
+            ChkDigits.IsChecked = preset.Digits;
+            ChkSymbols.IsChecked = preset.Symbols;
+            ChkLayoutSafe.IsChecked = preset.LayoutSafe;
+            ChkExcludeAmbiguous.IsChecked = preset.ExcludeAmbiguous;
+            ChkCliSafe.IsChecked = preset.CliSafe;
+            if (!string.IsNullOrEmpty(preset.CustomSpecials))
+                TxtCustomSpecials.Text = preset.CustomSpecials;
+            SylLengthSlider.Value = preset.SylLength;
+            CmbSylCase.SelectedIndex = preset.SylCase;
+            SylDigitsSlider.Value = preset.SylDigits;
+            SylSpecialsSlider.Value = preset.SylSpecials;
+            CmbSylPlacement.SelectedIndex = preset.SylPlacement;
+            TxtSylSeparator.Text = preset.SylSeparator;
+            ChkSylCvc.IsChecked = preset.SylCvc;
+            PpWordCountSlider.Value = preset.PpWordCount;
+            TxtPpSeparator.Text = preset.PpSeparator;
+            CmbPpLanguage.SelectedIndex = preset.PpLanguage;
+            ChkPpCapitalize.IsChecked = preset.PpCapitalize;
+            ChkPpDigit.IsChecked = preset.PpDigit;
+            ChkPpSpecial.IsChecked = preset.PpSpecial;
+            CmbPpPlacement.SelectedIndex = preset.PpPlacement;
+        }
+        finally
+        {
+            _suspendGeneration = false;
+        }
 
         // Trigger mode UI update then generate
         OnModeSelectionChanged(CmbMode, null!);
+        UpdateQuickLengthHighlight();
         GeneratePassword();
     }
 
@@ -1429,9 +1467,13 @@ public partial class PasswordGeneratorView : UserControl, IToolView
     {
         PanelCustomPresets.Children.Clear();
         var presets = LoadCustomPresets();
-        if (presets.Count == 0) return;
+        var currentModeIndex = _initialized ? CmbMode.SelectedIndex : -1;
+        var filtered = currentModeIndex >= 0
+            ? presets.Where(p => p.Mode == currentModeIndex).ToList()
+            : presets;
+        if (filtered.Count == 0) return;
 
-        foreach (var preset in presets)
+        foreach (var preset in filtered)
         {
             var btn = new Button
             {
@@ -1440,7 +1482,7 @@ public partial class PasswordGeneratorView : UserControl, IToolView
                 Style = (Style)FindResource("SecondaryButtonStyle"),
                 Padding = new Thickness(8, 2, 8, 2),
                 Margin = new Thickness(0, 0, 6, 4),
-                FontSize = (double)FindResource("FontSizeSmallCaption"),
+                FontSize = (double)FindResource("FontSizeCaption"),
             };
             btn.Click += (_, _) => ApplyCustomPreset((PasswordPreset)btn.Tag);
             btn.ToolTip = L("ToolPwdGenPresetRightClickHint");
@@ -1471,8 +1513,49 @@ public partial class PasswordGeneratorView : UserControl, IToolView
         MessageBox.Show(helpText, L("ToolHelpTitle"), MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
+    private void ShowClipboardClearHint()
+    {
+        if (ChkClipboardAutoClear?.IsChecked != true) return;
+
+        var originalText = L("ToolPwdGenKeyboardHint");
+        KeyboardHintText.Text = L("ToolPwdGenClipboardClearHint");
+
+        var revertTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(3) };
+        revertTimer.Tick += (_, _) =>
+        {
+            revertTimer.Stop();
+            KeyboardHintText.Text = originalText;
+        };
+        revertTimer.Start();
+    }
+
+    private void StartClipboardClearTimer(string password)
+    {
+        if (ChkClipboardAutoClear?.IsChecked != true) return;
+
+        _lastCopiedPassword = password;
+        _clipboardClearTimer?.Stop();
+        _clipboardClearTimer = new DispatcherTimer
+        {
+            Interval = TimeSpan.FromSeconds(ClipboardClearDelaySeconds)
+        };
+        _clipboardClearTimer.Tick += (_, _) =>
+        {
+            _clipboardClearTimer.Stop();
+            try
+            {
+                if (Clipboard.ContainsText() && Clipboard.GetText() == _lastCopiedPassword)
+                    Clipboard.Clear();
+            }
+            catch { /* clipboard may be locked by another app */ }
+            _lastCopiedPassword = null;
+        };
+        _clipboardClearTimer.Start();
+    }
+
     public void Dispose()
     {
+        _clipboardClearTimer?.Stop();
         GC.SuppressFinalize(this);
     }
 }

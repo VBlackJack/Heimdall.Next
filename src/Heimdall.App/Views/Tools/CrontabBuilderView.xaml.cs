@@ -524,7 +524,8 @@ public partial class CrontabBuilderView : UserControl, IToolView
     {
         if (!string.IsNullOrEmpty(TxtCronExpression.Text))
         {
-            Clipboard.SetText(TxtCronExpression.Text);
+            try { Clipboard.SetText(TxtCronExpression.Text); }
+            catch (System.Runtime.InteropServices.ExternalException) { return; }
             CopyFeedbackHelper.ShowCopyFeedback(sender as Button);
         }
     }
