@@ -51,6 +51,8 @@ public partial class DnsLookupView : UserControl, IToolView
     private LocalizationManager? _localizer;
     private CancellationTokenSource? _cts;
     private bool _disposed;
+    private bool _isQuerying;
+    private Action<bool>? _setBusy;
     private List<SshGatewayDto>? _gateways;
     private SshGatewayDto? _selectedGateway;
 
@@ -79,6 +81,7 @@ public partial class DnsLookupView : UserControl, IToolView
     public void Initialize(ToolContext? context, LocalizationManager? localizer)
     {
         _localizer = localizer;
+        _setBusy = context?.SetBusyAction;
         ApplyLocalization();
 
         // Pre-fill with a sensible default; context overrides if provided
@@ -176,6 +179,8 @@ public partial class DnsLookupView : UserControl, IToolView
         _cts = new CancellationTokenSource();
         _cts.CancelAfter(LookupTimeout);
 
+        _isQuerying = true;
+        _setBusy?.Invoke(true);
         BtnLookup.IsEnabled = false;
         LoadingBar.Visibility = Visibility.Visible;
         TxtStatus.Text = L("ToolDnsStatusQuerying");
@@ -229,10 +234,14 @@ public partial class DnsLookupView : UserControl, IToolView
         }
         finally
         {
+            _isQuerying = false;
+            _setBusy?.Invoke(false);
             BtnLookup.IsEnabled = true;
             LoadingBar.Visibility = Visibility.Collapsed;
         }
     }
+
+    public bool CanClose() => !_isQuerying;
 
     private async Task<string> LookupHostEntryAsync(
         string hostname, string recordType, CancellationToken ct)
@@ -468,6 +477,7 @@ public partial class DnsLookupView : UserControl, IToolView
         }
 
         _disposed = true;
+        _setBusy?.Invoke(false);
         _cts?.Cancel();
         _cts?.Dispose();
         _cts = null;

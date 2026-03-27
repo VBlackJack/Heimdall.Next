@@ -65,7 +65,7 @@
                          Foreground="{DynamicResource TextPrimaryBrush}"
                          Background="{DynamicResource CardBrush}"
                          BorderBrush="{DynamicResource BorderBrush}"
-                         Padding="4,2"
+                         Padding="{StaticResource PaddingInput}"
                          VerticalAlignment="Center"
                          Tag="log file path"
                          KeyDown="OnFilePathKeyDown"/>
@@ -73,7 +73,7 @@
         </Border>
 
         <!-- Filter bar -->
-        <Border Grid.Row="2" Padding="12,6"
+        <Border Grid.Row="2" Padding="{StaticResource ToolFooterPadding}"
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,0,0,1">
@@ -109,7 +109,7 @@
                          Foreground="{DynamicResource TextPrimaryBrush}"
                          Background="{DynamicResource CardBrush}"
                          BorderBrush="{DynamicResource BorderBrush}"
-                         Padding="4,2"
+                         Padding="{StaticResource PaddingInput}"
                          VerticalAlignment="Center"
                          Tag="filter text"
                          KeyDown="OnFilterKeyDown"/>

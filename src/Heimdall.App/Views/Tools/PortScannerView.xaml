@@ -82,7 +82,7 @@
         </Border>
 
         <!-- Presets + filter row -->
-        <Border Grid.Row="1" Padding="12,6"
+        <Border Grid.Row="1" Padding="{StaticResource ToolFooterPadding}"
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,0,0,1">
@@ -191,7 +191,7 @@
         </Border>
 
         <!-- Stats bar -->
-        <Border Grid.Row="4" Padding="12,6"
+        <Border Grid.Row="4" Padding="{StaticResource ToolFooterPadding}"
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,1,0,0">

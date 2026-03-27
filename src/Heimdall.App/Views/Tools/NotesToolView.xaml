@@ -77,7 +77,7 @@
                     BorderBrush="{DynamicResource BorderBrush}"
                     BorderThickness="1"
                     CornerRadius="{StaticResource CornerRadiusXl}"
-                    Padding="12"
+                    Padding="{StaticResource SpacingMd}"
                     AllowDrop="True"
                     DragOver="OnDragOver"
                     Drop="OnDrop">
@@ -242,7 +242,7 @@
                     BorderBrush="{DynamicResource BorderBrush}"
                     BorderThickness="1"
                     CornerRadius="{StaticResource CornerRadiusXl}"
-                    Padding="12">
+                    Padding="{StaticResource SpacingMd}">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>

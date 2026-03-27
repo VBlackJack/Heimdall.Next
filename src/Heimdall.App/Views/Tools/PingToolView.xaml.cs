@@ -649,6 +649,8 @@ public partial class PingToolView : UserControl, IToolView
 
     private string L(string key) => _localizer?[key] ?? key;
 
+    public bool CanClose() => !_isRunning;
+
     public void Dispose()
     {
         if (_disposed)

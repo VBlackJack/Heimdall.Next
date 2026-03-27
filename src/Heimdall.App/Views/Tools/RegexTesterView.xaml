@@ -62,7 +62,7 @@
                      Foreground="{DynamicResource TextPrimaryBrush}"
                      BorderBrush="{DynamicResource BorderBrush}"
                      BorderThickness="1"
-                     Padding="6"
+                     Padding="{StaticResource PaddingInput}"
                      Tag="regex pattern"
                      TextChanged="OnPatternTextChanged"
 />
@@ -106,7 +106,7 @@
                          Foreground="{DynamicResource TextPrimaryBrush}"
                          BorderBrush="{DynamicResource BorderBrush}"
                          BorderThickness="1"
-                         Padding="6"
+                         Padding="{StaticResource PaddingInput}"
                          Tag="test string"
                          TextChanged="OnTestTextChanged"
 />
@@ -117,7 +117,7 @@
                              Foreground="{DynamicResource TextPrimaryBrush}"
                              BorderBrush="{DynamicResource BorderBrush}"
                              BorderThickness="1"
-                             Padding="6"
+                             Padding="{StaticResource PaddingInput}"
                              FontFamily="Consolas" FontSize="{StaticResource FontSizeBodyLarge}"
                              VerticalScrollBarVisibility="Auto"
                              HorizontalScrollBarVisibility="Auto"

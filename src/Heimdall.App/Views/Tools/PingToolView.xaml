@@ -103,7 +103,7 @@
                                FontSize="{StaticResource FontSizeBody}" VerticalAlignment="Center" Margin="8,0,4,0"/>
                     <TextBox x:Name="TxtTimeout" Text="2000" Width="60"
                              FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
-                             Padding="4,4"
+                             Padding="{StaticResource PaddingInput}"
                              Background="{DynamicResource CardBrush}"
                              Foreground="{DynamicResource TextPrimaryBrush}"
                              BorderBrush="{DynamicResource BorderBrush}"
@@ -114,7 +114,7 @@
                                FontSize="{StaticResource FontSizeBody}" VerticalAlignment="Center" Margin="8,0,4,0"/>
                     <TextBox x:Name="TxtCount" Text="0" Width="50"
                              FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
-                             Padding="4,4"
+                             Padding="{StaticResource PaddingInput}"
                              Background="{DynamicResource CardBrush}"
                              Foreground="{DynamicResource TextPrimaryBrush}"
                              BorderBrush="{DynamicResource BorderBrush}"
@@ -177,7 +177,7 @@
         </Grid>
 
         <!-- Stats Bar -->
-        <Border Grid.Row="2" Padding="12,6"
+        <Border Grid.Row="2" Padding="{StaticResource ToolFooterPadding}"
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,1,0,0">

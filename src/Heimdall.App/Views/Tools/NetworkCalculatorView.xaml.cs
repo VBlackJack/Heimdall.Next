@@ -87,6 +87,11 @@ public partial class NetworkCalculatorView : UserControl, IToolView
         AutomationProperties.SetName(BtnCopyResult, L("ToolBtnCopyValue"));
         AutomationProperties.SetName(TxtResult, L("ToolNetCalcResult"));
 
+        TxtStartIp.Tag = L("ToolWatermarkStartIp");
+        TxtEndIp.Tag = L("ToolWatermarkEndIp");
+        TxtHostsNeeded.Tag = L("ToolWatermarkHostsNeeded");
+        TxtBaseNetwork.Tag = L("ToolWatermarkBaseNetwork");
+
         BtnHelp.ToolTip = L("ToolHelpTooltip");
         AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
     }

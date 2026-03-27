@@ -34,6 +34,7 @@ public partial class ServiceStatusView : UserControl, IToolView
     private static readonly TimeSpan AutoRefreshInterval = TimeSpan.FromSeconds(5);
 
     private LocalizationManager? _localizer;
+    private Action<bool>? _setBusy;
     private CancellationTokenSource? _cts;
     private DispatcherTimer? _autoRefreshTimer;
     private bool _disposed;
@@ -53,6 +54,7 @@ public partial class ServiceStatusView : UserControl, IToolView
     public void Initialize(ToolContext? context, LocalizationManager? localizer)
     {
         _localizer = localizer;
+        _setBusy = context?.SetBusyAction;
         ApplyLocalization();
 
         // Auto-load on first display
@@ -109,6 +111,7 @@ public partial class ServiceStatusView : UserControl, IToolView
         _cts.CancelAfter(TimeSpan.FromSeconds(30));
 
         BtnRefresh.IsEnabled = false;
+        _setBusy?.Invoke(true);
         TxtError.Visibility = Visibility.Collapsed;
 
         try
@@ -135,6 +138,7 @@ public partial class ServiceStatusView : UserControl, IToolView
         }
         finally
         {
+            _setBusy?.Invoke(false);
             BtnRefresh.IsEnabled = true;
         }
     }
@@ -373,6 +377,7 @@ public partial class ServiceStatusView : UserControl, IToolView
     {
         if (_disposed) return;
         _disposed = true;
+        _setBusy?.Invoke(false);
 
         if (_autoRefreshTimer is not null)
         {

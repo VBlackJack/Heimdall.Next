@@ -46,7 +46,7 @@
         </Border>
 
         <!-- Row 1: Scan parameters -->
-        <Border Grid.Row="1" Padding="12,6"
+        <Border Grid.Row="1" Padding="{StaticResource ToolFooterPadding}"
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,0,0,1">
@@ -196,7 +196,7 @@
         </Border>
 
         <!-- Row 4: Stats + Export -->
-        <Border Grid.Row="4" Padding="12,6"
+        <Border Grid.Row="4" Padding="{StaticResource ToolFooterPadding}"
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,1,0,0">
@@ -241,7 +241,7 @@
 
         <!-- Row 5: Diff results -->
         <Border Grid.Row="5" x:Name="DiffPanel" Visibility="Collapsed"
-                Padding="12,6"
+                Padding="{StaticResource ToolFooterPadding}"
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,1,0,0">

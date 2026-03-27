@@ -121,6 +121,8 @@ public partial class SshKeyGeneratorView : UserControl, IToolView
         BtnCopyPublicKey.ToolTip = L("ToolBtnCopyToClipboard");
         BtnCopyPrivateKey.ToolTip = L("ToolBtnCopyToClipboard");
 
+        CommentInput.Tag = L("ToolSshKeyGenCommentPlaceholder");
+
         BtnHelp.ToolTip = L("ToolHelpTooltip");
         System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
     }
