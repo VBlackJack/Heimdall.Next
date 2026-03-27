@@ -32,11 +32,25 @@ namespace Heimdall.App.Views.Tools;
 /// </summary>
 public partial class NetworkCartographyView : UserControl, IToolView
 {
+    private const int LargeSubnetThreshold = 512;
+    private const int DefaultMaxConcurrency = 50;
+    private const int DefaultProbeTimeoutMs = 2000;
+    private const int MinCommandTimeoutSeconds = 10;
+    private const int PortTimeoutDivisor = 2;
+
+    private static readonly System.Text.RegularExpressions.Regex s_linuxInetRegex = new(
+        @"inet\s+(\d+\.\d+\.\d+\.\d+/\d+)",
+        System.Text.RegularExpressions.RegexOptions.Compiled);
+
+    private static readonly System.Text.RegularExpressions.Regex s_ifconfigInetRegex = new(
+        @"inet\s+(?:addr:)?(\d+\.\d+\.\d+\.\d+)\s+.*?(?:netmask|Mask:?)\s*(\d+\.\d+\.\d+\.\d+)",
+        System.Text.RegularExpressions.RegexOptions.Compiled | System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
     private LocalizationManager? _localizer;
     private CancellationTokenSource? _cts;
+    private CancellationTokenSource? _subnetDetectCts;
     private bool _isScanning;
     private bool _disposed;
-    private int _totalHostCount;
     private NetworkScanSnapshot? _lastSnapshot;
     private List<(string FileName, DateTime Timestamp, string Subnet)> _historyList = [];
     private List<Heimdall.Core.Configuration.SshGatewayDto>? _gateways;
@@ -133,6 +147,7 @@ public partial class NetworkCartographyView : UserControl, IToolView
         System.Windows.Automation.AutomationProperties.SetName(CmbHistory, L("ToolNetMapCompareWith"));
         System.Windows.Automation.AutomationProperties.SetName(ChkSkipPing, L("ToolNetMapSkipPing"));
         System.Windows.Automation.AutomationProperties.SetName(ChkReverseDns, L("ToolNetMapReverseDns"));
+        System.Windows.Automation.AutomationProperties.SetName(CmbRouteVia, L("ToolTunnelRouteVia"));
         System.Windows.Automation.AutomationProperties.SetName(ChkUseKnowledgeBase, L("ToolNetMapUseKb"));
         System.Windows.Automation.AutomationProperties.SetName(BtnClearKb, L("ToolNetMapBtnClearKb"));
 
@@ -195,8 +210,7 @@ public partial class NetworkCartographyView : UserControl, IToolView
             return;
         }
 
-        const int largeSubnetThreshold = 512;
-        if (ipList.Count > largeSubnetThreshold)
+        if (ipList.Count > LargeSubnetThreshold)
         {
             var warning = string.Format(L("ToolNetMapWarningLargeSubnet"), ipList.Count);
             var result = MessageBox.Show(
@@ -208,7 +222,6 @@ public partial class NetworkCartographyView : UserControl, IToolView
             if (result != MessageBoxResult.Yes) return;
         }
 
-        _totalHostCount = ipList.Count;
         _results.Clear();
         _cts = new CancellationTokenSource();
         _isScanning = true;
@@ -236,8 +249,8 @@ public partial class NetworkCartographyView : UserControl, IToolView
             Subnet: subnet,
             Depth: depth,
             CustomPorts: null,
-            MaxConcurrency: 50,
-            TimeoutMs: 2000,
+            MaxConcurrency: DefaultMaxConcurrency,
+            TimeoutMs: DefaultProbeTimeoutMs,
             SkipPing: ChkSkipPing.IsChecked == true,
             ReverseDns: ChkReverseDns.IsChecked == true);
 
@@ -352,7 +365,6 @@ public partial class NetworkCartographyView : UserControl, IToolView
                         snapshot.Hosts.Count, totalServices, totalRoles, durationText);
                 }
 
-                var totalPorts = snapshot.Hosts.Sum(h => h.Services.Count);
                 var serviceNames = snapshot.Hosts
                     .SelectMany(h => h.Services)
                     .Where(s => s.ServiceName is not null)
@@ -361,7 +373,7 @@ public partial class NetworkCartographyView : UserControl, IToolView
                     .Count();
                 TxtStats.Text = string.Format(
                     L("ToolNetMapStats"),
-                    snapshot.Hosts.Count, totalPorts, serviceNames);
+                    snapshot.Hosts.Count, totalServices, serviceNames);
 
                 UpdateKbStats();
                 PopulateHistory();
@@ -404,6 +416,9 @@ public partial class NetworkCartographyView : UserControl, IToolView
             ? CartographyEngine.QuickPorts : CartographyEngine.StandardPorts);
         var completed = 0;
 
+        // Pre-compute validated port list once (invariant across hosts)
+        var portList = string.Join(" ", ports.Where(p => p is >= 1 and <= 65535));
+
         // Batch scan: for each IP, test ports via /dev/tcp
         foreach (var ip in ipList)
         {
@@ -413,15 +428,11 @@ public partial class NetworkCartographyView : UserControl, IToolView
             if (!System.Net.IPAddress.TryParse(ip, out _)) continue;
 
             var openServices = new List<ServiceResult>();
-
-            // Batch all port probes into a single SSH command for performance
-            // (one command per host instead of one per port)
-            var portList = string.Join(" ", ports.Where(p => p is >= 1 and <= 65535));
             try
             {
                 using var cmd = sshClient.CreateCommand(
                     $"for p in {portList}; do (echo >/dev/tcp/{ip}/$p) 2>/dev/null && echo $p; done");
-                cmd.CommandTimeout = TimeSpan.FromSeconds(Math.Max(10, ports.Length / 2));
+                cmd.CommandTimeout = TimeSpan.FromSeconds(Math.Max(MinCommandTimeoutSeconds, ports.Length / PortTimeoutDivisor));
                 var result = await Task.Run(() => cmd.Execute(), ct).ConfigureAwait(false);
 
                 if (result is not null)
@@ -481,8 +492,6 @@ public partial class NetworkCartographyView : UserControl, IToolView
                 TxtScanProgress.Text = string.Format(L("ToolNetMapScanProgress"), completed, ipList.Count);
             });
         }
-
-        sshClient.Disconnect();
 
         var orderedHosts = hosts.OrderBy(h => CartographyEngine.IpToLong(h.IpAddress)).ToList();
         var vlans = VlanDetector.InferFromHosts(orderedHosts, profile.Subnet);
@@ -590,15 +599,15 @@ public partial class NetworkCartographyView : UserControl, IToolView
         if (host.SsdpInfo is not null)
         {
             if (host.SsdpInfo.FriendlyName is not null)
-                tooltipParts.Add($"UPnP Name: {host.SsdpInfo.FriendlyName}");
+                tooltipParts.Add($"{L("ToolNetMapTipSsdpName")}: {host.SsdpInfo.FriendlyName}");
             if (host.SsdpInfo.Manufacturer is not null)
-                tooltipParts.Add($"UPnP Mfr: {host.SsdpInfo.Manufacturer}");
+                tooltipParts.Add($"{L("ToolNetMapTipSsdpMfr")}: {host.SsdpInfo.Manufacturer}");
             if (host.SsdpInfo.ModelName is not null)
-                tooltipParts.Add($"UPnP Model: {host.SsdpInfo.ModelName}");
+                tooltipParts.Add($"{L("ToolNetMapTipSsdpModel")}: {host.SsdpInfo.ModelName}");
             if (host.SsdpInfo.ModelNumber is not null)
-                tooltipParts.Add($"UPnP Model#: {host.SsdpInfo.ModelNumber}");
+                tooltipParts.Add($"{L("ToolNetMapTipSsdpModelNum")}: {host.SsdpInfo.ModelNumber}");
             if (host.SsdpInfo.SerialNumber is not null)
-                tooltipParts.Add($"UPnP S/N: {host.SsdpInfo.SerialNumber}");
+                tooltipParts.Add($"{L("ToolNetMapTipSsdpSerial")}: {host.SsdpInfo.SerialNumber}");
             if (host.SsdpInfo.DeviceType is not null)
                 tooltipParts.Add($"{L("ToolNetMapTipSsdpDevice")}: {host.SsdpInfo.DeviceType}");
             if (host.SsdpInfo.Server is not null)
@@ -607,16 +616,16 @@ public partial class NetworkCartographyView : UserControl, IToolView
         if (host.NtlmInfo is not null)
         {
             if (host.NtlmInfo.DnsComputerName is not null)
-                tooltipParts.Add($"NTLM DNS: {host.NtlmInfo.DnsComputerName}");
+                tooltipParts.Add($"{L("ToolNetMapTipNtlmDns")}: {host.NtlmInfo.DnsComputerName}");
             if (host.NtlmInfo.DnsDomainName is not null)
-                tooltipParts.Add($"NTLM Domain: {host.NtlmInfo.DnsDomainName}");
+                tooltipParts.Add($"{L("ToolNetMapTipNtlmDomain")}: {host.NtlmInfo.DnsDomainName}");
             if (host.NtlmInfo.DnsForestName is not null)
-                tooltipParts.Add($"NTLM Forest: {host.NtlmInfo.DnsForestName}");
+                tooltipParts.Add($"{L("ToolNetMapTipNtlmForest")}: {host.NtlmInfo.DnsForestName}");
             if (host.NtlmInfo.OsBuild is not null)
-                tooltipParts.Add($"NTLM Build: {host.NtlmInfo.OsBuild}");
+                tooltipParts.Add($"{L("ToolNetMapTipNtlmBuild")}: {host.NtlmInfo.OsBuild}");
         }
         if (host.SshHashFingerprint is not null)
-            tooltipParts.Add($"HASSH: {host.SshHashFingerprint}");
+            tooltipParts.Add($"{L("ToolNetMapTipHashsh")}: {host.SshHashFingerprint}");
         if (host.SmbInfo is not null)
         {
             var dialectStr = host.SmbInfo.DialectRevision switch
@@ -625,29 +634,29 @@ public partial class NetworkCartographyView : UserControl, IToolView
                 0x0302 => "SMB 3.0.2", 0x0311 => "SMB 3.1.1",
                 _ => $"SMB 0x{host.SmbInfo.DialectRevision:X4}"
             };
-            tooltipParts.Add($"SMB: {dialectStr}{(host.SmbInfo.SigningRequired ? " (signing required)" : "")}");
+            tooltipParts.Add($"{L("ToolNetMapTipSmb")}: {dialectStr}{(host.SmbInfo.SigningRequired ? $" ({L("ToolNetMapTipSmbSigning")})" : "")}");
             if (host.SmbInfo.ServerGuid is not null)
-                tooltipParts.Add($"SMB GUID: {host.SmbInfo.ServerGuid}");
+                tooltipParts.Add($"{L("ToolNetMapTipSmbGuid")}: {host.SmbInfo.ServerGuid}");
             if (host.SmbInfo.ServerStartTime is not null)
             {
                 var uptime = DateTime.UtcNow - host.SmbInfo.ServerStartTime.Value;
-                tooltipParts.Add($"Uptime: {uptime.Days}d {uptime.Hours}h");
+                tooltipParts.Add($"{L("ToolNetMapTipUptime")}: {uptime.Days}d {uptime.Hours}h");
             }
         }
         if (host.HttpFingerprint is not null)
         {
             if (host.HttpFingerprint.Framework is not null)
-                tooltipParts.Add($"HTTP Framework: {host.HttpFingerprint.Framework}");
+                tooltipParts.Add($"{L("ToolNetMapTipHttpFramework")}: {host.HttpFingerprint.Framework}");
             if (host.HttpFingerprint.ProductName is not null)
-                tooltipParts.Add($"HTTP Product: {host.HttpFingerprint.ProductName}");
+                tooltipParts.Add($"{L("ToolNetMapTipHttpProduct")}: {host.HttpFingerprint.ProductName}");
         }
         if (host.FaviconHash is not null)
         {
             var deviceName = FaviconHasher.KnownHashes.TryGetValue(host.FaviconHash.Value, out var name)
                 ? name : null;
             tooltipParts.Add(deviceName is not null
-                ? $"Favicon: {host.FaviconHash.Value} ({deviceName})"
-                : $"Favicon: {host.FaviconHash.Value}");
+                ? $"{L("ToolNetMapTipFavicon")}: {host.FaviconHash.Value} ({deviceName})"
+                : $"{L("ToolNetMapTipFavicon")}: {host.FaviconHash.Value}");
         }
         if (host.HttpHeaders is { Count: > 0 })
         {
@@ -909,28 +918,19 @@ public partial class NetworkCartographyView : UserControl, IToolView
     /// </summary>
     private async Task DetectRemoteSubnetsAsync(Core.Configuration.SshGatewayDto gateway)
     {
+        // Cancel any previous detection still in progress
+        _subnetDetectCts?.Cancel();
+        _subnetDetectCts?.Dispose();
+        _subnetDetectCts = new CancellationTokenSource();
+        var ct = _subnetDetectCts.Token;
+
         await Dispatcher.InvokeAsync(() =>
             TxtStatus.Text = string.Format(L("ToolNetMapDetectingSubnet"), gateway.Name));
 
         try
         {
-            var password = !string.IsNullOrEmpty(gateway.SshPasswordEncrypted)
-                ? Core.Security.CredentialProtector.Unprotect(gateway.SshPasswordEncrypted)
-                : null;
-
-            var connParams = new Ssh.SshConnectionParams
-            {
-                Host = gateway.Host,
-                Port = gateway.Port,
-                Username = gateway.User,
-                Password = password,
-                KeyPath = gateway.KeyPath
-            };
-
-            var connInfo = Ssh.SshConnectionFactory.Create(connParams);
-            using var sshClient = new Renci.SshNet.SshClient(connInfo);
-
-            await Task.Run(() => sshClient.Connect()).ConfigureAwait(false);
+            using var sshClient = await Task.Run(
+                () => ToolGatewayConnector.Connect(gateway), ct).ConfigureAwait(false);
 
             // Try Linux first: ip -4 addr show
             var output = ExecuteSshCommand(sshClient, "ip -4 addr show 2>/dev/null");
@@ -949,8 +949,6 @@ public partial class NetworkCartographyView : UserControl, IToolView
                 output = ExecuteSshCommand(sshClient, "ipconfig 2>nul");
                 subnets = ParseWindowsIpconfig(output);
             }
-
-            sshClient.Disconnect();
 
             if (subnets.Count > 0)
             {
@@ -972,6 +970,10 @@ public partial class NetworkCartographyView : UserControl, IToolView
                 await Dispatcher.InvokeAsync(() =>
                     TxtStatus.Text = L("ToolNetMapSubnetDetectFailed"));
             }
+        }
+        catch (OperationCanceledException)
+        {
+            // Superseded by a newer gateway selection — ignore silently
         }
         catch (Exception ex)
         {
@@ -997,10 +999,7 @@ public partial class NetworkCartographyView : UserControl, IToolView
         if (string.IsNullOrWhiteSpace(output)) return subnets;
 
         // Match lines like: "    inet 192.168.1.5/24 brd 192.168.1.255 scope global eth0"
-        var regex = new System.Text.RegularExpressions.Regex(
-            @"inet\s+(\d+\.\d+\.\d+\.\d+/\d+)", System.Text.RegularExpressions.RegexOptions.Compiled);
-
-        foreach (System.Text.RegularExpressions.Match match in regex.Matches(output))
+        foreach (System.Text.RegularExpressions.Match match in s_linuxInetRegex.Matches(output))
         {
             var cidr = match.Groups[1].Value;
             // Skip loopback 127.x.x.x
@@ -1020,11 +1019,7 @@ public partial class NetworkCartographyView : UserControl, IToolView
         if (string.IsNullOrWhiteSpace(output)) return subnets;
 
         // Match "inet 192.168.1.5 netmask 255.255.255.0" or "inet addr:192.168.1.5 Mask:255.255.255.0"
-        var regex = new System.Text.RegularExpressions.Regex(
-            @"inet\s+(?:addr:)?(\d+\.\d+\.\d+\.\d+)\s+.*?(?:netmask|Mask:?)\s*(\d+\.\d+\.\d+\.\d+)",
-            System.Text.RegularExpressions.RegexOptions.Compiled | System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-
-        foreach (System.Text.RegularExpressions.Match match in regex.Matches(output))
+        foreach (System.Text.RegularExpressions.Match match in s_ifconfigInetRegex.Matches(output))
         {
             var ip = match.Groups[1].Value;
             var mask = match.Groups[2].Value;
@@ -1223,6 +1218,9 @@ public partial class NetworkCartographyView : UserControl, IToolView
         if (_disposed) return;
         _disposed = true;
         StopScan();
+        _subnetDetectCts?.Cancel();
+        _subnetDetectCts?.Dispose();
+        _subnetDetectCts = null;
         GC.SuppressFinalize(this);
     }
 
