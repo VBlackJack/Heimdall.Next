@@ -149,7 +149,7 @@
         </ScrollViewer>
 
         <!-- Status Bar -->
-        <Border Grid.Row="2" Padding="12,6"
+        <Border Grid.Row="2" Padding="{StaticResource ToolFooterPadding}"
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,1,0,0">

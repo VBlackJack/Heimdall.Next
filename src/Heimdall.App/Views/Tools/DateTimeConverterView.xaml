@@ -160,7 +160,7 @@
                             Style="{DynamicResource SecondaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonPrimary}" Margin="8,0,0,0"
                             VerticalAlignment="Stretch"/>
-                    <ComboBox x:Name="CmbTimezone" Width="300"
+                    <ComboBox x:Name="CmbTimezone" MinWidth="200" MaxWidth="400"
                               VerticalAlignment="Center" DockPanel.Dock="Left" Margin="0,0,8,0"
                               Background="{DynamicResource CardBrush}"
                               Foreground="{DynamicResource TextPrimaryBrush}"

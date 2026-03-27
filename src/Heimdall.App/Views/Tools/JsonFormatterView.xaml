@@ -68,7 +68,7 @@
                      Foreground="{DynamicResource TextPrimaryBrush}"
                      BorderBrush="{DynamicResource BorderBrush}"
                      BorderThickness="1"
-                     Padding="6"
+                     Padding="{StaticResource PaddingInput}"
                      Tag="paste JSON here"
                      TextChanged="OnInputTextChanged"
                      />
@@ -106,7 +106,7 @@
                      AutomationProperties.LiveSetting="Polite"
                      BorderBrush="{DynamicResource BorderBrush}"
                      BorderThickness="1"
-                     Padding="6"
+                     Padding="{StaticResource PaddingInput}"
                      />
         </Grid>
 

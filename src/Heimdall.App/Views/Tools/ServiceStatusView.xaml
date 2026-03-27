@@ -40,7 +40,7 @@
                            Foreground="{DynamicResource TextPrimaryBrush}"
                            VerticalAlignment="Center" DockPanel.Dock="Left"/>
                 <StackPanel Orientation="Horizontal" Margin="16,0,0,0" VerticalAlignment="Center">
-                    <TextBox x:Name="TxtFilter" Text="" Width="250"
+                    <TextBox x:Name="TxtFilter" Text="" MinWidth="200"
                              FontSize="{StaticResource FontSizeBodyLarge}" Padding="{StaticResource PaddingInput}"
                              Background="{DynamicResource CardBrush}"
                              Foreground="{DynamicResource TextPrimaryBrush}"
@@ -104,9 +104,9 @@
                       AlternatingRowBackground="{DynamicResource SurfaceBrush}"
                       HorizontalGridLinesBrush="{DynamicResource BorderBrush}">
                 <DataGrid.Columns>
-                    <DataGridTextColumn x:Name="ColServiceName" Binding="{Binding Name}" Width="200"
+                    <DataGridTextColumn x:Name="ColServiceName" Binding="{Binding Name}" Width="*"
                                         Foreground="{DynamicResource TextPrimaryBrush}"/>
-                    <DataGridTextColumn x:Name="ColDisplayName" Binding="{Binding DisplayName}" Width="*"
+                    <DataGridTextColumn x:Name="ColDisplayName" Binding="{Binding DisplayName}" Width="2*"
                                         Foreground="{DynamicResource TextPrimaryBrush}"/>
                     <DataGridTextColumn x:Name="ColStatus" Binding="{Binding Status}" Width="100"
                                         Foreground="{DynamicResource TextPrimaryBrush}"/>
@@ -124,7 +124,7 @@
         </Border>
 
         <!-- Stats bar -->
-        <Border Grid.Row="2" Padding="12,6"
+        <Border Grid.Row="2" Padding="{StaticResource ToolFooterPadding}"
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,1,0,0">

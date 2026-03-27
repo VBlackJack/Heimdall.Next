@@ -702,6 +702,8 @@ public partial class PortScannerView : UserControl, IToolView
 
     private string L(string key) => _localizer?[key] ?? key;
 
+    public bool CanClose() => !_isScanning;
+
     public void Dispose()
     {
         if (_disposed)

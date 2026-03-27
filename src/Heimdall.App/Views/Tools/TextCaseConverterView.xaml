@@ -51,7 +51,7 @@
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
                 <TextBox x:Name="TxtInput" Text=""
                          FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
-                         Padding="{StaticResource PaddingInput}" Height="100"
+                         Padding="{StaticResource PaddingInput}" MinHeight="100"
                          AcceptsReturn="True"
                          TextWrapping="Wrap"
                          VerticalScrollBarVisibility="Auto"
@@ -104,7 +104,7 @@
                             VerticalAlignment="Top"/>
                     <TextBox x:Name="TxtOutput" Text=""
                              FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
-                             Padding="{StaticResource PaddingInput}" Height="100"
+                             Padding="{StaticResource PaddingInput}" MinHeight="100"
                              IsReadOnly="True"
                              AcceptsReturn="True"
                              TextWrapping="Wrap"

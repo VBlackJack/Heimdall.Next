@@ -83,7 +83,7 @@
                                  Foreground="{DynamicResource TextPrimaryBrush}"
                                  Background="{DynamicResource CardBrush}"
                                  BorderBrush="{DynamicResource BorderBrush}"
-                                 Padding="4,2"
+                                 Padding="{StaticResource PaddingInput}"
 />
                     </DockPanel>
 
@@ -96,7 +96,7 @@
                                      Foreground="{DynamicResource TextPrimaryBrush}"
                                      Background="{DynamicResource CardBrush}"
                                      BorderBrush="{DynamicResource BorderBrush}"
-                                     Padding="4,2"
+                                     Padding="{StaticResource PaddingInput}"
 />
                     </DockPanel>
                     <TextBlock x:Name="PassphraseHint"

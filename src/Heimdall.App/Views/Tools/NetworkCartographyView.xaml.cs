@@ -1215,6 +1215,8 @@ public partial class NetworkCartographyView : UserControl, IToolView
 
     private string L(string key) => _localizer?[key] ?? key;
 
+    public bool CanClose() => !_isScanning;
+
     /// <inheritdoc />
     public void Dispose()
     {

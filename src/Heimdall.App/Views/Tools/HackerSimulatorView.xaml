@@ -180,7 +180,7 @@
                               HorizontalScrollBarVisibility="Disabled"
                               Background="Transparent">
                     <TextBlock x:Name="TerminalOutput"
-                               FontFamily="Consolas" FontSize="13"
+                               FontFamily="Consolas" FontSize="{StaticResource FontSizeBody}"
                                Foreground="#00FF41" Padding="12,8"
                                TextWrapping="Wrap">
                         <TextBlock.Effect>

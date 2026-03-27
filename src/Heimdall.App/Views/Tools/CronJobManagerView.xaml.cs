@@ -35,6 +35,7 @@ public partial class CronJobManagerView : UserControl, IToolView
     private static readonly int NextRunsCount = 5;
 
     private LocalizationManager? _localizer;
+    private Action<bool>? _setBusy;
     private CancellationTokenSource? _cts;
     private bool _disposed;
 
@@ -55,6 +56,7 @@ public partial class CronJobManagerView : UserControl, IToolView
     public void Initialize(ToolContext? context, LocalizationManager? localizer)
     {
         _localizer = localizer;
+        _setBusy = context?.SetBusyAction;
         ApplyLocalization();
     }
 
@@ -197,6 +199,7 @@ public partial class CronJobManagerView : UserControl, IToolView
         _cts.CancelAfter(TimeSpan.FromSeconds(30));
 
         BtnRefreshTasks.IsEnabled = false;
+        _setBusy?.Invoke(true);
         TxtTasksLoading.Text = L("ToolCronJobTasksLoading");
         TxtTasksLoading.Visibility = Visibility.Visible;
         TxtTasksError.Visibility = Visibility.Collapsed;
@@ -227,6 +230,7 @@ public partial class CronJobManagerView : UserControl, IToolView
         }
         finally
         {
+            _setBusy?.Invoke(false);
             BtnRefreshTasks.IsEnabled = true;
             TxtTasksLoading.Visibility = Visibility.Collapsed;
         }
@@ -541,6 +545,7 @@ public partial class CronJobManagerView : UserControl, IToolView
     {
         if (_disposed) return;
         _disposed = true;
+        _setBusy?.Invoke(false);
         _cts?.Cancel();
         _cts?.Dispose();
         _cts = null;

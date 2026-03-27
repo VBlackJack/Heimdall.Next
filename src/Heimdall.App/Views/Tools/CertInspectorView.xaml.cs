@@ -43,6 +43,8 @@ public partial class CertInspectorView : UserControl, IToolView
     private LocalizationManager? _localizer;
     private CancellationTokenSource? _cts;
     private string _lastDetails = string.Empty;
+    private bool _isChecking;
+    private Action<bool>? _setBusy;
     private List<SshGatewayDto>? _gateways;
     private SshGatewayDto? _selectedGateway;
 
@@ -79,6 +81,7 @@ public partial class CertInspectorView : UserControl, IToolView
     public void Initialize(ToolContext? context, LocalizationManager? localizer)
     {
         _localizer = localizer;
+        _setBusy = context?.SetBusyAction;
         ApplyLocalization();
 
         // Pre-fill with a sensible default; context overrides if provided
@@ -216,6 +219,8 @@ public partial class CertInspectorView : UserControl, IToolView
         EmptyStatePanel.Visibility = Visibility.Collapsed;
         LoadingBar.Visibility = Visibility.Visible;
         BtnCheck.IsEnabled = false;
+        _isChecking = true;
+        _setBusy?.Invoke(true);
 
         try
         {
@@ -259,10 +264,14 @@ public partial class CertInspectorView : UserControl, IToolView
         }
         finally
         {
+            _isChecking = false;
+            _setBusy?.Invoke(false);
             LoadingBar.Visibility = Visibility.Collapsed;
             BtnCheck.IsEnabled = true;
         }
     }
+
+    public bool CanClose() => !_isChecking;
 
     private static CertInspectionResult RetrieveCertificate(string host, int port, CancellationToken ct)
     {
@@ -620,6 +629,7 @@ public partial class CertInspectorView : UserControl, IToolView
 
     public void Dispose()
     {
+        _setBusy?.Invoke(false);
         _cts?.Cancel();
         _cts?.Dispose();
         _cts = null;

@@ -109,20 +109,22 @@
                                        Foreground="{DynamicResource TextPrimaryBrush}"
                                        VerticalAlignment="Center" Margin="0,0,8,0"/>
                             <TextBox x:Name="TxtStartIp" Grid.Column="1"
+                                     Style="{StaticResource WatermarkTextBoxStyle}"
                                      FontFamily="Consolas" FontSize="{StaticResource FontSizeBody}"
                                      Foreground="{DynamicResource TextPrimaryBrush}"
                                      Background="{DynamicResource CardBrush}"
                                      BorderBrush="{DynamicResource BorderBrush}"
-                                     Padding="6,4"/>
+                                     Padding="{StaticResource PaddingInput}"/>
                             <TextBlock x:Name="LblEndIp" Grid.Column="3"
                                        Foreground="{DynamicResource TextPrimaryBrush}"
                                        VerticalAlignment="Center" Margin="0,0,8,0"/>
                             <TextBox x:Name="TxtEndIp" Grid.Column="4"
+                                     Style="{StaticResource WatermarkTextBoxStyle}"
                                      FontFamily="Consolas" FontSize="{StaticResource FontSizeBody}"
                                      Foreground="{DynamicResource TextPrimaryBrush}"
                                      Background="{DynamicResource CardBrush}"
                                      BorderBrush="{DynamicResource BorderBrush}"
-                                     Padding="6,4"/>
+                                     Padding="{StaticResource PaddingInput}"/>
                         </Grid>
                         <Button x:Name="BtnRangeCompute" Click="OnRangeComputeClick"
                                 Style="{DynamicResource PrimaryButtonStyle}"
@@ -151,22 +153,24 @@
                                        Foreground="{DynamicResource TextPrimaryBrush}"
                                        VerticalAlignment="Center" Margin="0,0,8,0"/>
                             <TextBox x:Name="TxtHostsNeeded" Grid.Row="0" Grid.Column="1"
+                                     Style="{StaticResource WatermarkTextBoxStyle}"
                                      FontFamily="Consolas" FontSize="{StaticResource FontSizeBody}"
                                      MaxWidth="150" HorizontalAlignment="Left"
                                      Foreground="{DynamicResource TextPrimaryBrush}"
                                      Background="{DynamicResource CardBrush}"
                                      BorderBrush="{DynamicResource BorderBrush}"
-                                     Padding="6,4"/>
+                                     Padding="{StaticResource PaddingInput}"/>
                             <TextBlock x:Name="LblBaseNetwork" Grid.Row="2" Grid.Column="0"
                                        Foreground="{DynamicResource TextPrimaryBrush}"
                                        VerticalAlignment="Center" Margin="0,0,8,0"/>
                             <TextBox x:Name="TxtBaseNetwork" Grid.Row="2" Grid.Column="1"
+                                     Style="{StaticResource WatermarkTextBoxStyle}"
                                      Text="10.0.0.0" FontFamily="Consolas" FontSize="{StaticResource FontSizeBody}"
                                      MaxWidth="200" HorizontalAlignment="Left"
                                      Foreground="{DynamicResource TextPrimaryBrush}"
                                      Background="{DynamicResource CardBrush}"
                                      BorderBrush="{DynamicResource BorderBrush}"
-                                     Padding="6,4"/>
+                                     Padding="{StaticResource PaddingInput}"/>
                         </Grid>
                         <Button x:Name="BtnVlanCompute" Click="OnVlanComputeClick"
                                 Style="{DynamicResource PrimaryButtonStyle}"

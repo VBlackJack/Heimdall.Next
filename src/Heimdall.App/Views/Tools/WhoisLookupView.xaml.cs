@@ -38,6 +38,8 @@ public partial class WhoisLookupView : UserControl, IToolView
     private LocalizationManager? _localizer;
     private CancellationTokenSource? _cts;
     private bool _disposed;
+    private bool _isQuerying;
+    private Action<bool>? _setBusy;
 
     public WhoisLookupView()
     {
@@ -51,6 +53,7 @@ public partial class WhoisLookupView : UserControl, IToolView
     public void Initialize(ToolContext? context, LocalizationManager? localizer)
     {
         _localizer = localizer;
+        _setBusy = context?.SetBusyAction;
         ApplyLocalization();
 
         if (!string.IsNullOrWhiteSpace(context?.TargetHost))
@@ -120,6 +123,8 @@ public partial class WhoisLookupView : UserControl, IToolView
         _cts = new CancellationTokenSource();
         _cts.CancelAfter(QueryTimeout);
 
+        _isQuerying = true;
+        _setBusy?.Invoke(true);
         BtnLookup.IsEnabled = false;
         LoadingBar.Visibility = Visibility.Visible;
         TxtStatus.Text = L("ToolWhoisStatusQuerying");
@@ -156,6 +161,8 @@ public partial class WhoisLookupView : UserControl, IToolView
         }
         finally
         {
+            _isQuerying = false;
+            _setBusy?.Invoke(false);
             BtnLookup.IsEnabled = true;
             LoadingBar.Visibility = Visibility.Collapsed;
         }
@@ -224,6 +231,8 @@ public partial class WhoisLookupView : UserControl, IToolView
         MessageBox.Show(helpText, L("ToolHelpTitle"), MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
+    public bool CanClose() => !_isQuerying;
+
     private string L(string key) => _localizer?[key] ?? key;
 
     public void Dispose()
@@ -233,6 +242,7 @@ public partial class WhoisLookupView : UserControl, IToolView
         _cts?.Cancel();
         _cts?.Dispose();
         _cts = null;
+        _setBusy?.Invoke(false);
         GC.SuppressFinalize(this);
     }
 }

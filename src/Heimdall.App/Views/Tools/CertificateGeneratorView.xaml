@@ -74,7 +74,7 @@
                                  Foreground="{DynamicResource TextPrimaryBrush}"
                                  Background="{DynamicResource CardBrush}"
                                  BorderBrush="{DynamicResource BorderBrush}"
-                                 Padding="4,2"/>
+                                 Padding="{StaticResource PaddingInput}"/>
                     </DockPanel>
                     <!-- Organization -->
                     <DockPanel Margin="0,0,0,8">
@@ -85,7 +85,7 @@
                                  Foreground="{DynamicResource TextPrimaryBrush}"
                                  Background="{DynamicResource CardBrush}"
                                  BorderBrush="{DynamicResource BorderBrush}"
-                                 Padding="4,2"/>
+                                 Padding="{StaticResource PaddingInput}"/>
                     </DockPanel>
                     <!-- Country -->
                     <DockPanel Margin="0,0,0,4">
@@ -96,7 +96,7 @@
                                  Foreground="{DynamicResource TextPrimaryBrush}"
                                  Background="{DynamicResource CardBrush}"
                                  BorderBrush="{DynamicResource BorderBrush}"
-                                 Padding="4,2" MaxLength="2"/>
+                                 Padding="{StaticResource PaddingInput}" MaxLength="2"/>
                     </DockPanel>
                 </StackPanel>
             </Border>
@@ -133,7 +133,7 @@
                                  Foreground="{DynamicResource TextPrimaryBrush}"
                                  Background="{DynamicResource CardBrush}"
                                  BorderBrush="{DynamicResource BorderBrush}"
-                                 Padding="4,2" Width="100"
+                                 Padding="{StaticResource PaddingInput}" Width="100"
                                  HorizontalAlignment="Left"/>
                     </DockPanel>
                     <!-- SANs -->
@@ -145,7 +145,7 @@
                                  Foreground="{DynamicResource TextPrimaryBrush}"
                                  Background="{DynamicResource CardBrush}"
                                  BorderBrush="{DynamicResource BorderBrush}"
-                                 Padding="4,2"/>
+                                 Padding="{StaticResource PaddingInput}"/>
                     </DockPanel>
                     <TextBlock x:Name="SanHint"
                                FontSize="{StaticResource FontSizeCaption}"

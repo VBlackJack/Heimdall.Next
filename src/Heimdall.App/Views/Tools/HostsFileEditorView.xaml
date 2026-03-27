@@ -83,7 +83,7 @@
         </DataGrid>
 
         <!-- Action buttons -->
-        <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="12,8">
+        <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="{StaticResource SpacingMd}">
             <Button x:Name="BtnAddEntry" Click="OnAddEntryClick"
                     Style="{DynamicResource SecondaryButtonStyle}"
                     Padding="{StaticResource PaddingButtonCopy}" Margin="0,0,6,0" FontSize="{StaticResource FontSizeBody}"/>
@@ -93,7 +93,7 @@
         </StackPanel>
 
         <!-- Status bar -->
-        <Border Grid.Row="3" Padding="12,6"
+        <Border Grid.Row="3" Padding="{StaticResource ToolFooterPadding}"
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,1,0,0">

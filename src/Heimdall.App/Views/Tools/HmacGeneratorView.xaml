@@ -51,7 +51,7 @@
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
                 <ComboBox x:Name="CmbAlgorithm"
                           Margin="0,0,0,16"
-                          Padding="8,6" FontSize="{StaticResource FontSizeBodyLarge}"
+                          Padding="{StaticResource PaddingInput}" FontSize="{StaticResource FontSizeBodyLarge}"
                           Background="{DynamicResource CardBrush}"
                           Foreground="{DynamicResource TextPrimaryBrush}"
                           BorderBrush="{DynamicResource BorderBrush}"
@@ -68,13 +68,13 @@
                             FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeSubtitle}"
                             Click="OnToggleKeyVisibility"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="8,6" Margin="6,0,0,0"
+                            Padding="{StaticResource PaddingInput}" Margin="6,0,0,0"
                             AutomationProperties.Name=""
                             VerticalAlignment="Stretch"/>
                     <Grid>
                         <PasswordBox x:Name="PwdKey"
                                      FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
-                                     Padding="8,6"
+                                     Padding="{StaticResource PaddingInput}"
                                      Background="{DynamicResource CardBrush}"
                                      Foreground="{DynamicResource TextPrimaryBrush}"
                                      BorderBrush="{DynamicResource BorderBrush}"
