@@ -12,6 +12,36 @@
 
 All notable changes to Heimdall.Next are documented in this file.
 
+## [v2026.032701] - 2026-03-27
+
+### Comprehensive tool audit — robustness, accessibility, and UX (15 tools, 26 files)
+
+#### Password Generator overhaul
+- **3 generation modes**: Random, Syllable (CV/CVC), and Passphrase with per-mode presets
+- **Optional clipboard auto-clear** (30s): checkbox in Advanced section, visual hint after copy
+- **Custom presets filtered by mode**: only presets matching the current mode are shown
+- **Title vs WordCase differentiated**: Title capitalizes first group only, WordCase capitalizes every group
+- **Strength hidden when empty**: no more "Critical (0 bits)" on blank output
+- **Quick-length highlight** now updates correctly after preset application
+- **TextBox guards**: MaxLength on separator (4) and custom specials (64) inputs
+- **Preset cache**: avoids disk I/O on every mode change
+- **try/finally** on ApplyCustomPreset to prevent flag freeze on exception
+
+#### Cross-tool robustness (12 files)
+- **Clipboard.SetText protection**: 21 unprotected calls across 12 tools wrapped in `try/catch(ExternalException)` to handle locked clipboard gracefully (Base64, CertGenerator, Chmod, Crontab, Json, JWT, SshConfig, TextDiff, HostsFile, Notes, PasswordGenerator)
+- **try/finally on boolean flags**: HackerSimulator (`_isRunning`, `_typingInProgress`, `_cursorVisible`), PingTool (`_isRunning`), PortScanner (`_isScanning`) — prevents UI freeze if setup code throws
+- **CanClose()** added to ServiceStatus and CronJobManager to prevent close during async operations
+
+#### Accessibility
+- **LiveSetting="Polite"** added to 9 dynamic output elements across 7 tools (PasswordGenerator, ServiceStatus, CronJobManager, SshConfigGenerator, UUID, NetworkCalculator, LogViewer, NetworkCartography)
+- **Focusable="True"** on PasswordGenerator output TextBox for keyboard navigation
+
+#### i18n
+- 2 new locale keys: `ToolPwdGenClipboardAutoClear`, `ToolPwdGenClipboardClearHint` (EN + FR)
+- Total: 3,654 keys per locale
+
+---
+
 ## [v2026.032606] - 2026-03-26
 
 ### Security Audit tool overhaul

@@ -10,7 +10,7 @@
 
 # Architecture
 
-Heimdall.Next is a .NET 10 WPF application organized as a multi-project solution with strict dependency boundaries. Supports RDP, SSH, SFTP, FTP, VNC, Telnet, Citrix, and Local Shell connection types with ~3,457 i18n keys per locale (EN/FR), 33 built-in sysops tools with contextual help, cross-tool navigation, and 1,586 automated tests. Health monitor polls in parallel (Task.WhenAll), XML importers hardened against XXE, all Debug.WriteLine replaced with FileLogger. WCAG AA compliant Design System with 45 design tokens (typography min 11px, spacing, corner radius, opacity, icon sizes, font family), micro-animations, FocusIndicatorBrush for keyboard accessibility, unified two-tier icon system (vector geometries + MDL2), per-category tool color coding, declarative i18n via `{loc:Translate}` markup extension, and progressive disclosure ServerDialog.
+Heimdall.Next is a .NET 10 WPF application organized as a multi-project solution with strict dependency boundaries. Supports RDP, SSH, SFTP, FTP, VNC, Telnet, Citrix, and Local Shell connection types with ~3,654 i18n keys per locale (EN/FR), 35 built-in sysops tools with contextual help, cross-tool navigation, and 1,586 automated tests. Health monitor polls in parallel (Task.WhenAll), XML importers hardened against XXE, all Debug.WriteLine replaced with FileLogger. WCAG AA compliant Design System with 45 design tokens (typography min 11px, spacing, corner radius, opacity, icon sizes, font family), micro-animations, FocusIndicatorBrush for keyboard accessibility, unified two-tier icon system (vector geometries + MDL2), per-category tool color coding, declarative i18n via `{loc:Translate}` markup extension, and progressive disclosure ServerDialog.
 
 ## Solution Structure
 
@@ -26,7 +26,7 @@ Heimdall.slnx (8 projects)
 │       ├── Views: MainWindow, SessionPaneControl, SplitContainerControl,
 │       │          EmbeddedRdpView, EmbeddedSshView, EmbeddedSftpView,
 │       │          EmbeddedCitrixView, EmbeddedVncView, FloatingSessionWindow
-│       ├── Views/Tools: 33 built-in sysops tools (IToolView interface)
+│       ├── Views/Tools: 35 built-in sysops tools (IToolView interface)
 │       └── Services: ConnectionService (.Rdp/.Ssh/.Sftp/.Ftp/.Vnc/.Telnet/.Citrix/.Local/.Tunnel),
 │                     SplitService, EmbeddedSessionManager, ToolRegistry, TaskSchedulerService,
 │                     MacroService, EphemeralFileServer, X11ServerManager, WebSocketVncProxy
@@ -557,7 +557,7 @@ Build editions:
 
 ### ToolRegistry (Single Source of Truth)
 
-All 33 built-in tools are registered in `ToolRegistry` (singleton). Each tool is described by a `ToolDescriptor` record:
+All 35 built-in tools are registered in `ToolRegistry` (singleton). Each tool is described by a `ToolDescriptor` record:
 
 ```csharp
 public record ToolDescriptor(
@@ -616,7 +616,7 @@ When opening a tool from a server context menu, all available server metadata is
 - **Recent tools**: Last 5 used tools shown at top of palette when opened
 - **Singleton behavior**: Context-free tools (UUID, Password, Chmod) reuse existing tab
 - **External tools**: Also searchable in Ctrl+K palette
-- **Help system**: "?" button on all 34 tools shows localized description, usage instructions, and examples (i18n key pattern: `ToolHelp<UPPERCASE_ID>`, e.g., `ToolHelpBASE64`)
+- **Help system**: "?" button on all 35 tools shows localized description, usage instructions, and examples (i18n key pattern: `ToolHelp<UPPERCASE_ID>`, e.g., `ToolHelpBASE64`)
 - **Detail panel**: Selecting a tool in TreeView shows dedicated panel (name, category, description, "Open in Tab")
 - **Password presets**: Custom presets saved to `config/password-presets.json`, restored on click, deleted via right-click
 - **Protocol colors**: Theme-aware brushes (bright on dark, darker on light) defined per-theme, not globally
@@ -658,14 +658,14 @@ The Notes tool (#34) provides a local-first Markdown editing experience inspired
 - **PowerShell Execution Policy**: Configurable in Settings > Terminal, applied as `-ExecutionPolicy` flag on local shell launch
 - **Elevation modes**: `None` / `Auto` (gsudo `--direct` → external window fallback) / `Gsudo` / `Runas` — `Auto` default for AdminByRequest/CyberArk/BeyondTrust compatibility, configurable per server profile
 
-### Tool Categories (33 tools)
+### Tool Categories (35 tools)
 
 | Category | Count | Tools |
 |----------|-------|-------|
 | **Network** | 10 | **Network Cartography** (ping sweep, port scan, banner grab, TLS cert inspection, OS fingerprinting from 5 sources (TTL/banner/ports/SNMP/NTLM), **SMB2 NTLM challenge extraction** (hostname/domain/OS build/GUID/uptime), **SSH HASSH fingerprinting**, **Shodan-compatible favicon hashing** (30+ known devices), **HTTP product URL probing** (13 vendor paths), **cookie/error page framework detection**, SNMPv2c 6-OID query + IANA PEN vendor decode, NetBIOS NBSTAT, mDNS/Bonjour, **SSDP + UPnP rootDesc.xml** fetch, 320+ OUI MAC lookup + randomized MAC detection, 50+ role patterns + 100+ banner fingerprints + 6 conflict rules, dynamic CIDR VLAN detection, Draw.io topology export, scan history with typed diff, remote subnet scan via SSH gateway (batched probes), **persistent Knowledge Base with TTL-based cache + KB backfill**), Ping, DNS (custom server, via tunnel), Cert Inspector (chain+TLS, via tunnel), Port Scanner (banner grab, via tunnel), Subnet (IPv4+IPv6), IP Converter, HTTP Status, Whois, Network Calculator (supernet+VLAN) |
-| **Security** | 7 | Password (crack time+history), SSH Key (RSA+Ed25519), Hash (SHA3+progress), HMAC, JWT (signature verify), Certificate Generator (CA+leaf), TOTP (RFC 6238) |
+| **Security** | 8 | Password (3 modes, crack time, history, custom presets, clipboard auto-clear), SSH Key (RSA+Ed25519), Hash (SHA3+progress), HMAC, JWT (signature verify), Certificate Generator (CA+leaf), TOTP (RFC 6238), **Security Audit** (25 scenarios, JSON packs, playlists, CRT mode) |
 | **Encoding** | 6 | Base64 (URL-safe), URL Encoder, JSON (error position), Regex (match highlight), Text Diff (word-level), Text Case (8 formats) |
-| **System** | 10 | Chmod, Crontab Builder, DateTime (timezone+relative), UUID (v4+v7), Hosts Editor, SSH Config Generator, Log Viewer/Tail, Cron Job Manager, Service Status Dashboard, **Diagram Editor** (draw.io embedded offline) |
+| **System** | 11 | Chmod, Crontab Builder, DateTime (timezone+relative), UUID (v4+v7), Hosts Editor, SSH Config Generator, Log Viewer/Tail, Cron Job Manager, Service Status Dashboard, **Notes** (Obsidian-style Markdown), **Diagram Editor** (draw.io embedded offline) |
 
 ### Declarative i18n (`{loc:Translate}` Markup Extension)
 
