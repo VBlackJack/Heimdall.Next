@@ -20,6 +20,8 @@
     <Grid Margin="0">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
@@ -41,8 +43,56 @@
             </DockPanel>
         </Border>
 
+        <!-- Profile bar (visible in scan mode only) -->
+        <Border x:Name="ProfileBar" Grid.Row="1" Visibility="Collapsed"
+                Padding="{StaticResource ToolFooterPadding}"
+                Background="{DynamicResource SurfaceBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="0,0,0,1">
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <Button x:Name="BtnProfileQuick" Click="OnProfileClick" Tag="quick"
+                        Style="{DynamicResource PrimaryButtonStyle}"
+                        Padding="8,3" Margin="0,0,4,0" FontSize="{StaticResource FontSizeCaption}"/>
+                <Button x:Name="BtnProfileExtended" Click="OnProfileClick" Tag="extended"
+                        Style="{DynamicResource SecondaryButtonStyle}"
+                        Padding="8,3" Margin="0,0,4,0" FontSize="{StaticResource FontSizeCaption}"/>
+                <Button x:Name="BtnProfileCustom" Click="OnProfileClick" Tag="custom"
+                        Style="{DynamicResource SecondaryButtonStyle}"
+                        Padding="8,3" Margin="0,0,4,0" FontSize="{StaticResource FontSizeCaption}"/>
+                <TextBox x:Name="TxtCustomPorts" Visibility="Collapsed"
+                         Width="260"
+                         Style="{StaticResource WatermarkTextBoxStyle}"
+                         Tag="443, 8443, 993..."
+                         FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
+                         Padding="{StaticResource PaddingInput}" Margin="4,0,0,0"
+                         Background="{DynamicResource CardBrush}"
+                         Foreground="{DynamicResource TextPrimaryBrush}"
+                         BorderBrush="{DynamicResource BorderBrush}"
+                         VerticalAlignment="Center"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Progress bar with percentage overlay (scan mode) -->
+        <Grid x:Name="ScanProgressPanel" Grid.Row="2" Visibility="Collapsed">
+            <ProgressBar x:Name="ScanProgress"
+                         Height="20" Minimum="0" Maximum="100"
+                         IsIndeterminate="False"
+                         Foreground="{DynamicResource AccentBrush}"
+                         Background="{DynamicResource SurfaceBrush}"/>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                <TextBlock x:Name="TxtProgressPercent" Text="0%"
+                           FontSize="{StaticResource FontSizeCaption}" FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextPrimaryBrush}"/>
+                <TextBlock Text="  —  " FontSize="{StaticResource FontSizeCaption}"
+                           Foreground="{DynamicResource TextSecondaryBrush}"/>
+                <TextBlock x:Name="TxtProgressCount" Text="0 / 0"
+                           FontSize="{StaticResource FontSizeCaption}"
+                           Foreground="{DynamicResource TextSecondaryBrush}"/>
+            </StackPanel>
+        </Grid>
+
         <!-- Content -->
-        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="{StaticResource SpacingLg}">
+        <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto" Padding="{StaticResource SpacingLg}">
             <StackPanel MaxWidth="700">
 
                 <!-- Input row -->
@@ -54,17 +104,17 @@
                             Content="" Click="OnCheckClick"
                             Style="{DynamicResource PrimaryButtonStyle}"
                             Padding="16,6" Margin="8,0,0,0"
-                            VerticalAlignment="Center"
-                            />
+                            VerticalAlignment="Center"/>
                     <TextBox x:Name="TxtPort" DockPanel.Dock="Right"
-                             Text="443" Width="70"
+                             Text="" Width="70"
+                             Style="{StaticResource WatermarkTextBoxStyle}"
+                             Tag="port"
                              FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
                              Padding="{StaticResource PaddingInput}" Margin="8,0,0,0"
                              Background="{DynamicResource CardBrush}"
                              Foreground="{DynamicResource TextPrimaryBrush}"
                              BorderBrush="{DynamicResource BorderBrush}"
-                             VerticalAlignment="Center"
-                             />
+                             VerticalAlignment="Center"/>
                     <TextBlock DockPanel.Dock="Right" Text=":"
                                FontSize="{StaticResource FontSizeBodyLarge}" Margin="4,0,0,0"
                                Foreground="{DynamicResource TextSecondaryBrush}"
@@ -77,8 +127,7 @@
                              Background="{DynamicResource CardBrush}"
                              Foreground="{DynamicResource TextPrimaryBrush}"
                              BorderBrush="{DynamicResource BorderBrush}"
-                             VerticalAlignment="Center"
-                             />
+                             VerticalAlignment="Center"/>
                 </DockPanel>
 
                 <!-- Route via gateway -->
@@ -100,7 +149,7 @@
                            FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,12" TextWrapping="Wrap"
                            Foreground="{DynamicResource ErrorTextBrush}"/>
 
-                <!-- Empty state hint (hidden once results appear) -->
+                <!-- Empty state hint -->
                 <Border x:Name="EmptyStatePanel"
                         Style="{StaticResource ToolEmptyStateStyle}"
                         Margin="0,24,0,0">
@@ -115,181 +164,346 @@
                     </StackPanel>
                 </Border>
 
-                <!-- Loading indicator -->
+                <!-- Loading indicator (single port mode) -->
                 <ProgressBar x:Name="LoadingBar" IsIndeterminate="True"
                              Visibility="Collapsed" Height="4" Margin="0,0,0,12"/>
 
-                <!-- Expiration status banner -->
-                <Border x:Name="ExpirationBanner" Visibility="Collapsed"
-                        CornerRadius="{StaticResource CornerRadiusSm}" Padding="12,8" Margin="0,0,0,12">
-                    <TextBlock x:Name="TxtExpiration" Text=""
-                               FontSize="{StaticResource FontSizeBodyLarge}" FontWeight="SemiBold"
-                               Foreground="{DynamicResource TextOnAccentBrush}"/>
-                </Border>
-
-                <!-- Certificate details -->
-                <Border x:Name="DetailsPanel" Visibility="Collapsed"
-                        Background="{DynamicResource CardBrush}"
-                        BorderBrush="{DynamicResource BorderBrush}"
-                        BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
-                        Padding="16,12"
-                        AutomationProperties.LiveSetting="Polite">
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="16"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="8"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="8"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="8"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="8"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="8"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="8"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="8"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="8"/>
-                            <RowDefinition Height="Auto"/>
-                        </Grid.RowDefinitions>
-
-                        <!-- Row 0: Subject -->
-                        <TextBlock x:Name="LblSubject" Grid.Row="0" Grid.Column="0" Text=""
-                                   FontSize="{StaticResource FontSizeBody}" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Top"/>
-                        <TextBlock x:Name="TxtSubject" Grid.Row="0" Grid.Column="2" Text=""
-                                   FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas" Foreground="{DynamicResource TextPrimaryBrush}"
-                                   TextWrapping="Wrap" VerticalAlignment="Center"/>
-
-                        <!-- Row 2: Issuer -->
-                        <TextBlock x:Name="LblIssuer" Grid.Row="2" Grid.Column="0" Text=""
-                                   FontSize="{StaticResource FontSizeBody}" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Top"/>
-                        <TextBlock x:Name="TxtIssuer" Grid.Row="2" Grid.Column="2" Text=""
-                                   FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas" Foreground="{DynamicResource TextPrimaryBrush}"
-                                   TextWrapping="Wrap" VerticalAlignment="Center"/>
-
-                        <!-- Row 4: Valid From -->
-                        <TextBlock x:Name="LblValidFrom" Grid.Row="4" Grid.Column="0" Text=""
-                                   FontSize="{StaticResource FontSizeBody}" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
-                        <TextBlock x:Name="TxtValidFrom" Grid.Row="4" Grid.Column="2" Text=""
-                                   FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas" Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
-
-                        <!-- Row 6: Valid To -->
-                        <TextBlock x:Name="LblValidTo" Grid.Row="6" Grid.Column="0" Text=""
-                                   FontSize="{StaticResource FontSizeBody}" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
-                        <TextBlock x:Name="TxtValidTo" Grid.Row="6" Grid.Column="2" Text=""
-                                   FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas" Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
-
-                        <!-- Row 8: Serial Number -->
-                        <TextBlock x:Name="LblSerial" Grid.Row="8" Grid.Column="0" Text=""
-                                   FontSize="{StaticResource FontSizeBody}" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
-                        <TextBlock x:Name="TxtSerial" Grid.Row="8" Grid.Column="2" Text=""
-                                   FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas" Foreground="{DynamicResource TextPrimaryBrush}"
-                                   TextWrapping="Wrap" VerticalAlignment="Center"/>
-
-                        <!-- Row 10: Thumbprint (SHA256) -->
-                        <TextBlock x:Name="LblThumbprint" Grid.Row="10" Grid.Column="0" Text=""
-                                   FontSize="{StaticResource FontSizeBody}" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
-                        <TextBlock x:Name="TxtThumbprint" Grid.Row="10" Grid.Column="2" Text=""
-                                   FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas" Foreground="{DynamicResource TextPrimaryBrush}"
-                                   TextWrapping="Wrap" VerticalAlignment="Center"/>
-
-                        <!-- Row 12: Signature Algorithm -->
-                        <TextBlock x:Name="LblSigAlg" Grid.Row="12" Grid.Column="0" Text=""
-                                   FontSize="{StaticResource FontSizeBody}" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
-                        <TextBlock x:Name="TxtSigAlg" Grid.Row="12" Grid.Column="2" Text=""
-                                   FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas" Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
-
-                        <!-- Row 14: Key Size -->
-                        <TextBlock x:Name="LblKeySize" Grid.Row="14" Grid.Column="0" Text=""
-                                   FontSize="{StaticResource FontSizeBody}" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
-                        <TextBlock x:Name="TxtKeySize" Grid.Row="14" Grid.Column="2" Text=""
-                                   FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas" Foreground="{DynamicResource AccentBrush}"
-                                   FontWeight="SemiBold" VerticalAlignment="Center"/>
-
-                        <!-- Row 16: SANs -->
-                        <TextBlock x:Name="LblSans" Grid.Row="16" Grid.Column="0" Text=""
-                                   FontSize="{StaticResource FontSizeBody}" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Top"/>
-                        <ItemsControl x:Name="SansList" Grid.Row="16" Grid.Column="2">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <TextBlock Text="{Binding}" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
-                                               Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,1"/>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </Grid>
-                </Border>
-
-                <!-- TLS Version + Hostname Match -->
-                <Border x:Name="TlsHostPanel" Visibility="Collapsed"
-                        Background="{DynamicResource CardBrush}"
-                        BorderBrush="{DynamicResource BorderBrush}"
-                        BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
-                        Padding="16,12" Margin="0,12,0,0">
-                    <StackPanel>
-                        <!-- TLS Version -->
-                        <DockPanel Margin="0,0,0,8">
-                            <TextBlock x:Name="LblTlsVersion" Text=""
-                                       FontSize="{StaticResource FontSizeBody}" Foreground="{DynamicResource TextSecondaryBrush}"
-                                       VerticalAlignment="Center" Width="120"/>
-                            <TextBlock x:Name="TxtTlsVersion" Text=""
-                                       FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
-                                       Foreground="{DynamicResource AccentBrush}"
-                                       FontWeight="SemiBold" VerticalAlignment="Center"/>
-                        </DockPanel>
-                        <!-- Hostname Match -->
-                        <DockPanel>
-                            <TextBlock x:Name="TxtHostnameMatch" Text=""
-                                       FontSize="{StaticResource FontSizeBody}" FontWeight="SemiBold"
-                                       VerticalAlignment="Center"/>
-                        </DockPanel>
-                    </StackPanel>
-                </Border>
-
-                <!-- Certificate Chain -->
-                <Border x:Name="ChainPanel" Visibility="Collapsed"
-                        Background="{DynamicResource CardBrush}"
-                        BorderBrush="{DynamicResource BorderBrush}"
-                        BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
-                        Padding="16,12" Margin="0,12,0,0">
-                    <StackPanel>
-                        <TextBlock x:Name="LblChainTitle" Text=""
+                <!-- ===== Single-port result panels ===== -->
+                <StackPanel x:Name="SingleResultPanel" Visibility="Collapsed">
+                    <!-- Expiration status banner -->
+                    <Border x:Name="ExpirationBanner" Visibility="Collapsed"
+                            CornerRadius="{StaticResource CornerRadiusSm}" Padding="12,8" Margin="0,0,0,12">
+                        <TextBlock x:Name="TxtExpiration" Text=""
                                    FontSize="{StaticResource FontSizeBodyLarge}" FontWeight="SemiBold"
-                                   Foreground="{DynamicResource TextPrimaryBrush}"
-                                   Margin="0,0,0,8"/>
-                        <ItemsControl x:Name="ChainList">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <Border BorderBrush="{DynamicResource BorderBrush}"
-                                            BorderThickness="0,0,0,1"
-                                            Padding="0,4" Margin="0,0,0,4">
-                                        <StackPanel>
-                                            <TextBlock Text="{Binding Subject}" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
-                                                       Foreground="{DynamicResource TextPrimaryBrush}" TextWrapping="Wrap"/>
-                                            <TextBlock Text="{Binding Expiry}" FontSize="{StaticResource FontSizeCaption}"
-                                                       Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0"/>
-                                        </StackPanel>
-                                    </Border>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </StackPanel>
-                </Border>
+                                   Foreground="{DynamicResource TextOnAccentBrush}"/>
+                    </Border>
 
-                <!-- Copy button -->
-                <Button x:Name="BtnCopy" Click="OnCopyClick"
-                        Visibility="Collapsed"
-                        Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="{StaticResource PaddingButtonCopy}" Margin="0,12,0,0"
-                        HorizontalAlignment="Left"
-                        />
+                    <!-- Certificate details -->
+                    <Border x:Name="DetailsPanel" Visibility="Collapsed"
+                            Background="{DynamicResource CardBrush}"
+                            BorderBrush="{DynamicResource BorderBrush}"
+                            BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
+                            Padding="16,12"
+                            AutomationProperties.LiveSetting="Polite">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="16"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="8"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="8"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="8"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="8"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="8"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="8"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="8"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="8"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <TextBlock x:Name="LblSubject" Grid.Row="0" Grid.Column="0" Text=""
+                                       FontSize="{StaticResource FontSizeBody}" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Top"/>
+                            <TextBlock x:Name="TxtSubject" Grid.Row="0" Grid.Column="2" Text=""
+                                       FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas" Foreground="{DynamicResource TextPrimaryBrush}"
+                                       TextWrapping="Wrap" VerticalAlignment="Center"/>
+
+                            <TextBlock x:Name="LblIssuer" Grid.Row="2" Grid.Column="0" Text=""
+                                       FontSize="{StaticResource FontSizeBody}" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Top"/>
+                            <TextBlock x:Name="TxtIssuer" Grid.Row="2" Grid.Column="2" Text=""
+                                       FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas" Foreground="{DynamicResource TextPrimaryBrush}"
+                                       TextWrapping="Wrap" VerticalAlignment="Center"/>
+
+                            <TextBlock x:Name="LblValidFrom" Grid.Row="4" Grid.Column="0" Text=""
+                                       FontSize="{StaticResource FontSizeBody}" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="TxtValidFrom" Grid.Row="4" Grid.Column="2" Text=""
+                                       FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas" Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
+
+                            <TextBlock x:Name="LblValidTo" Grid.Row="6" Grid.Column="0" Text=""
+                                       FontSize="{StaticResource FontSizeBody}" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="TxtValidTo" Grid.Row="6" Grid.Column="2" Text=""
+                                       FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas" Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
+
+                            <TextBlock x:Name="LblSerial" Grid.Row="8" Grid.Column="0" Text=""
+                                       FontSize="{StaticResource FontSizeBody}" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="TxtSerial" Grid.Row="8" Grid.Column="2" Text=""
+                                       FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas" Foreground="{DynamicResource TextPrimaryBrush}"
+                                       TextWrapping="Wrap" VerticalAlignment="Center"/>
+
+                            <TextBlock x:Name="LblThumbprint" Grid.Row="10" Grid.Column="0" Text=""
+                                       FontSize="{StaticResource FontSizeBody}" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="TxtThumbprint" Grid.Row="10" Grid.Column="2" Text=""
+                                       FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas" Foreground="{DynamicResource TextPrimaryBrush}"
+                                       TextWrapping="Wrap" VerticalAlignment="Center"/>
+
+                            <TextBlock x:Name="LblSigAlg" Grid.Row="12" Grid.Column="0" Text=""
+                                       FontSize="{StaticResource FontSizeBody}" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="TxtSigAlg" Grid.Row="12" Grid.Column="2" Text=""
+                                       FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas" Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
+
+                            <TextBlock x:Name="LblKeySize" Grid.Row="14" Grid.Column="0" Text=""
+                                       FontSize="{StaticResource FontSizeBody}" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="TxtKeySize" Grid.Row="14" Grid.Column="2" Text=""
+                                       FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas" Foreground="{DynamicResource AccentBrush}"
+                                       FontWeight="SemiBold" VerticalAlignment="Center"/>
+
+                            <TextBlock x:Name="LblSans" Grid.Row="16" Grid.Column="0" Text=""
+                                       FontSize="{StaticResource FontSizeBody}" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Top"/>
+                            <ItemsControl x:Name="SansList" Grid.Row="16" Grid.Column="2">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding}" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
+                                                   Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,1"/>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </Grid>
+                    </Border>
+
+                    <!-- TLS Version + Hostname Match -->
+                    <Border x:Name="TlsHostPanel" Visibility="Collapsed"
+                            Background="{DynamicResource CardBrush}"
+                            BorderBrush="{DynamicResource BorderBrush}"
+                            BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
+                            Padding="16,12" Margin="0,12,0,0">
+                        <StackPanel>
+                            <DockPanel Margin="0,0,0,8">
+                                <TextBlock x:Name="LblTlsVersion" Text=""
+                                           FontSize="{StaticResource FontSizeBody}" Foreground="{DynamicResource TextSecondaryBrush}"
+                                           VerticalAlignment="Center" Width="120"/>
+                                <TextBlock x:Name="TxtTlsVersion" Text=""
+                                           FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
+                                           Foreground="{DynamicResource AccentBrush}"
+                                           FontWeight="SemiBold" VerticalAlignment="Center"/>
+                            </DockPanel>
+                            <DockPanel>
+                                <TextBlock x:Name="TxtHostnameMatch" Text=""
+                                           FontSize="{StaticResource FontSizeBody}" FontWeight="SemiBold"
+                                           VerticalAlignment="Center"/>
+                            </DockPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Certificate Chain -->
+                    <Border x:Name="ChainPanel" Visibility="Collapsed"
+                            Background="{DynamicResource CardBrush}"
+                            BorderBrush="{DynamicResource BorderBrush}"
+                            BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
+                            Padding="16,12" Margin="0,12,0,0">
+                        <StackPanel>
+                            <TextBlock x:Name="LblChainTitle" Text=""
+                                       FontSize="{StaticResource FontSizeBodyLarge}" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextPrimaryBrush}"
+                                       Margin="0,0,0,8"/>
+                            <ItemsControl x:Name="ChainList">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border BorderBrush="{DynamicResource BorderBrush}"
+                                                BorderThickness="0,0,0,1"
+                                                Padding="0,4" Margin="0,0,0,4">
+                                            <StackPanel>
+                                                <TextBlock Text="{Binding Subject}" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
+                                                           Foreground="{DynamicResource TextPrimaryBrush}" TextWrapping="Wrap"/>
+                                                <TextBlock Text="{Binding Expiry}" FontSize="{StaticResource FontSizeCaption}"
+                                                           Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Copy button (single mode) -->
+                    <Button x:Name="BtnCopy" Click="OnCopyClick"
+                            Visibility="Collapsed"
+                            Style="{DynamicResource SecondaryButtonStyle}"
+                            Padding="{StaticResource PaddingButtonCopy}" Margin="0,12,0,0"
+                            HorizontalAlignment="Left"/>
+                </StackPanel>
+
+                <!-- ===== Multi-port scan results ===== -->
+                <StackPanel x:Name="ScanResultsPanel" Visibility="Collapsed">
+
+                    <!-- No results message -->
+                    <TextBlock x:Name="TxtScanNoResults" Visibility="Collapsed"
+                               FontSize="{StaticResource FontSizeBody}" Margin="0,12,0,0"
+                               Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap"/>
+
+                    <!-- Stacked certificate cards -->
+                    <ItemsControl x:Name="ScanResultsList"
+                                  AutomationProperties.LiveSetting="Polite">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Background="{DynamicResource CardBrush}"
+                                        BorderBrush="{DynamicResource BorderBrush}"
+                                        BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
+                                        Padding="16,12" Margin="0,0,0,12"
+                                        AutomationProperties.Name="{Binding PortLabel}">
+                                    <StackPanel>
+                                        <!-- Card header: port label + expiration badge -->
+                                        <DockPanel Margin="0,0,0,10">
+                                            <Border DockPanel.Dock="Right"
+                                                    Background="{Binding ExpirationBrush}"
+                                                    CornerRadius="{StaticResource CornerRadiusSm}"
+                                                    Padding="8,3">
+                                                <TextBlock Text="{Binding ExpirationText}"
+                                                           FontSize="{StaticResource FontSizeCaption}" FontWeight="SemiBold"
+                                                           Foreground="{DynamicResource TextOnAccentBrush}"/>
+                                            </Border>
+                                            <TextBlock Text="{Binding PortLabel}"
+                                                       FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
+                                                       Foreground="{DynamicResource TextPrimaryBrush}"
+                                                       VerticalAlignment="Center"/>
+                                        </DockPanel>
+
+                                        <!-- Details grid -->
+                                        <Grid Margin="0,0,0,8">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="12"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="6"/>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="6"/>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="6"/>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="6"/>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="6"/>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="6"/>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="6"/>
+                                                <RowDefinition Height="Auto"/>
+                                            </Grid.RowDefinitions>
+
+                                            <TextBlock Grid.Row="0" Grid.Column="0" Text="{Binding SubjectLabel}"
+                                                       FontSize="{StaticResource FontSizeCaption}" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Top"/>
+                                            <TextBlock Grid.Row="0" Grid.Column="2" Text="{Binding Subject}"
+                                                       FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas" Foreground="{DynamicResource TextPrimaryBrush}" TextWrapping="Wrap"/>
+
+                                            <TextBlock Grid.Row="2" Grid.Column="0" Text="{Binding IssuerLabel}"
+                                                       FontSize="{StaticResource FontSizeCaption}" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Top"/>
+                                            <TextBlock Grid.Row="2" Grid.Column="2" Text="{Binding Issuer}"
+                                                       FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas" Foreground="{DynamicResource TextPrimaryBrush}" TextWrapping="Wrap"/>
+
+                                            <TextBlock Grid.Row="4" Grid.Column="0" Text="{Binding ValidFromLabel}"
+                                                       FontSize="{StaticResource FontSizeCaption}" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                                            <TextBlock Grid.Row="4" Grid.Column="2" Text="{Binding ValidFrom}"
+                                                       FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas" Foreground="{DynamicResource TextPrimaryBrush}"/>
+
+                                            <TextBlock Grid.Row="6" Grid.Column="0" Text="{Binding ValidToLabel}"
+                                                       FontSize="{StaticResource FontSizeCaption}" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                                            <TextBlock Grid.Row="6" Grid.Column="2" Text="{Binding ValidTo}"
+                                                       FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas" Foreground="{DynamicResource TextPrimaryBrush}"/>
+
+                                            <TextBlock Grid.Row="8" Grid.Column="0" Text="{Binding SerialLabel}"
+                                                       FontSize="{StaticResource FontSizeCaption}" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                                            <TextBlock Grid.Row="8" Grid.Column="2" Text="{Binding Serial}"
+                                                       FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas" Foreground="{DynamicResource TextPrimaryBrush}" TextWrapping="Wrap"/>
+
+                                            <TextBlock Grid.Row="10" Grid.Column="0" Text="{Binding ThumbprintLabel}"
+                                                       FontSize="{StaticResource FontSizeCaption}" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                                            <TextBlock Grid.Row="10" Grid.Column="2" Text="{Binding Thumbprint}"
+                                                       FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas" Foreground="{DynamicResource TextPrimaryBrush}" TextWrapping="Wrap"/>
+
+                                            <TextBlock Grid.Row="12" Grid.Column="0" Text="{Binding SigAlgorithmLabel}"
+                                                       FontSize="{StaticResource FontSizeCaption}" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                                            <TextBlock Grid.Row="12" Grid.Column="2" Text="{Binding SigAlgorithm}"
+                                                       FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas" Foreground="{DynamicResource TextPrimaryBrush}"/>
+
+                                            <TextBlock Grid.Row="14" Grid.Column="0" Text="{Binding KeySizeLabel}"
+                                                       FontSize="{StaticResource FontSizeCaption}" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                                            <TextBlock Grid.Row="14" Grid.Column="2" Text="{Binding KeySizeText}"
+                                                       FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas" Foreground="{DynamicResource AccentBrush}" FontWeight="SemiBold"/>
+                                        </Grid>
+
+                                        <!-- TLS version + hostname match -->
+                                        <DockPanel Margin="0,0,0,4">
+                                            <TextBlock Text="{Binding TlsVersionLabel}"
+                                                       FontSize="{StaticResource FontSizeCaption}" Foreground="{DynamicResource TextSecondaryBrush}"
+                                                       VerticalAlignment="Center" Width="90"/>
+                                            <TextBlock Text="{Binding TlsVersion}"
+                                                       FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
+                                                       Foreground="{DynamicResource AccentBrush}" FontWeight="SemiBold"
+                                                       VerticalAlignment="Center"/>
+                                        </DockPanel>
+                                        <TextBlock Text="{Binding HostnameMatchText}"
+                                                   FontSize="{StaticResource FontSizeCaption}" FontWeight="SemiBold"
+                                                   Foreground="{Binding HostnameMatchBrush}"
+                                                   Margin="0,0,0,4"/>
+
+                                        <!-- SANs -->
+                                        <DockPanel Margin="0,0,0,4">
+                                            <TextBlock Text="{Binding SansLabel}" DockPanel.Dock="Left"
+                                                       FontSize="{StaticResource FontSizeCaption}" Foreground="{DynamicResource TextSecondaryBrush}"
+                                                       VerticalAlignment="Top" Margin="0,0,8,0"/>
+                                            <ItemsControl ItemsSource="{Binding Sans}">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <TextBlock Text="{Binding}" FontSize="{StaticResource FontSizeCaption}" FontFamily="Consolas"
+                                                                   Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,1"/>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </DockPanel>
+
+                                        <!-- Chain (expandable) -->
+                                        <Expander Header="{Binding ChainHeader}" IsExpanded="False"
+                                                  Foreground="{DynamicResource TextPrimaryBrush}"
+                                                  FontSize="{StaticResource FontSizeCaption}" Margin="0,4,0,0">
+                                            <ItemsControl ItemsSource="{Binding Chain}" Margin="0,4,0,0">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <Border BorderBrush="{DynamicResource BorderBrush}"
+                                                                BorderThickness="0,0,0,1" Padding="0,2" Margin="0,0,0,2">
+                                                            <StackPanel>
+                                                                <TextBlock Text="{Binding Subject}" FontSize="{StaticResource FontSizeCaption}" FontFamily="Consolas"
+                                                                           Foreground="{DynamicResource TextPrimaryBrush}" TextWrapping="Wrap"/>
+                                                                <TextBlock Text="{Binding Expiry}" FontSize="{StaticResource FontSizeSmallCaption}"
+                                                                           Foreground="{DynamicResource TextSecondaryBrush}"/>
+                                                            </StackPanel>
+                                                        </Border>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </Expander>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <!-- Footer: summary + actions -->
+                    <DockPanel x:Name="ScanFooterPanel" Visibility="Collapsed" Margin="0,0,0,12">
+                        <Button x:Name="BtnExportCsv" DockPanel.Dock="Right"
+                                Click="OnExportCsvClick"
+                                Style="{DynamicResource SecondaryButtonStyle}"
+                                Padding="{StaticResource PaddingButtonCopy}" Margin="8,0,0,0"/>
+                        <Button x:Name="BtnCopyAll" DockPanel.Dock="Right"
+                                Click="OnCopyAllClick"
+                                Style="{DynamicResource SecondaryButtonStyle}"
+                                Padding="{StaticResource PaddingButtonCopy}"/>
+                        <TextBlock x:Name="TxtScanSummary" Text=""
+                                   FontSize="{StaticResource FontSizeBody}"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                   VerticalAlignment="Center"/>
+                    </DockPanel>
+                </StackPanel>
 
             </StackPanel>
         </ScrollViewer>

@@ -54,7 +54,7 @@
                 <TextBlock x:Name="LblSubnet" Text="" FontSize="{StaticResource FontSizeBody}"
                            Foreground="{DynamicResource TextSecondaryBrush}"
                            VerticalAlignment="Center" Margin="0,0,6,0"/>
-                <TextBox x:Name="TxtSubnet" Text="192.168.1.0/24" Width="180"
+                <TextBox x:Name="TxtSubnet" Text="" Width="180"
                          Style="{StaticResource WatermarkTextBoxStyle}"
                          Tag="192.168.1.0/24"
                          FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"

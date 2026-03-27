@@ -84,6 +84,14 @@ public partial class NetworkCartographyView : UserControl, IToolView
         {
             TxtSubnet.Text = context.TargetHost;
         }
+        else
+        {
+            var localSubnet = DetectLocalSubnet();
+            if (localSubnet is not null)
+            {
+                TxtSubnet.Text = localSubnet;
+            }
+        }
 
         // Populate gateway selector for "Route via" tunnel support
         if (context?.SshGateways is System.Collections.IList gateways)
@@ -931,6 +939,56 @@ public partial class NetworkCartographyView : UserControl, IToolView
         if (_selectedGateway is not null)
         {
             _ = DetectRemoteSubnetsAsync(_selectedGateway);
+        }
+    }
+
+    /// <summary>
+    /// Detects the local machine's primary IPv4 subnet by enumerating network interfaces.
+    /// Returns the first non-loopback unicast address as a normalized CIDR (e.g. "10.0.1.0/24"),
+    /// preferring interfaces with a default gateway.
+    /// </summary>
+    private static string? DetectLocalSubnet()
+    {
+        try
+        {
+            // Prefer interfaces that have a default gateway (= real connected networks)
+            string? fallback = null;
+
+            foreach (var iface in System.Net.NetworkInformation.NetworkInterface.GetAllNetworkInterfaces())
+            {
+                if (iface.OperationalStatus != System.Net.NetworkInformation.OperationalStatus.Up) continue;
+                if (iface.NetworkInterfaceType is System.Net.NetworkInformation.NetworkInterfaceType.Loopback) continue;
+
+                var props = iface.GetIPProperties();
+                var hasGateway = false;
+                foreach (var gw in props.GatewayAddresses)
+                {
+                    if (gw.Address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork
+                        && !gw.Address.Equals(System.Net.IPAddress.Any))
+                    {
+                        hasGateway = true;
+                        break;
+                    }
+                }
+
+                foreach (var uni in props.UnicastAddresses)
+                {
+                    if (uni.Address.AddressFamily != System.Net.Sockets.AddressFamily.InterNetwork) continue;
+                    var ip = uni.Address.ToString();
+                    if (ip.StartsWith("127.", StringComparison.Ordinal)) continue;
+                    if (ip.StartsWith("169.254.", StringComparison.Ordinal)) continue; // APIPA
+
+                    var cidr = NormalizeCidrFromIpAndPrefix(ip, uni.PrefixLength);
+                    if (hasGateway) return cidr;
+                    fallback ??= cidr;
+                }
+            }
+
+            return fallback;
+        }
+        catch
+        {
+            return null;
         }
     }
 
