@@ -96,7 +96,7 @@
                 <Button x:Name="BtnStart" Content=""
                         Click="OnStartClick"
                         Style="{DynamicResource PrimaryButtonStyle}"
-                        Padding="16,6" Margin="16,0,0,0"
+                        Padding="{StaticResource PaddingButtonPrimary}" Margin="16,0,0,0"
                         VerticalAlignment="Center"/>
                 <Button x:Name="BtnStop" Content=""
                         Click="OnStopClick"
