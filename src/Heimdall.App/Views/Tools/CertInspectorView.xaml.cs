@@ -15,6 +15,7 @@
  */
 
 using System.Collections;
+using System.IO;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Security.Authentication;
@@ -36,7 +37,7 @@ namespace Heimdall.App.Views.Tools;
 
 /// <summary>
 /// SSL/TLS certificate inspector that retrieves and displays certificate details
-/// for any host:port combination.
+/// for any host:port combination, or scans multiple ports to discover TLS certificates.
 /// </summary>
 public partial class CertInspectorView : UserControl, IToolView
 {
@@ -44,12 +45,60 @@ public partial class CertInspectorView : UserControl, IToolView
     private CancellationTokenSource? _cts;
     private string _lastDetails = string.Empty;
     private bool _isChecking;
+    private bool _disposed;
     private Action<bool>? _setBusy;
     private List<SshGatewayDto>? _gateways;
     private SshGatewayDto? _selectedGateway;
+    private string _selectedProfile = "quick";
 
     private static readonly TimeSpan ConnectionTimeout = TimeSpan.FromSeconds(10);
+    private static readonly TimeSpan PerPortTimeout = TimeSpan.FromSeconds(10);
     private const int DaysWarningThreshold = 30;
+    private const int MaxConcurrentTlsProbes = 10;
+
+    private static readonly Dictionary<int, string> TlsServiceLabels = new()
+    {
+        [443] = "HTTPS",
+        [8443] = "HTTPS-Alt",
+        [993] = "IMAPS",
+        [995] = "POP3S",
+        [465] = "SMTPS",
+        [636] = "LDAPS",
+        [990] = "FTPS",
+        [5986] = "WinRM-HTTPS",
+        [3389] = "RDP",
+        [853] = "DNS-over-TLS",
+        [5223] = "XMPP-TLS",
+        [8883] = "MQTT-TLS",
+        [25] = "SMTP",
+        [110] = "POP3",
+        [143] = "IMAP",
+        [389] = "LDAP",
+        [587] = "SMTP-Submission",
+        [989] = "FTPS-Data",
+        [992] = "Telnets",
+        [1443] = "MSSQL-TLS",
+        [2083] = "cPanel-TLS",
+        [2087] = "WHM-TLS",
+        [2096] = "Webmail-TLS",
+        [4443] = "HTTPS-Alt",
+        [5671] = "AMQPS",
+        [6443] = "Kubernetes-API",
+        [6697] = "IRC-TLS",
+        [9443] = "HTTPS-Alt",
+    };
+
+    private static readonly int[] QuickScanPorts =
+        [443, 8443, 993, 995, 465, 636, 990, 5986, 3389, 853, 5223, 8883];
+
+    private static readonly int[] ExtendedScanPorts =
+        [443, 8443, 993, 995, 465, 636, 990, 5986, 3389, 853, 5223, 8883,
+         25, 110, 143, 389, 587, 989, 992, 1443, 2083, 2087, 2096, 4443, 5671, 6443, 6697, 9443];
+
+    /// <summary>
+    /// Expiration status for color-coded display.
+    /// </summary>
+    public enum ExpirationStatus { Valid, Warning, Expired }
 
     /// <summary>
     /// Holds the full result of an SSL/TLS certificate inspection.
@@ -68,11 +117,54 @@ public partial class CertInspectorView : UserControl, IToolView
         public string Expiry { get; init; } = string.Empty;
     }
 
+    /// <summary>
+    /// Display-ready data for a single certificate discovered during a multi-port scan.
+    /// </summary>
+    public sealed class CertScanResultItem
+    {
+        public int Port { get; init; }
+        public string PortLabel { get; init; } = string.Empty;
+        public string Subject { get; init; } = string.Empty;
+        public string Issuer { get; init; } = string.Empty;
+        public string ValidFrom { get; init; } = string.Empty;
+        public string ValidTo { get; init; } = string.Empty;
+        public int DaysRemaining { get; init; }
+        public string Serial { get; init; } = string.Empty;
+        public string Thumbprint { get; init; } = string.Empty;
+        public string SigAlgorithm { get; init; } = string.Empty;
+        public string KeySizeText { get; init; } = string.Empty;
+        public List<string> Sans { get; init; } = [];
+        public string TlsVersion { get; init; } = string.Empty;
+        public string HostnameMatchText { get; init; } = string.Empty;
+        public bool HostnameMatches { get; init; }
+        public Brush HostnameMatchBrush { get; init; } = Brushes.Transparent;
+        public string ExpirationText { get; init; } = string.Empty;
+        public ExpirationStatus ExpirationStatus { get; init; }
+        public Brush ExpirationBrush { get; init; } = Brushes.Transparent;
+        public List<ChainCertInfo> Chain { get; init; } = [];
+        public string ChainHeader { get; init; } = string.Empty;
+        public string DetailsText { get; init; } = string.Empty;
+
+        // Labels for the DataTemplate bindings
+        public string SubjectLabel { get; init; } = string.Empty;
+        public string IssuerLabel { get; init; } = string.Empty;
+        public string ValidFromLabel { get; init; } = string.Empty;
+        public string ValidToLabel { get; init; } = string.Empty;
+        public string SerialLabel { get; init; } = string.Empty;
+        public string ThumbprintLabel { get; init; } = string.Empty;
+        public string SigAlgorithmLabel { get; init; } = string.Empty;
+        public string KeySizeLabel { get; init; } = string.Empty;
+        public string TlsVersionLabel { get; init; } = string.Empty;
+        public string SansLabel { get; init; } = string.Empty;
+    }
+
     public CertInspectorView()
     {
         InitializeComponent();
         TxtHost.KeyDown += OnInputKeyDown;
         TxtPort.KeyDown += OnInputKeyDown;
+        TxtCustomPorts.KeyDown += OnInputKeyDown;
+        TxtPort.TextChanged += OnPortTextChanged;
     }
 
     /// <summary>
@@ -108,6 +200,8 @@ public partial class CertInspectorView : UserControl, IToolView
             _gateways = gateways.Cast<SshGatewayDto>().ToList();
         }
         PopulateRouteSelector();
+        UpdateMode();
+        UpdateProfileButtonStyles();
 
         Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, () =>
         {
@@ -133,11 +227,27 @@ public partial class CertInspectorView : UserControl, IToolView
         }
     }
 
+    private bool IsScanMode => string.IsNullOrWhiteSpace(TxtPort.Text);
+
+    private void OnPortTextChanged(object sender, TextChangedEventArgs e)
+    {
+        UpdateMode();
+    }
+
+    private void UpdateMode()
+    {
+        if (ProfileBar is null) return; // Guard during InitializeComponent
+        var scanMode = IsScanMode;
+        ProfileBar.Visibility = scanMode ? Visibility.Visible : Visibility.Collapsed;
+        BtnCheck.Content = scanMode ? L("ToolCertBtnScan") : L("ToolCertBtnCheck");
+        AutomationProperties.SetName(BtnCheck, scanMode ? L("ToolCertBtnScan") : L("ToolCertBtnCheck"));
+    }
+
     private void ApplyLocalization()
     {
         HeaderTitle.Text = L("ToolCertTitle");
         LblHost.Text = L("ToolCertHostLabel");
-        BtnCheck.Content = L("ToolCertBtnCheck");
+        BtnCheck.Content = IsScanMode ? L("ToolCertBtnScan") : L("ToolCertBtnCheck");
         LblSubject.Text = L("ToolCertSubject");
         LblIssuer.Text = L("ToolCertIssuer");
         LblValidFrom.Text = L("ToolCertValidFrom");
@@ -151,7 +261,7 @@ public partial class CertInspectorView : UserControl, IToolView
         LblTlsVersion.Text = L("ToolCertTlsVersion");
         LblChainTitle.Text = L("ToolCertChainTitle");
 
-        AutomationProperties.SetName(BtnCheck, L("ToolCertBtnCheck"));
+        AutomationProperties.SetName(BtnCheck, IsScanMode ? L("ToolCertBtnScan") : L("ToolCertBtnCheck"));
         AutomationProperties.SetName(TxtHost, L("ToolCertHostLabel"));
         AutomationProperties.SetName(TxtPort, L("ToolCertPortLabel"));
         AutomationProperties.SetName(BtnCopy, L("ToolCertBtnCopy"));
@@ -165,7 +275,28 @@ public partial class CertInspectorView : UserControl, IToolView
         AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
 
         TxtHost.Tag = L("ToolWatermarkHostname");
+        TxtPort.Tag = L("ToolCertPortWatermark");
         TxtEmptyState.Text = L("ToolCertEmptyState");
+
+        // Scan mode elements
+        BtnProfileQuick.Content = L("ToolCertScanProfileQuick");
+        BtnProfileExtended.Content = L("ToolCertScanProfileExtended");
+        BtnProfileCustom.Content = L("ToolCertScanProfileCustom");
+        BtnCopyAll.Content = L("ToolCertBtnCopyAll");
+        BtnExportCsv.Content = L("ToolCertBtnExport");
+
+        BtnProfileQuick.ToolTip = $"{L("ToolCertScanProfileQuick")} ({QuickScanPorts.Length} ports)";
+        BtnProfileExtended.ToolTip = $"{L("ToolCertScanProfileExtended")} ({ExtendedScanPorts.Length} ports)";
+        AutomationProperties.SetName(BtnProfileQuick, L("ToolCertScanProfileQuick"));
+        AutomationProperties.SetName(BtnProfileExtended, L("ToolCertScanProfileExtended"));
+        AutomationProperties.SetName(BtnProfileCustom, L("ToolCertScanProfileCustom"));
+        AutomationProperties.SetName(BtnCopyAll, L("ToolCertBtnCopyAll"));
+        AutomationProperties.SetName(BtnExportCsv, L("ToolCertBtnExport"));
+        AutomationProperties.SetName(TxtCustomPorts, L("ToolCertScanProfileCustom"));
+
+        BtnCopyAll.ToolTip = L("ToolBtnCopyToClipboard");
+        BtnExportCsv.ToolTip = L("ToolCertBtnExport");
+        TxtCustomPorts.Tag = L("ToolWatermarkPortList");
     }
 
     private void OnHelpClick(object sender, RoutedEventArgs e)
@@ -178,17 +309,45 @@ public partial class CertInspectorView : UserControl, IToolView
     {
         if (e.Key == Key.Enter)
         {
-            _ = CheckCertificateAsync();
+            if (_isChecking)
+            {
+                StopScan();
+            }
+            else
+            {
+                _ = CheckCertificateAsync();
+            }
             e.Handled = true;
         }
     }
 
     private void OnCheckClick(object sender, RoutedEventArgs e)
     {
+        if (_isChecking)
+        {
+            StopScan();
+            return;
+        }
         _ = CheckCertificateAsync();
     }
 
+    // ===== Mode dispatch =====
+
     private async Task CheckCertificateAsync()
+    {
+        if (IsScanMode)
+        {
+            await ScanMultiplePortsAsync();
+        }
+        else
+        {
+            await CheckSinglePortAsync();
+        }
+    }
+
+    // ===== Single-port mode (original behavior) =====
+
+    private async Task CheckSinglePortAsync()
     {
         var host = TxtHost.Text.Trim();
         if (string.IsNullOrWhiteSpace(host))
@@ -205,17 +364,18 @@ public partial class CertInspectorView : UserControl, IToolView
             return;
         }
 
-        // Cancel any previous request
         _cts?.Cancel();
         _cts?.Dispose();
         _cts = new CancellationTokenSource(ConnectionTimeout);
 
         TxtError.Visibility = Visibility.Collapsed;
+        SingleResultPanel.Visibility = Visibility.Collapsed;
         DetailsPanel.Visibility = Visibility.Collapsed;
         ExpirationBanner.Visibility = Visibility.Collapsed;
         TlsHostPanel.Visibility = Visibility.Collapsed;
         ChainPanel.Visibility = Visibility.Collapsed;
         BtnCopy.Visibility = Visibility.Collapsed;
+        ScanResultsPanel.Visibility = Visibility.Collapsed;
         EmptyStatePanel.Visibility = Visibility.Collapsed;
         LoadingBar.Visibility = Visibility.Visible;
         BtnCheck.IsEnabled = false;
@@ -246,6 +406,7 @@ public partial class CertInspectorView : UserControl, IToolView
                 result = await Task.Run(() => RetrieveCertificate(host, port, _cts.Token), _cts.Token);
             }
 
+            SingleResultPanel.Visibility = Visibility.Visible;
             DisplayCertificate(result, host);
         }
         catch (OperationCanceledException)
@@ -271,7 +432,376 @@ public partial class CertInspectorView : UserControl, IToolView
         }
     }
 
-    public bool CanClose() => !_isChecking;
+    // ===== Multi-port scan mode =====
+
+    private async Task ScanMultiplePortsAsync()
+    {
+        var host = TxtHost.Text.Trim();
+        if (string.IsNullOrWhiteSpace(host))
+        {
+            TxtError.Text = L("ToolValidationHostRequired");
+            TxtError.Visibility = Visibility.Visible;
+            return;
+        }
+
+        var ports = GetScanPorts();
+        if (ports.Count == 0)
+        {
+            TxtError.Text = L("ToolCertScanErrorCustomPorts");
+            TxtError.Visibility = Visibility.Visible;
+            return;
+        }
+
+        _cts?.Cancel();
+        _cts?.Dispose();
+        _cts = new CancellationTokenSource();
+
+        // Reset UI
+        TxtError.Visibility = Visibility.Collapsed;
+        SingleResultPanel.Visibility = Visibility.Collapsed;
+        EmptyStatePanel.Visibility = Visibility.Collapsed;
+        LoadingBar.Visibility = Visibility.Collapsed;
+        ScanResultsPanel.Visibility = Visibility.Collapsed;
+        TxtScanNoResults.Visibility = Visibility.Collapsed;
+        ScanFooterPanel.Visibility = Visibility.Collapsed;
+        ScanResultsList.ItemsSource = null;
+
+        // Show progress
+        ScanProgress.Maximum = ports.Count;
+        ScanProgress.Value = 0;
+        TxtProgressPercent.Text = "0%";
+        TxtProgressCount.Text = string.Format(L("ToolCertScanProgress"), 0, ports.Count);
+        ScanProgressPanel.Visibility = Visibility.Visible;
+
+        _isChecking = true;
+        _setBusy?.Invoke(true);
+        BtnCheck.Content = L("ToolCertBtnStop");
+        BtnCheck.Foreground = (Brush)FindResource("ErrorBrush");
+        BtnCheck.Style = (Style)FindResource("SecondaryButtonStyle");
+        AutomationProperties.SetName(BtnCheck, L("ToolCertBtnStop"));
+        SetScanInputsEnabled(false);
+
+        Renci.SshNet.SshClient? tunnelClient = null;
+        if (_selectedGateway is not null)
+        {
+            try
+            {
+                tunnelClient = ConnectToGateway(_selectedGateway);
+            }
+            catch (Exception ex)
+            {
+                Core.Logging.FileLogger.Warn($"CertInspector gateway connection failed: {ex.Message}");
+                TxtError.Text = string.Format(L("ToolTunnelFailed"), ex.Message);
+                TxtError.Visibility = Visibility.Visible;
+                ResetScanUi();
+                return;
+            }
+        }
+
+        var results = new List<CertScanResultItem>();
+        var completed = 0;
+        var ct = _cts.Token;
+
+        try
+        {
+            using var semaphore = new SemaphoreSlim(MaxConcurrentTlsProbes);
+
+            var tasks = ports.Select(async port =>
+            {
+                await semaphore.WaitAsync(ct);
+                try
+                {
+                    ct.ThrowIfCancellationRequested();
+                    CertInspectionResult? result = null;
+                    try
+                    {
+                        // Per-port timeout linked with the global cancel token
+                        using var portTimeout = new CancellationTokenSource(PerPortTimeout);
+                        using var linked = CancellationTokenSource.CreateLinkedTokenSource(ct, portTimeout.Token);
+
+                        result = tunnelClient is not null
+                            ? RetrieveCertificateViaTunnel(tunnelClient, host, port, linked.Token)
+                            : RetrieveCertificate(host, port, linked.Token);
+                    }
+                    catch
+                    {
+                        // Port does not speak TLS or is unreachable — skip silently
+                    }
+
+                    await Dispatcher.InvokeAsync(() =>
+                    {
+                        completed++;
+                        ScanProgress.Value = completed;
+                        var percent = (int)(completed * 100.0 / ports.Count);
+                        TxtProgressPercent.Text = $"{percent}%";
+                        TxtProgressCount.Text = string.Format(L("ToolCertScanProgress"), completed, ports.Count);
+
+                        if (result is not null)
+                        {
+                            try
+                            {
+                                var item = BuildScanResultItem(result, host, port);
+                                results.Add(item);
+                            }
+                            catch (Exception ex)
+                            {
+                                Core.Logging.FileLogger.Warn(
+                                    $"CertInspector failed to process certificate on port {port}: {ex.Message}");
+                            }
+                        }
+                    });
+                }
+                finally
+                {
+                    semaphore.Release();
+                }
+            });
+
+            await Task.WhenAll(tasks);
+        }
+        catch (OperationCanceledException)
+        {
+            // Scan was stopped by user — show partial results below
+        }
+        catch (Exception ex)
+        {
+            Core.Logging.FileLogger.Warn($"CertInspector scan failed: {ex.Message}");
+            TxtError.Text = string.Format(L("ToolCertErrorConnection"), ex.Message);
+            TxtError.Visibility = Visibility.Visible;
+        }
+        finally
+        {
+            if (tunnelClient is not null)
+            {
+                try { tunnelClient.Disconnect(); } catch { /* best effort */ }
+                tunnelClient.Dispose();
+            }
+            ResetScanUi();
+        }
+
+        // Display results (including partial results after cancel)
+        ScanResultsPanel.Visibility = Visibility.Visible;
+
+        if (results.Count == 0)
+        {
+            TxtScanNoResults.Text = L("ToolCertScanNoResults");
+            TxtScanNoResults.Visibility = Visibility.Visible;
+        }
+        else
+        {
+            var sorted = results.OrderBy(r => r.Port).ToList();
+            ScanResultsList.ItemsSource = sorted;
+            TxtScanSummary.Text = string.Format(L("ToolCertScanFound"), sorted.Count, ports.Count);
+            ScanFooterPanel.Visibility = Visibility.Visible;
+        }
+    }
+
+    private void StopScan()
+    {
+        _cts?.Cancel();
+    }
+
+    private void ResetScanUi()
+    {
+        _isChecking = false;
+        _setBusy?.Invoke(false);
+        ScanProgressPanel.Visibility = Visibility.Collapsed;
+        BtnCheck.Foreground = (Brush)FindResource("TextPrimaryBrush");
+        BtnCheck.Style = (Style)FindResource("PrimaryButtonStyle");
+        SetScanInputsEnabled(true);
+        UpdateMode();
+    }
+
+    private void SetScanInputsEnabled(bool enabled)
+    {
+        TxtHost.IsReadOnly = !enabled;
+        TxtPort.IsReadOnly = !enabled;
+        TxtCustomPorts.IsReadOnly = !enabled;
+        CmbRouteVia.IsEnabled = enabled;
+        BtnProfileQuick.IsEnabled = enabled;
+        BtnProfileExtended.IsEnabled = enabled;
+        BtnProfileCustom.IsEnabled = enabled;
+    }
+
+    private List<int> GetScanPorts()
+    {
+        return _selectedProfile switch
+        {
+            "extended" => [.. ExtendedScanPorts],
+            "custom" => ParsePorts(TxtCustomPorts.Text),
+            _ => [.. QuickScanPorts],
+        };
+    }
+
+    // ===== Profile buttons =====
+
+    private void OnProfileClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button btn && btn.Tag is string profile)
+        {
+            _selectedProfile = profile;
+            TxtCustomPorts.Visibility = profile == "custom" ? Visibility.Visible : Visibility.Collapsed;
+            UpdateProfileButtonStyles();
+        }
+    }
+
+    private void UpdateProfileButtonStyles()
+    {
+        if (BtnProfileQuick is null) return; // Guard during InitializeComponent
+        BtnProfileQuick.Style = (Style)FindResource(
+            _selectedProfile == "quick" ? "PrimaryButtonStyle" : "SecondaryButtonStyle");
+        BtnProfileExtended.Style = (Style)FindResource(
+            _selectedProfile == "extended" ? "PrimaryButtonStyle" : "SecondaryButtonStyle");
+        BtnProfileCustom.Style = (Style)FindResource(
+            _selectedProfile == "custom" ? "PrimaryButtonStyle" : "SecondaryButtonStyle");
+    }
+
+    // ===== Result builders =====
+
+    private CertScanResultItem BuildScanResultItem(CertInspectionResult result, string host, int port)
+    {
+        using var cert = result.Certificate;
+        var serviceLabel = TlsServiceLabels.GetValueOrDefault(port, "TLS");
+        var portLabel = string.Format(L("ToolCertScanPortHeader"), port, serviceLabel);
+        var sans = ExtractSans(cert);
+        var keySize = GetPublicKeySize(cert);
+        var sha256Bytes = cert.GetCertHash(HashAlgorithmName.SHA256);
+        var daysRemaining = (cert.NotAfter - DateTime.UtcNow).Days;
+        var hostnameMatches = CheckHostnameMatch(cert, sans, host);
+
+        var status = daysRemaining < 0
+            ? ExpirationStatus.Expired
+            : daysRemaining <= DaysWarningThreshold
+                ? ExpirationStatus.Warning
+                : ExpirationStatus.Valid;
+
+        var expirationBrush = status switch
+        {
+            ExpirationStatus.Expired => (Brush)FindResource("ErrorBrush"),
+            ExpirationStatus.Warning => (Brush)FindResource("WarningBrush"),
+            _ => (Brush)FindResource("SuccessBrush"),
+        };
+
+        var expirationText = status switch
+        {
+            ExpirationStatus.Expired => L("ToolCertExpired"),
+            ExpirationStatus.Warning => string.Format(L("ToolCertExpiringSoon"), daysRemaining),
+            _ => string.Format(L("ToolCertValid"), daysRemaining),
+        };
+
+        var hostnameMatchText = hostnameMatches
+            ? "\u2714 " + L("ToolCertHostnameMatch")
+            : "\u2716 " + L("ToolCertHostnameMismatch");
+
+        var hostnameMatchBrush = hostnameMatches
+            ? (Brush)FindResource("SuccessBrush")
+            : (Brush)FindResource("ErrorBrush");
+
+        var detailsText = BuildDetailsText(cert, $"{host}:{port}", sha256Bytes, sans, daysRemaining,
+            result.TlsProtocol, hostnameMatches);
+
+        return new CertScanResultItem
+        {
+            Port = port,
+            PortLabel = portLabel,
+            Subject = cert.Subject,
+            Issuer = cert.Issuer,
+            ValidFrom = cert.NotBefore.ToString("yyyy-MM-dd HH:mm:ss UTC"),
+            ValidTo = $"{cert.NotAfter:yyyy-MM-dd HH:mm:ss UTC} ({daysRemaining} {L("ToolCertDaysRemaining")})",
+            DaysRemaining = daysRemaining,
+            Serial = cert.SerialNumber,
+            Thumbprint = Convert.ToHexString(sha256Bytes),
+            SigAlgorithm = cert.SignatureAlgorithm.FriendlyName ?? cert.SignatureAlgorithm.Value ?? "-",
+            KeySizeText = keySize > 0 ? $"{keySize} bits" : "-",
+            Sans = sans.Count > 0 ? sans : ["-"],
+            TlsVersion = FormatTlsProtocol(result.TlsProtocol),
+            HostnameMatchText = hostnameMatchText,
+            HostnameMatches = hostnameMatches,
+            HostnameMatchBrush = hostnameMatchBrush,
+            ExpirationText = expirationText,
+            ExpirationStatus = status,
+            ExpirationBrush = expirationBrush,
+            Chain = result.ChainElements,
+            ChainHeader = $"{L("ToolCertChainTitle")} ({result.ChainElements.Count})",
+            DetailsText = detailsText,
+            SubjectLabel = L("ToolCertSubject"),
+            IssuerLabel = L("ToolCertIssuer"),
+            ValidFromLabel = L("ToolCertValidFrom"),
+            ValidToLabel = L("ToolCertValidTo"),
+            SerialLabel = L("ToolCertSerial"),
+            ThumbprintLabel = L("ToolCertThumbprint"),
+            SigAlgorithmLabel = L("ToolCertSigAlg"),
+            KeySizeLabel = L("ToolCertKeySize"),
+            TlsVersionLabel = L("ToolCertTlsVersion"),
+            SansLabel = L("ToolCertSans"),
+        };
+    }
+
+    // ===== Copy / Export =====
+
+    private void OnCopyClick(object sender, RoutedEventArgs e)
+    {
+        if (!string.IsNullOrEmpty(_lastDetails))
+        {
+            Clipboard.SetText(_lastDetails);
+            CopyFeedbackHelper.ShowCopyFeedback(sender as Button);
+        }
+    }
+
+    private void OnCopyAllClick(object sender, RoutedEventArgs e)
+    {
+        if (ScanResultsList.ItemsSource is not IEnumerable<CertScanResultItem> items) return;
+        var list = items.ToList();
+        if (list.Count == 0) return;
+
+        var sb = new StringBuilder();
+        foreach (var item in list)
+        {
+            sb.AppendLine($"=== {item.PortLabel} ===");
+            sb.AppendLine(item.DetailsText);
+            sb.AppendLine();
+        }
+        Clipboard.SetText(sb.ToString());
+        CopyFeedbackHelper.ShowCopyFeedback(sender as Button);
+    }
+
+    private void OnExportCsvClick(object sender, RoutedEventArgs e)
+    {
+        if (ScanResultsList.ItemsSource is not IEnumerable<CertScanResultItem> items) return;
+        var list = items.ToList();
+        if (list.Count == 0) return;
+
+        var dialog = new Microsoft.Win32.SaveFileDialog
+        {
+            Filter = "CSV files (*.csv)|*.csv",
+            FileName = $"certscan_{SanitizeFileName(TxtHost.Text.Trim())}_{DateTime.Now:yyyyMMdd_HHmmss}.csv",
+        };
+        if (dialog.ShowDialog() != true) return;
+
+        var sb = new StringBuilder();
+        sb.AppendLine("Port,Service,Subject,Issuer,ValidFrom,ValidTo,DaysRemaining,TlsVersion,KeySize,HostnameMatch,SANs");
+        foreach (var r in list)
+        {
+            var service = TlsServiceLabels.GetValueOrDefault(r.Port, "TLS");
+            var sans = string.Join("; ", r.Sans).Replace("\"", "\"\"");
+            sb.AppendLine(string.Join(",",
+                r.Port,
+                $"\"{service}\"",
+                $"\"{r.Subject.Replace("\"", "\"\"")}\"",
+                $"\"{r.Issuer.Replace("\"", "\"\"")}\"",
+                r.ValidFrom,
+                $"\"{r.ValidTo.Replace("\"", "\"\"")}\"",
+                r.DaysRemaining,
+                r.TlsVersion,
+                r.KeySizeText,
+                r.HostnameMatches,
+                $"\"{sans}\""));
+        }
+        File.WriteAllText(dialog.FileName, sb.ToString(), Encoding.UTF8);
+        CopyFeedbackHelper.ShowCopyFeedback(sender as Button);
+    }
+
+    // ===== Certificate retrieval =====
 
     private static CertInspectionResult RetrieveCertificate(string host, int port, CancellationToken ct)
     {
@@ -286,7 +816,8 @@ public partial class CertInspectorView : UserControl, IToolView
             return true;
         });
 
-        ssl.AuthenticateAsClientAsync(host).GetAwaiter().GetResult();
+        ssl.AuthenticateAsClientAsync(
+            new SslClientAuthenticationOptions { TargetHost = host }, ct).GetAwaiter().GetResult();
 
         if (remoteCert == null)
         {
@@ -296,7 +827,6 @@ public partial class CertInspectorView : UserControl, IToolView
         var cert2 = new X509Certificate2(remoteCert);
         var tlsProtocol = ssl.SslProtocol;
 
-        // Build certificate chain
         var chainElements = new List<ChainCertInfo>();
         using var chain = new X509Chain();
         chain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
@@ -314,6 +844,63 @@ public partial class CertInspectorView : UserControl, IToolView
         return new CertInspectionResult(cert2, tlsProtocol, chainElements);
     }
 
+    private static CertInspectionResult RetrieveCertificateViaTunnel(
+        Renci.SshNet.SshClient sshClient, string host, int port, CancellationToken ct)
+    {
+        var pemOutput = Task.Run(() =>
+        {
+            using var cmd = sshClient.CreateCommand(
+                $"echo | openssl s_client -connect {host}:{port} -servername {host} 2>/dev/null");
+            cmd.CommandTimeout = TimeSpan.FromSeconds(10);
+            cmd.Execute();
+            return cmd.Result ?? string.Empty;
+        }, ct).GetAwaiter().GetResult();
+
+        var beginMarker = "-----BEGIN CERTIFICATE-----";
+        var endMarker = "-----END CERTIFICATE-----";
+        var beginIdx = pemOutput.IndexOf(beginMarker, StringComparison.Ordinal);
+        var endIdx = pemOutput.IndexOf(endMarker, StringComparison.Ordinal);
+
+        if (beginIdx < 0 || endIdx < 0)
+        {
+            throw new InvalidOperationException(
+                "No certificate received from the remote host via tunnel.");
+        }
+
+        var pemBlock = pemOutput[beginIdx..(endIdx + endMarker.Length)];
+        var base64 = pemBlock
+            .Replace(beginMarker, "")
+            .Replace(endMarker, "")
+            .Replace("\r", "")
+            .Replace("\n", "");
+        var certBytes = Convert.FromBase64String(base64);
+        var cert = X509CertificateLoader.LoadCertificate(certBytes);
+
+        var tlsProtocol = SslProtocols.None;
+        if (pemOutput.Contains("TLSv1.3", StringComparison.OrdinalIgnoreCase))
+            tlsProtocol = SslProtocols.Tls13;
+        else if (pemOutput.Contains("TLSv1.2", StringComparison.OrdinalIgnoreCase))
+            tlsProtocol = SslProtocols.Tls12;
+
+        var chainElements = new List<ChainCertInfo>();
+        using var chain = new X509Chain();
+        chain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
+        chain.Build(cert);
+
+        foreach (var element in chain.ChainElements)
+        {
+            chainElements.Add(new ChainCertInfo
+            {
+                Subject = element.Certificate.Subject,
+                Expiry = element.Certificate.NotAfter.ToString("yyyy-MM-dd HH:mm:ss UTC")
+            });
+        }
+
+        return new CertInspectionResult(cert, tlsProtocol, chainElements);
+    }
+
+    // ===== Single-port display (original) =====
+
     private void DisplayCertificate(CertInspectionResult result, string host)
     {
         using var cert = result.Certificate;
@@ -324,28 +911,22 @@ public partial class CertInspectorView : UserControl, IToolView
         TxtSerial.Text = cert.SerialNumber;
         TxtSigAlg.Text = cert.SignatureAlgorithm.FriendlyName ?? cert.SignatureAlgorithm.Value ?? "-";
 
-        // Key size
         var keySize = GetPublicKeySize(cert);
         TxtKeySize.Text = keySize > 0 ? $"{keySize} bits" : "-";
 
-        // SHA-256 thumbprint
         var sha256Bytes = cert.GetCertHash(HashAlgorithmName.SHA256);
         TxtThumbprint.Text = Convert.ToHexString(sha256Bytes);
 
-        // Validity and expiration
         var daysRemaining = (cert.NotAfter - DateTime.UtcNow).Days;
         TxtValidTo.Text = $"{cert.NotAfter:yyyy-MM-dd HH:mm:ss UTC} ({daysRemaining} {L("ToolCertDaysRemaining")})";
 
         UpdateExpirationBanner(daysRemaining);
 
-        // Subject Alternative Names (OID 2.5.29.17)
         var sans = ExtractSans(cert);
         SansList.ItemsSource = sans.Count > 0 ? sans : ["-"];
 
-        // TLS version
         TxtTlsVersion.Text = FormatTlsProtocol(result.TlsProtocol);
 
-        // Hostname match validation
         var hostnameMatches = CheckHostnameMatch(cert, sans, host);
         if (hostnameMatches)
         {
@@ -360,16 +941,16 @@ public partial class CertInspectorView : UserControl, IToolView
 
         TlsHostPanel.Visibility = Visibility.Visible;
 
-        // Certificate chain
         ChainList.ItemsSource = result.ChainElements;
         ChainPanel.Visibility = result.ChainElements.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
 
-        // Build copyable details
         _lastDetails = BuildDetailsText(cert, host, sha256Bytes, sans, daysRemaining, result.TlsProtocol, hostnameMatches);
 
         DetailsPanel.Visibility = Visibility.Visible;
         BtnCopy.Visibility = Visibility.Visible;
     }
+
+    // ===== Shared helpers =====
 
     private static string FormatTlsProtocol(SslProtocols protocol)
     {
@@ -389,7 +970,6 @@ public partial class CertInspectorView : UserControl, IToolView
 
     private static bool CheckHostnameMatch(X509Certificate2 cert, List<string> sans, string host)
     {
-        // Check SANs first (preferred per RFC 6125)
         foreach (var san in sans)
         {
             if (MatchesHostname(san, host))
@@ -398,7 +978,6 @@ public partial class CertInspectorView : UserControl, IToolView
             }
         }
 
-        // Fall back to CN in Subject
         var cn = ExtractCn(cert.Subject);
         if (!string.IsNullOrEmpty(cn) && MatchesHostname(cn, host))
         {
@@ -415,10 +994,9 @@ public partial class CertInspectorView : UserControl, IToolView
             return true;
         }
 
-        // Wildcard matching: *.example.com matches sub.example.com
         if (pattern.StartsWith("*.", StringComparison.Ordinal))
         {
-            var suffix = pattern[1..]; // .example.com
+            var suffix = pattern[1..];
             var dotIndex = host.IndexOf('.', StringComparison.Ordinal);
             if (dotIndex > 0)
             {
@@ -432,7 +1010,6 @@ public partial class CertInspectorView : UserControl, IToolView
 
     private static string ExtractCn(string subject)
     {
-        // Parse CN= from the subject string
         const string cnPrefix = "CN=";
         var startIndex = subject.IndexOf(cnPrefix, StringComparison.OrdinalIgnoreCase);
         if (startIndex < 0)
@@ -522,14 +1099,41 @@ public partial class CertInspectorView : UserControl, IToolView
         return sb.ToString();
     }
 
-    private void OnCopyClick(object sender, RoutedEventArgs e)
+    private static string SanitizeFileName(string name)
     {
-        if (!string.IsNullOrEmpty(_lastDetails))
+        var invalid = Path.GetInvalidFileNameChars();
+        var sb = new StringBuilder(name.Length);
+        foreach (var c in name)
         {
-            Clipboard.SetText(_lastDetails);
-            CopyFeedbackHelper.ShowCopyFeedback(sender as Button);
+            sb.Append(invalid.Contains(c) ? '_' : c);
         }
+        return sb.ToString();
     }
+
+    private static List<int> ParsePorts(string input)
+    {
+        var ports = new HashSet<int>();
+        foreach (var segment in input.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            if (segment.Contains('-'))
+            {
+                var rangeParts = segment.Split('-', 2);
+                if (int.TryParse(rangeParts[0].Trim(), out var start) &&
+                    int.TryParse(rangeParts[1].Trim(), out var end) &&
+                    start >= 1 && end <= 65535 && start <= end)
+                {
+                    for (var p = start; p <= end; p++) ports.Add(p);
+                }
+            }
+            else if (int.TryParse(segment, out var port) && port is >= 1 and <= 65535)
+            {
+                ports.Add(port);
+            }
+        }
+        return ports.OrderBy(p => p).ToList();
+    }
+
+    // ===== Gateway + Route via =====
 
     private void PopulateRouteSelector()
     {
@@ -563,72 +1167,16 @@ public partial class CertInspectorView : UserControl, IToolView
     private static Renci.SshNet.SshClient ConnectToGateway(SshGatewayDto gateway)
         => ToolGatewayConnector.Connect(gateway);
 
-    /// <summary>
-    /// Retrieves certificate details via an SSH gateway using openssl s_client.
-    /// Parses the remote openssl output into a structured result.
-    /// </summary>
-    private static CertInspectionResult RetrieveCertificateViaTunnel(
-        Renci.SshNet.SshClient sshClient, string host, int port, CancellationToken ct)
-    {
-        var pemOutput = Task.Run(() =>
-        {
-            using var cmd = sshClient.CreateCommand(
-                $"echo | openssl s_client -connect {host}:{port} -servername {host} 2>/dev/null");
-            cmd.CommandTimeout = TimeSpan.FromSeconds(10);
-            cmd.Execute();
-            return cmd.Result ?? string.Empty;
-        }, ct).GetAwaiter().GetResult();
+    // ===== Lifecycle =====
 
-        // Extract PEM certificate block
-        var beginMarker = "-----BEGIN CERTIFICATE-----";
-        var endMarker = "-----END CERTIFICATE-----";
-        var beginIdx = pemOutput.IndexOf(beginMarker, StringComparison.Ordinal);
-        var endIdx = pemOutput.IndexOf(endMarker, StringComparison.Ordinal);
-
-        if (beginIdx < 0 || endIdx < 0)
-        {
-            throw new InvalidOperationException(
-                "No certificate received from the remote host via tunnel.");
-        }
-
-        var pemBlock = pemOutput[beginIdx..(endIdx + endMarker.Length)];
-        var base64 = pemBlock
-            .Replace(beginMarker, "")
-            .Replace(endMarker, "")
-            .Replace("\r", "")
-            .Replace("\n", "");
-        var certBytes = Convert.FromBase64String(base64);
-        var cert = X509CertificateLoader.LoadCertificate(certBytes);
-
-        // Try to get TLS version from the openssl output
-        var tlsProtocol = SslProtocols.None;
-        if (pemOutput.Contains("TLSv1.3", StringComparison.OrdinalIgnoreCase))
-            tlsProtocol = SslProtocols.Tls13;
-        else if (pemOutput.Contains("TLSv1.2", StringComparison.OrdinalIgnoreCase))
-            tlsProtocol = SslProtocols.Tls12;
-
-        // Build chain from the PEM output (may contain multiple certs)
-        var chainElements = new List<ChainCertInfo>();
-        using var chain = new X509Chain();
-        chain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
-        chain.Build(cert);
-
-        foreach (var element in chain.ChainElements)
-        {
-            chainElements.Add(new ChainCertInfo
-            {
-                Subject = element.Certificate.Subject,
-                Expiry = element.Certificate.NotAfter.ToString("yyyy-MM-dd HH:mm:ss UTC")
-            });
-        }
-
-        return new CertInspectionResult(cert, tlsProtocol, chainElements);
-    }
+    public bool CanClose() => !_isChecking;
 
     private string L(string key) => _localizer?[key] ?? key;
 
     public void Dispose()
     {
+        if (_disposed) return;
+        _disposed = true;
         _setBusy?.Invoke(false);
         _cts?.Cancel();
         _cts?.Dispose();

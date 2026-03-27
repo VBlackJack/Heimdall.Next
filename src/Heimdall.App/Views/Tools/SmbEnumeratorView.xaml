@@ -1,0 +1,280 @@
+<!--
+  Copyright 2026 Julien Bombled
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<UserControl x:Class="Heimdall.App.Views.Tools.SmbEnumeratorView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="{DynamicResource BackgroundBrush}">
+    <Grid Margin="0">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Border Grid.Row="0" Padding="{StaticResource ToolHeaderPadding}"
+                Background="{DynamicResource SurfaceBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="0,0,0,1">
+            <DockPanel>
+                <Button x:Name="BtnHelp" DockPanel.Dock="Right" Content="?"
+                        Click="OnHelpClick"
+                        Style="{DynamicResource SecondaryButtonStyle}"
+                        Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
+                        Width="24" Height="24" Margin="8,0,0,0"/>
+                <TextBlock x:Name="HeaderTitle" Text=""
+                           FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextPrimaryBrush}"
+                           VerticalAlignment="Center"/>
+            </DockPanel>
+        </Border>
+
+        <!-- Content -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="{StaticResource SpacingLg}">
+            <StackPanel MaxWidth="700">
+
+                <!-- Input Row -->
+                <TextBlock x:Name="LblHost" Text=""
+                           FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,4"
+                           Foreground="{DynamicResource TextSecondaryBrush}"/>
+                <DockPanel Margin="0,0,0,12">
+                    <Button x:Name="BtnEnumerate" DockPanel.Dock="Right"
+                            Content="" Click="OnEnumerateClick"
+                            Style="{DynamicResource PrimaryButtonStyle}"
+                            Padding="16,6" Margin="8,0,0,0"
+                            VerticalAlignment="Center"/>
+                    <TextBox x:Name="TxtHost" Text=""
+                             Style="{StaticResource WatermarkTextBoxStyle}"
+                             Tag="hostname or IP"
+                             FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
+                             Padding="{StaticResource PaddingInput}"
+                             Background="{DynamicResource CardBrush}"
+                             Foreground="{DynamicResource TextPrimaryBrush}"
+                             BorderBrush="{DynamicResource BorderBrush}"
+                             VerticalAlignment="Center"/>
+                </DockPanel>
+
+                <!-- Route via gateway -->
+                <DockPanel Margin="0,0,0,8">
+                    <TextBlock x:Name="LblRouteVia" Text=""
+                               FontSize="{StaticResource FontSizeBody}" Margin="0,0,8,0"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               VerticalAlignment="Center"/>
+                    <ComboBox x:Name="CmbRouteVia" Width="240"
+                              SelectionChanged="OnRouteViaChanged"
+                              Background="{DynamicResource CardBrush}"
+                              Foreground="{DynamicResource TextPrimaryBrush}"
+                              BorderBrush="{DynamicResource BorderBrush}"
+                              VerticalAlignment="Center"/>
+                </DockPanel>
+
+                <!-- Error message -->
+                <TextBlock x:Name="TxtError" Text="" Visibility="Collapsed"
+                           FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,12" TextWrapping="Wrap"
+                           Foreground="{DynamicResource ErrorTextBrush}"/>
+
+                <!-- Loading indicator -->
+                <ProgressBar x:Name="LoadingBar" IsIndeterminate="True"
+                             Visibility="Collapsed" Height="4" Margin="0,0,0,12"/>
+
+                <!-- Empty state hint -->
+                <Border x:Name="EmptyStatePanel"
+                        Style="{StaticResource ToolEmptyStateStyle}"
+                        Margin="0,24,0,0">
+                    <StackPanel HorizontalAlignment="Center">
+                        <TextBlock Text="&#xE774;" FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource IconSizeEmptyState}"
+                                   HorizontalAlignment="Center"
+                                   Foreground="{DynamicResource TextDisabledBrush}" Margin="0,0,0,8"
+                                   AutomationProperties.Name=""/>
+                        <TextBlock x:Name="TxtEmptyState" Text=""
+                                   FontSize="{StaticResource FontSizeBodyLarge}" TextAlignment="Center"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Results Panel -->
+                <StackPanel x:Name="ResultsPanel" Visibility="Collapsed">
+
+                    <!-- Card 1: Host Identity -->
+                    <Border Margin="0,0,0,12"
+                            Background="{DynamicResource CardBrush}"
+                            BorderBrush="{DynamicResource BorderBrush}"
+                            BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
+                            Padding="16,12"
+                            AutomationProperties.LiveSetting="Polite">
+                        <StackPanel>
+                            <TextBlock x:Name="TxtCardIdentity" Text=""
+                                       FontSize="{StaticResource FontSizeBodyLarge}" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource AccentBrush}"
+                                       Margin="0,0,0,8"/>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="140"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+
+                                <TextBlock x:Name="LblComputerName" Grid.Row="0" Grid.Column="0" Text=""
+                                           FontSize="{StaticResource FontSizeBody}" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2"/>
+                                <TextBlock x:Name="ValComputerName" Grid.Row="0" Grid.Column="1" Text=""
+                                           FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,2"
+                                           AutomationProperties.Name="Computer Name value"/>
+
+                                <TextBlock x:Name="LblDomain" Grid.Row="1" Grid.Column="0" Text=""
+                                           FontSize="{StaticResource FontSizeBody}" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2"/>
+                                <TextBlock x:Name="ValDomain" Grid.Row="1" Grid.Column="1" Text=""
+                                           FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,2"
+                                           AutomationProperties.Name="Domain value"/>
+
+                                <TextBlock x:Name="LblDnsName" Grid.Row="2" Grid.Column="0" Text=""
+                                           FontSize="{StaticResource FontSizeBody}" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2"/>
+                                <TextBlock x:Name="ValDnsName" Grid.Row="2" Grid.Column="1" Text=""
+                                           FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,2" TextWrapping="Wrap"
+                                           AutomationProperties.Name="DNS Name value"/>
+
+                                <TextBlock x:Name="LblDnsDomain" Grid.Row="3" Grid.Column="0" Text=""
+                                           FontSize="{StaticResource FontSizeBody}" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2"/>
+                                <TextBlock x:Name="ValDnsDomain" Grid.Row="3" Grid.Column="1" Text=""
+                                           FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,2" TextWrapping="Wrap"
+                                           AutomationProperties.Name="DNS Domain value"/>
+
+                                <TextBlock x:Name="LblForest" Grid.Row="4" Grid.Column="0" Text=""
+                                           FontSize="{StaticResource FontSizeBody}" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2"/>
+                                <TextBlock x:Name="ValForest" Grid.Row="4" Grid.Column="1" Text=""
+                                           FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,2" TextWrapping="Wrap"
+                                           AutomationProperties.Name="Forest value"/>
+
+                                <TextBlock x:Name="LblOsBuild" Grid.Row="5" Grid.Column="0" Text=""
+                                           FontSize="{StaticResource FontSizeBody}" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2"/>
+                                <TextBlock x:Name="ValOsBuild" Grid.Row="5" Grid.Column="1" Text=""
+                                           FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,2"
+                                           AutomationProperties.Name="OS Build value"/>
+
+                                <TextBlock x:Name="LblMac" Grid.Row="6" Grid.Column="0" Text=""
+                                           FontSize="{StaticResource FontSizeBody}" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2"/>
+                                <TextBlock x:Name="ValMac" Grid.Row="6" Grid.Column="1" Text=""
+                                           FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,2"
+                                           AutomationProperties.Name="MAC Address value"/>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Card 2: SMB Protocol -->
+                    <Border Margin="0,0,0,12"
+                            Background="{DynamicResource CardBrush}"
+                            BorderBrush="{DynamicResource BorderBrush}"
+                            BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
+                            Padding="16,12"
+                            AutomationProperties.LiveSetting="Polite">
+                        <StackPanel>
+                            <TextBlock x:Name="TxtCardProtocol" Text=""
+                                       FontSize="{StaticResource FontSizeBodyLarge}" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource AccentBrush}"
+                                       Margin="0,0,0,8"/>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="140"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+
+                                <TextBlock x:Name="LblDialect" Grid.Row="0" Grid.Column="0" Text=""
+                                           FontSize="{StaticResource FontSizeBody}" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2"/>
+                                <TextBlock x:Name="ValDialect" Grid.Row="0" Grid.Column="1" Text=""
+                                           FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,2"
+                                           AutomationProperties.Name="SMB Dialect value"/>
+
+                                <TextBlock x:Name="LblSigning" Grid.Row="1" Grid.Column="0" Text=""
+                                           FontSize="{StaticResource FontSizeBody}" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2"/>
+                                <TextBlock x:Name="ValSigning" Grid.Row="1" Grid.Column="1" Text=""
+                                           FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,2"
+                                           AutomationProperties.Name="Signing Required value"/>
+
+                                <TextBlock x:Name="LblServerGuid" Grid.Row="2" Grid.Column="0" Text=""
+                                           FontSize="{StaticResource FontSizeBody}" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2"/>
+                                <TextBlock x:Name="ValServerGuid" Grid.Row="2" Grid.Column="1" Text=""
+                                           FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,2" TextWrapping="Wrap"
+                                           AutomationProperties.Name="Server GUID value"/>
+
+                                <TextBlock x:Name="LblSystemTime" Grid.Row="3" Grid.Column="0" Text=""
+                                           FontSize="{StaticResource FontSizeBody}" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2"/>
+                                <TextBlock x:Name="ValSystemTime" Grid.Row="3" Grid.Column="1" Text=""
+                                           FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,2"
+                                           AutomationProperties.Name="System Time value"/>
+
+                                <TextBlock x:Name="LblBootTime" Grid.Row="4" Grid.Column="0" Text=""
+                                           FontSize="{StaticResource FontSizeBody}" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2"/>
+                                <TextBlock x:Name="ValBootTime" Grid.Row="4" Grid.Column="1" Text=""
+                                           FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,2"
+                                           AutomationProperties.Name="Boot Time value"/>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Card 3: Security Findings -->
+                    <Border x:Name="FindingsPanel" Visibility="Collapsed" Margin="0,0,0,12"
+                            Background="{DynamicResource CardBrush}"
+                            BorderBrush="{DynamicResource BorderBrush}"
+                            BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
+                            Padding="16,12"
+                            AutomationProperties.LiveSetting="Polite">
+                        <StackPanel>
+                            <TextBlock x:Name="TxtCardFindings" Text=""
+                                       FontSize="{StaticResource FontSizeBodyLarge}" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource AccentBrush}"
+                                       Margin="0,0,0,8"/>
+                            <StackPanel x:Name="FindingsList"/>
+                        </StackPanel>
+                    </Border>
+
+                </StackPanel>
+
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Footer -->
+        <Border Grid.Row="2" Padding="{StaticResource ToolFooterPadding}"
+                Background="{DynamicResource SurfaceBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="0,1,0,0">
+            <DockPanel>
+                <Button x:Name="BtnCopy" Content=""
+                        Click="OnCopyClick"
+                        Style="{DynamicResource SecondaryButtonStyle}"
+                        Padding="{StaticResource PaddingButtonPrimary}" DockPanel.Dock="Right"
+                        VerticalAlignment="Center"/>
+                <TextBlock x:Name="TxtStatus" Text=""
+                           FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
+                           Foreground="{DynamicResource TextSecondaryBrush}"
+                           VerticalAlignment="Center"/>
+            </DockPanel>
+        </Border>
+    </Grid>
+</UserControl>

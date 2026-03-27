@@ -1,0 +1,199 @@
+<!--
+  Copyright 2026 Julien Bombled
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<UserControl x:Class="Heimdall.App.Views.Tools.FirewallTesterView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="{DynamicResource BackgroundBrush}">
+    <Grid Margin="0">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Border Grid.Row="0" Padding="{StaticResource ToolHeaderPadding}"
+                Background="{DynamicResource SurfaceBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="0,0,0,1">
+            <DockPanel>
+                <Button x:Name="BtnHelp" DockPanel.Dock="Right" Content="?"
+                        Click="OnHelpClick"
+                        Style="{DynamicResource SecondaryButtonStyle}"
+                        Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
+                        Width="24" Height="24" Margin="8,0,0,0"/>
+                <TextBlock x:Name="HeaderTitle" Text=""
+                           FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextPrimaryBrush}"
+                           VerticalAlignment="Center"/>
+            </DockPanel>
+        </Border>
+
+        <!-- Input section -->
+        <Border Grid.Row="1" Padding="{StaticResource ToolHeaderPadding}"
+                Background="{DynamicResource SurfaceBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="0,0,0,1">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <!-- Destinations -->
+                <StackPanel Grid.Column="0" Grid.Row="0" Margin="0,0,12,0">
+                    <TextBlock x:Name="LblHosts" Text=""
+                               FontSize="{StaticResource FontSizeCaption}"
+                               Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,4"/>
+                    <TextBox x:Name="TxtHosts" AcceptsReturn="True" TextWrapping="Wrap"
+                             Height="80" VerticalScrollBarVisibility="Auto"
+                             Style="{StaticResource WatermarkTextBoxStyle}"
+                             Tag="One host per line&#x0a;192.168.1.1&#x0a;server.local"
+                             FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
+                             Padding="{StaticResource PaddingInput}"
+                             Background="{DynamicResource CardBrush}"
+                             Foreground="{DynamicResource TextPrimaryBrush}"
+                             BorderBrush="{DynamicResource BorderBrush}"/>
+                </StackPanel>
+
+                <!-- Ports + presets -->
+                <StackPanel Grid.Column="1" Grid.Row="0" Margin="0,0,12,0" Width="200">
+                    <TextBlock x:Name="LblPorts" Text=""
+                               FontSize="{StaticResource FontSizeCaption}"
+                               Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,4"/>
+                    <TextBox x:Name="TxtPorts" Text="22,80,443,3389"
+                             Style="{StaticResource WatermarkTextBoxStyle}"
+                             Tag="22,80,443,3389"
+                             FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
+                             Padding="{StaticResource PaddingInput}"
+                             Background="{DynamicResource CardBrush}"
+                             Foreground="{DynamicResource TextPrimaryBrush}"
+                             BorderBrush="{DynamicResource BorderBrush}"
+                             VerticalAlignment="Top"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                        <Button x:Name="BtnPresetWeb" Click="OnPresetClick" Tag="80,443"
+                                Style="{DynamicResource SecondaryButtonStyle}"
+                                Padding="8,3" Margin="0,0,4,0" FontSize="{StaticResource FontSizeCaption}"/>
+                        <Button x:Name="BtnPresetRemote" Click="OnPresetClick" Tag="22,3389,5900"
+                                Style="{DynamicResource SecondaryButtonStyle}"
+                                Padding="8,3" Margin="0,0,4,0" FontSize="{StaticResource FontSizeCaption}"/>
+                        <Button x:Name="BtnPresetCommon" Click="OnPresetClick" Tag="22,80,443,3389,5900,8080"
+                                Style="{DynamicResource SecondaryButtonStyle}"
+                                Padding="8,3" FontSize="{StaticResource FontSizeCaption}"/>
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- Route via + Test button -->
+                <StackPanel Grid.Column="2" Grid.Row="0" VerticalAlignment="Top" MinWidth="200">
+                    <TextBlock x:Name="LblRouteVia" Text=""
+                               FontSize="{StaticResource FontSizeCaption}"
+                               Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,4"/>
+                    <ComboBox x:Name="CmbRouteVia" Width="200"
+                              SelectionChanged="OnRouteViaChanged"
+                              Background="{DynamicResource CardBrush}"
+                              Foreground="{DynamicResource TextPrimaryBrush}"
+                              BorderBrush="{DynamicResource BorderBrush}"/>
+                    <Button x:Name="BtnTest" Content=""
+                            Click="OnTestClick"
+                            Style="{DynamicResource PrimaryButtonStyle}"
+                            Padding="16,6" Margin="0,6,0,0"
+                            HorizontalAlignment="Stretch"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Validation error -->
+        <TextBlock x:Name="TxtError" Grid.Row="2" Text="" Visibility="Collapsed"
+                   FontSize="{StaticResource FontSizeBody}" Margin="12,4,12,0" TextWrapping="Wrap"
+                   Foreground="{DynamicResource ErrorTextBrush}"/>
+
+        <!-- Progress bar with count overlay -->
+        <Grid Grid.Row="3" x:Name="ProgressPanel" Visibility="Collapsed">
+            <ProgressBar x:Name="TestProgress"
+                         Height="20" Minimum="0" Maximum="100"
+                         IsIndeterminate="False"
+                         Foreground="{DynamicResource AccentBrush}"
+                         Background="{DynamicResource SurfaceBrush}"/>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                <TextBlock x:Name="TxtProgressPercent" Text="0%"
+                           FontSize="{StaticResource FontSizeCaption}" FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextPrimaryBrush}"/>
+                <TextBlock Text="  —  " FontSize="{StaticResource FontSizeCaption}"
+                           Foreground="{DynamicResource TextSecondaryBrush}"/>
+                <TextBlock x:Name="TxtProgressCount" Text="0 / 0"
+                           FontSize="{StaticResource FontSizeCaption}"
+                           Foreground="{DynamicResource TextSecondaryBrush}"/>
+            </StackPanel>
+        </Grid>
+
+        <!-- Empty state hint -->
+        <Border x:Name="EmptyStatePanel" Grid.Row="4"
+                Style="{StaticResource ToolEmptyStateStyle}"
+                Margin="0,24,0,0">
+            <StackPanel HorizontalAlignment="Center">
+                <TextBlock Text="&#xE7EF;" FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource IconSizeEmptyState}"
+                           HorizontalAlignment="Center"
+                           Foreground="{DynamicResource TextDisabledBrush}" Margin="0,0,0,8"
+                           AutomationProperties.Name=""/>
+                <TextBlock x:Name="TxtEmptyState" Text=""
+                           FontSize="{StaticResource FontSizeBodyLarge}" TextAlignment="Center"
+                           Foreground="{DynamicResource TextSecondaryBrush}"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Heatmap results -->
+        <ScrollViewer x:Name="HeatmapScrollViewer" Grid.Row="4" Visibility="Collapsed"
+                      VerticalScrollBarVisibility="Auto"
+                      HorizontalScrollBarVisibility="Auto"
+                      Padding="{StaticResource SpacingSm}">
+            <Grid x:Name="HeatmapGrid"
+                  AutomationProperties.Name="Firewall test results heatmap"
+                  AutomationProperties.LiveSetting="Polite"/>
+        </ScrollViewer>
+
+        <!-- Stats bar -->
+        <Border Grid.Row="5" Padding="{StaticResource ToolFooterPadding}"
+                Background="{DynamicResource SurfaceBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="0,1,0,0">
+            <DockPanel>
+                <Button x:Name="BtnExportCsv" Content=""
+                        Click="OnExportCsvClick"
+                        Style="{DynamicResource SecondaryButtonStyle}"
+                        Padding="{StaticResource PaddingButtonPrimary}" DockPanel.Dock="Right" Margin="4,0,0,0"
+                        VerticalAlignment="Center"/>
+                <Button x:Name="BtnCopy" Content=""
+                        Click="OnCopyClick"
+                        Style="{DynamicResource SecondaryButtonStyle}"
+                        Padding="{StaticResource PaddingButtonPrimary}" DockPanel.Dock="Right"
+                        VerticalAlignment="Center"/>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock x:Name="LblSummary" Text=""
+                               FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
+                               Foreground="{DynamicResource TextSecondaryBrush}"/>
+                </StackPanel>
+            </DockPanel>
+        </Border>
+    </Grid>
+</UserControl>
