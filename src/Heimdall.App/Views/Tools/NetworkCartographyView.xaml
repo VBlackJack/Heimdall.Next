@@ -84,7 +84,7 @@
                           VerticalAlignment="Center" Margin="16,0,0,0"/>
 
                 <TextBlock x:Name="LblRouteVia" Text=""
-                           FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center" Margin="16,0,4,0"
+                           FontSize="{StaticResource FontSizeBody}" VerticalAlignment="Center" Margin="16,0,4,0"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
                 <ComboBox x:Name="CmbRouteVia" Width="180"
                           SelectionChanged="OnRouteViaChanged"
@@ -166,7 +166,15 @@
                     <DataGridTextColumn x:Name="ColHostname" Binding="{Binding Hostname}" Width="180"
                                         ElementStyle="{StaticResource DataGridCellTextStyle}"
                                         Foreground="{DynamicResource TextPrimaryBrush}"/>
+                    <DataGridTextColumn x:Name="ColRole" Binding="{Binding PrimaryRoleName}" Width="150"
+                                        ElementStyle="{StaticResource DataGridCellTextStyle}"
+                                        Foreground="{DynamicResource TextPrimaryBrush}"/>
+                    <DataGridTextColumn x:Name="ColConfidence" Binding="{Binding Confidence}" Width="80"
+                                        Foreground="{DynamicResource TextSecondaryBrush}"/>
                     <DataGridTextColumn x:Name="ColOs" Binding="{Binding OsGuess}" Width="120"
+                                        Foreground="{DynamicResource TextSecondaryBrush}"/>
+                    <DataGridTextColumn x:Name="ColManufacturer" Binding="{Binding Manufacturer}" Width="140"
+                                        ElementStyle="{StaticResource DataGridCellTextStyle}"
                                         Foreground="{DynamicResource TextSecondaryBrush}"/>
                     <DataGridTextColumn x:Name="ColPorts" Binding="{Binding PortSummary}" Width="200"
                                         ElementStyle="{StaticResource DataGridCellTextStyle}"
@@ -177,18 +185,10 @@
                     <DataGridTextColumn x:Name="ColTls" Binding="{Binding TlsStatus}" Width="180"
                                         ElementStyle="{StaticResource DataGridCellTextStyle}"
                                         Foreground="{DynamicResource TextSecondaryBrush}"/>
-                    <DataGridTextColumn x:Name="ColRole" Binding="{Binding PrimaryRoleName}" Width="150"
-                                        ElementStyle="{StaticResource DataGridCellTextStyle}"
-                                        Foreground="{DynamicResource TextPrimaryBrush}"/>
-                    <DataGridTextColumn x:Name="ColConfidence" Binding="{Binding Confidence}" Width="80"
-                                        Foreground="{DynamicResource TextSecondaryBrush}"/>
                     <DataGridTextColumn x:Name="ColDetails" Binding="{Binding DetailsSummary}" Width="200"
                                         ElementStyle="{StaticResource DataGridCellTextStyle}"
                                         Foreground="{DynamicResource TextSecondaryBrush}"/>
                     <DataGridTextColumn x:Name="ColVlan" Binding="{Binding VlanSegment}" Width="150"
-                                        ElementStyle="{StaticResource DataGridCellTextStyle}"
-                                        Foreground="{DynamicResource TextSecondaryBrush}"/>
-                    <DataGridTextColumn x:Name="ColManufacturer" Binding="{Binding Manufacturer}" Width="140"
                                         ElementStyle="{StaticResource DataGridCellTextStyle}"
                                         Foreground="{DynamicResource TextSecondaryBrush}"/>
                 </DataGrid.Columns>
@@ -212,23 +212,24 @@
                             Click="OnExportDrawioClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonPrimary}" Margin="0,0,4,0"
-                            VerticalAlignment="Center"/>
+                            VerticalAlignment="Center" IsEnabled="False"/>
                     <Button x:Name="BtnEditDiagram" Content=""
                             Click="OnEditDiagramClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonPrimary}" Margin="0,0,4,0"
-                            VerticalAlignment="Center"/>
+                            VerticalAlignment="Center" IsEnabled="False"/>
                     <Button x:Name="BtnExportCsv" Content=""
                             Click="OnExportCsvClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonPrimary}"
-                            VerticalAlignment="Center"/>
+                            VerticalAlignment="Center" IsEnabled="False"/>
                 </StackPanel>
                 <TextBlock x:Name="TxtStats" Text="" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                            Foreground="{DynamicResource TextSecondaryBrush}"
                            VerticalAlignment="Center"/>
-                <TextBlock Text=" | " Foreground="{DynamicResource TextDisabledBrush}" VerticalAlignment="Center"
-                           FontSize="{StaticResource FontSizeBody}" Margin="4,0"/>
+                <TextBlock x:Name="TxtStatsSeparator" Text=" | " Foreground="{DynamicResource TextDisabledBrush}" VerticalAlignment="Center"
+                           FontSize="{StaticResource FontSizeBody}" Margin="4,0"
+                           Visibility="Collapsed"/>
                 <TextBlock x:Name="TxtKbStats" Text="" FontSize="{StaticResource FontSizeCaption}" FontFamily="Consolas"
                            Foreground="{DynamicResource TextSecondaryBrush}"
                            VerticalAlignment="Center"/>

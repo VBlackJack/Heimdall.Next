@@ -141,9 +141,10 @@ public sealed class CartographyEngine
 
             // Combine pinged results with KB-cached alive hosts
             aliveHosts = [.. pingResults.Keys];
+            var aliveSet = new HashSet<string>(aliveHosts, StringComparer.OrdinalIgnoreCase);
             foreach (var ip in skipPingIps)
             {
-                if (!aliveHosts.Contains(ip))
+                if (aliveSet.Add(ip))
                 {
                     aliveHosts.Add(ip);
                     var cached = KnowledgeBaseManager.Lookup(knowledgeBase!, ip)!;
@@ -194,7 +195,7 @@ public sealed class CartographyEngine
         mdnsResults = mdnsTask.Result;
         ssdpResults = ssdpTask.Result;
 
-        var semaphore = new SemaphoreSlim(profile.MaxConcurrency);
+        using var semaphore = new SemaphoreSlim(profile.MaxConcurrency);
         var ttlConfig = knowledgeBase?.TtlConfig;
         var tasks = aliveHosts.Select(async ip =>
         {
@@ -307,7 +308,7 @@ public sealed class CartographyEngine
     {
         var alive = new ConcurrentDictionary<string, (long LatencyMs, int Ttl)>();
         var completed = 0;
-        var semaphore = new SemaphoreSlim(Math.Min(64, profile.MaxConcurrency));
+        using var semaphore = new SemaphoreSlim(Math.Min(64, profile.MaxConcurrency));
 
         var tasks = ips.Select(async ip =>
         {
@@ -347,7 +348,7 @@ public sealed class CartographyEngine
         var services = new ConcurrentBag<ServiceResult>();
         var portCompleted = 0;
 
-        var hostSemaphore = new SemaphoreSlim(Math.Min(20, profile.MaxConcurrency));
+        using var hostSemaphore = new SemaphoreSlim(Math.Min(20, profile.MaxConcurrency));
         var portTasks = ports.Select(async port =>
         {
             await hostSemaphore.WaitAsync(ct).ConfigureAwait(false);
@@ -864,8 +865,10 @@ public sealed class CartographyEngine
     {
         var parts = ip.Split('.');
         if (parts.Length != 4) return 0;
-        return long.Parse(parts[0]) << 24 | long.Parse(parts[1]) << 16 |
-               long.Parse(parts[2]) << 8 | long.Parse(parts[3]);
+        if (!long.TryParse(parts[0], out var a) || !long.TryParse(parts[1], out var b) ||
+            !long.TryParse(parts[2], out var c) || !long.TryParse(parts[3], out var d))
+            return 0;
+        return a << 24 | b << 16 | c << 8 | d;
     }
 
     /// <summary>

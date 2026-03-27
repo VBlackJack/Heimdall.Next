@@ -46,7 +46,8 @@ public static class DrawIoExporter
                     return "Ping Only (No Open Ports)";
                 return h.PrimaryRole?.Role ?? "Unclassified";
             })
-            .OrderBy(g => g.Key == "Ping Only (No Open Ports)" ? "ZZZZ" : g.Key) // ping-only last
+            .OrderBy(g => g.Key == "Ping Only (No Open Ports)" ? 1 : 0)
+            .ThenBy(g => g.Key)
             .ToList();
 
         var cellId = 2;

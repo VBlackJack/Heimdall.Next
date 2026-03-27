@@ -148,6 +148,7 @@ public partial class NetworkCartographyView : UserControl, IToolView
         System.Windows.Automation.AutomationProperties.SetName(ChkSkipPing, L("ToolNetMapSkipPing"));
         System.Windows.Automation.AutomationProperties.SetName(ChkReverseDns, L("ToolNetMapReverseDns"));
         System.Windows.Automation.AutomationProperties.SetName(CmbRouteVia, L("ToolTunnelRouteVia"));
+        ChkUseKnowledgeBase.ToolTip = L("ToolNetMapKbTooltip");
         System.Windows.Automation.AutomationProperties.SetName(ChkUseKnowledgeBase, L("ToolNetMapUseKb"));
         System.Windows.Automation.AutomationProperties.SetName(BtnClearKb, L("ToolNetMapBtnClearKb"));
 
@@ -233,6 +234,8 @@ public partial class NetworkCartographyView : UserControl, IToolView
         CmbDepth.IsEnabled = false;
         ChkSkipPing.IsEnabled = false;
         ChkReverseDns.IsEnabled = false;
+        ChkUseKnowledgeBase.IsEnabled = false;
+        CmbRouteVia.IsEnabled = false;
         ProgressPanel.Visibility = Visibility.Visible;
         EmptyStatePanel.Visibility = Visibility.Collapsed;
         ScanProgress.Value = 0;
@@ -374,6 +377,24 @@ public partial class NetworkCartographyView : UserControl, IToolView
                 TxtStats.Text = string.Format(
                     L("ToolNetMapStats"),
                     snapshot.Hosts.Count, totalServices, serviceNames);
+                TxtStatsSeparator.Visibility = Visibility.Visible;
+
+                BtnExportCsv.IsEnabled = _results.Count > 0;
+                BtnExportDrawio.IsEnabled = true;
+                BtnEditDiagram.IsEnabled = _openToolAction is not null;
+
+                // Refresh VLAN column now that full snapshot with VLAN data is available
+                if (snapshot.DetectedVlans is { Count: > 0 })
+                {
+                    foreach (var row in _results)
+                    {
+                        var vlan = snapshot.DetectedVlans
+                            .FirstOrDefault(v => v.MemberIps.Contains(row.IpAddress));
+                        if (vlan is not null)
+                            row.VlanSegment = $"VLAN {vlan.VlanId} ({vlan.Subnet})";
+                    }
+                    ResultsGrid.Items.Refresh();
+                }
 
                 UpdateKbStats();
                 PopulateHistory();
@@ -520,6 +541,8 @@ public partial class NetworkCartographyView : UserControl, IToolView
         CmbDepth.IsEnabled = true;
         ChkSkipPing.IsEnabled = true;
         ChkReverseDns.IsEnabled = true;
+        ChkUseKnowledgeBase.IsEnabled = true;
+        CmbRouteVia.IsEnabled = true;
         TxtScanProgress.Visibility = Visibility.Collapsed;
 
         // Keep progress panel visible if there's a status message to show
@@ -1162,13 +1185,16 @@ public partial class NetworkCartographyView : UserControl, IToolView
 
     private void UpdateKbStats()
     {
-        if (_knowledgeBase is null || KnowledgeBaseManager.HostCount(_knowledgeBase) == 0)
+        var isEmpty = _knowledgeBase is null || KnowledgeBaseManager.HostCount(_knowledgeBase) == 0;
+        BtnClearKb.IsEnabled = !isEmpty;
+
+        if (isEmpty)
         {
             TxtKbStats.Text = L("ToolNetMapKbStatsNever");
             return;
         }
-        var count = KnowledgeBaseManager.HostCount(_knowledgeBase);
-        var ago = FormatTimeAgo(_knowledgeBase.LastUpdated);
+        var count = KnowledgeBaseManager.HostCount(_knowledgeBase!);
+        var ago = FormatTimeAgo(_knowledgeBase!.LastUpdated);
         TxtKbStats.Text = string.Format(L("ToolNetMapKbStats"), count, ago);
     }
 
@@ -1177,6 +1203,8 @@ public partial class NetworkCartographyView : UserControl, IToolView
         var elapsed = DateTime.UtcNow - utcTime;
         if (elapsed.TotalMinutes < 5)
             return L("ToolNetMapKbTimeAgoJustNow");
+        if (elapsed.TotalHours < 1)
+            return string.Format(L("ToolNetMapKbTimeAgo1m"), (int)elapsed.TotalMinutes);
         if (elapsed.TotalHours < 24)
             return string.Format(L("ToolNetMapKbTimeAgo1h"), (int)elapsed.TotalHours);
         return string.Format(L("ToolNetMapKbTimeAgo1d"), (int)elapsed.TotalDays);
@@ -1243,7 +1271,7 @@ public partial class NetworkCartographyView : UserControl, IToolView
         public string Confidence { get; init; } = "";
         public string DetailsSummary { get; init; } = "";
         public string DetailTooltip { get; init; } = "";
-        public string VlanSegment { get; init; } = "";
+        public string VlanSegment { get; set; } = "";
         public string Manufacturer { get; init; } = "";
 
         // Raw fields for CSV export

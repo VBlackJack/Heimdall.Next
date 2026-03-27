@@ -93,13 +93,24 @@ public static class ScanHistoryManager
             {
                 try
                 {
-                    var json = File.ReadAllText(f);
-                    var snap = JsonSerializer.Deserialize<NetworkScanSnapshot>(json, DeserializeOptions);
-                    return snap is not null ? (Path.GetFileName(f), snap.Timestamp, snap.Profile.Subnet) : default;
+                    // Parse metadata from filename (scan_yyyyMMdd_HHmmss_subnet.json)
+                    // to avoid deserializing every snapshot file
+                    var name = Path.GetFileNameWithoutExtension(f);
+                    if (name.Length < 22 || !name.StartsWith("scan_", StringComparison.Ordinal))
+                        return default;
+                    var datePart = name[5..20]; // yyyyMMdd_HHmmss
+                    if (!DateTime.TryParseExact(datePart, "yyyyMMdd_HHmmss",
+                        System.Globalization.CultureInfo.InvariantCulture,
+                        System.Globalization.DateTimeStyles.AssumeUniversal |
+                        System.Globalization.DateTimeStyles.AdjustToUniversal,
+                        out var timestamp))
+                        return default;
+                    var subnet = name[21..].Replace('-', '/');
+                    return (FileName: Path.GetFileName(f), Timestamp: timestamp, Subnet: subnet);
                 }
                 catch { return default; }
             })
-            .Where(x => x != default)
+            .Where(x => x.FileName is not null)
             .OrderByDescending(x => x.Timestamp)
             .ToList();
     }
