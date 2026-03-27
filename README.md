@@ -15,7 +15,7 @@
 [![CI](https://github.com/VBlackJack/Heimdall.Next/actions/workflows/ci.yml/badge.svg)](https://github.com/VBlackJack/Heimdall.Next/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 [![Tests](https://img.shields.io/badge/tests-1589%20passing-brightgreen.svg)]()
-[![Tools](https://img.shields.io/badge/tools-33%20sysops-blue.svg)]()
+[![Tools](https://img.shields.io/badge/tools-35%20sysops-blue.svg)]()
 [![.NET](https://img.shields.io/badge/.NET-10.0-purple.svg)]()
 
 **The secure, all-in-one Windows connection manager for RDP, SSH, SFTP, VNC, Telnet, FTP, Citrix, and local terminals.**
@@ -147,9 +147,9 @@ Built with .NET 10 and WPF. Secure, feature-rich Windows connection manager with
 - HTTP: directory listing, MIME types, path traversal protection
 - TFTP: RFC 1350 read-only implementation
 
-### Built-in Sysops Toolbox (34 tools)
+### Built-in Sysops Toolbox (35 tools)
 
-All tools open as session tabs (split with any session or tool, detach, reorder). Accessible via **Ctrl+K** palette, **Ctrl+Shift+T** sidebar panel, or **"+" → Add Tool** menu. Tools can be saved in the TreeView alongside servers. Centralized `ToolRegistry` with vector icons, categories, and command aliases. Recent tools shown in palette on open. Singleton behavior for context-free tools. Built-in help system with usage examples (? button). Dedicated detail panel for tools with descriptions. Password Generator supports saveable custom presets (JSON persistence). Cross-tool navigation via right-click context menus (IP → Port Scanner → Cert Inspector). Network tools support scanning via SSH tunnel ("Route via" gateway selector).
+All tools open as session tabs (split with any session or tool, detach, reorder). Accessible via **Ctrl+K** palette, **Ctrl+Shift+T** sidebar panel, or **"+" → Add Tool** menu. Tools can be saved in the TreeView alongside servers. Centralized `ToolRegistry` with vector icons, categories, and command aliases. Recent tools shown in palette on open. Singleton behavior for context-free tools. Built-in help system with usage examples (? button). Dedicated detail panel for tools with descriptions. Password Generator supports saveable custom presets (JSON persistence), optional clipboard auto-clear, and 3 generation modes (Random, Syllable, Passphrase). Cross-tool navigation via right-click context menus (IP → Port Scanner → Cert Inspector). Network tools support scanning via SSH tunnel ("Route via" gateway selector).
 
 | Category | Tools |
 |----------|-------|
@@ -200,13 +200,13 @@ All tools open as session tabs (split with any session or tool, detach, reorder)
 - Command Palette (Ctrl+K): protocol icons, status dots, endpoint hints, Ctrl+Enter for split
 - Connection inheritance: group-level defaults for gateway, SSH username, key path
 - Empty states: 11 tool views show guidance before first query, welcome panel with import CTA
-- Built-in help button ("?") on all 33 tools with localized usage instructions
+- Built-in help button ("?") on all 35 tools with localized usage instructions
 - Tab busy indicator: pulsing accent dot on tabs during long-running tool operations
 - Tools Panel: category fallback icons, scroll-more indicator
 - Fullscreen mode (F11), toggle sidebar (Ctrl+B), filter (Ctrl+F)
-- Bilingual interface: English and French (~3,457 i18n keys)
+- Bilingual interface: English and French (~3,654 i18n keys)
 - Declarative i18n: `{loc:Translate Key}` WPF markup extension with runtime language switching (coexists with legacy ApplyLocalization pattern)
-- WCAG 2.1 AA accessibility: 385+ AutomationProperties via code-behind and `{loc:Translate}`, keyboard focus indicators, disabled state tooltips
+- WCAG 2.1 AA accessibility: 385+ AutomationProperties via code-behind and `{loc:Translate}`, LiveSetting="Polite" on dynamic outputs, keyboard focus indicators, disabled state tooltips
 
 ### Security
 - DPAPI encryption + HMAC-SHA256 integrity via unified `CredentialProtector`
@@ -341,7 +341,7 @@ Release mode also produces Inno Setup `.exe` installers in `Dist/installers/` wi
 | Citrix | StoreBrowse CLI integration |
 | Crypto | System.Security.Cryptography.ProtectedData (DPAPI) |
 | Testing | xUnit + Moq + FluentAssertions (1,586 tests) |
-| Built-in Tools | 33 sysops tools (Ctrl+K → `tools` or Ctrl+Shift+T) |
+| Built-in Tools | 35 sysops tools (Ctrl+K → `tools` or Ctrl+Shift+T) |
 | Serialization | System.Text.Json |
 
 ---
