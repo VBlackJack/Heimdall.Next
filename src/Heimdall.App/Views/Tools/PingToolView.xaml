@@ -34,7 +34,8 @@
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
-                        Width="24" Height="24" Margin="8,0,0,0"/>
+                        Width="24" Height="24" Margin="8,0,0,0"
+                        AutomationProperties.Name=""/>
                 <TextBlock x:Name="HeaderTitle" Text=""
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
@@ -54,31 +55,31 @@
                              Foreground="{DynamicResource TextPrimaryBrush}"
                              BorderBrush="{DynamicResource BorderBrush}"
                              VerticalAlignment="Center"
-/>
+                             AutomationProperties.Name=""/>
                     <Button x:Name="BtnToggle" Content=""
                             Click="OnToggleClick"
                             Style="{DynamicResource PrimaryButtonStyle}"
                             Padding="16,6" Margin="8,0,0,0"
                             VerticalAlignment="Center"
-/>
+                            AutomationProperties.Name=""/>
                     <Button x:Name="BtnClear" Content=""
                             Click="OnClearClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="10,6" Margin="8,0,0,0"
+                            Padding="{StaticResource PaddingButtonCopy}" Margin="8,0,0,0"
                             VerticalAlignment="Center"
-/>
+                            AutomationProperties.Name=""/>
                     <Button x:Name="BtnCopyLog" Content=""
                             Click="OnCopyLogClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="10,6" Margin="4,0,0,0"
+                            Padding="{StaticResource PaddingButtonCopy}" Margin="4,0,0,0"
                             VerticalAlignment="Center"
-/>
+                            AutomationProperties.Name=""/>
                     <Button x:Name="BtnExportCsv" Content=""
                             Click="OnExportCsvClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="10,6" Margin="4,0,0,0"
+                            Padding="{StaticResource PaddingButtonCopy}" Margin="4,0,0,0"
                             VerticalAlignment="Center"
-/>
+                            AutomationProperties.Name=""/>
 
                     <TextBlock Text="  " VerticalAlignment="Center"/>
 
@@ -90,7 +91,8 @@
                               VerticalAlignment="Center"
                               Background="{DynamicResource CardBrush}"
                               Foreground="{DynamicResource TextPrimaryBrush}"
-                              BorderBrush="{DynamicResource BorderBrush}">
+                              BorderBrush="{DynamicResource BorderBrush}"
+                              AutomationProperties.Name="">
                         <ComboBoxItem x:Name="Ping500ms" Content="" Tag="500"/>
                         <ComboBoxItem x:Name="Ping1s" Content="" Tag="1000"/>
                         <ComboBoxItem x:Name="Ping2s" Content="" Tag="2000"/>
@@ -107,7 +109,8 @@
                              Background="{DynamicResource CardBrush}"
                              Foreground="{DynamicResource TextPrimaryBrush}"
                              BorderBrush="{DynamicResource BorderBrush}"
-                             VerticalAlignment="Center"/>
+                             VerticalAlignment="Center"
+                             AutomationProperties.Name=""/>
 
                     <TextBlock x:Name="LblCount" Text=""
                                Foreground="{DynamicResource TextSecondaryBrush}"
@@ -118,7 +121,8 @@
                              Background="{DynamicResource CardBrush}"
                              Foreground="{DynamicResource TextPrimaryBrush}"
                              BorderBrush="{DynamicResource BorderBrush}"
-                             VerticalAlignment="Center"/>
+                             VerticalAlignment="Center"
+                             AutomationProperties.Name=""/>
                 </StackPanel>
             </DockPanel>
         </Border>

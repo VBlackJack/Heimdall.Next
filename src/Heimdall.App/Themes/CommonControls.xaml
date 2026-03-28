@@ -26,6 +26,9 @@
     <!-- Asymmetric content area margin (below header, sides + bottom) -->
     <Thickness x:Key="ContentAreaMargin">16,0,16,16</Thickness>
 
+    <!-- Max width for single-column tool content panels -->
+    <sys:Double x:Key="ToolContentMaxWidth">700</sys:Double>
+
     <!-- Tool panel header/footer padding (horizontal=12, vertical=8/6) -->
     <Thickness x:Key="ToolHeaderPadding">12,8</Thickness>
     <Thickness x:Key="ToolFooterPadding">12,6</Thickness>
@@ -35,6 +38,7 @@
     <Thickness x:Key="PaddingButtonCopy">10,4</Thickness>
     <Thickness x:Key="PaddingButtonPrimary">12,6</Thickness>
     <Thickness x:Key="PaddingButtonPreset">8,2</Thickness>
+    <Thickness x:Key="PaddingButtonToolbar">8,4</Thickness>
 
     <!-- Input field padding -->
     <Thickness x:Key="PaddingInput">8,6</Thickness>

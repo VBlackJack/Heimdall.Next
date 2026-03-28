@@ -38,7 +38,8 @@
                               FontFamily="Consolas" FontSize="{StaticResource FontSizeCaption}"
                               Background="#151515" Foreground="#D4FFD9" BorderBrush="#333333"
                               DisplayMemberPath="Display"
-                              SelectionChanged="OnScenarioSelectionChanged"/>
+                              SelectionChanged="OnScenarioSelectionChanged"
+                              AutomationProperties.Name=""/>
 
                     <Button x:Name="BtnFavorite"
                             Click="OnFavoriteClick"
@@ -51,7 +52,8 @@
                               Click="OnRandomModeClick"
                               FontFamily="Consolas" FontSize="{StaticResource FontSizeCaption}"
                               Foreground="#FFD700" VerticalAlignment="Center"
-                              Margin="0,0,12,0"/>
+                              Margin="0,0,12,0"
+                              AutomationProperties.Name=""/>
 
                     <TextBlock x:Name="LblSearch"
                                FontFamily="Consolas" FontSize="{StaticResource FontSizeCaption}"
@@ -62,7 +64,8 @@
                              Width="180" Margin="0,0,12,0"
                              FontFamily="Consolas" FontSize="{StaticResource FontSizeCaption}"
                              Background="#151515" Foreground="#D4FFD9" BorderBrush="#333333"
-                             TextChanged="OnScenarioSearchChanged"/>
+                             TextChanged="OnScenarioSearchChanged"
+                             AutomationProperties.Name=""/>
 
                     <TextBlock x:Name="LblCategory"
                                FontFamily="Consolas" FontSize="{StaticResource FontSizeCaption}"
@@ -74,7 +77,8 @@
                               FontFamily="Consolas" FontSize="{StaticResource FontSizeCaption}"
                               Background="#151515" Foreground="#D4FFD9" BorderBrush="#333333"
                               DisplayMemberPath="Display"
-                              SelectionChanged="OnScenarioFilterChanged"/>
+                              SelectionChanged="OnScenarioFilterChanged"
+                              AutomationProperties.Name=""/>
 
                     <TextBlock x:Name="LblRealism"
                                FontFamily="Consolas" FontSize="{StaticResource FontSizeCaption}"
@@ -86,7 +90,8 @@
                               FontFamily="Consolas" FontSize="{StaticResource FontSizeCaption}"
                               Background="#151515" Foreground="#D4FFD9" BorderBrush="#333333"
                               DisplayMemberPath="Display"
-                              SelectionChanged="OnScenarioFilterChanged"/>
+                              SelectionChanged="OnScenarioFilterChanged"
+                              AutomationProperties.Name=""/>
 
                     <TextBlock x:Name="LblSpeed"
                                FontFamily="Consolas" FontSize="{StaticResource FontSizeCaption}"
@@ -110,7 +115,7 @@
                             Click="OnStartStopClick"
                             FontFamily="Consolas" FontSize="{StaticResource FontSizeBody}"
                             Foreground="#00FF41" Background="#1A1A1A" BorderBrush="#333333"
-                            Padding="12,4" Margin="12,0,0,0" Cursor="Hand"
+                            Padding="{StaticResource PaddingButtonPrimary}" Margin="12,0,0,0" Cursor="Hand"
                             AutomationProperties.Name=""/>
                 </WrapPanel>
 
@@ -136,25 +141,29 @@
                               FontFamily="Consolas" FontSize="{StaticResource FontSizeCaption}"
                               Background="#151515" Foreground="#D4FFD9" BorderBrush="#333333"
                               DisplayMemberPath="Display"
-                              SelectionChanged="OnPlaylistSelectionChanged"/>
+                              SelectionChanged="OnPlaylistSelectionChanged"
+                              AutomationProperties.Name=""/>
 
                     <Button x:Name="BtnReplaySeed"
                             Click="OnReplaySeedClick"
                             FontFamily="Consolas" FontSize="{StaticResource FontSizeCaption}"
                             Foreground="#D4FFD9" Background="#1A1A1A" BorderBrush="#333333"
-                            Padding="8,4" Margin="0,0,8,0" Cursor="Hand"/>
+                            Padding="8,4" Margin="0,0,8,0" Cursor="Hand"
+                            AutomationProperties.Name=""/>
 
                     <Button x:Name="BtnExportTranscript"
                             Click="OnExportTranscriptClick"
                             FontFamily="Consolas" FontSize="{StaticResource FontSizeCaption}"
                             Foreground="#D4FFD9" Background="#1A1A1A" BorderBrush="#333333"
-                            Padding="8,4" Margin="0,0,12,0" Cursor="Hand"/>
+                            Padding="8,4" Margin="0,0,12,0" Cursor="Hand"
+                            AutomationProperties.Name=""/>
 
                     <CheckBox x:Name="ChkVintageMonitor"
                               Click="OnVintageMonitorClick"
                               FontFamily="Consolas" FontSize="{StaticResource FontSizeCaption}"
                               Foreground="#6FAF7C" VerticalAlignment="Center"
-                              Margin="0,0,12,0"/>
+                              Margin="0,0,12,0"
+                              AutomationProperties.Name=""/>
 
                     <TextBlock x:Name="LblSeed"
                                FontFamily="Consolas" FontSize="{StaticResource FontSizeCaption}"

@@ -93,9 +93,12 @@ public partial class CronJobManagerView : UserControl, IToolView
         AutomationProperties.SetName(BtnClearPaste, L("ToolCronJobBtnClear"));
         AutomationProperties.SetName(BtnRefreshTasks, L("ToolCronJobBtnRefresh"));
         AutomationProperties.SetName(BtnCopyAll, L("ToolCronJobBtnCopy"));
+        AutomationProperties.SetName(CronResultsGrid, L("ToolCronJobTabPaste"));
+        AutomationProperties.SetName(TasksResultsGrid, L("ToolCronJobTabWindows"));
 
         BtnHelp.ToolTip = L("ToolHelpTooltip");
         AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
+        AutomationProperties.SetName(LoadingBar, L("ToolCronJobA11yLoading"));
         TxtEmptyState.Text = L("ToolCronJobEmptyState");
     }
 
@@ -202,6 +205,7 @@ public partial class CronJobManagerView : UserControl, IToolView
         _isLoading = true;
         BtnRefreshTasks.IsEnabled = false;
         _setBusy?.Invoke(true);
+        LoadingBar.Visibility = Visibility.Visible;
         TxtTasksLoading.Text = L("ToolCronJobTasksLoading");
         TxtTasksLoading.Visibility = Visibility.Visible;
         TxtTasksError.Visibility = Visibility.Collapsed;
@@ -234,6 +238,7 @@ public partial class CronJobManagerView : UserControl, IToolView
         {
             _isLoading = false;
             _setBusy?.Invoke(false);
+            LoadingBar.Visibility = Visibility.Collapsed;
             BtnRefreshTasks.IsEnabled = true;
             TxtTasksLoading.Visibility = Visibility.Collapsed;
         }

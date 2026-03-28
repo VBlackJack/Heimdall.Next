@@ -65,6 +65,7 @@ public partial class SshKeyGeneratorView : UserControl, IToolView
     public SshKeyGeneratorView()
     {
         InitializeComponent();
+        CommentInput.KeyDown += (s, e) => { if (e.Key == System.Windows.Input.Key.Enter) OnGenerateClick(s, e); };
     }
 
     /// <summary>

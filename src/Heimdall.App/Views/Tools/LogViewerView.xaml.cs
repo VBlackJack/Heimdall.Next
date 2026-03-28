@@ -90,6 +90,7 @@ public partial class LogViewerView : UserControl, IToolView
         System.Windows.Automation.AutomationProperties.SetName(BtnClearFilter, L("ToolLogViewBtnClear"));
         System.Windows.Automation.AutomationProperties.SetName(FilePathInput, L("ToolLogViewFilePathHint"));
         System.Windows.Automation.AutomationProperties.SetName(FilterInput, L("ToolLogViewBtnFilter"));
+        System.Windows.Automation.AutomationProperties.SetName(ChkCaseSensitive, L("ToolLogViewCaseSensitive"));
         System.Windows.Automation.AutomationProperties.SetName(EncodingCombo, L("ToolLogViewEncoding"));
         System.Windows.Automation.AutomationProperties.SetName(LogViewer, L("ToolLogViewTitle"));
 

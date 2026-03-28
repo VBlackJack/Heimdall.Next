@@ -33,7 +33,8 @@
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
-                        Width="24" Height="24" Margin="8,0,0,0"/>
+                        Width="24" Height="24" Margin="8,0,0,0"
+                        AutomationProperties.Name=""/>
                 <TextBlock x:Name="HeaderTitle" Text=""
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
@@ -43,7 +44,7 @@
 
         <!-- Content -->
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="{StaticResource SpacingLg}">
-            <StackPanel MaxWidth="700">
+            <StackPanel MaxWidth="{StaticResource ToolContentMaxWidth}">
 
                 <!-- Form fields -->
                 <Border Background="{DynamicResource SurfaceBrush}"
@@ -80,7 +81,8 @@
                                  Foreground="{DynamicResource TextPrimaryBrush}"
                                  Background="{DynamicResource CardBrush}"
                                  BorderBrush="{DynamicResource BorderBrush}"
-                                 Padding="{StaticResource PaddingInput}" FontFamily="Consolas"/>
+                                 Padding="{StaticResource PaddingInput}" FontFamily="Consolas"
+                                 AutomationProperties.Name=""/>
 
                         <!-- HostName -->
                         <TextBlock x:Name="LblHostName" Grid.Row="2" Grid.Column="0"
@@ -89,7 +91,8 @@
                                  Foreground="{DynamicResource TextPrimaryBrush}"
                                  Background="{DynamicResource CardBrush}"
                                  BorderBrush="{DynamicResource BorderBrush}"
-                                 Padding="{StaticResource PaddingInput}" FontFamily="Consolas"/>
+                                 Padding="{StaticResource PaddingInput}" FontFamily="Consolas"
+                                 AutomationProperties.Name=""/>
 
                         <!-- User -->
                         <TextBlock x:Name="LblUser" Grid.Row="4" Grid.Column="0"
@@ -98,7 +101,8 @@
                                  Foreground="{DynamicResource TextPrimaryBrush}"
                                  Background="{DynamicResource CardBrush}"
                                  BorderBrush="{DynamicResource BorderBrush}"
-                                 Padding="{StaticResource PaddingInput}"/>
+                                 Padding="{StaticResource PaddingInput}"
+                                 AutomationProperties.Name=""/>
 
                         <!-- Port -->
                         <TextBlock x:Name="LblPort" Grid.Row="6" Grid.Column="0"
@@ -108,7 +112,8 @@
                                  Foreground="{DynamicResource TextPrimaryBrush}"
                                  Background="{DynamicResource CardBrush}"
                                  BorderBrush="{DynamicResource BorderBrush}"
-                                 Padding="{StaticResource PaddingInput}" MaxWidth="100" HorizontalAlignment="Left"/>
+                                 Padding="{StaticResource PaddingInput}" MaxWidth="100" HorizontalAlignment="Left"
+                                 AutomationProperties.Name=""/>
 
                         <!-- IdentityFile -->
                         <TextBlock x:Name="LblIdentityFile" Grid.Row="8" Grid.Column="0"
@@ -117,7 +122,8 @@
                                  Foreground="{DynamicResource TextPrimaryBrush}"
                                  Background="{DynamicResource CardBrush}"
                                  BorderBrush="{DynamicResource BorderBrush}"
-                                 Padding="{StaticResource PaddingInput}" FontFamily="Consolas"/>
+                                 Padding="{StaticResource PaddingInput}" FontFamily="Consolas"
+                                 AutomationProperties.Name=""/>
 
                         <!-- ProxyJump -->
                         <TextBlock x:Name="LblProxyJump" Grid.Row="10" Grid.Column="0"
@@ -126,14 +132,16 @@
                                  Foreground="{DynamicResource TextPrimaryBrush}"
                                  Background="{DynamicResource CardBrush}"
                                  BorderBrush="{DynamicResource BorderBrush}"
-                                 Padding="{StaticResource PaddingInput}" FontFamily="Consolas"/>
+                                 Padding="{StaticResource PaddingInput}" FontFamily="Consolas"
+                                 AutomationProperties.Name=""/>
 
                         <!-- ForwardAgent -->
                         <TextBlock x:Name="LblForwardAgent" Grid.Row="12" Grid.Column="0"
                                    Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
                         <CheckBox x:Name="ChkForwardAgent" Grid.Row="12" Grid.Column="1"
                                   Foreground="{DynamicResource TextPrimaryBrush}"
-                                  VerticalAlignment="Center"/>
+                                  VerticalAlignment="Center"
+                                  AutomationProperties.Name=""/>
 
                         <!-- ServerAliveInterval -->
                         <TextBlock x:Name="LblServerAliveInterval" Grid.Row="14" Grid.Column="0"
@@ -143,7 +151,8 @@
                                  Foreground="{DynamicResource TextPrimaryBrush}"
                                  Background="{DynamicResource CardBrush}"
                                  BorderBrush="{DynamicResource BorderBrush}"
-                                 Padding="{StaticResource PaddingInput}" MaxWidth="100" HorizontalAlignment="Left"/>
+                                 Padding="{StaticResource PaddingInput}" MaxWidth="100" HorizontalAlignment="Left"
+                                 AutomationProperties.Name=""/>
                     </Grid>
                 </Border>
 
@@ -151,10 +160,12 @@
                 <WrapPanel Margin="0,0,0,12">
                     <Button x:Name="BtnGenerate" Click="OnGenerateClick"
                             Style="{DynamicResource PrimaryButtonStyle}"
-                            Padding="14,6" Margin="0,0,8,0" FontSize="{StaticResource FontSizeBody}"/>
+                            Padding="16,6" Margin="0,0,8,0" FontSize="{StaticResource FontSizeBody}"
+                            AutomationProperties.Name=""/>
                     <Button x:Name="BtnGenerateAll" Click="OnGenerateAllClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="14,6" FontSize="{StaticResource FontSizeBody}"/>
+                            Padding="16,6" FontSize="{StaticResource FontSizeBody}"
+                            AutomationProperties.Name=""/>
                 </WrapPanel>
 
                 <!-- Empty state hint (hidden once output is generated) -->
@@ -182,9 +193,11 @@
                                 Click="OnCopyClick"
                                 Style="{DynamicResource SecondaryButtonStyle}"
                                 Padding="{StaticResource PaddingButtonCopy}" Margin="0,0,0,8"
-                                HorizontalAlignment="Left" FontSize="{StaticResource FontSizeBody}"/>
+                                HorizontalAlignment="Left" FontSize="{StaticResource FontSizeBody}"
+                                AutomationProperties.Name=""/>
                         <TextBox x:Name="TxtOutput"
                                  IsReadOnly="True"
+                                 AutomationProperties.Name=""
                                  AutomationProperties.LiveSetting="Polite"
                                  FontFamily="Consolas" FontSize="{StaticResource FontSizeBody}"
                                  TextWrapping="Wrap"

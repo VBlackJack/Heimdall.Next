@@ -33,7 +33,8 @@
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
-                        Width="24" Height="24" Margin="8,0,0,0"/>
+                        Width="24" Height="24" Margin="8,0,0,0"
+                        AutomationProperties.Name=""/>
                 <TextBlock x:Name="HeaderTitle" Text=""
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
@@ -43,7 +44,7 @@
 
         <!-- Content -->
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="{StaticResource SpacingLg}">
-            <StackPanel MaxWidth="700">
+            <StackPanel MaxWidth="{StaticResource ToolContentMaxWidth}">
 
                 <!-- Single UUID generation -->
                 <TextBlock x:Name="LblSingleResult" Text=""
@@ -54,19 +55,22 @@
                             Content="" Click="OnCopyClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonPrimary}" Margin="8,0,0,0"
-                            VerticalAlignment="Stretch"/>
+                            VerticalAlignment="Stretch"
+                            AutomationProperties.Name=""/>
                     <Button x:Name="BtnGenerate" DockPanel.Dock="Right"
                             Content="" Click="OnGenerateClick"
-                            Style="{DynamicResource SecondaryButtonStyle}"
+                            Style="{DynamicResource PrimaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonPrimary}" Margin="8,0,0,0"
-                            VerticalAlignment="Stretch"/>
+                            VerticalAlignment="Stretch"
+                            AutomationProperties.Name=""/>
                     <TextBox x:Name="TxtResult" Text=""
                              FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
-                             Padding="{StaticResource PaddingInput}" IsReadOnly="True" AutomationProperties.LiveSetting="Polite"
+                             Padding="{StaticResource PaddingInput}" IsReadOnly="True"
+                             AutomationProperties.Name=""
+                             AutomationProperties.LiveSetting="Polite"
                              Background="{DynamicResource CardBrush}"
                              Foreground="{DynamicResource AccentBrush}"
-                             BorderBrush="{DynamicResource BorderBrush}"
-/>
+                             BorderBrush="{DynamicResource BorderBrush}"/>
                 </DockPanel>
 
                 <!-- Options -->
@@ -77,7 +81,8 @@
                               Foreground="{DynamicResource TextPrimaryBrush}"
                               BorderBrush="{DynamicResource BorderBrush}"
                               SelectionChanged="OnVersionChanged"
-                              SelectedIndex="0">
+                              SelectedIndex="0"
+                              AutomationProperties.Name="">
                         <ComboBoxItem Tag="4"/>
                         <ComboBoxItem Tag="7"/>
                     </ComboBox>
@@ -85,11 +90,11 @@
                               Margin="0,0,16,0"
                               Foreground="{DynamicResource TextPrimaryBrush}"
                               Checked="OnFormatChanged" Unchecked="OnFormatChanged"
-/>
+                              AutomationProperties.Name=""/>
                     <CheckBox x:Name="ChkHyphens" IsChecked="True"
                               Foreground="{DynamicResource TextPrimaryBrush}"
                               Checked="OnFormatChanged" Unchecked="OnFormatChanged"
-/>
+                              AutomationProperties.Name=""/>
                 </StackPanel>
 
                 <!-- Batch generation -->
@@ -104,7 +109,8 @@
                                     Content="" Click="OnGenerateBatchClick"
                                     Style="{DynamicResource SecondaryButtonStyle}"
                                     Padding="{StaticResource PaddingButtonPrimary}" Margin="8,0,0,0"
-                                    VerticalAlignment="Stretch"/>
+                                    VerticalAlignment="Stretch"
+                                    AutomationProperties.Name=""/>
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                 <TextBlock x:Name="LblCount" Text=""
                                            FontSize="{StaticResource FontSizeBody}" Margin="0,0,8,0"
@@ -116,7 +122,7 @@
                                          Background="{DynamicResource CardBrush}"
                                          Foreground="{DynamicResource TextPrimaryBrush}"
                                          BorderBrush="{DynamicResource BorderBrush}"
-/>
+                                         AutomationProperties.Name=""/>
                             </StackPanel>
                         </DockPanel>
 
@@ -124,20 +130,22 @@
                         <TextBox x:Name="TxtBatchResults" Text=""
                                  FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                                  Padding="{StaticResource PaddingInput}" MaxHeight="300"
-                                 IsReadOnly="True" AutomationProperties.LiveSetting="Polite"
+                                 IsReadOnly="True"
+                                 AutomationProperties.Name=""
+                                 AutomationProperties.LiveSetting="Polite"
                                  AcceptsReturn="True"
                                  TextWrapping="NoWrap"
                                  VerticalScrollBarVisibility="Auto"
                                  HorizontalScrollBarVisibility="Auto"
                                  Background="{DynamicResource CardBrush}"
                                  Foreground="{DynamicResource AccentBrush}"
-                                 BorderBrush="{DynamicResource BorderBrush}"
-/>
+                                 BorderBrush="{DynamicResource BorderBrush}"/>
                         <Button x:Name="BtnCopyBatch" Content=""
                                 Click="OnCopyBatchClick"
                                 Style="{DynamicResource SecondaryButtonStyle}"
                                 Padding="{StaticResource PaddingButtonPrimary}" Margin="0,8,0,0"
-                                HorizontalAlignment="Left"/>
+                                HorizontalAlignment="Left"
+                                AutomationProperties.Name=""/>
                     </StackPanel>
                 </Border>
 

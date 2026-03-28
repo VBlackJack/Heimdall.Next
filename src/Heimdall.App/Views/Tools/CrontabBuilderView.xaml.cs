@@ -98,6 +98,13 @@ public partial class CrontabBuilderView : UserControl, IToolView
         AutomationProperties.SetName(CmbMonth, L("ToolCronMonth"));
         AutomationProperties.SetName(CmbDayOfWeek, L("ToolCronDayOfWeek"));
 
+        AutomationProperties.SetName(BtnPresetEveryMin, L("ToolCronPresetEveryMin"));
+        AutomationProperties.SetName(BtnPresetEveryHour, L("ToolCronPresetEveryHour"));
+        AutomationProperties.SetName(BtnPresetDailyMidnight, L("ToolCronPresetDailyMidnight"));
+        AutomationProperties.SetName(BtnPresetWeekdays9am, L("ToolCronPresetWeekdays9am"));
+        AutomationProperties.SetName(BtnPresetWeeklySunday, L("ToolCronPresetWeeklySunday"));
+        AutomationProperties.SetName(BtnPresetMonthly1st, L("ToolCronPresetMonthly1st"));
+
         BtnCopy.ToolTip = L("ToolBtnCopyToClipboard");
 
         BtnHelp.ToolTip = L("ToolHelpTooltip");

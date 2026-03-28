@@ -91,9 +91,11 @@ public partial class ServiceStatusView : UserControl, IToolView
         AutomationProperties.SetName(BtnCopy, L("ToolServicesBtnCopy"));
         AutomationProperties.SetName(ChkRunningOnly, L("ToolServicesRunningOnly"));
         AutomationProperties.SetName(ChkAutoRefresh, L("ToolServicesAutoRefresh"));
+        AutomationProperties.SetName(ServicesGrid, L("ToolServicesTitle"));
 
         BtnHelp.ToolTip = L("ToolHelpTooltip");
         AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
+        AutomationProperties.SetName(LoadingBar, L("ToolServicesA11yLoading"));
         TxtEmptyState.Text = L("ToolServiceStatusEmptyState");
     }
 
@@ -114,6 +116,7 @@ public partial class ServiceStatusView : UserControl, IToolView
         _isLoading = true;
         BtnRefresh.IsEnabled = false;
         _setBusy?.Invoke(true);
+        LoadingBar.Visibility = Visibility.Visible;
         TxtError.Visibility = Visibility.Collapsed;
 
         try
@@ -142,6 +145,7 @@ public partial class ServiceStatusView : UserControl, IToolView
         {
             _isLoading = false;
             _setBusy?.Invoke(false);
+            LoadingBar.Visibility = Visibility.Collapsed;
             BtnRefresh.IsEnabled = true;
         }
     }

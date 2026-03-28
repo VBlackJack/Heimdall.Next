@@ -130,22 +130,22 @@
                                                        FontSize="{StaticResource FontSizeBodyLarge}" FontWeight="Bold"
                                                        Foreground="{DynamicResource TextPrimaryBrush}"
                                                        VerticalAlignment="Center"/>
-                                            <Border Background="{Binding SeverityBrush}" CornerRadius="3"
+                                            <Border Background="{Binding SeverityBrush}" CornerRadius="{StaticResource CornerRadiusXs}"
                                                     Padding="6,2" Margin="8,0,0,0"
                                                     VerticalAlignment="Center">
                                                 <TextBlock Text="{Binding SeverityLabel}"
                                                            FontSize="{StaticResource FontSizeSmallCaption}" FontWeight="Bold"
-                                                           Foreground="White"/>
+                                                           Foreground="{DynamicResource TextOnAccentBrush}"/>
                                             </Border>
                                         </StackPanel>
 
                                         <Border Grid.Row="0" Grid.Column="1"
-                                                Background="{Binding CvssBrush}" CornerRadius="3"
+                                                Background="{Binding CvssBrush}" CornerRadius="{StaticResource CornerRadiusXs}"
                                                 Padding="8,2" VerticalAlignment="Center"
                                                 HorizontalAlignment="Right">
                                             <TextBlock Text="{Binding CvssLabel}" FontFamily="Consolas"
                                                        FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
-                                                       Foreground="White"/>
+                                                       Foreground="{DynamicResource TextOnAccentBrush}"/>
                                         </Border>
 
                                         <!-- Row 1: Summary -->

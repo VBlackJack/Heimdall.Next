@@ -34,7 +34,8 @@
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
-                        Width="24" Height="24" Margin="8,0,0,0"/>
+                        Width="24" Height="24" Margin="8,0,0,0"
+                        AutomationProperties.Name=""/>
                 <TextBlock x:Name="HeaderTitle" Text=""
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
@@ -46,23 +47,33 @@
                              Foreground="{DynamicResource TextPrimaryBrush}"
                              BorderBrush="{DynamicResource BorderBrush}"
                              VerticalAlignment="Center"
-                             TextChanged="OnFilterChanged"/>
+                             TextChanged="OnFilterChanged"
+                             AutomationProperties.Name=""/>
                     <CheckBox x:Name="ChkRunningOnly"
                               Foreground="{DynamicResource TextPrimaryBrush}"
                               VerticalAlignment="Center" Margin="12,0,0,0"
-                              Checked="OnRunningOnlyChanged" Unchecked="OnRunningOnlyChanged"/>
+                              Checked="OnRunningOnlyChanged" Unchecked="OnRunningOnlyChanged"
+                              AutomationProperties.Name=""/>
                     <CheckBox x:Name="ChkAutoRefresh"
                               Foreground="{DynamicResource TextPrimaryBrush}"
                               VerticalAlignment="Center" Margin="12,0,0,0"
-                              Checked="OnAutoRefreshChanged" Unchecked="OnAutoRefreshChanged"/>
+                              Checked="OnAutoRefreshChanged" Unchecked="OnAutoRefreshChanged"
+                              AutomationProperties.Name=""/>
                     <Button x:Name="BtnRefresh" Content=""
                             Click="OnRefreshClick"
                             Style="{DynamicResource PrimaryButtonStyle}"
                             Padding="16,6" Margin="12,0,0,0"
-                            VerticalAlignment="Center"/>
+                            VerticalAlignment="Center"
+                            AutomationProperties.Name=""/>
                 </StackPanel>
             </DockPanel>
         </Border>
+
+        <!-- Loading indicator -->
+        <ProgressBar x:Name="LoadingBar" Grid.Row="1" IsIndeterminate="True"
+                     Visibility="Collapsed" Height="4" VerticalAlignment="Top"
+                     Foreground="{DynamicResource AccentBrush}"
+                     AutomationProperties.Name=""/>
 
         <!-- Error message -->
         <TextBlock x:Name="TxtError" Grid.Row="1" Text="" Visibility="Collapsed"
@@ -103,7 +114,8 @@
                       RowBackground="Transparent"
                       AlternatingRowBackground="{DynamicResource SurfaceBrush}"
                       HorizontalGridLinesBrush="{DynamicResource BorderBrush}"
-                      AutomationProperties.LiveSetting="Polite">
+                      AutomationProperties.LiveSetting="Polite"
+                      AutomationProperties.Name="">
                 <DataGrid.Columns>
                     <DataGridTextColumn x:Name="ColServiceName" Binding="{Binding Name}" Width="*"
                                         Foreground="{DynamicResource TextPrimaryBrush}"/>
@@ -134,7 +146,8 @@
                         Click="OnCopyClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonPrimary}" DockPanel.Dock="Right"
-                        VerticalAlignment="Center"/>
+                        VerticalAlignment="Center"
+                        AutomationProperties.Name=""/>
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <TextBlock x:Name="LblTotal" Text="" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                                Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,4,0"/>

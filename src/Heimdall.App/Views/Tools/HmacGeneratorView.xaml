@@ -33,7 +33,8 @@
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
-                        Width="24" Height="24" Margin="8,0,0,0"/>
+                        Width="24" Height="24" Margin="8,0,0,0"
+                        AutomationProperties.Name=""/>
                 <TextBlock x:Name="HeaderTitle" Text=""
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
@@ -43,7 +44,7 @@
 
         <!-- Content -->
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="{StaticResource SpacingLg}">
-            <StackPanel MaxWidth="700">
+            <StackPanel MaxWidth="{StaticResource ToolContentMaxWidth}">
 
                 <!-- Algorithm selector -->
                 <TextBlock x:Name="LblAlgorithm" Text=""
@@ -56,6 +57,7 @@
                           Foreground="{DynamicResource TextPrimaryBrush}"
                           BorderBrush="{DynamicResource BorderBrush}"
                           SelectionChanged="OnAlgorithmChanged"
+                          AutomationProperties.Name=""
                           />
 
                 <!-- Secret key with show/hide toggle -->
@@ -79,6 +81,7 @@
                                      Foreground="{DynamicResource TextPrimaryBrush}"
                                      BorderBrush="{DynamicResource BorderBrush}"
                                      PasswordChanged="OnKeyPasswordChanged"
+                                     AutomationProperties.Name=""
                                      />
                         <TextBox x:Name="TxtKey" Text=""
                                  Style="{DynamicResource WatermarkTextBoxStyle}"
@@ -90,6 +93,7 @@
                                  Tag="secret key"
                                  TextChanged="OnInputChanged"
                                  Visibility="Collapsed"
+                                 AutomationProperties.Name=""
                                  />
                     </Grid>
                 </DockPanel>
@@ -109,6 +113,7 @@
                          BorderBrush="{DynamicResource BorderBrush}"
                          Tag="message"
                          TextChanged="OnInputChanged"
+                         AutomationProperties.Name=""
                          />
 
                 <!-- Output format toggle -->
@@ -120,10 +125,12 @@
                                  Foreground="{DynamicResource TextPrimaryBrush}"
                                  Margin="0,0,16,0"
                                  Checked="OnFormatChanged"
+                                 AutomationProperties.Name=""
                                  />
                     <RadioButton x:Name="RdoBase64" Content=""
                                  Foreground="{DynamicResource TextPrimaryBrush}"
                                  Checked="OnFormatChanged"
+                                 AutomationProperties.Name=""
                                  />
                 </StackPanel>
 
@@ -136,7 +143,8 @@
                             Content="" Click="OnCopyClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonPrimary}" Margin="8,0,0,0"
-                            VerticalAlignment="Stretch"/>
+                            VerticalAlignment="Stretch"
+                            AutomationProperties.Name=""/>
                     <TextBox x:Name="TxtOutput" Text=""
                              FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
                              Padding="{StaticResource PaddingInput}"
@@ -145,6 +153,7 @@
                              Foreground="{DynamicResource AccentBrush}"
                              BorderBrush="{DynamicResource BorderBrush}"
                              VerticalAlignment="Center"
+                             AutomationProperties.Name=""
                              AutomationProperties.LiveSetting="Polite"
                              />
                 </DockPanel>
@@ -167,6 +176,7 @@
                          BorderBrush="{DynamicResource BorderBrush}"
                          Tag="paste HMAC to verify"
                          TextChanged="OnVerifyTextChanged"
+                         AutomationProperties.Name=""
                          />
                 <TextBlock x:Name="TxtVerifyResult" Text=""
                            FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,8"

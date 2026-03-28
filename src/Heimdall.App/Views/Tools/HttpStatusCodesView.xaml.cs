@@ -60,6 +60,7 @@ public partial class HttpStatusCodesView : UserControl, IToolView
         TxtCopyHint.Text = L("ToolHttpCopyHint");
 
         System.Windows.Automation.AutomationProperties.SetName(TxtFilter, L("ToolHttpFilterPlaceholder"));
+        System.Windows.Automation.AutomationProperties.SetName(StatusListView, L("ToolHttpTitle"));
 
         BtnHelp.ToolTip = L("ToolHelpTooltip");
         System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));

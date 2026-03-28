@@ -33,7 +33,8 @@
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
-                        Width="24" Height="24" Margin="8,0,0,0"/>
+                        Width="24" Height="24" Margin="8,0,0,0"
+                        AutomationProperties.Name=""/>
                 <TextBlock x:Name="HeaderTitle" Text=""
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
@@ -43,7 +44,7 @@
 
         <!-- Content -->
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="{StaticResource SpacingLg}">
-            <StackPanel MaxWidth="700">
+            <StackPanel MaxWidth="{StaticResource ToolContentMaxWidth}">
 
                 <!-- Decoded field -->
                 <DockPanel Margin="0,0,0,4">
@@ -52,7 +53,7 @@
                             Style="{DynamicResource SecondaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonCopy}" Margin="8,0,0,0"
                             VerticalAlignment="Bottom"
-/>
+                            AutomationProperties.Name=""/>
                     <TextBlock x:Name="LblDecoded" Text=""
                                FontSize="{StaticResource FontSizeBody}"
                                Foreground="{DynamicResource TextSecondaryBrush}"
@@ -69,6 +70,7 @@
                          BorderBrush="{DynamicResource BorderBrush}"
                          Tag="URL or text to encode/decode"
                          TextChanged="OnDecodedTextChanged"
+                         AutomationProperties.Name=""
                          AutomationProperties.LiveSetting="Polite"/>
 
                 <!-- Encoded field -->
@@ -78,7 +80,7 @@
                             Style="{DynamicResource SecondaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonCopy}" Margin="8,0,0,0"
                             VerticalAlignment="Bottom"
-/>
+                            AutomationProperties.Name=""/>
                     <TextBlock x:Name="LblEncoded" Text=""
                                FontSize="{StaticResource FontSizeBody}"
                                Foreground="{DynamicResource TextSecondaryBrush}"
@@ -95,12 +97,13 @@
                          BorderBrush="{DynamicResource BorderBrush}"
                          Tag="encoded URL"
                          TextChanged="OnEncodedTextChanged"
-                         AutomationProperties.LiveSetting="Polite"
-/>
+                         AutomationProperties.Name=""
+                         AutomationProperties.LiveSetting="Polite"/>
 
                 <!-- Component encoding toggle -->
                 <CheckBox x:Name="ChkComponentEncoding" Margin="0,4,0,0"
-                          Foreground="{DynamicResource TextSecondaryBrush}">
+                          Foreground="{DynamicResource TextSecondaryBrush}"
+                          AutomationProperties.Name="">
                     <TextBlock x:Name="LblComponentEncoding" Text="" FontSize="{StaticResource FontSizeBody}"/>
                 </CheckBox>
 

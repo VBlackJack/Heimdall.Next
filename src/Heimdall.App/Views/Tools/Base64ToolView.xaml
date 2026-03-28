@@ -33,7 +33,8 @@
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
-                        Width="24" Height="24" Margin="8,0,0,0"/>
+                        Width="24" Height="24" Margin="8,0,0,0"
+                        AutomationProperties.Name=""/>
                 <TextBlock x:Name="HeaderTitle" FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
                            VerticalAlignment="Center"/>
@@ -55,12 +56,13 @@
                 <CheckBox x:Name="ChkUrlSafe"
                           Foreground="{DynamicResource TextPrimaryBrush}"
                           VerticalAlignment="Center"
-                          Margin="0,0,16,0"/>
+                          Margin="0,0,16,0"
+                          AutomationProperties.Name=""/>
                 <CheckBox x:Name="ChkFileMode"
                           Foreground="{DynamicResource TextPrimaryBrush}"
                           Checked="OnFileModeChanged" Unchecked="OnFileModeChanged"
                           VerticalAlignment="Center"
-                          />
+                          AutomationProperties.Name=""/>
             </StackPanel>
             <TextBlock x:Name="InputLabel"
                        Foreground="{DynamicResource TextSecondaryBrush}"
@@ -81,17 +83,19 @@
                  Padding="{StaticResource PaddingInput}"
                  Tag="text to encode/decode"
                  TextChanged="OnInputTextChanged"
-                 />
+                 AutomationProperties.Name=""/>
 
         <!-- Action buttons -->
         <StackPanel Grid.Row="2" Orientation="Horizontal"
                     HorizontalAlignment="Center" Margin="0,8">
             <Button x:Name="BtnEncode" Click="OnEncodeClick"
                     Style="{DynamicResource PrimaryButtonStyle}"
-                    Padding="16,6" Margin="0,0,8,0"/>
+                    Padding="16,6" Margin="0,0,8,0"
+                    AutomationProperties.Name=""/>
             <Button x:Name="BtnDecode" Click="OnDecodeClick"
                     Style="{DynamicResource SecondaryButtonStyle}"
-                    Padding="16,6" Margin="8,0,0,0"/>
+                    Padding="16,6" Margin="8,0,0,0"
+                    AutomationProperties.Name=""/>
         </StackPanel>
 
         <!-- Output text area -->
@@ -115,7 +119,7 @@
                      BorderBrush="{DynamicResource BorderBrush}"
                      BorderThickness="1"
                      Padding="{StaticResource PaddingInput}"
-                     />
+                     AutomationProperties.Name=""/>
         </Grid>
 
         <!-- Status bar -->
@@ -123,12 +127,14 @@
             <Button x:Name="BtnCopyOutput" DockPanel.Dock="Right"
                     Click="OnCopyOutputClick"
                     Style="{DynamicResource SecondaryButtonStyle}"
-                    Padding="{StaticResource PaddingButtonCopy}"/>
+                    Padding="{StaticResource PaddingButtonCopy}"
+                    AutomationProperties.Name=""/>
             <Button x:Name="BtnBrowseFile" DockPanel.Dock="Right"
                     Click="OnBrowseFileClick"
                     Style="{DynamicResource SecondaryButtonStyle}"
                     Padding="{StaticResource PaddingButtonCopy}" Margin="0,0,8,0"
-                    Visibility="Collapsed"/>
+                    Visibility="Collapsed"
+                    AutomationProperties.Name=""/>
             <TextBlock x:Name="StatusText"
                        Foreground="{DynamicResource TextSecondaryBrush}"
                        FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center"/>

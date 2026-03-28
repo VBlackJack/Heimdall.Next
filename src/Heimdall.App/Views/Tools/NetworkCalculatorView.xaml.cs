@@ -47,6 +47,12 @@ public partial class NetworkCalculatorView : UserControl, IToolView
         _localizer = localizer;
         ApplyLocalization();
 
+        // Enter key handlers for single-line inputs
+        TxtStartIp.KeyDown += (s, e) => { if (e.Key == System.Windows.Input.Key.Enter) OnRangeComputeClick(s, e); };
+        TxtEndIp.KeyDown += (s, e) => { if (e.Key == System.Windows.Input.Key.Enter) OnRangeComputeClick(s, e); };
+        TxtHostsNeeded.KeyDown += (s, e) => { if (e.Key == System.Windows.Input.Key.Enter) OnVlanComputeClick(s, e); };
+        TxtBaseNetwork.KeyDown += (s, e) => { if (e.Key == System.Windows.Input.Key.Enter) OnVlanComputeClick(s, e); };
+
         // Default sample data
         TxtSupernetInput.Text = "192.168.1.0/24\n192.168.2.0/24";
         TxtStartIp.Text = "10.0.0.1";
@@ -76,6 +82,9 @@ public partial class NetworkCalculatorView : UserControl, IToolView
         BtnCopyResult.Content = L("ToolBtnCopyValue");
         BtnCopyResult.ToolTip = L("ToolBtnCopyToClipboard");
 
+        AutomationProperties.SetName(RbSupernet, L("ToolNetCalcModeSupernet"));
+        AutomationProperties.SetName(RbRangeToCidr, L("ToolNetCalcModeRangeToCidr"));
+        AutomationProperties.SetName(RbVlanPlanner, L("ToolNetCalcModeVlanPlanner"));
         AutomationProperties.SetName(TxtSupernetInput, L("ToolNetCalcSupernetInputLabel"));
         AutomationProperties.SetName(TxtStartIp, L("ToolNetCalcStartIp"));
         AutomationProperties.SetName(TxtEndIp, L("ToolNetCalcEndIp"));

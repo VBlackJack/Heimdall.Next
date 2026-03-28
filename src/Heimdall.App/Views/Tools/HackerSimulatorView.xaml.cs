@@ -2182,6 +2182,15 @@ public partial class HackerSimulatorView : UserControl, IToolView
         System.Windows.Automation.AutomationProperties.SetName(SliderSpeed, L("ToolHackerSimSpeed"));
         System.Windows.Automation.AutomationProperties.SetName(BtnStartStop,
             _isRunning ? L("ToolHackerSimBtnStop") : L("ToolHackerSimBtnStart"));
+        System.Windows.Automation.AutomationProperties.SetName(CmbScenario, L("ToolHackerSimLblScenario"));
+        System.Windows.Automation.AutomationProperties.SetName(CmbCategory, L("ToolHackerSimLblCategory"));
+        System.Windows.Automation.AutomationProperties.SetName(CmbRealism, L("ToolHackerSimLblRealism"));
+        System.Windows.Automation.AutomationProperties.SetName(CmbPlaylist, L("ToolHackerSimLblPlaylist"));
+        System.Windows.Automation.AutomationProperties.SetName(TxtScenarioSearch, L("ToolHackerSimLblSearch"));
+        System.Windows.Automation.AutomationProperties.SetName(ChkRandomMode, L("ToolHackerSimRandomInFilter"));
+        System.Windows.Automation.AutomationProperties.SetName(ChkVintageMonitor, L("ToolHackerSimVintageMonitor"));
+        System.Windows.Automation.AutomationProperties.SetName(BtnReplaySeed, L("ToolHackerSimReplaySeed"));
+        System.Windows.Automation.AutomationProperties.SetName(BtnExportTranscript, L("ToolHackerSimExportTranscript"));
         PopulateFilterControls();
         PopulatePlaylistControl();
         UpdateFavoriteButton();

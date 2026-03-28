@@ -34,7 +34,8 @@
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
-                        Width="24" Height="24" Margin="8,0,0,0"/>
+                        Width="24" Height="24" Margin="8,0,0,0"
+                        AutomationProperties.Name=""/>
                 <TextBlock x:Name="HeaderTitle" DockPanel.Dock="Left"
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
@@ -47,13 +48,16 @@
                                Margin="0,0,12,0"/>
                     <Button x:Name="BtnCompare" Click="OnCompareClick"
                             Style="{DynamicResource PrimaryButtonStyle}"
-                            Padding="16,6" Margin="0,0,4,0"/>
+                            Padding="16,6" Margin="0,0,4,0"
+                            AutomationProperties.Name=""/>
                     <Button x:Name="BtnSwap" Click="OnSwapClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="10,6" Margin="4,0,4,0"/>
+                            Padding="{StaticResource PaddingButtonCopy}" Margin="4,0,4,0"
+                            AutomationProperties.Name=""/>
                     <Button x:Name="BtnClear" Click="OnClearClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="10,6" Margin="4,0,0,0"/>
+                            Padding="{StaticResource PaddingButtonCopy}" Margin="4,0,0,0"
+                            AutomationProperties.Name=""/>
                 </StackPanel>
             </DockPanel>
         </Border>
@@ -95,7 +99,7 @@
                          BorderThickness="1"
                          Padding="{StaticResource PaddingInput}"
                          Tag="original text"
-/>
+                         AutomationProperties.Name=""/>
             </Grid>
 
             <!-- Right: Modified -->
@@ -119,7 +123,7 @@
                          BorderThickness="1"
                          Padding="{StaticResource PaddingInput}"
                          Tag="modified text"
-/>
+                         AutomationProperties.Name=""/>
             </Grid>
         </Grid>
 
@@ -131,20 +135,24 @@
             <Button x:Name="BtnCopyDiff" DockPanel.Dock="Right"
                     Click="OnCopyDiffClick"
                     Style="{DynamicResource SecondaryButtonStyle}"
-                    Padding="{StaticResource PaddingButtonCopy}" HorizontalAlignment="Right"/>
+                    Padding="{StaticResource PaddingButtonCopy}" HorizontalAlignment="Right"
+                    AutomationProperties.Name=""/>
             <StackPanel Orientation="Horizontal" Margin="16,0,8,0" VerticalAlignment="Center">
                 <CheckBox x:Name="ChkIgnoreWhitespace"
                           Foreground="{DynamicResource TextPrimaryBrush}"
                           VerticalAlignment="Center" Margin="0,0,12,0"
-                          Checked="OnDiffOptionChanged" Unchecked="OnDiffOptionChanged"/>
+                          Checked="OnDiffOptionChanged" Unchecked="OnDiffOptionChanged"
+                          AutomationProperties.Name=""/>
                 <CheckBox x:Name="ChkIgnoreCase"
                           Foreground="{DynamicResource TextPrimaryBrush}"
                           VerticalAlignment="Center" Margin="0,0,12,0"
-                          Checked="OnDiffOptionChanged" Unchecked="OnDiffOptionChanged"/>
+                          Checked="OnDiffOptionChanged" Unchecked="OnDiffOptionChanged"
+                          AutomationProperties.Name=""/>
                 <CheckBox x:Name="ChkAutoCompare"
                           Foreground="{DynamicResource TextPrimaryBrush}"
                           VerticalAlignment="Center"
-                          Checked="OnAutoCompareChanged" Unchecked="OnAutoCompareChanged"/>
+                          Checked="OnAutoCompareChanged" Unchecked="OnAutoCompareChanged"
+                          AutomationProperties.Name=""/>
             </StackPanel>
         </DockPanel>
 

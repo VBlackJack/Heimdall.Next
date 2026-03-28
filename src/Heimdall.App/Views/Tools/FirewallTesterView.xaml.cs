@@ -54,6 +54,7 @@ public partial class FirewallTesterView : UserControl, IToolView
     public FirewallTesterView()
     {
         InitializeComponent();
+        TxtPorts.KeyDown += (s, e) => { if (e.Key == System.Windows.Input.Key.Enter) OnTestClick(s, e); };
     }
 
     /// <summary>
@@ -99,6 +100,7 @@ public partial class FirewallTesterView : UserControl, IToolView
         LblRouteVia.Text = L("ToolTunnelRouteVia");
 
         TxtEmptyState.Text = L("ToolFwEmptyState");
+        TxtHosts.Tag = L("ToolFwTestHostsPlaceholder");
 
         LblSummary.Text = "";
 
