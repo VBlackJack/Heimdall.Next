@@ -469,11 +469,13 @@ public partial class BannerGrabberView : UserControl, IToolView
 
         try
         {
+            var safeHost = InputValidator.EscapeShellArg(host);
+
             // First check connectivity
             var connectResult = await Task.Run(() =>
             {
                 using var cmd = sshClient.CreateCommand(
-                    $"(echo >/dev/tcp/{host}/{port}) 2>/dev/null && echo OPEN || echo CLOSED");
+                    $"(echo >/dev/tcp/{safeHost}/{port}) 2>/dev/null && echo OPEN || echo CLOSED");
                 cmd.CommandTimeout = TimeSpan.FromMilliseconds(ConnectTimeoutMs);
                 cmd.Execute();
                 return cmd.Result?.Trim();
@@ -490,7 +492,7 @@ public partial class BannerGrabberView : UserControl, IToolView
             var bannerRaw = await Task.Run(() =>
             {
                 using var cmd = sshClient.CreateCommand(
-                    $"timeout 2 bash -c \"cat < /dev/tcp/{host}/{port}\" 2>/dev/null | head -c {BannerMaxBytes}");
+                    $"timeout 2 bash -c \"cat < /dev/tcp/{safeHost}/{port}\" 2>/dev/null | head -c {BannerMaxBytes}");
                 cmd.CommandTimeout = TimeSpan.FromSeconds(5);
                 cmd.Execute();
                 return cmd.Result?.Trim();
@@ -774,14 +776,14 @@ public partial class BannerGrabberView : UserControl, IToolView
 
         // Copy Port
         var copyPort = new MenuItem { Header = L("ToolCtxCopyPort") };
-        copyPort.Click += (_, _) => Clipboard.SetText(row.Port.ToString());
+        copyPort.Click += (_, _) => { try { Clipboard.SetText(row.Port.ToString()); } catch (System.Runtime.InteropServices.ExternalException) { /* clipboard locked */ } };
         menu.Items.Add(copyPort);
 
         // Copy Service
         if (!string.IsNullOrWhiteSpace(row.Service))
         {
             var copyService = new MenuItem { Header = L("ToolCtxCopyService") };
-            copyService.Click += (_, _) => Clipboard.SetText(row.Service);
+            copyService.Click += (_, _) => { try { Clipboard.SetText(row.Service); } catch (System.Runtime.InteropServices.ExternalException) { /* clipboard locked */ } };
             menu.Items.Add(copyService);
         }
 
@@ -789,7 +791,7 @@ public partial class BannerGrabberView : UserControl, IToolView
         if (!string.IsNullOrWhiteSpace(row.Banner))
         {
             var copyBanner = new MenuItem { Header = L("ToolCtxCopyBanner") };
-            copyBanner.Click += (_, _) => Clipboard.SetText(row.Banner);
+            copyBanner.Click += (_, _) => { try { Clipboard.SetText(row.Banner); } catch (System.Runtime.InteropServices.ExternalException) { /* clipboard locked */ } };
             menu.Items.Add(copyBanner);
         }
 

@@ -37,7 +37,7 @@
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
-                        Width="24" Height="24" Margin="8,0,0,0"
+                        Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"
                         AutomationProperties.Name=""/>
                 <TextBlock x:Name="HeaderTitle" Text=""
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
@@ -146,7 +146,7 @@
 
         <!-- Row 3: Compliance badge -->
         <Border x:Name="ComplianceBadgePanel" Grid.Row="3" Visibility="Collapsed"
-                Padding="16,12" Margin="{StaticResource SpacingSm}"
+                Padding="{StaticResource PaddingSectionCard}" Margin="{StaticResource SpacingSm}"
                 Background="{DynamicResource CardBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}">
@@ -159,7 +159,7 @@
                     <TextBlock x:Name="LblCompliance" Text=""
                                FontSize="{StaticResource FontSizeSubtitle}"
                                Foreground="{DynamicResource TextSecondaryBrush}"
-                               VerticalAlignment="Center" Margin="8,0,0,0"/>
+                               VerticalAlignment="Center" Margin="{StaticResource MarginInlineControl}"/>
                 </StackPanel>
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
                     <TextBlock x:Name="TxtPassCount" Text="" FontSize="{StaticResource FontSizeBody}"

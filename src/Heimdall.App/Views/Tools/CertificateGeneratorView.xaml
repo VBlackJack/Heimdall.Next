@@ -33,7 +33,7 @@
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
-                        Width="24" Height="24" Margin="8,0,0,0"
+                        Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"
                         AutomationProperties.Name=""/>
                 <TextBlock x:Name="HeaderTitle"
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
@@ -61,7 +61,7 @@
                     Background="{DynamicResource SurfaceBrush}"
                     BorderBrush="{DynamicResource BorderBrush}"
                     BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
-                    Margin="0,0,0,12">
+                    Margin="{StaticResource MarginSectionBottom}">
                 <StackPanel>
                     <TextBlock x:Name="SubjectSectionLabel"
                                Foreground="{DynamicResource TextPrimaryBrush}"
@@ -110,7 +110,7 @@
                     Background="{DynamicResource SurfaceBrush}"
                     BorderBrush="{DynamicResource BorderBrush}"
                     BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
-                    Margin="0,0,0,12">
+                    Margin="{StaticResource MarginSectionBottom}">
                 <StackPanel>
                     <TextBlock x:Name="OptionsSectionLabel"
                                Foreground="{DynamicResource TextPrimaryBrush}"
@@ -166,7 +166,7 @@
                     Background="{DynamicResource SurfaceBrush}"
                     BorderBrush="{DynamicResource BorderBrush}"
                     BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
-                    Margin="0,0,0,12">
+                    Margin="{StaticResource MarginSectionBottom}">
                 <StackPanel>
                     <TextBlock x:Name="TypeSectionLabel"
                                Foreground="{DynamicResource TextPrimaryBrush}"
@@ -188,7 +188,7 @@
             <Button x:Name="BtnGenerate" Grid.Row="3"
                     Click="OnGenerateClick"
                     Style="{DynamicResource PrimaryButtonStyle}"
-                    Padding="16,6" Margin="0,0,0,16"
+                    Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginSectionSeparator}"
                     HorizontalAlignment="Left"
                     AutomationProperties.Name=""/>
 
@@ -197,7 +197,7 @@
                     Background="{DynamicResource SurfaceBrush}"
                     BorderBrush="{DynamicResource BorderBrush}"
                     BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
-                    Margin="0,0,0,12"
+                    Margin="{StaticResource MarginSectionBottom}"
                     Visibility="Collapsed" x:Name="FingerprintPanel">
                 <DockPanel>
                     <TextBlock x:Name="FingerprintLabel"
@@ -207,7 +207,7 @@
                     <Button x:Name="BtnCopyFingerprint" DockPanel.Dock="Right"
                             Click="OnCopyFingerprintClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="{StaticResource PaddingButtonCopy}" Margin="8,0,0,0"
+                            Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginInlineControl}"
                             VerticalAlignment="Center"
                             AutomationProperties.Name=""/>
                     <TextBox x:Name="FingerprintOutput"
@@ -226,7 +226,7 @@
                     Background="{DynamicResource SurfaceBrush}"
                     BorderBrush="{DynamicResource BorderBrush}"
                     BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
-                    Margin="0,0,0,12"
+                    Margin="{StaticResource MarginSectionBottom}"
                     Visibility="Collapsed" x:Name="CertPanel">
                 <DockPanel>
                     <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,6">
@@ -236,7 +236,7 @@
                         <Button x:Name="BtnCopyCert"
                                 Click="OnCopyCertClick"
                                 Style="{DynamicResource SecondaryButtonStyle}"
-                                Padding="{StaticResource PaddingButtonCopy}" Margin="8,0,0,0"
+                                Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginInlineControl}"
                                 VerticalAlignment="Center"
                                 AutomationProperties.Name=""/>
                     </StackPanel>
@@ -258,7 +258,7 @@
                     Background="{DynamicResource SurfaceBrush}"
                     BorderBrush="{DynamicResource BorderBrush}"
                     BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
-                    Margin="0,0,0,12"
+                    Margin="{StaticResource MarginSectionBottom}"
                     Visibility="Collapsed" x:Name="KeyPanel">
                 <DockPanel>
                     <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,6">
@@ -268,7 +268,7 @@
                         <Button x:Name="BtnCopyKey"
                                 Click="OnCopyKeyClick"
                                 Style="{DynamicResource SecondaryButtonStyle}"
-                                Padding="{StaticResource PaddingButtonCopy}" Margin="8,0,0,0"
+                                Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginInlineControl}"
                                 VerticalAlignment="Center"
                                 AutomationProperties.Name=""/>
                         <Button x:Name="BtnShowKey"
@@ -296,7 +296,7 @@
                     Background="{DynamicResource SurfaceBrush}"
                     BorderBrush="{DynamicResource BorderBrush}"
                     BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
-                    Margin="0,0,0,12"
+                    Margin="{StaticResource MarginSectionBottom}"
                     Visibility="Collapsed" x:Name="LeafPanel">
                 <StackPanel>
                     <!-- Leaf Cert -->
@@ -307,7 +307,7 @@
                         <Button x:Name="BtnCopyLeafCert"
                                 Click="OnCopyLeafCertClick"
                                 Style="{DynamicResource SecondaryButtonStyle}"
-                                Padding="{StaticResource PaddingButtonCopy}" Margin="8,0,0,0"
+                                Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginInlineControl}"
                                 VerticalAlignment="Center"
                                 AutomationProperties.Name=""/>
                     </StackPanel>
@@ -320,7 +320,7 @@
                              Background="Transparent"
                              Foreground="{DynamicResource TextPrimaryBrush}"
                              BorderThickness="0"
-                             Margin="0,0,0,12"
+                             Margin="{StaticResource MarginSectionBottom}"
                              AutomationProperties.Name=""/>
                     <!-- Leaf Key -->
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
@@ -330,7 +330,7 @@
                         <Button x:Name="BtnCopyLeafKey"
                                 Click="OnCopyLeafKeyClick"
                                 Style="{DynamicResource SecondaryButtonStyle}"
-                                Padding="{StaticResource PaddingButtonCopy}" Margin="8,0,0,0"
+                                Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginInlineControl}"
                                 VerticalAlignment="Center"
                                 AutomationProperties.Name=""/>
                         <Button x:Name="BtnShowLeafKey"
@@ -356,16 +356,16 @@
             <!-- Export buttons -->
             <StackPanel Grid.Row="8" Orientation="Horizontal"
                         Visibility="Collapsed" x:Name="ExportPanel"
-                        Margin="0,0,0,12">
+                        Margin="{StaticResource MarginSectionBottom}">
                 <Button x:Name="BtnSavePem"
                         Click="OnSavePemClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="16,6" Margin="0,0,8,0"
+                        Padding="{StaticResource PaddingButtonPrimary}" Margin="0,0,8,0"
                         AutomationProperties.Name=""/>
                 <Button x:Name="BtnSavePfx"
                         Click="OnSavePfxClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="16,6"
+                        Padding="{StaticResource PaddingButtonPrimary}"
                         AutomationProperties.Name=""/>
             </StackPanel>
         </Grid>

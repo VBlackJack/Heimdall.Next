@@ -33,7 +33,7 @@
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
-                        Width="24" Height="24" Margin="8,0,0,0"
+                        Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"
                         AutomationProperties.Name=""/>
                 <TextBlock x:Name="HeaderTitle" Text=""
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
@@ -51,7 +51,7 @@
                     <Button x:Name="BtnCopyDecoded" DockPanel.Dock="Right"
                             Content="" Click="OnCopyDecodedClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="{StaticResource PaddingButtonCopy}" Margin="8,0,0,0"
+                            Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginInlineControl}"
                             VerticalAlignment="Bottom"
                             AutomationProperties.Name=""/>
                     <TextBlock x:Name="LblDecoded" Text=""
@@ -78,7 +78,7 @@
                     <Button x:Name="BtnCopyEncoded" DockPanel.Dock="Right"
                             Content="" Click="OnCopyEncodedClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="{StaticResource PaddingButtonCopy}" Margin="8,0,0,0"
+                            Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginInlineControl}"
                             VerticalAlignment="Bottom"
                             AutomationProperties.Name=""/>
                     <TextBlock x:Name="LblEncoded" Text=""

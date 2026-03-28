@@ -154,10 +154,10 @@ public partial class CrontabBuilderView : UserControl, IToolView
         {
             MakeItem(L("ToolCronEveryMonth"), "*"),
         };
-        string[] monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        string[] monthKeys = ["ToolCronMonJan", "ToolCronMonFeb", "ToolCronMonMar", "ToolCronMonApr", "ToolCronMonMay", "ToolCronMonJun", "ToolCronMonJul", "ToolCronMonAug", "ToolCronMonSep", "ToolCronMonOct", "ToolCronMonNov", "ToolCronMonDec"];
         for (var i = 1; i <= 12; i++)
         {
-            monthItems.Add(MakeItem($"{i} ({monthNames[i - 1]})", i.ToString()));
+            monthItems.Add(MakeItem($"{i} ({L(monthKeys[i - 1])})", i.ToString()));
         }
         CmbMonth.ItemsSource = monthItems;
 
@@ -166,10 +166,10 @@ public partial class CrontabBuilderView : UserControl, IToolView
         {
             MakeItem(L("ToolCronEveryDayOfWeek"), "*"),
         };
-        string[] dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+        string[] dayAbbrKeys = ["ToolCronDayAbbrSun", "ToolCronDayAbbrMon", "ToolCronDayAbbrTue", "ToolCronDayAbbrWed", "ToolCronDayAbbrThu", "ToolCronDayAbbrFri", "ToolCronDayAbbrSat"];
         for (var i = 0; i < 7; i++)
         {
-            dowItems.Add(MakeItem($"{dayNames[i]} ({i})", i.ToString()));
+            dowItems.Add(MakeItem($"{L(dayAbbrKeys[i])} ({i})", i.ToString()));
         }
         CmbDayOfWeek.ItemsSource = dowItems;
     }
@@ -430,11 +430,11 @@ public partial class CrontabBuilderView : UserControl, IToolView
         return string.Format(L("ToolCronDescCustom"), string.Join(" ", fields));
     }
 
-    private static string GetDayName(string field)
+    private string GetDayName(string field)
     {
-        string[] days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+        string[] keys = ["ToolCronDaySunday", "ToolCronDayMonday", "ToolCronDayTuesday", "ToolCronDayWednesday", "ToolCronDayThursday", "ToolCronDayFriday", "ToolCronDaySaturday"];
         if (int.TryParse(field, out var idx) && idx >= 0 && idx < 7)
-            return days[idx];
+            return L(keys[idx]);
         return field;
     }
 

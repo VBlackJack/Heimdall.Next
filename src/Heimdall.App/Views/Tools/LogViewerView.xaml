@@ -36,7 +36,7 @@
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
-                        Width="24" Height="24" Margin="8,0,0,0"
+                        Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"
                         AutomationProperties.Name=""/>
                 <TextBlock x:Name="HeaderTitle"
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
@@ -84,7 +84,7 @@
             <DockPanel>
                 <ComboBox x:Name="EncodingCombo" DockPanel.Dock="Right"
                           SelectedIndex="0"
-                          MinWidth="120" Margin="8,0,0,0"
+                          MinWidth="120" Margin="{StaticResource MarginInlineControl}"
                           SelectionChanged="OnEncodingChanged"
                           VerticalAlignment="Center"
                           AutomationProperties.Name="">
@@ -98,7 +98,7 @@
                            VerticalAlignment="Center" Margin="8,0,4,0"/>
                 <CheckBox x:Name="ChkCaseSensitive" DockPanel.Dock="Right"
                           Foreground="{DynamicResource TextPrimaryBrush}"
-                          VerticalAlignment="Center" Margin="8,0,0,0"
+                          VerticalAlignment="Center" Margin="{StaticResource MarginInlineControl}"
                           AutomationProperties.Name=""/>
                 <Button x:Name="BtnClearFilter" DockPanel.Dock="Right"
                         Click="OnClearFilterClick"
@@ -162,12 +162,12 @@
                 <Button x:Name="BtnCopyLog" DockPanel.Dock="Right" Click="OnCopyLogClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonCopy}" FontSize="{StaticResource FontSizeCaption}"
-                        Margin="8,0,0,0" VerticalAlignment="Center"
+                        Margin="{StaticResource MarginInlineControl}" VerticalAlignment="Center"
                         AutomationProperties.Name=""/>
                 <TextBlock x:Name="TailStatusText" DockPanel.Dock="Right"
                            Foreground="{DynamicResource AccentBrush}"
                            FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center"
-                           Margin="8,0,0,0"
+                           Margin="{StaticResource MarginInlineControl}"
                            Visibility="Collapsed"/>
                 <TextBlock x:Name="StatsText"
                            Foreground="{DynamicResource TextSecondaryBrush}"

@@ -33,7 +33,7 @@
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
-                        Width="24" Height="24" Margin="8,0,0,0"
+                        Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"
                         AutomationProperties.Name=""/>
                 <TextBlock x:Name="HeaderTitle" FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
@@ -90,11 +90,11 @@
                     HorizontalAlignment="Center" Margin="0,8">
             <Button x:Name="BtnEncode" Click="OnEncodeClick"
                     Style="{DynamicResource PrimaryButtonStyle}"
-                    Padding="16,6" Margin="0,0,8,0"
+                    Padding="{StaticResource PaddingButtonPrimary}" Margin="0,0,8,0"
                     AutomationProperties.Name=""/>
             <Button x:Name="BtnDecode" Click="OnDecodeClick"
                     Style="{DynamicResource SecondaryButtonStyle}"
-                    Padding="16,6" Margin="8,0,0,0"
+                    Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginInlineControl}"
                     AutomationProperties.Name=""/>
         </StackPanel>
 

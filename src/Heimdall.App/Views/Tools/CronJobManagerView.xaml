@@ -34,7 +34,7 @@
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
-                        Width="24" Height="24" Margin="8,0,0,0"
+                        Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"
                         AutomationProperties.Name=""/>
                 <TextBlock x:Name="HeaderTitle" Text=""
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
@@ -106,12 +106,12 @@
                         <Button x:Name="BtnParse" Content=""
                                 Click="OnParseClick"
                                 Style="{DynamicResource PrimaryButtonStyle}"
-                                Padding="16,6"
+                                Padding="{StaticResource PaddingButtonPrimary}"
                                 AutomationProperties.Name=""/>
                         <Button x:Name="BtnClearPaste" Content=""
                                 Click="OnClearPasteClick"
                                 Style="{DynamicResource SecondaryButtonStyle}"
-                                Padding="16,6" Margin="8,0,0,0"
+                                Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginInlineControl}"
                                 AutomationProperties.Name=""/>
                     </StackPanel>
 
@@ -156,7 +156,7 @@
 
                     <!-- Detail panel -->
                     <Border x:Name="CronDetailPanel" Grid.Row="5" Visibility="Collapsed"
-                            Margin="0,8,0,0" Padding="12,8"
+                            Margin="0,8,0,0" Padding="{StaticResource PaddingAlertBanner}"
                             Background="{DynamicResource CardBrush}"
                             BorderBrush="{DynamicResource AccentBrush}"
                             BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}">
@@ -197,7 +197,7 @@
                         <Button x:Name="BtnRefreshTasks" Content=""
                                 Click="OnRefreshTasksClick"
                                 Style="{DynamicResource PrimaryButtonStyle}"
-                                Padding="16,6" DockPanel.Dock="Left"
+                                Padding="{StaticResource PaddingButtonPrimary}" DockPanel.Dock="Left"
                                 AutomationProperties.Name=""/>
                         <TextBlock x:Name="TxtTasksLoading" Text="" Visibility="Collapsed"
                                    FontSize="{StaticResource FontSizeBody}" Margin="12,0,0,0"

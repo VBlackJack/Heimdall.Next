@@ -304,7 +304,7 @@ public partial class HostsFileEditorView : UserControl, IToolView
             var ip = tb.Text.Trim();
             if (!string.IsNullOrWhiteSpace(ip) && !IpAddressPattern.IsMatch(ip))
             {
-                tb.BorderBrush = System.Windows.Media.Brushes.Red;
+                tb.BorderBrush = TryFindResource("ErrorBrush") as Brush ?? System.Windows.Media.Brushes.Red;
                 tb.ToolTip = L("ToolHostsEditorInvalidIp");
             }
             else
@@ -385,7 +385,7 @@ public partial class HostsFileEditorView : UserControl, IToolView
 
     public void Dispose()
     {
-        // Reserved for future resource cleanup.
+        GC.SuppressFinalize(this);
     }
 }
 

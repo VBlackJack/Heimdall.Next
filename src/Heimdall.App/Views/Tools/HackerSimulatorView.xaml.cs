@@ -251,8 +251,8 @@ public partial class HackerSimulatorView : UserControl, IToolView
 
         var menu = new ContextMenu
         {
-            Background = new SolidColorBrush(System.Windows.Media.Color.FromRgb(15, 15, 15)),
-            BorderBrush = new SolidColorBrush(System.Windows.Media.Color.FromRgb(51, 51, 51)),
+            Background = (Brush)FindResource("HackerSimBackgroundBrush"),
+            BorderBrush = (Brush)FindResource("HackerSimInputBorderBrush"),
             FontFamily = new System.Windows.Media.FontFamily("Consolas"),
             Foreground = s_green,
         };

@@ -23,6 +23,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Models;
+using Heimdall.Core.Security;
 
 namespace Heimdall.App.Views.Tools;
 
@@ -81,6 +82,7 @@ public partial class WhoisLookupView : UserControl, IToolView
         System.Windows.Automation.AutomationProperties.SetName(BtnLookup, L("ToolWhoisBtnLookup"));
         System.Windows.Automation.AutomationProperties.SetName(BtnCopyResults, L("ToolWhoisBtnCopy"));
         System.Windows.Automation.AutomationProperties.SetName(TxtResults, L("ToolWhoisResults"));
+        System.Windows.Automation.AutomationProperties.SetName(LoadingBar, L("ToolWhoisStatusQuerying"));
 
         BtnHelp.ToolTip = L("ToolHelpTooltip");
         System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
@@ -114,6 +116,14 @@ public partial class WhoisLookupView : UserControl, IToolView
         if (string.IsNullOrWhiteSpace(domain))
         {
             TxtError.Text = L("ToolWhoisErrorDomainRequired");
+            TxtError.Visibility = Visibility.Visible;
+            return;
+        }
+
+        if (!InputValidator.ValidateDomain(domain) &&
+            !System.Net.IPAddress.TryParse(domain, out _))
+        {
+            TxtError.Text = L("ToolWhoisErrorInvalidDomain");
             TxtError.Visibility = Visibility.Visible;
             return;
         }

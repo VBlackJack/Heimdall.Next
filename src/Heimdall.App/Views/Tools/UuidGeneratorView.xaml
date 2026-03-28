@@ -33,7 +33,7 @@
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
-                        Width="24" Height="24" Margin="8,0,0,0"
+                        Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"
                         AutomationProperties.Name=""/>
                 <TextBlock x:Name="HeaderTitle" Text=""
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
@@ -54,13 +54,13 @@
                     <Button x:Name="BtnCopy" DockPanel.Dock="Right"
                             Content="" Click="OnCopyClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="{StaticResource PaddingButtonPrimary}" Margin="8,0,0,0"
+                            Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginInlineControl}"
                             VerticalAlignment="Stretch"
                             AutomationProperties.Name=""/>
                     <Button x:Name="BtnGenerate" DockPanel.Dock="Right"
                             Content="" Click="OnGenerateClick"
                             Style="{DynamicResource PrimaryButtonStyle}"
-                            Padding="{StaticResource PaddingButtonPrimary}" Margin="8,0,0,0"
+                            Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginInlineControl}"
                             VerticalAlignment="Stretch"
                             AutomationProperties.Name=""/>
                     <TextBox x:Name="TxtResult" Text=""
@@ -74,7 +74,7 @@
                 </DockPanel>
 
                 <!-- Options -->
-                <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+                <StackPanel Orientation="Horizontal" Margin="{StaticResource MarginSectionSeparator}">
                     <ComboBox x:Name="CmbVersion" Width="160"
                               Margin="0,0,16,0"
                               Background="{DynamicResource CardBrush}"
@@ -104,11 +104,11 @@
                         <TextBlock x:Name="LblBatch" Text=""
                                    FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,8"
                                    Foreground="{DynamicResource TextSecondaryBrush}"/>
-                        <DockPanel Margin="0,0,0,12">
+                        <DockPanel Margin="{StaticResource MarginSectionBottom}">
                             <Button x:Name="BtnGenerateBatch" DockPanel.Dock="Right"
                                     Content="" Click="OnGenerateBatchClick"
                                     Style="{DynamicResource SecondaryButtonStyle}"
-                                    Padding="{StaticResource PaddingButtonPrimary}" Margin="8,0,0,0"
+                                    Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginInlineControl}"
                                     VerticalAlignment="Stretch"
                                     AutomationProperties.Name=""/>
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">

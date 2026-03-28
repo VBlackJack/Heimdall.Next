@@ -36,7 +36,7 @@
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
-                        Width="24" Height="24" Margin="8,0,0,0"
+                        Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"
                         AutomationProperties.Name=""/>
                 <TextBlock x:Name="HeaderTitle" Text=""
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
@@ -57,7 +57,7 @@
                              Style="{StaticResource WatermarkTextBoxStyle}"
                              Tag="22, 80, 443 or 1-1024"
                              FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
-                             Padding="{StaticResource PaddingInput}" Margin="8,0,0,0"
+                             Padding="{StaticResource PaddingInput}" Margin="{StaticResource MarginInlineControl}"
                              Background="{DynamicResource CardBrush}"
                              Foreground="{DynamicResource TextPrimaryBrush}"
                              BorderBrush="{DynamicResource BorderBrush}"
@@ -76,7 +76,7 @@
                     <Button x:Name="BtnScan" Content=""
                             Click="OnScanClick"
                             Style="{DynamicResource PrimaryButtonStyle}"
-                            Padding="16,6" Margin="8,0,0,0"
+                            Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginInlineControl}"
                             VerticalAlignment="Center"
                             AutomationProperties.Name=""/>
                 </StackPanel>

@@ -34,7 +34,7 @@
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
-                        Width="24" Height="24" Margin="8,0,0,0"
+                        Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"
                         AutomationProperties.Name=""/>
                 <TextBlock x:Name="HeaderTitle" Text=""
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
@@ -52,7 +52,7 @@
                 <TextBlock x:Name="TxtCopyHint" DockPanel.Dock="Right"
                            FontSize="{StaticResource FontSizeCaption}" FontStyle="Italic"
                            Foreground="{DynamicResource TextSecondaryBrush}"
-                           VerticalAlignment="Center" Margin="8,0,0,0"/>
+                           VerticalAlignment="Center" Margin="{StaticResource MarginInlineControl}"/>
                 <TextBox x:Name="TxtFilter" Text=""
                          FontSize="{StaticResource FontSizeBodyLarge}" Padding="{StaticResource PaddingInput}"
                          Background="{DynamicResource CardBrush}"

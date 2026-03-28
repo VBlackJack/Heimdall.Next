@@ -36,12 +36,36 @@
     <!-- Button padding by role -->
     <Thickness x:Key="PaddingButtonHelp">6,2</Thickness>
     <Thickness x:Key="PaddingButtonCopy">10,4</Thickness>
-    <Thickness x:Key="PaddingButtonPrimary">12,6</Thickness>
+    <Thickness x:Key="PaddingButtonPrimary">16,6</Thickness>
     <Thickness x:Key="PaddingButtonPreset">8,2</Thickness>
     <Thickness x:Key="PaddingButtonToolbar">8,4</Thickness>
 
     <!-- Input field padding -->
     <Thickness x:Key="PaddingInput">8,6</Thickness>
+
+    <!-- Section card / result panel padding -->
+    <Thickness x:Key="PaddingSectionCard">16,12</Thickness>
+
+    <!-- Alert / info banner padding -->
+    <Thickness x:Key="PaddingAlertBanner">12,8</Thickness>
+
+    <!-- Inline control left margin (help buttons, adjacent controls in header bars) -->
+    <Thickness x:Key="MarginInlineControl">8,0,0,0</Thickness>
+
+    <!-- Button grid / wrap panel margin (right+bottom gap) -->
+    <Thickness x:Key="MarginButtonGroup">0,0,6,6</Thickness>
+
+    <!-- Section bottom margin (between stacked result cards) -->
+    <Thickness x:Key="MarginSectionBottom">0,0,0,12</Thickness>
+
+    <!-- Section separator margin (larger gap between major sections) -->
+    <Thickness x:Key="MarginSectionSeparator">0,0,0,16</Thickness>
+
+    <!-- Section top margin (top spacing before stacked content) -->
+    <Thickness x:Key="MarginSectionTop">0,12,0,0</Thickness>
+
+    <!-- Grid row spacer height -->
+    <sys:Double x:Key="SpacingRowGap">8</sys:Double>
 
     <!-- Session header strip padding (horizontal=8, vertical=4) -->
     <Thickness x:Key="SessionHeaderPadding">8,4</Thickness>

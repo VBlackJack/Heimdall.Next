@@ -623,7 +623,7 @@ public partial class SecNumCloudAuditView : UserControl, IToolView
                         Text = ev.RawData,
                         IsReadOnly = true,
                         FontSize = (double)FindResource("FontSizeSmallCaption"),
-                        FontFamily = new FontFamily("Consolas"),
+                        FontFamily = (System.Windows.Media.FontFamily)FindResource("FontFamilyMonospace"),
                         Foreground = (Brush)FindResource("TextSecondaryBrush"),
                         Background = Brushes.Transparent,
                         BorderThickness = new Thickness(0),

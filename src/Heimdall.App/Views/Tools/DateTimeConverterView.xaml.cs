@@ -327,9 +327,9 @@ public partial class DateTimeConverterView : UserControl, IToolView
                 Clipboard.SetText(text);
                 CopyFeedbackHelper.ShowCopyFeedback(btn);
             }
-            catch (Exception ex)
+            catch (System.Runtime.InteropServices.ExternalException)
             {
-                Core.Logging.FileLogger.Warn($"DateTimeConverter clipboard copy failed: {ex.Message}");
+                // Clipboard locked by another process
             }
         }
     }
@@ -349,5 +349,6 @@ public partial class DateTimeConverterView : UserControl, IToolView
             _debounceTimer.Stop();
             _debounceTimer = null;
         }
+        GC.SuppressFinalize(this);
     }
 }

@@ -34,7 +34,7 @@
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
-                        Width="24" Height="24" Margin="8,0,0,0"
+                        Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"
                         AutomationProperties.Name=""/>
                 <TextBlock x:Name="HeaderTitle" Text=""
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
@@ -51,22 +51,22 @@
                 <TextBlock x:Name="LblHostname" Text=""
                            FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,4"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
-                <DockPanel Margin="0,0,0,16">
+                <DockPanel Margin="{StaticResource MarginSectionSeparator}">
                     <Button x:Name="BtnLookup" DockPanel.Dock="Right"
                             Content="" Click="OnLookupClick"
                             Style="{DynamicResource PrimaryButtonStyle}"
-                            Padding="16,6" Margin="8,0,0,0"
+                            Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginInlineControl}"
                             VerticalAlignment="Center"
                             AutomationProperties.Name=""/>
                     <ComboBox x:Name="CmbDnsServer" DockPanel.Dock="Right"
-                              Width="160" Margin="8,0,0,0"
+                              Width="160" Margin="{StaticResource MarginInlineControl}"
                               VerticalAlignment="Center"
                               Background="{DynamicResource CardBrush}"
                               Foreground="{DynamicResource TextPrimaryBrush}"
                               BorderBrush="{DynamicResource BorderBrush}"
                               AutomationProperties.Name=""/>
                     <ComboBox x:Name="CmbRecordType" DockPanel.Dock="Right"
-                              Width="100" Margin="8,0,0,0"
+                              Width="100" Margin="{StaticResource MarginInlineControl}"
                               VerticalAlignment="Center"
                               Background="{DynamicResource CardBrush}"
                               Foreground="{DynamicResource TextPrimaryBrush}"
@@ -101,12 +101,12 @@
 
                 <!-- Error message -->
                 <TextBlock x:Name="TxtError" Text="" Visibility="Collapsed"
-                           FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,12" TextWrapping="Wrap"
+                           FontSize="{StaticResource FontSizeBody}" Margin="{StaticResource MarginSectionBottom}" TextWrapping="Wrap"
                            Foreground="{DynamicResource ErrorTextBrush}"/>
 
                 <!-- Loading indicator -->
                 <ProgressBar x:Name="LoadingBar" IsIndeterminate="True"
-                             Visibility="Collapsed" Height="4" Margin="0,0,0,12"
+                             Visibility="Collapsed" Height="4" Margin="{StaticResource MarginSectionBottom}"
                              AutomationProperties.Name=""/>
 
                 <!-- Empty state hint (hidden once results appear) -->
@@ -130,12 +130,12 @@
                         Background="{DynamicResource CardBrush}"
                         BorderBrush="{DynamicResource BorderBrush}"
                         BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
-                        Padding="16,12">
+                        Padding="{StaticResource PaddingSectionCard}">
                     <StackPanel>
                         <DockPanel Margin="0,0,0,8">
                             <Button x:Name="BtnCopyResults" DockPanel.Dock="Right" Click="OnCopyResultsClick"
                                     Style="{DynamicResource SecondaryButtonStyle}"
-                                    Padding="{StaticResource PaddingButtonPreset}" FontSize="{StaticResource FontSizeCaption}" Margin="8,0,0,0" VerticalAlignment="Center"
+                                    Padding="{StaticResource PaddingButtonPreset}" FontSize="{StaticResource FontSizeCaption}" Margin="{StaticResource MarginInlineControl}" VerticalAlignment="Center"
                                     AutomationProperties.Name=""/>
                             <TextBlock x:Name="TxtResultHeader" Text=""
                                        FontSize="{StaticResource FontSizeBodyLarge}" FontWeight="SemiBold"

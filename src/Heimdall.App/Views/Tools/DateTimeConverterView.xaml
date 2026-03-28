@@ -33,7 +33,7 @@
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
-                        Width="24" Height="24" Margin="8,0,0,0"
+                        Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"
                         AutomationProperties.Name=""/>
                 <TextBlock x:Name="HeaderTitle" Text=""
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
@@ -55,7 +55,7 @@
                     <Button x:Name="BtnNow" DockPanel.Dock="Right"
                             Content="" Click="OnNowClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="{StaticResource PaddingButtonPrimary}" Margin="8,0,0,0"
+                            Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginInlineControl}"
                             VerticalAlignment="Stretch"
                             AutomationProperties.Name=""/>
                     <TextBox x:Name="TxtInput" Text=""
@@ -72,18 +72,18 @@
 
                 <!-- Detected format -->
                 <TextBlock x:Name="TxtDetectedFormat" Text=""
-                           FontSize="{StaticResource FontSizeCaption}" Margin="0,0,0,16"
+                           FontSize="{StaticResource FontSizeCaption}" Margin="{StaticResource MarginSectionSeparator}"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
 
                 <!-- Unix Timestamp -->
                 <TextBlock x:Name="LblUnixTimestamp" Text=""
                            FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,4"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
-                <DockPanel Margin="0,0,0,12">
+                <DockPanel Margin="{StaticResource MarginSectionBottom}">
                     <Button x:Name="BtnCopyUnix" DockPanel.Dock="Right"
                             Content="" Click="OnCopyUnixClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="{StaticResource PaddingButtonPrimary}" Margin="8,0,0,0"
+                            Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginInlineControl}"
                             VerticalAlignment="Stretch"
                             AutomationProperties.Name=""/>
                     <TextBox x:Name="TxtUnixTimestamp" Text=""
@@ -99,11 +99,11 @@
                 <TextBlock x:Name="LblIsoUtc" Text=""
                            FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,4"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
-                <DockPanel Margin="0,0,0,12">
+                <DockPanel Margin="{StaticResource MarginSectionBottom}">
                     <Button x:Name="BtnCopyIsoUtc" DockPanel.Dock="Right"
                             Content="" Click="OnCopyIsoUtcClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="{StaticResource PaddingButtonPrimary}" Margin="8,0,0,0"
+                            Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginInlineControl}"
                             VerticalAlignment="Stretch"
                             AutomationProperties.Name=""/>
                     <TextBox x:Name="TxtIsoUtc" Text=""
@@ -119,11 +119,11 @@
                 <TextBlock x:Name="LblIsoLocal" Text=""
                            FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,4"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
-                <DockPanel Margin="0,0,0,12">
+                <DockPanel Margin="{StaticResource MarginSectionBottom}">
                     <Button x:Name="BtnCopyIsoLocal" DockPanel.Dock="Right"
                             Content="" Click="OnCopyIsoLocalClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="{StaticResource PaddingButtonPrimary}" Margin="8,0,0,0"
+                            Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginInlineControl}"
                             VerticalAlignment="Stretch"
                             AutomationProperties.Name=""/>
                     <TextBox x:Name="TxtIsoLocal" Text=""
@@ -139,11 +139,11 @@
                 <TextBlock x:Name="LblLocalTime" Text=""
                            FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,4"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
-                <DockPanel Margin="0,0,0,12">
+                <DockPanel Margin="{StaticResource MarginSectionBottom}">
                     <Button x:Name="BtnCopyLocalTime" DockPanel.Dock="Right"
                             Content="" Click="OnCopyLocalTimeClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="{StaticResource PaddingButtonPrimary}" Margin="8,0,0,0"
+                            Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginInlineControl}"
                             VerticalAlignment="Stretch"
                             AutomationProperties.Name=""/>
                     <TextBox x:Name="TxtLocalTime" Text=""
@@ -163,7 +163,7 @@
                     <Button x:Name="BtnCopyTzTime" DockPanel.Dock="Right"
                             Content="" Click="OnCopyTzTimeClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="{StaticResource PaddingButtonPrimary}" Margin="8,0,0,0"
+                            Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginInlineControl}"
                             VerticalAlignment="Stretch"
                             AutomationProperties.Name=""/>
                     <ComboBox x:Name="CmbTimezone" MinWidth="200" MaxWidth="400"

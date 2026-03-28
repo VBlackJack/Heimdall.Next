@@ -33,7 +33,7 @@
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
-                        Width="24" Height="24" Margin="8,0,0,0"
+                        Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"
                         AutomationProperties.Name=""/>
                 <TextBlock x:Name="HeaderTitle" Text=""
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
@@ -65,7 +65,7 @@
                          />
 
                 <!-- Expiration status -->
-                <Border x:Name="ExpirationBorder" Margin="0,12,0,0"
+                <Border x:Name="ExpirationBorder" Margin="{StaticResource MarginSectionTop}"
                         Padding="10,6" CornerRadius="{StaticResource CornerRadiusSm}"
                         Visibility="Collapsed">
                     <TextBlock x:Name="TxtExpiration" Text=""
@@ -74,7 +74,7 @@
 
                 <!-- Error message -->
                 <TextBlock x:Name="TxtError" Text=""
-                           FontSize="{StaticResource FontSizeBody}" Margin="0,12,0,0"
+                           FontSize="{StaticResource FontSizeBody}" Margin="{StaticResource MarginSectionTop}"
                            Foreground="{DynamicResource ErrorTextBrush}"
                            TextWrapping="Wrap"
                            Visibility="Collapsed"/>
@@ -83,7 +83,7 @@
                 <DockPanel Margin="0,16,0,4">
                     <Button x:Name="BtnCopyHeader" DockPanel.Dock="Right" Click="OnCopyHeaderClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeCaption}" Margin="8,0,0,0" VerticalAlignment="Center"
+                            Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeCaption}" Margin="{StaticResource MarginInlineControl}" VerticalAlignment="Center"
                             AutomationProperties.Name=""/>
                     <TextBlock x:Name="LblHeader" Text=""
                                FontSize="{StaticResource FontSizeBody}" FontWeight="SemiBold"
@@ -91,7 +91,7 @@
                 </DockPanel>
                 <Border Background="{DynamicResource CardBrush}"
                         BorderBrush="{DynamicResource JwtHeaderBrush}" BorderThickness="1"
-                        CornerRadius="{StaticResource CornerRadiusSm}" Padding="{StaticResource SpacingSm}" Margin="0,0,0,12">
+                        CornerRadius="{StaticResource CornerRadiusSm}" Padding="{StaticResource SpacingSm}" Margin="{StaticResource MarginSectionBottom}">
                     <TextBox x:Name="TxtHeader" Text=""
                              FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                              IsReadOnly="True"
@@ -108,7 +108,7 @@
                 <DockPanel Margin="0,4,0,4">
                     <Button x:Name="BtnCopyPayload" DockPanel.Dock="Right" Click="OnCopyPayloadClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeCaption}" Margin="8,0,0,0" VerticalAlignment="Center"
+                            Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeCaption}" Margin="{StaticResource MarginInlineControl}" VerticalAlignment="Center"
                             AutomationProperties.Name=""/>
                     <TextBlock x:Name="LblPayload" Text=""
                                FontSize="{StaticResource FontSizeBody}" FontWeight="SemiBold"
@@ -116,7 +116,7 @@
                 </DockPanel>
                 <Border Background="{DynamicResource CardBrush}"
                         BorderBrush="{DynamicResource JwtPayloadBrush}" BorderThickness="1"
-                        CornerRadius="{StaticResource CornerRadiusSm}" Padding="{StaticResource SpacingSm}" Margin="0,0,0,12">
+                        CornerRadius="{StaticResource CornerRadiusSm}" Padding="{StaticResource SpacingSm}" Margin="{StaticResource MarginSectionBottom}">
                     <TextBox x:Name="TxtPayload" Text=""
                              FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                              IsReadOnly="True"
@@ -133,7 +133,7 @@
                 <DockPanel Margin="0,4,0,4">
                     <Button x:Name="BtnCopySignature" DockPanel.Dock="Right" Click="OnCopySignatureClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeCaption}" Margin="8,0,0,0" VerticalAlignment="Center"
+                            Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeCaption}" Margin="{StaticResource MarginInlineControl}" VerticalAlignment="Center"
                             AutomationProperties.Name=""/>
                     <TextBlock x:Name="LblSignature" Text=""
                                FontSize="{StaticResource FontSizeBody}" FontWeight="SemiBold"
@@ -141,7 +141,7 @@
                 </DockPanel>
                 <Border Background="{DynamicResource CardBrush}"
                         BorderBrush="{DynamicResource JwtSignatureBrush}" BorderThickness="1"
-                        CornerRadius="{StaticResource CornerRadiusSm}" Padding="{StaticResource SpacingSm}" Margin="0,0,0,12">
+                        CornerRadius="{StaticResource CornerRadiusSm}" Padding="{StaticResource SpacingSm}" Margin="{StaticResource MarginSectionBottom}">
                     <TextBox x:Name="TxtSignature" Text=""
                              FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                              IsReadOnly="True"
@@ -158,7 +158,7 @@
                         Background="{DynamicResource CardBrush}"
                         BorderBrush="{DynamicResource BorderBrush}"
                         BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
-                        Padding="{StaticResource SpacingMd}" Margin="0,0,0,12">
+                        Padding="{StaticResource SpacingMd}" Margin="{StaticResource MarginSectionBottom}">
                     <StackPanel>
                         <TextBlock x:Name="LblVerifyTitle" Text=""
                                    FontSize="{StaticResource FontSizeBody}" FontWeight="SemiBold"
@@ -181,7 +181,7 @@
                                 <Button x:Name="BtnVerify" DockPanel.Dock="Right"
                                         Content="" Click="OnVerifyClick"
                                         Style="{DynamicResource PrimaryButtonStyle}"
-                                        Padding="16,6" Margin="8,0,0,0"
+                                        Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginInlineControl}"
                                         VerticalAlignment="Center"
                                         AutomationProperties.Name=""/>
                                 <TextBox x:Name="TxtSecret" Text=""

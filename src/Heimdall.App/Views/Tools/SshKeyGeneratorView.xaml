@@ -33,7 +33,7 @@
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
-                        Width="24" Height="24" Margin="8,0,0,0"
+                        Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"
                         AutomationProperties.Name=""/>
                 <TextBlock x:Name="HeaderTitle"
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
@@ -58,7 +58,7 @@
                     Background="{DynamicResource SurfaceBrush}"
                     BorderBrush="{DynamicResource BorderBrush}"
                     BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
-                    Margin="0,0,0,12">
+                    Margin="{StaticResource MarginSectionBottom}">
                 <StackPanel>
                     <!-- Algorithm -->
                     <DockPanel Margin="0,0,0,8">
@@ -114,7 +114,7 @@
             <Button x:Name="BtnGenerate" Grid.Row="1"
                     Click="OnGenerateClick"
                     Style="{DynamicResource PrimaryButtonStyle}"
-                    Padding="16,6" Margin="0,0,0,16"
+                    Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginSectionSeparator}"
                     HorizontalAlignment="Left"
                     AutomationProperties.Name=""/>
 
@@ -123,7 +123,7 @@
                     Background="{DynamicResource SurfaceBrush}"
                     BorderBrush="{DynamicResource BorderBrush}"
                     BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
-                    Margin="0,0,0,12"
+                    Margin="{StaticResource MarginSectionBottom}"
                     Visibility="Collapsed" x:Name="FingerprintPanel">
                 <DockPanel>
                     <TextBlock x:Name="FingerprintLabel"
@@ -133,7 +133,7 @@
                     <Button x:Name="BtnCopyFingerprint" DockPanel.Dock="Right"
                             Click="OnCopyFingerprintClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="{StaticResource PaddingButtonCopy}" Margin="8,0,0,0"
+                            Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginInlineControl}"
                             VerticalAlignment="Center"
                             AutomationProperties.Name=""/>
                     <TextBox x:Name="FingerprintOutput"
@@ -153,7 +153,7 @@
                     Background="{DynamicResource SurfaceBrush}"
                     BorderBrush="{DynamicResource BorderBrush}"
                     BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
-                    Margin="0,0,0,12"
+                    Margin="{StaticResource MarginSectionBottom}"
                     Visibility="Collapsed" x:Name="PublicKeyPanel">
                 <DockPanel>
                     <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,6">
@@ -163,7 +163,7 @@
                         <Button x:Name="BtnCopyPublicKey"
                                 Click="OnCopyPublicKeyClick"
                                 Style="{DynamicResource SecondaryButtonStyle}"
-                                Padding="{StaticResource PaddingButtonCopy}" Margin="8,0,0,0"
+                                Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginInlineControl}"
                                 VerticalAlignment="Center"
                                 AutomationProperties.Name=""/>
                         <Button x:Name="BtnSavePublicKey"
@@ -192,7 +192,7 @@
                     Background="{DynamicResource SurfaceBrush}"
                     BorderBrush="{DynamicResource BorderBrush}"
                     BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
-                    Margin="0,0,0,12"
+                    Margin="{StaticResource MarginSectionBottom}"
                     Visibility="Collapsed" x:Name="PrivateKeyPanel">
                 <DockPanel>
                     <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,6">
@@ -202,7 +202,7 @@
                         <Button x:Name="BtnCopyPrivateKey"
                                 Click="OnCopyPrivateKeyClick"
                                 Style="{DynamicResource SecondaryButtonStyle}"
-                                Padding="{StaticResource PaddingButtonCopy}" Margin="8,0,0,0"
+                                Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginInlineControl}"
                                 VerticalAlignment="Center"
                                 AutomationProperties.Name=""/>
                         <Button x:Name="BtnShowPrivateKey"

@@ -33,7 +33,7 @@
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
-                        Width="24" Height="24" Margin="8,0,0,0"
+                        Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"
                         AutomationProperties.Name=""/>
                 <TextBlock x:Name="HeaderTitle" Text=""
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
@@ -50,48 +50,48 @@
                 <TextBlock x:Name="LblPresets" Text=""
                            FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,6"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
-                <WrapPanel Margin="0,0,0,16">
+                <WrapPanel Margin="{StaticResource MarginSectionSeparator}">
                     <Button x:Name="BtnPresetEveryMin" Click="OnPresetClick" Tag="* * * * *"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="{StaticResource PaddingButtonCopy}" Margin="0,0,6,6" FontSize="{StaticResource FontSizeBody}"
+                            Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginButtonGroup}" FontSize="{StaticResource FontSizeBody}"
                             AutomationProperties.Name=""/>
                     <Button x:Name="BtnPresetEveryHour" Click="OnPresetClick" Tag="0 * * * *"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="{StaticResource PaddingButtonCopy}" Margin="0,0,6,6" FontSize="{StaticResource FontSizeBody}"
+                            Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginButtonGroup}" FontSize="{StaticResource FontSizeBody}"
                             AutomationProperties.Name=""/>
                     <Button x:Name="BtnPresetDailyMidnight" Click="OnPresetClick" Tag="0 0 * * *"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="{StaticResource PaddingButtonCopy}" Margin="0,0,6,6" FontSize="{StaticResource FontSizeBody}"
+                            Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginButtonGroup}" FontSize="{StaticResource FontSizeBody}"
                             AutomationProperties.Name=""/>
                     <Button x:Name="BtnPresetWeekdays9am" Click="OnPresetClick" Tag="0 9 * * 1-5"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="{StaticResource PaddingButtonCopy}" Margin="0,0,6,6" FontSize="{StaticResource FontSizeBody}"
+                            Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginButtonGroup}" FontSize="{StaticResource FontSizeBody}"
                             AutomationProperties.Name=""/>
                     <Button x:Name="BtnPresetWeeklySunday" Click="OnPresetClick" Tag="0 0 * * 0"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="{StaticResource PaddingButtonCopy}" Margin="0,0,6,6" FontSize="{StaticResource FontSizeBody}"
+                            Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginButtonGroup}" FontSize="{StaticResource FontSizeBody}"
                             AutomationProperties.Name=""/>
                     <Button x:Name="BtnPresetMonthly1st" Click="OnPresetClick" Tag="0 0 1 * *"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="{StaticResource PaddingButtonCopy}" Margin="0,0,6,6" FontSize="{StaticResource FontSizeBody}"
+                            Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginButtonGroup}" FontSize="{StaticResource FontSizeBody}"
                             AutomationProperties.Name=""/>
                 </WrapPanel>
 
                 <!-- Selectors -->
-                <Grid Margin="0,0,0,16">
+                <Grid Margin="{StaticResource MarginSectionSeparator}">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="120"/>
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="8"/>
+                        <RowDefinition Height="{StaticResource SpacingRowGap}"/>
                         <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="8"/>
+                        <RowDefinition Height="{StaticResource SpacingRowGap}"/>
                         <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="8"/>
+                        <RowDefinition Height="{StaticResource SpacingRowGap}"/>
                         <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="8"/>
+                        <RowDefinition Height="{StaticResource SpacingRowGap}"/>
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
@@ -160,7 +160,7 @@
                         <Button x:Name="BtnCopy" DockPanel.Dock="Right"
                                 Click="OnCopyClick"
                                 Style="{DynamicResource SecondaryButtonStyle}"
-                                Padding="{StaticResource PaddingButtonCopy}" Margin="8,0,0,0"
+                                Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginInlineControl}"
                                 VerticalAlignment="Center"
                                 AutomationProperties.Name=""/>
                         <TextBox x:Name="TxtCronExpression" Text="* * * * *"
@@ -176,7 +176,7 @@
 
                 <!-- Human-readable description -->
                 <TextBlock x:Name="TxtDescription" Text=""
-                           FontSize="{StaticResource FontSizeBodyLarge}" Margin="0,0,0,16"
+                           FontSize="{StaticResource FontSizeBodyLarge}" Margin="{StaticResource MarginSectionSeparator}"
                            Foreground="{DynamicResource TextPrimaryBrush}"
                            TextWrapping="Wrap"/>
 
@@ -195,7 +195,7 @@
                          TextChanged="OnManualInputChanged"
                          AutomationProperties.Name=""/>
                 <TextBlock x:Name="TxtValidationError" Text=""
-                           FontSize="{StaticResource FontSizeCaption}" Margin="0,0,0,12"
+                           FontSize="{StaticResource FontSizeCaption}" Margin="{StaticResource MarginSectionBottom}"
                            FontWeight="SemiBold"
                            Foreground="{DynamicResource ErrorTextBrush}"
                            TextWrapping="Wrap"
@@ -208,7 +208,7 @@
                 <Border Background="{DynamicResource CardBrush}"
                         BorderBrush="{DynamicResource BorderBrush}"
                         BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
-                        Padding="12,8">
+                        Padding="{StaticResource PaddingAlertBanner}">
                     <ItemsControl x:Name="NextRunsList">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>

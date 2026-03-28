@@ -34,7 +34,7 @@
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
-                        Width="24" Height="24" Margin="8,0,0,0"
+                        Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"
                         AutomationProperties.Name=""/>
                 <TextBlock x:Name="HeaderTitle" Text=""
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
@@ -51,11 +51,11 @@
                 <TextBlock x:Name="LblHost" Text=""
                            FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,4"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
-                <DockPanel Margin="0,0,0,12">
+                <DockPanel Margin="{StaticResource MarginSectionBottom}">
                     <Button x:Name="BtnEnumerate" DockPanel.Dock="Right"
                             Content="" Click="OnEnumerateClick"
                             Style="{DynamicResource PrimaryButtonStyle}"
-                            Padding="16,6" Margin="8,0,0,0"
+                            Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginInlineControl}"
                             VerticalAlignment="Center"
                             AutomationProperties.Name=""/>
                     <TextBox x:Name="TxtHost" Text=""
@@ -87,12 +87,12 @@
 
                 <!-- Error message -->
                 <TextBlock x:Name="TxtError" Text="" Visibility="Collapsed"
-                           FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,12" TextWrapping="Wrap"
+                           FontSize="{StaticResource FontSizeBody}" Margin="{StaticResource MarginSectionBottom}" TextWrapping="Wrap"
                            Foreground="{DynamicResource ErrorTextBrush}"/>
 
                 <!-- Loading indicator -->
                 <ProgressBar x:Name="LoadingBar" IsIndeterminate="True"
-                             Visibility="Collapsed" Height="4" Margin="0,0,0,12"
+                             Visibility="Collapsed" Height="4" Margin="{StaticResource MarginSectionBottom}"
                              AutomationProperties.Name=""/>
 
                 <!-- Empty state hint -->
@@ -113,11 +113,11 @@
                 <StackPanel x:Name="ResultsPanel" Visibility="Collapsed">
 
                     <!-- Card 1: Host Identity -->
-                    <Border Margin="0,0,0,12"
+                    <Border Margin="{StaticResource MarginSectionBottom}"
                             Background="{DynamicResource CardBrush}"
                             BorderBrush="{DynamicResource BorderBrush}"
                             BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
-                            Padding="16,12"
+                            Padding="{StaticResource PaddingSectionCard}"
                             AutomationProperties.LiveSetting="Polite">
                         <StackPanel>
                             <TextBlock x:Name="TxtCardIdentity" Text=""
@@ -185,11 +185,11 @@
                     </Border>
 
                     <!-- Card 2: SMB Protocol -->
-                    <Border Margin="0,0,0,12"
+                    <Border Margin="{StaticResource MarginSectionBottom}"
                             Background="{DynamicResource CardBrush}"
                             BorderBrush="{DynamicResource BorderBrush}"
                             BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
-                            Padding="16,12"
+                            Padding="{StaticResource PaddingSectionCard}"
                             AutomationProperties.LiveSetting="Polite">
                         <StackPanel>
                             <TextBlock x:Name="TxtCardProtocol" Text=""
@@ -243,11 +243,11 @@
                     </Border>
 
                     <!-- Card 3: Security Findings -->
-                    <Border x:Name="FindingsPanel" Visibility="Collapsed" Margin="0,0,0,12"
+                    <Border x:Name="FindingsPanel" Visibility="Collapsed" Margin="{StaticResource MarginSectionBottom}"
                             Background="{DynamicResource CardBrush}"
                             BorderBrush="{DynamicResource BorderBrush}"
                             BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
-                            Padding="16,12"
+                            Padding="{StaticResource PaddingSectionCard}"
                             AutomationProperties.LiveSetting="Polite">
                         <StackPanel>
                             <TextBlock x:Name="TxtCardFindings" Text=""

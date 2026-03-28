@@ -777,7 +777,8 @@ public partial class CertInspectorView : UserControl, IToolView
     {
         if (!string.IsNullOrEmpty(_lastDetails))
         {
-            Clipboard.SetText(_lastDetails);
+            try { Clipboard.SetText(_lastDetails); }
+            catch (System.Runtime.InteropServices.ExternalException) { return; }
             CopyFeedbackHelper.ShowCopyFeedback(sender as Button);
         }
     }
@@ -795,7 +796,8 @@ public partial class CertInspectorView : UserControl, IToolView
             sb.AppendLine(item.DetailsText);
             sb.AppendLine();
         }
-        Clipboard.SetText(sb.ToString());
+        try { Clipboard.SetText(sb.ToString()); }
+        catch (System.Runtime.InteropServices.ExternalException) { return; }
         CopyFeedbackHelper.ShowCopyFeedback(sender as Button);
     }
 

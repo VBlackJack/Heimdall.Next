@@ -464,8 +464,9 @@ public partial class NetworkCartographyView : UserControl, IToolView
             var openServices = new List<ServiceResult>();
             try
             {
+                var safeIp = InputValidator.EscapeShellArg(ip);
                 using var cmd = sshClient.CreateCommand(
-                    $"for p in {portList}; do (echo >/dev/tcp/{ip}/$p) 2>/dev/null && echo $p; done");
+                    $"for p in {portList}; do (echo >/dev/tcp/{safeIp}/$p) 2>/dev/null && echo $p; done");
                 cmd.CommandTimeout = TimeSpan.FromSeconds(Math.Max(MinCommandTimeoutSeconds, ports.Length / PortTimeoutDivisor));
                 var result = await Task.Run(() => cmd.Execute(), ct).ConfigureAwait(false);
 
@@ -1207,13 +1208,13 @@ public partial class NetworkCartographyView : UserControl, IToolView
         {
             // Fallback: copy actions only
             var copyIp = new MenuItem { Header = L("ToolCtxCopyIp") };
-            copyIp.Click += (_, _) => Clipboard.SetText(row.IpAddress);
+            copyIp.Click += (_, _) => { try { Clipboard.SetText(row.IpAddress); } catch (System.Runtime.InteropServices.ExternalException) { /* clipboard locked */ } };
             menu.Items.Add(copyIp);
 
             if (!string.IsNullOrWhiteSpace(row.Hostname) && row.Hostname != "\u2014")
             {
                 var copyHost = new MenuItem { Header = L("ToolCtxCopyHostname") };
-                copyHost.Click += (_, _) => Clipboard.SetText(row.Hostname);
+                copyHost.Click += (_, _) => { try { Clipboard.SetText(row.Hostname); } catch (System.Runtime.InteropServices.ExternalException) { /* clipboard locked */ } };
                 menu.Items.Add(copyHost);
             }
         }

@@ -285,7 +285,8 @@ public partial class NetworkCalculatorView : UserControl, IToolView
     {
         if (!string.IsNullOrWhiteSpace(TxtResult.Text))
         {
-            Clipboard.SetText(TxtResult.Text);
+            try { Clipboard.SetText(TxtResult.Text); }
+            catch (System.Runtime.InteropServices.ExternalException) { return; }
             CopyFeedbackHelper.ShowCopyFeedback(sender as Button);
         }
     }

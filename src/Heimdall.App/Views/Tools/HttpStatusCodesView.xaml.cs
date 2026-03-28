@@ -202,19 +202,20 @@ public partial class HttpStatusCodesView : UserControl, IToolView
     {
         if (StatusListView.SelectedItem is HttpStatusEntry entry)
         {
-            Clipboard.SetText($"{entry.Code} {entry.Name}");
+            try { Clipboard.SetText($"{entry.Code} {entry.Name}"); }
+            catch (System.Runtime.InteropServices.ExternalException) { /* clipboard locked */ }
         }
     }
 
-    private static HttpStatusEntry E(int code, string name, string description)
+    private HttpStatusEntry E(int code, string name, string description)
     {
         var category = code switch
         {
-            < 200 => "1xx Informational",
-            < 300 => "2xx Success",
-            < 400 => "3xx Redirection",
-            < 500 => "4xx Client Error",
-            _     => "5xx Server Error"
+            < 200 => L("ToolHttpCat1xx"),
+            < 300 => L("ToolHttpCat2xx"),
+            < 400 => L("ToolHttpCat3xx"),
+            < 500 => L("ToolHttpCat4xx"),
+            _     => L("ToolHttpCat5xx")
         };
 
         var brush = code switch

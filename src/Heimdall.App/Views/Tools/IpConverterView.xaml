@@ -33,7 +33,7 @@
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
-                        Width="24" Height="24" Margin="8,0,0,0"
+                        Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"
                         AutomationProperties.Name=""/>
                 <TextBlock x:Name="HeaderTitle" Text=""
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
@@ -54,7 +54,7 @@
                          Style="{StaticResource WatermarkTextBoxStyle}"
                          Tag="IP address or integer"
                          FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
-                         Padding="{StaticResource PaddingInput}" Margin="0,0,0,16"
+                         Padding="{StaticResource PaddingInput}" Margin="{StaticResource MarginSectionSeparator}"
                          Background="{DynamicResource CardBrush}"
                          Foreground="{DynamicResource TextPrimaryBrush}"
                          BorderBrush="{DynamicResource BorderBrush}"
@@ -63,7 +63,7 @@
 
                 <!-- Error message -->
                 <TextBlock x:Name="TxtError" Text="" Visibility="Collapsed"
-                           FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,12" TextWrapping="Wrap"
+                           FontSize="{StaticResource FontSizeBody}" Margin="{StaticResource MarginSectionBottom}" TextWrapping="Wrap"
                            Foreground="{DynamicResource ErrorTextBrush}"/>
 
                 <!-- Results -->
@@ -71,7 +71,7 @@
                         Background="{DynamicResource CardBrush}"
                         BorderBrush="{DynamicResource BorderBrush}"
                         BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
-                        Padding="16,12"
+                        Padding="{StaticResource PaddingSectionCard}"
                         AutomationProperties.LiveSetting="Polite">
                     <Grid>
                         <Grid.ColumnDefinitions>
@@ -82,13 +82,13 @@
                         </Grid.ColumnDefinitions>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="8"/>
+                            <RowDefinition Height="{StaticResource SpacingRowGap}"/>
                             <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="8"/>
+                            <RowDefinition Height="{StaticResource SpacingRowGap}"/>
                             <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="8"/>
+                            <RowDefinition Height="{StaticResource SpacingRowGap}"/>
                             <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="8"/>
+                            <RowDefinition Height="{StaticResource SpacingRowGap}"/>
                             <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
 
@@ -99,7 +99,7 @@
                                    FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas" Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
                         <Button x:Name="BtnCopyDotted" Grid.Row="0" Grid.Column="3" Click="OnCopyValueClick"
                                 Tag="Dotted" Style="{DynamicResource SecondaryButtonStyle}"
-                                Padding="{StaticResource PaddingButtonHelp}" Margin="8,0,0,0" FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center"
+                                Padding="{StaticResource PaddingButtonHelp}" Margin="{StaticResource MarginInlineControl}" FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center"
                                 AutomationProperties.Name=""/>
 
                         <!-- Row 2: Decimal (Integer) -->
@@ -109,7 +109,7 @@
                                    FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas" Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
                         <Button x:Name="BtnCopyDecimal" Grid.Row="2" Grid.Column="3" Click="OnCopyValueClick"
                                 Tag="Decimal" Style="{DynamicResource SecondaryButtonStyle}"
-                                Padding="{StaticResource PaddingButtonHelp}" Margin="8,0,0,0" FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center"
+                                Padding="{StaticResource PaddingButtonHelp}" Margin="{StaticResource MarginInlineControl}" FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center"
                                 AutomationProperties.Name=""/>
 
                         <!-- Row 4: Hexadecimal -->
@@ -119,7 +119,7 @@
                                    FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas" Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
                         <Button x:Name="BtnCopyHex" Grid.Row="4" Grid.Column="3" Click="OnCopyValueClick"
                                 Tag="Hex" Style="{DynamicResource SecondaryButtonStyle}"
-                                Padding="{StaticResource PaddingButtonHelp}" Margin="8,0,0,0" FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center"
+                                Padding="{StaticResource PaddingButtonHelp}" Margin="{StaticResource MarginInlineControl}" FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center"
                                 AutomationProperties.Name=""/>
 
                         <!-- Row 6: Binary -->
@@ -130,7 +130,7 @@
                                    TextWrapping="Wrap"/>
                         <Button x:Name="BtnCopyBinary" Grid.Row="6" Grid.Column="3" Click="OnCopyValueClick"
                                 Tag="Binary" Style="{DynamicResource SecondaryButtonStyle}"
-                                Padding="{StaticResource PaddingButtonHelp}" Margin="8,0,0,0" FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center"
+                                Padding="{StaticResource PaddingButtonHelp}" Margin="{StaticResource MarginInlineControl}" FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center"
                                 AutomationProperties.Name=""/>
 
                         <!-- Row 8: Mapped IPv6 -->
@@ -140,7 +140,7 @@
                                    FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas" Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
                         <Button x:Name="BtnCopyIpv6" Grid.Row="8" Grid.Column="3" Click="OnCopyValueClick"
                                 Tag="Ipv6" Style="{DynamicResource SecondaryButtonStyle}"
-                                Padding="{StaticResource PaddingButtonHelp}" Margin="8,0,0,0" FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center"
+                                Padding="{StaticResource PaddingButtonHelp}" Margin="{StaticResource MarginInlineControl}" FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center"
                                 AutomationProperties.Name=""/>
                     </Grid>
                 </Border>

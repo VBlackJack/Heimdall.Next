@@ -23,6 +23,7 @@ using System.Windows.Controls;
 using System.Windows.Threading;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Models;
+using Heimdall.Core.Security;
 
 namespace Heimdall.App.Views.Tools;
 
@@ -330,14 +331,16 @@ public partial class ServiceStatusView : UserControl, IToolView
     {
         if (ServicesGrid.SelectedItem is not ServiceEntry selected) return;
 
-        var serviceName = selected.Name.Replace("'", "''");
+        var safeName = selected.Name.Replace("'", "''", StringComparison.Ordinal);
+        var script = $"{command} '{safeName}'";
+        var encoded = Convert.ToBase64String(System.Text.Encoding.Unicode.GetBytes(script));
 
         try
         {
             using var proc = Process.Start(new ProcessStartInfo
             {
                 FileName = "powershell",
-                Arguments = $"-NoProfile -Command \"{command} '{serviceName}'\"",
+                Arguments = $"-NoProfile -EncodedCommand {encoded}",
                 Verb = "runas",
                 UseShellExecute = true
             });
@@ -362,12 +365,13 @@ public partial class ServiceStatusView : UserControl, IToolView
         var sb = new StringBuilder();
         foreach (var svc in _displayedServices)
         {
-            sb.AppendLine($"{svc.Name}\t{svc.DisplayName}\t{svc.Status}\t{svc.StartType}");
+            sb.AppendLine($"{InputValidator.SanitizeCsvCell(svc.Name)}\t{InputValidator.SanitizeCsvCell(svc.DisplayName)}\t{InputValidator.SanitizeCsvCell(svc.Status)}\t{InputValidator.SanitizeCsvCell(svc.StartType)}");
         }
 
         if (sb.Length > 0)
         {
-            Clipboard.SetText(sb.ToString());
+            try { Clipboard.SetText(sb.ToString()); }
+            catch (System.Runtime.InteropServices.ExternalException) { return; }
             CopyFeedbackHelper.ShowCopyFeedback(sender as Button);
         }
     }

@@ -634,8 +634,9 @@ public partial class DefaultCredentialView : UserControl, IToolView
         {
             var result = await Task.Run(() =>
             {
+                var safeHost = InputValidator.EscapeShellArg(host);
                 using var cmd = sshClient.CreateCommand(
-                    $"(echo >/dev/tcp/{host}/{port}) 2>/dev/null && echo OPEN || echo CLOSED");
+                    $"(echo >/dev/tcp/{safeHost}/{port}) 2>/dev/null && echo OPEN || echo CLOSED");
                 cmd.CommandTimeout = TimeSpan.FromMilliseconds(PortProbeTimeoutMs);
                 cmd.Execute();
                 return cmd.Result?.Trim();
@@ -1233,7 +1234,8 @@ public partial class DefaultCredentialView : UserControl, IToolView
             if (tunnelClient is not null)
             {
                 // Basic connectivity check via tunnel
-                var vncCheck = $"(echo >/dev/tcp/{host}/{port}) 2>/dev/null && echo OPEN || echo CLOSED";
+                var safeVncHost = InputValidator.EscapeShellArg(host);
+                var vncCheck = $"(echo >/dev/tcp/{safeVncHost}/{port}) 2>/dev/null && echo OPEN || echo CLOSED";
                 var result = await Task.Run(() =>
                 {
                     using var cmd = tunnelClient.CreateCommand(vncCheck);

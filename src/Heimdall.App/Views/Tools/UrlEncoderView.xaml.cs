@@ -152,7 +152,8 @@ public partial class UrlEncoderView : UserControl, IToolView
     {
         if (!string.IsNullOrEmpty(TxtDecoded.Text))
         {
-            Clipboard.SetText(TxtDecoded.Text);
+            try { Clipboard.SetText(TxtDecoded.Text); }
+            catch (System.Runtime.InteropServices.ExternalException) { return; }
             CopyFeedbackHelper.ShowCopyFeedback(sender as Button);
         }
     }
@@ -161,7 +162,8 @@ public partial class UrlEncoderView : UserControl, IToolView
     {
         if (!string.IsNullOrEmpty(TxtEncoded.Text))
         {
-            Clipboard.SetText(TxtEncoded.Text);
+            try { Clipboard.SetText(TxtEncoded.Text); }
+            catch (System.Runtime.InteropServices.ExternalException) { return; }
             CopyFeedbackHelper.ShowCopyFeedback(sender as Button);
         }
     }
@@ -225,6 +227,6 @@ public partial class UrlEncoderView : UserControl, IToolView
 
     public void Dispose()
     {
-        // Reserved for future resource cleanup.
+        GC.SuppressFinalize(this);
     }
 }

@@ -24,19 +24,19 @@
         </Grid.RowDefinitions>
 
         <!-- Toolbar — dark hacker aesthetic (double-click terminal to toggle) -->
-        <Border x:Name="ToolbarBorder" Grid.Row="0" Padding="10,6"
-                Background="#0F0F0F" BorderBrush="#222222" BorderThickness="0,0,0,1">
+        <Border x:Name="ToolbarBorder" Grid.Row="0" Padding="{StaticResource PaddingInput}"
+                Background="{DynamicResource HackerSimToolbarBrush}" BorderBrush="{DynamicResource HackerSimBorderBrush}" BorderThickness="0,0,0,1">
             <StackPanel>
                 <WrapPanel VerticalAlignment="Center" ItemHeight="28">
                     <TextBlock x:Name="LblScenario"
                                FontFamily="Consolas" FontSize="{StaticResource FontSizeCaption}"
-                               Foreground="#555555" VerticalAlignment="Center"
+                               Foreground="{DynamicResource HackerSimTextMutedBrush}" VerticalAlignment="Center"
                                Margin="0,0,6,0"/>
 
                     <ComboBox x:Name="CmbScenario"
                               Width="260" Margin="0,0,8,0"
                               FontFamily="Consolas" FontSize="{StaticResource FontSizeCaption}"
-                              Background="#151515" Foreground="#D4FFD9" BorderBrush="#333333"
+                              Background="{DynamicResource HackerSimSurfaceBrush}" Foreground="{DynamicResource HackerSimTextPrimaryBrush}" BorderBrush="{DynamicResource HackerSimInputBorderBrush}"
                               DisplayMemberPath="Display"
                               SelectionChanged="OnScenarioSelectionChanged"
                               AutomationProperties.Name=""/>
@@ -44,58 +44,58 @@
                     <Button x:Name="BtnFavorite"
                             Click="OnFavoriteClick"
                             FontFamily="Consolas" FontSize="{StaticResource FontSizeCaption}"
-                            Foreground="#777777" Background="#1A1A1A" BorderBrush="#333333"
-                            Padding="8,4" Margin="0,0,12,0" Cursor="Hand"
+                            Foreground="{DynamicResource HackerSimButtonForegroundBrush}" Background="{DynamicResource HackerSimButtonBackgroundBrush}" BorderBrush="{DynamicResource HackerSimInputBorderBrush}"
+                            Padding="{StaticResource PaddingButtonToolbar}" Margin="0,0,12,0" Cursor="Hand"
                             AutomationProperties.Name=""/>
 
                     <CheckBox x:Name="ChkRandomMode"
                               Click="OnRandomModeClick"
                               FontFamily="Consolas" FontSize="{StaticResource FontSizeCaption}"
-                              Foreground="#FFD700" VerticalAlignment="Center"
+                              Foreground="{DynamicResource HackerSimHighlightBrush}" VerticalAlignment="Center"
                               Margin="0,0,12,0"
                               AutomationProperties.Name=""/>
 
                     <TextBlock x:Name="LblSearch"
                                FontFamily="Consolas" FontSize="{StaticResource FontSizeCaption}"
-                               Foreground="#555555" VerticalAlignment="Center"
+                               Foreground="{DynamicResource HackerSimTextMutedBrush}" VerticalAlignment="Center"
                                Margin="0,0,6,0"/>
 
                     <TextBox x:Name="TxtScenarioSearch"
                              Width="180" Margin="0,0,12,0"
                              FontFamily="Consolas" FontSize="{StaticResource FontSizeCaption}"
-                             Background="#151515" Foreground="#D4FFD9" BorderBrush="#333333"
+                             Background="{DynamicResource HackerSimSurfaceBrush}" Foreground="{DynamicResource HackerSimTextPrimaryBrush}" BorderBrush="{DynamicResource HackerSimInputBorderBrush}"
                              TextChanged="OnScenarioSearchChanged"
                              AutomationProperties.Name=""/>
 
                     <TextBlock x:Name="LblCategory"
                                FontFamily="Consolas" FontSize="{StaticResource FontSizeCaption}"
-                               Foreground="#555555" VerticalAlignment="Center"
+                               Foreground="{DynamicResource HackerSimTextMutedBrush}" VerticalAlignment="Center"
                                Margin="0,0,6,0"/>
 
                     <ComboBox x:Name="CmbCategory"
                               Width="135" Margin="0,0,12,0"
                               FontFamily="Consolas" FontSize="{StaticResource FontSizeCaption}"
-                              Background="#151515" Foreground="#D4FFD9" BorderBrush="#333333"
+                              Background="{DynamicResource HackerSimSurfaceBrush}" Foreground="{DynamicResource HackerSimTextPrimaryBrush}" BorderBrush="{DynamicResource HackerSimInputBorderBrush}"
                               DisplayMemberPath="Display"
                               SelectionChanged="OnScenarioFilterChanged"
                               AutomationProperties.Name=""/>
 
                     <TextBlock x:Name="LblRealism"
                                FontFamily="Consolas" FontSize="{StaticResource FontSizeCaption}"
-                               Foreground="#555555" VerticalAlignment="Center"
+                               Foreground="{DynamicResource HackerSimTextMutedBrush}" VerticalAlignment="Center"
                                Margin="0,0,6,0"/>
 
                     <ComboBox x:Name="CmbRealism"
                               Width="135" Margin="0,0,12,0"
                               FontFamily="Consolas" FontSize="{StaticResource FontSizeCaption}"
-                              Background="#151515" Foreground="#D4FFD9" BorderBrush="#333333"
+                              Background="{DynamicResource HackerSimSurfaceBrush}" Foreground="{DynamicResource HackerSimTextPrimaryBrush}" BorderBrush="{DynamicResource HackerSimInputBorderBrush}"
                               DisplayMemberPath="Display"
                               SelectionChanged="OnScenarioFilterChanged"
                               AutomationProperties.Name=""/>
 
                     <TextBlock x:Name="LblSpeed"
                                FontFamily="Consolas" FontSize="{StaticResource FontSizeCaption}"
-                               Foreground="#555555" VerticalAlignment="Center"
+                               Foreground="{DynamicResource HackerSimTextMutedBrush}" VerticalAlignment="Center"
                                Margin="0,0,4,0"/>
 
                     <Slider x:Name="SliderSpeed"
@@ -108,38 +108,38 @@
                     <TextBlock x:Name="LblSpeedValue"
                                Text="1.00x" FontFamily="Consolas"
                                FontSize="{StaticResource FontSizeCaption}"
-                               Foreground="#00FF41" VerticalAlignment="Center"
+                               Foreground="{DynamicResource HackerSimAccentBrush}" VerticalAlignment="Center"
                                Margin="4,0,0,0" MinWidth="34"/>
 
                     <Button x:Name="BtnStartStop"
                             Click="OnStartStopClick"
                             FontFamily="Consolas" FontSize="{StaticResource FontSizeBody}"
-                            Foreground="#00FF41" Background="#1A1A1A" BorderBrush="#333333"
+                            Foreground="{DynamicResource HackerSimAccentBrush}" Background="{DynamicResource HackerSimButtonBackgroundBrush}" BorderBrush="{DynamicResource HackerSimInputBorderBrush}"
                             Padding="{StaticResource PaddingButtonPrimary}" Margin="12,0,0,0" Cursor="Hand"
                             AutomationProperties.Name=""/>
                 </WrapPanel>
 
                 <TextBlock x:Name="LblCurrentScenario"
                            FontFamily="Consolas" FontSize="{StaticResource FontSizeCaption}"
-                           Foreground="#00FF41" VerticalAlignment="Center"
+                           Foreground="{DynamicResource HackerSimAccentBrush}" VerticalAlignment="Center"
                            Margin="2,6,0,0"/>
 
                 <TextBlock x:Name="LblScenarioSubtitle"
                            FontFamily="Consolas" FontSize="{StaticResource FontSizeCaption}"
-                           Foreground="#6FAF7C" VerticalAlignment="Center"
+                           Foreground="{DynamicResource HackerSimTextSecondaryBrush}" VerticalAlignment="Center"
                            Margin="2,2,0,0"
                            TextWrapping="Wrap"/>
 
                 <WrapPanel VerticalAlignment="Center" ItemHeight="28" Margin="0,8,0,0">
                     <TextBlock x:Name="LblPlaylist"
                                FontFamily="Consolas" FontSize="{StaticResource FontSizeCaption}"
-                               Foreground="#555555" VerticalAlignment="Center"
+                               Foreground="{DynamicResource HackerSimTextMutedBrush}" VerticalAlignment="Center"
                                Margin="0,0,6,0"/>
 
                     <ComboBox x:Name="CmbPlaylist"
                               Width="220" Margin="0,0,12,0"
                               FontFamily="Consolas" FontSize="{StaticResource FontSizeCaption}"
-                              Background="#151515" Foreground="#D4FFD9" BorderBrush="#333333"
+                              Background="{DynamicResource HackerSimSurfaceBrush}" Foreground="{DynamicResource HackerSimTextPrimaryBrush}" BorderBrush="{DynamicResource HackerSimInputBorderBrush}"
                               DisplayMemberPath="Display"
                               SelectionChanged="OnPlaylistSelectionChanged"
                               AutomationProperties.Name=""/>
@@ -147,32 +147,32 @@
                     <Button x:Name="BtnReplaySeed"
                             Click="OnReplaySeedClick"
                             FontFamily="Consolas" FontSize="{StaticResource FontSizeCaption}"
-                            Foreground="#D4FFD9" Background="#1A1A1A" BorderBrush="#333333"
-                            Padding="8,4" Margin="0,0,8,0" Cursor="Hand"
+                            Foreground="{DynamicResource HackerSimTextPrimaryBrush}" Background="{DynamicResource HackerSimButtonBackgroundBrush}" BorderBrush="{DynamicResource HackerSimInputBorderBrush}"
+                            Padding="{StaticResource PaddingButtonToolbar}" Margin="0,0,8,0" Cursor="Hand"
                             AutomationProperties.Name=""/>
 
                     <Button x:Name="BtnExportTranscript"
                             Click="OnExportTranscriptClick"
                             FontFamily="Consolas" FontSize="{StaticResource FontSizeCaption}"
-                            Foreground="#D4FFD9" Background="#1A1A1A" BorderBrush="#333333"
-                            Padding="8,4" Margin="0,0,12,0" Cursor="Hand"
+                            Foreground="{DynamicResource HackerSimTextPrimaryBrush}" Background="{DynamicResource HackerSimButtonBackgroundBrush}" BorderBrush="{DynamicResource HackerSimInputBorderBrush}"
+                            Padding="{StaticResource PaddingButtonToolbar}" Margin="0,0,12,0" Cursor="Hand"
                             AutomationProperties.Name=""/>
 
                     <CheckBox x:Name="ChkVintageMonitor"
                               Click="OnVintageMonitorClick"
                               FontFamily="Consolas" FontSize="{StaticResource FontSizeCaption}"
-                              Foreground="#6FAF7C" VerticalAlignment="Center"
+                              Foreground="{DynamicResource HackerSimTextSecondaryBrush}" VerticalAlignment="Center"
                               Margin="0,0,12,0"
                               AutomationProperties.Name=""/>
 
                     <TextBlock x:Name="LblSeed"
                                FontFamily="Consolas" FontSize="{StaticResource FontSizeCaption}"
-                               Foreground="#555555" VerticalAlignment="Center"
+                               Foreground="{DynamicResource HackerSimTextMutedBrush}" VerticalAlignment="Center"
                                Margin="0,0,6,0"/>
 
                     <TextBlock x:Name="LblSeedValue"
                                FontFamily="Consolas" FontSize="{StaticResource FontSizeCaption}"
-                               Foreground="#00FF41" VerticalAlignment="Center"
+                               Foreground="{DynamicResource HackerSimAccentBrush}" VerticalAlignment="Center"
                                Margin="0,0,6,0"/>
                 </WrapPanel>
             </StackPanel>
@@ -190,7 +190,7 @@
                               Background="Transparent">
                     <TextBlock x:Name="TerminalOutput"
                                FontFamily="Consolas" FontSize="{StaticResource FontSizeBody}"
-                               Foreground="#00FF41" Padding="12,8"
+                               Foreground="{DynamicResource HackerSimAccentBrush}" Padding="{StaticResource PaddingAlertBanner}"
                                TextWrapping="Wrap">
                         <TextBlock.Effect>
                             <DropShadowEffect Color="#00FF41" BlurRadius="3"
@@ -207,14 +207,14 @@
                                       Viewport="0,0,4,4" ViewportUnits="Absolute"
                                       Viewbox="0,0,4,4" ViewboxUnits="Absolute">
                             <DrawingBrush.Drawing>
-                                <GeometryDrawing Brush="#16FFFFFF" Geometry="M 0,0 L 4,0 4,1 0,1 Z"/>
+                                <GeometryDrawing Brush="{DynamicResource HackerSimOverlayBrush}" Geometry="M 0,0 L 4,0 4,1 0,1 Z"/>
                             </DrawingBrush.Drawing>
                         </DrawingBrush>
                     </Rectangle.Fill>
                 </Rectangle>
 
-                <Border Background="#1000FF41"/>
-                <Border BorderBrush="#2200FF41" BorderThickness="1"/>
+                <Border Background="{DynamicResource HackerSimGlowBrush}"/>
+                <Border BorderBrush="{DynamicResource HackerSimGlowStrongBrush}" BorderThickness="1"/>
             </Grid>
         </Grid>
     </Grid>
