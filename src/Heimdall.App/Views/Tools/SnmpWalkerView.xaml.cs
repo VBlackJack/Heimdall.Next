@@ -197,6 +197,7 @@ public partial class SnmpWalkerView : UserControl, IToolView
         BtnCopy.ToolTip = L("ToolBtnCopyToClipboard");
         BtnHelp.ToolTip = L("ToolHelpTooltip");
         System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
+        System.Windows.Automation.AutomationProperties.SetName(LoadingBar, L("ToolSnmpA11yLoading"));
 
         LblRouteVia.Text = L("ToolTunnelRouteVia");
         System.Windows.Automation.AutomationProperties.SetName(CmbRouteVia, L("ToolTunnelRouteVia"));
@@ -389,7 +390,7 @@ public partial class SnmpWalkerView : UserControl, IToolView
             using var client = ToolGatewayConnector.Connect(_selectedGateway!);
             try
             {
-                var command = $"snmpwalk -v2c -c {EscapeShellArg(community)} {EscapeShellArg(host)} {EscapeShellArg(oid)} 2>&1";
+                var command = $"snmpwalk -v2c -c {InputValidator.EscapeShellArg(community)} {InputValidator.EscapeShellArg(host)} {InputValidator.EscapeShellArg(oid)} 2>&1";
                 using var cmd = client.CreateCommand(command);
                 cmd.CommandTimeout = TimeSpan.FromSeconds(30);
                 var output = cmd.Execute()?.Trim();
@@ -613,7 +614,7 @@ public partial class SnmpWalkerView : UserControl, IToolView
         try
         {
             var sb = new StringBuilder();
-            sb.AppendLine($"{"OID",-40}{"Name",-24}{"Type",-16}{"Value"}");
+            sb.AppendLine($"{L("ToolSnmpColOid"),-40}{L("ToolSnmpColName"),-24}{L("ToolSnmpColType"),-16}{L("ToolSnmpColValue")}");
             sb.AppendLine(new string('-', 90));
 
             foreach (var r in _results)
@@ -651,12 +652,15 @@ public partial class SnmpWalkerView : UserControl, IToolView
         try
         {
             var sb = new StringBuilder();
-            sb.AppendLine("OID,Name,Type,Value");
+            sb.AppendLine($"{L("ToolSnmpColOid")},{L("ToolSnmpColName")},{L("ToolSnmpColType")},{L("ToolSnmpColValue")}");
 
             foreach (var r in _results)
             {
-                var value = r.Value.Replace("\"", "\"\"");
-                sb.AppendLine($"{r.Oid},{r.Name},{r.Type},\"{value}\"");
+                var oid = InputValidator.SanitizeCsvCell(r.Oid);
+                var name = InputValidator.SanitizeCsvCell(r.Name);
+                var type = InputValidator.SanitizeCsvCell(r.Type);
+                var value = InputValidator.SanitizeCsvCell(r.Value).Replace("\"", "\"\"");
+                sb.AppendLine($"{oid},{name},{type},\"{value}\"");
             }
 
             File.WriteAllText(dialog.FileName, sb.ToString(), Encoding.UTF8);
@@ -713,7 +717,6 @@ public partial class SnmpWalkerView : UserControl, IToolView
         }
 
         using var udp = new UdpClient();
-        udp.Client.ReceiveTimeout = timeoutMs;
 
         var packet = BuildSnmpGetNextRequest(community, oidComponents);
         var endpoint = new IPEndPoint(
@@ -1101,16 +1104,6 @@ public partial class SnmpWalkerView : UserControl, IToolView
             result = (result << 8) | b;
         }
         return result;
-    }
-
-    // ── Shell escaping ──────────────────────────────────────────────
-
-    /// <summary>
-    /// Escapes a string for safe use as a shell argument by wrapping in single quotes.
-    /// </summary>
-    private static string EscapeShellArg(string arg)
-    {
-        return "'" + arg.Replace("'", "'\\''", StringComparison.Ordinal) + "'";
     }
 
     // ── Helpers ─────────────────────────────────────────────────────

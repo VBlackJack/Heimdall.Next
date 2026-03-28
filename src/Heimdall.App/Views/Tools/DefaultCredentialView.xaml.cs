@@ -200,6 +200,8 @@ public partial class DefaultCredentialView : UserControl, IToolView
         System.Windows.Automation.AutomationProperties.SetName(ChkAutoDetect, L("ToolDefCredAutoDetect"));
         System.Windows.Automation.AutomationProperties.SetName(ChkShowPasswords, L("ToolDefCredShowPasswords"));
         System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
+        System.Windows.Automation.AutomationProperties.SetName(ScanProgress, L("ToolDefCredA11yProgress"));
+        System.Windows.Automation.AutomationProperties.SetName(ResultsGrid, L("ToolDefCredTitle"));
 
         BtnHelp.ToolTip = L("ToolHelpTooltip");
         BtnCopy.ToolTip = L("ToolBtnCopyToClipboard");
@@ -268,12 +270,16 @@ public partial class DefaultCredentialView : UserControl, IToolView
         try
         {
             var sb = new StringBuilder();
-            sb.AppendLine("Service,Port,Username,Password,Status,Detail");
+            sb.AppendLine($"{L("ToolDefCredColService")},{L("ToolDefCredColPort")},{L("ToolDefCredColUser")},{L("ToolDefCredColPass")},{L("ToolDefCredColStatus")},{L("ToolDefCredColDetail")}");
 
             foreach (var r in _allResults)
             {
-                var detail = r.Detail.Replace("\"", "\"\"");
-                sb.AppendLine($"{r.Service},{r.Port},{r.Username},\"{r.Password}\",{r.Status},\"{detail}\"");
+                var service = InputValidator.SanitizeCsvCell(r.Service);
+                var username = InputValidator.SanitizeCsvCell(r.Username);
+                var password = InputValidator.SanitizeCsvCell(r.Password).Replace("\"", "\"\"");
+                var status = InputValidator.SanitizeCsvCell(r.Status);
+                var detail = InputValidator.SanitizeCsvCell(r.Detail).Replace("\"", "\"\"");
+                sb.AppendLine($"{service},{r.Port},{username},\"{password}\",{status},\"{detail}\"");
             }
 
             File.WriteAllText(dialog.FileName, sb.ToString(), Encoding.UTF8);
@@ -295,7 +301,7 @@ public partial class DefaultCredentialView : UserControl, IToolView
         try
         {
             var sb = new StringBuilder();
-            sb.AppendLine($"{"Service",-12}{"Port",-8}{"Username",-16}{"Password",-16}{"Status",-12}{"Detail"}");
+            sb.AppendLine($"{L("ToolDefCredColService"),-12}{L("ToolDefCredColPort"),-8}{L("ToolDefCredColUser"),-16}{L("ToolDefCredColPass"),-16}{L("ToolDefCredColStatus"),-12}{L("ToolDefCredColDetail")}");
             sb.AppendLine(new string('-', 80));
 
             foreach (var r in _results)
@@ -338,9 +344,18 @@ public partial class DefaultCredentialView : UserControl, IToolView
             return;
         }
 
+        if (!InputValidator.Validate(host, "Address"))
+        {
+            TxtError.Text = L("ErrorInvalidHost");
+            TxtError.Visibility = Visibility.Visible;
+            return;
+        }
+
         _results.Clear();
         _allResults.Clear();
-        _cts = new CancellationTokenSource();
+        var oldCts = Interlocked.Exchange(ref _cts, new CancellationTokenSource());
+        oldCts?.Cancel();
+        oldCts?.Dispose();
         _isScanning = true;
 
         try
@@ -392,31 +407,38 @@ public partial class DefaultCredentialView : UserControl, IToolView
                 var portsToScan = ServicePorts.Keys.ToList();
                 var semaphore = new SemaphoreSlim(tunnelClient is not null ? 5 : 20);
 
-                var probeTasks = portsToScan.Select(async port =>
+                try
                 {
-                    await semaphore.WaitAsync(ct);
-                    try
+                    var probeTasks = portsToScan.Select(async port =>
                     {
-                        ct.ThrowIfCancellationRequested();
-                        var isOpen = tunnelClient is not null
-                            ? await ProbePortViaTunnelAsync(tunnelClient, host, port, ct)
-                            : await ProbePortAsync(host, port, ct);
-
-                        if (isOpen)
+                        await semaphore.WaitAsync(ct);
+                        try
                         {
-                            return (Port: port, Service: ServicePorts[port]);
+                            ct.ThrowIfCancellationRequested();
+                            var isOpen = tunnelClient is not null
+                                ? await ProbePortViaTunnelAsync(tunnelClient, host, port, ct)
+                                : await ProbePortAsync(host, port, ct);
+
+                            if (isOpen)
+                            {
+                                return (Port: port, Service: ServicePorts[port]);
+                            }
+
+                            return ((int Port, string Service)?)null;
                         }
+                        finally
+                        {
+                            semaphore.Release();
+                        }
+                    });
 
-                        return ((int Port, string Service)?)null;
-                    }
-                    finally
-                    {
-                        semaphore.Release();
-                    }
-                });
-
-                var probeResults = await Task.WhenAll(probeTasks);
-                detectedServices.AddRange(probeResults.Where(r => r is not null).Select(r => r!.Value));
+                    var probeResults = await Task.WhenAll(probeTasks);
+                    detectedServices.AddRange(probeResults.Where(r => r is not null).Select(r => r!.Value));
+                }
+                finally
+                {
+                    semaphore.Dispose();
+                }
             }
             else
             {
@@ -446,54 +468,61 @@ public partial class DefaultCredentialView : UserControl, IToolView
 
             var serviceSemaphore = new SemaphoreSlim(MaxConcurrentServices);
 
-            var serviceTasks = serviceGroups.Select(async group =>
+            try
             {
-                await serviceSemaphore.WaitAsync(ct);
-                try
+                var serviceTasks = serviceGroups.Select(async group =>
                 {
-                    foreach (var (port, service) in group)
+                    await serviceSemaphore.WaitAsync(ct);
+                    try
                     {
-                        ct.ThrowIfCancellationRequested();
-                        var credentials = DefaultCredentials.GetValueOrDefault(service);
-                        if (credentials is null)
-                        {
-                            continue;
-                        }
-
-                        foreach (var (user, pass) in credentials)
+                        foreach (var (port, service) in group)
                         {
                             ct.ThrowIfCancellationRequested();
-
-                            var statusText = string.Format(L("ToolDefCredTesting"), service, user, pass);
-                            await Dispatcher.InvokeAsync(() => UpdateProgress(statusText, false));
-
-                            var result = await TestCredentialAsync(
-                                host, port, service, user, pass, tunnelClient, ct);
-
-                            await Dispatcher.InvokeAsync(() =>
+                            var credentials = DefaultCredentials.GetValueOrDefault(service);
+                            if (credentials is null)
                             {
-                                _allResults.Add(result);
-                                _results.Add(result);
-                                completedTests++;
-                                if (totalTests > 0)
-                                {
-                                    var pct = (int)(completedTests * 100.0 / totalTests);
-                                    ScanProgress.Value = pct;
-                                }
-                            });
+                                continue;
+                            }
 
-                            // Rate limiting: delay between attempts per service to prevent lockout
-                            await Task.Delay(RateLimitDelayMs, ct);
+                            foreach (var (user, pass) in credentials)
+                            {
+                                ct.ThrowIfCancellationRequested();
+
+                                var statusText = string.Format(L("ToolDefCredTesting"), service, user, pass);
+                                await Dispatcher.InvokeAsync(() => UpdateProgress(statusText, false));
+
+                                var result = await TestCredentialAsync(
+                                    host, port, service, user, pass, tunnelClient, ct);
+
+                                await Dispatcher.InvokeAsync(() =>
+                                {
+                                    _allResults.Add(result);
+                                    _results.Add(result);
+                                    completedTests++;
+                                    if (totalTests > 0)
+                                    {
+                                        var pct = (int)(completedTests * 100.0 / totalTests);
+                                        ScanProgress.Value = pct;
+                                    }
+                                });
+
+                                // Rate limiting: delay between attempts per service to prevent lockout
+                                await Task.Delay(RateLimitDelayMs, ct);
+                            }
                         }
                     }
-                }
-                finally
-                {
-                    serviceSemaphore.Release();
-                }
-            });
+                    finally
+                    {
+                        serviceSemaphore.Release();
+                    }
+                });
 
-            await Task.WhenAll(serviceTasks);
+                await Task.WhenAll(serviceTasks);
+            }
+            finally
+            {
+                serviceSemaphore.Dispose();
+            }
         }
         catch (OperationCanceledException)
         {
@@ -521,9 +550,9 @@ public partial class DefaultCredentialView : UserControl, IToolView
 
     private void StopScan()
     {
-        _cts?.Cancel();
-        _cts?.Dispose();
-        _cts = null;
+        var oldCts = Interlocked.Exchange(ref _cts, null);
+        oldCts?.Cancel();
+        oldCts?.Dispose();
         _isScanning = false;
         _setBusy?.Invoke(false);
         BtnScan.Content = L("ToolDefCredBtnScan");
@@ -732,11 +761,11 @@ public partial class DefaultCredentialView : UserControl, IToolView
 
             if (tunnelClient is not null)
             {
-                var forwarded = tunnelClient.CreateCommand($"echo test | nc -w 3 {host} {port}");
                 // For HTTP over tunnel, use SSH exec approach
                 var creds = Convert.ToBase64String(Encoding.ASCII.GetBytes($"{user}:{pass}"));
-                var httpCmd = $"echo -e \"GET / HTTP/1.0\\r\\nHost: {host}\\r\\nAuthorization: Basic {creds}\\r\\n\\r\\n\" | nc -w 5 {host} {port} 2>/dev/null | head -1";
-                forwarded.Dispose();
+                var hostInEcho = InputValidator.EscapeForDoubleQuotedString(host);
+                var hostArg = InputValidator.EscapeShellArg(host);
+                var httpCmd = $"echo -e \"GET / HTTP/1.0\\r\\nHost: {hostInEcho}\\r\\nAuthorization: Basic {creds}\\r\\n\\r\\n\" | nc -w 5 {hostArg} {port} 2>/dev/null | head -1";
 
                 var result = await Task.Run(() =>
                 {
@@ -751,28 +780,36 @@ public partial class DefaultCredentialView : UserControl, IToolView
 
             await tcp.ConnectAsync(host, port, linked.Token);
             Stream stream = tcp.GetStream();
+            SslStream? ssl = null;
 
-            if (useTls)
+            try
             {
-                var ssl = new SslStream(stream, false, (_, _, _, _) => true);
-                await ssl.AuthenticateAsClientAsync(new SslClientAuthenticationOptions
+                if (useTls)
                 {
-                    TargetHost = host,
-                    EnabledSslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13,
-                }, linked.Token);
-                stream = ssl;
+                    ssl = new SslStream(stream, leaveInnerStreamOpen: true, (_, _, _, _) => true);
+                    await ssl.AuthenticateAsClientAsync(new SslClientAuthenticationOptions
+                    {
+                        TargetHost = host,
+                        EnabledSslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13,
+                    }, linked.Token);
+                    stream = ssl;
+                }
+
+                var credentials = Convert.ToBase64String(Encoding.ASCII.GetBytes($"{user}:{pass}"));
+                var request = $"GET / HTTP/1.0\r\nHost: {host}\r\nAuthorization: Basic {credentials}\r\n\r\n";
+                var requestBytes = Encoding.ASCII.GetBytes(request);
+                await stream.WriteAsync(requestBytes, linked.Token);
+
+                var buffer = new byte[512];
+                var read = await stream.ReadAsync(buffer, linked.Token);
+                var response = Encoding.ASCII.GetString(buffer, 0, read);
+
+                return IsHttpSuccessResponse(response);
             }
-
-            var credentials = Convert.ToBase64String(Encoding.ASCII.GetBytes($"{user}:{pass}"));
-            var request = $"GET / HTTP/1.0\r\nHost: {host}\r\nAuthorization: Basic {credentials}\r\n\r\n";
-            var requestBytes = Encoding.ASCII.GetBytes(request);
-            await stream.WriteAsync(requestBytes, linked.Token);
-
-            var buffer = new byte[512];
-            var read = await stream.ReadAsync(buffer, linked.Token);
-            var response = Encoding.ASCII.GetString(buffer, 0, read);
-
-            return IsHttpSuccessResponse(response);
+            finally
+            {
+                if (ssl is not null) await ssl.DisposeAsync().ConfigureAwait(false);
+            }
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
@@ -838,7 +875,7 @@ public partial class DefaultCredentialView : UserControl, IToolView
         {
             if (tunnelClient is not null)
             {
-                var ftpScript = $"(echo -e \"USER {user}\\r\\nPASS {pass}\\r\\nQUIT\\r\\n\" | nc -w 5 {host} {port} 2>/dev/null)";
+                var ftpScript = $"(echo -e \"USER {InputValidator.EscapeForDoubleQuotedString(user)}\\r\\nPASS {InputValidator.EscapeForDoubleQuotedString(pass)}\\r\\nQUIT\\r\\n\" | nc -w 5 {InputValidator.EscapeShellArg(host)} {port} 2>/dev/null)";
                 var result = await Task.Run(() =>
                 {
                     using var cmd = tunnelClient.CreateCommand(ftpScript);
@@ -896,7 +933,7 @@ public partial class DefaultCredentialView : UserControl, IToolView
         {
             if (tunnelClient is not null)
             {
-                var telnetScript = $"(echo -e \"{user}\\n{pass}\\n\" | nc -w 5 {host} {port} 2>/dev/null) | tail -1";
+                var telnetScript = $"(echo -e \"{InputValidator.EscapeForDoubleQuotedString(user)}\\n{InputValidator.EscapeForDoubleQuotedString(pass)}\\n\" | nc -w 5 {InputValidator.EscapeShellArg(host)} {port} 2>/dev/null) | tail -1";
                 var result = await Task.Run(() =>
                 {
                     using var cmd = tunnelClient.CreateCommand(telnetScript);
@@ -970,7 +1007,7 @@ public partial class DefaultCredentialView : UserControl, IToolView
         {
             if (tunnelClient is not null)
             {
-                var mysqlCmd = $"mysql -h {host} -P {port} -u {user} --password=\"{pass}\" -e \"SELECT 1\" 2>&1 | head -1";
+                var mysqlCmd = $"mysql -h {InputValidator.EscapeShellArg(host)} -P {port} -u {InputValidator.EscapeShellArg(user)} --password={InputValidator.EscapeShellArg(pass)} -e \"SELECT 1\" 2>&1 | head -1";
                 var result = await Task.Run(() =>
                 {
                     using var cmd = tunnelClient.CreateCommand(mysqlCmd);
@@ -1021,7 +1058,7 @@ public partial class DefaultCredentialView : UserControl, IToolView
         {
             if (tunnelClient is not null)
             {
-                var pgCmd = $"PGPASSWORD=\"{pass}\" psql -h {host} -p {port} -U {user} -c \"SELECT 1\" 2>&1 | head -1";
+                var pgCmd = $"PGPASSWORD={InputValidator.EscapeShellArg(pass)} psql -h {InputValidator.EscapeShellArg(host)} -p {port} -U {InputValidator.EscapeShellArg(user)} -c \"SELECT 1\" 2>&1 | head -1";
                 var result = await Task.Run(() =>
                 {
                     using var cmd = tunnelClient.CreateCommand(pgCmd);
@@ -1096,7 +1133,7 @@ public partial class DefaultCredentialView : UserControl, IToolView
             if (tunnelClient is not null)
             {
                 // Attempt via sqlcmd if available on the gateway
-                var sqlCmd = $"sqlcmd -S {host},{port} -U {user} -P \"{pass}\" -Q \"SELECT 1\" -t 5 2>&1 | head -1";
+                var sqlCmd = $"sqlcmd -S {InputValidator.EscapeShellArg(host + "," + port)} -U {InputValidator.EscapeShellArg(user)} -P {InputValidator.EscapeShellArg(pass)} -Q \"SELECT 1\" -t 5 2>&1 | head -1";
                 var result = await Task.Run(() =>
                 {
                     using var cmd = tunnelClient.CreateCommand(sqlCmd);
@@ -1143,7 +1180,7 @@ public partial class DefaultCredentialView : UserControl, IToolView
         {
             if (tunnelClient is not null)
             {
-                var redisCmd = $"echo PING | nc -w 3 {host} {port} 2>/dev/null";
+                var redisCmd = $"echo PING | nc -w 3 {InputValidator.EscapeShellArg(host)} {port} 2>/dev/null";
                 var result = await Task.Run(() =>
                 {
                     using var cmd = tunnelClient.CreateCommand(redisCmd);

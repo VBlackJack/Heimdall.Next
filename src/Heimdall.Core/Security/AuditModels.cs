@@ -36,8 +36,8 @@ public enum AuditStatus { Pass, Warning, Fail, Error, Skipped }
 /// Defines what the audit targets: an explicit host list, a CIDR subnet,
 /// and/or a gateway to tunnel through.
 /// </summary>
-public record AuditScope(
-    List<string> Targets,
+public sealed record AuditScope(
+    IReadOnlyList<string> Targets,
     string? Subnet,
     string? GatewayId);
 

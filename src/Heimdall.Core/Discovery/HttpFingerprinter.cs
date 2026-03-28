@@ -131,6 +131,7 @@ public static class HttpFingerprinter
 
                 return (product, path);
             }
+            catch (OperationCanceledException) { throw; }
             catch { /* probe failed, try next */ }
         }
         return (null, null);
@@ -146,23 +147,31 @@ public static class HttpFingerprinter
 
         await client.ConnectAsync(host, port, linked.Token).ConfigureAwait(false);
         Stream stream = client.GetStream();
+        SslStream? ssl = null;
 
-        if (useTls)
+        try
         {
-            var ssl = new SslStream(stream, false, (_, _, _, _) => true);
-            await ssl.AuthenticateAsClientAsync(new SslClientAuthenticationOptions
+            if (useTls)
             {
-                TargetHost = host
-            }, linked.Token).ConfigureAwait(false);
-            stream = ssl;
+                ssl = new SslStream(stream, leaveInnerStreamOpen: true, (_, _, _, _) => true);
+                await ssl.AuthenticateAsClientAsync(new SslClientAuthenticationOptions
+                {
+                    TargetHost = host
+                }, linked.Token).ConfigureAwait(false);
+                stream = ssl;
+            }
+
+            var request = $"GET {path} HTTP/1.0\r\nHost: {host}\r\nConnection: close\r\n\r\n";
+            await stream.WriteAsync(Encoding.ASCII.GetBytes(request), linked.Token)
+                .ConfigureAwait(false);
+
+            var buf = new byte[4096];
+            var read = await stream.ReadAsync(buf, linked.Token).ConfigureAwait(false);
+            return read > 0 ? Encoding.ASCII.GetString(buf, 0, read) : null;
         }
-
-        var request = $"GET {path} HTTP/1.0\r\nHost: {host}\r\nConnection: close\r\n\r\n";
-        await stream.WriteAsync(Encoding.ASCII.GetBytes(request), linked.Token)
-            .ConfigureAwait(false);
-
-        var buf = new byte[4096];
-        var read = await stream.ReadAsync(buf, linked.Token).ConfigureAwait(false);
-        return read > 0 ? Encoding.ASCII.GetString(buf, 0, read) : null;
+        finally
+        {
+            if (ssl is not null) await ssl.DisposeAsync().ConfigureAwait(false);
+        }
     }
 }

@@ -2178,6 +2178,10 @@ public partial class HackerSimulatorView : UserControl, IToolView
         LblRealism.Text = L("ToolHackerSimLblRealism");
         LblPlaylist.Text = L("ToolHackerSimLblPlaylist");
         TxtScenarioSearch.ToolTip = L("ToolHackerSimSearchTip");
+        System.Windows.Automation.AutomationProperties.SetName(BtnFavorite, L("ToolHackerSimFavoriteAdd"));
+        System.Windows.Automation.AutomationProperties.SetName(SliderSpeed, L("ToolHackerSimSpeed"));
+        System.Windows.Automation.AutomationProperties.SetName(BtnStartStop,
+            _isRunning ? L("ToolHackerSimBtnStop") : L("ToolHackerSimBtnStart"));
         PopulateFilterControls();
         PopulatePlaylistControl();
         UpdateFavoriteButton();

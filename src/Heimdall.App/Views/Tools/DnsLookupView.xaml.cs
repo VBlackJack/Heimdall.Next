@@ -127,6 +127,7 @@ public partial class DnsLookupView : UserControl, IToolView
 
         BtnHelp.ToolTip = L("ToolHelpTooltip");
         System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
+        System.Windows.Automation.AutomationProperties.SetName(LoadingBar, L("ToolDnsA11yLoading"));
 
         TxtHostname.Tag = L("ToolWatermarkExampleDomain");
         TxtEmptyState.Text = L("ToolEmptyStateDns");
@@ -163,6 +164,13 @@ public partial class DnsLookupView : UserControl, IToolView
         if (string.IsNullOrWhiteSpace(hostname))
         {
             TxtError.Text = L("ToolValidationHostRequired");
+            TxtError.Visibility = Visibility.Visible;
+            return;
+        }
+
+        if (!InputValidator.ValidateDomain(hostname))
+        {
+            TxtError.Text = L("ToolValidationInvalidHost");
             TxtError.Visibility = Visibility.Visible;
             return;
         }
@@ -420,9 +428,14 @@ public partial class DnsLookupView : UserControl, IToolView
             using var client = ConnectToGateway(_selectedGateway!);
             try
             {
+                // Escape all user-controlled values for safe shell interpolation
+                var safeHostname = InputValidator.EscapeShellArg(hostname);
+                var safeRecordType = InputValidator.EscapeShellArg(recordType);
+                var safeDnsServer = dnsServer is not null ? InputValidator.EscapeShellArg(dnsServer) : null;
+
                 // Try dig first (more commonly available on Linux servers)
-                var serverArg = dnsServer is not null ? $"@{dnsServer} " : "";
-                var digCommand = $"dig {serverArg}{hostname} {recordType} +noall +answer 2>/dev/null";
+                var serverArg = safeDnsServer is not null ? $"@{safeDnsServer} " : "";
+                var digCommand = $"dig {serverArg}{safeHostname} {safeRecordType} +noall +answer 2>/dev/null";
 
                 using var digCmd = client.CreateCommand(digCommand);
                 digCmd.CommandTimeout = TimeSpan.FromSeconds(8);
@@ -434,9 +447,9 @@ public partial class DnsLookupView : UserControl, IToolView
                 }
 
                 // Fall back to nslookup
-                var nslookupArgs = dnsServer is not null
-                    ? $"-type={recordType} {hostname} {dnsServer}"
-                    : $"-type={recordType} {hostname}";
+                var nslookupArgs = safeDnsServer is not null
+                    ? $"-type={safeRecordType} {safeHostname} {safeDnsServer}"
+                    : $"-type={safeRecordType} {safeHostname}";
                 using var nsCmd = client.CreateCommand($"nslookup {nslookupArgs} 2>&1");
                 nsCmd.CommandTimeout = TimeSpan.FromSeconds(8);
                 var nsResult = nsCmd.Execute()?.Trim();
@@ -447,7 +460,8 @@ public partial class DnsLookupView : UserControl, IToolView
                 }
 
                 // Fall back to host command
-                using var hostCmd = client.CreateCommand($"host -t {recordType} {hostname} {dnsServer ?? ""} 2>&1");
+                var hostDnsArg = safeDnsServer ?? "";
+                using var hostCmd = client.CreateCommand($"host -t {safeRecordType} {safeHostname} {hostDnsArg} 2>&1");
                 hostCmd.CommandTimeout = TimeSpan.FromSeconds(8);
                 return hostCmd.Execute()?.Trim() ?? L("ToolDnsNoResults");
             }

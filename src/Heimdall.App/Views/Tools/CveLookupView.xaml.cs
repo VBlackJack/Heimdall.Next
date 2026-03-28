@@ -115,9 +115,9 @@ public partial class CveLookupView : UserControl, IToolView
         ],
         ["Microsoft IIS"] =
         [
-            new("CVE-2023-36899", 8.8, "High", "Elevation of privilege via ASP.NET identity spoofing", "IIS 10.0", _ => true),
-            new("CVE-2024-38169", 8.8, "High", "RCE via crafted HTTP request in ASP.NET IIS module", "IIS 10.0", _ => true),
-            new("CVE-2022-21907", 9.8, "Critical", "HTTP Protocol Stack (http.sys) RCE in trailer support", "IIS 10.0 (Win Server 2022)", _ => true),
+            new("CVE-2023-36899", 8.8, "High", "Elevation of privilege via ASP.NET identity spoofing", "IIS 10.0", v => v.StartsWith("10.", StringComparison.Ordinal) || v == "10"),
+            new("CVE-2024-38169", 8.8, "High", "RCE via crafted HTTP request in ASP.NET IIS module", "IIS 10.0", v => v.StartsWith("10.", StringComparison.Ordinal) || v == "10"),
+            new("CVE-2022-21907", 9.8, "Critical", "HTTP Protocol Stack (http.sys) RCE in trailer support", "IIS 10.0 (Win Server 2022)", v => v.StartsWith("10.", StringComparison.Ordinal) || v == "10"),
         ],
         ["ProFTPD"] =
         [
@@ -337,7 +337,14 @@ public partial class CveLookupView : UserControl, IToolView
             sb.AppendLine();
         }
 
-        Clipboard.SetText(sb.ToString());
+        try
+        {
+            Clipboard.SetText(sb.ToString());
+        }
+        catch (System.Runtime.InteropServices.ExternalException)
+        {
+            // Clipboard locked by another process
+        }
     }
 
     // ── Search engine ────────────────────────────────────────────────
@@ -573,13 +580,7 @@ public partial class CveLookupView : UserControl, IToolView
         _ => FindBrush("SuccessBrush"),
     };
 
-    private Brush GetCvssBrush(double cvss) => cvss switch
-    {
-        >= 9.0 => FindBrush("ErrorBrush"),
-        >= 7.0 => FindBrush("WarningBrush"),
-        >= 4.0 => FindBrush("WarningTextBrush"),
-        _ => FindBrush("SuccessBrush"),
-    };
+    private Brush GetCvssBrush(double cvss) => GetSeverityBrush(cvss);
 
     private string GetLocalizedSeverity(string severity) => severity switch
     {

@@ -28,6 +28,7 @@ using System.Windows.Media;
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Models;
+using Heimdall.Core.Security;
 
 namespace Heimdall.App.Views.Tools;
 
@@ -116,6 +117,8 @@ public partial class TcpTracerouteView : UserControl, IToolView
 
         BtnHelp.ToolTip = L("ToolHelpTooltip");
         System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
+        System.Windows.Automation.AutomationProperties.SetName(TraceProgress, L("ToolTraceA11yProgress"));
+        System.Windows.Automation.AutomationProperties.SetName(ResultsGrid, L("ToolTraceTitle"));
 
         TxtEmptyState.Text = L("ToolTraceEmptyState");
         TxtHost.Tag = L("ToolWatermarkHostnameOrIp");
@@ -153,6 +156,13 @@ public partial class TcpTracerouteView : UserControl, IToolView
         if (string.IsNullOrWhiteSpace(host))
         {
             TxtStatus.Text = L("ToolValidationHostRequired");
+            TxtStatus.Foreground = (Brush)FindResource("ErrorTextBrush");
+            return;
+        }
+
+        if (!InputValidator.Validate(host, "Address"))
+        {
+            TxtStatus.Text = L("ErrorInvalidHost");
             TxtStatus.Foreground = (Brush)FindResource("ErrorTextBrush");
             return;
         }
@@ -378,12 +388,14 @@ public partial class TcpTracerouteView : UserControl, IToolView
     /// </summary>
     private async Task ResolveHostnameAsync(IPAddress address, int resultIndex)
     {
+        var capturedAddr = address.ToString();
         var hostname = await ReverseDnsAsync(address);
-        if (!string.IsNullOrEmpty(hostname) && resultIndex < _results.Count)
+        if (!string.IsNullOrEmpty(hostname))
         {
             await Dispatcher.InvokeAsync(() =>
             {
-                if (resultIndex < _results.Count)
+                if (resultIndex >= 0 && resultIndex < _results.Count &&
+                    _results[resultIndex].Address == capturedAddr)
                 {
                     var existing = _results[resultIndex];
                     _results[resultIndex] = existing with { Hostname = hostname };
@@ -435,7 +447,8 @@ public partial class TcpTracerouteView : UserControl, IToolView
         try
         {
             // Try Linux traceroute first, fall back to Windows tracert
-            var command = $"traceroute -n -m {maxHops} {host} 2>/dev/null || tracert -d -h {maxHops} {host} 2>/dev/null";
+            var escapedHost = InputValidator.EscapeShellArg(host);
+            var command = $"traceroute -n -m {maxHops} {escapedHost} 2>/dev/null || tracert -d -h {maxHops} {escapedHost} 2>/dev/null";
 
             await Dispatcher.InvokeAsync(() =>
             {
@@ -715,7 +728,7 @@ public partial class TcpTracerouteView : UserControl, IToolView
         try
         {
             var sb = new StringBuilder();
-            sb.AppendLine($"{"#",-5}{"IP Address",-18}{"Hostname",-30}{"Latency",-20}{"Status"}");
+            sb.AppendLine($"{L("ToolTraceColHop"),-5}{L("ToolTraceColAddress"),-18}{L("ToolTraceColHostname"),-30}{L("ToolTraceColLatency"),-20}{L("ToolTraceColStatus")}");
             sb.AppendLine(new string('-', 85));
 
             foreach (var r in _results)

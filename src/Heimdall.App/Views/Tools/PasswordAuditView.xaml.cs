@@ -640,6 +640,8 @@ public partial class PasswordAuditView : UserControl, IToolView
     {
         if (_disposed) return;
         _disposed = true;
+        PwdInput.Clear();
+        TxtPasswordVisible.Clear();
         GC.SuppressFinalize(this);
     }
 }

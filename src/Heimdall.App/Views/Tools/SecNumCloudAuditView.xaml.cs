@@ -134,6 +134,7 @@ public partial class SecNumCloudAuditView : UserControl, IToolView
         System.Windows.Automation.AutomationProperties.SetName(BtnExportHtml, L("ToolAuditBtnExportHtml"));
         System.Windows.Automation.AutomationProperties.SetName(BtnExportCsv, L("ToolAuditBtnExportCsv"));
         System.Windows.Automation.AutomationProperties.SetName(BtnExportDrawio, L("ToolAuditBtnExportDrawio"));
+        System.Windows.Automation.AutomationProperties.SetName(AuditProgress, L("ToolAuditA11yProgress"));
 
         BtnHelp.ToolTip = L("ToolHelpTooltip");
         System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
@@ -259,7 +260,7 @@ public partial class SecNumCloudAuditView : UserControl, IToolView
         _setBusy?.Invoke(true);
         SetUiAuditing(true);
 
-        _engine = new SecNumCloudAuditEngine();
+        _engine = new SecNumCloudAuditEngine(key => L(key));
 
         _engine.PhaseProgress += (phaseName, completed, total) =>
         {
@@ -331,6 +332,8 @@ public partial class SecNumCloudAuditView : UserControl, IToolView
         finally
         {
             _isAuditing = false;
+            _cts?.Dispose();
+            _cts = null;
             _engine = null;
             _setBusy?.Invoke(false);
             await Dispatcher.InvokeAsync(() => SetUiAuditing(false));
@@ -520,7 +523,7 @@ public partial class SecNumCloudAuditView : UserControl, IToolView
         var statusText = new TextBlock
         {
             Text = GetStatusLabel(check.Status),
-            Foreground = Brushes.White,
+            Foreground = (Brush)FindResource("TextOnAccentBrush"),
             FontSize = (double)FindResource("FontSizeSmallCaption"),
             FontWeight = FontWeights.Bold,
             HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
@@ -573,11 +576,11 @@ public partial class SecNumCloudAuditView : UserControl, IToolView
                 IsExpanded = false,
                 Margin = new Thickness(0, 2, 0, 0),
             };
-            System.Windows.Automation.AutomationProperties.SetName(evidenceExpander, $"Evidence for {check.Id}");
+            System.Windows.Automation.AutomationProperties.SetName(evidenceExpander, string.Format(L("ToolAuditEvidenceFor"), check.Id));
 
             var evidenceHeader = new TextBlock
             {
-                Text = $"{check.Evidence.Count} evidence item(s)",
+                Text = string.Format(L("ToolAuditEvidenceCount"), check.Evidence.Count),
                 FontSize = (double)FindResource("FontSizeCaption"),
                 Foreground = (Brush)FindResource("TextSecondaryBrush"),
             };
@@ -629,7 +632,7 @@ public partial class SecNumCloudAuditView : UserControl, IToolView
                         VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
                         Margin = new Thickness(0, 2, 0, 0),
                     };
-                    System.Windows.Automation.AutomationProperties.SetName(evRaw, $"Raw data for {ev.Host}");
+                    System.Windows.Automation.AutomationProperties.SetName(evRaw, string.Format(L("ToolAuditRawDataFor"), ev.Host));
                     evStack.Children.Add(evRaw);
                 }
 
@@ -675,7 +678,7 @@ public partial class SecNumCloudAuditView : UserControl, IToolView
 
         try
         {
-            var html = HtmlReportGenerator.Generate(_lastReport);
+            var html = HtmlReportGenerator.Generate(_lastReport, key => L(key));
             File.WriteAllText(dialog.FileName, html, Encoding.UTF8);
             CopyFeedbackHelper.ShowCopyFeedback(sender as Button);
         }

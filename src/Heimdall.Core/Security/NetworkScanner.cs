@@ -61,6 +61,8 @@ public static class NetworkScanner
 
         // Parallel ping sweep (max 64 concurrent)
         var semaphore = new SemaphoreSlim(64);
+        try
+        {
         var tasks = addresses.Select(async ip =>
         {
             await semaphore.WaitAsync(ct).ConfigureAwait(false);
@@ -88,6 +90,11 @@ public static class NetworkScanner
                 .ConfigureAwait(false);
             results.Add(result with { OpenPorts = openPorts });
         }
+        }
+        finally
+        {
+            semaphore.Dispose();
+        }
 
         return results.OrderBy(r => IPAddress.Parse(r.IpAddress).GetAddressBytes(),
             new IpComparer()).ToList();
@@ -109,10 +116,12 @@ public static class NetworkScanner
                 var entry = await Dns.GetHostEntryAsync(ip, ct).ConfigureAwait(false);
                 hostname = entry.HostName;
             }
+            catch (OperationCanceledException) { throw; }
             catch (Exception ex) { Heimdall.Core.Logging.FileLogger.Warn($"[NetworkScanner] DNS resolve: {ex.Message}"); }
 
             return new ScanResult(ip, true, reply.RoundtripTime, hostname, []);
         }
+        catch (OperationCanceledException) { throw; }
         catch (Exception ex)
         {
             Heimdall.Core.Logging.FileLogger.Warn($"[NetworkScanner] ping: {ex.Message}");
@@ -135,6 +144,7 @@ public static class NetworkScanner
                 await client.ConnectAsync(ip, port, linked.Token).ConfigureAwait(false);
                 open.Add(port);
             }
+            catch (OperationCanceledException) { throw; }
             catch (Exception ex)
             {
                 Heimdall.Core.Logging.FileLogger.Warn($"[NetworkScanner] port probe {port}: {ex.Message}");

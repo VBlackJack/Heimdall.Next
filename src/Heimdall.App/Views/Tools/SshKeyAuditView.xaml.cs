@@ -260,19 +260,26 @@ public partial class SshKeyAuditView : UserControl, IToolView
         _ => rating
     };
 
+    private static SolidColorBrush CreateFrozen(byte r, byte g, byte b)
+    {
+        var brush = new SolidColorBrush(System.Windows.Media.Color.FromRgb(r, g, b));
+        brush.Freeze();
+        return brush;
+    }
+
     private static SolidColorBrush GetAlgorithmBrush(string algorithm) => algorithm switch
     {
-        "Ed25519" => new SolidColorBrush(System.Windows.Media.Color.FromRgb(0x10, 0xB9, 0x81)),   // green
-        "RSA" => new SolidColorBrush(System.Windows.Media.Color.FromRgb(0x3B, 0x82, 0xF6)),       // blue
-        "ECDSA" => new SolidColorBrush(System.Windows.Media.Color.FromRgb(0x8B, 0x5C, 0xF6)),     // purple
-        "DSA" => new SolidColorBrush(System.Windows.Media.Color.FromRgb(0xEF, 0x44, 0x44)),       // red
-        _ => new SolidColorBrush(System.Windows.Media.Color.FromRgb(0x6B, 0x72, 0x80))            // gray
+        "Ed25519" => CreateFrozen(0x10, 0xB9, 0x81),   // green
+        "RSA" => CreateFrozen(0x3B, 0x82, 0xF6),       // blue
+        "ECDSA" => CreateFrozen(0x8B, 0x5C, 0xF6),     // purple
+        "DSA" => CreateFrozen(0xEF, 0x44, 0x44),       // red
+        _ => CreateFrozen(0x6B, 0x72, 0x80)             // gray
     };
 
-    private static readonly SolidColorBrush BrushStrong = new(System.Windows.Media.Color.FromRgb(0x10, 0xB9, 0x81));
-    private static readonly SolidColorBrush BrushAcceptable = new(System.Windows.Media.Color.FromRgb(0xF5, 0x9E, 0x0B));
-    private static readonly SolidColorBrush BrushWeak = new(System.Windows.Media.Color.FromRgb(0xEF, 0x44, 0x44));
-    private static readonly SolidColorBrush BrushDeprecated = new(System.Windows.Media.Color.FromRgb(0xEF, 0x44, 0x44));
+    private static readonly SolidColorBrush BrushStrong = CreateFrozen(0x10, 0xB9, 0x81);
+    private static readonly SolidColorBrush BrushAcceptable = CreateFrozen(0xF5, 0x9E, 0x0B);
+    private static readonly SolidColorBrush BrushWeak = CreateFrozen(0xEF, 0x44, 0x44);
+    private static readonly SolidColorBrush BrushDeprecated = CreateFrozen(0xEF, 0x44, 0x44);
 
     // ──────────────────────────────────────────────────
     // Key parsing and audit logic
@@ -424,7 +431,7 @@ public partial class SshKeyAuditView : UserControl, IToolView
                 Findings = findings
             };
         }
-        catch (Exception) when (IsExpectedParseException())
+        catch (Exception ex) when (IsExpectedParseException(ex))
         {
             return null;
         }
@@ -472,7 +479,7 @@ public partial class SshKeyAuditView : UserControl, IToolView
 
             return ParseOpenSshBlob(pubKeyBlob, algorithmTag, isPrivate: true, isEncrypted, "OpenSSH", loc);
         }
-        catch (Exception) when (IsExpectedParseException())
+        catch (Exception ex) when (IsExpectedParseException(ex))
         {
             return null;
         }
@@ -526,7 +533,7 @@ public partial class SshKeyAuditView : UserControl, IToolView
                 Findings = BuildFindings("RSA", keySize, true, false, isOldFormat, loc)
             };
         }
-        catch (Exception) when (IsExpectedParseException())
+        catch (Exception ex) when (IsExpectedParseException(ex))
         {
             return null;
         }
@@ -574,7 +581,7 @@ public partial class SshKeyAuditView : UserControl, IToolView
                 Findings = BuildFindings("DSA", keySize, true, false, true, loc)
             };
         }
-        catch (Exception) when (IsExpectedParseException())
+        catch (Exception ex) when (IsExpectedParseException(ex))
         {
             return null;
         }
@@ -639,7 +646,7 @@ public partial class SshKeyAuditView : UserControl, IToolView
                 Findings = BuildFindings("ECDSA", keySize, true, false, true, loc)
             };
         }
-        catch (Exception) when (IsExpectedParseException())
+        catch (Exception ex) when (IsExpectedParseException(ex))
         {
             return null;
         }
@@ -788,7 +795,7 @@ public partial class SshKeyAuditView : UserControl, IToolView
                 Findings = BuildFindings("Ed25519", Ed25519KeySize, true, false, false, loc)
             };
         }
-        catch (Exception) when (IsExpectedParseException())
+        catch (Exception ex) when (IsExpectedParseException(ex))
         {
             return null;
         }
@@ -887,7 +894,7 @@ public partial class SshKeyAuditView : UserControl, IToolView
                 Findings = BuildFindings("Ed25519", Ed25519KeySize, false, false, false, loc)
             };
         }
-        catch (Exception) when (IsExpectedParseException())
+        catch (Exception ex) when (IsExpectedParseException(ex))
         {
             /* not Ed25519 */
         }
@@ -944,7 +951,7 @@ public partial class SshKeyAuditView : UserControl, IToolView
                 Findings = BuildFindings("RSA", keySize, false, false, false, loc)
             };
         }
-        catch (Exception) when (IsExpectedParseException())
+        catch (Exception ex) when (IsExpectedParseException(ex))
         {
             return null;
         }
@@ -1282,7 +1289,8 @@ public partial class SshKeyAuditView : UserControl, IToolView
     /// <summary>
     /// Exception filter for expected parse failures.
     /// </summary>
-    private static bool IsExpectedParseException() => true;
+    private static bool IsExpectedParseException(Exception ex) =>
+        ex is FormatException or ArgumentException or CryptographicException or IOException or NotSupportedException;
 
     private static string Loc(LocalizationManager? loc, string key) => loc?[key] ?? key;
 

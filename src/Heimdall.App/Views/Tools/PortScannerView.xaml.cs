@@ -174,6 +174,10 @@ public partial class PortScannerView : UserControl, IToolView
 
         TxtHost.Tag = L("ToolWatermarkHostnameOrIp");
         TxtPorts.Tag = L("ToolWatermarkPortList");
+
+        System.Windows.Automation.AutomationProperties.SetName(ScanProgress, L("ToolPortScanA11yProgress"));
+
+        System.Windows.Automation.AutomationProperties.SetName(ResultsGrid, L("ToolPortScanTitle"));
     }
 
     private void OnHelpClick(object sender, RoutedEventArgs e)
@@ -216,6 +220,13 @@ public partial class PortScannerView : UserControl, IToolView
         if (string.IsNullOrWhiteSpace(host))
         {
             TxtError.Text = L("ToolValidationHostRequired");
+            TxtError.Visibility = Visibility.Visible;
+            return;
+        }
+
+        if (!InputValidator.Validate(host, "Address"))
+        {
+            TxtError.Text = L("ToolValidationInvalidHost");
             TxtError.Visibility = Visibility.Visible;
             return;
         }
@@ -296,76 +307,83 @@ public partial class PortScannerView : UserControl, IToolView
         var semaphore = new SemaphoreSlim(tunnelClient is not null ? 10 : MaxConcurrent);
         var ct = _cts.Token;
 
-        var tasks = ports.Select(async port =>
+        try
         {
-            await semaphore.WaitAsync(ct);
+            var tasks = ports.Select(async port =>
+            {
+                await semaphore.WaitAsync(ct);
+                try
+                {
+                    ct.ThrowIfCancellationRequested();
+                    var probeResult = tunnelClient is not null
+                        ? await ProbePortViaTunnelAsync(tunnelClient, host, port, ConnectTimeoutMs, ct)
+                        : await ProbePortAsync(host, port, ct);
+
+                    await Dispatcher.InvokeAsync(() =>
+                    {
+                        var statusText = probeResult.IsOpen
+                            ? L("ToolPortScanStatusOpen")
+                            : L("ToolPortScanStatusClosed");
+                        var result = new PortScanResult(
+                            probeResult.Port, probeResult.IsOpen, probeResult.Service,
+                            probeResult.ResponseTime, statusText, probeResult.Banner ?? "");
+                        _allResults.Add(result);
+                        completed++;
+                        ScanProgress.Value = completed;
+                        var percent = (int)(completed * 100.0 / ScanProgress.Maximum);
+                        TxtProgressPercent.Text = $"{percent}%";
+                        TxtProgressCount.Text = string.Format(
+                            L("ToolPortScanProgressCount"), completed, (int)ScanProgress.Maximum);
+
+                        if (result.IsOpen)
+                        {
+                            openCount++;
+                        }
+                        else
+                        {
+                            closedCount++;
+                        }
+
+                        // Apply filter: only add to visible collection if matching
+                        if (ChkOpenOnly?.IsChecked != true || result.IsOpen)
+                        {
+                            _results.Add(result);
+                        }
+
+                        TxtOpen.Text = openCount.ToString();
+                        TxtClosed.Text = closedCount.ToString();
+                    });
+                }
+                finally
+                {
+                    semaphore.Release();
+                }
+            });
+
             try
             {
-                ct.ThrowIfCancellationRequested();
-                var probeResult = tunnelClient is not null
-                    ? await ProbePortViaTunnelAsync(tunnelClient, host, port, ConnectTimeoutMs, ct)
-                    : await ProbePortAsync(host, port, ct);
-
-                await Dispatcher.InvokeAsync(() =>
-                {
-                    var statusText = probeResult.IsOpen
-                        ? L("ToolPortScanStatusOpen")
-                        : L("ToolPortScanStatusClosed");
-                    var result = new PortScanResult(
-                        probeResult.Port, probeResult.IsOpen, probeResult.Service,
-                        probeResult.ResponseTime, statusText, probeResult.Banner ?? "");
-                    _allResults.Add(result);
-                    completed++;
-                    ScanProgress.Value = completed;
-                    var percent = (int)(completed * 100.0 / ScanProgress.Maximum);
-                    TxtProgressPercent.Text = $"{percent}%";
-                    TxtProgressCount.Text = string.Format(
-                        L("ToolPortScanProgressCount"), completed, (int)ScanProgress.Maximum);
-
-                    if (result.IsOpen)
-                    {
-                        openCount++;
-                    }
-                    else
-                    {
-                        closedCount++;
-                    }
-
-                    // Apply filter: only add to visible collection if matching
-                    if (ChkOpenOnly?.IsChecked != true || result.IsOpen)
-                    {
-                        _results.Add(result);
-                    }
-
-                    TxtOpen.Text = openCount.ToString();
-                    TxtClosed.Text = closedCount.ToString();
-                });
+                await Task.WhenAll(tasks);
+            }
+            catch (OperationCanceledException)
+            {
+                // Scan was cancelled
+            }
+            catch (Exception ex)
+            {
+                Core.Logging.FileLogger.Warn($"PortScanner scan failed: {ex.Message}");
             }
             finally
             {
-                semaphore.Release();
+                if (tunnelClient is not null)
+                {
+                    try { tunnelClient.Disconnect(); } catch { /* best effort */ }
+                    tunnelClient.Dispose();
+                }
             }
-        });
-
-        try
-        {
-            await Task.WhenAll(tasks);
-        }
-        catch (OperationCanceledException)
-        {
-            // Scan was cancelled
-        }
-        catch (Exception ex)
-        {
-            Core.Logging.FileLogger.Warn($"PortScanner scan failed: {ex.Message}");
         }
         finally
         {
-            if (tunnelClient is not null)
-            {
-                try { tunnelClient.Disconnect(); } catch { /* best effort */ }
-                tunnelClient.Dispose();
-            }
+            semaphore.Dispose();
         }
 
         StopScan();
@@ -500,6 +518,10 @@ public partial class PortScannerView : UserControl, IToolView
             var read = await stream.ReadAsync(buffer, linked.Token);
             return read > 0 ? Encoding.ASCII.GetString(buffer, 0, read).Trim() : null;
         }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
         catch
         {
             return null;
@@ -589,12 +611,15 @@ public partial class PortScannerView : UserControl, IToolView
         try
         {
             var sb = new StringBuilder();
-            sb.AppendLine("Port,Status,Service,ResponseTime,Banner");
+            sb.AppendLine(L("ToolPortScanCsvHeader"));
 
             foreach (var r in _allResults.OrderBy(r => r.Port))
             {
-                var banner = r.Banner.Replace("\"", "\"\"");
-                sb.AppendLine($"{r.Port},{r.Status},{r.Service},{r.ResponseTime},\"{banner}\"");
+                var status = InputValidator.SanitizeCsvCell(r.Status);
+                var service = InputValidator.SanitizeCsvCell(r.Service);
+                var responseTime = InputValidator.SanitizeCsvCell(r.ResponseTime);
+                var banner = InputValidator.SanitizeCsvCell(r.Banner).Replace("\"", "\"\"");
+                sb.AppendLine($"{r.Port},{status},{service},{responseTime},\"{banner}\"");
             }
 
             File.WriteAllText(dialog.FileName, sb.ToString(), Encoding.UTF8);
@@ -616,7 +641,7 @@ public partial class PortScannerView : UserControl, IToolView
         try
         {
             var sb = new StringBuilder();
-            sb.AppendLine($"{"Port",-8}{"Status",-12}{"Service",-20}{"Response"}");
+            sb.AppendLine($"{L("ToolPortScanColPort"),-8}{L("ToolPortScanColStatus"),-12}{L("ToolPortScanColService"),-20}{L("ToolPortScanColResponseTime")}");
             sb.AppendLine(new string('-', 52));
 
             foreach (var r in _results)

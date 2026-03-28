@@ -33,31 +33,33 @@ public static class HtmlReportGenerator
     /// All user-supplied data is HTML-encoded to prevent XSS.
     /// </summary>
     /// <param name="report">The completed audit report.</param>
+    /// <param name="localize">Optional localization delegate; keys pass through when null.</param>
     /// <returns>A complete HTML document as a string.</returns>
-    public static string Generate(AuditReport report)
+    public static string Generate(AuditReport report, Func<string, string>? localize = null)
     {
         ArgumentNullException.ThrowIfNull(report);
 
+        var l = localize ?? (key => key);
         var sb = new StringBuilder(8192);
         sb.AppendLine("<!DOCTYPE html>");
         sb.AppendLine("<html lang=\"en\">");
-        AppendHead(sb, report);
+        AppendHead(sb, report, l);
         sb.AppendLine("<body>");
-        AppendHeader(sb, report);
-        AppendSummary(sb, report);
+        AppendHeader(sb, report, l);
+        AppendSummary(sb, report, l);
 
         foreach (var chapter in report.Chapters)
         {
-            AppendChapter(sb, chapter);
+            AppendChapter(sb, chapter, l);
         }
 
-        AppendFooter(sb, report);
+        AppendFooter(sb, report, l);
         sb.AppendLine("</body>");
         sb.AppendLine("</html>");
         return sb.ToString();
     }
 
-    private static void AppendHead(StringBuilder sb, AuditReport report)
+    private static void AppendHead(StringBuilder sb, AuditReport report, Func<string, string> l)
     {
         var scope = Encode(FormatScope(report.Scope));
         var date = report.StartTime.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
@@ -65,7 +67,7 @@ public static class HtmlReportGenerator
         sb.AppendLine("<head>");
         sb.AppendLine("<meta charset=\"utf-8\">");
         sb.AppendLine("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">");
-        sb.Append("<title>SecNumCloud Audit Report &#8212; ").Append(scope)
+        sb.Append("<title>").Append(Encode(l("AuditReportTitle"))).Append(" &#8212; ").Append(scope)
           .Append(" &#8212; ").Append(date).AppendLine("</title>");
         AppendStyles(sb);
         sb.AppendLine("</head>");
@@ -356,22 +358,22 @@ code {
         sb.AppendLine("</style>");
     }
 
-    private static void AppendHeader(StringBuilder sb, AuditReport report)
+    private static void AppendHeader(StringBuilder sb, AuditReport report, Func<string, string> l)
     {
         var scope = Encode(FormatScope(report.Scope));
         var date = report.StartTime.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture);
         var duration = FormatDuration(report.EndTime - report.StartTime);
 
         sb.AppendLine("<div class=\"header\">");
-        sb.AppendLine("<h1>SecNumCloud v3.2 &#8212; Compliance Audit Report</h1>");
-        sb.Append("<p>Scope: ").Append(scope)
-          .Append(" | Date: ").Append(Encode(date))
-          .Append(" | Duration: ").Append(Encode(duration))
+        sb.Append("<h1>").Append(Encode(l("AuditReportHeading"))).AppendLine("</h1>");
+        sb.Append("<p>").Append(Encode(l("AuditReportScope"))).Append(": ").Append(scope)
+          .Append(" | ").Append(Encode(l("AuditReportDate"))).Append(": ").Append(Encode(date))
+          .Append(" | ").Append(Encode(l("AuditReportDuration"))).Append(": ").Append(Encode(duration))
           .AppendLine("</p>");
         sb.AppendLine("</div>");
     }
 
-    private static void AppendSummary(StringBuilder sb, AuditReport report)
+    private static void AppendSummary(StringBuilder sb, AuditReport report, Func<string, string> l)
     {
         var allChecks = report.Chapters.SelectMany(c => c.Checks).ToList();
         var totalChecks = allChecks.Count;
@@ -394,23 +396,23 @@ code {
         sb.AppendLine("<div class=\"score-card\">");
         sb.Append("<div class=\"score-value\" style=\"color: ").Append(complianceColor).Append(";\">")
           .Append(compliancePercent.ToString(CultureInfo.InvariantCulture)).AppendLine("%</div>");
-        sb.AppendLine("<div class=\"score-label\">Overall Compliance</div>");
+        sb.Append("<div class=\"score-label\">").Append(Encode(l("AuditReportCompliance"))).AppendLine("</div>");
         sb.AppendLine("</div>");
 
         // Status counts table
         sb.AppendLine("<div class=\"summary-table\">");
         sb.AppendLine("<table>");
-        AppendSummaryRow(sb, "pass", "PASS", passCount);
-        AppendSummaryRow(sb, "warning", "WARN", warnCount);
-        AppendSummaryRow(sb, "fail", "FAIL", failCount);
-        AppendSummaryRow(sb, "error", "ERROR", errorCount);
-        AppendSummaryRow(sb, "skipped", "SKIP", skippedCount);
+        AppendSummaryRow(sb, "pass", l("AuditStatusPass"), passCount, l("AuditReportChecks"));
+        AppendSummaryRow(sb, "warning", l("AuditStatusWarn"), warnCount, l("AuditReportChecks"));
+        AppendSummaryRow(sb, "fail", l("AuditStatusFail"), failCount, l("AuditReportChecks"));
+        AppendSummaryRow(sb, "error", l("AuditStatusError"), errorCount, l("AuditReportChecks"));
+        AppendSummaryRow(sb, "skipped", l("AuditStatusSkip"), skippedCount, l("AuditReportChecks"));
         sb.AppendLine("</table>");
         sb.AppendLine("</div>");
 
         // Per-chapter progress bars
         sb.AppendLine("<div class=\"chapter-bars\">");
-        sb.AppendLine("<h3>Chapters</h3>");
+        sb.Append("<h3>").Append(Encode(l("AuditReportChapters"))).AppendLine("</h3>");
         foreach (var chapter in report.Chapters)
         {
             AppendChapterBar(sb, chapter);
@@ -420,12 +422,12 @@ code {
         sb.AppendLine("</div>");
     }
 
-    private static void AppendSummaryRow(StringBuilder sb, string cssClass, string label, int count)
+    private static void AppendSummaryRow(StringBuilder sb, string cssClass, string label, int count, string checksLabel)
     {
         sb.Append("<tr><td><span class=\"badge badge-").Append(cssClass).Append("\">")
           .Append(Encode(label)).Append("</span></td><td>")
           .Append(count.ToString(CultureInfo.InvariantCulture))
-          .AppendLine(" checks</td></tr>");
+          .Append(' ').Append(Encode(checksLabel)).AppendLine("</td></tr>");
     }
 
     private static void AppendChapterBar(StringBuilder sb, AuditChapter chapter)
@@ -471,36 +473,37 @@ code {
           .Append("%;background:").Append(color).AppendLine(";\"></div>");
     }
 
-    private static void AppendChapter(StringBuilder sb, AuditChapter chapter)
+    private static void AppendChapter(StringBuilder sb, AuditChapter chapter, Func<string, string> l)
     {
         sb.AppendLine("<div class=\"chapter\">");
         sb.Append("<h2>").Append(Encode(chapter.Name))
           .Append(" &#8212; ").Append(Encode(chapter.SecNumCloudRef)).AppendLine("</h2>");
 
-        sb.Append("<div class=\"chapter-stats\">Pass: ")
+        sb.Append("<div class=\"chapter-stats\">").Append(Encode(l("AuditReportPassLabel"))).Append(' ')
           .Append(chapter.PassCount.ToString(CultureInfo.InvariantCulture))
-          .Append(" | Warn: ")
+          .Append(" | ").Append(Encode(l("AuditReportWarnLabel"))).Append(' ')
           .Append(chapter.WarnCount.ToString(CultureInfo.InvariantCulture))
-          .Append(" | Fail: ")
+          .Append(" | ").Append(Encode(l("AuditReportFailLabel"))).Append(' ')
           .Append(chapter.FailCount.ToString(CultureInfo.InvariantCulture))
           .AppendLine("</div>");
 
         foreach (var check in chapter.Checks)
         {
-            AppendCheck(sb, check);
+            AppendCheck(sb, check, l);
         }
 
         sb.AppendLine("</div>");
     }
 
-    private static void AppendCheck(StringBuilder sb, AuditCheck check)
+    private static void AppendCheck(StringBuilder sb, AuditCheck check, Func<string, string> l)
     {
         var statusCss = StatusToCssClass(check.Status);
+        var statusLabel = StatusToLabel(check.Status, l);
 
         sb.Append("<div class=\"check ").Append(statusCss).AppendLine("\">");
         sb.AppendLine("<h3>");
         sb.Append("<span class=\"badge badge-").Append(statusCss).Append("\">")
-          .Append(Encode(check.Status.ToString().ToUpperInvariant())).Append("</span> ");
+          .Append(Encode(statusLabel)).Append("</span> ");
         sb.Append(Encode(check.Id)).Append(": ").Append(Encode(check.Name))
           .Append(" (").Append(Encode(check.SecNumCloudClause)).Append(')');
         sb.AppendLine("</h3>");
@@ -512,20 +515,23 @@ code {
 
         if (check.Evidence.Count > 0)
         {
-            AppendEvidenceTable(sb, check.Evidence);
+            AppendEvidenceTable(sb, check.Evidence, l);
         }
 
         sb.AppendLine("</div>");
     }
 
-    private static void AppendEvidenceTable(StringBuilder sb, List<AuditEvidence> evidence)
+    private static void AppendEvidenceTable(StringBuilder sb, List<AuditEvidence> evidence, Func<string, string> l)
     {
         sb.AppendLine("<details>");
-        sb.Append("<summary>Evidence (")
+        sb.Append("<summary>").Append(Encode(l("AuditReportEvidence"))).Append(" (")
           .Append(evidence.Count.ToString(CultureInfo.InvariantCulture))
-          .AppendLine(" items)</summary>");
+          .Append(' ').Append(Encode(l("AuditReportItems"))).AppendLine(")</summary>");
         sb.AppendLine("<table>");
-        sb.AppendLine("<thead><tr><th>Host</th><th>Detail</th><th>Raw Data</th></tr></thead>");
+        sb.Append("<thead><tr><th>").Append(Encode(l("AuditReportHost")))
+          .Append("</th><th>").Append(Encode(l("AuditReportDetail")))
+          .Append("</th><th>").Append(Encode(l("AuditReportRawData")))
+          .AppendLine("</th></tr></thead>");
         sb.AppendLine("<tbody>");
 
         foreach (var item in evidence)
@@ -542,7 +548,7 @@ code {
         sb.AppendLine("</details>");
     }
 
-    private static void AppendFooter(StringBuilder sb, AuditReport report)
+    private static void AppendFooter(StringBuilder sb, AuditReport report, Func<string, string> l)
     {
         var allChecks = report.Chapters.SelectMany(c => c.Checks).ToList();
         var hostCount = allChecks.SelectMany(c => c.Evidence)
@@ -554,10 +560,11 @@ code {
         var timestamp = report.EndTime.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture);
 
         sb.AppendLine("<div class=\"footer\">");
-        sb.Append("<p>Generated by Heimdall.Next &#8212; ").Append(Encode(timestamp)).AppendLine("</p>");
-        sb.Append("<p>Audit duration: ").Append(Encode(duration))
-          .Append(" | Hosts scanned: ").Append(hostCount.ToString(CultureInfo.InvariantCulture))
-          .Append(" | Checks performed: ").Append(allChecks.Count.ToString(CultureInfo.InvariantCulture))
+        sb.Append("<p>").Append(Encode(l("AuditReportGenerated"))).Append(" &#8212; ")
+          .Append(Encode(timestamp)).AppendLine("</p>");
+        sb.Append("<p>").Append(Encode(l("AuditReportAuditDuration"))).Append(": ").Append(Encode(duration))
+          .Append(" | ").Append(Encode(l("AuditReportHostsScanned"))).Append(": ").Append(hostCount.ToString(CultureInfo.InvariantCulture))
+          .Append(" | ").Append(Encode(l("AuditReportChecksPerformed"))).Append(": ").Append(allChecks.Count.ToString(CultureInfo.InvariantCulture))
           .AppendLine("</p>");
         sb.AppendLine("</div>");
     }
@@ -602,6 +609,16 @@ code {
         AuditStatus.Error => "error",
         AuditStatus.Skipped => "skipped",
         _ => "skipped",
+    };
+
+    private static string StatusToLabel(AuditStatus status, Func<string, string> l) => status switch
+    {
+        AuditStatus.Pass => l("AuditStatusPass"),
+        AuditStatus.Warning => l("AuditStatusWarn"),
+        AuditStatus.Fail => l("AuditStatusFail"),
+        AuditStatus.Error => l("AuditStatusError"),
+        AuditStatus.Skipped => l("AuditStatusSkip"),
+        _ => status.ToString().ToUpperInvariant(),
     };
 
     private static string Encode(string value) =>

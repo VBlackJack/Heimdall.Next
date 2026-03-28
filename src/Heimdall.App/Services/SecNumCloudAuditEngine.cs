@@ -45,6 +45,19 @@ public sealed class SecNumCloudAuditEngine
     /// <summary>Fires after each individual check completes.</summary>
     public event Action<AuditCheck>? CheckCompleted;
 
+    // ── Localization ────────────────────────────────────────────────
+
+    private readonly Func<string, string> _l;
+
+    /// <summary>
+    /// Initializes a new instance with an optional localization delegate.
+    /// When omitted, keys are returned as-is (passthrough).
+    /// </summary>
+    public SecNumCloudAuditEngine(Func<string, string>? localize = null)
+    {
+        _l = localize ?? (key => key);
+    }
+
     // ── Constants ────────────────────────────────────────────────────
 
     private const int DefaultTimeoutMs = 5_000;
@@ -57,6 +70,9 @@ public sealed class SecNumCloudAuditEngine
 
     /// <summary>Ports that typically serve TLS-encrypted traffic.</summary>
     private static readonly HashSet<int> TlsPorts = [443, 8443, 636, 993, 995, 465, 990, 3269, 9443];
+
+    /// <summary>Ports that typically serve HTTP/HTTPS traffic.</summary>
+    private static readonly HashSet<int> HttpPorts = [80, 443, 8080, 8443, 9443];
 
     /// <summary>Well-known SNMP community strings to test.</summary>
     private static readonly string[] DefaultSnmpCommunities = ["public", "private", "community"];
@@ -92,6 +108,9 @@ public sealed class SecNumCloudAuditEngine
         ("TLS 1.3",  SslProtocols.Tls13, false),
     ];
 #pragma warning restore CA5397, CS0618, SYSLIB0039
+
+    /// <summary>Pre-compiled regex to extract CN from certificate subject.</summary>
+    private static readonly Regex CnRegex = new(@"CN=([^,]+)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
     // ── Weak cipher suite names (substring matching against negotiated cipher) ──
 
@@ -162,7 +181,7 @@ public sealed class SecNumCloudAuditEngine
         [
             new("CVE-2022-21907", 9.8, "Critical",
                 "HTTP Protocol Stack (http.sys) RCE in trailer support",
-                "IIS 10.0 (Win Server 2022)", _ => true),
+                "IIS 10.0 (Win Server 2022)", v => v.StartsWith("10.", StringComparison.Ordinal) || v == "10"),
         ],
     };
 
@@ -191,10 +210,15 @@ public sealed class SecNumCloudAuditEngine
         AuditOptions options,
         CancellationToken ct = default)
     {
+        ArgumentNullException.ThrowIfNull(scope);
+        ArgumentNullException.ThrowIfNull(options);
+        if ((scope.Targets is null || scope.Targets.Count == 0) && string.IsNullOrWhiteSpace(scope.Subnet))
+            throw new ArgumentException("Audit scope must have at least one target or a subnet.", nameof(scope));
+
         var report = new AuditReport { StartTime = DateTime.UtcNow, Scope = scope };
 
         // Phase 1: Discovery
-        StatusChanged?.Invoke("Phase 1/5: Network discovery...");
+        StatusChanged?.Invoke(_l("AuditPhaseDiscovery"));
         var (hosts, snapshot) = await DiscoverHostsAsync(scope, options.Depth, ct)
             .ConfigureAwait(false);
         report.NetworkSnapshot = snapshot;
@@ -202,7 +226,7 @@ public sealed class SecNumCloudAuditEngine
         // Phase 2: Network Security
         if (options.CheckNetwork)
         {
-            StatusChanged?.Invoke("Phase 2/5: Network security checks...");
+            StatusChanged?.Invoke(_l("AuditPhaseNetwork"));
             var chapter = BuildNetworkChapter();
             await RunNetworkChecksAsync(chapter, hosts, snapshot, ct).ConfigureAwait(false);
             report.Chapters.Add(chapter);
@@ -211,7 +235,7 @@ public sealed class SecNumCloudAuditEngine
         // Phase 3: Cryptography
         if (options.CheckCrypto)
         {
-            StatusChanged?.Invoke("Phase 3/5: Cryptography checks...");
+            StatusChanged?.Invoke(_l("AuditPhaseCrypto"));
             var chapter = BuildCryptoChapter();
             await RunCryptoChecksAsync(chapter, hosts, snapshot, ct).ConfigureAwait(false);
             report.Chapters.Add(chapter);
@@ -220,7 +244,7 @@ public sealed class SecNumCloudAuditEngine
         // Phase 4: Access Control
         if (options.CheckAccess)
         {
-            StatusChanged?.Invoke("Phase 4/5: Access control checks...");
+            StatusChanged?.Invoke(_l("AuditPhaseAccess"));
             var chapter = BuildAccessChapter();
             await RunAccessChecksAsync(chapter, hosts, snapshot, ct).ConfigureAwait(false);
             report.Chapters.Add(chapter);
@@ -229,14 +253,14 @@ public sealed class SecNumCloudAuditEngine
         // Phase 5: Operations Security
         if (options.CheckOperations)
         {
-            StatusChanged?.Invoke("Phase 5/5: Operations security checks...");
+            StatusChanged?.Invoke(_l("AuditPhaseOperations"));
             var chapter = BuildOperationsChapter();
             await RunOperationsChecksAsync(chapter, hosts, scope, snapshot, ct).ConfigureAwait(false);
             report.Chapters.Add(chapter);
         }
 
         report.EndTime = DateTime.UtcNow;
-        StatusChanged?.Invoke("Audit complete.");
+        StatusChanged?.Invoke(_l("AuditPhaseComplete"));
         return report;
     }
 
@@ -268,9 +292,9 @@ public sealed class SecNumCloudAuditEngine
 
             var engine = new CartographyEngine();
             engine.HostDiscoveryProgress += (done, total) =>
-                PhaseProgress?.Invoke("Discovery", done, total);
+                PhaseProgress?.Invoke(_l("AuditPhaseNameDiscovery"), done, total);
             engine.HostCompleted += host =>
-                PhaseProgress?.Invoke("Scanning", 0, 0);
+                PhaseProgress?.Invoke(_l("AuditPhaseNameScanning"), 0, 0);
 
             var snapshot = await engine.ScanAsync(profile, ct: ct).ConfigureAwait(false);
             return (snapshot.Hosts, snapshot);
@@ -278,6 +302,7 @@ public sealed class SecNumCloudAuditEngine
 
         // Otherwise probe each target individually with standard ports
         var hosts = new List<HostScanResult>();
+        var hostsLock = new object();
         var targets = scope.Targets;
         var completed = 0;
 
@@ -296,13 +321,13 @@ public sealed class SecNumCloudAuditEngine
                     PrimaryRole: null,
                     AllRoles: []);
 
-                lock (hosts)
+                lock (hostsLock)
                 {
                     hosts.Add(host);
                 }
 
                 var count = Interlocked.Increment(ref completed);
-                PhaseProgress?.Invoke("Discovery", count, targets.Count);
+                PhaseProgress?.Invoke(_l("AuditPhaseNameDiscovery"), count, targets.Count);
             }).ConfigureAwait(false);
 
         return (hosts, null);
@@ -315,6 +340,7 @@ public sealed class SecNumCloudAuditEngine
         string host, CancellationToken ct)
     {
         var services = new List<ServiceResult>();
+        var servicesLock = new object();
         var ports = CartographyEngine.StandardPorts;
 
         await Parallel.ForEachAsync(
@@ -342,6 +368,7 @@ public sealed class SecNumCloudAuditEngine
                         if (read > 0)
                             banner = Encoding.ASCII.GetString(buf, 0, read).Trim();
                     }
+                    catch (OperationCanceledException) { throw; }
                     catch { /* banner grab is best-effort */ }
 
                     var result = new ServiceResult(
@@ -352,11 +379,12 @@ public sealed class SecNumCloudAuditEngine
                         Version: null,
                         ResponseTimeMs: 0);
 
-                    lock (services)
+                    lock (servicesLock)
                     {
                         services.Add(result);
                     }
                 }
+                catch (OperationCanceledException) { throw; }
                 catch { /* port closed or unreachable */ }
             }).ConfigureAwait(false);
 
@@ -392,17 +420,17 @@ public sealed class SecNumCloudAuditEngine
     //  Phase 2: Network Security (Chapter NET — 4 checks)
     // ═══════════════════════════════════════════════════════════════════
 
-    private static AuditChapter BuildNetworkChapter() => new()
+    private AuditChapter BuildNetworkChapter() => new()
     {
         Id = "NET",
-        Name = "Network Security",
+        Name = _l("AuditChapterNetwork"),
         SecNumCloudRef = "SecNumCloud 3.2 - 9.1 Network Architecture",
         Checks =
         [
-            new() { Id = "NET-01", Name = "Open ports inventory", SecNumCloudClause = "9.1.2" },
-            new() { Id = "NET-02", Name = "Unnecessary services", SecNumCloudClause = "9.1.3" },
-            new() { Id = "NET-03", Name = "HTTP security headers", SecNumCloudClause = "9.1.4" },
-            new() { Id = "NET-04", Name = "Network segmentation", SecNumCloudClause = "9.1.1" },
+            new() { Id = "NET-01", Name = _l("AuditCheckNet01Name"), SecNumCloudClause = "9.1.2" },
+            new() { Id = "NET-02", Name = _l("AuditCheckNet02Name"), SecNumCloudClause = "9.1.3" },
+            new() { Id = "NET-03", Name = _l("AuditCheckNet03Name"), SecNumCloudClause = "9.1.4" },
+            new() { Id = "NET-04", Name = _l("AuditCheckNet04Name"), SecNumCloudClause = "9.1.1" },
         ],
     };
 
@@ -429,21 +457,23 @@ public sealed class SecNumCloudAuditEngine
                     net01.Evidence.Add(new AuditEvidence
                     {
                         Host = host.IpAddress,
-                        Detail = $"{openPorts.Count} open port(s): " +
-                                 string.Join(", ", openPorts.Select(p => $"{p.Port}/{p.ServiceName ?? "unknown"}")),
+                        Detail = string.Format(_l("AuditEvidenceOpenPorts"),
+                            openPorts.Count,
+                            string.Join(", ", openPorts.Select(p => $"{p.Port}/{p.ServiceName ?? _l("AuditServiceUnknown")}"))),
                     });
                 }
             }
             net01.Status = AuditStatus.Pass;
-            net01.Summary = $"Inventoried {totalOpen} open port(s) across {hosts.Count} host(s).";
+            net01.Summary = string.Format(_l("AuditCheckNet01Summary"), totalOpen, hosts.Count);
         }
+        catch (OperationCanceledException) { throw; }
         catch (Exception ex)
         {
             net01.Status = AuditStatus.Error;
-            net01.Summary = $"Failed to inventory ports: {ex.Message}";
+            net01.Summary = string.Format(_l("AuditCheckNet01Error"), ex.Message);
         }
         CheckCompleted?.Invoke(net01);
-        PhaseProgress?.Invoke("Network", ++completed, total);
+        PhaseProgress?.Invoke(_l("AuditPhaseNameNetwork"), ++completed, total);
 
         // NET-02: Unnecessary services
         var net02 = chapter.Checks[1];
@@ -462,9 +492,9 @@ public sealed class SecNumCloudAuditEngine
                     net02.Evidence.Add(new AuditEvidence
                     {
                         Host = host.IpAddress,
-                        Detail = "Non-standard port(s): " +
-                                 string.Join(", ", nonStandard.Select(p =>
-                                     $"{p.Port}/{p.ServiceName ?? "unknown"}")),
+                        Detail = string.Format(_l("AuditEvidenceNonStdPort"),
+                            string.Join(", ", nonStandard.Select(p =>
+                                $"{p.Port}/{p.ServiceName ?? _l("AuditServiceUnknown")}"))),
                     });
                 }
             }
@@ -472,21 +502,22 @@ public sealed class SecNumCloudAuditEngine
             if (flaggedCount == 0)
             {
                 net02.Status = AuditStatus.Pass;
-                net02.Summary = "No unnecessary services detected.";
+                net02.Summary = _l("AuditCheckNet02SummaryPass");
             }
             else
             {
                 net02.Status = AuditStatus.Warning;
-                net02.Summary = $"{flaggedCount} non-standard port(s) found — review for necessity.";
+                net02.Summary = string.Format(_l("AuditCheckNet02SummaryWarn"), flaggedCount);
             }
         }
+        catch (OperationCanceledException) { throw; }
         catch (Exception ex)
         {
             net02.Status = AuditStatus.Error;
-            net02.Summary = $"Service check failed: {ex.Message}";
+            net02.Summary = string.Format(_l("AuditCheckNet02Error"), ex.Message);
         }
         CheckCompleted?.Invoke(net02);
-        PhaseProgress?.Invoke("Network", ++completed, total);
+        PhaseProgress?.Invoke(_l("AuditPhaseNameNetwork"), ++completed, total);
 
         // NET-03: HTTP security headers
         var net03 = chapter.Checks[2];
@@ -494,13 +525,14 @@ public sealed class SecNumCloudAuditEngine
         {
             await CheckHttpSecurityHeadersAsync(net03, hosts, ct).ConfigureAwait(false);
         }
+        catch (OperationCanceledException) { throw; }
         catch (Exception ex)
         {
             net03.Status = AuditStatus.Error;
-            net03.Summary = $"HTTP header check failed: {ex.Message}";
+            net03.Summary = string.Format(_l("AuditCheckNet03Error"), ex.Message);
         }
         CheckCompleted?.Invoke(net03);
-        PhaseProgress?.Invoke("Network", ++completed, total);
+        PhaseProgress?.Invoke(_l("AuditPhaseNameNetwork"), ++completed, total);
 
         // NET-04: Network segmentation (informational)
         var net04 = chapter.Checks[3];
@@ -521,25 +553,25 @@ public sealed class SecNumCloudAuditEngine
                     net04.Evidence.Add(new AuditEvidence
                     {
                         Host = vlan.Subnet,
-                        Detail = $"VLAN {vlan.VlanId?.ToString() ?? "N/A"}: {vlan.Name} " +
-                                 $"({vlan.MemberIps.Count} host(s))",
+                        Detail = string.Format(_l("AuditEvidenceVlan"),
+                            vlan.VlanId?.ToString() ?? "N/A", vlan.Name, vlan.MemberIps.Count),
                     });
                 }
             }
 
             net04.Status = subnets.Count > 1 ? AuditStatus.Pass : AuditStatus.Warning;
-            net04.Summary = $"Detected {subnets.Count} subnet(s)" +
-                            (snapshot?.DetectedVlans is { Count: > 0 }
-                                ? $" and {snapshot.DetectedVlans.Count} VLAN(s)."
-                                : ". No VLAN information available — verify segmentation manually.");
+            net04.Summary = snapshot?.DetectedVlans is { Count: > 0 }
+                ? string.Format(_l("AuditCheckNet04SummaryVlan"), subnets.Count, snapshot.DetectedVlans.Count)
+                : string.Format(_l("AuditCheckNet04SummaryNoVlan"), subnets.Count);
         }
+        catch (OperationCanceledException) { throw; }
         catch (Exception ex)
         {
             net04.Status = AuditStatus.Error;
-            net04.Summary = $"Segmentation check failed: {ex.Message}";
+            net04.Summary = string.Format(_l("AuditCheckNet04Error"), ex.Message);
         }
         CheckCompleted?.Invoke(net04);
-        PhaseProgress?.Invoke("Network", ++completed, total);
+        PhaseProgress?.Invoke(_l("AuditPhaseNameNetwork"), ++completed, total);
     }
 
     /// <summary>
@@ -549,14 +581,13 @@ public sealed class SecNumCloudAuditEngine
     private async Task CheckHttpSecurityHeadersAsync(
         AuditCheck check, List<HostScanResult> hosts, CancellationToken ct)
     {
-        var httpPorts = new HashSet<int> { 80, 443, 8080, 8443, 9443 };
         var missingCount = 0;
         var checkedCount = 0;
 
         foreach (var host in hosts)
         {
             var webServices = host.Services
-                .Where(s => s.IsOpen && httpPorts.Contains(s.Port))
+                .Where(s => s.IsOpen && HttpPorts.Contains(s.Port))
                 .ToList();
 
             foreach (var svc in webServices)
@@ -580,12 +611,14 @@ public sealed class SecNumCloudAuditEngine
                         check.Evidence.Add(new AuditEvidence
                         {
                             Host = host.IpAddress,
-                            Detail = $"Port {svc.Port}: missing header(s): {string.Join(", ", missing)}",
+                            Detail = string.Format(_l("AuditEvidenceMissingHeaders"),
+                                svc.Port, string.Join(", ", missing)),
                             RawData = string.Join("\n",
                                 headers.Select(kv => $"{kv.Key}: {kv.Value}")),
                         });
                     }
                 }
+                catch (OperationCanceledException) { throw; }
                 catch { /* host/port unreachable during header fetch */ }
             }
         }
@@ -593,18 +626,17 @@ public sealed class SecNumCloudAuditEngine
         if (checkedCount == 0)
         {
             check.Status = AuditStatus.Skipped;
-            check.Summary = "No HTTP/HTTPS services found to check.";
+            check.Summary = _l("AuditCheckNet03SummarySkip");
         }
         else if (missingCount == 0)
         {
             check.Status = AuditStatus.Pass;
-            check.Summary = $"All {checkedCount} web service(s) have required security headers.";
+            check.Summary = string.Format(_l("AuditCheckNet03SummaryPass"), checkedCount);
         }
         else
         {
             check.Status = AuditStatus.Fail;
-            check.Summary = $"{missingCount}/{checkedCount} web service(s) are missing " +
-                            "required security headers (HSTS, CSP, XFO, XCTO).";
+            check.Summary = string.Format(_l("AuditCheckNet03SummaryFail"), missingCount, checkedCount);
         }
     }
 
@@ -612,17 +644,17 @@ public sealed class SecNumCloudAuditEngine
     //  Phase 3: Cryptography (Chapter CRY — 4 checks)
     // ═══════════════════════════════════════════════════════════════════
 
-    private static AuditChapter BuildCryptoChapter() => new()
+    private AuditChapter BuildCryptoChapter() => new()
     {
         Id = "CRY",
-        Name = "Cryptography",
+        Name = _l("AuditChapterCrypto"),
         SecNumCloudRef = "SecNumCloud 3.2 - 10.1 Cryptographic Controls",
         Checks =
         [
-            new() { Id = "CRY-01", Name = "TLS protocol versions", SecNumCloudClause = "10.1.1" },
-            new() { Id = "CRY-02", Name = "Weak cipher suites", SecNumCloudClause = "10.1.2" },
-            new() { Id = "CRY-03", Name = "Certificate validity", SecNumCloudClause = "10.1.3" },
-            new() { Id = "CRY-04", Name = "SSH key strength", SecNumCloudClause = "10.1.4" },
+            new() { Id = "CRY-01", Name = _l("AuditCheckCry01Name"), SecNumCloudClause = "10.1.1" },
+            new() { Id = "CRY-02", Name = _l("AuditCheckCry02Name"), SecNumCloudClause = "10.1.2" },
+            new() { Id = "CRY-03", Name = _l("AuditCheckCry03Name"), SecNumCloudClause = "10.1.3" },
+            new() { Id = "CRY-04", Name = _l("AuditCheckCry04Name"), SecNumCloudClause = "10.1.4" },
         ],
     };
 
@@ -641,13 +673,14 @@ public sealed class SecNumCloudAuditEngine
         {
             await CheckTlsProtocolVersionsAsync(cry01, hosts, ct).ConfigureAwait(false);
         }
+        catch (OperationCanceledException) { throw; }
         catch (Exception ex)
         {
             cry01.Status = AuditStatus.Error;
-            cry01.Summary = $"TLS protocol check failed: {ex.Message}";
+            cry01.Summary = string.Format(_l("AuditCheckCry01Error"), ex.Message);
         }
         CheckCompleted?.Invoke(cry01);
-        PhaseProgress?.Invoke("Crypto", ++completed, total);
+        PhaseProgress?.Invoke(_l("AuditPhaseNameCrypto"), ++completed, total);
 
         // CRY-02: Weak cipher suites
         var cry02 = chapter.Checks[1];
@@ -655,13 +688,14 @@ public sealed class SecNumCloudAuditEngine
         {
             await CheckWeakCiphersAsync(cry02, hosts, ct).ConfigureAwait(false);
         }
+        catch (OperationCanceledException) { throw; }
         catch (Exception ex)
         {
             cry02.Status = AuditStatus.Error;
-            cry02.Summary = $"Cipher suite check failed: {ex.Message}";
+            cry02.Summary = string.Format(_l("AuditCheckCry02Error"), ex.Message);
         }
         CheckCompleted?.Invoke(cry02);
-        PhaseProgress?.Invoke("Crypto", ++completed, total);
+        PhaseProgress?.Invoke(_l("AuditPhaseNameCrypto"), ++completed, total);
 
         // CRY-03: Certificate validity
         var cry03 = chapter.Checks[2];
@@ -669,13 +703,14 @@ public sealed class SecNumCloudAuditEngine
         {
             CheckCertificateValidity(cry03, hosts);
         }
+        catch (OperationCanceledException) { throw; }
         catch (Exception ex)
         {
             cry03.Status = AuditStatus.Error;
-            cry03.Summary = $"Certificate check failed: {ex.Message}";
+            cry03.Summary = string.Format(_l("AuditCheckCry03Error"), ex.Message);
         }
         CheckCompleted?.Invoke(cry03);
-        PhaseProgress?.Invoke("Crypto", ++completed, total);
+        PhaseProgress?.Invoke(_l("AuditPhaseNameCrypto"), ++completed, total);
 
         // CRY-04: SSH key strength
         var cry04 = chapter.Checks[3];
@@ -683,13 +718,14 @@ public sealed class SecNumCloudAuditEngine
         {
             await CheckSshKeyStrengthAsync(cry04, hosts, ct).ConfigureAwait(false);
         }
+        catch (OperationCanceledException) { throw; }
         catch (Exception ex)
         {
             cry04.Status = AuditStatus.Error;
-            cry04.Summary = $"SSH key check failed: {ex.Message}";
+            cry04.Summary = string.Format(_l("AuditCheckCry04Error"), ex.Message);
         }
         CheckCompleted?.Invoke(cry04);
-        PhaseProgress?.Invoke("Crypto", ++completed, total);
+        PhaseProgress?.Invoke(_l("AuditPhaseNameCrypto"), ++completed, total);
     }
 
     /// <summary>
@@ -728,8 +764,8 @@ public sealed class SecNumCloudAuditEngine
                     check.Evidence.Add(new AuditEvidence
                     {
                         Host = host.IpAddress,
-                        Detail = $"Port {svc.Port}: deprecated protocol(s) supported: " +
-                                 string.Join(", ", weakProtocols),
+                        Detail = string.Format(_l("AuditEvidenceDeprecatedProto"),
+                            svc.Port, string.Join(", ", weakProtocols)),
                     });
                 }
             }
@@ -738,18 +774,17 @@ public sealed class SecNumCloudAuditEngine
         if (checkedEndpoints == 0)
         {
             check.Status = AuditStatus.Skipped;
-            check.Summary = "No TLS services found to check.";
+            check.Summary = _l("AuditCheckCry01SummarySkip");
         }
         else if (weakFound == 0)
         {
             check.Status = AuditStatus.Pass;
-            check.Summary = $"All {checkedEndpoints} TLS endpoint(s) reject deprecated protocols.";
+            check.Summary = string.Format(_l("AuditCheckCry01SummaryPass"), checkedEndpoints);
         }
         else
         {
             check.Status = AuditStatus.Fail;
-            check.Summary = $"{weakFound}/{checkedEndpoints} endpoint(s) support deprecated " +
-                            "TLS/SSL protocol versions.";
+            check.Summary = string.Format(_l("AuditCheckCry01SummaryFail"), weakFound, checkedEndpoints);
         }
     }
 
@@ -787,10 +822,11 @@ public sealed class SecNumCloudAuditEngine
                         check.Evidence.Add(new AuditEvidence
                         {
                             Host = host.IpAddress,
-                            Detail = $"Port {svc.Port}: weak cipher negotiated: {cipherName}",
+                            Detail = string.Format(_l("AuditEvidenceWeakCipher"), svc.Port, cipherName),
                         });
                     }
                 }
+                catch (OperationCanceledException) { throw; }
                 catch { /* cipher check failed for this endpoint */ }
             }
         }
@@ -798,17 +834,17 @@ public sealed class SecNumCloudAuditEngine
         if (checkedEndpoints == 0)
         {
             check.Status = AuditStatus.Skipped;
-            check.Summary = "No TLS services found to check.";
+            check.Summary = _l("AuditCheckCry02SummarySkip");
         }
         else if (weakFound == 0)
         {
             check.Status = AuditStatus.Pass;
-            check.Summary = $"No weak cipher suites detected across {checkedEndpoints} endpoint(s).";
+            check.Summary = string.Format(_l("AuditCheckCry02SummaryPass"), checkedEndpoints);
         }
         else
         {
             check.Status = AuditStatus.Fail;
-            check.Summary = $"{weakFound}/{checkedEndpoints} endpoint(s) negotiated a weak cipher suite.";
+            check.Summary = string.Format(_l("AuditCheckCry02SummaryFail"), weakFound, checkedEndpoints);
         }
     }
 
@@ -816,7 +852,7 @@ public sealed class SecNumCloudAuditEngine
     /// Validates certificate expiry, chain trust, and hostname match using data
     /// from the discovery snapshot.
     /// </summary>
-    private static void CheckCertificateValidity(AuditCheck check, List<HostScanResult> hosts)
+    private void CheckCertificateValidity(AuditCheck check, List<HostScanResult> hosts)
     {
         var expiredCount = 0;
         var expiringSoonCount = 0;
@@ -835,8 +871,8 @@ public sealed class SecNumCloudAuditEngine
                     check.Evidence.Add(new AuditEvidence
                     {
                         Host = host.IpAddress,
-                        Detail = $"Port {svc.Port}: certificate EXPIRED on " +
-                                 $"{cert.NotAfter:yyyy-MM-dd} (Subject: {cert.Subject})",
+                        Detail = string.Format(_l("AuditEvidenceCertExpired"),
+                            svc.Port, cert.NotAfter.ToString("yyyy-MM-dd"), cert.Subject),
                     });
                 }
                 else if (cert.ExpiresSoon)
@@ -845,8 +881,8 @@ public sealed class SecNumCloudAuditEngine
                     check.Evidence.Add(new AuditEvidence
                     {
                         Host = host.IpAddress,
-                        Detail = $"Port {svc.Port}: certificate expires soon on " +
-                                 $"{cert.NotAfter:yyyy-MM-dd} (Subject: {cert.Subject})",
+                        Detail = string.Format(_l("AuditEvidenceCertExpiringSoon"),
+                            svc.Port, cert.NotAfter.ToString("yyyy-MM-dd"), cert.Subject),
                     });
                 }
 
@@ -857,7 +893,7 @@ public sealed class SecNumCloudAuditEngine
                     check.Evidence.Add(new AuditEvidence
                     {
                         Host = host.IpAddress,
-                        Detail = $"Port {svc.Port}: weak signature algorithm: {cert.SignatureAlgorithm}",
+                        Detail = string.Format(_l("AuditEvidenceWeakSigAlgo"), svc.Port, cert.SignatureAlgorithm),
                     });
                 }
             }
@@ -866,23 +902,23 @@ public sealed class SecNumCloudAuditEngine
         if (checkedCount == 0)
         {
             check.Status = AuditStatus.Skipped;
-            check.Summary = "No TLS certificates found in scan data.";
+            check.Summary = _l("AuditCheckCry03SummarySkip");
         }
         else if (expiredCount > 0)
         {
             check.Status = AuditStatus.Fail;
-            check.Summary = $"{expiredCount} expired certificate(s), " +
-                            $"{expiringSoonCount} expiring soon, out of {checkedCount} total.";
+            check.Summary = string.Format(_l("AuditCheckCry03SummaryFail"),
+                expiredCount, expiringSoonCount, checkedCount);
         }
         else if (expiringSoonCount > 0)
         {
             check.Status = AuditStatus.Warning;
-            check.Summary = $"{expiringSoonCount} certificate(s) expiring soon out of {checkedCount} total.";
+            check.Summary = string.Format(_l("AuditCheckCry03SummaryWarn"), expiringSoonCount, checkedCount);
         }
         else
         {
             check.Status = AuditStatus.Pass;
-            check.Summary = $"All {checkedCount} certificate(s) are valid.";
+            check.Summary = string.Format(_l("AuditCheckCry03SummaryPass"), checkedCount);
         }
     }
 
@@ -928,9 +964,9 @@ public sealed class SecNumCloudAuditEngine
                     check.Evidence.Add(new AuditEvidence
                     {
                         Host = host.IpAddress,
-                        Detail = $"Port {svc.Port}: weak SSH host key algorithm (DSA) detected",
-                        RawData = $"Banner: {banner}" +
-                                  (hassh is not null ? $"\nHASSH: {hassh}" : ""),
+                        Detail = string.Format(_l("AuditEvidenceWeakSshKey"), svc.Port),
+                        RawData = string.Format(_l("AuditRawBanner"), banner) +
+                                  (hassh is not null ? "\n" + string.Format(_l("AuditRawHashh"), hassh) : ""),
                     });
                 }
                 else if (hassh is not null)
@@ -938,8 +974,8 @@ public sealed class SecNumCloudAuditEngine
                     check.Evidence.Add(new AuditEvidence
                     {
                         Host = host.IpAddress,
-                        Detail = $"Port {svc.Port}: SSH fingerprint verified (HASSH: {hassh})",
-                        RawData = $"Banner: {banner}",
+                        Detail = string.Format(_l("AuditEvidenceSshFingerprint"), svc.Port, hassh),
+                        RawData = string.Format(_l("AuditRawBanner"), banner),
                     });
                 }
             }
@@ -948,17 +984,17 @@ public sealed class SecNumCloudAuditEngine
         if (checkedCount == 0)
         {
             check.Status = AuditStatus.Skipped;
-            check.Summary = "No SSH services found to check.";
+            check.Summary = _l("AuditCheckCry04SummarySkip");
         }
         else if (weakCount > 0)
         {
             check.Status = AuditStatus.Fail;
-            check.Summary = $"{weakCount}/{checkedCount} SSH server(s) offer weak key algorithms.";
+            check.Summary = string.Format(_l("AuditCheckCry04SummaryFail"), weakCount, checkedCount);
         }
         else
         {
             check.Status = AuditStatus.Pass;
-            check.Summary = $"All {checkedCount} SSH server(s) use acceptable key algorithms.";
+            check.Summary = string.Format(_l("AuditCheckCry04SummaryPass"), checkedCount);
         }
     }
 
@@ -966,16 +1002,16 @@ public sealed class SecNumCloudAuditEngine
     //  Phase 4: Access Control (Chapter ACC — 3 checks)
     // ═══════════════════════════════════════════════════════════════════
 
-    private static AuditChapter BuildAccessChapter() => new()
+    private AuditChapter BuildAccessChapter() => new()
     {
         Id = "ACC",
-        Name = "Access Control",
+        Name = _l("AuditChapterAccess"),
         SecNumCloudRef = "SecNumCloud 3.2 - 9.2 Access Management",
         Checks =
         [
-            new() { Id = "ACC-01", Name = "Default credentials", SecNumCloudClause = "9.2.3" },
-            new() { Id = "ACC-02", Name = "SMB signing", SecNumCloudClause = "9.2.4" },
-            new() { Id = "ACC-03", Name = "SNMP community strings", SecNumCloudClause = "9.2.5" },
+            new() { Id = "ACC-01", Name = _l("AuditCheckAcc01Name"), SecNumCloudClause = "9.2.3" },
+            new() { Id = "ACC-02", Name = _l("AuditCheckAcc02Name"), SecNumCloudClause = "9.2.4" },
+            new() { Id = "ACC-03", Name = _l("AuditCheckAcc03Name"), SecNumCloudClause = "9.2.5" },
         ],
     };
 
@@ -994,13 +1030,14 @@ public sealed class SecNumCloudAuditEngine
         {
             await CheckDefaultCredentialsAsync(acc01, hosts, ct).ConfigureAwait(false);
         }
+        catch (OperationCanceledException) { throw; }
         catch (Exception ex)
         {
             acc01.Status = AuditStatus.Error;
-            acc01.Summary = $"Credential check failed: {ex.Message}";
+            acc01.Summary = string.Format(_l("AuditCheckAcc01Error"), ex.Message);
         }
         CheckCompleted?.Invoke(acc01);
-        PhaseProgress?.Invoke("Access", ++completed, total);
+        PhaseProgress?.Invoke(_l("AuditPhaseNameAccess"), ++completed, total);
 
         // ACC-02: SMB signing
         var acc02 = chapter.Checks[1];
@@ -1008,13 +1045,14 @@ public sealed class SecNumCloudAuditEngine
         {
             await CheckSmbSigningAsync(acc02, hosts, ct).ConfigureAwait(false);
         }
+        catch (OperationCanceledException) { throw; }
         catch (Exception ex)
         {
             acc02.Status = AuditStatus.Error;
-            acc02.Summary = $"SMB signing check failed: {ex.Message}";
+            acc02.Summary = string.Format(_l("AuditCheckAcc02Error"), ex.Message);
         }
         CheckCompleted?.Invoke(acc02);
-        PhaseProgress?.Invoke("Access", ++completed, total);
+        PhaseProgress?.Invoke(_l("AuditPhaseNameAccess"), ++completed, total);
 
         // ACC-03: SNMP community strings
         var acc03 = chapter.Checks[2];
@@ -1022,13 +1060,14 @@ public sealed class SecNumCloudAuditEngine
         {
             await CheckSnmpCommunityAsync(acc03, hosts, ct).ConfigureAwait(false);
         }
+        catch (OperationCanceledException) { throw; }
         catch (Exception ex)
         {
             acc03.Status = AuditStatus.Error;
-            acc03.Summary = $"SNMP check failed: {ex.Message}";
+            acc03.Summary = string.Format(_l("AuditCheckAcc03Error"), ex.Message);
         }
         CheckCompleted?.Invoke(acc03);
-        PhaseProgress?.Invoke("Access", ++completed, total);
+        PhaseProgress?.Invoke(_l("AuditPhaseNameAccess"), ++completed, total);
     }
 
     /// <summary>
@@ -1062,8 +1101,7 @@ public sealed class SecNumCloudAuditEngine
                         check.Evidence.Add(new AuditEvidence
                         {
                             Host = host.IpAddress,
-                            Detail = $"Port {svc.Port}: SSH login succeeded with " +
-                                     $"default credentials ({user}:***)",
+                            Detail = string.Format(_l("AuditEvidenceSshDefaultCred"), svc.Port, user),
                         });
                         break; // One match is enough per host
                     }
@@ -1071,9 +1109,8 @@ public sealed class SecNumCloudAuditEngine
             }
 
             // HTTP Basic Auth check on web services
-            var httpPorts = new HashSet<int> { 80, 443, 8080, 8443 };
             var webServices = host.Services
-                .Where(s => s.IsOpen && httpPorts.Contains(s.Port))
+                .Where(s => s.IsOpen && HttpPorts.Contains(s.Port))
                 .ToList();
 
             foreach (var svc in webServices)
@@ -1092,8 +1129,7 @@ public sealed class SecNumCloudAuditEngine
                     check.Evidence.Add(new AuditEvidence
                     {
                         Host = host.IpAddress,
-                        Detail = $"Port {svc.Port}: HTTP Basic Auth succeeded with " +
-                                 "default credentials (admin:***)",
+                        Detail = string.Format(_l("AuditEvidenceHttpDefaultCred"), svc.Port),
                     });
                 }
             }
@@ -1102,17 +1138,17 @@ public sealed class SecNumCloudAuditEngine
         if (checkedCount == 0)
         {
             check.Status = AuditStatus.Skipped;
-            check.Summary = "No SSH or HTTP services found to test.";
+            check.Summary = _l("AuditCheckAcc01SummarySkip");
         }
         else if (vulnerableCount == 0)
         {
             check.Status = AuditStatus.Pass;
-            check.Summary = $"No default credentials accepted across {checkedCount} service(s).";
+            check.Summary = string.Format(_l("AuditCheckAcc01SummaryPass"), checkedCount);
         }
         else
         {
             check.Status = AuditStatus.Fail;
-            check.Summary = $"{vulnerableCount} service(s) accept default credentials.";
+            check.Summary = string.Format(_l("AuditCheckAcc01SummaryFail"), vulnerableCount);
         }
     }
 
@@ -1149,7 +1185,7 @@ public sealed class SecNumCloudAuditEngine
                     check.Evidence.Add(new AuditEvidence
                     {
                         Host = host.IpAddress,
-                        Detail = $"Port 445: unable to retrieve SMB negotiate info",
+                        Detail = _l("AuditEvidenceSmbNoInfo"),
                     });
                     continue;
                 }
@@ -1160,9 +1196,8 @@ public sealed class SecNumCloudAuditEngine
                     check.Evidence.Add(new AuditEvidence
                     {
                         Host = host.IpAddress,
-                        Detail = $"Port 445: SMB signing is NOT required " +
-                                 $"(Dialect: 0x{smbInfo.DialectRevision:X4}, " +
-                                 $"Signing enabled: {smbInfo.SigningEnabled})",
+                        Detail = string.Format(_l("AuditEvidenceSmbNoSigning"),
+                            smbInfo.DialectRevision, smbInfo.SigningEnabled),
                     });
                 }
             }
@@ -1171,17 +1206,17 @@ public sealed class SecNumCloudAuditEngine
         if (checkedCount == 0)
         {
             check.Status = AuditStatus.Skipped;
-            check.Summary = "No SMB services found to check.";
+            check.Summary = _l("AuditCheckAcc02SummarySkip");
         }
         else if (notRequiredCount == 0)
         {
             check.Status = AuditStatus.Pass;
-            check.Summary = $"All {checkedCount} SMB server(s) require message signing.";
+            check.Summary = string.Format(_l("AuditCheckAcc02SummaryPass"), checkedCount);
         }
         else
         {
             check.Status = AuditStatus.Fail;
-            check.Summary = $"{notRequiredCount}/{checkedCount} SMB server(s) do not require signing.";
+            check.Summary = string.Format(_l("AuditCheckAcc02SummaryFail"), notRequiredCount, checkedCount);
         }
     }
 
@@ -1226,8 +1261,8 @@ public sealed class SecNumCloudAuditEngine
                 check.Evidence.Add(new AuditEvidence
                 {
                     Host = host.IpAddress,
-                    Detail = $"SNMP responded to default community string(s): " +
-                             string.Join(", ", foundCommunities.Select(c => $"\"{c}\"")),
+                    Detail = string.Format(_l("AuditEvidenceSnmpDefault"),
+                        string.Join(", ", foundCommunities.Select(c => $"\"{c}\""))),
                     RawData = host.SnmpInfo is not null
                         ? $"SysDescr: {host.SnmpInfo.SysDescr}, SysName: {host.SnmpInfo.SysName}"
                         : "",
@@ -1238,17 +1273,17 @@ public sealed class SecNumCloudAuditEngine
         if (checkedCount == 0)
         {
             check.Status = AuditStatus.Skipped;
-            check.Summary = "No SNMP services found to check.";
+            check.Summary = _l("AuditCheckAcc03SummarySkip");
         }
         else if (vulnerableCount == 0)
         {
             check.Status = AuditStatus.Pass;
-            check.Summary = $"No default SNMP community strings accepted across {checkedCount} host(s).";
+            check.Summary = string.Format(_l("AuditCheckAcc03SummaryPass"), checkedCount);
         }
         else
         {
             check.Status = AuditStatus.Fail;
-            check.Summary = $"{vulnerableCount}/{checkedCount} host(s) accept default SNMP communities.";
+            check.Summary = string.Format(_l("AuditCheckAcc03SummaryFail"), vulnerableCount, checkedCount);
         }
     }
 
@@ -1256,17 +1291,17 @@ public sealed class SecNumCloudAuditEngine
     //  Phase 5: Operations Security (Chapter OPS — 4 checks)
     // ═══════════════════════════════════════════════════════════════════
 
-    private static AuditChapter BuildOperationsChapter() => new()
+    private AuditChapter BuildOperationsChapter() => new()
     {
         Id = "OPS",
-        Name = "Operations Security",
+        Name = _l("AuditChapterOperations"),
         SecNumCloudRef = "SecNumCloud 3.2 - 12.1 Operational Procedures",
         Checks =
         [
-            new() { Id = "OPS-01", Name = "SPF/DKIM/DMARC records", SecNumCloudClause = "12.1.1" },
-            new() { Id = "OPS-02", Name = "CAA records", SecNumCloudClause = "12.1.2" },
-            new() { Id = "OPS-03", Name = "Known CVE detection", SecNumCloudClause = "12.6.1" },
-            new() { Id = "OPS-04", Name = "Service inventory", SecNumCloudClause = "12.1.3" },
+            new() { Id = "OPS-01", Name = _l("AuditCheckOps01Name"), SecNumCloudClause = "12.1.1" },
+            new() { Id = "OPS-02", Name = _l("AuditCheckOps02Name"), SecNumCloudClause = "12.1.2" },
+            new() { Id = "OPS-03", Name = _l("AuditCheckOps03Name"), SecNumCloudClause = "12.6.1" },
+            new() { Id = "OPS-04", Name = _l("AuditCheckOps04Name"), SecNumCloudClause = "12.1.3" },
         ],
     };
 
@@ -1286,13 +1321,14 @@ public sealed class SecNumCloudAuditEngine
         {
             await CheckEmailAuthRecordsAsync(ops01, hosts, ct).ConfigureAwait(false);
         }
+        catch (OperationCanceledException) { throw; }
         catch (Exception ex)
         {
             ops01.Status = AuditStatus.Error;
-            ops01.Summary = $"DNS record check failed: {ex.Message}";
+            ops01.Summary = string.Format(_l("AuditCheckOps01Error"), ex.Message);
         }
         CheckCompleted?.Invoke(ops01);
-        PhaseProgress?.Invoke("Operations", ++completed, total);
+        PhaseProgress?.Invoke(_l("AuditPhaseNameOperations"), ++completed, total);
 
         // OPS-02: CAA records
         var ops02 = chapter.Checks[1];
@@ -1300,13 +1336,14 @@ public sealed class SecNumCloudAuditEngine
         {
             await CheckCaaRecordsAsync(ops02, hosts, ct).ConfigureAwait(false);
         }
+        catch (OperationCanceledException) { throw; }
         catch (Exception ex)
         {
             ops02.Status = AuditStatus.Error;
-            ops02.Summary = $"CAA check failed: {ex.Message}";
+            ops02.Summary = string.Format(_l("AuditCheckOps02Error"), ex.Message);
         }
         CheckCompleted?.Invoke(ops02);
-        PhaseProgress?.Invoke("Operations", ++completed, total);
+        PhaseProgress?.Invoke(_l("AuditPhaseNameOperations"), ++completed, total);
 
         // OPS-03: Known CVEs
         var ops03 = chapter.Checks[2];
@@ -1314,13 +1351,14 @@ public sealed class SecNumCloudAuditEngine
         {
             CheckKnownCves(ops03, hosts);
         }
+        catch (OperationCanceledException) { throw; }
         catch (Exception ex)
         {
             ops03.Status = AuditStatus.Error;
-            ops03.Summary = $"CVE check failed: {ex.Message}";
+            ops03.Summary = string.Format(_l("AuditCheckOps03Error"), ex.Message);
         }
         CheckCompleted?.Invoke(ops03);
-        PhaseProgress?.Invoke("Operations", ++completed, total);
+        PhaseProgress?.Invoke(_l("AuditPhaseNameOperations"), ++completed, total);
 
         // OPS-04: Service inventory
         var ops04 = chapter.Checks[3];
@@ -1328,13 +1366,14 @@ public sealed class SecNumCloudAuditEngine
         {
             BuildServiceInventory(ops04, hosts, snapshot);
         }
+        catch (OperationCanceledException) { throw; }
         catch (Exception ex)
         {
             ops04.Status = AuditStatus.Error;
-            ops04.Summary = $"Inventory build failed: {ex.Message}";
+            ops04.Summary = string.Format(_l("AuditCheckOps04Error"), ex.Message);
         }
         CheckCompleted?.Invoke(ops04);
-        PhaseProgress?.Invoke("Operations", ++completed, total);
+        PhaseProgress?.Invoke(_l("AuditPhaseNameOperations"), ++completed, total);
     }
 
     /// <summary>
@@ -1349,7 +1388,7 @@ public sealed class SecNumCloudAuditEngine
         if (domains.Count == 0)
         {
             check.Status = AuditStatus.Skipped;
-            check.Summary = "No domains found in TLS certificates to check.";
+            check.Summary = _l("AuditCheckOps01SummarySkip");
             return;
         }
 
@@ -1381,7 +1420,7 @@ public sealed class SecNumCloudAuditEngine
                 check.Evidence.Add(new AuditEvidence
                 {
                     Host = domain,
-                    Detail = $"Missing email authentication record(s): {string.Join(", ", missing)}",
+                    Detail = string.Format(_l("AuditEvidenceMissingEmailAuth"), string.Join(", ", missing)),
                 });
             }
         }
@@ -1389,13 +1428,12 @@ public sealed class SecNumCloudAuditEngine
         if (missingCount == 0)
         {
             check.Status = AuditStatus.Pass;
-            check.Summary = $"All {domains.Count} domain(s) have SPF, DKIM, and DMARC records.";
+            check.Summary = string.Format(_l("AuditCheckOps01SummaryPass"), domains.Count);
         }
         else
         {
             check.Status = AuditStatus.Warning;
-            check.Summary = $"{missingCount}/{domains.Count} domain(s) are missing email " +
-                            "authentication records.";
+            check.Summary = string.Format(_l("AuditCheckOps01SummaryWarn"), missingCount, domains.Count);
         }
     }
 
@@ -1410,7 +1448,7 @@ public sealed class SecNumCloudAuditEngine
         if (domains.Count == 0)
         {
             check.Status = AuditStatus.Skipped;
-            check.Summary = "No domains found in TLS certificates to check.";
+            check.Summary = _l("AuditCheckOps02SummarySkip");
             return;
         }
 
@@ -1427,7 +1465,7 @@ public sealed class SecNumCloudAuditEngine
                 check.Evidence.Add(new AuditEvidence
                 {
                     Host = domain,
-                    Detail = "No CAA DNS record found — any CA can issue certificates for this domain",
+                    Detail = _l("AuditEvidenceNoCaa"),
                 });
             }
         }
@@ -1435,19 +1473,19 @@ public sealed class SecNumCloudAuditEngine
         if (missingCount == 0)
         {
             check.Status = AuditStatus.Pass;
-            check.Summary = $"All {domains.Count} domain(s) have CAA records restricting certificate issuance.";
+            check.Summary = string.Format(_l("AuditCheckOps02SummaryPass"), domains.Count);
         }
         else
         {
             check.Status = AuditStatus.Warning;
-            check.Summary = $"{missingCount}/{domains.Count} domain(s) lack CAA records.";
+            check.Summary = string.Format(_l("AuditCheckOps02SummaryWarn"), missingCount, domains.Count);
         }
     }
 
     /// <summary>
     /// Matches service banners against the embedded CVE database.
     /// </summary>
-    private static void CheckKnownCves(AuditCheck check, List<HostScanResult> hosts)
+    private void CheckKnownCves(AuditCheck check, List<HostScanResult> hosts)
     {
         var cveCount = 0;
         var checkedServices = 0;
@@ -1473,9 +1511,10 @@ public sealed class SecNumCloudAuditEngine
                         check.Evidence.Add(new AuditEvidence
                         {
                             Host = host.IpAddress,
-                            Detail = $"Port {svc.Port}: {software} {version} affected by " +
-                                     $"{cve.Id} (CVSS {cve.CvssScore:F1} {cve.Severity}): {cve.Summary}",
-                            RawData = $"Affected versions: {cve.AffectedVersions}",
+                            Detail = string.Format(_l("AuditEvidenceCveMatch"),
+                                svc.Port, software, version,
+                                cve.Id, cve.CvssScore.ToString("F1"), cve.Severity, cve.Summary),
+                            RawData = string.Format(_l("AuditRawAffectedVersions"), cve.AffectedVersions),
                         });
                     }
                 }
@@ -1485,17 +1524,17 @@ public sealed class SecNumCloudAuditEngine
         if (checkedServices == 0)
         {
             check.Status = AuditStatus.Skipped;
-            check.Summary = "No service banners available for CVE matching.";
+            check.Summary = _l("AuditCheckOps03SummarySkip");
         }
         else if (cveCount == 0)
         {
             check.Status = AuditStatus.Pass;
-            check.Summary = $"No known CVEs matched across {checkedServices} banner(s).";
+            check.Summary = string.Format(_l("AuditCheckOps03SummaryPass"), checkedServices);
         }
         else
         {
             check.Status = AuditStatus.Fail;
-            check.Summary = $"{cveCount} known CVE(s) matched across scanned services.";
+            check.Summary = string.Format(_l("AuditCheckOps03SummaryFail"), cveCount);
         }
     }
 
@@ -1503,7 +1542,7 @@ public sealed class SecNumCloudAuditEngine
     /// Aggregates all discovered services, versions, and OS fingerprints into
     /// an informational inventory.
     /// </summary>
-    private static void BuildServiceInventory(
+    private void BuildServiceInventory(
         AuditCheck check, List<HostScanResult> hosts, NetworkScanSnapshot? snapshot)
     {
         var serviceMap = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
@@ -1535,7 +1574,7 @@ public sealed class SecNumCloudAuditEngine
             check.Evidence.Add(new AuditEvidence
             {
                 Host = "aggregate",
-                Detail = $"{service}: {count} instance(s)",
+                Detail = string.Format(_l("AuditEvidenceServiceCount"), service, count),
             });
         }
 
@@ -1545,13 +1584,14 @@ public sealed class SecNumCloudAuditEngine
             check.Evidence.Add(new AuditEvidence
             {
                 Host = "aggregate",
-                Detail = $"OS: {os} ({count} host(s))",
+                Detail = string.Format(_l("AuditEvidenceOsCount"), os, count),
             });
         }
 
         check.Status = AuditStatus.Pass;
-        check.Summary = $"Inventoried {serviceMap.Count} unique service(s) across {hosts.Count} host(s)" +
-                        (osMap.Count > 0 ? $", {osMap.Count} OS variant(s) detected." : ".");
+        check.Summary = osMap.Count > 0
+            ? string.Format(_l("AuditCheckOps04SummaryOs"), serviceMap.Count, hosts.Count, osMap.Count)
+            : string.Format(_l("AuditCheckOps04Summary"), serviceMap.Count, hosts.Count);
     }
 
     // ═══════════════════════════════════════════════════════════════════
@@ -1581,6 +1621,7 @@ public sealed class SecNumCloudAuditEngine
 #pragma warning restore CA5397, CS0618, SYSLIB0039
             return true;
         }
+        catch (OperationCanceledException) { throw; }
         catch { return false; }
     }
 
@@ -1607,6 +1648,7 @@ public sealed class SecNumCloudAuditEngine
 
             return ssl.NegotiatedCipherSuite.ToString();
         }
+        catch (OperationCanceledException) { throw; }
         catch { return null; }
     }
 
@@ -1618,61 +1660,73 @@ public sealed class SecNumCloudAuditEngine
     {
         var headers = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
+        // Prevent CRLF injection in HTTP Host header
+        host = host.Replace("\r", "", StringComparison.Ordinal).Replace("\n", "", StringComparison.Ordinal);
+
         using var tcp = new TcpClient();
         using var timeout = new CancellationTokenSource(DefaultTimeoutMs);
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(ct, timeout.Token);
         await tcp.ConnectAsync(host, port, linked.Token).ConfigureAwait(false);
 
         Stream stream = tcp.GetStream();
+        SslStream? sslStream = null;
 
         if (useTls)
         {
-            var ssl = new SslStream(stream, false, (_, _, _, _) => true);
-            await ssl.AuthenticateAsClientAsync(new SslClientAuthenticationOptions
+            sslStream = new SslStream(stream, leaveInnerStreamOpen: true, userCertificateValidationCallback: (_, _, _, _) => true);
+            await sslStream.AuthenticateAsClientAsync(new SslClientAuthenticationOptions
             {
                 TargetHost = host,
             }, linked.Token).ConfigureAwait(false);
-            stream = ssl;
+            stream = sslStream;
         }
 
-        var request = $"HEAD / HTTP/1.1\r\nHost: {host}\r\nConnection: close\r\n\r\n";
-        await stream.WriteAsync(Encoding.ASCII.GetBytes(request), linked.Token)
-            .ConfigureAwait(false);
-
-        var buf = new byte[4096];
-        var totalRead = 0;
-        var sb = new StringBuilder();
-
-        // Read until end of headers or buffer full
-        while (totalRead < buf.Length)
+        try
         {
-            var read = await stream.ReadAsync(buf.AsMemory(totalRead), linked.Token)
+            var request = $"HEAD / HTTP/1.1\r\nHost: {host}\r\nConnection: close\r\n\r\n";
+            await stream.WriteAsync(Encoding.ASCII.GetBytes(request), linked.Token)
                 .ConfigureAwait(false);
-            if (read == 0) break;
-            totalRead += read;
 
-            sb.Append(Encoding.ASCII.GetString(buf, totalRead - read, read));
-            if (sb.ToString().Contains("\r\n\r\n")) break;
-        }
+            var buf = new byte[4096];
+            var totalRead = 0;
+            var sb = new StringBuilder();
 
-        // Parse header lines
-        var raw = sb.ToString();
-        var headerEnd = raw.IndexOf("\r\n\r\n", StringComparison.Ordinal);
-        if (headerEnd < 0) headerEnd = raw.Length;
-        var headerBlock = raw[..headerEnd];
-
-        foreach (var line in headerBlock.Split("\r\n"))
-        {
-            var colon = line.IndexOf(':');
-            if (colon > 0)
+            // Read until end of headers or buffer full
+            while (totalRead < buf.Length)
             {
-                var name = line[..colon].Trim();
-                var value = line[(colon + 1)..].Trim();
-                headers[name] = value;
-            }
-        }
+                var read = await stream.ReadAsync(buf.AsMemory(totalRead), linked.Token)
+                    .ConfigureAwait(false);
+                if (read == 0) break;
+                totalRead += read;
 
-        return headers;
+                sb.Append(Encoding.ASCII.GetString(buf, totalRead - read, read));
+                if (sb.ToString().Contains("\r\n\r\n")) break;
+            }
+
+            // Parse header lines
+            var raw = sb.ToString();
+            var headerEnd = raw.IndexOf("\r\n\r\n", StringComparison.Ordinal);
+            if (headerEnd < 0) headerEnd = raw.Length;
+            var headerBlock = raw[..headerEnd];
+
+            foreach (var line in headerBlock.Split("\r\n"))
+            {
+                var colon = line.IndexOf(':');
+                if (colon > 0)
+                {
+                    var name = line[..colon].Trim();
+                    var value = line[(colon + 1)..].Trim();
+                    headers[name] = value;
+                }
+            }
+
+            return headers;
+        }
+        finally
+        {
+            if (sslStream is not null)
+                await sslStream.DisposeAsync().ConfigureAwait(false);
+        }
     }
 
     /// <summary>
@@ -1693,6 +1747,7 @@ public sealed class SecNumCloudAuditEngine
             client.Disconnect();
             return true;
         }
+        catch (OperationCanceledException) { throw; }
         catch { return false; }
     }
 
@@ -1702,6 +1757,9 @@ public sealed class SecNumCloudAuditEngine
     private static async Task<bool> TestHttpBasicAuthAsync(
         string host, int port, bool useTls, string user, string pass, CancellationToken ct)
     {
+        // Prevent CRLF injection in HTTP Host header
+        host = host.Replace("\r", "", StringComparison.Ordinal).Replace("\n", "", StringComparison.Ordinal);
+
         try
         {
             using var tcp = new TcpClient();
@@ -1710,33 +1768,43 @@ public sealed class SecNumCloudAuditEngine
             await tcp.ConnectAsync(host, port, linked.Token).ConfigureAwait(false);
 
             Stream stream = tcp.GetStream();
+            SslStream? sslStream = null;
 
             if (useTls)
             {
-                var ssl = new SslStream(stream, false, (_, _, _, _) => true);
-                await ssl.AuthenticateAsClientAsync(new SslClientAuthenticationOptions
+                sslStream = new SslStream(stream, leaveInnerStreamOpen: true, userCertificateValidationCallback: (_, _, _, _) => true);
+                await sslStream.AuthenticateAsClientAsync(new SslClientAuthenticationOptions
                 {
                     TargetHost = host,
                 }, linked.Token).ConfigureAwait(false);
-                stream = ssl;
+                stream = sslStream;
             }
 
-            var credentials = Convert.ToBase64String(Encoding.ASCII.GetBytes($"{user}:{pass}"));
-            var request = $"GET / HTTP/1.1\r\nHost: {host}\r\n" +
-                          $"Authorization: Basic {credentials}\r\n" +
-                          "Connection: close\r\n\r\n";
+            try
+            {
+                var credentials = Convert.ToBase64String(Encoding.ASCII.GetBytes($"{user}:{pass}"));
+                var request = $"GET / HTTP/1.1\r\nHost: {host}\r\n" +
+                              $"Authorization: Basic {credentials}\r\n" +
+                              "Connection: close\r\n\r\n";
 
-            await stream.WriteAsync(Encoding.ASCII.GetBytes(request), linked.Token)
-                .ConfigureAwait(false);
+                await stream.WriteAsync(Encoding.ASCII.GetBytes(request), linked.Token)
+                    .ConfigureAwait(false);
 
-            var buf = new byte[1024];
-            var read = await stream.ReadAsync(buf, linked.Token).ConfigureAwait(false);
-            if (read == 0) return false;
+                var buf = new byte[1024];
+                var read = await stream.ReadAsync(buf, linked.Token).ConfigureAwait(false);
+                if (read == 0) return false;
 
-            var response = Encoding.ASCII.GetString(buf, 0, Math.Min(read, 64));
-            // 200 OK or 302 redirect (logged in) vs 401/403 (denied)
-            return response.Contains(" 200 ") || response.Contains(" 302 ");
+                var response = Encoding.ASCII.GetString(buf, 0, Math.Min(read, 64));
+                // 200 OK or 302 redirect (logged in) vs 401/403 (denied)
+                return response.Contains(" 200 ") || response.Contains(" 302 ");
+            }
+            finally
+            {
+                if (sslStream is not null)
+                    await sslStream.DisposeAsync().ConfigureAwait(false);
+            }
         }
+        catch (OperationCanceledException) { throw; }
         catch { return false; }
     }
 
@@ -1762,6 +1830,9 @@ public sealed class SecNumCloudAuditEngine
     private static async Task<string> RunDnsQueryAsync(
         string recordType, string domain, CancellationToken ct)
     {
+        if (!InputValidator.ValidateDomain(domain))
+            return string.Empty;
+
         try
         {
             var psi = new ProcessStartInfo
@@ -1780,12 +1851,23 @@ public sealed class SecNumCloudAuditEngine
             using var cts = new CancellationTokenSource(DnsTimeoutMs);
             using var linked = CancellationTokenSource.CreateLinkedTokenSource(ct, cts.Token);
 
-            var output = await process.StandardOutput.ReadToEndAsync(linked.Token)
-                .ConfigureAwait(false);
+            try
+            {
+                var output = await process.StandardOutput.ReadToEndAsync(linked.Token)
+                    .ConfigureAwait(false);
 
-            await process.WaitForExitAsync(linked.Token).ConfigureAwait(false);
-            return output;
+                await process.WaitForExitAsync(linked.Token).ConfigureAwait(false);
+                return output;
+            }
+            finally
+            {
+                if (!process.HasExited)
+                {
+                    try { process.Kill(); } catch { }
+                }
+            }
         }
+        catch (OperationCanceledException) { throw; }
         catch
         {
             return string.Empty;
@@ -1828,7 +1910,7 @@ public sealed class SecNumCloudAuditEngine
 
     private static string? ExtractCnFromSubject(string subject)
     {
-        var match = Regex.Match(subject, @"CN=([^,]+)", RegexOptions.IgnoreCase);
+        var match = CnRegex.Match(subject);
         return match.Success ? match.Groups[1].Value.Trim() : null;
     }
 

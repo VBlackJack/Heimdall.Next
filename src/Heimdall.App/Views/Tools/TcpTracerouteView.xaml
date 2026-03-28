@@ -35,7 +35,8 @@
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
-                        Width="24" Height="24" Margin="8,0,0,0"/>
+                        Width="24" Height="24" Margin="8,0,0,0"
+                        AutomationProperties.Name=""/>
                 <TextBlock x:Name="HeaderTitle" Text=""
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
@@ -50,7 +51,7 @@
                              Foreground="{DynamicResource TextPrimaryBrush}"
                              BorderBrush="{DynamicResource BorderBrush}"
                              VerticalAlignment="Center"
-/>
+                             AutomationProperties.Name=""/>
                     <TextBlock x:Name="LblMaxHops" Text=""
                                FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center" Margin="12,0,4,0"
                                Foreground="{DynamicResource TextSecondaryBrush}"/>
@@ -60,7 +61,8 @@
                              Background="{DynamicResource CardBrush}"
                              Foreground="{DynamicResource TextPrimaryBrush}"
                              BorderBrush="{DynamicResource BorderBrush}"
-                             VerticalAlignment="Center"/>
+                             VerticalAlignment="Center"
+                             AutomationProperties.Name=""/>
                     <TextBlock x:Name="LblRouteVia" Text=""
                                FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center" Margin="12,0,4,0"
                                Foreground="{DynamicResource TextSecondaryBrush}"/>
@@ -69,13 +71,14 @@
                               Background="{DynamicResource CardBrush}"
                               Foreground="{DynamicResource TextPrimaryBrush}"
                               BorderBrush="{DynamicResource BorderBrush}"
-                              VerticalAlignment="Center"/>
+                              VerticalAlignment="Center"
+                              AutomationProperties.Name=""/>
                     <Button x:Name="BtnTrace" Content=""
                             Click="OnTraceClick"
                             Style="{DynamicResource PrimaryButtonStyle}"
                             Padding="16,6" Margin="8,0,0,0"
                             VerticalAlignment="Center"
-/>
+                            AutomationProperties.Name=""/>
                 </StackPanel>
             </DockPanel>
         </Border>
@@ -86,7 +89,8 @@
                          Height="20" Minimum="0" Maximum="100"
                          IsIndeterminate="False"
                          Foreground="{DynamicResource AccentBrush}"
-                         Background="{DynamicResource SurfaceBrush}"/>
+                         Background="{DynamicResource SurfaceBrush}"
+                         AutomationProperties.Name=""/>
             <TextBlock x:Name="TxtProgressStatus" Text=""
                        FontSize="{StaticResource FontSizeCaption}" FontWeight="SemiBold"
                        Foreground="{DynamicResource TextPrimaryBrush}"
@@ -100,8 +104,7 @@
             <StackPanel HorizontalAlignment="Center">
                 <TextBlock Text="&#xE968;" FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource IconSizeEmptyState}"
                            HorizontalAlignment="Center"
-                           Foreground="{DynamicResource TextDisabledBrush}" Margin="0,0,0,8"
-                           AutomationProperties.Name=""/>
+                           Foreground="{DynamicResource TextDisabledBrush}" Margin="0,0,0,8"/>
                 <TextBlock x:Name="TxtEmptyState" Text=""
                            FontSize="{StaticResource FontSizeBodyLarge}" TextAlignment="Center"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
@@ -129,8 +132,8 @@
                       ColumnHeaderStyle="{StaticResource ThemedDataGridColumnHeaderStyle}"
                       CellStyle="{StaticResource ThemedDataGridCellStyle}"
                       RowStyle="{StaticResource ThemedDataGridRowStyle}"
-                      AutomationProperties.LiveSetting="Polite"
->
+                      AutomationProperties.Name=""
+                      AutomationProperties.LiveSetting="Polite">
                 <DataGrid.Columns>
                     <DataGridTextColumn x:Name="ColHop" Binding="{Binding Hop}" Width="50"
                                         Foreground="{DynamicResource TextPrimaryBrush}"/>
@@ -158,7 +161,7 @@
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonPrimary}" DockPanel.Dock="Right"
                         VerticalAlignment="Center"
-/>
+                        AutomationProperties.Name=""/>
                 <TextBlock x:Name="TxtStatus" Text=""
                            FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                            Foreground="{DynamicResource TextSecondaryBrush}"

@@ -98,6 +98,8 @@ public partial class ArpMonitorView : UserControl, IToolView
         AutomationProperties.SetName(CmbInterval, L("ToolArpInterval"));
         BtnHelp.ToolTip = L("ToolHelpTooltip");
         AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
+        AutomationProperties.SetName(ArpGrid, L("ToolArpTitle"));
+        AutomationProperties.SetName(BtnDismissAlert, L("ToolArpDismissAlert"));
         BtnCopy.ToolTip = L("ToolBtnCopyToClipboard");
     }
 
@@ -161,6 +163,7 @@ public partial class ArpMonitorView : UserControl, IToolView
 
     private async void OnTimerTick(object? sender, EventArgs e)
     {
+        if (_disposed) return;
         await RefreshArpAsync();
     }
 
@@ -343,11 +346,12 @@ public partial class ArpMonitorView : UserControl, IToolView
                 using var proc = Process.Start(psi);
                 if (proc is null) return result;
 
-                var output = proc.StandardOutput.ReadToEnd();
+                var outputTask = proc.StandardOutput.ReadToEndAsync();
                 if (!proc.WaitForExit(ProcessTimeoutMs))
                 {
                     try { proc.Kill(); } catch { /* already exited */ }
                 }
+                var output = outputTask.GetAwaiter().GetResult();
 
                 // Parse lines like: "  10.0.0.1             aa-bb-cc-dd-ee-ff     dynamic"
                 foreach (var line in output.Split('\n'))
@@ -400,11 +404,12 @@ public partial class ArpMonitorView : UserControl, IToolView
                 using var proc = Process.Start(psi);
                 if (proc is null) return result;
 
-                var output = proc.StandardOutput.ReadToEnd();
+                var outputTask = proc.StandardOutput.ReadToEndAsync();
                 if (!proc.WaitForExit(ProcessTimeoutMs))
                 {
                     try { proc.Kill(); } catch { /* already exited */ }
                 }
+                var output = outputTask.GetAwaiter().GetResult();
 
                 // Parse lines like: "? (192.168.1.1) at 00:11:22:33:44:55 on en0 ifscope [ether]"
                 foreach (var line in output.Split('\n'))
@@ -417,9 +422,9 @@ public partial class ArpMonitorView : UserControl, IToolView
                 }
             }
         }
-        catch
+        catch (Exception ex) when (ex is InvalidOperationException or TimeoutException or System.ComponentModel.Win32Exception)
         {
-            // ARP table unavailable — return empty result
+            // ARP table read failed — non-critical, will retry next cycle
         }
 
         return result;

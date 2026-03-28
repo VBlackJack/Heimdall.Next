@@ -178,6 +178,7 @@ public sealed class CartographyEngine
                 return await UdpProbeEngine.QueryMdnsServicesAsync(aliveHosts, 2000, ct)
                     .ConfigureAwait(false);
             }
+            catch (OperationCanceledException) { throw; }
             catch { return new Dictionary<string, List<string>>(); }
         }, ct);
 
@@ -188,6 +189,7 @@ public sealed class CartographyEngine
                 return await UdpProbeEngine.QuerySsdpAsync(aliveHosts, 2500, ct)
                     .ConfigureAwait(false);
             }
+            catch (OperationCanceledException) { throw; }
             catch { return new Dictionary<string, SsdpInfo>(); }
         }, ct);
 
@@ -327,6 +329,7 @@ public sealed class CartographyEngine
                 Interlocked.Increment(ref completed);
                 HostDiscoveryProgress?.Invoke(completed, ips.Count);
             }
+            catch (OperationCanceledException) { throw; }
             catch
             {
                 Interlocked.Increment(ref completed);
@@ -385,6 +388,7 @@ public sealed class CartographyEngine
                 var entry = await Dns.GetHostEntryAsync(ip, ct).ConfigureAwait(false);
                 hostname = entry.HostName;
             }
+            catch (OperationCanceledException) { throw; }
             catch { /* DNS reverse failed */ }
         }
 
@@ -588,6 +592,7 @@ public sealed class CartographyEngine
                     }
                 }
             }
+            catch (OperationCanceledException) { throw; }
             catch { /* banner grab failed, port is still open */ }
 
             CertificateInfo? certInfo = null;
@@ -606,6 +611,7 @@ public sealed class CartographyEngine
             return new ServiceResult(port, true, serviceName, banner, version,
                 sw.ElapsedMilliseconds, certInfo, httpHeaders);
         }
+        catch (OperationCanceledException) { throw; }
         catch
         {
             return new ServiceResult(port, false, null, null, null, sw.ElapsedMilliseconds);
@@ -655,11 +661,13 @@ public sealed class CartographyEngine
                     if (read > 0)
                         httpBanner = Encoding.ASCII.GetString(buf, 0, read).Trim();
                 }
+                catch (OperationCanceledException) { throw; }
                 catch { /* HTTP probe over TLS failed, cert is still valid */ }
             }
 
             return (certInfo, httpBanner);
         }
+        catch (OperationCanceledException) { throw; }
         catch (Exception ex)
         {
             Logging.FileLogger.Log("DEBUG",
@@ -696,9 +704,9 @@ public sealed class CartographyEngine
         var keySize = 0;
         try
         {
-            keySize = x509.PublicKey.GetRSAPublicKey()?.KeySize
-                ?? x509.PublicKey.GetECDsaPublicKey()?.KeySize
-                ?? 0;
+            using var rsa = x509.PublicKey.GetRSAPublicKey();
+            using var ecdsa = x509.PublicKey.GetECDsaPublicKey();
+            keySize = rsa?.KeySize ?? ecdsa?.KeySize ?? 0;
         }
         catch { /* key type may not support size extraction */ }
 

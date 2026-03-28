@@ -21,6 +21,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Models;
+using Heimdall.Core.Security;
 
 namespace Heimdall.App.Views.Tools;
 
@@ -190,11 +191,12 @@ public static class ToolContextMenuHelper
             sb.AppendLine(string.Join(',', headers));
             foreach (var row in grid.Items)
             {
-                var cells = grid.Columns.Select(c => EscapeCsv(c.GetCellContent(row) switch
-                {
-                    TextBlock tb => tb.Text,
-                    _ => ""
-                }));
+                var cells = grid.Columns.Select(c => EscapeCsv(
+                    InputValidator.SanitizeCsvCell(c.GetCellContent(row) switch
+                    {
+                        TextBlock tb => tb.Text,
+                        _ => ""
+                    })));
                 sb.AppendLine(string.Join(',', cells));
             }
             System.IO.File.WriteAllText(dialog.FileName, sb.ToString(), System.Text.Encoding.UTF8);

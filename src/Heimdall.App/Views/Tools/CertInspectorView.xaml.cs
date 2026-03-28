@@ -293,6 +293,8 @@ public partial class CertInspectorView : UserControl, IToolView
         AutomationProperties.SetName(BtnCopyAll, L("ToolCertBtnCopyAll"));
         AutomationProperties.SetName(BtnExportCsv, L("ToolCertBtnExport"));
         AutomationProperties.SetName(TxtCustomPorts, L("ToolCertScanProfileCustom"));
+        AutomationProperties.SetName(ScanProgress, L("ToolCertA11yScanProgress"));
+        AutomationProperties.SetName(LoadingBar, L("ToolCertA11yLoading"));
 
         BtnCopyAll.ToolTip = L("ToolBtnCopyToClipboard");
         BtnExportCsv.ToolTip = L("ToolCertBtnExport");
@@ -353,6 +355,13 @@ public partial class CertInspectorView : UserControl, IToolView
         if (string.IsNullOrWhiteSpace(host))
         {
             TxtError.Text = L("ToolValidationHostRequired");
+            TxtError.Visibility = Visibility.Visible;
+            return;
+        }
+
+        if (!InputValidator.Validate(host, "Address"))
+        {
+            TxtError.Text = L("ErrorInvalidHost");
             TxtError.Visibility = Visibility.Visible;
             return;
         }
@@ -444,6 +453,13 @@ public partial class CertInspectorView : UserControl, IToolView
             return;
         }
 
+        if (!InputValidator.Validate(host, "Address"))
+        {
+            TxtError.Text = L("ErrorInvalidHost");
+            TxtError.Visibility = Visibility.Visible;
+            return;
+        }
+
         var ports = GetScanPorts();
         if (ports.Count == 0)
         {
@@ -502,6 +518,9 @@ public partial class CertInspectorView : UserControl, IToolView
         var completed = 0;
         var ct = _cts.Token;
 
+        // Serialize SSH CreateCommand() calls on the shared tunnel client
+        var commandLock = tunnelClient is not null ? new SemaphoreSlim(1, 1) : null;
+
         try
         {
             using var semaphore = new SemaphoreSlim(MaxConcurrentTlsProbes);
@@ -519,10 +538,24 @@ public partial class CertInspectorView : UserControl, IToolView
                         using var portTimeout = new CancellationTokenSource(PerPortTimeout);
                         using var linked = CancellationTokenSource.CreateLinkedTokenSource(ct, portTimeout.Token);
 
-                        result = tunnelClient is not null
-                            ? RetrieveCertificateViaTunnel(tunnelClient, host, port, linked.Token)
-                            : RetrieveCertificate(host, port, linked.Token);
+                        if (tunnelClient is not null)
+                        {
+                            await commandLock!.WaitAsync(ct).ConfigureAwait(false);
+                            try
+                            {
+                                result = RetrieveCertificateViaTunnel(tunnelClient, host, port, linked.Token);
+                            }
+                            finally
+                            {
+                                commandLock.Release();
+                            }
+                        }
+                        else
+                        {
+                            result = RetrieveCertificate(host, port, linked.Token);
+                        }
                     }
+                    catch (OperationCanceledException) { throw; }
                     catch
                     {
                         // Port does not speak TLS or is unreachable — skip silently
@@ -571,6 +604,7 @@ public partial class CertInspectorView : UserControl, IToolView
         }
         finally
         {
+            commandLock?.Dispose();
             if (tunnelClient is not null)
             {
                 try { tunnelClient.Disconnect(); } catch { /* best effort */ }
@@ -712,7 +746,7 @@ public partial class CertInspectorView : UserControl, IToolView
             Serial = cert.SerialNumber,
             Thumbprint = Convert.ToHexString(sha256Bytes),
             SigAlgorithm = cert.SignatureAlgorithm.FriendlyName ?? cert.SignatureAlgorithm.Value ?? "-",
-            KeySizeText = keySize > 0 ? $"{keySize} bits" : "-",
+            KeySizeText = keySize > 0 ? string.Format(L("ToolCertKeySizeBits"), keySize) : "-",
             Sans = sans.Count > 0 ? sans : ["-"],
             TlsVersion = FormatTlsProtocol(result.TlsProtocol),
             HostnameMatchText = hostnameMatchText,
@@ -779,21 +813,28 @@ public partial class CertInspectorView : UserControl, IToolView
         if (dialog.ShowDialog() != true) return;
 
         var sb = new StringBuilder();
-        sb.AppendLine("Port,Service,Subject,Issuer,ValidFrom,ValidTo,DaysRemaining,TlsVersion,KeySize,HostnameMatch,SANs");
+        sb.AppendLine(string.Join(",",
+            L("ToolCertCsvPort"), L("ToolCertCsvService"), L("ToolCertCsvSubject"),
+            L("ToolCertCsvIssuer"), L("ToolCertCsvValidFrom"), L("ToolCertCsvValidTo"),
+            L("ToolCertCsvDaysRemaining"), L("ToolCertCsvTlsVersion"), L("ToolCertCsvKeySize"),
+            L("ToolCertCsvHostnameMatch"), L("ToolCertCsvSans")));
         foreach (var r in list)
         {
-            var service = TlsServiceLabels.GetValueOrDefault(r.Port, "TLS");
-            var sans = string.Join("; ", r.Sans).Replace("\"", "\"\"");
+            var service = InputValidator.SanitizeCsvCell(TlsServiceLabels.GetValueOrDefault(r.Port, "TLS"));
+            var sans = InputValidator.SanitizeCsvCell(string.Join("; ", r.Sans)).Replace("\"", "\"\"");
+            var subject = InputValidator.SanitizeCsvCell(r.Subject).Replace("\"", "\"\"");
+            var issuer = InputValidator.SanitizeCsvCell(r.Issuer).Replace("\"", "\"\"");
+            var validTo = InputValidator.SanitizeCsvCell(r.ValidTo).Replace("\"", "\"\"");
             sb.AppendLine(string.Join(",",
                 r.Port,
                 $"\"{service}\"",
-                $"\"{r.Subject.Replace("\"", "\"\"")}\"",
-                $"\"{r.Issuer.Replace("\"", "\"\"")}\"",
+                $"\"{subject}\"",
+                $"\"{issuer}\"",
                 r.ValidFrom,
-                $"\"{r.ValidTo.Replace("\"", "\"\"")}\"",
+                $"\"{validTo}\"",
                 r.DaysRemaining,
-                r.TlsVersion,
-                r.KeySizeText,
+                InputValidator.SanitizeCsvCell(r.TlsVersion),
+                InputValidator.SanitizeCsvCell(r.KeySizeText),
                 r.HostnameMatches,
                 $"\"{sans}\""));
         }
@@ -803,7 +844,7 @@ public partial class CertInspectorView : UserControl, IToolView
 
     // ===== Certificate retrieval =====
 
-    private static CertInspectionResult RetrieveCertificate(string host, int port, CancellationToken ct)
+    private CertInspectionResult RetrieveCertificate(string host, int port, CancellationToken ct)
     {
         X509Certificate? remoteCert = null;
 
@@ -821,10 +862,11 @@ public partial class CertInspectorView : UserControl, IToolView
 
         if (remoteCert == null)
         {
-            throw new InvalidOperationException("No certificate received from the remote host.");
+            throw new InvalidOperationException(L("ErrorNoCertReceived"));
         }
 
         var cert2 = new X509Certificate2(remoteCert);
+        remoteCert.Dispose();
         var tlsProtocol = ssl.SslProtocol;
 
         var chainElements = new List<ChainCertInfo>();
@@ -844,13 +886,14 @@ public partial class CertInspectorView : UserControl, IToolView
         return new CertInspectionResult(cert2, tlsProtocol, chainElements);
     }
 
-    private static CertInspectionResult RetrieveCertificateViaTunnel(
+    private CertInspectionResult RetrieveCertificateViaTunnel(
         Renci.SshNet.SshClient sshClient, string host, int port, CancellationToken ct)
     {
         var pemOutput = Task.Run(() =>
         {
+            var escapedHost = InputValidator.EscapeShellArg(host);
             using var cmd = sshClient.CreateCommand(
-                $"echo | openssl s_client -connect {host}:{port} -servername {host} 2>/dev/null");
+                $"echo | openssl s_client -connect {escapedHost}:{port} -servername {escapedHost} 2>/dev/null");
             cmd.CommandTimeout = TimeSpan.FromSeconds(10);
             cmd.Execute();
             return cmd.Result ?? string.Empty;
@@ -863,8 +906,7 @@ public partial class CertInspectorView : UserControl, IToolView
 
         if (beginIdx < 0 || endIdx < 0)
         {
-            throw new InvalidOperationException(
-                "No certificate received from the remote host via tunnel.");
+            throw new InvalidOperationException(L("ErrorNoCertReceivedViaTunnel"));
         }
 
         var pemBlock = pemOutput[beginIdx..(endIdx + endMarker.Length)];
@@ -912,7 +954,7 @@ public partial class CertInspectorView : UserControl, IToolView
         TxtSigAlg.Text = cert.SignatureAlgorithm.FriendlyName ?? cert.SignatureAlgorithm.Value ?? "-";
 
         var keySize = GetPublicKeySize(cert);
-        TxtKeySize.Text = keySize > 0 ? $"{keySize} bits" : "-";
+        TxtKeySize.Text = keySize > 0 ? string.Format(L("ToolCertKeySizeBits"), keySize) : "-";
 
         var sha256Bytes = cert.GetCertHash(HashAlgorithmName.SHA256);
         TxtThumbprint.Text = Convert.ToHexString(sha256Bytes);
@@ -1087,9 +1129,9 @@ public partial class CertInspectorView : UserControl, IToolView
         sb.AppendLine($"{L("ToolCertValidFrom")}: {cert.NotBefore:yyyy-MM-dd HH:mm:ss UTC}");
         sb.AppendLine($"{L("ToolCertValidTo")}: {cert.NotAfter:yyyy-MM-dd HH:mm:ss UTC} ({daysRemaining} {L("ToolCertDaysRemaining")})");
         sb.AppendLine($"{L("ToolCertSerial")}: {cert.SerialNumber}");
-        sb.AppendLine($"SHA-256: {Convert.ToHexString(sha256Bytes)}");
+        sb.AppendLine($"{L("ToolCertSha256Label")}: {Convert.ToHexString(sha256Bytes)}");
         sb.AppendLine($"{L("ToolCertSigAlg")}: {cert.SignatureAlgorithm.FriendlyName}");
-        sb.AppendLine($"{L("ToolCertKeySize")}: {GetPublicKeySize(cert)} bits");
+        sb.AppendLine($"{L("ToolCertKeySize")}: {string.Format(L("ToolCertKeySizeBits"), GetPublicKeySize(cert))}");
 
         if (sans.Count > 0)
         {

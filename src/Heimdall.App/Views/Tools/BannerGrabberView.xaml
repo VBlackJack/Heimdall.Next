@@ -36,7 +36,8 @@
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
-                        Width="24" Height="24" Margin="8,0,0,0"/>
+                        Width="24" Height="24" Margin="8,0,0,0"
+                        AutomationProperties.Name=""/>
                 <TextBlock x:Name="HeaderTitle" Text=""
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
@@ -51,7 +52,7 @@
                              Foreground="{DynamicResource TextPrimaryBrush}"
                              BorderBrush="{DynamicResource BorderBrush}"
                              VerticalAlignment="Center"
-/>
+                             AutomationProperties.Name=""/>
                     <TextBox x:Name="TxtPorts" Text="22,80,443,8080" Width="260"
                              Style="{StaticResource WatermarkTextBoxStyle}"
                              Tag="22, 80, 443 or 1-100"
@@ -61,7 +62,7 @@
                              Foreground="{DynamicResource TextPrimaryBrush}"
                              BorderBrush="{DynamicResource BorderBrush}"
                              VerticalAlignment="Center"
-/>
+                             AutomationProperties.Name=""/>
                     <TextBlock x:Name="LblRouteVia" Text=""
                                FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center" Margin="12,0,4,0"
                                Foreground="{DynamicResource TextSecondaryBrush}"/>
@@ -70,13 +71,14 @@
                               Background="{DynamicResource CardBrush}"
                               Foreground="{DynamicResource TextPrimaryBrush}"
                               BorderBrush="{DynamicResource BorderBrush}"
-                              VerticalAlignment="Center"/>
+                              VerticalAlignment="Center"
+                              AutomationProperties.Name=""/>
                     <Button x:Name="BtnGrab" Content=""
                             Click="OnGrabClick"
                             Style="{DynamicResource PrimaryButtonStyle}"
                             Padding="16,6" Margin="8,0,0,0"
                             VerticalAlignment="Center"
-/>
+                            AutomationProperties.Name=""/>
                 </StackPanel>
             </DockPanel>
         </Border>
@@ -90,20 +92,25 @@
                 <CheckBox x:Name="ChkBannerOnly" DockPanel.Dock="Right"
                           Foreground="{DynamicResource TextPrimaryBrush}"
                           VerticalAlignment="Center" Margin="12,0,0,0"
-                          Checked="OnBannerOnlyChanged" Unchecked="OnBannerOnlyChanged"/>
+                          Checked="OnBannerOnlyChanged" Unchecked="OnBannerOnlyChanged"
+                          AutomationProperties.Name=""/>
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <Button x:Name="BtnPresetWeb" Click="OnPresetClick" Tag="80,443,8080,8443"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="8,3" Margin="0,0,4,0" FontSize="{StaticResource FontSizeCaption}"/>
+                            Padding="8,3" Margin="0,0,4,0" FontSize="{StaticResource FontSizeCaption}"
+                            AutomationProperties.Name=""/>
                     <Button x:Name="BtnPresetRemote" Click="OnPresetClick" Tag="22,23,3389,5900"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="8,3" Margin="0,0,4,0" FontSize="{StaticResource FontSizeCaption}"/>
+                            Padding="8,3" Margin="0,0,4,0" FontSize="{StaticResource FontSizeCaption}"
+                            AutomationProperties.Name=""/>
                     <Button x:Name="BtnPresetMail" Click="OnPresetClick" Tag="25,110,143,993,995,587"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="8,3" Margin="0,0,4,0" FontSize="{StaticResource FontSizeCaption}"/>
+                            Padding="8,3" Margin="0,0,4,0" FontSize="{StaticResource FontSizeCaption}"
+                            AutomationProperties.Name=""/>
                     <Button x:Name="BtnPresetDatabase" Click="OnPresetClick" Tag="3306,5432,1433,6379,27017"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="8,3" FontSize="{StaticResource FontSizeCaption}"/>
+                            Padding="8,3" FontSize="{StaticResource FontSizeCaption}"
+                            AutomationProperties.Name=""/>
                 </StackPanel>
             </DockPanel>
         </Border>
@@ -119,7 +126,8 @@
                          Height="20" Minimum="0" Maximum="100"
                          IsIndeterminate="False"
                          Foreground="{DynamicResource AccentBrush}"
-                         Background="{DynamicResource SurfaceBrush}"/>
+                         Background="{DynamicResource SurfaceBrush}"
+                         AutomationProperties.Name=""/>
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
                 <TextBlock x:Name="TxtProgressPercent" Text="0%"
                            FontSize="{StaticResource FontSizeCaption}" FontWeight="SemiBold"
@@ -139,8 +147,7 @@
             <StackPanel HorizontalAlignment="Center">
                 <TextBlock Text="&#xE774;" FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource IconSizeEmptyState}"
                            HorizontalAlignment="Center"
-                           Foreground="{DynamicResource TextDisabledBrush}" Margin="0,0,0,8"
-                           AutomationProperties.Name=""/>
+                           Foreground="{DynamicResource TextDisabledBrush}" Margin="0,0,0,8"/>
                 <TextBlock x:Name="TxtEmptyState" Text=""
                            FontSize="{StaticResource FontSizeBodyLarge}" TextAlignment="Center"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
@@ -168,8 +175,8 @@
                       ColumnHeaderStyle="{StaticResource ThemedDataGridColumnHeaderStyle}"
                       CellStyle="{StaticResource ThemedDataGridCellStyle}"
                       RowStyle="{StaticResource ThemedDataGridRowStyle}"
-                      AutomationProperties.LiveSetting="Polite"
->
+                      AutomationProperties.Name=""
+                      AutomationProperties.LiveSetting="Polite">
                 <DataGrid.Columns>
                     <DataGridTextColumn x:Name="ColPort" Binding="{Binding Port}" Width="80"
                                         Foreground="{DynamicResource TextPrimaryBrush}"/>
@@ -195,13 +202,14 @@
                         Click="OnExportCsvClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonPrimary}" DockPanel.Dock="Right" Margin="4,0,0,0"
-                        VerticalAlignment="Center"/>
+                        VerticalAlignment="Center"
+                        AutomationProperties.Name=""/>
                 <Button x:Name="BtnCopy" Content=""
                         Click="OnCopyClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonPrimary}" DockPanel.Dock="Right"
                         VerticalAlignment="Center"
-/>
+                        AutomationProperties.Name=""/>
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <TextBlock x:Name="TxtResultCount" Text="" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                                Foreground="{DynamicResource TextSecondaryBrush}"/>

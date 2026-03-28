@@ -23,6 +23,7 @@ using System.Windows.Input;
 using Heimdall.Core.Discovery;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Models;
+using Heimdall.Core.Security;
 
 namespace Heimdall.App.Views.Tools;
 
@@ -166,6 +167,10 @@ public partial class NetworkCartographyView : UserControl, IToolView
         System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
 
         TxtEmptyState.Text = L("ToolEmptyStateNetMap");
+
+        System.Windows.Automation.AutomationProperties.SetName(ScanProgress, L("ToolNetMapA11yProgress"));
+
+        System.Windows.Automation.AutomationProperties.SetName(ResultsGrid, L("ToolNetMapTitle"));
     }
 
     private void OnHelpClick(object sender, RoutedEventArgs e)
@@ -495,6 +500,7 @@ public partial class NetworkCartographyView : UserControl, IToolView
                         hostname = dnsResult.Split("domain name pointer")[1].Trim().TrimEnd('.');
                     }
                 }
+                catch (OperationCanceledException) { throw; }
                 catch { /* DNS failed */ }
             }
 
@@ -772,32 +778,32 @@ public partial class NetworkCartographyView : UserControl, IToolView
 
             foreach (var r in _results)
             {
-                var hostname = (r.Hostname ?? "").Replace("\"", "\"\"");
-                var os = (r.OsGuess ?? "").Replace("\"", "\"\"");
-                var ports = r.PortSummary.Replace("\"", "\"\"");
-                var services = r.ServiceSummary.Replace("\"", "\"\"");
-                var tls = (r.TlsStatus ?? "").Replace("\"", "\"\"");
-                var certSubject = (r.CertSubject ?? "").Replace("\"", "\"\"");
-                var certExpires = r.CertExpires ?? "";
-                var certAlgorithm = (r.CertAlgorithm ?? "").Replace("\"", "\"\"");
-                var certStatus = (r.CertStatus ?? "").Replace("\"", "\"\"");
-                var role = (r.PrimaryRoleName ?? "").Replace("\"", "\"\"");
-                var nbName = (r.NetBiosName ?? "").Replace("\"", "\"\"");
-                var nbDomain = (r.NetBiosDomain ?? "").Replace("\"", "\"\"");
-                var snmpName = (r.SnmpSysName ?? "").Replace("\"", "\"\"");
-                var snmpDescr = (r.SnmpSysDescr ?? "").Replace("\"", "\"\"");
-                var snmpLoc = (r.SnmpSysLocation ?? "").Replace("\"", "\"\"");
-                var mdns = (r.MdnsServicesList ?? "").Replace("\"", "\"\"");
-                var manufacturer = (r.Manufacturer ?? "").Replace("\"", "\"\"");
-                var vlan = (r.VlanSegment ?? "").Replace("\"", "\"\"");
-                var ssdpDevice = (r.SsdpDeviceType ?? "").Replace("\"", "\"\"");
-                var snmpOid = (r.SnmpObjectId ?? "").Replace("\"", "\"\"");
-                var ntlmDns = (r.NtlmDns ?? "").Replace("\"", "\"\"");
-                var ntlmDomain = (r.NtlmDomain ?? "").Replace("\"", "\"\"");
-                var ntlmBuild = (r.NtlmBuild ?? "").Replace("\"", "\"\"");
-                var sshHash = (r.SshHashFingerprint ?? "").Replace("\"", "\"\"");
-                var favHash = r.FaviconHashValue ?? "";
-                sb.AppendLine($"{r.IpAddress},\"{hostname}\",\"{os}\",\"{ports}\",\"{services}\",\"{tls}\",\"{certSubject}\",\"{certExpires}\",\"{certAlgorithm}\",\"{certStatus}\",\"{role}\",{r.Confidence},\"{nbName}\",\"{nbDomain}\",\"{snmpName}\",\"{snmpDescr}\",\"{snmpLoc}\",\"{snmpOid}\",\"{mdns}\",\"{manufacturer}\",\"{vlan}\",\"{ssdpDevice}\",\"{ntlmDns}\",\"{ntlmDomain}\",\"{ntlmBuild}\",\"{sshHash}\",\"{favHash}\"");
+                var hostname = InputValidator.SanitizeCsvCell(r.Hostname ?? "").Replace("\"", "\"\"");
+                var os = InputValidator.SanitizeCsvCell(r.OsGuess ?? "").Replace("\"", "\"\"");
+                var ports = InputValidator.SanitizeCsvCell(r.PortSummary).Replace("\"", "\"\"");
+                var services = InputValidator.SanitizeCsvCell(r.ServiceSummary).Replace("\"", "\"\"");
+                var tls = InputValidator.SanitizeCsvCell(r.TlsStatus ?? "").Replace("\"", "\"\"");
+                var certSubject = InputValidator.SanitizeCsvCell(r.CertSubject ?? "").Replace("\"", "\"\"");
+                var certExpires = InputValidator.SanitizeCsvCell(r.CertExpires ?? "");
+                var certAlgorithm = InputValidator.SanitizeCsvCell(r.CertAlgorithm ?? "").Replace("\"", "\"\"");
+                var certStatus = InputValidator.SanitizeCsvCell(r.CertStatus ?? "").Replace("\"", "\"\"");
+                var role = InputValidator.SanitizeCsvCell(r.PrimaryRoleName ?? "").Replace("\"", "\"\"");
+                var nbName = InputValidator.SanitizeCsvCell(r.NetBiosName ?? "").Replace("\"", "\"\"");
+                var nbDomain = InputValidator.SanitizeCsvCell(r.NetBiosDomain ?? "").Replace("\"", "\"\"");
+                var snmpName = InputValidator.SanitizeCsvCell(r.SnmpSysName ?? "").Replace("\"", "\"\"");
+                var snmpDescr = InputValidator.SanitizeCsvCell(r.SnmpSysDescr ?? "").Replace("\"", "\"\"");
+                var snmpLoc = InputValidator.SanitizeCsvCell(r.SnmpSysLocation ?? "").Replace("\"", "\"\"");
+                var mdns = InputValidator.SanitizeCsvCell(r.MdnsServicesList ?? "").Replace("\"", "\"\"");
+                var manufacturer = InputValidator.SanitizeCsvCell(r.Manufacturer ?? "").Replace("\"", "\"\"");
+                var vlan = InputValidator.SanitizeCsvCell(r.VlanSegment ?? "").Replace("\"", "\"\"");
+                var ssdpDevice = InputValidator.SanitizeCsvCell(r.SsdpDeviceType ?? "").Replace("\"", "\"\"");
+                var snmpOid = InputValidator.SanitizeCsvCell(r.SnmpObjectId ?? "").Replace("\"", "\"\"");
+                var ntlmDns = InputValidator.SanitizeCsvCell(r.NtlmDns ?? "").Replace("\"", "\"\"");
+                var ntlmDomain = InputValidator.SanitizeCsvCell(r.NtlmDomain ?? "").Replace("\"", "\"\"");
+                var ntlmBuild = InputValidator.SanitizeCsvCell(r.NtlmBuild ?? "").Replace("\"", "\"\"");
+                var sshHash = InputValidator.SanitizeCsvCell(r.SshHashFingerprint ?? "").Replace("\"", "\"\"");
+                var favHash = InputValidator.SanitizeCsvCell(r.FaviconHashValue ?? "");
+                sb.AppendLine($"{InputValidator.SanitizeCsvCell(r.IpAddress)},\"{hostname}\",\"{os}\",\"{ports}\",\"{services}\",\"{tls}\",\"{certSubject}\",\"{certExpires}\",\"{certAlgorithm}\",\"{certStatus}\",\"{role}\",{r.Confidence},\"{nbName}\",\"{nbDomain}\",\"{snmpName}\",\"{snmpDescr}\",\"{snmpLoc}\",\"{snmpOid}\",\"{mdns}\",\"{manufacturer}\",\"{vlan}\",\"{ssdpDevice}\",\"{ntlmDns}\",\"{ntlmDomain}\",\"{ntlmBuild}\",\"{sshHash}\",\"{favHash}\"");
             }
 
             File.WriteAllText(dialog.FileName, sb.ToString(), Encoding.UTF8);
