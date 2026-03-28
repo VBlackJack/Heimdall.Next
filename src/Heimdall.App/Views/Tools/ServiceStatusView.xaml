@@ -34,7 +34,7 @@
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
-                        Width="24" Height="24" Margin="8,0,0,0"
+                        Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"
                         AutomationProperties.Name=""/>
                 <TextBlock x:Name="HeaderTitle" Text=""
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
@@ -62,7 +62,7 @@
                     <Button x:Name="BtnRefresh" Content=""
                             Click="OnRefreshClick"
                             Style="{DynamicResource PrimaryButtonStyle}"
-                            Padding="16,6" Margin="12,0,0,0"
+                            Padding="{StaticResource PaddingButtonPrimary}" Margin="12,0,0,0"
                             VerticalAlignment="Center"
                             AutomationProperties.Name=""/>
                 </StackPanel>

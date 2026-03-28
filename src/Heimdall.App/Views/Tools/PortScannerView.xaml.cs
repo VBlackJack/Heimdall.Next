@@ -447,8 +447,9 @@ public partial class PortScannerView : UserControl, IToolView
         {
             var result = await Task.Run(() =>
             {
+                var safeHost = InputValidator.EscapeShellArg(host);
                 using var cmd = sshClient.CreateCommand(
-                    $"(echo >/dev/tcp/{host}/{port}) 2>/dev/null && echo OPEN || echo CLOSED");
+                    $"(echo >/dev/tcp/{safeHost}/{port}) 2>/dev/null && echo OPEN || echo CLOSED");
                 cmd.CommandTimeout = TimeSpan.FromMilliseconds(timeoutMs);
                 cmd.Execute();
                 return cmd.Result?.Trim();
@@ -671,14 +672,14 @@ public partial class PortScannerView : UserControl, IToolView
 
         // Copy Port
         var copyPort = new MenuItem { Header = L("ToolCtxCopyPort") };
-        copyPort.Click += (_, _) => Clipboard.SetText(row.Port.ToString());
+        copyPort.Click += (_, _) => { try { Clipboard.SetText(row.Port.ToString()); } catch (System.Runtime.InteropServices.ExternalException) { /* clipboard locked */ } };
         menu.Items.Add(copyPort);
 
         // Copy Service
         if (!string.IsNullOrWhiteSpace(row.Service))
         {
             var copyService = new MenuItem { Header = L("ToolCtxCopyService") };
-            copyService.Click += (_, _) => Clipboard.SetText(row.Service);
+            copyService.Click += (_, _) => { try { Clipboard.SetText(row.Service); } catch (System.Runtime.InteropServices.ExternalException) { /* clipboard locked */ } };
             menu.Items.Add(copyService);
         }
 
@@ -686,7 +687,7 @@ public partial class PortScannerView : UserControl, IToolView
         if (!string.IsNullOrWhiteSpace(row.Banner))
         {
             var copyBanner = new MenuItem { Header = L("ToolCtxCopyBanner") };
-            copyBanner.Click += (_, _) => Clipboard.SetText(row.Banner);
+            copyBanner.Click += (_, _) => { try { Clipboard.SetText(row.Banner); } catch (System.Runtime.InteropServices.ExternalException) { /* clipboard locked */ } };
             menu.Items.Add(copyBanner);
         }
 

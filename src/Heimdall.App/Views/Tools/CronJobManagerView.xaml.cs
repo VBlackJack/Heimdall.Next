@@ -23,6 +23,7 @@ using System.Windows.Automation;
 using System.Windows.Controls;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Models;
+using Heimdall.Core.Security;
 
 namespace Heimdall.App.Views.Tools;
 
@@ -426,11 +427,11 @@ public partial class CronJobManagerView : UserControl, IToolView
         return string.Format(L("ToolCronDescCustom"), string.Join(" ", fields));
     }
 
-    private static string GetDayName(string field)
+    private string GetDayName(string field)
     {
-        string[] days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+        string[] keys = ["ToolCronDaySunday", "ToolCronDayMonday", "ToolCronDayTuesday", "ToolCronDayWednesday", "ToolCronDayThursday", "ToolCronDayFriday", "ToolCronDaySaturday"];
         if (int.TryParse(field, out var idx) && idx >= 0 && idx < 7)
-            return days[idx];
+            return L(keys[idx]);
         return field;
     }
 
@@ -523,20 +524,21 @@ public partial class CronJobManagerView : UserControl, IToolView
         {
             foreach (var entry in _cronEntries)
             {
-                sb.AppendLine($"{entry.Schedule}\t{entry.Command}\t{entry.NextRun}\t{entry.Description}");
+                sb.AppendLine($"{InputValidator.SanitizeCsvCell(entry.Schedule)}\t{InputValidator.SanitizeCsvCell(entry.Command)}\t{InputValidator.SanitizeCsvCell(entry.NextRun)}\t{InputValidator.SanitizeCsvCell(entry.Description)}");
             }
         }
         else
         {
             foreach (var task in _taskEntries)
             {
-                sb.AppendLine($"{task.Name}\t{task.Status}\t{task.NextRun}\t{task.LastRun}\t{task.LastResult}");
+                sb.AppendLine($"{InputValidator.SanitizeCsvCell(task.Name)}\t{InputValidator.SanitizeCsvCell(task.Status)}\t{InputValidator.SanitizeCsvCell(task.NextRun)}\t{InputValidator.SanitizeCsvCell(task.LastRun)}\t{InputValidator.SanitizeCsvCell(task.LastResult)}");
             }
         }
 
         if (sb.Length > 0)
         {
-            Clipboard.SetText(sb.ToString());
+            try { Clipboard.SetText(sb.ToString()); }
+            catch (System.Runtime.InteropServices.ExternalException) { return; }
             CopyFeedbackHelper.ShowCopyFeedback(sender as Button);
         }
     }

@@ -240,9 +240,9 @@ public partial class UuidGeneratorView : UserControl, IToolView
                 Clipboard.SetText(text);
                 CopyFeedbackHelper.ShowCopyFeedback(btn);
             }
-            catch (Exception ex)
+            catch (System.Runtime.InteropServices.ExternalException)
             {
-                Core.Logging.FileLogger.Warn($"UuidGenerator clipboard copy failed: {ex.Message}");
+                // Clipboard locked by another process
             }
         }
     }

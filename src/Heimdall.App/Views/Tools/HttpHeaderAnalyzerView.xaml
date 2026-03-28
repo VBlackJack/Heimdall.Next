@@ -34,7 +34,7 @@
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
-                        Width="24" Height="24" Margin="8,0,0,0"
+                        Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"
                         AutomationProperties.Name=""/>
                 <TextBlock x:Name="HeaderTitle" Text=""
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
@@ -55,7 +55,7 @@
                     <Button x:Name="BtnCheck" DockPanel.Dock="Right"
                             Content="" Click="OnCheckClick"
                             Style="{DynamicResource PrimaryButtonStyle}"
-                            Padding="16,6" Margin="8,0,0,0"
+                            Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginInlineControl}"
                             VerticalAlignment="Center"
                             AutomationProperties.Name=""/>
                     <TextBox x:Name="TxtUrl" Text=""
@@ -87,12 +87,12 @@
 
                 <!-- Error message -->
                 <TextBlock x:Name="TxtError" Text="" Visibility="Collapsed"
-                           FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,12" TextWrapping="Wrap"
+                           FontSize="{StaticResource FontSizeBody}" Margin="{StaticResource MarginSectionBottom}" TextWrapping="Wrap"
                            Foreground="{DynamicResource ErrorTextBrush}"/>
 
                 <!-- Loading indicator -->
                 <ProgressBar x:Name="LoadingBar" IsIndeterminate="True"
-                             Visibility="Collapsed" Height="4" Margin="0,0,0,12"
+                             Visibility="Collapsed" Height="4" Margin="{StaticResource MarginSectionBottom}"
                              AutomationProperties.Name=""/>
 
                 <!-- Empty state hint -->
@@ -101,7 +101,7 @@
                         Margin="0,24,0,0">
                     <StackPanel HorizontalAlignment="Center">
                         <TextBlock Text="&#xE774;" FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource IconSizeEmptyState}"
-                                   HorizontalAlignment="Center"
+                                   HorizontalAlignment="Center" AutomationProperties.Name=""
                                    Foreground="{DynamicResource TextDisabledBrush}" Margin="0,0,0,8"/>
                         <TextBlock x:Name="TxtEmptyState" Text=""
                                    FontSize="{StaticResource FontSizeBodyLarge}" TextAlignment="Center"
@@ -114,7 +114,7 @@
 
                     <!-- Grade badge -->
                     <Border x:Name="GradeBanner"
-                            CornerRadius="{StaticResource CornerRadiusSm}" Padding="16,10" Margin="0,0,0,12"
+                            CornerRadius="{StaticResource CornerRadiusSm}" Padding="16,10" Margin="{StaticResource MarginSectionBottom}"
                             HorizontalAlignment="Left">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock x:Name="TxtGradeLabel" Text=""
@@ -136,7 +136,7 @@
                     <Border Background="{DynamicResource CardBrush}"
                             BorderBrush="{DynamicResource BorderBrush}"
                             BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
-                            Padding="16,12" Margin="0,0,0,12">
+                            Padding="{StaticResource PaddingSectionCard}" Margin="{StaticResource MarginSectionBottom}">
                         <ItemsControl x:Name="SecurityHeadersList"
                                       AutomationProperties.LiveSetting="Polite">
                             <ItemsControl.ItemTemplate>
@@ -175,7 +175,7 @@
                     <Border Background="{DynamicResource CardBrush}"
                             BorderBrush="{DynamicResource BorderBrush}"
                             BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
-                            Padding="16,12" Margin="0,0,0,12">
+                            Padding="{StaticResource PaddingSectionCard}" Margin="{StaticResource MarginSectionBottom}">
                         <ItemsControl x:Name="DisclosureHeadersList"
                                       AutomationProperties.LiveSetting="Polite">
                             <ItemsControl.ItemTemplate>
@@ -209,12 +209,12 @@
                     <!-- Raw Headers (collapsible) -->
                     <Expander x:Name="RawHeadersExpander" IsExpanded="False"
                               Foreground="{DynamicResource TextPrimaryBrush}"
-                              FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,12"
+                              FontSize="{StaticResource FontSizeBody}" Margin="{StaticResource MarginSectionBottom}"
                               AutomationProperties.Name="">
                         <Border Background="{DynamicResource CardBrush}"
                                 BorderBrush="{DynamicResource BorderBrush}"
                                 BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
-                                Padding="16,12" Margin="0,4,0,0">
+                                Padding="{StaticResource PaddingSectionCard}" Margin="0,4,0,0">
                             <TextBox x:Name="TxtRawHeaders" Text=""
                                      FontSize="{StaticResource FontSizeCaption}" FontFamily="Consolas"
                                      Foreground="{DynamicResource TextPrimaryBrush}"

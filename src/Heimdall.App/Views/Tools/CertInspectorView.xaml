@@ -35,7 +35,7 @@
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
-                        Width="24" Height="24" Margin="8,0,0,0"
+                        Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"
                         AutomationProperties.Name=""/>
                 <TextBlock x:Name="HeaderTitle" Text=""
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
@@ -109,7 +109,7 @@
                     <Button x:Name="BtnCheck" DockPanel.Dock="Right"
                             Content="" Click="OnCheckClick"
                             Style="{DynamicResource PrimaryButtonStyle}"
-                            Padding="16,6" Margin="8,0,0,0"
+                            Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginInlineControl}"
                             VerticalAlignment="Center"
                             AutomationProperties.Name=""/>
                     <TextBox x:Name="TxtPort" DockPanel.Dock="Right"
@@ -117,7 +117,7 @@
                              Style="{StaticResource WatermarkTextBoxStyle}"
                              Tag="port"
                              FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
-                             Padding="{StaticResource PaddingInput}" Margin="8,0,0,0"
+                             Padding="{StaticResource PaddingInput}" Margin="{StaticResource MarginInlineControl}"
                              Background="{DynamicResource CardBrush}"
                              Foreground="{DynamicResource TextPrimaryBrush}"
                              BorderBrush="{DynamicResource BorderBrush}"
@@ -156,7 +156,7 @@
 
                 <!-- Error message -->
                 <TextBlock x:Name="TxtError" Text="" Visibility="Collapsed"
-                           FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,12" TextWrapping="Wrap"
+                           FontSize="{StaticResource FontSizeBody}" Margin="{StaticResource MarginSectionBottom}" TextWrapping="Wrap"
                            Foreground="{DynamicResource ErrorTextBrush}"/>
 
                 <!-- Empty state hint -->
@@ -176,14 +176,14 @@
 
                 <!-- Loading indicator (single port mode) -->
                 <ProgressBar x:Name="LoadingBar" IsIndeterminate="True"
-                             Visibility="Collapsed" Height="4" Margin="0,0,0,12"
+                             Visibility="Collapsed" Height="4" Margin="{StaticResource MarginSectionBottom}"
                              AutomationProperties.Name=""/>
 
                 <!-- ===== Single-port result panels ===== -->
                 <StackPanel x:Name="SingleResultPanel" Visibility="Collapsed">
                     <!-- Expiration status banner -->
                     <Border x:Name="ExpirationBanner" Visibility="Collapsed"
-                            CornerRadius="{StaticResource CornerRadiusSm}" Padding="12,8" Margin="0,0,0,12">
+                            CornerRadius="{StaticResource CornerRadiusSm}" Padding="{StaticResource PaddingAlertBanner}" Margin="{StaticResource MarginSectionBottom}">
                         <TextBlock x:Name="TxtExpiration" Text=""
                                    FontSize="{StaticResource FontSizeBodyLarge}" FontWeight="SemiBold"
                                    Foreground="{DynamicResource TextOnAccentBrush}"/>
@@ -194,7 +194,7 @@
                             Background="{DynamicResource CardBrush}"
                             BorderBrush="{DynamicResource BorderBrush}"
                             BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
-                            Padding="16,12"
+                            Padding="{StaticResource PaddingSectionCard}"
                             AutomationProperties.LiveSetting="Polite">
                         <Grid>
                             <Grid.ColumnDefinitions>
@@ -204,21 +204,21 @@
                             </Grid.ColumnDefinitions>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="8"/>
+                                <RowDefinition Height="{StaticResource SpacingRowGap}"/>
                                 <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="8"/>
+                                <RowDefinition Height="{StaticResource SpacingRowGap}"/>
                                 <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="8"/>
+                                <RowDefinition Height="{StaticResource SpacingRowGap}"/>
                                 <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="8"/>
+                                <RowDefinition Height="{StaticResource SpacingRowGap}"/>
                                 <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="8"/>
+                                <RowDefinition Height="{StaticResource SpacingRowGap}"/>
                                 <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="8"/>
+                                <RowDefinition Height="{StaticResource SpacingRowGap}"/>
                                 <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="8"/>
+                                <RowDefinition Height="{StaticResource SpacingRowGap}"/>
                                 <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="8"/>
+                                <RowDefinition Height="{StaticResource SpacingRowGap}"/>
                                 <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
 
@@ -285,7 +285,7 @@
                             Background="{DynamicResource CardBrush}"
                             BorderBrush="{DynamicResource BorderBrush}"
                             BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
-                            Padding="16,12" Margin="0,12,0,0">
+                            Padding="{StaticResource PaddingSectionCard}" Margin="{StaticResource MarginSectionTop}">
                         <StackPanel>
                             <DockPanel Margin="0,0,0,8">
                                 <TextBlock x:Name="LblTlsVersion" Text=""
@@ -309,7 +309,7 @@
                             Background="{DynamicResource CardBrush}"
                             BorderBrush="{DynamicResource BorderBrush}"
                             BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
-                            Padding="16,12" Margin="0,12,0,0">
+                            Padding="{StaticResource PaddingSectionCard}" Margin="{StaticResource MarginSectionTop}">
                         <StackPanel>
                             <TextBlock x:Name="LblChainTitle" Text=""
                                        FontSize="{StaticResource FontSizeBodyLarge}" FontWeight="SemiBold"
@@ -338,7 +338,7 @@
                     <Button x:Name="BtnCopy" Click="OnCopyClick"
                             Visibility="Collapsed"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="{StaticResource PaddingButtonCopy}" Margin="0,12,0,0"
+                            Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginSectionTop}"
                             HorizontalAlignment="Left"
                             AutomationProperties.Name=""/>
                 </StackPanel>
@@ -348,7 +348,7 @@
 
                     <!-- No results message -->
                     <TextBlock x:Name="TxtScanNoResults" Visibility="Collapsed"
-                               FontSize="{StaticResource FontSizeBody}" Margin="0,12,0,0"
+                               FontSize="{StaticResource FontSizeBody}" Margin="{StaticResource MarginSectionTop}"
                                Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap"/>
 
                     <!-- Stacked certificate cards -->
@@ -359,7 +359,7 @@
                                 <Border Background="{DynamicResource CardBrush}"
                                         BorderBrush="{DynamicResource BorderBrush}"
                                         BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
-                                        Padding="16,12" Margin="0,0,0,12"
+                                        Padding="{StaticResource PaddingSectionCard}" Margin="{StaticResource MarginSectionBottom}"
                                         AutomationProperties.Name="{Binding PortLabel}">
                                     <StackPanel>
                                         <!-- Card header: port label + expiration badge -->
@@ -502,11 +502,11 @@
                     </ItemsControl>
 
                     <!-- Footer: summary + actions -->
-                    <DockPanel x:Name="ScanFooterPanel" Visibility="Collapsed" Margin="0,0,0,12">
+                    <DockPanel x:Name="ScanFooterPanel" Visibility="Collapsed" Margin="{StaticResource MarginSectionBottom}">
                         <Button x:Name="BtnExportCsv" DockPanel.Dock="Right"
                                 Click="OnExportCsvClick"
                                 Style="{DynamicResource SecondaryButtonStyle}"
-                                Padding="{StaticResource PaddingButtonCopy}" Margin="8,0,0,0"
+                                Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginInlineControl}"
                                 AutomationProperties.Name=""/>
                         <Button x:Name="BtnCopyAll" DockPanel.Dock="Right"
                                 Click="OnCopyAllClick"

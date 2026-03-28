@@ -33,7 +33,7 @@
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
-                        Width="24" Height="24" Margin="8,0,0,0"
+                        Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"
                         AutomationProperties.Name=""/>
                 <TextBlock x:Name="HeaderTitle" Text=""
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
@@ -50,7 +50,7 @@
                 <Border Background="{DynamicResource SurfaceBrush}"
                         BorderBrush="{DynamicResource BorderBrush}"
                         BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
-                        Padding="16,12" Margin="0,0,0,12">
+                        Padding="{StaticResource PaddingSectionCard}" Margin="{StaticResource MarginSectionBottom}">
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="150"/>
@@ -58,19 +58,19 @@
                         </Grid.ColumnDefinitions>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="8"/>
+                            <RowDefinition Height="{StaticResource SpacingRowGap}"/>
                             <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="8"/>
+                            <RowDefinition Height="{StaticResource SpacingRowGap}"/>
                             <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="8"/>
+                            <RowDefinition Height="{StaticResource SpacingRowGap}"/>
                             <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="8"/>
+                            <RowDefinition Height="{StaticResource SpacingRowGap}"/>
                             <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="8"/>
+                            <RowDefinition Height="{StaticResource SpacingRowGap}"/>
                             <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="8"/>
+                            <RowDefinition Height="{StaticResource SpacingRowGap}"/>
                             <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="8"/>
+                            <RowDefinition Height="{StaticResource SpacingRowGap}"/>
                             <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
 
@@ -157,14 +157,14 @@
                 </Border>
 
                 <!-- Buttons -->
-                <WrapPanel Margin="0,0,0,12">
+                <WrapPanel Margin="{StaticResource MarginSectionBottom}">
                     <Button x:Name="BtnGenerate" Click="OnGenerateClick"
                             Style="{DynamicResource PrimaryButtonStyle}"
-                            Padding="16,6" Margin="0,0,8,0" FontSize="{StaticResource FontSizeBody}"
+                            Padding="{StaticResource PaddingButtonPrimary}" Margin="0,0,8,0" FontSize="{StaticResource FontSizeBody}"
                             AutomationProperties.Name=""/>
                     <Button x:Name="BtnGenerateAll" Click="OnGenerateAllClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="16,6" FontSize="{StaticResource FontSizeBody}"
+                            Padding="{StaticResource PaddingButtonPrimary}" FontSize="{StaticResource FontSizeBody}"
                             AutomationProperties.Name=""/>
                 </WrapPanel>
 
@@ -187,7 +187,7 @@
                 <Border x:Name="OutputPanel" Visibility="Collapsed" Background="{DynamicResource CardBrush}"
                         BorderBrush="{DynamicResource BorderBrush}"
                         BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
-                        Padding="12,8" Margin="0,0,0,8">
+                        Padding="{StaticResource PaddingAlertBanner}" Margin="0,0,0,8">
                     <DockPanel>
                         <Button x:Name="BtnCopy" DockPanel.Dock="Top"
                                 Click="OnCopyClick"

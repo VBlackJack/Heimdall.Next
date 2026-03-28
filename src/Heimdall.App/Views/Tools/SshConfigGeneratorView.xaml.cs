@@ -226,6 +226,6 @@ public partial class SshConfigGeneratorView : UserControl, IToolView
 
     public void Dispose()
     {
-        // Reserved for future resource cleanup.
+        GC.SuppressFinalize(this);
     }
 }

@@ -1556,6 +1556,7 @@ public partial class PasswordGeneratorView : UserControl, IToolView
     public void Dispose()
     {
         _clipboardClearTimer?.Stop();
+        _passwordHistory.Clear();
         GC.SuppressFinalize(this);
     }
 }

@@ -37,7 +37,7 @@
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
-                        Width="24" Height="24" Margin="8,0,0,0"
+                        Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"
                         AutomationProperties.Name=""/>
                 <TextBlock x:Name="HeaderTitle" Text=""
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
@@ -109,7 +109,7 @@
                 <Button x:Name="BtnStop" Content=""
                         Click="OnStopClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="{StaticResource PaddingButtonPrimary}" Margin="8,0,0,0"
+                        Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginInlineControl}"
                         VerticalAlignment="Center" IsEnabled="False"
                         AutomationProperties.Name=""/>
                 <TextBlock x:Name="TxtScanProgress" Text=""
@@ -117,7 +117,7 @@
                            Foreground="{DynamicResource TextSecondaryBrush}"
                            VerticalAlignment="Center"
                            Visibility="Collapsed"
-                           Margin="8,0,0,0"/>
+                           Margin="{StaticResource MarginInlineControl}"/>
             </WrapPanel>
         </Border>
 
@@ -251,7 +251,7 @@
                            VerticalAlignment="Center"/>
                 <Button x:Name="BtnClearKb" Content="" Click="OnClearKbClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="{StaticResource PaddingButtonPreset}" Margin="8,0,0,0" FontSize="{StaticResource FontSizeCaption}"
+                        Padding="{StaticResource PaddingButtonPreset}" Margin="{StaticResource MarginInlineControl}" FontSize="{StaticResource FontSizeCaption}"
                         VerticalAlignment="Center"
                         AutomationProperties.Name=""/>
             </DockPanel>

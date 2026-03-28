@@ -34,17 +34,17 @@
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
-                        Width="24" Height="24" Margin="8,0,0,0"
+                        Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"
                         AutomationProperties.Name=""/>
                 <Button x:Name="BtnMarkdownHelp" DockPanel.Dock="Right"
                         Click="OnMarkdownHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="{StaticResource PaddingButtonCopy}" Margin="8,0,0,0"
+                        Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginInlineControl}"
                         AutomationProperties.Name=""/>
                 <Button x:Name="BtnOpenFolder" DockPanel.Dock="Right"
                         Click="OnOpenFolderClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="{StaticResource PaddingButtonCopy}" Margin="8,0,0,0"
+                        Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginInlineControl}"
                         AutomationProperties.Name=""/>
                 <Button x:Name="BtnToggleSidebar" DockPanel.Dock="Left"
                         Click="OnToggleSidebarClick"
@@ -64,7 +64,7 @@
                                Foreground="{DynamicResource WarningBrush}"
                                VerticalAlignment="Center"
                                Visibility="Collapsed"
-                               Margin="8,0,0,0"/>
+                               Margin="{StaticResource MarginInlineControl}"/>
                 </StackPanel>
             </DockPanel>
         </Border>
@@ -133,7 +133,7 @@
                                        Foreground="{DynamicResource TextSecondaryBrush}"
                                        FontSize="{StaticResource FontSizeCaption}"/>
                             <ComboBox x:Name="SortOrderComboBox"
-                                      Margin="8,0,0,0"
+                                      Margin="{StaticResource MarginInlineControl}"
                                       Width="160"
                                       HorizontalAlignment="Left"
                                       SelectedValuePath="Tag"
@@ -309,7 +309,7 @@
                         </StackPanel>
                     </DockPanel>
 
-                    <Grid Grid.Row="1" Margin="0,12,0,0">
+                    <Grid Grid.Row="1" Margin="{StaticResource MarginSectionTop}">
                         <!-- Milkdown (primary) — hidden until ready or if WebView2 unavailable -->
                         <tools:MilkdownEditorControl x:Name="MilkdownEditor"
                                                      Visibility="Collapsed"/>

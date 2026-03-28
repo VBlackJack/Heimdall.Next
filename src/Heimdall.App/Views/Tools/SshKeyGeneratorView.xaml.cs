@@ -39,7 +39,7 @@ public partial class SshKeyGeneratorView : UserControl, IToolView
     private const int AlgorithmIndexRsa4096 = 1;
     private const int AlgorithmIndexEd25519 = 2;
     private const int Ed25519PublicKeyLength = 32;
-    private const int PbeIterationCount = 16;
+    private const int PbeIterationCount = 600_000;
     private const string MaskedPlaceholder = "********";
     private const string OpenSshRsaPrefix = "ssh-rsa";
     private const string OpenSshEd25519Prefix = "ssh-ed25519";
@@ -143,7 +143,8 @@ public partial class SshKeyGeneratorView : UserControl, IToolView
     {
         if (!string.IsNullOrEmpty(_publicKeyOpenSsh))
         {
-            Clipboard.SetText(_publicKeyOpenSsh);
+            try { Clipboard.SetText(_publicKeyOpenSsh); }
+            catch (System.Runtime.InteropServices.ExternalException) { return; }
             CopyFeedbackHelper.ShowCopyFeedback(sender as Button);
         }
     }
@@ -152,7 +153,8 @@ public partial class SshKeyGeneratorView : UserControl, IToolView
     {
         if (!string.IsNullOrEmpty(_privateKeyPem))
         {
-            Clipboard.SetText(_privateKeyPem);
+            try { Clipboard.SetText(_privateKeyPem); }
+            catch (System.Runtime.InteropServices.ExternalException) { return; }
             CopyFeedbackHelper.ShowCopyFeedback(sender as Button);
         }
     }
@@ -161,7 +163,8 @@ public partial class SshKeyGeneratorView : UserControl, IToolView
     {
         if (!string.IsNullOrEmpty(_fingerprint))
         {
-            Clipboard.SetText(_fingerprint);
+            try { Clipboard.SetText(_fingerprint); }
+            catch (System.Runtime.InteropServices.ExternalException) { return; }
             CopyFeedbackHelper.ShowCopyFeedback(sender as Button);
         }
     }

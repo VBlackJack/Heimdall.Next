@@ -325,7 +325,8 @@ public partial class RegexTesterView : UserControl, IToolView
             sb.AppendLine(item.Content?.ToString());
         }
 
-        Clipboard.SetText(sb.ToString());
+        try { Clipboard.SetText(sb.ToString()); }
+        catch (System.Runtime.InteropServices.ExternalException) { return; }
         CopyFeedbackHelper.ShowCopyFeedback(sender as Button);
     }
 

@@ -25,6 +25,7 @@ using System.Windows.Shapes;
 using System.Windows.Threading;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Models;
+using Heimdall.Core.Security;
 
 namespace Heimdall.App.Views.Tools;
 
@@ -121,6 +122,8 @@ public partial class PingToolView : UserControl, IToolView
         System.Windows.Automation.AutomationProperties.SetName(CmbInterval, L("ToolPingIntervalLabel"));
         System.Windows.Automation.AutomationProperties.SetName(TxtTimeout, L("ToolPingTimeoutLabel"));
         System.Windows.Automation.AutomationProperties.SetName(TxtCount, L("ToolPingCountLabel"));
+
+        TxtYMin.Text = string.Format(L("ToolPingUnitMs"), 0);
 
         BtnHelp.ToolTip = L("ToolHelpTooltip");
         System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
@@ -479,8 +482,9 @@ public partial class PingToolView : UserControl, IToolView
         if (maxY < 10) maxY = 10;
 
         // Update Y-axis labels
-        TxtYMax.Text = $"{maxY} ms";
-        TxtYMid.Text = $"{maxY / 2} ms";
+        var msFormat = L("ToolPingUnitMs");
+        TxtYMax.Text = string.Format(msFormat, maxY);
+        TxtYMid.Text = string.Format(msFormat, maxY / 2);
 
         const double marginLeft = 50;
         const double marginRight = 10;
@@ -637,7 +641,7 @@ public partial class PingToolView : UserControl, IToolView
             foreach (var entry in _csvEntries)
             {
                 var latencyStr = entry.Latency >= 0 ? entry.Latency.ToString() : "";
-                sb.AppendLine($"{entry.Seq},{entry.Timestamp},{latencyStr},{entry.Status}");
+                sb.AppendLine($"{entry.Seq},{InputValidator.SanitizeCsvCell(entry.Timestamp)},{latencyStr},{InputValidator.SanitizeCsvCell(entry.Status)}");
             }
 
             File.WriteAllText(dialog.FileName, sb.ToString(), Encoding.UTF8);

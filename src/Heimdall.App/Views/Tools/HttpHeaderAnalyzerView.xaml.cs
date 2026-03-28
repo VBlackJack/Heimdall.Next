@@ -669,16 +669,16 @@ public partial class HttpHeaderAnalyzerView : UserControl, IToolView
         };
     }
 
-    private static Brush GetGradeBrush(string grade)
+    private Brush GetGradeBrush(string grade)
     {
-        return grade switch
+        var key = grade switch
         {
-            "A+" or "A" => new SolidColorBrush(System.Windows.Media.Color.FromRgb(34, 139, 34)),
-            "B+" or "B" => new SolidColorBrush(System.Windows.Media.Color.FromRgb(46, 139, 87)),
-            "C" => new SolidColorBrush(System.Windows.Media.Color.FromRgb(218, 165, 32)),
-            "D" => new SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 140, 0)),
-            _ => new SolidColorBrush(System.Windows.Media.Color.FromRgb(220, 53, 69))
+            "A+" or "A" or "B+" or "B" => "SuccessBrush",
+            "C" => "WarningBrush",
+            _ => "ErrorBrush"
         };
+        return TryFindResource(key) as Brush
+            ?? new SolidColorBrush(System.Windows.Media.Color.FromRgb(220, 53, 69));
     }
 
     // ── Display ──────────────────────────────────────────────────────

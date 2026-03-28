@@ -434,7 +434,8 @@ public partial class SubnetCalculatorView : UserControl, IToolView
 
         if (!string.IsNullOrEmpty(text))
         {
-            Clipboard.SetText(text);
+            try { Clipboard.SetText(text); }
+            catch (System.Runtime.InteropServices.ExternalException) { return; }
             CopyFeedbackHelper.ShowCopyFeedback(btn);
         }
     }

@@ -33,7 +33,7 @@
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
-                        Width="24" Height="24" Margin="8,0,0,0"
+                        Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"
                         AutomationProperties.Name=""/>
                 <TextBlock x:Name="HeaderTitle" FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
@@ -53,7 +53,7 @@
         </Grid.RowDefinitions>
 
         <!-- Permission matrix: 3x3 grid with headers -->
-        <Grid Grid.Row="0" Margin="0,0,0,16">
+        <Grid Grid.Row="0" Margin="{StaticResource MarginSectionSeparator}">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="100"/>
                 <ColumnDefinition Width="80"/>
@@ -135,7 +135,7 @@
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
-                Margin="0,0,0,12">
+                Margin="{StaticResource MarginSectionBottom}">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
@@ -173,7 +173,7 @@
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
-                Margin="0,0,0,12">
+                Margin="{StaticResource MarginSectionBottom}">
             <StackPanel>
                 <TextBlock x:Name="SymbolicInputLabel"
                            Foreground="{DynamicResource TextSecondaryBrush}"
@@ -199,7 +199,7 @@
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
-                Margin="0,0,0,12">
+                Margin="{StaticResource MarginSectionBottom}">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
@@ -216,13 +216,13 @@
                 <Button x:Name="BtnCopyCommand" Grid.Column="2"
                         Click="OnCopyCommandClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="{StaticResource PaddingButtonCopy}" Margin="8,0,0,0"
+                        Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginInlineControl}"
                         AutomationProperties.Name=""/>
             </Grid>
         </Border>
 
         <!-- Copy buttons -->
-        <StackPanel Grid.Row="4" Orientation="Horizontal" Margin="0,0,0,16">
+        <StackPanel Grid.Row="4" Orientation="Horizontal" Margin="{StaticResource MarginSectionSeparator}">
             <Button x:Name="BtnCopyOctal" Click="OnCopyOctalClick"
                     Style="{DynamicResource SecondaryButtonStyle}"
                     Padding="{StaticResource PaddingButtonCopy}" Margin="0,0,8,0"
@@ -242,23 +242,23 @@
             <WrapPanel Orientation="Horizontal">
                 <Button x:Name="BtnPreset644" Content="644" Click="OnPresetClick" Tag="644"
                         Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="{StaticResource PaddingButtonPrimary}" Margin="0,0,6,6"
+                        Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginButtonGroup}"
                         AutomationProperties.Name=""/>
                 <Button x:Name="BtnPreset755" Content="755" Click="OnPresetClick" Tag="755"
                         Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="{StaticResource PaddingButtonPrimary}" Margin="0,0,6,6"
+                        Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginButtonGroup}"
                         AutomationProperties.Name=""/>
                 <Button x:Name="BtnPreset600" Content="600" Click="OnPresetClick" Tag="600"
                         Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="{StaticResource PaddingButtonPrimary}" Margin="0,0,6,6"
+                        Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginButtonGroup}"
                         AutomationProperties.Name=""/>
                 <Button x:Name="BtnPreset700" Content="700" Click="OnPresetClick" Tag="700"
                         Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="{StaticResource PaddingButtonPrimary}" Margin="0,0,6,6"
+                        Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginButtonGroup}"
                         AutomationProperties.Name=""/>
                 <Button x:Name="BtnPreset777" Content="777" Click="OnPresetClick" Tag="777"
                         Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="{StaticResource PaddingButtonPrimary}" Margin="0,0,6,6"
+                        Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginButtonGroup}"
                         AutomationProperties.Name=""/>
             </WrapPanel>
         </StackPanel>

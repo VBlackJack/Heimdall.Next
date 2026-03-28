@@ -476,7 +476,8 @@ public partial class DnsLookupView : UserControl, IToolView
     {
         if (!string.IsNullOrEmpty(TxtResults.Text))
         {
-            Clipboard.SetText(TxtResults.Text);
+            try { Clipboard.SetText(TxtResults.Text); }
+            catch (System.Runtime.InteropServices.ExternalException) { return; }
             CopyFeedbackHelper.ShowCopyFeedback(sender as Button);
         }
     }

@@ -37,7 +37,7 @@
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
-                        Width="24" Height="24" Margin="8,0,0,0"
+                        Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"
                         AutomationProperties.Name=""/>
                 <TextBlock x:Name="HeaderTitle" Text=""
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
@@ -58,7 +58,7 @@
                              Style="{StaticResource WatermarkTextBoxStyle}"
                              Tag="community"
                              FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
-                             Padding="{StaticResource PaddingInput}" Margin="8,0,0,0"
+                             Padding="{StaticResource PaddingInput}" Margin="{StaticResource MarginInlineControl}"
                              Background="{DynamicResource CardBrush}"
                              Foreground="{DynamicResource TextPrimaryBrush}"
                              BorderBrush="{DynamicResource BorderBrush}"
@@ -68,7 +68,7 @@
                              Style="{StaticResource WatermarkTextBoxStyle}"
                              Tag="OID"
                              FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
-                             Padding="{StaticResource PaddingInput}" Margin="8,0,0,0"
+                             Padding="{StaticResource PaddingInput}" Margin="{StaticResource MarginInlineControl}"
                              Background="{DynamicResource CardBrush}"
                              Foreground="{DynamicResource TextPrimaryBrush}"
                              BorderBrush="{DynamicResource BorderBrush}"
@@ -87,7 +87,7 @@
                     <Button x:Name="BtnWalk" Content=""
                             Click="OnWalkClick"
                             Style="{DynamicResource PrimaryButtonStyle}"
-                            Padding="16,6" Margin="8,0,0,0"
+                            Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginInlineControl}"
                             VerticalAlignment="Center"
                             AutomationProperties.Name=""/>
                 </StackPanel>
@@ -185,7 +185,7 @@
         </Border>
 
         <!-- Community bruteforce section -->
-        <Border x:Name="CommunityPanel" Grid.Row="4" Padding="12,8"
+        <Border x:Name="CommunityPanel" Grid.Row="4" Padding="{StaticResource PaddingAlertBanner}"
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,1,0,0">
@@ -204,7 +204,7 @@
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <Border Padding="6,2" Margin="0,0,6,2" CornerRadius="{StaticResource CornerRadiusXs}"
+                            <Border Padding="{StaticResource PaddingButtonHelp}" Margin="0,0,6,2" CornerRadius="{StaticResource CornerRadiusXs}"
                                     Background="{DynamicResource CardBrush}"
                                     BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
                                 <StackPanel Orientation="Horizontal">

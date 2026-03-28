@@ -355,7 +355,7 @@ public partial class LogViewerView : UserControl, IToolView
                 if (ChkCaseSensitive.IsChecked != true)
                     options |= RegexOptions.IgnoreCase;
 
-                _filterRegex = new Regex(pattern, options);
+                _filterRegex = new Regex(pattern, options, TimeSpan.FromSeconds(1));
             }
             catch (RegexParseException)
             {
@@ -444,7 +444,8 @@ public partial class LogViewerView : UserControl, IToolView
         var text = range.Text.Trim();
         if (!string.IsNullOrEmpty(text))
         {
-            Clipboard.SetText(text);
+            try { Clipboard.SetText(text); }
+            catch (System.Runtime.InteropServices.ExternalException) { return; }
             CopyFeedbackHelper.ShowCopyFeedback(sender as Button);
         }
     }

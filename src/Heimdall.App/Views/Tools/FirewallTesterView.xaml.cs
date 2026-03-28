@@ -378,8 +378,9 @@ public partial class FirewallTesterView : UserControl, IToolView
         {
             var result = await Task.Run(() =>
             {
+                var safeHost = InputValidator.EscapeShellArg(host);
                 using var cmd = sshClient.CreateCommand(
-                    $"(echo >/dev/tcp/{host}/{port}) 2>/dev/null && echo OPEN || echo CLOSED");
+                    $"(echo >/dev/tcp/{safeHost}/{port}) 2>/dev/null && echo OPEN || echo CLOSED");
                 cmd.CommandTimeout = TimeSpan.FromMilliseconds(ConnectTimeoutMs);
                 cmd.Execute();
                 return cmd.Result?.Trim();
@@ -443,7 +444,7 @@ public partial class FirewallTesterView : UserControl, IToolView
                 HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
                 VerticalAlignment = System.Windows.VerticalAlignment.Center,
                 FontSize = (double)FindResource("FontSizeCaption"),
-                FontFamily = new System.Windows.Media.FontFamily("Consolas"),
+                FontFamily = (System.Windows.Media.FontFamily)FindResource("FontFamilyMonospace"),
                 FontWeight = FontWeights.SemiBold,
                 Foreground = textPrimary,
                 Margin = new Thickness(2, 4, 2, 4),
@@ -466,7 +467,7 @@ public partial class FirewallTesterView : UserControl, IToolView
                 Text = hosts[r],
                 VerticalAlignment = System.Windows.VerticalAlignment.Center,
                 FontSize = (double)FindResource("FontSizeCaption"),
-                FontFamily = new System.Windows.Media.FontFamily("Consolas"),
+                FontFamily = (System.Windows.Media.FontFamily)FindResource("FontFamilyMonospace"),
                 Foreground = textSecondary,
                 Margin = new Thickness(4, 2, 8, 2),
                 TextTrimming = TextTrimming.CharacterEllipsis,

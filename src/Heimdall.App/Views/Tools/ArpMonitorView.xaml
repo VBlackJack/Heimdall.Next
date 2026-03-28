@@ -35,7 +35,7 @@
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
-                        Width="24" Height="24" Margin="8,0,0,0"
+                        Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"
                         AutomationProperties.Name=""/>
                 <TextBlock x:Name="HeaderTitle" Text=""
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
@@ -45,13 +45,13 @@
                     <Button x:Name="BtnToggle" Content=""
                             Click="OnToggleClick"
                             Style="{DynamicResource PrimaryButtonStyle}"
-                            Padding="16,6"
+                            Padding="{StaticResource PaddingButtonPrimary}"
                             VerticalAlignment="Center"
                             AutomationProperties.Name=""/>
                     <Button x:Name="BtnScanNow" Content=""
                             Click="OnScanNowClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="{StaticResource PaddingButtonCopy}" Margin="8,0,0,0"
+                            Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginInlineControl}"
                             VerticalAlignment="Center"
                             IsEnabled="False"
                             AutomationProperties.Name=""/>
@@ -76,7 +76,7 @@
 
         <!-- Alert banner (hidden by default) -->
         <Border x:Name="AlertBanner" Grid.Row="1" Visibility="Collapsed"
-                Padding="12,8" Margin="8,8,8,0"
+                Padding="{StaticResource PaddingAlertBanner}" Margin="8,8,8,0"
                 Background="{DynamicResource WarningBrush}"
                 CornerRadius="{StaticResource CornerRadiusSm}">
             <DockPanel>
@@ -84,7 +84,7 @@
                         Content="&#xE711;" FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeCaption}"
                         Click="OnDismissAlertClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="{StaticResource PaddingButtonHelp}" Margin="8,0,0,0"
+                        Padding="{StaticResource PaddingButtonHelp}" Margin="{StaticResource MarginInlineControl}"
                         Background="Transparent" BorderThickness="0"
                         VerticalAlignment="Center"
                         AutomationProperties.Name=""/>

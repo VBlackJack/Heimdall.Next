@@ -33,7 +33,7 @@
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
-                        Width="24" Height="24" Margin="8,0,0,0"
+                        Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"
                         AutomationProperties.Name=""/>
                 <TextBlock x:Name="HeaderTitle"
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
@@ -58,13 +58,13 @@
                         Background="{DynamicResource SurfaceBrush}"
                         BorderBrush="{DynamicResource BorderBrush}"
                         BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
-                        Margin="0,0,0,12">
+                        Margin="{StaticResource MarginSectionBottom}">
                     <StackPanel>
                         <DockPanel Margin="0,0,0,8">
                             <Button x:Name="BtnBrowse" DockPanel.Dock="Right"
                                     Click="OnBrowseClick"
                                     Style="{DynamicResource SecondaryButtonStyle}"
-                                    Padding="{StaticResource PaddingButtonCopy}" Margin="8,0,0,0"
+                                    Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginInlineControl}"
                                     VerticalAlignment="Top"
                                     AutomationProperties.Name=""/>
                             <TextBlock x:Name="InputLabel"
@@ -107,7 +107,7 @@
                 <StackPanel x:Name="BadgePanel" Grid.Row="2"
                             Orientation="Horizontal"
                             Visibility="Collapsed"
-                            Margin="0,0,0,12">
+                            Margin="{StaticResource MarginSectionBottom}">
                     <Border x:Name="AlgorithmBadge"
                             CornerRadius="{StaticResource CornerRadiusSm}"
                             Padding="12,4"
@@ -134,7 +134,7 @@
                         BorderBrush="{DynamicResource BorderBrush}"
                         BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
                         Visibility="Collapsed"
-                        Margin="0,0,0,12">
+                        Margin="{StaticResource MarginSectionBottom}">
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="140"/>
@@ -178,7 +178,7 @@
                             <Button x:Name="BtnCopyFingerprint" DockPanel.Dock="Right"
                                     Click="OnCopyFingerprintClick"
                                     Style="{DynamicResource SecondaryButtonStyle}"
-                                    Padding="{StaticResource PaddingButtonCopy}" Margin="8,0,0,0"
+                                    Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginInlineControl}"
                                     VerticalAlignment="Center"
                                     AutomationProperties.Name=""/>
                             <TextBox x:Name="DetailFingerprintValue"
@@ -228,7 +228,7 @@
                         BorderBrush="{DynamicResource BorderBrush}"
                         BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
                         Visibility="Collapsed"
-                        Margin="0,0,0,12">
+                        Margin="{StaticResource MarginSectionBottom}">
                     <StackPanel>
                         <TextBlock x:Name="FindingsTitle"
                                    Foreground="{DynamicResource TextPrimaryBrush}"

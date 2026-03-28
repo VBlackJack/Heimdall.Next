@@ -46,14 +46,14 @@ public static class ToolContextMenuHelper
 
         // Copy IP
         var copyIp = new MenuItem { Header = L(localizer, "ToolCtxCopyIp") };
-        copyIp.Click += (_, _) => Clipboard.SetText(ip);
+        copyIp.Click += (_, _) => { try { Clipboard.SetText(ip); } catch (System.Runtime.InteropServices.ExternalException) { /* clipboard locked */ } };
         items.Add(copyIp);
 
         // Copy hostname if available
         if (!string.IsNullOrWhiteSpace(hostname) && hostname != "\u2014")
         {
             var copyHost = new MenuItem { Header = L(localizer, "ToolCtxCopyHostname") };
-            copyHost.Click += (_, _) => Clipboard.SetText(hostname);
+            copyHost.Click += (_, _) => { try { Clipboard.SetText(hostname); } catch (System.Runtime.InteropServices.ExternalException) { /* clipboard locked */ } };
             items.Add(copyHost);
         }
 
@@ -140,7 +140,7 @@ public static class ToolContextMenuHelper
     public static MenuItem BuildCopyRowAction(string rowText, LocalizationManager? localizer)
     {
         var item = new MenuItem { Header = L(localizer, "ToolCtxCopyRow") };
-        item.Click += (_, _) => Clipboard.SetText(rowText);
+        item.Click += (_, _) => { try { Clipboard.SetText(rowText); } catch (System.Runtime.InteropServices.ExternalException) { /* clipboard locked */ } };
         return item;
     }
 
@@ -166,7 +166,7 @@ public static class ToolContextMenuHelper
                 });
                 sb.AppendLine(string.Join('\t', cells));
             }
-            Clipboard.SetText(sb.ToString());
+            try { Clipboard.SetText(sb.ToString()); } catch (System.Runtime.InteropServices.ExternalException) { /* clipboard locked */ }
         };
         return item;
     }

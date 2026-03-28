@@ -33,7 +33,7 @@
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
-                        Width="24" Height="24" Margin="8,0,0,0"
+                        Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"
                         AutomationProperties.Name=""/>
                 <TextBlock x:Name="HeaderTitle" Text=""
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
@@ -50,7 +50,7 @@
                 <TextBlock x:Name="LblMode" Text=""
                            FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,6"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
-                <WrapPanel Margin="0,0,0,16">
+                <WrapPanel Margin="{StaticResource MarginSectionSeparator}">
                     <RadioButton x:Name="RbSupernet" GroupName="Mode"
                                  IsChecked="True" Checked="OnModeChanged"
                                  Foreground="{DynamicResource TextPrimaryBrush}"
@@ -73,7 +73,7 @@
                         Background="{DynamicResource SurfaceBrush}"
                         BorderBrush="{DynamicResource BorderBrush}"
                         BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
-                        Padding="16,12" Margin="0,0,0,12">
+                        Padding="{StaticResource PaddingSectionCard}" Margin="{StaticResource MarginSectionBottom}">
                     <StackPanel>
                         <TextBlock x:Name="LblSupernetInput" Text=""
                                    FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,4"
@@ -101,7 +101,7 @@
                         Background="{DynamicResource SurfaceBrush}"
                         BorderBrush="{DynamicResource BorderBrush}"
                         BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
-                        Padding="16,12" Margin="0,0,0,12">
+                        Padding="{StaticResource PaddingSectionCard}" Margin="{StaticResource MarginSectionBottom}">
                     <StackPanel>
                         <Grid>
                             <Grid.ColumnDefinitions>
@@ -146,7 +146,7 @@
                         Background="{DynamicResource SurfaceBrush}"
                         BorderBrush="{DynamicResource BorderBrush}"
                         BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
-                        Padding="16,12" Margin="0,0,0,12">
+                        Padding="{StaticResource PaddingSectionCard}" Margin="{StaticResource MarginSectionBottom}">
                     <StackPanel>
                         <Grid>
                             <Grid.ColumnDefinitions>
@@ -155,7 +155,7 @@
                             </Grid.ColumnDefinitions>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="8"/>
+                                <RowDefinition Height="{StaticResource SpacingRowGap}"/>
                                 <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
                             <TextBlock x:Name="LblHostsNeeded" Grid.Row="0" Grid.Column="0"
@@ -200,7 +200,7 @@
                         Background="{DynamicResource CardBrush}"
                         BorderBrush="{DynamicResource BorderBrush}"
                         BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
-                        Padding="16,12" Margin="0,0,0,8">
+                        Padding="{StaticResource PaddingSectionCard}" Margin="0,0,0,8">
                     <DockPanel>
                         <Button x:Name="BtnCopyResult" DockPanel.Dock="Top"
                                 Click="OnCopyResultClick"

@@ -1130,7 +1130,8 @@ public partial class TlsAuditView : UserControl, IToolView
     {
         if (!string.IsNullOrEmpty(_lastReport))
         {
-            Clipboard.SetText(_lastReport);
+            try { Clipboard.SetText(_lastReport); }
+            catch (System.Runtime.InteropServices.ExternalException) { return; }
             CopyFeedbackHelper.ShowCopyFeedback(sender as Button);
         }
     }

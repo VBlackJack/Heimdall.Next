@@ -122,9 +122,9 @@ public partial class TextCaseConverterView : UserControl, IToolView
                 Clipboard.SetText(TxtOutput.Text);
                 CopyFeedbackHelper.ShowCopyFeedback(sender as Button);
             }
-            catch (Exception ex)
+            catch (System.Runtime.InteropServices.ExternalException)
             {
-                Core.Logging.FileLogger.Warn($"TextCaseConverter clipboard copy failed: {ex.Message}");
+                // Clipboard locked by another process
             }
         }
     }

@@ -36,7 +36,7 @@
                 <Button x:Name="BtnHelp" DockPanel.Dock="Right" Content="?" Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
-                        Width="24" Height="24" Margin="8,0,0,0"
+                        Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"
                         AutomationProperties.Name=""/>
                 <StackPanel Orientation="Horizontal">
                     <TextBlock x:Name="HeaderTitle" Text="" FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
@@ -94,7 +94,7 @@
                 <TextBlock x:Name="FallbackTitle" FontSize="{StaticResource FontSizeDisplay}" FontWeight="SemiBold"
                            TextAlignment="Center"
                            Foreground="{DynamicResource TextPrimaryBrush}"/>
-                <TextBlock x:Name="FallbackMessage" FontSize="{StaticResource FontSizeBody}" Margin="0,12,0,0"
+                <TextBlock x:Name="FallbackMessage" FontSize="{StaticResource FontSizeBody}" Margin="{StaticResource MarginSectionTop}"
                            TextWrapping="Wrap" TextAlignment="Center"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
             </StackPanel>

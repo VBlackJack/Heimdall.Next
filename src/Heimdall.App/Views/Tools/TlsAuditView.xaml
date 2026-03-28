@@ -34,7 +34,7 @@
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
-                        Width="24" Height="24" Margin="8,0,0,0"
+                        Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"
                         AutomationProperties.Name=""/>
                 <TextBlock x:Name="HeaderTitle" Text=""
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
@@ -69,7 +69,7 @@
                     <Button x:Name="BtnAudit" DockPanel.Dock="Right"
                             Content="" Click="OnAuditClick"
                             Style="{DynamicResource PrimaryButtonStyle}"
-                            Padding="16,6" Margin="8,0,0,0"
+                            Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginInlineControl}"
                             VerticalAlignment="Center"
                             AutomationProperties.Name=""/>
                     <TextBox x:Name="TxtPort" DockPanel.Dock="Right"
@@ -77,7 +77,7 @@
                              Style="{StaticResource WatermarkTextBoxStyle}"
                              Tag="port"
                              FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
-                             Padding="{StaticResource PaddingInput}" Margin="8,0,0,0"
+                             Padding="{StaticResource PaddingInput}" Margin="{StaticResource MarginInlineControl}"
                              Background="{DynamicResource CardBrush}"
                              Foreground="{DynamicResource TextPrimaryBrush}"
                              BorderBrush="{DynamicResource BorderBrush}"
@@ -116,7 +116,7 @@
 
                 <!-- Error message -->
                 <TextBlock x:Name="TxtError" Text="" Visibility="Collapsed"
-                           FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,12" TextWrapping="Wrap"
+                           FontSize="{StaticResource FontSizeBody}" Margin="{StaticResource MarginSectionBottom}" TextWrapping="Wrap"
                            Foreground="{DynamicResource ErrorTextBrush}"/>
 
                 <!-- Empty state hint -->
@@ -139,7 +139,7 @@
                     <!-- Grade badge -->
                     <Border x:Name="GradeBadge" HorizontalAlignment="Center"
                             CornerRadius="{StaticResource CornerRadiusSm}"
-                            Padding="24,12" Margin="0,0,0,16">
+                            Padding="24,12" Margin="{StaticResource MarginSectionSeparator}">
                         <StackPanel HorizontalAlignment="Center">
                             <TextBlock x:Name="LblGradeCaption" Text=""
                                        FontSize="{StaticResource FontSizeCaption}"
@@ -158,7 +158,7 @@
                     <Border Background="{DynamicResource CardBrush}"
                             BorderBrush="{DynamicResource BorderBrush}"
                             BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
-                            Padding="16,12" Margin="0,0,0,12"
+                            Padding="{StaticResource PaddingSectionCard}" Margin="{StaticResource MarginSectionBottom}"
                             AutomationProperties.LiveSetting="Polite">
                         <StackPanel>
                             <TextBlock x:Name="LblProtocols" Text=""
@@ -176,7 +176,7 @@
                                             <TextBlock Text="{Binding StatusText}" DockPanel.Dock="Right"
                                                        FontSize="{StaticResource FontSizeCaption}"
                                                        Foreground="{Binding RatingBrush}"
-                                                       VerticalAlignment="Center" Margin="8,0,0,0"/>
+                                                       VerticalAlignment="Center" Margin="{StaticResource MarginInlineControl}"/>
                                             <TextBlock Text="{Binding Name}"
                                                        FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                                                        Foreground="{DynamicResource TextPrimaryBrush}"
@@ -193,7 +193,7 @@
                             Background="{DynamicResource CardBrush}"
                             BorderBrush="{DynamicResource BorderBrush}"
                             BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
-                            Padding="16,12" Margin="0,0,0,12">
+                            Padding="{StaticResource PaddingSectionCard}" Margin="{StaticResource MarginSectionBottom}">
                         <StackPanel>
                             <TextBlock x:Name="LblCiphers" Text=""
                                        FontSize="{StaticResource FontSizeBodyLarge}" FontWeight="SemiBold"
@@ -221,7 +221,7 @@
                                                 <Border Grid.Column="1"
                                                         Background="{Binding StrengthBrush}"
                                                         CornerRadius="{StaticResource CornerRadiusSm}"
-                                                        Padding="6,2" Margin="8,0,0,0">
+                                                        Padding="{StaticResource PaddingButtonHelp}" Margin="{StaticResource MarginInlineControl}">
                                                     <TextBlock Text="{Binding Strength}"
                                                                FontSize="{StaticResource FontSizeSmallCaption}" FontWeight="SemiBold"
                                                                Foreground="{DynamicResource TextOnAccentBrush}"/>
@@ -229,15 +229,15 @@
                                                 <TextBlock Grid.Column="2" Text="{Binding KeyExchange}"
                                                            FontSize="{StaticResource FontSizeSmallCaption}"
                                                            Foreground="{DynamicResource TextSecondaryBrush}"
-                                                           VerticalAlignment="Center" Margin="8,0,0,0"/>
+                                                           VerticalAlignment="Center" Margin="{StaticResource MarginInlineControl}"/>
                                                 <TextBlock Grid.Column="3" Text="{Binding Authentication}"
                                                            FontSize="{StaticResource FontSizeSmallCaption}"
                                                            Foreground="{DynamicResource TextSecondaryBrush}"
-                                                           VerticalAlignment="Center" Margin="8,0,0,0"/>
+                                                           VerticalAlignment="Center" Margin="{StaticResource MarginInlineControl}"/>
                                                 <TextBlock Grid.Column="4" Text="{Binding Encryption}"
                                                            FontSize="{StaticResource FontSizeSmallCaption}"
                                                            Foreground="{DynamicResource TextSecondaryBrush}"
-                                                           VerticalAlignment="Center" Margin="8,0,0,0"/>
+                                                           VerticalAlignment="Center" Margin="{StaticResource MarginInlineControl}"/>
                                             </Grid>
                                         </Border>
                                     </DataTemplate>
@@ -251,7 +251,7 @@
                             Background="{DynamicResource CardBrush}"
                             BorderBrush="{DynamicResource BorderBrush}"
                             BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
-                            Padding="16,12" Margin="0,0,0,12">
+                            Padding="{StaticResource PaddingSectionCard}" Margin="{StaticResource MarginSectionBottom}">
                         <StackPanel>
                             <TextBlock x:Name="LblCertSection" Text=""
                                        FontSize="{StaticResource FontSizeBodyLarge}" FontWeight="SemiBold"
@@ -304,7 +304,7 @@
                             Background="{DynamicResource CardBrush}"
                             BorderBrush="{DynamicResource BorderBrush}"
                             BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
-                            Padding="16,12" Margin="0,0,0,12">
+                            Padding="{StaticResource PaddingSectionCard}" Margin="{StaticResource MarginSectionBottom}">
                         <StackPanel>
                             <TextBlock x:Name="LblFindings" Text=""
                                        FontSize="{StaticResource FontSizeBodyLarge}" FontWeight="SemiBold"
@@ -333,7 +333,7 @@
                     <Button x:Name="BtnCopy" Click="OnCopyClick"
                             Visibility="Collapsed"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="{StaticResource PaddingButtonCopy}" Margin="0,0,0,12"
+                            Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginSectionBottom}"
                             HorizontalAlignment="Left"
                             AutomationProperties.Name=""/>
                 </StackPanel>

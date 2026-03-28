@@ -180,20 +180,18 @@ public partial class JwtParserView : UserControl, IToolView
 
                 if (expTime < now)
                 {
-                    var errorBrush = (SolidColorBrush)FindResource("ErrorBrush");
-                    ExpirationBorder.Background = new SolidColorBrush(System.Windows.Media.Color.FromArgb(40, errorBrush.Color.R, errorBrush.Color.G, errorBrush.Color.B));
-                    ExpirationBorder.BorderBrush = errorBrush;
+                    ExpirationBorder.Background = CreateOverlayBrush("ErrorBrush");
+                    ExpirationBorder.BorderBrush = (Brush)FindResource("ErrorBrush");
                     ExpirationBorder.BorderThickness = new Thickness(1);
-                    TxtExpiration.Foreground = errorBrush;
+                    TxtExpiration.Foreground = (Brush)FindResource("ErrorBrush");
                     TxtExpiration.Text = string.Format(L("ToolJwtExpired"), expTime.ToLocalTime().ToString("F"));
                 }
                 else
                 {
-                    var successBrush = (SolidColorBrush)FindResource("SuccessBrush");
-                    ExpirationBorder.Background = new SolidColorBrush(System.Windows.Media.Color.FromArgb(40, successBrush.Color.R, successBrush.Color.G, successBrush.Color.B));
-                    ExpirationBorder.BorderBrush = successBrush;
+                    ExpirationBorder.Background = CreateOverlayBrush("SuccessBrush");
+                    ExpirationBorder.BorderBrush = (Brush)FindResource("SuccessBrush");
                     ExpirationBorder.BorderThickness = new Thickness(1);
-                    TxtExpiration.Foreground = successBrush;
+                    TxtExpiration.Foreground = (Brush)FindResource("SuccessBrush");
                     TxtExpiration.Text = string.Format(L("ToolJwtValid"), expTime.ToLocalTime().ToString("F"));
                 }
 
@@ -201,11 +199,10 @@ public partial class JwtParserView : UserControl, IToolView
             }
             else
             {
-                var secondaryBrush = (SolidColorBrush)FindResource("TextSecondaryBrush");
-                ExpirationBorder.Background = new SolidColorBrush(System.Windows.Media.Color.FromArgb(40, secondaryBrush.Color.R, secondaryBrush.Color.G, secondaryBrush.Color.B));
-                ExpirationBorder.BorderBrush = secondaryBrush;
+                ExpirationBorder.Background = CreateOverlayBrush("TextSecondaryBrush");
+                ExpirationBorder.BorderBrush = (Brush)FindResource("TextSecondaryBrush");
                 ExpirationBorder.BorderThickness = new Thickness(1);
-                TxtExpiration.Foreground = secondaryBrush;
+                TxtExpiration.Foreground = (Brush)FindResource("TextSecondaryBrush");
                 TxtExpiration.Text = L("ToolJwtNoExpiry");
                 ExpirationBorder.Visibility = Visibility.Visible;
             }
@@ -419,6 +416,14 @@ public partial class JwtParserView : UserControl, IToolView
         MessageBox.Show(helpText, L("ToolHelpTitle"), MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
+    private SolidColorBrush CreateOverlayBrush(string resourceKey, byte alpha = 40)
+    {
+        var baseBrush = (SolidColorBrush)FindResource(resourceKey);
+        var brush = new SolidColorBrush(System.Windows.Media.Color.FromArgb(alpha, baseBrush.Color.R, baseBrush.Color.G, baseBrush.Color.B));
+        brush.Freeze();
+        return brush;
+    }
+
     private string L(string key) => _localizer?[key] ?? key;
 
     public void Dispose()
@@ -428,5 +433,6 @@ public partial class JwtParserView : UserControl, IToolView
             _debounceTimer.Stop();
             _debounceTimer = null;
         }
+        GC.SuppressFinalize(this);
     }
 }

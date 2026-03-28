@@ -33,7 +33,7 @@
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
-                        Width="24" Height="24" Margin="8,0,0,0"
+                        Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"
                         AutomationProperties.Name=""/>
                 <TextBlock x:Name="HeaderTitle" Text=""
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
@@ -51,7 +51,7 @@
                            FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,4"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
                 <ComboBox x:Name="CmbAlgorithm"
-                          Margin="0,0,0,16"
+                          Margin="{StaticResource MarginSectionSeparator}"
                           Padding="{StaticResource PaddingInput}" FontSize="{StaticResource FontSizeBodyLarge}"
                           Background="{DynamicResource CardBrush}"
                           Foreground="{DynamicResource TextPrimaryBrush}"
@@ -64,7 +64,7 @@
                 <TextBlock x:Name="LblKey" Text=""
                            FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,4"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
-                <DockPanel Margin="0,0,0,16">
+                <DockPanel Margin="{StaticResource MarginSectionSeparator}">
                     <Button x:Name="BtnToggleKey" DockPanel.Dock="Right"
                             Content="&#xE7B3;"
                             FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeSubtitle}"
@@ -120,7 +120,7 @@
                 <TextBlock x:Name="LblFormat" Text=""
                            FontSize="{StaticResource FontSizeBody}" Margin="0,16,0,4"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
-                <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                <StackPanel Orientation="Horizontal" Margin="{StaticResource MarginSectionBottom}">
                     <RadioButton x:Name="RdoHex" Content="" IsChecked="True"
                                  Foreground="{DynamicResource TextPrimaryBrush}"
                                  Margin="0,0,16,0"
@@ -142,7 +142,7 @@
                     <Button x:Name="BtnCopy" DockPanel.Dock="Right"
                             Content="" Click="OnCopyClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="{StaticResource PaddingButtonPrimary}" Margin="8,0,0,0"
+                            Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginInlineControl}"
                             VerticalAlignment="Stretch"
                             AutomationProperties.Name=""/>
                     <TextBox x:Name="TxtOutput" Text=""

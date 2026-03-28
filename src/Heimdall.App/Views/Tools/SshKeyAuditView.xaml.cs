@@ -260,32 +260,31 @@ public partial class SshKeyAuditView : UserControl, IToolView
         _ => rating
     };
 
-    private static SolidColorBrush CreateFrozen(byte r, byte g, byte b)
+    private SolidColorBrush GetAlgorithmBrush(string algorithm) => algorithm switch
     {
-        var brush = new SolidColorBrush(System.Windows.Media.Color.FromRgb(r, g, b));
-        brush.Freeze();
-        return brush;
-    }
-
-    private static SolidColorBrush GetAlgorithmBrush(string algorithm) => algorithm switch
-    {
-        "Ed25519" => CreateFrozen(0x10, 0xB9, 0x81),   // green
-        "RSA" => CreateFrozen(0x3B, 0x82, 0xF6),       // blue
-        "ECDSA" => CreateFrozen(0x8B, 0x5C, 0xF6),     // purple
-        "DSA" => CreateFrozen(0xEF, 0x44, 0x44),       // red
-        _ => CreateFrozen(0x6B, 0x72, 0x80)             // gray
+        "Ed25519" => (SolidColorBrush)FindResource("SuccessTextBrush"),
+        "RSA" => (SolidColorBrush)FindResource("InfoBrush"),
+        "ECDSA" => (SolidColorBrush)FindResource("AccentBrush"),
+        "DSA" => (SolidColorBrush)FindResource("ErrorTextBrush"),
+        _ => (SolidColorBrush)FindResource("TextSecondaryBrush"),
     };
 
-    private static readonly SolidColorBrush BrushStrong = CreateFrozen(0x10, 0xB9, 0x81);
-    private static readonly SolidColorBrush BrushAcceptable = CreateFrozen(0xF5, 0x9E, 0x0B);
-    private static readonly SolidColorBrush BrushWeak = CreateFrozen(0xEF, 0x44, 0x44);
-    private static readonly SolidColorBrush BrushDeprecated = CreateFrozen(0xEF, 0x44, 0x44);
+    private SolidColorBrush GetRatingBrush(string rating) => rating switch
+    {
+        RatingStrong => (SolidColorBrush)FindResource("SuccessTextBrush"),
+        RatingAcceptable => (SolidColorBrush)FindResource("AccentBrush"),
+        RatingWeak => (SolidColorBrush)FindResource("WarningTextBrush"),
+        RatingDeprecated => (SolidColorBrush)FindResource("ErrorTextBrush"),
+        _ => (SolidColorBrush)FindResource("AccentBrush"),
+    };
+
+    private SolidColorBrush GetFindingBrush(string rating) => GetRatingBrush(rating);
 
     // ──────────────────────────────────────────────────
     // Key parsing and audit logic
     // ──────────────────────────────────────────────────
 
-    private static KeyAuditResult? ParseAndAudit(string keyText, LocalizationManager? loc)
+    private KeyAuditResult? ParseAndAudit(string keyText, LocalizationManager? loc)
     {
         keyText = keyText.Trim();
         if (string.IsNullOrEmpty(keyText)) return null;
@@ -333,7 +332,7 @@ public partial class SshKeyAuditView : UserControl, IToolView
 
     // ──── OpenSSH public key ──────────────────────────
 
-    private static KeyAuditResult? ParseOpenSshPublicKey(string line, LocalizationManager? loc)
+    private KeyAuditResult? ParseOpenSshPublicKey(string line, LocalizationManager? loc)
     {
         var parts = line.Split(' ', 3);
         if (parts.Length < 2) return null;
@@ -355,7 +354,7 @@ public partial class SshKeyAuditView : UserControl, IToolView
     /// <summary>
     /// Parses an OpenSSH wire-format public key blob and extracts algorithm and key size.
     /// </summary>
-    private static KeyAuditResult? ParseOpenSshBlob(
+    private KeyAuditResult? ParseOpenSshBlob(
         byte[] blob, string algorithmTag, bool isPrivate, bool isEncrypted, string format,
         LocalizationManager? loc)
     {
@@ -439,7 +438,7 @@ public partial class SshKeyAuditView : UserControl, IToolView
 
     // ──── OpenSSH private key ─────────────────────────
 
-    private static KeyAuditResult? ParseOpenSshPrivateKey(string pem, LocalizationManager? loc)
+    private KeyAuditResult? ParseOpenSshPrivateKey(string pem, LocalizationManager? loc)
     {
         try
         {
@@ -487,7 +486,7 @@ public partial class SshKeyAuditView : UserControl, IToolView
 
     // ──── PKCS#1 RSA private key (legacy PEM) ────────
 
-    private static KeyAuditResult? ParsePkcs1RsaPrivateKey(string pem, LocalizationManager? loc)
+    private KeyAuditResult? ParsePkcs1RsaPrivateKey(string pem, LocalizationManager? loc)
     {
         var isEncrypted = pem.Contains(ProcTypeEncrypted, StringComparison.Ordinal);
         var isOldFormat = true;
@@ -541,7 +540,7 @@ public partial class SshKeyAuditView : UserControl, IToolView
 
     // ──── Legacy DSA private key ──────────────────────
 
-    private static KeyAuditResult? ParseLegacyDsaPrivateKey(string pem, LocalizationManager? loc)
+    private KeyAuditResult? ParseLegacyDsaPrivateKey(string pem, LocalizationManager? loc)
     {
         var isEncrypted = pem.Contains(ProcTypeEncrypted, StringComparison.Ordinal);
 
@@ -589,7 +588,7 @@ public partial class SshKeyAuditView : UserControl, IToolView
 
     // ──── Legacy EC private key ───────────────────────
 
-    private static KeyAuditResult? ParseLegacyEcPrivateKey(string pem, LocalizationManager? loc)
+    private KeyAuditResult? ParseLegacyEcPrivateKey(string pem, LocalizationManager? loc)
     {
         var isEncrypted = pem.Contains(ProcTypeEncrypted, StringComparison.Ordinal);
 
@@ -654,7 +653,7 @@ public partial class SshKeyAuditView : UserControl, IToolView
 
     // ──── PKCS#8 private key ──────────────────────────
 
-    private static KeyAuditResult? ParsePkcs8PrivateKey(string pem, bool isEncrypted, LocalizationManager? loc)
+    private KeyAuditResult? ParsePkcs8PrivateKey(string pem, bool isEncrypted, LocalizationManager? loc)
     {
         if (isEncrypted)
         {
@@ -766,7 +765,7 @@ public partial class SshKeyAuditView : UserControl, IToolView
     /// Attempts to parse a PKCS#8 PEM as Ed25519 by importing via the generic API
     /// and inspecting the DER-encoded SubjectPublicKeyInfo.
     /// </summary>
-    private static KeyAuditResult? TryParseEd25519Pkcs8(string pem, LocalizationManager? loc)
+    private KeyAuditResult? TryParseEd25519Pkcs8(string pem, LocalizationManager? loc)
     {
         try
         {
@@ -803,7 +802,7 @@ public partial class SshKeyAuditView : UserControl, IToolView
 
     // ──── SPKI public key (BEGIN PUBLIC KEY) ──────────
 
-    private static KeyAuditResult? ParseSpkiPublicKey(string pem, LocalizationManager? loc)
+    private KeyAuditResult? ParseSpkiPublicKey(string pem, LocalizationManager? loc)
     {
         // Try RSA
         try
@@ -927,7 +926,7 @@ public partial class SshKeyAuditView : UserControl, IToolView
 
     // ──── PKCS#1 RSA public key (BEGIN RSA PUBLIC KEY) ─
 
-    private static KeyAuditResult? ParsePkcs1RsaPublicKey(string pem, LocalizationManager? loc)
+    private KeyAuditResult? ParsePkcs1RsaPublicKey(string pem, LocalizationManager? loc)
     {
         try
         {
@@ -974,16 +973,7 @@ public partial class SshKeyAuditView : UserControl, IToolView
         _ => RatingAcceptable
     };
 
-    private static SolidColorBrush GetRatingBrush(string rating) => rating switch
-    {
-        RatingStrong => BrushStrong,
-        RatingAcceptable => BrushAcceptable,
-        RatingWeak => BrushWeak,
-        RatingDeprecated => BrushDeprecated,
-        _ => BrushAcceptable
-    };
-
-    private static List<AuditFinding> BuildFindings(
+    private List<AuditFinding> BuildFindings(
         string algorithm, int keySize, bool isPrivate, bool isEncrypted, bool isOldFormat,
         LocalizationManager? loc)
     {
@@ -997,7 +987,7 @@ public partial class SshKeyAuditView : UserControl, IToolView
                 {
                     Icon = FindingIconPass,
                     Text = Loc(loc, "ToolSshAuditFindingEd25519"),
-                    IconBrush = BrushStrong
+                    IconBrush = GetFindingBrush(RatingStrong)
                 });
                 break;
 
@@ -1006,7 +996,7 @@ public partial class SshKeyAuditView : UserControl, IToolView
                 {
                     Icon = FindingIconPass,
                     Text = string.Format(Loc(loc, "ToolSshAuditFindingRsaStrong"), keySize),
-                    IconBrush = BrushStrong
+                    IconBrush = GetFindingBrush(RatingStrong)
                 });
                 break;
 
@@ -1015,7 +1005,7 @@ public partial class SshKeyAuditView : UserControl, IToolView
                 {
                     Icon = FindingIconWarn,
                     Text = Loc(loc, "ToolSshAuditFindingRsaOk"),
-                    IconBrush = BrushAcceptable
+                    IconBrush = GetFindingBrush(RatingAcceptable)
                 });
                 break;
 
@@ -1024,7 +1014,7 @@ public partial class SshKeyAuditView : UserControl, IToolView
                 {
                     Icon = FindingIconFail,
                     Text = string.Format(Loc(loc, "ToolSshAuditFindingRsaWeak"), keySize),
-                    IconBrush = BrushWeak
+                    IconBrush = GetFindingBrush(RatingWeak)
                 });
                 break;
 
@@ -1033,7 +1023,7 @@ public partial class SshKeyAuditView : UserControl, IToolView
                 {
                     Icon = FindingIconFail,
                     Text = Loc(loc, "ToolSshAuditFindingDsa"),
-                    IconBrush = BrushDeprecated
+                    IconBrush = GetFindingBrush(RatingDeprecated)
                 });
                 break;
 
@@ -1042,7 +1032,7 @@ public partial class SshKeyAuditView : UserControl, IToolView
                 {
                     Icon = FindingIconPass,
                     Text = string.Format(Loc(loc, "ToolSshAuditFindingEcdsaStrong"), keySize),
-                    IconBrush = BrushStrong
+                    IconBrush = GetFindingBrush(RatingStrong)
                 });
                 break;
 
@@ -1051,7 +1041,7 @@ public partial class SshKeyAuditView : UserControl, IToolView
                 {
                     Icon = FindingIconWarn,
                     Text = Loc(loc, "ToolSshAuditFindingEcdsaOk"),
-                    IconBrush = BrushAcceptable
+                    IconBrush = GetFindingBrush(RatingAcceptable)
                 });
                 break;
         }
@@ -1065,7 +1055,7 @@ public partial class SshKeyAuditView : UserControl, IToolView
                 {
                     Icon = FindingIconPass,
                     Text = Loc(loc, "ToolSshAuditFindingEncrypted"),
-                    IconBrush = BrushStrong
+                    IconBrush = GetFindingBrush(RatingStrong)
                 });
             }
             else
@@ -1074,7 +1064,7 @@ public partial class SshKeyAuditView : UserControl, IToolView
                 {
                     Icon = FindingIconWarn,
                     Text = Loc(loc, "ToolSshAuditFindingUnencrypted"),
-                    IconBrush = BrushAcceptable
+                    IconBrush = GetFindingBrush(RatingAcceptable)
                 });
             }
         }
@@ -1086,7 +1076,7 @@ public partial class SshKeyAuditView : UserControl, IToolView
             {
                 Icon = FindingIconWarn,
                 Text = Loc(loc, "ToolSshAuditFindingOldFormat"),
-                IconBrush = BrushAcceptable
+                IconBrush = GetFindingBrush(RatingAcceptable)
             });
         }
 

@@ -344,5 +344,6 @@ public partial class HmacGeneratorView : UserControl, IToolView
             _debounceTimer.Stop();
             _debounceTimer = null;
         }
+        GC.SuppressFinalize(this);
     }
 }

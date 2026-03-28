@@ -103,8 +103,8 @@ public partial class HashGeneratorView : UserControl, IToolView
             var label = new TextBlock
             {
                 Text = $"{algo}:",
-                FontFamily = new System.Windows.Media.FontFamily("Consolas"),
-                FontSize = 12,
+                FontFamily = (System.Windows.Media.FontFamily)FindResource("FontFamilyMonospace"),
+                FontSize = (double)FindResource("FontSizeCaption"),
                 FontWeight = FontWeights.Bold,
                 Width = 72,
                 VerticalAlignment = VerticalAlignment.Center,
@@ -126,8 +126,8 @@ public partial class HashGeneratorView : UserControl, IToolView
 
             var hashBox = new System.Windows.Controls.TextBox
             {
-                FontSize = 12,
-                FontFamily = new System.Windows.Media.FontFamily("Consolas"),
+                FontSize = (double)FindResource("FontSizeCaption"),
+                FontFamily = (System.Windows.Media.FontFamily)FindResource("FontFamilyMonospace"),
                 Padding = new Thickness(6, 4, 6, 4),
                 IsReadOnly = true,
                 Background = Brushes.Transparent,
@@ -188,7 +188,7 @@ public partial class HashGeneratorView : UserControl, IToolView
 
             if (_hashOutputBoxes.TryGetValue(algo, out var box))
             {
-                System.Windows.Automation.AutomationProperties.SetName(box, $"{algo} hash");
+                System.Windows.Automation.AutomationProperties.SetName(box, string.Format(L("ToolHashAccessName"), algo));
             }
         }
 
@@ -519,5 +519,6 @@ public partial class HashGeneratorView : UserControl, IToolView
             _debounceTimer.Stop();
             _debounceTimer = null;
         }
+        GC.SuppressFinalize(this);
     }
 }
