@@ -37,6 +37,7 @@ public partial class UuidGeneratorView : UserControl, IToolView
     public UuidGeneratorView()
     {
         InitializeComponent();
+        TxtCount.KeyDown += (s, e) => { if (e.Key == System.Windows.Input.Key.Enter) OnGenerateBatchClick(s, e); };
     }
 
     /// <summary>

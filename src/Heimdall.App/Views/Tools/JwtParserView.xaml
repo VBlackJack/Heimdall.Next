@@ -33,7 +33,8 @@
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
-                        Width="24" Height="24" Margin="8,0,0,0"/>
+                        Width="24" Height="24" Margin="8,0,0,0"
+                        AutomationProperties.Name=""/>
                 <TextBlock x:Name="HeaderTitle" Text=""
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
@@ -43,7 +44,7 @@
 
         <!-- Content -->
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="{StaticResource SpacingLg}">
-            <StackPanel MaxWidth="700">
+            <StackPanel MaxWidth="{StaticResource ToolContentMaxWidth}">
 
                 <!-- Input -->
                 <TextBlock x:Name="LblInput" Text=""
@@ -60,6 +61,7 @@
                          BorderBrush="{DynamicResource BorderBrush}"
                          Tag="paste JWT token (header.payload.signature)"
                          TextChanged="OnInputTextChanged"
+                         AutomationProperties.Name=""
                          />
 
                 <!-- Expiration status -->
@@ -81,7 +83,8 @@
                 <DockPanel Margin="0,16,0,4">
                     <Button x:Name="BtnCopyHeader" DockPanel.Dock="Right" Click="OnCopyHeaderClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeCaption}" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                            Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeCaption}" Margin="8,0,0,0" VerticalAlignment="Center"
+                            AutomationProperties.Name=""/>
                     <TextBlock x:Name="LblHeader" Text=""
                                FontSize="{StaticResource FontSizeBody}" FontWeight="SemiBold"
                                Foreground="{DynamicResource JwtHeaderBrush}" VerticalAlignment="Center"/>
@@ -97,6 +100,7 @@
                              BorderThickness="0"
                              Background="Transparent"
                              Foreground="{DynamicResource JwtHeaderBrush}"
+                             AutomationProperties.Name=""
                              AutomationProperties.LiveSetting="Polite"/>
                 </Border>
 
@@ -104,7 +108,8 @@
                 <DockPanel Margin="0,4,0,4">
                     <Button x:Name="BtnCopyPayload" DockPanel.Dock="Right" Click="OnCopyPayloadClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeCaption}" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                            Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeCaption}" Margin="8,0,0,0" VerticalAlignment="Center"
+                            AutomationProperties.Name=""/>
                     <TextBlock x:Name="LblPayload" Text=""
                                FontSize="{StaticResource FontSizeBody}" FontWeight="SemiBold"
                                Foreground="{DynamicResource JwtPayloadBrush}" VerticalAlignment="Center"/>
@@ -120,6 +125,7 @@
                              BorderThickness="0"
                              Background="Transparent"
                              Foreground="{DynamicResource JwtPayloadBrush}"
+                             AutomationProperties.Name=""
                              AutomationProperties.LiveSetting="Polite"/>
                 </Border>
 
@@ -127,7 +133,8 @@
                 <DockPanel Margin="0,4,0,4">
                     <Button x:Name="BtnCopySignature" DockPanel.Dock="Right" Click="OnCopySignatureClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeCaption}" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                            Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeCaption}" Margin="8,0,0,0" VerticalAlignment="Center"
+                            AutomationProperties.Name=""/>
                     <TextBlock x:Name="LblSignature" Text=""
                                FontSize="{StaticResource FontSizeBody}" FontWeight="SemiBold"
                                Foreground="{DynamicResource JwtSignatureBrush}" VerticalAlignment="Center"/>
@@ -142,6 +149,7 @@
                              BorderThickness="0"
                              Background="Transparent"
                              Foreground="{DynamicResource JwtSignatureBrush}"
+                             AutomationProperties.Name=""
                              AutomationProperties.LiveSetting="Polite"/>
                 </Border>
 
@@ -174,14 +182,16 @@
                                         Content="" Click="OnVerifyClick"
                                         Style="{DynamicResource PrimaryButtonStyle}"
                                         Padding="16,6" Margin="8,0,0,0"
-                                        VerticalAlignment="Center"/>
+                                        VerticalAlignment="Center"
+                                        AutomationProperties.Name=""/>
                                 <TextBox x:Name="TxtSecret" Text=""
                                          FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                                          Padding="{StaticResource PaddingInput}"
                                          Background="{DynamicResource BackgroundBrush}"
                                          Foreground="{DynamicResource TextPrimaryBrush}"
                                          BorderBrush="{DynamicResource BorderBrush}"
-                                         VerticalAlignment="Center"/>
+                                         VerticalAlignment="Center"
+                                         AutomationProperties.Name=""/>
                             </DockPanel>
                             <TextBlock x:Name="TxtVerifyResult" Text=""
                                        Visibility="Collapsed"

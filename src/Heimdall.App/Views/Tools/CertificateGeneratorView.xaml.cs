@@ -65,6 +65,7 @@ public partial class CertificateGeneratorView : UserControl, IToolView
     public CertificateGeneratorView()
     {
         InitializeComponent();
+        CnInput.KeyDown += (s, e) => { if (e.Key == System.Windows.Input.Key.Enter) OnGenerateClick(s, e); };
     }
 
     /// <summary>
@@ -129,6 +130,10 @@ public partial class CertificateGeneratorView : UserControl, IToolView
         System.Windows.Automation.AutomationProperties.SetName(FingerprintOutput, L("ToolCertGenFingerprint"));
         System.Windows.Automation.AutomationProperties.SetName(CertOutput, L("ToolCertGenCertPem"));
         System.Windows.Automation.AutomationProperties.SetName(KeyOutput, L("ToolCertGenKeyPem"));
+        System.Windows.Automation.AutomationProperties.SetName(RadioSelfSigned, L("ToolCertGenTypeSelfSigned"));
+        System.Windows.Automation.AutomationProperties.SetName(RadioCaLeaf, L("ToolCertGenTypeCaLeaf"));
+        System.Windows.Automation.AutomationProperties.SetName(LeafCertOutput, L("ToolCertGenLeafCertPem"));
+        System.Windows.Automation.AutomationProperties.SetName(LeafKeyOutput, L("ToolCertGenLeafKeyPem"));
 
         BtnCopyFingerprint.ToolTip = L("ToolBtnCopyToClipboard");
         BtnCopyCert.ToolTip = L("ToolBtnCopyToClipboard");

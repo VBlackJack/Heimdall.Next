@@ -33,7 +33,8 @@
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
-                        Width="24" Height="24" Margin="8,0,0,0"/>
+                        Width="24" Height="24" Margin="8,0,0,0"
+                        AutomationProperties.Name=""/>
                 <TextBlock x:Name="HeaderTitle"
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
@@ -67,6 +68,7 @@
                         <ComboBox x:Name="AlgorithmCombo"
                                   SelectedIndex="1"
                                   MinWidth="200"
+                                  AutomationProperties.Name=""
 >
                             <ComboBoxItem x:Name="Rsa2048Item" Content="" Tag="RSA2048"/>
                             <ComboBoxItem x:Name="Rsa4096Item" Content="" Tag="RSA4096"/>
@@ -84,6 +86,7 @@
                                  Background="{DynamicResource CardBrush}"
                                  BorderBrush="{DynamicResource BorderBrush}"
                                  Padding="{StaticResource PaddingInput}"
+                                 AutomationProperties.Name=""
 />
                     </DockPanel>
 
@@ -97,6 +100,7 @@
                                      Background="{DynamicResource CardBrush}"
                                      BorderBrush="{DynamicResource BorderBrush}"
                                      Padding="{StaticResource PaddingInput}"
+                                     AutomationProperties.Name=""
 />
                     </DockPanel>
                     <TextBlock x:Name="PassphraseHint"
@@ -111,7 +115,8 @@
                     Click="OnGenerateClick"
                     Style="{DynamicResource PrimaryButtonStyle}"
                     Padding="16,6" Margin="0,0,0,16"
-                    HorizontalAlignment="Left"/>
+                    HorizontalAlignment="Left"
+                    AutomationProperties.Name=""/>
 
             <!-- Fingerprint -->
             <Border Grid.Row="2" Padding="{StaticResource SpacingSm}"
@@ -129,7 +134,8 @@
                             Click="OnCopyFingerprintClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonCopy}" Margin="8,0,0,0"
-                            VerticalAlignment="Center"/>
+                            VerticalAlignment="Center"
+                            AutomationProperties.Name=""/>
                     <TextBox x:Name="FingerprintOutput"
                              IsReadOnly="True"
                              FontFamily="Consolas" FontSize="{StaticResource FontSizeBody}"
@@ -137,6 +143,7 @@
                              Foreground="{DynamicResource TextPrimaryBrush}"
                              BorderThickness="0"
                              VerticalAlignment="Center"
+                             AutomationProperties.Name=""
 />
                 </DockPanel>
             </Border>
@@ -157,12 +164,14 @@
                                 Click="OnCopyPublicKeyClick"
                                 Style="{DynamicResource SecondaryButtonStyle}"
                                 Padding="{StaticResource PaddingButtonCopy}" Margin="8,0,0,0"
-                                VerticalAlignment="Center"/>
+                                VerticalAlignment="Center"
+                                AutomationProperties.Name=""/>
                         <Button x:Name="BtnSavePublicKey"
                                 Click="OnSavePublicKeyClick"
                                 Style="{DynamicResource SecondaryButtonStyle}"
                                 Padding="{StaticResource PaddingButtonCopy}" Margin="4,0,0,0"
-                                VerticalAlignment="Center"/>
+                                VerticalAlignment="Center"
+                                AutomationProperties.Name=""/>
                     </StackPanel>
                     <TextBox x:Name="PublicKeyOutput"
                              IsReadOnly="True"
@@ -173,6 +182,7 @@
                              Background="Transparent"
                              Foreground="{DynamicResource TextPrimaryBrush}"
                              BorderThickness="0"
+                             AutomationProperties.Name=""
 />
                 </DockPanel>
             </Border>
@@ -193,17 +203,20 @@
                                 Click="OnCopyPrivateKeyClick"
                                 Style="{DynamicResource SecondaryButtonStyle}"
                                 Padding="{StaticResource PaddingButtonCopy}" Margin="8,0,0,0"
-                                VerticalAlignment="Center"/>
+                                VerticalAlignment="Center"
+                                AutomationProperties.Name=""/>
                         <Button x:Name="BtnShowPrivateKey"
                                 Click="OnTogglePrivateKeyClick"
                                 Style="{DynamicResource SecondaryButtonStyle}"
                                 Padding="{StaticResource PaddingButtonCopy}" Margin="4,0,0,0"
-                                VerticalAlignment="Center"/>
+                                VerticalAlignment="Center"
+                                AutomationProperties.Name=""/>
                         <Button x:Name="BtnSavePrivateKey"
                                 Click="OnSavePrivateKeyClick"
                                 Style="{DynamicResource SecondaryButtonStyle}"
                                 Padding="{StaticResource PaddingButtonCopy}" Margin="4,0,0,0"
-                                VerticalAlignment="Center"/>
+                                VerticalAlignment="Center"
+                                AutomationProperties.Name=""/>
                     </StackPanel>
                     <TextBox x:Name="PrivateKeyOutput"
                              IsReadOnly="True"
@@ -214,6 +227,7 @@
                              Background="Transparent"
                              Foreground="{DynamicResource TextPrimaryBrush}"
                              BorderThickness="0"
+                             AutomationProperties.Name=""
 />
                 </DockPanel>
             </Border>

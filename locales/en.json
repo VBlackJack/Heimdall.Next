@@ -4176,6 +4176,7 @@
   "ToolFwEmptyState": "Enter destinations and ports to test firewall rules",
   "ToolFwErrorNoHosts": "Enter at least one destination host.",
   "ToolFwErrorNoPorts": "Enter at least one port.",
+  "ToolFwTestHostsPlaceholder": "One host per line\n192.168.1.1\nserver.local",
   "ToolFwColHost": "Host",
   "ToolHelpFWTEST": "Firewall Rule Tester\n\nTests TCP connectivity for a matrix of destinations and ports.\n\nUsage:\n1. Enter destination hosts (one per line)\n2. Enter ports to test (e.g. 22,80,443)\n3. Click Test\n\nResults are displayed as a color-coded heatmap:\n- Green: port is open (connection accepted)\n- Red: port is blocked (connection refused)\n- Gray: timeout (no response)\n\nPresets: Web (80,443), Remote (22,3389,5900), Common (22,80,443,3389,5900,8080)\n\nVia Tunnel:\nSelect an SSH gateway to test connectivity from the gateway's perspective. Useful for verifying firewall rules between network segments.",
   "PaletteToolTlsAudit": "TLS Auditor",
@@ -4482,5 +4483,7 @@
   "ToolDefCredA11yProgress": "Credential scan progress",
   "ToolTlsAuditA11yProgress": "TLS audit progress",
   "ToolBannerA11yProgress": "Banner grab progress",
-  "ToolAuditA11yProgress": "SecNumCloud audit progress"
+  "ToolAuditA11yProgress": "SecNumCloud audit progress",
+  "ToolCronJobA11yLoading": "Task loading",
+  "ToolServicesA11yLoading": "Service list loading"
 }

@@ -4175,6 +4175,7 @@
   "ToolFwEmptyState": "Saisissez des destinations et des ports pour tester les r\u00e8gles de pare-feu",
   "ToolFwErrorNoHosts": "Saisissez au moins un h\u00f4te de destination.",
   "ToolFwErrorNoPorts": "Saisissez au moins un port.",
+  "ToolFwTestHostsPlaceholder": "Un hote par ligne\n192.168.1.1\nserver.local",
   "ToolFwColHost": "H\u00f4te",
   "ToolHelpFWTEST": "Testeur de r\u00e8gles de pare-feu\n\nTeste la connectivit\u00e9 TCP pour une matrice de destinations et de ports.\n\nUtilisation\u00a0:\n1. Saisissez les h\u00f4tes de destination (un par ligne)\n2. Saisissez les ports \u00e0 tester (ex. 22,80,443)\n3. Cliquez sur Tester\n\nLes r\u00e9sultats sont affich\u00e9s sous forme de carte thermique color\u00e9e\u00a0:\n- Vert\u00a0: port ouvert (connexion accept\u00e9e)\n- Rouge\u00a0: port bloqu\u00e9 (connexion refus\u00e9e)\n- Gris\u00a0: timeout (pas de r\u00e9ponse)\n\nPr\u00e9r\u00e9glages\u00a0: Web (80,443), Distant (22,3389,5900), Courants (22,80,443,3389,5900,8080)\n\nVia tunnel\u00a0:\nS\u00e9lectionnez une passerelle SSH pour tester la connectivit\u00e9 depuis la perspective de la passerelle. Utile pour v\u00e9rifier les r\u00e8gles de pare-feu entre segments r\u00e9seau.",
   "PaletteToolTlsAudit": "Auditeur TLS",
@@ -4481,5 +4482,7 @@
   "ToolDefCredA11yProgress": "Progression du scan d\u2019identifiants",
   "ToolTlsAuditA11yProgress": "Progression de l\u2019audit TLS",
   "ToolBannerA11yProgress": "Progression de la capture de banni\u00e8res",
-  "ToolAuditA11yProgress": "Progression de l\u2019audit SecNumCloud"
+  "ToolAuditA11yProgress": "Progression de l\u2019audit SecNumCloud",
+  "ToolCronJobA11yLoading": "Chargement des t\u00e2ches",
+  "ToolServicesA11yLoading": "Chargement de la liste des services"
 }

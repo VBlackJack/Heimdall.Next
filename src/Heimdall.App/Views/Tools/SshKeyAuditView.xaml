@@ -115,7 +115,7 @@
                         <TextBlock x:Name="AlgorithmBadgeText"
                                    FontSize="{StaticResource FontSizeBody}"
                                    FontWeight="SemiBold"
-                                   Foreground="White"/>
+                                   Foreground="{DynamicResource TextOnAccentBrush}"/>
                     </Border>
                     <Border x:Name="RatingBadge"
                             CornerRadius="{StaticResource CornerRadiusSm}"
@@ -123,7 +123,7 @@
                         <TextBlock x:Name="RatingBadgeText"
                                    FontSize="{StaticResource FontSizeBody}"
                                    FontWeight="SemiBold"
-                                   Foreground="White"/>
+                                   Foreground="{DynamicResource TextOnAccentBrush}"/>
                     </Border>
                 </StackPanel>
 

@@ -34,22 +34,26 @@
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
-                        Width="24" Height="24" Margin="8,0,0,0"/>
+                        Width="24" Height="24" Margin="8,0,0,0"
+                        AutomationProperties.Name=""/>
                 <Button x:Name="BtnMarkdownHelp" DockPanel.Dock="Right"
                         Click="OnMarkdownHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="10,5" Margin="8,0,0,0"/>
+                        Padding="{StaticResource PaddingButtonCopy}" Margin="8,0,0,0"
+                        AutomationProperties.Name=""/>
                 <Button x:Name="BtnOpenFolder" DockPanel.Dock="Right"
                         Click="OnOpenFolderClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="10,5" Margin="8,0,0,0"/>
+                        Padding="{StaticResource PaddingButtonCopy}" Margin="8,0,0,0"
+                        AutomationProperties.Name=""/>
                 <Button x:Name="BtnToggleSidebar" DockPanel.Dock="Left"
                         Click="OnToggleSidebarClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="8,4" Margin="0,0,8,0"
+                        Padding="{StaticResource PaddingButtonToolbar}" Margin="0,0,8,0"
                         FontFamily="{StaticResource FontFamilyMonospace}"
                         FontSize="{StaticResource FontSizeBody}"
-                        Content="&#x2630;"/>
+                        Content="&#x2630;"
+                        AutomationProperties.Name=""/>
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <TextBlock x:Name="HeaderTitle"
                                FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
@@ -95,27 +99,31 @@
                             <Button x:Name="BtnCollapseAll"
                                     Click="OnCollapseAllClick"
                                     Style="{DynamicResource SecondaryButtonStyle}"
-                                    Padding="6,4" Margin="4,0,0,0"
+                                    Padding="{StaticResource PaddingButtonHelp}" Margin="4,0,0,0"
                                     FontSize="{StaticResource FontSizeCaption}"
-                                    Content="&#x25B2;"/>
+                                    Content="&#x25B2;"
+                                    AutomationProperties.Name=""/>
                             <Button x:Name="BtnExpandAll"
                                     Click="OnExpandAllClick"
                                     Style="{DynamicResource SecondaryButtonStyle}"
-                                    Padding="6,4" Margin="4,0,0,0"
+                                    Padding="{StaticResource PaddingButtonHelp}" Margin="4,0,0,0"
                                     FontSize="{StaticResource FontSizeCaption}"
-                                    Content="&#x25BC;"/>
+                                    Content="&#x25BC;"
+                                    AutomationProperties.Name=""/>
                             <Button x:Name="BtnNewNote"
                                     Click="OnNewNoteClick"
                                     Style="{DynamicResource SecondaryButtonStyle}"
-                                    Padding="10,4" Margin="4,0,0,0"
-                                    FontSize="{StaticResource FontSizeCaption}"/>
+                                    Padding="{StaticResource PaddingButtonCopy}" Margin="4,0,0,0"
+                                    FontSize="{StaticResource FontSizeCaption}"
+                                    AutomationProperties.Name=""/>
                         </StackPanel>
                         <TextBox x:Name="SearchTextBox"
                                  Padding="{StaticResource PaddingInput}"
                                  TextChanged="OnSearchTextChanged"
                                  Background="{DynamicResource SurfaceBrush}"
                                  Foreground="{DynamicResource TextPrimaryBrush}"
-                                 BorderBrush="{DynamicResource BorderBrush}"/>
+                                 BorderBrush="{DynamicResource BorderBrush}"
+                                 AutomationProperties.Name=""/>
                     </DockPanel>
 
                     <StackPanel Grid.Row="1" Margin="0,0,0,4">
@@ -129,7 +137,8 @@
                                       Width="160"
                                       HorizontalAlignment="Left"
                                       SelectedValuePath="Tag"
-                                      SelectionChanged="OnSortOrderSelectionChanged">
+                                      SelectionChanged="OnSortOrderSelectionChanged"
+                                      AutomationProperties.Name="">
                                 <ComboBoxItem x:Name="SortNewestFirstItem" Tag="DateDescending"/>
                                 <ComboBoxItem x:Name="SortOldestFirstItem" Tag="DateAscending"/>
                                 <ComboBoxItem x:Name="SortNameAscItem" Tag="NameAscending"/>
@@ -255,32 +264,38 @@
                             <Button x:Name="BtnNavBack" Content="&#x2190;"
                                     Click="OnNavBackClick"
                                     Style="{DynamicResource SecondaryButtonStyle}"
-                                    Padding="8,4" Margin="0,0,4,0"
+                                    Padding="{StaticResource PaddingButtonToolbar}" Margin="0,0,4,0"
                                     FontSize="{StaticResource FontSizeBody}"
-                                    IsEnabled="False"/>
+                                    IsEnabled="False"
+                                    AutomationProperties.Name=""/>
                             <Button x:Name="BtnNavForward" Content="&#x2192;"
                                     Click="OnNavForwardClick"
                                     Style="{DynamicResource SecondaryButtonStyle}"
-                                    Padding="8,4" Margin="0,0,8,0"
+                                    Padding="{StaticResource PaddingButtonToolbar}" Margin="0,0,8,0"
                                     FontSize="{StaticResource FontSizeBody}"
-                                    IsEnabled="False"/>
+                                    IsEnabled="False"
+                                    AutomationProperties.Name=""/>
                             <Button x:Name="BtnNoteActions"
                                     Click="OnNoteActionsClick"
                                     Style="{DynamicResource SecondaryButtonStyle}"
-                                    Padding="10,4" Margin="0,0,8,0"
-                                    IsEnabled="False"/>
+                                    Padding="{StaticResource PaddingButtonCopy}" Margin="0,0,8,0"
+                                    IsEnabled="False"
+                                    AutomationProperties.Name=""/>
                             <Button x:Name="BtnCopyConfluence"
                                     Click="OnCopyConfluenceClick"
                                     Style="{DynamicResource SecondaryButtonStyle}"
-                                    Padding="10,4" Margin="0,0,4,0"/>
+                                    Padding="{StaticResource PaddingButtonCopy}" Margin="0,0,4,0"
+                                    AutomationProperties.Name=""/>
                             <Button x:Name="BtnExportConfluence"
                                     Click="OnExportConfluenceClick"
                                     Style="{DynamicResource SecondaryButtonStyle}"
-                                    Padding="10,4" Margin="0,0,4,0"/>
+                                    Padding="{StaticResource PaddingButtonCopy}" Margin="0,0,4,0"
+                                    AutomationProperties.Name=""/>
                             <Button x:Name="BtnExportHtml"
                                     Click="OnExportHtmlClick"
                                     Style="{DynamicResource SecondaryButtonStyle}"
-                                    Padding="10,4"/>
+                                    Padding="{StaticResource PaddingButtonCopy}"
+                                    AutomationProperties.Name=""/>
                         </StackPanel>
                         <StackPanel>
                             <TextBlock x:Name="SelectedNoteTitleText"

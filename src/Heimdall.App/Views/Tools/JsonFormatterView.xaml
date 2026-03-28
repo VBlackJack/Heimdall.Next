@@ -34,7 +34,8 @@
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
-                        Width="24" Height="24" Margin="8,0,0,0"/>
+                        Width="24" Height="24" Margin="8,0,0,0"
+                        AutomationProperties.Name=""/>
                 <TextBlock x:Name="HeaderTitle" FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
                            VerticalAlignment="Center"/>
@@ -71,7 +72,7 @@
                      Padding="{StaticResource PaddingInput}"
                      Tag="paste JSON here"
                      TextChanged="OnInputTextChanged"
-                     />
+                     AutomationProperties.Name=""/>
         </Grid>
 
         <!-- Action buttons -->
@@ -79,10 +80,12 @@
                     HorizontalAlignment="Center" Margin="0,8">
             <Button x:Name="BtnPrettify" Click="OnPrettifyClick"
                     Style="{DynamicResource PrimaryButtonStyle}"
-                    Padding="16,6" Margin="0,0,8,0"/>
+                    Padding="16,6" Margin="0,0,8,0"
+                    AutomationProperties.Name=""/>
             <Button x:Name="BtnMinify" Click="OnMinifyClick"
                     Style="{DynamicResource SecondaryButtonStyle}"
-                    Padding="16,6" Margin="8,0,0,0"/>
+                    Padding="16,6" Margin="8,0,0,0"
+                    AutomationProperties.Name=""/>
         </StackPanel>
 
         <!-- Output text area -->
@@ -103,11 +106,11 @@
                      FontFamily="Consolas" FontSize="{StaticResource FontSizeBodyLarge}"
                      Background="{DynamicResource SurfaceBrush}"
                      Foreground="{DynamicResource TextPrimaryBrush}"
+                     AutomationProperties.Name=""
                      AutomationProperties.LiveSetting="Polite"
                      BorderBrush="{DynamicResource BorderBrush}"
                      BorderThickness="1"
-                     Padding="{StaticResource PaddingInput}"
-                     />
+                     Padding="{StaticResource PaddingInput}"/>
         </Grid>
 
         <!-- Status bar -->
@@ -115,7 +118,8 @@
             <Button x:Name="BtnCopyOutput" DockPanel.Dock="Right"
                     Click="OnCopyOutputClick"
                     Style="{DynamicResource SecondaryButtonStyle}"
-                    Padding="{StaticResource PaddingButtonCopy}"/>
+                    Padding="{StaticResource PaddingButtonCopy}"
+                    AutomationProperties.Name=""/>
             <TextBlock x:Name="StatusText"
                        Foreground="{DynamicResource TextSecondaryBrush}"
                        FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center"/>

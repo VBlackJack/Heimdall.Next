@@ -36,7 +36,8 @@
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
-                        Width="24" Height="24" Margin="8,0,0,0"/>
+                        Width="24" Height="24" Margin="8,0,0,0"
+                        AutomationProperties.Name=""/>
                 <TextBlock x:Name="HeaderTitle"
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
@@ -54,12 +55,14 @@
                               Checked="OnTailChecked"
                               Unchecked="OnTailUnchecked"
                               Padding="{StaticResource PaddingButtonCopy}" Margin="4,0,0,0"
-                              VerticalAlignment="Center"/>
+                              VerticalAlignment="Center"
+                              AutomationProperties.Name=""/>
                 <Button x:Name="BtnBrowse" DockPanel.Dock="Right"
                         Click="OnBrowseClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonCopy}" Margin="4,0,0,0"
-                        VerticalAlignment="Center"/>
+                        VerticalAlignment="Center"
+                        AutomationProperties.Name=""/>
                 <TextBox x:Name="FilePathInput"
                          Style="{DynamicResource WatermarkTextBoxStyle}"
                          Foreground="{DynamicResource TextPrimaryBrush}"
@@ -68,7 +71,8 @@
                          Padding="{StaticResource PaddingInput}"
                          VerticalAlignment="Center"
                          Tag="log file path"
-                         KeyDown="OnFilePathKeyDown"/>
+                         KeyDown="OnFilePathKeyDown"
+                         AutomationProperties.Name=""/>
             </DockPanel>
         </Border>
 
@@ -82,7 +86,8 @@
                           SelectedIndex="0"
                           MinWidth="120" Margin="8,0,0,0"
                           SelectionChanged="OnEncodingChanged"
-                          VerticalAlignment="Center">
+                          VerticalAlignment="Center"
+                          AutomationProperties.Name="">
                     <ComboBoxItem x:Name="EncUtf8Item" Content="" Tag="UTF-8"/>
                     <ComboBoxItem x:Name="EncAsciiItem" Content="" Tag="ASCII"/>
                     <ComboBoxItem x:Name="EncUtf16Item" Content="" Tag="UTF-16"/>
@@ -93,17 +98,20 @@
                            VerticalAlignment="Center" Margin="8,0,4,0"/>
                 <CheckBox x:Name="ChkCaseSensitive" DockPanel.Dock="Right"
                           Foreground="{DynamicResource TextPrimaryBrush}"
-                          VerticalAlignment="Center" Margin="8,0,0,0"/>
+                          VerticalAlignment="Center" Margin="8,0,0,0"
+                          AutomationProperties.Name=""/>
                 <Button x:Name="BtnClearFilter" DockPanel.Dock="Right"
                         Click="OnClearFilterClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonPreset}" Margin="4,0,0,0"
-                        VerticalAlignment="Center"/>
+                        VerticalAlignment="Center"
+                        AutomationProperties.Name=""/>
                 <Button x:Name="BtnApplyFilter" DockPanel.Dock="Right"
                         Click="OnApplyFilterClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonPreset}" Margin="4,0,0,0"
-                        VerticalAlignment="Center"/>
+                        VerticalAlignment="Center"
+                        AutomationProperties.Name=""/>
                 <TextBox x:Name="FilterInput"
                          Style="{DynamicResource WatermarkTextBoxStyle}"
                          Foreground="{DynamicResource TextPrimaryBrush}"
@@ -112,7 +120,8 @@
                          Padding="{StaticResource PaddingInput}"
                          VerticalAlignment="Center"
                          Tag="filter text"
-                         KeyDown="OnFilterKeyDown"/>
+                         KeyDown="OnFilterKeyDown"
+                         AutomationProperties.Name=""/>
             </DockPanel>
         </Border>
 
@@ -153,7 +162,8 @@
                 <Button x:Name="BtnCopyLog" DockPanel.Dock="Right" Click="OnCopyLogClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonCopy}" FontSize="{StaticResource FontSizeCaption}"
-                        Margin="8,0,0,0" VerticalAlignment="Center"/>
+                        Margin="8,0,0,0" VerticalAlignment="Center"
+                        AutomationProperties.Name=""/>
                 <TextBlock x:Name="TailStatusText" DockPanel.Dock="Right"
                            Foreground="{DynamicResource AccentBrush}"
                            FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center"

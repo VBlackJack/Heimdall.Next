@@ -45,7 +45,7 @@
 
         <!-- Content -->
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="{StaticResource SpacingLg}">
-            <StackPanel MaxWidth="700">
+            <StackPanel MaxWidth="{StaticResource ToolContentMaxWidth}">
 
                 <!-- Input Row -->
                 <TextBlock x:Name="LblHostname" Text=""

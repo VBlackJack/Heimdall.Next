@@ -251,7 +251,7 @@
                            VerticalAlignment="Center"/>
                 <Button x:Name="BtnClearKb" Content="" Click="OnClearKbClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="8,2" Margin="8,0,0,0" FontSize="{StaticResource FontSizeCaption}"
+                        Padding="{StaticResource PaddingButtonPreset}" Margin="8,0,0,0" FontSize="{StaticResource FontSizeCaption}"
                         VerticalAlignment="Center"
                         AutomationProperties.Name=""/>
             </DockPanel>

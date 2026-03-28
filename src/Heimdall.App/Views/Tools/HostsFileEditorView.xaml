@@ -35,16 +35,19 @@
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
-                        Width="24" Height="24" Margin="8,0,0,0"/>
+                        Width="24" Height="24" Margin="8,0,0,0"
+                        AutomationProperties.Name=""/>
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
                     <Button x:Name="BtnReload" Click="OnReloadClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonCopy}" Margin="0,0,6,0" FontSize="{StaticResource FontSizeBody}"
-                            VerticalAlignment="Center"/>
+                            VerticalAlignment="Center"
+                            AutomationProperties.Name=""/>
                     <Button x:Name="BtnSave" Click="OnSaveClick"
                             Style="{DynamicResource PrimaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonCopy}" FontSize="{StaticResource FontSizeBody}"
-                            VerticalAlignment="Center"/>
+                            VerticalAlignment="Center"
+                            AutomationProperties.Name=""/>
                 </StackPanel>
                 <TextBlock x:Name="HeaderTitle" Text=""
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
@@ -55,6 +58,7 @@
 
         <!-- DataGrid -->
         <DataGrid x:Name="HostsGrid" Grid.Row="1"
+                  AutomationProperties.Name=""
                   AutoGenerateColumns="False"
                   CanUserAddRows="False"
                   CanUserDeleteRows="False"
@@ -86,10 +90,12 @@
         <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="{StaticResource SpacingMd}">
             <Button x:Name="BtnAddEntry" Click="OnAddEntryClick"
                     Style="{DynamicResource SecondaryButtonStyle}"
-                    Padding="{StaticResource PaddingButtonCopy}" Margin="0,0,6,0" FontSize="{StaticResource FontSizeBody}"/>
+                    Padding="{StaticResource PaddingButtonCopy}" Margin="0,0,6,0" FontSize="{StaticResource FontSizeBody}"
+                    AutomationProperties.Name=""/>
             <Button x:Name="BtnDeleteSelected" Click="OnDeleteSelectedClick"
                     Style="{DynamicResource SecondaryButtonStyle}"
-                    Padding="{StaticResource PaddingButtonCopy}" FontSize="{StaticResource FontSizeBody}"/>
+                    Padding="{StaticResource PaddingButtonCopy}" FontSize="{StaticResource FontSizeBody}"
+                    AutomationProperties.Name=""/>
         </StackPanel>
 
         <!-- Status bar -->

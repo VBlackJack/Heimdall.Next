@@ -47,6 +47,15 @@ public partial class SshConfigGeneratorView : UserControl, IToolView
         _context = context;
         ApplyLocalization();
 
+        // Enter key handlers for single-line inputs
+        TxtHostAlias.KeyDown += (s, e) => { if (e.Key == System.Windows.Input.Key.Enter) OnGenerateClick(s, e); };
+        TxtHostName.KeyDown += (s, e) => { if (e.Key == System.Windows.Input.Key.Enter) OnGenerateClick(s, e); };
+        TxtUser.KeyDown += (s, e) => { if (e.Key == System.Windows.Input.Key.Enter) OnGenerateClick(s, e); };
+        TxtPort.KeyDown += (s, e) => { if (e.Key == System.Windows.Input.Key.Enter) OnGenerateClick(s, e); };
+        TxtIdentityFile.KeyDown += (s, e) => { if (e.Key == System.Windows.Input.Key.Enter) OnGenerateClick(s, e); };
+        TxtProxyJump.KeyDown += (s, e) => { if (e.Key == System.Windows.Input.Key.Enter) OnGenerateClick(s, e); };
+        TxtServerAliveInterval.KeyDown += (s, e) => { if (e.Key == System.Windows.Input.Key.Enter) OnGenerateClick(s, e); };
+
         // Pre-fill from context if available
         if (!string.IsNullOrWhiteSpace(context?.TargetHost))
         {

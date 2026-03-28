@@ -33,7 +33,8 @@
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
-                        Width="24" Height="24" Margin="8,0,0,0"/>
+                        Width="24" Height="24" Margin="8,0,0,0"
+                        AutomationProperties.Name=""/>
                 <TextBlock x:Name="HeaderTitle" Text=""
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
@@ -43,7 +44,7 @@
 
         <!-- Content -->
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="{StaticResource SpacingLg}">
-            <StackPanel MaxWidth="700">
+            <StackPanel MaxWidth="{StaticResource ToolContentMaxWidth}">
 
                 <!-- Input -->
                 <TextBlock x:Name="LblInput" Text=""
@@ -59,7 +60,8 @@
                          Foreground="{DynamicResource TextPrimaryBrush}"
                          BorderBrush="{DynamicResource BorderBrush}"
                          Tag="text to convert"
-                         TextChanged="OnInputChanged"/>
+                         TextChanged="OnInputChanged"
+                         AutomationProperties.Name=""/>
 
                 <!-- Conversion buttons -->
                 <TextBlock x:Name="LblConversions" Text=""
@@ -68,28 +70,36 @@
                 <WrapPanel Margin="0,0,0,16">
                     <Button x:Name="BtnCamelCase" Content="" Click="OnCamelCaseClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="{StaticResource PaddingButtonPrimary}" Margin="0,0,6,6"/>
+                            Padding="{StaticResource PaddingButtonPrimary}" Margin="0,0,6,6"
+                            AutomationProperties.Name=""/>
                     <Button x:Name="BtnPascalCase" Content="" Click="OnPascalCaseClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="{StaticResource PaddingButtonPrimary}" Margin="0,0,6,6"/>
+                            Padding="{StaticResource PaddingButtonPrimary}" Margin="0,0,6,6"
+                            AutomationProperties.Name=""/>
                     <Button x:Name="BtnSnakeCase" Content="" Click="OnSnakeCaseClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="{StaticResource PaddingButtonPrimary}" Margin="0,0,6,6"/>
+                            Padding="{StaticResource PaddingButtonPrimary}" Margin="0,0,6,6"
+                            AutomationProperties.Name=""/>
                     <Button x:Name="BtnKebabCase" Content="" Click="OnKebabCaseClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="{StaticResource PaddingButtonPrimary}" Margin="0,0,6,6"/>
+                            Padding="{StaticResource PaddingButtonPrimary}" Margin="0,0,6,6"
+                            AutomationProperties.Name=""/>
                     <Button x:Name="BtnUpperCase" Content="" Click="OnUpperCaseClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="{StaticResource PaddingButtonPrimary}" Margin="0,0,6,6"/>
+                            Padding="{StaticResource PaddingButtonPrimary}" Margin="0,0,6,6"
+                            AutomationProperties.Name=""/>
                     <Button x:Name="BtnLowerCase" Content="" Click="OnLowerCaseClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="{StaticResource PaddingButtonPrimary}" Margin="0,0,6,6"/>
+                            Padding="{StaticResource PaddingButtonPrimary}" Margin="0,0,6,6"
+                            AutomationProperties.Name=""/>
                     <Button x:Name="BtnTitleCase" Content="" Click="OnTitleCaseClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="{StaticResource PaddingButtonPrimary}" Margin="0,0,6,6"/>
+                            Padding="{StaticResource PaddingButtonPrimary}" Margin="0,0,6,6"
+                            AutomationProperties.Name=""/>
                     <Button x:Name="BtnConstantCase" Content="" Click="OnConstantCaseClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="{StaticResource PaddingButtonPrimary}" Margin="0,0,6,6"/>
+                            Padding="{StaticResource PaddingButtonPrimary}" Margin="0,0,6,6"
+                            AutomationProperties.Name=""/>
                 </WrapPanel>
 
                 <!-- Output -->
@@ -101,7 +111,8 @@
                             Content="" Click="OnCopyClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonPrimary}" Margin="8,0,0,0"
-                            VerticalAlignment="Top"/>
+                            VerticalAlignment="Top"
+                            AutomationProperties.Name=""/>
                     <TextBox x:Name="TxtOutput" Text=""
                              FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
                              Padding="{StaticResource PaddingInput}" MinHeight="100"
@@ -112,6 +123,7 @@
                              Background="{DynamicResource CardBrush}"
                              Foreground="{DynamicResource AccentBrush}"
                              BorderBrush="{DynamicResource BorderBrush}"
+                             AutomationProperties.Name=""
                              AutomationProperties.LiveSetting="Polite"/>
                 </DockPanel>
 

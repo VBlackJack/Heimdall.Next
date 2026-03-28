@@ -34,7 +34,8 @@
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
-                        Width="24" Height="24" Margin="8,0,0,0"/>
+                        Width="24" Height="24" Margin="8,0,0,0"
+                        AutomationProperties.Name=""/>
                 <TextBlock x:Name="HeaderTitle" Text=""
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
@@ -44,7 +45,7 @@
 
         <!-- Content -->
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="{StaticResource SpacingLg}">
-            <StackPanel MaxWidth="700">
+            <StackPanel MaxWidth="{StaticResource ToolContentMaxWidth}">
 
                 <!-- Input Row -->
                 <TextBlock x:Name="LblDomain" Text=""
@@ -55,7 +56,8 @@
                             Content="" Click="OnLookupClick"
                             Style="{DynamicResource PrimaryButtonStyle}"
                             Padding="16,6" Margin="8,0,0,0"
-                            VerticalAlignment="Center"/>
+                            VerticalAlignment="Center"
+                            AutomationProperties.Name=""/>
                     <TextBox x:Name="TxtDomain" Text=""
                              Style="{StaticResource WatermarkTextBoxStyle}"
                              Tag="example.com or IP address"
@@ -64,7 +66,8 @@
                              Background="{DynamicResource CardBrush}"
                              Foreground="{DynamicResource TextPrimaryBrush}"
                              BorderBrush="{DynamicResource BorderBrush}"
-                             VerticalAlignment="Center"/>
+                             VerticalAlignment="Center"
+                             AutomationProperties.Name=""/>
                 </DockPanel>
 
                 <!-- Error message -->
@@ -101,7 +104,8 @@
                         <DockPanel Margin="0,0,0,8">
                             <Button x:Name="BtnCopyResults" DockPanel.Dock="Right" Click="OnCopyResultsClick"
                                     Style="{DynamicResource SecondaryButtonStyle}"
-                                    Padding="{StaticResource PaddingButtonPreset}" FontSize="{StaticResource FontSizeCaption}" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                                    Padding="{StaticResource PaddingButtonPreset}" FontSize="{StaticResource FontSizeCaption}" Margin="8,0,0,0" VerticalAlignment="Center"
+                                    AutomationProperties.Name=""/>
                             <TextBlock x:Name="TxtResultHeader" Text=""
                                        FontSize="{StaticResource FontSizeBodyLarge}" FontWeight="SemiBold"
                                        Foreground="{DynamicResource AccentBrush}"
@@ -117,6 +121,7 @@
                                  Background="Transparent"
                                  BorderThickness="0"
                                  MaxHeight="500"
+                                 AutomationProperties.Name=""
                                  AutomationProperties.LiveSetting="Polite"/>
                     </StackPanel>
                 </Border>

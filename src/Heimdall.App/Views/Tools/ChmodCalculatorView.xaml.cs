@@ -110,6 +110,12 @@ public partial class ChmodCalculatorView : UserControl, IToolView
 
         BtnHelp.ToolTip = L("ToolHelpTooltip");
         System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
+
+        System.Windows.Automation.AutomationProperties.SetName(BtnPreset644, "644");
+        System.Windows.Automation.AutomationProperties.SetName(BtnPreset755, "755");
+        System.Windows.Automation.AutomationProperties.SetName(BtnPreset600, "600");
+        System.Windows.Automation.AutomationProperties.SetName(BtnPreset700, "700");
+        System.Windows.Automation.AutomationProperties.SetName(BtnPreset777, "777");
     }
 
     private void OnPermissionChanged(object sender, RoutedEventArgs e)

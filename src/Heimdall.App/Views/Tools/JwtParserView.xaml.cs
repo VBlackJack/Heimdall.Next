@@ -105,6 +105,9 @@ public partial class JwtParserView : UserControl, IToolView
         AutomationProperties.SetName(TxtSignature, L("ToolJwtSignatureLabel"));
         AutomationProperties.SetName(TxtSecret, L("ToolJwtSecretLabel"));
         AutomationProperties.SetName(BtnVerify, L("ToolJwtBtnVerify"));
+        AutomationProperties.SetName(BtnCopyHeader, L("ToolJwtBtnCopyHeader"));
+        AutomationProperties.SetName(BtnCopyPayload, L("ToolJwtBtnCopyPayload"));
+        AutomationProperties.SetName(BtnCopySignature, L("ToolJwtBtnCopySignature"));
 
         BtnHelp.ToolTip = L("ToolHelpTooltip");
         AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
