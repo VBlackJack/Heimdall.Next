@@ -25,6 +25,7 @@ using Heimdall.Core.Configuration;
 using Heimdall.Core.Discovery;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Models;
+using Heimdall.Core.Security;
 
 namespace Heimdall.App.Views.Tools;
 
@@ -119,6 +120,19 @@ public partial class SmbEnumeratorView : UserControl, IToolView
 
         BtnHelp.ToolTip = L("ToolHelpTooltip");
         System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
+        System.Windows.Automation.AutomationProperties.SetName(LoadingBar, L("ToolSmbA11yLoading"));
+        System.Windows.Automation.AutomationProperties.SetName(ValComputerName, L("ToolSmbComputerName"));
+        System.Windows.Automation.AutomationProperties.SetName(ValDomain, L("ToolSmbDomain"));
+        System.Windows.Automation.AutomationProperties.SetName(ValDnsName, L("ToolSmbDnsName"));
+        System.Windows.Automation.AutomationProperties.SetName(ValDnsDomain, L("ToolSmbDnsDomain"));
+        System.Windows.Automation.AutomationProperties.SetName(ValForest, L("ToolSmbForest"));
+        System.Windows.Automation.AutomationProperties.SetName(ValOsBuild, L("ToolSmbOsBuild"));
+        System.Windows.Automation.AutomationProperties.SetName(ValMac, L("ToolSmbMac"));
+        System.Windows.Automation.AutomationProperties.SetName(ValDialect, L("ToolSmbDialect"));
+        System.Windows.Automation.AutomationProperties.SetName(ValSigning, L("ToolSmbSigning"));
+        System.Windows.Automation.AutomationProperties.SetName(ValServerGuid, L("ToolSmbServerGuid"));
+        System.Windows.Automation.AutomationProperties.SetName(ValSystemTime, L("ToolSmbSystemTime"));
+        System.Windows.Automation.AutomationProperties.SetName(ValBootTime, L("ToolSmbBootTime"));
 
         TxtHost.Tag = L("ToolWatermarkHostnameOrIp");
         TxtEmptyState.Text = L("ToolSmbEmptyState");
@@ -156,6 +170,13 @@ public partial class SmbEnumeratorView : UserControl, IToolView
         if (string.IsNullOrWhiteSpace(host))
         {
             TxtError.Text = L("ToolValidationHostRequired");
+            TxtError.Visibility = Visibility.Visible;
+            return;
+        }
+
+        if (!InputValidator.Validate(host, "Address"))
+        {
+            TxtError.Text = L("ErrorInvalidHost");
             TxtError.Visibility = Visibility.Visible;
             return;
         }
@@ -299,7 +320,7 @@ public partial class SmbEnumeratorView : UserControl, IToolView
             // Try smbclient first for basic enumeration
             var smbclientResult = await Task.Run(() =>
             {
-                using var cmd = tunnelClient.CreateCommand($"smbclient -N -L //{host} 2>&1 | head -30");
+                using var cmd = tunnelClient.CreateCommand($"smbclient -N -L //{InputValidator.EscapeShellArg(host)} 2>&1 | head -30");
                 cmd.CommandTimeout = TimeSpan.FromSeconds(TunnelCommandTimeoutSeconds);
                 cmd.Execute();
                 return cmd.Result?.Trim();
@@ -309,7 +330,7 @@ public partial class SmbEnumeratorView : UserControl, IToolView
             var rpcResult = await Task.Run(() =>
             {
                 using var cmd = tunnelClient.CreateCommand(
-                    $"rpcclient -U \"\" -N {host} -c \"srvinfo\" 2>&1 | head -10");
+                    $"rpcclient -U \"\" -N {InputValidator.EscapeShellArg(host)} -c \"srvinfo\" 2>&1 | head -10");
                 cmd.CommandTimeout = TimeSpan.FromSeconds(TunnelCommandTimeoutSeconds);
                 cmd.Execute();
                 return cmd.Result?.Trim();
@@ -319,7 +340,7 @@ public partial class SmbEnumeratorView : UserControl, IToolView
             var nbResult = await Task.Run(() =>
             {
                 using var cmd = tunnelClient.CreateCommand(
-                    $"nmblookup -A {host} 2>&1 | head -20");
+                    $"nmblookup -A {InputValidator.EscapeShellArg(host)} 2>&1 | head -20");
                 cmd.CommandTimeout = TimeSpan.FromSeconds(TunnelCommandTimeoutSeconds);
                 cmd.Execute();
                 return cmd.Result?.Trim();
@@ -497,11 +518,11 @@ public partial class SmbEnumeratorView : UserControl, IToolView
 
         // Build a basic report
         var sb = new StringBuilder();
-        sb.AppendLine($"Computer Name : {ValComputerName.Text}");
-        sb.AppendLine($"Domain        : {ValDomain.Text}");
-        sb.AppendLine($"OS Build      : {ValOsBuild.Text}");
-        sb.AppendLine($"MAC Address   : {ValMac.Text}");
-        sb.AppendLine($"SMB Server    : {ValDialect.Text}");
+        sb.AppendLine($"{L("ToolSmbComputerName"),-14}: {ValComputerName.Text}");
+        sb.AppendLine($"{L("ToolSmbDomain"),-14}: {ValDomain.Text}");
+        sb.AppendLine($"{L("ToolSmbOsBuild"),-14}: {ValOsBuild.Text}");
+        sb.AppendLine($"{L("ToolSmbMac"),-14}: {ValMac.Text}");
+        sb.AppendLine($"{L("ToolSmbDialect"),-14}: {ValDialect.Text}");
         _lastReport = sb.ToString();
 
         EmptyStatePanel.Visibility = Visibility.Collapsed;
@@ -624,30 +645,30 @@ public partial class SmbEnumeratorView : UserControl, IToolView
         var na = L("ToolSmbNotAvailable");
         var sb = new StringBuilder();
 
-        sb.AppendLine("=== Host Identity ===");
-        sb.AppendLine($"Computer Name : {ntlm?.NetBiosComputerName ?? nbName ?? na}");
-        sb.AppendLine($"Domain        : {ntlm?.NetBiosDomainName ?? nbDomain ?? na}");
-        sb.AppendLine($"DNS Name      : {ntlm?.DnsComputerName ?? na}");
-        sb.AppendLine($"DNS Domain    : {ntlm?.DnsDomainName ?? na}");
-        sb.AppendLine($"Forest        : {ntlm?.DnsForestName ?? na}");
-        sb.AppendLine($"OS Build      : {ntlm?.OsBuild ?? na}");
-        sb.AppendLine($"MAC Address   : {nbMac ?? na}");
+        sb.AppendLine(L("ToolSmbReportIdentity"));
+        sb.AppendLine($"{L("ToolSmbComputerName"),-14}: {ntlm?.NetBiosComputerName ?? nbName ?? na}");
+        sb.AppendLine($"{L("ToolSmbDomain"),-14}: {ntlm?.NetBiosDomainName ?? nbDomain ?? na}");
+        sb.AppendLine($"{L("ToolSmbDnsName"),-14}: {ntlm?.DnsComputerName ?? na}");
+        sb.AppendLine($"{L("ToolSmbDnsDomain"),-14}: {ntlm?.DnsDomainName ?? na}");
+        sb.AppendLine($"{L("ToolSmbForest"),-14}: {ntlm?.DnsForestName ?? na}");
+        sb.AppendLine($"{L("ToolSmbOsBuild"),-14}: {ntlm?.OsBuild ?? na}");
+        sb.AppendLine($"{L("ToolSmbMac"),-14}: {nbMac ?? na}");
 
         if (smb is not null)
         {
             sb.AppendLine();
-            sb.AppendLine("=== SMB Protocol ===");
-            sb.AppendLine($"SMB Dialect   : {FormatDialect(smb.DialectRevision)}");
-            sb.AppendLine($"Signing Req.  : {(smb.SigningRequired ? L("ToolSmbYes") : L("ToolSmbNo"))}");
-            sb.AppendLine($"Server GUID   : {smb.ServerGuid ?? na}");
-            sb.AppendLine($"System Time   : {smb.SystemTime?.ToString("yyyy-MM-dd HH:mm:ss UTC") ?? na}");
-            sb.AppendLine($"Boot Time     : {smb.ServerStartTime?.ToString("yyyy-MM-dd HH:mm:ss UTC") ?? na}");
+            sb.AppendLine(L("ToolSmbReportProtocol"));
+            sb.AppendLine($"{L("ToolSmbDialect"),-14}: {FormatDialect(smb.DialectRevision)}");
+            sb.AppendLine($"{L("ToolSmbSigning"),-14}: {(smb.SigningRequired ? L("ToolSmbYes") : L("ToolSmbNo"))}");
+            sb.AppendLine($"{L("ToolSmbServerGuid"),-14}: {smb.ServerGuid ?? na}");
+            sb.AppendLine($"{L("ToolSmbSystemTime"),-14}: {smb.SystemTime?.ToString("yyyy-MM-dd HH:mm:ss UTC") ?? na}");
+            sb.AppendLine($"{L("ToolSmbBootTime"),-14}: {smb.ServerStartTime?.ToString("yyyy-MM-dd HH:mm:ss UTC") ?? na}");
         }
 
         if (smb is not null)
         {
             sb.AppendLine();
-            sb.AppendLine("=== Security Findings ===");
+            sb.AppendLine(L("ToolSmbReportFindings"));
             sb.AppendLine(smb.SigningRequired
                 ? $"[OK]   {L("ToolSmbSigningEnabled")}"
                 : $"[WARN] {L("ToolSmbSigningDisabled")}");

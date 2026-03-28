@@ -114,6 +114,7 @@ public partial class DnsSecurityView : UserControl, IToolView
 
         BtnHelp.ToolTip = L("ToolHelpTooltip");
         AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
+        AutomationProperties.SetName(LoadingBar, L("ToolDnsSecA11yLoading"));
 
         TxtDomain.Tag = L("ToolWatermarkExampleDomain");
     }
@@ -183,12 +184,19 @@ public partial class DnsSecurityView : UserControl, IToolView
             return;
         }
 
-        // Strip protocol prefix if user pasted a URL
+        // Strip protocol prefix if user pasted a URL (before validation)
         if (domain.Contains("://"))
         {
             domain = domain[(domain.IndexOf("://", StringComparison.Ordinal) + 3)..];
         }
         domain = domain.TrimEnd('/').Split('/')[0].Split(':')[0];
+
+        if (!InputValidator.ValidateDomain(domain))
+        {
+            TxtError.Text = L("ErrorInvalidDomain");
+            TxtError.Visibility = Visibility.Visible;
+            return;
+        }
 
         _cts?.Cancel();
         _cts?.Dispose();
@@ -290,16 +298,26 @@ public partial class DnsSecurityView : UserControl, IToolView
         using var process = new Process { StartInfo = psi };
         process.Start();
 
-        var outputTask = process.StandardOutput.ReadToEndAsync(ct);
-        var errorTask = process.StandardError.ReadToEndAsync(ct);
+        try
+        {
+            var outputTask = process.StandardOutput.ReadToEndAsync(ct);
+            var errorTask = process.StandardError.ReadToEndAsync(ct);
 
-        await process.WaitForExitAsync(ct);
+            await process.WaitForExitAsync(ct);
 
-        var output = await outputTask;
-        var error = await errorTask;
+            var output = await outputTask;
+            var error = await errorTask;
 
-        // Combine output and error: nslookup sometimes writes to stderr
-        return string.IsNullOrWhiteSpace(output) ? error : output;
+            // Combine output and error: nslookup sometimes writes to stderr
+            return string.IsNullOrWhiteSpace(output) ? error : output;
+        }
+        finally
+        {
+            if (!process.HasExited)
+            {
+                try { process.Kill(); } catch { }
+            }
+        }
     }
 
     /// <summary>
@@ -314,7 +332,7 @@ public partial class DnsSecurityView : UserControl, IToolView
             try
             {
                 // Try dig first (more structured output)
-                var digCommand = $"dig {type} {domain} +short 2>/dev/null";
+                var digCommand = $"dig {type} {InputValidator.EscapeShellArg(domain)} +short 2>/dev/null";
                 using var digCmd = client.CreateCommand(digCommand);
                 digCmd.CommandTimeout = TimeSpan.FromSeconds(8);
                 var digResult = digCmd.Execute()?.Trim();
@@ -325,7 +343,7 @@ public partial class DnsSecurityView : UserControl, IToolView
                 }
 
                 // Fall back to nslookup
-                using var nsCmd = client.CreateCommand($"nslookup -type={type} {domain} 2>&1");
+                using var nsCmd = client.CreateCommand($"nslookup -type={type} {InputValidator.EscapeShellArg(domain)} 2>&1");
                 nsCmd.CommandTimeout = TimeSpan.FromSeconds(8);
                 return nsCmd.Execute()?.Trim() ?? string.Empty;
             }
@@ -358,6 +376,7 @@ public partial class DnsSecurityView : UserControl, IToolView
 
             return MakeResult(name, "pass", spfRecord, L("ToolDnsSecSpfGood"));
         }
+        catch (OperationCanceledException) { throw; }
         catch (Exception ex)
         {
             return MakeResult(name, "fail", ex.Message, string.Empty);
@@ -378,12 +397,13 @@ public partial class DnsSecurityView : UserControl, IToolView
                 if (!string.IsNullOrEmpty(dkimRecord))
                 {
                     return MakeResult(name, "pass", $"[{selector}] {dkimRecord}",
-                        string.Format(L("ToolDnsSecDmarcEnforced"), selector));
+                        string.Format(L("ToolDnsSecDkimFound"), selector));
                 }
             }
 
             return MakeResult(name, "fail", L("ToolDnsSecNoRecord"), L("ToolDnsSecNoDkim"));
         }
+        catch (OperationCanceledException) { throw; }
         catch (Exception ex)
         {
             return MakeResult(name, "fail", ex.Message, string.Empty);
@@ -414,6 +434,7 @@ public partial class DnsSecurityView : UserControl, IToolView
             return MakeResult(name, "pass", dmarcRecord,
                 string.Format(L("ToolDnsSecDmarcEnforced"), policy));
         }
+        catch (OperationCanceledException) { throw; }
         catch (Exception ex)
         {
             return MakeResult(name, "fail", ex.Message, string.Empty);
@@ -437,6 +458,7 @@ public partial class DnsSecurityView : UserControl, IToolView
             return MakeResult(name, "pass", issuers,
                 string.Format(L("ToolDnsSecCaaPresent"), issuers));
         }
+        catch (OperationCanceledException) { throw; }
         catch (Exception ex)
         {
             return MakeResult(name, "fail", ex.Message, string.Empty);
@@ -465,6 +487,7 @@ public partial class DnsSecurityView : UserControl, IToolView
 
             return MakeResult(name, "pass", raw.Trim(), L("ToolDnsSecDnssecPresent"));
         }
+        catch (OperationCanceledException) { throw; }
         catch (Exception ex)
         {
             return MakeResult(name, "fail", ex.Message, string.Empty);
@@ -488,6 +511,7 @@ public partial class DnsSecurityView : UserControl, IToolView
             return MakeResult(name, "pass", serverList,
                 string.Format(L("ToolDnsSecMxServers"), serverList));
         }
+        catch (OperationCanceledException) { throw; }
         catch (Exception ex)
         {
             return MakeResult(name, "fail", ex.Message, string.Empty);
@@ -714,12 +738,12 @@ public partial class DnsSecurityView : UserControl, IToolView
         };
     }
 
-    private static string BuildTextReport(
+    private string BuildTextReport(
         string domain, int passCount, int total, List<DnsCheckResult> results)
     {
         var sb = new StringBuilder();
-        sb.AppendLine($"DNS Security Report: {domain}");
-        sb.AppendLine($"Score: {passCount} / {total} checks passed");
+        sb.AppendLine(string.Format(L("ToolDnsSecReportTitle"), domain));
+        sb.AppendLine(string.Format(L("ToolDnsSecReportScore"), passCount, total));
         sb.AppendLine(new string('=', 50));
         sb.AppendLine();
 
@@ -728,11 +752,11 @@ public partial class DnsSecurityView : UserControl, IToolView
             sb.AppendLine($"{r.StatusIcon} {r.Name}");
             if (r.ValueVisibility == Visibility.Visible && !string.IsNullOrEmpty(r.Value))
             {
-                sb.AppendLine($"  Record: {r.Value}");
+                sb.AppendLine($"  {L("ToolDnsSecReportRecord")}: {r.Value}");
             }
             if (r.DetailVisibility == Visibility.Visible && !string.IsNullOrEmpty(r.Detail))
             {
-                sb.AppendLine($"  Detail: {r.Detail}");
+                sb.AppendLine($"  {L("ToolDnsSecReportDetail")}: {r.Detail}");
             }
             sb.AppendLine();
         }

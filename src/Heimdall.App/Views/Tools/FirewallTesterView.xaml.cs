@@ -116,6 +116,8 @@ public partial class FirewallTesterView : UserControl, IToolView
         BtnCopy.ToolTip = L("ToolBtnCopyToClipboard");
         BtnHelp.ToolTip = L("ToolHelpTooltip");
         System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
+        System.Windows.Automation.AutomationProperties.SetName(TestProgress, L("ToolFwA11yProgress"));
+        System.Windows.Automation.AutomationProperties.SetName(HeatmapGrid, L("ToolFwTitle"));
     }
 
     private void OnHelpClick(object sender, RoutedEventArgs e)
@@ -144,6 +146,14 @@ public partial class FirewallTesterView : UserControl, IToolView
         if (hosts.Count == 0)
         {
             TxtError.Text = L("ToolFwErrorNoHosts");
+            TxtError.Visibility = Visibility.Visible;
+            return;
+        }
+
+        hosts = hosts.Where(h => InputValidator.Validate(h, "Address")).ToList();
+        if (hosts.Count == 0)
+        {
+            TxtError.Text = L("ErrorInvalidHost");
             TxtError.Visibility = Visibility.Visible;
             return;
         }
@@ -217,60 +227,65 @@ public partial class FirewallTesterView : UserControl, IToolView
         var semaphore = new SemaphoreSlim(tunnelClient is not null ? 10 : MaxConcurrent);
         var ct = _cts.Token;
 
-        var tasks = new List<Task>();
-        foreach (var host in hosts)
-        {
-            foreach (var port in ports)
-            {
-                tasks.Add(Task.Run(async () =>
-                {
-                    await semaphore.WaitAsync(ct);
-                    try
-                    {
-                        ct.ThrowIfCancellationRequested();
-                        var (status, responseMs) = tunnelClient is not null
-                            ? await ProbeViaTunnelAsync(tunnelClient, host, port, ct)
-                            : await ProbeDirectAsync(host, port, ct);
-
-                        await Dispatcher.InvokeAsync(() =>
-                        {
-                            _results.Add(new FwTestResult
-                            {
-                                Host = host,
-                                Port = port,
-                                Status = status,
-                                ResponseTimeMs = responseMs,
-                            });
-
-                            var done = Interlocked.Increment(ref completed);
-                            TestProgress.Value = done;
-                            var percent = (int)(done * 100.0 / total);
-                            TxtProgressPercent.Text = $"{percent}%";
-                            TxtProgressCount.Text = string.Format(L("ToolFwProgress"), done, total);
-                        });
-                    }
-                    finally
-                    {
-                        semaphore.Release();
-                    }
-                }));
-            }
-        }
-
         try
         {
-            await Task.WhenAll(tasks);
-        }
-        catch (OperationCanceledException)
-        {
-            // Test was cancelled by user
-        }
-        catch (Exception ex)
-        {
-            Core.Logging.FileLogger.Warn($"FirewallTester test failed: {ex.Message}");
+            var tasks = new List<Task>();
+            foreach (var host in hosts)
+            {
+                foreach (var port in ports)
+                {
+                    tasks.Add(Task.Run(async () =>
+                    {
+                        await semaphore.WaitAsync(ct);
+                        try
+                        {
+                            ct.ThrowIfCancellationRequested();
+                            var (status, responseMs) = tunnelClient is not null
+                                ? await ProbeViaTunnelAsync(tunnelClient, host, port, ct)
+                                : await ProbeDirectAsync(host, port, ct);
+
+                            await Dispatcher.InvokeAsync(() =>
+                            {
+                                _results.Add(new FwTestResult
+                                {
+                                    Host = host,
+                                    Port = port,
+                                    Status = status,
+                                    ResponseTimeMs = responseMs,
+                                });
+
+                                var done = Interlocked.Increment(ref completed);
+                                TestProgress.Value = done;
+                                var percent = (int)(done * 100.0 / total);
+                                TxtProgressPercent.Text = $"{percent}%";
+                                TxtProgressCount.Text = string.Format(L("ToolFwProgress"), done, total);
+                            });
+                        }
+                        finally
+                        {
+                            semaphore.Release();
+                        }
+                    }));
+                }
+            }
+
+            try
+            {
+                await Task.WhenAll(tasks);
+            }
+            catch (OperationCanceledException)
+            {
+                // Test was cancelled by user
+            }
+            catch (Exception ex)
+            {
+                Core.Logging.FileLogger.Warn($"FirewallTester test failed: {ex.Message}");
+            }
         }
         finally
         {
+            semaphore.Dispose();
+
             if (tunnelClient is not null)
             {
                 try { tunnelClient.Disconnect(); } catch { /* best effort */ }
@@ -432,7 +447,7 @@ public partial class FirewallTesterView : UserControl, IToolView
                 Margin = new Thickness(2, 4, 2, 4),
             };
             System.Windows.Automation.AutomationProperties.SetName(
-                header, $"Port {ports[c]}");
+                header, string.Format(L("ToolFwA11yPort"), ports[c]));
             Grid.SetRow(header, 0);
             Grid.SetColumn(header, c + 1);
             HeatmapGrid.Children.Add(header);
@@ -485,7 +500,13 @@ public partial class FirewallTesterView : UserControl, IToolView
                     _ => L("ToolFwStatusTimeout"),
                 };
 
-                var automationName = $"{host} port {port}: {result?.Status ?? "timeout"}";
+                var localizedStatus = result?.Status switch
+                {
+                    "open" => L("ToolFwStatusOpen"),
+                    "closed" => L("ToolFwStatusClosed"),
+                    _ => L("ToolFwStatusTimeout"),
+                };
+                var automationName = string.Format(L("ToolFwA11yCell"), host, port, localizedStatus);
 
                 var cell = new Border
                 {
@@ -583,7 +604,7 @@ public partial class FirewallTesterView : UserControl, IToolView
             var sb = new StringBuilder();
 
             // Header: Host,Port1,Port2,...
-            sb.Append("Host");
+            sb.Append(L("ToolFwColHost"));
             foreach (var port in ports)
             {
                 sb.Append($",{port}");
@@ -593,18 +614,18 @@ public partial class FirewallTesterView : UserControl, IToolView
             // Data rows
             foreach (var host in hosts)
             {
-                sb.Append($"\"{host}\"");
+                sb.Append($"\"{InputValidator.SanitizeCsvCell(host)}\"");
                 foreach (var port in ports)
                 {
                     var result = _results.FirstOrDefault(r => r.Host == host && r.Port == port);
                     var cellValue = result?.Status switch
                     {
-                        "open" => $"open ({result.ResponseTimeMs}ms)",
-                        "closed" => "blocked",
-                        "timeout" => "timeout",
-                        _ => "timeout",
+                        "open" => $"{L("ToolFwStatusOpen")} ({result.ResponseTimeMs}ms)",
+                        "closed" => L("ToolFwStatusClosed"),
+                        "timeout" => L("ToolFwStatusTimeout"),
+                        _ => L("ToolFwStatusTimeout"),
                     };
-                    sb.Append($",{cellValue}");
+                    sb.Append($",{InputValidator.SanitizeCsvCell(cellValue)}");
                 }
                 sb.AppendLine();
             }
@@ -633,7 +654,7 @@ public partial class FirewallTesterView : UserControl, IToolView
             var sb = new StringBuilder();
 
             // Header
-            sb.Append($"{"Host",-30}");
+            sb.Append($"{L("ToolFwColHost"),-30}");
             foreach (var port in ports)
             {
                 sb.Append($"{port,10}");
@@ -648,7 +669,12 @@ public partial class FirewallTesterView : UserControl, IToolView
                 foreach (var port in ports)
                 {
                     var result = _results.FirstOrDefault(r => r.Host == host && r.Port == port);
-                    var cellValue = result?.Status ?? "timeout";
+                    var cellValue = result?.Status switch
+                    {
+                        "open" => L("ToolFwStatusOpen"),
+                        "closed" => L("ToolFwStatusClosed"),
+                        _ => L("ToolFwStatusTimeout"),
+                    };
                     sb.Append($"{cellValue,10}");
                 }
                 sb.AppendLine();
@@ -694,7 +720,10 @@ public partial class FirewallTesterView : UserControl, IToolView
                     int.TryParse(rangeParts[1].Trim(), out var end) &&
                     start >= 1 && end <= 65535 && start <= end)
                 {
-                    for (var p = start; p <= end; p++)
+                    var remaining = MaxPorts - ports.Count;
+                    if (remaining <= 0) break;
+                    var rangeEnd = Math.Min(end, start + remaining - 1);
+                    for (var p = start; p <= rangeEnd; p++)
                     {
                         ports.Add(p);
                     }

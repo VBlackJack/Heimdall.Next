@@ -25,6 +25,8 @@ namespace Heimdall.App.Services;
 /// </summary>
 public static class CsvEvidenceExporter
 {
+    // CSV column header kept in English for machine-readable interoperability
+    // (RFC 4180 schema consumed by SIEM tools, compliance trackers, and spreadsheets).
     private const string Header = "Chapter,CheckID,CheckName,Clause,Status,Host,Detail,RawData";
 
     /// <summary>
@@ -69,14 +71,14 @@ public static class CsvEvidenceExporter
         string detail,
         string rawData)
     {
-        sb.Append(Escape(chapter.Name)).Append(',');
-        sb.Append(Escape(check.Id)).Append(',');
-        sb.Append(Escape(check.Name)).Append(',');
-        sb.Append(Escape(check.SecNumCloudClause)).Append(',');
-        sb.Append(Escape(check.Status.ToString())).Append(',');
-        sb.Append(Escape(host)).Append(',');
-        sb.Append(Escape(detail)).Append(',');
-        sb.AppendLine(Escape(rawData));
+        sb.Append(Escape(InputValidator.SanitizeCsvCell(chapter.Name))).Append(',');
+        sb.Append(Escape(InputValidator.SanitizeCsvCell(check.Id))).Append(',');
+        sb.Append(Escape(InputValidator.SanitizeCsvCell(check.Name))).Append(',');
+        sb.Append(Escape(InputValidator.SanitizeCsvCell(check.SecNumCloudClause))).Append(',');
+        sb.Append(Escape(InputValidator.SanitizeCsvCell(check.Status.ToString()))).Append(',');
+        sb.Append(Escape(InputValidator.SanitizeCsvCell(host))).Append(',');
+        sb.Append(Escape(InputValidator.SanitizeCsvCell(detail))).Append(',');
+        sb.AppendLine(Escape(InputValidator.SanitizeCsvCell(rawData)));
     }
 
     /// <summary>

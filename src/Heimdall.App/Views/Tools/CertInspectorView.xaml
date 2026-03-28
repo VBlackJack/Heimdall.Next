@@ -35,7 +35,8 @@
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
-                        Width="24" Height="24" Margin="8,0,0,0"/>
+                        Width="24" Height="24" Margin="8,0,0,0"
+                        AutomationProperties.Name=""/>
                 <TextBlock x:Name="HeaderTitle" Text=""
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
@@ -52,13 +53,16 @@
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                 <Button x:Name="BtnProfileQuick" Click="OnProfileClick" Tag="quick"
                         Style="{DynamicResource PrimaryButtonStyle}"
-                        Padding="8,3" Margin="0,0,4,0" FontSize="{StaticResource FontSizeCaption}"/>
+                        Padding="8,3" Margin="0,0,4,0" FontSize="{StaticResource FontSizeCaption}"
+                        AutomationProperties.Name=""/>
                 <Button x:Name="BtnProfileExtended" Click="OnProfileClick" Tag="extended"
                         Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="8,3" Margin="0,0,4,0" FontSize="{StaticResource FontSizeCaption}"/>
+                        Padding="8,3" Margin="0,0,4,0" FontSize="{StaticResource FontSizeCaption}"
+                        AutomationProperties.Name=""/>
                 <Button x:Name="BtnProfileCustom" Click="OnProfileClick" Tag="custom"
                         Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="8,3" Margin="0,0,4,0" FontSize="{StaticResource FontSizeCaption}"/>
+                        Padding="8,3" Margin="0,0,4,0" FontSize="{StaticResource FontSizeCaption}"
+                        AutomationProperties.Name=""/>
                 <TextBox x:Name="TxtCustomPorts" Visibility="Collapsed"
                          Width="260"
                          Style="{StaticResource WatermarkTextBoxStyle}"
@@ -68,7 +72,8 @@
                          Background="{DynamicResource CardBrush}"
                          Foreground="{DynamicResource TextPrimaryBrush}"
                          BorderBrush="{DynamicResource BorderBrush}"
-                         VerticalAlignment="Center"/>
+                         VerticalAlignment="Center"
+                         AutomationProperties.Name=""/>
             </StackPanel>
         </Border>
 
@@ -78,7 +83,8 @@
                          Height="20" Minimum="0" Maximum="100"
                          IsIndeterminate="False"
                          Foreground="{DynamicResource AccentBrush}"
-                         Background="{DynamicResource SurfaceBrush}"/>
+                         Background="{DynamicResource SurfaceBrush}"
+                         AutomationProperties.Name=""/>
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
                 <TextBlock x:Name="TxtProgressPercent" Text="0%"
                            FontSize="{StaticResource FontSizeCaption}" FontWeight="SemiBold"
@@ -104,7 +110,8 @@
                             Content="" Click="OnCheckClick"
                             Style="{DynamicResource PrimaryButtonStyle}"
                             Padding="16,6" Margin="8,0,0,0"
-                            VerticalAlignment="Center"/>
+                            VerticalAlignment="Center"
+                            AutomationProperties.Name=""/>
                     <TextBox x:Name="TxtPort" DockPanel.Dock="Right"
                              Text="" Width="70"
                              Style="{StaticResource WatermarkTextBoxStyle}"
@@ -114,7 +121,8 @@
                              Background="{DynamicResource CardBrush}"
                              Foreground="{DynamicResource TextPrimaryBrush}"
                              BorderBrush="{DynamicResource BorderBrush}"
-                             VerticalAlignment="Center"/>
+                             VerticalAlignment="Center"
+                             AutomationProperties.Name=""/>
                     <TextBlock DockPanel.Dock="Right" Text=":"
                                FontSize="{StaticResource FontSizeBodyLarge}" Margin="4,0,0,0"
                                Foreground="{DynamicResource TextSecondaryBrush}"
@@ -127,7 +135,8 @@
                              Background="{DynamicResource CardBrush}"
                              Foreground="{DynamicResource TextPrimaryBrush}"
                              BorderBrush="{DynamicResource BorderBrush}"
-                             VerticalAlignment="Center"/>
+                             VerticalAlignment="Center"
+                             AutomationProperties.Name=""/>
                 </DockPanel>
 
                 <!-- Route via gateway -->
@@ -141,7 +150,8 @@
                               Background="{DynamicResource CardBrush}"
                               Foreground="{DynamicResource TextPrimaryBrush}"
                               BorderBrush="{DynamicResource BorderBrush}"
-                              VerticalAlignment="Center"/>
+                              VerticalAlignment="Center"
+                              AutomationProperties.Name=""/>
                 </DockPanel>
 
                 <!-- Error message -->
@@ -166,7 +176,8 @@
 
                 <!-- Loading indicator (single port mode) -->
                 <ProgressBar x:Name="LoadingBar" IsIndeterminate="True"
-                             Visibility="Collapsed" Height="4" Margin="0,0,0,12"/>
+                             Visibility="Collapsed" Height="4" Margin="0,0,0,12"
+                             AutomationProperties.Name=""/>
 
                 <!-- ===== Single-port result panels ===== -->
                 <StackPanel x:Name="SingleResultPanel" Visibility="Collapsed">
@@ -328,7 +339,8 @@
                             Visibility="Collapsed"
                             Style="{DynamicResource SecondaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonCopy}" Margin="0,12,0,0"
-                            HorizontalAlignment="Left"/>
+                            HorizontalAlignment="Left"
+                            AutomationProperties.Name=""/>
                 </StackPanel>
 
                 <!-- ===== Multi-port scan results ===== -->
@@ -464,6 +476,7 @@
 
                                         <!-- Chain (expandable) -->
                                         <Expander Header="{Binding ChainHeader}" IsExpanded="False"
+                                                  AutomationProperties.Name="{Binding ChainHeader}"
                                                   Foreground="{DynamicResource TextPrimaryBrush}"
                                                   FontSize="{StaticResource FontSizeCaption}" Margin="0,4,0,0">
                                             <ItemsControl ItemsSource="{Binding Chain}" Margin="0,4,0,0">
@@ -493,11 +506,13 @@
                         <Button x:Name="BtnExportCsv" DockPanel.Dock="Right"
                                 Click="OnExportCsvClick"
                                 Style="{DynamicResource SecondaryButtonStyle}"
-                                Padding="{StaticResource PaddingButtonCopy}" Margin="8,0,0,0"/>
+                                Padding="{StaticResource PaddingButtonCopy}" Margin="8,0,0,0"
+                                AutomationProperties.Name=""/>
                         <Button x:Name="BtnCopyAll" DockPanel.Dock="Right"
                                 Click="OnCopyAllClick"
                                 Style="{DynamicResource SecondaryButtonStyle}"
-                                Padding="{StaticResource PaddingButtonCopy}"/>
+                                Padding="{StaticResource PaddingButtonCopy}"
+                                AutomationProperties.Name=""/>
                         <TextBlock x:Name="TxtScanSummary" Text=""
                                    FontSize="{StaticResource FontSizeBody}"
                                    Foreground="{DynamicResource TextSecondaryBrush}"

@@ -42,53 +42,62 @@ public static class FaviconHasher
 
             await client.ConnectAsync(host, port, linked.Token).ConfigureAwait(false);
             Stream stream = client.GetStream();
+            SslStream? ssl = null;
 
-            if (useTls)
+            try
             {
-                var ssl = new SslStream(stream, false, (_, _, _, _) => true);
-                await ssl.AuthenticateAsClientAsync(new SslClientAuthenticationOptions
+                if (useTls)
                 {
-                    TargetHost = host
-                }, linked.Token).ConfigureAwait(false);
-                stream = ssl;
+                    ssl = new SslStream(stream, leaveInnerStreamOpen: true, (_, _, _, _) => true);
+                    await ssl.AuthenticateAsClientAsync(new SslClientAuthenticationOptions
+                    {
+                        TargetHost = host
+                    }, linked.Token).ConfigureAwait(false);
+                    stream = ssl;
+                }
+
+                var request = $"GET /favicon.ico HTTP/1.0\r\nHost: {host}\r\nConnection: close\r\n\r\n";
+                await stream.WriteAsync(Encoding.ASCII.GetBytes(request), linked.Token)
+                    .ConfigureAwait(false);
+                await stream.FlushAsync(linked.Token).ConfigureAwait(false);
+
+                // Read entire response
+                using var ms = new MemoryStream();
+                var buf = new byte[8192];
+                int n;
+                while ((n = await stream.ReadAsync(buf, linked.Token).ConfigureAwait(false)) > 0)
+                {
+                    ms.Write(buf, 0, n);
+                    if (ms.Length > 1_048_576) break; // 1MB limit
+                }
+
+                var response = ms.ToArray();
+
+                // Find body after \r\n\r\n
+                var headerEnd = FindHeaderEnd(response);
+                if (headerEnd < 0) return null;
+
+                // Check for HTTP 200 OK (first line only)
+                var firstLineEnd = Array.IndexOf(response, (byte)'\n', 0, Math.Min(headerEnd, 128));
+                if (firstLineEnd < 0) firstLineEnd = Math.Min(headerEnd, 128);
+                var statusLine = Encoding.ASCII.GetString(response, 0, firstLineEnd);
+                if (!statusLine.StartsWith("HTTP", StringComparison.OrdinalIgnoreCase) ||
+                    !statusLine.Contains(" 200 ")) return null;
+
+                var body = response.AsSpan(headerEnd);
+                if (body.Length < 4) return null; // Too small to be a valid icon
+
+                // Shodan-compatible: base64 encode with MIME line breaks, then MurmurHash3
+                var b64 = Convert.ToBase64String(body.ToArray());
+                var mimeB64 = InsertMimeLineBreaks(b64);
+                return MurmurHash3(mimeB64);
             }
-
-            var request = $"GET /favicon.ico HTTP/1.0\r\nHost: {host}\r\nConnection: close\r\n\r\n";
-            await stream.WriteAsync(Encoding.ASCII.GetBytes(request), linked.Token)
-                .ConfigureAwait(false);
-            await stream.FlushAsync(linked.Token).ConfigureAwait(false);
-
-            // Read entire response
-            using var ms = new MemoryStream();
-            var buf = new byte[8192];
-            int n;
-            while ((n = await stream.ReadAsync(buf, linked.Token).ConfigureAwait(false)) > 0)
+            finally
             {
-                ms.Write(buf, 0, n);
-                if (ms.Length > 1_048_576) break; // 1MB limit
+                if (ssl is not null) await ssl.DisposeAsync().ConfigureAwait(false);
             }
-
-            var response = ms.ToArray();
-
-            // Find body after \r\n\r\n
-            var headerEnd = FindHeaderEnd(response);
-            if (headerEnd < 0) return null;
-
-            // Check for HTTP 200 OK (first line only)
-            var firstLineEnd = Array.IndexOf(response, (byte)'\n', 0, Math.Min(headerEnd, 128));
-            if (firstLineEnd < 0) firstLineEnd = Math.Min(headerEnd, 128);
-            var statusLine = Encoding.ASCII.GetString(response, 0, firstLineEnd);
-            if (!statusLine.StartsWith("HTTP", StringComparison.OrdinalIgnoreCase) ||
-                !statusLine.Contains(" 200 ")) return null;
-
-            var body = response.AsSpan(headerEnd);
-            if (body.Length < 4) return null; // Too small to be a valid icon
-
-            // Shodan-compatible: base64 encode with MIME line breaks, then MurmurHash3
-            var b64 = Convert.ToBase64String(body.ToArray());
-            var mimeB64 = InsertMimeLineBreaks(b64);
-            return MurmurHash3(mimeB64);
         }
+        catch (OperationCanceledException) { throw; }
         catch
         {
             return null;

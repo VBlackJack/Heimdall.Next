@@ -213,6 +213,8 @@ public partial class TlsAuditView : UserControl, IToolView
         AutomationProperties.SetName(TxtHost, L("ToolTlsAuditHostLabel"));
         AutomationProperties.SetName(TxtPort, L("ToolTlsAuditPortLabel"));
         AutomationProperties.SetName(BtnCopy, L("ToolTlsAuditBtnCopy"));
+        AutomationProperties.SetName(AuditProgress, L("ToolTlsAuditA11yProgress"));
+        AutomationProperties.SetName(TxtGrade, L("ToolTlsAuditGrade"));
 
         BtnHelp.ToolTip = L("ToolHelpTooltip");
         AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
@@ -303,6 +305,13 @@ public partial class TlsAuditView : UserControl, IToolView
             return;
         }
 
+        if (!InputValidator.Validate(host, "Address"))
+        {
+            TxtError.Text = L("ErrorInvalidHost");
+            TxtError.Visibility = Visibility.Visible;
+            return;
+        }
+
         if (!int.TryParse(TxtPort.Text.Trim(), out var port) || port is <= 0 or > 65535)
         {
             TxtError.Text = L("ToolCertErrorInvalidPort");
@@ -345,6 +354,7 @@ public partial class TlsAuditView : UserControl, IToolView
             {
                 tunnelClient = await Task.Run(() => ConnectToGateway(_selectedGateway), ct);
             }
+            catch (OperationCanceledException) { throw; }
             catch (Exception ex)
             {
                 Core.Logging.FileLogger.Warn($"TlsAudit gateway connection failed: {ex.Message}");
@@ -373,6 +383,10 @@ public partial class TlsAuditView : UserControl, IToolView
             try
             {
                 cert = await RetrieveCertificateAsync(host, port, tunnelClient, ct);
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
             }
             catch
             {
@@ -486,6 +500,7 @@ public partial class TlsAuditView : UserControl, IToolView
 #pragma warning restore CA5397, CS0618, SYSLIB0039
             return true;
         }
+        catch (OperationCanceledException) { throw; }
         catch
         {
             return false;
@@ -512,7 +527,7 @@ public partial class TlsAuditView : UserControl, IToolView
         try
         {
             using var cmd = sshClient.CreateCommand(
-                $"echo | openssl s_client -connect {host}:{port} {flag} 2>&1 | head -5");
+                $"echo | openssl s_client -connect {InputValidator.EscapeShellArg(host)}:{port} {flag} 2>&1 | head -5");
             cmd.CommandTimeout = TimeSpan.FromSeconds(10);
             cmd.Execute();
             var output = cmd.Result ?? string.Empty;
@@ -522,6 +537,7 @@ public partial class TlsAuditView : UserControl, IToolView
                 && !output.Contains("wrong version", StringComparison.OrdinalIgnoreCase)
                 && !output.Contains("no protocols available", StringComparison.OrdinalIgnoreCase);
         }
+        catch (OperationCanceledException) { throw; }
         catch
         {
             return false;
@@ -601,6 +617,7 @@ public partial class TlsAuditView : UserControl, IToolView
         {
             return false;
         }
+        catch (OperationCanceledException) { throw; }
         catch
         {
             return false;
@@ -610,30 +627,7 @@ public partial class TlsAuditView : UserControl, IToolView
     private List<CipherResult> EnumerateCiphersViaTunnel(
         Renci.SshNet.SshClient sshClient, string host, int port, CancellationToken ct)
     {
-        ct.ThrowIfCancellationRequested();
-
-        var results = new List<CipherResult>();
-
-        try
-        {
-            using var cmd = sshClient.CreateCommand(
-                $"echo | openssl s_client -connect {host}:{port} -tls1_2 -cipher ALL 2>/dev/null | openssl ciphers -v 2>/dev/null; echo | openssl s_client -connect {host}:{port} -tls1_2 2>&1");
-            cmd.CommandTimeout = TimeSpan.FromSeconds(15);
-            cmd.Execute();
-            var output = cmd.Result ?? string.Empty;
-
-            // Try to parse the "Cipher is" line from s_client output to find the negotiated cipher
-            // Also run: openssl s_client -connect host:port -tls1_2 2>&1 to get negotiated cipher
-            // A more reliable approach: test each cipher individually via tunnel
-            results = EnumerateCiphersViaTunnelIndividually(sshClient, host, port, ct);
-        }
-        catch
-        {
-            // Fall back to individual cipher testing
-            results = EnumerateCiphersViaTunnelIndividually(sshClient, host, port, ct);
-        }
-
-        return results;
+        return EnumerateCiphersViaTunnelIndividually(sshClient, host, port, ct);
     }
 
     private List<CipherResult> EnumerateCiphersViaTunnelIndividually(
@@ -675,7 +669,7 @@ public partial class TlsAuditView : UserControl, IToolView
             try
             {
                 using var cmd = sshClient.CreateCommand(
-                    $"echo | openssl s_client -connect {host}:{port} -tls1_2 -cipher {opensslName} 2>&1 | head -5");
+                    $"echo | openssl s_client -connect {InputValidator.EscapeShellArg(host)}:{port} -tls1_2 -cipher {opensslName} 2>&1 | head -5");
                 cmd.CommandTimeout = TimeSpan.FromSeconds(8);
                 cmd.Execute();
                 var output = cmd.Result ?? string.Empty;
@@ -687,6 +681,7 @@ public partial class TlsAuditView : UserControl, IToolView
                     results.Add(BuildCipherResult(suite));
                 }
             }
+            catch (OperationCanceledException) { throw; }
             catch
             {
                 // Individual cipher test failed — skip
@@ -769,7 +764,7 @@ public partial class TlsAuditView : UserControl, IToolView
 
     // ── Certificate retrieval ─────────────────────────────────────────
 
-    private static async Task<X509Certificate2?> RetrieveCertificateAsync(
+    private async Task<X509Certificate2?> RetrieveCertificateAsync(
         string host, int port, Renci.SshNet.SshClient? tunnel, CancellationToken ct)
     {
         if (tunnel is not null)
@@ -777,14 +772,14 @@ public partial class TlsAuditView : UserControl, IToolView
             return await Task.Run(() => RetrieveCertificateViaTunnel(tunnel, host, port, ct), ct);
         }
 
-        return await Task.Run(() => RetrieveCertificateDirect(host, port, ct), ct);
+        return await Task.Run(async () => await RetrieveCertificateDirectAsync(host, port, ct).ConfigureAwait(false), ct);
     }
 
-    private static X509Certificate2 RetrieveCertificateDirect(string host, int port, CancellationToken ct)
+    private async Task<X509Certificate2> RetrieveCertificateDirectAsync(string host, int port, CancellationToken ct)
     {
         X509Certificate? remoteCert = null;
         using var tcp = new TcpClient();
-        tcp.ConnectAsync(host, port, ct).AsTask().GetAwaiter().GetResult();
+        await tcp.ConnectAsync(host, port, ct).ConfigureAwait(false);
 
         using var ssl = new SslStream(tcp.GetStream(), false, (_, cert, _, _) =>
         {
@@ -792,24 +787,27 @@ public partial class TlsAuditView : UserControl, IToolView
             return true;
         });
 
-        ssl.AuthenticateAsClientAsync(
-            new SslClientAuthenticationOptions { TargetHost = host }, ct).GetAwaiter().GetResult();
+        await ssl.AuthenticateAsClientAsync(
+            new SslClientAuthenticationOptions { TargetHost = host }, ct).ConfigureAwait(false);
 
         if (remoteCert == null)
         {
-            throw new InvalidOperationException("No certificate received from the remote host.");
+            throw new InvalidOperationException(L("ErrorNoCertReceived"));
         }
 
-        return new X509Certificate2(remoteCert);
+        var cert2 = new X509Certificate2(remoteCert);
+        remoteCert.Dispose();
+        return cert2;
     }
 
-    private static X509Certificate2 RetrieveCertificateViaTunnel(
+    private X509Certificate2 RetrieveCertificateViaTunnel(
         Renci.SshNet.SshClient sshClient, string host, int port, CancellationToken ct)
     {
         ct.ThrowIfCancellationRequested();
 
+        var escapedHost = InputValidator.EscapeShellArg(host);
         using var cmd = sshClient.CreateCommand(
-            $"echo | openssl s_client -connect {host}:{port} -servername {host} 2>/dev/null");
+            $"echo | openssl s_client -connect {escapedHost}:{port} -servername {escapedHost} 2>/dev/null");
         cmd.CommandTimeout = TimeSpan.FromSeconds(10);
         cmd.Execute();
         var pemOutput = cmd.Result ?? string.Empty;
@@ -821,7 +819,7 @@ public partial class TlsAuditView : UserControl, IToolView
 
         if (beginIdx < 0 || endIdx < 0)
         {
-            throw new InvalidOperationException("No certificate received via tunnel.");
+            throw new InvalidOperationException(L("ErrorNoCertReceivedViaTunnel"));
         }
 
         var pemBlock = pemOutput[beginIdx..(endIdx + endMarker.Length)];
@@ -1009,7 +1007,7 @@ public partial class TlsAuditView : UserControl, IToolView
             TxtCertExpiry.Text = $"{cert.NotAfter:yyyy-MM-dd HH:mm:ss UTC} ({daysRemaining}d)";
 
             var keySize = GetPublicKeySize(cert);
-            TxtCertKeySize.Text = keySize > 0 ? $"{keySize} bits" : "-";
+            TxtCertKeySize.Text = keySize > 0 ? string.Format(L("ToolTlsAuditBits"), keySize) : "-";
 
             CertPanel.Visibility = Visibility.Visible;
         }
@@ -1057,10 +1055,10 @@ public partial class TlsAuditView : UserControl, IToolView
     {
         try
         {
-            var rsa = cert.GetRSAPublicKey();
+            using var rsa = cert.GetRSAPublicKey();
             if (rsa is not null) return rsa.KeySize;
 
-            var ecdsa = cert.GetECDsaPublicKey();
+            using var ecdsa = cert.GetECDsaPublicKey();
             if (ecdsa is not null) return ecdsa.KeySize;
         }
         catch
@@ -1070,7 +1068,7 @@ public partial class TlsAuditView : UserControl, IToolView
         return 0;
     }
 
-    private static string BuildReportText(
+    private string BuildReportText(
         List<ProtocolResult> protocols,
         List<CipherResult> ciphers,
         X509Certificate2? cert,
@@ -1080,20 +1078,21 @@ public partial class TlsAuditView : UserControl, IToolView
         int port)
     {
         var sb = new StringBuilder();
-        sb.AppendLine($"SSL/TLS Audit Report: {host}:{port}");
-        sb.AppendLine($"Grade: {grade}");
+        sb.AppendLine(string.Format(L("ToolTlsAuditReportTitle"), host, port));
+        sb.AppendLine(string.Format(L("ToolTlsAuditReportGrade"), grade));
         sb.AppendLine();
 
-        sb.AppendLine("=== Protocol Support ===");
+        sb.AppendLine(L("ToolTlsAuditReportProtocols"));
         foreach (var p in protocols)
         {
-            sb.AppendLine($"  {p.Name}: {(p.Supported ? "Supported" : "Not supported")}");
+            var statusLabel = p.Supported ? L("ToolTlsAuditSupported") : L("ToolTlsAuditNotSupported");
+            sb.AppendLine($"  {p.Name}: {statusLabel}");
         }
         sb.AppendLine();
 
         if (ciphers.Count > 0)
         {
-            sb.AppendLine("=== Cipher Suites (TLS 1.2) ===");
+            sb.AppendLine(L("ToolTlsAuditReportCiphers"));
             foreach (var c in ciphers)
             {
                 sb.AppendLine($"  {c.Name}  [{c.KeyExchange}/{c.Authentication}/{c.Encryption}]");
@@ -1103,19 +1102,19 @@ public partial class TlsAuditView : UserControl, IToolView
 
         if (cert is not null)
         {
-            sb.AppendLine("=== Certificate ===");
-            sb.AppendLine($"  Subject: {cert.Subject}");
-            sb.AppendLine($"  Issuer: {cert.Issuer}");
-            sb.AppendLine($"  Expires: {cert.NotAfter:yyyy-MM-dd HH:mm:ss UTC}");
+            sb.AppendLine(L("ToolTlsAuditReportCert"));
+            sb.AppendLine($"  {L("ToolTlsAuditCertSubject")}: {cert.Subject}");
+            sb.AppendLine($"  {L("ToolTlsAuditCertIssuer")}: {cert.Issuer}");
+            sb.AppendLine($"  {L("ToolTlsAuditCertExpires")}: {cert.NotAfter:yyyy-MM-dd HH:mm:ss UTC}");
             var keySize = GetPublicKeySize(cert);
             if (keySize > 0)
-                sb.AppendLine($"  Key size: {keySize} bits");
+                sb.AppendLine($"  {L("ToolTlsAuditCertKeySize")}: {string.Format(L("ToolTlsAuditBits"), keySize)}");
             sb.AppendLine();
         }
 
         if (findings.Count > 0)
         {
-            sb.AppendLine("=== Findings ===");
+            sb.AppendLine(L("ToolTlsAuditReportFindings"));
             foreach (var f in findings)
             {
                 sb.AppendLine($"  {f.Icon} {f.Message}");

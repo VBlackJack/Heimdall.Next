@@ -34,7 +34,8 @@
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
-                        Width="24" Height="24" Margin="8,0,0,0"/>
+                        Width="24" Height="24" Margin="8,0,0,0"
+                        AutomationProperties.Name=""/>
                 <TextBlock x:Name="HeaderTitle" Text=""
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
@@ -55,7 +56,8 @@
                             Content="" Click="OnCheckClick"
                             Style="{DynamicResource PrimaryButtonStyle}"
                             Padding="16,6" Margin="8,0,0,0"
-                            VerticalAlignment="Center"/>
+                            VerticalAlignment="Center"
+                            AutomationProperties.Name=""/>
                     <TextBox x:Name="TxtDomain" Text=""
                              Style="{StaticResource WatermarkTextBoxStyle}"
                              Tag="example.com"
@@ -64,7 +66,8 @@
                              Background="{DynamicResource CardBrush}"
                              Foreground="{DynamicResource TextPrimaryBrush}"
                              BorderBrush="{DynamicResource BorderBrush}"
-                             VerticalAlignment="Center"/>
+                             VerticalAlignment="Center"
+                             AutomationProperties.Name=""/>
                 </DockPanel>
 
                 <!-- Route via gateway -->
@@ -78,7 +81,8 @@
                               Background="{DynamicResource CardBrush}"
                               Foreground="{DynamicResource TextPrimaryBrush}"
                               BorderBrush="{DynamicResource BorderBrush}"
-                              VerticalAlignment="Center"/>
+                              VerticalAlignment="Center"
+                              AutomationProperties.Name=""/>
                 </DockPanel>
 
                 <!-- Error message -->
@@ -88,7 +92,8 @@
 
                 <!-- Loading indicator -->
                 <ProgressBar x:Name="LoadingBar" IsIndeterminate="True"
-                             Visibility="Collapsed" Height="4" Margin="0,0,0,12"/>
+                             Visibility="Collapsed" Height="4" Margin="0,0,0,12"
+                             AutomationProperties.Name=""/>
 
                 <!-- Empty state hint -->
                 <Border x:Name="EmptyStatePanel"
@@ -97,8 +102,7 @@
                     <StackPanel HorizontalAlignment="Center">
                         <TextBlock Text="&#xE774;" FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource IconSizeEmptyState}"
                                    HorizontalAlignment="Center"
-                                   Foreground="{DynamicResource TextDisabledBrush}" Margin="0,0,0,8"
-                                   AutomationProperties.Name=""/>
+                                   Foreground="{DynamicResource TextDisabledBrush}" Margin="0,0,0,8"/>
                         <TextBlock x:Name="TxtEmptyState" Text=""
                                    FontSize="{StaticResource FontSizeBodyLarge}" TextAlignment="Center"
                                    Foreground="{DynamicResource TextSecondaryBrush}"/>
@@ -162,7 +166,8 @@
                     <Button x:Name="BtnCopyReport" Click="OnCopyReportClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonCopy}"
-                            HorizontalAlignment="Left"/>
+                            HorizontalAlignment="Left"
+                            AutomationProperties.Name=""/>
 
                 </StackPanel>
 

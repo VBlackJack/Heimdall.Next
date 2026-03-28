@@ -134,7 +134,7 @@
                          Minimum="0" Maximum="100"
                          Foreground="{DynamicResource AccentBrush}"
                          Background="{DynamicResource SurfaceBrush}"
-                         AutomationProperties.Name="Audit progress"/>
+                         AutomationProperties.Name=""/>
             <DockPanel Margin="12,2,12,4">
                 <TextBlock x:Name="TxtPhase" Text="" FontSize="{StaticResource FontSizeCaption}"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
@@ -179,8 +179,7 @@
             <StackPanel HorizontalAlignment="Center">
                 <TextBlock Text="&#xE8D4;" FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource IconSizeEmptyState}"
                            HorizontalAlignment="Center"
-                           Foreground="{DynamicResource TextDisabledBrush}" Margin="0,0,0,8"
-                           AutomationProperties.Name=""/>
+                           Foreground="{DynamicResource TextDisabledBrush}" Margin="0,0,0,8"/>
                 <TextBlock x:Name="TxtEmptyState" Text=""
                            FontSize="{StaticResource FontSizeBodyLarge}" TextAlignment="Center"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>

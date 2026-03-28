@@ -28,6 +28,7 @@ using System.Windows.Media;
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Models;
+using Heimdall.Core.Security;
 
 namespace Heimdall.App.Views.Tools;
 
@@ -116,6 +117,7 @@ public partial class HttpHeaderAnalyzerView : UserControl, IToolView
 
         BtnHelp.ToolTip = L("ToolHelpTooltip");
         AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
+        AutomationProperties.SetName(LoadingBar, L("ToolHttpHeadersA11yLoading"));
     }
 
     // ── Gateway routing ──────────────────────────────────────────────
@@ -303,36 +305,46 @@ public partial class HttpHeaderAnalyzerView : UserControl, IToolView
         await client.ConnectAsync(host, port, ct).ConfigureAwait(false);
         Stream stream = client.GetStream();
 
-        if (useTls)
+        SslStream? sslStream = null;
+        try
         {
-            var ssl = new SslStream(stream, false, (_, _, _, _) => true);
-            await ssl.AuthenticateAsClientAsync(new SslClientAuthenticationOptions
+            if (useTls)
             {
-                TargetHost = host
-            }, ct).ConfigureAwait(false);
-            stream = ssl;
+                sslStream = new SslStream(stream, leaveInnerStreamOpen: true, (_, _, _, _) => true);
+                await sslStream.AuthenticateAsClientAsync(new SslClientAuthenticationOptions
+                {
+                    TargetHost = host
+                }, ct).ConfigureAwait(false);
+                stream = sslStream;
+            }
+
+            var sanitizedHost = host.Replace("\r", "", StringComparison.Ordinal).Replace("\n", "", StringComparison.Ordinal);
+            var sanitizedPath = path.Replace("\r", "", StringComparison.Ordinal).Replace("\n", "", StringComparison.Ordinal);
+            var request = $"{method} {sanitizedPath} HTTP/1.1\r\nHost: {sanitizedHost}\r\nConnection: close\r\nUser-Agent: Heimdall\r\n\r\n";
+            await stream.WriteAsync(Encoding.ASCII.GetBytes(request), ct).ConfigureAwait(false);
+
+            // Read response (headers only, stop after blank line)
+            var buffer = new byte[MaxResponseBytes];
+            var totalRead = 0;
+            while (totalRead < buffer.Length)
+            {
+                var bytesRead = await stream.ReadAsync(
+                    buffer.AsMemory(totalRead, buffer.Length - totalRead), ct).ConfigureAwait(false);
+                if (bytesRead == 0) break;
+                totalRead += bytesRead;
+
+                // Check if we have the full header section (ends with \r\n\r\n)
+                var currentText = Encoding.ASCII.GetString(buffer, 0, totalRead);
+                if (currentText.Contains("\r\n\r\n")) break;
+            }
+
+            var rawResponse = Encoding.ASCII.GetString(buffer, 0, totalRead);
+            return ParseHttpResponse(rawResponse);
         }
-
-        var request = $"{method} {path} HTTP/1.1\r\nHost: {host}\r\nConnection: close\r\nUser-Agent: Heimdall\r\n\r\n";
-        await stream.WriteAsync(Encoding.ASCII.GetBytes(request), ct).ConfigureAwait(false);
-
-        // Read response (headers only, stop after blank line)
-        var buffer = new byte[MaxResponseBytes];
-        var totalRead = 0;
-        while (totalRead < buffer.Length)
+        finally
         {
-            var bytesRead = await stream.ReadAsync(
-                buffer.AsMemory(totalRead, buffer.Length - totalRead), ct).ConfigureAwait(false);
-            if (bytesRead == 0) break;
-            totalRead += bytesRead;
-
-            // Check if we have the full header section (ends with \r\n\r\n)
-            var currentText = Encoding.ASCII.GetString(buffer, 0, totalRead);
-            if (currentText.Contains("\r\n\r\n")) break;
+            if (sslStream is not null) await sslStream.DisposeAsync().ConfigureAwait(false);
         }
-
-        var rawResponse = Encoding.ASCII.GetString(buffer, 0, totalRead);
-        return ParseHttpResponse(rawResponse);
     }
 
     private static (int StatusCode, Dictionary<string, string> Headers, string RawResponse)
@@ -386,7 +398,7 @@ public partial class HttpHeaderAnalyzerView : UserControl, IToolView
     {
         using var client = ToolGatewayConnector.Connect(gateway);
 
-        var curlCommand = $"curl -sI --max-time 10 \"{uri}\" 2>/dev/null";
+        var curlCommand = $"curl -sI --max-time 10 {InputValidator.EscapeShellArg(uri.ToString())} 2>/dev/null";
         using var cmd = client.CreateCommand(curlCommand);
         cmd.CommandTimeout = TimeSpan.FromSeconds(15);
         var result = cmd.Execute()?.Trim() ?? string.Empty;
@@ -696,6 +708,7 @@ public partial class HttpHeaderAnalyzerView : UserControl, IToolView
 
         // Raw headers
         RawHeadersExpander.Header = L("ToolHttpHeadersSectionRaw");
+        AutomationProperties.SetName(RawHeadersExpander, L("ToolHttpHeadersSectionRaw"));
         TxtRawHeaders.Text = rawResponse;
         AutomationProperties.SetName(TxtRawHeaders, L("ToolHttpHeadersSectionRaw"));
 
@@ -703,7 +716,7 @@ public partial class HttpHeaderAnalyzerView : UserControl, IToolView
         _lastReport = BuildTextReport(host, grade, securityResults, disclosureResults, rawResponse);
     }
 
-    private static string BuildTextReport(
+    private string BuildTextReport(
         string host,
         string grade,
         List<HeaderCheckResult> securityResults,
@@ -711,10 +724,10 @@ public partial class HttpHeaderAnalyzerView : UserControl, IToolView
         string rawResponse)
     {
         var sb = new StringBuilder();
-        sb.AppendLine($"HTTP Security Header Analysis: {host}");
-        sb.AppendLine($"Grade: {grade}");
+        sb.AppendLine(string.Format(L("ToolHttpHeaderReportTitle"), host));
+        sb.AppendLine(string.Format(L("ToolHttpHeaderReportGrade"), grade));
         sb.AppendLine();
-        sb.AppendLine("=== Security Headers ===");
+        sb.AppendLine(L("ToolHttpHeaderReportSecHeaders"));
         foreach (var r in securityResults)
         {
             sb.AppendLine($"  {r.StatusIcon} {r.Name}: {r.Value}");
@@ -724,7 +737,7 @@ public partial class HttpHeaderAnalyzerView : UserControl, IToolView
             }
         }
         sb.AppendLine();
-        sb.AppendLine("=== Information Disclosure ===");
+        sb.AppendLine(L("ToolHttpHeaderReportInfoDisc"));
         foreach (var r in disclosureResults)
         {
             sb.AppendLine($"  {r.StatusIcon} {r.Name}: {r.Value}");
@@ -734,7 +747,7 @@ public partial class HttpHeaderAnalyzerView : UserControl, IToolView
             }
         }
         sb.AppendLine();
-        sb.AppendLine("=== Raw Response Headers ===");
+        sb.AppendLine(L("ToolHttpHeaderReportRawHeaders"));
         sb.AppendLine(rawResponse);
 
         return sb.ToString();

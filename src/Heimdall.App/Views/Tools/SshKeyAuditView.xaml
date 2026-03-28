@@ -33,7 +33,8 @@
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
-                        Width="24" Height="24" Margin="8,0,0,0"/>
+                        Width="24" Height="24" Margin="8,0,0,0"
+                        AutomationProperties.Name=""/>
                 <TextBlock x:Name="HeaderTitle"
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
@@ -64,7 +65,8 @@
                                     Click="OnBrowseClick"
                                     Style="{DynamicResource SecondaryButtonStyle}"
                                     Padding="{StaticResource PaddingButtonCopy}" Margin="8,0,0,0"
-                                    VerticalAlignment="Top"/>
+                                    VerticalAlignment="Top"
+                                    AutomationProperties.Name=""/>
                             <TextBlock x:Name="InputLabel"
                                        Foreground="{DynamicResource TextSecondaryBrush}"
                                        FontSize="{StaticResource FontSizeCaption}"
@@ -82,7 +84,7 @@
                                  BorderBrush="{DynamicResource BorderBrush}"
                                  Padding="{StaticResource PaddingInput}"
                                  TextChanged="OnKeyInputTextChanged"
-                                 AutomationProperties.Name="SSH key input"/>
+                                 AutomationProperties.Name=""/>
                     </StackPanel>
                 </Border>
 
@@ -177,14 +179,16 @@
                                     Click="OnCopyFingerprintClick"
                                     Style="{DynamicResource SecondaryButtonStyle}"
                                     Padding="{StaticResource PaddingButtonCopy}" Margin="8,0,0,0"
-                                    VerticalAlignment="Center"/>
+                                    VerticalAlignment="Center"
+                                    AutomationProperties.Name=""/>
                             <TextBox x:Name="DetailFingerprintValue"
                                      IsReadOnly="True"
                                      FontFamily="Consolas" FontSize="{StaticResource FontSizeBody}"
                                      Background="Transparent"
                                      Foreground="{DynamicResource TextPrimaryBrush}"
                                      BorderThickness="0"
-                                     VerticalAlignment="Center"/>
+                                     VerticalAlignment="Center"
+                                     AutomationProperties.Name=""/>
                         </DockPanel>
 
                         <!-- Format -->

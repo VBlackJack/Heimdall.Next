@@ -89,7 +89,7 @@ public static class InputValidator
     /// Compiled regex for detecting invalid DNS sequences.
     /// </summary>
     private static readonly Regex InvalidDnsSequence =
-        new(@"(\.\.|--|\.-|-\.)", RegexOptions.Compiled);
+        new(@"(\.\.|\.-|-\.)", RegexOptions.Compiled);
 
     /// <summary>
     /// Validate a value against a named security pattern.
@@ -181,6 +181,68 @@ public static class InputValidator
         }
 
         return true;
+    }
+
+    /// <summary>
+    /// Validate that a value matches the "Domain" pattern: FQDN, hostname, or IPv4.
+    /// Convenience wrapper for <see cref="Validate"/> with the "Address" pattern,
+    /// also accepting wildcard-stripped domains (e.g., from TLS certificate SANs).
+    /// </summary>
+    /// <param name="value">The domain/hostname/IP to validate.</param>
+    /// <returns>True if the value is a valid domain or IP address.</returns>
+    public static bool ValidateDomain(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return false;
+
+        var trimmed = value.Trim().TrimStart('*', '.');
+        return trimmed.Length > 0 && Validate(trimmed, "Address");
+    }
+
+    /// <summary>
+    /// Sanitizes a value for safe inclusion in CSV cells by prefixing formula-triggering
+    /// characters with a single quote, preventing spreadsheet formula injection.
+    /// </summary>
+    /// <param name="value">The cell value to sanitize.</param>
+    /// <returns>The sanitized value safe for CSV output.</returns>
+    public static string SanitizeCsvCell(string? value)
+    {
+        if (string.IsNullOrEmpty(value)) return string.Empty;
+        if (value[0] is '=' or '+' or '-' or '@' or '\t' or '\r' or '\n')
+            return "'" + value;
+        return value;
+    }
+
+    /// <summary>
+    /// Escapes a value for safe interpolation inside a double-quoted shell string.
+    /// Unlike <see cref="EscapeShellArg"/>, this does NOT wrap in single quotes —
+    /// it only neutralizes characters that have special meaning inside
+    /// <c>"..."</c>: backslash, double-quote, dollar, and backtick.
+    /// Use this for values embedded in <c>echo -e "..."</c> payloads sent over nc.
+    /// </summary>
+    /// <param name="value">The value to escape.</param>
+    /// <returns>The escaped string safe for double-quoted shell interpolation.</returns>
+    public static string EscapeForDoubleQuotedString(string value)
+    {
+        ArgumentNullException.ThrowIfNull(value);
+        return value
+            .Replace("\\", "\\\\", StringComparison.Ordinal)
+            .Replace("\"", "\\\"", StringComparison.Ordinal)
+            .Replace("$", "\\$", StringComparison.Ordinal)
+            .Replace("`", "\\`", StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Escapes a string for safe use as a single-quoted POSIX shell argument.
+    /// Prevents shell injection (CWE-78) by wrapping the value in single quotes
+    /// and escaping any embedded single quotes.
+    /// </summary>
+    /// <param name="arg">The argument to escape.</param>
+    /// <returns>A shell-safe quoted argument string.</returns>
+    public static string EscapeShellArg(string arg)
+    {
+        ArgumentNullException.ThrowIfNull(arg);
+        return "'" + arg.Replace("'", "'\\''", StringComparison.Ordinal) + "'";
     }
 
     /// <summary>

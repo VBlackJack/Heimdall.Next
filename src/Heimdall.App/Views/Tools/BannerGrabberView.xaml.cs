@@ -167,6 +167,8 @@ public partial class BannerGrabberView : UserControl, IToolView
 
         BtnHelp.ToolTip = L("ToolHelpTooltip");
         System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
+        System.Windows.Automation.AutomationProperties.SetName(GrabProgress, L("ToolBannerA11yProgress"));
+        System.Windows.Automation.AutomationProperties.SetName(ResultsGrid, L("ToolBannerTitle"));
 
         TxtEmptyState.Text = L("ToolBannerEmptyState");
 
@@ -214,6 +216,13 @@ public partial class BannerGrabberView : UserControl, IToolView
         if (string.IsNullOrWhiteSpace(host))
         {
             TxtError.Text = L("ToolValidationHostRequired");
+            TxtError.Visibility = Visibility.Visible;
+            return;
+        }
+
+        if (!InputValidator.Validate(host, "Address"))
+        {
+            TxtError.Text = L("ErrorInvalidHost");
             TxtError.Visibility = Visibility.Visible;
             return;
         }
@@ -275,62 +284,67 @@ public partial class BannerGrabberView : UserControl, IToolView
         var semaphore = new SemaphoreSlim(tunnelClient is not null ? 10 : MaxConcurrent);
         var ct = _cts.Token;
 
-        var tasks = ports.Select(async port =>
-        {
-            await semaphore.WaitAsync(ct);
-            try
-            {
-                ct.ThrowIfCancellationRequested();
-                var probeResult = tunnelClient is not null
-                    ? await ProbePortViaTunnelAsync(tunnelClient, host, port, ct)
-                    : await ProbePortAsync(host, port, ct);
-
-                await Dispatcher.InvokeAsync(() =>
-                {
-                    var result = new BannerResult
-                    {
-                        Port = probeResult.Port,
-                        Service = probeResult.Service,
-                        Banner = probeResult.Banner ?? "",
-                        ResponseTime = probeResult.ResponseTime,
-                        HasBanner = !string.IsNullOrWhiteSpace(probeResult.Banner),
-                    };
-                    _allResults.Add(result);
-                    completed++;
-                    GrabProgress.Value = completed;
-                    var percent = (int)(completed * 100.0 / GrabProgress.Maximum);
-                    TxtProgressPercent.Text = $"{percent}%";
-                    TxtProgressCount.Text = string.Format(
-                        L("ToolBannerProgress"), completed, (int)GrabProgress.Maximum);
-
-                    if (ChkBannerOnly?.IsChecked != true || result.HasBanner)
-                    {
-                        _results.Add(result);
-                    }
-
-                    UpdateResultCount();
-                });
-            }
-            finally
-            {
-                semaphore.Release();
-            }
-        });
-
         try
         {
-            await Task.WhenAll(tasks);
-        }
-        catch (OperationCanceledException)
-        {
-            // Grab was cancelled
-        }
-        catch (Exception ex)
-        {
-            Core.Logging.FileLogger.Warn($"BannerGrabber scan failed: {ex.Message}");
+            var tasks = ports.Select(async port =>
+            {
+                await semaphore.WaitAsync(ct);
+                try
+                {
+                    ct.ThrowIfCancellationRequested();
+                    var probeResult = tunnelClient is not null
+                        ? await ProbePortViaTunnelAsync(tunnelClient, host, port, ct)
+                        : await ProbePortAsync(host, port, ct);
+
+                    await Dispatcher.InvokeAsync(() =>
+                    {
+                        var result = new BannerResult
+                        {
+                            Port = probeResult.Port,
+                            Service = probeResult.Service,
+                            Banner = probeResult.Banner ?? "",
+                            ResponseTime = probeResult.ResponseTime,
+                            HasBanner = !string.IsNullOrWhiteSpace(probeResult.Banner),
+                        };
+                        _allResults.Add(result);
+                        completed++;
+                        GrabProgress.Value = completed;
+                        var percent = (int)(completed * 100.0 / GrabProgress.Maximum);
+                        TxtProgressPercent.Text = $"{percent}%";
+                        TxtProgressCount.Text = string.Format(
+                            L("ToolBannerProgress"), completed, (int)GrabProgress.Maximum);
+
+                        if (ChkBannerOnly?.IsChecked != true || result.HasBanner)
+                        {
+                            _results.Add(result);
+                        }
+
+                        UpdateResultCount();
+                    });
+                }
+                finally
+                {
+                    semaphore.Release();
+                }
+            });
+
+            try
+            {
+                await Task.WhenAll(tasks);
+            }
+            catch (OperationCanceledException)
+            {
+                // Grab was cancelled
+            }
+            catch (Exception ex)
+            {
+                Core.Logging.FileLogger.Warn($"BannerGrabber scan failed: {ex.Message}");
+            }
         }
         finally
         {
+            semaphore.Dispose();
+
             if (tunnelClient is not null)
             {
                 try { tunnelClient.Disconnect(); } catch { /* best effort */ }
@@ -433,6 +447,10 @@ public partial class BannerGrabberView : UserControl, IToolView
             var buffer = new byte[BannerMaxBytes];
             var read = await stream.ReadAsync(buffer, linked.Token);
             return read > 0 ? Encoding.ASCII.GetString(buffer, 0, read).Trim() : null;
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
         }
         catch
         {
@@ -697,12 +715,14 @@ public partial class BannerGrabberView : UserControl, IToolView
         try
         {
             var sb = new StringBuilder();
-            sb.AppendLine("Port,Service,Banner,ResponseTime");
+            sb.AppendLine($"{L("ToolBannerColPort")},{L("ToolBannerColService")},{L("ToolBannerColBanner")},{L("ToolBannerColTime")}");
 
             foreach (var r in _allResults.OrderBy(r => r.Port))
             {
-                var banner = r.Banner.Replace("\"", "\"\"");
-                sb.AppendLine($"{r.Port},{r.Service},\"{banner}\",{r.ResponseTime}");
+                var banner = InputValidator.SanitizeCsvCell(r.Banner).Replace("\"", "\"\"");
+                var service = InputValidator.SanitizeCsvCell(r.Service);
+                var responseTime = InputValidator.SanitizeCsvCell(r.ResponseTime);
+                sb.AppendLine($"{r.Port},{service},\"{banner}\",{responseTime}");
             }
 
             File.WriteAllText(dialog.FileName, sb.ToString(), Encoding.UTF8);
@@ -724,7 +744,7 @@ public partial class BannerGrabberView : UserControl, IToolView
         try
         {
             var sb = new StringBuilder();
-            sb.AppendLine($"{"Port",-8}{"Service",-20}{"Time",-12}{"Banner"}");
+            sb.AppendLine($"{L("ToolBannerColPort"),-8}{L("ToolBannerColService"),-20}{L("ToolBannerColTime"),-12}{L("ToolBannerColBanner")}");
             sb.AppendLine(new string('-', 72));
 
             foreach (var r in _results)

@@ -34,7 +34,8 @@
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
-                        Width="24" Height="24" Margin="8,0,0,0"/>
+                        Width="24" Height="24" Margin="8,0,0,0"
+                        AutomationProperties.Name=""/>
                 <TextBlock x:Name="HeaderTitle" Text=""
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
@@ -48,7 +49,8 @@
                          Height="20" Minimum="0" Maximum="100"
                          IsIndeterminate="False"
                          Foreground="{DynamicResource AccentBrush}"
-                         Background="{DynamicResource SurfaceBrush}"/>
+                         Background="{DynamicResource SurfaceBrush}"
+                         AutomationProperties.Name=""/>
             <TextBlock x:Name="TxtProgressStatus" Text=""
                        FontSize="{StaticResource FontSizeCaption}" FontWeight="SemiBold"
                        Foreground="{DynamicResource TextPrimaryBrush}"
@@ -68,7 +70,8 @@
                             Content="" Click="OnAuditClick"
                             Style="{DynamicResource PrimaryButtonStyle}"
                             Padding="16,6" Margin="8,0,0,0"
-                            VerticalAlignment="Center"/>
+                            VerticalAlignment="Center"
+                            AutomationProperties.Name=""/>
                     <TextBox x:Name="TxtPort" DockPanel.Dock="Right"
                              Text="443" Width="70"
                              Style="{StaticResource WatermarkTextBoxStyle}"
@@ -78,7 +81,8 @@
                              Background="{DynamicResource CardBrush}"
                              Foreground="{DynamicResource TextPrimaryBrush}"
                              BorderBrush="{DynamicResource BorderBrush}"
-                             VerticalAlignment="Center"/>
+                             VerticalAlignment="Center"
+                             AutomationProperties.Name=""/>
                     <TextBlock DockPanel.Dock="Right" Text=":"
                                FontSize="{StaticResource FontSizeBodyLarge}" Margin="4,0,0,0"
                                Foreground="{DynamicResource TextSecondaryBrush}"
@@ -91,7 +95,8 @@
                              Background="{DynamicResource CardBrush}"
                              Foreground="{DynamicResource TextPrimaryBrush}"
                              BorderBrush="{DynamicResource BorderBrush}"
-                             VerticalAlignment="Center"/>
+                             VerticalAlignment="Center"
+                             AutomationProperties.Name=""/>
                 </DockPanel>
 
                 <!-- Route via gateway -->
@@ -105,7 +110,8 @@
                               Background="{DynamicResource CardBrush}"
                               Foreground="{DynamicResource TextPrimaryBrush}"
                               BorderBrush="{DynamicResource BorderBrush}"
-                              VerticalAlignment="Center"/>
+                              VerticalAlignment="Center"
+                              AutomationProperties.Name=""/>
                 </DockPanel>
 
                 <!-- Error message -->
@@ -120,8 +126,7 @@
                     <StackPanel HorizontalAlignment="Center">
                         <TextBlock Text="&#xE72E;" FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource IconSizeEmptyState}"
                                    HorizontalAlignment="Center"
-                                   Foreground="{DynamicResource TextDisabledBrush}" Margin="0,0,0,8"
-                                   AutomationProperties.Name=""/>
+                                   Foreground="{DynamicResource TextDisabledBrush}" Margin="0,0,0,8"/>
                         <TextBlock x:Name="TxtEmptyState" Text=""
                                    FontSize="{StaticResource FontSizeBodyLarge}" TextAlignment="Center"
                                    Foreground="{DynamicResource TextSecondaryBrush}"/>
@@ -144,7 +149,8 @@
                                        FontSize="{StaticResource FontSizeHeadline}" FontWeight="Bold"
                                        Foreground="{DynamicResource TextOnAccentBrush}"
                                        HorizontalAlignment="Center"
-                                       AutomationProperties.Name="TLS Grade"/>
+                                       AutomationProperties.Name=""
+                                       AutomationProperties.LiveSetting="Polite"/>
                         </StackPanel>
                     </Border>
 
@@ -328,7 +334,8 @@
                             Visibility="Collapsed"
                             Style="{DynamicResource SecondaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonCopy}" Margin="0,0,0,12"
-                            HorizontalAlignment="Left"/>
+                            HorizontalAlignment="Left"
+                            AutomationProperties.Name=""/>
                 </StackPanel>
 
             </StackPanel>
