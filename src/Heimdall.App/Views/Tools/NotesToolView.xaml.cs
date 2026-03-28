@@ -749,6 +749,7 @@ public partial class NotesToolView : UserControl, IToolView
         System.Windows.Automation.AutomationProperties.SetName(BtnExpandAll, L("TooltipExpandAll"));
         System.Windows.Automation.AutomationProperties.SetName(BtnMarkdownHelp, L("TooltipMarkdownHelp"));
         System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
+        System.Windows.Automation.AutomationProperties.SetName(BtnCloseHelp, L("BtnClose"));
         System.Windows.Automation.AutomationProperties.SetName(BtnOpenFolder, L("TooltipOpenNotesFolder"));
         System.Windows.Automation.AutomationProperties.SetName(BtnNewNote, L("TooltipNewNote"));
         System.Windows.Automation.AutomationProperties.SetName(BtnNoteActions, L("ToolNotesTplActions"));
@@ -1759,7 +1760,18 @@ public partial class NotesToolView : UserControl, IToolView
 
     private void OnHelpClick(object sender, RoutedEventArgs e)
     {
-        MessageBox.Show(L("ToolHelpNOTES"), L("ToolHelpTitle"), MessageBoxButton.OK, MessageBoxImage.Information);
+        if (HelpPanel.Visibility == Visibility.Visible)
+        {
+            HelpPanel.Visibility = Visibility.Collapsed;
+            return;
+        }
+        TxtHelpContent.Text = L("ToolHelpNOTES").Replace("\\n", "\n");
+        HelpPanel.Visibility = Visibility.Visible;
+    }
+
+    private void OnCloseHelpClick(object sender, RoutedEventArgs e)
+    {
+        HelpPanel.Visibility = Visibility.Collapsed;
     }
 
     private void OnMarkdownHelpClick(object sender, RoutedEventArgs e)

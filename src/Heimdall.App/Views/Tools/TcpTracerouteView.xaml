@@ -21,6 +21,7 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
@@ -41,50 +42,78 @@
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
                            VerticalAlignment="Center" DockPanel.Dock="Left"/>
-                <StackPanel Orientation="Horizontal" Margin="16,0,0,0" VerticalAlignment="Center">
-                    <TextBox x:Name="TxtHost" Text="" Width="240"
-                             Style="{StaticResource WatermarkTextBoxStyle}"
-                             Tag="hostname or IP"
-                             FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
-                             Padding="{StaticResource PaddingInput}"
-                             Background="{DynamicResource CardBrush}"
-                             Foreground="{DynamicResource TextPrimaryBrush}"
-                             BorderBrush="{DynamicResource BorderBrush}"
-                             VerticalAlignment="Center"
-                             AutomationProperties.Name=""/>
-                    <TextBlock x:Name="LblMaxHops" Text=""
-                               FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center" Margin="12,0,4,0"
-                               Foreground="{DynamicResource TextSecondaryBrush}"/>
-                    <TextBox x:Name="TxtMaxHops" Text="30" Width="50"
-                             FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
-                             Padding="{StaticResource PaddingInput}"
-                             Background="{DynamicResource CardBrush}"
-                             Foreground="{DynamicResource TextPrimaryBrush}"
-                             BorderBrush="{DynamicResource BorderBrush}"
-                             VerticalAlignment="Center"
-                             AutomationProperties.Name=""/>
-                    <TextBlock x:Name="LblRouteVia" Text=""
-                               FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center" Margin="12,0,4,0"
-                               Foreground="{DynamicResource TextSecondaryBrush}"/>
-                    <ComboBox x:Name="CmbRouteVia" Width="180"
-                              SelectionChanged="OnRouteViaChanged"
-                              Background="{DynamicResource CardBrush}"
-                              Foreground="{DynamicResource TextPrimaryBrush}"
-                              BorderBrush="{DynamicResource BorderBrush}"
-                              VerticalAlignment="Center"
-                              AutomationProperties.Name=""/>
+                <WrapPanel Margin="16,0,0,0" VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal" Margin="0,2,12,2">
+                        <TextBlock x:Name="LblHost" Text=""
+                                   FontSize="{StaticResource FontSizeCaption}"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                   VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <TextBox x:Name="TxtHost" Text="" MinWidth="140"
+                                 Style="{StaticResource WatermarkTextBoxStyle}"
+                                 Tag="hostname or IP"
+                                 FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
+                                 Padding="{StaticResource PaddingInput}"
+                                 Background="{DynamicResource CardBrush}"
+                                 Foreground="{DynamicResource TextPrimaryBrush}"
+                                 BorderBrush="{DynamicResource BorderBrush}"
+                                 VerticalAlignment="Center"
+                                 AutomationProperties.Name=""/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,2,12,2">
+                        <TextBlock x:Name="LblMaxHops" Text=""
+                                   FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center" Margin="0,0,4,0"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"/>
+                        <TextBox x:Name="TxtMaxHops" Text="30" Width="50"
+                                 FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
+                                 Padding="{StaticResource PaddingInput}"
+                                 Background="{DynamicResource CardBrush}"
+                                 Foreground="{DynamicResource TextPrimaryBrush}"
+                                 BorderBrush="{DynamicResource BorderBrush}"
+                                 VerticalAlignment="Center"
+                                 AutomationProperties.Name=""/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,2,12,2">
+                        <TextBlock x:Name="LblRouteVia" Text=""
+                                   FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center" Margin="0,0,4,0"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"/>
+                        <ComboBox x:Name="CmbRouteVia" Width="180"
+                                  SelectionChanged="OnRouteViaChanged"
+                                  Background="{DynamicResource CardBrush}"
+                                  Foreground="{DynamicResource TextPrimaryBrush}"
+                                  BorderBrush="{DynamicResource BorderBrush}"
+                                  VerticalAlignment="Center"
+                                  AutomationProperties.Name=""/>
+                    </StackPanel>
                     <Button x:Name="BtnTrace" Content=""
                             Click="OnTraceClick"
                             Style="{DynamicResource PrimaryButtonStyle}"
-                            Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginInlineControl}"
+                            Padding="{StaticResource PaddingButtonPrimary}" Margin="0,2,0,2"
                             VerticalAlignment="Center"
                             AutomationProperties.Name=""/>
-                </StackPanel>
+                </WrapPanel>
+            </DockPanel>
+        </Border>
+
+        <!-- Help panel -->
+        <Border x:Name="HelpPanel" Grid.Row="1" Style="{StaticResource ToolHelpPanelStyle}">
+            <DockPanel>
+                <Button x:Name="BtnCloseHelp" DockPanel.Dock="Right" Content="&#xE711;"
+                        FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeBody}"
+                        Click="OnCloseHelpClick"
+                        Style="{DynamicResource ToolbarGhostButtonStyle}"
+                        VerticalAlignment="Top" Width="24" Height="24"
+                        AutomationProperties.Name=""/>
+                <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
+                    <TextBlock x:Name="TxtHelpContent" Text="" TextWrapping="Wrap"
+                               FontSize="{StaticResource FontSizeBody}"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               LineHeight="20"/>
+                </ScrollViewer>
             </DockPanel>
         </Border>
 
         <!-- Progress bar -->
-        <Grid Grid.Row="1" x:Name="ProgressPanel" Visibility="Collapsed">
+        <Grid Grid.Row="2" x:Name="ProgressPanel" Visibility="Collapsed">
             <ProgressBar x:Name="TraceProgress"
                          Height="20" Minimum="0" Maximum="100"
                          IsIndeterminate="False"
@@ -98,7 +127,7 @@
         </Grid>
 
         <!-- Empty state hint -->
-        <Border x:Name="EmptyStatePanel" Grid.Row="2"
+        <Border x:Name="EmptyStatePanel" Grid.Row="3"
                 Style="{StaticResource ToolEmptyStateStyle}"
                 Margin="0,24,0,0">
             <StackPanel HorizontalAlignment="Center">
@@ -112,7 +141,7 @@
         </Border>
 
         <!-- Results DataGrid -->
-        <Border Grid.Row="2" Margin="{StaticResource SpacingSm}"
+        <Border Grid.Row="3" Margin="{StaticResource SpacingSm}"
                 Background="{DynamicResource CardBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}">
@@ -151,7 +180,7 @@
         </Border>
 
         <!-- Footer -->
-        <Border Grid.Row="3" Padding="{StaticResource ToolFooterPadding}"
+        <Border Grid.Row="4" Padding="{StaticResource ToolFooterPadding}"
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,1,0,0">

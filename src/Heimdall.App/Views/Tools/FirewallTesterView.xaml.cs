@@ -590,7 +590,7 @@ public partial class FirewallTesterView : UserControl, IToolView
 
         var dialog = new Microsoft.Win32.SaveFileDialog
         {
-            Filter = "CSV files (*.csv)|*.csv",
+            Filter = L("FileDialogCsvFilter"),
             FileName = $"firewall_test_{DateTime.Now:yyyyMMdd_HHmmss}.csv",
         };
 

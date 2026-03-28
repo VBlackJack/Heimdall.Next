@@ -23,6 +23,7 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
@@ -46,8 +47,26 @@
             </DockPanel>
         </Border>
 
-        <!-- Row 1: Input section -->
-        <Border Grid.Row="1" Padding="{StaticResource ToolFooterPadding}"
+        <!-- Help panel -->
+        <Border x:Name="HelpPanel" Grid.Row="1" Style="{StaticResource ToolHelpPanelStyle}">
+            <DockPanel>
+                <Button x:Name="BtnCloseHelp" DockPanel.Dock="Right" Content="&#xE711;"
+                        FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeBody}"
+                        Click="OnCloseHelpClick"
+                        Style="{DynamicResource ToolbarGhostButtonStyle}"
+                        VerticalAlignment="Top" Width="24" Height="24"
+                        AutomationProperties.Name=""/>
+                <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
+                    <TextBlock x:Name="TxtHelpContent" Text="" TextWrapping="Wrap"
+                               FontSize="{StaticResource FontSizeBody}"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               LineHeight="20"/>
+                </ScrollViewer>
+            </DockPanel>
+        </Border>
+
+        <!-- Row 2: Input section -->
+        <Border Grid.Row="2" Padding="{StaticResource ToolFooterPadding}"
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,0,0,1">
@@ -129,7 +148,7 @@
         </Border>
 
         <!-- Row 2: Progress -->
-        <StackPanel Grid.Row="2" x:Name="ProgressPanel" Visibility="Collapsed">
+        <StackPanel Grid.Row="3" x:Name="ProgressPanel" Visibility="Collapsed">
             <ProgressBar x:Name="AuditProgress" Height="4"
                          Minimum="0" Maximum="100"
                          Foreground="{DynamicResource AccentBrush}"
@@ -145,7 +164,7 @@
         </StackPanel>
 
         <!-- Row 3: Compliance badge -->
-        <Border x:Name="ComplianceBadgePanel" Grid.Row="3" Visibility="Collapsed"
+        <Border x:Name="ComplianceBadgePanel" Grid.Row="4" Visibility="Collapsed"
                 Padding="{StaticResource PaddingSectionCard}" Margin="{StaticResource SpacingSm}"
                 Background="{DynamicResource CardBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
@@ -173,7 +192,7 @@
         </Border>
 
         <!-- Empty state hint -->
-        <Border x:Name="EmptyStatePanel" Grid.Row="4"
+        <Border x:Name="EmptyStatePanel" Grid.Row="5"
                 Style="{StaticResource ToolEmptyStateStyle}"
                 Margin="0,24,0,0">
             <StackPanel HorizontalAlignment="Center">
@@ -187,13 +206,13 @@
         </Border>
 
         <!-- Row 4: Results (chapter expanders) -->
-        <ScrollViewer Grid.Row="4" x:Name="ResultsScroller" Visibility="Collapsed"
+        <ScrollViewer Grid.Row="5" x:Name="ResultsScroller" Visibility="Collapsed"
                       VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
             <StackPanel x:Name="ResultsPanel" Margin="{StaticResource ContentAreaMargin}"/>
         </ScrollViewer>
 
-        <!-- Row 5: Footer -->
-        <Border Grid.Row="5" Padding="{StaticResource ToolFooterPadding}"
+        <!-- Row 6: Footer -->
+        <Border Grid.Row="6" Padding="{StaticResource ToolFooterPadding}"
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,1,0,0">

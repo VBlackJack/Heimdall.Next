@@ -20,6 +20,7 @@
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
@@ -41,7 +42,7 @@
                            Foreground="{DynamicResource TextPrimaryBrush}"
                            VerticalAlignment="Center" DockPanel.Dock="Left"/>
                 <StackPanel Orientation="Horizontal" Margin="16,0,0,0" VerticalAlignment="Center">
-                    <TextBox x:Name="TxtInput" Width="380"
+                    <TextBox x:Name="TxtInput" MinWidth="200"
                              Style="{StaticResource WatermarkTextBoxStyle}"
                              FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
                              Padding="{StaticResource PaddingInput}"
@@ -60,8 +61,26 @@
             </DockPanel>
         </Border>
 
+        <!-- Help panel -->
+        <Border x:Name="HelpPanel" Grid.Row="1" Style="{StaticResource ToolHelpPanelStyle}">
+            <DockPanel>
+                <Button x:Name="BtnCloseHelp" DockPanel.Dock="Right" Content="&#xE711;"
+                        FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeBody}"
+                        Click="OnCloseHelpClick"
+                        Style="{DynamicResource ToolbarGhostButtonStyle}"
+                        VerticalAlignment="Top" Width="24" Height="24"
+                        AutomationProperties.Name=""/>
+                <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
+                    <TextBlock x:Name="TxtHelpContent" Text="" TextWrapping="Wrap"
+                               FontSize="{StaticResource FontSizeBody}"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               LineHeight="20"/>
+                </ScrollViewer>
+            </DockPanel>
+        </Border>
+
         <!-- Content area -->
-        <Grid Grid.Row="1">
+        <Grid Grid.Row="2">
             <!-- Empty state -->
             <Border x:Name="EmptyStatePanel"
                     Style="{StaticResource ToolEmptyStateStyle}"
@@ -141,7 +160,7 @@
 
                                         <Border Grid.Row="0" Grid.Column="1"
                                                 Background="{Binding CvssBrush}" CornerRadius="{StaticResource CornerRadiusXs}"
-                                                Padding="8,2" VerticalAlignment="Center"
+                                                Padding="{StaticResource PaddingButtonPreset}" VerticalAlignment="Center"
                                                 HorizontalAlignment="Right">
                                             <TextBlock Text="{Binding CvssLabel}" FontFamily="Consolas"
                                                        FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
@@ -173,7 +192,7 @@
         </Grid>
 
         <!-- Footer -->
-        <Border Grid.Row="2" Padding="{StaticResource ToolFooterPadding}"
+        <Border Grid.Row="3" Padding="{StaticResource ToolFooterPadding}"
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,1,0,0">

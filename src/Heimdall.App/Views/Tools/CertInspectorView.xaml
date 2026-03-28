@@ -129,7 +129,7 @@
                                VerticalAlignment="Center"/>
                     <TextBox x:Name="TxtHost" Text=""
                              Style="{StaticResource WatermarkTextBoxStyle}"
-                             Tag="hostname"
+                             Tag=""
                              FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
                              Padding="{StaticResource PaddingInput}"
                              Background="{DynamicResource CardBrush}"
@@ -387,19 +387,19 @@
                                             </Grid.ColumnDefinitions>
                                             <Grid.RowDefinitions>
                                                 <RowDefinition Height="Auto"/>
-                                                <RowDefinition Height="6"/>
+                                                <RowDefinition Height="{StaticResource SpacingRowGap}"/>
                                                 <RowDefinition Height="Auto"/>
-                                                <RowDefinition Height="6"/>
+                                                <RowDefinition Height="{StaticResource SpacingRowGap}"/>
                                                 <RowDefinition Height="Auto"/>
-                                                <RowDefinition Height="6"/>
+                                                <RowDefinition Height="{StaticResource SpacingRowGap}"/>
                                                 <RowDefinition Height="Auto"/>
-                                                <RowDefinition Height="6"/>
+                                                <RowDefinition Height="{StaticResource SpacingRowGap}"/>
                                                 <RowDefinition Height="Auto"/>
-                                                <RowDefinition Height="6"/>
+                                                <RowDefinition Height="{StaticResource SpacingRowGap}"/>
                                                 <RowDefinition Height="Auto"/>
-                                                <RowDefinition Height="6"/>
+                                                <RowDefinition Height="{StaticResource SpacingRowGap}"/>
                                                 <RowDefinition Height="Auto"/>
-                                                <RowDefinition Height="6"/>
+                                                <RowDefinition Height="{StaticResource SpacingRowGap}"/>
                                                 <RowDefinition Height="Auto"/>
                                             </Grid.RowDefinitions>
 

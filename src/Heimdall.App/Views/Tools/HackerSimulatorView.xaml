@@ -16,7 +16,7 @@
 <UserControl x:Class="Heimdall.App.Views.Tools.HackerSimulatorView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             Background="Black">
+             Background="{DynamicResource BackgroundBrush}">
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -179,7 +179,7 @@
         </Border>
 
         <!-- Terminal area -->
-        <Grid x:Name="TerminalGrid" Grid.Row="1" Background="Black" ClipToBounds="True">
+        <Grid x:Name="TerminalGrid" Grid.Row="1" Background="{DynamicResource BackgroundBrush}" ClipToBounds="True">
             <Canvas x:Name="MatrixCanvas" Visibility="Collapsed"
                     ClipToBounds="True" SizeChanged="OnMatrixCanvasSizeChanged"/>
 

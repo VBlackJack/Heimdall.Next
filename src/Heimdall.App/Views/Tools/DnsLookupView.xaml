@@ -74,7 +74,7 @@
                               AutomationProperties.Name=""/>
                     <TextBox x:Name="TxtHostname" Text=""
                              Style="{StaticResource WatermarkTextBoxStyle}"
-                             Tag="example.com"
+                             Tag=""
                              FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
                              Padding="{StaticResource PaddingInput}"
                              Background="{DynamicResource CardBrush}"

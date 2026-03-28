@@ -22,6 +22,7 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
@@ -45,8 +46,26 @@
             </DockPanel>
         </Border>
 
+        <!-- Help panel -->
+        <Border x:Name="HelpPanel" Grid.Row="1" Style="{StaticResource ToolHelpPanelStyle}">
+            <DockPanel>
+                <Button x:Name="BtnCloseHelp" DockPanel.Dock="Right" Content="&#xE711;"
+                        FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeBody}"
+                        Click="OnCloseHelpClick"
+                        Style="{DynamicResource ToolbarGhostButtonStyle}"
+                        VerticalAlignment="Top" Width="24" Height="24"
+                        AutomationProperties.Name=""/>
+                <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
+                    <TextBlock x:Name="TxtHelpContent" Text="" TextWrapping="Wrap"
+                               FontSize="{StaticResource FontSizeBody}"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               LineHeight="20"/>
+                </ScrollViewer>
+            </DockPanel>
+        </Border>
+
         <!-- File path + Browse + Tail -->
-        <Border Grid.Row="1" Padding="{StaticResource ToolHeaderPadding}"
+        <Border Grid.Row="2" Padding="{StaticResource ToolHeaderPadding}"
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,0,0,1">
@@ -70,14 +89,14 @@
                          BorderBrush="{DynamicResource BorderBrush}"
                          Padding="{StaticResource PaddingInput}"
                          VerticalAlignment="Center"
-                         Tag="log file path"
+                         Tag=""
                          KeyDown="OnFilePathKeyDown"
                          AutomationProperties.Name=""/>
             </DockPanel>
         </Border>
 
         <!-- Filter bar -->
-        <Border Grid.Row="2" Padding="{StaticResource ToolFooterPadding}"
+        <Border Grid.Row="3" Padding="{StaticResource ToolFooterPadding}"
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,0,0,1">
@@ -119,14 +138,14 @@
                          BorderBrush="{DynamicResource BorderBrush}"
                          Padding="{StaticResource PaddingInput}"
                          VerticalAlignment="Center"
-                         Tag="filter text"
+                         Tag=""
                          KeyDown="OnFilterKeyDown"
                          AutomationProperties.Name=""/>
             </DockPanel>
         </Border>
 
         <!-- Empty state hint (hidden once a file is loaded) -->
-        <Border x:Name="EmptyStatePanel" Grid.Row="3"
+        <Border x:Name="EmptyStatePanel" Grid.Row="4"
                 Style="{StaticResource ToolEmptyStateStyle}"
                 Margin="0,24,0,0">
             <StackPanel HorizontalAlignment="Center">
@@ -141,7 +160,7 @@
         </Border>
 
         <!-- Log display -->
-        <RichTextBox x:Name="LogViewer" Grid.Row="3"
+        <RichTextBox x:Name="LogViewer" Grid.Row="4"
                      IsReadOnly="True" AutomationProperties.LiveSetting="Polite"
                      FontFamily="Consolas" FontSize="{StaticResource FontSizeBody}"
                      Background="{DynamicResource CardBrush}"
@@ -154,7 +173,7 @@
         </RichTextBox>
 
         <!-- Stats bar -->
-        <Border Grid.Row="4" Padding="{StaticResource ToolFooterPadding}"
+        <Border Grid.Row="5" Padding="{StaticResource ToolFooterPadding}"
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,1,0,0">

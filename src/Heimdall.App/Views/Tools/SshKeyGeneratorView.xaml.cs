@@ -45,8 +45,8 @@ public partial class SshKeyGeneratorView : UserControl, IToolView
     private const string OpenSshEd25519Prefix = "ssh-ed25519";
     private const string PublicKeyFileExtension = ".pub";
     private const string PrivateKeyFileExtension = ".pem";
-    private const string PublicKeyFileFilter = "SSH Public Key (*.pub)|*.pub|All Files (*.*)|*.*";
-    private const string PrivateKeyFileFilter = "PEM Private Key (*.pem)|*.pem|All Files (*.*)|*.*";
+    private string PublicKeyFileFilter => L("ToolSshKeyGenPubFilter");
+    private string PrivateKeyFileFilter => L("ToolSshKeyGenPrivFilter");
 
     /// <summary>
     /// Cached reflection lookup for System.Security.Cryptography.EdDSA (available in .NET 10+).
@@ -126,12 +126,23 @@ public partial class SshKeyGeneratorView : UserControl, IToolView
 
         BtnHelp.ToolTip = L("ToolHelpTooltip");
         System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
+        System.Windows.Automation.AutomationProperties.SetName(BtnCloseHelp, L("BtnClose"));
     }
 
     private void OnHelpClick(object sender, RoutedEventArgs e)
     {
-        var helpText = L("ToolHelpSSHKEY");
-        MessageBox.Show(helpText, L("ToolHelpTitle"), MessageBoxButton.OK, MessageBoxImage.Information);
+        if (HelpPanel.Visibility == Visibility.Visible)
+        {
+            HelpPanel.Visibility = Visibility.Collapsed;
+            return;
+        }
+        TxtHelpContent.Text = L("ToolHelpSSHKEY").Replace("\\n", "\n");
+        HelpPanel.Visibility = Visibility.Visible;
+    }
+
+    private void OnCloseHelpClick(object sender, RoutedEventArgs e)
+    {
+        HelpPanel.Visibility = Visibility.Collapsed;
     }
 
     private void OnGenerateClick(object sender, RoutedEventArgs e)

@@ -245,7 +245,7 @@ public partial class HttpStatusCodesView : UserControl, IToolView
 
     public void Dispose()
     {
-        // Reserved for future resource cleanup.
+        GC.SuppressFinalize(this);
     }
 
     /// <summary>

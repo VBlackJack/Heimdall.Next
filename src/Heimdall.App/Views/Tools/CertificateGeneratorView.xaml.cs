@@ -39,8 +39,8 @@ public partial class CertificateGeneratorView : UserControl, IToolView
     private const int SerialNumberLength = 16;
     private const byte PositiveMsbMask = 0x7F;
     private const string MaskedPlaceholder = "********";
-    private const string PemFileFilter = "PEM Certificate (*.pem)|*.pem|All Files (*.*)|*.*";
-    private const string PfxFileFilter = "PFX/PKCS#12 (*.pfx)|*.pfx|All Files (*.*)|*.*";
+    private string PemFileFilter => L("ToolCertGenPemFilter");
+    private string PfxFileFilter => L("ToolCertGenPfxFilter");
 
     private LocalizationManager? _localizer;
 
@@ -143,6 +143,7 @@ public partial class CertificateGeneratorView : UserControl, IToolView
 
         BtnHelp.ToolTip = L("ToolHelpTooltip");
         System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
+        System.Windows.Automation.AutomationProperties.SetName(BtnCloseHelp, L("BtnClose"));
     }
 
     private void OnGenerateClick(object sender, RoutedEventArgs e)
@@ -597,8 +598,18 @@ public partial class CertificateGeneratorView : UserControl, IToolView
 
     private void OnHelpClick(object sender, RoutedEventArgs e)
     {
-        var helpText = L("ToolHelpCERTGEN");
-        MessageBox.Show(helpText, L("ToolHelpTitle"), MessageBoxButton.OK, MessageBoxImage.Information);
+        if (HelpPanel.Visibility == Visibility.Visible)
+        {
+            HelpPanel.Visibility = Visibility.Collapsed;
+            return;
+        }
+        TxtHelpContent.Text = L("ToolHelpCERTGEN").Replace("\\n", "\n");
+        HelpPanel.Visibility = Visibility.Visible;
+    }
+
+    private void OnCloseHelpClick(object sender, RoutedEventArgs e)
+    {
+        HelpPanel.Visibility = Visibility.Collapsed;
     }
 
     private string L(string key) => _localizer?[key] ?? key;

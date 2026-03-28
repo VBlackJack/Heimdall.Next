@@ -229,6 +229,6 @@ public partial class IpConverterView : UserControl, IToolView
 
     public void Dispose()
     {
-        // Reserved for future resource cleanup.
+        GC.SuppressFinalize(this);
     }
 }

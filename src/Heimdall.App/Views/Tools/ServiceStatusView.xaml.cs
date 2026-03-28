@@ -96,6 +96,7 @@ public partial class ServiceStatusView : UserControl, IToolView
 
         BtnHelp.ToolTip = L("ToolHelpTooltip");
         AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
+        AutomationProperties.SetName(BtnCloseHelp, L("BtnClose"));
         AutomationProperties.SetName(LoadingBar, L("ToolServicesA11yLoading"));
         TxtEmptyState.Text = L("ToolServiceStatusEmptyState");
     }
@@ -378,8 +379,18 @@ public partial class ServiceStatusView : UserControl, IToolView
 
     private void OnHelpClick(object sender, RoutedEventArgs e)
     {
-        var helpText = L("ToolHelpSERVICES");
-        MessageBox.Show(helpText, L("ToolHelpTitle"), MessageBoxButton.OK, MessageBoxImage.Information);
+        if (HelpPanel.Visibility == Visibility.Visible)
+        {
+            HelpPanel.Visibility = Visibility.Collapsed;
+            return;
+        }
+        TxtHelpContent.Text = L("ToolHelpSERVICES").Replace("\\n", "\n");
+        HelpPanel.Visibility = Visibility.Visible;
+    }
+
+    private void OnCloseHelpClick(object sender, RoutedEventArgs e)
+    {
+        HelpPanel.Visibility = Visibility.Collapsed;
     }
 
     private string L(string key) => _localizer?[key] ?? key;

@@ -194,6 +194,7 @@ public partial class HashGeneratorView : UserControl, IToolView
 
         BtnHelp.ToolTip = L("ToolHelpTooltip");
         System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
+        System.Windows.Automation.AutomationProperties.SetName(BtnCloseHelp, L("BtnClose"));
 
         TxtInput.Tag = L("ToolWatermarkTextToHash");
         TxtVerify.Tag = L("ToolWatermarkPasteHashVerify");
@@ -201,8 +202,18 @@ public partial class HashGeneratorView : UserControl, IToolView
 
     private void OnHelpClick(object sender, RoutedEventArgs e)
     {
-        var helpText = L("ToolHelpHASH");
-        MessageBox.Show(helpText, L("ToolHelpTitle"), MessageBoxButton.OK, MessageBoxImage.Information);
+        if (HelpPanel.Visibility == Visibility.Visible)
+        {
+            HelpPanel.Visibility = Visibility.Collapsed;
+            return;
+        }
+        TxtHelpContent.Text = L("ToolHelpHASH").Replace("\\n", "\n");
+        HelpPanel.Visibility = Visibility.Visible;
+    }
+
+    private void OnCloseHelpClick(object sender, RoutedEventArgs e)
+    {
+        HelpPanel.Visibility = Visibility.Collapsed;
     }
 
     private void OnInputTextChanged(object sender, TextChangedEventArgs e)
@@ -378,7 +389,7 @@ public partial class HashGeneratorView : UserControl, IToolView
     {
         var dialog = new OpenFileDialog
         {
-            Filter = "All files (*.*)|*.*",
+            Filter = L("ToolHashBrowseFilter"),
         };
 
         if (dialog.ShowDialog() == true)

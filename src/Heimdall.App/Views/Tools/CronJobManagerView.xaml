@@ -20,6 +20,7 @@
     <Grid Margin="0">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
@@ -43,8 +44,26 @@
             </DockPanel>
         </Border>
 
+        <!-- Help panel -->
+        <Border x:Name="HelpPanel" Grid.Row="1" Style="{StaticResource ToolHelpPanelStyle}">
+            <DockPanel>
+                <Button x:Name="BtnCloseHelp" DockPanel.Dock="Right" Content="&#xE711;"
+                        FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeBody}"
+                        Click="OnCloseHelpClick"
+                        Style="{DynamicResource ToolbarGhostButtonStyle}"
+                        VerticalAlignment="Top" Width="24" Height="24"
+                        AutomationProperties.Name=""/>
+                <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
+                    <TextBlock x:Name="TxtHelpContent" Text="" TextWrapping="Wrap"
+                               FontSize="{StaticResource FontSizeBody}"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               LineHeight="20"/>
+                </ScrollViewer>
+            </DockPanel>
+        </Border>
+
         <!-- Empty state hint (hidden once content is loaded) -->
-        <Border x:Name="EmptyStatePanel" Grid.Row="1"
+        <Border x:Name="EmptyStatePanel" Grid.Row="2"
                 Style="{StaticResource ToolEmptyStateStyle}"
                 Margin="0,24,0,0">
             <StackPanel HorizontalAlignment="Center">
@@ -59,13 +78,13 @@
         </Border>
 
         <!-- Loading indicator -->
-        <ProgressBar x:Name="LoadingBar" Grid.Row="1" IsIndeterminate="True"
+        <ProgressBar x:Name="LoadingBar" Grid.Row="2" IsIndeterminate="True"
                      Visibility="Collapsed" Height="4" VerticalAlignment="Top"
                      Foreground="{DynamicResource AccentBrush}"
                      AutomationProperties.Name=""/>
 
         <!-- Content -->
-        <TabControl x:Name="ModeTabControl" Grid.Row="1"
+        <TabControl x:Name="ModeTabControl" Grid.Row="2"
                     Background="Transparent"
                     Foreground="{DynamicResource TextPrimaryBrush}"
                     BorderThickness="0"
@@ -249,7 +268,7 @@
         </TabControl>
 
         <!-- Status Bar -->
-        <Border Grid.Row="2" Padding="{StaticResource ToolFooterPadding}"
+        <Border Grid.Row="3" Padding="{StaticResource ToolFooterPadding}"
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,1,0,0">
