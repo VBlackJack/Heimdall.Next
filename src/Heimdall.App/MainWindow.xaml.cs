@@ -383,6 +383,8 @@ public partial class MainWindow : Window
         Mw_SettingsRdpTimeoutLabel.Text = vm.Localize("SettingsLabelRdpTimeout");
         Mw_SettingsExtToolsTitle.Text = vm.Localize("SettingsSectionExternalToolsList");
         Mw_ToolsToggleLabel.Text = vm.Localize("ToolsPanelToggle");
+        TxtToolsFilter.Tag = vm.Localize("ToolsPanelFilterPlaceholder");
+        System.Windows.Automation.AutomationProperties.SetName(TxtToolsFilter, vm.Localize("ToolsPanelFilterPlaceholder"));
         Mw_SettingsExtToolsAddBtn.Content = vm.Localize("BtnAdd");
         Mw_SettingsExtToolsRemoveBtn.Content = vm.Localize("BtnRemove");
         Mw_ExtToolLblName.Text = vm.Localize("ExternalToolLabelName");
@@ -1767,6 +1769,9 @@ public partial class MainWindow : Window
                 VerticalAlignment = VerticalAlignment.Center
             });
 
+            var descKey = $"ToolDesc{descriptor.Id}";
+            var descText = vm.Localize(descKey);
+
             var btn = new Button
             {
                 Content = btnContent,
@@ -1775,11 +1780,60 @@ public partial class MainWindow : Window
                 HorizontalAlignment = System.Windows.HorizontalAlignment.Stretch,
                 HorizontalContentAlignment = System.Windows.HorizontalAlignment.Left,
                 Padding = new Thickness(8, 3, 8, 3),
-                FontSize = 11
+                FontSize = 11,
+                ToolTip = descText != descKey ? descText : null
             };
             System.Windows.Automation.AutomationProperties.SetName(btn, vm.Localize(descriptor.LabelKey));
             btn.Click += OnToolsPanelItemClick;
             ToolsCategoryStack.Children.Add(btn);
+        }
+    }
+
+    private void OnToolsFilterChanged(object sender, TextChangedEventArgs e)
+    {
+        var filter = TxtToolsFilter.Text.Trim();
+        var hasFilter = !string.IsNullOrEmpty(filter);
+
+        foreach (UIElement child in ToolsCategoryStack.Children)
+        {
+            if (child is Button btn && btn.Tag is Core.Models.ToolDescriptor descriptor)
+            {
+                if (!hasFilter)
+                {
+                    btn.Visibility = Visibility.Visible;
+                    continue;
+                }
+
+                var name = btn.ToolTip?.ToString() ?? "";
+                var label = (DataContext as ViewModels.MainViewModel)?.Localize(descriptor.LabelKey) ?? "";
+                var aliases = string.Join(" ", descriptor.CommandPrefixes);
+                var searchable = $"{label} {aliases} {name}";
+                btn.Visibility = searchable.Contains(filter, StringComparison.OrdinalIgnoreCase)
+                    ? Visibility.Visible
+                    : Visibility.Collapsed;
+            }
+            else if (child is StackPanel header)
+            {
+                // Category headers: show if at least one tool in this category is visible
+                // We'll update after the loop
+                header.Visibility = hasFilter ? Visibility.Collapsed : Visibility.Visible;
+            }
+        }
+
+        // Show category headers that have visible tools below them
+        if (hasFilter)
+        {
+            StackPanel? currentHeader = null;
+            foreach (UIElement child in ToolsCategoryStack.Children)
+            {
+                if (child is StackPanel header)
+                    currentHeader = header;
+                else if (child is Button { Visibility: Visibility.Visible } && currentHeader is not null)
+                {
+                    currentHeader.Visibility = Visibility.Visible;
+                    currentHeader = null;
+                }
+            }
         }
     }
 

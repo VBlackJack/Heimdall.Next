@@ -3025,6 +3025,7 @@
   "ToolPwdGenCrackForever": "billions of years",
   "ToolsPanelTitle": "Tools",
   "ToolsPanelToggle": "Tools",
+  "ToolsPanelFilterPlaceholder": "Filter tools...",
   "PaletteRecentToolsHeader": "Recent Tools",
 
   "ToolPingJitter": "Jitter:",

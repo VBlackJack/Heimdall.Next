@@ -56,7 +56,7 @@
     "sessionLogDirectory": "logs\\sessions",
     "sidebarCollapsed": false,
     "sidebarWidth": 220,
-    "showToolsPanel": false,
+    "showToolsPanel": true,
     "hackerSimulatorFavoriteScenarioIds": [],
     "hackerSimulatorLastScenarioId": null,
     "hackerSimulatorPlaylistId": null,
