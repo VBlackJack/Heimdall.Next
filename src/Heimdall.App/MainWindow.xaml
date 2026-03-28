@@ -252,22 +252,39 @@
                                 Background="{DynamicResource SurfaceBrush}"
                                 BorderBrush="{DynamicResource BorderBrush}"
                                 BorderThickness="0,1,0,0"
-                                MaxHeight="300"
                                 Style="{StaticResource FadeInPanelStyle}"
                                 Visibility="Collapsed">
                             <Grid>
-                                <ScrollViewer x:Name="ToolsPanelScroll"
-                                              VerticalScrollBarVisibility="Auto" Padding="4,4,4,4"
-                                              ScrollChanged="OnToolsPanelScrollChanged">
-                                    <StackPanel x:Name="ToolsCategoryStack"/>
-                                </ScrollViewer>
-                                <Border x:Name="ToolsPanelScrollHint" Height="20" VerticalAlignment="Bottom"
-                                        IsHitTestVisible="False" Visibility="Collapsed">
-                                    <TextBlock Text="&#xE70D;" FontFamily="Segoe MDL2 Assets"
-                                               FontSize="10" HorizontalAlignment="Center"
-                                               Foreground="{DynamicResource TextDisabledBrush}"
-                                               AutomationProperties.Name=""/>
-                                </Border>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+                                <!-- Search filter -->
+                                <TextBox x:Name="TxtToolsFilter" Grid.Row="0"
+                                         Style="{StaticResource WatermarkTextBoxStyle}"
+                                         Tag=""
+                                         FontSize="{StaticResource FontSizeCaption}"
+                                         Padding="{StaticResource PaddingInput}"
+                                         Margin="4,4,4,0"
+                                         Background="{DynamicResource CardBrush}"
+                                         Foreground="{DynamicResource TextPrimaryBrush}"
+                                         BorderBrush="{DynamicResource BorderBrush}"
+                                         TextChanged="OnToolsFilterChanged"
+                                         AutomationProperties.Name=""/>
+                                <Grid Grid.Row="1">
+                                    <ScrollViewer x:Name="ToolsPanelScroll"
+                                                  VerticalScrollBarVisibility="Auto" Padding="4,4,4,4"
+                                                  ScrollChanged="OnToolsPanelScrollChanged">
+                                        <StackPanel x:Name="ToolsCategoryStack"/>
+                                    </ScrollViewer>
+                                    <Border x:Name="ToolsPanelScrollHint" Height="20" VerticalAlignment="Bottom"
+                                            IsHitTestVisible="False" Visibility="Collapsed">
+                                        <TextBlock Text="&#xE70D;" FontFamily="Segoe MDL2 Assets"
+                                                   FontSize="10" HorizontalAlignment="Center"
+                                                   Foreground="{DynamicResource TextDisabledBrush}"
+                                                   AutomationProperties.Name=""/>
+                                    </Border>
+                                </Grid>
                             </Grid>
                         </Border>
 
