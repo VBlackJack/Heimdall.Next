@@ -50,6 +50,32 @@ All notable changes to Heimdall.Next are documented in this file.
 #### Data Model
 - AuditScope.Targets: `List<string>` -> `IReadOnlyList<string>`
 
+### UX audit — a11y, design tokens, i18n, and interaction across 49 tools
+
+Three-pass cross-audit covering all 49 built-in tools (64 files, +809/-417 lines).
+
+#### Accessibility
+- 565 AutomationProperties.Name annotations in XAML (49/49 tool files covered)
+- 592 AutomationProperties.SetName() calls in code-behind (49/49 files)
+- 11 unnamed buttons given x:Name for a11y (ChmodCalculator presets, PasswordGenerator quick-lengths)
+
+#### Design Tokens
+- New `ToolContentMaxWidth` (700) token — 20 files migrated from hardcoded MaxWidth values
+- New `PaddingButtonToolbar` (8,4) token — 17 buttons migrated (DiagramEditor, NotesToolView)
+- ~90 buttons migrated to padding tokens (PaddingButtonCopy, PaddingButtonPreset, PaddingButtonPrimary, PaddingButtonToolbar, PaddingButtonHelp)
+- Hardcoded `CornerRadius="3"` replaced with CornerRadiusXs token (SnmpWalker, CveLookup)
+- Hardcoded `Foreground="White"` replaced with TextOnAccentBrush (SshKeyAudit, CveLookup)
+- Hardcoded `FontSize="12"` / `FontSize="16"` replaced with FontSizeCaption / IconSizeMedium tokens
+
+#### Interaction
+- 8 tools now handle Enter key on input fields (UUID, SshKeyGen, CertGen, FirewallTester, NetworkCalc, SshConfigGen)
+- 2 ProgressBars added (CronJobManager, ServiceStatus) for async loading feedback
+- UUID BtnGenerate promoted from SecondaryButtonStyle to PrimaryButtonStyle
+
+#### Internationalization
+- FirewallTester placeholder moved from hardcoded XAML Tag to locale keys
+- 6 new locale keys added (en.json + fr.json): ToolFwTestHostsPlaceholder, ToolCronJobA11yLoading, ToolServicesA11yLoading
+
 ---
 
 ## [v2026.032701] - 2026-03-27
