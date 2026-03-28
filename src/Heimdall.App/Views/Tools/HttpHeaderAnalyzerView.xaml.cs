@@ -118,6 +118,7 @@ public partial class HttpHeaderAnalyzerView : UserControl, IToolView
         BtnHelp.ToolTip = L("ToolHelpTooltip");
         AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
         AutomationProperties.SetName(LoadingBar, L("ToolHttpHeadersA11yLoading"));
+        AutomationProperties.SetName(BtnCloseHelp, L("BtnClose"));
     }
 
     // ── Gateway routing ──────────────────────────────────────────────
@@ -773,8 +774,18 @@ public partial class HttpHeaderAnalyzerView : UserControl, IToolView
 
     private void OnHelpClick(object sender, RoutedEventArgs e)
     {
-        var helpText = L("ToolHelpHTTPHEADERS");
-        MessageBox.Show(helpText, L("ToolHelpTitle"), MessageBoxButton.OK, MessageBoxImage.Information);
+        if (HelpPanel.Visibility == Visibility.Visible)
+        {
+            HelpPanel.Visibility = Visibility.Collapsed;
+            return;
+        }
+        TxtHelpContent.Text = L("ToolHelpHTTPHEADERS").Replace("\\n", "\n");
+        HelpPanel.Visibility = Visibility.Visible;
+    }
+
+    private void OnCloseHelpClick(object sender, RoutedEventArgs e)
+    {
+        HelpPanel.Visibility = Visibility.Collapsed;
     }
 
     // ── Helpers ──────────────────────────────────────────────────────

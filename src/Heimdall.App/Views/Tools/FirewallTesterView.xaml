@@ -23,6 +23,7 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
@@ -46,8 +47,26 @@
             </DockPanel>
         </Border>
 
+        <!-- Help panel -->
+        <Border x:Name="HelpPanel" Grid.Row="1" Style="{StaticResource ToolHelpPanelStyle}">
+            <DockPanel>
+                <Button x:Name="BtnCloseHelp" DockPanel.Dock="Right" Content="&#xE711;"
+                        FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeBody}"
+                        Click="OnCloseHelpClick"
+                        Style="{DynamicResource ToolbarGhostButtonStyle}"
+                        VerticalAlignment="Top" Width="24" Height="24"
+                        AutomationProperties.Name=""/>
+                <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
+                    <TextBlock x:Name="TxtHelpContent" Text="" TextWrapping="Wrap"
+                               FontSize="{StaticResource FontSizeBody}"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               LineHeight="20"/>
+                </ScrollViewer>
+            </DockPanel>
+        </Border>
+
         <!-- Input section -->
-        <Border Grid.Row="1" Padding="{StaticResource ToolHeaderPadding}"
+        <Border Grid.Row="2" Padding="{StaticResource ToolHeaderPadding}"
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,0,0,1">
@@ -132,12 +151,12 @@
         </Border>
 
         <!-- Validation error -->
-        <TextBlock x:Name="TxtError" Grid.Row="2" Text="" Visibility="Collapsed"
+        <TextBlock x:Name="TxtError" Grid.Row="3" Text="" Visibility="Collapsed"
                    FontSize="{StaticResource FontSizeBody}" Margin="12,4,12,0" TextWrapping="Wrap"
                    Foreground="{DynamicResource ErrorTextBrush}"/>
 
         <!-- Progress bar with count overlay -->
-        <Grid Grid.Row="3" x:Name="ProgressPanel" Visibility="Collapsed">
+        <Grid Grid.Row="4" x:Name="ProgressPanel" Visibility="Collapsed">
             <ProgressBar x:Name="TestProgress"
                          Height="20" Minimum="0" Maximum="100"
                          IsIndeterminate="False"
@@ -157,7 +176,7 @@
         </Grid>
 
         <!-- Empty state hint -->
-        <Border x:Name="EmptyStatePanel" Grid.Row="4"
+        <Border x:Name="EmptyStatePanel" Grid.Row="5"
                 Style="{StaticResource ToolEmptyStateStyle}"
                 Margin="0,24,0,0">
             <StackPanel HorizontalAlignment="Center">
@@ -171,7 +190,7 @@
         </Border>
 
         <!-- Heatmap results -->
-        <ScrollViewer x:Name="HeatmapScrollViewer" Grid.Row="4" Visibility="Collapsed"
+        <ScrollViewer x:Name="HeatmapScrollViewer" Grid.Row="5" Visibility="Collapsed"
                       VerticalScrollBarVisibility="Auto"
                       HorizontalScrollBarVisibility="Auto"
                       Padding="{StaticResource SpacingSm}">
@@ -181,7 +200,7 @@
         </ScrollViewer>
 
         <!-- Stats bar -->
-        <Border Grid.Row="5" Padding="{StaticResource ToolFooterPadding}"
+        <Border Grid.Row="6" Padding="{StaticResource ToolFooterPadding}"
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,1,0,0">

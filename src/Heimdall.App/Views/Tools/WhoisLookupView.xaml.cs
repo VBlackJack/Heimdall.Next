@@ -89,6 +89,7 @@ public partial class WhoisLookupView : UserControl, IToolView
 
         TxtDomain.Tag = L("ToolWatermarkExampleDomainOrIp");
         TxtEmptyState.Text = L("ToolWhoisEmptyState");
+        System.Windows.Automation.AutomationProperties.SetName(BtnCloseHelp, L("BtnClose"));
     }
 
     private void OnDomainKeyDown(object sender, KeyEventArgs e)
@@ -237,8 +238,18 @@ public partial class WhoisLookupView : UserControl, IToolView
 
     private void OnHelpClick(object sender, RoutedEventArgs e)
     {
-        var helpText = L("ToolHelpWHOIS");
-        MessageBox.Show(helpText, L("ToolHelpTitle"), MessageBoxButton.OK, MessageBoxImage.Information);
+        if (HelpPanel.Visibility == Visibility.Visible)
+        {
+            HelpPanel.Visibility = Visibility.Collapsed;
+            return;
+        }
+        TxtHelpContent.Text = L("ToolHelpWHOIS").Replace("\\n", "\n");
+        HelpPanel.Visibility = Visibility.Visible;
+    }
+
+    private void OnCloseHelpClick(object sender, RoutedEventArgs e)
+    {
+        HelpPanel.Visibility = Visibility.Collapsed;
     }
 
     public bool CanClose() => !_isQuerying;

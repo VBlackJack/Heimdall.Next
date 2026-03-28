@@ -299,12 +299,23 @@ public partial class CertInspectorView : UserControl, IToolView
         BtnCopyAll.ToolTip = L("ToolBtnCopyToClipboard");
         BtnExportCsv.ToolTip = L("ToolCertBtnExport");
         TxtCustomPorts.Tag = L("ToolWatermarkPortList");
+        AutomationProperties.SetName(BtnCloseHelp, L("BtnClose"));
     }
 
     private void OnHelpClick(object sender, RoutedEventArgs e)
     {
-        var helpText = L("ToolHelpCERT");
-        MessageBox.Show(helpText, L("ToolHelpTitle"), MessageBoxButton.OK, MessageBoxImage.Information);
+        if (HelpPanel.Visibility == Visibility.Visible)
+        {
+            HelpPanel.Visibility = Visibility.Collapsed;
+            return;
+        }
+        TxtHelpContent.Text = L("ToolHelpCERT").Replace("\\n", "\n");
+        HelpPanel.Visibility = Visibility.Visible;
+    }
+
+    private void OnCloseHelpClick(object sender, RoutedEventArgs e)
+    {
+        HelpPanel.Visibility = Visibility.Collapsed;
     }
 
     private void OnInputKeyDown(object sender, KeyEventArgs e)
