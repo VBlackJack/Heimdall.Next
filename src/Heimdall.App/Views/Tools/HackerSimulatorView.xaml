@@ -20,6 +20,7 @@
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
@@ -117,6 +118,13 @@
                             Foreground="{DynamicResource HackerSimAccentBrush}" Background="{DynamicResource HackerSimButtonBackgroundBrush}" BorderBrush="{DynamicResource HackerSimInputBorderBrush}"
                             Padding="{StaticResource PaddingButtonPrimary}" Margin="12,0,0,0" Cursor="Hand"
                             AutomationProperties.Name=""/>
+
+                    <Button x:Name="BtnHelp" Content="?"
+                            Click="OnHelpClick"
+                            FontFamily="Consolas" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
+                            Foreground="{DynamicResource HackerSimTextPrimaryBrush}" Background="{DynamicResource HackerSimButtonBackgroundBrush}" BorderBrush="{DynamicResource HackerSimInputBorderBrush}"
+                            Width="24" Height="24" Padding="0" Margin="8,0,0,0" Cursor="Hand"
+                            AutomationProperties.Name=""/>
                 </WrapPanel>
 
                 <TextBlock x:Name="LblCurrentScenario"
@@ -178,8 +186,26 @@
             </StackPanel>
         </Border>
 
+        <!-- Help panel -->
+        <Border x:Name="HelpPanel" Grid.Row="1" Style="{StaticResource ToolHelpPanelStyle}">
+            <DockPanel>
+                <Button x:Name="BtnCloseHelp" DockPanel.Dock="Right" Content="&#xE711;"
+                        FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeBody}"
+                        Click="OnCloseHelpClick"
+                        Style="{DynamicResource ToolbarGhostButtonStyle}"
+                        VerticalAlignment="Top" Width="24" Height="24"
+                        AutomationProperties.Name=""/>
+                <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
+                    <TextBlock x:Name="TxtHelpContent" Text="" TextWrapping="Wrap"
+                               FontSize="{StaticResource FontSizeBody}"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               LineHeight="20"/>
+                </ScrollViewer>
+            </DockPanel>
+        </Border>
+
         <!-- Terminal area -->
-        <Grid x:Name="TerminalGrid" Grid.Row="1" Background="{DynamicResource BackgroundBrush}" ClipToBounds="True">
+        <Grid x:Name="TerminalGrid" Grid.Row="2" Background="{DynamicResource BackgroundBrush}" ClipToBounds="True">
             <Canvas x:Name="MatrixCanvas" Visibility="Collapsed"
                     ClipToBounds="True" SizeChanged="OnMatrixCanvasSizeChanged"/>
 

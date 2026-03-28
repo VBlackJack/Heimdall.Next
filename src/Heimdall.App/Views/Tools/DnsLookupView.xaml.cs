@@ -131,12 +131,23 @@ public partial class DnsLookupView : UserControl, IToolView
 
         TxtHostname.Tag = L("ToolWatermarkExampleDomain");
         TxtEmptyState.Text = L("ToolEmptyStateDns");
+        System.Windows.Automation.AutomationProperties.SetName(BtnCloseHelp, L("BtnClose"));
     }
 
     private void OnHelpClick(object sender, RoutedEventArgs e)
     {
-        var helpText = L("ToolHelpDNS");
-        MessageBox.Show(helpText, L("ToolHelpTitle"), MessageBoxButton.OK, MessageBoxImage.Information);
+        if (HelpPanel.Visibility == Visibility.Visible)
+        {
+            HelpPanel.Visibility = Visibility.Collapsed;
+            return;
+        }
+        TxtHelpContent.Text = L("ToolHelpDNS").Replace("\\n", "\n");
+        HelpPanel.Visibility = Visibility.Visible;
+    }
+
+    private void OnCloseHelpClick(object sender, RoutedEventArgs e)
+    {
+        HelpPanel.Visibility = Visibility.Collapsed;
     }
 
     private void OnHostnameKeyDown(object sender, KeyEventArgs e)

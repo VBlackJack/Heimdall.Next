@@ -35,14 +35,14 @@ public static class ToolContextMenuHelper
     /// <summary>
     /// Builds host-centric actions: Ping, Port Scanner, Cert Inspector, Whois, DNS, Open in Browser, Add to Servers.
     /// </summary>
-    public static List<MenuItem> BuildHostActions(
+    public static List<object> BuildHostActions(
         string ip,
         string? hostname,
         IReadOnlyList<int>? openPorts,
         LocalizationManager? localizer,
         Action<string, string, ToolContext?> openToolCallback)
     {
-        var items = new List<MenuItem>();
+        var items = new List<object>();
 
         // Copy IP
         var copyIp = new MenuItem { Header = L(localizer, "ToolCtxCopyIp") };
@@ -259,18 +259,9 @@ public static class ToolContextMenuHelper
         return null;
     }
 
-    private static void AddSeparator(List<MenuItem> items)
+    private static void AddSeparator(List<object> items)
     {
-        // Separators cannot be added as MenuItem children directly in a dynamic list.
-        // Instead we use a disabled empty MenuItem as a visual divider.
-        items.Add(new MenuItem
-        {
-            IsEnabled = false,
-            Header = "\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500",
-            FontSize = 8,
-            Height = 14,
-            Padding = new Thickness(0)
-        });
+        items.Add(new Separator());
     }
 
     private static string L(LocalizationManager? localizer, string key) => localizer?[key] ?? key;

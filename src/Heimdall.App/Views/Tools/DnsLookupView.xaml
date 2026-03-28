@@ -20,6 +20,7 @@
     <Grid Margin="0">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
@@ -43,8 +44,26 @@
             </DockPanel>
         </Border>
 
+        <!-- Help panel -->
+        <Border x:Name="HelpPanel" Grid.Row="1" Style="{StaticResource ToolHelpPanelStyle}">
+            <DockPanel>
+                <Button x:Name="BtnCloseHelp" DockPanel.Dock="Right" Content="&#xE711;"
+                        FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeBody}"
+                        Click="OnCloseHelpClick"
+                        Style="{DynamicResource ToolbarGhostButtonStyle}"
+                        VerticalAlignment="Top" Width="24" Height="24"
+                        AutomationProperties.Name=""/>
+                <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
+                    <TextBlock x:Name="TxtHelpContent" Text="" TextWrapping="Wrap"
+                               FontSize="{StaticResource FontSizeBody}"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               LineHeight="20"/>
+                </ScrollViewer>
+            </DockPanel>
+        </Border>
+
         <!-- Content -->
-        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="{StaticResource SpacingLg}">
+        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" Padding="{StaticResource SpacingLg}">
             <StackPanel MaxWidth="{StaticResource ToolContentMaxWidth}">
 
                 <!-- Input Row -->
@@ -153,7 +172,7 @@
         </ScrollViewer>
 
         <!-- Status Bar -->
-        <Border Grid.Row="2" Padding="{StaticResource ToolFooterPadding}"
+        <Border Grid.Row="3" Padding="{StaticResource ToolFooterPadding}"
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,1,0,0">

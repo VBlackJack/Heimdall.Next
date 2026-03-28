@@ -103,6 +103,7 @@ public partial class NetworkCalculatorView : UserControl, IToolView
 
         BtnHelp.ToolTip = L("ToolHelpTooltip");
         AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
+        AutomationProperties.SetName(BtnCloseHelp, L("BtnClose"));
     }
 
     private void OnModeChanged(object sender, RoutedEventArgs e)
@@ -402,8 +403,18 @@ public partial class NetworkCalculatorView : UserControl, IToolView
 
     private void OnHelpClick(object sender, RoutedEventArgs e)
     {
-        var helpText = L("ToolHelpNETCALC");
-        MessageBox.Show(helpText, L("ToolHelpTitle"), MessageBoxButton.OK, MessageBoxImage.Information);
+        if (HelpPanel.Visibility == Visibility.Visible)
+        {
+            HelpPanel.Visibility = Visibility.Collapsed;
+            return;
+        }
+        TxtHelpContent.Text = L("ToolHelpNETCALC").Replace("\\n", "\n");
+        HelpPanel.Visibility = Visibility.Visible;
+    }
+
+    private void OnCloseHelpClick(object sender, RoutedEventArgs e)
+    {
+        HelpPanel.Visibility = Visibility.Collapsed;
     }
 
     private string L(string key) => _localizer?[key] ?? key;

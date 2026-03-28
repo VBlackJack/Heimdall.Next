@@ -2168,6 +2168,22 @@ public partial class HackerSimulatorView : UserControl, IToolView
 
     // ── Localization ──────────────────────────────────────────
 
+    private void OnHelpClick(object sender, RoutedEventArgs e)
+    {
+        if (HelpPanel.Visibility == Visibility.Visible)
+        {
+            HelpPanel.Visibility = Visibility.Collapsed;
+            return;
+        }
+        TxtHelpContent.Text = L("ToolHelpHACKERSIM").Replace("\\n", "\n");
+        HelpPanel.Visibility = Visibility.Visible;
+    }
+
+    private void OnCloseHelpClick(object sender, RoutedEventArgs e)
+    {
+        HelpPanel.Visibility = Visibility.Collapsed;
+    }
+
     private void ApplyLocalization()
     {
         LblSpeed.Text = L("ToolHackerSimSpeed");
@@ -2180,6 +2196,9 @@ public partial class HackerSimulatorView : UserControl, IToolView
         LblRealism.Text = L("ToolHackerSimLblRealism");
         LblPlaylist.Text = L("ToolHackerSimLblPlaylist");
         TxtScenarioSearch.ToolTip = L("ToolHackerSimSearchTip");
+        BtnHelp.ToolTip = L("ToolHelpTooltip");
+        System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
+        System.Windows.Automation.AutomationProperties.SetName(BtnCloseHelp, L("BtnClose"));
         System.Windows.Automation.AutomationProperties.SetName(BtnFavorite, L("ToolHackerSimFavoriteAdd"));
         System.Windows.Automation.AutomationProperties.SetName(SliderSpeed, L("ToolHackerSimSpeed"));
         System.Windows.Automation.AutomationProperties.SetName(BtnStartStop,

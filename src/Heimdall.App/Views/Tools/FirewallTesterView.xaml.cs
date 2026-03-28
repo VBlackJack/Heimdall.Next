@@ -120,12 +120,23 @@ public partial class FirewallTesterView : UserControl, IToolView
         System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
         System.Windows.Automation.AutomationProperties.SetName(TestProgress, L("ToolFwA11yProgress"));
         System.Windows.Automation.AutomationProperties.SetName(HeatmapGrid, L("ToolFwTitle"));
+        System.Windows.Automation.AutomationProperties.SetName(BtnCloseHelp, L("BtnClose"));
     }
 
     private void OnHelpClick(object sender, RoutedEventArgs e)
     {
-        var helpText = L("ToolHelpFWTEST");
-        MessageBox.Show(helpText, L("ToolHelpTitle"), MessageBoxButton.OK, MessageBoxImage.Information);
+        if (HelpPanel.Visibility == Visibility.Visible)
+        {
+            HelpPanel.Visibility = Visibility.Collapsed;
+            return;
+        }
+        TxtHelpContent.Text = L("ToolHelpFWTEST").Replace("\\n", "\n");
+        HelpPanel.Visibility = Visibility.Visible;
+    }
+
+    private void OnCloseHelpClick(object sender, RoutedEventArgs e)
+    {
+        HelpPanel.Visibility = Visibility.Collapsed;
     }
 
     private void OnTestClick(object sender, RoutedEventArgs e)

@@ -22,6 +22,7 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
@@ -44,8 +45,26 @@
             </DockPanel>
         </Border>
 
+        <!-- Help panel -->
+        <Border x:Name="HelpPanel" Grid.Row="1" Style="{StaticResource ToolHelpPanelStyle}">
+            <DockPanel>
+                <Button x:Name="BtnCloseHelp" DockPanel.Dock="Right" Content="&#xE711;"
+                        FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeBody}"
+                        Click="OnCloseHelpClick"
+                        Style="{DynamicResource ToolbarGhostButtonStyle}"
+                        VerticalAlignment="Top" Width="24" Height="24"
+                        AutomationProperties.Name=""/>
+                <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
+                    <TextBlock x:Name="TxtHelpContent" Text="" TextWrapping="Wrap"
+                               FontSize="{StaticResource FontSizeBody}"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               LineHeight="20"/>
+                </ScrollViewer>
+            </DockPanel>
+        </Border>
+
         <!-- Profile bar (visible in scan mode only) -->
-        <Border x:Name="ProfileBar" Grid.Row="1" Visibility="Collapsed"
+        <Border x:Name="ProfileBar" Grid.Row="2" Visibility="Collapsed"
                 Padding="{StaticResource ToolFooterPadding}"
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
@@ -78,7 +97,7 @@
         </Border>
 
         <!-- Progress bar with percentage overlay (scan mode) -->
-        <Grid x:Name="ScanProgressPanel" Grid.Row="2" Visibility="Collapsed">
+        <Grid x:Name="ScanProgressPanel" Grid.Row="3" Visibility="Collapsed">
             <ProgressBar x:Name="ScanProgress"
                          Height="20" Minimum="0" Maximum="100"
                          IsIndeterminate="False"
@@ -98,7 +117,7 @@
         </Grid>
 
         <!-- Content -->
-        <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto" Padding="{StaticResource SpacingLg}">
+        <ScrollViewer Grid.Row="4" VerticalScrollBarVisibility="Auto" Padding="{StaticResource SpacingLg}">
             <StackPanel MaxWidth="{StaticResource ToolContentMaxWidth}">
 
                 <!-- Input row -->
