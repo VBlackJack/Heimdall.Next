@@ -103,6 +103,7 @@ public partial class RegexTesterView : UserControl, IToolView
 
         BtnHelp.ToolTip = L("ToolHelpTooltip");
         System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
+        System.Windows.Automation.AutomationProperties.SetName(BtnCloseHelp, L("BtnClose"));
 
         PatternText.Tag = L("ToolWatermarkRegexPattern");
         TestText.Tag = L("ToolWatermarkTestString");
@@ -111,8 +112,18 @@ public partial class RegexTesterView : UserControl, IToolView
 
     private void OnHelpClick(object sender, RoutedEventArgs e)
     {
-        var helpText = L("ToolHelpREGEX");
-        MessageBox.Show(helpText, L("ToolHelpTitle"), MessageBoxButton.OK, MessageBoxImage.Information);
+        if (HelpPanel.Visibility == Visibility.Visible)
+        {
+            HelpPanel.Visibility = Visibility.Collapsed;
+            return;
+        }
+        TxtHelpContent.Text = L("ToolHelpREGEX").Replace("\\n", "\n");
+        HelpPanel.Visibility = Visibility.Visible;
+    }
+
+    private void OnCloseHelpClick(object sender, RoutedEventArgs e)
+    {
+        HelpPanel.Visibility = Visibility.Collapsed;
     }
 
     private void OnPatternTextChanged(object sender, TextChangedEventArgs e)
@@ -206,7 +217,7 @@ public partial class RegexTesterView : UserControl, IToolView
                 {
                     Content = sb.ToString(),
                     Foreground = (Brush)FindResource("TextPrimaryBrush"),
-                    FontFamily = new System.Windows.Media.FontFamily("Consolas"),
+                    FontFamily = (System.Windows.Media.FontFamily)FindResource("FontFamilyMonospace"),
                     FontSize = (double)FindResource("FontSizeBody")
                 });
             }
@@ -254,7 +265,7 @@ public partial class RegexTesterView : UserControl, IToolView
 
         var doc = new FlowDocument
         {
-            FontFamily = new System.Windows.Media.FontFamily("Consolas"),
+            FontFamily = (System.Windows.Media.FontFamily)FindResource("FontFamilyMonospace"),
             FontSize = (double)FindResource("FontSizeBody"),
             PagePadding = new Thickness(0)
         };

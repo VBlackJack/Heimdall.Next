@@ -189,7 +189,7 @@
                 <Button x:Name="BtnExportCsv" Content=""
                         Click="OnExportCsvClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="{StaticResource PaddingButtonPrimary}" DockPanel.Dock="Right" Margin="4,0,0,0"
+                        Padding="{StaticResource PaddingButtonPrimary}" DockPanel.Dock="Right" Margin="{StaticResource MarginInlineControl}"
                         VerticalAlignment="Center"
                         AutomationProperties.Name=""/>
                 <Button x:Name="BtnCopy" Content=""

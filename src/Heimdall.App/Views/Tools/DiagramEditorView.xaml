@@ -26,6 +26,7 @@
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
@@ -84,11 +85,29 @@
             </DockPanel>
         </Border>
 
+        <!-- Help panel -->
+        <Border x:Name="HelpPanel" Grid.Row="1" Style="{StaticResource ToolHelpPanelStyle}">
+            <DockPanel>
+                <Button x:Name="BtnCloseHelp" DockPanel.Dock="Right" Content="&#xE711;"
+                        FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeBody}"
+                        Click="OnCloseHelpClick"
+                        Style="{DynamicResource ToolbarGhostButtonStyle}"
+                        VerticalAlignment="Top" Width="24" Height="24"
+                        AutomationProperties.Name=""/>
+                <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
+                    <TextBlock x:Name="TxtHelpContent" Text="" TextWrapping="Wrap"
+                               FontSize="{StaticResource FontSizeBody}"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               LineHeight="20"/>
+                </ScrollViewer>
+            </DockPanel>
+        </Border>
+
         <!-- WebView2 hosting draw.io via iframe -->
-        <wv2:WebView2 Grid.Row="1" x:Name="DiagramWebView" Focusable="True"/>
+        <wv2:WebView2 Grid.Row="2" x:Name="DiagramWebView" Focusable="True"/>
 
         <!-- Fallback if WebView2 unavailable -->
-        <Border Grid.Row="1" x:Name="FallbackPanel" Visibility="Collapsed"
+        <Border Grid.Row="2" x:Name="FallbackPanel" Visibility="Collapsed"
                 Background="{DynamicResource BackgroundBrush}" Padding="28">
             <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="420">
                 <TextBlock x:Name="FallbackTitle" FontSize="{StaticResource FontSizeDisplay}" FontWeight="SemiBold"

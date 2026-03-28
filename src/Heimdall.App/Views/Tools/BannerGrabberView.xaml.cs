@@ -162,11 +162,15 @@ public partial class BannerGrabberView : UserControl, IToolView
         System.Windows.Automation.AutomationProperties.SetName(BtnPresetMail, L("ToolBannerPresetMail"));
         System.Windows.Automation.AutomationProperties.SetName(BtnPresetDatabase, L("ToolBannerPresetDatabase"));
 
+        LblHost.Text = L("ToolBannerHostLabel");
+        LblPorts.Text = L("ToolBannerPortsLabel");
+
         LblRouteVia.Text = L("ToolTunnelRouteVia");
         System.Windows.Automation.AutomationProperties.SetName(CmbRouteVia, L("ToolTunnelRouteVia"));
 
         BtnHelp.ToolTip = L("ToolHelpTooltip");
         System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
+        System.Windows.Automation.AutomationProperties.SetName(BtnCloseHelp, L("BtnClose"));
         System.Windows.Automation.AutomationProperties.SetName(GrabProgress, L("ToolBannerA11yProgress"));
         System.Windows.Automation.AutomationProperties.SetName(ResultsGrid, L("ToolBannerTitle"));
 
@@ -178,8 +182,18 @@ public partial class BannerGrabberView : UserControl, IToolView
 
     private void OnHelpClick(object sender, RoutedEventArgs e)
     {
-        var helpText = L("ToolHelpBANNER");
-        MessageBox.Show(helpText, L("ToolHelpTitle"), MessageBoxButton.OK, MessageBoxImage.Information);
+        if (HelpPanel.Visibility == Visibility.Visible)
+        {
+            HelpPanel.Visibility = Visibility.Collapsed;
+            return;
+        }
+        TxtHelpContent.Text = L("ToolHelpBANNER").Replace("\\n", "\n");
+        HelpPanel.Visibility = Visibility.Visible;
+    }
+
+    private void OnCloseHelpClick(object sender, RoutedEventArgs e)
+    {
+        HelpPanel.Visibility = Visibility.Collapsed;
     }
 
     private void OnHostKeyDown(object sender, KeyEventArgs e)
@@ -705,7 +719,7 @@ public partial class BannerGrabberView : UserControl, IToolView
 
         var dialog = new Microsoft.Win32.SaveFileDialog
         {
-            Filter = "CSV files (*.csv)|*.csv",
+            Filter = L("FileDialogCsvFilter"),
             FileName = $"banners_{TxtHost.Text.Trim()}_{DateTime.Now:yyyyMMdd_HHmmss}.csv",
         };
 

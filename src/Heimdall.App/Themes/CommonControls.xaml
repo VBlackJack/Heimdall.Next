@@ -1915,4 +1915,15 @@
         <Setter Property="Padding" Value="24"/>
     </Style>
 
+    <!-- ========================================================= -->
+    <!-- Tool Help Panel (inline, non-modal)                       -->
+    <!-- ========================================================= -->
+    <Style x:Key="ToolHelpPanelStyle" TargetType="{x:Type Border}">
+        <Setter Property="Padding" Value="{StaticResource PaddingSectionCard}"/>
+        <Setter Property="Background" Value="{DynamicResource CardBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+        <Setter Property="BorderThickness" Value="0,0,0,1"/>
+        <Setter Property="Visibility" Value="Collapsed"/>
+    </Style>
+
 </ResourceDictionary>

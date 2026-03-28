@@ -21,6 +21,7 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
@@ -43,8 +44,26 @@
             </DockPanel>
         </Border>
 
+        <!-- Help panel -->
+        <Border x:Name="HelpPanel" Grid.Row="1" Style="{StaticResource ToolHelpPanelStyle}">
+            <DockPanel>
+                <Button x:Name="BtnCloseHelp" DockPanel.Dock="Right" Content="&#xE711;"
+                        FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeBody}"
+                        Click="OnCloseHelpClick"
+                        Style="{DynamicResource ToolbarGhostButtonStyle}"
+                        VerticalAlignment="Top" Width="24" Height="24"
+                        AutomationProperties.Name=""/>
+                <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
+                    <TextBlock x:Name="TxtHelpContent" Text="" TextWrapping="Wrap"
+                               FontSize="{StaticResource FontSizeBody}"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               LineHeight="20"/>
+                </ScrollViewer>
+            </DockPanel>
+        </Border>
+
         <!-- Progress bar -->
-        <Grid x:Name="ProgressPanel" Grid.Row="1" Visibility="Collapsed">
+        <Grid x:Name="ProgressPanel" Grid.Row="2" Visibility="Collapsed">
             <ProgressBar x:Name="AuditProgress"
                          Height="20" Minimum="0" Maximum="100"
                          IsIndeterminate="False"
@@ -58,7 +77,7 @@
         </Grid>
 
         <!-- Content -->
-        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" Padding="{StaticResource SpacingLg}">
+        <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto" Padding="{StaticResource SpacingLg}">
             <StackPanel MaxWidth="{StaticResource ToolContentMaxWidth}">
 
                 <!-- Input row -->
@@ -75,7 +94,7 @@
                     <TextBox x:Name="TxtPort" DockPanel.Dock="Right"
                              Text="443" Width="70"
                              Style="{StaticResource WatermarkTextBoxStyle}"
-                             Tag="port"
+                             Tag=""
                              FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
                              Padding="{StaticResource PaddingInput}" Margin="{StaticResource MarginInlineControl}"
                              Background="{DynamicResource CardBrush}"
@@ -89,7 +108,7 @@
                                VerticalAlignment="Center"/>
                     <TextBox x:Name="TxtHost" Text=""
                              Style="{StaticResource WatermarkTextBoxStyle}"
-                             Tag="hostname"
+                             Tag=""
                              FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
                              Padding="{StaticResource PaddingInput}"
                              Background="{DynamicResource CardBrush}"

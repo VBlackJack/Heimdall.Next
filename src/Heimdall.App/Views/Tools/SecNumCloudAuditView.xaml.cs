@@ -138,6 +138,7 @@ public partial class SecNumCloudAuditView : UserControl, IToolView
 
         BtnHelp.ToolTip = L("ToolHelpTooltip");
         System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
+        System.Windows.Automation.AutomationProperties.SetName(BtnCloseHelp, L("BtnClose"));
     }
 
     // ── Gateway selector ─────────────────────────────────────────────
@@ -194,8 +195,18 @@ public partial class SecNumCloudAuditView : UserControl, IToolView
 
     private void OnHelpClick(object sender, RoutedEventArgs e)
     {
-        var helpText = L("ToolHelpSECNUMCLOUD");
-        MessageBox.Show(helpText, L("ToolHelpTitle"), MessageBoxButton.OK, MessageBoxImage.Information);
+        if (HelpPanel.Visibility == Visibility.Visible)
+        {
+            HelpPanel.Visibility = Visibility.Collapsed;
+            return;
+        }
+        TxtHelpContent.Text = L("ToolHelpSECNUMCLOUD").Replace("\\n", "\n");
+        HelpPanel.Visibility = Visibility.Visible;
+    }
+
+    private void OnCloseHelpClick(object sender, RoutedEventArgs e)
+    {
+        HelpPanel.Visibility = Visibility.Collapsed;
     }
 
     // ── Start / Stop ─────────────────────────────────────────────────
@@ -694,7 +705,7 @@ public partial class SecNumCloudAuditView : UserControl, IToolView
 
         var dialog = new SaveFileDialog
         {
-            Filter = "CSV files (*.csv)|*.csv",
+            Filter = L("FileDialogCsvFilter"),
             FileName = $"SecNumCloud_Evidence_{DateTime.Now:yyyyMMdd_HHmmss}.csv",
         };
 

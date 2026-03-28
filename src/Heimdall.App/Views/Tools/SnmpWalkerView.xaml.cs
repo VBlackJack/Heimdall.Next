@@ -194,9 +194,14 @@ public partial class SnmpWalkerView : UserControl, IToolView
         System.Windows.Automation.AutomationProperties.SetName(BtnPresetTcp, L("ToolSnmpPresetTcp"));
         System.Windows.Automation.AutomationProperties.SetName(BtnPresetUdp, L("ToolSnmpPresetUdp"));
 
+        LblHost.Text = L("ToolSnmpHostLabel");
+        LblCommunity.Text = L("ToolSnmpCommunity");
+        LblOid.Text = L("ToolSnmpOid");
+
         BtnCopy.ToolTip = L("ToolBtnCopyToClipboard");
         BtnHelp.ToolTip = L("ToolHelpTooltip");
         System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
+        System.Windows.Automation.AutomationProperties.SetName(BtnCloseHelp, L("BtnClose"));
         System.Windows.Automation.AutomationProperties.SetName(LoadingBar, L("ToolSnmpA11yLoading"));
 
         LblRouteVia.Text = L("ToolTunnelRouteVia");
@@ -210,8 +215,18 @@ public partial class SnmpWalkerView : UserControl, IToolView
 
     private void OnHelpClick(object sender, RoutedEventArgs e)
     {
-        var helpText = L("ToolHelpSNMPWALK");
-        MessageBox.Show(helpText, L("ToolHelpTitle"), MessageBoxButton.OK, MessageBoxImage.Information);
+        if (HelpPanel.Visibility == Visibility.Visible)
+        {
+            HelpPanel.Visibility = Visibility.Collapsed;
+            return;
+        }
+        TxtHelpContent.Text = L("ToolHelpSNMPWALK").Replace("\\n", "\n");
+        HelpPanel.Visibility = Visibility.Visible;
+    }
+
+    private void OnCloseHelpClick(object sender, RoutedEventArgs e)
+    {
+        HelpPanel.Visibility = Visibility.Collapsed;
     }
 
     private void OnHostKeyDown(object sender, KeyEventArgs e)
@@ -640,7 +655,7 @@ public partial class SnmpWalkerView : UserControl, IToolView
 
         var dialog = new Microsoft.Win32.SaveFileDialog
         {
-            Filter = "CSV files (*.csv)|*.csv",
+            Filter = L("FileDialogCsvFilter"),
             FileName = $"snmpwalk_{TxtHost.Text.Trim()}_{DateTime.Now:yyyyMMdd_HHmmss}.csv",
         };
 

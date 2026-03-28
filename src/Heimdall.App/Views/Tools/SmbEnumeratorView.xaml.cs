@@ -120,6 +120,7 @@ public partial class SmbEnumeratorView : UserControl, IToolView
 
         BtnHelp.ToolTip = L("ToolHelpTooltip");
         System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
+        System.Windows.Automation.AutomationProperties.SetName(BtnCloseHelp, L("BtnClose"));
         System.Windows.Automation.AutomationProperties.SetName(LoadingBar, L("ToolSmbA11yLoading"));
         System.Windows.Automation.AutomationProperties.SetName(ValComputerName, L("ToolSmbComputerName"));
         System.Windows.Automation.AutomationProperties.SetName(ValDomain, L("ToolSmbDomain"));
@@ -140,8 +141,18 @@ public partial class SmbEnumeratorView : UserControl, IToolView
 
     private void OnHelpClick(object sender, RoutedEventArgs e)
     {
-        var helpText = L("ToolHelpSMBENUM");
-        MessageBox.Show(helpText, L("ToolHelpTitle"), MessageBoxButton.OK, MessageBoxImage.Information);
+        if (HelpPanel.Visibility == Visibility.Visible)
+        {
+            HelpPanel.Visibility = Visibility.Collapsed;
+            return;
+        }
+        TxtHelpContent.Text = L("ToolHelpSMBENUM").Replace("\\n", "\n");
+        HelpPanel.Visibility = Visibility.Visible;
+    }
+
+    private void OnCloseHelpClick(object sender, RoutedEventArgs e)
+    {
+        HelpPanel.Visibility = Visibility.Collapsed;
     }
 
     private void OnHostKeyDown(object sender, KeyEventArgs e)

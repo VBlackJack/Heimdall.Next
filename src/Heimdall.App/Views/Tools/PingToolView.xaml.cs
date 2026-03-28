@@ -125,8 +125,11 @@ public partial class PingToolView : UserControl, IToolView
 
         TxtYMin.Text = string.Format(L("ToolPingUnitMs"), 0);
 
+        LblHost.Text = L("ToolPingHostLabel");
+
         BtnHelp.ToolTip = L("ToolHelpTooltip");
         System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
+        System.Windows.Automation.AutomationProperties.SetName(BtnCloseHelp, L("BtnClose"));
 
         TxtHost.Tag = L("ToolWatermarkHostnameOrIp");
     }
@@ -415,19 +418,19 @@ public partial class PingToolView : UserControl, IToolView
     {
         if (_successCount > 0)
         {
-            TxtMin.Text = $"{_minLatency} ms";
-            TxtAvg.Text = $"{_totalLatency / _successCount} ms";
-            TxtMax.Text = $"{_maxLatency} ms";
+            TxtMin.Text = string.Format(L("ToolPingUnitMs"), _minLatency);
+            TxtAvg.Text = string.Format(L("ToolPingUnitMs"), _totalLatency / _successCount);
+            TxtMax.Text = string.Format(L("ToolPingUnitMs"), _maxLatency);
 
             // Jitter = standard deviation of latencies
             double mean = (double)_totalLatency / _successCount;
             double variance = (_sumSquaredLatency / _successCount) - (mean * mean);
             double jitter = Math.Sqrt(Math.Max(0, variance));
-            TxtJitter.Text = $"{jitter:F1} ms";
+            TxtJitter.Text = string.Format(L("ToolPingUnitMs"), $"{jitter:F1}");
         }
 
         var lossPercent = _sentCount > 0 ? (_lostCount * 100.0 / _sentCount) : 0;
-        TxtLoss.Text = $"{lossPercent:F1}%";
+        TxtLoss.Text = string.Format(L("ToolPingStatsPercent"), $"{lossPercent:F1}");
     }
 
     private void UpdatePingCount()
@@ -624,7 +627,7 @@ public partial class PingToolView : UserControl, IToolView
 
         var dialog = new Microsoft.Win32.SaveFileDialog
         {
-            Filter = "CSV files (*.csv)|*.csv",
+            Filter = L("FileDialogCsvFilter"),
             FileName = $"ping_{TxtHost.Text.Trim()}_{DateTime.Now:yyyyMMdd_HHmmss}.csv",
         };
 
@@ -636,7 +639,7 @@ public partial class PingToolView : UserControl, IToolView
         try
         {
             var sb = new StringBuilder();
-            sb.AppendLine("Seq,Timestamp,Latency,Status");
+            sb.AppendLine(L("ToolPingCsvHeader"));
 
             foreach (var entry in _csvEntries)
             {
@@ -655,8 +658,18 @@ public partial class PingToolView : UserControl, IToolView
 
     private void OnHelpClick(object sender, RoutedEventArgs e)
     {
-        var helpText = L("ToolHelpPING");
-        MessageBox.Show(helpText, L("ToolHelpTitle"), MessageBoxButton.OK, MessageBoxImage.Information);
+        if (HelpPanel.Visibility == Visibility.Visible)
+        {
+            HelpPanel.Visibility = Visibility.Collapsed;
+            return;
+        }
+        TxtHelpContent.Text = L("ToolHelpPING").Replace("\\n", "\n");
+        HelpPanel.Visibility = Visibility.Visible;
+    }
+
+    private void OnCloseHelpClick(object sender, RoutedEventArgs e)
+    {
+        HelpPanel.Visibility = Visibility.Collapsed;
     }
 
     private string L(string key) => _localizer?[key] ?? key;

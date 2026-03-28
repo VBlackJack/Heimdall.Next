@@ -164,11 +164,15 @@ public partial class PortScannerView : UserControl, IToolView
         System.Windows.Automation.AutomationProperties.SetName(BtnPresetCommon, L("ToolPortScanPresetCommon"));
         System.Windows.Automation.AutomationProperties.SetName(BtnPresetFull, L("ToolPortScanPresetFull"));
 
+        LblHost.Text = L("ToolPortScanHostLabel");
+        LblPorts.Text = L("ToolPortScanPortsLabel");
+
         LblRouteVia.Text = L("ToolTunnelRouteVia");
         System.Windows.Automation.AutomationProperties.SetName(CmbRouteVia, L("ToolTunnelRouteVia"));
 
         BtnHelp.ToolTip = L("ToolHelpTooltip");
         System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
+        System.Windows.Automation.AutomationProperties.SetName(BtnCloseHelp, L("BtnClose"));
 
         TxtEmptyState.Text = L("ToolEmptyStatePortScan");
 
@@ -182,8 +186,18 @@ public partial class PortScannerView : UserControl, IToolView
 
     private void OnHelpClick(object sender, RoutedEventArgs e)
     {
-        var helpText = L("ToolHelpPORTSCAN");
-        MessageBox.Show(helpText, L("ToolHelpTitle"), MessageBoxButton.OK, MessageBoxImage.Information);
+        if (HelpPanel.Visibility == Visibility.Visible)
+        {
+            HelpPanel.Visibility = Visibility.Collapsed;
+            return;
+        }
+        TxtHelpContent.Text = L("ToolHelpPORTSCAN").Replace("\\n", "\n");
+        HelpPanel.Visibility = Visibility.Visible;
+    }
+
+    private void OnCloseHelpClick(object sender, RoutedEventArgs e)
+    {
+        HelpPanel.Visibility = Visibility.Collapsed;
     }
 
     private void OnHostKeyDown(object sender, KeyEventArgs e)
@@ -600,7 +614,7 @@ public partial class PortScannerView : UserControl, IToolView
 
         var dialog = new Microsoft.Win32.SaveFileDialog
         {
-            Filter = "CSV files (*.csv)|*.csv",
+            Filter = L("FileDialogCsvFilter"),
             FileName = $"portscan_{TxtHost.Text.Trim()}_{DateTime.Now:yyyyMMdd_HHmmss}.csv",
         };
 

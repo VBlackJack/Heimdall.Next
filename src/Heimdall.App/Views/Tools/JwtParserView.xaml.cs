@@ -111,6 +111,7 @@ public partial class JwtParserView : UserControl, IToolView
 
         BtnHelp.ToolTip = L("ToolHelpTooltip");
         AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
+        AutomationProperties.SetName(BtnCloseHelp, L("BtnClose"));
 
         TxtInput.Tag = L("ToolWatermarkPasteJwt");
     }
@@ -412,8 +413,18 @@ public partial class JwtParserView : UserControl, IToolView
 
     private void OnHelpClick(object sender, RoutedEventArgs e)
     {
-        var helpText = L("ToolHelpJWT");
-        MessageBox.Show(helpText, L("ToolHelpTitle"), MessageBoxButton.OK, MessageBoxImage.Information);
+        if (HelpPanel.Visibility == Visibility.Visible)
+        {
+            HelpPanel.Visibility = Visibility.Collapsed;
+            return;
+        }
+        TxtHelpContent.Text = L("ToolHelpJWT").Replace("\\n", "\n");
+        HelpPanel.Visibility = Visibility.Visible;
+    }
+
+    private void OnCloseHelpClick(object sender, RoutedEventArgs e)
+    {
+        HelpPanel.Visibility = Visibility.Collapsed;
     }
 
     private SolidColorBrush CreateOverlayBrush(string resourceKey, byte alpha = 40)

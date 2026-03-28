@@ -100,6 +100,7 @@ public partial class ArpMonitorView : UserControl, IToolView
         AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
         AutomationProperties.SetName(ArpGrid, L("ToolArpTitle"));
         AutomationProperties.SetName(BtnDismissAlert, L("ToolArpDismissAlert"));
+        AutomationProperties.SetName(BtnCloseHelp, L("BtnClose"));
         BtnCopy.ToolTip = L("ToolBtnCopyToClipboard");
     }
 
@@ -304,8 +305,18 @@ public partial class ArpMonitorView : UserControl, IToolView
 
     private void OnHelpClick(object sender, RoutedEventArgs e)
     {
-        var helpText = L("ToolHelpARPMON");
-        MessageBox.Show(helpText, L("ToolHelpTitle"), MessageBoxButton.OK, MessageBoxImage.Information);
+        if (HelpPanel.Visibility == Visibility.Visible)
+        {
+            HelpPanel.Visibility = Visibility.Collapsed;
+            return;
+        }
+        TxtHelpContent.Text = L("ToolHelpARPMON").Replace("\\n", "\n");
+        HelpPanel.Visibility = Visibility.Visible;
+    }
+
+    private void OnCloseHelpClick(object sender, RoutedEventArgs e)
+    {
+        HelpPanel.Visibility = Visibility.Collapsed;
     }
 
     /// <summary>

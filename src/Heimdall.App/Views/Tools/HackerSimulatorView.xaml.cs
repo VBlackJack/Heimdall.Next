@@ -253,7 +253,7 @@ public partial class HackerSimulatorView : UserControl, IToolView
         {
             Background = (Brush)FindResource("HackerSimBackgroundBrush"),
             BorderBrush = (Brush)FindResource("HackerSimInputBorderBrush"),
-            FontFamily = new System.Windows.Media.FontFamily("Consolas"),
+            FontFamily = (System.Windows.Media.FontFamily)FindResource("FontFamilyMonospace"),
             Foreground = s_green,
         };
 
@@ -262,7 +262,7 @@ public partial class HackerSimulatorView : UserControl, IToolView
             menu.Items.Add(new MenuItem
             {
                 Header = GetCategoryLabel(group.Key),
-                FontFamily = new System.Windows.Media.FontFamily("Consolas"),
+                FontFamily = (System.Windows.Media.FontFamily)FindResource("FontFamilyMonospace"),
                 IsEnabled = false,
                 Foreground = s_gray,
             });
@@ -273,7 +273,7 @@ public partial class HackerSimulatorView : UserControl, IToolView
                 var item = new MenuItem
                 {
                     Header = FormatScenarioDisplay(scenario),
-                    FontFamily = new System.Windows.Media.FontFamily("Consolas"),
+                    FontFamily = (System.Windows.Media.FontFamily)FindResource("FontFamilyMonospace"),
                     IsCheckable = true,
                     IsChecked = string.Equals(_currentScenarioId, scenarioId, StringComparison.OrdinalIgnoreCase),
                 };
@@ -306,7 +306,7 @@ public partial class HackerSimulatorView : UserControl, IToolView
         var randomItem = new MenuItem
         {
             Header = L("ToolHackerSimRandomInFilter"),
-            FontFamily = new System.Windows.Media.FontFamily("Consolas"),
+            FontFamily = (System.Windows.Media.FontFamily)FindResource("FontFamilyMonospace"),
             IsCheckable = true,
             IsChecked = _randomMode,
             Foreground = s_yellow,
@@ -441,11 +441,13 @@ public partial class HackerSimulatorView : UserControl, IToolView
         try { ppd = VisualTreeHelper.GetDpi(this).PixelsPerDip; }
         catch { ppd = 1.0; }
 
+        var monoTypeface = new Typeface((System.Windows.Media.FontFamily)FindResource("FontFamilyMonospace"),
+            FontStyles.Normal, FontWeights.Normal, FontStretches.Normal);
         var ft1 = new FormattedText("M", CultureInfo.InvariantCulture,
-            System.Windows.FlowDirection.LeftToRight, new Typeface("Consolas"),
+            System.Windows.FlowDirection.LeftToRight, monoTypeface,
             MatrixFontSize, Brushes.White, ppd);
         var ft2 = new FormattedText("\uff71", CultureInfo.InvariantCulture,
-            System.Windows.FlowDirection.LeftToRight, new Typeface("Consolas"),
+            System.Windows.FlowDirection.LeftToRight, monoTypeface,
             MatrixFontSize, Brushes.White, ppd);
 
         _cellWidth = Math.Max(
@@ -491,7 +493,7 @@ public partial class HackerSimulatorView : UserControl, IToolView
         var trail = new TextBlock
         {
             Text = string.Join("\n", chars),
-            FontFamily = new System.Windows.Media.FontFamily("Consolas"),
+            FontFamily = (System.Windows.Media.FontFamily)FindResource("FontFamilyMonospace"),
             FontSize = MatrixFontSize,
             Foreground = s_matrixGreen,
             LineHeight = _cellHeight,
@@ -502,7 +504,7 @@ public partial class HackerSimulatorView : UserControl, IToolView
         var head = new TextBlock
         {
             Text = chars[^1].ToString(),
-            FontFamily = new System.Windows.Media.FontFamily("Consolas"),
+            FontFamily = (System.Windows.Media.FontFamily)FindResource("FontFamilyMonospace"),
             FontSize = MatrixFontSize,
             Foreground = s_matrixHead,
             LineHeight = _cellHeight,

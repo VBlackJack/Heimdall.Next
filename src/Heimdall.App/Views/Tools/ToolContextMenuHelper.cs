@@ -181,7 +181,7 @@ public static class ToolContextMenuHelper
         {
             var dialog = new Microsoft.Win32.SaveFileDialog
             {
-                Filter = "CSV files (*.csv)|*.csv",
+                Filter = L(localizer, "FileDialogCsvFilter"),
                 DefaultExt = ".csv",
             };
             if (dialog.ShowDialog() != true) return;

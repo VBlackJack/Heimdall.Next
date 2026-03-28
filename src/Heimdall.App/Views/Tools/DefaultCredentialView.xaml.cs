@@ -205,6 +205,7 @@ public partial class DefaultCredentialView : UserControl, IToolView
 
         BtnHelp.ToolTip = L("ToolHelpTooltip");
         BtnCopy.ToolTip = L("ToolBtnCopyToClipboard");
+        System.Windows.Automation.AutomationProperties.SetName(BtnCloseHelp, L("BtnClose"));
 
         TxtHost.Tag = L("ToolWatermarkHostnameOrIp");
     }
@@ -213,8 +214,18 @@ public partial class DefaultCredentialView : UserControl, IToolView
 
     private void OnHelpClick(object sender, RoutedEventArgs e)
     {
-        var helpText = L("ToolHelpDEFAULTCREDS");
-        MessageBox.Show(helpText, L("ToolHelpTitle"), MessageBoxButton.OK, MessageBoxImage.Information);
+        if (HelpPanel.Visibility == Visibility.Visible)
+        {
+            HelpPanel.Visibility = Visibility.Collapsed;
+            return;
+        }
+        TxtHelpContent.Text = L("ToolHelpDEFAULTCREDS").Replace("\\n", "\n");
+        HelpPanel.Visibility = Visibility.Visible;
+    }
+
+    private void OnCloseHelpClick(object sender, RoutedEventArgs e)
+    {
+        HelpPanel.Visibility = Visibility.Collapsed;
     }
 
     private void OnHostKeyDown(object sender, KeyEventArgs e)
@@ -258,7 +269,7 @@ public partial class DefaultCredentialView : UserControl, IToolView
 
         var dialog = new Microsoft.Win32.SaveFileDialog
         {
-            Filter = "CSV files (*.csv)|*.csv",
+            Filter = L("FileDialogCsvFilter"),
             FileName = $"defaultcreds_{TxtHost.Text.Trim()}_{DateTime.Now:yyyyMMdd_HHmmss}.csv",
         };
 

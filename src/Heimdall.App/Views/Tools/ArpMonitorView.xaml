@@ -21,6 +21,7 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
@@ -74,8 +75,26 @@
             </DockPanel>
         </Border>
 
+        <!-- Help panel -->
+        <Border x:Name="HelpPanel" Grid.Row="1" Style="{StaticResource ToolHelpPanelStyle}">
+            <DockPanel>
+                <Button x:Name="BtnCloseHelp" DockPanel.Dock="Right" Content="&#xE711;"
+                        FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeBody}"
+                        Click="OnCloseHelpClick"
+                        Style="{DynamicResource ToolbarGhostButtonStyle}"
+                        VerticalAlignment="Top" Width="24" Height="24"
+                        AutomationProperties.Name=""/>
+                <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
+                    <TextBlock x:Name="TxtHelpContent" Text="" TextWrapping="Wrap"
+                               FontSize="{StaticResource FontSizeBody}"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               LineHeight="20"/>
+                </ScrollViewer>
+            </DockPanel>
+        </Border>
+
         <!-- Alert banner (hidden by default) -->
-        <Border x:Name="AlertBanner" Grid.Row="1" Visibility="Collapsed"
+        <Border x:Name="AlertBanner" Grid.Row="2" Visibility="Collapsed"
                 Padding="{StaticResource PaddingAlertBanner}" Margin="8,8,8,0"
                 Background="{DynamicResource WarningBrush}"
                 CornerRadius="{StaticResource CornerRadiusSm}">
@@ -101,7 +120,7 @@
         </Border>
 
         <!-- Empty state -->
-        <Border x:Name="EmptyStatePanel" Grid.Row="2"
+        <Border x:Name="EmptyStatePanel" Grid.Row="3"
                 Style="{StaticResource ToolEmptyStateStyle}"
                 Margin="0,24,0,0">
             <StackPanel HorizontalAlignment="Center">
@@ -115,7 +134,7 @@
         </Border>
 
         <!-- ARP DataGrid -->
-        <Border x:Name="GridPanel" Grid.Row="2" Visibility="Collapsed" Margin="{StaticResource SpacingSm}"
+        <Border x:Name="GridPanel" Grid.Row="3" Visibility="Collapsed" Margin="{StaticResource SpacingSm}"
                 Background="{DynamicResource CardBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}">
@@ -132,6 +151,9 @@
                       RowBackground="Transparent"
                       AlternatingRowBackground="{DynamicResource SurfaceBrush}"
                       HorizontalGridLinesBrush="{DynamicResource BorderBrush}"
+                      ColumnHeaderStyle="{DynamicResource ThemedDataGridColumnHeaderStyle}"
+                      CellStyle="{DynamicResource ThemedDataGridCellStyle}"
+                      RowStyle="{DynamicResource ThemedDataGridRowStyle}"
                       AutomationProperties.LiveSetting="Polite"
                       AutomationProperties.Name="">
                 <DataGrid.Columns>
@@ -158,7 +180,7 @@
         </Border>
 
         <!-- Footer -->
-        <Border Grid.Row="3" Padding="{StaticResource ToolFooterPadding}"
+        <Border Grid.Row="4" Padding="{StaticResource ToolFooterPadding}"
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,1,0,0">

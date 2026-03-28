@@ -130,6 +130,7 @@ public partial class PasswordAuditView : UserControl, IToolView
 
         BtnHelp.ToolTip = L("ToolHelpTooltip");
         System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
+        System.Windows.Automation.AutomationProperties.SetName(BtnCloseHelp, L("BtnClose"));
 
         System.Windows.Automation.AutomationProperties.SetName(PwdInput, L("ToolPwdAuditInput"));
         System.Windows.Automation.AutomationProperties.SetName(TxtPasswordVisible, L("ToolPwdAuditInput"));
@@ -156,8 +157,18 @@ public partial class PasswordAuditView : UserControl, IToolView
 
     private void OnHelpClick(object sender, RoutedEventArgs e)
     {
-        var helpText = L("ToolHelpPWDAUDIT");
-        MessageBox.Show(helpText, L("ToolHelpTitle"), MessageBoxButton.OK, MessageBoxImage.Information);
+        if (HelpPanel.Visibility == Visibility.Visible)
+        {
+            HelpPanel.Visibility = Visibility.Collapsed;
+            return;
+        }
+        TxtHelpContent.Text = L("ToolHelpPWDAUDIT").Replace("\\n", "\n");
+        HelpPanel.Visibility = Visibility.Visible;
+    }
+
+    private void OnCloseHelpClick(object sender, RoutedEventArgs e)
+    {
+        HelpPanel.Visibility = Visibility.Collapsed;
     }
 
     private void OnTogglePasswordVisibility(object sender, RoutedEventArgs e)

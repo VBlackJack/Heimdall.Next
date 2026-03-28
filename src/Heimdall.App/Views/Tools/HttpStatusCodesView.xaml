@@ -71,7 +71,7 @@
             <ListView.ItemContainerStyle>
                 <Style TargetType="ListViewItem">
                     <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
-                    <Setter Property="Padding" Value="12,6"/>
+                    <Setter Property="Padding" Value="{StaticResource ToolFooterPadding}"/>
                     <Setter Property="Cursor" Value="Hand"/>
                     <Setter Property="Background" Value="Transparent"/>
                     <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>

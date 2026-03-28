@@ -410,6 +410,6 @@ public partial class NetworkCalculatorView : UserControl, IToolView
 
     public void Dispose()
     {
-        // Reserved for future resource cleanup.
+        GC.SuppressFinalize(this);
     }
 }

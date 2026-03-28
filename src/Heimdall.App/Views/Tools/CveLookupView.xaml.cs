@@ -296,14 +296,25 @@ public partial class CveLookupView : UserControl, IToolView
         System.Windows.Automation.AutomationProperties.SetName(TxtInput, L("ToolCveInput"));
         System.Windows.Automation.AutomationProperties.SetName(BtnSearch, L("ToolCveBtnSearch"));
         System.Windows.Automation.AutomationProperties.SetName(BtnCopy, L("ToolCveBtnCopy"));
+        System.Windows.Automation.AutomationProperties.SetName(BtnCloseHelp, L("BtnClose"));
     }
 
     // ── Event handlers ───────────────────────────────────────────────
 
     private void OnHelpClick(object sender, RoutedEventArgs e)
     {
-        var helpText = L("ToolHelpCVELOOKUP");
-        MessageBox.Show(helpText, L("ToolHelpTitle"), MessageBoxButton.OK, MessageBoxImage.Information);
+        if (HelpPanel.Visibility == Visibility.Visible)
+        {
+            HelpPanel.Visibility = Visibility.Collapsed;
+            return;
+        }
+        TxtHelpContent.Text = L("ToolHelpCVELOOKUP").Replace("\\n", "\n");
+        HelpPanel.Visibility = Visibility.Visible;
+    }
+
+    private void OnCloseHelpClick(object sender, RoutedEventArgs e)
+    {
+        HelpPanel.Visibility = Visibility.Collapsed;
     }
 
     private void OnInputKeyDown(object sender, KeyEventArgs e)
