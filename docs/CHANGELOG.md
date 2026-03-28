@@ -12,6 +12,46 @@
 
 All notable changes to Heimdall.Next are documented in this file.
 
+## [Unreleased] - 2026-03-28
+
+### Comprehensive audit — security, i18n, accessibility, and robustness across 49 files
+
+#### Security
+- Centralize shell escaping in `InputValidator`: `EscapeShellArg()`, `EscapeForDoubleQuotedString()`, `ValidateDomain()`, `SanitizeCsvCell()`
+- Add input validation + shell escaping on all `CreateCommand()` calls across 16 tool views (CWE-78 prevention)
+- CSV formula injection prevention via `SanitizeCsvCell()` in 10 exporters + generic `ToolContextMenuHelper`
+- CRLF sanitization on raw HTTP Host header construction
+- IIS CVE predicates: proper version checks replacing always-true predicates
+
+#### Fixed
+- SslStream disposal in 7 files (try/finally + DisposeAsync + leaveInnerStreamOpen)
+- SemaphoreSlim disposal in 6 files
+- RSA/ECDSA crypto key disposal in 3 files (using var)
+- X509Certificate disposal after clone, CTS disposal in finally
+- Process kill-on-cancellation for DNS processes
+- OperationCanceledException propagation at 40+ catch sites
+- Blocking async converted to proper await (TlsAuditView certificate retrieval)
+- Dead code removal (TlsAuditView cipher enumeration)
+- Race condition on CTS lifecycle (Interlocked.Exchange)
+- Password cleared on Dispose (PasswordAuditView)
+- DKIM success message showing DMARC wording
+- Punycode/IDN hostname validation (allow -- mid-label)
+
+#### Internationalization
+- Extract ~170 i18n keys from SecNumCloudAuditEngine, HtmlReportGenerator, and tool views
+- SecNumCloudAuditEngine: `Func<string, string> localize` constructor parameter
+- HtmlReportGenerator: `localize` parameter on `Generate()`
+- Locale count: ~4,290 keys (EN/FR parity)
+
+#### Accessibility
+- AutomationProperties.Name on all interactive controls across 17+ XAML files
+- Hardcoded English accessibility labels replaced with runtime-localized SetName() pattern
+
+#### Data Model
+- AuditScope.Targets: `List<string>` -> `IReadOnlyList<string>`
+
+---
+
 ## [v2026.032701] - 2026-03-27
 
 ### Comprehensive tool audit — robustness, accessibility, and UX (15 tools, 26 files)
