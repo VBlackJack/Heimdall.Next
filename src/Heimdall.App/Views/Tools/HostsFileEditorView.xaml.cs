@@ -95,6 +95,7 @@ public partial class HostsFileEditorView : UserControl, IToolView
         BtnHelp.ToolTip = L("ToolHelpTooltip");
         AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
         AutomationProperties.SetName(BtnCloseHelp, L("BtnClose"));
+        TxtEmptyState.Text = L("ToolHostsEmptyState");
     }
 
     private void LoadHostsFile()
@@ -107,6 +108,7 @@ public partial class HostsFileEditorView : UserControl, IToolView
         {
             TxtFilePath.Text = L("ToolHostsEditorFileNotFound");
             TxtLastModified.Text = string.Empty;
+            UpdateEmptyState();
             return;
         }
 
@@ -165,6 +167,7 @@ public partial class HostsFileEditorView : UserControl, IToolView
             TxtLastModified.Text = string.Format(
                 L("ToolHostsEditorLastModified"),
                 lastWrite.ToString("g"));
+            UpdateEmptyState();
         }
         catch (UnauthorizedAccessException)
         {
@@ -295,6 +298,12 @@ public partial class HostsFileEditorView : UserControl, IToolView
         ErrorText.BringIntoView();
     }
 
+    private void UpdateEmptyState()
+    {
+        EmptyStatePanel.Visibility = _entries.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+        HostsGrid.Visibility = _entries.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+    }
+
     private void OnAddEntryClick(object sender, RoutedEventArgs e)
     {
         var entry = new HostEntry
@@ -307,6 +316,7 @@ public partial class HostsFileEditorView : UserControl, IToolView
         _entries.Add(entry);
         HostsGrid.ScrollIntoView(entry);
         HostsGrid.SelectedItem = entry;
+        UpdateEmptyState();
     }
 
     private void OnDeleteSelectedClick(object sender, RoutedEventArgs e)
@@ -316,6 +326,7 @@ public partial class HostsFileEditorView : UserControl, IToolView
         {
             _entries.Remove(item);
         }
+        UpdateEmptyState();
     }
 
     private void OnCellEditEnding(object sender, DataGridCellEditEndingEventArgs e)

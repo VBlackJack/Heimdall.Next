@@ -19,6 +19,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Models;
 
@@ -36,6 +37,7 @@ public partial class TextCaseConverterView : UserControl, IToolView
     public TextCaseConverterView()
     {
         InitializeComponent();
+        TxtInput.PreviewKeyDown += OnInputPreviewKeyDown;
     }
 
     /// <summary>
@@ -88,6 +90,7 @@ public partial class TextCaseConverterView : UserControl, IToolView
         System.Windows.Automation.AutomationProperties.SetName(BtnCloseHelp, L("BtnClose"));
 
         TxtInput.Tag = L("ToolWatermarkTextToConvert");
+        TxtEmptyState.Text = L("ToolTextCaseEmptyState");
     }
 
     private void OnInputChanged(object sender, TextChangedEventArgs e)
@@ -103,6 +106,8 @@ public partial class TextCaseConverterView : UserControl, IToolView
     {
         _lastConversion = conversion;
         TxtOutput.Text = conversion(TxtInput.Text);
+        EmptyStatePanel.Visibility = Visibility.Collapsed;
+        ResultsPanel.Visibility = Visibility.Visible;
     }
 
     private void OnCamelCaseClick(object sender, RoutedEventArgs e) => ApplyConversion(ToCamelCase);
@@ -213,6 +218,15 @@ public partial class TextCaseConverterView : UserControl, IToolView
     {
         if (string.IsNullOrEmpty(word)) return word;
         return char.ToUpper(word[0], CultureInfo.InvariantCulture) + word[1..].ToLowerInvariant();
+    }
+
+    private void OnInputPreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (Keyboard.Modifiers == ModifierKeys.Control && e.Key == Key.Enter)
+        {
+            ApplyConversion(ToTitleCase);
+            e.Handled = true;
+        }
     }
 
     private void OnHelpClick(object sender, RoutedEventArgs e)

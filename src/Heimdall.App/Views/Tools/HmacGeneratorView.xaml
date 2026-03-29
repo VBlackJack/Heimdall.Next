@@ -31,6 +31,7 @@
                 BorderThickness="0,0,0,1">
             <DockPanel>
                 <Button x:Name="BtnHelp" DockPanel.Dock="Right" Content="?"
+                        TabIndex="8"
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
@@ -70,6 +71,7 @@
                            FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,4"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
                 <ComboBox x:Name="CmbAlgorithm"
+                          TabIndex="0"
                           Margin="{StaticResource MarginSectionSeparator}"
                           Padding="{StaticResource PaddingInput}" FontSize="{StaticResource FontSizeBodyLarge}"
                           Background="{DynamicResource CardBrush}"
@@ -85,6 +87,7 @@
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
                 <DockPanel Margin="{StaticResource MarginSectionSeparator}">
                     <Button x:Name="BtnToggleKey" DockPanel.Dock="Right"
+                            TabIndex="2"
                             Content="&#xE7B3;"
                             FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeSubtitle}"
                             Click="OnToggleKeyVisibility"
@@ -94,6 +97,7 @@
                             VerticalAlignment="Stretch"/>
                     <Grid>
                         <PasswordBox x:Name="PwdKey"
+                                     TabIndex="1"
                                      FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
                                      Padding="{StaticResource PaddingInput}"
                                      Background="{DynamicResource CardBrush}"
@@ -103,6 +107,7 @@
                                      AutomationProperties.Name=""
                                      />
                         <TextBox x:Name="TxtKey" Text=""
+                                 TabIndex="1"
                                  Style="{DynamicResource WatermarkTextBoxStyle}"
                                  FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
                                  Padding="{StaticResource PaddingInput}"
@@ -122,6 +127,7 @@
                            FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,4"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
                 <TextBox x:Name="TxtInput" Text=""
+                         TabIndex="3"
                          FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
                          Padding="{StaticResource PaddingInput}" Height="120"
                          AcceptsReturn="True" AcceptsTab="True"
@@ -141,17 +147,32 @@
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
                 <StackPanel Orientation="Horizontal" Margin="{StaticResource MarginSectionBottom}">
                     <RadioButton x:Name="RdoHex" Content="" IsChecked="True"
+                                 TabIndex="4"
                                  Foreground="{DynamicResource TextPrimaryBrush}"
                                  Margin="0,0,16,0"
                                  Checked="OnFormatChanged"
                                  AutomationProperties.Name=""
                                  />
                     <RadioButton x:Name="RdoBase64" Content=""
+                                 TabIndex="5"
                                  Foreground="{DynamicResource TextPrimaryBrush}"
                                  Checked="OnFormatChanged"
                                  AutomationProperties.Name=""
                                  />
                 </StackPanel>
+
+                <!-- Empty state -->
+                <Border x:Name="EmptyStatePanel"
+                        Style="{StaticResource ToolEmptyStateStyle}"
+                        Margin="0,24,0,0">
+                    <StackPanel HorizontalAlignment="Center">
+                        <TextBlock Text="&#xE8D7;"
+                                   Style="{StaticResource ToolEmptyStateIconStyle}"
+                                   AutomationProperties.Name=""/>
+                        <TextBlock x:Name="TxtEmptyState" Text=""
+                                   Style="{StaticResource ToolEmptyStateTextStyle}"/>
+                    </StackPanel>
+                </Border>
 
                 <!-- Output -->
                 <TextBlock x:Name="LblOutput" Text=""
@@ -159,6 +180,7 @@
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
                 <DockPanel Margin="0,0,0,8">
                     <Button x:Name="BtnCopy" DockPanel.Dock="Right"
+                            TabIndex="6"
                             Content="" Click="OnCopyClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginInlineControl}"
@@ -187,6 +209,7 @@
                            FontSize="{StaticResource FontSizeBody}" Margin="0,16,0,4"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
                 <TextBox x:Name="TxtVerify" Text=""
+                         TabIndex="7"
                          Style="{DynamicResource WatermarkTextBoxStyle}"
                          FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
                          Padding="{StaticResource PaddingInput}" Margin="0,0,0,4"

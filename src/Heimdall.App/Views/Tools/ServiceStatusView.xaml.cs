@@ -20,6 +20,7 @@ using System.Text;
 using System.Windows;
 using System.Windows.Automation;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Threading;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Models;
@@ -48,6 +49,7 @@ public partial class ServiceStatusView : UserControl, IToolView
     public ServiceStatusView()
     {
         InitializeComponent();
+        TxtFilter.KeyDown += OnFilterKeyDown;
         _viewState = new ToolAsyncStateController(
             isBusy => _setBusy?.Invoke(isBusy),
             LoadingBar,
@@ -73,6 +75,11 @@ public partial class ServiceStatusView : UserControl, IToolView
 
         // Auto-load on first display
         _ = LoadServicesAsync();
+
+        Dispatcher.BeginInvoke(DispatcherPriority.Loaded, () =>
+        {
+            TxtFilter.Focus();
+        });
     }
 
     private void ApplyLocalization()
@@ -111,6 +118,7 @@ public partial class ServiceStatusView : UserControl, IToolView
         AutomationProperties.SetName(BtnCloseHelp, L("BtnClose"));
         AutomationProperties.SetName(LoadingBar, L("ToolServicesA11yLoading"));
         TxtEmptyState.Text = L("ToolServiceStatusEmptyState");
+        TxtFilter.Tag = L("ToolWatermarkServiceFilter");
     }
 
     // ── Data Loading ────────────────────────────────────────────
@@ -260,6 +268,14 @@ public partial class ServiceStatusView : UserControl, IToolView
     }
 
     // ── Filtering ───────────────────────────────────────────────
+
+    private void OnFilterKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter)
+        {
+            ApplyFilter();
+        }
+    }
 
     private void OnFilterChanged(object sender, TextChangedEventArgs e)
     {

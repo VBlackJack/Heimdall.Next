@@ -2734,6 +2734,10 @@
   "ToolDnsNoIpv6": "Aucune adresse IPv6 trouv\u00e9e.",
   "ToolDnsAliases": "Alias\u00a0:",
   "ToolDnsServerLabel": "Serveur DNS",
+  "ToolDnsPresetSystem": "Syst\u00e8me",
+  "ToolDnsPresetGoogle": "Google (8.8.8.8)",
+  "ToolDnsPresetCloudflare": "Cloudflare (1.1.1.1)",
+  "ToolDnsPresetQuad9": "Quad9 (9.9.9.9)",
 
   "PaletteToolCert": "Inspecteur de certificat",
   "PaletteToolCertWith": "Inspecteur de certificat\u00a0: {0}",
@@ -4608,5 +4612,32 @@
   "A11yToolsTab": "Onglet outils",
   "A11yPinTool": "Épingler l'outil aux favoris",
   "A11yUnpinTool": "Retirer l'outil des favoris",
-  "A11yOnboardingOverlay": "Guide de bienvenue"
+  "A11yOnboardingOverlay": "Guide de bienvenue",
+
+  "_comment_ux_empty_states": "--- Messages d'\u00e9tat vide des outils ---",
+  "ToolPingEmptyState": "Saisissez un h\u00f4te et cliquez sur D\u00e9marrer.",
+  "ToolIpConvEmptyState": "Saisissez une adresse IP, un entier, un hex ou un binaire point\u00e9.",
+  "ToolNetCalcEmptyState": "Saisissez des sous-r\u00e9seaux ou des plages IP \u00e0 calculer.",
+  "ToolHashEmptyState": "Saisissez du texte ou parcourez un fichier pour calculer les empreintes.",
+  "ToolHmacEmptyState": "Saisissez une cl\u00e9 et un message pour calculer un HMAC.",
+  "ToolJwtEmptyState": "Collez un jeton JWT pour d\u00e9coder son en-t\u00eate, son contenu et sa signature.",
+  "ToolBase64EmptyState": "Saisissez du texte et appuyez sur Encoder ou D\u00e9coder.",
+  "ToolJsonEmptyState": "Collez du JSON et appuyez sur Formater ou Minifier.",
+  "ToolTextDiffEmptyState": "Saisissez un texte original et modifi\u00e9, puis comparez.",
+  "ToolTextCaseEmptyState": "Saisissez du texte et choisissez une conversion.",
+  "ToolDateTimeEmptyState": "Saisissez un horodatage Unix ou une date ISO 8601 \u00e0 convertir.",
+  "ToolHostsEmptyState": "Aucune entr\u00e9e trouv\u00e9e dans le fichier hosts.",
+  "ToolSshKeyGenEmptyState": "Choisissez un algorithme et cliquez sur G\u00e9n\u00e9rer.",
+  "ToolCertGenEmptyState": "Renseignez les d\u00e9tails du certificat et cliquez sur G\u00e9n\u00e9rer.",
+  "ToolDiagramEmptyState": "Chargement de l'\u00e9diteur de diagrammes...",
+
+  "_comment_ux_watermarks": "--- Watermarks ---",
+  "ToolWatermarkPassword": "Saisissez un mot de passe",
+  "ToolWatermarkSshKey": "Collez une cl\u00e9 SSH publique ou priv\u00e9e",
+  "ToolWatermarkServiceFilter": "Filtrer les services...",
+
+  "_comment_ux_buttons": "--- Boutons d'outils async ---",
+  "ToolSshKeyGenGenerating": "G\u00e9n\u00e9ration...",
+  "ToolCertGenGenerating": "G\u00e9n\u00e9ration...",
+  "ToolTextDiffComparing": "Comparaison..."
 }

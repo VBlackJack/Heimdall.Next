@@ -36,6 +36,7 @@
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
                         Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"
+                        TabIndex="8"
                         AutomationProperties.Name=""/>
                 <TextBlock x:Name="HeaderTitle" Text=""
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
@@ -61,6 +62,7 @@
                                  Foreground="{DynamicResource TextPrimaryBrush}"
                                  BorderBrush="{DynamicResource BorderBrush}"
                                  VerticalAlignment="Center"
+                                 TabIndex="0"
                                  AutomationProperties.Name=""/>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Margin="0,2,12,2">
@@ -69,24 +71,28 @@
                                 Style="{DynamicResource PrimaryButtonStyle}"
                                 Padding="{StaticResource PaddingButtonPrimary}" Margin="0,0,4,0"
                                 VerticalAlignment="Center"
+                                TabIndex="1"
                                 AutomationProperties.Name=""/>
                         <Button x:Name="BtnClear" Content=""
                                 Click="OnClearClick"
                                 Style="{DynamicResource SecondaryButtonStyle}"
                                 Padding="{StaticResource PaddingButtonCopy}" Margin="0,0,4,0"
                                 VerticalAlignment="Center"
+                                TabIndex="2"
                                 AutomationProperties.Name=""/>
                         <Button x:Name="BtnCopyLog" Content=""
                                 Click="OnCopyLogClick"
                                 Style="{DynamicResource SecondaryButtonStyle}"
                                 Padding="{StaticResource PaddingButtonCopy}" Margin="0,0,4,0"
                                 VerticalAlignment="Center"
+                                TabIndex="3"
                                 AutomationProperties.Name=""/>
                         <Button x:Name="BtnExportCsv" Content=""
                                 Click="OnExportCsvClick"
                                 Style="{DynamicResource SecondaryButtonStyle}"
                                 Padding="{StaticResource PaddingButtonCopy}"
                                 VerticalAlignment="Center"
+                                TabIndex="4"
                                 AutomationProperties.Name=""/>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Margin="0,2,12,2">
@@ -99,6 +105,7 @@
                                   Background="{DynamicResource CardBrush}"
                                   Foreground="{DynamicResource TextPrimaryBrush}"
                                   BorderBrush="{DynamicResource BorderBrush}"
+                                  TabIndex="5"
                                   AutomationProperties.Name="">
                             <ComboBoxItem x:Name="Ping500ms" Content="" Tag="500"/>
                             <ComboBoxItem x:Name="Ping1s" Content="" Tag="1000"/>
@@ -118,6 +125,7 @@
                                  Foreground="{DynamicResource TextPrimaryBrush}"
                                  BorderBrush="{DynamicResource BorderBrush}"
                                  VerticalAlignment="Center"
+                                 TabIndex="6"
                                  AutomationProperties.Name=""/>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Margin="0,2,0,2">
@@ -131,6 +139,7 @@
                                  Foreground="{DynamicResource TextPrimaryBrush}"
                                  BorderBrush="{DynamicResource BorderBrush}"
                                  VerticalAlignment="Center"
+                                 TabIndex="7"
                                  AutomationProperties.Name=""/>
                     </StackPanel>
                 </WrapPanel>
@@ -145,6 +154,7 @@
                         Click="OnCloseHelpClick"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
                         VerticalAlignment="Top" Width="24" Height="24"
+                        TabIndex="9"
                         AutomationProperties.Name=""/>
                 <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
                     <TextBlock x:Name="TxtHelpContent" Text="" TextWrapping="Wrap"
@@ -155,8 +165,20 @@
             </DockPanel>
         </Border>
 
+        <!-- Empty state hint -->
+        <Border x:Name="EmptyStatePanel" Grid.Row="2"
+                Style="{StaticResource ToolEmptyStateStyle}"
+                Margin="0,24,0,0">
+            <StackPanel HorizontalAlignment="Center">
+                <TextBlock Text="&#xE968;" Style="{StaticResource ToolEmptyStateIconStyle}"
+                           AutomationProperties.Name=""/>
+                <TextBlock x:Name="TxtEmptyState" Text=""
+                           Style="{StaticResource ToolEmptyStateTextStyle}"/>
+            </StackPanel>
+        </Border>
+
         <!-- Main Area -->
-        <Grid Grid.Row="2">
+        <Grid x:Name="MainAreaPanel" Grid.Row="2" Visibility="Collapsed">
             <Grid.RowDefinitions>
                 <RowDefinition Height="*" MinHeight="120"/>
                 <RowDefinition Height="Auto"/>

@@ -31,6 +31,7 @@
                 BorderThickness="0,0,0,1">
             <DockPanel>
                 <Button x:Name="BtnHelp" DockPanel.Dock="Right" Content="?"
+                        TabIndex="6"
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
@@ -68,6 +69,7 @@
                 <!-- Decoded field -->
                 <DockPanel Margin="0,0,0,4">
                     <Button x:Name="BtnCopyDecoded" DockPanel.Dock="Right"
+                            TabIndex="1"
                             Content="" Click="OnCopyDecodedClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginInlineControl}"
@@ -79,6 +81,7 @@
                                VerticalAlignment="Bottom"/>
                 </DockPanel>
                 <TextBox x:Name="TxtDecoded" Text=""
+                         TabIndex="0"
                          FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
                          Padding="{StaticResource PaddingInput}" Margin="0,0,0,8"
                          AcceptsReturn="True" TextWrapping="Wrap"
@@ -95,6 +98,7 @@
                 <!-- Encoded field -->
                 <DockPanel Margin="0,8,0,4">
                     <Button x:Name="BtnCopyEncoded" DockPanel.Dock="Right"
+                            TabIndex="3"
                             Content="" Click="OnCopyEncodedClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginInlineControl}"
@@ -106,6 +110,7 @@
                                VerticalAlignment="Bottom"/>
                 </DockPanel>
                 <TextBox x:Name="TxtEncoded" Text=""
+                         TabIndex="2"
                          FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
                          Padding="{StaticResource PaddingInput}" Margin="0,0,0,8"
                          AcceptsReturn="True" TextWrapping="Wrap"
@@ -121,6 +126,7 @@
 
                 <!-- Component encoding toggle -->
                 <CheckBox x:Name="ChkComponentEncoding" Margin="0,4,0,0"
+                          TabIndex="4"
                           Foreground="{DynamicResource TextSecondaryBrush}"
                           AutomationProperties.Name="">
                     <TextBlock x:Name="LblComponentEncoding" Text="" FontSize="{StaticResource FontSizeBody}"/>

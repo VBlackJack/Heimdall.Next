@@ -23,6 +23,7 @@ using Heimdall.App.Services;
 using Heimdall.App.Theming;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Models;
+using Heimdall.Core.Security;
 
 namespace Heimdall.App.Views.Dialogs;
 
@@ -234,6 +235,16 @@ public partial class ToolPickerDialog : Window
         {
             ShowValidation(_localizer["AddToolPickerValidationName"]);
             DisplayNameTextBox.Focus();
+            return false;
+        }
+
+        var host = HostTextBox.Text.Trim();
+        if (_selectedOption?.Descriptor.IsNetworkTool == true
+            && !string.IsNullOrEmpty(host)
+            && !InputValidator.Validate(host, "Address"))
+        {
+            ShowValidation(_localizer["ErrorInvalidHost"]);
+            HostTextBox.Focus();
             return false;
         }
 

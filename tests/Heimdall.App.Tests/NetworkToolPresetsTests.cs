@@ -27,7 +27,7 @@ public class NetworkToolPresetsTests
     public void DnsServers_FirstEntry_RemainsSystemDefault()
     {
         Assert.NotEmpty(NetworkToolPresets.DnsServers);
-        Assert.Equal("System", NetworkToolPresets.DnsServers[0].Label);
+        Assert.Equal("ToolDnsPresetSystem", NetworkToolPresets.DnsServers[0].LabelKey);
         Assert.Null(NetworkToolPresets.DnsServers[0].Address);
     }
 

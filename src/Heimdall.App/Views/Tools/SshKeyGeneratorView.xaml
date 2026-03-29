@@ -31,6 +31,7 @@
                 BorderThickness="0,0,0,1">
             <DockPanel>
                 <Button x:Name="BtnHelp" DockPanel.Dock="Right" Content="?"
+                        TabIndex="4"
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
@@ -86,6 +87,7 @@
                                    Foreground="{DynamicResource TextPrimaryBrush}"
                                    VerticalAlignment="Center" Width="120"/>
                         <ComboBox x:Name="AlgorithmCombo"
+                                  TabIndex="0"
                                   SelectedIndex="1"
                                   MinWidth="200"
                                   AutomationProperties.Name=""
@@ -102,6 +104,7 @@
                                    Foreground="{DynamicResource TextPrimaryBrush}"
                                    VerticalAlignment="Center" Width="120"/>
                         <TextBox x:Name="CommentInput"
+                                 TabIndex="1"
                                  Foreground="{DynamicResource TextPrimaryBrush}"
                                  Background="{DynamicResource CardBrush}"
                                  BorderBrush="{DynamicResource BorderBrush}"
@@ -116,6 +119,7 @@
                                    Foreground="{DynamicResource TextPrimaryBrush}"
                                    VerticalAlignment="Center" Width="120"/>
                         <PasswordBox x:Name="PassphraseInput"
+                                     TabIndex="2"
                                      Foreground="{DynamicResource TextPrimaryBrush}"
                                      Background="{DynamicResource CardBrush}"
                                      BorderBrush="{DynamicResource BorderBrush}"
@@ -132,6 +136,7 @@
 
             <!-- Generate button -->
             <Button x:Name="BtnGenerate" Grid.Row="1"
+                    TabIndex="3"
                     Click="OnGenerateClick"
                     Style="{DynamicResource PrimaryButtonStyle}"
                     Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginSectionSeparator}"

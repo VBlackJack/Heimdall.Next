@@ -120,13 +120,13 @@
                                                     <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"/>
                                                 </Border>
                                                 <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter TargetName="ItemBorder" Property="Background" Value="{DynamicResource HighlightBrush}"/>
+                                                    </Trigger>
                                                     <Trigger Property="IsSelected" Value="True">
                                                         <Setter TargetName="ItemBorder" Property="Background" Value="{DynamicResource SurfaceBrush}"/>
                                                         <Setter TargetName="ItemBorder" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
                                                         <Setter TargetName="ItemBorder" Property="BorderThickness" Value="1"/>
-                                                    </Trigger>
-                                                    <Trigger Property="IsMouseOver" Value="True">
-                                                        <Setter TargetName="ItemBorder" Property="Background" Value="{DynamicResource HighlightBrush}"/>
                                                     </Trigger>
                                                 </ControlTemplate.Triggers>
                                             </ControlTemplate>

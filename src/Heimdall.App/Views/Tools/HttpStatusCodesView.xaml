@@ -36,6 +36,7 @@
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
                         Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"
+                        TabIndex="2"
                         AutomationProperties.Name=""/>
                 <TextBlock x:Name="HeaderTitle" Text=""
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
@@ -52,6 +53,7 @@
                         Click="OnCloseHelpClick"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
                         VerticalAlignment="Top" Width="24" Height="24"
+                        TabIndex="3"
                         AutomationProperties.Name=""/>
                 <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
                     <TextBlock x:Name="TxtHelpContent" Text="" TextWrapping="Wrap"
@@ -77,6 +79,7 @@
                          Background="{DynamicResource CardBrush}"
                          Foreground="{DynamicResource TextPrimaryBrush}"
                          BorderBrush="{DynamicResource BorderBrush}"
+                         TabIndex="0"
                          AutomationProperties.Name=""/>
             </DockPanel>
         </Border>
@@ -86,6 +89,7 @@
                   Background="Transparent"
                   BorderThickness="0"
                   ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                  TabIndex="1"
                   AutomationProperties.Name="">
             <ListView.ItemContainerStyle>
                 <Style TargetType="ListViewItem">
@@ -149,8 +153,7 @@
 
         <!-- No results message -->
         <TextBlock x:Name="TxtNoResults" Grid.Row="3" Visibility="Collapsed"
-                   Text="" FontSize="{StaticResource FontSizeBodyLarge}"
-                   Foreground="{DynamicResource TextSecondaryBrush}"
+                   Text="" Style="{StaticResource ToolEmptyStateTextStyle}"
                    HorizontalAlignment="Center" VerticalAlignment="Center"/>
     </Grid>
 </UserControl>

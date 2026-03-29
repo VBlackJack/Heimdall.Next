@@ -59,6 +59,7 @@
                                  Foreground="{DynamicResource TextPrimaryBrush}"
                                  BorderBrush="{DynamicResource BorderBrush}"
                                  VerticalAlignment="Center"
+                                 TabIndex="0"
                                  AutomationProperties.Name=""/>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Margin="0,2,12,2">
@@ -75,6 +76,7 @@
                                  Foreground="{DynamicResource TextPrimaryBrush}"
                                  BorderBrush="{DynamicResource BorderBrush}"
                                  VerticalAlignment="Center"
+                                 TabIndex="1"
                                  AutomationProperties.Name=""/>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Margin="0,2,12,2">
@@ -91,6 +93,7 @@
                                  Foreground="{DynamicResource TextPrimaryBrush}"
                                  BorderBrush="{DynamicResource BorderBrush}"
                                  VerticalAlignment="Center"
+                                 TabIndex="2"
                                  AutomationProperties.Name=""/>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Margin="0,2,12,2">
@@ -103,6 +106,7 @@
                                   Foreground="{DynamicResource TextPrimaryBrush}"
                                   BorderBrush="{DynamicResource BorderBrush}"
                                   VerticalAlignment="Center"
+                                  TabIndex="3"
                                   AutomationProperties.Name=""/>
                     </StackPanel>
                     <Button x:Name="BtnWalk" Content=""
@@ -110,6 +114,7 @@
                             Style="{DynamicResource PrimaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonPrimary}" Margin="0,2,0,2"
                             VerticalAlignment="Center"
+                            TabIndex="4"
                             AutomationProperties.Name=""/>
                 </WrapPanel>
             </DockPanel>
@@ -123,6 +128,7 @@
                         Click="OnCloseHelpClick"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
                         VerticalAlignment="Top" Width="24" Height="24"
+                        TabIndex="15"
                         AutomationProperties.Name=""/>
                 <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
                     <TextBlock x:Name="TxtHelpContent" Text="" TextWrapping="Wrap"
@@ -142,22 +148,27 @@
                 <Button x:Name="BtnPresetSystem" Click="OnPresetClick" Tag="1.3.6.1.2.1.1"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonPreset}" Margin="0,0,4,0" FontSize="{StaticResource FontSizeCaption}"
+                        TabIndex="5"
                         AutomationProperties.Name=""/>
                 <Button x:Name="BtnPresetInterfaces" Click="OnPresetClick" Tag="1.3.6.1.2.1.2"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonPreset}" Margin="0,0,4,0" FontSize="{StaticResource FontSizeCaption}"
+                        TabIndex="6"
                         AutomationProperties.Name=""/>
                 <Button x:Name="BtnPresetIp" Click="OnPresetClick" Tag="1.3.6.1.2.1.4"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonPreset}" Margin="0,0,4,0" FontSize="{StaticResource FontSizeCaption}"
+                        TabIndex="7"
                         AutomationProperties.Name=""/>
                 <Button x:Name="BtnPresetTcp" Click="OnPresetClick" Tag="1.3.6.1.2.1.6"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonPreset}" Margin="0,0,4,0" FontSize="{StaticResource FontSizeCaption}"
+                        TabIndex="8"
                         AutomationProperties.Name=""/>
                 <Button x:Name="BtnPresetUdp" Click="OnPresetClick" Tag="1.3.6.1.2.1.7"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonPreset}" FontSize="{StaticResource FontSizeCaption}"
+                        TabIndex="9"
                         AutomationProperties.Name=""/>
             </StackPanel>
         </Border>
@@ -177,12 +188,10 @@
                 Style="{StaticResource ToolEmptyStateStyle}"
                 Margin="0,24,0,0">
             <StackPanel HorizontalAlignment="Center">
-                <TextBlock Text="&#xE968;" FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource IconSizeEmptyState}"
-                           HorizontalAlignment="Center"
-                           Foreground="{DynamicResource TextDisabledBrush}" Margin="0,0,0,8"/>
+                <TextBlock Text="&#xE968;" Style="{StaticResource ToolEmptyStateIconStyle}"
+                           AutomationProperties.Name=""/>
                 <TextBlock x:Name="TxtEmptyState" Text=""
-                           FontSize="{StaticResource FontSizeBodyLarge}" TextAlignment="Center"
-                           Foreground="{DynamicResource TextSecondaryBrush}"/>
+                           Style="{StaticResource ToolEmptyStateTextStyle}"/>
             </StackPanel>
         </Border>
 
@@ -207,6 +216,7 @@
                       ColumnHeaderStyle="{StaticResource ThemedDataGridColumnHeaderStyle}"
                       CellStyle="{StaticResource ThemedDataGridCellStyle}"
                       RowStyle="{StaticResource ThemedDataGridRowStyle}"
+                      TabIndex="10"
                       AutomationProperties.Name=""
                       AutomationProperties.LiveSetting="Polite">
                 <DataGrid.Columns>
@@ -234,6 +244,7 @@
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonPrimary}" Margin="0,0,12,0"
                         VerticalAlignment="Center"
+                        TabIndex="11"
                         AutomationProperties.Name=""/>
                 <ItemsControl x:Name="CommunityResults" VerticalAlignment="Center">
                     <ItemsControl.ItemsPanel>
@@ -275,12 +286,14 @@
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonPrimary}" DockPanel.Dock="Right" Margin="{StaticResource MarginInlineControl}"
                         VerticalAlignment="Center"
+                        TabIndex="12"
                         AutomationProperties.Name=""/>
                 <Button x:Name="BtnCopy" Content=""
                         Click="OnCopyClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonPrimary}" DockPanel.Dock="Right"
                         VerticalAlignment="Center"
+                        TabIndex="13"
                         AutomationProperties.Name=""/>
                 <TextBlock x:Name="TxtStatus" Text=""
                            FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"

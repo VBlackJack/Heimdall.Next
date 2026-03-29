@@ -31,6 +31,7 @@
                 BorderThickness="0,0,0,1">
             <DockPanel>
                 <Button x:Name="BtnHelp" DockPanel.Dock="Right" Content="?"
+                        TabIndex="6"
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
@@ -70,6 +71,7 @@
                            FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,4"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
                 <TextBox x:Name="TxtInput" Text=""
+                         TabIndex="0"
                          FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                          Padding="{StaticResource PaddingInput}" Height="80"
                          AcceptsReturn="True"
@@ -98,9 +100,23 @@
                            TextWrapping="Wrap"
                            Visibility="Collapsed"/>
 
+                <!-- Empty state -->
+                <Border x:Name="EmptyStatePanel"
+                        Style="{StaticResource ToolEmptyStateStyle}"
+                        Margin="0,24,0,0">
+                    <StackPanel HorizontalAlignment="Center">
+                        <TextBlock Text="&#xE8D7;"
+                                   Style="{StaticResource ToolEmptyStateIconStyle}"
+                                   AutomationProperties.Name=""/>
+                        <TextBlock x:Name="TxtEmptyState" Text=""
+                                   Style="{StaticResource ToolEmptyStateTextStyle}"/>
+                    </StackPanel>
+                </Border>
+
                 <!-- Header section -->
                 <DockPanel Margin="0,16,0,4">
                     <Button x:Name="BtnCopyHeader" DockPanel.Dock="Right" Click="OnCopyHeaderClick"
+                            TabIndex="1"
                             Style="{DynamicResource SecondaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeCaption}" Margin="{StaticResource MarginInlineControl}" VerticalAlignment="Center"
                             AutomationProperties.Name=""/>
@@ -126,6 +142,7 @@
                 <!-- Payload section -->
                 <DockPanel Margin="0,4,0,4">
                     <Button x:Name="BtnCopyPayload" DockPanel.Dock="Right" Click="OnCopyPayloadClick"
+                            TabIndex="2"
                             Style="{DynamicResource SecondaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeCaption}" Margin="{StaticResource MarginInlineControl}" VerticalAlignment="Center"
                             AutomationProperties.Name=""/>
@@ -151,6 +168,7 @@
                 <!-- Signature section -->
                 <DockPanel Margin="0,4,0,4">
                     <Button x:Name="BtnCopySignature" DockPanel.Dock="Right" Click="OnCopySignatureClick"
+                            TabIndex="3"
                             Style="{DynamicResource SecondaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeCaption}" Margin="{StaticResource MarginInlineControl}" VerticalAlignment="Center"
                             AutomationProperties.Name=""/>
@@ -198,12 +216,14 @@
                                        Foreground="{DynamicResource TextSecondaryBrush}"/>
                             <DockPanel Margin="0,0,0,8">
                                 <Button x:Name="BtnVerify" DockPanel.Dock="Right"
+                                        TabIndex="5"
                                         Content="" Click="OnVerifyClick"
                                         Style="{DynamicResource PrimaryButtonStyle}"
                                         Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginInlineControl}"
                                         VerticalAlignment="Center"
                                         AutomationProperties.Name=""/>
                                 <TextBox x:Name="TxtSecret" Text=""
+                                         TabIndex="4"
                                          FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                                          Padding="{StaticResource PaddingInput}"
                                          Background="{DynamicResource BackgroundBrush}"

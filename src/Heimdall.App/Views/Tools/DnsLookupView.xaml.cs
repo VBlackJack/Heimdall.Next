@@ -73,7 +73,7 @@ public partial class DnsLookupView : UserControl, IToolView
 
         foreach (var preset in NetworkToolPresets.DnsServers)
         {
-            CmbDnsServer.Items.Add(new ComboBoxItem { Content = preset.Label });
+            CmbDnsServer.Items.Add(new ComboBoxItem { Content = L(preset.LabelKey) });
         }
         CmbDnsServer.SelectedIndex = 0;
 

@@ -189,6 +189,7 @@ public partial class HackerSimulatorView : UserControl, IToolView
 
             RefreshScenarioPicker(restartIfSelectionChanges: false);
             StartScenario(newSession: true);
+            BtnStartStop.Focus();
         });
     }
 
@@ -2212,6 +2213,21 @@ public partial class HackerSimulatorView : UserControl, IToolView
         System.Windows.Automation.AutomationProperties.SetName(ChkVintageMonitor, L("ToolHackerSimVintageMonitor"));
         System.Windows.Automation.AutomationProperties.SetName(BtnReplaySeed, L("ToolHackerSimReplaySeed"));
         System.Windows.Automation.AutomationProperties.SetName(BtnExportTranscript, L("ToolHackerSimExportTranscript"));
+        CmbScenario.TabIndex = 0;
+        BtnFavorite.TabIndex = 1;
+        ChkRandomMode.TabIndex = 2;
+        TxtScenarioSearch.TabIndex = 3;
+        CmbCategory.TabIndex = 4;
+        CmbRealism.TabIndex = 5;
+        SliderSpeed.TabIndex = 6;
+        BtnStartStop.TabIndex = 7;
+        BtnHelp.TabIndex = 8;
+        CmbPlaylist.TabIndex = 9;
+        BtnReplaySeed.TabIndex = 10;
+        BtnExportTranscript.TabIndex = 11;
+        ChkVintageMonitor.TabIndex = 12;
+        BtnCloseHelp.TabIndex = 13;
+
         PopulateFilterControls();
         PopulatePlaylistControl();
         UpdateFavoriteButton();

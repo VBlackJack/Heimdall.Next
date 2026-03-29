@@ -1888,7 +1888,7 @@ public partial class MainWindow : Window
                 {
                     var desc = ToolRegistry.All.FirstOrDefault(d => string.Equals(d.Id, favId, StringComparison.OrdinalIgnoreCase));
                     if (desc is not null)
-                        favPanel.Children.Add(CreateToolsTabCard(vm, desc, true));
+                        favPanel.Children.Add(CreateToolsTabCard(vm, desc));
                 }
                 ToolsTabContent.Children.Add(favPanel);
             }
@@ -1914,7 +1914,7 @@ public partial class MainWindow : Window
                 {
                     var desc = ToolRegistry.All.FirstOrDefault(d => string.Equals(d.Id, rid, StringComparison.OrdinalIgnoreCase));
                     if (desc is not null)
-                        recentPanel.Children.Add(CreateToolsTabCard(vm, desc, false));
+                        recentPanel.Children.Add(CreateToolsTabCard(vm, desc));
                 }
                 ToolsTabContent.Children.Add(recentPanel);
             }
@@ -1957,7 +1957,7 @@ public partial class MainWindow : Window
                 lastCategory = descriptor.CategoryLabelKey;
             }
 
-            currentWrap?.Children.Add(CreateToolsTabCard(vm, descriptor, false));
+            currentWrap?.Children.Add(CreateToolsTabCard(vm, descriptor));
         }
         if (currentWrap is not null)
             ToolsTabContent.Children.Add(currentWrap);
@@ -2036,7 +2036,7 @@ public partial class MainWindow : Window
     /// <summary>
     /// Creates a wider card for the Tools tab grid layout with a pin/unpin button.
     /// </summary>
-    private FrameworkElement CreateToolsTabCard(MainViewModel vm, Core.Models.ToolDescriptor descriptor, bool showUnpin)
+    private FrameworkElement CreateToolsTabCard(MainViewModel vm, Core.Models.ToolDescriptor descriptor)
     {
         var categoryBrushKey = GetCategoryBrushKey(descriptor.Category);
         var categoryBrush = (Brush)FindResource(categoryBrushKey);
@@ -2184,7 +2184,6 @@ public partial class MainWindow : Window
         pinBtn.Margin = new Thickness(0, 6, 6, 0);
         card.Children.Add(pinBtn);
 
-        _ = showUnpin;
         return card;
     }
 

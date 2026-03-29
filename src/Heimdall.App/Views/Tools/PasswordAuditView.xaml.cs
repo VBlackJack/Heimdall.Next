@@ -136,6 +136,8 @@ public partial class PasswordAuditView : UserControl, IToolView
         System.Windows.Automation.AutomationProperties.SetName(TxtPasswordVisible, L("ToolPwdAuditInput"));
         System.Windows.Automation.AutomationProperties.SetName(CmbPolicy, L("ToolPwdAuditPolicy"));
 
+        TxtPasswordVisible.Tag = L("ToolWatermarkPassword");
+
         UpdateToggleButtonLabel();
 
         // Populate policy ComboBox

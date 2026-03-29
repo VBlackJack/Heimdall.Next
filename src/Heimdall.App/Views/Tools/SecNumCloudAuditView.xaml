@@ -36,6 +36,7 @@
                 BorderThickness="0,0,0,1">
             <DockPanel>
                 <Button x:Name="BtnHelp" DockPanel.Dock="Right" Content="?"
+                        TabIndex="11"
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
@@ -83,6 +84,7 @@
                                Foreground="{DynamicResource TextSecondaryBrush}"
                                Margin="0,0,0,4"/>
                     <TextBox x:Name="TxtScope" AcceptsReturn="True" TextWrapping="Wrap"
+                             TabIndex="0"
                              Height="60" VerticalScrollBarVisibility="Auto"
                              Style="{StaticResource WatermarkTextBoxStyle}"
                              Tag=""
@@ -103,6 +105,7 @@
                                    Foreground="{DynamicResource TextSecondaryBrush}"
                                    VerticalAlignment="Center" Margin="0,0,6,0"/>
                         <ComboBox x:Name="CmbDepth" Width="140"
+                                  TabIndex="1"
                                   Background="{DynamicResource CardBrush}"
                                   Foreground="{DynamicResource TextPrimaryBrush}"
                                   BorderBrush="{DynamicResource BorderBrush}"
@@ -110,18 +113,22 @@
                                   AutomationProperties.Name=""/>
 
                         <CheckBox x:Name="ChkNetwork" IsChecked="True"
+                                  TabIndex="2"
                                   Foreground="{DynamicResource TextPrimaryBrush}"
                                   VerticalAlignment="Center" Margin="16,0,0,0"
                                   AutomationProperties.Name=""/>
                         <CheckBox x:Name="ChkCrypto" IsChecked="True"
+                                  TabIndex="3"
                                   Foreground="{DynamicResource TextPrimaryBrush}"
                                   VerticalAlignment="Center" Margin="16,0,0,0"
                                   AutomationProperties.Name=""/>
                         <CheckBox x:Name="ChkAccess" IsChecked="True"
+                                  TabIndex="4"
                                   Foreground="{DynamicResource TextPrimaryBrush}"
                                   VerticalAlignment="Center" Margin="16,0,0,0"
                                   AutomationProperties.Name=""/>
                         <CheckBox x:Name="ChkOperations" IsChecked="True"
+                                  TabIndex="5"
                                   Foreground="{DynamicResource TextPrimaryBrush}"
                                   VerticalAlignment="Center" Margin="16,0,0,0"
                                   AutomationProperties.Name=""/>
@@ -130,6 +137,7 @@
                                    FontSize="{StaticResource FontSizeBody}" VerticalAlignment="Center" Margin="16,0,4,0"
                                    Foreground="{DynamicResource TextSecondaryBrush}"/>
                         <ComboBox x:Name="CmbRouteVia" Width="180"
+                                  TabIndex="6"
                                   SelectionChanged="OnRouteViaChanged"
                                   Background="{DynamicResource CardBrush}"
                                   Foreground="{DynamicResource TextPrimaryBrush}"
@@ -138,6 +146,7 @@
                                   AutomationProperties.Name=""/>
 
                         <Button x:Name="BtnStartStop" Content=""
+                                TabIndex="7"
                                 Click="OnStartStopClick"
                                 Style="{DynamicResource PrimaryButtonStyle}"
                                 Padding="{StaticResource PaddingButtonPrimary}" Margin="16,0,0,0"
@@ -222,18 +231,21 @@
             <DockPanel>
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
                     <Button x:Name="BtnExportHtml" Content=""
+                            TabIndex="8"
                             Click="OnExportHtmlClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonPrimary}" Margin="0,0,4,0"
                             VerticalAlignment="Center" IsEnabled="False"
                             AutomationProperties.Name=""/>
                     <Button x:Name="BtnExportCsv" Content=""
+                            TabIndex="9"
                             Click="OnExportCsvClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonPrimary}" Margin="0,0,4,0"
                             VerticalAlignment="Center" IsEnabled="False"
                             AutomationProperties.Name=""/>
                     <Button x:Name="BtnExportDrawio" Content=""
+                            TabIndex="10"
                             Click="OnExportDrawioClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonPrimary}"

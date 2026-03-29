@@ -32,6 +32,7 @@
                 BorderThickness="0,0,0,1">
             <DockPanel>
                 <Button x:Name="BtnHelp" DockPanel.Dock="Right" Content="?"
+                        TabIndex="12"
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
@@ -48,14 +49,17 @@
                                FontSize="{StaticResource FontSizeBody}" VerticalAlignment="Center"
                                Margin="0,0,12,0"/>
                     <Button x:Name="BtnCompare" Click="OnCompareClick"
+                            TabIndex="2"
                             Style="{DynamicResource PrimaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonPrimary}" Margin="0,0,4,0"
                             AutomationProperties.Name=""/>
                     <Button x:Name="BtnSwap" Click="OnSwapClick"
+                            TabIndex="3"
                             Style="{DynamicResource SecondaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonCopy}" Margin="4,0,4,0"
                             AutomationProperties.Name=""/>
                     <Button x:Name="BtnClear" Click="OnClearClick"
+                            TabIndex="4"
                             Style="{DynamicResource SecondaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonCopy}" Margin="4,0,0,0"
                             AutomationProperties.Name=""/>
@@ -107,6 +111,7 @@
                            Foreground="{DynamicResource TextSecondaryBrush}"
                            FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,4"/>
                 <TextBox x:Name="OriginalText" Grid.Row="1"
+                         TabIndex="0"
                          AcceptsReturn="True" AcceptsTab="True"
                          TextWrapping="NoWrap"
                          VerticalScrollBarVisibility="Auto"
@@ -131,6 +136,7 @@
                            Foreground="{DynamicResource TextSecondaryBrush}"
                            FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,4"/>
                 <TextBox x:Name="ModifiedText" Grid.Row="1"
+                         TabIndex="1"
                          AcceptsReturn="True" AcceptsTab="True"
                          TextWrapping="NoWrap"
                          VerticalScrollBarVisibility="Auto"
@@ -152,22 +158,26 @@
                        Foreground="{DynamicResource TextSecondaryBrush}"
                        FontSize="{StaticResource FontSizeBody}" VerticalAlignment="Center"/>
             <Button x:Name="BtnCopyDiff" DockPanel.Dock="Right"
+                    TabIndex="8"
                     Click="OnCopyDiffClick"
                     Style="{DynamicResource SecondaryButtonStyle}"
                     Padding="{StaticResource PaddingButtonCopy}" HorizontalAlignment="Right"
                     AutomationProperties.Name=""/>
             <StackPanel Orientation="Horizontal" Margin="16,0,8,0" VerticalAlignment="Center">
                 <CheckBox x:Name="ChkIgnoreWhitespace"
+                          TabIndex="5"
                           Foreground="{DynamicResource TextPrimaryBrush}"
                           VerticalAlignment="Center" Margin="0,0,12,0"
                           Checked="OnDiffOptionChanged" Unchecked="OnDiffOptionChanged"
                           AutomationProperties.Name=""/>
                 <CheckBox x:Name="ChkIgnoreCase"
+                          TabIndex="6"
                           Foreground="{DynamicResource TextPrimaryBrush}"
                           VerticalAlignment="Center" Margin="0,0,12,0"
                           Checked="OnDiffOptionChanged" Unchecked="OnDiffOptionChanged"
                           AutomationProperties.Name=""/>
                 <CheckBox x:Name="ChkAutoCompare"
+                          TabIndex="7"
                           Foreground="{DynamicResource TextPrimaryBrush}"
                           VerticalAlignment="Center"
                           Checked="OnAutoCompareChanged" Unchecked="OnAutoCompareChanged"
@@ -175,14 +185,28 @@
             </StackPanel>
         </DockPanel>
 
+        <!-- Empty state -->
+        <Border x:Name="EmptyStatePanel" Grid.Row="2"
+                Style="{StaticResource ToolEmptyStateStyle}"
+                Margin="0,24,0,0">
+            <StackPanel HorizontalAlignment="Center">
+                <TextBlock Text="&#xE8AB;"
+                           Style="{StaticResource ToolEmptyStateIconStyle}"
+                           AutomationProperties.Name=""/>
+                <TextBlock x:Name="TxtEmptyState" Text=""
+                           Style="{StaticResource ToolEmptyStateTextStyle}"/>
+            </StackPanel>
+        </Border>
+
         <!-- Diff output -->
-        <Border Grid.Row="2"
+        <Border x:Name="ResultsPanel" Grid.Row="2" Visibility="Collapsed"
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="1" CornerRadius="{StaticResource CornerRadiusXs}">
             <ScrollViewer VerticalScrollBarVisibility="Auto"
                           HorizontalScrollBarVisibility="Auto">
                 <ItemsControl x:Name="DiffOutput"
+                              TabIndex="9"
                               AutomationProperties.LiveSetting="Polite">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>

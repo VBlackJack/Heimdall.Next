@@ -21,12 +21,33 @@ namespace Heimdall.Core.Models;
 /// </summary>
 public static class DefaultPorts
 {
-    public const int Rdp = 3389;
+    public const int Ftp = 21;
     public const int Ssh = 22;
     public const int Sftp = 22;
-    public const int Vnc = 5900;
-    public const int Ftp = 21;
     public const int Telnet = 23;
-    public const int Http = 8080;
+    public const int Smtp = 25;
+    public const int Dns = 53;
     public const int Tftp = 69;
+    public const int HttpStd = 80;
+    public const int Pop3 = 110;
+    public const int Imap = 143;
+    public const int Snmp = 161;
+    public const int HttpsStd = 443;
+    public const int Smtps = 465;
+    public const int SmtpSubmission = 587;
+    public const int Ldaps = 636;
+    public const int Imaps = 993;
+    public const int Pop3s = 995;
+    public const int Mssql = 1433;
+    public const int OracleDb = 1521;
+    public const int MySql = 3306;
+    public const int Rdp = 3389;
+    public const int PostgreSql = 5432;
+    public const int Vnc = 5900;
+    public const int VncAlt = 5901;
+    public const int Redis = 6379;
+    public const int Http = 8080;
+    public const int HttpsAlt = 8443;
+    public const int Prometheus = 9090;
+    public const int MongoDb = 27017;
 }

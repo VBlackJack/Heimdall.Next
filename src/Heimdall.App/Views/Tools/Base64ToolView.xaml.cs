@@ -106,6 +106,7 @@ public partial class Base64ToolView : UserControl, IToolView
         System.Windows.Automation.AutomationProperties.SetName(BtnCloseHelp, L("BtnClose"));
 
         InputText.Tag = L("ToolWatermarkTextToEncode");
+        TxtEmptyState.Text = L("ToolBase64EmptyState");
     }
 
     private void OnEncodeClick(object sender, RoutedEventArgs e)
@@ -142,6 +143,8 @@ public partial class Base64ToolView : UserControl, IToolView
             }
 
             OutputText.Text = encoded;
+            EmptyStatePanel.Visibility = Visibility.Collapsed;
+            ResultsPanel.Visibility = Visibility.Visible;
             StatusText.Text = string.Format(L("ToolBase64StatusEncoded"), data.Length);
         }
         catch (Exception ex)
@@ -202,6 +205,8 @@ public partial class Base64ToolView : UserControl, IToolView
             }
 
             OutputText.Text = Encoding.UTF8.GetString(decoded);
+            EmptyStatePanel.Visibility = Visibility.Collapsed;
+            ResultsPanel.Visibility = Visibility.Visible;
             StatusText.Text = string.Format(L("ToolBase64StatusDecoded"), decoded.Length);
         }
         catch (FormatException)
@@ -272,11 +277,12 @@ public partial class Base64ToolView : UserControl, IToolView
 
     private void OnInputTextChanged(object sender, TextChangedEventArgs e)
     {
-        // Clear output when input changes
         if (_initialized)
         {
             OutputText.Text = string.Empty;
             StatusText.Text = string.Empty;
+            ResultsPanel.Visibility = Visibility.Collapsed;
+            EmptyStatePanel.Visibility = Visibility.Visible;
         }
     }
 

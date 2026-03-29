@@ -58,6 +58,7 @@
                                  Foreground="{DynamicResource TextPrimaryBrush}"
                                  BorderBrush="{DynamicResource BorderBrush}"
                                  VerticalAlignment="Center"
+                                 TabIndex="0"
                                  AutomationProperties.Name=""/>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Margin="0,2,12,2">
@@ -74,6 +75,7 @@
                                  Foreground="{DynamicResource TextPrimaryBrush}"
                                  BorderBrush="{DynamicResource BorderBrush}"
                                  VerticalAlignment="Center"
+                                 TabIndex="1"
                                  AutomationProperties.Name=""/>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Margin="0,2,12,2">
@@ -86,6 +88,7 @@
                                   Foreground="{DynamicResource TextPrimaryBrush}"
                                   BorderBrush="{DynamicResource BorderBrush}"
                                   VerticalAlignment="Center"
+                                  TabIndex="2"
                                   AutomationProperties.Name=""/>
                     </StackPanel>
                     <Button x:Name="BtnGrab" Content=""
@@ -93,6 +96,7 @@
                             Style="{DynamicResource PrimaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonPrimary}" Margin="0,2,0,2"
                             VerticalAlignment="Center"
+                            TabIndex="3"
                             AutomationProperties.Name=""/>
                 </WrapPanel>
             </DockPanel>
@@ -106,6 +110,7 @@
                         Click="OnCloseHelpClick"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
                         VerticalAlignment="Top" Width="24" Height="24"
+                        TabIndex="13"
                         AutomationProperties.Name=""/>
                 <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
                     <TextBlock x:Name="TxtHelpContent" Text="" TextWrapping="Wrap"
@@ -126,23 +131,28 @@
                           Foreground="{DynamicResource TextPrimaryBrush}"
                           VerticalAlignment="Center" Margin="12,0,0,0"
                           Checked="OnBannerOnlyChanged" Unchecked="OnBannerOnlyChanged"
+                          TabIndex="4"
                           AutomationProperties.Name=""/>
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <Button x:Name="BtnPresetWeb" Click="OnPresetClick" Tag="80,443,8080,8443"
                             Style="{DynamicResource SecondaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonPreset}" Margin="0,0,4,0" FontSize="{StaticResource FontSizeCaption}"
+                            TabIndex="5"
                             AutomationProperties.Name=""/>
                     <Button x:Name="BtnPresetRemote" Click="OnPresetClick" Tag="22,23,3389,5900"
                             Style="{DynamicResource SecondaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonPreset}" Margin="0,0,4,0" FontSize="{StaticResource FontSizeCaption}"
+                            TabIndex="6"
                             AutomationProperties.Name=""/>
                     <Button x:Name="BtnPresetMail" Click="OnPresetClick" Tag="25,110,143,993,995,587"
                             Style="{DynamicResource SecondaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonPreset}" Margin="0,0,4,0" FontSize="{StaticResource FontSizeCaption}"
+                            TabIndex="7"
                             AutomationProperties.Name=""/>
                     <Button x:Name="BtnPresetDatabase" Click="OnPresetClick" Tag="3306,5432,1433,6379,27017"
                             Style="{DynamicResource SecondaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonPreset}" FontSize="{StaticResource FontSizeCaption}"
+                            TabIndex="8"
                             AutomationProperties.Name=""/>
                 </StackPanel>
             </DockPanel>
@@ -206,6 +216,7 @@
                       ColumnHeaderStyle="{StaticResource ThemedDataGridColumnHeaderStyle}"
                       CellStyle="{StaticResource ThemedDataGridCellStyle}"
                       RowStyle="{StaticResource ThemedDataGridRowStyle}"
+                      TabIndex="9"
                       AutomationProperties.Name=""
                       AutomationProperties.LiveSetting="Polite">
                 <DataGrid.Columns>
@@ -234,12 +245,14 @@
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonPrimary}" DockPanel.Dock="Right" Margin="{StaticResource MarginInlineControl}"
                         VerticalAlignment="Center"
+                        TabIndex="10"
                         AutomationProperties.Name=""/>
                 <Button x:Name="BtnCopy" Content=""
                         Click="OnCopyClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonPrimary}" DockPanel.Dock="Right"
                         VerticalAlignment="Center"
+                        TabIndex="11"
                         AutomationProperties.Name=""/>
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <TextBlock x:Name="TxtResultCount" Text="" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"

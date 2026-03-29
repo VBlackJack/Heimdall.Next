@@ -65,6 +65,7 @@ public partial class ArpMonitorView : UserControl, IToolView
             GridPanel,
             null);
         ArpGrid.ItemsSource = _entries;
+        PreviewKeyDown += (s, e) => { if (e.Key == System.Windows.Input.Key.Enter && !e.Handled) { OnToggleClick(s, e); e.Handled = true; } };
     }
 
     /// <summary>

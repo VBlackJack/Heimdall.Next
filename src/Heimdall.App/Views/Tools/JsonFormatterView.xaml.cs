@@ -83,6 +83,7 @@ public partial class JsonFormatterView : UserControl, IToolView
         System.Windows.Automation.AutomationProperties.SetName(BtnCloseHelp, L("BtnClose"));
 
         InputText.Tag = L("ToolWatermarkPasteJson");
+        TxtEmptyState.Text = L("ToolJsonEmptyState");
     }
 
     private void OnHelpClick(object sender, RoutedEventArgs e)
@@ -159,6 +160,8 @@ public partial class JsonFormatterView : UserControl, IToolView
             }
 
             OutputText.Text = result;
+            EmptyStatePanel.Visibility = Visibility.Collapsed;
+            ResultsPanel.Visibility = Visibility.Visible;
 
             var statusKey = writeIndented ? "ToolJsonStatusPrettified" : "ToolJsonStatusMinified";
             StatusText.Text = string.Format(L(statusKey), result.Length);
@@ -221,6 +224,8 @@ public partial class JsonFormatterView : UserControl, IToolView
         {
             OutputText.Text = string.Empty;
             StatusText.Text = string.Empty;
+            ResultsPanel.Visibility = Visibility.Collapsed;
+            EmptyStatePanel.Visibility = Visibility.Visible;
         }
     }
 

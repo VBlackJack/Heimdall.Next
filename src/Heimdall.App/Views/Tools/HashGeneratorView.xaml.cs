@@ -198,6 +198,7 @@ public partial class HashGeneratorView : UserControl, IToolView
 
         TxtInput.Tag = L("ToolWatermarkTextToHash");
         TxtVerify.Tag = L("ToolWatermarkPasteHashVerify");
+        TxtEmptyState.Text = L("ToolHashEmptyState");
     }
 
     private void OnHelpClick(object sender, RoutedEventArgs e)
@@ -238,9 +239,14 @@ public partial class HashGeneratorView : UserControl, IToolView
                 }
             }
             TxtByteLength.Text = string.Empty;
+            EmptyStatePanel.Visibility = Visibility.Visible;
+            ResultsPanel.Visibility = Visibility.Collapsed;
             UpdateVerifyResult();
             return;
         }
+
+        EmptyStatePanel.Visibility = Visibility.Collapsed;
+        ResultsPanel.Visibility = Visibility.Visible;
 
         var inputBytes = Encoding.UTF8.GetBytes(input);
 
@@ -417,6 +423,8 @@ public partial class HashGeneratorView : UserControl, IToolView
             TxtInput.Text = string.Empty;
             BtnClearFile.Visibility = Visibility.Visible;
             FileHashProgress.Visibility = Visibility.Visible;
+            EmptyStatePanel.Visibility = Visibility.Collapsed;
+            ResultsPanel.Visibility = Visibility.Visible;
 
             TxtFileStatus.Text = L("ToolHashFileHashing");
             TxtFileStatus.Foreground = (Brush)FindResource("TextSecondaryBrush");
@@ -493,6 +501,8 @@ public partial class HashGeneratorView : UserControl, IToolView
         }
 
         TxtByteLength.Text = string.Empty;
+        EmptyStatePanel.Visibility = Visibility.Visible;
+        ResultsPanel.Visibility = Visibility.Collapsed;
         UpdateVerifyResult();
     }
 

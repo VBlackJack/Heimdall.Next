@@ -114,6 +114,7 @@ public partial class JwtParserView : UserControl, IToolView
         AutomationProperties.SetName(BtnCloseHelp, L("BtnClose"));
 
         TxtInput.Tag = L("ToolWatermarkPasteJwt");
+        TxtEmptyState.Text = L("ToolJwtEmptyState");
     }
 
     private void OnInputTextChanged(object sender, TextChangedEventArgs e)
@@ -157,6 +158,7 @@ public partial class JwtParserView : UserControl, IToolView
             TxtSignature.Text = Convert.ToHexStringLower(signatureBytes ?? []);
 
             TxtError.Visibility = Visibility.Collapsed;
+            EmptyStatePanel.Visibility = Visibility.Collapsed;
             UpdateExpirationStatus(payloadJson);
             UpdateVerifySection(headerJson);
         }
@@ -263,6 +265,7 @@ public partial class JwtParserView : UserControl, IToolView
         ExpirationBorder.Visibility = Visibility.Collapsed;
         VerifySection.Visibility = Visibility.Collapsed;
         TxtVerifyResult.Visibility = Visibility.Collapsed;
+        EmptyStatePanel.Visibility = Visibility.Visible;
     }
 
     private void ShowError(string message)

@@ -139,6 +139,7 @@ public partial class PingToolView : UserControl, IToolView
         System.Windows.Automation.AutomationProperties.SetName(BtnCloseHelp, L("BtnClose"));
 
         TxtHost.Tag = L("ToolWatermarkHostnameOrIp");
+        TxtEmptyState.Text = L("ToolPingEmptyState");
     }
 
     private void OnHostKeyDown(object sender, KeyEventArgs e)
@@ -256,6 +257,8 @@ public partial class PingToolView : UserControl, IToolView
 
         _cts = new CancellationTokenSource();
         _isRunning = true;
+        EmptyStatePanel.Visibility = Visibility.Collapsed;
+        MainAreaPanel.Visibility = Visibility.Visible;
         try
         {
             _setBusy?.Invoke(true);
@@ -304,6 +307,12 @@ public partial class PingToolView : UserControl, IToolView
         CmbInterval.IsEnabled = true;
         TxtTimeout.IsReadOnly = false;
         TxtCount.IsReadOnly = false;
+
+        if (_dataPoints.Count == 0 && TxtLog.Inlines.Count == 0)
+        {
+            EmptyStatePanel.Visibility = Visibility.Visible;
+            MainAreaPanel.Visibility = Visibility.Collapsed;
+        }
     }
 
     private async void OnPingTimerTick(object? sender, EventArgs e)

@@ -39,6 +39,7 @@ public partial class TextDiffView : UserControl, IToolView
     private LocalizationManager? _localizer;
     private string _unifiedDiff = string.Empty;
     private DispatcherTimer? _autoCompareTimer;
+    private bool _isComparing;
 
     public TextDiffView()
     {
@@ -105,6 +106,7 @@ public partial class TextDiffView : UserControl, IToolView
 
         OriginalText.Tag = L("ToolWatermarkOriginalText");
         ModifiedText.Tag = L("ToolWatermarkModifiedText");
+        TxtEmptyState.Text = L("ToolTextDiffEmptyState");
     }
 
     private void OnDiffOptionChanged(object sender, RoutedEventArgs e)
@@ -165,101 +167,139 @@ public partial class TextDiffView : UserControl, IToolView
 
     private async void RunComparison()
     {
-        var originalText = OriginalText.Text;
-        var modifiedText = ModifiedText.Text;
+        if (_isComparing) return;
 
-        var originalLines = SplitLines(originalText);
-        var modifiedLines = SplitLines(modifiedText);
-
-        if (originalLines.Length > MaxLineCount || modifiedLines.Length > MaxLineCount)
+        _isComparing = true;
+        BtnCompare.IsEnabled = false;
+        StatusText.Text = L("ToolTextDiffComparing");
+        try
         {
-            StatusText.Text = string.Format(L("ToolDiffStatusTooLarge"), MaxLineCount);
-            return;
-        }
+            var originalText = OriginalText.Text;
+            var modifiedText = ModifiedText.Text;
 
-        var ignoreWhitespace = ChkIgnoreWhitespace?.IsChecked == true;
-        var ignoreCase = ChkIgnoreCase?.IsChecked == true;
-        var diffOps = await Task.Run(() => ComputeDiff(originalLines, modifiedLines, ignoreWhitespace, ignoreCase));
-        var displayItems = new List<DiffLineViewModel>();
-        var unifiedBuilder = new StringBuilder();
+            var originalLines = SplitLines(originalText);
+            var modifiedLines = SplitLines(modifiedText);
 
-        int addedCount = 0;
-        int removedCount = 0;
-        int unchangedCount = 0;
-        int leftLine = 0;
-        int rightLine = 0;
-
-        var errorBrush = FindResource("ErrorBrush") as SolidColorBrush;
-        var removedBg = errorBrush is not null
-            ? new SolidColorBrush(System.Windows.Media.Color.FromArgb(48, errorBrush.Color.R, errorBrush.Color.G, errorBrush.Color.B))
-            : new SolidColorBrush(System.Windows.Media.Color.FromArgb(48, 255, 0, 0));
-        var removedFg = errorBrush ?? Brushes.Red;
-
-        var successBrush = FindResource("SuccessBrush") as SolidColorBrush;
-        var addedBg = successBrush is not null
-            ? new SolidColorBrush(System.Windows.Media.Color.FromArgb(48, successBrush.Color.R, successBrush.Color.G, successBrush.Color.B))
-            : new SolidColorBrush(System.Windows.Media.Color.FromArgb(48, 0, 180, 0));
-        var addedFg = successBrush ?? Brushes.Green;
-
-        unifiedBuilder.AppendLine(L("ToolDiffOriginalHeader"));
-        unifiedBuilder.AppendLine(L("ToolDiffModifiedHeader"));
-
-        // Build word-level highlight brushes (stronger alpha than line background)
-        var removedWordBg = errorBrush is not null
-            ? new SolidColorBrush(System.Windows.Media.Color.FromArgb(96, errorBrush.Color.R, errorBrush.Color.G, errorBrush.Color.B))
-            : new SolidColorBrush(System.Windows.Media.Color.FromArgb(96, 255, 0, 0));
-        var addedWordBg = successBrush is not null
-            ? new SolidColorBrush(System.Windows.Media.Color.FromArgb(96, successBrush.Color.R, successBrush.Color.G, successBrush.Color.B))
-            : new SolidColorBrush(System.Windows.Media.Color.FromArgb(96, 0, 180, 0));
-
-        // Pair consecutive removed+added lines as modifications for word-level diff
-        int idx = 0;
-        while (idx < diffOps.Count)
-        {
-            var op = diffOps[idx];
-
-            switch (op.Type)
+            if (originalLines.Length > MaxLineCount || modifiedLines.Length > MaxLineCount)
             {
-                case DiffLineType.Unchanged:
-                    leftLine++;
-                    rightLine++;
-                    unchangedCount++;
-                    displayItems.Add(new DiffLineViewModel
-                    {
-                        LeftLineNumber = leftLine.ToString(),
-                        RightLineNumber = rightLine.ToString(),
-                        Prefix = " ",
-                        Inlines = [new Run(op.Text)],
-                        Background = Brushes.Transparent,
-                        PrefixForeground = Brushes.Gray
-                    });
-                    unifiedBuilder.AppendLine($" {op.Text}");
-                    idx++;
-                    break;
+                StatusText.Text = string.Format(L("ToolDiffStatusTooLarge"), MaxLineCount);
+                return;
+            }
 
-                case DiffLineType.Removed:
-                    // Check if next op is Added (forming a modification pair)
-                    if (idx + 1 < diffOps.Count && diffOps[idx + 1].Type == DiffLineType.Added)
-                    {
-                        var removedOp = op;
-                        var addedOp = diffOps[idx + 1];
+            var ignoreWhitespace = ChkIgnoreWhitespace?.IsChecked == true;
+            var ignoreCase = ChkIgnoreCase?.IsChecked == true;
+            var diffOps = await Task.Run(() => ComputeDiff(originalLines, modifiedLines, ignoreWhitespace, ignoreCase));
+            var displayItems = new List<DiffLineViewModel>();
+            var unifiedBuilder = new StringBuilder();
 
-                        var (oldInlines, newInlines) = BuildWordDiffInlines(
-                            removedOp.Text, addedOp.Text, removedWordBg, addedWordBg);
+            int addedCount = 0;
+            int removedCount = 0;
+            int unchangedCount = 0;
+            int leftLine = 0;
+            int rightLine = 0;
 
+            var errorBrush = FindResource("ErrorBrush") as SolidColorBrush;
+            var removedBg = errorBrush is not null
+                ? new SolidColorBrush(System.Windows.Media.Color.FromArgb(48, errorBrush.Color.R, errorBrush.Color.G, errorBrush.Color.B))
+                : new SolidColorBrush(System.Windows.Media.Color.FromArgb(48, 255, 0, 0));
+            var removedFg = errorBrush ?? Brushes.Red;
+
+            var successBrush = FindResource("SuccessBrush") as SolidColorBrush;
+            var addedBg = successBrush is not null
+                ? new SolidColorBrush(System.Windows.Media.Color.FromArgb(48, successBrush.Color.R, successBrush.Color.G, successBrush.Color.B))
+                : new SolidColorBrush(System.Windows.Media.Color.FromArgb(48, 0, 180, 0));
+            var addedFg = successBrush ?? Brushes.Green;
+
+            unifiedBuilder.AppendLine(L("ToolDiffOriginalHeader"));
+            unifiedBuilder.AppendLine(L("ToolDiffModifiedHeader"));
+
+            var removedWordBg = errorBrush is not null
+                ? new SolidColorBrush(System.Windows.Media.Color.FromArgb(96, errorBrush.Color.R, errorBrush.Color.G, errorBrush.Color.B))
+                : new SolidColorBrush(System.Windows.Media.Color.FromArgb(96, 255, 0, 0));
+            var addedWordBg = successBrush is not null
+                ? new SolidColorBrush(System.Windows.Media.Color.FromArgb(96, successBrush.Color.R, successBrush.Color.G, successBrush.Color.B))
+                : new SolidColorBrush(System.Windows.Media.Color.FromArgb(96, 0, 180, 0));
+
+            int idx = 0;
+            while (idx < diffOps.Count)
+            {
+                var op = diffOps[idx];
+
+                switch (op.Type)
+                {
+                    case DiffLineType.Unchanged:
                         leftLine++;
-                        removedCount++;
+                        rightLine++;
+                        unchangedCount++;
                         displayItems.Add(new DiffLineViewModel
                         {
                             LeftLineNumber = leftLine.ToString(),
-                            RightLineNumber = string.Empty,
-                            Prefix = "-",
-                            Inlines = oldInlines,
-                            Background = removedBg,
-                            PrefixForeground = removedFg
+                            RightLineNumber = rightLine.ToString(),
+                            Prefix = " ",
+                            Inlines = [new Run(op.Text)],
+                            Background = Brushes.Transparent,
+                            PrefixForeground = Brushes.Gray
                         });
-                        unifiedBuilder.AppendLine($"-{removedOp.Text}");
+                        unifiedBuilder.AppendLine($" {op.Text}");
+                        idx++;
+                        break;
 
+                    case DiffLineType.Removed:
+                        if (idx + 1 < diffOps.Count && diffOps[idx + 1].Type == DiffLineType.Added)
+                        {
+                            var removedOp = op;
+                            var addedOp = diffOps[idx + 1];
+
+                            var (oldInlines, newInlines) = BuildWordDiffInlines(
+                                removedOp.Text, addedOp.Text, removedWordBg, addedWordBg);
+
+                            leftLine++;
+                            removedCount++;
+                            displayItems.Add(new DiffLineViewModel
+                            {
+                                LeftLineNumber = leftLine.ToString(),
+                                RightLineNumber = string.Empty,
+                                Prefix = "-",
+                                Inlines = oldInlines,
+                                Background = removedBg,
+                                PrefixForeground = removedFg
+                            });
+                            unifiedBuilder.AppendLine($"-{removedOp.Text}");
+
+                            rightLine++;
+                            addedCount++;
+                            displayItems.Add(new DiffLineViewModel
+                            {
+                                LeftLineNumber = string.Empty,
+                                RightLineNumber = rightLine.ToString(),
+                                Prefix = "+",
+                                Inlines = newInlines,
+                                Background = addedBg,
+                                PrefixForeground = addedFg
+                            });
+                            unifiedBuilder.AppendLine($"+{addedOp.Text}");
+
+                            idx += 2;
+                        }
+                        else
+                        {
+                            leftLine++;
+                            removedCount++;
+                            displayItems.Add(new DiffLineViewModel
+                            {
+                                LeftLineNumber = leftLine.ToString(),
+                                RightLineNumber = string.Empty,
+                                Prefix = "-",
+                                Inlines = [new Run(op.Text)],
+                                Background = removedBg,
+                                PrefixForeground = removedFg
+                            });
+                            unifiedBuilder.AppendLine($"-{op.Text}");
+                            idx++;
+                        }
+                        break;
+
+                    case DiffLineType.Added:
                         rightLine++;
                         addedCount++;
                         displayItems.Add(new DiffLineViewModel
@@ -267,60 +307,35 @@ public partial class TextDiffView : UserControl, IToolView
                             LeftLineNumber = string.Empty,
                             RightLineNumber = rightLine.ToString(),
                             Prefix = "+",
-                            Inlines = newInlines,
+                            Inlines = [new Run(op.Text)],
                             Background = addedBg,
                             PrefixForeground = addedFg
                         });
-                        unifiedBuilder.AppendLine($"+{addedOp.Text}");
-
-                        idx += 2;
-                    }
-                    else
-                    {
-                        leftLine++;
-                        removedCount++;
-                        displayItems.Add(new DiffLineViewModel
-                        {
-                            LeftLineNumber = leftLine.ToString(),
-                            RightLineNumber = string.Empty,
-                            Prefix = "-",
-                            Inlines = [new Run(op.Text)],
-                            Background = removedBg,
-                            PrefixForeground = removedFg
-                        });
-                        unifiedBuilder.AppendLine($"-{op.Text}");
+                        unifiedBuilder.AppendLine($"+{op.Text}");
                         idx++;
-                    }
-                    break;
-
-                case DiffLineType.Added:
-                    rightLine++;
-                    addedCount++;
-                    displayItems.Add(new DiffLineViewModel
-                    {
-                        LeftLineNumber = string.Empty,
-                        RightLineNumber = rightLine.ToString(),
-                        Prefix = "+",
-                        Inlines = [new Run(op.Text)],
-                        Background = addedBg,
-                        PrefixForeground = addedFg
-                    });
-                    unifiedBuilder.AppendLine($"+{op.Text}");
-                    idx++;
-                    break;
+                        break;
+                }
             }
+
+            DiffOutput.ItemsSource = displayItems;
+            _unifiedDiff = unifiedBuilder.ToString();
+
+            EmptyStatePanel.Visibility = Visibility.Collapsed;
+            ResultsPanel.Visibility = Visibility.Visible;
+
+            StatsText.Text = string.Format(
+                L("ToolDiffStats"),
+                addedCount,
+                removedCount,
+                unchangedCount);
+
+            StatusText.Text = string.Format(L("ToolDiffStatusDone"), displayItems.Count);
         }
-
-        DiffOutput.ItemsSource = displayItems;
-        _unifiedDiff = unifiedBuilder.ToString();
-
-        StatsText.Text = string.Format(
-            L("ToolDiffStats"),
-            addedCount,
-            removedCount,
-            unchangedCount);
-
-        StatusText.Text = string.Format(L("ToolDiffStatusDone"), displayItems.Count);
+        finally
+        {
+            _isComparing = false;
+            BtnCompare.IsEnabled = true;
+        }
     }
 
     private void OnSwapClick(object sender, RoutedEventArgs e)
@@ -336,6 +351,8 @@ public partial class TextDiffView : UserControl, IToolView
         StatsText.Text = string.Empty;
         StatusText.Text = string.Empty;
         _unifiedDiff = string.Empty;
+        ResultsPanel.Visibility = Visibility.Collapsed;
+        EmptyStatePanel.Visibility = Visibility.Visible;
     }
 
     private void OnCopyDiffClick(object sender, RoutedEventArgs e)

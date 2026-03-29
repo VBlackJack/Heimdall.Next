@@ -32,6 +32,7 @@
                 BorderThickness="0,0,0,1">
             <DockPanel>
                 <Button x:Name="BtnHelp" DockPanel.Dock="Right" Content="?"
+                        TabIndex="3"
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
@@ -72,12 +73,14 @@
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
                 <DockPanel Margin="0,0,0,8">
                     <Button x:Name="BtnCheck" DockPanel.Dock="Right"
+                            TabIndex="1"
                             Content="" Click="OnCheckClick"
                             Style="{DynamicResource PrimaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginInlineControl}"
                             VerticalAlignment="Center"
                             AutomationProperties.Name=""/>
                     <TextBox x:Name="TxtDomain" Text=""
+                             TabIndex="0"
                              Style="{StaticResource WatermarkTextBoxStyle}"
                              Tag=""
                              FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
@@ -96,6 +99,7 @@
                                Foreground="{DynamicResource TextSecondaryBrush}"
                                VerticalAlignment="Center"/>
                     <ComboBox x:Name="CmbRouteVia" Width="240"
+                              TabIndex="2"
                               SelectionChanged="OnRouteViaChanged"
                               Background="{DynamicResource CardBrush}"
                               Foreground="{DynamicResource TextPrimaryBrush}"
@@ -119,12 +123,11 @@
                         Style="{StaticResource ToolEmptyStateStyle}"
                         Margin="0,24,0,0">
                     <StackPanel HorizontalAlignment="Center">
-                        <TextBlock Text="&#xE774;" FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource IconSizeEmptyState}"
-                                   HorizontalAlignment="Center"
-                                   Foreground="{DynamicResource TextDisabledBrush}" Margin="0,0,0,8"/>
+                        <TextBlock Text="&#xE774;"
+                                   Style="{StaticResource ToolEmptyStateIconStyle}"
+                                   AutomationProperties.Name=""/>
                         <TextBlock x:Name="TxtEmptyState" Text=""
-                                   FontSize="{StaticResource FontSizeBodyLarge}" TextAlignment="Center"
-                                   Foreground="{DynamicResource TextSecondaryBrush}"/>
+                                   Style="{StaticResource ToolEmptyStateTextStyle}"/>
                     </StackPanel>
                 </Border>
 
