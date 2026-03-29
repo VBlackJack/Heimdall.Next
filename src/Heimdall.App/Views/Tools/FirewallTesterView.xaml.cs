@@ -48,12 +48,20 @@ public partial class FirewallTesterView : UserControl, IToolView
     private List<SshGatewayDto>? _gateways;
     private SshGatewayDto? _selectedGateway;
     private Action<bool>? _setBusy;
+    private readonly ToolAsyncStateController _viewState;
 
     private readonly List<FwTestResult> _results = [];
 
     public FirewallTesterView()
     {
         InitializeComponent();
+        _viewState = new ToolAsyncStateController(
+            null,
+            null,
+            TxtError,
+            EmptyStatePanel,
+            ResultsPanel,
+            null);
         TxtPorts.KeyDown += (s, e) => { if (e.Key == System.Windows.Input.Key.Enter) OnTestClick(s, e); };
     }
 
@@ -65,6 +73,7 @@ public partial class FirewallTesterView : UserControl, IToolView
         _localizer = localizer;
         _setBusy = context?.SetBusyAction;
         ApplyLocalization();
+        TxtPorts.Text = NetworkToolPresets.FirewallTesterDefaultPorts;
 
         if (!string.IsNullOrWhiteSpace(context?.TargetHost))
         {
@@ -101,6 +110,7 @@ public partial class FirewallTesterView : UserControl, IToolView
 
         TxtEmptyState.Text = L("ToolFwEmptyState");
         TxtHosts.Tag = L("ToolFwTestHostsPlaceholder");
+        TxtPorts.Tag = L("ToolWatermarkPortList");
 
         LblSummary.Text = "";
 
@@ -153,29 +163,31 @@ public partial class FirewallTesterView : UserControl, IToolView
 
     private async Task RunTestsAsync()
     {
-        TxtError.Visibility = Visibility.Collapsed;
+        if (_isTesting)
+        {
+            return;
+        }
+
+        _viewState.Reset();
 
         var hosts = ParseHosts(TxtHosts.Text);
         if (hosts.Count == 0)
         {
-            TxtError.Text = L("ToolFwErrorNoHosts");
-            TxtError.Visibility = Visibility.Visible;
+            _viewState.ShowError(L("ToolFwErrorNoHosts"));
             return;
         }
 
         hosts = hosts.Where(h => InputValidator.Validate(h, "Address")).ToList();
         if (hosts.Count == 0)
         {
-            TxtError.Text = L("ErrorInvalidHost");
-            TxtError.Visibility = Visibility.Visible;
+            _viewState.ShowError(L("ErrorInvalidHost"));
             return;
         }
 
         var ports = ParsePorts(TxtPorts.Text.Trim());
         if (ports.Count == 0)
         {
-            TxtError.Text = L("ToolFwErrorNoPorts");
-            TxtError.Visibility = Visibility.Visible;
+            _viewState.ShowError(L("ToolFwErrorNoPorts"));
             return;
         }
 
@@ -202,8 +214,7 @@ public partial class FirewallTesterView : UserControl, IToolView
             BtnTest.Foreground = (Brush)FindResource("ErrorBrush");
             BtnTest.Style = (Style)FindResource("SecondaryButtonStyle");
             System.Windows.Automation.AutomationProperties.SetName(BtnTest, L("ToolFwBtnStop"));
-            TxtHosts.IsReadOnly = true;
-            TxtPorts.IsReadOnly = true;
+            SetTestInputsEnabled(false);
             TestProgress.IsIndeterminate = false;
             TestProgress.Maximum = total;
             TestProgress.Value = 0;
@@ -211,7 +222,7 @@ public partial class FirewallTesterView : UserControl, IToolView
             TxtProgressCount.Text = string.Format(L("ToolFwProgress"), 0, total);
             ProgressPanel.Visibility = Visibility.Visible;
             EmptyStatePanel.Visibility = Visibility.Collapsed;
-            HeatmapScrollViewer.Visibility = Visibility.Collapsed;
+            ResultsPanel.Visibility = Visibility.Collapsed;
         }
         catch
         {
@@ -229,9 +240,8 @@ public partial class FirewallTesterView : UserControl, IToolView
             catch (Exception ex)
             {
                 Core.Logging.FileLogger.Warn($"FirewallTester gateway connection failed: {ex.Message}");
-                TxtError.Text = string.Format(L("ToolTunnelFailed"), ex.Message);
-                TxtError.Visibility = Visibility.Visible;
                 StopTest();
+                _viewState.ShowError(string.Format(L("ToolTunnelFailed"), ex.Message));
                 return;
             }
         }
@@ -311,6 +321,11 @@ public partial class FirewallTesterView : UserControl, IToolView
             BuildHeatmap(hosts, ports);
             UpdateSummary();
         }
+        else
+        {
+            _viewState.Reset();
+            LblSummary.Text = string.Empty;
+        }
 
         StopTest();
     }
@@ -326,9 +341,18 @@ public partial class FirewallTesterView : UserControl, IToolView
         BtnTest.Foreground = (Brush)FindResource("TextPrimaryBrush");
         BtnTest.Style = (Style)FindResource("PrimaryButtonStyle");
         System.Windows.Automation.AutomationProperties.SetName(BtnTest, L("ToolFwBtnTest"));
-        TxtHosts.IsReadOnly = false;
-        TxtPorts.IsReadOnly = false;
+        SetTestInputsEnabled(true);
         ProgressPanel.Visibility = Visibility.Collapsed;
+    }
+
+    private void SetTestInputsEnabled(bool enabled)
+    {
+        TxtHosts.IsReadOnly = !enabled;
+        TxtPorts.IsReadOnly = !enabled;
+        CmbRouteVia.IsEnabled = enabled;
+        BtnPresetWeb.IsEnabled = enabled;
+        BtnPresetRemote.IsEnabled = enabled;
+        BtnPresetCommon.IsEnabled = enabled;
     }
 
     /// <summary>
@@ -538,8 +562,7 @@ public partial class FirewallTesterView : UserControl, IToolView
             }
         }
 
-        EmptyStatePanel.Visibility = Visibility.Collapsed;
-        HeatmapScrollViewer.Visibility = Visibility.Visible;
+        _viewState.ShowResults();
     }
 
     /// <summary>

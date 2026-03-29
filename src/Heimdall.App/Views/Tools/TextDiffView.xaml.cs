@@ -19,6 +19,7 @@ using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
 using Heimdall.Core.Localization;
@@ -42,6 +43,8 @@ public partial class TextDiffView : UserControl, IToolView
     public TextDiffView()
     {
         InitializeComponent();
+        OriginalText.PreviewKeyDown += OnDiffInputPreviewKeyDown;
+        ModifiedText.PreviewKeyDown += OnDiffInputPreviewKeyDown;
     }
 
     /// <summary>
@@ -56,6 +59,15 @@ public partial class TextDiffView : UserControl, IToolView
         {
             OriginalText.Text = context.Argument;
         }
+
+        Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, () =>
+        {
+            OriginalText.Focus();
+            if (!string.IsNullOrEmpty(OriginalText.Text))
+            {
+                OriginalText.SelectAll();
+            }
+        });
     }
 
     private void ApplyLocalization()
@@ -140,6 +152,15 @@ public partial class TextDiffView : UserControl, IToolView
     private void OnCompareClick(object sender, RoutedEventArgs e)
     {
         RunComparison();
+    }
+
+    private void OnDiffInputPreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter && Keyboard.Modifiers == ModifierKeys.Control)
+        {
+            RunComparison();
+            e.Handled = true;
+        }
     }
 
     private async void RunComparison()

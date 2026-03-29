@@ -51,36 +51,10 @@ public partial class BannerGrabberView : UserControl, IToolView
     private SshGatewayDto? _selectedGateway;
     private Action<string, string, ToolContext?>? _openToolAction;
     private Action<bool>? _setBusy;
+    private readonly ToolAsyncStateController _viewState;
 
     private readonly ObservableCollection<BannerResult> _results = [];
     private readonly List<BannerResult> _allResults = [];
-
-    private static readonly Dictionary<int, string> WellKnownServices = new()
-    {
-        [DefaultPorts.Ftp] = "FTP",
-        [DefaultPorts.Ssh] = "SSH",
-        [DefaultPorts.Telnet] = "Telnet",
-        [25] = "SMTP",
-        [53] = "DNS",
-        [DefaultPorts.Tftp] = "TFTP",
-        [80] = "HTTP",
-        [110] = "POP3",
-        [143] = "IMAP",
-        [443] = "HTTPS",
-        [465] = "SMTPS",
-        [587] = "SMTP (Submission)",
-        [993] = "IMAPS",
-        [995] = "POP3S",
-        [1433] = "MSSQL",
-        [3306] = "MySQL",
-        [DefaultPorts.Rdp] = "RDP",
-        [5432] = "PostgreSQL",
-        [DefaultPorts.Vnc] = "VNC",
-        [6379] = "Redis",
-        [DefaultPorts.Http] = "HTTP-Alt",
-        [8443] = "HTTPS-Alt",
-        [27017] = "MongoDB",
-    };
 
     /// <summary>
     /// Regex to strip control characters (except newline/tab) from banner text.
@@ -92,6 +66,13 @@ public partial class BannerGrabberView : UserControl, IToolView
     public BannerGrabberView()
     {
         InitializeComponent();
+        _viewState = new ToolAsyncStateController(
+            null,
+            null,
+            TxtError,
+            EmptyStatePanel,
+            ResultsPanel,
+            null);
         ResultsGrid.ItemsSource = _results;
         TxtHost.KeyDown += OnHostKeyDown;
         TxtPorts.KeyDown += OnHostKeyDown;
@@ -109,8 +90,8 @@ public partial class BannerGrabberView : UserControl, IToolView
         _setBusy = context?.SetBusyAction;
         ApplyLocalization();
 
-        TxtHost.Text = "localhost";
-        TxtPorts.Text = "22,80,443,8080";
+        TxtHost.Clear();
+        TxtPorts.Text = NetworkToolPresets.BannerGrabberDefaultPorts;
 
         if (!string.IsNullOrWhiteSpace(context?.TargetHost))
         {
@@ -224,28 +205,30 @@ public partial class BannerGrabberView : UserControl, IToolView
 
     private async Task StartGrabAsync()
     {
+        if (_isGrabbing)
+        {
+            return;
+        }
+
         var host = TxtHost.Text.Trim();
-        TxtError.Visibility = Visibility.Collapsed;
+        _viewState.Reset();
 
         if (string.IsNullOrWhiteSpace(host))
         {
-            TxtError.Text = L("ToolValidationHostRequired");
-            TxtError.Visibility = Visibility.Visible;
+            _viewState.ShowError(L("ToolValidationHostRequired"));
             return;
         }
 
         if (!InputValidator.Validate(host, "Address"))
         {
-            TxtError.Text = L("ErrorInvalidHost");
-            TxtError.Visibility = Visibility.Visible;
+            _viewState.ShowError(L("ErrorInvalidHost"));
             return;
         }
 
         var ports = ParsePorts(TxtPorts.Text.Trim());
         if (ports.Count == 0)
         {
-            TxtError.Text = L("ToolValidationPortRangeRequired");
-            TxtError.Visibility = Visibility.Visible;
+            _viewState.ShowError(L("ToolValidationPortRangeRequired"));
             return;
         }
 
@@ -260,15 +243,14 @@ public partial class BannerGrabberView : UserControl, IToolView
             BtnGrab.Foreground = (System.Windows.Media.Brush)FindResource("ErrorBrush");
             BtnGrab.Style = (Style)FindResource("SecondaryButtonStyle");
             System.Windows.Automation.AutomationProperties.SetName(BtnGrab, L("ToolBannerBtnStop"));
-            TxtHost.IsReadOnly = true;
-            TxtPorts.IsReadOnly = true;
+            SetGrabInputsEnabled(false);
             GrabProgress.IsIndeterminate = false;
             GrabProgress.Maximum = ports.Count;
             GrabProgress.Value = 0;
             TxtProgressPercent.Text = "0%";
             TxtProgressCount.Text = string.Format(L("ToolBannerProgress"), 0, ports.Count);
             ProgressPanel.Visibility = Visibility.Visible;
-            EmptyStatePanel.Visibility = Visibility.Collapsed;
+            _viewState.ShowResults();
         }
         catch
         {
@@ -288,9 +270,8 @@ public partial class BannerGrabberView : UserControl, IToolView
             catch (Exception ex)
             {
                 Core.Logging.FileLogger.Warn($"BannerGrabber gateway connection failed: {ex.Message}");
-                TxtError.Text = string.Format(L("ToolTunnelFailed"), ex.Message);
-                TxtError.Visibility = Visibility.Visible;
                 StopGrab();
+                _viewState.ShowError(string.Format(L("ToolTunnelFailed"), ex.Message));
                 return;
             }
         }
@@ -366,6 +347,14 @@ public partial class BannerGrabberView : UserControl, IToolView
             }
         }
 
+        if (_allResults.Count == 0)
+        {
+            _viewState.Reset();
+        }
+        else
+        {
+            _viewState.ShowResults();
+        }
         StopGrab();
     }
 
@@ -380,9 +369,20 @@ public partial class BannerGrabberView : UserControl, IToolView
         BtnGrab.Foreground = (System.Windows.Media.Brush)FindResource("TextPrimaryBrush");
         BtnGrab.Style = (Style)FindResource("PrimaryButtonStyle");
         System.Windows.Automation.AutomationProperties.SetName(BtnGrab, L("ToolBannerBtnGrab"));
-        TxtHost.IsReadOnly = false;
-        TxtPorts.IsReadOnly = false;
+        SetGrabInputsEnabled(true);
         ProgressPanel.Visibility = Visibility.Collapsed;
+    }
+
+    private void SetGrabInputsEnabled(bool enabled)
+    {
+        TxtHost.IsReadOnly = !enabled;
+        TxtPorts.IsReadOnly = !enabled;
+        CmbRouteVia.IsEnabled = enabled;
+        BtnPresetWeb.IsEnabled = enabled;
+        BtnPresetRemote.IsEnabled = enabled;
+        BtnPresetMail.IsEnabled = enabled;
+        BtnPresetDatabase.IsEnabled = enabled;
+        ChkBannerOnly.IsEnabled = enabled;
     }
 
     private void PopulateRouteSelector()
@@ -550,7 +550,7 @@ public partial class BannerGrabberView : UserControl, IToolView
     /// </summary>
     private static string IdentifyService(int port, string? banner)
     {
-        var baseService = WellKnownServices.GetValueOrDefault(port, "");
+        var baseService = NetworkToolPresets.GetPortServiceLabel(port);
 
         if (string.IsNullOrWhiteSpace(banner))
         {

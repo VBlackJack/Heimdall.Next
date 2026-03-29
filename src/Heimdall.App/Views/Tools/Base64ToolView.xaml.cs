@@ -18,6 +18,7 @@ using System.IO;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Models;
 using SaveFileDialog = Microsoft.Win32.SaveFileDialog;
@@ -40,6 +41,7 @@ public partial class Base64ToolView : UserControl, IToolView
     public Base64ToolView()
     {
         InitializeComponent();
+        InputText.PreviewKeyDown += OnInputPreviewKeyDown;
     }
 
     /// <summary>
@@ -50,23 +52,29 @@ public partial class Base64ToolView : UserControl, IToolView
         _localizer = localizer;
         ApplyLocalization();
 
-        // Pre-fill with a sensible default; context overrides if provided
-        InputText.Text = "Hello, World!";
-
-        if (!string.IsNullOrEmpty(context?.Argument))
+        if (!string.IsNullOrWhiteSpace(context?.Argument))
         {
             InputText.Text = context.Argument;
+        }
+        else
+        {
+            InputText.Text = string.Empty;
         }
 
         _initialized = true;
 
-        // Trigger initial encoding so the tool shows a result on load
-        _ = EncodeAsync();
+        if (!string.IsNullOrEmpty(InputText.Text))
+        {
+            _ = EncodeAsync();
+        }
 
         Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, () =>
         {
             InputText.Focus();
-            InputText.SelectAll();
+            if (!string.IsNullOrEmpty(InputText.Text))
+            {
+                InputText.SelectAll();
+            }
         });
     }
 
@@ -269,6 +277,22 @@ public partial class Base64ToolView : UserControl, IToolView
         {
             OutputText.Text = string.Empty;
             StatusText.Text = string.Empty;
+        }
+    }
+
+    private void OnInputPreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (Keyboard.Modifiers == ModifierKeys.Control && e.Key == Key.Enter)
+        {
+            _ = EncodeAsync();
+            e.Handled = true;
+            return;
+        }
+
+        if (Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift) && e.Key == Key.Enter)
+        {
+            OnDecodeClick(sender, e);
+            e.Handled = true;
         }
     }
 

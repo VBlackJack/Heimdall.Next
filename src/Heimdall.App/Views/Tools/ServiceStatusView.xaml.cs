@@ -40,6 +40,7 @@ public partial class ServiceStatusView : UserControl, IToolView
     private DispatcherTimer? _autoRefreshTimer;
     private bool _disposed;
     private bool _isLoading;
+    private readonly ToolAsyncStateController _viewState;
 
     private readonly ObservableCollection<ServiceEntry> _displayedServices = [];
     private readonly List<ServiceEntry> _allServices = [];
@@ -47,6 +48,17 @@ public partial class ServiceStatusView : UserControl, IToolView
     public ServiceStatusView()
     {
         InitializeComponent();
+        _viewState = new ToolAsyncStateController(
+            isBusy => _setBusy?.Invoke(isBusy),
+            LoadingBar,
+            TxtError,
+            EmptyStatePanel,
+            ServicesPanel,
+            null,
+            BtnRefresh,
+            TxtFilter,
+            ChkRunningOnly,
+            ChkAutoRefresh);
         ServicesGrid.ItemsSource = _displayedServices;
     }
 
@@ -110,16 +122,18 @@ public partial class ServiceStatusView : UserControl, IToolView
 
     private async Task LoadServicesAsync()
     {
+        if (_disposed || _isLoading)
+        {
+            return;
+        }
+
         _cts?.Cancel();
         _cts?.Dispose();
         _cts = new CancellationTokenSource();
         _cts.CancelAfter(TimeSpan.FromSeconds(30));
 
         _isLoading = true;
-        BtnRefresh.IsEnabled = false;
-        _setBusy?.Invoke(true);
-        LoadingBar.Visibility = Visibility.Visible;
-        TxtError.Visibility = Visibility.Collapsed;
+        _viewState.Begin();
 
         try
         {
@@ -129,26 +143,34 @@ public partial class ServiceStatusView : UserControl, IToolView
 
             _allServices.Clear();
             _allServices.AddRange(services);
-            EmptyStatePanel.Visibility = Visibility.Collapsed;
-            ServicesPanel.Visibility = Visibility.Visible;
             ApplyFilter();
+            if (_allServices.Count == 0)
+            {
+                _viewState.Reset();
+            }
+            else
+            {
+                _viewState.ShowResults();
+            }
         }
         catch (OperationCanceledException)
         {
-            TxtError.Text = L("ToolServicesErrorTimeout");
-            TxtError.Visibility = Visibility.Visible;
+            _viewState.ShowError(
+                L("ToolServicesErrorTimeout"),
+                showEmptyState: _allServices.Count == 0,
+                keepResultsVisible: _allServices.Count > 0);
         }
         catch (Exception ex)
         {
-            TxtError.Text = string.Format(L("ToolServicesErrorFailed"), ex.Message);
-            TxtError.Visibility = Visibility.Visible;
+            _viewState.ShowError(
+                string.Format(L("ToolServicesErrorFailed"), ex.Message),
+                showEmptyState: _allServices.Count == 0,
+                keepResultsVisible: _allServices.Count > 0);
         }
         finally
         {
             _isLoading = false;
-            _setBusy?.Invoke(false);
-            LoadingBar.Visibility = Visibility.Collapsed;
-            BtnRefresh.IsEnabled = true;
+            _viewState.End();
         }
     }
 

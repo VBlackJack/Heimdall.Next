@@ -72,24 +72,29 @@ public partial class NetworkCartographyView : UserControl, IToolView
         ResultsGrid.ContextMenuOpening += OnResultsContextMenuOpening;
         ResultsGrid.LoadingRow += OnResultsLoadingRow;
         SizeChanged += OnViewSizeChanged;
+        SetScanUiState(false);
+        UpdateResultsSurface();
     }
 
     /// <summary>
     /// Adapts column visibility based on available width for split pane support.
     /// </summary>
     private void OnViewSizeChanged(object sender, SizeChangedEventArgs e)
-    {
-        var width = e.NewSize.Width;
+        => UpdateResponsiveLayout(e.NewSize.Width);
 
-        // Detail columns: visible above 1100px
-        var showDetails = width >= 1100;
+    private void UpdateResponsiveLayout(double width)
+    {
+        var showDetails = width >= 1180;
         ColManufacturer.Visibility = showDetails ? Visibility.Visible : Visibility.Collapsed;
         ColTls.Visibility = showDetails ? Visibility.Visible : Visibility.Collapsed;
         ColDetails.Visibility = showDetails ? Visibility.Visible : Visibility.Collapsed;
         ColVlan.Visibility = showDetails ? Visibility.Visible : Visibility.Collapsed;
 
-        // Secondary columns: visible above 800px
-        var showSecondary = width >= 800;
+        var showServices = width >= 960;
+        ColPorts.Visibility = showServices ? Visibility.Visible : Visibility.Collapsed;
+        ColServices.Visibility = showServices ? Visibility.Visible : Visibility.Collapsed;
+
+        var showSecondary = width >= 760;
         ColConfidence.Visibility = showSecondary ? Visibility.Visible : Visibility.Collapsed;
         ColOs.Visibility = showSecondary ? Visibility.Visible : Visibility.Collapsed;
     }
@@ -123,6 +128,8 @@ public partial class NetworkCartographyView : UserControl, IToolView
         PopulateRouteSelector();
         PopulateHistory();
         _ = LoadKbStatsAsync();
+        UpdateResponsiveLayout(ActualWidth);
+        UpdateResultsSurface();
 
         Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, () =>
         {
@@ -235,6 +242,11 @@ public partial class NetworkCartographyView : UserControl, IToolView
 
     private async Task StartScanAsync()
     {
+        if (_disposed || _isScanning)
+        {
+            return;
+        }
+
         var subnet = TxtSubnet.Text.Trim();
         if (string.IsNullOrWhiteSpace(subnet))
         {
@@ -268,27 +280,21 @@ public partial class NetworkCartographyView : UserControl, IToolView
             if (result != MessageBoxResult.Yes) return;
         }
 
+        CancelSubnetDetection();
         _results.Clear();
         _cts = new CancellationTokenSource();
         _isScanning = true;
         _setBusy?.Invoke(true);
 
-        BtnStart.IsEnabled = false;
-        BtnStop.IsEnabled = true;
-        TxtSubnet.IsReadOnly = true;
-        CmbDepth.IsEnabled = false;
-        ChkSkipPing.IsEnabled = false;
-        ChkReverseDns.IsEnabled = false;
-        ChkUseKnowledgeBase.IsEnabled = false;
-        CmbRouteVia.IsEnabled = false;
+        SetScanUiState(true);
         ProgressPanel.Visibility = Visibility.Visible;
-        EmptyStatePanel.Visibility = Visibility.Collapsed;
         ScanProgress.Value = 0;
         ScanProgress.IsIndeterminate = true;
         TxtStatus.Text = string.Format(L("ToolNetMapStatusDiscovery"), 0, ipList.Count);
         TxtStats.Text = "";
         TxtScanProgress.Visibility = Visibility.Visible;
         TxtScanProgress.Text = string.Format(L("ToolNetMapScanProgress"), 0, ipList.Count);
+        UpdateResultsSurface();
 
         var depth = CmbDepth.SelectedItem is ComboBoxItem item && item.Tag is ScanDepth d
             ? d : ScanDepth.Quick;
@@ -354,6 +360,7 @@ public partial class NetworkCartographyView : UserControl, IToolView
             Dispatcher.InvokeAsync(() =>
             {
                 _results.Add(ToRow(hostResult));
+                UpdateResultsSurface();
             });
         };
 
@@ -404,7 +411,6 @@ public partial class NetworkCartographyView : UserControl, IToolView
                 if (snapshot.Hosts.Count == 0)
                 {
                     TxtStatus.Text = L("ToolNetMapNoHostsFound");
-                    EmptyStatePanel.Visibility = Visibility.Visible;
                 }
                 else
                 {
@@ -443,6 +449,7 @@ public partial class NetworkCartographyView : UserControl, IToolView
 
                 UpdateKbStats();
                 PopulateHistory();
+                UpdateResultsSurface();
             });
         }
         catch (OperationCanceledException)
@@ -455,6 +462,7 @@ public partial class NetworkCartographyView : UserControl, IToolView
             await Dispatcher.InvokeAsync(() =>
             {
                 TxtStatus.Text = string.Format(L("ToolNetMapErrorScanFailed"), ex.Message);
+                UpdateResultsSurface();
             });
         }
 
@@ -582,20 +590,59 @@ public partial class NetworkCartographyView : UserControl, IToolView
         _isScanning = false;
         _setBusy?.Invoke(false);
 
-        BtnStart.IsEnabled = true;
-        BtnStop.IsEnabled = false;
-        TxtSubnet.IsReadOnly = false;
-        CmbDepth.IsEnabled = true;
-        ChkSkipPing.IsEnabled = true;
-        ChkReverseDns.IsEnabled = true;
-        ChkUseKnowledgeBase.IsEnabled = true;
-        CmbRouteVia.IsEnabled = true;
+        SetScanUiState(false);
         TxtScanProgress.Visibility = Visibility.Collapsed;
 
         // Keep progress panel visible if there's a status message to show
         // (0-hosts warning, error, or completion summary)
         if (string.IsNullOrEmpty(TxtStatus.Text))
             ProgressPanel.Visibility = Visibility.Collapsed;
+
+        UpdateResultsSurface();
+    }
+
+    private void SetScanUiState(bool isScanning)
+    {
+        BtnStart.IsEnabled = !isScanning;
+        BtnStop.IsEnabled = isScanning;
+        TxtSubnet.IsReadOnly = isScanning;
+        CmbDepth.IsEnabled = !isScanning;
+        ChkSkipPing.IsEnabled = !isScanning;
+        ChkReverseDns.IsEnabled = !isScanning;
+        ChkUseKnowledgeBase.IsEnabled = !isScanning;
+        CmbRouteVia.IsEnabled = !isScanning;
+        CmbHistory.IsEnabled = !isScanning;
+
+        if (isScanning)
+        {
+            BtnExportCsv.IsEnabled = false;
+            BtnExportDrawio.IsEnabled = false;
+            BtnEditDiagram.IsEnabled = false;
+            BtnClearKb.IsEnabled = false;
+            return;
+        }
+
+        BtnExportCsv.IsEnabled = _results.Count > 0;
+        BtnExportDrawio.IsEnabled = _lastSnapshot is not null;
+        BtnEditDiagram.IsEnabled = _lastSnapshot is not null && _openToolAction is not null;
+        BtnClearKb.IsEnabled = _knowledgeBase is not null &&
+            KnowledgeBaseManager.HostCount(_knowledgeBase) > 0;
+    }
+
+    private void UpdateResultsSurface()
+    {
+        var hasResults = _results.Count > 0;
+        ResultsPanel.Visibility = hasResults ? Visibility.Visible : Visibility.Collapsed;
+        EmptyStatePanel.Visibility = hasResults || _isScanning
+            ? Visibility.Collapsed
+            : Visibility.Visible;
+    }
+
+    private void CancelSubnetDetection()
+    {
+        _subnetDetectCts?.Cancel();
+        _subnetDetectCts?.Dispose();
+        _subnetDetectCts = null;
     }
 
     private CartographyRowViewModel ToRow(HostScanResult host)
@@ -1039,8 +1086,7 @@ public partial class NetworkCartographyView : UserControl, IToolView
     private async Task DetectRemoteSubnetsAsync(Core.Configuration.SshGatewayDto gateway)
     {
         // Cancel any previous detection still in progress
-        _subnetDetectCts?.Cancel();
-        _subnetDetectCts?.Dispose();
+        CancelSubnetDetection();
         _subnetDetectCts = new CancellationTokenSource();
         var ct = _subnetDetectCts.Token;
 
@@ -1283,7 +1329,7 @@ public partial class NetworkCartographyView : UserControl, IToolView
     private void UpdateKbStats()
     {
         var isEmpty = _knowledgeBase is null || KnowledgeBaseManager.HostCount(_knowledgeBase) == 0;
-        BtnClearKb.IsEnabled = !isEmpty;
+        BtnClearKb.IsEnabled = !_isScanning && !isEmpty;
 
         if (isEmpty)
         {

@@ -54,15 +54,6 @@ public partial class SnmpWalkerView : UserControl, IToolView
     private readonly ObservableCollection<CommunityResult> _communityResults = [];
 
     /// <summary>
-    /// Common community strings used for bruteforce testing.
-    /// </summary>
-    private static readonly string[] CommonCommunities =
-    [
-        "public", "private", "community", "default", "snmp", "monitor",
-        "admin", "manager", "test", "cisco", "secret", "write"
-    ];
-
-    /// <summary>
     /// Well-known OID-to-name mappings for common MIB-2 objects.
     /// </summary>
     private static readonly Dictionary<string, string> WellKnownOids = new(StringComparer.Ordinal)
@@ -141,7 +132,9 @@ public partial class SnmpWalkerView : UserControl, IToolView
         _setBusy = context?.SetBusyAction;
         ApplyLocalization();
 
-        TxtHost.Text = "localhost";
+        TxtHost.Clear();
+        TxtCommunity.Text = NetworkToolPresets.SnmpDefaultCommunity;
+        TxtOid.Text = NetworkToolPresets.SnmpDefaultOid;
 
         if (!string.IsNullOrWhiteSpace(context?.TargetHost))
         {
@@ -264,6 +257,7 @@ public partial class SnmpWalkerView : UserControl, IToolView
         _setBusy?.Invoke(false);
         BtnWalk.Content = L("ToolSnmpBtnWalk");
         LoadingBar.Visibility = Visibility.Collapsed;
+        SetOperationInputsEnabled(true);
     }
 
     private async Task StartWalkAsync()
@@ -282,12 +276,12 @@ public partial class SnmpWalkerView : UserControl, IToolView
 
         if (string.IsNullOrWhiteSpace(community))
         {
-            community = "public";
+            community = NetworkToolPresets.SnmpDefaultCommunity;
         }
 
         if (string.IsNullOrWhiteSpace(oid))
         {
-            oid = "1.3.6.1.2.1.1";
+            oid = NetworkToolPresets.SnmpDefaultOid;
         }
 
         _results.Clear();
@@ -295,6 +289,7 @@ public partial class SnmpWalkerView : UserControl, IToolView
         _isWalking = true;
         _setBusy?.Invoke(true);
         BtnWalk.Content = L("ToolSnmpBtnStop");
+        SetOperationInputsEnabled(false, allowWalkStop: true);
         LoadingBar.Visibility = Visibility.Visible;
         EmptyStatePanel.Visibility = Visibility.Collapsed;
         ResultsBorder.Visibility = Visibility.Visible;
@@ -337,6 +332,7 @@ public partial class SnmpWalkerView : UserControl, IToolView
             _setBusy?.Invoke(false);
             BtnWalk.Content = L("ToolSnmpBtnWalk");
             LoadingBar.Visibility = Visibility.Collapsed;
+            SetOperationInputsEnabled(true);
         }
     }
 
@@ -529,13 +525,13 @@ public partial class SnmpWalkerView : UserControl, IToolView
         _communityResults.Clear();
         _isWalking = true;
         _setBusy?.Invoke(true);
-        BtnTestCommunities.IsEnabled = false;
+        SetOperationInputsEnabled(false);
         LoadingBar.Visibility = Visibility.Visible;
         _cts = new CancellationTokenSource();
 
         try
         {
-            foreach (var community in CommonCommunities)
+            foreach (var community in NetworkToolPresets.SnmpCommonCommunities)
             {
                 _cts.Token.ThrowIfCancellationRequested();
 
@@ -571,9 +567,24 @@ public partial class SnmpWalkerView : UserControl, IToolView
         {
             _isWalking = false;
             _setBusy?.Invoke(false);
-            BtnTestCommunities.IsEnabled = true;
             LoadingBar.Visibility = Visibility.Collapsed;
+            SetOperationInputsEnabled(true);
         }
+    }
+
+    private void SetOperationInputsEnabled(bool enabled, bool allowWalkStop = false)
+    {
+        TxtHost.IsReadOnly = !enabled;
+        TxtCommunity.IsReadOnly = !enabled;
+        TxtOid.IsReadOnly = !enabled;
+        CmbRouteVia.IsEnabled = enabled;
+        BtnPresetSystem.IsEnabled = enabled;
+        BtnPresetInterfaces.IsEnabled = enabled;
+        BtnPresetIp.IsEnabled = enabled;
+        BtnPresetTcp.IsEnabled = enabled;
+        BtnPresetUdp.IsEnabled = enabled;
+        BtnTestCommunities.IsEnabled = enabled;
+        BtnWalk.IsEnabled = enabled || allowWalkStop;
     }
 
     // ── Preset buttons ──────────────────────────────────────────────

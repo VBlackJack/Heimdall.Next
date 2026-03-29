@@ -226,10 +226,15 @@ public partial class SecNumCloudAuditView : UserControl, IToolView
     private async Task StartAuditAsync()
     {
         var scopeText = TxtScope.Text.Trim();
+        HideInlineError();
+
         if (string.IsNullOrWhiteSpace(scopeText))
         {
-            TxtPhase.Text = L("ToolAuditErrorScope");
-            ProgressPanel.Visibility = Visibility.Visible;
+            ProgressPanel.Visibility = Visibility.Collapsed;
+            TxtPhase.Text = string.Empty;
+            TxtCurrentCheck.Text = string.Empty;
+            ShowInlineError(L("ToolAuditErrorScope"));
+            RestoreContentState();
             return;
         }
 
@@ -307,6 +312,7 @@ public partial class SecNumCloudAuditView : UserControl, IToolView
 
             await Dispatcher.InvokeAsync(() =>
             {
+                HideInlineError();
                 DisplayResults(report);
 
                 var totalChecks = report.Chapters.Sum(c => c.Checks.Count);
@@ -331,13 +337,24 @@ public partial class SecNumCloudAuditView : UserControl, IToolView
         }
         catch (OperationCanceledException)
         {
-            // Audit was cancelled by user
+            await Dispatcher.InvokeAsync(() =>
+            {
+                ProgressPanel.Visibility = Visibility.Collapsed;
+                TxtPhase.Text = string.Empty;
+                TxtCurrentCheck.Text = string.Empty;
+                HideInlineError();
+                RestoreContentState();
+            });
         }
         catch (Exception ex)
         {
             await Dispatcher.InvokeAsync(() =>
             {
-                TxtPhase.Text = $"{L("ToolAuditError")}: {ex.Message}";
+                ProgressPanel.Visibility = Visibility.Collapsed;
+                TxtPhase.Text = string.Empty;
+                TxtCurrentCheck.Text = string.Empty;
+                ShowInlineError($"{L("ToolAuditError")}: {ex.Message}");
+                RestoreContentState();
             });
         }
         finally
@@ -380,6 +397,7 @@ public partial class SecNumCloudAuditView : UserControl, IToolView
             AuditProgress.IsIndeterminate = true;
             TxtPhase.Text = "";
             TxtCurrentCheck.Text = "";
+            HideInlineError();
         }
         else
         {
@@ -411,6 +429,7 @@ public partial class SecNumCloudAuditView : UserControl, IToolView
         ComplianceBadgePanel.Visibility = Visibility.Visible;
         ResultsScroller.Visibility = Visibility.Visible;
         EmptyStatePanel.Visibility = Visibility.Collapsed;
+        HideInlineError();
 
         // Overall compliance
         var totalChecks = report.Chapters.Sum(c => c.Checks.Count);
@@ -779,6 +798,26 @@ public partial class SecNumCloudAuditView : UserControl, IToolView
     private static string FormatDuration(TimeSpan ts) => ts.TotalMinutes >= 1
         ? $"{ts.Minutes}m {ts.Seconds}s"
         : $"{ts.TotalSeconds:F1}s";
+
+    private void ShowInlineError(string message)
+    {
+        TxtError.Text = message;
+        TxtError.Visibility = Visibility.Visible;
+    }
+
+    private void HideInlineError()
+    {
+        TxtError.Text = string.Empty;
+        TxtError.Visibility = Visibility.Collapsed;
+    }
+
+    private void RestoreContentState()
+    {
+        var hasResults = _lastReport is not null;
+        ComplianceBadgePanel.Visibility = hasResults ? Visibility.Visible : Visibility.Collapsed;
+        ResultsScroller.Visibility = hasResults ? Visibility.Visible : Visibility.Collapsed;
+        EmptyStatePanel.Visibility = hasResults ? Visibility.Collapsed : Visibility.Visible;
+    }
 
     private string L(string key) => _localizer?[key] ?? key;
 

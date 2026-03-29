@@ -48,8 +48,7 @@ public partial class SubnetCalculatorView : UserControl, IToolView
         _localizer = localizer;
         ApplyLocalization();
 
-        // Pre-fill with a sensible default and auto-calculate; context overrides if provided
-        TxtCidrInput.Text = "192.168.1.0/24";
+        TxtCidrInput.Clear();
 
         if (!string.IsNullOrWhiteSpace(context?.TargetHost))
         {
@@ -57,12 +56,25 @@ public partial class SubnetCalculatorView : UserControl, IToolView
         }
 
         _initialized = true;
-        Calculate();
+
+        if (!string.IsNullOrWhiteSpace(TxtCidrInput.Text))
+        {
+            Calculate();
+        }
+        else
+        {
+            EmptyStatePanel.Visibility = Visibility.Visible;
+            ResultsPanel.Visibility = Visibility.Collapsed;
+            TxtError.Visibility = Visibility.Collapsed;
+        }
 
         Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, () =>
         {
             TxtCidrInput.Focus();
-            TxtCidrInput.SelectAll();
+            if (!string.IsNullOrWhiteSpace(TxtCidrInput.Text))
+            {
+                TxtCidrInput.SelectAll();
+            }
         });
     }
 

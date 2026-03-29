@@ -56,45 +56,6 @@ public partial class CertInspectorView : UserControl, IToolView
     private const int DaysWarningThreshold = 30;
     private const int MaxConcurrentTlsProbes = 10;
 
-    private static readonly Dictionary<int, string> TlsServiceLabels = new()
-    {
-        [443] = "HTTPS",
-        [8443] = "HTTPS-Alt",
-        [993] = "IMAPS",
-        [995] = "POP3S",
-        [465] = "SMTPS",
-        [636] = "LDAPS",
-        [990] = "FTPS",
-        [5986] = "WinRM-HTTPS",
-        [3389] = "RDP",
-        [853] = "DNS-over-TLS",
-        [5223] = "XMPP-TLS",
-        [8883] = "MQTT-TLS",
-        [25] = "SMTP",
-        [110] = "POP3",
-        [143] = "IMAP",
-        [389] = "LDAP",
-        [587] = "SMTP-Submission",
-        [989] = "FTPS-Data",
-        [992] = "Telnets",
-        [1443] = "MSSQL-TLS",
-        [2083] = "cPanel-TLS",
-        [2087] = "WHM-TLS",
-        [2096] = "Webmail-TLS",
-        [4443] = "HTTPS-Alt",
-        [5671] = "AMQPS",
-        [6443] = "Kubernetes-API",
-        [6697] = "IRC-TLS",
-        [9443] = "HTTPS-Alt",
-    };
-
-    private static readonly int[] QuickScanPorts =
-        [443, 8443, 993, 995, 465, 636, 990, 5986, 3389, 853, 5223, 8883];
-
-    private static readonly int[] ExtendedScanPorts =
-        [443, 8443, 993, 995, 465, 636, 990, 5986, 3389, 853, 5223, 8883,
-         25, 110, 143, 389, 587, 989, 992, 1443, 2083, 2087, 2096, 4443, 5671, 6443, 6697, 9443];
-
     /// <summary>
     /// Expiration status for color-coded display.
     /// </summary>
@@ -175,9 +136,10 @@ public partial class CertInspectorView : UserControl, IToolView
         _localizer = localizer;
         _setBusy = context?.SetBusyAction;
         ApplyLocalization();
-
-        // Pre-fill with a sensible default; context overrides if provided
-        TxtHost.Text = "google.com";
+        TxtHost.Clear();
+        TxtPort.Clear();
+        TxtCustomPorts.Clear();
+        _selectedProfile = "quick";
 
         if (!string.IsNullOrWhiteSpace(context?.TargetHost))
         {
@@ -285,8 +247,8 @@ public partial class CertInspectorView : UserControl, IToolView
         BtnCopyAll.Content = L("ToolCertBtnCopyAll");
         BtnExportCsv.Content = L("ToolCertBtnExport");
 
-        BtnProfileQuick.ToolTip = $"{L("ToolCertScanProfileQuick")} ({QuickScanPorts.Length} ports)";
-        BtnProfileExtended.ToolTip = $"{L("ToolCertScanProfileExtended")} ({ExtendedScanPorts.Length} ports)";
+        BtnProfileQuick.ToolTip = $"{L("ToolCertScanProfileQuick")} ({NetworkToolPresets.TlsQuickScanPorts.Length} ports)";
+        BtnProfileExtended.ToolTip = $"{L("ToolCertScanProfileExtended")} ({NetworkToolPresets.TlsExtendedScanPorts.Length} ports)";
         AutomationProperties.SetName(BtnProfileQuick, L("ToolCertScanProfileQuick"));
         AutomationProperties.SetName(BtnProfileExtended, L("ToolCertScanProfileExtended"));
         AutomationProperties.SetName(BtnProfileCustom, L("ToolCertScanProfileCustom"));
@@ -348,6 +310,11 @@ public partial class CertInspectorView : UserControl, IToolView
 
     private async Task CheckCertificateAsync()
     {
+        if (_isChecking)
+        {
+            return;
+        }
+
         if (IsScanMode)
         {
             await ScanMultiplePortsAsync();
@@ -399,6 +366,7 @@ public partial class CertInspectorView : UserControl, IToolView
         EmptyStatePanel.Visibility = Visibility.Collapsed;
         LoadingBar.Visibility = Visibility.Visible;
         BtnCheck.IsEnabled = false;
+        SetScanInputsEnabled(false);
         _isChecking = true;
         _setBusy?.Invoke(true);
 
@@ -448,6 +416,8 @@ public partial class CertInspectorView : UserControl, IToolView
             _isChecking = false;
             _setBusy?.Invoke(false);
             LoadingBar.Visibility = Visibility.Collapsed;
+            SetScanInputsEnabled(true);
+            UpdateMode();
             BtnCheck.IsEnabled = true;
         }
     }
@@ -672,9 +642,9 @@ public partial class CertInspectorView : UserControl, IToolView
     {
         return _selectedProfile switch
         {
-            "extended" => [.. ExtendedScanPorts],
+            "extended" => [.. NetworkToolPresets.TlsExtendedScanPorts],
             "custom" => ParsePorts(TxtCustomPorts.Text),
-            _ => [.. QuickScanPorts],
+            _ => [.. NetworkToolPresets.TlsQuickScanPorts],
         };
     }
 
@@ -706,7 +676,7 @@ public partial class CertInspectorView : UserControl, IToolView
     private CertScanResultItem BuildScanResultItem(CertInspectionResult result, string host, int port)
     {
         using var cert = result.Certificate;
-        var serviceLabel = TlsServiceLabels.GetValueOrDefault(port, "TLS");
+        var serviceLabel = NetworkToolPresets.GetTlsServiceLabel(port);
         var portLabel = string.Format(L("ToolCertScanPortHeader"), port, serviceLabel);
         var sans = ExtractSans(cert);
         var keySize = GetPublicKeySize(cert);
@@ -833,7 +803,7 @@ public partial class CertInspectorView : UserControl, IToolView
             L("ToolCertCsvHostnameMatch"), L("ToolCertCsvSans")));
         foreach (var r in list)
         {
-            var service = InputValidator.SanitizeCsvCell(TlsServiceLabels.GetValueOrDefault(r.Port, "TLS"));
+            var service = InputValidator.SanitizeCsvCell(NetworkToolPresets.GetTlsServiceLabel(r.Port));
             var sans = InputValidator.SanitizeCsvCell(string.Join("; ", r.Sans)).Replace("\"", "\"\"");
             var subject = InputValidator.SanitizeCsvCell(r.Subject).Replace("\"", "\"\"");
             var issuer = InputValidator.SanitizeCsvCell(r.Issuer).Replace("\"", "\"\"");

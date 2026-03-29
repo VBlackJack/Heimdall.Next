@@ -57,88 +57,12 @@ public partial class DefaultCredentialView : UserControl, IToolView
     private readonly ObservableCollection<CredTestResult> _results = [];
     private readonly List<CredTestResult> _allResults = [];
 
-    /// <summary>
-    /// Credential database grouped by service type.
-    /// Each entry is a (username, password) tuple representing a known default credential.
-    /// </summary>
-    private static readonly Dictionary<string, List<(string User, string Pass)>> DefaultCredentials = new()
-    {
-        ["SSH"] =
-        [
-            ("root", "root"), ("root", "toor"), ("admin", "admin"),
-            ("admin", "password"), ("admin", "1234"), ("pi", "raspberry"),
-            ("ubnt", "ubnt"), ("vagrant", "vagrant"),
-        ],
-        ["Telnet"] =
-        [
-            ("admin", "admin"), ("root", "root"),
-            ("admin", "password"), ("admin", "1234"),
-        ],
-        ["HTTP"] =
-        [
-            ("admin", "admin"), ("admin", "password"), ("admin", "1234"),
-            ("root", "root"), ("admin", ""), ("user", "user"),
-        ],
-        ["FTP"] =
-        [
-            ("anonymous", ""), ("admin", "admin"),
-            ("ftp", "ftp"), ("root", "root"),
-        ],
-        ["SNMP"] =
-        [
-            ("public", ""), ("private", ""), ("community", ""),
-            ("default", ""), ("monitor", ""),
-        ],
-        ["MySQL"] =
-        [
-            ("root", ""), ("root", "root"),
-            ("root", "mysql"), ("admin", "admin"),
-        ],
-        ["PostgreSQL"] =
-        [
-            ("postgres", "postgres"), ("admin", "admin"),
-        ],
-        ["Redis"] =
-        [
-            ("", ""),
-        ],
-        ["MSSQL"] =
-        [
-            ("sa", ""), ("sa", "sa"),
-            ("sa", "password"), ("sa", "Password1"),
-        ],
-        ["VNC"] =
-        [
-            ("", "password"), ("", "1234"), ("", "vnc"),
-        ],
-    };
-
-    /// <summary>
-    /// Maps well-known ports to their service category for auto-detection.
-    /// </summary>
-    private static readonly Dictionary<int, string> ServicePorts = new()
-    {
-        [DefaultPorts.Ssh] = "SSH",
-        [DefaultPorts.Telnet] = "Telnet",
-        [DefaultPorts.Ftp] = "FTP",
-        [80] = "HTTP",
-        [443] = "HTTP",
-        [DefaultPorts.Http] = "HTTP",
-        [8443] = "HTTP",
-        [3306] = "MySQL",
-        [5432] = "PostgreSQL",
-        [1433] = "MSSQL",
-        [6379] = "Redis",
-        [161] = "SNMP",
-        [DefaultPorts.Vnc] = "VNC",
-        [5901] = "VNC",
-    };
-
     public DefaultCredentialView()
     {
         InitializeComponent();
         ResultsGrid.ItemsSource = _results;
         TxtHost.KeyDown += OnHostKeyDown;
+        SetScanInputsEnabled(true);
     }
 
     /// <summary>
@@ -150,7 +74,7 @@ public partial class DefaultCredentialView : UserControl, IToolView
         _setBusy = context?.SetBusyAction;
         ApplyLocalization();
 
-        TxtHost.Text = "localhost";
+        TxtHost.Clear();
 
         if (!string.IsNullOrWhiteSpace(context?.TargetHost))
         {
@@ -345,6 +269,11 @@ public partial class DefaultCredentialView : UserControl, IToolView
 
     private async Task StartScanAsync()
     {
+        if (_disposed || _isScanning)
+        {
+            return;
+        }
+
         var host = TxtHost.Text.Trim();
         TxtError.Visibility = Visibility.Collapsed;
 
@@ -376,7 +305,7 @@ public partial class DefaultCredentialView : UserControl, IToolView
             BtnScan.Foreground = (System.Windows.Media.Brush)FindResource("ErrorBrush");
             BtnScan.Style = (Style)FindResource("SecondaryButtonStyle");
             System.Windows.Automation.AutomationProperties.SetName(BtnScan, L("ToolDefCredBtnStop"));
-            TxtHost.IsReadOnly = true;
+            SetScanInputsEnabled(false);
             EmptyStatePanel.Visibility = Visibility.Collapsed;
             ResultsBorder.Visibility = Visibility.Visible;
             TxtSummary.Text = "";
@@ -415,7 +344,7 @@ public partial class DefaultCredentialView : UserControl, IToolView
             {
                 UpdateProgress(L("ToolDefCredDetecting"), true);
 
-                var portsToScan = ServicePorts.Keys.ToList();
+        var portsToScan = DefaultCredentialPresets.ServicePorts.Keys.ToList();
                 var semaphore = new SemaphoreSlim(tunnelClient is not null ? 5 : 20);
 
                 try
@@ -432,7 +361,7 @@ public partial class DefaultCredentialView : UserControl, IToolView
 
                             if (isOpen)
                             {
-                                return (Port: port, Service: ServicePorts[port]);
+                return (Port: port, Service: DefaultCredentialPresets.ServicePorts[port]);
                             }
 
                             return ((int Port, string Service)?)null;
@@ -454,7 +383,7 @@ public partial class DefaultCredentialView : UserControl, IToolView
             else
             {
                 // Test all known service ports without probing
-                detectedServices.AddRange(ServicePorts.Select(kv => (kv.Key, kv.Value)));
+            detectedServices.AddRange(DefaultCredentialPresets.ServicePorts.Select(kv => (kv.Key, kv.Value)));
             }
 
             if (detectedServices.Count == 0)
@@ -474,7 +403,7 @@ public partial class DefaultCredentialView : UserControl, IToolView
                 .ToList();
 
             var totalTests = serviceGroups.Sum(g =>
-                g.Sum(svc => DefaultCredentials.GetValueOrDefault(svc.Service)?.Count ?? 0));
+            g.Sum(svc => DefaultCredentialPresets.CredentialsByService.GetValueOrDefault(svc.Service)?.Count ?? 0));
             var completedTests = 0;
 
             var serviceSemaphore = new SemaphoreSlim(MaxConcurrentServices);
@@ -489,7 +418,7 @@ public partial class DefaultCredentialView : UserControl, IToolView
                         foreach (var (port, service) in group)
                         {
                             ct.ThrowIfCancellationRequested();
-                            var credentials = DefaultCredentials.GetValueOrDefault(service);
+        var credentials = DefaultCredentialPresets.CredentialsByService.GetValueOrDefault(service);
                             if (credentials is null)
                             {
                                 continue;
@@ -570,8 +499,18 @@ public partial class DefaultCredentialView : UserControl, IToolView
         BtnScan.Foreground = (System.Windows.Media.Brush)FindResource("TextPrimaryBrush");
         BtnScan.Style = (Style)FindResource("PrimaryButtonStyle");
         System.Windows.Automation.AutomationProperties.SetName(BtnScan, L("ToolDefCredBtnScan"));
-        TxtHost.IsReadOnly = false;
+        SetScanInputsEnabled(true);
         ProgressPanel.Visibility = Visibility.Collapsed;
+    }
+
+    private void SetScanInputsEnabled(bool enabled)
+    {
+        TxtHost.IsReadOnly = !enabled;
+        CmbRouteVia.IsEnabled = enabled;
+        ChkAutoDetect.IsEnabled = enabled;
+        ChkShowPasswords.IsEnabled = enabled;
+        BtnCopy.IsEnabled = enabled && _results.Count > 0;
+        BtnExportCsv.IsEnabled = enabled && _allResults.Count > 0;
     }
 
     private void UpdateProgress(string statusText, bool isIndeterminate)

@@ -46,8 +46,7 @@ public partial class IpConverterView : UserControl, IToolView
         _localizer = localizer;
         ApplyLocalization();
 
-        // Pre-fill with a sensible default (auto-converts via TextChanged); context overrides if provided
-        TxtInput.Text = "192.168.1.1";
+        TxtInput.Clear();
 
         if (!string.IsNullOrWhiteSpace(context?.TargetHost))
         {

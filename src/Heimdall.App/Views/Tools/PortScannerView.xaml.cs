@@ -54,35 +54,6 @@ public partial class PortScannerView : UserControl, IToolView
     private readonly ObservableCollection<PortScanResult> _results = [];
     private readonly List<PortScanResult> _allResults = [];
 
-    private static readonly Dictionary<int, string> WellKnownServices = new()
-    {
-        [DefaultPorts.Ftp] = "FTP",
-        [DefaultPorts.Ssh] = "SSH",
-        [DefaultPorts.Telnet] = "Telnet",
-        [25] = "SMTP",
-        [53] = "DNS",
-        [DefaultPorts.Tftp] = "TFTP",
-        [80] = "HTTP",
-        [110] = "POP3",
-        [143] = "IMAP",
-        [443] = "HTTPS",
-        [465] = "SMTPS",
-        [587] = "SMTP (Submission)",
-        [993] = "IMAPS",
-        [995] = "POP3S",
-        [1433] = "MSSQL",
-        [1521] = "Oracle",
-        [3306] = "MySQL",
-        [DefaultPorts.Rdp] = "RDP",
-        [5432] = "PostgreSQL",
-        [DefaultPorts.Vnc] = "VNC",
-        [6379] = "Redis",
-        [DefaultPorts.Http] = "HTTP-Alt",
-        [8443] = "HTTPS-Alt",
-        [9090] = "Prometheus",
-        [27017] = "MongoDB",
-    };
-
     public PortScannerView()
     {
         InitializeComponent();
@@ -91,6 +62,8 @@ public partial class PortScannerView : UserControl, IToolView
         TxtPorts.KeyDown += OnHostKeyDown;
         ResultsGrid.PreviewMouseRightButtonDown += ToolContextMenuHelper.SelectRowOnRightClick;
         ResultsGrid.ContextMenuOpening += OnResultsContextMenuOpening;
+        SizeChanged += OnViewSizeChanged;
+        UpdateResultsSurface();
     }
 
     /// <summary>
@@ -103,9 +76,8 @@ public partial class PortScannerView : UserControl, IToolView
         _setBusy = context?.SetBusyAction;
         ApplyLocalization();
 
-        // Pre-fill with sensible defaults; context overrides if provided
-        TxtHost.Text = "localhost";
-        TxtPorts.Text = "22,80,443,3389,5900";
+        TxtHost.Clear();
+        TxtPorts.Text = NetworkToolPresets.PortScannerDefaultPorts;
 
         if (!string.IsNullOrWhiteSpace(context?.TargetHost))
         {
@@ -118,6 +90,8 @@ public partial class PortScannerView : UserControl, IToolView
             _gateways = gateways.Cast<SshGatewayDto>().ToList();
         }
         PopulateRouteSelector();
+        UpdateResponsiveLayout(ActualWidth);
+        UpdateResultsSurface();
 
         Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, () =>
         {
@@ -228,6 +202,11 @@ public partial class PortScannerView : UserControl, IToolView
 
     private async Task StartScanAsync()
     {
+        if (_disposed || _isScanning)
+        {
+            return;
+        }
+
         var host = TxtHost.Text.Trim();
         TxtError.Visibility = Visibility.Collapsed;
 
@@ -235,6 +214,7 @@ public partial class PortScannerView : UserControl, IToolView
         {
             TxtError.Text = L("ToolValidationHostRequired");
             TxtError.Visibility = Visibility.Visible;
+            UpdateResultsSurface();
             return;
         }
 
@@ -242,6 +222,7 @@ public partial class PortScannerView : UserControl, IToolView
         {
             TxtError.Text = L("ToolValidationInvalidHost");
             TxtError.Visibility = Visibility.Visible;
+            UpdateResultsSurface();
             return;
         }
 
@@ -250,6 +231,7 @@ public partial class PortScannerView : UserControl, IToolView
         {
             TxtError.Text = L("ToolValidationPortRangeRequired");
             TxtError.Visibility = Visibility.Visible;
+            UpdateResultsSurface();
             return;
         }
 
@@ -279,15 +261,17 @@ public partial class PortScannerView : UserControl, IToolView
             BtnScan.Foreground = (System.Windows.Media.Brush)FindResource("ErrorBrush");
             BtnScan.Style = (Style)FindResource("SecondaryButtonStyle");
             System.Windows.Automation.AutomationProperties.SetName(BtnScan, L("ToolPortScanBtnStop"));
-            TxtHost.IsReadOnly = true;
-            TxtPorts.IsReadOnly = true;
+            SetScanInputsEnabled(false);
             ScanProgress.IsIndeterminate = false;
             ScanProgress.Maximum = ports.Count;
             ScanProgress.Value = 0;
             TxtProgressPercent.Text = "0%";
             TxtProgressCount.Text = string.Format(L("ToolPortScanProgressCount"), 0, ports.Count);
             ProgressPanel.Visibility = Visibility.Visible;
-            EmptyStatePanel.Visibility = Visibility.Collapsed;
+            TxtOpen.Text = "0";
+            TxtClosed.Text = "0";
+            TxtTotal.Text = ports.Count.ToString();
+            UpdateResultsSurface();
         }
         catch
         {
@@ -298,8 +282,6 @@ public partial class PortScannerView : UserControl, IToolView
         var openCount = 0;
         var closedCount = 0;
         var completed = 0;
-
-        TxtTotal.Text = ports.Count.ToString();
 
         Renci.SshNet.SshClient? tunnelClient = null;
         if (_selectedGateway is not null)
@@ -313,6 +295,7 @@ public partial class PortScannerView : UserControl, IToolView
                 Core.Logging.FileLogger.Warn($"PortScanner gateway connection failed: {ex.Message}");
                 TxtError.Text = string.Format(L("ToolTunnelFailed"), ex.Message);
                 TxtError.Visibility = Visibility.Visible;
+                UpdateResultsSurface();
                 StopScan();
                 return;
             }
@@ -366,6 +349,7 @@ public partial class PortScannerView : UserControl, IToolView
 
                         TxtOpen.Text = openCount.ToString();
                         TxtClosed.Text = closedCount.ToString();
+                        UpdateResultsSurface();
                     });
                 }
                 finally
@@ -414,9 +398,22 @@ public partial class PortScannerView : UserControl, IToolView
         BtnScan.Foreground = (System.Windows.Media.Brush)FindResource("TextPrimaryBrush");
         BtnScan.Style = (Style)FindResource("PrimaryButtonStyle");
         System.Windows.Automation.AutomationProperties.SetName(BtnScan, L("ToolPortScanBtnStart"));
-        TxtHost.IsReadOnly = false;
-        TxtPorts.IsReadOnly = false;
+        SetScanInputsEnabled(true);
         ProgressPanel.Visibility = Visibility.Collapsed;
+        UpdateResultsSurface();
+    }
+
+    private void SetScanInputsEnabled(bool enabled)
+    {
+        TxtHost.IsReadOnly = !enabled;
+        TxtPorts.IsReadOnly = !enabled;
+        CmbRouteVia.IsEnabled = enabled;
+        BtnPresetWeb.IsEnabled = enabled;
+        BtnPresetSshRemote.IsEnabled = enabled;
+        BtnPresetDatabase.IsEnabled = enabled;
+        BtnPresetCommon.IsEnabled = enabled;
+        BtnPresetFull.IsEnabled = enabled;
+        ChkOpenOnly.IsEnabled = enabled;
     }
 
     private void PopulateRouteSelector()
@@ -471,7 +468,7 @@ public partial class PortScannerView : UserControl, IToolView
 
             sw.Stop();
             var isOpen = string.Equals(result, "OPEN", StringComparison.OrdinalIgnoreCase);
-            var service = WellKnownServices.GetValueOrDefault(port, "");
+            var service = NetworkToolPresets.GetPortServiceLabel(port);
             return new PortProbeResult(port, isOpen, service, isOpen ? $"{sw.ElapsedMilliseconds} ms" : "\u2014", null);
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
@@ -481,7 +478,7 @@ public partial class PortScannerView : UserControl, IToolView
         catch
         {
             sw.Stop();
-            var service = WellKnownServices.GetValueOrDefault(port, "");
+            var service = NetworkToolPresets.GetPortServiceLabel(port);
             return new PortProbeResult(port, false, service, "\u2014", null);
         }
     }
@@ -502,7 +499,7 @@ public partial class PortScannerView : UserControl, IToolView
             await client.ConnectAsync(host, port, linked.Token);
             sw.Stop();
 
-            var service = WellKnownServices.GetValueOrDefault(port, "");
+            var service = NetworkToolPresets.GetPortServiceLabel(port);
             var banner = await GrabBannerAsync(client, ct);
             return new PortProbeResult(port, true, service, $"{sw.ElapsedMilliseconds} ms", banner);
         }
@@ -513,7 +510,7 @@ public partial class PortScannerView : UserControl, IToolView
         catch
         {
             sw.Stop();
-            var service = WellKnownServices.GetValueOrDefault(port, "");
+            var service = NetworkToolPresets.GetPortServiceLabel(port);
             return new PortProbeResult(port, false, service, "\u2014", null);
         }
     }
@@ -603,6 +600,33 @@ public partial class PortScannerView : UserControl, IToolView
         {
             _results.Add(result);
         }
+
+        UpdateResultsSurface();
+    }
+
+    private void OnViewSizeChanged(object sender, SizeChangedEventArgs e)
+        => UpdateResponsiveLayout(e.NewSize.Width);
+
+    private void UpdateResponsiveLayout(double width)
+    {
+        var showBanner = width >= 1100;
+        var showResponseTime = width >= 880;
+        var showService = width >= 720;
+
+        ColBanner.Visibility = showBanner ? Visibility.Visible : Visibility.Collapsed;
+        ColResponseTime.Visibility = showResponseTime ? Visibility.Visible : Visibility.Collapsed;
+        ColService.Visibility = showService ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private void UpdateResultsSurface()
+    {
+        var hasResults = _results.Count > 0;
+        var hasError = TxtError.Visibility == Visibility.Visible && !string.IsNullOrWhiteSpace(TxtError.Text);
+
+        ResultsPanel.Visibility = hasResults ? Visibility.Visible : Visibility.Collapsed;
+        EmptyStatePanel.Visibility = hasResults || _isScanning || hasError
+            ? Visibility.Collapsed
+            : Visibility.Visible;
     }
 
     private void OnExportCsvClick(object sender, RoutedEventArgs e)

@@ -36,6 +36,7 @@ public partial class PingToolView : UserControl, IToolView
 {
     private const int MaxDataPoints = 60;
     private const int DefaultPingTimeoutMs = 2000;
+    private const int DefaultPingCount = 0;
 
     private LocalizationManager? _localizer;
     private DispatcherTimer? _pingTimer;
@@ -63,6 +64,8 @@ public partial class PingToolView : UserControl, IToolView
     public PingToolView()
     {
         InitializeComponent();
+        TxtTimeout.Text = DefaultPingTimeoutMs.ToString();
+        TxtCount.Text = DefaultPingCount.ToString();
         TxtHost.KeyDown += OnHostKeyDown;
     }
 
@@ -75,18 +78,22 @@ public partial class PingToolView : UserControl, IToolView
         _setBusy = context?.SetBusyAction;
         ApplyLocalization();
 
-        // Pre-fill with a sensible default; context overrides if provided
-        TxtHost.Text = "8.8.8.8";
-
         if (!string.IsNullOrWhiteSpace(context?.TargetHost))
         {
-            TxtHost.Text = context.TargetHost;
+            TxtHost.Text = context.TargetHost.Trim();
+        }
+        else
+        {
+            TxtHost.Text = string.Empty;
         }
 
         Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, () =>
         {
             TxtHost.Focus();
-            TxtHost.SelectAll();
+            if (!string.IsNullOrEmpty(TxtHost.Text))
+            {
+                TxtHost.SelectAll();
+            }
         });
     }
 
@@ -598,7 +605,7 @@ public partial class PingToolView : UserControl, IToolView
             return count;
         }
 
-        return 0;
+        return DefaultPingCount;
     }
 
     /// <summary>

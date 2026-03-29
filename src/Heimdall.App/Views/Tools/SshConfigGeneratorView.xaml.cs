@@ -29,8 +29,8 @@ namespace Heimdall.App.Views.Tools;
 /// </summary>
 public partial class SshConfigGeneratorView : UserControl, IToolView
 {
-    private const int DefaultSshPort = 22;
     private const int DefaultAliveInterval = 0;
+    private const int DefaultAliveIntervalInput = 60;
     private const string ConfigIndent = "    ";
 
     private LocalizationManager? _localizer;
@@ -46,6 +46,8 @@ public partial class SshConfigGeneratorView : UserControl, IToolView
         _localizer = localizer;
         _context = context;
         ApplyLocalization();
+        TxtPort.Text = DefaultPorts.Ssh.ToString();
+        TxtServerAliveInterval.Text = DefaultAliveIntervalInput.ToString();
 
         // Enter key handlers for single-line inputs
         TxtHostAlias.KeyDown += (s, e) => { if (e.Key == System.Windows.Input.Key.Enter) OnGenerateClick(s, e); };
@@ -134,7 +136,7 @@ public partial class SshConfigGeneratorView : UserControl, IToolView
             alias,
             hostname,
             TxtUser.Text.Trim(),
-            ParseInt(TxtPort.Text, DefaultSshPort),
+            ParseInt(TxtPort.Text, DefaultPorts.Ssh),
             TxtIdentityFile.Text.Trim(),
             TxtProxyJump.Text.Trim(),
             ChkForwardAgent.IsChecked == true,
@@ -184,7 +186,7 @@ public partial class SshConfigGeneratorView : UserControl, IToolView
             sb.AppendLine($"{ConfigIndent}User {user}");
         }
 
-        if (port != DefaultSshPort)
+        if (port != DefaultPorts.Ssh)
         {
             sb.AppendLine($"{ConfigIndent}Port {port}");
         }

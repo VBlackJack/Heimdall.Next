@@ -53,12 +53,20 @@ public partial class TcpTracerouteView : UserControl, IToolView
     private List<SshGatewayDto>? _gateways;
     private SshGatewayDto? _selectedGateway;
     private Action<bool>? _setBusy;
+    private readonly ToolAsyncStateController _viewState;
 
     private readonly ObservableCollection<TraceHop> _results = [];
 
     public TcpTracerouteView()
     {
         InitializeComponent();
+        _viewState = new ToolAsyncStateController(
+            null,
+            null,
+            TxtError,
+            EmptyStatePanel,
+            ResultsPanel,
+            null);
         ResultsGrid.ItemsSource = _results;
         TxtHost.KeyDown += OnHostKeyDown;
     }
@@ -72,7 +80,8 @@ public partial class TcpTracerouteView : UserControl, IToolView
         _setBusy = context?.SetBusyAction;
         ApplyLocalization();
 
-        TxtHost.Text = "8.8.8.8";
+        TxtHost.Clear();
+        TxtMaxHops.Text = DefaultMaxHops.ToString(CultureInfo.InvariantCulture);
 
         if (!string.IsNullOrWhiteSpace(context?.TargetHost))
         {
@@ -156,17 +165,18 @@ public partial class TcpTracerouteView : UserControl, IToolView
     private async Task StartTraceAsync()
     {
         var host = TxtHost.Text.Trim();
+        _viewState.Reset();
+        SetStatus(string.Empty);
+
         if (string.IsNullOrWhiteSpace(host))
         {
-            TxtStatus.Text = L("ToolValidationHostRequired");
-            TxtStatus.Foreground = (Brush)FindResource("ErrorTextBrush");
+            ShowTraceError(L("ToolValidationHostRequired"));
             return;
         }
 
         if (!InputValidator.Validate(host, "Address"))
         {
-            TxtStatus.Text = L("ErrorInvalidHost");
-            TxtStatus.Foreground = (Brush)FindResource("ErrorTextBrush");
+            ShowTraceError(L("ErrorInvalidHost"));
             return;
         }
 
@@ -191,14 +201,13 @@ public partial class TcpTracerouteView : UserControl, IToolView
             TxtHost.IsReadOnly = true;
             TxtMaxHops.IsReadOnly = true;
             CmbRouteVia.IsEnabled = false;
-            EmptyStatePanel.Visibility = Visibility.Collapsed;
+            _viewState.ShowResults();
             TraceProgress.Maximum = maxHops;
             TraceProgress.Value = 0;
             TraceProgress.IsIndeterminate = false;
             TxtProgressStatus.Text = L("ToolTraceResolving");
             ProgressPanel.Visibility = Visibility.Visible;
-            TxtStatus.Text = string.Empty;
-            TxtStatus.Foreground = (Brush)FindResource("TextSecondaryBrush");
+            SetStatus(string.Empty);
         }
         catch
         {
@@ -210,38 +219,44 @@ public partial class TcpTracerouteView : UserControl, IToolView
 
         try
         {
+            var completed = false;
             if (_selectedGateway is not null)
             {
-                await TraceRouteViaTunnelAsync(host, maxHops, ct);
+                completed = await TraceRouteViaTunnelAsync(host, maxHops, ct);
             }
             else
             {
-                await TraceRouteAsync(host, maxHops, ct);
+                completed = await TraceRouteAsync(host, maxHops, ct);
             }
 
-            if (!ct.IsCancellationRequested)
+            if (!ct.IsCancellationRequested && completed)
             {
                 await Dispatcher.InvokeAsync(() =>
                 {
-                    TxtStatus.Text = string.Format(
-                        CultureInfo.InvariantCulture, L("ToolTraceComplete"), _results.Count);
-                    TxtStatus.Foreground = (Brush)FindResource("TextSecondaryBrush");
+                    SetStatus(string.Format(
+                        CultureInfo.InvariantCulture, L("ToolTraceComplete"), _results.Count));
                 });
+            }
+            else if (!ct.IsCancellationRequested &&
+                     _results.Count == 0 &&
+                     TxtError.Visibility != Visibility.Visible)
+            {
+                await Dispatcher.InvokeAsync(() => _viewState.Reset());
             }
         }
         catch (OperationCanceledException)
         {
-            // Trace was cancelled by user
+            if (_results.Count == 0)
+            {
+                await Dispatcher.InvokeAsync(() => _viewState.Reset());
+            }
         }
         catch (Exception ex)
         {
             Core.Logging.FileLogger.Warn($"Traceroute failed: {ex.Message}");
-            await Dispatcher.InvokeAsync(() =>
-            {
-                TxtStatus.Text = string.Format(
-                    CultureInfo.InvariantCulture, L("ToolTraceErrorResolve"), ex.Message);
-                TxtStatus.Foreground = (Brush)FindResource("ErrorTextBrush");
-            });
+            await Dispatcher.InvokeAsync(() => ShowTraceError(
+                string.Format(CultureInfo.InvariantCulture, L("ToolTraceErrorResolve"), ex.Message),
+                keepResultsVisible: _results.Count > 0));
         }
 
         StopTrace();
@@ -250,7 +265,7 @@ public partial class TcpTracerouteView : UserControl, IToolView
     /// <summary>
     /// Performs a local ICMP traceroute by sending pings with incrementing TTL.
     /// </summary>
-    private async Task TraceRouteAsync(string host, int maxHops, CancellationToken ct)
+    private async Task<bool> TraceRouteAsync(string host, int maxHops, CancellationToken ct)
     {
         IPAddress targetIp;
         try
@@ -270,11 +285,10 @@ public partial class TcpTracerouteView : UserControl, IToolView
         {
             await Dispatcher.InvokeAsync(() =>
             {
-                TxtStatus.Text = string.Format(
-                    CultureInfo.InvariantCulture, L("ToolTraceErrorResolve"), ex.Message);
-                TxtStatus.Foreground = (Brush)FindResource("ErrorTextBrush");
+                ShowTraceError(string.Format(
+                    CultureInfo.InvariantCulture, L("ToolTraceErrorResolve"), ex.Message));
             });
-            return;
+            return false;
         }
 
         var buffer = new byte[PingBufferSize];
@@ -384,6 +398,8 @@ public partial class TcpTracerouteView : UserControl, IToolView
                 break;
             }
         }
+
+        return true;
     }
 
     /// <summary>
@@ -428,7 +444,7 @@ public partial class TcpTracerouteView : UserControl, IToolView
     /// Runs traceroute remotely via an SSH gateway using the traceroute or tracert command.
     /// Parses incremental output line by line.
     /// </summary>
-    private async Task TraceRouteViaTunnelAsync(string host, int maxHops, CancellationToken ct)
+    private async Task<bool> TraceRouteViaTunnelAsync(string host, int maxHops, CancellationToken ct)
     {
         Renci.SshNet.SshClient? client = null;
         try
@@ -440,11 +456,10 @@ public partial class TcpTracerouteView : UserControl, IToolView
             Core.Logging.FileLogger.Warn($"Traceroute gateway connection failed: {ex.Message}");
             await Dispatcher.InvokeAsync(() =>
             {
-                TxtStatus.Text = string.Format(
-                    CultureInfo.InvariantCulture, L("ToolTunnelFailed"), ex.Message);
-                TxtStatus.Foreground = (Brush)FindResource("ErrorTextBrush");
+                ShowTraceError(string.Format(
+                    CultureInfo.InvariantCulture, L("ToolTunnelFailed"), ex.Message));
             });
-            return;
+            return false;
         }
 
         try
@@ -469,7 +484,7 @@ public partial class TcpTracerouteView : UserControl, IToolView
 
             if (string.IsNullOrWhiteSpace(result))
             {
-                return;
+                return false;
             }
 
             var lines = result.Split('\n', StringSplitOptions.RemoveEmptyEntries);
@@ -499,6 +514,8 @@ public partial class TcpTracerouteView : UserControl, IToolView
                         CultureInfo.InvariantCulture, L("ToolTraceHopProgress"), hopNumber, maxHops);
                 });
             }
+
+            return true;
         }
         finally
         {
@@ -690,6 +707,21 @@ public partial class TcpTracerouteView : UserControl, IToolView
         TxtMaxHops.IsReadOnly = false;
         CmbRouteVia.IsEnabled = true;
         ProgressPanel.Visibility = Visibility.Collapsed;
+    }
+
+    private void SetStatus(string message, string brushResourceKey = "TextSecondaryBrush")
+    {
+        TxtStatus.Text = message;
+        TxtStatus.Foreground = (Brush)FindResource(brushResourceKey);
+    }
+
+    private void ShowTraceError(string message, bool keepResultsVisible = false)
+    {
+        _viewState.ShowError(
+            message,
+            showEmptyState: !keepResultsVisible,
+            keepResultsVisible: keepResultsVisible);
+        SetStatus(message, "ErrorTextBrush");
     }
 
     private void PopulateRouteSelector()

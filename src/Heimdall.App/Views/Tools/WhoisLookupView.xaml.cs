@@ -41,10 +41,20 @@ public partial class WhoisLookupView : UserControl, IToolView
     private bool _disposed;
     private bool _isQuerying;
     private Action<bool>? _setBusy;
+    private readonly ToolAsyncStateController _viewState;
 
     public WhoisLookupView()
     {
         InitializeComponent();
+        _viewState = new ToolAsyncStateController(
+            isBusy => _setBusy?.Invoke(isBusy),
+            LoadingBar,
+            TxtError,
+            EmptyStatePanel,
+            ResultsPanel,
+            TxtStatus,
+            BtnLookup,
+            TxtDomain);
         TxtDomain.KeyDown += OnDomainKeyDown;
     }
 
@@ -108,24 +118,24 @@ public partial class WhoisLookupView : UserControl, IToolView
 
     private async Task PerformWhoisAsync()
     {
+        if (_isQuerying)
+        {
+            return;
+        }
+
         var domain = TxtDomain.Text.Trim();
-        TxtError.Visibility = Visibility.Collapsed;
-        ResultsPanel.Visibility = Visibility.Collapsed;
-        EmptyStatePanel.Visibility = Visibility.Visible;
-        TxtStatus.Text = string.Empty;
+        _viewState.Reset();
 
         if (string.IsNullOrWhiteSpace(domain))
         {
-            TxtError.Text = L("ToolWhoisErrorDomainRequired");
-            TxtError.Visibility = Visibility.Visible;
+            _viewState.ShowError(L("ToolWhoisErrorDomainRequired"), string.Empty);
             return;
         }
 
         if (!InputValidator.ValidateDomain(domain) &&
             !System.Net.IPAddress.TryParse(domain, out _))
         {
-            TxtError.Text = L("ToolWhoisErrorInvalidDomain");
-            TxtError.Visibility = Visibility.Visible;
+            _viewState.ShowError(L("ToolWhoisErrorInvalidDomain"), string.Empty);
             return;
         }
 
@@ -135,10 +145,7 @@ public partial class WhoisLookupView : UserControl, IToolView
         _cts.CancelAfter(QueryTimeout);
 
         _isQuerying = true;
-        _setBusy?.Invoke(true);
-        BtnLookup.IsEnabled = false;
-        LoadingBar.Visibility = Visibility.Visible;
-        TxtStatus.Text = L("ToolWhoisStatusQuerying");
+        _viewState.Begin(L("ToolWhoisStatusQuerying"));
 
         var stopwatch = Stopwatch.StartNew();
 
@@ -151,31 +158,24 @@ public partial class WhoisLookupView : UserControl, IToolView
 
             TxtResultHeader.Text = string.Format(L("ToolWhoisResultHeader"), domain);
             TxtResults.Text = result;
-            ResultsPanel.Visibility = Visibility.Visible;
-            EmptyStatePanel.Visibility = Visibility.Collapsed;
-            TxtStatus.Text = string.Format(L("ToolWhoisStatusComplete"), stopwatch.ElapsedMilliseconds);
+            _viewState.ShowResults(string.Format(L("ToolWhoisStatusComplete"), stopwatch.ElapsedMilliseconds));
         }
         catch (OperationCanceledException)
         {
-            TxtError.Text = L("ToolWhoisErrorTimeout");
-            TxtError.Visibility = Visibility.Visible;
+            _viewState.ShowError(L("ToolWhoisErrorTimeout"), string.Empty);
         }
         catch (SocketException ex)
         {
-            TxtError.Text = string.Format(L("ToolWhoisErrorFailed"), ex.Message);
-            TxtError.Visibility = Visibility.Visible;
+            _viewState.ShowError(string.Format(L("ToolWhoisErrorFailed"), ex.Message), string.Empty);
         }
         catch (Exception ex)
         {
-            TxtError.Text = string.Format(L("ToolWhoisErrorFailed"), ex.Message);
-            TxtError.Visibility = Visibility.Visible;
+            _viewState.ShowError(string.Format(L("ToolWhoisErrorFailed"), ex.Message), string.Empty);
         }
         finally
         {
             _isQuerying = false;
-            _setBusy?.Invoke(false);
-            BtnLookup.IsEnabled = true;
-            LoadingBar.Visibility = Visibility.Collapsed;
+            _viewState.End();
         }
     }
 

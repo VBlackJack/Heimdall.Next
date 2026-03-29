@@ -51,6 +51,12 @@ public partial class HttpStatusCodesView : UserControl, IToolView
         ApplyLocalization();
         BuildStatusCodes();
         ApplyGrouping();
+
+        Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, () =>
+        {
+            TxtFilter.Focus();
+            TxtFilter.SelectAll();
+        });
     }
 
     private void ApplyLocalization()

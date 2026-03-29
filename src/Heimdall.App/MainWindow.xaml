@@ -219,9 +219,7 @@
                                     <ContextMenu x:Name="AddMenu"
                                                  DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
                                         <MenuItem x:Name="Mw_AddMenuServer" Header="" Command="{Binding ServerList.AddServerCommand}"/>
-                                        <MenuItem x:Name="Mw_AddMenuTool" Header="" SubmenuOpened="OnAddToolSubmenuOpened">
-                                            <MenuItem Header="..." IsEnabled="False"/>
-                                        </MenuItem>
+                                        <MenuItem x:Name="Mw_AddMenuTool" Header="" Click="OnAddToolMenuClick"/>
                                         <Separator/>
                                         <MenuItem x:Name="Mw_AddMenuGateway" Header="" Command="{Binding Settings.AddGatewayCommand}"/>
                                         <MenuItem x:Name="Mw_AddMenuFolder" Header="" Click="OnAddFolderFromMenu"/>
@@ -264,6 +262,7 @@
                                 Visibility="Collapsed">
                             <Grid>
                                 <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="*"/>
@@ -309,12 +308,24 @@
                                          BorderBrush="{DynamicResource BorderBrush}"
                                          TextChanged="OnToolsFilterChanged"
                                          AutomationProperties.Name=""/>
-                                <Grid Grid.Row="2">
+                                <TextBlock x:Name="Mw_ToolsPanelContextText" Grid.Row="2"
+                                           Text=""
+                                           Margin="8,4,8,0"
+                                           FontSize="{StaticResource FontSizeSmallCaption}"
+                                           Foreground="{DynamicResource TextSecondaryBrush}"
+                                           TextTrimming="CharacterEllipsis"/>
+                                <Grid Grid.Row="3">
                                     <ScrollViewer x:Name="ToolsPanelScroll"
                                                   VerticalScrollBarVisibility="Auto" Padding="4,4,4,4"
                                                   ScrollChanged="OnToolsPanelScrollChanged">
                                         <StackPanel x:Name="ToolsCategoryStack"/>
                                     </ScrollViewer>
+                                    <TextBlock x:Name="Mw_ToolsPanelNoResults" Text=""
+                                               FontSize="{StaticResource FontSizeCaption}"
+                                               Foreground="{DynamicResource TextSecondaryBrush}"
+                                               HorizontalAlignment="Center"
+                                               VerticalAlignment="Center"
+                                               Visibility="Collapsed"/>
                                     <Border x:Name="ToolsPanelScrollHint" Height="20" VerticalAlignment="Bottom"
                                             IsHitTestVisible="False" Visibility="Collapsed">
                                         <TextBlock Text="&#xE70D;" FontFamily="Segoe MDL2 Assets"
@@ -1254,29 +1265,36 @@
                         Background="{DynamicResource SurfaceBrush}"
                         BorderBrush="{DynamicResource BorderBrush}"
                         BorderThickness="0,0,0,1">
-                    <DockPanel>
-                        <TextBlock x:Name="Mw_ToolsTabTitle" Text=""
-                                   FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
-                                   Foreground="{DynamicResource TextPrimaryBrush}"
-                                   VerticalAlignment="Center" DockPanel.Dock="Left"
-                                   Margin="0,0,16,0"/>
-                        <TextBlock x:Name="Mw_ToolsTabCount" Text=""
+                    <StackPanel>
+                        <DockPanel>
+                            <TextBlock x:Name="Mw_ToolsTabTitle" Text=""
+                                       FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextPrimaryBrush}"
+                                       VerticalAlignment="Center" DockPanel.Dock="Left"
+                                       Margin="0,0,16,0"/>
+                            <TextBlock x:Name="Mw_ToolsTabCount" Text=""
+                                       FontSize="{StaticResource FontSizeCaption}"
+                                       Foreground="{DynamicResource TextSecondaryBrush}"
+                                       VerticalAlignment="Center" DockPanel.Dock="Right"
+                                       HorizontalAlignment="Right"/>
+                            <TextBox x:Name="Mw_ToolsTabSearch"
+                                     Style="{StaticResource WatermarkTextBoxStyle}"
+                                     Tag=""
+                                     FontSize="{StaticResource FontSizeBody}"
+                                     Padding="{StaticResource PaddingInput}"
+                                     Background="{DynamicResource CardBrush}"
+                                     Foreground="{DynamicResource TextPrimaryBrush}"
+                                     BorderBrush="{DynamicResource BorderBrush}"
+                                     MaxWidth="400" HorizontalAlignment="Left"
+                                     TextChanged="OnToolsTabSearchChanged"
+                                     AutomationProperties.Name="{loc:Translate ToolsTabSearchPlaceholder}"/>
+                        </DockPanel>
+                        <TextBlock x:Name="Mw_ToolsTabContextText" Text=""
+                                   Margin="0,8,0,0"
                                    FontSize="{StaticResource FontSizeCaption}"
                                    Foreground="{DynamicResource TextSecondaryBrush}"
-                                   VerticalAlignment="Center" DockPanel.Dock="Right"
-                                   HorizontalAlignment="Right"/>
-                        <TextBox x:Name="Mw_ToolsTabSearch"
-                                 Style="{StaticResource WatermarkTextBoxStyle}"
-                                 Tag=""
-                                 FontSize="{StaticResource FontSizeBody}"
-                                 Padding="{StaticResource PaddingInput}"
-                                 Background="{DynamicResource CardBrush}"
-                                 Foreground="{DynamicResource TextPrimaryBrush}"
-                                 BorderBrush="{DynamicResource BorderBrush}"
-                                 MaxWidth="400" HorizontalAlignment="Left"
-                                 TextChanged="OnToolsTabSearchChanged"
-                                 AutomationProperties.Name="{loc:Translate ToolsTabSearchPlaceholder}"/>
-                    </DockPanel>
+                                   TextTrimming="CharacterEllipsis"/>
+                    </StackPanel>
                 </Border>
 
                 <!-- Content: scrollable tool grid with sections -->
@@ -2040,6 +2058,8 @@
                                Margin="14,8,14,0"/>
                     <TextBox x:Name="PaletteInput"
                              Text="{Binding PaletteSearchText, UpdateSourceTrigger=PropertyChanged}"
+                             Tag="{Binding PalettePlaceholder}"
+                             Style="{StaticResource SearchTextBoxStyle}"
                              FontSize="{StaticResource FontSizeSubtitle}" Padding="14,10"
                              BorderThickness="0"
                              Background="Transparent"

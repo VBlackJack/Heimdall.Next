@@ -40,25 +40,30 @@ public partial class DnsLookupView : UserControl, IToolView
     private static readonly string[] RecordTypes =
         ["A", "AAAA", "MX", "CNAME", "TXT", "NS", "PTR", "SOA", "ANY"];
 
-    private static readonly (string Label, string? Address)[] DnsServers =
-    [
-        ("System", null),
-        ("Google (8.8.8.8)", "8.8.8.8"),
-        ("Cloudflare (1.1.1.1)", "1.1.1.1"),
-        ("Quad9 (9.9.9.9)", "9.9.9.9"),
-    ];
-
     private LocalizationManager? _localizer;
     private CancellationTokenSource? _cts;
     private bool _disposed;
     private bool _isQuerying;
     private Action<bool>? _setBusy;
+    private readonly ToolAsyncStateController _viewState;
     private List<SshGatewayDto>? _gateways;
     private SshGatewayDto? _selectedGateway;
 
     public DnsLookupView()
     {
         InitializeComponent();
+        _viewState = new ToolAsyncStateController(
+            isBusy => _setBusy?.Invoke(isBusy),
+            LoadingBar,
+            TxtError,
+            EmptyStatePanel,
+            ResultsPanel,
+            TxtStatus,
+            BtnLookup,
+            TxtHostname,
+            CmbRecordType,
+            CmbDnsServer,
+            CmbRouteVia);
 
         foreach (var type in RecordTypes)
         {
@@ -66,9 +71,9 @@ public partial class DnsLookupView : UserControl, IToolView
         }
         CmbRecordType.SelectedIndex = 0;
 
-        foreach (var (label, _) in DnsServers)
+        foreach (var preset in NetworkToolPresets.DnsServers)
         {
-            CmbDnsServer.Items.Add(new ComboBoxItem { Content = label });
+            CmbDnsServer.Items.Add(new ComboBoxItem { Content = preset.Label });
         }
         CmbDnsServer.SelectedIndex = 0;
 
@@ -83,9 +88,7 @@ public partial class DnsLookupView : UserControl, IToolView
         _localizer = localizer;
         _setBusy = context?.SetBusyAction;
         ApplyLocalization();
-
-        // Pre-fill with a sensible default; context overrides if provided
-        TxtHostname.Text = "example.com";
+        TxtHostname.Clear();
 
         if (!string.IsNullOrWhiteSpace(context?.TargetHost))
         {
@@ -166,30 +169,30 @@ public partial class DnsLookupView : UserControl, IToolView
 
     private async Task PerformLookupAsync()
     {
+        if (_isQuerying)
+        {
+            return;
+        }
+
         var hostname = TxtHostname.Text.Trim();
-        TxtError.Visibility = Visibility.Collapsed;
-        ResultsPanel.Visibility = Visibility.Collapsed;
-        EmptyStatePanel.Visibility = Visibility.Visible;
-        TxtStatus.Text = string.Empty;
+        _viewState.Reset();
 
         if (string.IsNullOrWhiteSpace(hostname))
         {
-            TxtError.Text = L("ToolValidationHostRequired");
-            TxtError.Visibility = Visibility.Visible;
+            _viewState.ShowError(L("ToolValidationHostRequired"), string.Empty);
             return;
         }
 
         if (!InputValidator.ValidateDomain(hostname))
         {
-            TxtError.Text = L("ToolValidationInvalidHost");
-            TxtError.Visibility = Visibility.Visible;
+            _viewState.ShowError(L("ToolValidationInvalidHost"), string.Empty);
             return;
         }
 
         var recordType = (CmbRecordType.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "A";
         var serverIndex = CmbDnsServer.SelectedIndex;
-        string? dnsServer = serverIndex >= 0 && serverIndex < DnsServers.Length
-            ? DnsServers[serverIndex].Address
+        string? dnsServer = serverIndex >= 0 && serverIndex < NetworkToolPresets.DnsServers.Length
+            ? NetworkToolPresets.DnsServers[serverIndex].Address
             : null;
 
         // Cancel any previous lookup
@@ -199,10 +202,7 @@ public partial class DnsLookupView : UserControl, IToolView
         _cts.CancelAfter(LookupTimeout);
 
         _isQuerying = true;
-        _setBusy?.Invoke(true);
-        BtnLookup.IsEnabled = false;
-        LoadingBar.Visibility = Visibility.Visible;
-        TxtStatus.Text = L("ToolDnsStatusQuerying");
+        _viewState.Begin(L("ToolDnsStatusQuerying"));
 
         var stopwatch = Stopwatch.StartNew();
 
@@ -232,31 +232,24 @@ public partial class DnsLookupView : UserControl, IToolView
 
             TxtResultHeader.Text = string.Format(L("ToolDnsResultHeader"), recordType, hostname);
             TxtResults.Text = results;
-            ResultsPanel.Visibility = Visibility.Visible;
-            EmptyStatePanel.Visibility = Visibility.Collapsed;
-            TxtStatus.Text = string.Format(L("ToolDnsStatusComplete"), stopwatch.ElapsedMilliseconds);
+            _viewState.ShowResults(string.Format(L("ToolDnsStatusComplete"), stopwatch.ElapsedMilliseconds));
         }
         catch (OperationCanceledException)
         {
-            TxtError.Text = L("ToolDnsErrorTimeout");
-            TxtError.Visibility = Visibility.Visible;
+            _viewState.ShowError(L("ToolDnsErrorTimeout"), string.Empty);
         }
         catch (SocketException ex)
         {
-            TxtError.Text = string.Format(L("ToolDnsErrorLookupFailed"), ex.Message);
-            TxtError.Visibility = Visibility.Visible;
+            _viewState.ShowError(string.Format(L("ToolDnsErrorLookupFailed"), ex.Message), string.Empty);
         }
         catch (Exception ex)
         {
-            TxtError.Text = string.Format(L("ToolDnsErrorLookupFailed"), ex.Message);
-            TxtError.Visibility = Visibility.Visible;
+            _viewState.ShowError(string.Format(L("ToolDnsErrorLookupFailed"), ex.Message), string.Empty);
         }
         finally
         {
             _isQuerying = false;
-            _setBusy?.Invoke(false);
-            BtnLookup.IsEnabled = true;
-            LoadingBar.Visibility = Visibility.Collapsed;
+            _viewState.End();
         }
     }
 

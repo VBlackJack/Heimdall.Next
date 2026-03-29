@@ -32,18 +32,27 @@
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,0,0,1">
-            <DockPanel>
-                <Button x:Name="BtnHelp" DockPanel.Dock="Right" Content="?"
-                        Click="OnHelpClick"
-                        Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
-                        Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"
-                        AutomationProperties.Name=""/>
-                <TextBlock x:Name="HeaderTitle" Text=""
-                           FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
-                           Foreground="{DynamicResource TextPrimaryBrush}"
-                           VerticalAlignment="Center" DockPanel.Dock="Left"/>
-                <WrapPanel Margin="16,0,0,0" VerticalAlignment="Center">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <DockPanel Grid.Row="0">
+                    <Button x:Name="BtnHelp" DockPanel.Dock="Right" Content="?"
+                            Click="OnHelpClick"
+                            Style="{DynamicResource SecondaryButtonStyle}"
+                            Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
+                            Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"
+                            TabIndex="13"
+                            AutomationProperties.Name=""/>
+                    <TextBlock x:Name="HeaderTitle" Text=""
+                               FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextPrimaryBrush}"
+                               VerticalAlignment="Center"/>
+                </DockPanel>
+
+                <WrapPanel Grid.Row="1" Margin="0,12,0,0" VerticalAlignment="Center">
                     <StackPanel Orientation="Horizontal" Margin="0,2,12,2">
                         <TextBlock x:Name="LblHost" Text=""
                                    FontSize="{StaticResource FontSizeCaption}"
@@ -51,34 +60,39 @@
                                    VerticalAlignment="Center" Margin="0,0,6,0"/>
                         <TextBox x:Name="TxtHost" Text="" MinWidth="140"
                                  Style="{StaticResource WatermarkTextBoxStyle}"
-                                 Tag="hostname or IP"
+                                 Tag=""
                                  FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
                                  Padding="{StaticResource PaddingInput}"
                                  Background="{DynamicResource CardBrush}"
                                  Foreground="{DynamicResource TextPrimaryBrush}"
                                  BorderBrush="{DynamicResource BorderBrush}"
                                  VerticalAlignment="Center"
+                                 TabIndex="0"
                                  AutomationProperties.Name=""/>
                     </StackPanel>
+
                     <StackPanel Orientation="Horizontal" Margin="0,2,12,2">
                         <TextBlock x:Name="LblPorts" Text=""
                                    FontSize="{StaticResource FontSizeCaption}"
                                    Foreground="{DynamicResource TextSecondaryBrush}"
                                    VerticalAlignment="Center" Margin="0,0,6,0"/>
-                        <TextBox x:Name="TxtPorts" Text="22,80,443,3389,5900,8080" MinWidth="140"
+                        <TextBox x:Name="TxtPorts" Text="" MinWidth="140"
                                  Style="{StaticResource WatermarkTextBoxStyle}"
-                                 Tag="22, 80, 443 or 1-1024"
+                                 Tag=""
                                  FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
                                  Padding="{StaticResource PaddingInput}"
                                  Background="{DynamicResource CardBrush}"
                                  Foreground="{DynamicResource TextPrimaryBrush}"
                                  BorderBrush="{DynamicResource BorderBrush}"
                                  VerticalAlignment="Center"
+                                 TabIndex="1"
                                  AutomationProperties.Name=""/>
                     </StackPanel>
+
                     <StackPanel Orientation="Horizontal" Margin="0,2,12,2">
                         <TextBlock x:Name="LblRouteVia" Text=""
-                                   FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center" Margin="0,0,4,0"
+                                   FontSize="{StaticResource FontSizeCaption}"
+                                   VerticalAlignment="Center" Margin="0,0,4,0"
                                    Foreground="{DynamicResource TextSecondaryBrush}"/>
                         <ComboBox x:Name="CmbRouteVia" Width="180"
                                   SelectionChanged="OnRouteViaChanged"
@@ -86,16 +100,19 @@
                                   Foreground="{DynamicResource TextPrimaryBrush}"
                                   BorderBrush="{DynamicResource BorderBrush}"
                                   VerticalAlignment="Center"
+                                  TabIndex="2"
                                   AutomationProperties.Name=""/>
                     </StackPanel>
+
                     <Button x:Name="BtnScan" Content=""
                             Click="OnScanClick"
                             Style="{DynamicResource PrimaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonPrimary}" Margin="0,2,0,2"
                             VerticalAlignment="Center"
+                            TabIndex="3"
                             AutomationProperties.Name=""/>
                 </WrapPanel>
-            </DockPanel>
+            </Grid>
         </Border>
 
         <!-- Help panel -->
@@ -106,6 +123,7 @@
                         Click="OnCloseHelpClick"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
                         VerticalAlignment="Top" Width="24" Height="24"
+                        TabIndex="14"
                         AutomationProperties.Name=""/>
                 <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
                     <TextBlock x:Name="TxtHelpContent" Text="" TextWrapping="Wrap"
@@ -121,41 +139,48 @@
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,0,0,1">
-            <DockPanel>
-                <CheckBox x:Name="ChkOpenOnly" DockPanel.Dock="Right"
-                          Foreground="{DynamicResource TextPrimaryBrush}"
-                          VerticalAlignment="Center" Margin="12,0,0,0"
-                          Checked="OnOpenOnlyChanged" Unchecked="OnOpenOnlyChanged"
-                          AutomationProperties.Name=""/>
-                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+            <WrapPanel VerticalAlignment="Center">
+                <WrapPanel Margin="0,0,12,0">
                     <Button x:Name="BtnPresetWeb" Click="OnPresetClick" Tag="80,443,8080,8443"
                             Style="{DynamicResource SecondaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonPreset}" Margin="0,0,4,0" FontSize="{StaticResource FontSizeCaption}"
+                            TabIndex="4"
                             AutomationProperties.Name=""/>
                     <Button x:Name="BtnPresetSshRemote" Click="OnPresetClick" Tag="22,23,3389,5900"
                             Style="{DynamicResource SecondaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonPreset}" Margin="0,0,4,0" FontSize="{StaticResource FontSizeCaption}"
+                            TabIndex="5"
                             AutomationProperties.Name=""/>
                     <Button x:Name="BtnPresetDatabase" Click="OnPresetClick" Tag="3306,5432,1433,6379,27017"
                             Style="{DynamicResource SecondaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonPreset}" Margin="0,0,4,0" FontSize="{StaticResource FontSizeCaption}"
+                            TabIndex="6"
                             AutomationProperties.Name=""/>
                     <Button x:Name="BtnPresetCommon" Click="OnPresetClick" Tag="21,22,23,25,53,80,110,143,443,993,995,3389,5900,8080"
                             Style="{DynamicResource SecondaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonPreset}" Margin="0,0,4,0" FontSize="{StaticResource FontSizeCaption}"
+                            TabIndex="7"
                             AutomationProperties.Name=""/>
                     <Button x:Name="BtnPresetFull" Click="OnPresetClick" Tag="1-1024"
                             Style="{DynamicResource SecondaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonPreset}" FontSize="{StaticResource FontSizeCaption}"
+                            TabIndex="8"
                             AutomationProperties.Name=""/>
-                </StackPanel>
-            </DockPanel>
+                </WrapPanel>
+
+                <CheckBox x:Name="ChkOpenOnly"
+                          Foreground="{DynamicResource TextPrimaryBrush}"
+                          VerticalAlignment="Center" Margin="0,4,0,0"
+                          Checked="OnOpenOnlyChanged" Unchecked="OnOpenOnlyChanged"
+                          TabIndex="9"
+                          AutomationProperties.Name=""/>
+            </WrapPanel>
         </Border>
 
         <!-- Validation error -->
-        <TextBlock x:Name="TxtError" Grid.Row="3" Text="" Visibility="Collapsed"
-                   FontSize="{StaticResource FontSizeBody}" Margin="12,4,12,0" TextWrapping="Wrap"
-                   Foreground="{DynamicResource ErrorTextBrush}"/>
+        <TextBlock x:Name="TxtError" Grid.Row="3" Text=""
+                   Style="{StaticResource ToolInlineErrorTextStyle}"
+                   Margin="12,4,12,0"/>
 
         <!-- Progress bar with percentage overlay -->
         <Grid Grid.Row="3" x:Name="ProgressPanel" Visibility="Collapsed">
@@ -169,7 +194,7 @@
                 <TextBlock x:Name="TxtProgressPercent" Text="0%"
                            FontSize="{StaticResource FontSizeCaption}" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"/>
-                <TextBlock Text="  —  " FontSize="{StaticResource FontSizeCaption}"
+                <TextBlock Text="  |  " FontSize="{StaticResource FontSizeCaption}"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
                 <TextBlock x:Name="TxtProgressCount" Text="0 / 0"
                            FontSize="{StaticResource FontSizeCaption}"
@@ -193,10 +218,10 @@
         </Border>
 
         <!-- Results DataGrid -->
-        <Border Grid.Row="4" Margin="{StaticResource SpacingSm}"
-                Background="{DynamicResource CardBrush}"
-                BorderBrush="{DynamicResource BorderBrush}"
-                BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}">
+        <Border x:Name="ResultsPanel" Grid.Row="4"
+                Style="{StaticResource ToolResultsCardStyle}"
+                Margin="{StaticResource SpacingSm}"
+                Padding="0">
             <DataGrid x:Name="ResultsGrid"
                       AutoGenerateColumns="False"
                       IsReadOnly="True"
@@ -213,6 +238,7 @@
                       ColumnHeaderStyle="{StaticResource ThemedDataGridColumnHeaderStyle}"
                       CellStyle="{StaticResource ThemedDataGridCellStyle}"
                       RowStyle="{StaticResource ThemedDataGridRowStyle}"
+                      TabIndex="10"
                       AutomationProperties.Name=""
                       AutomationProperties.LiveSetting="Polite">
                 <DataGrid.Columns>
@@ -237,23 +263,16 @@
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,1,0,0">
-            <DockPanel>
-                <Button x:Name="BtnExportCsv" Content=""
-                        Click="OnExportCsvClick"
-                        Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="{StaticResource PaddingButtonPrimary}" DockPanel.Dock="Right" Margin="{StaticResource MarginInlineControl}"
-                        VerticalAlignment="Center"
-                        AutomationProperties.Name=""/>
-                <Button x:Name="BtnCopy" Content=""
-                        Click="OnCopyClick"
-                        Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="{StaticResource PaddingButtonPrimary}" DockPanel.Dock="Right"
-                        VerticalAlignment="Center"
-                        AutomationProperties.Name=""/>
-                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <WrapPanel Grid.Row="0" VerticalAlignment="Center">
                     <TextBlock x:Name="LblOpen" Text="" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                                Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,4,0"/>
-                    <TextBlock x:Name="TxtOpen" Text="—" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
+                    <TextBlock x:Name="TxtOpen" Text="-" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                                Foreground="{DynamicResource SuccessTextBrush}" FontWeight="SemiBold"/>
 
                     <TextBlock Text="  |  " FontSize="{StaticResource FontSizeBody}"
@@ -261,7 +280,7 @@
 
                     <TextBlock x:Name="LblClosed" Text="" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                                Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,4,0"/>
-                    <TextBlock x:Name="TxtClosed" Text="—" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
+                    <TextBlock x:Name="TxtClosed" Text="-" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                                Foreground="{DynamicResource ErrorTextBrush}" FontWeight="SemiBold"/>
 
                     <TextBlock Text="  |  " FontSize="{StaticResource FontSizeBody}"
@@ -269,10 +288,27 @@
 
                     <TextBlock x:Name="LblTotal" Text="" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                                Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,4,0"/>
-                    <TextBlock x:Name="TxtTotal" Text="—" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
+                    <TextBlock x:Name="TxtTotal" Text="-" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                                Foreground="{DynamicResource AccentBrush}" FontWeight="SemiBold"/>
-                </StackPanel>
-            </DockPanel>
+                </WrapPanel>
+
+                <WrapPanel Grid.Row="1" HorizontalAlignment="Right" Margin="0,8,0,0">
+                    <Button x:Name="BtnCopy" Content=""
+                            Click="OnCopyClick"
+                            Style="{DynamicResource SecondaryButtonStyle}"
+                            Padding="{StaticResource PaddingButtonPrimary}"
+                            VerticalAlignment="Center"
+                            TabIndex="11"
+                            AutomationProperties.Name=""/>
+                    <Button x:Name="BtnExportCsv" Content=""
+                            Click="OnExportCsvClick"
+                            Style="{DynamicResource SecondaryButtonStyle}"
+                            Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginInlineControl}"
+                            VerticalAlignment="Center"
+                            TabIndex="12"
+                            AutomationProperties.Name=""/>
+                </WrapPanel>
+            </Grid>
         </Border>
     </Grid>
 </UserControl>

@@ -48,6 +48,7 @@ public partial class HttpHeaderAnalyzerView : UserControl, IToolView
     private bool _isAnalyzing;
     private bool _disposed;
     private Action<bool>? _setBusy;
+    private readonly ToolAsyncStateController _viewState;
     private List<SshGatewayDto>? _gateways;
     private SshGatewayDto? _selectedGateway;
     private string _lastReport = string.Empty;
@@ -55,6 +56,16 @@ public partial class HttpHeaderAnalyzerView : UserControl, IToolView
     public HttpHeaderAnalyzerView()
     {
         InitializeComponent();
+        _viewState = new ToolAsyncStateController(
+            isBusy => _setBusy?.Invoke(isBusy),
+            LoadingBar,
+            TxtError,
+            EmptyStatePanel,
+            ResultsPanel,
+            TxtStatus,
+            BtnCheck,
+            TxtUrl,
+            CmbRouteVia);
         TxtUrl.KeyDown += OnUrlKeyDown;
     }
 
@@ -119,6 +130,7 @@ public partial class HttpHeaderAnalyzerView : UserControl, IToolView
         AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
         AutomationProperties.SetName(LoadingBar, L("ToolHttpHeadersA11yLoading"));
         AutomationProperties.SetName(BtnCloseHelp, L("BtnClose"));
+        TxtUrl.Tag = L("ToolHttpHeadersUrlPlaceholder");
     }
 
     // ── Gateway routing ──────────────────────────────────────────────
@@ -172,17 +184,18 @@ public partial class HttpHeaderAnalyzerView : UserControl, IToolView
 
     private async Task PerformAnalysisAsync()
     {
+        if (_isAnalyzing)
+        {
+            return;
+        }
+
         var rawUrl = TxtUrl.Text.Trim();
-        TxtError.Visibility = Visibility.Collapsed;
-        ResultsPanel.Visibility = Visibility.Collapsed;
-        EmptyStatePanel.Visibility = Visibility.Visible;
-        TxtStatus.Text = string.Empty;
+        _viewState.Reset();
         _lastReport = string.Empty;
 
         if (string.IsNullOrWhiteSpace(rawUrl))
         {
-            TxtError.Text = L("ToolHttpHeadersErrorUrlRequired");
-            TxtError.Visibility = Visibility.Visible;
+            _viewState.ShowError(L("ToolHttpHeadersErrorUrlRequired"), string.Empty);
             return;
         }
 
@@ -195,8 +208,7 @@ public partial class HttpHeaderAnalyzerView : UserControl, IToolView
 
         if (!Uri.TryCreate(rawUrl, UriKind.Absolute, out var uri))
         {
-            TxtError.Text = L("ToolHttpHeadersErrorInvalidUrl");
-            TxtError.Visibility = Visibility.Visible;
+            _viewState.ShowError(L("ToolHttpHeadersErrorInvalidUrl"), string.Empty);
             return;
         }
 
@@ -206,10 +218,7 @@ public partial class HttpHeaderAnalyzerView : UserControl, IToolView
         _cts.CancelAfter(ConnectionTimeout);
 
         _isAnalyzing = true;
-        _setBusy?.Invoke(true);
-        BtnCheck.IsEnabled = false;
-        LoadingBar.Visibility = Visibility.Visible;
-        TxtStatus.Text = L("ToolHttpHeadersStatusAnalyzing");
+        _viewState.Begin(L("ToolHttpHeadersStatusAnalyzing"));
 
         var stopwatch = Stopwatch.StartNew();
 
@@ -246,34 +255,28 @@ public partial class HttpHeaderAnalyzerView : UserControl, IToolView
             var grade = CalculateGrade(securityResults);
 
             DisplayResults(securityResults, disclosureResults, grade, rawResponse, uri.Host);
-            TxtStatus.Text = string.Format(L("ToolHttpHeadersStatusComplete"), stopwatch.ElapsedMilliseconds);
+            _viewState.ShowResults(string.Format(L("ToolHttpHeadersStatusComplete"), stopwatch.ElapsedMilliseconds));
         }
         catch (OperationCanceledException)
         {
-            TxtError.Text = L("ToolHttpHeadersErrorTimeout");
-            TxtError.Visibility = Visibility.Visible;
+            _viewState.ShowError(L("ToolHttpHeadersErrorTimeout"), string.Empty);
         }
         catch (SocketException ex)
         {
-            TxtError.Text = string.Format(L("ToolHttpHeadersErrorConnection"), ex.Message);
-            TxtError.Visibility = Visibility.Visible;
+            _viewState.ShowError(string.Format(L("ToolHttpHeadersErrorConnection"), ex.Message), string.Empty);
         }
         catch (IOException ex)
         {
-            TxtError.Text = string.Format(L("ToolHttpHeadersErrorConnection"), ex.Message);
-            TxtError.Visibility = Visibility.Visible;
+            _viewState.ShowError(string.Format(L("ToolHttpHeadersErrorConnection"), ex.Message), string.Empty);
         }
         catch (Exception ex)
         {
-            TxtError.Text = string.Format(L("ToolHttpHeadersErrorConnection"), ex.Message);
-            TxtError.Visibility = Visibility.Visible;
+            _viewState.ShowError(string.Format(L("ToolHttpHeadersErrorConnection"), ex.Message), string.Empty);
         }
         finally
         {
             _isAnalyzing = false;
-            _setBusy?.Invoke(false);
-            BtnCheck.IsEnabled = true;
-            LoadingBar.Visibility = Visibility.Collapsed;
+            _viewState.End();
         }
     }
 
@@ -691,9 +694,6 @@ public partial class HttpHeaderAnalyzerView : UserControl, IToolView
         string rawResponse,
         string host)
     {
-        EmptyStatePanel.Visibility = Visibility.Collapsed;
-        ResultsPanel.Visibility = Visibility.Visible;
-
         // Grade badge
         TxtGradeLabel.Text = L("ToolHttpHeadersGrade");
         TxtGrade.Text = grade;

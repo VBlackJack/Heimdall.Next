@@ -171,6 +171,11 @@ public partial class DnsSecurityView : UserControl, IToolView
 
     private async Task PerformCheckAsync()
     {
+        if (_isChecking)
+        {
+            return;
+        }
+
         var domain = TxtDomain.Text.Trim().ToLowerInvariant();
         TxtError.Visibility = Visibility.Collapsed;
         ResultsPanel.Visibility = Visibility.Collapsed;
@@ -207,6 +212,8 @@ public partial class DnsSecurityView : UserControl, IToolView
         _isChecking = true;
         _setBusy?.Invoke(true);
         BtnCheck.IsEnabled = false;
+        TxtDomain.IsReadOnly = true;
+        CmbRouteVia.IsEnabled = false;
         LoadingBar.Visibility = Visibility.Visible;
         TxtStatus.Text = L("ToolTunnelConnecting");
 
@@ -236,6 +243,8 @@ public partial class DnsSecurityView : UserControl, IToolView
             _isChecking = false;
             _setBusy?.Invoke(false);
             BtnCheck.IsEnabled = true;
+            TxtDomain.IsReadOnly = false;
+            CmbRouteVia.IsEnabled = true;
             LoadingBar.Visibility = Visibility.Collapsed;
         }
     }

@@ -52,7 +52,7 @@
                                    VerticalAlignment="Center" Margin="0,0,6,0"/>
                         <TextBox x:Name="TxtHost" Text="" MinWidth="140"
                                  Style="{StaticResource WatermarkTextBoxStyle}"
-                                 Tag="hostname or IP"
+                                 Tag=""
                                  FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
                                  Padding="{StaticResource PaddingInput}"
                                  Background="{DynamicResource CardBrush}"
@@ -66,9 +66,9 @@
                                    FontSize="{StaticResource FontSizeCaption}"
                                    Foreground="{DynamicResource TextSecondaryBrush}"
                                    VerticalAlignment="Center" Margin="0,0,6,0"/>
-                        <TextBox x:Name="TxtCommunity" Text="public" MinWidth="120"
+                        <TextBox x:Name="TxtCommunity" Text="" MinWidth="120"
                                  Style="{StaticResource WatermarkTextBoxStyle}"
-                                 Tag="community"
+                                 Tag=""
                                  FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
                                  Padding="{StaticResource PaddingInput}"
                                  Background="{DynamicResource CardBrush}"
@@ -82,9 +82,9 @@
                                    FontSize="{StaticResource FontSizeCaption}"
                                    Foreground="{DynamicResource TextSecondaryBrush}"
                                    VerticalAlignment="Center" Margin="0,0,6,0"/>
-                        <TextBox x:Name="TxtOid" Text="1.3.6.1.2.1.1" MinWidth="140"
+                        <TextBox x:Name="TxtOid" Text="" MinWidth="140"
                                  Style="{StaticResource WatermarkTextBoxStyle}"
-                                 Tag="OID"
+                                 Tag=""
                                  FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
                                  Padding="{StaticResource PaddingInput}"
                                  Background="{DynamicResource CardBrush}"

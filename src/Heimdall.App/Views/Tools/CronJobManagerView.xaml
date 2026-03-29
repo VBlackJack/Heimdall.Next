@@ -67,20 +67,18 @@
                 Style="{StaticResource ToolEmptyStateStyle}"
                 Margin="0,24,0,0">
             <StackPanel HorizontalAlignment="Center">
-                <TextBlock Text="&#xE787;" FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource IconSizeEmptyState}"
-                           HorizontalAlignment="Center"
-                           Foreground="{DynamicResource TextDisabledBrush}" Margin="0,0,0,8"
+                <TextBlock Text="&#xE787;"
+                           Style="{StaticResource ToolEmptyStateIconStyle}"
                            AutomationProperties.Name=""/>
                 <TextBlock x:Name="TxtEmptyState" Text=""
-                           FontSize="{StaticResource FontSizeBodyLarge}" TextAlignment="Center"
-                           Foreground="{DynamicResource TextSecondaryBrush}"/>
+                           Style="{StaticResource ToolEmptyStateTextStyle}"/>
             </StackPanel>
         </Border>
 
         <!-- Loading indicator -->
-        <ProgressBar x:Name="LoadingBar" Grid.Row="2" IsIndeterminate="True"
-                     Visibility="Collapsed" Height="4" VerticalAlignment="Top"
-                     Foreground="{DynamicResource AccentBrush}"
+        <ProgressBar x:Name="LoadingBar" Grid.Row="2"
+                     Style="{StaticResource ToolLoadingBarStyle}"
+                     VerticalAlignment="Top"
                      AutomationProperties.Name=""/>
 
         <!-- Content -->
@@ -135,15 +133,15 @@
                     </StackPanel>
 
                     <!-- Error message -->
-                    <TextBlock x:Name="TxtCronError" Grid.Row="3" Text="" Visibility="Collapsed"
-                               FontSize="{StaticResource FontSizeBody}" Margin="0,8,0,0"
-                               Foreground="{DynamicResource ErrorTextBrush}"/>
+                    <TextBlock x:Name="TxtCronError" Grid.Row="3" Text=""
+                               Style="{StaticResource ToolInlineErrorTextStyle}"
+                               Margin="0,8,0,0"/>
 
                     <!-- Parsed entries DataGrid -->
-                    <Border Grid.Row="4" Margin="0,8,0,0"
-                            Background="{DynamicResource CardBrush}"
-                            BorderBrush="{DynamicResource BorderBrush}"
-                            BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}">
+                    <Border x:Name="CronResultsPanel" Grid.Row="4"
+                            Style="{StaticResource ToolResultsCardStyle}"
+                            Margin="0,8,0,0"
+                            Padding="0">
                         <DataGrid x:Name="CronResultsGrid"
                                   AutoGenerateColumns="False"
                                   IsReadOnly="True"
@@ -225,15 +223,14 @@
                     </DockPanel>
 
                     <!-- Error message -->
-                    <TextBlock x:Name="TxtTasksError" Grid.Row="1" Text="" Visibility="Collapsed"
-                               FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,8"
-                               Foreground="{DynamicResource ErrorTextBrush}"/>
+                    <TextBlock x:Name="TxtTasksError" Grid.Row="1" Text=""
+                               Style="{StaticResource ToolInlineErrorTextStyle}"
+                               Margin="0,0,0,8"/>
 
                     <!-- Windows Tasks DataGrid -->
-                    <Border Grid.Row="2"
-                            Background="{DynamicResource CardBrush}"
-                            BorderBrush="{DynamicResource BorderBrush}"
-                            BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}">
+                    <Border x:Name="TasksResultsPanel" Grid.Row="2"
+                            Style="{StaticResource ToolResultsCardStyle}"
+                            Padding="0">
                         <DataGrid x:Name="TasksResultsGrid"
                                   AutoGenerateColumns="False"
                                   IsReadOnly="True"

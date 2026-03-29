@@ -182,7 +182,7 @@
                                 Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginInlineControl}"
                                 VerticalAlignment="Center"
                                 AutomationProperties.Name=""/>
-                        <TextBox x:Name="TxtCronExpression" Text="* * * * *"
+                        <TextBox x:Name="TxtCronExpression" Text=""
                                  FontSize="{StaticResource FontSizeHeadline}" FontFamily="Consolas" FontWeight="Bold"
                                  IsReadOnly="True"
                                  Background="Transparent"

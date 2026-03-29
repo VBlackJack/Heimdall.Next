@@ -89,15 +89,15 @@
         </Border>
 
         <!-- Loading indicator -->
-        <ProgressBar x:Name="LoadingBar" Grid.Row="2" IsIndeterminate="True"
-                     Visibility="Collapsed" Height="4" VerticalAlignment="Top"
-                     Foreground="{DynamicResource AccentBrush}"
+        <ProgressBar x:Name="LoadingBar" Grid.Row="2"
+                     Style="{StaticResource ToolLoadingBarStyle}"
+                     VerticalAlignment="Top"
                      AutomationProperties.Name=""/>
 
         <!-- Error message -->
-        <TextBlock x:Name="TxtError" Grid.Row="2" Text="" Visibility="Collapsed"
-                   FontSize="{StaticResource FontSizeBody}" Margin="12,8,12,0" TextWrapping="Wrap"
-                   Foreground="{DynamicResource ErrorTextBrush}"
+        <TextBlock x:Name="TxtError" Grid.Row="2" Text=""
+                   Style="{StaticResource ToolInlineErrorTextStyle}"
+                   Margin="12,8,12,0"
                    VerticalAlignment="Top"/>
 
         <!-- Empty state hint (hidden once services are loaded) -->
@@ -105,21 +105,19 @@
                 Style="{StaticResource ToolEmptyStateStyle}"
                 Margin="0,24,0,0">
             <StackPanel HorizontalAlignment="Center">
-                <TextBlock Text="&#xE770;" FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource IconSizeEmptyState}"
-                           HorizontalAlignment="Center"
-                           Foreground="{DynamicResource TextDisabledBrush}" Margin="0,0,0,8"
+                <TextBlock Text="&#xE770;"
+                           Style="{StaticResource ToolEmptyStateIconStyle}"
                            AutomationProperties.Name=""/>
                 <TextBlock x:Name="TxtEmptyState" Text=""
-                           FontSize="{StaticResource FontSizeBodyLarge}" TextAlignment="Center"
-                           Foreground="{DynamicResource TextSecondaryBrush}"/>
+                           Style="{StaticResource ToolEmptyStateTextStyle}"/>
             </StackPanel>
         </Border>
 
         <!-- Services DataGrid -->
-        <Border x:Name="ServicesPanel" Grid.Row="2" Visibility="Collapsed" Margin="{StaticResource SpacingSm}"
-                Background="{DynamicResource CardBrush}"
-                BorderBrush="{DynamicResource BorderBrush}"
-                BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}">
+        <Border x:Name="ServicesPanel" Grid.Row="2"
+                Style="{StaticResource ToolResultsCardStyle}"
+                Margin="{StaticResource SpacingSm}"
+                Padding="0">
             <DataGrid x:Name="ServicesGrid"
                       AutoGenerateColumns="False"
                       IsReadOnly="True"

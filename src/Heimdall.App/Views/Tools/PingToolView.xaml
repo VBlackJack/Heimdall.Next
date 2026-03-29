@@ -54,7 +54,7 @@
                                    VerticalAlignment="Center" Margin="0,0,6,0"/>
                         <TextBox x:Name="TxtHost" Text="" MinWidth="140"
                                  Style="{StaticResource WatermarkTextBoxStyle}"
-                                 Tag="hostname or IP"
+                                 Tag=""
                                  FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
                                  Padding="{StaticResource PaddingInput}"
                                  Background="{DynamicResource CardBrush}"
@@ -111,7 +111,7 @@
                         <TextBlock x:Name="LblTimeout" Text=""
                                    Foreground="{DynamicResource TextSecondaryBrush}"
                                    FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center" Margin="0,0,4,0"/>
-                        <TextBox x:Name="TxtTimeout" Text="2000" Width="60"
+                        <TextBox x:Name="TxtTimeout" Text="" Width="60"
                                  FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                                  Padding="{StaticResource PaddingInput}"
                                  Background="{DynamicResource CardBrush}"
@@ -124,7 +124,7 @@
                         <TextBlock x:Name="LblCount" Text=""
                                    Foreground="{DynamicResource TextSecondaryBrush}"
                                    FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center" Margin="0,0,4,0"/>
-                        <TextBox x:Name="TxtCount" Text="0" Width="50"
+                        <TextBox x:Name="TxtCount" Text="" Width="50"
                                  FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                                  Padding="{StaticResource PaddingInput}"
                                  Background="{DynamicResource CardBrush}"
@@ -180,7 +180,7 @@
                                FontFamily="Consolas" Margin="4,0,0,0"
                                Foreground="{DynamicResource TextSecondaryBrush}"
                                VerticalAlignment="Center" HorizontalAlignment="Left"/>
-                    <TextBlock x:Name="TxtYMin" Text="0 ms" FontSize="{StaticResource FontSizeCaption}"
+                    <TextBlock x:Name="TxtYMin" Text="" FontSize="{StaticResource FontSizeCaption}"
                                FontFamily="Consolas" Margin="4,0,0,4"
                                Foreground="{DynamicResource TextSecondaryBrush}"
                                VerticalAlignment="Bottom" HorizontalAlignment="Left"/>

@@ -60,7 +60,18 @@ public partial class HostsFileEditorView : UserControl, IToolView
         _localizer = localizer;
         _openToolAction = ToolContextMenuHelper.GetOpenToolAction(context);
         ApplyLocalization();
+        ClearErrorState();
         LoadHostsFile();
+
+        Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, () =>
+        {
+            if (HostsGrid.Items.Count > 0 && HostsGrid.SelectedIndex < 0)
+            {
+                HostsGrid.SelectedIndex = 0;
+            }
+
+            HostsGrid.Focus();
+        });
     }
 
     private void ApplyLocalization()
@@ -88,6 +99,7 @@ public partial class HostsFileEditorView : UserControl, IToolView
 
     private void LoadHostsFile()
     {
+        ClearErrorState();
         _entries.Clear();
         _preambleLines.Clear();
 
@@ -208,6 +220,7 @@ public partial class HostsFileEditorView : UserControl, IToolView
 
     private void SaveHostsFile()
     {
+        ClearErrorState();
         var sb = new StringBuilder();
 
         // Write preamble (original comment header)
@@ -259,20 +272,27 @@ public partial class HostsFileEditorView : UserControl, IToolView
         }
         catch (UnauthorizedAccessException)
         {
-            MessageBox.Show(
-                L("ToolHostsEditorSaveAdminRequired"),
-                L("ToolHostsEditorTitle"),
-                MessageBoxButton.OK,
-                MessageBoxImage.Warning);
+            ShowErrorState(L("ToolHostsEditorSaveAdminRequired"));
         }
         catch (IOException ex)
         {
-            MessageBox.Show(
-                string.Format(L("ToolHostsEditorSaveFailed"), ex.Message),
-                L("ToolHostsEditorTitle"),
-                MessageBoxButton.OK,
-                MessageBoxImage.Error);
+            ShowErrorState(string.Format(L("ToolHostsEditorSaveFailed"), ex.Message));
         }
+    }
+
+    private void ClearErrorState()
+    {
+        ErrorText.Text = string.Empty;
+        ErrorText.Visibility = Visibility.Collapsed;
+    }
+
+    private void ShowErrorState(string message)
+    {
+        ErrorText.Text = message;
+        ErrorText.Visibility = string.IsNullOrWhiteSpace(message)
+            ? Visibility.Collapsed
+            : Visibility.Visible;
+        ErrorText.BringIntoView();
     }
 
     private void OnAddEntryClick(object sender, RoutedEventArgs e)

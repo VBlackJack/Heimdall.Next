@@ -24,6 +24,7 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
@@ -163,8 +164,12 @@
             </DockPanel>
         </StackPanel>
 
+        <TextBlock x:Name="TxtError" Grid.Row="4" Text=""
+                   Style="{StaticResource ToolInlineErrorTextStyle}"
+                   Margin="12,8,12,0"/>
+
         <!-- Row 3: Compliance badge -->
-        <Border x:Name="ComplianceBadgePanel" Grid.Row="4" Visibility="Collapsed"
+        <Border x:Name="ComplianceBadgePanel" Grid.Row="5" Visibility="Collapsed"
                 Padding="{StaticResource PaddingSectionCard}" Margin="{StaticResource SpacingSm}"
                 Background="{DynamicResource CardBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
@@ -192,27 +197,25 @@
         </Border>
 
         <!-- Empty state hint -->
-        <Border x:Name="EmptyStatePanel" Grid.Row="5"
+        <Border x:Name="EmptyStatePanel" Grid.Row="6"
                 Style="{StaticResource ToolEmptyStateStyle}"
                 Margin="0,24,0,0">
             <StackPanel HorizontalAlignment="Center">
-                <TextBlock Text="&#xE8D4;" FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource IconSizeEmptyState}"
-                           HorizontalAlignment="Center"
-                           Foreground="{DynamicResource TextDisabledBrush}" Margin="0,0,0,8"/>
+                <TextBlock Text="&#xE8D4;"
+                           Style="{StaticResource ToolEmptyStateIconStyle}"/>
                 <TextBlock x:Name="TxtEmptyState" Text=""
-                           FontSize="{StaticResource FontSizeBodyLarge}" TextAlignment="Center"
-                           Foreground="{DynamicResource TextSecondaryBrush}"/>
+                           Style="{StaticResource ToolEmptyStateTextStyle}"/>
             </StackPanel>
         </Border>
 
         <!-- Row 4: Results (chapter expanders) -->
-        <ScrollViewer Grid.Row="5" x:Name="ResultsScroller" Visibility="Collapsed"
+        <ScrollViewer Grid.Row="6" x:Name="ResultsScroller" Visibility="Collapsed"
                       VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
             <StackPanel x:Name="ResultsPanel" Margin="{StaticResource ContentAreaMargin}"/>
         </ScrollViewer>
 
         <!-- Row 6: Footer -->
-        <Border Grid.Row="6" Padding="{StaticResource ToolFooterPadding}"
+        <Border Grid.Row="7" Padding="{StaticResource ToolFooterPadding}"
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,1,0,0">
