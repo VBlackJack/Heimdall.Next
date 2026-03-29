@@ -66,6 +66,7 @@ public partial class MainWindow : Window
         TabServers.Checked += OnServersTabChecked;
         TabTunnels.Checked += OnTunnelsTabChecked;
         TabScheduled.Checked += OnScheduledTabChecked;
+        TabTools.Checked += OnToolsTabChecked;
         TabSettings.Checked += OnSettingsTabChecked;
         TabAbout.Checked += OnAboutTabChecked;
         viewModel.Connection.PropertyChanged += (_, e) =>
@@ -101,6 +102,12 @@ public partial class MainWindow : Window
                     PopulateToolsPanel();
                     _toolsPanelPopulated = true;
                 }
+            }
+
+            // Show onboarding overlay on first launch
+            if (viewModel.CurrentSettings is not null && !viewModel.CurrentSettings.OnboardingCompleted)
+            {
+                ShowOnboarding(viewModel);
             }
         };
 
@@ -168,6 +175,7 @@ public partial class MainWindow : Window
         TabServers.Content = vm.Localize("NavTabServers");
         TabTunnels.Content = vm.Localize("NavTabTunnels");
         TabScheduled.Content = vm.Localize("NavTabScheduled");
+        TabTools.Content = vm.Localize("NavTabTools");
         Mw_TabSettingsText.Text = vm.Localize("NavTabSettings");
         Mw_SettingsUnsavedDot.ToolTip = vm.Localize("SettingsUnsavedChanges");
         TabAbout.Content = vm.Localize("NavTabAbout");
@@ -383,6 +391,7 @@ public partial class MainWindow : Window
         Mw_SettingsRdpTimeoutLabel.Text = vm.Localize("SettingsLabelRdpTimeout");
         Mw_SettingsExtToolsTitle.Text = vm.Localize("SettingsSectionExternalToolsList");
         Mw_ToolsToggleLabel.Text = vm.Localize("ToolsPanelToggle");
+        Mw_ToolsPanelHeaderLabel.Text = vm.Localize("ToolsPanelTitle");
         TxtToolsFilter.Tag = vm.Localize("ToolsPanelFilterPlaceholder");
         System.Windows.Automation.AutomationProperties.SetName(TxtToolsFilter, vm.Localize("ToolsPanelFilterPlaceholder"));
         Mw_SettingsExtToolsAddBtn.Content = vm.Localize("BtnAdd");
@@ -651,6 +660,17 @@ public partial class MainWindow : Window
             vm.ServerList.LoadServers(servers, settings);
         }
         catch (Exception ex) { Core.Logging.FileLogger.Error($"Add tool failed: {ex.Message}"); }
+    }
+
+    private async void OnToolsTabChecked(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            if (!await CheckUnsavedSettingsAsync()) { TabSettings.IsChecked = true; return; }
+            SwitchToTab("Tools");
+            PopulateToolsTab();
+        }
+        catch (Exception ex) { Core.Logging.FileLogger.Error($"Tab switch failed: {ex.Message}"); }
     }
 
     private void OnAboutTabChecked(object sender, RoutedEventArgs e)
@@ -1705,14 +1725,7 @@ public partial class MainWindow : Window
         {
             if (!string.Equals(descriptor.CategoryLabelKey, lastCategory, StringComparison.Ordinal))
             {
-                var categoryBrushKey = descriptor.Category switch
-                {
-                    Core.Models.ToolCategory.Network  => "ToolNetworkBrush",
-                    Core.Models.ToolCategory.Security => "ToolSecurityBrush",
-                    Core.Models.ToolCategory.Encoding => "ToolEncodingBrush",
-                    Core.Models.ToolCategory.System   => "ToolSystemBrush",
-                    _ => "TextSecondaryBrush"
-                };
+                var categoryBrushKey = GetCategoryBrushKey(descriptor.Category);
 
                 var accentBar = new Border
                 {
@@ -1745,48 +1758,491 @@ public partial class MainWindow : Window
                 lastCategory = descriptor.CategoryLabelKey;
             }
 
-            var btnContent = new StackPanel { Orientation = System.Windows.Controls.Orientation.Horizontal };
+            ToolsCategoryStack.Children.Add(CreateToolCard(vm, descriptor));
+        }
+    }
 
-            // Add vector geometry icon if available
-            if (descriptor.IconResourceKey is not null
-                && TryFindResource(descriptor.IconResourceKey) is System.Windows.Media.Geometry geo)
+    /// <summary>
+    /// Creates a mini-card for a tool: [category badge] [icon] [name + description].
+    /// </summary>
+    private Button CreateToolCard(MainViewModel vm, Core.Models.ToolDescriptor descriptor)
+    {
+        var categoryBrushKey = GetCategoryBrushKey(descriptor.Category);
+        var categoryBrush = (Brush)FindResource(categoryBrushKey);
+
+        // Category color badge (left accent dot)
+        var badge = new Border
+        {
+            Width = 4,
+            Height = 28,
+            CornerRadius = new CornerRadius(2),
+            Background = categoryBrush,
+            VerticalAlignment = VerticalAlignment.Center,
+            Margin = new Thickness(0, 0, 8, 0),
+            Opacity = 0.7
+        };
+
+        // Icon
+        var iconContainer = new Border
+        {
+            Width = 24,
+            Height = 24,
+            Margin = new Thickness(0, 0, 8, 0),
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        if (descriptor.IconResourceKey is not null
+            && TryFindResource(descriptor.IconResourceKey) is System.Windows.Media.Geometry geo)
+        {
+            iconContainer.Child = new System.Windows.Shapes.Path
             {
-                btnContent.Children.Add(new System.Windows.Shapes.Path
+                Data = geo,
+                Fill = categoryBrush,
+                Width = 16,
+                Height = 16,
+                Stretch = System.Windows.Media.Stretch.Uniform,
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+        }
+
+        // Text column: name + description
+        var nameBlock = new TextBlock
+        {
+            Text = vm.Localize(descriptor.LabelKey),
+            FontSize = (double)FindResource("FontSizeCaption"),
+            FontWeight = FontWeights.SemiBold,
+            Foreground = (Brush)FindResource("TextPrimaryBrush"),
+            TextTrimming = TextTrimming.CharacterEllipsis
+        };
+
+        var descKey = $"ToolDesc{descriptor.Id}";
+        var descText = vm.Localize(descKey);
+        var descBlock = new TextBlock
+        {
+            Text = descText != descKey ? descText : "",
+            FontSize = (double)FindResource("FontSizeSmallCaption"),
+            Foreground = (Brush)FindResource("TextSecondaryBrush"),
+            TextTrimming = TextTrimming.CharacterEllipsis,
+            Margin = new Thickness(0, 1, 0, 0)
+        };
+
+        var textStack = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
+        textStack.Children.Add(nameBlock);
+        if (!string.IsNullOrEmpty(descBlock.Text))
+            textStack.Children.Add(descBlock);
+
+        var cardContent = new DockPanel();
+        cardContent.Children.Add(badge);
+        DockPanel.SetDock(badge, Dock.Left);
+        cardContent.Children.Add(iconContainer);
+        DockPanel.SetDock(iconContainer, Dock.Left);
+        cardContent.Children.Add(textStack);
+
+        var btn = new Button
+        {
+            Content = cardContent,
+            Tag = descriptor,
+            Style = (Style)FindResource("ToolbarGhostButtonStyle"),
+            HorizontalAlignment = System.Windows.HorizontalAlignment.Stretch,
+            HorizontalContentAlignment = System.Windows.HorizontalAlignment.Stretch,
+            Padding = new Thickness(4, 4, 8, 4),
+            Margin = new Thickness(0, 1, 0, 1),
+            ToolTip = descText != descKey ? descText : null
+        };
+        System.Windows.Automation.AutomationProperties.SetName(btn, vm.Localize(descriptor.LabelKey));
+        btn.Click += OnToolsPanelItemClick;
+        return btn;
+    }
+
+    private static string GetCategoryBrushKey(Core.Models.ToolCategory category)
+        => category switch
+        {
+            Core.Models.ToolCategory.Network  => "ToolNetworkBrush",
+            Core.Models.ToolCategory.Security => "ToolSecurityBrush",
+            Core.Models.ToolCategory.Encoding => "ToolEncodingBrush",
+            Core.Models.ToolCategory.System   => "ToolSystemBrush",
+            _ => "TextSecondaryBrush"
+        };
+
+    // ── Tools Tab (dedicated full-page browser) ──────────────────────
+
+    private bool _toolsTabPopulated;
+
+    private void PopulateToolsTab()
+    {
+        if (DataContext is not MainViewModel vm) return;
+
+        // Header localization
+        Mw_ToolsTabTitle.Text = vm.Localize("ToolsTabTitle");
+        Mw_ToolsTabSearch.Tag = vm.Localize("ToolsTabSearchPlaceholder");
+        Mw_ToolsTabCount.Text = vm.Localize("ToolsToolCount").Replace("{0}", ToolRegistry.All.Count.ToString());
+
+        if (_toolsTabPopulated)
+        {
+            RefreshToolsTabSections(vm);
+            return;
+        }
+        _toolsTabPopulated = true;
+        RefreshToolsTabSections(vm);
+    }
+
+    private void RefreshToolsTabSections(MainViewModel vm)
+    {
+        ToolsTabContent.Children.Clear();
+        var filter = Mw_ToolsTabSearch.Text.Trim();
+        var hasFilter = !string.IsNullOrEmpty(filter);
+
+        // ── Favorites section ──
+        if (!hasFilter)
+        {
+            var favIds = vm.FavoriteToolIds;
+            if (favIds.Count > 0)
+            {
+                AddToolsTabSectionHeader(vm.Localize("ToolsFavoritesHeader"), "WarningBrush");
+                var favPanel = new WrapPanel { Margin = new Thickness(0, 0, 0, 16) };
+                foreach (var favId in favIds)
                 {
-                    Data = geo,
-                    Fill = (System.Windows.Media.Brush)FindResource("TextPrimaryBrush"),
-                    Width = 16,
-                    Height = 16,
-                    Stretch = System.Windows.Media.Stretch.Uniform,
-                    VerticalAlignment = VerticalAlignment.Center,
-                    Margin = new Thickness(0, 0, 6, 0)
+                    var desc = ToolRegistry.All.FirstOrDefault(d => string.Equals(d.Id, favId, StringComparison.OrdinalIgnoreCase));
+                    if (desc is not null)
+                        favPanel.Children.Add(CreateToolsTabCard(vm, desc, true));
+                }
+                ToolsTabContent.Children.Add(favPanel);
+            }
+            else
+            {
+                AddToolsTabSectionHeader(vm.Localize("ToolsFavoritesHeader"), "WarningBrush");
+                ToolsTabContent.Children.Add(new TextBlock
+                {
+                    Text = vm.Localize("ToolsEmptyFavorites"),
+                    FontSize = (double)FindResource("FontSizeCaption"),
+                    Foreground = (Brush)FindResource("TextDisabledBrush"),
+                    Margin = new Thickness(4, 0, 0, 16)
                 });
             }
 
-            btnContent.Children.Add(new TextBlock
+            // ── Recent section ──
+            var recentIds = vm.RecentToolIds;
+            if (recentIds.Count > 0)
             {
-                Text = vm.Localize(descriptor.LabelKey),
-                VerticalAlignment = VerticalAlignment.Center
-            });
-
-            var descKey = $"ToolDesc{descriptor.Id}";
-            var descText = vm.Localize(descKey);
-
-            var btn = new Button
-            {
-                Content = btnContent,
-                Tag = descriptor,
-                Style = (Style)FindResource("ToolbarGhostButtonStyle"),
-                HorizontalAlignment = System.Windows.HorizontalAlignment.Stretch,
-                HorizontalContentAlignment = System.Windows.HorizontalAlignment.Left,
-                Padding = new Thickness(8, 3, 8, 3),
-                FontSize = 11,
-                ToolTip = descText != descKey ? descText : null
-            };
-            System.Windows.Automation.AutomationProperties.SetName(btn, vm.Localize(descriptor.LabelKey));
-            btn.Click += OnToolsPanelItemClick;
-            ToolsCategoryStack.Children.Add(btn);
+                AddToolsTabSectionHeader(vm.Localize("ToolsRecentHeader"), "AccentBrush");
+                var recentPanel = new WrapPanel { Margin = new Thickness(0, 0, 0, 16) };
+                foreach (var rid in recentIds)
+                {
+                    var desc = ToolRegistry.All.FirstOrDefault(d => string.Equals(d.Id, rid, StringComparison.OrdinalIgnoreCase));
+                    if (desc is not null)
+                        recentPanel.Children.Add(CreateToolsTabCard(vm, desc, false));
+                }
+                ToolsTabContent.Children.Add(recentPanel);
+            }
         }
+
+        // ── All tools by category ──
+        if (!hasFilter)
+            AddToolsTabSectionHeader(vm.Localize("ToolsAllHeader"), "TextPrimaryBrush");
+
+        string? lastCategory = null;
+        var sorted = ToolRegistry.All
+            .OrderBy(d => d.Category)
+            .ThenBy(d => vm.Localize(d.LabelKey), StringComparer.OrdinalIgnoreCase);
+
+        WrapPanel? currentWrap = null;
+
+        foreach (var descriptor in sorted)
+        {
+            if (hasFilter)
+            {
+                var label = vm.Localize(descriptor.LabelKey);
+                var aliases = string.Join(" ", descriptor.CommandPrefixes);
+                var descKey = $"ToolDesc{descriptor.Id}";
+                var descText = vm.Localize(descKey);
+                var searchable = $"{label} {aliases} {descText}";
+                if (!searchable.Contains(filter, StringComparison.OrdinalIgnoreCase))
+                    continue;
+            }
+
+            if (!string.Equals(descriptor.CategoryLabelKey, lastCategory, StringComparison.Ordinal))
+            {
+                if (currentWrap is not null)
+                    ToolsTabContent.Children.Add(currentWrap);
+
+                var brushKey = GetCategoryBrushKey(descriptor.Category);
+                AddToolsTabCategoryHeader(vm.Localize(descriptor.CategoryLabelKey), brushKey);
+                currentWrap = new WrapPanel { Margin = new Thickness(0, 0, 0, 8) };
+                lastCategory = descriptor.CategoryLabelKey;
+            }
+
+            currentWrap?.Children.Add(CreateToolsTabCard(vm, descriptor, false));
+        }
+        if (currentWrap is not null)
+            ToolsTabContent.Children.Add(currentWrap);
+    }
+
+    private void AddToolsTabSectionHeader(string text, string brushKey)
+    {
+        ToolsTabContent.Children.Add(new TextBlock
+        {
+            Text = text,
+            FontSize = (double)FindResource("FontSizeBodyLarge"),
+            FontWeight = FontWeights.SemiBold,
+            Foreground = (Brush)FindResource(brushKey),
+            Margin = new Thickness(0, 8, 0, 8)
+        });
+    }
+
+    private void AddToolsTabCategoryHeader(string text, string brushKey)
+    {
+        var header = new StackPanel
+        {
+            Orientation = System.Windows.Controls.Orientation.Horizontal,
+            Margin = new Thickness(0, 4, 0, 4)
+        };
+        header.Children.Add(new Border
+        {
+            Width = 3, Height = 16,
+            CornerRadius = new CornerRadius(1.5),
+            Background = (Brush)FindResource(brushKey),
+            VerticalAlignment = VerticalAlignment.Center,
+            Margin = new Thickness(0, 0, 6, 0)
+        });
+        header.Children.Add(new TextBlock
+        {
+            Text = text.ToUpperInvariant(),
+            FontSize = (double)FindResource("FontSizeCaption"),
+            FontWeight = FontWeights.SemiBold,
+            Foreground = (Brush)FindResource(brushKey),
+            VerticalAlignment = VerticalAlignment.Center
+        });
+        ToolsTabContent.Children.Add(header);
+    }
+
+    /// <summary>
+    /// Creates a wider card for the Tools tab grid layout with a pin/unpin button.
+    /// </summary>
+    private Border CreateToolsTabCard(MainViewModel vm, Core.Models.ToolDescriptor descriptor, bool showUnpin)
+    {
+        var categoryBrushKey = GetCategoryBrushKey(descriptor.Category);
+        var categoryBrush = (Brush)FindResource(categoryBrushKey);
+
+        // Icon
+        System.Windows.Shapes.Path? iconPath = null;
+        if (descriptor.IconResourceKey is not null
+            && TryFindResource(descriptor.IconResourceKey) is System.Windows.Media.Geometry geo)
+        {
+            iconPath = new System.Windows.Shapes.Path
+            {
+                Data = geo,
+                Fill = categoryBrush,
+                Width = 20,
+                Height = 20,
+                Stretch = System.Windows.Media.Stretch.Uniform,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+        }
+
+        var nameBlock = new TextBlock
+        {
+            Text = vm.Localize(descriptor.LabelKey),
+            FontSize = (double)FindResource("FontSizeBody"),
+            FontWeight = FontWeights.SemiBold,
+            Foreground = (Brush)FindResource("TextPrimaryBrush"),
+            TextTrimming = TextTrimming.CharacterEllipsis
+        };
+
+        var descKey = $"ToolDesc{descriptor.Id}";
+        var descText = vm.Localize(descKey);
+        var descBlock = new TextBlock
+        {
+            Text = descText != descKey ? descText : "",
+            FontSize = (double)FindResource("FontSizeSmallCaption"),
+            Foreground = (Brush)FindResource("TextSecondaryBrush"),
+            TextTrimming = TextTrimming.CharacterEllipsis,
+            TextWrapping = TextWrapping.NoWrap
+        };
+
+        // Pin/Unpin button
+        var isFav = vm.FavoriteToolIds.Contains(descriptor.Id, StringComparer.OrdinalIgnoreCase);
+        var pinBtn = new Button
+        {
+            Content = isFav ? "\uE735" : "\uE734",
+            FontFamily = new System.Windows.Media.FontFamily("Segoe MDL2 Assets"),
+            FontSize = 12,
+            Style = (Style)FindResource("ToolbarGhostButtonStyle"),
+            Padding = new Thickness(2),
+            Opacity = isFav ? 1.0 : 0.4,
+            Foreground = isFav ? (Brush)FindResource("WarningBrush") : (Brush)FindResource("TextSecondaryBrush"),
+            VerticalAlignment = VerticalAlignment.Top,
+            Margin = new Thickness(4, 0, 0, 0),
+            Tag = descriptor.Id,
+            ToolTip = isFav ? vm.Localize("ToolsUnpinTooltip") : vm.Localize("ToolsPinTooltip")
+        };
+        System.Windows.Automation.AutomationProperties.SetName(pinBtn,
+            isFav ? vm.Localize("A11yUnpinTool") : vm.Localize("A11yPinTool"));
+        pinBtn.Click += OnToolPinClick;
+
+        var textStack = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
+        textStack.Children.Add(nameBlock);
+        if (!string.IsNullOrEmpty(descBlock.Text))
+            textStack.Children.Add(descBlock);
+
+        var content = new DockPanel { LastChildFill = true };
+        if (iconPath is not null)
+        {
+            var iconBorder = new Border
+            {
+                Width = 32, Height = 32,
+                CornerRadius = new CornerRadius(6),
+                Background = categoryBrush,
+                Opacity = 0.12,
+                Margin = new Thickness(0, 0, 10, 0),
+                VerticalAlignment = VerticalAlignment.Center,
+                Child = iconPath
+            };
+            content.Children.Add(iconBorder);
+            DockPanel.SetDock(iconBorder, Dock.Left);
+        }
+        content.Children.Add(pinBtn);
+        DockPanel.SetDock(pinBtn, Dock.Right);
+        content.Children.Add(textStack);
+
+        var card = new Border
+        {
+            Width = 280,
+            Padding = new Thickness(10, 8, 10, 8),
+            Margin = new Thickness(0, 0, 8, 8),
+            CornerRadius = new CornerRadius(8),
+            BorderThickness = new Thickness(1),
+            BorderBrush = (Brush)FindResource("BorderBrush"),
+            Background = (Brush)FindResource("CardBrush"),
+            Child = content,
+            Cursor = System.Windows.Input.Cursors.Hand,
+            Tag = descriptor
+        };
+        card.MouseLeftButtonUp += OnToolsTabCardClick;
+        return card;
+    }
+
+    private async void OnToolPinClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button btn || DataContext is not MainViewModel vm) return;
+        e.Handled = true;
+        var toolId = btn.Tag as string;
+        if (toolId is null) return;
+        await vm.ToggleFavoriteToolAsync(toolId);
+        RefreshToolsTabSections(vm);
+    }
+
+    private async void OnToolsTabCardClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        if (sender is not Border card || card.Tag is not Core.Models.ToolDescriptor descriptor
+            || DataContext is not MainViewModel vm)
+            return;
+
+        try
+        {
+            Core.Models.ToolContext? context = null;
+            if (descriptor.IsNetworkTool)
+            {
+                var host = vm.ServerList.SelectedServer?.RemoteServer;
+                if (!string.IsNullOrWhiteSpace(host))
+                    context = new Core.Models.ToolContext(TargetHost: host);
+            }
+
+            // Switch to Servers tab first so the session panel is visible
+            TabServers.IsChecked = true;
+            SwitchToTab("Servers");
+
+            await vm.OpenToolTabAsync(descriptor.Id, vm.Localize(descriptor.LabelKey), context);
+            vm.TrackRecentTool(descriptor.Id);
+        }
+        catch (Exception ex)
+        {
+            Core.Logging.FileLogger.Error($"Tool tab card launch failed: {descriptor.Id}", ex);
+        }
+    }
+
+    private void OnToolsTabSearchChanged(object sender, TextChangedEventArgs e)
+    {
+        if (DataContext is not MainViewModel vm) return;
+        RefreshToolsTabSections(vm);
+    }
+
+    // ── Onboarding overlay ───────────────────────────────────────────
+
+    private int _onboardingStep;
+    private const int OnboardingStepCount = 3;
+
+    private void ShowOnboarding(MainViewModel vm)
+    {
+        _onboardingStep = 0;
+        OnboardingOverlay.Visibility = Visibility.Visible;
+        UpdateOnboardingStep(vm);
+    }
+
+    private void UpdateOnboardingStep(MainViewModel vm)
+    {
+        // Step indicator dots
+        OnboardingDots.Children.Clear();
+        for (var i = 0; i < OnboardingStepCount; i++)
+        {
+            OnboardingDots.Children.Add(new System.Windows.Shapes.Ellipse
+            {
+                Width = 8, Height = 8,
+                Fill = i == _onboardingStep
+                    ? (Brush)FindResource("AccentBrush")
+                    : (Brush)FindResource("TextDisabledBrush"),
+                Margin = new Thickness(4, 0, 4, 0)
+            });
+        }
+
+        // Content per step
+        switch (_onboardingStep)
+        {
+            case 0:
+                OnboardingTitle.Text = vm.Localize("OnboardingStep1Title");
+                OnboardingSubtitle.Text = vm.Localize("OnboardingStep1Desc");
+                break;
+            case 1:
+                OnboardingTitle.Text = vm.Localize("OnboardingStep2Title");
+                OnboardingSubtitle.Text = vm.Localize("OnboardingStep2Desc");
+                break;
+            case 2:
+                OnboardingTitle.Text = vm.Localize("OnboardingStep3Title");
+                OnboardingSubtitle.Text = vm.Localize("OnboardingStep3Desc");
+                break;
+        }
+
+        OnboardingSkipBtn.Content = vm.Localize("OnboardingBtnSkip");
+        OnboardingNextBtn.Content = _onboardingStep < OnboardingStepCount - 1
+            ? vm.Localize("OnboardingBtnNext")
+            : vm.Localize("OnboardingBtnGetStarted");
+    }
+
+    private async void OnOnboardingSkip(object sender, RoutedEventArgs e)
+    {
+        await CompleteOnboardingAsync();
+    }
+
+    private async void OnOnboardingNext(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is not MainViewModel vm) return;
+
+        if (_onboardingStep < OnboardingStepCount - 1)
+        {
+            _onboardingStep++;
+            UpdateOnboardingStep(vm);
+        }
+        else
+        {
+            await CompleteOnboardingAsync();
+        }
+    }
+
+    private async Task CompleteOnboardingAsync()
+    {
+        OnboardingOverlay.Visibility = Visibility.Collapsed;
+        if (DataContext is not MainViewModel vm || vm.CurrentSettings is null) return;
+        vm.CurrentSettings.OnboardingCompleted = true;
+        await vm.ConfigManager.MergeSettingAsync(s => s.OnboardingCompleted = true);
     }
 
     private void OnToolsFilterChanged(object sender, TextChangedEventArgs e)
@@ -1854,18 +2310,10 @@ public partial class MainWindow : Window
         {
             Core.Models.ToolContext? context = null;
 
-            // If a network tool, get context from selected server or prompt
+            // For network tools, use selected server directly (no intermediate prompt)
             if (descriptor.IsNetworkTool)
             {
                 var host = vm.ServerList.SelectedServer?.RemoteServer;
-                if (string.IsNullOrWhiteSpace(host))
-                {
-                    host = await vm.DialogService.ShowInputAsync(
-                        vm.Localize("AddToolDialogTitle"),
-                        vm.Localize("AddToolDialogHost"));
-                    if (host is null) return; // User cancelled dialog
-                }
-
                 if (!string.IsNullOrWhiteSpace(host))
                     context = new Core.Models.ToolContext(TargetHost: host);
             }
@@ -1875,12 +2323,12 @@ public partial class MainWindow : Window
                 vm.Localize(descriptor.LabelKey),
                 context);
 
-            // Track as recent tool
             vm.TrackRecentTool(descriptor.Id);
         }
         catch (Exception ex)
         {
             Core.Logging.FileLogger.Error($"Tool panel launch failed: {descriptor.Id}", ex);
+            vm.StatusText = $"Tool launch failed: {descriptor.Id} — {ex.Message}";
         }
     }
 

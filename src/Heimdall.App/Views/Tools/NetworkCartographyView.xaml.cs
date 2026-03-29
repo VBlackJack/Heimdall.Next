@@ -71,6 +71,27 @@ public partial class NetworkCartographyView : UserControl, IToolView
         ResultsGrid.PreviewMouseRightButtonDown += ToolContextMenuHelper.SelectRowOnRightClick;
         ResultsGrid.ContextMenuOpening += OnResultsContextMenuOpening;
         ResultsGrid.LoadingRow += OnResultsLoadingRow;
+        SizeChanged += OnViewSizeChanged;
+    }
+
+    /// <summary>
+    /// Adapts column visibility based on available width for split pane support.
+    /// </summary>
+    private void OnViewSizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        var width = e.NewSize.Width;
+
+        // Detail columns: visible above 1100px
+        var showDetails = width >= 1100;
+        ColManufacturer.Visibility = showDetails ? Visibility.Visible : Visibility.Collapsed;
+        ColTls.Visibility = showDetails ? Visibility.Visible : Visibility.Collapsed;
+        ColDetails.Visibility = showDetails ? Visibility.Visible : Visibility.Collapsed;
+        ColVlan.Visibility = showDetails ? Visibility.Visible : Visibility.Collapsed;
+
+        // Secondary columns: visible above 800px
+        var showSecondary = width >= 800;
+        ColConfidence.Visibility = showSecondary ? Visibility.Visible : Visibility.Collapsed;
+        ColOs.Visibility = showSecondary ? Visibility.Visible : Visibility.Collapsed;
     }
 
     /// <inheritdoc />

@@ -155,6 +155,9 @@ public partial class MainViewModel : ObservableObject
     /// <summary>True when the Settings tab is selected.</summary>
     public bool IsSettingsTabSelected => string.Equals(SelectedTab, "Settings", StringComparison.Ordinal);
 
+    /// <summary>True when the Tools tab is selected.</summary>
+    public bool IsToolsTabSelected => string.Equals(SelectedTab, "Tools", StringComparison.Ordinal);
+
     /// <summary>True when the About tab is selected.</summary>
     public bool IsAboutTabSelected => string.Equals(SelectedTab, "About", StringComparison.Ordinal);
 
@@ -213,6 +216,7 @@ public partial class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(IsServersTabSelected));
         OnPropertyChanged(nameof(IsTunnelsTabSelected));
         OnPropertyChanged(nameof(IsScheduledTabSelected));
+        OnPropertyChanged(nameof(IsToolsTabSelected));
         OnPropertyChanged(nameof(IsSettingsTabSelected));
         OnPropertyChanged(nameof(IsAboutTabSelected));
 
@@ -250,6 +254,24 @@ public partial class MainViewModel : ObservableObject
     /// <summary>Recently used tool IDs (most recent first, max 5).</summary>
     private readonly List<string> _recentToolIds = new();
     private const int MaxRecentTools = 5;
+
+    /// <summary>Returns the current list of recently used tool IDs.</summary>
+    internal IReadOnlyList<string> RecentToolIds => _recentToolIds;
+
+    /// <summary>Returns the favorite tool IDs from persisted settings.</summary>
+    internal List<string> FavoriteToolIds => _currentSettings?.FavoriteToolIds ?? [];
+
+    /// <summary>Toggles a tool's favorite status and persists the change.</summary>
+    internal async Task ToggleFavoriteToolAsync(string toolId)
+    {
+        if (_currentSettings is null) return;
+        var id = toolId.ToUpperInvariant();
+        if (_currentSettings.FavoriteToolIds.Contains(id))
+            _currentSettings.FavoriteToolIds.Remove(id);
+        else
+            _currentSettings.FavoriteToolIds.Add(id);
+        await _configManager.MergeSettingAsync(s => s.FavoriteToolIds = _currentSettings.FavoriteToolIds);
+    }
 
     public MainViewModel(
         ConfigManager configManager,
@@ -1738,8 +1760,18 @@ public partial class MainViewModel : ObservableObject
         var sessionId = $"tool-{toolId.ToLowerInvariant()}-{Guid.NewGuid():N}";
 
         var tab = Connection.AddSession(sessionId, title, connectionType);
-        tab.HostControl = _embeddedSessionManager.CreateToolControl(
-            tab, toolId, context, _currentSettings);
-        tab.Status = _localizer["StatusReady"];
+        try
+        {
+            tab.HostControl = _embeddedSessionManager.CreateToolControl(
+                tab, toolId, context, _currentSettings);
+            tab.Status = _localizer["StatusReady"];
+        }
+        catch (Exception ex)
+        {
+            Core.Logging.FileLogger.Error($"Failed to create tool control: {toolId}", ex);
+            Connection.ActiveSessions.Remove(tab);
+            Connection.HasActiveSessions = Connection.ActiveSessions.Count > 0;
+            throw;
+        }
     }
 }

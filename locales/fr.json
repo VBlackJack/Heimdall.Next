@@ -4546,5 +4546,34 @@
   "ToolPingCsvHeader": "Seq,Horodatage,Latence,Statut",
   "ToolPingStatsPercent": "{0} %",
   "ToolDiffOriginalHeader": "--- original",
-  "ToolDiffModifiedHeader": "+++ modifié"
+  "ToolDiffModifiedHeader": "+++ modifié",
+
+  "NavTabTools": "Outils",
+  "ToolsTabTitle": "Outils",
+  "ToolsTabSearchPlaceholder": "Rechercher un outil...",
+  "ToolsFavoritesHeader": "Favoris",
+  "ToolsRecentHeader": "Utilisés récemment",
+  "ToolsAllHeader": "Tous les outils",
+  "ToolsPinTooltip": "Épingler aux favoris",
+  "ToolsUnpinTooltip": "Retirer des favoris",
+  "ToolsEmptyFavorites": "Épinglez vos outils favoris pour un accès rapide",
+  "ToolsEmptyRecent": "Les outils récemment utilisés apparaîtront ici",
+  "ToolsToolCount": "{0} outils",
+
+  "OnboardingWelcomeTitle": "Bienvenue dans Heimdall",
+  "OnboardingWelcomeSubtitle": "Votre centre de contrôle de connexions sécurisé",
+  "OnboardingStep1Title": "Connexion aux serveurs",
+  "OnboardingStep1Desc": "Gérez RDP, SSH, SFTP, VNC et plus depuis une seule interface. Ajoutez votre premier serveur ou importez depuis MobaXterm, mRemoteNG ou RDCMan.",
+  "OnboardingStep2Title": "Outils intégrés",
+  "OnboardingStep2Desc": "49 outils réseau, sécurité, encodage et système à portée de main. Accédez-y depuis l'onglet Outils ou appuyez sur Ctrl+K.",
+  "OnboardingStep3Title": "Connexion rapide",
+  "OnboardingStep3Desc": "Appuyez sur Ctrl+K pour ouvrir la Palette de commandes. Tapez un nom d'hôte, une adresse IP ou un nom d'outil pour vous connecter ou le lancer instantanément.",
+  "OnboardingBtnSkip": "Passer",
+  "OnboardingBtnNext": "Suivant",
+  "OnboardingBtnGetStarted": "Commencer",
+
+  "A11yToolsTab": "Onglet outils",
+  "A11yPinTool": "Épingler l'outil aux favoris",
+  "A11yUnpinTool": "Retirer l'outil des favoris",
+  "A11yOnboardingOverlay": "Guide de bienvenue"
 }
