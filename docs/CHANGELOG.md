@@ -12,6 +12,40 @@
 
 All notable changes to Heimdall.Next are documented in this file.
 
+## [v2026.032903] - 2026-03-29
+
+### Comprehensive UX audit — accessibility, async guards, empty states, keyboard across 49 tools
+
+#### Accessibility
+- Explicit `TabIndex` on 45 tool views (top-to-bottom, left-to-right visual order)
+- 15 new empty state panels with localized icon + hint text
+- 24 empty states migrated to shared `ToolEmptyStateIconStyle`/`ToolEmptyStateTextStyle`
+- Watermarks added: PasswordAudit, SshKeyAudit, ServiceStatus
+- DiagramEditor: tooltips on 13 toolbar buttons
+
+#### Async & Keyboard
+- SshKeyGenerator/CertificateGenerator: key generation moved to `Task.Run` (unblocks UI thread)
+- TextDiffView: double-click guard + input disable during comparison
+- Enter key wired: ArpMonitor, TextCaseConverter (`Ctrl+Enter`), CrontabBuilder, DateTimeConverter
+- Focus on load: CrontabBuilder, ServiceStatus, DiagramEditor, HackerSimulator
+- DiagramEditor: toolbar disabled until WebView2 initialization completes
+
+#### Code Quality
+- `DefaultPorts`: extended with 22 named constants, replacing magic numbers across presets
+- `ToolAsyncStateController`: fix primary constructor redundant field re-declaration
+- `ToolPickerDialog`: input validation via `InputValidator.Validate()`, trigger ordering fix
+- `NetworkToolPresets`: DNS server labels localized, `DnsServerPreset` nested in class
+- Remove dead `showUnpin` parameter from `CreateToolsTabCard`
+- Fix regex false positives in `ToolXamlInputHardcodingTests`
+- Fix fragile attribute-order assumption in `DenseToolTabOrderTests`
+
+#### Housekeeping
+- Remove 6 obsolete docs (UX_GITHUB_ISSUES.md, network-discovery research, 4 audit screenshots)
+- i18n: +24 keys (4,453 total, EN/FR parity)
+- Tests: 1,610 passing (283 SSH + 131 App + 1,196 Core)
+
+---
+
 ## [Unreleased] - 2026-03-28
 
 ### Comprehensive audit — security, i18n, accessibility, and robustness across 49 files
