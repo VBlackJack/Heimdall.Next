@@ -75,9 +75,16 @@ public partial class SshKeyGeneratorView : UserControl, IToolView
     {
         _localizer = localizer;
         ApplyLocalization();
+        ClearValidation();
 
         // Default comment: user@hostname
         CommentInput.Text = $"{Environment.UserName}@{Environment.MachineName}";
+
+        Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, () =>
+        {
+            CommentInput.Focus();
+            CommentInput.SelectAll();
+        });
     }
 
     private void ApplyLocalization()
@@ -233,6 +240,7 @@ public partial class SshKeyGeneratorView : UserControl, IToolView
 
     private void GenerateKeyPair()
     {
+        ClearValidation();
         _lastGeneratedAlgorithmIndex = AlgorithmCombo.SelectedIndex;
 
         if (_lastGeneratedAlgorithmIndex == AlgorithmIndexEd25519)
@@ -283,11 +291,7 @@ public partial class SshKeyGeneratorView : UserControl, IToolView
     {
         if (EdDsaType is null || EdDsaParametersType is null)
         {
-            MessageBox.Show(
-                L("ToolSshKeyGenEd25519Unsupported"),
-                L("ToolSshKeyGenTitle"),
-                MessageBoxButton.OK,
-                MessageBoxImage.Warning);
+            ShowEd25519UnsupportedError();
             return;
         }
 
@@ -365,11 +369,7 @@ public partial class SshKeyGeneratorView : UserControl, IToolView
 
     private void ShowEd25519UnsupportedError()
     {
-        MessageBox.Show(
-            L("ToolSshKeyGenEd25519Unsupported"),
-            L("ToolSshKeyGenTitle"),
-            MessageBoxButton.OK,
-            MessageBoxImage.Warning);
+        ShowValidation(L("ToolSshKeyGenEd25519Unsupported"));
     }
 
     /// <summary>
@@ -413,6 +413,7 @@ public partial class SshKeyGeneratorView : UserControl, IToolView
 
     private void ShowGeneratedKeys()
     {
+        ClearValidation();
         // Update UI
         PublicKeyOutput.Text = _publicKeyOpenSsh;
         FingerprintOutput.Text = _fingerprint;
@@ -424,6 +425,21 @@ public partial class SshKeyGeneratorView : UserControl, IToolView
         FingerprintPanel.Visibility = Visibility.Visible;
         PublicKeyPanel.Visibility = Visibility.Visible;
         PrivateKeyPanel.Visibility = Visibility.Visible;
+    }
+
+    private void ClearValidation()
+    {
+        ValidationText.Text = string.Empty;
+        ValidationText.Visibility = Visibility.Collapsed;
+    }
+
+    private void ShowValidation(string message)
+    {
+        ValidationText.Text = message;
+        ValidationText.Visibility = string.IsNullOrWhiteSpace(message)
+            ? Visibility.Collapsed
+            : Visibility.Visible;
+        ValidationText.BringIntoView();
     }
 
     /// <summary>

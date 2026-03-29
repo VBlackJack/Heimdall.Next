@@ -50,6 +50,7 @@ public partial class CronJobManagerView : UserControl, IToolView
         InitializeComponent();
         CronResultsGrid.ItemsSource = _cronEntries;
         TasksResultsGrid.ItemsSource = _taskEntries;
+        TxtCrontabInput.PreviewKeyDown += OnCrontabInputPreviewKeyDown;
     }
 
     /// <summary>
@@ -60,6 +61,12 @@ public partial class CronJobManagerView : UserControl, IToolView
         _localizer = localizer;
         _setBusy = context?.SetBusyAction;
         ApplyLocalization();
+
+        Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, () =>
+        {
+            TxtCrontabInput.Focus();
+            TxtCrontabInput.SelectAll();
+        });
     }
 
     private void ApplyLocalization()
@@ -108,10 +115,10 @@ public partial class CronJobManagerView : UserControl, IToolView
 
     private void OnParseClick(object sender, RoutedEventArgs e)
     {
-        EmptyStatePanel.Visibility = Visibility.Collapsed;
         var content = TxtCrontabInput.Text;
         TxtCronError.Visibility = Visibility.Collapsed;
         CronDetailPanel.Visibility = Visibility.Collapsed;
+        CronResultsPanel.Visibility = Visibility.Collapsed;
         _cronEntries.Clear();
         _parsedEntries.Clear();
 
@@ -119,6 +126,7 @@ public partial class CronJobManagerView : UserControl, IToolView
         {
             TxtCronError.Text = L("ToolCronJobErrorEmpty");
             TxtCronError.Visibility = Visibility.Visible;
+            UpdateEmptyStateVisibility();
             return;
         }
 
@@ -128,6 +136,7 @@ public partial class CronJobManagerView : UserControl, IToolView
         {
             TxtCronError.Text = L("ToolCronJobErrorNoParsed");
             TxtCronError.Visibility = Visibility.Visible;
+            UpdateEmptyStateVisibility();
             return;
         }
 
@@ -147,7 +156,19 @@ public partial class CronJobManagerView : UserControl, IToolView
                 description));
         }
 
+        CronResultsPanel.Visibility = Visibility.Visible;
+        EmptyStatePanel.Visibility = Visibility.Collapsed;
         TxtStatus.Text = string.Format(L("ToolCronJobStatusParsed"), entries.Count);
+    }
+
+    private void OnCrontabInputPreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+    {
+        if (e.Key == System.Windows.Input.Key.Enter
+            && System.Windows.Input.Keyboard.Modifiers == System.Windows.Input.ModifierKeys.Control)
+        {
+            OnParseClick(sender, e);
+            e.Handled = true;
+        }
     }
 
     private void OnClearPasteClick(object sender, RoutedEventArgs e)
@@ -155,9 +176,11 @@ public partial class CronJobManagerView : UserControl, IToolView
         TxtCrontabInput.Text = string.Empty;
         _cronEntries.Clear();
         _parsedEntries.Clear();
+        CronResultsPanel.Visibility = Visibility.Collapsed;
         TxtCronError.Visibility = Visibility.Collapsed;
         CronDetailPanel.Visibility = Visibility.Collapsed;
         TxtStatus.Text = string.Empty;
+        UpdateEmptyStateVisibility();
     }
 
     private void OnCronEntrySelected(object sender, SelectionChangedEventArgs e)
@@ -193,25 +216,29 @@ public partial class CronJobManagerView : UserControl, IToolView
 
     private void OnRefreshTasksClick(object sender, RoutedEventArgs e)
     {
-        EmptyStatePanel.Visibility = Visibility.Collapsed;
         _ = LoadWindowsTasksAsync();
     }
 
     private async Task LoadWindowsTasksAsync()
     {
+        if (_disposed || _isLoading)
+        {
+            return;
+        }
+
         _cts?.Cancel();
         _cts?.Dispose();
         _cts = new CancellationTokenSource();
         _cts.CancelAfter(TimeSpan.FromSeconds(30));
 
         _isLoading = true;
-        BtnRefreshTasks.IsEnabled = false;
+        SetWindowsTasksInputsEnabled(false);
         _setBusy?.Invoke(true);
         LoadingBar.Visibility = Visibility.Visible;
         TxtTasksLoading.Text = L("ToolCronJobTasksLoading");
         TxtTasksLoading.Visibility = Visibility.Visible;
         TxtTasksError.Visibility = Visibility.Collapsed;
-        _taskEntries.Clear();
+        EmptyStatePanel.Visibility = Visibility.Collapsed;
 
         try
         {
@@ -219,31 +246,55 @@ public partial class CronJobManagerView : UserControl, IToolView
 
             if (_cts.IsCancellationRequested) return;
 
+            _taskEntries.Clear();
             foreach (var task in tasks)
             {
                 _taskEntries.Add(task);
             }
 
+            TasksResultsPanel.Visibility = tasks.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+            UpdateEmptyStateVisibility();
             TxtStatus.Text = string.Format(L("ToolCronJobStatusTasks"), tasks.Count);
         }
         catch (OperationCanceledException)
         {
             TxtTasksError.Text = L("ToolCronJobErrorTimeout");
             TxtTasksError.Visibility = Visibility.Visible;
+            UpdateEmptyStateVisibility();
         }
         catch (Exception ex)
         {
             TxtTasksError.Text = string.Format(L("ToolCronJobErrorFailed"), ex.Message);
             TxtTasksError.Visibility = Visibility.Visible;
+            UpdateEmptyStateVisibility();
         }
         finally
         {
             _isLoading = false;
             _setBusy?.Invoke(false);
             LoadingBar.Visibility = Visibility.Collapsed;
-            BtnRefreshTasks.IsEnabled = true;
+            SetWindowsTasksInputsEnabled(true);
             TxtTasksLoading.Visibility = Visibility.Collapsed;
+            UpdateEmptyStateVisibility();
         }
+    }
+
+    private void SetWindowsTasksInputsEnabled(bool enabled)
+    {
+        BtnRefreshTasks.IsEnabled = enabled;
+        ModeTabControl.IsEnabled = enabled;
+        BtnCopyAll.IsEnabled = enabled;
+    }
+
+    private void UpdateEmptyStateVisibility()
+    {
+        var hasCronResults = CronResultsPanel.Visibility == Visibility.Visible && _cronEntries.Count > 0;
+        var hasTaskResults = TasksResultsPanel.Visibility == Visibility.Visible && _taskEntries.Count > 0;
+        var hasDraftInput = !string.IsNullOrWhiteSpace(TxtCrontabInput.Text);
+
+        EmptyStatePanel.Visibility = hasCronResults || hasTaskResults || hasDraftInput || _isLoading
+            ? Visibility.Collapsed
+            : Visibility.Visible;
     }
 
     private static async Task<List<WindowsTaskEntry>> GetWindowsTasksAsync(CancellationToken ct)

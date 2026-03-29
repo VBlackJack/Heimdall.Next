@@ -78,6 +78,13 @@ public partial class MainWindow : Window
                 UpdateTabVisibility(viewModel);
             }
         };
+        viewModel.ServerList.PropertyChanged += (_, e) =>
+        {
+            if (string.Equals(e.PropertyName, nameof(ServerListViewModel.SelectedServer), StringComparison.Ordinal))
+            {
+                Dispatcher.Invoke(UpdateToolLaunchContextLabels);
+            }
+        };
 
         // Wire split button callback from embedded views
         viewModel.EmbeddedSessionManager.SplitRequestedCallback = OnEmbeddedSplitRequested;
@@ -166,6 +173,7 @@ public partial class MainWindow : Window
         ApplySettingsLocalization(vm);
         ApplyAboutLocalization(vm);
         ApplyAccessibilityLocalization(vm);
+        UpdateToolLaunchContextLabels();
     }
 
     private void ApplyNavigationLocalization(MainViewModel vm)
@@ -193,7 +201,7 @@ public partial class MainWindow : Window
 
         Mw_PaletteNoResults.Text = vm.Localize("QuickConnectNoResults");
         Mw_PaletteHints.Text = vm.Localize("QuickConnectHints");
-        System.Windows.Automation.AutomationProperties.SetName(PaletteInput, vm.Localize("QuickConnectShortcut"));
+        System.Windows.Automation.AutomationProperties.SetName(PaletteInput, vm.Localize("PaletteSearchPlaceholder"));
     }
 
     private void ApplyToolbarLocalization(MainViewModel vm)
@@ -394,6 +402,7 @@ public partial class MainWindow : Window
         Mw_ToolsPanelHeaderLabel.Text = vm.Localize("ToolsPanelTitle");
         TxtToolsFilter.Tag = vm.Localize("ToolsPanelFilterPlaceholder");
         System.Windows.Automation.AutomationProperties.SetName(TxtToolsFilter, vm.Localize("ToolsPanelFilterPlaceholder"));
+        Mw_ToolsPanelNoResults.Text = vm.Localize("ToolsNoResults");
         Mw_SettingsExtToolsAddBtn.Content = vm.Localize("BtnAdd");
         Mw_SettingsExtToolsRemoveBtn.Content = vm.Localize("BtnRemove");
         Mw_ExtToolLblName.Text = vm.Localize("ExternalToolLabelName");
@@ -580,76 +589,45 @@ public partial class MainWindow : Window
         }
     }
 
-    private void OnAddToolSubmenuOpened(object sender, RoutedEventArgs e)
+    private async void OnAddToolMenuClick(object sender, RoutedEventArgs e)
     {
-        if (sender is not MenuItem parentItem || DataContext is not MainViewModel vm)
-            return;
-
-        if (parentItem.Items.Count > 1)
-            return;
-
-        parentItem.Items.Clear();
-
-        string? lastCategory = null;
-        foreach (var descriptor in ToolRegistry.All)
+        if (sender is not MenuItem item || DataContext is not MainViewModel vm)
         {
-            if (!string.Equals(descriptor.CategoryLabelKey, lastCategory, StringComparison.Ordinal))
-            {
-                if (lastCategory is not null)
-                    parentItem.Items.Add(new Separator());
-
-                var header = new MenuItem
-                {
-                    Header = vm.Localize(descriptor.CategoryLabelKey),
-                    IsEnabled = false,
-                    FontWeight = FontWeights.SemiBold
-                };
-                parentItem.Items.Add(header);
-                lastCategory = descriptor.CategoryLabelKey;
-            }
-
-            var item = new MenuItem { Header = vm.Localize(descriptor.LabelKey), Tag = descriptor.ToolType };
-            item.Click += OnAddToolItemClick;
-            parentItem.Items.Add(item);
+            return;
         }
+
+        await ShowAddToolPickerAsync(vm, item.Tag as string);
     }
 
-    private async void OnAddToolItemClick(object sender, RoutedEventArgs e)
+    private async Task ShowAddToolPickerAsync(MainViewModel vm, string? group = null)
     {
         try
         {
-            if (sender is not MenuItem item || DataContext is not MainViewModel vm)
-                return;
-
-            var toolType = (string)item.Tag;
-            var label = (string)item.Header;
-            var group = (item.Parent as MenuItem)?.Tag as string;
-
-            var displayName = await vm.DialogService.ShowInputAsync(
-                vm.Localize("AddToolDialogTitle"),
-                vm.Localize("AddToolDialogName"),
-                label);
-
-            if (string.IsNullOrWhiteSpace(displayName)) return;
-
-            // Only prompt for host on network-oriented tools
-            string host = "";
-            if (ToolRegistry.IsNetworkTool(toolType))
+            var dialog = new Views.Dialogs.ToolPickerDialog(
+                vm.GetLocalizer(),
+                ToolRegistry.All,
+                group,
+                vm.ServerList.SelectedServer?.RemoteServer)
             {
-                var hostInput = await vm.DialogService.ShowInputAsync(
-                    vm.Localize("AddToolDialogTitle"),
-                    vm.Localize("AddToolDialogHost"),
-                    "");
-                host = hostInput?.Trim() ?? "";
+                Owner = this
+            };
+
+            if (dialog.ShowDialog() != true || dialog.SelectedTool is null)
+            {
+                return;
             }
+
+            var host = dialog.SelectedTool.IsNetworkTool
+                ? dialog.SelectedHost
+                : string.Empty;
 
             var dto = new Core.Configuration.ServerProfileDto
             {
                 Id = Guid.NewGuid().ToString(),
-                DisplayName = displayName.Trim(),
-                ConnectionType = toolType,
+                DisplayName = dialog.SelectedDisplayName,
+                ConnectionType = dialog.SelectedTool.ToolType,
                 RemoteServer = host,
-                Group = group
+                Group = string.IsNullOrWhiteSpace(group) ? null : group
             };
 
             var servers = await vm.ConfigManager.LoadServersAsync();
@@ -659,7 +637,10 @@ public partial class MainWindow : Window
             var settings = await vm.ConfigManager.LoadSettingsAsync();
             vm.ServerList.LoadServers(servers, settings);
         }
-        catch (Exception ex) { Core.Logging.FileLogger.Error($"Add tool failed: {ex.Message}"); }
+        catch (Exception ex)
+        {
+            Core.Logging.FileLogger.Error($"Add tool failed: {ex.Message}");
+        }
     }
 
     private async void OnToolsTabChecked(object sender, RoutedEventArgs e)
@@ -1880,10 +1861,12 @@ public partial class MainWindow : Window
         if (_toolsTabPopulated)
         {
             RefreshToolsTabSections(vm);
+            UpdateToolLaunchContextLabels();
             return;
         }
         _toolsTabPopulated = true;
         RefreshToolsTabSections(vm);
+        UpdateToolLaunchContextLabels();
     }
 
     private void RefreshToolsTabSections(MainViewModel vm)
@@ -1891,6 +1874,7 @@ public partial class MainWindow : Window
         ToolsTabContent.Children.Clear();
         var filter = Mw_ToolsTabSearch.Text.Trim();
         var hasFilter = !string.IsNullOrEmpty(filter);
+        var matchingToolCount = 0;
 
         // ── Favorites section ──
         if (!hasFilter)
@@ -1960,6 +1944,8 @@ public partial class MainWindow : Window
                     continue;
             }
 
+            matchingToolCount++;
+
             if (!string.Equals(descriptor.CategoryLabelKey, lastCategory, StringComparison.Ordinal))
             {
                 if (currentWrap is not null)
@@ -1975,6 +1961,38 @@ public partial class MainWindow : Window
         }
         if (currentWrap is not null)
             ToolsTabContent.Children.Add(currentWrap);
+
+        Mw_ToolsTabCount.Text = vm.Localize("ToolsToolCount")
+            .Replace("{0}", (hasFilter ? matchingToolCount : ToolRegistry.All.Count).ToString());
+
+        if (hasFilter && matchingToolCount == 0)
+        {
+            var emptyState = new StackPanel
+            {
+                Margin = new Thickness(0, 24, 0, 0),
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Center
+            };
+
+            emptyState.Children.Add(new TextBlock
+            {
+                Text = vm.Localize("ToolsNoResults"),
+                FontSize = (double)FindResource("FontSizeBodyLarge"),
+                FontWeight = FontWeights.SemiBold,
+                Foreground = (Brush)FindResource("TextSecondaryBrush"),
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
+                Margin = new Thickness(0, 0, 0, 6)
+            });
+            emptyState.Children.Add(new TextBlock
+            {
+                Text = vm.Localize("ToolsNoResultsHint"),
+                FontSize = (double)FindResource("FontSizeCaption"),
+                Foreground = (Brush)FindResource("TextDisabledBrush"),
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
+                TextAlignment = TextAlignment.Center
+            });
+
+            ToolsTabContent.Children.Add(emptyState);
+        }
     }
 
     private void AddToolsTabSectionHeader(string text, string brushKey)
@@ -2018,10 +2036,14 @@ public partial class MainWindow : Window
     /// <summary>
     /// Creates a wider card for the Tools tab grid layout with a pin/unpin button.
     /// </summary>
-    private Border CreateToolsTabCard(MainViewModel vm, Core.Models.ToolDescriptor descriptor, bool showUnpin)
+    private FrameworkElement CreateToolsTabCard(MainViewModel vm, Core.Models.ToolDescriptor descriptor, bool showUnpin)
     {
         var categoryBrushKey = GetCategoryBrushKey(descriptor.Category);
         var categoryBrush = (Brush)FindResource(categoryBrushKey);
+        var defaultBorderBrush = (Brush)FindResource("BorderBrush");
+        var activeBorderBrush = (Brush)FindResource("AccentBrush");
+        var defaultBackgroundBrush = (Brush)FindResource("CardBrush");
+        var activeBackgroundBrush = (Brush)FindResource("SurfaceBrush");
 
         // Icon
         System.Windows.Shapes.Path? iconPath = null;
@@ -2084,7 +2106,11 @@ public partial class MainWindow : Window
         if (!string.IsNullOrEmpty(descBlock.Text))
             textStack.Children.Add(descBlock);
 
-        var content = new DockPanel { LastChildFill = true };
+        var content = new DockPanel
+        {
+            LastChildFill = true,
+            Margin = new Thickness(0, 0, 24, 0)
+        };
         if (iconPath is not null)
         {
             var iconBorder = new Border
@@ -2100,25 +2126,106 @@ public partial class MainWindow : Window
             content.Children.Add(iconBorder);
             DockPanel.SetDock(iconBorder, Dock.Left);
         }
-        content.Children.Add(pinBtn);
-        DockPanel.SetDock(pinBtn, Dock.Right);
         content.Children.Add(textStack);
 
-        var card = new Border
+        var launchButton = new Button
+        {
+            Content = content,
+            Tag = descriptor,
+            Background = Brushes.Transparent,
+            BorderThickness = new Thickness(0),
+            Padding = new Thickness(10, 8, 10, 8),
+            HorizontalContentAlignment = System.Windows.HorizontalAlignment.Stretch,
+            VerticalContentAlignment = VerticalAlignment.Stretch,
+            Cursor = System.Windows.Input.Cursors.Hand,
+            ToolTip = descBlock.Text.Length > 0 ? descBlock.Text : null
+        };
+        System.Windows.Automation.AutomationProperties.SetName(launchButton, vm.Localize(descriptor.LabelKey));
+        launchButton.Click += OnToolsTabCardClick;
+
+        var cardBorder = new Border
+        {
+            BorderThickness = new Thickness(1),
+            BorderBrush = defaultBorderBrush,
+            Background = defaultBackgroundBrush,
+            CornerRadius = new CornerRadius(8),
+            Child = launchButton
+        };
+
+        void UpdateCardVisualState()
+        {
+            var isActive = launchButton.IsMouseOver
+                || launchButton.IsKeyboardFocusWithin
+                || pinBtn.IsMouseOver
+                || pinBtn.IsKeyboardFocusWithin;
+
+            cardBorder.BorderBrush = isActive ? activeBorderBrush : defaultBorderBrush;
+            cardBorder.Background = isActive ? activeBackgroundBrush : defaultBackgroundBrush;
+        }
+
+        launchButton.MouseEnter += (_, _) => UpdateCardVisualState();
+        launchButton.MouseLeave += (_, _) => UpdateCardVisualState();
+        launchButton.GotKeyboardFocus += (_, _) => UpdateCardVisualState();
+        launchButton.LostKeyboardFocus += (_, _) => UpdateCardVisualState();
+        pinBtn.MouseEnter += (_, _) => UpdateCardVisualState();
+        pinBtn.MouseLeave += (_, _) => UpdateCardVisualState();
+        pinBtn.GotKeyboardFocus += (_, _) => UpdateCardVisualState();
+        pinBtn.LostKeyboardFocus += (_, _) => UpdateCardVisualState();
+
+        var card = new Grid
         {
             Width = 280,
-            Padding = new Thickness(10, 8, 10, 8),
-            Margin = new Thickness(0, 0, 8, 8),
-            CornerRadius = new CornerRadius(8),
-            BorderThickness = new Thickness(1),
-            BorderBrush = (Brush)FindResource("BorderBrush"),
-            Background = (Brush)FindResource("CardBrush"),
-            Child = content,
-            Cursor = System.Windows.Input.Cursors.Hand,
-            Tag = descriptor
+            Margin = new Thickness(0, 0, 8, 8)
         };
-        card.MouseLeftButtonUp += OnToolsTabCardClick;
+        card.Children.Add(cardBorder);
+
+        pinBtn.HorizontalAlignment = System.Windows.HorizontalAlignment.Right;
+        pinBtn.VerticalAlignment = VerticalAlignment.Top;
+        pinBtn.Margin = new Thickness(0, 6, 6, 0);
+        card.Children.Add(pinBtn);
+
+        _ = showUnpin;
         return card;
+    }
+
+    private string? GetInheritedToolTargetHost(MainViewModel vm)
+    {
+        var host = vm.ServerList.SelectedServer?.RemoteServer;
+        return string.IsNullOrWhiteSpace(host) ? null : host.Trim();
+    }
+
+    private Core.Models.ToolContext? CreateInheritedToolContext(MainViewModel vm, Core.Models.ToolDescriptor descriptor)
+    {
+        if (!descriptor.IsNetworkTool)
+        {
+            return null;
+        }
+
+        var host = GetInheritedToolTargetHost(vm);
+        return host is null ? null : new Core.Models.ToolContext(TargetHost: host);
+    }
+
+    private void UpdateToolLaunchContextLabels()
+    {
+        if (DataContext is not MainViewModel vm)
+        {
+            return;
+        }
+
+        var host = GetInheritedToolTargetHost(vm);
+        var hasTarget = !string.IsNullOrEmpty(host);
+        var text = hasTarget
+            ? vm.Localize("ToolsNetworkContextWith").Replace("{0}", host)
+            : vm.Localize("ToolsNetworkContextNone");
+        var brush = (Brush)FindResource(hasTarget ? "AccentBrush" : "TextDisabledBrush");
+
+        Mw_ToolsPanelContextText.Text = text;
+        Mw_ToolsPanelContextText.Foreground = brush;
+        Mw_ToolsPanelContextText.ToolTip = text;
+
+        Mw_ToolsTabContextText.Text = text;
+        Mw_ToolsTabContextText.Foreground = brush;
+        Mw_ToolsTabContextText.ToolTip = text;
     }
 
     private async void OnToolPinClick(object sender, RoutedEventArgs e)
@@ -2131,21 +2238,15 @@ public partial class MainWindow : Window
         RefreshToolsTabSections(vm);
     }
 
-    private async void OnToolsTabCardClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    private async void OnToolsTabCardClick(object sender, RoutedEventArgs e)
     {
-        if (sender is not Border card || card.Tag is not Core.Models.ToolDescriptor descriptor
+        if (sender is not FrameworkElement element || element.Tag is not Core.Models.ToolDescriptor descriptor
             || DataContext is not MainViewModel vm)
             return;
 
         try
         {
-            Core.Models.ToolContext? context = null;
-            if (descriptor.IsNetworkTool)
-            {
-                var host = vm.ServerList.SelectedServer?.RemoteServer;
-                if (!string.IsNullOrWhiteSpace(host))
-                    context = new Core.Models.ToolContext(TargetHost: host);
-            }
+            var context = CreateInheritedToolContext(vm, descriptor);
 
             // Switch to Servers tab first so the session panel is visible
             TabServers.IsChecked = true;
@@ -2249,6 +2350,7 @@ public partial class MainWindow : Window
     {
         var filter = TxtToolsFilter.Text.Trim();
         var hasFilter = !string.IsNullOrEmpty(filter);
+        var visibleToolCount = 0;
 
         foreach (UIElement child in ToolsCategoryStack.Children)
         {
@@ -2257,6 +2359,7 @@ public partial class MainWindow : Window
                 if (!hasFilter)
                 {
                     btn.Visibility = Visibility.Visible;
+                    visibleToolCount++;
                     continue;
                 }
 
@@ -2267,6 +2370,10 @@ public partial class MainWindow : Window
                 btn.Visibility = searchable.Contains(filter, StringComparison.OrdinalIgnoreCase)
                     ? Visibility.Visible
                     : Visibility.Collapsed;
+                if (btn.Visibility == Visibility.Visible)
+                {
+                    visibleToolCount++;
+                }
             }
             else if (child is StackPanel header)
             {
@@ -2291,6 +2398,14 @@ public partial class MainWindow : Window
                 }
             }
         }
+
+        Mw_ToolsPanelNoResults.Visibility = hasFilter && visibleToolCount == 0
+            ? Visibility.Visible
+            : Visibility.Collapsed;
+        if (Mw_ToolsPanelNoResults.Visibility == Visibility.Visible)
+        {
+            ToolsPanelScrollHint.Visibility = Visibility.Collapsed;
+        }
     }
 
     private void OnToolsPanelScrollChanged(object sender, ScrollChangedEventArgs e)
@@ -2308,15 +2423,7 @@ public partial class MainWindow : Window
 
         try
         {
-            Core.Models.ToolContext? context = null;
-
-            // For network tools, use selected server directly (no intermediate prompt)
-            if (descriptor.IsNetworkTool)
-            {
-                var host = vm.ServerList.SelectedServer?.RemoteServer;
-                if (!string.IsNullOrWhiteSpace(host))
-                    context = new Core.Models.ToolContext(TargetHost: host);
-            }
+            var context = CreateInheritedToolContext(vm, descriptor);
 
             await vm.OpenToolTabAsync(
                 descriptor.Id,
@@ -2558,7 +2665,7 @@ public partial class MainWindow : Window
             }
         };
         menu.Items.Add(addSubItem);
-        menu.Items.Add(CreateAddToolSubmenu(vm, folder.FullPath));
+        menu.Items.Add(CreateAddToolMenuItem(vm, folder.FullPath));
 
         menu.Items.Add(new Separator());
 
@@ -2692,39 +2799,16 @@ public partial class MainWindow : Window
         menu.Items.Add(newFolderItem);
 
         menu.Items.Add(new Separator());
-        menu.Items.Add(CreateAddToolSubmenu(vm));
+        menu.Items.Add(CreateAddToolMenuItem(vm));
 
         return menu;
     }
 
-    private MenuItem CreateAddToolSubmenu(MainViewModel vm, string? group = null)
+    private MenuItem CreateAddToolMenuItem(MainViewModel vm, string? group = null)
     {
-        var toolMenu = new MenuItem { Header = vm.Localize("AddMenuTool"), Tag = group };
-
-        string? lastCategory = null;
-        foreach (var descriptor in ToolRegistry.All)
-        {
-            if (!string.Equals(descriptor.CategoryLabelKey, lastCategory, StringComparison.Ordinal))
-            {
-                if (lastCategory is not null)
-                    toolMenu.Items.Add(new Separator());
-
-                var header = new MenuItem
-                {
-                    Header = vm.Localize(descriptor.CategoryLabelKey),
-                    IsEnabled = false,
-                    FontWeight = FontWeights.SemiBold
-                };
-                toolMenu.Items.Add(header);
-                lastCategory = descriptor.CategoryLabelKey;
-            }
-
-            var item = new MenuItem { Header = vm.Localize(descriptor.LabelKey), Tag = descriptor.ToolType };
-            item.Click += OnAddToolItemClick;
-            toolMenu.Items.Add(item);
-        }
-
-        return toolMenu;
+        var item = new MenuItem { Header = vm.Localize("AddMenuTool"), Tag = group };
+        item.Click += OnAddToolMenuClick;
+        return item;
     }
 
     private MenuItem CreateMoveToProjectMenu(MainViewModel vm, ServerItemViewModel server)
@@ -3766,7 +3850,19 @@ public partial class MainWindow : Window
 
     private void UpdatePaletteModeLabel()
     {
-        if (DataContext is MainViewModel vm && vm.IsPaletteInSplitMode)
+        if (DataContext is not MainViewModel vm)
+        {
+            PaletteModeLabel.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        System.Windows.Automation.AutomationProperties.SetName(
+            PaletteInput,
+            string.IsNullOrWhiteSpace(vm.PalettePlaceholder)
+                ? vm.Localize("PaletteSearchPlaceholder")
+                : vm.PalettePlaceholder);
+
+        if (vm.IsPaletteInSplitMode)
         {
             PaletteModeLabel.Text = vm.Localize("PaletteModeSplit");
             PaletteModeLabel.Visibility = Visibility.Visible;

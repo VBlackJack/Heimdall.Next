@@ -44,19 +44,23 @@ public partial class UrlEncoderView : UserControl, IToolView
     {
         _localizer = localizer;
         ApplyLocalization();
-
-        // Pre-fill with a sensible default; context overrides if provided
-        var initialText = "https://example.com/path?key=hello world&lang=en";
-
-        if (!string.IsNullOrWhiteSpace(context?.Argument))
+        _updatingFromCode = true;
+        try
         {
-            initialText = context.Argument;
+            TxtDecoded.Clear();
+            TxtEncoded.Clear();
+        }
+        finally
+        {
+            _updatingFromCode = false;
         }
 
         _initialized = true;
 
-        // Setting TxtDecoded.Text triggers OnDecodedTextChanged which auto-encodes
-        TxtDecoded.Text = initialText;
+        if (!string.IsNullOrWhiteSpace(context?.Argument))
+        {
+            TxtDecoded.Text = context.Argument;
+        }
 
         Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, () =>
         {

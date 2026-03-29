@@ -1003,7 +1003,7 @@ public partial class MainViewModel : ObservableObject
     private void OpenCommandPalette()
     {
         _splitPaletteSession = null;
-        PalettePlaceholder = _localizer["QuickConnectShortcut"];
+        PalettePlaceholder = _localizer["PaletteSearchPlaceholder"];
         PaletteSearchText = "";
         IsCommandPaletteOpen = true;
         OnPaletteSearchTextChanged("");

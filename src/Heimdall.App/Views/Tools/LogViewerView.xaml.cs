@@ -67,6 +67,16 @@ public partial class LogViewerView : UserControl, IToolView
     {
         _localizer = localizer;
         ApplyLocalization();
+        ClearErrorState();
+        UpdateViewerState();
+
+        if (!string.IsNullOrWhiteSpace(context?.Argument))
+        {
+            FilePathInput.Text = context.Argument;
+            LoadFile(context.Argument);
+        }
+
+        Dispatcher.BeginInvoke(DispatcherPriority.Loaded, () => FilePathInput.Focus());
     }
 
     private void ApplyLocalization()
@@ -137,26 +147,20 @@ public partial class LogViewerView : UserControl, IToolView
     private void LoadFile(string filePath)
     {
         StopTail();
-        EmptyStatePanel.Visibility = Visibility.Collapsed;
+        ClearErrorState();
+        DisposeCurrentFile();
+        ResetDisplay();
 
         if (!File.Exists(filePath))
         {
-            MessageBox.Show(
-                L("ToolLogViewErrorFileNotFound"),
-                L("ToolLogViewTitle"),
-                MessageBoxButton.OK,
-                MessageBoxImage.Warning);
+            ShowErrorState(L("ToolLogViewErrorFileNotFound"));
             return;
         }
 
         _filePath = filePath;
-        _totalLineCount = 0;
-        _displayedLineCount = 0;
-        LogDocument.Blocks.Clear();
 
         try
         {
-            _fileStream?.Dispose();
             _fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
 
             using var reader = new StreamReader(_fileStream, _encoding, leaveOpen: true);
@@ -174,11 +178,9 @@ public partial class LogViewerView : UserControl, IToolView
         }
         catch (IOException ex)
         {
-            MessageBox.Show(
-                string.Format(L("ToolLogViewErrorOpen"), ex.Message),
-                L("ToolLogViewTitle"),
-                MessageBoxButton.OK,
-                MessageBoxImage.Error);
+            DisposeCurrentFile();
+            ResetDisplay();
+            ShowErrorState(string.Format(L("ToolLogViewErrorOpen"), ex.Message));
         }
     }
 
@@ -234,6 +236,7 @@ public partial class LogViewerView : UserControl, IToolView
                 _totalLineCount = 0;
                 _displayedLineCount = 0;
                 LogDocument.Blocks.Clear();
+                UpdateViewerState();
             }
 
             _fileStream.Position = _lastPosition;
@@ -282,6 +285,7 @@ public partial class LogViewerView : UserControl, IToolView
         }
 
         TrimToMaxLines();
+        UpdateViewerState();
 
         if (_autoScroll)
         {
@@ -343,6 +347,7 @@ public partial class LogViewerView : UserControl, IToolView
 
     private void ApplyFilter()
     {
+        ClearErrorState();
         var pattern = FilterInput.Text.Trim();
         if (string.IsNullOrEmpty(pattern))
         {
@@ -360,11 +365,9 @@ public partial class LogViewerView : UserControl, IToolView
             }
             catch (RegexParseException)
             {
-                MessageBox.Show(
-                    L("ToolLogViewErrorInvalidRegex"),
-                    L("ToolLogViewTitle"),
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Warning);
+                ShowErrorState(L("ToolLogViewErrorInvalidRegex"));
+                FilterInput.Focus();
+                FilterInput.SelectAll();
                 return;
             }
         }
@@ -379,6 +382,7 @@ public partial class LogViewerView : UserControl, IToolView
     {
         if (_filePath is null || _fileStream is null) return;
 
+        ClearErrorState();
         _displayedLineCount = 0;
         _totalLineCount = 0;
         LogDocument.Blocks.Clear();
@@ -393,9 +397,10 @@ public partial class LogViewerView : UserControl, IToolView
             AppendLines(content);
             UpdateStats();
         }
-        catch (IOException)
+        catch (IOException ex)
         {
-            // File access error during reload
+            ShowErrorState(string.Format(L("ToolLogViewErrorOpen"), ex.Message));
+            UpdateViewerState();
         }
     }
 
@@ -465,6 +470,49 @@ public partial class LogViewerView : UserControl, IToolView
     private void OnCloseHelpClick(object sender, RoutedEventArgs e)
     {
         HelpPanel.Visibility = Visibility.Collapsed;
+    }
+
+    private void ClearErrorState()
+    {
+        ErrorText.Text = string.Empty;
+        ErrorText.Visibility = Visibility.Collapsed;
+    }
+
+    private void ShowErrorState(string message)
+    {
+        ErrorText.Text = message;
+        ErrorText.Visibility = string.IsNullOrWhiteSpace(message)
+            ? Visibility.Collapsed
+            : Visibility.Visible;
+        UpdateViewerState();
+        ErrorText.BringIntoView();
+    }
+
+    private void ResetDisplay()
+    {
+        _totalLineCount = 0;
+        _displayedLineCount = 0;
+        _lastPosition = 0;
+        LogDocument.Blocks.Clear();
+        StatsText.Text = string.Empty;
+        UpdateViewerState();
+    }
+
+    private void DisposeCurrentFile()
+    {
+        _fileStream?.Dispose();
+        _fileStream = null;
+        _filePath = null;
+    }
+
+    private void UpdateViewerState()
+    {
+        var hasContent = LogDocument.Blocks.Count > 0;
+        ResultsPanel.Visibility = hasContent ? Visibility.Visible : Visibility.Collapsed;
+        EmptyStatePanel.Visibility = hasContent ? Visibility.Collapsed : Visibility.Visible;
+        TxtEmptyState.Text = _filterRegex is not null && !hasContent && _filePath is not null
+            ? L("ToolLogViewNoMatches")
+            : L("ToolLogViewEmptyState");
     }
 
     private string L(string key) => _localizer?[key] ?? key;

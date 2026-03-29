@@ -1908,6 +1908,48 @@
     </Style>
 
     <!-- ========================================================= -->
+    <!-- Tool Async Shell                                          -->
+    <!-- ========================================================= -->
+    <Style x:Key="ToolInlineErrorTextStyle" TargetType="{x:Type TextBlock}">
+        <Setter Property="FontSize" Value="{StaticResource FontSizeBody}"/>
+        <Setter Property="Margin" Value="{StaticResource MarginSectionBottom}"/>
+        <Setter Property="TextWrapping" Value="Wrap"/>
+        <Setter Property="Foreground" Value="{DynamicResource ErrorTextBrush}"/>
+        <Setter Property="Visibility" Value="Collapsed"/>
+    </Style>
+
+    <Style x:Key="ToolLoadingBarStyle" TargetType="{x:Type ProgressBar}">
+        <Setter Property="IsIndeterminate" Value="True"/>
+        <Setter Property="Height" Value="4"/>
+        <Setter Property="Margin" Value="{StaticResource MarginSectionBottom}"/>
+        <Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
+        <Setter Property="Visibility" Value="Collapsed"/>
+    </Style>
+
+    <Style x:Key="ToolEmptyStateIconStyle" TargetType="{x:Type TextBlock}">
+        <Setter Property="FontFamily" Value="Segoe MDL2 Assets"/>
+        <Setter Property="FontSize" Value="{StaticResource IconSizeEmptyState}"/>
+        <Setter Property="HorizontalAlignment" Value="Center"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextDisabledBrush}"/>
+        <Setter Property="Margin" Value="0,0,0,8"/>
+    </Style>
+
+    <Style x:Key="ToolEmptyStateTextStyle" TargetType="{x:Type TextBlock}">
+        <Setter Property="FontSize" Value="{StaticResource FontSizeBodyLarge}"/>
+        <Setter Property="TextAlignment" Value="Center"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+    </Style>
+
+    <Style x:Key="ToolResultsCardStyle" TargetType="{x:Type Border}">
+        <Setter Property="Visibility" Value="Collapsed"/>
+        <Setter Property="Background" Value="{DynamicResource CardBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="CornerRadius" Value="{StaticResource CornerRadiusSm}"/>
+        <Setter Property="Padding" Value="{StaticResource PaddingSectionCard}"/>
+    </Style>
+
+    <!-- ========================================================= -->
     <!-- Tool Empty State                                          -->
     <!-- ========================================================= -->
     <Style x:Key="ToolEmptyStateStyle" TargetType="{x:Type Border}">

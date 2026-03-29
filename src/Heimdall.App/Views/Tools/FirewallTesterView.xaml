@@ -103,9 +103,9 @@
                     <TextBlock x:Name="LblPorts" Text=""
                                FontSize="{StaticResource FontSizeCaption}"
                                Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,4"/>
-                    <TextBox x:Name="TxtPorts" Text="22,80,443,3389"
+                    <TextBox x:Name="TxtPorts" Text=""
                              Style="{StaticResource WatermarkTextBoxStyle}"
-                             Tag="22,80,443,3389"
+                             Tag=""
                              FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                              Padding="{StaticResource PaddingInput}"
                              Background="{DynamicResource CardBrush}"
@@ -151,9 +151,9 @@
         </Border>
 
         <!-- Validation error -->
-        <TextBlock x:Name="TxtError" Grid.Row="3" Text="" Visibility="Collapsed"
-                   FontSize="{StaticResource FontSizeBody}" Margin="12,4,12,0" TextWrapping="Wrap"
-                   Foreground="{DynamicResource ErrorTextBrush}"/>
+        <TextBlock x:Name="TxtError" Grid.Row="3" Text=""
+                   Style="{StaticResource ToolInlineErrorTextStyle}"
+                   Margin="12,4,12,0"/>
 
         <!-- Progress bar with count overlay -->
         <Grid Grid.Row="4" x:Name="ProgressPanel" Visibility="Collapsed">
@@ -180,24 +180,27 @@
                 Style="{StaticResource ToolEmptyStateStyle}"
                 Margin="0,24,0,0">
             <StackPanel HorizontalAlignment="Center">
-                <TextBlock Text="&#xE7EF;" FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource IconSizeEmptyState}"
-                           HorizontalAlignment="Center"
-                           Foreground="{DynamicResource TextDisabledBrush}" Margin="0,0,0,8"/>
+                <TextBlock Text="&#xE7EF;"
+                           Style="{StaticResource ToolEmptyStateIconStyle}"/>
                 <TextBlock x:Name="TxtEmptyState" Text=""
-                           FontSize="{StaticResource FontSizeBodyLarge}" TextAlignment="Center"
-                           Foreground="{DynamicResource TextSecondaryBrush}"/>
+                           Style="{StaticResource ToolEmptyStateTextStyle}"/>
             </StackPanel>
         </Border>
 
         <!-- Heatmap results -->
-        <ScrollViewer x:Name="HeatmapScrollViewer" Grid.Row="5" Visibility="Collapsed"
-                      VerticalScrollBarVisibility="Auto"
-                      HorizontalScrollBarVisibility="Auto"
-                      Padding="{StaticResource SpacingSm}">
-            <Grid x:Name="HeatmapGrid"
-                  AutomationProperties.Name=""
-                  AutomationProperties.LiveSetting="Polite"/>
-        </ScrollViewer>
+        <Border x:Name="ResultsPanel" Grid.Row="5"
+                Style="{StaticResource ToolResultsCardStyle}"
+                Margin="{StaticResource SpacingSm}"
+                Padding="0">
+            <ScrollViewer x:Name="HeatmapScrollViewer"
+                          VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Auto"
+                          Padding="{StaticResource SpacingSm}">
+                <Grid x:Name="HeatmapGrid"
+                      AutomationProperties.Name=""
+                      AutomationProperties.LiveSetting="Polite"/>
+            </ScrollViewer>
+        </Border>
 
         <!-- Stats bar -->
         <Border Grid.Row="6" Padding="{StaticResource ToolFooterPadding}"

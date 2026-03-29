@@ -39,6 +39,7 @@ public partial class PasswordGeneratorView : UserControl, IToolView
     private const string SymbolChars = "!@#$%^&*()-_=+[]{}|;:',.<>?/~`";
     private const string AmbiguousChars = "0Oo1lI|";
     private const string ShellDangerousChars = "$^&*'\"\\|`(){}[]<>!~;";
+    private const string DefaultPassphraseSeparator = "-";
     private const int PhoneticMaxLength = 32;
     private const int ClipboardClearDelaySeconds = 30;
 
@@ -134,6 +135,7 @@ public partial class PasswordGeneratorView : UserControl, IToolView
         LoadWordLists();
         PopulateComboBoxes();
         ApplyLocalization();
+        TxtPpSeparator.Text = DefaultPassphraseSeparator;
 
         if (context?.Argument is { } arg && int.TryParse(arg, out var length))
         {
@@ -145,6 +147,11 @@ public partial class PasswordGeneratorView : UserControl, IToolView
         RebuildCustomPresetButtons();
         UpdateQuickLengthHighlight();
         GeneratePassword();
+
+        Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, () =>
+        {
+            LengthSlider.Focus();
+        });
     }
 
     private void LoadWordLists()

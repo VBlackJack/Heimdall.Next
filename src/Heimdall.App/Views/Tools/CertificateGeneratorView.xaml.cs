@@ -75,6 +75,14 @@ public partial class CertificateGeneratorView : UserControl, IToolView
     {
         _localizer = localizer;
         ApplyLocalization();
+        ClearValidation();
+        ValidityInput.Text = DefaultValidityDays.ToString();
+
+        Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, () =>
+        {
+            CnInput.Focus();
+            CnInput.SelectAll();
+        });
     }
 
     private void ApplyLocalization()
@@ -148,24 +156,21 @@ public partial class CertificateGeneratorView : UserControl, IToolView
 
     private void OnGenerateClick(object sender, RoutedEventArgs e)
     {
+        ClearValidation();
+
         var cn = CnInput.Text.Trim();
         if (string.IsNullOrEmpty(cn))
         {
-            MessageBox.Show(
-                L("ToolCertGenErrorCnRequired"),
-                L("ToolCertGenTitle"),
-                MessageBoxButton.OK,
-                MessageBoxImage.Warning);
+            ShowValidation(L("ToolCertGenErrorCnRequired"));
+            CnInput.Focus();
             return;
         }
 
         if (!int.TryParse(ValidityInput.Text.Trim(), out var validityDays) || validityDays < 1)
         {
-            MessageBox.Show(
-                L("ToolCertGenErrorInvalidValidity"),
-                L("ToolCertGenTitle"),
-                MessageBoxButton.OK,
-                MessageBoxImage.Warning);
+            ShowValidation(L("ToolCertGenErrorInvalidValidity"));
+            ValidityInput.Focus();
+            ValidityInput.SelectAll();
             return;
         }
 
@@ -190,11 +195,7 @@ public partial class CertificateGeneratorView : UserControl, IToolView
         }
         catch (CryptographicException ex)
         {
-            MessageBox.Show(
-                string.Format(L("ToolCertGenErrorGeneration"), ex.Message),
-                L("ToolCertGenTitle"),
-                MessageBoxButton.OK,
-                MessageBoxImage.Error);
+            ShowValidation(string.Format(L("ToolCertGenErrorGeneration"), ex.Message));
         }
     }
 
@@ -306,6 +307,7 @@ public partial class CertificateGeneratorView : UserControl, IToolView
 
     private void ShowSelfSignedResults()
     {
+        ClearValidation();
         FingerprintOutput.Text = _fingerprint;
         CertOutput.Text = _certPem;
 
@@ -324,6 +326,7 @@ public partial class CertificateGeneratorView : UserControl, IToolView
 
     private void ShowCaLeafResults()
     {
+        ClearValidation();
         FingerprintOutput.Text = _fingerprint;
 
         // CA cert and key go in the main cert/key panels
@@ -440,6 +443,7 @@ public partial class CertificateGeneratorView : UserControl, IToolView
     private void OnSavePfxClick(object sender, RoutedEventArgs e)
     {
         if (_exportCert is null) return;
+        ClearValidation();
 
         var pfxPassword = PromptPfxPassword();
         if (pfxPassword is null) return; // user cancelled
@@ -472,13 +476,24 @@ public partial class CertificateGeneratorView : UserControl, IToolView
             }
             catch (CryptographicException ex)
             {
-                MessageBox.Show(
-                    string.Format(L("ToolCertGenErrorExport"), ex.Message),
-                    L("ToolCertGenTitle"),
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Error);
+                ShowValidation(string.Format(L("ToolCertGenErrorExport"), ex.Message));
             }
         }
+    }
+
+    private void ClearValidation()
+    {
+        ValidationText.Text = string.Empty;
+        ValidationText.Visibility = Visibility.Collapsed;
+    }
+
+    private void ShowValidation(string message)
+    {
+        ValidationText.Text = message;
+        ValidationText.Visibility = string.IsNullOrWhiteSpace(message)
+            ? Visibility.Collapsed
+            : Visibility.Visible;
+        ValidationText.BringIntoView();
     }
 
     /// <summary>

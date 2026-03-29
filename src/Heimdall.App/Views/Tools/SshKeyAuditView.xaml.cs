@@ -87,6 +87,12 @@ public partial class SshKeyAuditView : UserControl, IToolView
     {
         _localizer = localizer;
         ApplyLocalization();
+
+        Dispatcher.BeginInvoke(DispatcherPriority.Loaded, () =>
+        {
+            KeyInput.Focus();
+            KeyInput.SelectAll();
+        });
     }
 
     private void ApplyLocalization()

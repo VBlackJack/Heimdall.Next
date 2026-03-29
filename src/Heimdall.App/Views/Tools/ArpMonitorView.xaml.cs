@@ -47,7 +47,9 @@ public partial class ArpMonitorView : UserControl, IToolView
     private Action<bool>? _setBusy;
     private DispatcherTimer? _refreshTimer;
     private bool _isRunning;
+    private bool _isRefreshing;
     private bool _disposed;
+    private readonly ToolAsyncStateController _viewState;
 
     private readonly ObservableCollection<ArpEntry> _entries = [];
     private readonly Dictionary<string, ArpEntry> _knownEntries = new(StringComparer.OrdinalIgnoreCase);
@@ -55,6 +57,13 @@ public partial class ArpMonitorView : UserControl, IToolView
     public ArpMonitorView()
     {
         InitializeComponent();
+        _viewState = new ToolAsyncStateController(
+            null,
+            LoadingBar,
+            TxtError,
+            EmptyStatePanel,
+            GridPanel,
+            null);
         ArpGrid.ItemsSource = _entries;
     }
 
@@ -75,7 +84,7 @@ public partial class ArpMonitorView : UserControl, IToolView
         BtnScanNow.Content = L("ToolArpBtnScanNow");
         LblInterval.Text = L("ToolArpInterval");
         BtnCopy.Content = L("ToolArpBtnCopy");
-        TxtEmptyState.Text = L("ToolArpEmptyState");
+        UpdateEmptyStateText();
 
         Interval5s.Content = L("ToolArpInterval5");
         Interval10s.Content = L("ToolArpInterval10");
@@ -101,6 +110,7 @@ public partial class ArpMonitorView : UserControl, IToolView
         AutomationProperties.SetName(ArpGrid, L("ToolArpTitle"));
         AutomationProperties.SetName(BtnDismissAlert, L("ToolArpDismissAlert"));
         AutomationProperties.SetName(BtnCloseHelp, L("BtnClose"));
+        AutomationProperties.SetName(LoadingBar, L("ToolArpA11yLoading"));
         BtnCopy.ToolTip = L("ToolBtnCopyToClipboard");
     }
 
@@ -133,6 +143,7 @@ public partial class ArpMonitorView : UserControl, IToolView
 
         BtnScanNow.IsEnabled = true;
         CmbInterval.IsEnabled = false;
+        UpdateEmptyStateText();
 
         var intervalMs = GetSelectedIntervalMs();
         _refreshTimer = new DispatcherTimer
@@ -160,6 +171,7 @@ public partial class ArpMonitorView : UserControl, IToolView
 
         BtnScanNow.IsEnabled = false;
         CmbInterval.IsEnabled = true;
+        UpdateEmptyStateText();
     }
 
     private async void OnTimerTick(object? sender, EventArgs e)
@@ -170,96 +182,124 @@ public partial class ArpMonitorView : UserControl, IToolView
 
     private async Task RefreshArpAsync()
     {
-        Dictionary<string, string> current;
+        if (_disposed || _isRefreshing)
+        {
+            return;
+        }
+
+        _isRefreshing = true;
+        _viewState.Begin();
+        BtnScanNow.IsEnabled = false;
+
         try
         {
-            current = await Task.Run(ReadArpTable);
+            var current = await Task.Run(ReadArpTable);
+
+            var now = DateTime.Now.ToString("HH:mm:ss");
+            var successBrush = (Brush)FindResource("SuccessBrush");
+            var stableBrush = (Brush)FindResource("TextSecondaryBrush");
+            var warningBrush = (Brush)FindResource("WarningBrush");
+            var errorBrush = (Brush)FindResource("ErrorBrush");
+
+            // Track which known entries are still present
+            var seenIps = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var (ip, mac) in current)
+            {
+                seenIps.Add(ip);
+
+                if (_knownEntries.TryGetValue(ip, out var existing))
+                {
+                    if (!string.Equals(existing.Mac, mac, StringComparison.OrdinalIgnoreCase))
+                    {
+                        // MAC changed — potential ARP spoofing
+                        existing.PreviousMac = existing.Mac;
+                        existing.Mac = mac;
+                        existing.Vendor = LookupVendor(mac);
+                        existing.Status = "changed";
+                        existing.StatusDisplay = L("ToolArpStatusChanged");
+                        existing.StatusBrush = warningBrush;
+                        existing.LastSeen = now;
+                        ShowAlert(ip, existing.PreviousMac, mac);
+                    }
+                    else
+                    {
+                        if (existing.Status != "stable")
+                        {
+                            existing.Status = "stable";
+                            existing.StatusDisplay = L("ToolArpStatusStable");
+                            existing.StatusBrush = stableBrush;
+                        }
+                        existing.LastSeen = now;
+                    }
+                }
+                else
+                {
+                    // New entry
+                    var entry = new ArpEntry
+                    {
+                        Ip = ip,
+                        Mac = mac,
+                        Vendor = LookupVendor(mac),
+                        Status = "new",
+                        StatusDisplay = L("ToolArpStatusNew"),
+                        StatusBrush = successBrush,
+                        FirstSeen = now,
+                        LastSeen = now,
+                        PreviousMac = ""
+                    };
+                    _knownEntries[ip] = entry;
+                    _entries.Add(entry);
+                }
+            }
+
+            // Mark gone entries
+            foreach (var known in _knownEntries.Values)
+            {
+                if (!seenIps.Contains(known.Ip) && known.Status != "gone")
+                {
+                    known.Status = "gone";
+                    known.StatusDisplay = L("ToolArpStatusGone");
+                    known.StatusBrush = errorBrush;
+                }
+            }
+
+            UpdateEmptyStateText();
+            if (_entries.Count == 0)
+            {
+                _viewState.Reset();
+            }
+            else
+            {
+                _viewState.ShowResults();
+            }
+
+            TxtTotal.Text = string.Format(L("ToolArpTotal"), _entries.Count);
+            TxtLastRefresh.Text = string.Format(L("ToolArpLastRefresh"), now);
         }
         catch (Exception ex)
         {
             Core.Logging.FileLogger.Warn($"ArpMonitor: failed to read ARP table: {ex.Message}");
-            return;
+            UpdateEmptyStateText();
+            _viewState.ShowError(
+                L("ToolArpErrorReadFailed"),
+                showEmptyState: _entries.Count == 0,
+                keepResultsVisible: _entries.Count > 0);
         }
-
-        var now = DateTime.Now.ToString("HH:mm:ss");
-        var successBrush = (Brush)FindResource("SuccessBrush");
-        var stableBrush = (Brush)FindResource("TextSecondaryBrush");
-        var warningBrush = (Brush)FindResource("WarningBrush");
-        var errorBrush = (Brush)FindResource("ErrorBrush");
-
-        // Track which known entries are still present
-        var seenIps = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-        foreach (var (ip, mac) in current)
+        finally
         {
-            seenIps.Add(ip);
-
-            if (_knownEntries.TryGetValue(ip, out var existing))
-            {
-                if (!string.Equals(existing.Mac, mac, StringComparison.OrdinalIgnoreCase))
-                {
-                    // MAC changed — potential ARP spoofing
-                    existing.PreviousMac = existing.Mac;
-                    existing.Mac = mac;
-                    existing.Vendor = LookupVendor(mac);
-                    existing.Status = "changed";
-                    existing.StatusDisplay = L("ToolArpStatusChanged");
-                    existing.StatusBrush = warningBrush;
-                    existing.LastSeen = now;
-                    ShowAlert(ip, existing.PreviousMac, mac);
-                }
-                else
-                {
-                    if (existing.Status != "stable")
-                    {
-                        existing.Status = "stable";
-                        existing.StatusDisplay = L("ToolArpStatusStable");
-                        existing.StatusBrush = stableBrush;
-                    }
-                    existing.LastSeen = now;
-                }
-            }
-            else
-            {
-                // New entry
-                var entry = new ArpEntry
-                {
-                    Ip = ip,
-                    Mac = mac,
-                    Vendor = LookupVendor(mac),
-                    Status = "new",
-                    StatusDisplay = L("ToolArpStatusNew"),
-                    StatusBrush = successBrush,
-                    FirstSeen = now,
-                    LastSeen = now,
-                    PreviousMac = ""
-                };
-                _knownEntries[ip] = entry;
-                _entries.Add(entry);
-            }
+            _isRefreshing = false;
+            _viewState.End();
+            BtnScanNow.IsEnabled = _isRunning;
+            CmbInterval.IsEnabled = !_isRunning;
         }
+    }
 
-        // Mark gone entries
-        foreach (var known in _knownEntries.Values)
-        {
-            if (!seenIps.Contains(known.Ip) && known.Status != "gone")
-            {
-                known.Status = "gone";
-                known.StatusDisplay = L("ToolArpStatusGone");
-                known.StatusBrush = errorBrush;
-            }
-        }
-
-        // Update visibility
-        if (_entries.Count > 0)
-        {
-            EmptyStatePanel.Visibility = Visibility.Collapsed;
-            GridPanel.Visibility = Visibility.Visible;
-        }
-
-        // Update footer
-        TxtTotal.Text = string.Format(L("ToolArpTotal"), _entries.Count);
-        TxtLastRefresh.Text = string.Format(L("ToolArpLastRefresh"), now);
+    private void UpdateEmptyStateText()
+    {
+        TxtEmptyState.Text = _isRunning
+            ? L("ToolArpEmptyStateRunning")
+            : L("ToolArpEmptyState");
     }
 
     private void ShowAlert(string ip, string oldMac, string newMac)
@@ -341,101 +381,100 @@ public partial class ArpMonitorView : UserControl, IToolView
     {
         var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
-        try
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            var psi = new ProcessStartInfo
             {
-                var psi = new ProcessStartInfo
-                {
-                    FileName = "arp",
-                    Arguments = "-a",
-                    RedirectStandardOutput = true,
-                    UseShellExecute = false,
-                    CreateNoWindow = true
-                };
+                FileName = "arp",
+                Arguments = "-a",
+                RedirectStandardOutput = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
 
-                using var proc = Process.Start(psi);
-                if (proc is null) return result;
+            using var proc = Process.Start(psi)
+                ?? throw new InvalidOperationException("Failed to start arp process.");
 
-                var outputTask = proc.StandardOutput.ReadToEndAsync();
-                if (!proc.WaitForExit(ProcessTimeoutMs))
-                {
-                    try { proc.Kill(); } catch { /* already exited */ }
-                }
-                var output = outputTask.GetAwaiter().GetResult();
-
-                // Parse lines like: "  10.0.0.1             aa-bb-cc-dd-ee-ff     dynamic"
-                foreach (var line in output.Split('\n'))
-                {
-                    var parts = line.Trim().Split([' '], StringSplitOptions.RemoveEmptyEntries);
-                    if (parts.Length >= 2)
-                    {
-                        var ip = parts[0];
-                        var mac = parts[1];
-                        // Validate MAC format: exactly 5 dashes (aa-bb-cc-dd-ee-ff)
-                        if (IPAddress.TryParse(ip, out _) &&
-                            mac.Length == 17 && mac.Count(c => c == '-') == 5)
-                        {
-                            result[ip] = mac;
-                        }
-                    }
-                }
+            var outputTask = proc.StandardOutput.ReadToEndAsync();
+            if (!proc.WaitForExit(ProcessTimeoutMs))
+            {
+                try { proc.Kill(); } catch { /* already exited */ }
             }
-            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            var output = outputTask.GetAwaiter().GetResult();
+
+            // Parse lines like: "  10.0.0.1             aa-bb-cc-dd-ee-ff     dynamic"
+            foreach (var line in output.Split('\n'))
             {
-                if (System.IO.File.Exists("/proc/net/arp"))
+                var parts = line.Trim().Split([' '], StringSplitOptions.RemoveEmptyEntries);
+                if (parts.Length >= 2)
                 {
-                    var lines = System.IO.File.ReadAllLines("/proc/net/arp");
-                    foreach (var line in lines.Skip(1)) // Skip header
+                    var ip = parts[0];
+                    var mac = parts[1];
+                    // Validate MAC format: exactly 5 dashes (aa-bb-cc-dd-ee-ff)
+                    if (IPAddress.TryParse(ip, out _) &&
+                        mac.Length == 17 && mac.Count(c => c == '-') == 5)
                     {
-                        var parts = line.Split([' '], StringSplitOptions.RemoveEmptyEntries);
-                        if (parts.Length >= 4)
-                        {
-                            var ip = parts[0];
-                            var mac = parts[3];
-                            if (mac != "00:00:00:00:00:00" && IPAddress.TryParse(ip, out _))
-                            {
-                                result[ip] = mac.Replace(':', '-');
-                            }
-                        }
-                    }
-                }
-            }
-            else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-            {
-                var psi = new ProcessStartInfo
-                {
-                    FileName = "arp",
-                    Arguments = "-a",
-                    RedirectStandardOutput = true,
-                    UseShellExecute = false,
-                    CreateNoWindow = true
-                };
-
-                using var proc = Process.Start(psi);
-                if (proc is null) return result;
-
-                var outputTask = proc.StandardOutput.ReadToEndAsync();
-                if (!proc.WaitForExit(ProcessTimeoutMs))
-                {
-                    try { proc.Kill(); } catch { /* already exited */ }
-                }
-                var output = outputTask.GetAwaiter().GetResult();
-
-                // Parse lines like: "? (192.168.1.1) at 00:11:22:33:44:55 on en0 ifscope [ether]"
-                foreach (var line in output.Split('\n'))
-                {
-                    var match = MacOsArpRegex.Match(line);
-                    if (match.Success)
-                    {
-                        result[match.Groups[1].Value] = match.Groups[2].Value.Replace(':', '-');
+                        result[ip] = mac;
                     }
                 }
             }
         }
-        catch (Exception ex) when (ex is InvalidOperationException or TimeoutException or System.ComponentModel.Win32Exception)
+        else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
         {
-            // ARP table read failed — non-critical, will retry next cycle
+            if (!System.IO.File.Exists("/proc/net/arp"))
+            {
+                throw new InvalidOperationException("ARP table is not available on this system.");
+            }
+
+            var lines = System.IO.File.ReadAllLines("/proc/net/arp");
+            foreach (var line in lines.Skip(1))
+            {
+                var parts = line.Split([' '], StringSplitOptions.RemoveEmptyEntries);
+                if (parts.Length >= 4)
+                {
+                    var ip = parts[0];
+                    var mac = parts[3];
+                    if (mac != "00:00:00:00:00:00" && IPAddress.TryParse(ip, out _))
+                    {
+                        result[ip] = mac.Replace(':', '-');
+                    }
+                }
+            }
+        }
+        else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+        {
+            var psi = new ProcessStartInfo
+            {
+                FileName = "arp",
+                Arguments = "-a",
+                RedirectStandardOutput = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+
+            using var proc = Process.Start(psi)
+                ?? throw new InvalidOperationException("Failed to start arp process.");
+
+            var outputTask = proc.StandardOutput.ReadToEndAsync();
+            if (!proc.WaitForExit(ProcessTimeoutMs))
+            {
+                try { proc.Kill(); } catch { /* already exited */ }
+            }
+            var output = outputTask.GetAwaiter().GetResult();
+
+            // Parse lines like: "? (192.168.1.1) at 00:11:22:33:44:55 on en0 ifscope [ether]"
+            foreach (var line in output.Split('\n'))
+            {
+                var match = MacOsArpRegex.Match(line);
+                if (match.Success)
+                {
+                    result[match.Groups[1].Value] = match.Groups[2].Value.Replace(':', '-');
+                }
+            }
+        }
+        else
+        {
+            throw new PlatformNotSupportedException("ARP monitor is not supported on this operating system.");
         }
 
         return result;

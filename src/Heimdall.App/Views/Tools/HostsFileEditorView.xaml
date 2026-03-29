@@ -24,6 +24,7 @@
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
         <!-- Header -->
@@ -105,8 +106,12 @@
             </DataGrid.Columns>
         </DataGrid>
 
+        <TextBlock x:Name="ErrorText" Grid.Row="3"
+                   Style="{StaticResource ToolInlineErrorTextStyle}"
+                   Margin="{StaticResource SpacingMd}"/>
+
         <!-- Action buttons -->
-        <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="{StaticResource SpacingMd}">
+        <StackPanel Grid.Row="4" Orientation="Horizontal" Margin="{StaticResource SpacingMd}">
             <Button x:Name="BtnAddEntry" Click="OnAddEntryClick"
                     Style="{DynamicResource SecondaryButtonStyle}"
                     Padding="{StaticResource PaddingButtonCopy}" Margin="0,0,6,0" FontSize="{StaticResource FontSizeBody}"
@@ -118,7 +123,7 @@
         </StackPanel>
 
         <!-- Status bar -->
-        <Border Grid.Row="4" Padding="{StaticResource ToolFooterPadding}"
+        <Border Grid.Row="5" Padding="{StaticResource ToolFooterPadding}"
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,1,0,0">

@@ -33,6 +33,7 @@ public partial class UuidGeneratorView : UserControl, IToolView
     private LocalizationManager? _localizer;
     private const int MaxBatchCount = 100;
     private const int MinBatchCount = 1;
+    private const int DefaultBatchCount = 10;
 
     public UuidGeneratorView()
     {
@@ -47,7 +48,13 @@ public partial class UuidGeneratorView : UserControl, IToolView
     {
         _localizer = localizer;
         ApplyLocalization();
+        TxtCount.Text = DefaultBatchCount.ToString(CultureInfo.InvariantCulture);
         GenerateSingle();
+
+        Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, () =>
+        {
+            BtnGenerate.Focus();
+        });
     }
 
     private void ApplyLocalization()

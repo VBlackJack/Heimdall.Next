@@ -23,6 +23,7 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
@@ -38,6 +39,7 @@
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
                         Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"
+                        TabIndex="10"
                         AutomationProperties.Name=""/>
                 <TextBlock x:Name="HeaderTitle"
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
@@ -54,6 +56,7 @@
                         Click="OnCloseHelpClick"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
                         VerticalAlignment="Top" Width="24" Height="24"
+                        TabIndex="11"
                         AutomationProperties.Name=""/>
                 <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
                     <TextBlock x:Name="TxtHelpContent" Text="" TextWrapping="Wrap"
@@ -69,20 +72,14 @@
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,0,0,1">
-            <DockPanel>
-                <ToggleButton x:Name="BtnTail" DockPanel.Dock="Right"
-                              Checked="OnTailChecked"
-                              Unchecked="OnTailUnchecked"
-                              Padding="{StaticResource PaddingButtonCopy}" Margin="4,0,0,0"
-                              VerticalAlignment="Center"
-                              AutomationProperties.Name=""/>
-                <Button x:Name="BtnBrowse" DockPanel.Dock="Right"
-                        Click="OnBrowseClick"
-                        Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="{StaticResource PaddingButtonCopy}" Margin="4,0,0,0"
-                        VerticalAlignment="Center"
-                        AutomationProperties.Name=""/>
-                <TextBox x:Name="FilePathInput"
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <TextBox x:Name="FilePathInput" Grid.Column="0"
                          Style="{DynamicResource WatermarkTextBoxStyle}"
                          Foreground="{DynamicResource TextPrimaryBrush}"
                          Background="{DynamicResource CardBrush}"
@@ -91,8 +88,23 @@
                          VerticalAlignment="Center"
                          Tag=""
                          KeyDown="OnFilePathKeyDown"
+                         TabIndex="0"
                          AutomationProperties.Name=""/>
-            </DockPanel>
+                <Button x:Name="BtnBrowse" Grid.Column="1"
+                        Click="OnBrowseClick"
+                        Style="{DynamicResource SecondaryButtonStyle}"
+                        Padding="{StaticResource PaddingButtonCopy}" Margin="4,0,0,0"
+                        VerticalAlignment="Center"
+                        TabIndex="1"
+                        AutomationProperties.Name=""/>
+                <ToggleButton x:Name="BtnTail" Grid.Column="2"
+                              Checked="OnTailChecked"
+                              Unchecked="OnTailUnchecked"
+                              Padding="{StaticResource PaddingButtonCopy}" Margin="4,0,0,0"
+                              VerticalAlignment="Center"
+                              TabIndex="2"
+                              AutomationProperties.Name=""/>
+            </Grid>
         </Border>
 
         <!-- Filter bar -->
@@ -100,52 +112,76 @@
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,0,0,1">
-            <DockPanel>
-                <ComboBox x:Name="EncodingCombo" DockPanel.Dock="Right"
-                          SelectedIndex="0"
-                          MinWidth="120" Margin="{StaticResource MarginInlineControl}"
-                          SelectionChanged="OnEncodingChanged"
-                          VerticalAlignment="Center"
-                          AutomationProperties.Name="">
-                    <ComboBoxItem x:Name="EncUtf8Item" Content="" Tag="UTF-8"/>
-                    <ComboBoxItem x:Name="EncAsciiItem" Content="" Tag="ASCII"/>
-                    <ComboBoxItem x:Name="EncUtf16Item" Content="" Tag="UTF-16"/>
-                    <ComboBoxItem x:Name="EncWin1252Item" Content="" Tag="Windows-1252"/>
-                </ComboBox>
-                <TextBlock x:Name="EncodingLabel" DockPanel.Dock="Right"
-                           Foreground="{DynamicResource TextSecondaryBrush}"
-                           VerticalAlignment="Center" Margin="8,0,4,0"/>
-                <CheckBox x:Name="ChkCaseSensitive" DockPanel.Dock="Right"
-                          Foreground="{DynamicResource TextPrimaryBrush}"
-                          VerticalAlignment="Center" Margin="{StaticResource MarginInlineControl}"
-                          AutomationProperties.Name=""/>
-                <Button x:Name="BtnClearFilter" DockPanel.Dock="Right"
-                        Click="OnClearFilterClick"
-                        Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="{StaticResource PaddingButtonPreset}" Margin="4,0,0,0"
-                        VerticalAlignment="Center"
-                        AutomationProperties.Name=""/>
-                <Button x:Name="BtnApplyFilter" DockPanel.Dock="Right"
-                        Click="OnApplyFilterClick"
-                        Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="{StaticResource PaddingButtonPreset}" Margin="4,0,0,0"
-                        VerticalAlignment="Center"
-                        AutomationProperties.Name=""/>
-                <TextBox x:Name="FilterInput"
-                         Style="{DynamicResource WatermarkTextBoxStyle}"
-                         Foreground="{DynamicResource TextPrimaryBrush}"
-                         Background="{DynamicResource CardBrush}"
-                         BorderBrush="{DynamicResource BorderBrush}"
-                         Padding="{StaticResource PaddingInput}"
-                         VerticalAlignment="Center"
-                         Tag=""
-                         KeyDown="OnFilterKeyDown"
-                         AutomationProperties.Name=""/>
-            </DockPanel>
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <Grid Grid.Row="0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <TextBox x:Name="FilterInput" Grid.Column="0"
+                             Style="{DynamicResource WatermarkTextBoxStyle}"
+                             Foreground="{DynamicResource TextPrimaryBrush}"
+                             Background="{DynamicResource CardBrush}"
+                             BorderBrush="{DynamicResource BorderBrush}"
+                             Padding="{StaticResource PaddingInput}"
+                             VerticalAlignment="Center"
+                             Tag=""
+                             KeyDown="OnFilterKeyDown"
+                             TabIndex="3"
+                             AutomationProperties.Name=""/>
+                    <Button x:Name="BtnApplyFilter" Grid.Column="1"
+                            Click="OnApplyFilterClick"
+                            Style="{DynamicResource SecondaryButtonStyle}"
+                            Padding="{StaticResource PaddingButtonPreset}" Margin="4,0,0,0"
+                            VerticalAlignment="Center"
+                            TabIndex="4"
+                            AutomationProperties.Name=""/>
+                    <Button x:Name="BtnClearFilter" Grid.Column="2"
+                            Click="OnClearFilterClick"
+                            Style="{DynamicResource SecondaryButtonStyle}"
+                            Padding="{StaticResource PaddingButtonPreset}" Margin="4,0,0,0"
+                            VerticalAlignment="Center"
+                            TabIndex="5"
+                            AutomationProperties.Name=""/>
+                </Grid>
+
+                <WrapPanel Grid.Row="1" Margin="0,8,0,0" VerticalAlignment="Center">
+                    <CheckBox x:Name="ChkCaseSensitive"
+                              Foreground="{DynamicResource TextPrimaryBrush}"
+                              VerticalAlignment="Center"
+                              TabIndex="6"
+                              AutomationProperties.Name=""/>
+                    <TextBlock x:Name="EncodingLabel"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               VerticalAlignment="Center" Margin="12,0,4,0"/>
+                    <ComboBox x:Name="EncodingCombo"
+                              SelectedIndex="0"
+                              MinWidth="120"
+                              SelectionChanged="OnEncodingChanged"
+                              VerticalAlignment="Center"
+                              TabIndex="7"
+                              AutomationProperties.Name="">
+                        <ComboBoxItem x:Name="EncUtf8Item" Content="" Tag="UTF-8"/>
+                        <ComboBoxItem x:Name="EncAsciiItem" Content="" Tag="ASCII"/>
+                        <ComboBoxItem x:Name="EncUtf16Item" Content="" Tag="UTF-16"/>
+                        <ComboBoxItem x:Name="EncWin1252Item" Content="" Tag="Windows-1252"/>
+                    </ComboBox>
+                </WrapPanel>
+            </Grid>
         </Border>
 
+        <TextBlock x:Name="ErrorText" Grid.Row="4"
+                   Style="{StaticResource ToolInlineErrorTextStyle}"
+                   Margin="{StaticResource ToolFooterPadding}"/>
+
         <!-- Empty state hint (hidden once a file is loaded) -->
-        <Border x:Name="EmptyStatePanel" Grid.Row="4"
+        <Border x:Name="EmptyStatePanel" Grid.Row="5"
                 Style="{StaticResource ToolEmptyStateStyle}"
                 Margin="0,24,0,0">
             <StackPanel HorizontalAlignment="Center">
@@ -160,20 +196,26 @@
         </Border>
 
         <!-- Log display -->
-        <RichTextBox x:Name="LogViewer" Grid.Row="4"
-                     IsReadOnly="True" AutomationProperties.LiveSetting="Polite"
-                     FontFamily="Consolas" FontSize="{StaticResource FontSizeBody}"
-                     Background="{DynamicResource CardBrush}"
-                     Foreground="{DynamicResource TextPrimaryBrush}"
-                     BorderThickness="0"
-                     VerticalScrollBarVisibility="Auto"
-                     HorizontalScrollBarVisibility="Auto"
-                     Padding="{StaticResource SpacingSm}">
-            <FlowDocument x:Name="LogDocument" PageWidth="10000"/>
-        </RichTextBox>
+        <Border x:Name="ResultsPanel" Grid.Row="5"
+                Style="{StaticResource ToolResultsCardStyle}"
+                Margin="{StaticResource SpacingSm}"
+                Padding="0">
+            <RichTextBox x:Name="LogViewer"
+                         IsReadOnly="True" AutomationProperties.LiveSetting="Polite"
+                         FontFamily="Consolas" FontSize="{StaticResource FontSizeBody}"
+                         Background="{DynamicResource CardBrush}"
+                         Foreground="{DynamicResource TextPrimaryBrush}"
+                         BorderThickness="0"
+                         VerticalScrollBarVisibility="Auto"
+                         HorizontalScrollBarVisibility="Auto"
+                         Padding="{StaticResource SpacingSm}"
+                         TabIndex="8">
+                <FlowDocument x:Name="LogDocument" PageWidth="10000"/>
+            </RichTextBox>
+        </Border>
 
         <!-- Stats bar -->
-        <Border Grid.Row="5" Padding="{StaticResource ToolFooterPadding}"
+        <Border Grid.Row="6" Padding="{StaticResource ToolFooterPadding}"
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,1,0,0">
@@ -182,6 +224,7 @@
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonCopy}" FontSize="{StaticResource FontSizeCaption}"
                         Margin="{StaticResource MarginInlineControl}" VerticalAlignment="Center"
+                        TabIndex="9"
                         AutomationProperties.Name=""/>
                 <TextBlock x:Name="TailStatusText" DockPanel.Dock="Right"
                            Foreground="{DynamicResource AccentBrush}"
@@ -190,7 +233,8 @@
                            Visibility="Collapsed"/>
                 <TextBlock x:Name="StatsText"
                            Foreground="{DynamicResource TextSecondaryBrush}"
-                           FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center"/>
+                           FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center"
+                           TextWrapping="Wrap"/>
             </DockPanel>
         </Border>
     </Grid>

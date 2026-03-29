@@ -70,6 +70,7 @@
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
             <!-- Options panel -->
@@ -137,8 +138,11 @@
                     HorizontalAlignment="Left"
                     AutomationProperties.Name=""/>
 
+            <TextBlock x:Name="ValidationText" Grid.Row="2"
+                       Style="{StaticResource ToolInlineErrorTextStyle}"/>
+
             <!-- Fingerprint -->
-            <Border Grid.Row="2" Padding="{StaticResource SpacingSm}"
+            <Border Grid.Row="3" Padding="{StaticResource SpacingSm}"
                     Background="{DynamicResource SurfaceBrush}"
                     BorderBrush="{DynamicResource BorderBrush}"
                     BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
@@ -168,7 +172,7 @@
             </Border>
 
             <!-- Public key -->
-            <Border Grid.Row="3" Padding="{StaticResource SpacingSm}"
+            <Border Grid.Row="4" Padding="{StaticResource SpacingSm}"
                     Background="{DynamicResource SurfaceBrush}"
                     BorderBrush="{DynamicResource BorderBrush}"
                     BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
@@ -207,7 +211,7 @@
             </Border>
 
             <!-- Private key -->
-            <Border Grid.Row="4" Padding="{StaticResource SpacingSm}"
+            <Border Grid.Row="5" Padding="{StaticResource SpacingSm}"
                     Background="{DynamicResource SurfaceBrush}"
                     BorderBrush="{DynamicResource BorderBrush}"
                     BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
@@ -252,7 +256,7 @@
             </Border>
 
             <!-- Ed25519 notice -->
-            <TextBlock x:Name="Ed25519Notice" Grid.Row="5"
+            <TextBlock x:Name="Ed25519Notice" Grid.Row="6"
                        FontSize="{StaticResource FontSizeCaption}" FontStyle="Italic"
                        Foreground="{DynamicResource TextSecondaryBrush}"
                        Margin="0,0,0,8"/>

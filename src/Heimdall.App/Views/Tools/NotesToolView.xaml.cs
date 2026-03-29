@@ -34,6 +34,10 @@ namespace Heimdall.App.Views.Tools;
 public partial class NotesToolView : UserControl, IToolView
 {
     private readonly record struct NotesLaunchRequest(string? PreferredPath, NoteTemplateKind? TemplateKind);
+    private const string MarkdownLinkSuffix = "](url)";
+    private const string MarkdownLinkTemplate = "[text](url)";
+    private const string MarkdownImageTemplate = "![alt](url)";
+    private const string MarkdownTableTemplate = "| H1 | H2 | H3 |\n|---|---|---|\n| a | b | c |\n";
 
     private readonly NotesStorageService _storage;
     private readonly DispatcherTimer _saveTimer;
@@ -57,12 +61,14 @@ public partial class NotesToolView : UserControl, IToolView
     private string? _currentNotePath;
     private string? _selectedTag;
     private bool _sidebarVisible = true;
+    private bool _responsiveSidebarHidden;
     private GridLength _savedSidebarWidth = new(LoadSidebarWidth());
 
     public NotesToolView()
     {
         InitializeComponent();
         Loaded += OnLoaded;
+        SizeChanged += OnViewSizeChanged;
 
         _storage = CreateStorageService();
         _saveTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(850) };
@@ -154,6 +160,7 @@ public partial class NotesToolView : UserControl, IToolView
             {
                 layoutGrid.ColumnDefinitions[0].Width = _savedSidebarWidth;
             }
+            UpdateResponsiveLayout();
 
             _storage.EnsureInitialized();
             UpdateSelectionState();
@@ -899,33 +906,19 @@ public partial class NotesToolView : UserControl, IToolView
         return Enum.TryParse(argument[prefix.Length..], ignoreCase: true, out templateKind);
     }
 
-    private static string SettingsPath
-        => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "config", "settings.json");
+    private static AppSettings? ResolveAppSettings()
+        => (Application.Current as App)?.Services?.GetService<AppSettings>();
 
     private static NotesStorageService CreateStorageService()
     {
         var basePath = AppDomain.CurrentDomain.BaseDirectory;
-
-        // Attempt to read NotesDirectory from settings.json (lightweight, no DI)
-        var settingsPath = SettingsPath;
-        if (File.Exists(settingsPath))
+        var notesDirectory = ResolveAppSettings()?.NotesDirectory;
+        if (!string.IsNullOrWhiteSpace(notesDirectory))
         {
-            try
-            {
-                var json = System.Text.Json.JsonDocument.Parse(File.ReadAllText(settingsPath));
-                if (json.RootElement.TryGetProperty("notesDirectory", out var prop)
-                    && prop.GetString() is { Length: > 0 } customDir)
-                {
-                    var resolved = Path.IsPathRooted(customDir)
-                        ? customDir
-                        : Path.Combine(basePath, customDir);
-                    return new NotesStorageService(resolved);
-                }
-            }
-            catch
-            {
-                // Fall through to default
-            }
+            var resolved = Path.IsPathRooted(notesDirectory)
+                ? notesDirectory
+                : Path.Combine(basePath, notesDirectory);
+            return new NotesStorageService(resolved);
         }
 
         return new NotesStorageService(Path.Combine(basePath, "config", "notes"));
@@ -933,23 +926,10 @@ public partial class NotesToolView : UserControl, IToolView
 
     private static int LoadSidebarWidth()
     {
-        try
+        var width = ResolveAppSettings()?.NotesSidebarWidth;
+        if (width is >= 240)
         {
-            var settingsPath = SettingsPath;
-            if (File.Exists(settingsPath))
-            {
-                var json = System.Text.Json.JsonDocument.Parse(File.ReadAllText(settingsPath));
-                if (json.RootElement.TryGetProperty("notesSidebarWidth", out var prop)
-                    && prop.TryGetInt32(out var width)
-                    && width >= 240)
-                {
-                    return width;
-                }
-            }
-        }
-        catch
-        {
-            // Fall through to default
+            return width.Value;
         }
 
         return 300;
@@ -1137,6 +1117,28 @@ public partial class NotesToolView : UserControl, IToolView
         // Rebuild and show our context menu
         OnTreeViewContextMenuOpening(sender, null!);
         TreeContextMenu.IsOpen = true;
+    }
+
+    private async void OnTreeViewPreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (Keyboard.Modifiers != ModifierKeys.None ||
+            NotesTreeView.SelectedItem is not NoteTreeNode { FilePath: not null })
+        {
+            return;
+        }
+
+        switch (e.Key)
+        {
+            case Key.F2:
+                e.Handled = true;
+                await RenameCurrentNoteAsync().ConfigureAwait(true);
+                break;
+
+            case Key.Delete:
+                e.Handled = true;
+                await DeleteCurrentNoteAsync().ConfigureAwait(true);
+                break;
+        }
     }
 
     private static T? FindParent<T>(DependencyObject child) where T : DependencyObject
@@ -1670,11 +1672,11 @@ public partial class NotesToolView : UserControl, IToolView
         {
             var sel = Editor.SelectedText;
             if (!string.IsNullOrEmpty(sel))
-                WrapEditorSelection("[", "](url)");
+                WrapEditorSelection("[", MarkdownLinkSuffix);
             else
-                InsertInEditor("[text](url)");
+                InsertInEditor(MarkdownLinkTemplate);
         });
-        AddCtxItem(menu, "ToolNotesCtxImage", () => InsertInEditor("![alt](url)"));
+        AddCtxItem(menu, "ToolNotesCtxImage", () => InsertInEditor(MarkdownImageTemplate));
         AddCtxItem(menu, "ToolNotesCtxNoteLink", () => WrapEditorSelection("[[", "]]"));
         menu.Items.Add(new Separator());
         AddCtxItem(menu, "ToolNotesCtxHeading1", () => PrefixEditorLines("# "));
@@ -1685,7 +1687,7 @@ public partial class NotesToolView : UserControl, IToolView
         AddCtxItem(menu, "ToolNotesCtxNumberedList", () => PrefixEditorLines("1. "));
         AddCtxItem(menu, "ToolNotesCtxTaskList", () => PrefixEditorLines("- [ ] "));
         menu.Items.Add(new Separator());
-        AddCtxItem(menu, "ToolNotesCtxTable", () => InsertInEditor("| H1 | H2 | H3 |\n|---|---|---|\n| a | b | c |\n"));
+        AddCtxItem(menu, "ToolNotesCtxTable", () => InsertInEditor(MarkdownTableTemplate));
         AddCtxItem(menu, "ToolNotesCtxHorizontalRule", () => InsertInEditor("\n---\n"));
     }
 
@@ -1727,31 +1729,80 @@ public partial class NotesToolView : UserControl, IToolView
 
     private void OnToggleSidebarClick(object sender, RoutedEventArgs e)
     {
-        var grid = SidebarBorder.Parent as Grid;
+        if (_responsiveSidebarHidden && !_sidebarVisible)
+        {
+            _responsiveSidebarHidden = false;
+        }
+
+        SetSidebarVisibility(!_sidebarVisible, persistWidth: true);
+    }
+
+    private void OnViewSizeChanged(object sender, SizeChangedEventArgs e)
+        => UpdateResponsiveLayout();
+
+    private void UpdateResponsiveLayout()
+    {
+        if (NotesLayoutGrid is null)
+        {
+            return;
+        }
+
+        if (ActualWidth < 920)
+        {
+            if (_sidebarVisible)
+            {
+                _responsiveSidebarHidden = true;
+                SetSidebarVisibility(false, persistWidth: false);
+            }
+            return;
+        }
+
+        if (ActualWidth >= 1100 && _responsiveSidebarHidden)
+        {
+            _responsiveSidebarHidden = false;
+            SetSidebarVisibility(true, persistWidth: false);
+        }
+    }
+
+    private void SetSidebarVisibility(bool visible, bool persistWidth)
+    {
+        var grid = NotesLayoutGrid ?? SidebarBorder.Parent as Grid;
         if (grid is null)
         {
             return;
         }
 
-        _sidebarVisible = !_sidebarVisible;
+        _sidebarVisible = visible;
 
-        if (_sidebarVisible)
+        if (visible)
         {
+            if (_savedSidebarWidth.Value < 200)
+            {
+                _savedSidebarWidth = new GridLength(280);
+            }
+
             grid.ColumnDefinitions[0].Width = _savedSidebarWidth;
-            grid.ColumnDefinitions[0].MinWidth = 240;
-            grid.ColumnDefinitions[1].Width = new GridLength(8);
+            grid.ColumnDefinitions[0].MinWidth = 200;
+            grid.ColumnDefinitions[1].Width = new GridLength(6);
             SidebarBorder.Visibility = Visibility.Visible;
             EditorSplitter.Visibility = Visibility.Visible;
+            return;
         }
-        else
-        {
-            _savedSidebarWidth = grid.ColumnDefinitions[0].Width;
-            grid.ColumnDefinitions[0].MinWidth = 0;
-            grid.ColumnDefinitions[0].Width = new GridLength(0);
-            grid.ColumnDefinitions[1].Width = new GridLength(0);
-            SidebarBorder.Visibility = Visibility.Collapsed;
-            EditorSplitter.Visibility = Visibility.Collapsed;
 
+        var currentWidth = grid.ColumnDefinitions[0].ActualWidth;
+        if (currentWidth >= 200)
+        {
+            _savedSidebarWidth = new GridLength(currentWidth);
+        }
+
+        grid.ColumnDefinitions[0].MinWidth = 0;
+        grid.ColumnDefinitions[0].Width = new GridLength(0);
+        grid.ColumnDefinitions[1].Width = new GridLength(0);
+        SidebarBorder.Visibility = Visibility.Collapsed;
+        EditorSplitter.Visibility = Visibility.Collapsed;
+
+        if (persistWidth && _savedSidebarWidth.Value >= 200)
+        {
             PersistSidebarWidth((int)_savedSidebarWidth.Value);
         }
     }
@@ -1760,13 +1811,7 @@ public partial class NotesToolView : UserControl, IToolView
 
     private void OnHelpClick(object sender, RoutedEventArgs e)
     {
-        if (HelpPanel.Visibility == Visibility.Visible)
-        {
-            HelpPanel.Visibility = Visibility.Collapsed;
-            return;
-        }
-        TxtHelpContent.Text = L("ToolHelpNOTES").Replace("\\n", "\n");
-        HelpPanel.Visibility = Visibility.Visible;
+        ToggleHelpPanel(L("ToolHelpNOTES"));
     }
 
     private void OnCloseHelpClick(object sender, RoutedEventArgs e)
@@ -1776,9 +1821,23 @@ public partial class NotesToolView : UserControl, IToolView
 
     private void OnMarkdownHelpClick(object sender, RoutedEventArgs e)
     {
-        var help = L("ToolNotesMarkdownHelp");
-        MessageBox.Show(help, L("ToolNotesMarkdownHelpTitle"),
-            MessageBoxButton.OK, MessageBoxImage.Information);
+        ToggleHelpPanel(L("ToolNotesMarkdownHelp"));
+    }
+
+    private void ToggleHelpPanel(string helpText)
+    {
+        var normalizedHelp = helpText.Replace("\\n", "\n");
+        var isSameContent = HelpPanel.Visibility == Visibility.Visible
+            && string.Equals(TxtHelpContent.Text, normalizedHelp, StringComparison.Ordinal);
+
+        if (isSameContent)
+        {
+            HelpPanel.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        TxtHelpContent.Text = normalizedHelp;
+        HelpPanel.Visibility = Visibility.Visible;
     }
 
     public void Dispose()
@@ -1808,10 +1867,10 @@ public partial class NotesToolView : UserControl, IToolView
         }
 
         // Persist sidebar width if it was resized via the GridSplitter
-        if (_sidebarVisible && SidebarBorder.Parent is Grid layoutGrid)
+        if (_sidebarVisible && !_responsiveSidebarHidden && SidebarBorder.Parent is Grid layoutGrid)
         {
             var currentWidth = (int)layoutGrid.ColumnDefinitions[0].ActualWidth;
-            if (currentWidth >= 240 && currentWidth != (int)_savedSidebarWidth.Value)
+            if (currentWidth >= 200 && currentWidth != (int)_savedSidebarWidth.Value)
             {
                 PersistSidebarWidth(currentWidth);
             }

@@ -171,6 +171,11 @@ public partial class SmbEnumeratorView : UserControl, IToolView
 
     private async Task PerformEnumerationAsync()
     {
+        if (_isEnumerating)
+        {
+            return;
+        }
+
         var host = TxtHost.Text.Trim();
         TxtError.Visibility = Visibility.Collapsed;
         ResultsPanel.Visibility = Visibility.Collapsed;
@@ -199,6 +204,8 @@ public partial class SmbEnumeratorView : UserControl, IToolView
         _isEnumerating = true;
         _setBusy?.Invoke(true);
         BtnEnumerate.IsEnabled = false;
+        TxtHost.IsReadOnly = true;
+        CmbRouteVia.IsEnabled = false;
         LoadingBar.Visibility = Visibility.Visible;
 
         var stopwatch = Stopwatch.StartNew();
@@ -236,6 +243,8 @@ public partial class SmbEnumeratorView : UserControl, IToolView
             _isEnumerating = false;
             _setBusy?.Invoke(false);
             BtnEnumerate.IsEnabled = true;
+            TxtHost.IsReadOnly = false;
+            CmbRouteVia.IsEnabled = true;
             LoadingBar.Visibility = Visibility.Collapsed;
         }
     }

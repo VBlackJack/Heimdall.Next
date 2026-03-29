@@ -127,7 +127,7 @@
                         <TextBlock x:Name="LblPort" Grid.Row="6" Grid.Column="0"
                                    Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
                         <TextBox x:Name="TxtPort" Grid.Row="6" Grid.Column="1"
-                                 Text="22"
+                                 Text=""
                                  Foreground="{DynamicResource TextPrimaryBrush}"
                                  Background="{DynamicResource CardBrush}"
                                  BorderBrush="{DynamicResource BorderBrush}"
@@ -166,7 +166,7 @@
                         <TextBlock x:Name="LblServerAliveInterval" Grid.Row="14" Grid.Column="0"
                                    Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
                         <TextBox x:Name="TxtServerAliveInterval" Grid.Row="14" Grid.Column="1"
-                                 Text="60"
+                                 Text=""
                                  Foreground="{DynamicResource TextPrimaryBrush}"
                                  Background="{DynamicResource CardBrush}"
                                  BorderBrush="{DynamicResource BorderBrush}"

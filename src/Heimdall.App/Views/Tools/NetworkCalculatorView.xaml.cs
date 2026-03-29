@@ -40,6 +40,7 @@ public partial class NetworkCalculatorView : UserControl, IToolView
     public NetworkCalculatorView()
     {
         InitializeComponent();
+        TxtSupernetInput.PreviewKeyDown += OnSupernetInputPreviewKeyDown;
     }
 
     public void Initialize(ToolContext? context, LocalizationManager? localizer)
@@ -53,11 +54,15 @@ public partial class NetworkCalculatorView : UserControl, IToolView
         TxtHostsNeeded.KeyDown += (s, e) => { if (e.Key == System.Windows.Input.Key.Enter) OnVlanComputeClick(s, e); };
         TxtBaseNetwork.KeyDown += (s, e) => { if (e.Key == System.Windows.Input.Key.Enter) OnVlanComputeClick(s, e); };
 
-        // Default sample data
-        TxtSupernetInput.Text = "192.168.1.0/24\n192.168.2.0/24";
-        TxtStartIp.Text = "10.0.0.1";
-        TxtEndIp.Text = "10.0.0.254";
-        TxtHostsNeeded.Text = "200";
+        TxtSupernetInput.Clear();
+        TxtStartIp.Clear();
+        TxtEndIp.Clear();
+        TxtHostsNeeded.Clear();
+
+        Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, () =>
+        {
+            TxtSupernetInput.Focus();
+        });
     }
 
     private void ApplyLocalization()
@@ -116,6 +121,16 @@ public partial class NetworkCalculatorView : UserControl, IToolView
 
         TxtError.Visibility = Visibility.Collapsed;
         ResultsPanel.Visibility = Visibility.Collapsed;
+    }
+
+    private void OnSupernetInputPreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+    {
+        if (e.Key == System.Windows.Input.Key.Enter
+            && System.Windows.Input.Keyboard.Modifiers == System.Windows.Input.ModifierKeys.Control)
+        {
+            OnSupernetComputeClick(sender, e);
+            e.Handled = true;
+        }
     }
 
     // ── Supernet ────────────────────────────────────────────────

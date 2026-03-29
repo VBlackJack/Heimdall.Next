@@ -51,7 +51,7 @@
                                    VerticalAlignment="Center" Margin="0,0,6,0"/>
                         <TextBox x:Name="TxtHost" Text="" MinWidth="140"
                                  Style="{StaticResource WatermarkTextBoxStyle}"
-                                 Tag="hostname or IP"
+                                 Tag=""
                                  FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
                                  Padding="{StaticResource PaddingInput}"
                                  Background="{DynamicResource CardBrush}"
@@ -65,9 +65,9 @@
                                    FontSize="{StaticResource FontSizeCaption}"
                                    Foreground="{DynamicResource TextSecondaryBrush}"
                                    VerticalAlignment="Center" Margin="0,0,6,0"/>
-                        <TextBox x:Name="TxtPorts" Text="22,80,443,8080" MinWidth="140"
+                        <TextBox x:Name="TxtPorts" Text="" MinWidth="140"
                                  Style="{StaticResource WatermarkTextBoxStyle}"
-                                 Tag="22, 80, 443 or 1-100"
+                                 Tag=""
                                  FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
                                  Padding="{StaticResource PaddingInput}"
                                  Background="{DynamicResource CardBrush}"
@@ -149,9 +149,9 @@
         </Border>
 
         <!-- Validation error -->
-        <TextBlock x:Name="TxtError" Grid.Row="3" Text="" Visibility="Collapsed"
-                   FontSize="{StaticResource FontSizeBody}" Margin="12,4,12,0" TextWrapping="Wrap"
-                   Foreground="{DynamicResource ErrorTextBrush}"/>
+        <TextBlock x:Name="TxtError" Grid.Row="3" Text=""
+                   Style="{StaticResource ToolInlineErrorTextStyle}"
+                   Margin="12,4,12,0"/>
 
         <!-- Progress bar with count overlay -->
         <Grid Grid.Row="3" x:Name="ProgressPanel" Visibility="Collapsed">
@@ -178,20 +178,18 @@
                 Style="{StaticResource ToolEmptyStateStyle}"
                 Margin="0,24,0,0">
             <StackPanel HorizontalAlignment="Center">
-                <TextBlock Text="&#xE774;" FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource IconSizeEmptyState}"
-                           HorizontalAlignment="Center"
-                           Foreground="{DynamicResource TextDisabledBrush}" Margin="0,0,0,8"/>
+                <TextBlock Text="&#xE774;"
+                           Style="{StaticResource ToolEmptyStateIconStyle}"/>
                 <TextBlock x:Name="TxtEmptyState" Text=""
-                           FontSize="{StaticResource FontSizeBodyLarge}" TextAlignment="Center"
-                           Foreground="{DynamicResource TextSecondaryBrush}"/>
+                           Style="{StaticResource ToolEmptyStateTextStyle}"/>
             </StackPanel>
         </Border>
 
         <!-- Results DataGrid -->
-        <Border Grid.Row="4" Margin="{StaticResource SpacingSm}"
-                Background="{DynamicResource CardBrush}"
-                BorderBrush="{DynamicResource BorderBrush}"
-                BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}">
+        <Border x:Name="ResultsPanel" Grid.Row="4"
+                Style="{StaticResource ToolResultsCardStyle}"
+                Margin="{StaticResource SpacingSm}"
+                Padding="0">
             <DataGrid x:Name="ResultsGrid"
                       AutoGenerateColumns="False"
                       IsReadOnly="True"

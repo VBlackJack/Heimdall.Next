@@ -73,6 +73,7 @@
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
             <!-- Subject section -->
@@ -153,7 +154,7 @@
                                    Foreground="{DynamicResource TextPrimaryBrush}"
                                    VerticalAlignment="Center" Width="160"/>
                         <TextBox x:Name="ValidityInput"
-                                 Text="365"
+                                 Text=""
                                  Foreground="{DynamicResource TextPrimaryBrush}"
                                  Background="{DynamicResource CardBrush}"
                                  BorderBrush="{DynamicResource BorderBrush}"
@@ -211,8 +212,11 @@
                     HorizontalAlignment="Left"
                     AutomationProperties.Name=""/>
 
+            <TextBlock x:Name="ValidationText" Grid.Row="4"
+                       Style="{StaticResource ToolInlineErrorTextStyle}"/>
+
             <!-- Fingerprint -->
-            <Border Grid.Row="4" Padding="{StaticResource SpacingSm}"
+            <Border Grid.Row="5" Padding="{StaticResource SpacingSm}"
                     Background="{DynamicResource SurfaceBrush}"
                     BorderBrush="{DynamicResource BorderBrush}"
                     BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
@@ -241,7 +245,7 @@
             </Border>
 
             <!-- Certificate PEM (self-signed) / CA Certificate (CA+Leaf) -->
-            <Border Grid.Row="5" Padding="{StaticResource SpacingSm}"
+            <Border Grid.Row="6" Padding="{StaticResource SpacingSm}"
                     Background="{DynamicResource SurfaceBrush}"
                     BorderBrush="{DynamicResource BorderBrush}"
                     BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
@@ -273,7 +277,7 @@
             </Border>
 
             <!-- Private Key -->
-            <Border Grid.Row="6" Padding="{StaticResource SpacingSm}"
+            <Border Grid.Row="7" Padding="{StaticResource SpacingSm}"
                     Background="{DynamicResource SurfaceBrush}"
                     BorderBrush="{DynamicResource BorderBrush}"
                     BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
@@ -311,7 +315,7 @@
             </Border>
 
             <!-- Leaf Certificate (CA+Leaf mode only) -->
-            <Border Grid.Row="7" Padding="{StaticResource SpacingSm}"
+            <Border Grid.Row="8" Padding="{StaticResource SpacingSm}"
                     Background="{DynamicResource SurfaceBrush}"
                     BorderBrush="{DynamicResource BorderBrush}"
                     BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
@@ -373,7 +377,7 @@
             </Border>
 
             <!-- Export buttons -->
-            <StackPanel Grid.Row="8" Orientation="Horizontal"
+            <StackPanel Grid.Row="9" Orientation="Horizontal"
                         Visibility="Collapsed" x:Name="ExportPanel"
                         Margin="{StaticResource MarginSectionBottom}">
                 <Button x:Name="BtnSavePem"

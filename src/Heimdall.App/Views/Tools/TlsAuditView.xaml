@@ -92,7 +92,7 @@
                             VerticalAlignment="Center"
                             AutomationProperties.Name=""/>
                     <TextBox x:Name="TxtPort" DockPanel.Dock="Right"
-                             Text="443" Width="70"
+                             Text="" Width="70"
                              Style="{StaticResource WatermarkTextBoxStyle}"
                              Tag=""
                              FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"

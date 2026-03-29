@@ -135,7 +135,7 @@
                                            FontSize="{StaticResource FontSizeBody}" Margin="0,0,8,0"
                                            Foreground="{DynamicResource TextSecondaryBrush}"
                                            VerticalAlignment="Center"/>
-                                <TextBox x:Name="TxtCount" Text="10"
+                                <TextBox x:Name="TxtCount" Text=""
                                          FontSize="{StaticResource FontSizeBodyLarge}" Width="60"
                                          Padding="{StaticResource PaddingInput}"
                                          Background="{DynamicResource CardBrush}"

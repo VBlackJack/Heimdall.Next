@@ -71,7 +71,7 @@
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
                 <TextBox x:Name="TxtInput" Text=""
                          Style="{StaticResource WatermarkTextBoxStyle}"
-                         Tag="IP address or integer"
+                         Tag=""
                          FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
                          Padding="{StaticResource PaddingInput}" Margin="{StaticResource MarginSectionSeparator}"
                          Background="{DynamicResource CardBrush}"

@@ -41,6 +41,7 @@ namespace Heimdall.App.Views.Tools;
 public partial class TlsAuditView : UserControl, IToolView
 {
     private static readonly TimeSpan ConnectionTimeout = TimeSpan.FromSeconds(10);
+    private const int DefaultTlsPort = 443;
 
     private LocalizationManager? _localizer;
     private CancellationTokenSource? _cts;
@@ -142,6 +143,7 @@ public partial class TlsAuditView : UserControl, IToolView
         _localizer = localizer;
         _setBusy = context?.SetBusyAction;
         ApplyLocalization();
+        TxtPort.Text = DefaultTlsPort.ToString();
 
         if (!string.IsNullOrWhiteSpace(context?.TargetHost))
         {
@@ -308,6 +310,11 @@ public partial class TlsAuditView : UserControl, IToolView
 
     private async Task RunAuditAsync()
     {
+        if (_disposed || _isAuditing)
+        {
+            return;
+        }
+
         var host = TxtHost.Text.Trim();
         if (string.IsNullOrWhiteSpace(host))
         {
