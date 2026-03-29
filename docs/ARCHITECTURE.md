@@ -661,6 +661,20 @@ The Notes tool (#34) provides a local-first Markdown editing experience inspired
 - **PowerShell Execution Policy**: Configurable in Settings > Terminal, applied as `-ExecutionPolicy` flag on local shell launch
 - **Elevation modes**: `None` / `Auto` (gsudo `--direct` → external window fallback) / `Gsudo` / `Runas` — `Auto` default for AdminByRequest/CyberArk/BeyondTrust compatibility, configurable per server profile
 
+### Tool Panel & Tools Tab Architecture
+
+**Sidebar panel** (`ToolsQuickPanel`, Ctrl+Shift+T): Collapsible panel at the bottom of the Servers tab sidebar. Renders tool mini-cards via `CreateToolCard()` — each card shows a category color badge (4px accent bar), vector icon, tool name, and 1-line description. Header bar with close button, search filter, MaxHeight=350 to preserve TreeView visibility.
+
+**Dedicated Tools tab**: Full-page browser with 3 sections — Favorites (pinned tools, persisted in `AppSettings.FavoriteToolIds`), Recently Used (`_recentToolIds`, max 5), and All Tools by category. Cards are 280px wide with pin/unpin button and category-colored icon background. Search filters across name, aliases, and descriptions.
+
+**Launch flow** (both entry points): `OnToolsPanelItemClick` / `OnToolsTabCardClick` → `OpenToolTabAsync` → `EmbeddedSessionManager.CreateToolControl` → `ToolRegistry.CreateView` (factory lambda) → `view.Initialize(context, localizer)`. Non-network tools use singleton tab behavior. Network tools pass selected server as `TargetHost` directly (no intermediate prompt). `OpenToolTabAsync` cleans up orphaned tabs on `CreateToolControl` failure.
+
+**Onboarding**: 3-step first-launch overlay (`OnboardingOverlay`, Panel.ZIndex=500). Steps: Connect to Servers → Built-in Tools → Quick Connect. Persisted via `AppSettings.OnboardingCompleted`.
+
+**NetworkCartography responsive**: Columns use proportional (`*`) widths with `MinWidth`. `SizeChanged` handler hides detail columns below 1100px and secondary columns below 800px for split pane support.
+
+**Design token gotcha**: `SpacingRowGap` is `sys:Double` (for Margin/Height). `RowDefinition.Height` requires `GridLength` — use `SpacingRowGapGrid` for grid row spacers.
+
 ### Tool Categories (49 tools)
 
 | Category | Count | Tools |

@@ -84,7 +84,7 @@ powershell -File Build.ps1 -SkipTests
 
 - New XAML: `{loc:Translate Key}` markup extension (live-updates on locale change via `LocalizationSource` singleton)
 - Legacy `ApplyLocalization()` coexists; new views use `{loc:Translate}`, migration is incremental
-- ~4,290 keys per locale (EN/FR), CI enforces key parity
+- ~4,392 keys per locale (EN/FR), CI enforces key parity
 
 ## Built-in Tools (49 tools)
 
@@ -105,6 +105,11 @@ Chmod Calculator, DateTime Converter, UUID Generator, Crontab Builder, Log Viewe
 - `IToolView` interface: `Initialize(ToolContext?, LocalizationManager?)`, `CanClose()`, `Dispose()`
 - Gateway routing: most network tools support SSH tunnel via `ToolGatewayConnector.Connect()` + `CmbRouteVia` ComboBox
 - Icons: `Geo.Tool.*` geometries in `IconGeometries.xaml`
+- **Sidebar panel**: mini-cards (badge + icon + name + desc), MaxHeight=350, header with close button
+- **Tools tab**: dedicated full-page browser with favorites (persisted), recents, search, 280px cards with pin/unpin
+- **Onboarding**: 3-step first-launch overlay, persisted via `AppSettings.OnboardingCompleted`
+- **Launch flow**: `OpenToolTabAsync` cleans up orphaned tabs on `CreateToolControl` failure
+- **Design token gotcha**: `SpacingRowGap` is `sys:Double`; for `RowDefinition.Height` use `SpacingRowGapGrid` (`GridLength`)
 
 ### SecNumCloud Audit Engine
 - `SecNumCloudAuditEngine` (in `Heimdall.App/Services/`): orchestrates 15 checks across 4 SecNumCloud v3.2 chapters
