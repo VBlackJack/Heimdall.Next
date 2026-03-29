@@ -4547,5 +4547,34 @@
   "ToolPingCsvHeader": "Seq,Timestamp,Latency,Status",
   "ToolPingStatsPercent": "{0}%",
   "ToolDiffOriginalHeader": "--- original",
-  "ToolDiffModifiedHeader": "+++ modified"
+  "ToolDiffModifiedHeader": "+++ modified",
+
+  "NavTabTools": "Tools",
+  "ToolsTabTitle": "Tools",
+  "ToolsTabSearchPlaceholder": "Search tools...",
+  "ToolsFavoritesHeader": "Favorites",
+  "ToolsRecentHeader": "Recently Used",
+  "ToolsAllHeader": "All Tools",
+  "ToolsPinTooltip": "Pin to favorites",
+  "ToolsUnpinTooltip": "Unpin from favorites",
+  "ToolsEmptyFavorites": "Pin your favorite tools for quick access",
+  "ToolsEmptyRecent": "Recently used tools will appear here",
+  "ToolsToolCount": "{0} tools",
+
+  "OnboardingWelcomeTitle": "Welcome to Heimdall",
+  "OnboardingWelcomeSubtitle": "Your secure connection control center",
+  "OnboardingStep1Title": "Connect to Servers",
+  "OnboardingStep1Desc": "Manage RDP, SSH, SFTP, VNC and more from a single interface. Add your first server or import from MobaXterm, mRemoteNG, or RDCMan.",
+  "OnboardingStep2Title": "Built-in Tools",
+  "OnboardingStep2Desc": "49 network, security, encoding and system tools at your fingertips. Access them from the Tools tab or press Ctrl+K.",
+  "OnboardingStep3Title": "Quick Connect",
+  "OnboardingStep3Desc": "Press Ctrl+K to open the Command Palette. Type a hostname, IP address, or tool name to instantly connect or launch.",
+  "OnboardingBtnSkip": "Skip",
+  "OnboardingBtnNext": "Next",
+  "OnboardingBtnGetStarted": "Get Started",
+
+  "A11yToolsTab": "Tools tab",
+  "A11yPinTool": "Pin tool to favorites",
+  "A11yUnpinTool": "Unpin tool from favorites",
+  "A11yOnboardingOverlay": "Welcome guide"
 }

@@ -223,21 +223,21 @@
                             </Grid.ColumnDefinitions>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="{StaticResource SpacingRowGap}"/>
+                                <RowDefinition Height="{StaticResource SpacingRowGapGrid}"/>
                                 <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="{StaticResource SpacingRowGap}"/>
+                                <RowDefinition Height="{StaticResource SpacingRowGapGrid}"/>
                                 <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="{StaticResource SpacingRowGap}"/>
+                                <RowDefinition Height="{StaticResource SpacingRowGapGrid}"/>
                                 <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="{StaticResource SpacingRowGap}"/>
+                                <RowDefinition Height="{StaticResource SpacingRowGapGrid}"/>
                                 <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="{StaticResource SpacingRowGap}"/>
+                                <RowDefinition Height="{StaticResource SpacingRowGapGrid}"/>
                                 <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="{StaticResource SpacingRowGap}"/>
+                                <RowDefinition Height="{StaticResource SpacingRowGapGrid}"/>
                                 <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="{StaticResource SpacingRowGap}"/>
+                                <RowDefinition Height="{StaticResource SpacingRowGapGrid}"/>
                                 <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="{StaticResource SpacingRowGap}"/>
+                                <RowDefinition Height="{StaticResource SpacingRowGapGrid}"/>
                                 <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
 
@@ -406,19 +406,19 @@
                                             </Grid.ColumnDefinitions>
                                             <Grid.RowDefinitions>
                                                 <RowDefinition Height="Auto"/>
-                                                <RowDefinition Height="{StaticResource SpacingRowGap}"/>
+                                                <RowDefinition Height="{StaticResource SpacingRowGapGrid}"/>
                                                 <RowDefinition Height="Auto"/>
-                                                <RowDefinition Height="{StaticResource SpacingRowGap}"/>
+                                                <RowDefinition Height="{StaticResource SpacingRowGapGrid}"/>
                                                 <RowDefinition Height="Auto"/>
-                                                <RowDefinition Height="{StaticResource SpacingRowGap}"/>
+                                                <RowDefinition Height="{StaticResource SpacingRowGapGrid}"/>
                                                 <RowDefinition Height="Auto"/>
-                                                <RowDefinition Height="{StaticResource SpacingRowGap}"/>
+                                                <RowDefinition Height="{StaticResource SpacingRowGapGrid}"/>
                                                 <RowDefinition Height="Auto"/>
-                                                <RowDefinition Height="{StaticResource SpacingRowGap}"/>
+                                                <RowDefinition Height="{StaticResource SpacingRowGapGrid}"/>
                                                 <RowDefinition Height="Auto"/>
-                                                <RowDefinition Height="{StaticResource SpacingRowGap}"/>
+                                                <RowDefinition Height="{StaticResource SpacingRowGapGrid}"/>
                                                 <RowDefinition Height="Auto"/>
-                                                <RowDefinition Height="{StaticResource SpacingRowGap}"/>
+                                                <RowDefinition Height="{StaticResource SpacingRowGapGrid}"/>
                                                 <RowDefinition Height="Auto"/>
                                             </Grid.RowDefinitions>
 

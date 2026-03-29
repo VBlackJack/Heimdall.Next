@@ -71,6 +71,13 @@
                                  Focusable="True"
                                  Style="{DynamicResource ToolbarTabStyle}"
                                  Margin="0,0,4,0"/>
+                    <RadioButton x:Name="TabTools"
+                                 Content=""
+                                 GroupName="NavTabs"
+                                 Focusable="True"
+                                 Style="{DynamicResource ToolbarTabStyle}"
+                                 Margin="0,0,4,0"
+                                 AutomationProperties.Name="{loc:Translate A11yToolsTab}"/>
                     <RadioButton x:Name="TabSettings"
                                  GroupName="NavTabs"
                                  Focusable="True"
@@ -252,15 +259,46 @@
                                 Background="{DynamicResource SurfaceBrush}"
                                 BorderBrush="{DynamicResource BorderBrush}"
                                 BorderThickness="0,1,0,0"
+                                MaxHeight="350"
                                 Style="{StaticResource FadeInPanelStyle}"
                                 Visibility="Collapsed">
                             <Grid>
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="*"/>
                                 </Grid.RowDefinitions>
+                                <!-- Header bar with title + close button -->
+                                <Border Grid.Row="0" Padding="6,4"
+                                        Background="{DynamicResource CardBrush}"
+                                        BorderBrush="{DynamicResource BorderBrush}"
+                                        BorderThickness="0,0,0,1">
+                                    <DockPanel>
+                                        <Button x:Name="BtnCloseToolsPanel"
+                                                DockPanel.Dock="Right"
+                                                Content="&#xE70D;"
+                                                FontFamily="Segoe MDL2 Assets"
+                                                FontSize="{StaticResource FontSizeSmallCaption}"
+                                                Click="OnToggleToolsPanel"
+                                                Style="{DynamicResource ToolbarGhostButtonStyle}"
+                                                Padding="4,2" Width="24" Height="24"
+                                                AutomationProperties.Name="{loc:Translate A11yToggleToolsPanel}"/>
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                            <TextBlock Text="&#xE90F;" FontFamily="Segoe MDL2 Assets"
+                                                       FontSize="{StaticResource FontSizeCaption}"
+                                                       Foreground="{DynamicResource AccentBrush}"
+                                                       VerticalAlignment="Center" Margin="0,0,6,0"
+                                                       AutomationProperties.Name=""/>
+                                            <TextBlock x:Name="Mw_ToolsPanelHeaderLabel" Text=""
+                                                       FontSize="{StaticResource FontSizeCaption}"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="{DynamicResource TextPrimaryBrush}"
+                                                       VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </DockPanel>
+                                </Border>
                                 <!-- Search filter -->
-                                <TextBox x:Name="TxtToolsFilter" Grid.Row="0"
+                                <TextBox x:Name="TxtToolsFilter" Grid.Row="1"
                                          Style="{StaticResource WatermarkTextBoxStyle}"
                                          Tag=""
                                          FontSize="{StaticResource FontSizeCaption}"
@@ -271,7 +309,7 @@
                                          BorderBrush="{DynamicResource BorderBrush}"
                                          TextChanged="OnToolsFilterChanged"
                                          AutomationProperties.Name=""/>
-                                <Grid Grid.Row="1">
+                                <Grid Grid.Row="2">
                                     <ScrollViewer x:Name="ToolsPanelScroll"
                                                   VerticalScrollBarVisibility="Auto" Padding="4,4,4,4"
                                                   ScrollChanged="OnToolsPanelScrollChanged">
@@ -1203,6 +1241,52 @@
             </DockPanel>
 
             <!-- ============================================================ -->
+            <!-- TOOLS TAB: Dedicated tool browser                             -->
+            <!-- ============================================================ -->
+            <Grid Visibility="{Binding IsToolsTabSelected, Converter={StaticResource BoolToVisibilityConverter}}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <!-- Header: Title + search + tool count -->
+                <Border Grid.Row="0" Padding="16,12,16,8"
+                        Background="{DynamicResource SurfaceBrush}"
+                        BorderBrush="{DynamicResource BorderBrush}"
+                        BorderThickness="0,0,0,1">
+                    <DockPanel>
+                        <TextBlock x:Name="Mw_ToolsTabTitle" Text=""
+                                   FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                   VerticalAlignment="Center" DockPanel.Dock="Left"
+                                   Margin="0,0,16,0"/>
+                        <TextBlock x:Name="Mw_ToolsTabCount" Text=""
+                                   FontSize="{StaticResource FontSizeCaption}"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                   VerticalAlignment="Center" DockPanel.Dock="Right"
+                                   HorizontalAlignment="Right"/>
+                        <TextBox x:Name="Mw_ToolsTabSearch"
+                                 Style="{StaticResource WatermarkTextBoxStyle}"
+                                 Tag=""
+                                 FontSize="{StaticResource FontSizeBody}"
+                                 Padding="{StaticResource PaddingInput}"
+                                 Background="{DynamicResource CardBrush}"
+                                 Foreground="{DynamicResource TextPrimaryBrush}"
+                                 BorderBrush="{DynamicResource BorderBrush}"
+                                 MaxWidth="400" HorizontalAlignment="Left"
+                                 TextChanged="OnToolsTabSearchChanged"
+                                 AutomationProperties.Name="{loc:Translate ToolsTabSearchPlaceholder}"/>
+                    </DockPanel>
+                </Border>
+
+                <!-- Content: scrollable tool grid with sections -->
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto"
+                              Padding="16,8,16,16">
+                    <StackPanel x:Name="ToolsTabContent"/>
+                </ScrollViewer>
+            </Grid>
+
+            <!-- ============================================================ -->
             <!-- SETTINGS TAB: Left-navigation sub-tabs                        -->
             <!-- ============================================================ -->
             <Grid Visibility="{Binding IsSettingsTabSelected, Converter={StaticResource BoolToVisibilityConverter}}">
@@ -2091,6 +2175,61 @@
                 </StackPanel>
             </Border>
         </Popup>
+
+        <!-- ============================================================ -->
+        <!-- ONBOARDING OVERLAY (first launch)                             -->
+        <!-- ============================================================ -->
+        <Border x:Name="OnboardingOverlay"
+                Grid.Row="0" Grid.RowSpan="3"
+                Panel.ZIndex="500"
+                Visibility="Collapsed"
+                Background="{DynamicResource OverlayBackground}"
+                AutomationProperties.Name="{loc:Translate A11yOnboardingOverlay}">
+            <Border HorizontalAlignment="Center" VerticalAlignment="Center"
+                    MinWidth="480" MaxWidth="560"
+                    Background="{DynamicResource SurfaceBrush}"
+                    BorderBrush="{DynamicResource BorderBrush}"
+                    BorderThickness="1"
+                    CornerRadius="{StaticResource CornerRadiusXl}"
+                    Padding="32,24">
+                <Border.Effect>
+                    <DropShadowEffect BlurRadius="32" ShadowDepth="12" Opacity="0.3" Direction="270"/>
+                </Border.Effect>
+                <StackPanel>
+                    <!-- Step indicator dots -->
+                    <StackPanel x:Name="OnboardingDots" Orientation="Horizontal"
+                                HorizontalAlignment="Center" Margin="0,0,0,20"/>
+
+                    <!-- Step content (swapped programmatically) -->
+                    <TextBlock x:Name="OnboardingTitle" Text=""
+                               FontSize="{StaticResource FontSizeHeadline}" FontWeight="Bold"
+                               Foreground="{DynamicResource TextPrimaryBrush}"
+                               HorizontalAlignment="Center" TextAlignment="Center"
+                               Margin="0,0,0,8"/>
+                    <TextBlock x:Name="OnboardingSubtitle" Text=""
+                               FontSize="{StaticResource FontSizeBodyLarge}"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               HorizontalAlignment="Center" TextAlignment="Center"
+                               TextWrapping="Wrap"
+                               Margin="0,0,0,24"/>
+
+                    <!-- Navigation buttons -->
+                    <DockPanel HorizontalAlignment="Stretch">
+                        <Button x:Name="OnboardingSkipBtn" Content=""
+                                Click="OnOnboardingSkip"
+                                Style="{DynamicResource ToolbarGhostButtonStyle}"
+                                Padding="12,6" FontSize="{StaticResource FontSizeBody}"
+                                DockPanel.Dock="Left"
+                                Foreground="{DynamicResource TextSecondaryBrush}"/>
+                        <Button x:Name="OnboardingNextBtn" Content=""
+                                Click="OnOnboardingNext"
+                                Style="{DynamicResource PrimaryButtonStyle}"
+                                Padding="20,8" FontSize="{StaticResource FontSizeBody}"
+                                HorizontalAlignment="Right"/>
+                    </DockPanel>
+                </StackPanel>
+            </Border>
+        </Border>
 
     </Grid>
 </Window>

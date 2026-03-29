@@ -192,34 +192,41 @@
                       RowStyle="{StaticResource ThemedDataGridRowStyle}"
                       RowDetailsVisibilityMode="Collapsed">
                 <DataGrid.Columns>
-                    <DataGridTextColumn x:Name="ColIp" Binding="{Binding IpAddress}" Width="120"
+                    <!-- Essential columns (always visible) -->
+                    <DataGridTextColumn x:Name="ColIp" Binding="{Binding IpAddress}" Width="110"
                                         Foreground="{DynamicResource TextPrimaryBrush}"/>
-                    <DataGridTextColumn x:Name="ColHostname" Binding="{Binding Hostname}" Width="180"
+                    <DataGridTextColumn x:Name="ColHostname" Binding="{Binding Hostname}" Width="*"
+                                        MinWidth="100"
                                         ElementStyle="{StaticResource DataGridCellTextStyle}"
                                         Foreground="{DynamicResource TextPrimaryBrush}"/>
-                    <DataGridTextColumn x:Name="ColRole" Binding="{Binding PrimaryRoleName}" Width="150"
+                    <DataGridTextColumn x:Name="ColRole" Binding="{Binding PrimaryRoleName}" Width="120"
                                         ElementStyle="{StaticResource DataGridCellTextStyle}"
                                         Foreground="{DynamicResource TextPrimaryBrush}"/>
-                    <DataGridTextColumn x:Name="ColConfidence" Binding="{Binding Confidence}" Width="80"
+                    <!-- Secondary columns (hidden below 800px) -->
+                    <DataGridTextColumn x:Name="ColConfidence" Binding="{Binding Confidence}" Width="70"
                                         Foreground="{DynamicResource TextSecondaryBrush}"/>
-                    <DataGridTextColumn x:Name="ColOs" Binding="{Binding OsGuess}" Width="120"
+                    <DataGridTextColumn x:Name="ColOs" Binding="{Binding OsGuess}" Width="100"
                                         Foreground="{DynamicResource TextSecondaryBrush}"/>
-                    <DataGridTextColumn x:Name="ColManufacturer" Binding="{Binding Manufacturer}" Width="140"
+                    <DataGridTextColumn x:Name="ColPorts" Binding="{Binding PortSummary}" Width="*"
+                                        MinWidth="100"
                                         ElementStyle="{StaticResource DataGridCellTextStyle}"
                                         Foreground="{DynamicResource TextSecondaryBrush}"/>
-                    <DataGridTextColumn x:Name="ColPorts" Binding="{Binding PortSummary}" Width="200"
+                    <DataGridTextColumn x:Name="ColServices" Binding="{Binding ServiceSummary}" Width="*"
+                                        MinWidth="100"
                                         ElementStyle="{StaticResource DataGridCellTextStyle}"
                                         Foreground="{DynamicResource TextSecondaryBrush}"/>
-                    <DataGridTextColumn x:Name="ColServices" Binding="{Binding ServiceSummary}" Width="200"
+                    <!-- Detail columns (hidden below 1100px) -->
+                    <DataGridTextColumn x:Name="ColManufacturer" Binding="{Binding Manufacturer}" Width="120"
                                         ElementStyle="{StaticResource DataGridCellTextStyle}"
                                         Foreground="{DynamicResource TextSecondaryBrush}"/>
-                    <DataGridTextColumn x:Name="ColTls" Binding="{Binding TlsStatus}" Width="180"
+                    <DataGridTextColumn x:Name="ColTls" Binding="{Binding TlsStatus}" Width="150"
                                         ElementStyle="{StaticResource DataGridCellTextStyle}"
                                         Foreground="{DynamicResource TextSecondaryBrush}"/>
-                    <DataGridTextColumn x:Name="ColDetails" Binding="{Binding DetailsSummary}" Width="200"
+                    <DataGridTextColumn x:Name="ColDetails" Binding="{Binding DetailsSummary}" Width="*"
+                                        MinWidth="100"
                                         ElementStyle="{StaticResource DataGridCellTextStyle}"
                                         Foreground="{DynamicResource TextSecondaryBrush}"/>
-                    <DataGridTextColumn x:Name="ColVlan" Binding="{Binding VlanSegment}" Width="150"
+                    <DataGridTextColumn x:Name="ColVlan" Binding="{Binding VlanSegment}" Width="100"
                                         ElementStyle="{StaticResource DataGridCellTextStyle}"
                                         Foreground="{DynamicResource TextSecondaryBrush}"/>
                 </DataGrid.Columns>

@@ -101,6 +101,8 @@ public class AppSettings
     public bool SidebarCollapsed { get; set; }
     public int SidebarWidth { get; set; } = 220;
     public bool ShowToolsPanel { get; set; }
+    public List<string> FavoriteToolIds { get; set; } = new();
+    public bool OnboardingCompleted { get; set; }
     public double WindowWidth { get; set; }
     public double WindowHeight { get; set; }
     public double WindowLeft { get; set; }

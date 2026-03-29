@@ -64,8 +64,9 @@
     <!-- Section top margin (top spacing before stacked content) -->
     <Thickness x:Key="MarginSectionTop">0,12,0,0</Thickness>
 
-    <!-- Grid row spacer height -->
+    <!-- Grid row spacer height (Double for Margin/Height, GridLength for RowDefinition) -->
     <sys:Double x:Key="SpacingRowGap">8</sys:Double>
+    <GridLength x:Key="SpacingRowGapGrid">8</GridLength>
 
     <!-- Session header strip padding (horizontal=8, vertical=4) -->
     <Thickness x:Key="SessionHeaderPadding">8,4</Thickness>
