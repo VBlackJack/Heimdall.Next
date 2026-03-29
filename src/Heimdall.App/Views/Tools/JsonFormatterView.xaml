@@ -32,6 +32,7 @@
                 BorderThickness="0,0,0,1">
             <DockPanel>
                 <Button x:Name="BtnHelp" DockPanel.Dock="Right" Content="?"
+                        TabIndex="6"
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
@@ -79,6 +80,7 @@
                        Foreground="{DynamicResource TextSecondaryBrush}"
                        FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,4"/>
             <TextBox x:Name="InputText" Grid.Row="1"
+                     TabIndex="0"
                      AcceptsReturn="True" AcceptsTab="True"
                      TextWrapping="Wrap"
                      VerticalScrollBarVisibility="Auto"
@@ -98,10 +100,12 @@
         <StackPanel Grid.Row="1" Orientation="Horizontal"
                     HorizontalAlignment="Center" Margin="0,8">
             <Button x:Name="BtnPrettify" Click="OnPrettifyClick"
+                    TabIndex="1"
                     Style="{DynamicResource PrimaryButtonStyle}"
                     Padding="{StaticResource PaddingButtonPrimary}" Margin="0,0,8,0"
                     AutomationProperties.Name=""/>
             <Button x:Name="BtnMinify" Click="OnMinifyClick"
+                    TabIndex="2"
                     Style="{DynamicResource SecondaryButtonStyle}"
                     Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginInlineControl}"
                     AutomationProperties.Name=""/>
@@ -116,25 +120,42 @@
             <TextBlock x:Name="OutputLabel" Grid.Row="0"
                        Foreground="{DynamicResource TextSecondaryBrush}"
                        FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,4"/>
-            <TextBox x:Name="OutputText" Grid.Row="1"
-                     IsReadOnly="True"
-                     AcceptsReturn="True"
-                     TextWrapping="Wrap"
-                     VerticalScrollBarVisibility="Auto"
-                     HorizontalScrollBarVisibility="Auto"
-                     FontFamily="Consolas" FontSize="{StaticResource FontSizeBodyLarge}"
-                     Background="{DynamicResource SurfaceBrush}"
-                     Foreground="{DynamicResource TextPrimaryBrush}"
-                     AutomationProperties.Name=""
-                     AutomationProperties.LiveSetting="Polite"
-                     BorderBrush="{DynamicResource BorderBrush}"
-                     BorderThickness="1"
-                     Padding="{StaticResource PaddingInput}"/>
+
+            <Border x:Name="EmptyStatePanel" Grid.Row="1"
+                    Style="{StaticResource ToolEmptyStateStyle}"
+                    Margin="0,24,0,0">
+                <StackPanel HorizontalAlignment="Center">
+                    <TextBlock Text="&#xE943;"
+                               Style="{StaticResource ToolEmptyStateIconStyle}"
+                               AutomationProperties.Name=""/>
+                    <TextBlock x:Name="TxtEmptyState" Text=""
+                               Style="{StaticResource ToolEmptyStateTextStyle}"/>
+                </StackPanel>
+            </Border>
+
+            <Border x:Name="ResultsPanel" Grid.Row="1" Visibility="Collapsed">
+                <TextBox x:Name="OutputText"
+                         TabIndex="3"
+                         IsReadOnly="True"
+                         AcceptsReturn="True"
+                         TextWrapping="Wrap"
+                         VerticalScrollBarVisibility="Auto"
+                         HorizontalScrollBarVisibility="Auto"
+                         FontFamily="Consolas" FontSize="{StaticResource FontSizeBodyLarge}"
+                         Background="{DynamicResource SurfaceBrush}"
+                         Foreground="{DynamicResource TextPrimaryBrush}"
+                         AutomationProperties.Name=""
+                         AutomationProperties.LiveSetting="Polite"
+                         BorderBrush="{DynamicResource BorderBrush}"
+                         BorderThickness="1"
+                         Padding="{StaticResource PaddingInput}"/>
+            </Border>
         </Grid>
 
         <!-- Status bar -->
         <DockPanel Grid.Row="3" Margin="0,8,0,0">
             <Button x:Name="BtnCopyOutput" DockPanel.Dock="Right"
+                    TabIndex="5"
                     Click="OnCopyOutputClick"
                     Style="{DynamicResource SecondaryButtonStyle}"
                     Padding="{StaticResource PaddingButtonCopy}"

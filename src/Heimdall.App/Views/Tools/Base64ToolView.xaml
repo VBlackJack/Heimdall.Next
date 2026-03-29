@@ -31,6 +31,7 @@
                 BorderThickness="0,0,0,1">
             <DockPanel>
                 <Button x:Name="BtnHelp" DockPanel.Dock="Right" Content="?"
+                        TabIndex="8"
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
@@ -73,11 +74,13 @@
         <DockPanel Grid.Row="0" Margin="0,0,0,8">
             <StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
                 <CheckBox x:Name="ChkUrlSafe"
+                          TabIndex="1"
                           Foreground="{DynamicResource TextPrimaryBrush}"
                           VerticalAlignment="Center"
                           Margin="0,0,16,0"
                           AutomationProperties.Name=""/>
                 <CheckBox x:Name="ChkFileMode"
+                          TabIndex="2"
                           Foreground="{DynamicResource TextPrimaryBrush}"
                           Checked="OnFileModeChanged" Unchecked="OnFileModeChanged"
                           VerticalAlignment="Center"
@@ -90,6 +93,7 @@
 
         <!-- Input text area -->
         <TextBox x:Name="InputText" Grid.Row="1"
+                 TabIndex="0"
                  AcceptsReturn="True" AcceptsTab="True"
                  TextWrapping="Wrap"
                  VerticalScrollBarVisibility="Auto"
@@ -108,10 +112,12 @@
         <StackPanel Grid.Row="2" Orientation="Horizontal"
                     HorizontalAlignment="Center" Margin="0,8">
             <Button x:Name="BtnEncode" Click="OnEncodeClick"
+                    TabIndex="3"
                     Style="{DynamicResource PrimaryButtonStyle}"
                     Padding="{StaticResource PaddingButtonPrimary}" Margin="0,0,8,0"
                     AutomationProperties.Name=""/>
             <Button x:Name="BtnDecode" Click="OnDecodeClick"
+                    TabIndex="4"
                     Style="{DynamicResource SecondaryButtonStyle}"
                     Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginInlineControl}"
                     AutomationProperties.Name=""/>
@@ -126,29 +132,47 @@
             <TextBlock x:Name="OutputLabel" Grid.Row="0"
                        Foreground="{DynamicResource TextSecondaryBrush}"
                        FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,4"/>
-            <TextBox x:Name="OutputText" Grid.Row="1"
-                     IsReadOnly="True" AutomationProperties.LiveSetting="Polite"
-                     AcceptsReturn="True"
-                     TextWrapping="Wrap"
-                     VerticalScrollBarVisibility="Auto"
-                     HorizontalScrollBarVisibility="Auto"
-                     FontFamily="Consolas" FontSize="{StaticResource FontSizeBodyLarge}"
-                     Background="{DynamicResource SurfaceBrush}"
-                     Foreground="{DynamicResource TextPrimaryBrush}"
-                     BorderBrush="{DynamicResource BorderBrush}"
-                     BorderThickness="1"
-                     Padding="{StaticResource PaddingInput}"
-                     AutomationProperties.Name=""/>
+
+            <Border x:Name="EmptyStatePanel" Grid.Row="1"
+                    Style="{StaticResource ToolEmptyStateStyle}"
+                    Margin="0,24,0,0">
+                <StackPanel HorizontalAlignment="Center">
+                    <TextBlock Text="&#xE943;"
+                               Style="{StaticResource ToolEmptyStateIconStyle}"
+                               AutomationProperties.Name=""/>
+                    <TextBlock x:Name="TxtEmptyState" Text=""
+                               Style="{StaticResource ToolEmptyStateTextStyle}"/>
+                </StackPanel>
+            </Border>
+
+            <Border x:Name="ResultsPanel" Grid.Row="1" Visibility="Collapsed">
+                <TextBox x:Name="OutputText"
+                         TabIndex="5"
+                         IsReadOnly="True" AutomationProperties.LiveSetting="Polite"
+                         AcceptsReturn="True"
+                         TextWrapping="Wrap"
+                         VerticalScrollBarVisibility="Auto"
+                         HorizontalScrollBarVisibility="Auto"
+                         FontFamily="Consolas" FontSize="{StaticResource FontSizeBodyLarge}"
+                         Background="{DynamicResource SurfaceBrush}"
+                         Foreground="{DynamicResource TextPrimaryBrush}"
+                         BorderBrush="{DynamicResource BorderBrush}"
+                         BorderThickness="1"
+                         Padding="{StaticResource PaddingInput}"
+                         AutomationProperties.Name=""/>
+            </Border>
         </Grid>
 
         <!-- Status bar -->
         <DockPanel Grid.Row="4" Margin="0,8,0,0">
             <Button x:Name="BtnCopyOutput" DockPanel.Dock="Right"
+                    TabIndex="7"
                     Click="OnCopyOutputClick"
                     Style="{DynamicResource SecondaryButtonStyle}"
                     Padding="{StaticResource PaddingButtonCopy}"
                     AutomationProperties.Name=""/>
             <Button x:Name="BtnBrowseFile" DockPanel.Dock="Right"
+                    TabIndex="6"
                     Click="OnBrowseFileClick"
                     Style="{DynamicResource SecondaryButtonStyle}"
                     Padding="{StaticResource PaddingButtonCopy}" Margin="0,0,8,0"

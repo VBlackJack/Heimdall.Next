@@ -61,8 +61,12 @@ public class DenseToolTabOrderTests
 
             foreach (var controlName in controlNames)
             {
-                var pattern = $@"<[\w:]+[^>]*\bx:Name=""{Regex.Escape(controlName)}""[^>]*\bTabIndex=""-?\d+""";
-                if (!Regex.IsMatch(content, pattern, RegexOptions.CultureInvariant))
+                var namePattern = $@"x:Name=""{Regex.Escape(controlName)}""";
+                var tabPattern = @"TabIndex=""-?\d+""";
+                var forward = $@"<[\w:]+[^>]*\b{namePattern}[^>]*\b{tabPattern}";
+                var reverse = $@"<[\w:]+[^>]*\b{tabPattern}[^>]*\b{namePattern}";
+                if (!Regex.IsMatch(content, forward, RegexOptions.CultureInvariant)
+                    && !Regex.IsMatch(content, reverse, RegexOptions.CultureInvariant))
                 {
                     failures.Add($"{fileName} -> {controlName}");
                 }

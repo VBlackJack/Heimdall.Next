@@ -2735,6 +2735,10 @@
   "ToolDnsNoIpv6": "No IPv6 addresses found.",
   "ToolDnsAliases": "Aliases:",
   "ToolDnsServerLabel": "DNS server",
+  "ToolDnsPresetSystem": "System",
+  "ToolDnsPresetGoogle": "Google (8.8.8.8)",
+  "ToolDnsPresetCloudflare": "Cloudflare (1.1.1.1)",
+  "ToolDnsPresetQuad9": "Quad9 (9.9.9.9)",
 
   "PaletteToolCert": "Certificate Inspector",
   "PaletteToolCertWith": "Certificate Inspector: {0}",
@@ -4609,5 +4613,32 @@
   "A11yToolsTab": "Tools tab",
   "A11yPinTool": "Pin tool to favorites",
   "A11yUnpinTool": "Unpin tool from favorites",
-  "A11yOnboardingOverlay": "Welcome guide"
+  "A11yOnboardingOverlay": "Welcome guide",
+
+  "_comment_ux_empty_states": "--- Empty state messages for tools ---",
+  "ToolPingEmptyState": "Enter a host and click Start to begin pinging.",
+  "ToolIpConvEmptyState": "Enter an IP address, integer, hex, or dotted binary to convert.",
+  "ToolNetCalcEmptyState": "Enter subnets or IP ranges to calculate.",
+  "ToolHashEmptyState": "Enter text or browse a file to compute hashes.",
+  "ToolHmacEmptyState": "Enter a key and a message to compute HMAC.",
+  "ToolJwtEmptyState": "Paste a JWT token to decode its header, payload, and signature.",
+  "ToolBase64EmptyState": "Enter text and press Encode or Decode.",
+  "ToolJsonEmptyState": "Paste JSON and press Prettify or Minify.",
+  "ToolTextDiffEmptyState": "Enter original and modified text, then press Compare.",
+  "ToolTextCaseEmptyState": "Enter text and select a case conversion.",
+  "ToolDateTimeEmptyState": "Enter a Unix timestamp or ISO 8601 date to convert.",
+  "ToolHostsEmptyState": "No entries found in the hosts file.",
+  "ToolSshKeyGenEmptyState": "Choose an algorithm and click Generate.",
+  "ToolCertGenEmptyState": "Fill in certificate details and click Generate.",
+  "ToolDiagramEmptyState": "Loading diagram editor...",
+
+  "_comment_ux_watermarks": "--- Watermark placeholders ---",
+  "ToolWatermarkPassword": "Enter a password",
+  "ToolWatermarkSshKey": "Paste an SSH public or private key",
+  "ToolWatermarkServiceFilter": "Filter services...",
+
+  "_comment_ux_buttons": "--- Async tool buttons ---",
+  "ToolSshKeyGenGenerating": "Generating...",
+  "ToolCertGenGenerating": "Generating...",
+  "ToolTextDiffComparing": "Comparing..."
 }

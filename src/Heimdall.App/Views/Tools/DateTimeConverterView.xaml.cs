@@ -17,6 +17,7 @@
 using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Threading;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Models;
@@ -38,6 +39,7 @@ public partial class DateTimeConverterView : UserControl, IToolView
         InitializeComponent();
         InitializeDebounceTimer();
         PopulateTimezones();
+        TxtInput.KeyDown += OnInputKeyDown;
     }
 
     /// <summary>
@@ -137,6 +139,16 @@ public partial class DateTimeConverterView : UserControl, IToolView
         System.Windows.Automation.AutomationProperties.SetName(BtnCloseHelp, L("BtnClose"));
 
         TxtInput.Tag = L("ToolWatermarkDateTimeInput");
+        TxtEmptyState.Text = L("ToolDateTimeEmptyState");
+    }
+
+    private void OnInputKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter)
+        {
+            _debounceTimer?.Stop();
+            ConvertDateTime();
+        }
     }
 
     private void OnInputTextChanged(object sender, TextChangedEventArgs e)
@@ -157,6 +169,8 @@ public partial class DateTimeConverterView : UserControl, IToolView
         if (string.IsNullOrEmpty(input))
         {
             ClearOutput();
+            EmptyStatePanel.Visibility = Visibility.Visible;
+            ResultsPanel.Visibility = Visibility.Collapsed;
             return;
         }
 
@@ -185,6 +199,8 @@ public partial class DateTimeConverterView : UserControl, IToolView
             }
 
             _lastParsedDto = dto;
+            EmptyStatePanel.Visibility = Visibility.Collapsed;
+            ResultsPanel.Visibility = Visibility.Visible;
 
             TxtUnixTimestamp.Text = dto.ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture);
             TxtIsoUtc.Text = dto.UtcDateTime.ToString("o", CultureInfo.InvariantCulture);

@@ -97,6 +97,7 @@ public partial class IpConverterView : UserControl, IToolView
 
         TxtInput.Tag = L("ToolWatermarkIpOrInteger");
         System.Windows.Automation.AutomationProperties.SetName(BtnCloseHelp, L("BtnClose"));
+        TxtEmptyState.Text = L("ToolIpConvEmptyState");
     }
 
     private void OnInputTextChanged(object sender, TextChangedEventArgs e)
@@ -112,6 +113,7 @@ public partial class IpConverterView : UserControl, IToolView
 
         if (string.IsNullOrWhiteSpace(input))
         {
+            EmptyStatePanel.Visibility = Visibility.Visible;
             return;
         }
 
@@ -140,6 +142,7 @@ public partial class IpConverterView : UserControl, IToolView
             System.Convert.ToString(bytes[3], 2).PadLeft(8, '0'));
         TxtMappedIpv6.Text = $"::ffff:{bytes[0]:x02}{bytes[1]:x02}:{bytes[2]:x02}{bytes[3]:x02}";
 
+        EmptyStatePanel.Visibility = Visibility.Collapsed;
         ResultsPanel.Visibility = Visibility.Visible;
     }
 

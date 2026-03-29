@@ -36,6 +36,7 @@
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
                         Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"
+                        TabIndex="4"
                         AutomationProperties.Name=""/>
                 <TextBlock x:Name="HeaderTitle" Text=""
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
@@ -52,6 +53,7 @@
                         Click="OnCloseHelpClick"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
                         VerticalAlignment="Top" Width="24" Height="24"
+                        TabIndex="5"
                         AutomationProperties.Name=""/>
                 <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
                     <TextBlock x:Name="TxtHelpContent" Text="" TextWrapping="Wrap"
@@ -76,6 +78,7 @@
                             Style="{DynamicResource PrimaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginInlineControl}"
                             VerticalAlignment="Center"
+                            TabIndex="0"
                             AutomationProperties.Name=""/>
                     <TextBox x:Name="TxtDomain" Text=""
                              Style="{StaticResource WatermarkTextBoxStyle}"
@@ -86,6 +89,7 @@
                              Foreground="{DynamicResource TextPrimaryBrush}"
                              BorderBrush="{DynamicResource BorderBrush}"
                              VerticalAlignment="Center"
+                             TabIndex="1"
                              AutomationProperties.Name=""/>
                 </DockPanel>
 
@@ -119,6 +123,7 @@
                             <Button x:Name="BtnCopyResults" DockPanel.Dock="Right" Click="OnCopyResultsClick"
                                     Style="{DynamicResource SecondaryButtonStyle}"
                                     Padding="{StaticResource PaddingButtonPreset}" FontSize="{StaticResource FontSizeCaption}" Margin="{StaticResource MarginInlineControl}" VerticalAlignment="Center"
+                                    TabIndex="2"
                                     AutomationProperties.Name=""/>
                             <TextBlock x:Name="TxtResultHeader" Text=""
                                        FontSize="{StaticResource FontSizeBodyLarge}" FontWeight="SemiBold"
@@ -135,6 +140,7 @@
                                  Background="Transparent"
                                  BorderThickness="0"
                                  MaxHeight="500"
+                                 TabIndex="3"
                                  AutomationProperties.Name=""
                                  AutomationProperties.LiveSetting="Polite"/>
                     </StackPanel>

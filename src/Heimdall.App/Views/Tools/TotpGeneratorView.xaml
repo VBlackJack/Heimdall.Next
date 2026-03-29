@@ -31,6 +31,7 @@
                 BorderThickness="0,0,0,1">
             <DockPanel>
                 <Button x:Name="BtnHelp" DockPanel.Dock="Right" Content="?"
+                        TabIndex="3"
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
@@ -71,12 +72,14 @@
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
                 <DockPanel Margin="{StaticResource MarginSectionSeparator}">
                     <Button x:Name="BtnGenerate" DockPanel.Dock="Right"
+                            TabIndex="1"
                             Content="" Click="OnGenerateClick"
                             Style="{DynamicResource PrimaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginInlineControl}"
                             VerticalAlignment="Center"
                             AutomationProperties.Name=""/>
                     <TextBox x:Name="TxtSecret" Text=""
+                             TabIndex="0"
                              Style="{DynamicResource WatermarkTextBoxStyle}"
                              FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
                              Padding="{StaticResource PaddingInput}"
@@ -107,6 +110,7 @@
                                    HorizontalAlignment="Center"/>
                         <DockPanel HorizontalAlignment="Center" Margin="{StaticResource MarginSectionBottom}">
                             <Button x:Name="BtnCopy" DockPanel.Dock="Right"
+                                    TabIndex="2"
                                     Content="" Click="OnCopyClick"
                                     Style="{DynamicResource SecondaryButtonStyle}"
                                     Padding="{StaticResource PaddingButtonPrimary}" Margin="12,0,0,0"

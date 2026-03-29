@@ -109,6 +109,7 @@ public partial class NetworkCalculatorView : UserControl, IToolView
         BtnHelp.ToolTip = L("ToolHelpTooltip");
         AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
         AutomationProperties.SetName(BtnCloseHelp, L("BtnClose"));
+        TxtEmptyState.Text = L("ToolNetCalcEmptyState");
     }
 
     private void OnModeChanged(object sender, RoutedEventArgs e)
@@ -311,6 +312,7 @@ public partial class NetworkCalculatorView : UserControl, IToolView
     {
         TxtError.Visibility = Visibility.Collapsed;
         ResultsPanel.Visibility = Visibility.Collapsed;
+        EmptyStatePanel.Visibility = Visibility.Visible;
     }
 
     private void ShowError(string message)
@@ -322,6 +324,7 @@ public partial class NetworkCalculatorView : UserControl, IToolView
     private void ShowResult(string text)
     {
         TxtResult.Text = text;
+        EmptyStatePanel.Visibility = Visibility.Collapsed;
         ResultsPanel.Visibility = Visibility.Visible;
     }
 

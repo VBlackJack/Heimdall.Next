@@ -25,22 +25,33 @@ namespace Heimdall.App.Views.Tools;
 /// Small controller that keeps async tool shell states consistent:
 /// loading, inline error, empty state, results visibility, and busy button state.
 /// </summary>
-internal sealed class ToolAsyncStateController(
-    Action<bool>? setBusy,
-    WpfProgressBar? loadingBar,
-    WpfTextBlock? errorText,
-    UIElement? emptyState,
-    UIElement? results,
-    WpfTextBlock? statusText,
-    params WpfControl[] controlsToDisable)
+internal sealed class ToolAsyncStateController
 {
-    private readonly Action<bool>? _setBusy = setBusy;
-    private readonly WpfProgressBar? _loadingBar = loadingBar;
-    private readonly WpfTextBlock? _errorText = errorText;
-    private readonly UIElement? _emptyState = emptyState;
-    private readonly UIElement? _results = results;
-    private readonly WpfTextBlock? _statusText = statusText;
-    private readonly WpfControl[] _controlsToDisable = controlsToDisable ?? [];
+    private readonly Action<bool>? _setBusy;
+    private readonly WpfProgressBar? _loadingBar;
+    private readonly WpfTextBlock? _errorText;
+    private readonly UIElement? _emptyState;
+    private readonly UIElement? _results;
+    private readonly WpfTextBlock? _statusText;
+    private readonly WpfControl[] _controlsToDisable;
+
+    public ToolAsyncStateController(
+        Action<bool>? setBusy,
+        WpfProgressBar? loadingBar,
+        WpfTextBlock? errorText,
+        UIElement? emptyState,
+        UIElement? results,
+        WpfTextBlock? statusText,
+        params WpfControl[] controlsToDisable)
+    {
+        _setBusy = setBusy;
+        _loadingBar = loadingBar;
+        _errorText = errorText;
+        _emptyState = emptyState;
+        _results = results;
+        _statusText = statusText;
+        _controlsToDisable = controlsToDisable ?? [];
+    }
 
     public void Reset(bool showEmptyState = true)
     {

@@ -38,6 +38,7 @@
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
                         Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"
+                        TabIndex="14"
                         AutomationProperties.Name=""/>
                 <StackPanel Orientation="Horizontal">
                     <TextBlock x:Name="HeaderTitle" Text="" FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"

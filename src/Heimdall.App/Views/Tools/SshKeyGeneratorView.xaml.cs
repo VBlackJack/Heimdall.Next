@@ -18,6 +18,7 @@ using System.Buffers.Binary;
 using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using Heimdall.Core.Localization;
@@ -60,6 +61,7 @@ public partial class SshKeyGeneratorView : UserControl, IToolView
     private string _publicKeyOpenSsh = string.Empty;
     private string _fingerprint = string.Empty;
     private bool _privateKeyVisible;
+    private bool _isGenerating;
     private int _lastGeneratedAlgorithmIndex;
 
     public SshKeyGeneratorView()
@@ -152,9 +154,23 @@ public partial class SshKeyGeneratorView : UserControl, IToolView
         HelpPanel.Visibility = Visibility.Collapsed;
     }
 
-    private void OnGenerateClick(object sender, RoutedEventArgs e)
+    private async void OnGenerateClick(object sender, RoutedEventArgs e)
     {
-        GenerateKeyPair();
+        if (_isGenerating) return;
+        _isGenerating = true;
+        BtnGenerate.IsEnabled = false;
+        ShowValidation(L("ToolSshKeyGenGenerating"));
+
+        try
+        {
+            await GenerateKeyPairAsync();
+        }
+        finally
+        {
+            _isGenerating = false;
+            BtnGenerate.IsEnabled = true;
+            ClearValidation();
+        }
     }
 
     private void OnCopyPublicKeyClick(object sender, RoutedEventArgs e)
@@ -238,22 +254,23 @@ public partial class SshKeyGeneratorView : UserControl, IToolView
         }
     }
 
-    private void GenerateKeyPair()
+    private async Task GenerateKeyPairAsync()
     {
         ClearValidation();
+        ShowValidation(L("ToolSshKeyGenGenerating"));
         _lastGeneratedAlgorithmIndex = AlgorithmCombo.SelectedIndex;
 
         if (_lastGeneratedAlgorithmIndex == AlgorithmIndexEd25519)
         {
-            GenerateEd25519KeyPair();
+            await GenerateEd25519KeyPairAsync();
         }
         else
         {
-            GenerateRsaKeyPair();
+            await GenerateRsaKeyPairAsync();
         }
     }
 
-    private void GenerateRsaKeyPair()
+    private async Task GenerateRsaKeyPairAsync()
     {
         var keySize = _lastGeneratedAlgorithmIndex switch
         {
@@ -261,24 +278,27 @@ public partial class SshKeyGeneratorView : UserControl, IToolView
             _ => Rsa2048KeySize
         };
 
-        using var rsa = RSA.Create(keySize);
         var comment = CommentInput.Text.Trim();
         var passphrase = PassphraseInput.Password;
 
-        // Build wire-format public key blob
-        var publicKeyBlob = BuildRsaPublicKeyBlob(rsa);
+        var (publicKeyOpenSsh, privateKeyPem, fingerprint) = await Task.Run(() =>
+        {
+            using var rsa = RSA.Create(keySize);
 
-        // Generate OpenSSH public key
-        var base64 = Convert.ToBase64String(publicKeyBlob);
-        _publicKeyOpenSsh = string.IsNullOrWhiteSpace(comment)
-            ? $"{OpenSshRsaPrefix} {base64}"
-            : $"{OpenSshRsaPrefix} {base64} {comment}";
+            var publicKeyBlob = BuildRsaPublicKeyBlob(rsa);
+            var base64 = Convert.ToBase64String(publicKeyBlob);
+            var pubKey = string.IsNullOrWhiteSpace(comment)
+                ? $"{OpenSshRsaPrefix} {base64}"
+                : $"{OpenSshRsaPrefix} {base64} {comment}";
+            var privPem = ExportPrivateKeyPem(rsa, passphrase);
+            var fp = ComputeSha256Fingerprint(publicKeyBlob);
 
-        // Generate PEM private key
-        _privateKeyPem = ExportPrivateKeyPem(rsa, passphrase);
+            return (pubKey, privPem, fp);
+        });
 
-        // Compute SHA256 fingerprint from wire-format blob
-        _fingerprint = ComputeSha256Fingerprint(publicKeyBlob);
+        _publicKeyOpenSsh = publicKeyOpenSsh;
+        _privateKeyPem = privateKeyPem;
+        _fingerprint = fingerprint;
 
         ShowGeneratedKeys();
     }
@@ -287,7 +307,7 @@ public partial class SshKeyGeneratorView : UserControl, IToolView
     /// Generates an Ed25519 key pair using runtime reflection to access the EdDSA API.
     /// Falls back to an error message if the current .NET runtime does not support EdDSA.
     /// </summary>
-    private void GenerateEd25519KeyPair()
+    private async Task GenerateEd25519KeyPairAsync()
     {
         if (EdDsaType is null || EdDsaParametersType is null)
         {
@@ -298,73 +318,60 @@ public partial class SshKeyGeneratorView : UserControl, IToolView
         var comment = CommentInput.Text.Trim();
         var passphrase = PassphraseInput.Password;
 
-        try
+        var result = await Task.Run<(string? PubKey, string? PrivPem, string? Fp, bool Success)>(() =>
         {
-            // Resolve EdDSAParameters.Ed25519 field (Oid)
-            var ed25519Field = EdDsaParametersType.GetField("Ed25519", BindingFlags.Public | BindingFlags.Static);
-            if (ed25519Field is null)
+            try
             {
-                ShowEd25519UnsupportedError();
-                return;
+                var ed25519Field = EdDsaParametersType.GetField("Ed25519", BindingFlags.Public | BindingFlags.Static);
+                if (ed25519Field is null) return (null, null, null, false);
+
+                var ed25519Oid = ed25519Field.GetValue(null);
+                var edDsaParams = Activator.CreateInstance(EdDsaParametersType, ed25519Oid);
+
+                var createMethod = EdDsaType.GetMethod("Create", BindingFlags.Public | BindingFlags.Static, [EdDsaParametersType]);
+                if (createMethod is null) return (null, null, null, false);
+
+                using var edKey = createMethod.Invoke(null, [edDsaParams]) as AsymmetricAlgorithm;
+                if (edKey is null) return (null, null, null, false);
+
+                var publicKeyBytes = ExportEd25519PublicKeyViaReflection(edKey);
+                if (publicKeyBytes is null) return (null, null, null, false);
+
+                var publicKeyBlob = BuildEd25519PublicKeyBlob(publicKeyBytes);
+                var base64 = Convert.ToBase64String(publicKeyBlob);
+                var pubKey = string.IsNullOrWhiteSpace(comment)
+                    ? $"{OpenSshEd25519Prefix} {base64}"
+                    : $"{OpenSshEd25519Prefix} {base64} {comment}";
+                var privPem = ExportAsymmetricKeyPem(edKey, passphrase);
+                var fp = ComputeSha256Fingerprint(publicKeyBlob);
+
+                return (pubKey, privPem, fp, true);
             }
-
-            var ed25519Oid = ed25519Field.GetValue(null);
-
-            // Create EdDSAParameters instance with the Ed25519 Oid
-            var edDsaParams = Activator.CreateInstance(EdDsaParametersType, ed25519Oid);
-
-            // Call EdDSA.Create(EdDSAParameters)
-            var createMethod = EdDsaType.GetMethod("Create", BindingFlags.Public | BindingFlags.Static, [EdDsaParametersType]);
-            if (createMethod is null)
+            catch (TargetInvocationException ex) when (ex.InnerException is PlatformNotSupportedException or NotSupportedException)
             {
-                ShowEd25519UnsupportedError();
-                return;
+                return (null, null, null, false);
             }
-
-            using var edKey = createMethod.Invoke(null, [edDsaParams]) as AsymmetricAlgorithm;
-            if (edKey is null)
+            catch (PlatformNotSupportedException)
             {
-                ShowEd25519UnsupportedError();
-                return;
+                return (null, null, null, false);
             }
-
-            // Export public key bytes via ExportEdDSAPublicKey(Span<byte>)
-            var publicKeyBytes = ExportEd25519PublicKeyViaReflection(edKey);
-            if (publicKeyBytes is null)
+            catch (NotSupportedException)
             {
-                ShowEd25519UnsupportedError();
-                return;
+                return (null, null, null, false);
             }
+        });
 
-            // Build wire-format public key blob
-            var publicKeyBlob = BuildEd25519PublicKeyBlob(publicKeyBytes);
-
-            // Format OpenSSH public key
-            var base64 = Convert.ToBase64String(publicKeyBlob);
-            _publicKeyOpenSsh = string.IsNullOrWhiteSpace(comment)
-                ? $"{OpenSshEd25519Prefix} {base64}"
-                : $"{OpenSshEd25519Prefix} {base64} {comment}";
-
-            // Export private key PEM
-            _privateKeyPem = ExportAsymmetricKeyPem(edKey, passphrase);
-
-            // Compute fingerprint
-            _fingerprint = ComputeSha256Fingerprint(publicKeyBlob);
-
-            ShowGeneratedKeys();
-        }
-        catch (TargetInvocationException ex) when (ex.InnerException is PlatformNotSupportedException or NotSupportedException)
+        if (!result.Success)
         {
             ShowEd25519UnsupportedError();
+            return;
         }
-        catch (PlatformNotSupportedException)
-        {
-            ShowEd25519UnsupportedError();
-        }
-        catch (NotSupportedException)
-        {
-            ShowEd25519UnsupportedError();
-        }
+
+        _publicKeyOpenSsh = result.PubKey!;
+        _privateKeyPem = result.PrivPem!;
+        _fingerprint = result.Fp!;
+
+        ShowGeneratedKeys();
     }
 
     private void ShowEd25519UnsupportedError()

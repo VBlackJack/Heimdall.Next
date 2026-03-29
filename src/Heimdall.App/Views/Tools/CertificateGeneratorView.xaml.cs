@@ -17,6 +17,7 @@
 using System.Net;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using Heimdall.Core.Localization;
@@ -61,6 +62,7 @@ public partial class CertificateGeneratorView : UserControl, IToolView
     private X509Certificate2? _exportCert;
     private RSA? _exportKey;
     private bool _isCaLeafMode;
+    private bool _isGenerating;
 
     public CertificateGeneratorView()
     {
@@ -154,8 +156,10 @@ public partial class CertificateGeneratorView : UserControl, IToolView
         System.Windows.Automation.AutomationProperties.SetName(BtnCloseHelp, L("BtnClose"));
     }
 
-    private void OnGenerateClick(object sender, RoutedEventArgs e)
+    private async void OnGenerateClick(object sender, RoutedEventArgs e)
     {
+        if (_isGenerating) return;
+
         ClearValidation();
 
         var cn = CnInput.Text.Trim();
@@ -181,126 +185,149 @@ public partial class CertificateGeneratorView : UserControl, IToolView
         var sans = ParseSans(SanInput.Text);
 
         _isCaLeafMode = RadioCaLeaf.IsChecked == true;
+        _isGenerating = true;
+        BtnGenerate.IsEnabled = false;
+        ShowValidation(L("ToolCertGenGenerating"));
 
         try
         {
             if (_isCaLeafMode)
             {
-                GenerateCaLeafPair(cn, org, country, keySize, validityDays, sans);
+                await GenerateCaLeafPairAsync(cn, org, country, keySize, validityDays, sans);
             }
             else
             {
-                GenerateSelfSigned(cn, org, country, keySize, validityDays, sans);
+                await GenerateSelfSignedAsync(cn, org, country, keySize, validityDays, sans);
             }
         }
         catch (CryptographicException ex)
         {
             ShowValidation(string.Format(L("ToolCertGenErrorGeneration"), ex.Message));
         }
+        finally
+        {
+            _isGenerating = false;
+            BtnGenerate.IsEnabled = true;
+            ClearValidation();
+        }
     }
 
-    private void GenerateSelfSigned(string cn, string org, string country, int keySize, int validityDays, string[] sans)
+    private async Task GenerateSelfSignedAsync(string cn, string org, string country, int keySize, int validityDays, string[] sans)
     {
-        using var rsa = RSA.Create(keySize);
-        var subject = BuildDistinguishedName(cn, org, country);
-        var request = new CertificateRequest(subject, rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+        var (certPem, keyPem, fingerprint, exportKeyBytes, exportCertBytes) = await Task.Run(() =>
+        {
+            using var rsa = RSA.Create(keySize);
+            var subject = BuildDistinguishedName(cn, org, country);
+            var request = new CertificateRequest(subject, rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
 
-        // Basic constraints: leaf
-        request.CertificateExtensions.Add(
-            new X509BasicConstraintsExtension(false, false, 0, false));
+            request.CertificateExtensions.Add(
+                new X509BasicConstraintsExtension(false, false, 0, false));
+            request.CertificateExtensions.Add(
+                new X509KeyUsageExtension(
+                    X509KeyUsageFlags.DigitalSignature | X509KeyUsageFlags.KeyEncipherment, false));
+            request.CertificateExtensions.Add(
+                new X509EnhancedKeyUsageExtension(
+                    [
+                        new Oid("1.3.6.1.5.5.7.3.1"),
+                        new Oid("1.3.6.1.5.5.7.3.2")
+                    ],
+                    false));
 
-        // Key usage
-        request.CertificateExtensions.Add(
-            new X509KeyUsageExtension(
-                X509KeyUsageFlags.DigitalSignature | X509KeyUsageFlags.KeyEncipherment, false));
+            AddSans(request, sans);
 
-        // Extended key usage: server + client auth
-        request.CertificateExtensions.Add(
-            new X509EnhancedKeyUsageExtension(
-                [
-                    new Oid("1.3.6.1.5.5.7.3.1"), // serverAuth
-                    new Oid("1.3.6.1.5.5.7.3.2")  // clientAuth
-                ],
-                false));
+            var cert = request.CreateSelfSigned(DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddDays(validityDays));
 
-        // SANs
-        AddSans(request, sans);
+            var cp = cert.ExportCertificatePem();
+            var kp = rsa.ExportPkcs8PrivateKeyPem();
+            var fp = ComputeSha256Fingerprint(cert);
+            var ekb = rsa.ExportPkcs8PrivateKey();
+            var ecb = cert.RawData;
 
-        var cert = request.CreateSelfSigned(DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddDays(validityDays));
+            return (cp, kp, fp, ekb, ecb);
+        });
 
-        _certPem = cert.ExportCertificatePem();
-        _keyPem = rsa.ExportPkcs8PrivateKeyPem();
-        _fingerprint = ComputeSha256Fingerprint(cert);
+        _certPem = certPem;
+        _keyPem = keyPem;
+        _fingerprint = fingerprint;
 
-        // Store for PFX export
         DisposeExportResources();
         _exportKey = RSA.Create();
-        _exportKey.ImportPkcs8PrivateKey(rsa.ExportPkcs8PrivateKey(), out _);
-        _exportCert = cert;
+        _exportKey.ImportPkcs8PrivateKey(exportKeyBytes, out _);
+        _exportCert = X509CertificateLoader.LoadCertificate(exportCertBytes);
 
         ShowSelfSignedResults();
     }
 
-    private void GenerateCaLeafPair(string cn, string org, string country, int keySize, int validityDays, string[] sans)
+    private async Task GenerateCaLeafPairAsync(string cn, string org, string country, int keySize, int validityDays, string[] sans)
     {
-        // --- CA certificate ---
-        using var caRsa = RSA.Create(keySize);
-        var caSubject = BuildDistinguishedName($"{cn} CA", org, country);
-        var caRequest = new CertificateRequest(caSubject, caRsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+        var result = await Task.Run(() =>
+        {
+            using var caRsa = RSA.Create(keySize);
+            var caSubject = BuildDistinguishedName($"{cn} CA", org, country);
+            var caRequest = new CertificateRequest(caSubject, caRsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
 
-        caRequest.CertificateExtensions.Add(
-            new X509BasicConstraintsExtension(true, false, 0, true));
-        caRequest.CertificateExtensions.Add(
-            new X509KeyUsageExtension(
-                X509KeyUsageFlags.KeyCertSign | X509KeyUsageFlags.CrlSign, true));
+            caRequest.CertificateExtensions.Add(
+                new X509BasicConstraintsExtension(true, false, 0, true));
+            caRequest.CertificateExtensions.Add(
+                new X509KeyUsageExtension(
+                    X509KeyUsageFlags.KeyCertSign | X509KeyUsageFlags.CrlSign, true));
 
-        var caCert = caRequest.CreateSelfSigned(DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddDays(CaValidityDays));
+            var caCert = caRequest.CreateSelfSigned(DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddDays(CaValidityDays));
 
-        _caCertPem = caCert.ExportCertificatePem();
-        _caKeyPem = caRsa.ExportPkcs8PrivateKeyPem();
+            var caCertPemResult = caCert.ExportCertificatePem();
+            var caKeyPemResult = caRsa.ExportPkcs8PrivateKeyPem();
 
-        // --- Leaf certificate signed by CA ---
-        using var leafRsa = RSA.Create(keySize);
-        var leafSubject = BuildDistinguishedName(cn, org, country);
-        var leafRequest = new CertificateRequest(leafSubject, leafRsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+            using var leafRsa = RSA.Create(keySize);
+            var leafSubject = BuildDistinguishedName(cn, org, country);
+            var leafRequest = new CertificateRequest(leafSubject, leafRsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
 
-        leafRequest.CertificateExtensions.Add(
-            new X509BasicConstraintsExtension(false, false, 0, false));
-        leafRequest.CertificateExtensions.Add(
-            new X509KeyUsageExtension(
-                X509KeyUsageFlags.DigitalSignature | X509KeyUsageFlags.KeyEncipherment, false));
-        leafRequest.CertificateExtensions.Add(
-            new X509EnhancedKeyUsageExtension(
-                [
-                    new Oid("1.3.6.1.5.5.7.3.1"),
-                    new Oid("1.3.6.1.5.5.7.3.2")
-                ],
-                false));
+            leafRequest.CertificateExtensions.Add(
+                new X509BasicConstraintsExtension(false, false, 0, false));
+            leafRequest.CertificateExtensions.Add(
+                new X509KeyUsageExtension(
+                    X509KeyUsageFlags.DigitalSignature | X509KeyUsageFlags.KeyEncipherment, false));
+            leafRequest.CertificateExtensions.Add(
+                new X509EnhancedKeyUsageExtension(
+                    [
+                        new Oid("1.3.6.1.5.5.7.3.1"),
+                        new Oid("1.3.6.1.5.5.7.3.2")
+                    ],
+                    false));
 
-        AddSans(leafRequest, sans);
+            AddSans(leafRequest, sans);
 
-        var serial = new byte[SerialNumberLength];
-        RandomNumberGenerator.Fill(serial);
-        serial[0] &= PositiveMsbMask;
+            var serial = new byte[SerialNumberLength];
+            RandomNumberGenerator.Fill(serial);
+            serial[0] &= PositiveMsbMask;
 
-        using var leafCert = leafRequest.Create(
-            caCert,
-            DateTimeOffset.UtcNow,
-            DateTimeOffset.UtcNow.AddDays(validityDays),
-            serial);
+            using var leafCert = leafRequest.Create(
+                caCert,
+                DateTimeOffset.UtcNow,
+                DateTimeOffset.UtcNow.AddDays(validityDays),
+                serial);
 
-        _leafCertPem = leafCert.ExportCertificatePem();
-        _leafKeyPem = leafRsa.ExportPkcs8PrivateKeyPem();
-        _fingerprint = ComputeSha256Fingerprint(leafCert);
+            var leafCertPemResult = leafCert.ExportCertificatePem();
+            var leafKeyPemResult = leafRsa.ExportPkcs8PrivateKeyPem();
+            var fpResult = ComputeSha256Fingerprint(leafCert);
 
-        // Store leaf with key for PFX export
+            using var leafWithKey = leafCert.CopyWithPrivateKey(leafRsa);
+            var pfxBytes = leafWithKey.Export(X509ContentType.Pfx, string.Empty);
+
+            return (caCertPemResult, caKeyPemResult, leafCertPemResult, leafKeyPemResult, fpResult, pfxBytes);
+        });
+
+        _caCertPem = result.caCertPemResult;
+        _caKeyPem = result.caKeyPemResult;
+        _leafCertPem = result.leafCertPemResult;
+        _leafKeyPem = result.leafKeyPemResult;
+        _fingerprint = result.fpResult;
+
         DisposeExportResources();
-        using var leafWithKey = leafCert.CopyWithPrivateKey(leafRsa);
         _exportCert = X509CertificateLoader.LoadPkcs12(
-            leafWithKey.Export(X509ContentType.Pfx, string.Empty),
+            result.pfxBytes,
             string.Empty,
             X509KeyStorageFlags.Exportable);
-        _exportKey = null; // PFX export uses _exportCert directly
+        _exportKey = null;
 
         ShowCaLeafResults();
     }

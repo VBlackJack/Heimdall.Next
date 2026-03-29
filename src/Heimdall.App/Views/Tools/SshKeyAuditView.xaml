@@ -109,8 +109,7 @@
 
                 <!-- Empty state -->
                 <TextBlock x:Name="EmptyState" Grid.Row="1"
-                           FontSize="{StaticResource FontSizeBody}" FontStyle="Italic"
-                           Foreground="{DynamicResource TextSecondaryBrush}"
+                           Style="{StaticResource ToolEmptyStateTextStyle}"
                            HorizontalAlignment="Center"
                            Margin="0,24,0,0"/>
 

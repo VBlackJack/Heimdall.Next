@@ -124,6 +124,7 @@ public partial class HmacGeneratorView : UserControl, IToolView
         TxtKey.Tag = L("ToolWatermarkSecretKey");
         TxtInput.Tag = L("ToolWatermarkMessage");
         TxtVerify.Tag = L("ToolWatermarkPasteHmacVerify");
+        TxtEmptyState.Text = L("ToolHmacEmptyState");
     }
 
     private void OnToggleKeyVisibility(object sender, RoutedEventArgs e)
@@ -196,9 +197,12 @@ public partial class HmacGeneratorView : UserControl, IToolView
         {
             if (TxtOutput is not null) TxtOutput.Text = string.Empty;
             if (TxtByteLength is not null) TxtByteLength.Text = string.Empty;
+            EmptyStatePanel.Visibility = Visibility.Visible;
             UpdateVerifyResult();
             return;
         }
+
+        EmptyStatePanel.Visibility = Visibility.Collapsed;
 
         var algorithmName = CmbAlgorithm?.SelectedItem as string ?? "HMAC-SHA256";
 

@@ -38,6 +38,7 @@
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
                         Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"
+                        TabIndex="6"
                         AutomationProperties.Name=""/>
                 <TextBlock x:Name="HeaderTitle" Text=""
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
@@ -49,6 +50,7 @@
                             Style="{DynamicResource PrimaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonPrimary}"
                             VerticalAlignment="Center"
+                            TabIndex="0"
                             AutomationProperties.Name=""/>
                     <Button x:Name="BtnScanNow" Content=""
                             Click="OnScanNowClick"
@@ -56,6 +58,7 @@
                             Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginInlineControl}"
                             VerticalAlignment="Center"
                             IsEnabled="False"
+                            TabIndex="1"
                             AutomationProperties.Name=""/>
                     <TextBlock x:Name="LblInterval" Text=""
                                Foreground="{DynamicResource TextSecondaryBrush}"
@@ -66,6 +69,7 @@
                               Background="{DynamicResource CardBrush}"
                               Foreground="{DynamicResource TextPrimaryBrush}"
                               BorderBrush="{DynamicResource BorderBrush}"
+                              TabIndex="2"
                               AutomationProperties.Name="">
                         <ComboBoxItem x:Name="Interval5s" Content="" Tag="5000"/>
                         <ComboBoxItem x:Name="Interval10s" Content="" Tag="10000"/>
@@ -84,6 +88,7 @@
                         Click="OnCloseHelpClick"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
                         VerticalAlignment="Top" Width="24" Height="24"
+                        TabIndex="7"
                         AutomationProperties.Name=""/>
                 <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
                     <TextBlock x:Name="TxtHelpContent" Text="" TextWrapping="Wrap"
@@ -107,6 +112,7 @@
                         Padding="{StaticResource PaddingButtonHelp}" Margin="{StaticResource MarginInlineControl}"
                         Background="Transparent" BorderThickness="0"
                         VerticalAlignment="Center"
+                        TabIndex="3"
                         AutomationProperties.Name=""/>
                 <StackPanel>
                     <TextBlock x:Name="TxtAlertTitle" Text=""
@@ -163,6 +169,7 @@
                       CellStyle="{DynamicResource ThemedDataGridCellStyle}"
                       RowStyle="{DynamicResource ThemedDataGridRowStyle}"
                       AutomationProperties.LiveSetting="Polite"
+                      TabIndex="4"
                       AutomationProperties.Name="">
                 <DataGrid.Columns>
                     <DataGridTextColumn x:Name="ColIp" Binding="{Binding Ip}" Width="140"
@@ -198,6 +205,7 @@
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonPrimary}" DockPanel.Dock="Right"
                         VerticalAlignment="Center"
+                        TabIndex="5"
                         AutomationProperties.Name=""/>
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <TextBlock x:Name="TxtTotal" Text="" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"

@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-using Heimdall.Core.Configuration;
 using Heimdall.Core.Models;
 
 namespace Heimdall.App.Views.Tools;
@@ -32,10 +31,10 @@ public static class NetworkToolPresets
 
     public static readonly DnsServerPreset[] DnsServers =
     [
-        new("System", null),
-        new("Google (8.8.8.8)", "8.8.8.8"),
-        new("Cloudflare (1.1.1.1)", "1.1.1.1"),
-        new("Quad9 (9.9.9.9)", "9.9.9.9"),
+        new("ToolDnsPresetSystem", null),
+        new("ToolDnsPresetGoogle", "8.8.8.8"),
+        new("ToolDnsPresetCloudflare", "1.1.1.1"),
+        new("ToolDnsPresetQuad9", "9.9.9.9"),
     ];
 
     public static readonly string[] SnmpCommonCommunities =
@@ -45,60 +44,66 @@ public static class NetworkToolPresets
     ];
 
     public static readonly int[] TlsQuickScanPorts =
-        [443, 8443, 993, 995, 465, 636, 990, 5986, 3389, 853, 5223, 8883];
+        [DefaultPorts.HttpsStd, DefaultPorts.HttpsAlt, DefaultPorts.Imaps,
+         DefaultPorts.Pop3s, DefaultPorts.Smtps, DefaultPorts.Ldaps,
+         990, 5986, DefaultPorts.Rdp, 853, 5223, 8883];
 
     public static readonly int[] TlsExtendedScanPorts =
-        [443, 8443, 993, 995, 465, 636, 990, 5986, 3389, 853, 5223, 8883,
-         25, 110, 143, 389, 587, 989, 992, 1443, 2083, 2087, 2096, 4443, 5671, 6443, 6697, 9443];
+        [DefaultPorts.HttpsStd, DefaultPorts.HttpsAlt, DefaultPorts.Imaps,
+         DefaultPorts.Pop3s, DefaultPorts.Smtps, DefaultPorts.Ldaps,
+         990, 5986, DefaultPorts.Rdp, 853, 5223, 8883,
+         DefaultPorts.Smtp, DefaultPorts.Pop3, DefaultPorts.Imap,
+         389, DefaultPorts.SmtpSubmission, 989, 992, 1443,
+         2083, 2087, 2096, 4443, 5671, 6443, 6697, 9443];
 
     private static readonly Dictionary<int, string> s_portServiceLabels = new()
     {
         [DefaultPorts.Ftp] = "FTP",
         [DefaultPorts.Ssh] = "SSH",
         [DefaultPorts.Telnet] = "Telnet",
-        [25] = "SMTP",
-        [53] = "DNS",
+        [DefaultPorts.Smtp] = "SMTP",
+        [DefaultPorts.Dns] = "DNS",
         [DefaultPorts.Tftp] = "TFTP",
-        [80] = "HTTP",
-        [110] = "POP3",
-        [143] = "IMAP",
-        [443] = "HTTPS",
-        [465] = "SMTPS",
-        [587] = "SMTP (Submission)",
-        [993] = "IMAPS",
-        [995] = "POP3S",
-        [1433] = "MSSQL",
-        [1521] = "Oracle",
-        [3306] = "MySQL",
+        [DefaultPorts.HttpStd] = "HTTP",
+        [DefaultPorts.Pop3] = "POP3",
+        [DefaultPorts.Imap] = "IMAP",
+        [DefaultPorts.HttpsStd] = "HTTPS",
+        [DefaultPorts.Smtps] = "SMTPS",
+        [DefaultPorts.SmtpSubmission] = "SMTP (Submission)",
+        [DefaultPorts.Imaps] = "IMAPS",
+        [DefaultPorts.Pop3s] = "POP3S",
+        [DefaultPorts.Mssql] = "MSSQL",
+        [DefaultPorts.OracleDb] = "Oracle",
+        [DefaultPorts.MySql] = "MySQL",
         [DefaultPorts.Rdp] = "RDP",
-        [5432] = "PostgreSQL",
+        [DefaultPorts.PostgreSql] = "PostgreSQL",
         [DefaultPorts.Vnc] = "VNC",
-        [6379] = "Redis",
+        [DefaultPorts.Redis] = "Redis",
         [DefaultPorts.Http] = "HTTP-Alt",
-        [8443] = "HTTPS-Alt",
-        [9090] = "Prometheus",
-        [27017] = "MongoDB",
+        [DefaultPorts.HttpsAlt] = "HTTPS-Alt",
+        [DefaultPorts.Prometheus] = "Prometheus",
+        [DefaultPorts.MongoDb] = "MongoDB",
     };
 
     private static readonly Dictionary<int, string> s_tlsServiceLabels = new()
     {
-        [443] = "HTTPS",
-        [8443] = "HTTPS-Alt",
-        [993] = "IMAPS",
-        [995] = "POP3S",
-        [465] = "SMTPS",
-        [636] = "LDAPS",
+        [DefaultPorts.HttpsStd] = "HTTPS",
+        [DefaultPorts.HttpsAlt] = "HTTPS-Alt",
+        [DefaultPorts.Imaps] = "IMAPS",
+        [DefaultPorts.Pop3s] = "POP3S",
+        [DefaultPorts.Smtps] = "SMTPS",
+        [DefaultPorts.Ldaps] = "LDAPS",
         [990] = "FTPS",
         [5986] = "WinRM-HTTPS",
-        [3389] = "RDP",
+        [DefaultPorts.Rdp] = "RDP",
         [853] = "DNS-over-TLS",
         [5223] = "XMPP-TLS",
         [8883] = "MQTT-TLS",
-        [25] = "SMTP",
-        [110] = "POP3",
-        [143] = "IMAP",
+        [DefaultPorts.Smtp] = "SMTP",
+        [DefaultPorts.Pop3] = "POP3",
+        [DefaultPorts.Imap] = "IMAP",
         [389] = "LDAP",
-        [587] = "SMTP-Submission",
+        [DefaultPorts.SmtpSubmission] = "SMTP-Submission",
         [989] = "FTPS-Data",
         [992] = "Telnets",
         [1443] = "MSSQL-TLS",
@@ -117,6 +122,6 @@ public static class NetworkToolPresets
 
     public static string GetTlsServiceLabel(int port)
         => s_tlsServiceLabels.TryGetValue(port, out var label) ? label : "TLS";
-}
 
-public readonly record struct DnsServerPreset(string Label, string? Address);
+    public readonly record struct DnsServerPreset(string LabelKey, string? Address);
+}

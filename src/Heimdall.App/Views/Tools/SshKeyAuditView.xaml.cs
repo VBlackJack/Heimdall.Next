@@ -121,6 +121,8 @@ public partial class SshKeyAuditView : UserControl, IToolView
         BtnHelp.ToolTip = L("ToolHelpTooltip");
         BtnCopyFingerprint.ToolTip = L("ToolBtnCopyToClipboard");
         System.Windows.Automation.AutomationProperties.SetName(BtnCloseHelp, L("BtnClose"));
+
+        KeyInput.Tag = L("ToolWatermarkSshKey");
     }
 
     private void InitializeDebounceTimer()

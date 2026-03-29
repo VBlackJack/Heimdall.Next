@@ -26,11 +26,11 @@ namespace Heimdall.App.Tests;
 public class ToolXamlInputHardcodingTests
 {
     private static readonly Regex s_textBoxWithHardcodedText = new(
-        @"<TextBox\b[^>]*\bText=""(?!\s*"")[^""]+""",
+        @"<TextBox\b[^>]*\bText=""(?!\s*"")(?!\{)[^""]+""",
         RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
     private static readonly Regex s_textBoxWithHardcodedTag = new(
-        @"<TextBox\b[^>]*\bTag=""(?!\s*"")[^""]+""",
+        @"<TextBox\b[^>]*\bTag=""(?!\s*"")(?!\{)[^""]+""",
         RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
     [Fact]

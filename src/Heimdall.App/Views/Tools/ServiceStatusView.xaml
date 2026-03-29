@@ -36,6 +36,7 @@
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
                         Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"
+                        TabIndex="7"
                         AutomationProperties.Name=""/>
                 <TextBlock x:Name="HeaderTitle" Text=""
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
@@ -43,28 +44,34 @@
                            VerticalAlignment="Center" DockPanel.Dock="Left"/>
                 <StackPanel Orientation="Horizontal" Margin="16,0,0,0" VerticalAlignment="Center">
                     <TextBox x:Name="TxtFilter" Text="" MinWidth="200"
+                             Style="{DynamicResource WatermarkTextBoxStyle}"
                              FontSize="{StaticResource FontSizeBodyLarge}" Padding="{StaticResource PaddingInput}"
                              Background="{DynamicResource CardBrush}"
                              Foreground="{DynamicResource TextPrimaryBrush}"
                              BorderBrush="{DynamicResource BorderBrush}"
                              VerticalAlignment="Center"
+                             Tag=""
                              TextChanged="OnFilterChanged"
+                             TabIndex="0"
                              AutomationProperties.Name=""/>
                     <CheckBox x:Name="ChkRunningOnly"
                               Foreground="{DynamicResource TextPrimaryBrush}"
                               VerticalAlignment="Center" Margin="12,0,0,0"
                               Checked="OnRunningOnlyChanged" Unchecked="OnRunningOnlyChanged"
+                              TabIndex="1"
                               AutomationProperties.Name=""/>
                     <CheckBox x:Name="ChkAutoRefresh"
                               Foreground="{DynamicResource TextPrimaryBrush}"
                               VerticalAlignment="Center" Margin="12,0,0,0"
                               Checked="OnAutoRefreshChanged" Unchecked="OnAutoRefreshChanged"
+                              TabIndex="2"
                               AutomationProperties.Name=""/>
                     <Button x:Name="BtnRefresh" Content=""
                             Click="OnRefreshClick"
                             Style="{DynamicResource PrimaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonPrimary}" Margin="12,0,0,0"
                             VerticalAlignment="Center"
+                            TabIndex="3"
                             AutomationProperties.Name=""/>
                 </StackPanel>
             </DockPanel>
@@ -78,6 +85,7 @@
                         Click="OnCloseHelpClick"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
                         VerticalAlignment="Top" Width="24" Height="24"
+                        TabIndex="8"
                         AutomationProperties.Name=""/>
                 <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
                     <TextBlock x:Name="TxtHelpContent" Text="" TextWrapping="Wrap"
@@ -131,6 +139,7 @@
                       RowBackground="Transparent"
                       AlternatingRowBackground="{DynamicResource SurfaceBrush}"
                       HorizontalGridLinesBrush="{DynamicResource BorderBrush}"
+                      TabIndex="4"
                       AutomationProperties.LiveSetting="Polite"
                       AutomationProperties.Name="">
                 <DataGrid.Columns>
@@ -164,6 +173,7 @@
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonPrimary}" DockPanel.Dock="Right"
                         VerticalAlignment="Center"
+                        TabIndex="5"
                         AutomationProperties.Name=""/>
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <TextBlock x:Name="LblTotal" Text="" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"

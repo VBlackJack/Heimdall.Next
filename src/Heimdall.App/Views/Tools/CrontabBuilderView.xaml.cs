@@ -18,6 +18,7 @@ using System.Globalization;
 using System.Windows;
 using System.Windows.Automation;
 using System.Windows.Controls;
+using System.Windows.Input;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Models;
 
@@ -38,6 +39,7 @@ public partial class CrontabBuilderView : UserControl, IToolView
     public CrontabBuilderView()
     {
         InitializeComponent();
+        TxtManualInput.KeyDown += OnManualInputKeyDown;
     }
 
     /// <summary>
@@ -67,6 +69,36 @@ public partial class CrontabBuilderView : UserControl, IToolView
         }
 
         UpdateFromSelectors();
+
+        Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, () =>
+        {
+            TxtManualInput.Focus();
+            TxtManualInput.SelectAll();
+        });
+    }
+
+    private void OnManualInputKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Enter || !_initialized || _updatingFromCode) return;
+
+        var text = TxtManualInput.Text.Trim();
+        if (string.IsNullOrEmpty(text)) return;
+
+        if (!TryParseCron(text, out var fields)) return;
+
+        _updatingFromCode = true;
+        try
+        {
+            ApplyCronToSelectors(fields);
+            TxtCronExpression.Text = text;
+            TxtDescription.Text = DescribeCron(fields);
+            NextRunsList.ItemsSource = CalculateNextRuns(fields, NextRunsCount);
+            TxtValidationError.Visibility = Visibility.Collapsed;
+        }
+        finally
+        {
+            _updatingFromCode = false;
+        }
     }
 
     private void ApplyLocalization()

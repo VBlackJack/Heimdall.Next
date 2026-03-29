@@ -115,12 +115,19 @@ public partial class DiagramEditorView : UserControl, IToolView
 
         if (message == "ready:")
         {
+            SetToolbarEnabled(true);
+
             if (_currentFilePath is not null && File.Exists(_currentFilePath))
             {
                 var xml = File.ReadAllText(_currentFilePath);
                 _lastSavedXml = xml;
                 PostWebMessage($"load:{xml}");
             }
+
+            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Input, () =>
+            {
+                DiagramWebView.Focus();
+            });
             return;
         }
 
@@ -348,6 +355,55 @@ public partial class DiagramEditorView : UserControl, IToolView
         System.Windows.Automation.AutomationProperties.SetName(BtnZoomIn, L("ToolDiagramBtnZoomIn"));
         System.Windows.Automation.AutomationProperties.SetName(BtnDuplicate, L("BtnDuplicate"));
         System.Windows.Automation.AutomationProperties.SetName(BtnDelete, L("BtnDelete"));
+
+        BtnNew.ToolTip = L("ToolDiagramBtnNew");
+        BtnOpen.ToolTip = L("ToolDiagramBtnOpen");
+        BtnSave.ToolTip = L("ToolDiagramBtnSave");
+        BtnExportPng.ToolTip = L("ToolDiagramBtnExportPng");
+        BtnInsertLine.ToolTip = L("ToolDiagramBtnInsertLine");
+        BtnFormat.ToolTip = L("ToolDiagramBtnFormat");
+        BtnUndo.ToolTip = L("BtnUndo");
+        BtnRedo.ToolTip = L("ToolDiagramBtnRedo");
+        BtnZoomOut.ToolTip = L("ToolDiagramBtnZoomOut");
+        BtnActualSize.ToolTip = L("ToolDiagramBtnActualSize");
+        BtnZoomIn.ToolTip = L("ToolDiagramBtnZoomIn");
+        BtnDuplicate.ToolTip = L("BtnDuplicate");
+        BtnDelete.ToolTip = L("BtnDelete");
+
+        BtnNew.TabIndex = 0;
+        BtnOpen.TabIndex = 1;
+        BtnSave.TabIndex = 2;
+        BtnExportPng.TabIndex = 3;
+        BtnInsertLine.TabIndex = 4;
+        BtnFormat.TabIndex = 5;
+        BtnUndo.TabIndex = 6;
+        BtnRedo.TabIndex = 7;
+        BtnZoomOut.TabIndex = 8;
+        BtnActualSize.TabIndex = 9;
+        BtnZoomIn.TabIndex = 10;
+        BtnDuplicate.TabIndex = 11;
+        BtnDelete.TabIndex = 12;
+        BtnHelp.TabIndex = 13;
+        BtnCloseHelp.TabIndex = 14;
+
+        SetToolbarEnabled(false);
+    }
+
+    private void SetToolbarEnabled(bool enabled)
+    {
+        BtnNew.IsEnabled = enabled;
+        BtnOpen.IsEnabled = enabled;
+        BtnSave.IsEnabled = enabled;
+        BtnExportPng.IsEnabled = enabled;
+        BtnInsertLine.IsEnabled = enabled;
+        BtnFormat.IsEnabled = enabled;
+        BtnUndo.IsEnabled = enabled;
+        BtnRedo.IsEnabled = enabled;
+        BtnZoomOut.IsEnabled = enabled;
+        BtnActualSize.IsEnabled = enabled;
+        BtnZoomIn.IsEnabled = enabled;
+        BtnDuplicate.IsEnabled = enabled;
+        BtnDelete.IsEnabled = enabled;
     }
 
     private void ShowFallback(string message)

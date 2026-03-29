@@ -32,6 +32,7 @@
                 BorderThickness="0,0,0,1">
             <DockPanel>
                 <Button x:Name="BtnHelp" DockPanel.Dock="Right" Content="?"
+                        TabIndex="2"
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
@@ -43,6 +44,7 @@
                            VerticalAlignment="Center" DockPanel.Dock="Left"/>
                 <StackPanel Orientation="Horizontal" Margin="16,0,0,0" VerticalAlignment="Center">
                     <TextBox x:Name="TxtInput" MinWidth="200"
+                             TabIndex="0"
                              Style="{StaticResource WatermarkTextBoxStyle}"
                              FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
                              Padding="{StaticResource PaddingInput}"
@@ -52,6 +54,7 @@
                              VerticalAlignment="Center"
                              AutomationProperties.Name=""/>
                     <Button x:Name="BtnSearch" Content=""
+                            TabIndex="1"
                             Click="OnSearchClick"
                             Style="{DynamicResource PrimaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginInlineControl}"
@@ -86,12 +89,11 @@
                     Style="{StaticResource ToolEmptyStateStyle}"
                     Margin="0,24,0,0">
                 <StackPanel HorizontalAlignment="Center">
-                    <TextBlock Text="&#xE8B7;" FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource IconSizeEmptyState}"
-                               HorizontalAlignment="Center"
-                               Foreground="{DynamicResource TextDisabledBrush}" Margin="0,0,0,8"/>
+                    <TextBlock Text="&#xE8B7;"
+                               Style="{StaticResource ToolEmptyStateIconStyle}"
+                               AutomationProperties.Name=""/>
                     <TextBlock x:Name="TxtEmptyState"
-                               FontSize="{StaticResource FontSizeBodyLarge}" TextAlignment="Center"
-                               Foreground="{DynamicResource TextSecondaryBrush}"/>
+                               Style="{StaticResource ToolEmptyStateTextStyle}"/>
                     <TextBlock x:Name="TxtDbInfo"
                                FontSize="{StaticResource FontSizeCaption}" TextAlignment="Center"
                                Foreground="{DynamicResource TextDisabledBrush}" Margin="0,8,0,0"/>
@@ -103,12 +105,12 @@
                     Style="{StaticResource ToolEmptyStateStyle}"
                     Margin="0,24,0,0">
                 <StackPanel HorizontalAlignment="Center">
-                    <TextBlock Text="&#xE8B7;" FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource IconSizeEmptyState}"
-                               HorizontalAlignment="Center"
-                               Foreground="{DynamicResource SuccessBrush}" Margin="0,0,0,8"/>
+                    <TextBlock Text="&#xE8B7;"
+                               Style="{StaticResource ToolEmptyStateIconStyle}"
+                               Foreground="{DynamicResource SuccessBrush}"
+                               AutomationProperties.Name=""/>
                     <TextBlock x:Name="TxtNoResults"
-                               FontSize="{StaticResource FontSizeBodyLarge}" TextAlignment="Center"
-                               Foreground="{DynamicResource TextSecondaryBrush}"/>
+                               Style="{StaticResource ToolEmptyStateTextStyle}"/>
                 </StackPanel>
             </Border>
 

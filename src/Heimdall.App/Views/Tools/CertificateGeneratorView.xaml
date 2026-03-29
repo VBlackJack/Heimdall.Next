@@ -31,6 +31,7 @@
                 BorderThickness="0,0,0,1">
             <DockPanel>
                 <Button x:Name="BtnHelp" DockPanel.Dock="Right" Content="?"
+                        TabIndex="9"
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
@@ -92,6 +93,7 @@
                                    Foreground="{DynamicResource TextPrimaryBrush}"
                                    VerticalAlignment="Center" Width="160"/>
                         <TextBox x:Name="CnInput"
+                                 TabIndex="0"
                                  Foreground="{DynamicResource TextPrimaryBrush}"
                                  Background="{DynamicResource CardBrush}"
                                  BorderBrush="{DynamicResource BorderBrush}"
@@ -104,6 +106,7 @@
                                    Foreground="{DynamicResource TextPrimaryBrush}"
                                    VerticalAlignment="Center" Width="160"/>
                         <TextBox x:Name="OrgInput"
+                                 TabIndex="1"
                                  Foreground="{DynamicResource TextPrimaryBrush}"
                                  Background="{DynamicResource CardBrush}"
                                  BorderBrush="{DynamicResource BorderBrush}"
@@ -116,6 +119,7 @@
                                    Foreground="{DynamicResource TextPrimaryBrush}"
                                    VerticalAlignment="Center" Width="160"/>
                         <TextBox x:Name="CountryInput"
+                                 TabIndex="2"
                                  Foreground="{DynamicResource TextPrimaryBrush}"
                                  Background="{DynamicResource CardBrush}"
                                  BorderBrush="{DynamicResource BorderBrush}"
@@ -141,6 +145,7 @@
                                    Foreground="{DynamicResource TextPrimaryBrush}"
                                    VerticalAlignment="Center" Width="160"/>
                         <ComboBox x:Name="KeySizeCombo"
+                                  TabIndex="3"
                                   SelectedIndex="0"
                                   MinWidth="200"
                                   AutomationProperties.Name="">
@@ -154,6 +159,7 @@
                                    Foreground="{DynamicResource TextPrimaryBrush}"
                                    VerticalAlignment="Center" Width="160"/>
                         <TextBox x:Name="ValidityInput"
+                                 TabIndex="4"
                                  Text=""
                                  Foreground="{DynamicResource TextPrimaryBrush}"
                                  Background="{DynamicResource CardBrush}"
@@ -168,6 +174,7 @@
                                    Foreground="{DynamicResource TextPrimaryBrush}"
                                    VerticalAlignment="Center" Width="160"/>
                         <TextBox x:Name="SanInput"
+                                 TabIndex="5"
                                  Foreground="{DynamicResource TextPrimaryBrush}"
                                  Background="{DynamicResource CardBrush}"
                                  BorderBrush="{DynamicResource BorderBrush}"
@@ -193,11 +200,13 @@
                                FontWeight="SemiBold" Margin="0,0,0,8"/>
                     <StackPanel Orientation="Horizontal">
                         <RadioButton x:Name="RadioSelfSigned"
+                                     TabIndex="6"
                                      IsChecked="True"
                                      Foreground="{DynamicResource TextPrimaryBrush}"
                                      Margin="0,0,20,0"
                                      AutomationProperties.Name=""/>
                         <RadioButton x:Name="RadioCaLeaf"
+                                     TabIndex="7"
                                      Foreground="{DynamicResource TextPrimaryBrush}"
                                      AutomationProperties.Name=""/>
                     </StackPanel>
@@ -206,6 +215,7 @@
 
             <!-- Generate button -->
             <Button x:Name="BtnGenerate" Grid.Row="3"
+                    TabIndex="8"
                     Click="OnGenerateClick"
                     Style="{DynamicResource PrimaryButtonStyle}"
                     Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginSectionSeparator}"
