@@ -86,6 +86,18 @@ public partial class MainWindow : Window
             }
         };
 
+        // Refresh Tools tab and Settings status when background scan discovers external tools
+        viewModel.ToolRegistry.ExternalToolsChanged += () =>
+        {
+            Dispatcher.BeginInvoke(() =>
+            {
+                _toolsTabPopulated = false;
+                PopulateToolsTab();
+                if (DataContext is MainViewModel vm)
+                    UpdateExternalToolProviderStatus(vm);
+            });
+        };
+
         // Wire split button callback from embedded views
         viewModel.EmbeddedSessionManager.SplitRequestedCallback = OnEmbeddedSplitRequested;
 
@@ -397,6 +409,12 @@ public partial class MainWindow : Window
         Mw_SettingsTimeoutsTitle.Text = vm.Localize("SettingsSectionTimeouts");
         Mw_SettingsTunnelDelayLabel.Text = vm.Localize("SettingsLabelTunnelDelay");
         Mw_SettingsRdpTimeoutLabel.Text = vm.Localize("SettingsLabelRdpTimeout");
+        Mw_SettingsExtProvTitle.Text = vm.Localize("SettingsSectionExternalToolProviders");
+        Mw_SettingsExtProvDesc.Text = vm.Localize("SettingsExternalToolProvidersDesc");
+        Mw_SettingsLblSysintPath.Text = vm.Localize("SettingsLblSysinternalsPath");
+        Mw_SettingsLblNirSoftPath.Text = vm.Localize("SettingsLblNirSoftPath");
+        Mw_SettingsBtnRescan.Content = vm.Localize("ExtToolBtnRescan");
+        UpdateExternalToolProviderStatus(vm);
         Mw_SettingsExtToolsTitle.Text = vm.Localize("SettingsSectionExternalToolsList");
         Mw_ToolsToggleLabel.Text = vm.Localize("ToolsPanelToggle");
         Mw_ToolsPanelHeaderLabel.Text = vm.Localize("ToolsPanelTitle");
@@ -1249,7 +1267,7 @@ public partial class MainWindow : Window
         Mw_ToolDetailName.Text = vm.Localize(desc.LabelKey);
         Mw_ToolDetailCategory.Text = vm.Localize(desc.CategoryLabelKey);
 
-        var descKey = $"ToolDesc{desc.Id}";
+        var descKey = desc.DescriptionKey ?? $"ToolDesc{desc.Id}";
         var description = vm.Localize(descKey);
         Mw_ToolDetailDescription.Text = description != descKey ? description : "";
 
@@ -1519,6 +1537,14 @@ public partial class MainWindow : Window
             menu.Items.Add(externalToolsMenu);
         }
 
+        // Detected third-party tools submenu (Sysinternals / NirSoft)
+        var detectedToolsMenu = CreateDetectedToolsMenu(vm, server);
+        if (detectedToolsMenu is not null)
+        {
+            if (externalToolsMenu is null) menu.Items.Add(new Separator());
+            menu.Items.Add(detectedToolsMenu);
+        }
+
         menu.Items.Add(new Separator());
         var deleteItem = CreateMenuItem(
             vm.Localize("TreeCtxDelete"),
@@ -1646,6 +1672,106 @@ public partial class MainWindow : Window
         }
 
         return submenu;
+    }
+
+    /// <summary>
+    /// Creates a submenu for auto-detected third-party tools (Sysinternals, NirSoft),
+    /// grouped by provider. Only shown if at least one tool is detected.
+    /// </summary>
+    private MenuItem? CreateDetectedToolsMenu(MainViewModel vm, ServerItemViewModel server)
+    {
+        var app = System.Windows.Application.Current as App;
+        var providerService = app?.Services?
+            .GetService(typeof(Services.ExternalToolProviderService)) as Services.ExternalToolProviderService;
+
+        var tools = providerService?.DetectedTools;
+        if (tools is null || tools.Count == 0)
+            return null;
+
+        var submenu = new MenuItem
+        {
+            Header = vm.Localize("TreeCtxDetectedTools")
+        };
+
+        // Group by provider (Sysinternals, NirSoft, etc.)
+        var groups = tools.GroupBy(t => t.ProviderName, StringComparer.OrdinalIgnoreCase);
+        foreach (var group in groups)
+        {
+            var providerMenu = new MenuItem { Header = group.Key, FontWeight = FontWeights.SemiBold };
+
+            foreach (var tool in group.OrderBy(t => t.Name, StringComparer.OrdinalIgnoreCase))
+            {
+                var toolItem = new MenuItem { Header = tool.Name };
+
+                if (tool.DescriptionKey is not null)
+                    toolItem.ToolTip = vm.Localize(tool.DescriptionKey);
+
+                var captured = tool;
+                toolItem.Click += (_, _) => LaunchDetectedTool(vm, captured, server);
+                providerMenu.Items.Add(toolItem);
+            }
+
+            submenu.Items.Add(providerMenu);
+        }
+
+        return submenu;
+    }
+
+    /// <summary>
+    /// Launches an auto-detected third-party tool with server context placeholders resolved.
+    /// Handles elevation (UAC) for tools that require it.
+    /// </summary>
+    private static void LaunchDetectedTool(
+        MainViewModel vm,
+        Core.Configuration.ExternalToolInfo tool,
+        ServerItemViewModel server)
+    {
+        try
+        {
+            // Resolve placeholders in arguments template
+            var arguments = tool.Arguments
+                .Replace("{Host}", SanitizeToolArgument(server.RemoteServer), StringComparison.OrdinalIgnoreCase)
+                .Replace("{Port}", server.RemotePort.ToString(System.Globalization.CultureInfo.InvariantCulture), StringComparison.OrdinalIgnoreCase)
+                .Replace("{User}", SanitizeToolArgument(server.Username), StringComparison.OrdinalIgnoreCase);
+
+            var psi = new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = tool.ExecutablePath,
+                Arguments = arguments,
+                UseShellExecute = true
+            };
+
+            if (tool.RequiresElevation)
+                psi.Verb = "runas";
+
+            System.Diagnostics.Process.Start(psi)?.Dispose();
+
+            Core.Logging.FileLogger.Info(
+                $"Detected tool launched: {tool.ProviderName}/{tool.Name} → {tool.ExecutablePath} {arguments}");
+        }
+        catch (System.ComponentModel.Win32Exception ex) when (ex.NativeErrorCode == 1223)
+        {
+            // ERROR_CANCELLED — user declined UAC prompt; not an error
+            Core.Logging.FileLogger.Info($"UAC cancelled for {tool.Name}");
+        }
+        catch (Exception ex)
+        {
+            Core.Logging.FileLogger.Error($"Detected tool launch failed: {tool.Name}", ex);
+            MessageBox.Show(
+                string.Format(vm.Localize("ExternalToolLaunchError"), tool.Name, ex.Message),
+                vm.Localize("AppName"),
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+        }
+    }
+
+    /// <summary>
+    /// Strips shell metacharacters from a tool argument value to prevent injection.
+    /// </summary>
+    private static string SanitizeToolArgument(string value)
+    {
+        if (string.IsNullOrEmpty(value)) return string.Empty;
+        return System.Text.RegularExpressions.Regex.Replace(value, @"[;&|`$<>()!""'\r\n%^]", "");
     }
 
     /// <summary>
@@ -1796,7 +1922,7 @@ public partial class MainWindow : Window
             TextTrimming = TextTrimming.CharacterEllipsis
         };
 
-        var descKey = $"ToolDesc{descriptor.Id}";
+        var descKey = descriptor.DescriptionKey ?? $"ToolDesc{descriptor.Id}";
         var descText = vm.Localize(descKey);
         var descBlock = new TextBlock
         {
@@ -1842,6 +1968,7 @@ public partial class MainWindow : Window
             Core.Models.ToolCategory.Security => "ToolSecurityBrush",
             Core.Models.ToolCategory.Encoding => "ToolEncodingBrush",
             Core.Models.ToolCategory.System   => "ToolSystemBrush",
+            Core.Models.ToolCategory.External => "ToolExternalBrush",
             _ => "TextSecondaryBrush"
         };
 
@@ -1937,7 +2064,7 @@ public partial class MainWindow : Window
             {
                 var label = vm.Localize(descriptor.LabelKey);
                 var aliases = string.Join(" ", descriptor.CommandPrefixes);
-                var descKey = $"ToolDesc{descriptor.Id}";
+                var descKey = descriptor.DescriptionKey ?? $"ToolDesc{descriptor.Id}";
                 var descText = vm.Localize(descKey);
                 var searchable = $"{label} {aliases} {descText}";
                 if (!searchable.Contains(filter, StringComparison.OrdinalIgnoreCase))
@@ -2070,7 +2197,7 @@ public partial class MainWindow : Window
             TextTrimming = TextTrimming.CharacterEllipsis
         };
 
-        var descKey = $"ToolDesc{descriptor.Id}";
+        var descKey = descriptor.DescriptionKey ?? $"ToolDesc{descriptor.Id}";
         var descText = vm.Localize(descKey);
         var descBlock = new TextBlock
         {
@@ -2462,6 +2589,92 @@ public partial class MainWindow : Window
         }
     }
 
+    private void UpdateExternalToolProviderStatus(MainViewModel vm)
+    {
+        var service = (System.Windows.Application.Current as App)?.Services?
+            .GetService(typeof(Services.ExternalToolProviderService)) as Services.ExternalToolProviderService;
+        var count = service?.DetectedTools.Count ?? 0;
+        Mw_SettingsExtProvStatus.Text = count > 0
+            ? string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                vm.Localize("ExtToolStatusDetected"), count)
+            : vm.Localize("ExtToolStatusNone");
+    }
+
+    private async void OnRescanExternalToolsClick(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is not MainViewModel vm) return;
+
+        var app = System.Windows.Application.Current as App;
+        var providerService = app?.Services?
+            .GetService(typeof(Services.ExternalToolProviderService)) as Services.ExternalToolProviderService;
+        var toolRegistry = app?.Services?
+            .GetService(typeof(Services.ToolRegistry)) as Services.ToolRegistry;
+        var configManager = app?.Services?
+            .GetService(typeof(Core.Configuration.ConfigManager)) as Core.Configuration.ConfigManager;
+
+        if (providerService is null || toolRegistry is null || configManager is null) return;
+
+        // Persist current path values before scanning so runtime matches config
+        await configManager.MergeSettingAsync(s =>
+        {
+            s.SysinternalsPath = string.IsNullOrWhiteSpace(vm.Settings.SysinternalsPath) ? null : vm.Settings.SysinternalsPath;
+            s.NirSoftPath = string.IsNullOrWhiteSpace(vm.Settings.NirSoftPath) ? null : vm.Settings.NirSoftPath;
+        });
+
+        Mw_SettingsExtProvStatus.Text = vm.Localize("ExtToolStatusScanning");
+        Mw_SettingsBtnRescan.IsEnabled = false;
+
+        var savedSettings = await configManager.LoadSettingsAsync();
+        await Task.Run(() =>
+        {
+            providerService.ScanAll(savedSettings);
+            toolRegistry.RegisterExternalTools(providerService.DetectedTools);
+        });
+
+        Mw_SettingsBtnRescan.IsEnabled = true;
+        UpdateExternalToolProviderStatus(vm);
+
+        // Refresh tools tab to show newly detected tools
+        _toolsTabPopulated = false;
+        PopulateToolsTab();
+    }
+
+    private void OnSysinternalsPathBrowseClick(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is not MainViewModel vm) return;
+        using var dlg = new System.Windows.Forms.FolderBrowserDialog
+        {
+            Description = "Sysinternals",
+            ShowNewFolderButton = false
+        };
+        if (!string.IsNullOrEmpty(vm.Settings.SysinternalsPath)
+            && System.IO.Directory.Exists(vm.Settings.SysinternalsPath))
+            dlg.SelectedPath = vm.Settings.SysinternalsPath;
+        if (dlg.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+        {
+            vm.Settings.SysinternalsPath = dlg.SelectedPath;
+            vm.Settings.IsDirty = true;
+        }
+    }
+
+    private void OnNirSoftPathBrowseClick(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is not MainViewModel vm) return;
+        using var dlg = new System.Windows.Forms.FolderBrowserDialog
+        {
+            Description = "NirSoft",
+            ShowNewFolderButton = false
+        };
+        if (!string.IsNullOrEmpty(vm.Settings.NirSoftPath)
+            && System.IO.Directory.Exists(vm.Settings.NirSoftPath))
+            dlg.SelectedPath = vm.Settings.NirSoftPath;
+        if (dlg.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+        {
+            vm.Settings.NirSoftPath = dlg.SelectedPath;
+            vm.Settings.IsDirty = true;
+        }
+    }
+
     private void OnBrowseEditorPathClick(object sender, RoutedEventArgs e)
     {
         if (DataContext is not MainViewModel vm) return;
@@ -2546,7 +2759,8 @@ public partial class MainWindow : Window
                 server.Username,
                 serverName: server.DisplayName,
                 protocol: server.ConnectionType,
-                project: server.ProjectName);
+                project: server.ProjectName,
+                gateway: server.GatewayName);
 
             var psi = new System.Diagnostics.ProcessStartInfo
             {

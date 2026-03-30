@@ -28,6 +28,7 @@ namespace Heimdall.Core.Models;
 /// <param name="CommandPrefixes">Palette search aliases, e.g. ["ping"] or ["dns","nslookup","dig"].</param>
 /// <param name="IsNetworkTool">True if the tool should prompt for a target host when opened standalone.</param>
 /// <param name="IconResourceKey">Optional XAML resource key for the tool's vector geometry icon (e.g. "Geo.Tool.PortScanner"). Null if no icon available.</param>
+/// <param name="DescriptionKey">Optional explicit i18n key for the tool description. When null, the convention <c>ToolDesc{Id}</c> is used.</param>
 public record ToolDescriptor(
     string Id,
     ToolCategory Category,
@@ -36,7 +37,8 @@ public record ToolDescriptor(
     string? LabelWithArgKey,
     string[] CommandPrefixes,
     bool IsNetworkTool,
-    string? IconResourceKey = null)
+    string? IconResourceKey = null,
+    string? DescriptionKey = null)
 {
     /// <summary>
     /// The prefixed tool type string used in connection type fields, e.g. "TOOL:PING".

@@ -174,6 +174,10 @@ public partial class App : System.Windows.Application
         // Check for legacy Heimdall installation and offer migration on first run
         await TryMigrateLegacyAsync(configManager, localization);
 
+        // Scan for external tools (NirSoft, Sysinternals) on a background thread.
+        // Fire-and-forget: results land in ToolRegistry via Dispatcher callback.
+        _ = Task.Run(() => ScanExternalTools(settings));
+
         // Close splash before showing main window
         splash.Close();
 
@@ -220,6 +224,26 @@ public partial class App : System.Windows.Application
         return window;
     }
 
+    /// <summary>
+    /// Scans for external third-party tools (NirSoft, Sysinternals) and registers
+    /// detected tools in the ToolRegistry so they appear in the External category.
+    /// </summary>
+    private void ScanExternalTools(AppSettings settings)
+    {
+        if (_serviceProvider is null) return;
+        var providerService = _serviceProvider.GetRequiredService<ExternalToolProviderService>();
+        var toolRegistry = _serviceProvider.GetRequiredService<ToolRegistry>();
+
+        providerService.ScanAll(settings);
+
+        if (providerService.DetectedTools.Count > 0)
+        {
+            toolRegistry.RegisterExternalTools(providerService.DetectedTools);
+            Core.Logging.FileLogger.Info(
+                $"[App] Registered {providerService.DetectedTools.Count} external tool(s)");
+        }
+    }
+
     private static void ConfigureServices(IServiceCollection services)
     {
         // Core services
@@ -236,6 +260,7 @@ public partial class App : System.Windows.Application
 
         // Application services
         services.AddSingleton<X11ServerManager>();
+        services.AddSingleton<ExternalToolProviderService>();
         services.AddSingleton<ToolRegistry>();
         services.AddSingleton<ConnectionService>();
         services.AddSingleton<EmbeddedSessionManager>();

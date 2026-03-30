@@ -108,10 +108,10 @@ public class ToolDescriptorTests
     }
 
     [Fact]
-    public void ToolCategory_HasFourValues()
+    public void ToolCategory_HasFiveValues()
     {
         var values = Enum.GetValues<ToolCategory>();
-        Assert.Equal(4, values.Length);
+        Assert.Equal(5, values.Length);
     }
 
     [Fact]

@@ -70,6 +70,7 @@
     <SolidColorBrush x:Key="ToolSecurityBrush" Color="#D97706"/>
     <SolidColorBrush x:Key="ToolEncodingBrush" Color="#7C3AED"/>
     <SolidColorBrush x:Key="ToolSystemBrush" Color="#0D9488"/>
+    <SolidColorBrush x:Key="ToolExternalBrush" Color="#DB2777"/>
 
     <!-- JWT section colors -->
     <Color x:Key="JwtHeaderColor">#2B6CB0</Color>
