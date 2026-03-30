@@ -36,6 +36,7 @@
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
                         Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"
+                        TabIndex="10"
                         AutomationProperties.Name=""/>
                 <TextBlock x:Name="HeaderTitle" Text=""
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
@@ -52,6 +53,7 @@
                         Click="OnCloseHelpClick"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
                         VerticalAlignment="Top" Width="24" Height="24"
+                        TabIndex="11"
                         AutomationProperties.Name=""/>
                 <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
                     <TextBlock x:Name="TxtHelpContent" Text="" TextWrapping="Wrap"
@@ -116,6 +118,7 @@
                              Background="{DynamicResource CardBrush}"
                              Foreground="{DynamicResource TextPrimaryBrush}"
                              BorderBrush="{DynamicResource BorderBrush}"
+                             TabIndex="0"
                              AutomationProperties.Name=""/>
 
                     <!-- Parse button -->
@@ -124,11 +127,13 @@
                                 Click="OnParseClick"
                                 Style="{DynamicResource PrimaryButtonStyle}"
                                 Padding="{StaticResource PaddingButtonPrimary}"
+                                TabIndex="1"
                                 AutomationProperties.Name=""/>
                         <Button x:Name="BtnClearPaste" Content=""
                                 Click="OnClearPasteClick"
                                 Style="{DynamicResource SecondaryButtonStyle}"
                                 Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginInlineControl}"
+                                TabIndex="2"
                                 AutomationProperties.Name=""/>
                     </StackPanel>
 
@@ -157,6 +162,7 @@
                                   HorizontalGridLinesBrush="{DynamicResource BorderBrush}"
                                   AutomationProperties.LiveSetting="Polite"
                                   AutomationProperties.Name=""
+                                  TabIndex="3"
                                   SelectionChanged="OnCronEntrySelected">
                             <DataGrid.Columns>
                                 <DataGridTextColumn x:Name="ColCronSchedule" Binding="{Binding Schedule}" Width="160"
@@ -215,6 +221,7 @@
                                 Click="OnRefreshTasksClick"
                                 Style="{DynamicResource PrimaryButtonStyle}"
                                 Padding="{StaticResource PaddingButtonPrimary}" DockPanel.Dock="Left"
+                                TabIndex="4"
                                 AutomationProperties.Name=""/>
                         <TextBlock x:Name="TxtTasksLoading" Text="" Visibility="Collapsed"
                                    FontSize="{StaticResource FontSizeBody}" Margin="12,0,0,0"
@@ -245,7 +252,8 @@
                                   AlternatingRowBackground="{DynamicResource SurfaceBrush}"
                                   HorizontalGridLinesBrush="{DynamicResource BorderBrush}"
                                   AutomationProperties.LiveSetting="Polite"
-                                  AutomationProperties.Name="">
+                                  AutomationProperties.Name=""
+                                  TabIndex="5">
                             <DataGrid.Columns>
                                 <DataGridTextColumn x:Name="ColTaskName" Binding="{Binding Name}" Width="*"
                                                     Foreground="{DynamicResource TextPrimaryBrush}"/>
@@ -275,6 +283,7 @@
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonPrimary}" DockPanel.Dock="Right"
                         VerticalAlignment="Center"
+                        TabIndex="6"
                         AutomationProperties.Name=""/>
                 <TextBlock x:Name="TxtStatus" Text=""
                            FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"

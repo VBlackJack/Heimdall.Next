@@ -368,6 +368,7 @@ public sealed class SecNumCloudAuditEngine
                         if (read > 0)
                             banner = Encoding.ASCII.GetString(buf, 0, read).Trim();
                     }
+                    catch (OperationCanceledException) when (!token.IsCancellationRequested) { /* per-port timeout during banner grab */ }
                     catch (OperationCanceledException) { throw; }
                     catch { /* banner grab is best-effort */ }
 
@@ -383,6 +384,10 @@ public sealed class SecNumCloudAuditEngine
                     {
                         services.Add(result);
                     }
+                }
+                catch (OperationCanceledException) when (!token.IsCancellationRequested)
+                {
+                    // Per-port timeout — not a scan cancellation. Skip this port.
                 }
                 catch (OperationCanceledException) { throw; }
                 catch { /* port closed or unreachable */ }
@@ -1621,6 +1626,7 @@ public sealed class SecNumCloudAuditEngine
 #pragma warning restore CA5397, CS0618, SYSLIB0039
             return true;
         }
+        catch (OperationCanceledException) when (!ct.IsCancellationRequested) { return false; }
         catch (OperationCanceledException) { throw; }
         catch { return false; }
     }
@@ -1648,6 +1654,7 @@ public sealed class SecNumCloudAuditEngine
 
             return ssl.NegotiatedCipherSuite.ToString();
         }
+        catch (OperationCanceledException) when (!ct.IsCancellationRequested) { return null; }
         catch (OperationCanceledException) { throw; }
         catch { return null; }
     }
@@ -1804,6 +1811,7 @@ public sealed class SecNumCloudAuditEngine
                     await sslStream.DisposeAsync().ConfigureAwait(false);
             }
         }
+        catch (OperationCanceledException) when (!ct.IsCancellationRequested) { return false; }
         catch (OperationCanceledException) { throw; }
         catch { return false; }
     }
@@ -1866,6 +1874,10 @@ public sealed class SecNumCloudAuditEngine
                     try { process.Kill(); } catch { }
                 }
             }
+        }
+        catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+        {
+            return string.Empty;
         }
         catch (OperationCanceledException) { throw; }
         catch

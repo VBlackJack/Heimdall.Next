@@ -17,12 +17,15 @@
 using System.IO;
 using System.Net.NetworkInformation;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Shapes;
 using System.Windows.Threading;
+using Heimdall.App.Services;
+using Heimdall.Core.Configuration;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Models;
 using Heimdall.Core.Security;
@@ -61,6 +64,14 @@ public partial class PingToolView : UserControl, IToolView
     private Polyline? _graphLine;
     private readonly List<Ellipse> _timeoutMarkers = [];
 
+    private List<SshGatewayDto>? _gateways;
+    private SshGatewayDto? _selectedGateway;
+    private Renci.SshNet.SshClient? _sshClient;
+
+    private static readonly Regex s_pingTimeRegex = new(
+        @"time[=<]\s*(\d+(?:\.\d+)?)\s*ms",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
     public PingToolView()
     {
         InitializeComponent();
@@ -86,6 +97,12 @@ public partial class PingToolView : UserControl, IToolView
         {
             TxtHost.Text = string.Empty;
         }
+
+        if (context?.SshGateways is System.Collections.IList gateways)
+        {
+            _gateways = gateways.Cast<SshGatewayDto>().ToList();
+        }
+        PopulateRouteSelector();
 
         Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, () =>
         {
@@ -138,8 +155,40 @@ public partial class PingToolView : UserControl, IToolView
         System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
         System.Windows.Automation.AutomationProperties.SetName(BtnCloseHelp, L("BtnClose"));
 
+        LblRouteVia.Text = L("ToolTunnelRouteVia");
+        System.Windows.Automation.AutomationProperties.SetName(CmbRouteVia, L("ToolTunnelRouteVia"));
+
         TxtHost.Tag = L("ToolWatermarkHostnameOrIp");
         TxtEmptyState.Text = L("ToolPingEmptyState");
+    }
+
+    private void PopulateRouteSelector()
+    {
+        CmbRouteVia.Items.Clear();
+        CmbRouteVia.Items.Add(new ComboBoxItem { Content = L("ToolTunnelDirect") });
+
+        if (_gateways is not null)
+        {
+            foreach (var gw in _gateways)
+            {
+                var label = $"{gw.Name} ({gw.Host}:{gw.Port})";
+                CmbRouteVia.Items.Add(new ComboBoxItem { Content = label, Tag = gw });
+            }
+        }
+
+        CmbRouteVia.SelectedIndex = 0;
+    }
+
+    private void OnRouteViaChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (CmbRouteVia.SelectedItem is ComboBoxItem item && item.Tag is SshGatewayDto gw)
+        {
+            _selectedGateway = gw;
+        }
+        else
+        {
+            _selectedGateway = null;
+        }
     }
 
     private void OnHostKeyDown(object sender, KeyEventArgs e)
@@ -268,8 +317,32 @@ public partial class PingToolView : UserControl, IToolView
             System.Windows.Automation.AutomationProperties.SetName(BtnToggle, L("ToolPingBtnStop"));
             TxtHost.IsReadOnly = true;
             CmbInterval.IsEnabled = false;
+            CmbRouteVia.IsEnabled = false;
             TxtTimeout.IsReadOnly = true;
             TxtCount.IsReadOnly = true;
+
+            if (_selectedGateway is not null)
+            {
+                try
+                {
+                    _sshClient = ToolGatewayConnector.Connect(_selectedGateway);
+                }
+                catch (Exception ex)
+                {
+                    AppendLogLine(string.Format(L("ToolPingGatewayError"), ex.Message), true);
+                    _isRunning = false;
+                    _setBusy?.Invoke(false);
+                    BtnToggle.Content = L("ToolPingBtnStart");
+                    BtnToggle.Foreground = (Brush)FindResource("TextPrimaryBrush");
+                    BtnToggle.Style = (Style)FindResource("PrimaryButtonStyle");
+                    TxtHost.IsReadOnly = false;
+                    CmbInterval.IsEnabled = true;
+                    CmbRouteVia.IsEnabled = true;
+                    TxtTimeout.IsReadOnly = false;
+                    TxtCount.IsReadOnly = false;
+                    return;
+                }
+            }
 
             var intervalMs = GetSelectedIntervalMs();
 
@@ -305,8 +378,11 @@ public partial class PingToolView : UserControl, IToolView
         System.Windows.Automation.AutomationProperties.SetName(BtnToggle, L("ToolPingBtnStart"));
         TxtHost.IsReadOnly = false;
         CmbInterval.IsEnabled = true;
+        CmbRouteVia.IsEnabled = true;
         TxtTimeout.IsReadOnly = false;
         TxtCount.IsReadOnly = false;
+
+        DisposeSshClient();
 
         if (_dataPoints.Count == 0 && TxtLog.Inlines.Count == 0)
         {
@@ -336,6 +412,12 @@ public partial class PingToolView : UserControl, IToolView
 
         try
         {
+            if (_sshClient is not null && _sshClient.IsConnected)
+            {
+                await SendTunneledPingAsync(host, seq, timeoutMs);
+                return;
+            }
+
             using var ping = new Ping();
             var reply = await ping.SendPingAsync(host, timeoutMs);
 
@@ -461,6 +543,93 @@ public partial class PingToolView : UserControl, IToolView
         TxtMax.Text = "\u2014";
         TxtJitter.Text = "\u2014";
         TxtLoss.Text = "\u2014";
+    }
+
+    private async Task SendTunneledPingAsync(string host, int seq, int timeoutMs)
+    {
+        var timestamp = DateTime.Now.ToString("HH:mm:ss");
+        var timeoutSec = Math.Max(1, timeoutMs / 1000);
+        var escapedHost = InputValidator.EscapeShellArg(host);
+        var command = $"ping -c 1 -W {timeoutSec} {escapedHost}";
+
+        try
+        {
+            var result = await Task.Run(() =>
+            {
+                using var cmd = _sshClient!.CreateCommand(command);
+                cmd.CommandTimeout = TimeSpan.FromMilliseconds(timeoutMs + 5000);
+                cmd.Execute();
+                return (cmd.Result, cmd.ExitStatus);
+            });
+
+            if (_cts is null || _cts.IsCancellationRequested) return;
+
+            var match = s_pingTimeRegex.Match(result.Result ?? string.Empty);
+            if (match.Success && double.TryParse(match.Groups[1].Value,
+                    System.Globalization.NumberStyles.Float,
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    out var latencyD))
+            {
+                var latency = (long)Math.Round(latencyD);
+                _dataPoints.Add(new PingDataPoint(latency, false));
+                if (_dataPoints.Count > MaxDataPoints) _dataPoints.RemoveAt(0);
+
+                _successCount++;
+                _totalLatency += latency;
+                _sumSquaredLatency += latency * (double)latency;
+                if (latency < _minLatency) _minLatency = latency;
+                if (latency > _maxLatency) _maxLatency = latency;
+
+                _csvEntries.Add(new PingCsvEntry(seq, timestamp, latency, "OK"));
+                AppendLogLine(
+                    string.Format(L("ToolPingReplyFormat"), timestamp, seq, host, latency, 0),
+                    false);
+            }
+            else
+            {
+                _dataPoints.Add(new PingDataPoint(-1, true));
+                if (_dataPoints.Count > MaxDataPoints) _dataPoints.RemoveAt(0);
+
+                _lostCount++;
+                _csvEntries.Add(new PingCsvEntry(seq, timestamp, -1, "Timeout"));
+                AppendLogLine(
+                    string.Format(L("ToolPingTimeoutFormat"), timestamp, seq, "Timeout"),
+                    true);
+            }
+        }
+        catch (Exception ex)
+        {
+            if (_cts is null || _cts.IsCancellationRequested) return;
+
+            _dataPoints.Add(new PingDataPoint(-1, true));
+            if (_dataPoints.Count > MaxDataPoints) _dataPoints.RemoveAt(0);
+
+            _lostCount++;
+            var message = ex.InnerException?.Message ?? ex.Message;
+            _csvEntries.Add(new PingCsvEntry(seq, timestamp, -1, $"Error: {message}"));
+            AppendLogLine(
+                string.Format(L("ToolPingErrorFormat"), timestamp, seq, message),
+                true);
+        }
+
+        UpdateStats();
+        UpdatePingCount();
+        RedrawGraph();
+        CheckPingCountLimit();
+    }
+
+    private void DisposeSshClient()
+    {
+        if (_sshClient is not null)
+        {
+            try
+            {
+                if (_sshClient.IsConnected) _sshClient.Disconnect();
+                _sshClient.Dispose();
+            }
+            catch { /* best-effort cleanup */ }
+            _sshClient = null;
+        }
     }
 
     private void OnGraphCanvasSizeChanged(object sender, SizeChangedEventArgs e)

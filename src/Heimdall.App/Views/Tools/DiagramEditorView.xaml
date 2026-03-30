@@ -45,43 +45,43 @@
                                Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
                     <Button x:Name="BtnNew" Content="" Click="OnNewClick"
                             Style="{DynamicResource SecondaryButtonStyle}" Padding="{StaticResource PaddingButtonToolbar}" Margin="16,0,4,0" FontSize="{StaticResource FontSizeCaption}"
-                            AutomationProperties.Name=""/>
+                            TabIndex="0" AutomationProperties.Name=""/>
                     <Button x:Name="BtnOpen" Content="" Click="OnOpenClick"
                             Style="{DynamicResource SecondaryButtonStyle}" Padding="{StaticResource PaddingButtonToolbar}" Margin="0,0,4,0" FontSize="{StaticResource FontSizeCaption}"
-                            AutomationProperties.Name=""/>
+                            TabIndex="1" AutomationProperties.Name=""/>
                     <Button x:Name="BtnSave" Content="" Click="OnSaveClick"
                             Style="{DynamicResource PrimaryButtonStyle}" Padding="{StaticResource PaddingButtonToolbar}" Margin="0,0,4,0" FontSize="{StaticResource FontSizeCaption}"
-                            AutomationProperties.Name=""/>
+                            TabIndex="2" AutomationProperties.Name=""/>
                     <Button x:Name="BtnExportPng" Content="" Click="OnExportPngClick"
                             Style="{DynamicResource SecondaryButtonStyle}" Padding="{StaticResource PaddingButtonToolbar}" FontSize="{StaticResource FontSizeCaption}"
-                            AutomationProperties.Name=""/>
+                            TabIndex="3" AutomationProperties.Name=""/>
                     <Button x:Name="BtnInsertLine" Content="" Click="OnInsertLineClick"
                             Style="{DynamicResource SecondaryButtonStyle}" Padding="{StaticResource PaddingButtonToolbar}" Margin="12,0,4,0" FontSize="{StaticResource FontSizeCaption}"
-                            AutomationProperties.Name=""/>
+                            TabIndex="4" AutomationProperties.Name=""/>
                     <Button x:Name="BtnFormat" Content="" Click="OnFormatClick"
                             Style="{DynamicResource SecondaryButtonStyle}" Padding="{StaticResource PaddingButtonToolbar}" Margin="0,0,4,0" FontSize="{StaticResource FontSizeCaption}"
-                            AutomationProperties.Name=""/>
+                            TabIndex="5" AutomationProperties.Name=""/>
                     <Button x:Name="BtnUndo" Content="" Click="OnUndoClick"
                             Style="{DynamicResource SecondaryButtonStyle}" Padding="{StaticResource PaddingButtonToolbar}" Margin="8,0,4,0" FontSize="{StaticResource FontSizeCaption}"
-                            AutomationProperties.Name=""/>
+                            TabIndex="6" AutomationProperties.Name=""/>
                     <Button x:Name="BtnRedo" Content="" Click="OnRedoClick"
                             Style="{DynamicResource SecondaryButtonStyle}" Padding="{StaticResource PaddingButtonToolbar}" Margin="0,0,4,0" FontSize="{StaticResource FontSizeCaption}"
-                            AutomationProperties.Name=""/>
+                            TabIndex="7" AutomationProperties.Name=""/>
                     <Button x:Name="BtnZoomOut" Content="" Click="OnZoomOutClick"
                             Style="{DynamicResource SecondaryButtonStyle}" Padding="{StaticResource PaddingButtonToolbar}" Margin="0,0,4,0" FontSize="{StaticResource FontSizeCaption}"
-                            AutomationProperties.Name=""/>
+                            TabIndex="8" AutomationProperties.Name=""/>
                     <Button x:Name="BtnActualSize" Content="" Click="OnActualSizeClick"
                             Style="{DynamicResource SecondaryButtonStyle}" Padding="{StaticResource PaddingButtonToolbar}" Margin="0,0,4,0" FontSize="{StaticResource FontSizeCaption}"
-                            AutomationProperties.Name=""/>
+                            TabIndex="9" AutomationProperties.Name=""/>
                     <Button x:Name="BtnZoomIn" Content="" Click="OnZoomInClick"
                             Style="{DynamicResource SecondaryButtonStyle}" Padding="{StaticResource PaddingButtonToolbar}" Margin="0,0,4,0" FontSize="{StaticResource FontSizeCaption}"
-                            AutomationProperties.Name=""/>
+                            TabIndex="10" AutomationProperties.Name=""/>
                     <Button x:Name="BtnDuplicate" Content="" Click="OnDuplicateClick"
                             Style="{DynamicResource SecondaryButtonStyle}" Padding="{StaticResource PaddingButtonToolbar}" Margin="0,0,4,0" FontSize="{StaticResource FontSizeCaption}"
-                            AutomationProperties.Name=""/>
+                            TabIndex="11" AutomationProperties.Name=""/>
                     <Button x:Name="BtnDelete" Content="" Click="OnDeleteClick"
                             Style="{DynamicResource SecondaryButtonStyle}" Padding="{StaticResource PaddingButtonToolbar}" FontSize="{StaticResource FontSizeCaption}"
-                            AutomationProperties.Name=""/>
+                            TabIndex="12" AutomationProperties.Name=""/>
                 </StackPanel>
             </DockPanel>
         </Border>
@@ -94,6 +94,7 @@
                         Click="OnCloseHelpClick"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
                         VerticalAlignment="Top" Width="24" Height="24"
+                        TabIndex="15"
                         AutomationProperties.Name=""/>
                 <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
                     <TextBlock x:Name="TxtHelpContent" Text="" TextWrapping="Wrap"

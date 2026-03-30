@@ -49,6 +49,7 @@ public partial class SecNumCloudAuditView : UserControl, IToolView
     private List<Heimdall.Core.Configuration.SshGatewayDto>? _gateways;
     private Heimdall.Core.Configuration.SshGatewayDto? _selectedGateway;
     private Action<bool>? _setBusy;
+    private CancellationTokenSource? _subnetDetectCts;
 
     // ── Display model for individual checks ──────────────────────────
 
@@ -79,6 +80,15 @@ public partial class SecNumCloudAuditView : UserControl, IToolView
         if (!string.IsNullOrWhiteSpace(context?.TargetHost))
         {
             TxtScope.Text = context.TargetHost;
+        }
+        else
+        {
+            // Auto-detect local subnet when no target is provided
+            var localCidr = SubnetDetector.DetectLocalSubnet();
+            if (localCidr is not null)
+            {
+                TxtScope.Text = localCidr;
+            }
         }
 
         if (context?.SshGateways is System.Collections.IList gateways)
@@ -162,10 +172,63 @@ public partial class SecNumCloudAuditView : UserControl, IToolView
         if (CmbRouteVia.SelectedIndex <= 0 || _gateways is null)
         {
             _selectedGateway = null;
+            // Revert to local subnet when switching back to Direct
+            var localCidr = SubnetDetector.DetectLocalSubnet();
+            if (localCidr is not null)
+            {
+                TxtScope.Text = localCidr;
+            }
             return;
         }
         var idx = CmbRouteVia.SelectedIndex - 1;
         _selectedGateway = idx < _gateways.Count ? _gateways[idx] : null;
+
+        if (_selectedGateway is not null)
+        {
+            _ = DetectRemoteSubnetsAsync(_selectedGateway);
+        }
+    }
+
+    private async Task DetectRemoteSubnetsAsync(Heimdall.Core.Configuration.SshGatewayDto gateway)
+    {
+        _subnetDetectCts?.Cancel();
+        _subnetDetectCts = new CancellationTokenSource();
+        var ct = _subnetDetectCts.Token;
+
+        TxtDetected.Text = string.Format(L("ToolSubnetDetecting"), gateway.Name);
+
+        try
+        {
+            var subnets = await SubnetDetector.DetectRemoteSubnetsAsync(gateway, ct);
+
+            if (subnets.Count > 0)
+            {
+                await Dispatcher.InvokeAsync(() =>
+                {
+                    TxtScope.Text = subnets[0];
+                    TxtDetected.Text = string.Format(
+                        L("ToolSubnetDetected"),
+                        subnets.Count,
+                        gateway.Name);
+                    if (subnets.Count > 1)
+                    {
+                        TxtScope.ToolTip = string.Join("\n", subnets);
+                    }
+                });
+            }
+            else
+            {
+                await Dispatcher.InvokeAsync(() =>
+                    TxtDetected.Text = L("ToolSubnetDetectFailed"));
+            }
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception ex)
+        {
+            Core.Logging.FileLogger.Warn($"Subnet detection failed for {gateway.Name}: {ex.Message}");
+            await Dispatcher.InvokeAsync(() =>
+                TxtDetected.Text = L("ToolSubnetDetectFailed"));
+        }
     }
 
     // ── Scope auto-detect ────────────────────────────────────────────
@@ -683,7 +746,7 @@ public partial class SecNumCloudAuditView : UserControl, IToolView
             Background = (Brush)FindResource("CardBrush"),
             BorderBrush = (Brush)FindResource("BorderBrush"),
             BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius((double)FindResource("CornerRadiusSm")),
+            CornerRadius = (CornerRadius)FindResource("CornerRadiusSm"),
             Padding = new Thickness(8, 6, 8, 6),
             Margin = new Thickness(0, 2, 0, 2),
         };

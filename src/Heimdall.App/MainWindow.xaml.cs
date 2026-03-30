@@ -2043,7 +2043,7 @@ public partial class MainWindow : Window
         var defaultBorderBrush = (Brush)FindResource("BorderBrush");
         var activeBorderBrush = (Brush)FindResource("AccentBrush");
         var defaultBackgroundBrush = (Brush)FindResource("CardBrush");
-        var activeBackgroundBrush = (Brush)FindResource("SurfaceBrush");
+        var activeBackgroundBrush = (Brush)FindResource("HighlightBrush");
 
         // Icon
         System.Windows.Shapes.Path? iconPath = null;
@@ -2128,17 +2128,26 @@ public partial class MainWindow : Window
         }
         content.Children.Add(textStack);
 
+        // Use a bare template so the button has no hover chrome —
+        // all visual feedback comes from the outer cardBorder.
+        var btnTemplate = new ControlTemplate(typeof(Button));
+        var btnPresenter = new FrameworkElementFactory(typeof(ContentPresenter));
+        btnPresenter.SetValue(MarginProperty, new Thickness(10, 8, 10, 8));
+        btnPresenter.SetValue(ContentPresenter.HorizontalAlignmentProperty, System.Windows.HorizontalAlignment.Stretch);
+        btnPresenter.SetValue(ContentPresenter.VerticalAlignmentProperty, VerticalAlignment.Stretch);
+        btnTemplate.VisualTree = btnPresenter;
+
         var launchButton = new Button
         {
             Content = content,
             Tag = descriptor,
             Background = Brushes.Transparent,
             BorderThickness = new Thickness(0),
-            Padding = new Thickness(10, 8, 10, 8),
             HorizontalContentAlignment = System.Windows.HorizontalAlignment.Stretch,
             VerticalContentAlignment = VerticalAlignment.Stretch,
             Cursor = System.Windows.Input.Cursors.Hand,
-            ToolTip = descBlock.Text.Length > 0 ? descBlock.Text : null
+            ToolTip = descBlock.Text.Length > 0 ? descBlock.Text : null,
+            Template = btnTemplate
         };
         System.Windows.Automation.AutomationProperties.SetName(launchButton, vm.Localize(descriptor.LabelKey));
         launchButton.Click += OnToolsTabCardClick;

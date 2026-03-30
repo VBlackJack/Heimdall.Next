@@ -2715,6 +2715,7 @@
   "ToolPingReplyFormat": "[{0}] seq={1} de {2}\u00a0: temps={3}ms TTL={4}",
   "ToolPingTimeoutFormat": "[{0}] seq={1} D\u00e9lai d\u2019attente d\u00e9pass\u00e9 ({2})",
   "ToolPingErrorFormat": "[{0}] seq={1} Erreur\u00a0: {2}",
+  "ToolPingGatewayError": "\u00c9chec de connexion \u00e0 la passerelle\u00a0: {0}",
   "ToolPingIntervalLabel": "Intervalle\u00a0:",
   "ToolPingTimeoutLabel": "D\u00e9lai (ms)\u00a0:",
   "ToolPingCountLabel": "Nombre\u00a0:",
@@ -3624,6 +3625,9 @@
   "ToolNetMapDetectingSubnet": "D\u00e9tection des sous-r\u00e9seaux distants sur {0}\u2026",
   "ToolNetMapSubnetDetected": "{0} sous-r\u00e9seau(x) d\u00e9tect\u00e9(s) sur {1}",
   "ToolNetMapSubnetDetectFailed": "D\u00e9tection automatique impossible. Saisissez le CIDR manuellement.",
+  "ToolSubnetDetecting": "D\u00e9tection des sous-r\u00e9seaux sur {0}\u2026",
+  "ToolSubnetDetected": "{0} sous-r\u00e9seau(x) d\u00e9tect\u00e9(s) sur {1}",
+  "ToolSubnetDetectFailed": "D\u00e9tection automatique impossible. Saisissez le p\u00e9rim\u00e8tre manuellement.",
   "ToolHelpNETMAP": "Cartographie r\u00e9seau\n\nD\u00e9couvre les h\u00f4tes d'un sous-r\u00e9seau, scanne leurs ports, identifie les services, classifie les r\u00f4les et empreinte les \u00e9quipements.\n\nUtilisation :\n1. Entrez un sous-r\u00e9seau en notation CIDR (ex : 192.168.1.0/24)\n2. S\u00e9lectionnez la profondeur : Rapide (20 ports), Standard (50 ports) ou Approfondi\n3. Cliquez sur Lancer le scan ou appuyez sur Entr\u00e9e\n\nOptions :\n- Ignorer le ping : scanner toutes les IP m\u00eame si ICMP est bloqu\u00e9\n- DNS inverse : r\u00e9soudre les noms d'h\u00f4te\n\nProfondeurs de scan :\n- Rapide : 20 ports courants (SSH, HTTP, RDP, DNS, etc.) \u2014 reconnaissance rapide\n- Standard : 50 ports couvrant la plupart des services entreprise \u2014 recommand\u00e9\n- Approfondi : liste de ports personnalis\u00e9e pour une analyse compl\u00e8te\n\nCapacit\u00e9s de d\u00e9couverte :\n- Balayage ICMP avec identification d'OS par TTL\n- Scan de ports TCP avec capture de banni\u00e8res\n- Analyse des en-t\u00eates HTTP (Server, X-Powered-By, WWW-Authenticate)\n- Inspection des certificats TLS (sujet, \u00e9metteur, SAN, expiration)\n- R\u00e9solution NetBIOS (nom d'ordinateur, domaine/groupe de travail)\n- Requ\u00eates SNMPv2c (sysDescr, sysName, sysLocation)\n- D\u00e9couverte mDNS/Bonjour (AirPlay, imprimantes, HomeKit, etc.)\n- Recherche d'adresses MAC via table ARP (300+ fabricants)\n- Classification heuristique avec preuves multi-sources\n- Score de confiance : ports + banni\u00e8res + SNMP + NetBIOS + mDNS\n- D\u00e9tection passive de VLAN/segments\n\nExport :\n- CSV avec 20 colonnes incluant OS, NetBIOS, SNMP, mDNS\n- Diagramme de topologie Draw.io\n- Comparaison historique avec d\u00e9tection de changements\n\nExemples :\n- 192.168.1.0/24 \u2014 Scanner un sous-r\u00e9seau /24 (254 h\u00f4tes)\n- 10.0.0.0/20 \u2014 Scanner un r\u00e9seau plus large (4094 h\u00f4tes)\n- 172.16.0.0/24 avec Ignorer le ping \u2014 Scanner \u00e0 travers les pare-feux",
 
   "ToolCtxCopyIp": "Copier l'adresse IP",
@@ -4609,8 +4613,14 @@
   "OnboardingBtnNext": "Suivant",
   "OnboardingBtnGetStarted": "Commencer",
 
+  "A11yServersTab": "Onglet serveurs",
+  "A11yTunnelsTab": "Onglet tunnels",
+  "A11yScheduledTab": "Onglet planifi\u00e9",
+  "A11ySettingsTab": "Onglet param\u00e8tres",
+  "A11yAboutTab": "Onglet \u00e0 propos",
   "A11yToolsTab": "Onglet outils",
-  "A11yPinTool": "Épingler l'outil aux favoris",
+  "A11yGridSplitter": "Redimensionner les panneaux",
+  "A11yPinTool": "\u00c9pingler l'outil aux favoris",
   "A11yUnpinTool": "Retirer l'outil des favoris",
   "A11yOnboardingOverlay": "Guide de bienvenue",
 

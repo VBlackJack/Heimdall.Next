@@ -536,6 +536,10 @@ public partial class CertInspectorView : UserControl, IToolView
                             result = RetrieveCertificate(host, port, linked.Token);
                         }
                     }
+                    catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+                    {
+                        // Per-port timeout — not a scan cancellation. Skip this port.
+                    }
                     catch (OperationCanceledException) { throw; }
                     catch
                     {

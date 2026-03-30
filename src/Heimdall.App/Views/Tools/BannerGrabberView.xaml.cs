@@ -462,6 +462,11 @@ public partial class BannerGrabberView : UserControl, IToolView
             var read = await stream.ReadAsync(buffer, linked.Token);
             return read > 0 ? Encoding.ASCII.GetString(buffer, 0, read).Trim() : null;
         }
+        catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+        {
+            // Per-read timeout — not a user cancellation. Return null banner.
+            return null;
+        }
         catch (OperationCanceledException)
         {
             throw;

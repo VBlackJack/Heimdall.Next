@@ -131,6 +131,7 @@ public static class HttpFingerprinter
 
                 return (product, path);
             }
+            catch (OperationCanceledException) when (!ct.IsCancellationRequested) { continue; }
             catch (OperationCanceledException) { throw; }
             catch { /* probe failed, try next */ }
         }

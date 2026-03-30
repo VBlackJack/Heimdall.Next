@@ -592,6 +592,10 @@ public sealed class CartographyEngine
                     }
                 }
             }
+            catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+            {
+                // Per-port timeout expired during banner grab — port is still open
+            }
             catch (OperationCanceledException) { throw; }
             catch { /* banner grab failed, port is still open */ }
 
@@ -610,6 +614,11 @@ public sealed class CartographyEngine
 
             return new ServiceResult(port, true, serviceName, banner, version,
                 sw.ElapsedMilliseconds, certInfo, httpHeaders);
+        }
+        catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+        {
+            // Per-port timeout — not a scan cancellation. Treat as closed port.
+            return new ServiceResult(port, false, null, null, null, sw.ElapsedMilliseconds);
         }
         catch (OperationCanceledException) { throw; }
         catch
@@ -661,11 +670,16 @@ public sealed class CartographyEngine
                     if (read > 0)
                         httpBanner = Encoding.ASCII.GetString(buf, 0, read).Trim();
                 }
+                catch (OperationCanceledException) when (!ct.IsCancellationRequested) { /* per-port TLS timeout */ }
                 catch (OperationCanceledException) { throw; }
                 catch { /* HTTP probe over TLS failed, cert is still valid */ }
             }
 
             return (certInfo, httpBanner);
+        }
+        catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+        {
+            return (null, null);
         }
         catch (OperationCanceledException) { throw; }
         catch (Exception ex)
