@@ -218,6 +218,11 @@ public partial class SettingsViewModel : ObservableValidator
     [Range(1000, 120000, ErrorMessage = "Embedded RDP timeout must be between 1000 and 120000 ms.")]
     private int _embeddedRdpTimeoutMs = 30000;
 
+    [ObservableProperty]
+    [NotifyDataErrorInfo]
+    [Range(5000, 600000, ErrorMessage = "External tool timeout must be between 5000 and 600000 ms.")]
+    private int _externalToolTimeoutMs = 60000;
+
     // --- Collections ---
 
     [ObservableProperty]
@@ -398,6 +403,7 @@ public partial class SettingsViewModel : ObservableValidator
         SessionLogDirectory = settings.SessionLogDirectory;
         TunnelEstablishmentDelayMs = settings.TunnelEstablishmentDelayMs;
         EmbeddedRdpTimeoutMs = settings.EmbeddedRdpTimeoutMs;
+        ExternalToolTimeoutMs = settings.ExternalToolTimeoutMs;
 
         UnsubscribeExternalToolTracking();
 
@@ -509,6 +515,7 @@ public partial class SettingsViewModel : ObservableValidator
         settings.SessionLogDirectory = SessionLogDirectory;
         settings.TunnelEstablishmentDelayMs = TunnelEstablishmentDelayMs;
         settings.EmbeddedRdpTimeoutMs = EmbeddedRdpTimeoutMs;
+        settings.ExternalToolTimeoutMs = ExternalToolTimeoutMs;
 
         // UI state
         settings.ShowToolsPanel = ShowToolsPanel;
@@ -1058,6 +1065,42 @@ public partial class SettingsViewModel : ObservableValidator
         return Task.CompletedTask;
     }
 
+    [ObservableProperty]
+    private string? _credentialProviderTestResult;
+
+    [RelayCommand]
+    private async Task TestCredentialProviderAsync(CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(CredentialProviderCommand))
+        {
+            CredentialProviderTestResult = _localizer["CredProvTestNoCommand"];
+            return;
+        }
+
+        CredentialProviderTestResult = _localizer["CredProvTestRunning"];
+
+        try
+        {
+            var provider = new Core.Security.CommandCredentialProvider(
+                CredentialProviderCommand, CredentialProviderDatabase);
+
+            var result = await provider.GetCredentialAsync(
+                "test.example.com", 22, "testuser", "TestEntry", cancellationToken);
+
+            CredentialProviderTestResult = result is not null
+                ? _localizer["CredProvTestSuccess"]
+                : _localizer["CredProvTestNoResult"];
+        }
+        catch (OperationCanceledException)
+        {
+            CredentialProviderTestResult = _localizer["CredProvTestTimeout"];
+        }
+        catch (Exception ex)
+        {
+            CredentialProviderTestResult = _localizer.Format("CredProvTestError", ex.Message);
+        }
+    }
+
     partial void OnDefaultThemeChanged(string value)
     {
         ThemeChanged?.Invoke(value);
@@ -1128,6 +1171,7 @@ public partial class SettingsViewModel : ObservableValidator
         ["SSH TMOUT reset interval must be between 0 and 3600 seconds."] = "ValidationSettingsTmoutReset",
         ["Tunnel establishment delay must be between 0 and 30000 ms."] = "ValidationSettingsTunnelDelay",
         ["Embedded RDP timeout must be between 1000 and 120000 ms."] = "ValidationSettingsRdpTimeout",
+        ["External tool timeout must be between 5000 and 600000 ms."] = "ValidationSettingsExtToolTimeout",
     };
 
     private string? GetLocalizedFieldError(string propertyName)
@@ -1153,7 +1197,8 @@ public partial class SettingsViewModel : ObservableValidator
             ?? GetLocalizedFieldError(nameof(AntiIdleInterval))
             ?? GetLocalizedFieldError(nameof(SshTmoutResetInterval))
             ?? GetLocalizedFieldError(nameof(TunnelEstablishmentDelayMs))
-            ?? GetLocalizedFieldError(nameof(EmbeddedRdpTimeoutMs));
+            ?? GetLocalizedFieldError(nameof(EmbeddedRdpTimeoutMs))
+            ?? GetLocalizedFieldError(nameof(ExternalToolTimeoutMs));
 
         ValidationSummary = firstError;
         HasValidationErrors = firstError is not null;
@@ -1161,7 +1206,8 @@ public partial class SettingsViewModel : ObservableValidator
 
     /// <summary>
     /// Returns a localized error message if any external tool has an empty name,
-    /// empty executable path, or a duplicate name. Returns null when valid.
+    /// empty executable path, duplicate name, or references a non-existent binary.
+    /// Returns null when valid.
     /// </summary>
     private string? ValidateExternalTools()
     {
@@ -1177,9 +1223,38 @@ public partial class SettingsViewModel : ObservableValidator
             {
                 return _localizer.Format("ValidationExtToolDuplicate", tool.Name.Trim());
             }
+
+            var exePath = tool.ExecutablePath.Trim();
+            if (!ExeExistsOnDiskOrPath(exePath))
+            {
+                return _localizer.Format("ValidationExtToolNotFound", tool.Name.Trim(), exePath);
+            }
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// Returns true if the executable exists at the given absolute path
+    /// or can be found on the system PATH.
+    /// </summary>
+    private static bool ExeExistsOnDiskOrPath(string exePath)
+    {
+        if (System.IO.File.Exists(exePath)) return true;
+
+        // Bare filename like "ping.exe" — search PATH
+        if (!System.IO.Path.IsPathRooted(exePath))
+        {
+            var pathDirs = Environment.GetEnvironmentVariable("PATH")?.Split(';') ?? [];
+            foreach (var dir in pathDirs)
+            {
+                if (string.IsNullOrWhiteSpace(dir)) continue;
+                var fullPath = System.IO.Path.Combine(dir.Trim(), exePath);
+                if (System.IO.File.Exists(fullPath)) return true;
+            }
+        }
+
+        return false;
     }
 
     private static SshGatewayDto CloneGateway(SshGatewayDto g) => new()

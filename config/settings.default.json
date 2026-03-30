@@ -11,6 +11,7 @@
     "tunnelEstablishmentDelayMs": 2500,
     "tunnelRetryDelayMs": 1500,
     "processKillTimeoutMs": 2000,
+    "externalToolTimeoutMs": 60000,
     "enableLogging": true,
     "logFilePath": "logs\\heimdall.log",
     "pinHash": null,

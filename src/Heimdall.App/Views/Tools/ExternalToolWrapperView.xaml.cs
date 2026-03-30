@@ -38,7 +38,7 @@ public partial class ExternalToolWrapperView : UserControl, IToolView
     private ExternalToolInfo? _toolInfo;
     private CancellationTokenSource? _cts;
     private Process? _runningProcess;
-    private const int ProcessTimeoutMs = 60_000;
+    private const int DefaultTimeoutMs = 60_000;
 
     public ExternalToolWrapperView()
     {
@@ -104,7 +104,8 @@ public partial class ExternalToolWrapperView : UserControl, IToolView
         if (_toolInfo is null) return;
 
         _cts?.Cancel();
-        _cts = new CancellationTokenSource(ProcessTimeoutMs);
+        var timeoutMs = GetConfiguredTimeoutMs();
+        _cts = new CancellationTokenSource(timeoutMs);
 
         SetRunningState(true);
         TxtError.Visibility = Visibility.Collapsed;
@@ -562,6 +563,14 @@ public partial class ExternalToolWrapperView : UserControl, IToolView
     }
 
     private string L(string key) => _localizer?[key] ?? key;
+
+    private int GetConfiguredTimeoutMs()
+    {
+        var mainWindow = Application.Current?.MainWindow;
+        if (mainWindow?.DataContext is ViewModels.MainViewModel vm)
+            return vm.CurrentSettings?.ExternalToolTimeoutMs ?? DefaultTimeoutMs;
+        return DefaultTimeoutMs;
+    }
 
     public void Dispose()
     {
