@@ -107,7 +107,8 @@ public enum ToolCategory
     Network,
     Security,
     Encoding,
-    System
+    System,
+    External
 }
 
 /// <summary>

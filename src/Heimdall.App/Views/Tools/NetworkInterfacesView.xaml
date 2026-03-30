@@ -1,0 +1,125 @@
+<!--
+  Copyright 2026 Julien Bombled
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<UserControl x:Class="Heimdall.App.Views.Tools.NetworkInterfacesView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="{DynamicResource BackgroundBrush}">
+    <Grid Margin="0">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Border Grid.Row="0" Padding="{StaticResource ToolHeaderPadding}"
+                Background="{DynamicResource SurfaceBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="0,0,0,1">
+            <DockPanel>
+                <Button x:Name="BtnHelp" DockPanel.Dock="Right" Content="?"
+                        Click="OnHelpClick"
+                        Style="{DynamicResource SecondaryButtonStyle}"
+                        Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
+                        Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"
+                        TabIndex="10"
+                        AutomationProperties.Name=""/>
+                <Button x:Name="BtnRefresh" DockPanel.Dock="Right"
+                        Content="" Click="OnRefreshClick"
+                        Style="{DynamicResource PrimaryButtonStyle}"
+                        Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginInlineControl}"
+                        TabIndex="1"
+                        AutomationProperties.Name=""/>
+                <TextBlock x:Name="HeaderTitle" Text=""
+                           FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextPrimaryBrush}"
+                           VerticalAlignment="Center"/>
+            </DockPanel>
+        </Border>
+
+        <!-- Help panel -->
+        <Border x:Name="HelpPanel" Grid.Row="1" Style="{StaticResource ToolHelpPanelStyle}">
+            <DockPanel>
+                <Button x:Name="BtnCloseHelp" DockPanel.Dock="Right" Content="&#xE711;"
+                        FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeBody}"
+                        Click="OnCloseHelpClick"
+                        Style="{DynamicResource ToolbarGhostButtonStyle}"
+                        VerticalAlignment="Top" Width="24" Height="24"
+                        TabIndex="11"
+                        AutomationProperties.Name=""/>
+                <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
+                    <TextBlock x:Name="TxtHelpContent" Text="" TextWrapping="Wrap"
+                               FontSize="{StaticResource FontSizeBody}"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               LineHeight="20"/>
+                </ScrollViewer>
+            </DockPanel>
+        </Border>
+
+        <!-- DataGrid -->
+        <DataGrid x:Name="InterfacesGrid" Grid.Row="2"
+                  AutoGenerateColumns="False" IsReadOnly="True"
+                  CanUserSortColumns="True" CanUserReorderColumns="True"
+                  HeadersVisibility="Column" GridLinesVisibility="Horizontal"
+                  SelectionMode="Extended" SelectionUnit="FullRow"
+                  Background="{DynamicResource BackgroundBrush}"
+                  Foreground="{DynamicResource TextPrimaryBrush}"
+                  RowBackground="{DynamicResource BackgroundBrush}"
+                  AlternatingRowBackground="{DynamicResource SurfaceBrush}"
+                  BorderBrush="{DynamicResource BorderBrush}"
+                  HorizontalGridLinesBrush="{DynamicResource BorderBrush}"
+                  FontSize="{StaticResource FontSizeBody}"
+                  AutomationProperties.Name="">
+            <DataGrid.Columns>
+                <DataGridTextColumn x:Name="ColName" Binding="{Binding Name}" Width="180">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="FontWeight" Value="SemiBold"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                <DataGridTextColumn x:Name="ColType" Binding="{Binding InterfaceType}" Width="100"/>
+                <DataGridTextColumn x:Name="ColStatus" Binding="{Binding Status}" Width="80"/>
+                <DataGridTextColumn x:Name="ColSpeed" Binding="{Binding Speed}" Width="100"/>
+                <DataGridTextColumn x:Name="ColMac" Binding="{Binding Mac}" Width="140" FontFamily="Consolas"/>
+                <DataGridTextColumn x:Name="ColIpv4" Binding="{Binding Ipv4}" Width="130" FontFamily="Consolas"/>
+                <DataGridTextColumn x:Name="ColSubnet" Binding="{Binding Subnet}" Width="130" FontFamily="Consolas"/>
+                <DataGridTextColumn x:Name="ColGateway" Binding="{Binding Gateway}" Width="130" FontFamily="Consolas"/>
+                <DataGridTextColumn x:Name="ColDhcp" Binding="{Binding Dhcp}" Width="60"/>
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <!-- Footer -->
+        <Border Grid.Row="3" Padding="{StaticResource ToolFooterPadding}"
+                Background="{DynamicResource SurfaceBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="0,1,0,0">
+            <DockPanel>
+                <Button x:Name="BtnCopy" DockPanel.Dock="Right"
+                        Content="" Click="OnCopyClick"
+                        Style="{DynamicResource SecondaryButtonStyle}"
+                        Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginInlineControl}"
+                        TabIndex="5"
+                        AutomationProperties.Name=""/>
+                <TextBlock x:Name="TxtStatus" Text=""
+                           FontSize="{StaticResource FontSizeSmallCaption}"
+                           Foreground="{DynamicResource TextSecondaryBrush}"
+                           VerticalAlignment="Center"/>
+            </DockPanel>
+        </Border>
+    </Grid>
+</UserControl>

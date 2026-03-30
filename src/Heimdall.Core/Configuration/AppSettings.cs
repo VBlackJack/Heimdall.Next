@@ -151,6 +151,10 @@ public class AppSettings
     // External tools (launched from server context menu)
     public List<ExternalToolDefinition> ExternalTools { get; set; } = new();
 
+    // External tool provider paths (NirSoft / Sysinternals detection)
+    public string? SysinternalsPath { get; set; }
+    public string? NirSoftPath { get; set; }
+
     // X11 forwarding
     public string? X11ServerPath { get; set; }
     public bool X11AutoStart { get; set; } = true;

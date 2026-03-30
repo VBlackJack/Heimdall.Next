@@ -275,4 +275,7 @@
     <!-- SecNumCloud Audit: shield with checklist -->
     <Geometry x:Key="Geo.Tool.SecNumCloud">M8,1 L14,4 L14,9 C14,12 11,14.5 8,15.5 C5,14.5 2,12 2,9 L2,4 Z M5,7 L6.5,7 M7.5,7 L11,7 M5,9.5 L6.5,9.5 M7.5,9.5 L11,9.5 M5,12 L6.5,12 M7.5,12 L11,12</Geometry>
 
+    <!-- External tool: puzzle piece (third-party integration) -->
+    <Geometry x:Key="Geo.Tool.External">M6,2 L6,4 C6,5 5,5 4.5,5 C4,5 3,5 3,4 L3,2 L1,2 L1,7 L3,7 C3,6 4,6 4.5,6 C5,6 6,6 6,7 L6,9 L11,9 L11,7 C11,7 12,6 12.5,6 C13,6 14,6 14,7 L14,9 L16,9 L16,4 L14,4 C14,5 13,5 12.5,5 C12,5 11,5 11,4 L11,2 Z</Geometry>
+
 </ResourceDictionary>

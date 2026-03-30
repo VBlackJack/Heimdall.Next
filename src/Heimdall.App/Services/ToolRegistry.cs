@@ -31,8 +31,16 @@ public sealed class ToolRegistry
     private readonly IReadOnlyList<ToolEntry> _entries;
     private readonly FrozenDictionary<string, ToolEntry> _byId;
 
+    // Dynamic external tool overlay (populated after startup scan)
+    private readonly List<ToolEntry> _externalEntries = [];
+    private readonly Dictionary<string, ToolEntry> _externalById = new(StringComparer.OrdinalIgnoreCase);
+    private readonly object _externalLock = new();
+
     /// <summary>All tool descriptors in display order (for menus and palette).</summary>
-    public IReadOnlyList<ToolDescriptor> All { get; }
+    public IReadOnlyList<ToolDescriptor> All { get; private set; }
+
+    /// <summary>Raised when external tools are registered after a provider scan.</summary>
+    public event Action? ExternalToolsChanged;
 
     public ToolRegistry()
     {
@@ -94,6 +102,15 @@ public sealed class ToolRegistry
             Entry("NOTES",    ToolCategory.System,   "ToolCategorySystem",   "PaletteToolNotes",    "PaletteToolNotesWith",    ["notes","note","markdown","md","confluence"], false, () => new Views.Tools.NotesToolView(), "Geo.Tool.Notes"),
             Entry("DIAGRAM",  ToolCategory.System,   "ToolCategorySystem",   "PaletteToolDiagram",  "PaletteToolDiagramWith",  ["diagram","drawio","schema"],         false, () => new Views.Tools.DiagramEditorView(),  "Geo.Tool.Diagram"),
             Entry("HACKERSIM",ToolCategory.System,   "ToolCategorySystem",   "PaletteToolHackerSim","PaletteToolHackerSimWith",["hacker","matrix","hackersim"],        false, () => new Views.Tools.HackerSimulatorView(),"Geo.Tool.HackerSimulator"),
+
+            // ── External ─────────────────────────────────────────────
+            Entry("WOL",       ToolCategory.External, "ToolCategoryExternal", "PaletteToolWol",       "PaletteToolWolWith",       ["wol","wake","wakeonlan"],              false, () => new Views.Tools.WakeOnLanView(),      "Geo.Tool.WakeOnLan"),
+            Entry("OPENPORTS", ToolCategory.External, "ToolCategoryExternal", "PaletteToolOpenPorts", "PaletteToolOpenPortsWith", ["openports","ports","netstat","connections"], false, () => new Views.Tools.OpenPortsView(), "Geo.Tool.PortScanner"),
+            Entry("NETIF",     ToolCategory.External, "ToolCategoryExternal", "PaletteToolNetIf",     "PaletteToolNetIfWith",     ["netif","interfaces","nic","adapter"],       false, () => new Views.Tools.NetworkInterfacesView(), "Geo.Tool.NetworkScanner"),
+            Entry("ROUTES",    ToolCategory.External, "ToolCategoryExternal", "PaletteToolRoutes",    "PaletteToolRoutesWith",    ["routes","route","routing"],                 false, () => new Views.Tools.RouteTableView(),        "Geo.Tool.Traceroute"),
+            Entry("DNSBATCH",  ToolCategory.External, "ToolCategoryExternal", "PaletteToolDnsBatch",  "PaletteToolDnsBatchWith",  ["dnsbatch","resolve","resolver"],            false, () => new Views.Tools.DnsBatchResolverView(),  "Geo.Tool.DnsLookup"),
+            Entry("WIFI",      ToolCategory.External, "ToolCategoryExternal", "PaletteToolWifi",      "PaletteToolWifiWith",      ["wifi","wlan","ssid","wireless"],            false, () => new Views.Tools.WifiNetworksView(),      "Geo.Tool.NetworkScanner"),
+            Entry("TCPPING",   ToolCategory.External, "ToolCategoryExternal", "PaletteToolTcpPing",   "PaletteToolTcpPingWith",   ["tcpping","tcping","portping"],              true,  () => new Views.Tools.TcpPingView(),           "Geo.Tool.NetworkScanner"),
         };
 
         _entries = entries;
@@ -105,13 +122,64 @@ public sealed class ToolRegistry
     }
 
     /// <summary>
-    /// Looks up a tool by its short ID (e.g. "PING").
+    /// Registers external tools detected by <see cref="ExternalToolProviderService"/>.
+    /// Merges them into the <see cref="All"/> list under the External category.
+    /// Thread-safe — can be called from a background scan thread.
+    /// </summary>
+    public void RegisterExternalTools(
+        IReadOnlyList<Core.Configuration.ExternalToolInfo> tools)
+    {
+        lock (_externalLock)
+        {
+            _externalEntries.Clear();
+            _externalById.Clear();
+
+            foreach (var tool in tools)
+            {
+                var id = $"EXT:{tool.ProviderName.ToUpperInvariant()}:{tool.Id}";
+                var descriptor = new ToolDescriptor(
+                    Id: id,
+                    Category: ToolCategory.External,
+                    CategoryLabelKey: "ToolCategoryExternal",
+                    LabelKey: tool.Name, // Direct name (not i18n key) — external tools have static names
+                    LabelWithArgKey: null,
+                    CommandPrefixes: [tool.Id.ToLowerInvariant(), tool.Name.ToLowerInvariant().Replace(" ", "")],
+                    IsNetworkTool: false,
+                    IconResourceKey: tool.IconResourceKey ?? "Geo.Tool.External",
+                    DescriptionKey: tool.DescriptionKey
+                );
+
+                var capturedTool = tool;
+                var entry = new ToolEntry(descriptor, () =>
+                {
+                    var view = new Views.Tools.ExternalToolWrapperView();
+                    view.SetToolInfo(capturedTool);
+                    return view;
+                });
+
+                _externalEntries.Add(entry);
+                _externalById[id] = entry;
+            }
+
+            // Rebuild the All list: built-in entries + external entries
+            All = _entries.Concat(_externalEntries).Select(e => e.Descriptor).ToList();
+        }
+
+        ExternalToolsChanged?.Invoke();
+    }
+
+    /// <summary>
+    /// Looks up a tool by its short ID (e.g. "PING") or external ID (e.g. "EXT:SYSINTERNALS:PSEXEC").
     /// Also accepts the prefixed form "TOOL:PING" — the prefix is stripped automatically.
     /// </summary>
     public ToolDescriptor? GetById(string toolId)
     {
         var key = StripPrefix(toolId);
-        return _byId.TryGetValue(key, out var entry) ? entry.Descriptor : null;
+        if (_byId.TryGetValue(key, out var entry)) return entry.Descriptor;
+        lock (_externalLock)
+        {
+            return _externalById.TryGetValue(key, out var ext) ? ext.Descriptor : null;
+        }
     }
 
     /// <summary>
@@ -122,11 +190,14 @@ public sealed class ToolRegistry
     public IToolView CreateView(string toolId)
     {
         var key = StripPrefix(toolId);
-        if (!_byId.TryGetValue(key, out var entry))
+        if (_byId.TryGetValue(key, out var entry))
+            return entry.Factory();
+        lock (_externalLock)
         {
-            throw new ArgumentException($"Unknown tool ID: {toolId}", nameof(toolId));
+            if (_externalById.TryGetValue(key, out var ext))
+                return ext.Factory();
         }
-        return entry.Factory();
+        throw new ArgumentException($"Unknown tool ID: {toolId}", nameof(toolId));
     }
 
     /// <summary>
@@ -192,6 +263,13 @@ public sealed class ToolRegistry
         ["NOTES"]     = "Geo.Tool.Notes",
         ["DIAGRAM"]   = "Geo.Tool.Diagram",
         ["HACKERSIM"] = "Geo.Tool.HackerSimulator",
+        ["WOL"]       = "Geo.Tool.WakeOnLan",
+        ["OPENPORTS"] = "Geo.Tool.PortScanner",
+        ["NETIF"]     = "Geo.Tool.NetworkScanner",
+        ["ROUTES"]    = "Geo.Tool.Traceroute",
+        ["DNSBATCH"]  = "Geo.Tool.DnsLookup",
+        ["WIFI"]      = "Geo.Tool.NetworkScanner",
+        ["TCPPING"]   = "Geo.Tool.NetworkScanner",
     }.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
 
     private static readonly FrozenDictionary<string, string> s_categoryBrushKeys = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
@@ -224,6 +302,13 @@ public sealed class ToolRegistry
         ["SERVICES"]  = "ToolSystemBrush",   ["NOTES"]    = "ToolSystemBrush",
         ["DIAGRAM"]   = "ToolSystemBrush",
         ["HACKERSIM"] = "ToolSystemBrush",
+        ["WOL"]       = "ToolExternalBrush",
+        ["OPENPORTS"] = "ToolExternalBrush",
+        ["NETIF"]     = "ToolExternalBrush",
+        ["ROUTES"]    = "ToolExternalBrush",
+        ["DNSBATCH"]  = "ToolExternalBrush",
+        ["WIFI"]      = "ToolExternalBrush",
+        ["TCPPING"]   = "ToolExternalBrush",
     }.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
@@ -233,7 +318,9 @@ public sealed class ToolRegistry
     internal static string? GetGeometryKey(string toolId)
     {
         var key = StripPrefix(toolId);
-        return s_geometryKeys.TryGetValue(key, out var geoKey) ? geoKey : null;
+        if (s_geometryKeys.TryGetValue(key, out var geoKey)) return geoKey;
+        // External tools (EXT:*) use the generic external icon
+        return key.StartsWith("EXT:", StringComparison.OrdinalIgnoreCase) ? "Geo.Tool.External" : null;
     }
 
     /// <summary>
@@ -243,7 +330,9 @@ public sealed class ToolRegistry
     internal static string GetCategoryBrushKey(string toolId)
     {
         var key = StripPrefix(toolId);
-        return s_categoryBrushKeys.TryGetValue(key, out var brushKey) ? brushKey : "ToolBadgeBrush";
+        if (s_categoryBrushKeys.TryGetValue(key, out var brushKey)) return brushKey;
+        // External tools (EXT:*) use the external brush
+        return key.StartsWith("EXT:", StringComparison.OrdinalIgnoreCase) ? "ToolExternalBrush" : "ToolBadgeBrush";
     }
 
     private static string StripPrefix(string toolId)

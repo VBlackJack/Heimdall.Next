@@ -1735,6 +1735,45 @@
                                 </Border>
 
                                 <!-- External Tools -->
+                                <!-- Third-Party Tool Detection (NirSoft / Sysinternals) -->
+                                <Border Padding="{StaticResource SpacingLg}" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource CornerRadiusLg}" Margin="0,0,0,16">
+                                    <StackPanel>
+                                        <TextBlock x:Name="Mw_SettingsExtProvTitle" Text="" FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,4"/>
+                                        <TextBlock x:Name="Mw_SettingsExtProvDesc" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeBody}" TextWrapping="Wrap" Margin="0,0,0,12"/>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="130"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                            </Grid.RowDefinitions>
+                                            <TextBlock x:Name="Mw_SettingsLblSysintPath" Grid.Row="0" Grid.Column="0" Text="" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeBody}"/>
+                                            <TextBox x:Name="Mw_SettingsTxtSysintPath" Grid.Row="0" Grid.Column="1" Text="{Binding Settings.SysinternalsPath, UpdateSourceTrigger=LostFocus}" Margin="0,0,0,8" FontSize="{StaticResource FontSizeBody}"/>
+                                            <Button x:Name="Mw_SettingsBtnSysintBrowse" Grid.Row="0" Grid.Column="2" Padding="6,2" Margin="4,0,0,8" Click="OnSysinternalsPathBrowseClick" Style="{DynamicResource SecondaryButtonStyle}" FontSize="{StaticResource FontSizeCaption}">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE838;" FontSize="12" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="{loc:Translate BtnBrowse}" Margin="4,0,0,0" VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                            </Button>
+                                            <TextBlock x:Name="Mw_SettingsLblNirSoftPath" Grid.Row="1" Grid.Column="0" Text="" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeBody}"/>
+                                            <TextBox x:Name="Mw_SettingsTxtNirSoftPath" Grid.Row="1" Grid.Column="1" Text="{Binding Settings.NirSoftPath, UpdateSourceTrigger=LostFocus}" Margin="0,0,0,0" FontSize="{StaticResource FontSizeBody}"/>
+                                            <Button x:Name="Mw_SettingsBtnNirSoftBrowse" Grid.Row="1" Grid.Column="2" Padding="6,2" Margin="4,0,0,0" Click="OnNirSoftPathBrowseClick" Style="{DynamicResource SecondaryButtonStyle}" FontSize="{StaticResource FontSizeCaption}">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE838;" FontSize="12" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="{loc:Translate BtnBrowse}" Margin="4,0,0,0" VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                            </Button>
+                                        </Grid>
+                                        <DockPanel Margin="0,8,0,0">
+                                            <Button x:Name="Mw_SettingsBtnRescan" DockPanel.Dock="Right" Content="" Click="OnRescanExternalToolsClick" Style="{DynamicResource SecondaryButtonStyle}" Padding="8,3" FontSize="{StaticResource FontSizeCaption}"/>
+                                            <TextBlock x:Name="Mw_SettingsExtProvStatus" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" FontStyle="Italic" VerticalAlignment="Center"/>
+                                        </DockPanel>
+                                    </StackPanel>
+                                </Border>
+
                                 <Border Padding="{StaticResource SpacingLg}" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource CornerRadiusLg}">
                                     <StackPanel>
                                         <DockPanel Margin="0,0,0,12">
@@ -1803,7 +1842,7 @@
                                                 </StackPanel>
 
                                                 <TextBlock Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="2"
-                                                           Text="{}{Host}  {Port}  {User}  {ServerName}  {Protocol}  {Project}"
+                                                           Text="{}{Host}  {Port}  {User}  {ServerName}  {Protocol}  {KeyFile}  {Project}  {Gateway}"
                                                            Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" FontFamily="Consolas" Opacity="0.7" Margin="0,2,0,0"/>
                                             </Grid>
                                         </Border>

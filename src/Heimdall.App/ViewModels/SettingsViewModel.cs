@@ -125,6 +125,14 @@ public partial class SettingsViewModel : ObservableValidator
     [ObservableProperty]
     private bool _x11AutoStart = true;
 
+    // --- External tool provider paths ---
+
+    [ObservableProperty]
+    private string _sysinternalsPath = "";
+
+    [ObservableProperty]
+    private string _nirSoftPath = "";
+
     // --- RDP defaults ---
 
     [ObservableProperty]
@@ -358,6 +366,8 @@ public partial class SettingsViewModel : ObservableValidator
         SftpAutoOpenOnSsh = settings.SftpAutoOpenOnSsh;
         X11ServerPath = settings.X11ServerPath ?? "";
         X11AutoStart = settings.X11AutoStart;
+        SysinternalsPath = settings.SysinternalsPath ?? "";
+        NirSoftPath = settings.NirSoftPath ?? "";
 
         // RDP defaults
         DefaultResolutionWidth = settings.DefaultResolutionWidth;
@@ -463,6 +473,8 @@ public partial class SettingsViewModel : ObservableValidator
         settings.SftpAutoOpenOnSsh = SftpAutoOpenOnSsh;
         settings.X11ServerPath = string.IsNullOrWhiteSpace(X11ServerPath) ? null : X11ServerPath;
         settings.X11AutoStart = X11AutoStart;
+        settings.SysinternalsPath = string.IsNullOrWhiteSpace(SysinternalsPath) ? null : SysinternalsPath;
+        settings.NirSoftPath = string.IsNullOrWhiteSpace(NirSoftPath) ? null : NirSoftPath;
 
         // RDP defaults
         settings.DefaultResolutionWidth = DefaultResolutionWidth;
