@@ -428,6 +428,12 @@ public static class RoleClassifier
             ApplySnmpBoosts(matches, descr);
         }
 
+        // SNMP sysObjectID enterprise OID classification (Cisco, HP, etc.)
+        if (snmp?.SysObjectId is not null)
+        {
+            ApplySnmpOidBoosts(matches, snmp.SysObjectId);
+        }
+
         // NetBIOS domain membership boosts Windows-related roles
         if (!string.IsNullOrEmpty(netBiosDomain))
         {
@@ -523,6 +529,80 @@ public static class RoleClassifier
                 matches.Add(new RoleMatch($"UPS ({pattern})", 70,
                     [$"snmp-sysDescr: \"{pattern}\""]));
             }
+        }
+    }
+
+    /// <summary>
+    /// Classifies devices based on SNMP sysObjectID enterprise OID prefix.
+    /// Cisco uses 1.3.6.1.4.1.9.*, with sub-branches for product families.
+    /// </summary>
+    private static void ApplySnmpOidBoosts(List<RoleMatch> matches, string sysObjectId)
+    {
+        // Cisco enterprise OID: 1.3.6.1.4.1.9
+        if (sysObjectId.StartsWith("1.3.6.1.4.1.9.", StringComparison.Ordinal))
+        {
+            var ciscoRoles = new (string OidPrefix, string Role, int Confidence)[]
+            {
+                ("1.3.6.1.4.1.9.1.",    "Router (Cisco)", 85),      // ciscoProducts (routers, general)
+                ("1.3.6.1.4.1.9.5.",    "Switch (Cisco Catalyst)", 85), // Catalyst switches
+                ("1.3.6.1.4.1.9.6.",    "Switch (Cisco)", 80),      // Other switches
+                ("1.3.6.1.4.1.9.9.",    "Network (Cisco)", 70),     // MIB objects (generic)
+                ("1.3.6.1.4.1.9.12.",   "Network (Cisco)", 75),     // Cisco entity physical
+            };
+
+            foreach (var (prefix, role, conf) in ciscoRoles)
+            {
+                if (!sysObjectId.StartsWith(prefix, StringComparison.Ordinal)) continue;
+
+                var existingCisco = matches.FindIndex(m =>
+                    m.Role.Contains("Cisco", StringComparison.OrdinalIgnoreCase));
+                if (existingCisco >= 0)
+                {
+                    matches[existingCisco] = matches[existingCisco] with
+                    {
+                        Confidence = Math.Min(99, Math.Max(matches[existingCisco].Confidence, conf)),
+                        Evidence = [.. matches[existingCisco].Evidence, $"snmp-oid: {sysObjectId}"]
+                    };
+                }
+                else
+                {
+                    matches.Add(new RoleMatch(role, conf, [$"snmp-oid: {sysObjectId}"]));
+                }
+                break;
+            }
+        }
+
+        // Other enterprise OIDs
+        var vendors = new (string OidPrefix, string Role, int Confidence)[]
+        {
+            ("1.3.6.1.4.1.2636.",  "Router (Juniper)", 85),         // Juniper
+            ("1.3.6.1.4.1.14988.", "Router (MikroTik)", 85),        // MikroTik
+            ("1.3.6.1.4.1.12356.", "Firewall (FortiGate)", 85),     // Fortinet
+            ("1.3.6.1.4.1.25461.", "Firewall (Palo Alto)", 85),     // Palo Alto
+            ("1.3.6.1.4.1.8072.",  "Linux (Net-SNMP)", 60),         // Net-SNMP (Linux)
+            ("1.3.6.1.4.1.311.",   "Windows Server", 60),           // Microsoft
+            ("1.3.6.1.4.1.6876.",  "Hypervisor (VMware)", 80),      // VMware
+        };
+
+        foreach (var (prefix, role, conf) in vendors)
+        {
+            if (!sysObjectId.StartsWith(prefix, StringComparison.Ordinal)) continue;
+
+            var existing = matches.FindIndex(m =>
+                m.Role.Contains(role.Split(' ')[0], StringComparison.OrdinalIgnoreCase));
+            if (existing >= 0)
+            {
+                matches[existing] = matches[existing] with
+                {
+                    Confidence = Math.Min(99, Math.Max(matches[existing].Confidence, conf)),
+                    Evidence = [.. matches[existing].Evidence, $"snmp-oid: {sysObjectId}"]
+                };
+            }
+            else
+            {
+                matches.Add(new RoleMatch(role, conf, [$"snmp-oid: {sysObjectId}"]));
+            }
+            break;
         }
     }
 

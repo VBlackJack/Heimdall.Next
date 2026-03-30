@@ -133,7 +133,25 @@ public record HostScanResult(
     string? SshHashFingerprint = null,
     int? FaviconHash = null,
     SmbNegotiateInfo? SmbInfo = null,
-    HttpFingerprint? HttpFingerprint = null);
+    HttpFingerprint? HttpFingerprint = null)
+{
+    /// <summary>
+    /// Returns true if the host has any useful scan data beyond just an IP address.
+    /// Used to filter out hosts discovered by ARP/DNS/NBNS that have no open ports
+    /// and no identifying metadata.
+    /// </summary>
+    public bool HasMeaningfulData =>
+        Services.Count > 0
+        || Hostname is not null
+        || PrimaryRole is not null
+        || (Manufacturer is not null && Manufacturer != "—")
+        || NetBiosName is not null
+        || SnmpInfo is not null
+        || (MdnsServices is { Count: > 0 })
+        || SsdpInfo is not null
+        || NtlmInfo is not null
+        || OsFingerprint is not null;
+}
 
 /// <summary>
 /// Result of probing a single port on a host.

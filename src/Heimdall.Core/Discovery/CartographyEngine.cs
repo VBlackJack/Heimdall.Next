@@ -109,6 +109,17 @@ public sealed class CartographyEngine
         var ipList = ParseCidr(profile.Subnet);
         ShuffleInPlace(ipList); // Randomize probe order to reduce IDS triggering
 
+        // Pre-scan ARP table: seed alive hosts with IPs already known to the OS.
+        // This catches hosts that respond to broadcast but block ICMP ping.
+        var arpTable = GetArpTable();
+        var subnetIpSet = new HashSet<string>(ipList, StringComparer.OrdinalIgnoreCase);
+        var arpSeedIps = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var ip in arpTable.Keys)
+        {
+            if (subnetIpSet.Contains(ip))
+                arpSeedIps.Add(ip);
+        }
+
         Dictionary<string, (long LatencyMs, int Ttl)> pingResults;
         List<string> aliveHosts;
         if (profile.SkipPing)
@@ -152,6 +163,34 @@ public sealed class CartographyEngine
                     CacheHitProgress?.Invoke(ip, "ping");
                 }
             }
+
+            // Seed ARP-known hosts that didn't respond to ping (ICMP blocked
+            // but the OS saw them via broadcast/prior communication)
+            foreach (var ip in arpSeedIps)
+            {
+                if (aliveSet.Add(ip))
+                {
+                    aliveHosts.Add(ip);
+                    pingResults[ip] = (0, 0);
+                }
+            }
+
+            // Additional discovery: reverse DNS + NetBIOS broadcast + TCP probes
+            // Run in parallel to minimize wall-clock time
+            var undiscovered = ipList.Where(ip => !aliveSet.Contains(ip)).ToList();
+            if (undiscovered.Count > 0)
+            {
+                var extraHosts = await MultiProbeDiscoveryAsync(
+                    undiscovered, profile, ct).ConfigureAwait(false);
+                foreach (var ip in extraHosts)
+                {
+                    if (aliveSet.Add(ip))
+                    {
+                        aliveHosts.Add(ip);
+                        pingResults[ip] = (0, 0);
+                    }
+                }
+            }
         }
 
         var ports = profile.CustomPorts ?? profile.Depth switch
@@ -160,9 +199,6 @@ public sealed class CartographyEngine
             ScanDepth.Standard => StandardPorts,
             _ => StandardPorts
         };
-
-        // Initial ARP table snapshot (will be refreshed after scan)
-        var arpTable = GetArpTable();
 
         // Detect OS default gateway IPs for automatic router classification
         var gatewayIps = GetDefaultGatewayIps();
@@ -240,8 +276,11 @@ public sealed class CartographyEngine
                     }
                 }
 
-                hosts.Add(result);
-                HostCompleted?.Invoke(result);
+                if (result.HasMeaningfulData)
+                {
+                    hosts.Add(result);
+                    HostCompleted?.Invoke(result);
+                }
             }
             finally { semaphore.Release(); }
         });
@@ -340,6 +379,95 @@ public sealed class CartographyEngine
 
         await Task.WhenAll(tasks).ConfigureAwait(false);
         return new Dictionary<string, (long LatencyMs, int Ttl)>(alive);
+    }
+
+    /// <summary>
+    /// Secondary discovery for IPs that didn't respond to ICMP ping.
+    /// Runs three probes in parallel: reverse DNS, NetBIOS Name Service, and
+    /// TCP connect on a handful of high-value ports (22, 80, 443, 445, 3389).
+    /// Returns the set of IPs where at least one probe succeeded.
+    /// </summary>
+    private static readonly int[] DiscoveryPorts = [22, 80, 443, 445, 3389];
+
+    private async Task<HashSet<string>> MultiProbeDiscoveryAsync(
+        List<string> ips, ScanProfile profile, CancellationToken ct)
+    {
+        var found = new ConcurrentDictionary<string, byte>();
+        using var semaphore = new SemaphoreSlim(Math.Min(64, profile.MaxConcurrency));
+
+        var tasks = ips.Select(async ip =>
+        {
+            await semaphore.WaitAsync(ct).ConfigureAwait(false);
+            try
+            {
+                // Run all 3 probes in parallel per IP
+                var dnsTask = ReverseDnsProbeAsync(ip, ct);
+                var nbnsTask = NetBiosProbeAsync(ip, ct);
+                var tcpTask = TcpDiscoveryProbeAsync(ip, profile.TimeoutMs, ct);
+
+                await Task.WhenAll(dnsTask, nbnsTask, tcpTask).ConfigureAwait(false);
+
+                if (dnsTask.Result || nbnsTask.Result || tcpTask.Result)
+                {
+                    found[ip] = 0;
+                }
+            }
+            catch (OperationCanceledException) { throw; }
+            catch { /* probe failed for this IP — skip */ }
+            finally { semaphore.Release(); }
+        });
+
+        await Task.WhenAll(tasks).ConfigureAwait(false);
+        return [.. found.Keys];
+    }
+
+    private static async Task<bool> ReverseDnsProbeAsync(string ip, CancellationToken ct)
+    {
+        try
+        {
+            var entry = await Dns.GetHostEntryAsync(ip, ct).ConfigureAwait(false);
+            // A real hostname (not the IP echoed back) means the host exists in DNS
+            return entry.HostName is not null
+                && !entry.HostName.Equals(ip, StringComparison.Ordinal);
+        }
+        catch (OperationCanceledException) when (!ct.IsCancellationRequested) { return false; }
+        catch (OperationCanceledException) { throw; }
+        catch { return false; }
+    }
+
+    private static async Task<bool> NetBiosProbeAsync(string ip, CancellationToken ct)
+    {
+        try
+        {
+            var (name, _, _) = await UdpProbeEngine.QueryNetBiosAsync(ip, 1500, ct)
+                .ConfigureAwait(false);
+            return name is not null;
+        }
+        catch (OperationCanceledException) when (!ct.IsCancellationRequested) { return false; }
+        catch (OperationCanceledException) { throw; }
+        catch { return false; }
+    }
+
+    private static async Task<bool> TcpDiscoveryProbeAsync(
+        string ip, int timeoutMs, CancellationToken ct)
+    {
+        // Quick TCP connect on a few key ports — any open port proves the host exists
+        using var cts = new CancellationTokenSource(Math.Min(timeoutMs, 1500));
+        using var linked = CancellationTokenSource.CreateLinkedTokenSource(ct, cts.Token);
+
+        var portTasks = DiscoveryPorts.Select(async port =>
+        {
+            try
+            {
+                using var client = new TcpClient();
+                await client.ConnectAsync(ip, port, linked.Token).ConfigureAwait(false);
+                return true;
+            }
+            catch { return false; }
+        });
+
+        var results = await Task.WhenAll(portTasks).ConfigureAwait(false);
+        return results.Any(r => r);
     }
 
     private async Task<HostScanResult> ScanHostAsync(

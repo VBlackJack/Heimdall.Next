@@ -151,6 +151,7 @@ public partial class NetworkCartographyView : UserControl, IToolView
         BtnClearKb.Content = L("ToolNetMapBtnClearKb");
 
         ColIp.Header = L("ToolNetMapColIp");
+        ColMac.Header = L("ToolNetMapColMac");
         ColHostname.Header = L("ToolNetMapColHostname");
         ColPorts.Header = L("ToolNetMapColPorts");
         ColServices.Header = L("ToolNetMapColServices");
@@ -158,6 +159,7 @@ public partial class NetworkCartographyView : UserControl, IToolView
         ColRole.Header = L("ToolNetMapColRole");
         ColConfidence.Header = L("ToolNetMapColConfidence");
         ColOs.Header = L("ToolNetMapColOs");
+        ColLatency.Header = L("ToolNetMapColLatency");
         ColVlan.Header = L("ToolNetMapColVlan");
         ColDetails.Header = L("ToolNetMapColDetails");
         ColManufacturer.Header = L("ToolNetMapColManufacturer");
@@ -804,6 +806,8 @@ public partial class NetworkCartographyView : UserControl, IToolView
                 .FirstOrDefault(v => v.MemberIps.Contains(host.IpAddress))
                 is { } vlan ? $"VLAN {vlan.VlanId} ({vlan.Subnet})" : "\u2014",
             Manufacturer = host.Manufacturer ?? "\u2014",
+            MacAddress = host.MacAddress ?? "\u2014",
+            Latency = host.PingLatencyMs > 0 ? $"{host.PingLatencyMs}ms" : "\u2014",
             NetBiosName = host.NetBiosName,
             NetBiosDomain = host.NetBiosDomain,
             SnmpSysName = host.SnmpInfo?.SysName,
@@ -850,7 +854,9 @@ public partial class NetworkCartographyView : UserControl, IToolView
             var sb = new StringBuilder();
             sb.AppendLine(L("ToolNetMapExportHeader"));
 
-            foreach (var r in _results)
+            foreach (var r in _results.Where(r => !string.IsNullOrEmpty(r.PortSummary)
+                || !string.IsNullOrEmpty(r.PrimaryRoleName)
+                || !string.IsNullOrEmpty(r.Hostname)))
             {
                 var hostname = InputValidator.SanitizeCsvCell(r.Hostname ?? "").Replace("\"", "\"\"");
                 var os = InputValidator.SanitizeCsvCell(r.OsGuess ?? "").Replace("\"", "\"\"");
@@ -1225,6 +1231,8 @@ public partial class NetworkCartographyView : UserControl, IToolView
         public string DetailTooltip { get; init; } = "";
         public string VlanSegment { get; set; } = "";
         public string Manufacturer { get; init; } = "";
+        public string MacAddress { get; init; } = "";
+        public string Latency { get; init; } = "";
 
         // Raw fields for CSV export
         public string? NetBiosName { get; init; }
