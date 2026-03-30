@@ -513,10 +513,19 @@ public partial class SettingsViewModel : ObservableValidator
         // UI state
         settings.ShowToolsPanel = ShowToolsPanel;
 
+        // Validate external tools before persisting
+        var extToolError = ValidateExternalTools();
+        if (extToolError is not null)
+        {
+            ValidationSummary = extToolError;
+            HasValidationErrors = true;
+            return;
+        }
+
         settings.ExternalTools = ExternalTools.Select(t => new ExternalToolDefinition
         {
-            Name = t.Name,
-            ExecutablePath = t.ExecutablePath,
+            Name = t.Name.Trim(),
+            ExecutablePath = t.ExecutablePath.Trim(),
             Arguments = t.Arguments,
             WorkingDirectory = t.WorkingDirectory,
             RunAsAdministrator = t.RunAsAdministrator,
@@ -1148,6 +1157,29 @@ public partial class SettingsViewModel : ObservableValidator
 
         ValidationSummary = firstError;
         HasValidationErrors = firstError is not null;
+    }
+
+    /// <summary>
+    /// Returns a localized error message if any external tool has an empty name,
+    /// empty executable path, or a duplicate name. Returns null when valid.
+    /// </summary>
+    private string? ValidateExternalTools()
+    {
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var tool in ExternalTools)
+        {
+            if (string.IsNullOrWhiteSpace(tool.Name) || string.IsNullOrWhiteSpace(tool.ExecutablePath))
+            {
+                return _localizer["ValidationExtToolIncomplete"];
+            }
+
+            if (!seen.Add(tool.Name.Trim()))
+            {
+                return _localizer.Format("ValidationExtToolDuplicate", tool.Name.Trim());
+            }
+        }
+
+        return null;
     }
 
     private static SshGatewayDto CloneGateway(SshGatewayDto g) => new()

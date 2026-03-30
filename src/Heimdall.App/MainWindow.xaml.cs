@@ -2411,7 +2411,10 @@ public partial class MainWindow : Window
     {
         _onboardingStep = 0;
         OnboardingOverlay.Visibility = Visibility.Visible;
+        OnboardingOverlay.KeyDown += OnOnboardingKeyDown;
         UpdateOnboardingStep(vm);
+        Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Input,
+            () => OnboardingNextBtn.Focus());
     }
 
     private void UpdateOnboardingStep(MainViewModel vm)
@@ -2448,9 +2451,12 @@ public partial class MainWindow : Window
         }
 
         OnboardingSkipBtn.Content = vm.Localize("OnboardingBtnSkip");
-        OnboardingNextBtn.Content = _onboardingStep < OnboardingStepCount - 1
-            ? vm.Localize("OnboardingBtnNext")
-            : vm.Localize("OnboardingBtnGetStarted");
+        System.Windows.Automation.AutomationProperties.SetName(OnboardingSkipBtn, vm.Localize("OnboardingBtnSkip"));
+        var nextKey = _onboardingStep < OnboardingStepCount - 1
+            ? "OnboardingBtnNext"
+            : "OnboardingBtnGetStarted";
+        OnboardingNextBtn.Content = vm.Localize(nextKey);
+        System.Windows.Automation.AutomationProperties.SetName(OnboardingNextBtn, vm.Localize(nextKey));
     }
 
     private async void OnOnboardingSkip(object sender, RoutedEventArgs e)
@@ -2473,8 +2479,18 @@ public partial class MainWindow : Window
         }
     }
 
+    private void OnOnboardingKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Escape)
+        {
+            e.Handled = true;
+            _ = CompleteOnboardingAsync();
+        }
+    }
+
     private async Task CompleteOnboardingAsync()
     {
+        OnboardingOverlay.KeyDown -= OnOnboardingKeyDown;
         OnboardingOverlay.Visibility = Visibility.Collapsed;
         if (DataContext is not MainViewModel vm || vm.CurrentSettings is null) return;
         vm.CurrentSettings.OnboardingCompleted = true;
@@ -2781,6 +2797,7 @@ public partial class MainWindow : Window
             if (tool.RunHidden)
             {
                 psi.WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden;
+                psi.CreateNoWindow = true;
             }
 
             System.Diagnostics.Process.Start(psi)?.Dispose();
