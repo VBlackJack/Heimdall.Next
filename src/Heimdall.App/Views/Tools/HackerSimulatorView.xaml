@@ -40,6 +40,7 @@
                               Background="{DynamicResource HackerSimSurfaceBrush}" Foreground="{DynamicResource HackerSimTextPrimaryBrush}" BorderBrush="{DynamicResource HackerSimInputBorderBrush}"
                               DisplayMemberPath="Display"
                               SelectionChanged="OnScenarioSelectionChanged"
+                              TabIndex="0"
                               AutomationProperties.Name=""/>
 
                     <Button x:Name="BtnFavorite"
@@ -47,6 +48,7 @@
                             FontFamily="Consolas" FontSize="{StaticResource FontSizeCaption}"
                             Foreground="{DynamicResource HackerSimButtonForegroundBrush}" Background="{DynamicResource HackerSimButtonBackgroundBrush}" BorderBrush="{DynamicResource HackerSimInputBorderBrush}"
                             Padding="{StaticResource PaddingButtonToolbar}" Margin="0,0,12,0" Cursor="Hand"
+                            TabIndex="1"
                             AutomationProperties.Name=""/>
 
                     <CheckBox x:Name="ChkRandomMode"
@@ -54,6 +56,7 @@
                               FontFamily="Consolas" FontSize="{StaticResource FontSizeCaption}"
                               Foreground="{DynamicResource HackerSimHighlightBrush}" VerticalAlignment="Center"
                               Margin="0,0,12,0"
+                              TabIndex="2"
                               AutomationProperties.Name=""/>
 
                     <TextBlock x:Name="LblSearch"
@@ -66,6 +69,7 @@
                              FontFamily="Consolas" FontSize="{StaticResource FontSizeCaption}"
                              Background="{DynamicResource HackerSimSurfaceBrush}" Foreground="{DynamicResource HackerSimTextPrimaryBrush}" BorderBrush="{DynamicResource HackerSimInputBorderBrush}"
                              TextChanged="OnScenarioSearchChanged"
+                             TabIndex="3"
                              AutomationProperties.Name=""/>
 
                     <TextBlock x:Name="LblCategory"
@@ -79,6 +83,7 @@
                               Background="{DynamicResource HackerSimSurfaceBrush}" Foreground="{DynamicResource HackerSimTextPrimaryBrush}" BorderBrush="{DynamicResource HackerSimInputBorderBrush}"
                               DisplayMemberPath="Display"
                               SelectionChanged="OnScenarioFilterChanged"
+                              TabIndex="4"
                               AutomationProperties.Name=""/>
 
                     <TextBlock x:Name="LblRealism"
@@ -92,6 +97,7 @@
                               Background="{DynamicResource HackerSimSurfaceBrush}" Foreground="{DynamicResource HackerSimTextPrimaryBrush}" BorderBrush="{DynamicResource HackerSimInputBorderBrush}"
                               DisplayMemberPath="Display"
                               SelectionChanged="OnScenarioFilterChanged"
+                              TabIndex="5"
                               AutomationProperties.Name=""/>
 
                     <TextBlock x:Name="LblSpeed"
@@ -104,6 +110,7 @@
                             TickFrequency="0.25" IsSnapToTickEnabled="True"
                             VerticalAlignment="Center"
                             ValueChanged="OnSpeedChanged"
+                            TabIndex="6"
                             AutomationProperties.Name=""/>
 
                     <TextBlock x:Name="LblSpeedValue"
@@ -117,6 +124,7 @@
                             FontFamily="Consolas" FontSize="{StaticResource FontSizeBody}"
                             Foreground="{DynamicResource HackerSimAccentBrush}" Background="{DynamicResource HackerSimButtonBackgroundBrush}" BorderBrush="{DynamicResource HackerSimInputBorderBrush}"
                             Padding="{StaticResource PaddingButtonPrimary}" Margin="12,0,0,0" Cursor="Hand"
+                            TabIndex="7"
                             AutomationProperties.Name=""/>
 
                     <Button x:Name="BtnHelp" Content="?"
@@ -124,6 +132,7 @@
                             FontFamily="Consolas" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
                             Foreground="{DynamicResource HackerSimTextPrimaryBrush}" Background="{DynamicResource HackerSimButtonBackgroundBrush}" BorderBrush="{DynamicResource HackerSimInputBorderBrush}"
                             Width="24" Height="24" Padding="0" Margin="8,0,0,0" Cursor="Hand"
+                            TabIndex="15"
                             AutomationProperties.Name=""/>
                 </WrapPanel>
 
@@ -150,6 +159,7 @@
                               Background="{DynamicResource HackerSimSurfaceBrush}" Foreground="{DynamicResource HackerSimTextPrimaryBrush}" BorderBrush="{DynamicResource HackerSimInputBorderBrush}"
                               DisplayMemberPath="Display"
                               SelectionChanged="OnPlaylistSelectionChanged"
+                              TabIndex="8"
                               AutomationProperties.Name=""/>
 
                     <Button x:Name="BtnReplaySeed"
@@ -157,6 +167,7 @@
                             FontFamily="Consolas" FontSize="{StaticResource FontSizeCaption}"
                             Foreground="{DynamicResource HackerSimTextPrimaryBrush}" Background="{DynamicResource HackerSimButtonBackgroundBrush}" BorderBrush="{DynamicResource HackerSimInputBorderBrush}"
                             Padding="{StaticResource PaddingButtonToolbar}" Margin="0,0,8,0" Cursor="Hand"
+                            TabIndex="9"
                             AutomationProperties.Name=""/>
 
                     <Button x:Name="BtnExportTranscript"
@@ -164,6 +175,7 @@
                             FontFamily="Consolas" FontSize="{StaticResource FontSizeCaption}"
                             Foreground="{DynamicResource HackerSimTextPrimaryBrush}" Background="{DynamicResource HackerSimButtonBackgroundBrush}" BorderBrush="{DynamicResource HackerSimInputBorderBrush}"
                             Padding="{StaticResource PaddingButtonToolbar}" Margin="0,0,12,0" Cursor="Hand"
+                            TabIndex="10"
                             AutomationProperties.Name=""/>
 
                     <CheckBox x:Name="ChkVintageMonitor"
@@ -171,6 +183,7 @@
                               FontFamily="Consolas" FontSize="{StaticResource FontSizeCaption}"
                               Foreground="{DynamicResource HackerSimTextSecondaryBrush}" VerticalAlignment="Center"
                               Margin="0,0,12,0"
+                              TabIndex="11"
                               AutomationProperties.Name=""/>
 
                     <TextBlock x:Name="LblSeed"
@@ -194,6 +207,7 @@
                         Click="OnCloseHelpClick"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
                         VerticalAlignment="Top" Width="24" Height="24"
+                        TabIndex="16"
                         AutomationProperties.Name=""/>
                 <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
                     <TextBlock x:Name="TxtHelpContent" Text="" TextWrapping="Wrap"

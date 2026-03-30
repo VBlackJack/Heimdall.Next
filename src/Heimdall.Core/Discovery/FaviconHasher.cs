@@ -97,6 +97,10 @@ public static class FaviconHasher
                 if (ssl is not null) await ssl.DisposeAsync().ConfigureAwait(false);
             }
         }
+        catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+        {
+            return null;
+        }
         catch (OperationCanceledException) { throw; }
         catch
         {

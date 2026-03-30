@@ -58,19 +58,22 @@
                                  IsChecked="True"
                                  Focusable="True"
                                  Style="{DynamicResource ToolbarTabStyle}"
-                                 Margin="0,0,4,0"/>
+                                 Margin="0,0,4,0"
+                                 AutomationProperties.Name="{loc:Translate A11yServersTab}"/>
                     <RadioButton x:Name="TabTunnels"
                                  Content=""
                                  GroupName="NavTabs"
                                  Focusable="True"
                                  Style="{DynamicResource ToolbarTabStyle}"
-                                 Margin="0,0,4,0"/>
+                                 Margin="0,0,4,0"
+                                 AutomationProperties.Name="{loc:Translate A11yTunnelsTab}"/>
                     <RadioButton x:Name="TabScheduled"
                                  Content=""
                                  GroupName="NavTabs"
                                  Focusable="True"
                                  Style="{DynamicResource ToolbarTabStyle}"
-                                 Margin="0,0,4,0"/>
+                                 Margin="0,0,4,0"
+                                 AutomationProperties.Name="{loc:Translate A11yScheduledTab}"/>
                     <RadioButton x:Name="TabTools"
                                  Content=""
                                  GroupName="NavTabs"
@@ -82,7 +85,8 @@
                                  GroupName="NavTabs"
                                  Focusable="True"
                                  Style="{DynamicResource ToolbarTabStyle}"
-                                 Margin="0,0,4,0">
+                                 Margin="0,0,4,0"
+                                 AutomationProperties.Name="{loc:Translate A11ySettingsTab}">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock x:Name="Mw_TabSettingsText" Text=""/>
                             <Ellipse x:Name="Mw_SettingsUnsavedDot"
@@ -98,7 +102,8 @@
                                  Content=""
                                  GroupName="NavTabs"
                                  Focusable="True"
-                                 Style="{DynamicResource ToolbarTabStyle}"/>
+                                 Style="{DynamicResource ToolbarTabStyle}"
+                                 AutomationProperties.Name="{loc:Translate A11yAboutTab}"/>
                 </StackPanel>
 
                 <!-- Right: Search box + Share Folder -->
@@ -1438,7 +1443,7 @@
                                                 <TextBlock x:Name="Mw_SettingsTerminalFontSizeLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,0,4"/>
                                                 <StackPanel Orientation="Horizontal">
                                                     <TextBox Text="{Binding Settings.TerminalFontSize}" Width="80"/>
-                                                    <TextBlock Text="px" VerticalAlignment="Center" Margin="6,0,0,0" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Opacity="0.6" IsHitTestVisible="False"/>
+                                                    <TextBlock Text="px" VerticalAlignment="Center" Margin="6,0,0,0" Foreground="{DynamicResource TextDisabledBrush}" FontSize="{StaticResource FontSizeCaption}" IsHitTestVisible="False"/>
                                                 </StackPanel>
                                             </StackPanel>
                                         </Grid>
@@ -1514,14 +1519,14 @@
                                                 <TextBlock x:Name="Mw_SettingsAntiIdleLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,0,4"/>
                                                 <StackPanel Orientation="Horizontal">
                                                     <TextBox Text="{Binding Settings.AntiIdleInterval}" Width="100"/>
-                                                    <TextBlock Text="s" VerticalAlignment="Center" Margin="6,0,0,0" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Opacity="0.6" IsHitTestVisible="False"/>
+                                                    <TextBlock Text="s" VerticalAlignment="Center" Margin="6,0,0,0" Foreground="{DynamicResource TextDisabledBrush}" FontSize="{StaticResource FontSizeCaption}" IsHitTestVisible="False"/>
                                                 </StackPanel>
                                             </StackPanel>
                                             <StackPanel Grid.Column="1" Margin="8,0,0,0">
                                                 <TextBlock x:Name="Mw_SettingsSshTmoutLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,0,4"/>
                                                 <StackPanel Orientation="Horizontal">
                                                     <TextBox Text="{Binding Settings.SshTmoutResetInterval}" Width="100"/>
-                                                    <TextBlock Text="s" VerticalAlignment="Center" Margin="6,0,0,0" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Opacity="0.6" IsHitTestVisible="False"/>
+                                                    <TextBlock Text="s" VerticalAlignment="Center" Margin="6,0,0,0" Foreground="{DynamicResource TextDisabledBrush}" FontSize="{StaticResource FontSizeCaption}" IsHitTestVisible="False"/>
                                                 </StackPanel>
                                             </StackPanel>
                                         </Grid>
@@ -1607,14 +1612,14 @@
                                                 <TextBlock x:Name="Mw_SettingsRdpWidthLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,0,4"/>
                                                 <StackPanel Orientation="Horizontal">
                                                     <TextBox Text="{Binding Settings.DefaultResolutionWidth}" Width="100"/>
-                                                    <TextBlock Text="px" VerticalAlignment="Center" Margin="6,0,0,0" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Opacity="0.6" IsHitTestVisible="False"/>
+                                                    <TextBlock Text="px" VerticalAlignment="Center" Margin="6,0,0,0" Foreground="{DynamicResource TextDisabledBrush}" FontSize="{StaticResource FontSizeCaption}" IsHitTestVisible="False"/>
                                                 </StackPanel>
                                             </StackPanel>
                                             <StackPanel Grid.Column="1" Margin="8,0,0,0">
                                                 <TextBlock x:Name="Mw_SettingsRdpHeightLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,0,4"/>
                                                 <StackPanel Orientation="Horizontal">
                                                     <TextBox Text="{Binding Settings.DefaultResolutionHeight}" Width="100"/>
-                                                    <TextBlock Text="px" VerticalAlignment="Center" Margin="6,0,0,0" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Opacity="0.6" IsHitTestVisible="False"/>
+                                                    <TextBlock Text="px" VerticalAlignment="Center" Margin="6,0,0,0" Foreground="{DynamicResource TextDisabledBrush}" FontSize="{StaticResource FontSizeCaption}" IsHitTestVisible="False"/>
                                                 </StackPanel>
                                             </StackPanel>
                                         </Grid>
@@ -1715,14 +1720,14 @@
                                                 <TextBlock x:Name="Mw_SettingsTunnelDelayLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,0,4"/>
                                                 <StackPanel Orientation="Horizontal">
                                                     <TextBox Text="{Binding Settings.TunnelEstablishmentDelayMs}" Width="100"/>
-                                                    <TextBlock Text="ms" VerticalAlignment="Center" Margin="6,0,0,0" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Opacity="0.6" IsHitTestVisible="False"/>
+                                                    <TextBlock Text="ms" VerticalAlignment="Center" Margin="6,0,0,0" Foreground="{DynamicResource TextDisabledBrush}" FontSize="{StaticResource FontSizeCaption}" IsHitTestVisible="False"/>
                                                 </StackPanel>
                                             </StackPanel>
                                             <StackPanel Grid.Column="1" Margin="8,0,0,0">
                                                 <TextBlock x:Name="Mw_SettingsRdpTimeoutLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,0,4"/>
                                                 <StackPanel Orientation="Horizontal">
                                                     <TextBox Text="{Binding Settings.EmbeddedRdpTimeoutMs}" Width="100"/>
-                                                    <TextBlock Text="ms" VerticalAlignment="Center" Margin="6,0,0,0" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Opacity="0.6" IsHitTestVisible="False"/>
+                                                    <TextBlock Text="ms" VerticalAlignment="Center" Margin="6,0,0,0" Foreground="{DynamicResource TextDisabledBrush}" FontSize="{StaticResource FontSizeCaption}" IsHitTestVisible="False"/>
                                                 </StackPanel>
                                             </StackPanel>
                                         </Grid>

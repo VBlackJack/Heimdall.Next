@@ -36,7 +36,7 @@
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
                         Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"
-                        TabIndex="8"
+                        TabIndex="10"
                         AutomationProperties.Name=""/>
                 <TextBlock x:Name="HeaderTitle" Text=""
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
@@ -142,6 +142,20 @@
                                  TabIndex="7"
                                  AutomationProperties.Name=""/>
                     </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,2,0,2">
+                        <TextBlock x:Name="LblRouteVia" Text=""
+                                   FontSize="{StaticResource FontSizeCaption}"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                   VerticalAlignment="Center" Margin="0,0,4,0"/>
+                        <ComboBox x:Name="CmbRouteVia" Width="180"
+                                  SelectionChanged="OnRouteViaChanged"
+                                  Background="{DynamicResource CardBrush}"
+                                  Foreground="{DynamicResource TextPrimaryBrush}"
+                                  BorderBrush="{DynamicResource BorderBrush}"
+                                  VerticalAlignment="Center"
+                                  TabIndex="9"
+                                  AutomationProperties.Name=""/>
+                    </StackPanel>
                 </WrapPanel>
             </DockPanel>
         </Border>
@@ -154,7 +168,7 @@
                         Click="OnCloseHelpClick"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
                         VerticalAlignment="Top" Width="24" Height="24"
-                        TabIndex="9"
+                        TabIndex="11"
                         AutomationProperties.Name=""/>
                 <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
                     <TextBlock x:Name="TxtHelpContent" Text="" TextWrapping="Wrap"

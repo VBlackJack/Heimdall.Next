@@ -35,6 +35,7 @@
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
                         Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"
+                        TabIndex="5"
                         AutomationProperties.Name=""/>
                 <TextBlock x:Name="HeaderTitle"
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
@@ -51,6 +52,7 @@
                         Click="OnCloseHelpClick"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
                         VerticalAlignment="Top" Width="24" Height="24"
+                        TabIndex="6"
                         AutomationProperties.Name=""/>
                 <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
                     <TextBlock x:Name="TxtHelpContent" Text="" TextWrapping="Wrap"
@@ -85,6 +87,7 @@
                                     Style="{DynamicResource SecondaryButtonStyle}"
                                     Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginInlineControl}"
                                     VerticalAlignment="Top"
+                                    TabIndex="1"
                                     AutomationProperties.Name=""/>
                             <TextBlock x:Name="InputLabel"
                                        Foreground="{DynamicResource TextSecondaryBrush}"
@@ -103,6 +106,7 @@
                                  BorderBrush="{DynamicResource BorderBrush}"
                                  Padding="{StaticResource PaddingInput}"
                                  TextChanged="OnKeyInputTextChanged"
+                                 TabIndex="0"
                                  AutomationProperties.Name=""/>
                     </StackPanel>
                 </Border>
@@ -198,6 +202,7 @@
                                     Style="{DynamicResource SecondaryButtonStyle}"
                                     Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginInlineControl}"
                                     VerticalAlignment="Center"
+                                    TabIndex="2"
                                     AutomationProperties.Name=""/>
                             <TextBox x:Name="DetailFingerprintValue"
                                      IsReadOnly="True"
