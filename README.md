@@ -137,8 +137,11 @@ Built with .NET 10 and WPF. Secure, feature-rich Windows connection manager with
 ### External Tools
 - Configurable tools in server context menu with inline edit panel
 - 8 variable placeholders: `{Host}`, `{Port}`, `{User}`, `{ServerName}`, `{Protocol}`, `{KeyFile}`, `{Project}`, `{Gateway}`
-- Run as Administrator, Run Hidden, Working Directory options
-- File browser for executable selection
+- Run as Administrator, Run Hidden, Working Directory options with browse buttons
+- Live command preview with resolved placeholders from selected server
+- Test button to launch directly from Settings
+- Binary existence validation on save (PATH + absolute path lookup)
+- Configurable execution timeout (default 60s)
 - Integrated into Ctrl+K command palette
 
 ### Quick File Server
@@ -211,10 +214,10 @@ All tools open as session tabs (split with any session or tool, detach, reorder)
 
 ### Security
 - DPAPI encryption + HMAC-SHA256 integrity via unified `CredentialProtector`
-- External credential provider: KeePassXC CLI, Bitwarden CLI, 1Password CLI, or any CLI tool
+- External credential provider: preset templates for KeePassXC, Bitwarden CLI, 1Password CLI, pass — database path browser, placeholder hints, test button with inline feedback
 - PBKDF2-SHA256 PIN hashing (100,000 iterations) with lockout mechanics
 - Windows ACL enforcement on config directories, log files, and temp files
-- Centralized `InputValidator` security utilities: `EscapeShellArg()`, `EscapeForDoubleQuotedString()`, `ValidateDomain()`, `SanitizeCsvCell()` — shell injection prevention (CWE-78) on all SSH tunnel and tool `CreateCommand()` calls, CSV formula injection prevention on all exporters, CRLF sanitization on HTTP headers
+- Centralized `InputValidator` security utilities: `EscapeShellArg()`, `EscapeForDoubleQuotedString()`, `ValidateDomain()`, `SanitizeCsvCell()`, `IsShellTarget()` — shell injection prevention (CWE-78) on all SSH tunnel and tool `CreateCommand()` calls, context-aware placeholder sanitization (strict for shell targets, relaxed for regular executables), CSV formula injection prevention on all exporters, CRLF sanitization on HTTP headers
 - HTTP/TFTP directory traversal prevention with sibling-prefix check
 - WebSocket Origin validation on VNC proxy (CSWSH prevention)
 - Atomic file creation with restrictive ACL for sensitive temp files (TOCTOU-safe)

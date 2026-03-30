@@ -27,8 +27,11 @@ All notable changes to Heimdall.Next are documented in this file.
 - **RunHidden alignment**: `CreateNoWindow = true` added to context menu launch path (was only on palette path)
 
 #### UX
-- **External tools editor**: Browse button for working directory (OpenFolderDialog); structured placeholder help panel showing each variable with localized description from `SupportedPlaceholders` model (replaces raw text line)
-- **Onboarding overlay keyboard a11y**: initial focus on Next button, `Escape` dismisses, `TabNavigation=Cycle`, `AutomationProperties.Name` synced with button content on step change (Next → Get Started)
+- **External tools editor**: Browse button for working directory; structured placeholder help panel; live command preview with resolved placeholders from selected server; Test button to launch from Settings; binary existence validation on save
+- **Credential provider setup**: preset dropdown (KeePassXC, Bitwarden CLI, 1Password CLI, pass); database path browse button; Test button with inline feedback (success/no result/timeout/error); placeholder hint below command field
+- **Onboarding interactive**: each step now navigates to the relevant UI area (Step 1 → Servers tab, Step 2 → Settings, Step 3 → enables Tools panel); keyboard a11y (Escape, Tab cycle, focus, synced AutomationProperties.Name)
+- **Configurable external tool timeout**: `ExternalToolTimeoutMs` in Settings > Advanced (default 60s, range 5s–600s), replaces hardcoded 60s in ExternalToolWrapperView
+- **Tool scan indicator**: "Scanning..." label on Tools panel header during background third-party tool detection
 
 #### Previous (v2026.033005-pre)
 - **External tool placeholder resolution**: `{Port}` now resolves to the protocol-specific port (SSH→22, FTP→21, VNC→5900, Telnet→23) instead of the generic RDP port; `{KeyFile}` placeholder now populated from server SSH key path
@@ -40,7 +43,8 @@ All notable changes to Heimdall.Next are documented in this file.
 
 #### Housekeeping
 - `InternalsVisibleTo` added to `Heimdall.Core.csproj` for `Heimdall.Core.Tests` (ExpandTemplate testing)
-- i18n: +174 keys (4,670 total, EN/FR parity)
+- `VENDORED.md` manifests added for Assets/Tools (plink 0.83, gsudo 2.5.1), Assets/vnc (noVNC 1.5.0, pako 1.0.3), Assets/drawio (26.0.9) — upstream versions, licenses, and review dates
+- i18n: +189 keys (4,685 total, EN/FR parity)
 - Tests: 1,714 passing (+81 new: IsShellTarget, context-aware sanitization, ExpandTemplate relaxed/strict paths)
 
 ---

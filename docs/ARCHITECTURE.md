@@ -10,7 +10,7 @@
 
 # Architecture
 
-Heimdall.Next is a .NET 10 WPF application organized as a multi-project solution with strict dependency boundaries. Supports RDP, SSH, SFTP, FTP, VNC, Telnet, Citrix, and Local Shell connection types with ~4,670 i18n keys per locale (EN/FR), 49 built-in sysops tools with contextual help, cross-tool navigation, and 1,714 automated tests. Health monitor polls in parallel (Task.WhenAll), XML importers hardened against XXE, all Debug.WriteLine replaced with FileLogger. WCAG AA compliant Design System with 45 design tokens (typography min 11px, spacing, corner radius, opacity, icon sizes, font family), micro-animations, FocusIndicatorBrush for keyboard accessibility, unified two-tier icon system (vector geometries + MDL2), per-category tool color coding, declarative i18n via `{loc:Translate}` markup extension, and progressive disclosure ServerDialog.
+Heimdall.Next is a .NET 10 WPF application organized as a multi-project solution with strict dependency boundaries. Supports RDP, SSH, SFTP, FTP, VNC, Telnet, Citrix, and Local Shell connection types with ~4,685 i18n keys per locale (EN/FR), 49 built-in sysops tools with contextual help, cross-tool navigation, and 1,714 automated tests. Health monitor polls in parallel (Task.WhenAll), XML importers hardened against XXE, all Debug.WriteLine replaced with FileLogger. WCAG AA compliant Design System with 45 design tokens (typography min 11px, spacing, corner radius, opacity, icon sizes, font family), micro-animations, FocusIndicatorBrush for keyboard accessibility, unified two-tier icon system (vector geometries + MDL2), per-category tool color coding, declarative i18n via `{loc:Translate}` markup extension, and progressive disclosure ServerDialog.
 
 ## Solution Structure
 
@@ -532,8 +532,8 @@ The Settings panel uses a left-navigation `TabControl` with 6 sub-tabs:
 | **Terminal** | Font family, font size, color scheme |
 | **SSH & SFTP** | Plink path, default mode, anti-idle, TMOUT reset, SFTP auto-open, X11, gateways |
 | **RDP** | Default mode, resolution, color depth, audio, NLA, dynamic res, multi-monitor, device redirection, caching |
-| **Security** | External credential provider (command/database), Credential Guard |
-| **Advanced** | Logging, session logging, timeouts (tunnel/RDP), external tools |
+| **Security** | External credential provider (command/database/browse/presets/test), Credential Guard |
+| **Advanced** | Logging, session logging, timeouts (tunnel/RDP/external tools), external tools (edit/preview/test/validate) |
 
 Action buttons (Save / Reset / Export / Import) are pinned at the bottom, always visible regardless of sub-tab.
 
@@ -669,7 +669,7 @@ The Notes tool (#34) provides a local-first Markdown editing experience inspired
 
 **Launch flow** (both entry points): `OnToolsPanelItemClick` / `OnToolsTabCardClick` → `OpenToolTabAsync` → `EmbeddedSessionManager.CreateToolControl` → `ToolRegistry.CreateView` (factory lambda) → `view.Initialize(context, localizer)`. Non-network tools use singleton tab behavior. Network tools pass selected server as `TargetHost` directly (no intermediate prompt). `OpenToolTabAsync` cleans up orphaned tabs on `CreateToolControl` failure.
 
-**Onboarding**: 3-step first-launch overlay (`OnboardingOverlay`, Panel.ZIndex=500). Steps: Connect to Servers → Built-in Tools → Quick Connect. Persisted via `AppSettings.OnboardingCompleted`.
+**Onboarding**: 3-step first-launch overlay (`OnboardingOverlay`, Panel.ZIndex=500). Steps: Connect to Servers → Built-in Tools → Quick Connect. Each step navigates to the relevant UI area (Servers tab → Settings tab → enables Tools panel). Keyboard accessible (Escape, Tab cycle, focus management). Persisted via `AppSettings.OnboardingCompleted`.
 
 **NetworkCartography responsive**: Columns use proportional (`*`) widths with `MinWidth`. `SizeChanged` handler hides detail columns below 1100px and secondary columns below 800px for split pane support.
 
