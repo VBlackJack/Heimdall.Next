@@ -1834,16 +1834,32 @@
                                                 <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding Arguments, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,6" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"/>
 
                                                 <TextBlock x:Name="Mw_ExtToolLblWorkDir" Grid.Row="3" Grid.Column="0" Text="" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeBody}"/>
-                                                <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding WorkingDirectory, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,6" FontSize="{StaticResource FontSizeBody}"/>
+                                                <DockPanel Grid.Row="3" Grid.Column="1" Margin="0,0,0,6">
+                                                    <Button x:Name="Mw_ExtToolWorkDirBrowseBtn" DockPanel.Dock="Right"
+                                                            Padding="6,2" Margin="4,0,0,0" Click="OnExtToolWorkDirBrowseClick"
+                                                            Style="{DynamicResource SecondaryButtonStyle}"
+                                                            FontSize="{StaticResource FontSizeCaption}"
+                                                            AutomationProperties.Name="{loc:Translate A11yBrowseWorkDir}">
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xED25;" FontSize="12" VerticalAlignment="Center"/>
+                                                            <TextBlock Text="{loc:Translate BtnBrowse}" Margin="4,0,0,0" VerticalAlignment="Center"/>
+                                                        </StackPanel>
+                                                    </Button>
+                                                    <TextBox Text="{Binding WorkingDirectory, UpdateSourceTrigger=PropertyChanged}" FontSize="{StaticResource FontSizeBody}"/>
+                                                </DockPanel>
 
                                                 <StackPanel Grid.Row="4" Grid.Column="1" Orientation="Horizontal" Margin="0,2,0,6">
                                                     <CheckBox x:Name="Mw_ExtToolChkAdmin" Content="" IsChecked="{Binding RunAsAdministrator}" Margin="0,0,16,0" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="{StaticResource FontSizeBody}"/>
                                                     <CheckBox x:Name="Mw_ExtToolChkHidden" Content="" IsChecked="{Binding RunHidden}" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="{StaticResource FontSizeBody}"/>
                                                 </StackPanel>
 
-                                                <TextBlock Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="2"
-                                                           Text="{}{Host}  {Port}  {User}  {ServerName}  {Protocol}  {KeyFile}  {Project}  {Gateway}"
-                                                           Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" FontFamily="Consolas" Opacity="0.7" Margin="0,2,0,0"/>
+                                                <ItemsControl x:Name="Mw_ExtToolPlaceholderList" Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,2,0,0">
+                                                    <ItemsControl.ItemsPanel>
+                                                        <ItemsPanelTemplate>
+                                                            <WrapPanel Orientation="Horizontal"/>
+                                                        </ItemsPanelTemplate>
+                                                    </ItemsControl.ItemsPanel>
+                                                </ItemsControl>
                                             </Grid>
                                         </Border>
                                     </StackPanel>

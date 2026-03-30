@@ -55,7 +55,10 @@ public class ExternalToolDefinition
 
     /// <summary>
     /// Replaces variable placeholders in <see cref="Arguments"/> with actual server values.
-    /// Values are sanitized to prevent OS command injection (CWE-78).
+    /// Sanitization is context-aware: for shell targets (.bat, .cmd, cmd.exe, powershell)
+    /// all cmd metacharacters are stripped. For regular executables, only characters that
+    /// affect MSVC CRT argument parsing are removed, preserving legitimate values like
+    /// <c>Web (prod)</c> or paths with single quotes. See CWE-78.
     /// </summary>
     public string ResolveArguments(
         string host,
@@ -67,26 +70,40 @@ public class ExternalToolDefinition
         string? project = null,
         string? gateway = null)
     {
+        Func<string, string> sanitize = Security.InputValidator.IsShellTarget(ExecutablePath)
+            ? SanitizeStrict
+            : SanitizeRelaxed;
+
         return Arguments
-            .Replace("{Host}", SanitizeValue(host), StringComparison.OrdinalIgnoreCase)
+            .Replace("{Host}", sanitize(host), StringComparison.OrdinalIgnoreCase)
             .Replace("{Port}", port.ToString(), StringComparison.OrdinalIgnoreCase)
-            .Replace("{User}", SanitizeValue(user), StringComparison.OrdinalIgnoreCase)
-            .Replace("{ServerName}", SanitizeValue(serverName ?? ""), StringComparison.OrdinalIgnoreCase)
-            .Replace("{Protocol}", SanitizeValue(protocol ?? ""), StringComparison.OrdinalIgnoreCase)
-            .Replace("{KeyFile}", SanitizeValue(keyFile ?? ""), StringComparison.OrdinalIgnoreCase)
-            .Replace("{Project}", SanitizeValue(project ?? ""), StringComparison.OrdinalIgnoreCase)
-            .Replace("{Gateway}", SanitizeValue(gateway ?? ""), StringComparison.OrdinalIgnoreCase);
+            .Replace("{User}", sanitize(user), StringComparison.OrdinalIgnoreCase)
+            .Replace("{ServerName}", sanitize(serverName ?? ""), StringComparison.OrdinalIgnoreCase)
+            .Replace("{Protocol}", sanitize(protocol ?? ""), StringComparison.OrdinalIgnoreCase)
+            .Replace("{KeyFile}", sanitize(keyFile ?? ""), StringComparison.OrdinalIgnoreCase)
+            .Replace("{Project}", sanitize(project ?? ""), StringComparison.OrdinalIgnoreCase)
+            .Replace("{Gateway}", sanitize(gateway ?? ""), StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
-    /// Strips shell metacharacters that could be used for command injection
-    /// when arguments are passed through the Windows shell.
+    /// Strips all shell metacharacters — used when the target is a shell interpreter
+    /// (cmd.exe, .bat, .cmd, PowerShell) or when the target is unknown.
     /// </summary>
-    private static string SanitizeValue(string value)
+    private static string SanitizeStrict(string value)
     {
         if (string.IsNullOrEmpty(value)) return string.Empty;
-
-        // Remove characters that are dangerous in Windows shell context
         return System.Text.RegularExpressions.Regex.Replace(value, @"[;&|`$<>()!""'\r\n%^]", "");
+    }
+
+    /// <summary>
+    /// Strips characters that affect MSVC CRT argument parsing (double quotes)
+    /// or could chain/redirect process execution. Preserves parentheses,
+    /// single quotes, percent signs and other characters that are safe when
+    /// the target is a regular executable (not a shell interpreter).
+    /// </summary>
+    private static string SanitizeRelaxed(string value)
+    {
+        if (string.IsNullOrEmpty(value)) return string.Empty;
+        return System.Text.RegularExpressions.Regex.Replace(value, @"[;&|`$<>""\r\n]", "");
     }
 }

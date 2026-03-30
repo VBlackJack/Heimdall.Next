@@ -640,6 +640,114 @@ public class ExternalToolDefinitionTests
         }
     }
 
+    // ── Context-aware sanitization (.exe = relaxed, .bat/.cmd = strict) ─
+
+    [Theory]
+    [InlineData("(")]
+    [InlineData(")")]
+    [InlineData("'")]
+    [InlineData("%")]
+    [InlineData("^")]
+    [InlineData("!")]
+    public void ResolveArguments_PreservesShellOnlyChars_ForExeTargets(string safeChar)
+    {
+        var tool = new ExternalToolDefinition
+        {
+            ExecutablePath = "putty.exe",
+            Arguments = "{Host}"
+        };
+        var result = tool.ResolveArguments($"host{safeChar}value", 22, "user");
+        Assert.Contains(safeChar, result);
+    }
+
+    [Theory]
+    [InlineData("(")]
+    [InlineData(")")]
+    [InlineData("'")]
+    [InlineData("%")]
+    [InlineData("^")]
+    [InlineData("!")]
+    public void ResolveArguments_StripsShellOnlyChars_ForBatTargets(string metachar)
+    {
+        var tool = new ExternalToolDefinition
+        {
+            ExecutablePath = "deploy.bat",
+            Arguments = "{Host}"
+        };
+        var result = tool.ResolveArguments($"host{metachar}value", 22, "user");
+        Assert.DoesNotContain(metachar, result);
+    }
+
+    [Theory]
+    [InlineData("(")]
+    [InlineData(")")]
+    [InlineData("'")]
+    [InlineData("%")]
+    [InlineData("^")]
+    [InlineData("!")]
+    public void ResolveArguments_StripsShellOnlyChars_ForCmdExeTargets(string metachar)
+    {
+        var tool = new ExternalToolDefinition
+        {
+            ExecutablePath = "cmd.exe",
+            Arguments = "/c script {Host}"
+        };
+        var result = tool.ResolveArguments($"host{metachar}value", 22, "user");
+        Assert.DoesNotContain(metachar, result);
+    }
+
+    [Theory]
+    [InlineData(";")]
+    [InlineData("&")]
+    [InlineData("|")]
+    [InlineData("`")]
+    [InlineData("$")]
+    [InlineData("<")]
+    [InlineData(">")]
+    [InlineData("\"")]
+    public void ResolveArguments_AlwaysStripsInjectionChars_ForExeTargets(string metachar)
+    {
+        var tool = new ExternalToolDefinition
+        {
+            ExecutablePath = "putty.exe",
+            Arguments = "{Host}"
+        };
+        var result = tool.ResolveArguments($"host{metachar}value", 22, "user");
+        Assert.DoesNotContain(metachar, result);
+    }
+
+    [Fact]
+    public void ResolveArguments_PreservesParensInServerName_ForExeTarget()
+    {
+        var tool = new ExternalToolDefinition
+        {
+            ExecutablePath = @"C:\tools\winscp.exe",
+            Arguments = "--title {ServerName}"
+        };
+        var result = tool.ResolveArguments("host", 22, "user", serverName: "Web (prod)");
+        Assert.Equal("--title Web (prod)", result);
+    }
+
+    [Fact]
+    public void ResolveArguments_StripsParensInServerName_ForBatTarget()
+    {
+        var tool = new ExternalToolDefinition
+        {
+            ExecutablePath = @"C:\scripts\connect.cmd",
+            Arguments = "--title {ServerName}"
+        };
+        var result = tool.ResolveArguments("host", 22, "user", serverName: "Web (prod)");
+        Assert.Equal("--title Web prod", result);
+    }
+
+    [Fact]
+    public void ResolveArguments_DefaultsToStrict_WhenNoExecutablePath()
+    {
+        var tool = new ExternalToolDefinition { Arguments = "{Host}" };
+        var result = tool.ResolveArguments("host(injected)", 22, "user");
+        Assert.Equal("hostinjected", result);
+    }
+
     // ── Full serialization roundtrip ────────────────────────────────────
 
     [Fact]

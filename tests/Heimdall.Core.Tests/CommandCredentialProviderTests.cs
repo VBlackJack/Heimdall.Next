@@ -291,4 +291,83 @@ public class CommandCredentialProviderTests
         Assert.NotNull(result);
         Assert.Equal("dbadmin@server1:3306", result.Password);
     }
+
+    // ---------------------------------------------------------------
+    // Context-aware sanitization via ExpandTemplate (internal)
+    // ---------------------------------------------------------------
+
+    [Fact]
+    public void ExpandTemplate_ShellTarget_StripsParensAndPercent()
+    {
+        var provider = new CommandCredentialProvider("cmd.exe /c echo {Title}", null);
+        var expanded = provider.ExpandTemplate(
+            "cmd.exe /c echo {Title}", "host", 22, "user", "Web (prod)");
+        Assert.Equal("cmd.exe /c echo Web prod", expanded);
+    }
+
+    [Fact]
+    public void ExpandTemplate_ShellTarget_StripsSingleQuotes()
+    {
+        var provider = new CommandCredentialProvider("pwsh.exe -c echo {Title}", null);
+        var expanded = provider.ExpandTemplate(
+            "pwsh.exe -c echo {Title}", "host", 22, "user", "John's Server");
+        Assert.Equal("pwsh.exe -c echo Johns Server", expanded);
+    }
+
+    [Fact]
+    public void ExpandTemplate_RegularExe_PreservesParens()
+    {
+        var provider = new CommandCredentialProvider("keepassxc-cli.exe show {Title}", null);
+        var expanded = provider.ExpandTemplate(
+            "keepassxc-cli.exe show {Title}", "host", 22, "user", "Web (prod)");
+        Assert.Equal("keepassxc-cli.exe show Web (prod)", expanded);
+    }
+
+    [Fact]
+    public void ExpandTemplate_RegularExe_PreservesSingleQuotes()
+    {
+        var provider = new CommandCredentialProvider("bw.exe get password {Title}", null);
+        var expanded = provider.ExpandTemplate(
+            "bw.exe get password {Title}", "host", 22, "user", "John's Server");
+        Assert.Equal("bw.exe get password John's Server", expanded);
+    }
+
+    [Fact]
+    public void ExpandTemplate_RegularExe_PreservesPercent()
+    {
+        var provider = new CommandCredentialProvider(
+            "keepassxc-cli.exe show {Database} {Title}", "%AppData%\\db.kdbx");
+        var expanded = provider.ExpandTemplate(
+            "keepassxc-cli.exe show {Database} {Title}",
+            "host", 22, "user", "entry1");
+        Assert.Equal("keepassxc-cli.exe show %AppData%\\db.kdbx entry1", expanded);
+    }
+
+    [Fact]
+    public void ExpandTemplate_RegularExe_StillStripsSemicolon()
+    {
+        var provider = new CommandCredentialProvider("op.exe get {Host}", null);
+        var expanded = provider.ExpandTemplate(
+            "op.exe get {Host}", "host;injected", 22, "user", "title");
+        Assert.Equal("op.exe get hostinjected", expanded);
+    }
+
+    [Fact]
+    public void ExpandTemplate_RegularExe_StillStripsDoubleQuotes()
+    {
+        var provider = new CommandCredentialProvider("bw.exe get {Title}", null);
+        var expanded = provider.ExpandTemplate(
+            "bw.exe get {Title}", "host", 22, "user", "entry\"injected");
+        Assert.Equal("bw.exe get entryinjected", expanded);
+    }
+
+    [Fact]
+    public void ExpandTemplate_UnknownTemplate_DefaultsToStrict()
+    {
+        var provider = new CommandCredentialProvider("", null);
+        var expanded = provider.ExpandTemplate(
+            "", "host(test)", 22, "user", "title");
+        // Empty template → IsShellTarget returns true → strict
+        Assert.DoesNotContain("(", expanded);
+    }
 }
