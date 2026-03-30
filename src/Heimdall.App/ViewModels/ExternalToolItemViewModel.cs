@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+using System.ComponentModel.DataAnnotations;
 using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace Heimdall.App.ViewModels;
@@ -21,14 +22,24 @@ namespace Heimdall.App.ViewModels;
 /// <summary>
 /// Represents an external tool in the Settings external tools list.
 /// </summary>
-public partial class ExternalToolItemViewModel : ObservableObject
+public partial class ExternalToolItemViewModel : ObservableValidator
 {
-    [ObservableProperty] private string _name = "";
-    [ObservableProperty] private string _executablePath = "";
+    [ObservableProperty]
+    [NotifyDataErrorInfo]
+    [Required(AllowEmptyStrings = false)]
+    private string _name = "";
+
+    [ObservableProperty]
+    [NotifyDataErrorInfo]
+    [Required(AllowEmptyStrings = false)]
+    private string _executablePath = "";
+
     [ObservableProperty] private string _arguments = "";
     [ObservableProperty] private string _workingDirectory = "";
     [ObservableProperty] private bool _runAsAdministrator;
     [ObservableProperty] private bool _runHidden;
+
+    public bool IsValid => !string.IsNullOrWhiteSpace(Name) && !string.IsNullOrWhiteSpace(ExecutablePath);
 
     public string DisplayText => $"{Name} — {ExecutablePath}";
 }

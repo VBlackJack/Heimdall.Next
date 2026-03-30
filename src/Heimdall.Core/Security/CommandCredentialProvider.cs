@@ -168,6 +168,9 @@ public sealed class CommandCredentialProvider : ICredentialProvider
 
     /// <summary>
     /// Strips shell metacharacters from a placeholder value to prevent injection.
+    /// Even though UseShellExecute is false, the command template may target
+    /// cmd.exe (e.g. <c>cmd.exe /c keepassxc-cli ...</c>), so cmd metacharacters
+    /// like <c>%</c>, <c>^</c>, <c>()</c> remain dangerous and must be stripped.
     /// </summary>
     private static string SanitizeArgValue(string? value)
     {

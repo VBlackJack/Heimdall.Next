@@ -65,24 +65,17 @@ public partial class ServerDialog : Window
 
     private void LoadAdvancedModePreference()
     {
-        if (_configManager is null || DataContext is not ServerDialogViewModel vm)
-        {
-            Loaded += OnLoadedApplyAdvancedMode;
-            return;
-        }
-
-        var settings = _configManager.LoadSettingsAsync().GetAwaiter().GetResult();
-        vm.IsAdvancedMode = settings.ServerDialogAdvancedMode;
-        vm.PropertyChanged += OnViewModelPropertyChanged;
+        // Always defer to Loaded so DataContext and ConfigManager are available.
+        Loaded += OnLoadedApplyAdvancedMode;
     }
 
-    private void OnLoadedApplyAdvancedMode(object sender, RoutedEventArgs e)
+    private async void OnLoadedApplyAdvancedMode(object sender, RoutedEventArgs e)
     {
         Loaded -= OnLoadedApplyAdvancedMode;
 
         if (_configManager is null || DataContext is not ServerDialogViewModel vm) return;
 
-        var settings = _configManager.LoadSettingsAsync().GetAwaiter().GetResult();
+        var settings = await _configManager.LoadSettingsAsync();
         vm.IsAdvancedMode = settings.ServerDialogAdvancedMode;
         vm.PropertyChanged += OnViewModelPropertyChanged;
     }

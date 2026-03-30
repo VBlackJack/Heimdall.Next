@@ -2040,6 +2040,8 @@
   "ValidationSettingsTmoutReset": "L'intervalle de r\u00e9initialisation SSH TMOUT doit \u00eatre entre 0 et 3600 secondes.",
   "ValidationSettingsTunnelDelay": "Le d\u00e9lai d'\u00e9tablissement du tunnel doit \u00eatre entre 0 et 30000 ms.",
   "ValidationSettingsRdpTimeout": "Le d\u00e9lai RDP embarqu\u00e9 doit \u00eatre entre 1000 et 120000 ms.",
+  "ValidationExtToolIncomplete": "Chaque outil externe doit avoir un nom et un chemin d'ex\u00e9cutable.",
+  "ValidationExtToolDuplicate": "Nom d'outil externe en doublon : \u00ab {0} \u00bb. Chaque outil doit avoir un nom unique.",
   "ValidationGatewayNameRequired": "Le nom de la passerelle est requis.",
   "ValidationGatewayNameEmpty": "Le nom de la passerelle ne peut pas \u00eatre vide.",
   "ValidationGatewayHostRequired": "L'adresse de l'h\u00f4te est requise.",
@@ -2159,6 +2161,7 @@
   "SettingsCredentialProviderCommandHint": "Commande avec variables : {Host}, {Port}, {User}, {Title}, {Database}",
   "ErrorCredentialProviderFailed": "\u00c9chec du fournisseur d'identifiants externe : {0}",
   "ErrorCredentialProviderTimeout": "D\u00e9lai du fournisseur d'identifiants externe d\u00e9pass\u00e9.",
+  "WarnCredentialProviderNoResult": "Le fournisseur d'identifiants externe n'a retourn\u00e9 aucun mot de passe pour \u00ab {0} \u00bb. V\u00e9rifiez la commande dans Param\u00e8tres > S\u00e9curit\u00e9.",
 
   "ConnectionTypeVnc": "VNC",
   "StatusVncConnecting": "Connexion au serveur VNC...",

@@ -459,6 +459,11 @@ public partial class ServerListViewModel : ObservableObject
 
             if (credential is null)
             {
+                Core.Logging.FileLogger.Warn(
+                    $"External credential provider returned no result for {serverDto.DisplayName}");
+                _dialogService.ShowWarning(
+                    _localizer["ErrorConnectionTitle"],
+                    _localizer.Format("WarnCredentialProviderNoResult", serverDto.DisplayName));
                 return;
             }
 

@@ -1455,29 +1455,29 @@ public partial class MainViewModel : ObservableObject
                     ConnectionType = descriptor.ToolType,
                     Group = _localizer["PaletteToolsSectionHeader"]
                 });
-                return results;
+                break;
             }
+
+            if (results.Count > 0) break;
         }
 
-        // Search external tools when no built-in tool matched
-        if (results.Count == 0)
+        // Always search external tools (even when a built-in tool matched,
+        // so user-defined tools with overlapping names remain discoverable).
+        var extTools = _currentSettings?.ExternalTools ?? [];
+        foreach (var ext in extTools)
         {
-            var extTools = _currentSettings?.ExternalTools ?? [];
-            foreach (var ext in extTools)
-            {
-                if (string.IsNullOrWhiteSpace(ext.Name)) continue;
+            if (string.IsNullOrWhiteSpace(ext.Name)) continue;
 
-                if (FuzzyScoreString(ext.Name, query) > 0
-                    || ext.Name.Contains(query, StringComparison.OrdinalIgnoreCase))
+            if (FuzzyScoreString(ext.Name, query) > 0
+                || ext.Name.Contains(query, StringComparison.OrdinalIgnoreCase))
+            {
+                results.Add(new ServerItemViewModel
                 {
-                    results.Add(new ServerItemViewModel
-                    {
-                        Id = $"ext-tool-{ext.Name}",
-                        DisplayName = ext.Name,
-                        ConnectionType = "EXTERNAL",
-                        Group = _localizer["PaletteExternalToolsHeader"]
-                    });
-                }
+                    Id = $"ext-tool-{ext.Name}",
+                    DisplayName = ext.Name,
+                    ConnectionType = "EXTERNAL",
+                    Group = _localizer["PaletteExternalToolsHeader"]
+                });
             }
         }
 

@@ -2041,6 +2041,8 @@
   "ValidationSettingsTmoutReset": "SSH TMOUT reset interval must be between 0 and 3600 seconds.",
   "ValidationSettingsTunnelDelay": "Tunnel establishment delay must be between 0 and 30000 ms.",
   "ValidationSettingsRdpTimeout": "Embedded RDP timeout must be between 1000 and 120000 ms.",
+  "ValidationExtToolIncomplete": "Each external tool must have a name and an executable path.",
+  "ValidationExtToolDuplicate": "Duplicate external tool name: \"{0}\". Each tool must have a unique name.",
   "ValidationGatewayNameRequired": "Gateway name is required.",
   "ValidationGatewayNameEmpty": "Gateway name cannot be empty.",
   "ValidationGatewayHostRequired": "Host address is required.",
@@ -2160,6 +2162,7 @@
   "SettingsCredentialProviderCommandHint": "Command with placeholders: {Host}, {Port}, {User}, {Title}, {Database}",
   "ErrorCredentialProviderFailed": "External credential provider failed: {0}",
   "ErrorCredentialProviderTimeout": "External credential provider timed out.",
+  "WarnCredentialProviderNoResult": "The external credential provider returned no password for \"{0}\". Check the command configuration in Settings > Security.",
 
   "ConnectionTypeVnc": "VNC",
   "StatusVncConnecting": "Connecting to VNC server...",
