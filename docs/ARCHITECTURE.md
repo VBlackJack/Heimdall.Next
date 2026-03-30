@@ -10,7 +10,7 @@
 
 # Architecture
 
-Heimdall.Next is a .NET 10 WPF application organized as a multi-project solution with strict dependency boundaries. Supports RDP, SSH, SFTP, FTP, VNC, Telnet, Citrix, and Local Shell connection types with ~4,496 i18n keys per locale (EN/FR), 49 built-in sysops tools with contextual help, cross-tool navigation, and 1,633 automated tests. Health monitor polls in parallel (Task.WhenAll), XML importers hardened against XXE, all Debug.WriteLine replaced with FileLogger. WCAG AA compliant Design System with 45 design tokens (typography min 11px, spacing, corner radius, opacity, icon sizes, font family), micro-animations, FocusIndicatorBrush for keyboard accessibility, unified two-tier icon system (vector geometries + MDL2), per-category tool color coding, declarative i18n via `{loc:Translate}` markup extension, and progressive disclosure ServerDialog.
+Heimdall.Next is a .NET 10 WPF application organized as a multi-project solution with strict dependency boundaries. Supports RDP, SSH, SFTP, FTP, VNC, Telnet, Citrix, and Local Shell connection types with ~4,670 i18n keys per locale (EN/FR), 49 built-in sysops tools with contextual help, cross-tool navigation, and 1,714 automated tests. Health monitor polls in parallel (Task.WhenAll), XML importers hardened against XXE, all Debug.WriteLine replaced with FileLogger. WCAG AA compliant Design System with 45 design tokens (typography min 11px, spacing, corner radius, opacity, icon sizes, font family), micro-animations, FocusIndicatorBrush for keyboard accessibility, unified two-tier icon system (vector geometries + MDL2), per-category tool color coding, declarative i18n via `{loc:Translate}` markup extension, and progressive disclosure ServerDialog.
 
 ## Solution Structure
 
@@ -336,7 +336,7 @@ ISplitContent (marker interface)
 
 **Problem**: Security-conscious environments store credentials in external password managers (KeePassXC, Bitwarden CLI, 1Password CLI, `pass`), not in the application's DPAPI vault.
 
-**Solution**: `CommandCredentialProvider` implements `ICredentialProvider` by executing a user-configured CLI command template. Placeholders `{Host}`, `{Port}`, `{User}`, `{Title}`, `{Database}` are substituted at runtime. The command's stdout is captured and trimmed as the password. A 10-second timeout prevents hangs. This enables zero-knowledge credential retrieval where Heimdall never persists the password.
+**Solution**: `CommandCredentialProvider` implements `ICredentialProvider` by executing a user-configured CLI command template. Placeholders `{Host}`, `{Port}`, `{User}`, `{Title}`, `{Database}` are substituted at runtime with context-aware sanitization: `InputValidator.IsShellTarget()` inspects the template's executable to choose strict stripping for shell interpreters (cmd.exe, PowerShell, WSL, WSH) or relaxed stripping for regular executables (keepassxc-cli, bw, op). The command's stdout is captured and trimmed as the password. A 10-second timeout prevents hangs. Soft failures (non-zero exit, empty output) surface a warning dialog to the user. This enables zero-knowledge credential retrieval where Heimdall never persists the password.
 
 ### 20. Scheduled Tasks Engine (TaskSchedulerService)
 
@@ -505,7 +505,7 @@ Error state reachable from Ready or Busy.
 | CSV formula injection | `InputValidator.SanitizeCsvCell()` in 10 exporters + generic `ToolContextMenuHelper` |
 | CRLF sanitization | Raw HTTP Host header construction sanitized against header injection |
 | Command construction | Structured argument lists for Plink/gsudo (no string concatenation of user input) |
-| Placeholder sanitization | Shell metacharacter stripping in ExternalToolDefinition and CommandCredentialProvider |
+| Placeholder sanitization | Context-aware: `InputValidator.IsShellTarget()` detects shell interpreters (cmd, powershell, bash, wsl, cscript, mshta + .bat/.cmd/.ps1/.vbs/.js/.wsf/.hta); shell targets get strict metacharacter stripping, regular .exe targets get relaxed stripping that preserves `()`, `'`, `%` in legitimate values |
 | HTTP/TFTP traversal | Trailing-separator + exact-root check in EphemeralFileServer |
 | Config concurrency | SemaphoreSlim write lock in ConfigManager prevents last-writer-wins |
 | WebView2 hardening | CSP (`default-src 'none'`), navigation blocking, `WebMessage` source validation |

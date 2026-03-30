@@ -14,29 +14,34 @@ All notable changes to Heimdall.Next are documented in this file.
 
 ## [v2026.033005] - 2026-03-30
 
-### Security audit remediation, integration reliability, and i18n completeness
+### Security audit remediation — context-aware sanitization, external tools, a11y
 
-#### Security (P1)
-- **VNC WebSocket Origin validation**: replaced `StartsWith` with exact `Uri` host matching to prevent CSWSH subdomain bypass (e.g. `heimdall-vnc.local.attacker.tld`)
-- New `IsAllowedOrigin()` method with allowlist: `heimdall-vnc.local`, `127.0.0.1`, `localhost`
+#### Security
+- **Context-aware placeholder sanitization**: `InputValidator.IsShellTarget()` detects shell interpreters (cmd.exe, PowerShell, bash, sh, zsh, wsl, cscript, wscript, mshta) and script extensions (.bat, .cmd, .ps1, .vbs, .js, .wsf, .hta). Shell targets get strict metacharacter stripping; regular .exe targets get relaxed stripping that preserves `()`, `'`, `%` in legitimate values (double quotes always stripped for MSVC CRT safety)
+- Applied to both `ExternalToolDefinition.ResolveArguments()` (user-defined tools) and `CommandCredentialProvider.ExpandTemplate()` (credential provider CLI)
+- **VNC WebSocket Origin validation**: replaced `StartsWith` with exact `Uri` host matching to prevent CSWSH subdomain bypass
+- **Command palette tool shadowing**: external tools now always searched alongside native tool prefix matches (previously hidden when a native tool prefix matched first)
+- **External tools config validation**: save blocked on empty name/path or duplicate names with inline error via `ValidationSummary`; `ExternalToolItemViewModel` uses `[Required]` + `[NotifyDataErrorInfo]`
+- **Credential provider soft failures surfaced**: `ShowWarning()` dialog when `GetCredentialAsync()` returns null (empty output or non-zero exit) instead of silent fallthrough
+- **ServerDialog async**: removed `.GetAwaiter().GetResult()` blocking calls, replaced with async `Loaded` handler
+- **RunHidden alignment**: `CreateNoWindow = true` added to context menu launch path (was only on palette path)
 
-#### Integration Reliability (P2)
+#### UX
+- **External tools editor**: Browse button for working directory (OpenFolderDialog); structured placeholder help panel showing each variable with localized description from `SupportedPlaceholders` model (replaces raw text line)
+- **Onboarding overlay keyboard a11y**: initial focus on Next button, `Escape` dismisses, `TabNavigation=Cycle`, `AutomationProperties.Name` synced with button content on step change (Next → Get Started)
+
+#### Previous (v2026.033005-pre)
 - **External tool placeholder resolution**: `{Port}` now resolves to the protocol-specific port (SSH→22, FTP→21, VNC→5900, Telnet→23) instead of the generic RDP port; `{KeyFile}` placeholder now populated from server SSH key path
 - **Process timeout cleanup**: external tool wrapper kills the process tree on timeout/cancel in both standard and elevated (UAC) code paths
 - **Credential provider stderr deadlock**: stderr is now drained concurrently to prevent 4KB pipe buffer deadlock on Windows
-- **Settings dirty flag**: inline edits to external tool properties (name, arguments, path, flags) now correctly mark Settings as dirty via `PropertyChanged` subscription
-- **Rescan button persistence**: removed premature `MergeSettingAsync` — tool provider paths are only persisted on Save, not on Rescan
-
-#### UX & Localization (P3)
-- **ServerDialog i18n**: 44 new keys (EN/FR) covering port labels, help text, session kinds, mode summaries, tunnel descriptions, and gateway captions for all 8 protocols (previously only RDP/SSH were localized)
-- **Ctrl+K palette**: external tool placeholders are now resolved against the currently selected server when available
-- **External tool icon**: `Geo.Tool.External` geometry redrawn from 15:7 ratio to proper 16x16 square
-- **ToolbarGhostButtonStyle**: `ContentPresenter` now respects `HorizontalContentAlignment` instead of forcing `Center`, fixing sidebar tool card alignment
+- **Settings dirty flag**: inline edits to external tool properties now correctly mark Settings as dirty
+- **ServerDialog i18n**: 44 new keys (EN/FR) covering port labels, help text, session kinds, mode summaries, tunnel descriptions, and gateway captions for all 8 protocols
+- **Ctrl+K palette**: external tool placeholders resolved against selected server when available
 
 #### Housekeeping
-- `InternalsVisibleTo` added to `Heimdall.App.csproj` for `Heimdall.App.Tests`
-- i18n: +44 keys (4,496 total, EN/FR parity)
-- Tests: 1,633 passing (+23)
+- `InternalsVisibleTo` added to `Heimdall.Core.csproj` for `Heimdall.Core.Tests` (ExpandTemplate testing)
+- i18n: +174 keys (4,670 total, EN/FR parity)
+- Tests: 1,714 passing (+81 new: IsShellTarget, context-aware sanitization, ExpandTemplate relaxed/strict paths)
 
 ---
 
