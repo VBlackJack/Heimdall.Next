@@ -30,6 +30,13 @@ public sealed class WebSocketVncProxy : IDisposable
 {
     private const int BufferSize = 65536;
 
+    private static readonly HashSet<string> AllowedOriginHosts = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "heimdall-vnc.local",
+        "127.0.0.1",
+        "localhost"
+    };
+
     private readonly string _vncHost;
     private readonly int _vncPort;
     private readonly HttpListener _httpListener;
@@ -91,14 +98,10 @@ public sealed class WebSocketVncProxy : IDisposable
                 }
 
                 // Validate Origin to prevent Cross-Site WebSocket Hijacking (CSWSH).
-                // Require an Origin header and only accept the VNC virtual host or localhost.
+                // Parse the URI and compare scheme + host exactly — StartsWith would allow
+                // subdomain bypasses such as "https://heimdall-vnc.local.attacker.tld".
                 var origin = context.Request.Headers["Origin"];
-                if (string.IsNullOrEmpty(origin)
-                    || (!origin.StartsWith("https://heimdall-vnc.local", StringComparison.OrdinalIgnoreCase)
-                        && !origin.StartsWith("http://127.0.0.1", StringComparison.OrdinalIgnoreCase)
-                        && !origin.StartsWith("http://localhost", StringComparison.OrdinalIgnoreCase)
-                        && !origin.StartsWith("https://127.0.0.1", StringComparison.OrdinalIgnoreCase)
-                        && !origin.StartsWith("https://localhost", StringComparison.OrdinalIgnoreCase)))
+                if (!IsAllowedOrigin(origin))
                 {
                     Core.Logging.FileLogger.Warn(
                         $"VNC proxy rejected WebSocket: {(string.IsNullOrEmpty(origin) ? "missing Origin header" : $"untrusted origin: {origin}")}");
@@ -122,6 +125,25 @@ public sealed class WebSocketVncProxy : IDisposable
         {
             // Listener stopped.
         }
+    }
+
+    /// <summary>
+    /// Returns <c>true</c> when <paramref name="origin"/> is a well-formed HTTP(S) URI
+    /// whose host is in the <see cref="AllowedOriginHosts"/> allowlist.
+    /// Exact host comparison prevents subdomain bypass attacks.
+    /// </summary>
+    internal static bool IsAllowedOrigin(string? origin)
+    {
+        if (string.IsNullOrEmpty(origin))
+            return false;
+
+        if (!Uri.TryCreate(origin, UriKind.Absolute, out var uri))
+            return false;
+
+        if (uri.Scheme is not ("http" or "https"))
+            return false;
+
+        return AllowedOriginHosts.Contains(uri.Host);
     }
 
     private async Task HandleConnectionAsync(WebSocket ws, CancellationToken ct)

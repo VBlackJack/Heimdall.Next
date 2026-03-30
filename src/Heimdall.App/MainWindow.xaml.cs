@@ -1731,7 +1731,7 @@ public partial class MainWindow : Window
             // Resolve placeholders in arguments template
             var arguments = tool.Arguments
                 .Replace("{Host}", SanitizeToolArgument(server.RemoteServer), StringComparison.OrdinalIgnoreCase)
-                .Replace("{Port}", server.RemotePort.ToString(System.Globalization.CultureInfo.InvariantCulture), StringComparison.OrdinalIgnoreCase)
+                .Replace("{Port}", server.EffectivePort.ToString(System.Globalization.CultureInfo.InvariantCulture), StringComparison.OrdinalIgnoreCase)
                 .Replace("{User}", SanitizeToolArgument(server.Username), StringComparison.OrdinalIgnoreCase);
 
             var psi = new System.Diagnostics.ProcessStartInfo
@@ -2614,20 +2614,18 @@ public partial class MainWindow : Window
 
         if (providerService is null || toolRegistry is null || configManager is null) return;
 
-        // Persist current path values before scanning so runtime matches config
-        await configManager.MergeSettingAsync(s =>
-        {
-            s.SysinternalsPath = string.IsNullOrWhiteSpace(vm.Settings.SysinternalsPath) ? null : vm.Settings.SysinternalsPath;
-            s.NirSoftPath = string.IsNullOrWhiteSpace(vm.Settings.NirSoftPath) ? null : vm.Settings.NirSoftPath;
-        });
-
         Mw_SettingsExtProvStatus.Text = vm.Localize("ExtToolStatusScanning");
         Mw_SettingsBtnRescan.IsEnabled = false;
 
-        var savedSettings = await configManager.LoadSettingsAsync();
+        // Use the ViewModel's current (unsaved) path values for scanning.
+        // Paths are only persisted when the user clicks Save, not on Rescan.
+        var scanSettings = await configManager.LoadSettingsAsync();
+        scanSettings.SysinternalsPath = string.IsNullOrWhiteSpace(vm.Settings.SysinternalsPath) ? null : vm.Settings.SysinternalsPath;
+        scanSettings.NirSoftPath = string.IsNullOrWhiteSpace(vm.Settings.NirSoftPath) ? null : vm.Settings.NirSoftPath;
+
         await Task.Run(() =>
         {
-            providerService.ScanAll(savedSettings);
+            providerService.ScanAll(scanSettings);
             toolRegistry.RegisterExternalTools(providerService.DetectedTools);
         });
 
@@ -2755,10 +2753,11 @@ public partial class MainWindow : Window
         {
             var arguments = tool.ResolveArguments(
                 server.RemoteServer,
-                server.RemotePort,
+                server.EffectivePort,
                 server.Username,
                 serverName: server.DisplayName,
                 protocol: server.ConnectionType,
+                keyFile: server.SshKeyPath,
                 project: server.ProjectName,
                 gateway: server.GatewayName);
 

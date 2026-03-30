@@ -14,7 +14,7 @@
 
 [![CI](https://github.com/VBlackJack/Heimdall.Next/actions/workflows/ci.yml/badge.svg)](https://github.com/VBlackJack/Heimdall.Next/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-1610%20passing-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/tests-1633%20passing-brightgreen.svg)]()
 [![Tools](https://img.shields.io/badge/tools-49%20sysops-blue.svg)]()
 [![.NET](https://img.shields.io/badge/.NET-10.0-purple.svg)]()
 
@@ -205,7 +205,7 @@ All tools open as session tabs (split with any session or tool, detach, reorder)
 - Tools Panel: category fallback icons, scroll-more indicator
 - Fullscreen mode (F11), toggle sidebar (Ctrl+B), filter (Ctrl+F)
 - **First-launch onboarding**: 3-step guided introduction overlay with skip/next/get started
-- Bilingual interface: English and French (~4,452 i18n keys)
+- Bilingual interface: English and French (~4,496 i18n keys)
 - Declarative i18n: `{loc:Translate Key}` WPF markup extension with runtime language switching (coexists with legacy ApplyLocalization pattern)
 - WCAG 2.1 AA accessibility: AutomationProperties.Name on all interactive controls via code-behind and `{loc:Translate}`, LiveSetting="Polite" on dynamic outputs, keyboard focus indicators, disabled state tooltips
 
@@ -341,7 +341,7 @@ Release mode also produces Inno Setup `.exe` installers in `Dist/installers/` wi
 | RDP | ActiveX MsTscAx (WindowsFormsHost) |
 | Citrix | StoreBrowse CLI integration |
 | Crypto | System.Security.Cryptography.ProtectedData (DPAPI) |
-| Testing | xUnit + Moq + FluentAssertions (1,610 tests) |
+| Testing | xUnit + Moq + FluentAssertions (1,633 tests) |
 | Built-in Tools | 49 sysops tools (Ctrl+K → `tools` or Ctrl+Shift+T) |
 | Serialization | System.Text.Json |
 

@@ -15,6 +15,7 @@
  */
 
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.ComponentModel.DataAnnotations;
 using System.IO;
 using System.Text.Json;
@@ -398,6 +399,8 @@ public partial class SettingsViewModel : ObservableValidator
         TunnelEstablishmentDelayMs = settings.TunnelEstablishmentDelayMs;
         EmbeddedRdpTimeoutMs = settings.EmbeddedRdpTimeoutMs;
 
+        UnsubscribeExternalToolTracking();
+
         ExternalTools = new ObservableCollection<ExternalToolItemViewModel>(
             settings.ExternalTools.Select(t => new ExternalToolItemViewModel
             {
@@ -408,6 +411,8 @@ public partial class SettingsViewModel : ObservableValidator
                 RunAsAdministrator = t.RunAsAdministrator,
                 RunHidden = t.RunHidden
             }));
+
+        SubscribeExternalToolTracking();
 
         Gateways = new ObservableCollection<GatewayItemViewModel>(
             settings.SshGateways.Select(g => new GatewayItemViewModel
@@ -1054,6 +1059,36 @@ public partial class SettingsViewModel : ObservableValidator
         DefaultTheme = _originalTheme;
         var settings = await _configManager.LoadSettingsAsync();
         LoadFromSettings(settings);
+    }
+
+    private void SubscribeExternalToolTracking()
+    {
+        foreach (var tool in ExternalTools)
+            tool.PropertyChanged += OnExternalToolItemPropertyChanged;
+        ExternalTools.CollectionChanged += OnExternalToolsCollectionChanged;
+    }
+
+    private void UnsubscribeExternalToolTracking()
+    {
+        if (ExternalTools is null) return;
+        foreach (var tool in ExternalTools)
+            tool.PropertyChanged -= OnExternalToolItemPropertyChanged;
+        ExternalTools.CollectionChanged -= OnExternalToolsCollectionChanged;
+    }
+
+    private void OnExternalToolItemPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        IsDirty = true;
+    }
+
+    private void OnExternalToolsCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        if (e.OldItems is not null)
+            foreach (ExternalToolItemViewModel tool in e.OldItems)
+                tool.PropertyChanged -= OnExternalToolItemPropertyChanged;
+        if (e.NewItems is not null)
+            foreach (ExternalToolItemViewModel tool in e.NewItems)
+                tool.PropertyChanged += OnExternalToolItemPropertyChanged;
     }
 
     protected override void OnPropertyChanged(System.ComponentModel.PropertyChangedEventArgs e)
