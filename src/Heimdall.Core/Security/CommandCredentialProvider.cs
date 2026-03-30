@@ -98,6 +98,10 @@ public sealed class CommandCredentialProvider : ICredentialProvider
             using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
             linkedCts.CancelAfter(CommandTimeout);
 
+            // Drain stderr concurrently to prevent pipe buffer deadlock (4 KB limit on Windows).
+            // Not logged — external credential tools may echo credential fragments to stderr.
+            _ = process.StandardError.ReadToEndAsync(linkedCts.Token);
+
             var stdout = await process.StandardOutput.ReadToEndAsync(linkedCts.Token)
                 .ConfigureAwait(false);
 

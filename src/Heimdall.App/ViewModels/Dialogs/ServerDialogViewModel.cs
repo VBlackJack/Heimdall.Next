@@ -42,6 +42,8 @@ public partial class ServerDialogViewModel : ObservableValidator
     /// </summary>
     public LocalizationManager? Localizer { get; set; }
 
+    private string L(string key) => Localizer?[key] ?? key;
+
     // --- Dialog state ---
 
     [ObservableProperty]
@@ -511,73 +513,78 @@ public partial class ServerDialogViewModel : ObservableValidator
         }
     }
 
-    public string EndpointPortLabel => IsRdpConnection ? "Remote RDP port"
-        : IsVncConnection ? "VNC port"
-        : IsFtpConnection ? "FTP port"
-        : IsTelnetConnection ? "Telnet port"
-        : "Remote SSH port";
+    public string EndpointPortLabel => IsRdpConnection ? L("ServerDialogPortLabelRdp")
+        : IsVncConnection ? L("ServerDialogPortLabelVnc")
+        : IsFtpConnection ? L("ServerDialogPortLabelFtp")
+        : IsTelnetConnection ? L("ServerDialogPortLabelTelnet")
+        : L("ServerDialogPortLabelSsh");
 
     public string EndpointPortHelpText => IsRdpConnection
-        ? "Remote desktop port on the destination server."
-        : "SSH service port on the destination server.";
+        ? L("ServerDialogPortHelpRdp")
+        : IsVncConnection ? L("ServerDialogPortHelpVnc")
+        : IsFtpConnection ? L("ServerDialogPortHelpFtp")
+        : IsTelnetConnection ? L("ServerDialogPortHelpTelnet")
+        : L("ServerDialogPortHelpSsh");
 
     public string LocalTunnelPortDisplay => UseAutomaticTunnelPort
-        ? string.Format(CultureInfo.InvariantCulture, "Auto ({0})", LocalPort)
+        ? string.Format(CultureInfo.InvariantCulture, L("ServerDialogTunnelPortAuto"), LocalPort)
         : LocalPort.ToString(CultureInfo.InvariantCulture);
 
     public string ConnectionPathHeadline => UsesGateway
-        ? "Heimdall will create an SSH tunnel before opening the session."
-        : "Heimdall will connect directly to the destination host.";
+        ? L("ServerDialogPathHeadlineTunnel")
+        : L("ServerDialogPathHeadlineDirect");
 
     public string GatewayExplanation => UsesGateway
-        ? "Traffic will be routed through this SSH gateway."
-        : "Select a gateway if the server is only reachable through an SSH jump host.";
+        ? L("ServerDialogGatewayExplainTunnel")
+        : L("ServerDialogGatewayExplainDirect");
 
-    public string GatewayRouteText => SelectedGateway?.EffectiveRouteText ?? "No gateway selected";
+    public string GatewayRouteText => SelectedGateway?.EffectiveRouteText ?? L("ServerDialogNoGatewaySelected");
 
-    public string SelectedGatewayTitle => SelectedGateway?.EffectiveName ?? "No gateway selected";
+    public string SelectedGatewayTitle => SelectedGateway?.EffectiveName ?? L("ServerDialogNoGatewaySelected");
 
-    public string SelectedGatewayEndpoint => SelectedGateway?.EndpointText ?? "No SSH gateway selected";
+    public string SelectedGatewayEndpoint => SelectedGateway?.EndpointText ?? L("ServerDialogNoSshGateway");
 
-    public string SessionKindLabel => IsRdpConnection
-        ? "RDP session"
-        : IsFtpConnection
-            ? "FTP session"
-            : IsSftpConnection
-                ? "SFTP session"
-                : "SSH session";
+    public string SessionKindLabel => IsRdpConnection ? L("ServerDialogSessionRdp")
+        : IsFtpConnection ? L("ServerDialogSessionFtp")
+        : IsSftpConnection ? L("ServerDialogSessionSftp")
+        : IsVncConnection ? L("ServerDialogSessionVnc")
+        : IsTelnetConnection ? L("ServerDialogSessionTelnet")
+        : IsCitrixConnection ? L("ServerDialogSessionCitrix")
+        : IsLocalConnection ? L("ServerDialogSessionLocal")
+        : L("ServerDialogSessionSsh");
 
-    public string SessionModeSummary => IsRdpConnection
-        ? "Remote Desktop opens after tunnel setup completes."
-        : IsFtpConnection
-            ? "The FTP browser connects directly using the credentials below."
-            : IsSftpConnection
-                ? "The SFTP browser reuses the SSH authentication settings below."
-                : "The SSH shell connects directly or through the tunnel shown above.";
+    public string SessionModeSummary => IsRdpConnection ? L("ServerDialogModeSummaryRdp")
+        : IsFtpConnection ? L("ServerDialogModeSummaryFtp")
+        : IsSftpConnection ? L("ServerDialogModeSummarySftp")
+        : IsVncConnection ? L("ServerDialogModeSummaryVnc")
+        : IsTelnetConnection ? L("ServerDialogModeSummaryTelnet")
+        : IsCitrixConnection ? L("ServerDialogModeSummaryCitrix")
+        : IsLocalConnection ? L("ServerDialogModeSummaryLocal")
+        : L("ServerDialogModeSummarySsh");
 
     public string TunnelSummary => UsesGateway
         ? string.Format(
             CultureInfo.InvariantCulture,
-            "Local port {0} forwards to {1}:{2} through {3}.",
+            L("ServerDialogTunnelSummaryFormat"),
             LocalTunnelPortDisplay,
             GetDestinationHost(),
             EndpointPort,
-            SelectedGateway?.EffectiveName ?? "the selected gateway")
-        : "No SSH tunnel is required for this connection.";
+            SelectedGateway?.EffectiveName ?? L("ServerDialogTunnelSummaryFallbackGw"))
+        : L("ServerDialogTunnelSummaryNone");
 
     public string ClientNodeCaption => UsesGateway
-        ? string.Format(CultureInfo.InvariantCulture, "Local tunnel on localhost:{0}", LocalTunnelPortDisplay)
-        : "Direct outbound connection";
+        ? string.Format(CultureInfo.InvariantCulture, L("ServerDialogClientNodeTunnel"), LocalTunnelPortDisplay)
+        : L("ServerDialogClientNodeDirect");
 
     public string GatewayNodeCaption => UsesGateway
-        ? string.Format(CultureInfo.InvariantCulture, "{0}", SelectedGateway?.EffectiveName ?? "Gateway")
-        : "Gateway not used";
+        ? string.Format(CultureInfo.InvariantCulture, "{0}", SelectedGateway?.EffectiveName ?? L("ServerDialogGatewayNodeDefault"))
+        : L("ServerDialogGatewayNodeUnused");
 
     public string DestinationNodeCaption => string.IsNullOrWhiteSpace(RemoteServer)
-        ? "Destination server"
+        ? L("ServerDialogDestinationNode")
         : string.Format(CultureInfo.InvariantCulture, "{0}:{1}", RemoteServer, EndpointPort);
 
-    public string ClientToGatewayLabel => UsesGateway ? "SSH tunnel" : "Direct transport";
+    public string ClientToGatewayLabel => UsesGateway ? L("ServerDialogLabelSshTunnel") : L("ServerDialogLabelDirectTransport");
 
     public string GatewayToServerLabel => SessionKindLabel;
 
@@ -994,7 +1001,7 @@ public partial class ServerDialogViewModel : ObservableValidator
 
     private string GetDestinationHost()
     {
-        return string.IsNullOrWhiteSpace(RemoteServer) ? "destination server" : RemoteServer;
+        return string.IsNullOrWhiteSpace(RemoteServer) ? L("ServerDialogDestinationNode") : RemoteServer;
     }
 
     private void RaisePortDerivedStateChanged()

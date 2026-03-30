@@ -82,6 +82,31 @@ public partial class ServerItemViewModel : ObservableObject
     [ObservableProperty]
     private string _authSummary = "";
 
+    /// <summary>
+    /// Retained DTO reference for accessing protocol-specific properties
+    /// (e.g. SshPort, FtpPort, SshKeyPath) that are not exposed as ViewModel fields.
+    /// </summary>
+    private ServerProfileDto? _sourceDto;
+
+    /// <summary>
+    /// Returns the protocol-appropriate port for this server (SSH→SshPort, FTP→FtpPort, etc.)
+    /// instead of the generic <see cref="RemotePort"/> which defaults to the RDP port.
+    /// </summary>
+    public int EffectivePort => _sourceDto is null ? RemotePort
+        : ConnectionType?.ToUpperInvariant() switch
+        {
+            "SSH" or "SFTP" => _sourceDto.SshPort,
+            "FTP" => _sourceDto.FtpPort,
+            "VNC" => _sourceDto.VncPort,
+            "TELNET" => _sourceDto.TelnetPort,
+            _ => RemotePort
+        };
+
+    /// <summary>
+    /// Path to the SSH private key file, if configured.
+    /// </summary>
+    public string SshKeyPath => _sourceDto?.SshKeyPath ?? "";
+
     public bool IsActiveSession =>
         !string.IsNullOrEmpty(ConnectionState)
         && !string.Equals(ConnectionState, "Disconnected", StringComparison.OrdinalIgnoreCase);
@@ -111,6 +136,7 @@ public partial class ServerItemViewModel : ObservableObject
     {
         return new ServerItemViewModel
         {
+            _sourceDto = dto,
             Id = dto.Id,
             DisplayName = dto.DisplayName,
             RemoteServer = dto.RemoteServer,
@@ -141,6 +167,7 @@ public partial class ServerItemViewModel : ObservableObject
         ProjectDto? project = null,
         IReadOnlyDictionary<string, SshGatewayDto>? gatewayMap = null)
     {
+        _sourceDto = dto;
         DisplayName = dto.DisplayName;
         RemoteServer = dto.RemoteServer;
         RemotePort = dto.RemotePort;

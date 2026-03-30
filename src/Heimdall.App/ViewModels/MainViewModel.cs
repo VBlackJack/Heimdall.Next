@@ -1504,7 +1504,7 @@ public partial class MainViewModel : ObservableObject
     /// <summary>
     /// Launches an external tool from a palette item whose Id starts with "ext-tool-".
     /// Matches the tool name back to the configured ExternalToolDefinition and starts
-    /// the process without server context (no placeholders resolved).
+    /// the process. When a server is selected, placeholders are resolved against it.
     /// </summary>
     private void LaunchExternalToolFromPalette(ServerItemViewModel item)
     {
@@ -1516,10 +1516,24 @@ public partial class MainViewModel : ObservableObject
 
         try
         {
+            // Resolve placeholders against the currently selected server when available.
+            var selectedServer = ServerList.SelectedServer;
+            var arguments = selectedServer is not null
+                ? extTool.ResolveArguments(
+                    selectedServer.RemoteServer,
+                    selectedServer.EffectivePort,
+                    selectedServer.Username,
+                    serverName: selectedServer.DisplayName,
+                    protocol: selectedServer.ConnectionType,
+                    keyFile: selectedServer.SshKeyPath,
+                    project: selectedServer.ProjectName,
+                    gateway: selectedServer.GatewayName)
+                : extTool.Arguments;
+
             var psi = new System.Diagnostics.ProcessStartInfo
             {
                 FileName = extTool.ExecutablePath,
-                Arguments = extTool.Arguments,
+                Arguments = arguments,
                 UseShellExecute = true
             };
 

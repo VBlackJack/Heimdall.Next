@@ -204,6 +204,13 @@ public partial class ExternalToolWrapperView : UserControl, IToolView
 
             return (process.ExitCode, await stdoutTask, await stderrTask);
         }
+        catch (OperationCanceledException)
+        {
+            // Timeout or manual cancel — kill the process tree so it does not
+            // continue running in the background after the tab shows a timeout.
+            try { if (!process.HasExited) process.Kill(entireProcessTree: true); } catch { }
+            throw;
+        }
         finally
         {
             _runningProcess = null;
@@ -235,6 +242,13 @@ public partial class ExternalToolWrapperView : UserControl, IToolView
             await process.WaitForExitAsync(ct);
 
             return (process.ExitCode, L("ExtToolElevatedNoCapture"), "");
+        }
+        catch (OperationCanceledException)
+        {
+            // Timeout or manual cancel — kill the elevated process tree so it does not
+            // continue running in the background after the tab shows a timeout.
+            try { if (_runningProcess is { HasExited: false } p) p.Kill(entireProcessTree: true); } catch { }
+            throw;
         }
         catch (System.ComponentModel.Win32Exception ex) when (ex.NativeErrorCode == 1223)
         {
