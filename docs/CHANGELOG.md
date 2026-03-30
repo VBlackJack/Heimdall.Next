@@ -12,6 +12,36 @@
 
 All notable changes to Heimdall.Next are documented in this file.
 
+## [v2026.033003] - 2026-03-30
+
+### UX audit fixes, CIDR auto-detection, and scan timeout resilience
+
+#### Accessibility & Keyboard
+- AutomationProperties.Name on MainWindow navigation tabs (Servers, Tunnels, Scheduled, Settings, About) via `{loc:Translate}`
+- TabIndex keyboard navigation added to 5 tool views: HackerSimulator, CronJobManager, PasswordAudit, SshKeyAudit, DiagramEditor
+- GridSplitter accessibility label in SplitContainerControl
+- WCAG contrast fix: replace Opacity="0.6" on settings unit suffixes with TextDisabledBrush
+
+#### Visual
+- Fix tool card hover: remove default WPF button chrome (bare ContentPresenter template), use HighlightBrush for hover background
+- Fix SecNumCloudAuditView CornerRadius cast error (`CornerRadius` resource was cast as `Double`)
+
+#### Network Tools
+- Ping Monitor: add gateway routing via SSH (`CmbRouteVia` selector, tunneled ping via SSH exec)
+- SecNumCloud Audit: auto-detect local CIDR on init, detect remote CIDR on gateway selection
+- Extract shared `SubnetDetector` helper from NetworkCartography (reusable across tools)
+
+#### Critical Bug Fix — Scan Timeout Resilience
+- Fix scans silently aborting when per-operation timeouts fire: `CancellationTokenSource(timeout)` + linked token `OperationCanceledException` was indistinguishable from user cancellation
+- 13 catch sites fixed across 7 files: CartographyEngine (ProbePortAsync, InspectTlsWithHttpAsync), SecNumCloudAuditEngine (6 check methods), NetworkScanner, HttpFingerprinter, FaviconHasher, BannerGrabberView, CertInspectorView
+- Fix pattern: `catch (OperationCanceledException) when (!ct.IsCancellationRequested)` absorbs per-operation timeouts without aborting the entire scan
+
+#### Housekeeping
+- i18n: +11 keys (4,450 total, EN/FR parity)
+- Tests: 1,610 passing (283 SSH + 131 App + 1,196 Core)
+
+---
+
 ## [v2026.032903] - 2026-03-29
 
 ### Comprehensive UX audit — accessibility, async guards, empty states, keyboard across 49 tools

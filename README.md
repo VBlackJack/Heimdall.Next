@@ -153,8 +153,8 @@ All tools open as session tabs (split with any session or tool, detach, reorder)
 
 | Category | Tools |
 |----------|-------|
-| **Network** | **Network Cartography** (ping sweep + OS fingerprinting, port scan, banner grab, HTTP/HTTPS header analysis, TLS cert inspection, NetBIOS NBSTAT probe, SNMPv2c query, mDNS/Bonjour discovery, 300+ OUI MAC lookup, multi-source role classification, VLAN detection, Draw.io topology export, scan history/diff, remote subnet auto-detection via SSH gateway, **persistent Knowledge Base with TTL-based cache acceleration**), Ping Monitor, DNS Lookup (custom server + via tunnel), SSL Cert Inspector (chain + TLS version + via tunnel), Port Scanner (progress + banner grab + via tunnel), Subnet Calculator (IPv4 + IPv6), IP Converter, HTTP Status Codes, Whois Lookup, Network Calculator (supernet + VLAN planner) |
-| **Security** | Password Generator (crack time + history + saveable presets), SSH Key Generator (RSA + Ed25519), Hash Generator (SHA3 + progress), HMAC Generator, JWT Parser (HMAC signature verify), Certificate Generator (self-signed + CA/leaf), TOTP Generator (RFC 6238), **Security Audit** (Hollywood-style terminal simulation with 25 scenarios: attack, deployment, hardening, identity — external JSON scenario packs with template engine, playlists, favorites, transcript export, vintage CRT mode) |
+| **Network** | **Network Cartography** (ping sweep + OS fingerprinting, port scan, banner grab, HTTP/HTTPS header analysis, TLS cert inspection, NetBIOS NBSTAT probe, SNMPv2c query, mDNS/Bonjour discovery, 300+ OUI MAC lookup, multi-source role classification, VLAN detection, Draw.io topology export, scan history/diff, remote subnet auto-detection via SSH gateway, **persistent Knowledge Base with TTL-based cache acceleration**), **Ping Monitor** (continuous latency graph + gateway routing via SSH), DNS Lookup (custom server + via tunnel), SSL Cert Inspector (chain + TLS version + via tunnel), Port Scanner (progress + banner grab + via tunnel), Subnet Calculator (IPv4 + IPv6), IP Converter, HTTP Status Codes, Whois Lookup, Network Calculator (supernet + VLAN planner) |
+| **Security** | Password Generator (crack time + history + saveable presets), SSH Key Generator (RSA + Ed25519), Hash Generator (SHA3 + progress), HMAC Generator, JWT Parser (HMAC signature verify), Certificate Generator (self-signed + CA/leaf), TOTP Generator (RFC 6238), **SecNumCloud Audit** (ANSSI v3.2 compliance across Network/Crypto/Access/Ops with CIDR auto-detection + gateway routing + HTML/CSV/Draw.io export), **Hacker Simulator** (Hollywood-style terminal with 25 scenarios, playlists, vintage CRT mode) |
 | **Encoding** | Base64 Encoder (URL-safe RFC 4648), URL Encoder, JSON Formatter (error position), Regex Tester (match highlighting), Text Diff (word-level), Text Case Converter (8 formats) |
 | **System** | Chmod Calculator, Crontab Builder, DateTime Converter (timezone + relative), UUID Generator (v4 + v7), Hosts File Editor, SSH Config Generator, Log Viewer / Tail (regex filter), Cron Job Manager (crontab + Windows tasks), Service Status Dashboard, **Notes** (Obsidian-style Markdown editor with Milkdown WYSIWYG + Dracula theme, collapsible sidebar with persisted width, right-click formatting menu, localized templates EN/FR, TreeView file explorer, accent-insensitive `[[wiki-links]]`, tags, drag-and-drop, Confluence/HTML export), **Diagram Editor** (draw.io embedded offline, New/Open/Save/Export PNG) |
 
@@ -199,13 +199,13 @@ All tools open as session tabs (split with any session or tool, detach, reorder)
 - TreeView hierarchy: Project > Group > Server with category-colored tool icons and status dots
 - Command Palette (Ctrl+K): protocol icons, status dots, endpoint hints, Ctrl+Enter for split
 - Connection inheritance: group-level defaults for gateway, SSH username, key path
-- Empty states: 11 tool views show guidance before first query, welcome panel with import CTA
+- Empty states: tool views show guidance before first query, welcome panel with import CTA
 - Built-in help button ("?") on all 49 tools with localized usage instructions
 - Tab busy indicator: pulsing accent dot on tabs during long-running tool operations
 - Tools Panel: category fallback icons, scroll-more indicator
 - Fullscreen mode (F11), toggle sidebar (Ctrl+B), filter (Ctrl+F)
 - **First-launch onboarding**: 3-step guided introduction overlay with skip/next/get started
-- Bilingual interface: English and French (~4,453 i18n keys)
+- Bilingual interface: English and French (~4,450 i18n keys)
 - Declarative i18n: `{loc:Translate Key}` WPF markup extension with runtime language switching (coexists with legacy ApplyLocalization pattern)
 - WCAG 2.1 AA accessibility: AutomationProperties.Name on all interactive controls via code-behind and `{loc:Translate}`, LiveSetting="Polite" on dynamic outputs, keyboard focus indicators, disabled state tooltips
 
