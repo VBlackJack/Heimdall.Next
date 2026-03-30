@@ -1203,6 +1203,11 @@ public partial class NetworkCartographyView : UserControl, IToolView
     {
         if (_disposed) return;
         _disposed = true;
+        TxtSubnet.KeyDown -= OnSubnetKeyDown;
+        ResultsGrid.PreviewMouseRightButtonDown -= ToolContextMenuHelper.SelectRowOnRightClick;
+        ResultsGrid.ContextMenuOpening -= OnResultsContextMenuOpening;
+        ResultsGrid.LoadingRow -= OnResultsLoadingRow;
+        SizeChanged -= OnViewSizeChanged;
         StopScan();
         _subnetDetectCts?.Cancel();
         _subnetDetectCts?.Dispose();

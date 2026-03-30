@@ -1848,7 +1848,16 @@ public partial class NotesToolView : UserControl, IToolView
         }
 
         _disposed = true;
+        Loaded -= OnLoaded;
+        SizeChanged -= OnViewSizeChanged;
+        _saveTimer.Tick -= OnSaveTimerTick;
         _saveTimer.Stop();
+        Editor.TextChanged -= OnEditorTextChanged;
+        Editor.TextArea.TextEntered -= OnTextAreaTextEntered;
+        Editor.TextArea.PreviewMouseDown -= OnEditorPreviewMouseDown;
+        MilkdownEditor.ContentChanged -= OnMilkdownContentChanged;
+        MilkdownEditor.LinkClicked -= OnMilkdownLinkClicked;
+        MilkdownEditor.EditorReady -= OnMilkdownReady;
         _refreshCts?.Cancel();
         _refreshCts?.Dispose();
 

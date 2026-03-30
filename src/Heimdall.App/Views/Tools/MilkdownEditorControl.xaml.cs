@@ -305,6 +305,12 @@ public partial class MilkdownEditorControl : UserControl, IDisposable
 
         _disposed = true;
 
+        if (EditorWebView.CoreWebView2 is { } core)
+        {
+            core.NavigationStarting -= OnNavigationStarting;
+            core.WebMessageReceived -= OnWebMessageReceived;
+        }
+
         try
         {
             EditorWebView.Dispose();

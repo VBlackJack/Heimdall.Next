@@ -242,6 +242,7 @@ public partial class IpConverterView : UserControl, IToolView
 
     public void Dispose()
     {
+        TxtInput.TextChanged -= OnInputTextChanged;
         GC.SuppressFinalize(this);
     }
 }

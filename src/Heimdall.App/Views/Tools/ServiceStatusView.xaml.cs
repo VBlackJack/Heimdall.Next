@@ -439,6 +439,7 @@ public partial class ServiceStatusView : UserControl, IToolView
     {
         if (_disposed) return;
         _disposed = true;
+        TxtFilter.KeyDown -= OnFilterKeyDown;
         _setBusy?.Invoke(false);
 
         if (_autoRefreshTimer is not null)

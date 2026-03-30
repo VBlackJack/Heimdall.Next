@@ -262,6 +262,9 @@ public partial class HttpStatusCodesView : UserControl, IToolView
 
     public void Dispose()
     {
+        TxtFilter.TextChanged -= OnFilterTextChanged;
+        StatusListView.MouseDoubleClick -= OnItemDoubleClick;
+        StatusListView.KeyDown -= OnListKeyDown;
         GC.SuppressFinalize(this);
     }
 

@@ -467,6 +467,8 @@ public partial class SubnetCalculatorView : UserControl, IToolView
 
     public void Dispose()
     {
+        TxtCidrInput.KeyDown -= OnInputKeyDown;
+        TxtCidrInput.TextChanged -= OnInputChanged;
         GC.SuppressFinalize(this);
     }
 }

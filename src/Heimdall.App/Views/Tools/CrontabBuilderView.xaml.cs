@@ -591,6 +591,7 @@ public partial class CrontabBuilderView : UserControl, IToolView
 
     public void Dispose()
     {
+        TxtManualInput.KeyDown -= OnManualInputKeyDown;
         GC.SuppressFinalize(this);
     }
 }

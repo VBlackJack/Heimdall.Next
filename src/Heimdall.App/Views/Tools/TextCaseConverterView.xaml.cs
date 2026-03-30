@@ -249,6 +249,7 @@ public partial class TextCaseConverterView : UserControl, IToolView
 
     public void Dispose()
     {
+        TxtInput.PreviewKeyDown -= OnInputPreviewKeyDown;
         GC.SuppressFinalize(this);
     }
 }

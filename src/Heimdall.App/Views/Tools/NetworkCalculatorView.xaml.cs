@@ -439,6 +439,7 @@ public partial class NetworkCalculatorView : UserControl, IToolView
 
     public void Dispose()
     {
+        TxtSupernetInput.PreviewKeyDown -= OnSupernetInputPreviewKeyDown;
         GC.SuppressFinalize(this);
     }
 }

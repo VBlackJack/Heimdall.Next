@@ -322,6 +322,7 @@ public partial class Base64ToolView : UserControl, IToolView
 
     public void Dispose()
     {
+        InputText.PreviewKeyDown -= OnInputPreviewKeyDown;
         _fileBytes = null;
         GC.SuppressFinalize(this);
     }
