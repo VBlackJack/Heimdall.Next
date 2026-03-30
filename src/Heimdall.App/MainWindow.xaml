@@ -298,6 +298,12 @@
                                                        FontWeight="SemiBold"
                                                        Foreground="{DynamicResource TextPrimaryBrush}"
                                                        VerticalAlignment="Center"/>
+                                            <TextBlock x:Name="Mw_ToolsScanIndicator" Text=""
+                                                       FontSize="{StaticResource FontSizeSmallCaption}"
+                                                       Foreground="{DynamicResource TextDisabledBrush}"
+                                                       FontStyle="Italic"
+                                                       VerticalAlignment="Center" Margin="8,0,0,0"
+                                                       Visibility="Collapsed"/>
                                         </StackPanel>
                                     </DockPanel>
                                 </Border>
@@ -1664,13 +1670,30 @@
                                         <TextBlock x:Name="Mw_SettingsCredProviderTitle" Text="" FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,12"/>
                                         <CheckBox x:Name="Mw_SettingsCredProviderEnabled" Content="" IsChecked="{Binding Settings.UseExternalCredentialProvider}" Foreground="{DynamicResource TextPrimaryBrush}"/>
                                         <StackPanel Margin="0,12,0,0" IsEnabled="{Binding Settings.UseExternalCredentialProvider}">
+                                            <TextBlock x:Name="Mw_SettingsCredProvPresetLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,0,4"/>
+                                            <ComboBox x:Name="Mw_SettingsCredProvPreset" SelectionChanged="OnCredProvPresetChanged" FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,12"/>
+                                        </StackPanel>
+                                        <StackPanel Margin="0,12,0,0" IsEnabled="{Binding Settings.UseExternalCredentialProvider}">
                                             <TextBlock x:Name="Mw_SettingsCredProviderCmdLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,0,4"/>
                                             <TextBox Text="{Binding Settings.CredentialProviderCommand}" Tag="keepassxc-cli show -s -a Password &quot;{Database}&quot; &quot;{Title}&quot;"/>
+                                            <TextBlock x:Name="Mw_SettingsCredProvCmdHint" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeSmallCaption}" FontFamily="Consolas" Opacity="0.7" Margin="0,4,0,0"/>
                                         </StackPanel>
                                         <StackPanel Margin="0,12,0,0" IsEnabled="{Binding Settings.UseExternalCredentialProvider}">
                                             <TextBlock x:Name="Mw_SettingsCredProviderDbLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,0,4"/>
-                                            <TextBox Text="{Binding Settings.CredentialProviderDatabase}"/>
+                                            <DockPanel>
+                                                <Button x:Name="Mw_SettingsCredProvDbBrowseBtn" DockPanel.Dock="Right" Padding="6,2" Margin="4,0,0,0" Click="OnCredProvDbBrowseClick" Style="{DynamicResource SecondaryButtonStyle}" FontSize="{StaticResource FontSizeCaption}" AutomationProperties.Name="{loc:Translate A11yBrowseDatabase}">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE838;" FontSize="12" VerticalAlignment="Center"/>
+                                                        <TextBlock Text="{loc:Translate BtnBrowse}" Margin="4,0,0,0" VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
+                                                <TextBox Text="{Binding Settings.CredentialProviderDatabase}"/>
+                                            </DockPanel>
                                         </StackPanel>
+                                        <DockPanel Margin="0,16,0,0" IsEnabled="{Binding Settings.UseExternalCredentialProvider}">
+                                            <Button x:Name="Mw_SettingsCredProvTestBtn" DockPanel.Dock="Right" Command="{Binding Settings.TestCredentialProviderCommand}" Style="{DynamicResource SecondaryButtonStyle}" Padding="8,4" FontSize="{StaticResource FontSizeCaption}"/>
+                                            <TextBlock x:Name="Mw_SettingsCredProvTestResult" Text="{Binding Settings.CredentialProviderTestResult}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" FontStyle="Italic" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                        </DockPanel>
                                         <CheckBox x:Name="Mw_SettingsCredGuard" Content="" IsChecked="{Binding Settings.RequireCredentialGuard}" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,16,0,0"/>
                                     </StackPanel>
                                 </Border>
@@ -1727,6 +1750,13 @@
                                                 <TextBlock x:Name="Mw_SettingsRdpTimeoutLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,0,4"/>
                                                 <StackPanel Orientation="Horizontal">
                                                     <TextBox Text="{Binding Settings.EmbeddedRdpTimeoutMs}" Width="100"/>
+                                                    <TextBlock Text="ms" VerticalAlignment="Center" Margin="6,0,0,0" Foreground="{DynamicResource TextDisabledBrush}" FontSize="{StaticResource FontSizeCaption}" IsHitTestVisible="False"/>
+                                                </StackPanel>
+                                            </StackPanel>
+                                            <StackPanel Margin="0,12,0,0">
+                                                <TextBlock x:Name="Mw_SettingsExtToolTimeoutLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,0,4"/>
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBox Text="{Binding Settings.ExternalToolTimeoutMs}" Width="100"/>
                                                     <TextBlock Text="ms" VerticalAlignment="Center" Margin="6,0,0,0" Foreground="{DynamicResource TextDisabledBrush}" FontSize="{StaticResource FontSizeCaption}" IsHitTestVisible="False"/>
                                                 </StackPanel>
                                             </StackPanel>
@@ -1810,6 +1840,7 @@
                                                     <RowDefinition Height="Auto"/>
                                                     <RowDefinition Height="Auto"/>
                                                     <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
                                                 </Grid.RowDefinitions>
 
                                                 <TextBlock x:Name="Mw_ExtToolLblName" Grid.Row="0" Grid.Column="0" Text="" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeBody}"/>
@@ -1860,6 +1891,13 @@
                                                         </ItemsPanelTemplate>
                                                     </ItemsControl.ItemsPanel>
                                                 </ItemsControl>
+
+                                                <!-- Preview + Test -->
+                                                <DockPanel Grid.Row="6" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,8,0,0">
+                                                    <Button x:Name="Mw_ExtToolTestBtn" DockPanel.Dock="Right" Click="OnExtToolTestClick" Style="{DynamicResource SecondaryButtonStyle}" Padding="8,3" FontSize="{StaticResource FontSizeCaption}" Margin="4,0,0,0"/>
+                                                    <TextBlock x:Name="Mw_ExtToolPreview" Text="" FontFamily="Consolas" FontSize="{StaticResource FontSizeSmallCaption}" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                                                               ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}"/>
+                                                </DockPanel>
                                             </Grid>
                                         </Border>
                                     </StackPanel>

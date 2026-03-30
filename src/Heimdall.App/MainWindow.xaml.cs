@@ -86,11 +86,16 @@ public partial class MainWindow : Window
             }
         };
 
+        // Show scan indicator while background tool detection runs
+        Mw_ToolsScanIndicator.Text = viewModel.Localize("ToolsScanInProgress");
+        Mw_ToolsScanIndicator.Visibility = Visibility.Visible;
+
         // Refresh Tools tab and Settings status when background scan discovers external tools
         viewModel.ToolRegistry.ExternalToolsChanged += () =>
         {
             Dispatcher.BeginInvoke(() =>
             {
+                Mw_ToolsScanIndicator.Visibility = Visibility.Collapsed;
                 _toolsTabPopulated = false;
                 PopulateToolsTab();
                 if (DataContext is MainViewModel vm)
@@ -398,8 +403,12 @@ public partial class MainWindow : Window
 
         Mw_SettingsCredProviderTitle.Text = vm.Localize("SettingsSectionCredentialProvider");
         Mw_SettingsCredProviderEnabled.Content = vm.Localize("SettingsLabelCredProviderEnabled");
+        Mw_SettingsCredProvPresetLabel.Text = vm.Localize("CredProvPresetLabel");
+        PopulateCredProvPresets(vm);
         Mw_SettingsCredProviderCmdLabel.Text = vm.Localize("SettingsLabelCredProviderCommand");
+        Mw_SettingsCredProvCmdHint.Text = vm.Localize("CredProvCmdHint");
         Mw_SettingsCredProviderDbLabel.Text = vm.Localize("SettingsLabelCredProviderDatabase");
+        Mw_SettingsCredProvTestBtn.Content = vm.Localize("CredProvBtnTest");
         Mw_SettingsCredGuard.Content = vm.Localize("SettingsLabelCredentialGuard");
 
         Mw_SettingsSessionLoggingTitle.Text = vm.Localize("SettingsSectionSessionLogging");
@@ -409,6 +418,7 @@ public partial class MainWindow : Window
         Mw_SettingsTimeoutsTitle.Text = vm.Localize("SettingsSectionTimeouts");
         Mw_SettingsTunnelDelayLabel.Text = vm.Localize("SettingsLabelTunnelDelay");
         Mw_SettingsRdpTimeoutLabel.Text = vm.Localize("SettingsLabelRdpTimeout");
+        Mw_SettingsExtToolTimeoutLabel.Text = vm.Localize("SettingsLabelExtToolTimeout");
         Mw_SettingsExtProvTitle.Text = vm.Localize("SettingsSectionExternalToolProviders");
         Mw_SettingsExtProvDesc.Text = vm.Localize("SettingsExternalToolProvidersDesc");
         Mw_SettingsLblSysintPath.Text = vm.Localize("SettingsLblSysinternalsPath");
@@ -429,7 +439,9 @@ public partial class MainWindow : Window
         Mw_ExtToolLblWorkDir.Text = vm.Localize("ExternalToolLabelWorkDir");
         Mw_ExtToolChkAdmin.Content = vm.Localize("ExternalToolRunAsAdmin");
         Mw_ExtToolChkHidden.Content = vm.Localize("ExternalToolRunHidden");
+        Mw_ExtToolTestBtn.Content = vm.Localize("ExtToolBtnTest");
         PopulateExtToolPlaceholderList(vm);
+        UpdateExtToolPreview();
 
         Mw_SettingsSaveBtn.Content = vm.Localize("SettingsBtnSaveSettings");
         Mw_SettingsResetBtn.Content = vm.Localize("SettingsBtnResetDefaults");
@@ -2471,11 +2483,27 @@ public partial class MainWindow : Window
 
         if (_onboardingStep < OnboardingStepCount - 1)
         {
+            // Perform action for the completed step
+            switch (_onboardingStep)
+            {
+                case 0: // Step 1 done → navigate to Servers tab
+                    TabServers.IsChecked = true;
+                    SwitchToTab("Servers");
+                    break;
+                case 1: // Step 2 done → navigate to Settings tab
+                    TabSettings.IsChecked = true;
+                    SwitchToTab("Settings");
+                    break;
+            }
+
             _onboardingStep++;
             UpdateOnboardingStep(vm);
         }
         else
         {
+            // Step 3 done → show Tools panel and complete
+            if (vm.CurrentSettings is not null)
+                vm.CurrentSettings.ShowToolsPanel = true;
             await CompleteOnboardingAsync();
         }
     }
@@ -2616,6 +2644,118 @@ public partial class MainWindow : Window
             vm.Settings.SelectedExternalTool.WorkingDirectory = dialog.FolderName;
             vm.Settings.IsDirty = true;
         }
+    }
+
+    private void OnExtToolTestClick(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is not MainViewModel vm || vm.Settings.SelectedExternalTool is null) return;
+
+        var tool = vm.Settings.SelectedExternalTool;
+        if (string.IsNullOrWhiteSpace(tool.ExecutablePath)) return;
+
+        try
+        {
+            var psi = new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = tool.ExecutablePath,
+                Arguments = tool.Arguments,
+                UseShellExecute = true
+            };
+            if (!string.IsNullOrWhiteSpace(tool.WorkingDirectory))
+                psi.WorkingDirectory = tool.WorkingDirectory;
+            if (tool.RunAsAdministrator)
+                psi.Verb = "runas";
+            if (tool.RunHidden)
+            {
+                psi.WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden;
+                psi.CreateNoWindow = true;
+            }
+
+            System.Diagnostics.Process.Start(psi)?.Dispose();
+        }
+        catch (Exception ex)
+        {
+            Core.Logging.FileLogger.Warn($"External tool test failed: {ex.Message}");
+            MessageBox.Show(
+                string.Format(vm.Localize("ExternalToolLaunchError"), tool.Name, ex.Message),
+                vm.Localize("AppName"), MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+    }
+
+    private void UpdateExtToolPreview()
+    {
+        if (DataContext is not MainViewModel vm || vm.Settings.SelectedExternalTool is null)
+        {
+            Mw_ExtToolPreview.Text = "";
+            return;
+        }
+
+        var tool = vm.Settings.SelectedExternalTool;
+        var selectedServer = vm.ServerList.SelectedServer;
+        string preview;
+        if (selectedServer is not null)
+        {
+            var def = new Core.Configuration.ExternalToolDefinition
+            {
+                ExecutablePath = tool.ExecutablePath,
+                Arguments = tool.Arguments
+            };
+            var resolved = def.ResolveArguments(
+                selectedServer.RemoteServer, selectedServer.EffectivePort, selectedServer.Username,
+                serverName: selectedServer.DisplayName, protocol: selectedServer.ConnectionType,
+                keyFile: selectedServer.SshKeyPath, project: selectedServer.ProjectName,
+                gateway: selectedServer.GatewayName);
+            preview = $"{tool.ExecutablePath} {resolved}";
+        }
+        else
+        {
+            preview = $"{tool.ExecutablePath} {tool.Arguments}";
+        }
+
+        Mw_ExtToolPreview.Text = preview;
+    }
+
+    private void OnCredProvDbBrowseClick(object sender, RoutedEventArgs e)
+    {
+        var dialog = new Microsoft.Win32.OpenFileDialog
+        {
+            Filter = "Database files (*.kdbx;*.db;*.gpg)|*.kdbx;*.db;*.gpg|All files (*.*)|*.*"
+        };
+
+        if (dialog.ShowDialog(this) == true && DataContext is MainViewModel vm)
+        {
+            vm.Settings.CredentialProviderDatabase = dialog.FileName;
+            vm.Settings.IsDirty = true;
+        }
+    }
+
+    private static readonly (string Label, string Command)[] CredProvPresets =
+    [
+        ("Custom", ""),
+        ("KeePassXC", "keepassxc-cli show -s -a Password \"{Database}\" \"{Title}\""),
+        ("Bitwarden CLI", "bw get password \"{Title}\""),
+        ("1Password CLI", "op read \"op://{Title}/password\""),
+        ("pass (GPG)", "pass show \"{Title}\""),
+    ];
+
+    private void PopulateCredProvPresets(MainViewModel vm)
+    {
+        Mw_SettingsCredProvPreset.Items.Clear();
+        foreach (var (label, _) in CredProvPresets)
+        {
+            Mw_SettingsCredProvPreset.Items.Add(label);
+        }
+        Mw_SettingsCredProvPreset.SelectedIndex = 0;
+    }
+
+    private void OnCredProvPresetChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        if (Mw_SettingsCredProvPreset.SelectedIndex < 1) return; // skip "Custom"
+        if (DataContext is not MainViewModel vm) return;
+
+        var (_, command) = CredProvPresets[Mw_SettingsCredProvPreset.SelectedIndex];
+        vm.Settings.CredentialProviderCommand = command;
+        vm.Settings.IsDirty = true;
     }
 
     private void PopulateExtToolPlaceholderList(MainViewModel vm)

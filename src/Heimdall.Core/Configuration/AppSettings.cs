@@ -39,6 +39,7 @@ public class AppSettings
     public int TunnelEstablishmentDelayMs { get; set; } = 2500;
     public int TunnelRetryDelayMs { get; set; } = 1500;
     public int ProcessKillTimeoutMs { get; set; } = 2000;
+    public int ExternalToolTimeoutMs { get; set; } = 60000;
 
     // Logging
     public bool EnableLogging { get; set; } = true;
