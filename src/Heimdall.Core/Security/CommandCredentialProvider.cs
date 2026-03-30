@@ -148,34 +148,54 @@ public sealed class CommandCredentialProvider : ICredentialProvider
 
     /// <summary>
     /// Replaces placeholders in the command template with actual values.
-    /// Values are sanitized to prevent argument injection even though
-    /// UseShellExecute is false (CWE-78 defense in depth).
+    /// Sanitization is context-aware: the executable is extracted from the
+    /// raw template to determine whether a shell interpreter is the target.
+    /// Shell targets (cmd.exe, .bat, .cmd, PowerShell, WSL, WSH) get strict
+    /// stripping; regular executables (keepassxc-cli, bw, op) get relaxed
+    /// stripping that preserves parentheses, single quotes, and percent signs
+    /// in legitimate values (double quotes are always stripped).
     /// </summary>
-    private string ExpandTemplate(
+    internal string ExpandTemplate(
         string template,
         string host,
         int port,
         string? username,
         string? title)
     {
+        var (executable, _) = SplitCommand(template);
+        Func<string?, string> sanitize = InputValidator.IsShellTarget(executable)
+            ? SanitizeStrict
+            : SanitizeRelaxed;
+
         return template
-            .Replace("{Host}", SanitizeArgValue(host), StringComparison.OrdinalIgnoreCase)
+            .Replace("{Host}", sanitize(host), StringComparison.OrdinalIgnoreCase)
             .Replace("{Port}", port.ToString(), StringComparison.OrdinalIgnoreCase)
-            .Replace("{User}", SanitizeArgValue(username), StringComparison.OrdinalIgnoreCase)
-            .Replace("{Title}", SanitizeArgValue(title), StringComparison.OrdinalIgnoreCase)
-            .Replace("{Database}", SanitizeArgValue(_databasePath), StringComparison.OrdinalIgnoreCase);
+            .Replace("{User}", sanitize(username), StringComparison.OrdinalIgnoreCase)
+            .Replace("{Title}", sanitize(title), StringComparison.OrdinalIgnoreCase)
+            .Replace("{Database}", sanitize(_databasePath), StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
-    /// Strips shell metacharacters from a placeholder value to prevent injection.
-    /// Even though UseShellExecute is false, the command template may target
-    /// cmd.exe (e.g. <c>cmd.exe /c keepassxc-cli ...</c>), so cmd metacharacters
-    /// like <c>%</c>, <c>^</c>, <c>()</c> remain dangerous and must be stripped.
+    /// Strips all shell metacharacters — used when the template targets a shell
+    /// interpreter (cmd.exe, .bat, .cmd, PowerShell) or when unknown.
     /// </summary>
-    private static string SanitizeArgValue(string? value)
+    private static string SanitizeStrict(string? value)
     {
         if (string.IsNullOrEmpty(value)) return string.Empty;
         return System.Text.RegularExpressions.Regex.Replace(value, @"[;&|`$<>()!""'\r\n%^]", "");
+    }
+
+    /// <summary>
+    /// Strips only characters that affect MSVC CRT argument parsing (double
+    /// quotes) or could chain/redirect process execution. Preserves
+    /// parentheses, single quotes, percent signs, etc. Double quotes are
+    /// still stripped as they control argument boundary parsing in all
+    /// Windows executables. Used when the template targets a regular executable.
+    /// </summary>
+    private static string SanitizeRelaxed(string? value)
+    {
+        if (string.IsNullOrEmpty(value)) return string.Empty;
+        return System.Text.RegularExpressions.Regex.Replace(value, @"[;&|`$<>""\r\n]", "");
     }
 
     /// <summary>

@@ -202,4 +202,98 @@ public class InputValidatorTests
         Assert.Contains("Port", names);
         Assert.Contains("TunnelTarget", names);
     }
+
+    // ── IsShellTarget ──────────────────────────────────────────────────
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void IsShellTarget_NullOrEmpty_ReturnsTrue(string? path)
+    {
+        Assert.True(InputValidator.IsShellTarget(path));
+    }
+
+    [Theory]
+    [InlineData("cmd.exe")]
+    [InlineData("CMD.EXE")]
+    [InlineData("cmd")]
+    [InlineData(@"C:\Windows\System32\cmd.exe")]
+    public void IsShellTarget_CmdExe_ReturnsTrue(string path)
+    {
+        Assert.True(InputValidator.IsShellTarget(path));
+    }
+
+    [Theory]
+    [InlineData("script.bat")]
+    [InlineData("DEPLOY.BAT")]
+    [InlineData(@"C:\scripts\run.cmd")]
+    [InlineData("setup.CMD")]
+    public void IsShellTarget_BatchFiles_ReturnsTrue(string path)
+    {
+        Assert.True(InputValidator.IsShellTarget(path));
+    }
+
+    [Theory]
+    [InlineData("powershell.exe")]
+    [InlineData("pwsh.exe")]
+    [InlineData("powershell")]
+    [InlineData("pwsh")]
+    [InlineData(@"C:\Program Files\PowerShell\7\pwsh.exe")]
+    public void IsShellTarget_PowerShell_ReturnsTrue(string path)
+    {
+        Assert.True(InputValidator.IsShellTarget(path));
+    }
+
+    [Theory]
+    [InlineData("bash.exe")]
+    [InlineData("bash")]
+    [InlineData("sh.exe")]
+    [InlineData("sh")]
+    [InlineData("zsh.exe")]
+    [InlineData("wsl.exe")]
+    [InlineData("wsl")]
+    [InlineData(@"C:\Windows\System32\wsl.exe")]
+    public void IsShellTarget_UnixShellsAndWsl_ReturnsTrue(string path)
+    {
+        Assert.True(InputValidator.IsShellTarget(path));
+    }
+
+    [Theory]
+    [InlineData("cscript.exe")]
+    [InlineData("wscript.exe")]
+    [InlineData("mshta.exe")]
+    [InlineData("cscript")]
+    [InlineData(@"C:\Windows\System32\cscript.exe")]
+    public void IsShellTarget_WindowsScriptHosts_ReturnsTrue(string path)
+    {
+        Assert.True(InputValidator.IsShellTarget(path));
+    }
+
+    [Theory]
+    [InlineData("script.ps1")]
+    [InlineData("deploy.vbs")]
+    [InlineData("build.js")]
+    [InlineData("task.wsf")]
+    [InlineData("app.hta")]
+    [InlineData(@"C:\scripts\run.ps1")]
+    [InlineData(@"C:\tools\panel.hta")]
+    public void IsShellTarget_ScriptExtensions_ReturnsTrue(string path)
+    {
+        Assert.True(InputValidator.IsShellTarget(path));
+    }
+
+    [Theory]
+    [InlineData("putty.exe")]
+    [InlineData("winscp.exe")]
+    [InlineData("keepassxc-cli.exe")]
+    [InlineData(@"C:\tools\ping.exe")]
+    [InlineData("nslookup.exe")]
+    [InlineData("tracert.exe")]
+    [InlineData("bw.exe")]
+    [InlineData("op.exe")]
+    public void IsShellTarget_RegularExe_ReturnsFalse(string path)
+    {
+        Assert.False(InputValidator.IsShellTarget(path));
+    }
 }

@@ -4007,6 +4007,7 @@
   "A11yCollapseTunnelPanel": "R\u00e9duire le panneau des tunnels",
   "A11yCloseTunnel": "Fermer le tunnel",
   "A11yBrowseExecutable": "Parcourir pour trouver l'ex\u00e9cutable",
+  "A11yBrowseWorkDir": "Parcourir pour le r\u00e9pertoire de travail",
   "A11yBrowseEditorPath": "Parcourir pour l'\u00e9diteur externe",
   "A11yBrowsePlinkPath": "Parcourir pour l'ex\u00e9cutable Plink",
   "A11yBrowseX11Path": "Parcourir pour le serveur X11",

@@ -429,6 +429,7 @@ public partial class MainWindow : Window
         Mw_ExtToolLblWorkDir.Text = vm.Localize("ExternalToolLabelWorkDir");
         Mw_ExtToolChkAdmin.Content = vm.Localize("ExternalToolRunAsAdmin");
         Mw_ExtToolChkHidden.Content = vm.Localize("ExternalToolRunHidden");
+        PopulateExtToolPlaceholderList(vm);
 
         Mw_SettingsSaveBtn.Content = vm.Localize("SettingsBtnSaveSettings");
         Mw_SettingsResetBtn.Content = vm.Localize("SettingsBtnResetDefaults");
@@ -2602,6 +2603,44 @@ public partial class MainWindow : Window
         {
             vm.Settings.SelectedExternalTool.ExecutablePath = dialog.FileName;
             vm.Settings.IsDirty = true;
+        }
+    }
+
+    private void OnExtToolWorkDirBrowseClick(object sender, RoutedEventArgs e)
+    {
+        var dialog = new Microsoft.Win32.OpenFolderDialog();
+
+        if (dialog.ShowDialog(this) == true && DataContext is MainViewModel vm
+            && vm.Settings.SelectedExternalTool is not null)
+        {
+            vm.Settings.SelectedExternalTool.WorkingDirectory = dialog.FolderName;
+            vm.Settings.IsDirty = true;
+        }
+    }
+
+    private void PopulateExtToolPlaceholderList(MainViewModel vm)
+    {
+        Mw_ExtToolPlaceholderList.Items.Clear();
+        foreach (var (variable, descKey) in Core.Configuration.ExternalToolDefinition.SupportedPlaceholders)
+        {
+            var panel = new StackPanel { Orientation = System.Windows.Controls.Orientation.Horizontal, Margin = new Thickness(0, 0, 12, 2) };
+            panel.Children.Add(new TextBlock
+            {
+                Text = variable,
+                FontFamily = new System.Windows.Media.FontFamily("Consolas"),
+                FontSize = (double)FindResource("FontSizeCaption"),
+                Foreground = (System.Windows.Media.Brush)FindResource("AccentBrush"),
+                VerticalAlignment = VerticalAlignment.Center
+            });
+            panel.Children.Add(new TextBlock
+            {
+                Text = $" \u2014 {vm.Localize(descKey)}",
+                FontSize = (double)FindResource("FontSizeCaption"),
+                Foreground = (System.Windows.Media.Brush)FindResource("TextSecondaryBrush"),
+                Opacity = 0.8,
+                VerticalAlignment = VerticalAlignment.Center
+            });
+            Mw_ExtToolPlaceholderList.Items.Add(panel);
         }
     }
 

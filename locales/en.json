@@ -4008,6 +4008,7 @@
   "A11yCollapseTunnelPanel": "Collapse tunnel panel",
   "A11yCloseTunnel": "Close tunnel",
   "A11yBrowseExecutable": "Browse for executable",
+  "A11yBrowseWorkDir": "Browse for working directory",
   "A11yBrowseEditorPath": "Browse for external editor",
   "A11yBrowsePlinkPath": "Browse for plink executable",
   "A11yBrowseX11Path": "Browse for X11 server",

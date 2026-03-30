@@ -246,6 +246,49 @@ public static class InputValidator
     }
 
     /// <summary>
+    /// Returns <c>true</c> when <paramref name="executablePath"/> points to a
+    /// shell interpreter or script host whose argument parsing would expand
+    /// metacharacters (<c>%</c>, <c>^</c>, <c>()</c>, <c>!</c>, etc.).
+    /// Covers cmd.exe, PowerShell, WSL, Unix shells (bash/sh/zsh),
+    /// Windows Script Host (cscript/wscript/mshta), and their associated
+    /// script extensions (.bat, .cmd, .ps1, .vbs, .js, .wsf, .hta).
+    /// Returns <c>true</c> for null/empty paths as a safe default.
+    /// </summary>
+    public static bool IsShellTarget(string? executablePath)
+    {
+        if (string.IsNullOrWhiteSpace(executablePath)) return true;
+
+        var fileName = Path.GetFileName(executablePath.AsSpan());
+        if (fileName.IsEmpty) return true;
+
+        // Script files executed by a shell/interpreter via file association
+        if (fileName.EndsWith(".bat", StringComparison.OrdinalIgnoreCase)
+            || fileName.EndsWith(".cmd", StringComparison.OrdinalIgnoreCase)
+            || fileName.EndsWith(".ps1", StringComparison.OrdinalIgnoreCase)
+            || fileName.EndsWith(".vbs", StringComparison.OrdinalIgnoreCase)
+            || fileName.EndsWith(".js", StringComparison.OrdinalIgnoreCase)
+            || fileName.EndsWith(".wsf", StringComparison.OrdinalIgnoreCase)
+            || fileName.EndsWith(".hta", StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        // Shell interpreters and script hosts (with and without .exe)
+        ReadOnlySpan<char> stem = fileName.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)
+            ? fileName[..^4]
+            : fileName;
+
+        return stem.Equals("cmd", StringComparison.OrdinalIgnoreCase)
+            || stem.Equals("powershell", StringComparison.OrdinalIgnoreCase)
+            || stem.Equals("pwsh", StringComparison.OrdinalIgnoreCase)
+            || stem.Equals("bash", StringComparison.OrdinalIgnoreCase)
+            || stem.Equals("sh", StringComparison.OrdinalIgnoreCase)
+            || stem.Equals("zsh", StringComparison.OrdinalIgnoreCase)
+            || stem.Equals("wsl", StringComparison.OrdinalIgnoreCase)
+            || stem.Equals("cscript", StringComparison.OrdinalIgnoreCase)
+            || stem.Equals("wscript", StringComparison.OrdinalIgnoreCase)
+            || stem.Equals("mshta", StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
     /// Compile a regex pattern with timeout protection against ReDoS.
     /// </summary>
     private static Regex CompilePattern(string pattern)
