@@ -3551,6 +3551,8 @@
   "ToolNetMapStatusScanning": "Scanning {0}: {1}/{2} ports",
   "ToolNetMapStatusComplete": "Scan complete: {0} hosts, {1} services, {2} roles in {3}",
   "ToolNetMapColIp": "IP Address",
+  "ToolNetMapColMac": "MAC Address",
+  "ToolNetMapColLatency": "Latency",
   "ToolNetMapExportHeader": "IP Address,Hostname,OS,Open Ports,Services,TLS_Version,Cert_Subject,Cert_Expires,Cert_Algorithm,Cert_Status,Role,Confidence,NetBIOS_Name,NetBIOS_Domain,SNMP_SysName,SNMP_SysDescr,SNMP_SysLocation,SNMP_ObjectID,mDNS_Services,Manufacturer,VLAN,SSDP_Device,NTLM_DNS,NTLM_Domain,NTLM_Build,SSH_HASSH,Favicon_Hash",
   "ToolNetMapColHostname": "Hostname",
   "ToolNetMapColPorts": "Open Ports",

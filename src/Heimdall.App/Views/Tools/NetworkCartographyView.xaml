@@ -211,6 +211,9 @@
                 <DataGrid.Columns>
                     <DataGridTextColumn x:Name="ColIp" Binding="{Binding IpAddress}" Width="110"
                                         Foreground="{DynamicResource TextPrimaryBrush}"/>
+                    <DataGridTextColumn x:Name="ColMac" Binding="{Binding MacAddress}" Width="130"
+                                        ElementStyle="{StaticResource DataGridCellTextStyle}"
+                                        Foreground="{DynamicResource TextSecondaryBrush}"/>
                     <DataGridTextColumn x:Name="ColHostname" Binding="{Binding Hostname}" Width="*"
                                         MinWidth="100"
                                         ElementStyle="{StaticResource DataGridCellTextStyle}"
@@ -221,6 +224,8 @@
                     <DataGridTextColumn x:Name="ColConfidence" Binding="{Binding Confidence}" Width="70"
                                         Foreground="{DynamicResource TextSecondaryBrush}"/>
                     <DataGridTextColumn x:Name="ColOs" Binding="{Binding OsGuess}" Width="100"
+                                        Foreground="{DynamicResource TextSecondaryBrush}"/>
+                    <DataGridTextColumn x:Name="ColLatency" Binding="{Binding Latency}" Width="60"
                                         Foreground="{DynamicResource TextSecondaryBrush}"/>
                     <DataGridTextColumn x:Name="ColPorts" Binding="{Binding PortSummary}" Width="*"
                                         MinWidth="100"

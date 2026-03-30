@@ -3550,6 +3550,8 @@
   "ToolNetMapStatusScanning": "Scan de {0} : {1}/{2} ports",
   "ToolNetMapStatusComplete": "Scan termin\u00e9 : {0} h\u00f4tes, {1} services, {2} r\u00f4les en {3}",
   "ToolNetMapColIp": "Adresse IP",
+  "ToolNetMapColMac": "Adresse MAC",
+  "ToolNetMapColLatency": "Latence",
   "ToolNetMapExportHeader": "Adresse IP,Nom d'h\u00f4te,OS,Ports ouverts,Services,Version TLS,Sujet Cert,Expiration Cert,Algo Cert,Statut Cert,R\u00f4le,Confiance,Nom NetBIOS,Domaine NetBIOS,Nom SNMP,Descr SNMP,Localisation SNMP,SNMP ObjectID,Services mDNS,Fabricant,VLAN,\u00c9quipement SSDP,NTLM DNS,NTLM Domaine,NTLM Build,SSH HASSH,Favicon Hash",
   "ToolNetMapColHostname": "Nom d'h\u00f4te",
   "ToolNetMapColPorts": "Ports ouverts",
