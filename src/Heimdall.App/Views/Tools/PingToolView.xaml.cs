@@ -869,6 +869,9 @@ public partial class PingToolView : UserControl, IToolView
         }
 
         _disposed = true;
+        TxtHost.KeyDown -= OnHostKeyDown;
+        if (_pingTimer is not null)
+            _pingTimer.Tick -= OnPingTimerTick;
         StopPing();
         GC.SuppressFinalize(this);
     }

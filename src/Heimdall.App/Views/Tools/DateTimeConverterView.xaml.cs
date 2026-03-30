@@ -371,6 +371,7 @@ public partial class DateTimeConverterView : UserControl, IToolView
 
     public void Dispose()
     {
+        TxtInput.KeyDown -= OnInputKeyDown;
         if (_debounceTimer is not null)
         {
             _debounceTimer.Stop();

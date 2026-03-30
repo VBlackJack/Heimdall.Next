@@ -624,6 +624,8 @@ public partial class ArpMonitorView : UserControl, IToolView
         }
 
         _disposed = true;
+        if (_refreshTimer is not null)
+            _refreshTimer.Tick -= OnTimerTick;
         StopMonitoring();
         GC.SuppressFinalize(this);
     }

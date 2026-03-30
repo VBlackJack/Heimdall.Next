@@ -199,6 +199,8 @@ public partial class HackerSimulatorView : UserControl, IToolView
         _disposed = true;
         if (_localizer != null)
             _localizer.LocaleChanged -= OnLocaleChanged;
+        TerminalGrid.PreviewMouseRightButtonDown -= OnTerminalPreviewRightClick;
+        TerminalGrid.PreviewMouseLeftButtonDown -= OnTerminalPreviewMouseDown;
         StopScenario();
         StopVintageMonitorFlicker();
         GC.SuppressFinalize(this);

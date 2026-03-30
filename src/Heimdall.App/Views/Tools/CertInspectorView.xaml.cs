@@ -1206,6 +1206,10 @@ public partial class CertInspectorView : UserControl, IToolView
     {
         if (_disposed) return;
         _disposed = true;
+        TxtHost.KeyDown -= OnInputKeyDown;
+        TxtPort.KeyDown -= OnInputKeyDown;
+        TxtCustomPorts.KeyDown -= OnInputKeyDown;
+        TxtPort.TextChanged -= OnPortTextChanged;
         _setBusy?.Invoke(false);
         _cts?.Cancel();
         _cts?.Dispose();

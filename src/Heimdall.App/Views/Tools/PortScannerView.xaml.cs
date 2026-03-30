@@ -783,6 +783,11 @@ public partial class PortScannerView : UserControl, IToolView
         }
 
         _disposed = true;
+        TxtHost.KeyDown -= OnHostKeyDown;
+        TxtPorts.KeyDown -= OnHostKeyDown;
+        ResultsGrid.PreviewMouseRightButtonDown -= ToolContextMenuHelper.SelectRowOnRightClick;
+        ResultsGrid.ContextMenuOpening -= OnResultsContextMenuOpening;
+        SizeChanged -= OnViewSizeChanged;
         StopScan();
         GC.SuppressFinalize(this);
     }

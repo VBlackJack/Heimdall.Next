@@ -489,6 +489,10 @@ public partial class TextDiffView : UserControl, IToolView
 
     public void Dispose()
     {
+        OriginalText.PreviewKeyDown -= OnDiffInputPreviewKeyDown;
+        ModifiedText.PreviewKeyDown -= OnDiffInputPreviewKeyDown;
+        OriginalText.TextChanged -= OnAutoCompareTextChanged;
+        ModifiedText.TextChanged -= OnAutoCompareTextChanged;
         _autoCompareTimer?.Stop();
         _autoCompareTimer = null;
         _unifiedDiff = string.Empty;

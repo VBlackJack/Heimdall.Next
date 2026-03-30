@@ -629,9 +629,9 @@ public partial class DefaultCredentialView : UserControl, IToolView
 
             var status = accepted ? "default" : "changed";
             var statusText = accepted ? L("ToolDefCredStatusDefault") : L("ToolDefCredStatusChanged");
-            var detail = accepted
-                ? service + " " + L("ToolDefCredDetailAccepted")
-                : service + " " + L("ToolDefCredDetailRejected");
+            var detail = string.Format(
+                L(accepted ? "ToolDefCredDetailAccepted" : "ToolDefCredDetailRejected"),
+                service);
 
             return new CredTestResult
             {

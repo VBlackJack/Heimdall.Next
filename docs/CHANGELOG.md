@@ -12,6 +12,26 @@
 
 All notable changes to Heimdall.Next are documented in this file.
 
+## [v2026.033006] - 2026-03-30
+
+### UX audit remediation — Dispose memory leaks, i18n format strings
+
+#### Memory Leak Fixes
+- **18 tool views**: added event handler unsubscription (`-=`) in `Dispose()` for all subscriptions (`+=`) made in constructors — prevents views from being retained in memory after tab closure
+- Affected views: ArpMonitor, Base64, CertInspector, CrontabBuilder, DateTimeConverter, HackerSimulator, HttpStatusCodes, IpConverter, NetworkCalculator, NetworkCartography, Notes, Ping, PortScanner, ServiceStatus, SubnetCalculator, TextCaseConverter, TextDiff, MilkdownEditor
+- Timer cleanup: `Tick -= handler` added before `Stop()` on all `DispatcherTimer` fields (Arp, Ping, ServiceStatus, HackerSimulator, TextDiff, DateTimeConverter)
+- WebView2 cleanup: `NavigationStarting` and `WebMessageReceived` unsubscribed with null guard in MilkdownEditorControl
+
+#### i18n
+- **DefaultCredentialView**: replaced string concatenation (`service + " " + L(key)`) with proper `string.Format(L(key), service)` for RTL-safe formatting
+- Updated locale keys `ToolDefCredDetailAccepted` and `ToolDefCredDetailRejected` to use `{0}` placeholder (EN + FR)
+
+#### Housekeeping
+- Tests: 1,714 passing (unchanged)
+- i18n: 4,685 keys (EN/FR parity maintained)
+
+---
+
 ## [v2026.033005] - 2026-03-30
 
 ### Security audit remediation — context-aware sanitization, external tools, a11y
