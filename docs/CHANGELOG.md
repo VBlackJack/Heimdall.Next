@@ -12,6 +12,31 @@
 
 All notable changes to Heimdall.Next are documented in this file.
 
+## [v2026.033004] - 2026-03-30
+
+### Network Cartography — multi-probe discovery, new columns, SNMP OID classifier
+
+#### Discovery Pipeline
+- ARP table seeded before ping sweep: hosts known to the OS bypass ICMP
+- Multi-probe fallback for undiscovered IPs: reverse DNS + NetBIOS Name Service + TCP connect on 5 key ports (22, 80, 443, 445, 3389)
+- Filter empty hosts: `HostScanResult.HasMeaningfulData` removes IPs with no ports, hostname, role, or metadata from both display and CSV export
+
+#### DataGrid & Export
+- New **MAC Address** column (after IP)
+- New **Latency** column (after OS, shows ping round-trip in ms)
+- CSV export filters out empty hosts (no more 238 phantom rows on a /24)
+
+#### SNMP Enterprise OID Classifier
+- Cisco: routers (1.3.6.1.4.1.9.1), Catalyst switches (9.5), switches (9.6) — confidence 80-85%
+- Juniper, MikroTik, Fortinet, Palo Alto, VMware, Microsoft OID branches
+- Boosts role classification confidence on OID match
+
+#### Housekeeping
+- i18n: +2 keys (4,452 total, EN/FR parity)
+- Tests: 1,610 passing
+
+---
+
 ## [v2026.033003] - 2026-03-30
 
 ### UX audit fixes, CIDR auto-detection, and scan timeout resilience
