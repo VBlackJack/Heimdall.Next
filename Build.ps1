@@ -369,10 +369,16 @@ if (($Publish -or $DryRun) -and $Mode -eq 'Release') {
         Write-Host "[$label] Dry run complete. No changes made to git or GitHub." -ForegroundColor Magenta
     } else {
         # Commit version bump + push
+        # git writes progress to stderr which PowerShell treats as a terminating
+        # error under $ErrorActionPreference = 'Stop'. Temporarily relax to
+        # Continue so $LASTEXITCODE is the sole success indicator.
         Write-Host "[$label] Committing version bump..." -ForegroundColor DarkGray
+        $prevEAP = $ErrorActionPreference
+        $ErrorActionPreference = 'Continue'
         & git add $AppProject 2>$null
         & git commit -m "release: v${buildNumber}" 2>$null
         & git push 2>$null
+        $ErrorActionPreference = $prevEAP
         if ($LASTEXITCODE -ne 0) {
             Write-Host "[!] Git push failed. Create the release manually." -ForegroundColor DarkYellow
         } else {
