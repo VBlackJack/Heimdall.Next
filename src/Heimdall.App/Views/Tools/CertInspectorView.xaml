@@ -37,8 +37,7 @@
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
                         Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"
-                        TabIndex="11"
-                        AutomationProperties.Name=""/>
+                        TabIndex="11"/>
                 <TextBlock x:Name="HeaderTitle" Text=""
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
@@ -54,8 +53,7 @@
                         Click="OnCloseHelpClick"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
                         VerticalAlignment="Top" Width="24" Height="24"
-                        TabIndex="12"
-                        AutomationProperties.Name=""/>
+                        TabIndex="12"/>
                 <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
                     <TextBlock x:Name="TxtHelpContent" Text="" TextWrapping="Wrap"
                                FontSize="{StaticResource FontSizeBody}"
@@ -75,18 +73,15 @@
                 <Button x:Name="BtnProfileQuick" Click="OnProfileClick" Tag="quick"
                         Style="{DynamicResource PrimaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonPreset}" Margin="0,0,4,0" FontSize="{StaticResource FontSizeCaption}"
-                        TabIndex="4"
-                        AutomationProperties.Name=""/>
+                        TabIndex="4"/>
                 <Button x:Name="BtnProfileExtended" Click="OnProfileClick" Tag="extended"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonPreset}" Margin="0,0,4,0" FontSize="{StaticResource FontSizeCaption}"
-                        TabIndex="5"
-                        AutomationProperties.Name=""/>
+                        TabIndex="5"/>
                 <Button x:Name="BtnProfileCustom" Click="OnProfileClick" Tag="custom"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonPreset}" Margin="0,0,4,0" FontSize="{StaticResource FontSizeCaption}"
-                        TabIndex="6"
-                        AutomationProperties.Name=""/>
+                        TabIndex="6"/>
                 <TextBox x:Name="TxtCustomPorts" Visibility="Collapsed"
                          Width="260"
                          Style="{StaticResource WatermarkTextBoxStyle}"
@@ -97,19 +92,16 @@
                          Foreground="{DynamicResource TextPrimaryBrush}"
                          BorderBrush="{DynamicResource BorderBrush}"
                          VerticalAlignment="Center"
-                         TabIndex="7"
-                         AutomationProperties.Name=""/>
+                         TabIndex="7"/>
             </StackPanel>
         </Border>
 
         <!-- Progress bar with percentage overlay (scan mode) -->
         <Grid x:Name="ScanProgressPanel" Grid.Row="3" Visibility="Collapsed">
             <ProgressBar x:Name="ScanProgress"
-                         Height="20" Minimum="0" Maximum="100"
+                         Style="{StaticResource ToolDeterminateProgressBarStyle}"
                          IsIndeterminate="False"
-                         Foreground="{DynamicResource AccentBrush}"
-                         Background="{DynamicResource SurfaceBrush}"
-                         AutomationProperties.Name=""/>
+                         Background="{DynamicResource SurfaceBrush}"/>
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
                 <TextBlock x:Name="TxtProgressPercent" Text="0%"
                            FontSize="{StaticResource FontSizeCaption}" FontWeight="SemiBold"
@@ -136,8 +128,7 @@
                             Style="{DynamicResource PrimaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginInlineControl}"
                             VerticalAlignment="Center"
-                            TabIndex="2"
-                            AutomationProperties.Name=""/>
+                            TabIndex="2"/>
                     <TextBox x:Name="TxtPort" DockPanel.Dock="Right"
                              Text="" Width="70"
                              Style="{StaticResource WatermarkTextBoxStyle}"
@@ -148,8 +139,7 @@
                              Foreground="{DynamicResource TextPrimaryBrush}"
                              BorderBrush="{DynamicResource BorderBrush}"
                              VerticalAlignment="Center"
-                             TabIndex="1"
-                             AutomationProperties.Name=""/>
+                             TabIndex="1"/>
                     <TextBlock DockPanel.Dock="Right" Text=":"
                                FontSize="{StaticResource FontSizeBodyLarge}" Margin="4,0,0,0"
                                Foreground="{DynamicResource TextSecondaryBrush}"
@@ -163,8 +153,7 @@
                              Foreground="{DynamicResource TextPrimaryBrush}"
                              BorderBrush="{DynamicResource BorderBrush}"
                              VerticalAlignment="Center"
-                             TabIndex="0"
-                             AutomationProperties.Name=""/>
+                             TabIndex="0"/>
                 </DockPanel>
 
                 <!-- Route via gateway -->
@@ -179,8 +168,7 @@
                               Foreground="{DynamicResource TextPrimaryBrush}"
                               BorderBrush="{DynamicResource BorderBrush}"
                               VerticalAlignment="Center"
-                              TabIndex="3"
-                              AutomationProperties.Name=""/>
+                              TabIndex="3"/>
                 </DockPanel>
 
                 <!-- Error message -->
@@ -194,16 +182,14 @@
                         Margin="0,24,0,0">
                     <StackPanel HorizontalAlignment="Center">
                         <TextBlock Text="&#xEB95;" Style="{StaticResource ToolEmptyStateIconStyle}"
-                                   AutomationProperties.Name=""/>
+                                   Focusable="False"/>
                         <TextBlock x:Name="TxtEmptyState" Text=""
                                    Style="{StaticResource ToolEmptyStateTextStyle}"/>
                     </StackPanel>
                 </Border>
 
                 <!-- Loading indicator (single port mode) -->
-                <ProgressBar x:Name="LoadingBar" IsIndeterminate="True"
-                             Visibility="Collapsed" Height="4" Margin="{StaticResource MarginSectionBottom}"
-                             AutomationProperties.Name=""/>
+                <ProgressBar x:Name="LoadingBar" Style="{StaticResource ToolLoadingBarStyle}"/>
 
                 <!-- ===== Single-port result panels ===== -->
                 <StackPanel x:Name="SingleResultPanel" Visibility="Collapsed">
@@ -366,8 +352,7 @@
                             Style="{DynamicResource SecondaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginSectionTop}"
                             HorizontalAlignment="Left"
-                            TabIndex="8"
-                            AutomationProperties.Name=""/>
+                            TabIndex="8"/>
                 </StackPanel>
 
                 <!-- ===== Multi-port scan results ===== -->
@@ -534,14 +519,12 @@
                                 Click="OnExportCsvClick"
                                 Style="{DynamicResource SecondaryButtonStyle}"
                                 Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginInlineControl}"
-                                TabIndex="10"
-                                AutomationProperties.Name=""/>
+                                TabIndex="10"/>
                         <Button x:Name="BtnCopyAll" DockPanel.Dock="Right"
                                 Click="OnCopyAllClick"
                                 Style="{DynamicResource SecondaryButtonStyle}"
                                 Padding="{StaticResource PaddingButtonCopy}"
-                                TabIndex="9"
-                                AutomationProperties.Name=""/>
+                                TabIndex="9"/>
                         <TextBlock x:Name="TxtScanSummary" Text=""
                                    FontSize="{StaticResource FontSizeBody}"
                                    Foreground="{DynamicResource TextSecondaryBrush}"

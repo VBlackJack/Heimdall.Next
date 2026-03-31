@@ -35,8 +35,7 @@
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
                         Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"
-                        TabIndex="6"
-                        AutomationProperties.Name=""/>
+                        TabIndex="6"/>
                 <TextBlock x:Name="HeaderTitle" Text=""
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
@@ -52,8 +51,7 @@
                         Click="OnCloseHelpClick"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
                         VerticalAlignment="Top" Width="24" Height="24"
-                        TabIndex="7"
-                        AutomationProperties.Name=""/>
+                        TabIndex="7"/>
                 <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
                     <TextBlock x:Name="TxtHelpContent" Text="" TextWrapping="Wrap"
                                FontSize="{StaticResource FontSizeBody}"
@@ -80,8 +78,7 @@
                          Foreground="{DynamicResource TextPrimaryBrush}"
                          BorderBrush="{DynamicResource BorderBrush}"
                          VerticalAlignment="Center"
-                         TabIndex="0"
-                         AutomationProperties.Name=""/>
+                         TabIndex="0"/>
 
                 <!-- Error message -->
                 <TextBlock x:Name="TxtError" Text="" Visibility="Collapsed"
@@ -94,7 +91,7 @@
                         Margin="0,24,0,0">
                     <StackPanel HorizontalAlignment="Center">
                         <TextBlock Text="&#xE968;" Style="{StaticResource ToolEmptyStateIconStyle}"
-                                   AutomationProperties.Name=""/>
+                                   Focusable="False"/>
                         <TextBlock x:Name="TxtEmptyState" Text=""
                                    Style="{StaticResource ToolEmptyStateTextStyle}"/>
                     </StackPanel>
@@ -134,8 +131,7 @@
                         <Button x:Name="BtnCopyDotted" Grid.Row="0" Grid.Column="3" Click="OnCopyValueClick"
                                 Tag="Dotted" Style="{DynamicResource SecondaryButtonStyle}"
                                 Padding="{StaticResource PaddingButtonHelp}" Margin="{StaticResource MarginInlineControl}" FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center"
-                                TabIndex="1"
-                                AutomationProperties.Name=""/>
+                                TabIndex="1"/>
 
                         <!-- Row 2: Decimal (Integer) -->
                         <TextBlock x:Name="LblDecimal" Grid.Row="2" Grid.Column="0" Text=""
@@ -145,8 +141,7 @@
                         <Button x:Name="BtnCopyDecimal" Grid.Row="2" Grid.Column="3" Click="OnCopyValueClick"
                                 Tag="Decimal" Style="{DynamicResource SecondaryButtonStyle}"
                                 Padding="{StaticResource PaddingButtonHelp}" Margin="{StaticResource MarginInlineControl}" FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center"
-                                TabIndex="2"
-                                AutomationProperties.Name=""/>
+                                TabIndex="2"/>
 
                         <!-- Row 4: Hexadecimal -->
                         <TextBlock x:Name="LblHex" Grid.Row="4" Grid.Column="0" Text=""
@@ -156,8 +151,7 @@
                         <Button x:Name="BtnCopyHex" Grid.Row="4" Grid.Column="3" Click="OnCopyValueClick"
                                 Tag="Hex" Style="{DynamicResource SecondaryButtonStyle}"
                                 Padding="{StaticResource PaddingButtonHelp}" Margin="{StaticResource MarginInlineControl}" FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center"
-                                TabIndex="3"
-                                AutomationProperties.Name=""/>
+                                TabIndex="3"/>
 
                         <!-- Row 6: Binary -->
                         <TextBlock x:Name="LblBinary" Grid.Row="6" Grid.Column="0" Text=""
@@ -168,8 +162,7 @@
                         <Button x:Name="BtnCopyBinary" Grid.Row="6" Grid.Column="3" Click="OnCopyValueClick"
                                 Tag="Binary" Style="{DynamicResource SecondaryButtonStyle}"
                                 Padding="{StaticResource PaddingButtonHelp}" Margin="{StaticResource MarginInlineControl}" FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center"
-                                TabIndex="4"
-                                AutomationProperties.Name=""/>
+                                TabIndex="4"/>
 
                         <!-- Row 8: Mapped IPv6 -->
                         <TextBlock x:Name="LblMappedIpv6" Grid.Row="8" Grid.Column="0" Text=""
@@ -179,8 +172,7 @@
                         <Button x:Name="BtnCopyIpv6" Grid.Row="8" Grid.Column="3" Click="OnCopyValueClick"
                                 Tag="Ipv6" Style="{DynamicResource SecondaryButtonStyle}"
                                 Padding="{StaticResource PaddingButtonHelp}" Margin="{StaticResource MarginInlineControl}" FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center"
-                                TabIndex="5"
-                                AutomationProperties.Name=""/>
+                                TabIndex="5"/>
                     </Grid>
                 </Border>
 

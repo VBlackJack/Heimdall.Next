@@ -35,8 +35,7 @@
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
                         Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"
-                        TabIndex="20"
-                        AutomationProperties.Name=""/>
+                        TabIndex="20"/>
                 <TextBlock x:Name="HeaderTitle" FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
                            VerticalAlignment="Center"/>
@@ -51,8 +50,7 @@
                         Click="OnCloseHelpClick"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
                         VerticalAlignment="Top" Width="24" Height="24"
-                        TabIndex="21"
-                        AutomationProperties.Name=""/>
+                        TabIndex="21"/>
                 <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
                     <TextBlock x:Name="TxtHelpContent" Text="" TextWrapping="Wrap"
                                FontSize="{StaticResource FontSizeBody}"
@@ -106,18 +104,15 @@
             <CheckBox x:Name="ChkOwnerR" Grid.Row="1" Grid.Column="1"
                       HorizontalAlignment="Center"
                       Checked="OnPermissionChanged" Unchecked="OnPermissionChanged"
-                      TabIndex="0"
-                      AutomationProperties.Name=""/>
+                      TabIndex="0"/>
             <CheckBox x:Name="ChkOwnerW" Grid.Row="1" Grid.Column="2"
                       HorizontalAlignment="Center"
                       Checked="OnPermissionChanged" Unchecked="OnPermissionChanged"
-                      TabIndex="1"
-                      AutomationProperties.Name=""/>
+                      TabIndex="1"/>
             <CheckBox x:Name="ChkOwnerX" Grid.Row="1" Grid.Column="3"
                       HorizontalAlignment="Center"
                       Checked="OnPermissionChanged" Unchecked="OnPermissionChanged"
-                      TabIndex="2"
-                      AutomationProperties.Name=""/>
+                      TabIndex="2"/>
 
             <!-- Group row -->
             <TextBlock x:Name="LabelGroup" Grid.Row="2" Grid.Column="0"
@@ -126,18 +121,15 @@
             <CheckBox x:Name="ChkGroupR" Grid.Row="2" Grid.Column="1"
                       HorizontalAlignment="Center"
                       Checked="OnPermissionChanged" Unchecked="OnPermissionChanged"
-                      TabIndex="3"
-                      AutomationProperties.Name=""/>
+                      TabIndex="3"/>
             <CheckBox x:Name="ChkGroupW" Grid.Row="2" Grid.Column="2"
                       HorizontalAlignment="Center"
                       Checked="OnPermissionChanged" Unchecked="OnPermissionChanged"
-                      TabIndex="4"
-                      AutomationProperties.Name=""/>
+                      TabIndex="4"/>
             <CheckBox x:Name="ChkGroupX" Grid.Row="2" Grid.Column="3"
                       HorizontalAlignment="Center"
                       Checked="OnPermissionChanged" Unchecked="OnPermissionChanged"
-                      TabIndex="5"
-                      AutomationProperties.Name=""/>
+                      TabIndex="5"/>
 
             <!-- Others row -->
             <TextBlock x:Name="LabelOthers" Grid.Row="3" Grid.Column="0"
@@ -146,18 +138,15 @@
             <CheckBox x:Name="ChkOthersR" Grid.Row="3" Grid.Column="1"
                       HorizontalAlignment="Center"
                       Checked="OnPermissionChanged" Unchecked="OnPermissionChanged"
-                      TabIndex="6"
-                      AutomationProperties.Name=""/>
+                      TabIndex="6"/>
             <CheckBox x:Name="ChkOthersW" Grid.Row="3" Grid.Column="2"
                       HorizontalAlignment="Center"
                       Checked="OnPermissionChanged" Unchecked="OnPermissionChanged"
-                      TabIndex="7"
-                      AutomationProperties.Name=""/>
+                      TabIndex="7"/>
             <CheckBox x:Name="ChkOthersX" Grid.Row="3" Grid.Column="3"
                       HorizontalAlignment="Center"
                       Checked="OnPermissionChanged" Unchecked="OnPermissionChanged"
-                      TabIndex="8"
-                      AutomationProperties.Name=""/>
+                      TabIndex="8"/>
         </Grid>
 
         <!-- Octal + Symbolic display -->
@@ -186,8 +175,7 @@
                          BorderThickness="0"
                          VerticalAlignment="Center"
                          TextChanged="OnOctalTextChanged"
-                         TabIndex="9"
-                         AutomationProperties.Name=""/>
+                         TabIndex="9"/>
 
                 <TextBlock x:Name="SymbolicLabel" Grid.Column="3"
                            Foreground="{DynamicResource TextSecondaryBrush}"
@@ -217,8 +205,7 @@
                          BorderThickness="0,0,0,1"
                          Padding="{StaticResource PaddingInput}"
                          KeyDown="OnSymbolicInputKeyDown"
-                         TabIndex="10"
-                         AutomationProperties.Name=""/>
+                         TabIndex="10"/>
                 <TextBlock x:Name="SymbolicInputError"
                            Foreground="{DynamicResource ErrorTextBrush}"
                            FontSize="{StaticResource FontSizeCaption}" Margin="0,2,0,0"
@@ -249,8 +236,7 @@
                         Click="OnCopyCommandClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginInlineControl}"
-                        TabIndex="11"
-                        AutomationProperties.Name=""/>
+                        TabIndex="11"/>
             </Grid>
         </Border>
 
@@ -259,13 +245,11 @@
             <Button x:Name="BtnCopyOctal" Click="OnCopyOctalClick"
                     Style="{DynamicResource SecondaryButtonStyle}"
                     Padding="{StaticResource PaddingButtonCopy}" Margin="0,0,8,0"
-                    TabIndex="12"
-                    AutomationProperties.Name=""/>
+                    TabIndex="12"/>
             <Button x:Name="BtnCopySymbolic" Click="OnCopySymbolicClick"
                     Style="{DynamicResource SecondaryButtonStyle}"
                     Padding="{StaticResource PaddingButtonCopy}"
-                    TabIndex="13"
-                    AutomationProperties.Name=""/>
+                    TabIndex="13"/>
         </StackPanel>
 
         <!-- Presets -->
@@ -278,28 +262,23 @@
                 <Button x:Name="BtnPreset644" Content="644" Click="OnPresetClick" Tag="644"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginButtonGroup}"
-                        TabIndex="14"
-                        AutomationProperties.Name=""/>
+                        TabIndex="14"/>
                 <Button x:Name="BtnPreset755" Content="755" Click="OnPresetClick" Tag="755"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginButtonGroup}"
-                        TabIndex="15"
-                        AutomationProperties.Name=""/>
+                        TabIndex="15"/>
                 <Button x:Name="BtnPreset600" Content="600" Click="OnPresetClick" Tag="600"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginButtonGroup}"
-                        TabIndex="16"
-                        AutomationProperties.Name=""/>
+                        TabIndex="16"/>
                 <Button x:Name="BtnPreset700" Content="700" Click="OnPresetClick" Tag="700"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginButtonGroup}"
-                        TabIndex="17"
-                        AutomationProperties.Name=""/>
+                        TabIndex="17"/>
                 <Button x:Name="BtnPreset777" Content="777" Click="OnPresetClick" Tag="777"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginButtonGroup}"
-                        TabIndex="18"
-                        AutomationProperties.Name=""/>
+                        TabIndex="18"/>
             </WrapPanel>
         </StackPanel>
         </Grid>

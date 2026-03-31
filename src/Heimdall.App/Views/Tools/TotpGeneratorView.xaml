@@ -35,8 +35,7 @@
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
-                        Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"
-                        AutomationProperties.Name=""/>
+                        Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"/>
                 <TextBlock x:Name="HeaderTitle" Text=""
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
@@ -51,8 +50,7 @@
                         FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeBody}"
                         Click="OnCloseHelpClick"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
-                        VerticalAlignment="Top" Width="24" Height="24"
-                        AutomationProperties.Name=""/>
+                        VerticalAlignment="Top" Width="24" Height="24"/>
                 <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
                     <TextBlock x:Name="TxtHelpContent" Text="" TextWrapping="Wrap"
                                FontSize="{StaticResource FontSizeBody}"
@@ -76,8 +74,7 @@
                             Content="" Click="OnGenerateClick"
                             Style="{DynamicResource PrimaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginInlineControl}"
-                            VerticalAlignment="Center"
-                            AutomationProperties.Name=""/>
+                            VerticalAlignment="Center"/>
                     <TextBox x:Name="TxtSecret" Text=""
                              TabIndex="0"
                              Style="{DynamicResource WatermarkTextBoxStyle}"
@@ -88,8 +85,7 @@
                              BorderBrush="{DynamicResource BorderBrush}"
                              Tag=""
                              KeyDown="OnInputKeyDown"
-                             VerticalAlignment="Center"
-                             AutomationProperties.Name=""/>
+                             VerticalAlignment="Center"/>
                 </DockPanel>
 
                 <!-- Error message -->
@@ -114,8 +110,7 @@
                                     Content="" Click="OnCopyClick"
                                     Style="{DynamicResource SecondaryButtonStyle}"
                                     Padding="{StaticResource PaddingButtonPrimary}" Margin="12,0,0,0"
-                                    VerticalAlignment="Center"
-                                    AutomationProperties.Name=""/>
+                                    VerticalAlignment="Center"/>
                             <TextBlock x:Name="TxtCode" Text="------"
                                        FontSize="{StaticResource IconSizeXLarge}" FontWeight="Bold"
                                        FontFamily="Consolas"
@@ -132,8 +127,7 @@
                                      Height="6" Width="300"
                                      Minimum="0" Maximum="30" Value="30"
                                      Foreground="{DynamicResource AccentBrush}"
-                                     Background="{DynamicResource SurfaceBrush}"
-                                     AutomationProperties.Name=""/>
+                                     Background="{DynamicResource SurfaceBrush}"/>
                     </StackPanel>
                 </Border>
 

@@ -36,14 +36,12 @@
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
                         Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"
-                        TabIndex="10"
-                        AutomationProperties.Name=""/>
+                        TabIndex="10"/>
                 <Button x:Name="BtnRefresh" DockPanel.Dock="Right"
                         Content="" Click="OnRefreshClick"
                         Style="{DynamicResource PrimaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginInlineControl}"
-                        TabIndex="1"
-                        AutomationProperties.Name=""/>
+                        TabIndex="1"/>
                 <TextBlock x:Name="HeaderTitle" Text=""
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
@@ -57,8 +55,7 @@
                          VerticalAlignment="Center"
                          Tag=""
                          TextChanged="OnFilterChanged"
-                         TabIndex="0"
-                         AutomationProperties.Name=""/>
+                         TabIndex="0"/>
             </DockPanel>
         </Border>
 
@@ -70,8 +67,7 @@
                         Click="OnCloseHelpClick"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
                         VerticalAlignment="Top" Width="24" Height="24"
-                        TabIndex="11"
-                        AutomationProperties.Name=""/>
+                        TabIndex="11"/>
                 <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
                     <TextBlock x:Name="TxtHelpContent" Text="" TextWrapping="Wrap"
                                FontSize="{StaticResource FontSizeBody}"
@@ -93,8 +89,7 @@
                   AlternatingRowBackground="{DynamicResource SurfaceBrush}"
                   BorderBrush="{DynamicResource BorderBrush}"
                   HorizontalGridLinesBrush="{DynamicResource BorderBrush}"
-                  FontSize="{StaticResource FontSizeBody}"
-                  AutomationProperties.Name="">
+                  FontSize="{StaticResource FontSizeBody}">
             <DataGrid.Columns>
                 <DataGridTextColumn x:Name="ColProtocol" Binding="{Binding Protocol}" Width="60"/>
                 <DataGridTextColumn x:Name="ColLocalAddress" Binding="{Binding LocalAddress}" Width="150"/>
@@ -123,8 +118,7 @@
                         Content="" Click="OnCopyClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginInlineControl}"
-                        TabIndex="5"
-                        AutomationProperties.Name=""/>
+                        TabIndex="5"/>
                 <TextBlock x:Name="TxtStatus" Text=""
                            FontSize="{StaticResource FontSizeSmallCaption}"
                            Foreground="{DynamicResource TextSecondaryBrush}"

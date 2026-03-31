@@ -35,8 +35,7 @@
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
                         Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"
-                        TabIndex="15"
-                        AutomationProperties.Name=""/>
+                        TabIndex="15"/>
                 <TextBlock x:Name="HeaderTitle" Text=""
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
@@ -52,8 +51,7 @@
                         Click="OnCloseHelpClick"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
                         VerticalAlignment="Top" Width="24" Height="24"
-                        TabIndex="16"
-                        AutomationProperties.Name=""/>
+                        TabIndex="16"/>
                 <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
                     <TextBlock x:Name="TxtHelpContent" Text="" TextWrapping="Wrap"
                                FontSize="{StaticResource FontSizeBody}"
@@ -78,8 +76,7 @@
                             Style="{DynamicResource SecondaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginInlineControl}"
                             VerticalAlignment="Stretch"
-                            TabIndex="1"
-                            AutomationProperties.Name=""/>
+                            TabIndex="1"/>
                     <TextBox x:Name="TxtInput" Text=""
                              Style="{DynamicResource WatermarkTextBoxStyle}"
                              FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
@@ -89,8 +86,7 @@
                              BorderBrush="{DynamicResource BorderBrush}"
                              Tag=""
                              TextChanged="OnInputTextChanged"
-                             TabIndex="0"
-                             AutomationProperties.Name=""/>
+                             TabIndex="0"/>
                 </DockPanel>
 
                 <!-- Detected format -->
@@ -104,7 +100,7 @@
                         Margin="0,24,0,0">
                     <StackPanel HorizontalAlignment="Center">
                         <TextBlock Text="&#xE787;" Style="{StaticResource ToolEmptyStateIconStyle}"
-                                   AutomationProperties.Name=""/>
+                                   Focusable="False"/>
                         <TextBlock x:Name="TxtEmptyState" Text=""
                                    Style="{StaticResource ToolEmptyStateTextStyle}"/>
                     </StackPanel>
@@ -121,15 +117,13 @@
                             Style="{DynamicResource SecondaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginInlineControl}"
                             VerticalAlignment="Stretch"
-                            TabIndex="2"
-                            AutomationProperties.Name=""/>
+                            TabIndex="2"/>
                     <TextBox x:Name="TxtUnixTimestamp" Text=""
                              FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
                              Padding="{StaticResource PaddingInput}" IsReadOnly="True"
                              Background="{DynamicResource CardBrush}"
                              Foreground="{DynamicResource AccentBrush}"
-                             BorderBrush="{DynamicResource BorderBrush}"
-                             AutomationProperties.Name=""/>
+                             BorderBrush="{DynamicResource BorderBrush}"/>
                 </DockPanel>
 
                 <!-- ISO 8601 UTC -->
@@ -142,15 +136,13 @@
                             Style="{DynamicResource SecondaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginInlineControl}"
                             VerticalAlignment="Stretch"
-                            TabIndex="3"
-                            AutomationProperties.Name=""/>
+                            TabIndex="3"/>
                     <TextBox x:Name="TxtIsoUtc" Text=""
                              FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
                              Padding="{StaticResource PaddingInput}" IsReadOnly="True"
                              Background="{DynamicResource CardBrush}"
                              Foreground="{DynamicResource AccentBrush}"
-                             BorderBrush="{DynamicResource BorderBrush}"
-                             AutomationProperties.Name=""/>
+                             BorderBrush="{DynamicResource BorderBrush}"/>
                 </DockPanel>
 
                 <!-- ISO 8601 Local -->
@@ -163,15 +155,13 @@
                             Style="{DynamicResource SecondaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginInlineControl}"
                             VerticalAlignment="Stretch"
-                            TabIndex="4"
-                            AutomationProperties.Name=""/>
+                            TabIndex="4"/>
                     <TextBox x:Name="TxtIsoLocal" Text=""
                              FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
                              Padding="{StaticResource PaddingInput}" IsReadOnly="True"
                              Background="{DynamicResource CardBrush}"
                              Foreground="{DynamicResource AccentBrush}"
-                             BorderBrush="{DynamicResource BorderBrush}"
-                             AutomationProperties.Name=""/>
+                             BorderBrush="{DynamicResource BorderBrush}"/>
                 </DockPanel>
 
                 <!-- Local time display -->
@@ -184,15 +174,13 @@
                             Style="{DynamicResource SecondaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginInlineControl}"
                             VerticalAlignment="Stretch"
-                            TabIndex="5"
-                            AutomationProperties.Name=""/>
+                            TabIndex="5"/>
                     <TextBox x:Name="TxtLocalTime" Text=""
                              FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
                              Padding="{StaticResource PaddingInput}" IsReadOnly="True"
                              Background="{DynamicResource CardBrush}"
                              Foreground="{DynamicResource AccentBrush}"
-                             BorderBrush="{DynamicResource BorderBrush}"
-                             AutomationProperties.Name=""/>
+                             BorderBrush="{DynamicResource BorderBrush}"/>
                 </DockPanel>
 
                 <!-- Timezone converter -->
@@ -205,23 +193,20 @@
                             Style="{DynamicResource SecondaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginInlineControl}"
                             VerticalAlignment="Stretch"
-                            TabIndex="7"
-                            AutomationProperties.Name=""/>
+                            TabIndex="7"/>
                     <ComboBox x:Name="CmbTimezone" MinWidth="200" MaxWidth="400"
                               VerticalAlignment="Center" DockPanel.Dock="Left" Margin="0,0,8,0"
                               Background="{DynamicResource CardBrush}"
                               Foreground="{DynamicResource TextPrimaryBrush}"
                               BorderBrush="{DynamicResource BorderBrush}"
                               SelectionChanged="OnTimezoneChanged"
-                              TabIndex="6"
-                              AutomationProperties.Name=""/>
+                              TabIndex="6"/>
                     <TextBox x:Name="TxtTzTime" Text=""
                              FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
                              Padding="{StaticResource PaddingInput}" IsReadOnly="True"
                              Background="{DynamicResource CardBrush}"
                              Foreground="{DynamicResource AccentBrush}"
-                             BorderBrush="{DynamicResource BorderBrush}"
-                             AutomationProperties.Name=""/>
+                             BorderBrush="{DynamicResource BorderBrush}"/>
                 </DockPanel>
 
                 <!-- Relative time -->

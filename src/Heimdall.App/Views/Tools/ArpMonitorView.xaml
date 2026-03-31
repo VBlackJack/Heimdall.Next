@@ -23,6 +23,7 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
@@ -38,45 +39,11 @@
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
                         Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"
-                        TabIndex="6"
-                        AutomationProperties.Name=""/>
+                        TabIndex="6"/>
                 <TextBlock x:Name="HeaderTitle" Text=""
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
                            VerticalAlignment="Center" DockPanel.Dock="Left"/>
-                <StackPanel Orientation="Horizontal" Margin="16,0,0,0" VerticalAlignment="Center">
-                    <Button x:Name="BtnToggle" Content=""
-                            Click="OnToggleClick"
-                            Style="{DynamicResource PrimaryButtonStyle}"
-                            Padding="{StaticResource PaddingButtonPrimary}"
-                            VerticalAlignment="Center"
-                            TabIndex="0"
-                            AutomationProperties.Name=""/>
-                    <Button x:Name="BtnScanNow" Content=""
-                            Click="OnScanNowClick"
-                            Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginInlineControl}"
-                            VerticalAlignment="Center"
-                            IsEnabled="False"
-                            TabIndex="1"
-                            AutomationProperties.Name=""/>
-                    <TextBlock x:Name="LblInterval" Text=""
-                               Foreground="{DynamicResource TextSecondaryBrush}"
-                               FontSize="{StaticResource FontSizeBody}" VerticalAlignment="Center" Margin="12,0,4,0"/>
-                    <ComboBox x:Name="CmbInterval" Width="80"
-                              SelectedIndex="1"
-                              VerticalAlignment="Center"
-                              Background="{DynamicResource CardBrush}"
-                              Foreground="{DynamicResource TextPrimaryBrush}"
-                              BorderBrush="{DynamicResource BorderBrush}"
-                              TabIndex="2"
-                              AutomationProperties.Name="">
-                        <ComboBoxItem x:Name="Interval5s" Content="" Tag="5000"/>
-                        <ComboBoxItem x:Name="Interval10s" Content="" Tag="10000"/>
-                        <ComboBoxItem x:Name="Interval30s" Content="" Tag="30000"/>
-                        <ComboBoxItem x:Name="Interval60s" Content="" Tag="60000"/>
-                    </ComboBox>
-                </StackPanel>
             </DockPanel>
         </Border>
 
@@ -88,8 +55,7 @@
                         Click="OnCloseHelpClick"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
                         VerticalAlignment="Top" Width="24" Height="24"
-                        TabIndex="7"
-                        AutomationProperties.Name=""/>
+                        TabIndex="7"/>
                 <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
                     <TextBlock x:Name="TxtHelpContent" Text="" TextWrapping="Wrap"
                                FontSize="{StaticResource FontSizeBody}"
@@ -99,8 +65,45 @@
             </DockPanel>
         </Border>
 
+        <!-- Input strip -->
+        <Border Grid.Row="2" Padding="{StaticResource ToolHeaderPadding}"
+                Background="{DynamicResource SurfaceBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="0,0,0,1">
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <Button x:Name="BtnToggle" Content=""
+                        Click="OnToggleClick"
+                        Style="{DynamicResource PrimaryButtonStyle}"
+                        Padding="{StaticResource PaddingButtonPrimary}"
+                        VerticalAlignment="Center"
+                        TabIndex="0"/>
+                <Button x:Name="BtnScanNow" Content=""
+                        Click="OnScanNowClick"
+                        Style="{DynamicResource SecondaryButtonStyle}"
+                        Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginInlineControl}"
+                        VerticalAlignment="Center"
+                        IsEnabled="False"
+                        TabIndex="1"/>
+                <TextBlock x:Name="LblInterval" Text=""
+                           Foreground="{DynamicResource TextSecondaryBrush}"
+                           FontSize="{StaticResource FontSizeBody}" VerticalAlignment="Center" Margin="12,0,4,0"/>
+                <ComboBox x:Name="CmbInterval" Width="80"
+                          SelectedIndex="1"
+                          VerticalAlignment="Center"
+                          Background="{DynamicResource CardBrush}"
+                          Foreground="{DynamicResource TextPrimaryBrush}"
+                          BorderBrush="{DynamicResource BorderBrush}"
+                          TabIndex="2">
+                    <ComboBoxItem x:Name="Interval5s" Content="" Tag="5000"/>
+                    <ComboBoxItem x:Name="Interval10s" Content="" Tag="10000"/>
+                    <ComboBoxItem x:Name="Interval30s" Content="" Tag="30000"/>
+                    <ComboBoxItem x:Name="Interval60s" Content="" Tag="60000"/>
+                </ComboBox>
+            </StackPanel>
+        </Border>
+
         <!-- Alert banner (hidden by default) -->
-        <Border x:Name="AlertBanner" Grid.Row="2" Visibility="Collapsed"
+        <Border x:Name="AlertBanner" Grid.Row="3" Visibility="Collapsed"
                 Padding="{StaticResource PaddingAlertBanner}" Margin="8,8,8,0"
                 Background="{DynamicResource WarningBrush}"
                 CornerRadius="{StaticResource CornerRadiusSm}">
@@ -112,8 +115,7 @@
                         Padding="{StaticResource PaddingButtonHelp}" Margin="{StaticResource MarginInlineControl}"
                         Background="Transparent" BorderThickness="0"
                         VerticalAlignment="Center"
-                        TabIndex="3"
-                        AutomationProperties.Name=""/>
+                        TabIndex="3"/>
                 <StackPanel>
                     <TextBlock x:Name="TxtAlertTitle" Text=""
                                FontSize="{StaticResource FontSizeBody}" FontWeight="SemiBold"
@@ -126,29 +128,29 @@
             </DockPanel>
         </Border>
 
-        <ProgressBar x:Name="LoadingBar" Grid.Row="3"
-                     Style="{StaticResource ToolLoadingBarStyle}"
-                     AutomationProperties.Name=""/>
+        <ProgressBar x:Name="LoadingBar" Grid.Row="4"
+                     Style="{StaticResource ToolLoadingBarStyle}"/>
 
-        <TextBlock x:Name="TxtError" Grid.Row="3" Text=""
+        <TextBlock x:Name="TxtError" Grid.Row="4" Text=""
                    Style="{StaticResource ToolInlineErrorTextStyle}"
                    Margin="12,8,12,0"
                    VerticalAlignment="Top"/>
 
         <!-- Empty state -->
-        <Border x:Name="EmptyStatePanel" Grid.Row="4"
+        <Border x:Name="EmptyStatePanel" Grid.Row="5"
                 Style="{StaticResource ToolEmptyStateStyle}"
                 Margin="0,24,0,0">
             <StackPanel HorizontalAlignment="Center">
                 <TextBlock Text="&#xE968;"
-                           Style="{StaticResource ToolEmptyStateIconStyle}"/>
+                           Style="{StaticResource ToolEmptyStateIconStyle}"
+                           Focusable="False"/>
                 <TextBlock x:Name="TxtEmptyState" Text=""
                            Style="{StaticResource ToolEmptyStateTextStyle}"/>
             </StackPanel>
         </Border>
 
         <!-- ARP DataGrid -->
-        <Border x:Name="GridPanel" Grid.Row="4"
+        <Border x:Name="GridPanel" Grid.Row="5"
                 Style="{StaticResource ToolResultsCardStyle}"
                 Margin="{StaticResource SpacingSm}"
                 Padding="0">
@@ -169,8 +171,7 @@
                       CellStyle="{DynamicResource ThemedDataGridCellStyle}"
                       RowStyle="{DynamicResource ThemedDataGridRowStyle}"
                       AutomationProperties.LiveSetting="Polite"
-                      TabIndex="4"
-                      AutomationProperties.Name="">
+                      TabIndex="4">
                 <DataGrid.Columns>
                     <DataGridTextColumn x:Name="ColIp" Binding="{Binding Ip}" Width="140"
                                         Foreground="{DynamicResource TextPrimaryBrush}"/>
@@ -195,7 +196,7 @@
         </Border>
 
         <!-- Footer -->
-        <Border Grid.Row="5" Padding="{StaticResource ToolFooterPadding}"
+        <Border Grid.Row="6" Padding="{StaticResource ToolFooterPadding}"
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,1,0,0">
@@ -203,10 +204,9 @@
                 <Button x:Name="BtnCopy" Content=""
                         Click="OnCopyClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="{StaticResource PaddingButtonPrimary}" DockPanel.Dock="Right"
+                        Padding="{StaticResource PaddingButtonCopy}" DockPanel.Dock="Right"
                         VerticalAlignment="Center"
-                        TabIndex="5"
-                        AutomationProperties.Name=""/>
+                        TabIndex="5"/>
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <TextBlock x:Name="TxtTotal" Text="" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                                Foreground="{DynamicResource TextSecondaryBrush}"/>

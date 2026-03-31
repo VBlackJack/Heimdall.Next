@@ -49,6 +49,7 @@ public partial class SnmpWalkerView : UserControl, IToolView
     private Action<bool>? _setBusy;
     private List<SshGatewayDto>? _gateways;
     private SshGatewayDto? _selectedGateway;
+    private readonly ToolAsyncStateController _viewState;
 
     private readonly ObservableCollection<SnmpEntry> _results = [];
     private readonly ObservableCollection<CommunityResult> _communityResults = [];
@@ -117,6 +118,12 @@ public partial class SnmpWalkerView : UserControl, IToolView
     public SnmpWalkerView()
     {
         InitializeComponent();
+        _viewState = new ToolAsyncStateController(
+            isBusy => _setBusy?.Invoke(isBusy),
+            LoadingBar, TxtError, EmptyStatePanel, ResultsBorder, TxtStatus,
+            TxtHost, TxtCommunity, TxtOid, CmbRouteVia,
+            BtnPresetSystem, BtnPresetInterfaces, BtnPresetIp, BtnPresetTcp, BtnPresetUdp,
+            BtnTestCommunities);
         ResultsGrid.ItemsSource = _results;
         CommunityResults.ItemsSource = _communityResults;
         TxtHost.KeyDown += OnHostKeyDown;
@@ -254,10 +261,9 @@ public partial class SnmpWalkerView : UserControl, IToolView
         _cts?.Dispose();
         _cts = null;
         _isWalking = false;
-        _setBusy?.Invoke(false);
         BtnWalk.Content = L("ToolSnmpBtnWalk");
-        LoadingBar.Visibility = Visibility.Collapsed;
-        SetOperationInputsEnabled(true);
+        BtnWalk.IsEnabled = true;
+        _viewState.End();
     }
 
     private async Task StartWalkAsync()
@@ -265,12 +271,10 @@ public partial class SnmpWalkerView : UserControl, IToolView
         var host = TxtHost.Text.Trim();
         var community = TxtCommunity.Text.Trim();
         var oid = TxtOid.Text.Trim();
-        TxtError.Visibility = Visibility.Collapsed;
 
         if (string.IsNullOrWhiteSpace(host))
         {
-            TxtError.Text = L("ToolValidationHostRequired");
-            TxtError.Visibility = Visibility.Visible;
+            _viewState.ShowError(L("ToolValidationHostRequired"));
             return;
         }
 
@@ -285,15 +289,12 @@ public partial class SnmpWalkerView : UserControl, IToolView
         }
 
         _results.Clear();
+        _cts?.Dispose();
         _cts = new CancellationTokenSource();
         _isWalking = true;
-        _setBusy?.Invoke(true);
         BtnWalk.Content = L("ToolSnmpBtnStop");
-        SetOperationInputsEnabled(false, allowWalkStop: true);
-        LoadingBar.Visibility = Visibility.Visible;
-        EmptyStatePanel.Visibility = Visibility.Collapsed;
-        ResultsBorder.Visibility = Visibility.Visible;
-        TxtStatus.Text = string.Empty;
+        _viewState.Begin();
+        _viewState.ShowResults();
 
         try
         {
@@ -316,10 +317,9 @@ public partial class SnmpWalkerView : UserControl, IToolView
         {
             if (_results.Count == 0)
             {
-                TxtError.Text = string.Format(L("ToolSnmpErrorConnection"), ex.Message);
-                TxtError.Visibility = Visibility.Visible;
-                EmptyStatePanel.Visibility = Visibility.Visible;
-                ResultsBorder.Visibility = Visibility.Collapsed;
+                _viewState.ShowError(
+                    string.Format(L("ToolSnmpErrorConnection"), ex.Message),
+                    showEmptyState: true);
             }
             else
             {
@@ -329,10 +329,9 @@ public partial class SnmpWalkerView : UserControl, IToolView
         finally
         {
             _isWalking = false;
-            _setBusy?.Invoke(false);
             BtnWalk.Content = L("ToolSnmpBtnWalk");
-            LoadingBar.Visibility = Visibility.Collapsed;
-            SetOperationInputsEnabled(true);
+            BtnWalk.IsEnabled = true;
+            _viewState.End();
         }
     }
 
@@ -513,20 +512,18 @@ public partial class SnmpWalkerView : UserControl, IToolView
     private async Task TestCommunitiesAsync()
     {
         var host = TxtHost.Text.Trim();
-        TxtError.Visibility = Visibility.Collapsed;
 
         if (string.IsNullOrWhiteSpace(host))
         {
-            TxtError.Text = L("ToolValidationHostRequired");
-            TxtError.Visibility = Visibility.Visible;
+            _viewState.ShowError(L("ToolValidationHostRequired"));
             return;
         }
 
         _communityResults.Clear();
         _isWalking = true;
-        _setBusy?.Invoke(true);
-        SetOperationInputsEnabled(false);
-        LoadingBar.Visibility = Visibility.Visible;
+        _viewState.Begin();
+        BtnWalk.IsEnabled = false;
+        _cts?.Dispose();
         _cts = new CancellationTokenSource();
 
         try
@@ -566,25 +563,9 @@ public partial class SnmpWalkerView : UserControl, IToolView
         finally
         {
             _isWalking = false;
-            _setBusy?.Invoke(false);
-            LoadingBar.Visibility = Visibility.Collapsed;
-            SetOperationInputsEnabled(true);
+            BtnWalk.IsEnabled = true;
+            _viewState.End();
         }
-    }
-
-    private void SetOperationInputsEnabled(bool enabled, bool allowWalkStop = false)
-    {
-        TxtHost.IsReadOnly = !enabled;
-        TxtCommunity.IsReadOnly = !enabled;
-        TxtOid.IsReadOnly = !enabled;
-        CmbRouteVia.IsEnabled = enabled;
-        BtnPresetSystem.IsEnabled = enabled;
-        BtnPresetInterfaces.IsEnabled = enabled;
-        BtnPresetIp.IsEnabled = enabled;
-        BtnPresetTcp.IsEnabled = enabled;
-        BtnPresetUdp.IsEnabled = enabled;
-        BtnTestCommunities.IsEnabled = enabled;
-        BtnWalk.IsEnabled = enabled || allowWalkStop;
     }
 
     // ── Preset buttons ──────────────────────────────────────────────

@@ -39,10 +39,14 @@ public partial class ExternalToolWrapperView : UserControl, IToolView
     private CancellationTokenSource? _cts;
     private Process? _runningProcess;
     private const int DefaultTimeoutMs = 60_000;
+    private readonly ToolAsyncStateController _viewState;
 
     public ExternalToolWrapperView()
     {
         InitializeComponent();
+        _viewState = new ToolAsyncStateController(
+            null, LoadingBar, TxtError, null, null, TxtStatus,
+            BtnRun, TxtArguments);
         TxtArguments.KeyDown += (s, e) =>
         {
             if (e.Key == System.Windows.Input.Key.Enter) OnRunClick(s, e);
@@ -104,11 +108,12 @@ public partial class ExternalToolWrapperView : UserControl, IToolView
         if (_toolInfo is null) return;
 
         _cts?.Cancel();
+        _cts?.Dispose();
         var timeoutMs = GetConfiguredTimeoutMs();
         _cts = new CancellationTokenSource(timeoutMs);
 
         SetRunningState(true);
-        TxtError.Visibility = Visibility.Collapsed;
+        _viewState.Begin();
         TxtOutput.Text = string.Empty;
         ResultsGrid.ItemsSource = null;
 
@@ -121,8 +126,7 @@ public partial class ExternalToolWrapperView : UserControl, IToolView
 
             if (exitCode != 0 && !string.IsNullOrWhiteSpace(stderr))
             {
-                TxtError.Text = stderr.Trim();
-                TxtError.Visibility = Visibility.Visible;
+                _viewState.ShowError(stderr.Trim(), showEmptyState: false, keepResultsVisible: true);
             }
 
             var output = stdout;
@@ -148,19 +152,16 @@ public partial class ExternalToolWrapperView : UserControl, IToolView
         }
         catch (OperationCanceledException)
         {
-            TxtStatus.Text = L("ExtToolStatusTimeout");
-            TxtError.Text = L("ExtToolErrorTimeout");
-            TxtError.Visibility = Visibility.Visible;
+            _viewState.ShowError(L("ExtToolErrorTimeout"), L("ExtToolStatusTimeout"), showEmptyState: false);
         }
         catch (Exception ex)
         {
-            TxtError.Text = ex.Message;
-            TxtError.Visibility = Visibility.Visible;
-            TxtStatus.Text = L("ExtToolStatusError");
+            _viewState.ShowError(ex.Message, L("ExtToolStatusError"), showEmptyState: false);
         }
         finally
         {
             SetRunningState(false);
+            _viewState.End();
         }
     }
 
@@ -516,9 +517,6 @@ public partial class ExternalToolWrapperView : UserControl, IToolView
     {
         BtnRun.Visibility = running ? Visibility.Collapsed : Visibility.Visible;
         BtnStop.Visibility = running ? Visibility.Visible : Visibility.Collapsed;
-        BtnRun.IsEnabled = !running;
-        TxtArguments.IsReadOnly = running;
-        LoadingBar.Visibility = running ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private void ApplyLocalization()

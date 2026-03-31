@@ -50,10 +50,15 @@ public partial class DnsSecurityView : UserControl, IToolView
     private List<SshGatewayDto>? _gateways;
     private SshGatewayDto? _selectedGateway;
     private string _lastReport = string.Empty;
+    private readonly ToolAsyncStateController _viewState;
 
     public DnsSecurityView()
     {
         InitializeComponent();
+        _viewState = new ToolAsyncStateController(
+            isBusy => _setBusy?.Invoke(isBusy),
+            LoadingBar, TxtError, EmptyStatePanel, ResultsPanel, TxtStatus,
+            BtnCheck, TxtDomain, CmbRouteVia);
         TxtDomain.KeyDown += OnDomainKeyDown;
     }
 
@@ -177,16 +182,12 @@ public partial class DnsSecurityView : UserControl, IToolView
         }
 
         var domain = TxtDomain.Text.Trim().ToLowerInvariant();
-        TxtError.Visibility = Visibility.Collapsed;
-        ResultsPanel.Visibility = Visibility.Collapsed;
-        EmptyStatePanel.Visibility = Visibility.Visible;
-        TxtStatus.Text = string.Empty;
+        _viewState.Reset();
         _lastReport = string.Empty;
 
         if (string.IsNullOrWhiteSpace(domain))
         {
-            TxtError.Text = L("ToolValidationHostRequired");
-            TxtError.Visibility = Visibility.Visible;
+            _viewState.ShowError(L("ToolValidationHostRequired"));
             return;
         }
 
@@ -199,8 +200,7 @@ public partial class DnsSecurityView : UserControl, IToolView
 
         if (!InputValidator.ValidateDomain(domain))
         {
-            TxtError.Text = L("ErrorInvalidDomain");
-            TxtError.Visibility = Visibility.Visible;
+            _viewState.ShowError(L("ErrorInvalidDomain"));
             return;
         }
 
@@ -210,12 +210,7 @@ public partial class DnsSecurityView : UserControl, IToolView
         _cts.CancelAfter(QueryTimeout);
 
         _isChecking = true;
-        _setBusy?.Invoke(true);
-        BtnCheck.IsEnabled = false;
-        TxtDomain.IsReadOnly = true;
-        CmbRouteVia.IsEnabled = false;
-        LoadingBar.Visibility = Visibility.Visible;
-        TxtStatus.Text = L("ToolTunnelConnecting");
+        _viewState.Begin(L("ToolTunnelConnecting"));
 
         var stopwatch = Stopwatch.StartNew();
 
@@ -230,22 +225,16 @@ public partial class DnsSecurityView : UserControl, IToolView
         }
         catch (OperationCanceledException)
         {
-            TxtError.Text = L("ToolDnsErrorTimeout");
-            TxtError.Visibility = Visibility.Visible;
+            _viewState.ShowError(L("ToolDnsErrorTimeout"));
         }
         catch (Exception ex)
         {
-            TxtError.Text = string.Format(L("ToolDnsErrorLookupFailed"), ex.Message);
-            TxtError.Visibility = Visibility.Visible;
+            _viewState.ShowError(string.Format(L("ToolDnsErrorLookupFailed"), ex.Message));
         }
         finally
         {
             _isChecking = false;
-            _setBusy?.Invoke(false);
-            BtnCheck.IsEnabled = true;
-            TxtDomain.IsReadOnly = false;
-            CmbRouteVia.IsEnabled = true;
-            LoadingBar.Visibility = Visibility.Collapsed;
+            _viewState.End();
         }
     }
 
@@ -716,9 +705,6 @@ public partial class DnsSecurityView : UserControl, IToolView
 
     private void DisplayResults(List<DnsCheckResult> results, string domain, long elapsedMs)
     {
-        EmptyStatePanel.Visibility = Visibility.Collapsed;
-        ResultsPanel.Visibility = Visibility.Visible;
-
         var passCount = results.Count(r => r.Status == "pass");
         var total = results.Count;
 
@@ -729,8 +715,7 @@ public partial class DnsSecurityView : UserControl, IToolView
         // Check results
         CheckResultsList.ItemsSource = results;
 
-        // Status bar
-        TxtStatus.Text = string.Format(L("ToolDnsStatusComplete"), elapsedMs);
+        _viewState.ShowResults(string.Format(L("ToolDnsStatusComplete"), elapsedMs));
 
         // Build text report for copy
         _lastReport = BuildTextReport(domain, passCount, total, results);

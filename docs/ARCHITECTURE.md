@@ -387,8 +387,8 @@ The application uses a centralized Design System defined in `CommonControls.xaml
 
 **Spacing tokens (5 uniform + 3 asymmetric)** — `Thickness` resources for margins/padding:
 - Uniform: `SpacingXs` (4), `SpacingSm` (8), `SpacingMd` (12), `SpacingLg` (20), `SpacingXl` (24)
-- Asymmetric: `ContentAreaMargin` (16,0,16,16) for tool content areas, `SessionHeaderPadding` (8,4) for session header strips, `ToolHeaderPadding` (12,8) / `ToolFooterPadding` (12,6) for tool panel headers/footers
-- Button padding by role: `PaddingButtonHelp` (6,2), `PaddingButtonCopy` (10,4), `PaddingButtonPrimary` (12,6), `PaddingButtonPreset` (8,2)
+- Asymmetric: `ContentAreaMargin` (16,0,16,16) for tool content areas, `SessionHeaderPadding` (8,4) for session header strips, `ToolHeaderPadding` (12,8) / `ToolFooterPadding` (12,8) for tool panel headers/footers
+- Button padding by role: `PaddingButtonHelp` (6,2), `PaddingButtonCopy` (10,4), `PaddingButtonPrimary` (12,6), `PaddingButtonPreset` (8,2) — Copy/Export buttons must use `PaddingButtonCopy`, not `PaddingButtonPrimary`
 - Input field padding: `PaddingInput` (8,6) for all TextBox inputs
 - Truly one-off asymmetric margins (`Margin="0,0,8,0"`) stay hardcoded — standard WPF practice
 
@@ -411,7 +411,11 @@ The application uses a centralized Design System defined in `CommonControls.xaml
 - `FocusIndicatorBrush` (cyan on dark, blue on light) — dedicated keyboard focus ring on all button styles
 - `TextOnAccentBrush` (white) — used on accent-colored surfaces (buttons, DataGrid selections, checkboxes)
 - All foreground/background pairs verified for WCAG AA (4.5:1 minimum contrast ratio)
-- `AutomationProperties.Name` on all interactive controls across all views (17+ XAML files), with runtime-localized `SetName()` pattern replacing hardcoded English labels
+- `AutomationProperties.Name` on all interactive controls across all 57 tool views + all dialog views, via runtime-localized `SetName()` pattern in `ApplyLocalization()` — no empty XAML placeholders
+- `Focusable="False"` on decorative icon TextBlocks (empty state MDL2 glyphs) to exclude from keyboard focus and screen reader navigation
+- `ToolAsyncStateController`: centralized loading/error/empty-state/results visibility management for async tools (13 tools adopted)
+- `ToolLoadingBarStyle` (indeterminate, 4px) and `ToolDeterminateProgressBarStyle` (determinate, 20px) — all tool ProgressBars use shared styles
+- Tool header pattern: Row 0 = title + help button only; input controls in a dedicated input strip (Row 2)
 
 **Protocol icons** — Unique Segoe MDL2 glyphs per protocol type in TreeView:
 - RDP (`E7F4`), SSH (`E756`), SFTP (`E8B7`), Local (`E770`), Citrix (`E753`), VNC (`E7F4`), Telnet (`E968`), FTP (`E896`)

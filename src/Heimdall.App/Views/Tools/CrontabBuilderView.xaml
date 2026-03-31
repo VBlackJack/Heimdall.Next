@@ -35,8 +35,7 @@
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
                         Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"
-                        TabIndex="16"
-                        AutomationProperties.Name=""/>
+                        TabIndex="16"/>
                 <TextBlock x:Name="HeaderTitle" Text=""
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
@@ -52,8 +51,7 @@
                         Click="OnCloseHelpClick"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
                         VerticalAlignment="Top" Width="24" Height="24"
-                        TabIndex="17"
-                        AutomationProperties.Name=""/>
+                        TabIndex="17"/>
                 <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
                     <TextBlock x:Name="TxtHelpContent" Text="" TextWrapping="Wrap"
                                FontSize="{StaticResource FontSizeBody}"
@@ -75,33 +73,27 @@
                     <Button x:Name="BtnPresetEveryMin" Click="OnPresetClick" Tag="* * * * *"
                             Style="{DynamicResource SecondaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginButtonGroup}" FontSize="{StaticResource FontSizeBody}"
-                            TabIndex="0"
-                            AutomationProperties.Name=""/>
+                            TabIndex="0"/>
                     <Button x:Name="BtnPresetEveryHour" Click="OnPresetClick" Tag="0 * * * *"
                             Style="{DynamicResource SecondaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginButtonGroup}" FontSize="{StaticResource FontSizeBody}"
-                            TabIndex="1"
-                            AutomationProperties.Name=""/>
+                            TabIndex="1"/>
                     <Button x:Name="BtnPresetDailyMidnight" Click="OnPresetClick" Tag="0 0 * * *"
                             Style="{DynamicResource SecondaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginButtonGroup}" FontSize="{StaticResource FontSizeBody}"
-                            TabIndex="2"
-                            AutomationProperties.Name=""/>
+                            TabIndex="2"/>
                     <Button x:Name="BtnPresetWeekdays9am" Click="OnPresetClick" Tag="0 9 * * 1-5"
                             Style="{DynamicResource SecondaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginButtonGroup}" FontSize="{StaticResource FontSizeBody}"
-                            TabIndex="3"
-                            AutomationProperties.Name=""/>
+                            TabIndex="3"/>
                     <Button x:Name="BtnPresetWeeklySunday" Click="OnPresetClick" Tag="0 0 * * 0"
                             Style="{DynamicResource SecondaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginButtonGroup}" FontSize="{StaticResource FontSizeBody}"
-                            TabIndex="4"
-                            AutomationProperties.Name=""/>
+                            TabIndex="4"/>
                     <Button x:Name="BtnPresetMonthly1st" Click="OnPresetClick" Tag="0 0 1 * *"
                             Style="{DynamicResource SecondaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginButtonGroup}" FontSize="{StaticResource FontSizeBody}"
-                            TabIndex="5"
-                            AutomationProperties.Name=""/>
+                            TabIndex="5"/>
                 </WrapPanel>
 
                 <!-- Selectors -->
@@ -131,8 +123,7 @@
                               Background="{DynamicResource CardBrush}"
                               Foreground="{DynamicResource TextPrimaryBrush}"
                               BorderBrush="{DynamicResource BorderBrush}"
-                              TabIndex="6"
-                              AutomationProperties.Name=""/>
+                              TabIndex="6"/>
 
                     <!-- Hour -->
                     <TextBlock x:Name="LblHour" Grid.Row="2" Grid.Column="0" Text=""
@@ -143,8 +134,7 @@
                               Background="{DynamicResource CardBrush}"
                               Foreground="{DynamicResource TextPrimaryBrush}"
                               BorderBrush="{DynamicResource BorderBrush}"
-                              TabIndex="7"
-                              AutomationProperties.Name=""/>
+                              TabIndex="7"/>
 
                     <!-- Day of Month -->
                     <TextBlock x:Name="LblDayOfMonth" Grid.Row="4" Grid.Column="0" Text=""
@@ -155,8 +145,7 @@
                               Background="{DynamicResource CardBrush}"
                               Foreground="{DynamicResource TextPrimaryBrush}"
                               BorderBrush="{DynamicResource BorderBrush}"
-                              TabIndex="8"
-                              AutomationProperties.Name=""/>
+                              TabIndex="8"/>
 
                     <!-- Month -->
                     <TextBlock x:Name="LblMonth" Grid.Row="6" Grid.Column="0" Text=""
@@ -167,8 +156,7 @@
                               Background="{DynamicResource CardBrush}"
                               Foreground="{DynamicResource TextPrimaryBrush}"
                               BorderBrush="{DynamicResource BorderBrush}"
-                              TabIndex="9"
-                              AutomationProperties.Name=""/>
+                              TabIndex="9"/>
 
                     <!-- Day of Week -->
                     <TextBlock x:Name="LblDayOfWeek" Grid.Row="8" Grid.Column="0" Text=""
@@ -179,8 +167,7 @@
                               Background="{DynamicResource CardBrush}"
                               Foreground="{DynamicResource TextPrimaryBrush}"
                               BorderBrush="{DynamicResource BorderBrush}"
-                              TabIndex="10"
-                              AutomationProperties.Name=""/>
+                              TabIndex="10"/>
                 </Grid>
 
                 <!-- Generated cron expression -->
@@ -194,16 +181,14 @@
                                 Style="{DynamicResource SecondaryButtonStyle}"
                                 Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginInlineControl}"
                                 VerticalAlignment="Center"
-                                TabIndex="11"
-                                AutomationProperties.Name=""/>
+                                TabIndex="11"/>
                         <TextBox x:Name="TxtCronExpression" Text=""
                                  FontSize="{StaticResource FontSizeHeadline}" FontFamily="Consolas" FontWeight="Bold"
                                  IsReadOnly="True"
                                  Background="Transparent"
                                  Foreground="{DynamicResource AccentBrush}"
                                  BorderThickness="0"
-                                 VerticalAlignment="Center"
-                                 AutomationProperties.Name=""/>
+                                 VerticalAlignment="Center"/>
                     </DockPanel>
                 </Border>
 
@@ -226,8 +211,7 @@
                          BorderBrush="{DynamicResource BorderBrush}"
                          Tag=""
                          TextChanged="OnManualInputChanged"
-                         TabIndex="12"
-                         AutomationProperties.Name=""/>
+                         TabIndex="12"/>
                 <TextBlock x:Name="TxtValidationError" Text=""
                            FontSize="{StaticResource FontSizeCaption}" Margin="{StaticResource MarginSectionBottom}"
                            FontWeight="SemiBold"

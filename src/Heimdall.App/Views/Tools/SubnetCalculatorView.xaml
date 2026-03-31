@@ -35,8 +35,7 @@
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
                         Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"
-                        TabIndex="9"
-                                 AutomationProperties.Name=""/>
+                        TabIndex="9"/>
                 <TextBlock x:Name="HeaderTitle" Text=""
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
@@ -51,8 +50,7 @@
                         FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeBody}"
                         Click="OnCloseHelpClick"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
-                        VerticalAlignment="Top" Width="24" Height="24"
-                        AutomationProperties.Name=""/>
+                        VerticalAlignment="Top" Width="24" Height="24"/>
                 <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
                     <TextBlock x:Name="TxtHelpContent" Text="" TextWrapping="Wrap"
                                FontSize="{StaticResource FontSizeBody}"
@@ -81,7 +79,6 @@
                              BorderBrush="{DynamicResource BorderBrush}"
                              VerticalAlignment="Center"
                              TabIndex="0"
-                             AutomationProperties.Name=""
 />
                 </DockPanel>
 
@@ -96,7 +93,7 @@
                         Margin="0,24,0,0">
                     <StackPanel HorizontalAlignment="Center">
                         <TextBlock Text="&#xE968;" Style="{StaticResource ToolEmptyStateIconStyle}"
-                                   AutomationProperties.Name=""/>
+                                   Focusable="False"/>
                         <TextBlock x:Name="TxtEmptyState" Text=""
                                    Style="{StaticResource ToolEmptyStateTextStyle}"/>
                     </StackPanel>
@@ -142,8 +139,7 @@
                         <Button x:Name="BtnCopyNetwork" Grid.Row="0" Grid.Column="3" Click="OnCopyValueClick"
                                 Tag="Network" Style="{DynamicResource SecondaryButtonStyle}"
                                 Padding="{StaticResource PaddingButtonHelp}" Margin="{StaticResource MarginInlineControl}" FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center"
-                                TabIndex="1"
-                                AutomationProperties.Name=""/>
+                                TabIndex="1"/>
 
                         <!-- Row 2: Broadcast Address -->
                         <TextBlock x:Name="LblBroadcast" Grid.Row="2" Grid.Column="0" Text=""
@@ -153,8 +149,7 @@
                         <Button x:Name="BtnCopyBroadcast" Grid.Row="2" Grid.Column="3" Click="OnCopyValueClick"
                                 Tag="Broadcast" Style="{DynamicResource SecondaryButtonStyle}"
                                 Padding="{StaticResource PaddingButtonHelp}" Margin="{StaticResource MarginInlineControl}" FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center"
-                                TabIndex="2"
-                                AutomationProperties.Name=""/>
+                                TabIndex="2"/>
 
                         <!-- Row 4: Subnet Mask -->
                         <TextBlock x:Name="LblSubnetMask" Grid.Row="4" Grid.Column="0" Text=""
@@ -164,8 +159,7 @@
                         <Button x:Name="BtnCopyMask" Grid.Row="4" Grid.Column="3" Click="OnCopyValueClick"
                                 Tag="Mask" Style="{DynamicResource SecondaryButtonStyle}"
                                 Padding="{StaticResource PaddingButtonHelp}" Margin="{StaticResource MarginInlineControl}" FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center"
-                                TabIndex="3"
-                                AutomationProperties.Name=""/>
+                                TabIndex="3"/>
 
                         <!-- Row 6: First Host -->
                         <TextBlock x:Name="LblFirstHost" Grid.Row="6" Grid.Column="0" Text=""
@@ -175,8 +169,7 @@
                         <Button x:Name="BtnCopyFirstHost" Grid.Row="6" Grid.Column="3" Click="OnCopyValueClick"
                                 Tag="FirstHost" Style="{DynamicResource SecondaryButtonStyle}"
                                 Padding="{StaticResource PaddingButtonHelp}" Margin="{StaticResource MarginInlineControl}" FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center"
-                                TabIndex="4"
-                                AutomationProperties.Name=""/>
+                                TabIndex="4"/>
 
                         <!-- Row 8: Last Host -->
                         <TextBlock x:Name="LblLastHost" Grid.Row="8" Grid.Column="0" Text=""
@@ -186,8 +179,7 @@
                         <Button x:Name="BtnCopyLastHost" Grid.Row="8" Grid.Column="3" Click="OnCopyValueClick"
                                 Tag="LastHost" Style="{DynamicResource SecondaryButtonStyle}"
                                 Padding="{StaticResource PaddingButtonHelp}" Margin="{StaticResource MarginInlineControl}" FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center"
-                                TabIndex="5"
-                                AutomationProperties.Name=""/>
+                                TabIndex="5"/>
 
                         <!-- Row 10: Total Hosts -->
                         <TextBlock x:Name="LblTotalHosts" Grid.Row="10" Grid.Column="0" Text=""
@@ -197,8 +189,7 @@
                         <Button x:Name="BtnCopyTotalHosts" Grid.Row="10" Grid.Column="3" Click="OnCopyValueClick"
                                 Tag="TotalHosts" Style="{DynamicResource SecondaryButtonStyle}"
                                 Padding="{StaticResource PaddingButtonHelp}" Margin="{StaticResource MarginInlineControl}" FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center"
-                                TabIndex="6"
-                                AutomationProperties.Name=""/>
+                                TabIndex="6"/>
 
                         <!-- Row 12: CIDR Notation -->
                         <TextBlock x:Name="LblCidr" Grid.Row="12" Grid.Column="0" Text=""
@@ -208,8 +199,7 @@
                         <Button x:Name="BtnCopyCidr" Grid.Row="12" Grid.Column="3" Click="OnCopyValueClick"
                                 Tag="Cidr" Style="{DynamicResource SecondaryButtonStyle}"
                                 Padding="{StaticResource PaddingButtonHelp}" Margin="{StaticResource MarginInlineControl}" FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center"
-                                TabIndex="7"
-                                AutomationProperties.Name=""/>
+                                TabIndex="7"/>
 
                         <!-- Row 14: Wildcard Mask -->
                         <TextBlock x:Name="LblWildcard" Grid.Row="14" Grid.Column="0" Text=""
@@ -219,8 +209,7 @@
                         <Button x:Name="BtnCopyWildcard" Grid.Row="14" Grid.Column="3" Click="OnCopyValueClick"
                                 Tag="Wildcard" Style="{DynamicResource SecondaryButtonStyle}"
                                 Padding="{StaticResource PaddingButtonHelp}" Margin="{StaticResource MarginInlineControl}" FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center"
-                                TabIndex="8"
-                                AutomationProperties.Name=""/>
+                                TabIndex="8"/>
                     </Grid>
                 </Border>
 

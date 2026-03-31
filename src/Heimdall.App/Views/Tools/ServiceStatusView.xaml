@@ -36,8 +36,7 @@
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
                         Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"
-                        TabIndex="7"
-                        AutomationProperties.Name=""/>
+                        TabIndex="7"/>
                 <TextBlock x:Name="HeaderTitle" Text=""
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
@@ -52,27 +51,23 @@
                              VerticalAlignment="Center"
                              Tag=""
                              TextChanged="OnFilterChanged"
-                             TabIndex="0"
-                             AutomationProperties.Name=""/>
+                             TabIndex="0"/>
                     <CheckBox x:Name="ChkRunningOnly"
                               Foreground="{DynamicResource TextPrimaryBrush}"
                               VerticalAlignment="Center" Margin="12,0,0,0"
                               Checked="OnRunningOnlyChanged" Unchecked="OnRunningOnlyChanged"
-                              TabIndex="1"
-                              AutomationProperties.Name=""/>
+                              TabIndex="1"/>
                     <CheckBox x:Name="ChkAutoRefresh"
                               Foreground="{DynamicResource TextPrimaryBrush}"
                               VerticalAlignment="Center" Margin="12,0,0,0"
                               Checked="OnAutoRefreshChanged" Unchecked="OnAutoRefreshChanged"
-                              TabIndex="2"
-                              AutomationProperties.Name=""/>
+                              TabIndex="2"/>
                     <Button x:Name="BtnRefresh" Content=""
                             Click="OnRefreshClick"
                             Style="{DynamicResource PrimaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonPrimary}" Margin="12,0,0,0"
                             VerticalAlignment="Center"
-                            TabIndex="3"
-                            AutomationProperties.Name=""/>
+                            TabIndex="3"/>
                 </StackPanel>
             </DockPanel>
         </Border>
@@ -85,8 +80,7 @@
                         Click="OnCloseHelpClick"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
                         VerticalAlignment="Top" Width="24" Height="24"
-                        TabIndex="8"
-                        AutomationProperties.Name=""/>
+                        TabIndex="8"/>
                 <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
                     <TextBlock x:Name="TxtHelpContent" Text="" TextWrapping="Wrap"
                                FontSize="{StaticResource FontSizeBody}"
@@ -99,8 +93,7 @@
         <!-- Loading indicator -->
         <ProgressBar x:Name="LoadingBar" Grid.Row="2"
                      Style="{StaticResource ToolLoadingBarStyle}"
-                     VerticalAlignment="Top"
-                     AutomationProperties.Name=""/>
+                     VerticalAlignment="Top"/>
 
         <!-- Error message -->
         <TextBlock x:Name="TxtError" Grid.Row="2" Text=""
@@ -115,7 +108,7 @@
             <StackPanel HorizontalAlignment="Center">
                 <TextBlock Text="&#xE770;"
                            Style="{StaticResource ToolEmptyStateIconStyle}"
-                           AutomationProperties.Name=""/>
+                           Focusable="False"/>
                 <TextBlock x:Name="TxtEmptyState" Text=""
                            Style="{StaticResource ToolEmptyStateTextStyle}"/>
             </StackPanel>
@@ -140,8 +133,7 @@
                       AlternatingRowBackground="{DynamicResource SurfaceBrush}"
                       HorizontalGridLinesBrush="{DynamicResource BorderBrush}"
                       TabIndex="4"
-                      AutomationProperties.LiveSetting="Polite"
-                      AutomationProperties.Name="">
+                      AutomationProperties.LiveSetting="Polite">
                 <DataGrid.Columns>
                     <DataGridTextColumn x:Name="ColServiceName" Binding="{Binding Name}" Width="*"
                                         Foreground="{DynamicResource TextPrimaryBrush}"/>
@@ -171,10 +163,9 @@
                 <Button x:Name="BtnCopy" Content=""
                         Click="OnCopyClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="{StaticResource PaddingButtonPrimary}" DockPanel.Dock="Right"
+                        Padding="{StaticResource PaddingButtonCopy}" DockPanel.Dock="Right"
                         VerticalAlignment="Center"
-                        TabIndex="5"
-                        AutomationProperties.Name=""/>
+                        TabIndex="5"/>
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <TextBlock x:Name="LblTotal" Text="" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                                Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,4,0"/>

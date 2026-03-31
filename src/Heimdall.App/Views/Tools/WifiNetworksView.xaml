@@ -37,14 +37,12 @@
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
                         Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"
-                        TabIndex="3"
-                        AutomationProperties.Name=""/>
+                        TabIndex="3"/>
                 <Button x:Name="BtnScan" DockPanel.Dock="Right"
                         Content="" Click="OnScanClick"
                         Style="{DynamicResource PrimaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginInlineControl}"
-                        TabIndex="0"
-                        AutomationProperties.Name=""/>
+                        TabIndex="0"/>
                 <TextBlock x:Name="HeaderTitle" Text=""
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
@@ -60,8 +58,7 @@
                         Click="OnCloseHelpClick"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
                         VerticalAlignment="Top" Width="24" Height="24"
-                        TabIndex="4"
-                        AutomationProperties.Name=""/>
+                        TabIndex="4"/>
                 <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
                     <TextBlock x:Name="TxtHelpContent" Text="" TextWrapping="Wrap"
                                FontSize="{StaticResource FontSizeBody}"
@@ -83,7 +80,7 @@
             <StackPanel HorizontalAlignment="Center">
                 <TextBlock Text="&#xE701;"
                            Style="{StaticResource ToolEmptyStateIconStyle}"
-                           AutomationProperties.Name=""/>
+                           Focusable="False"/>
                 <TextBlock x:Name="TxtEmptyState" Text=""
                            Style="{StaticResource ToolEmptyStateTextStyle}"/>
             </StackPanel>
@@ -111,7 +108,6 @@
                       CellStyle="{StaticResource ThemedDataGridCellStyle}"
                       RowStyle="{StaticResource ThemedDataGridRowStyle}"
                       TabIndex="1"
-                      AutomationProperties.Name=""
                       AutomationProperties.LiveSetting="Polite">
                 <DataGrid.Columns>
                     <DataGridTextColumn x:Name="ColSsid" Binding="{Binding Ssid}" Width="180"
@@ -145,8 +141,7 @@
                         Content="" Click="OnCopyClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginInlineControl}"
-                        TabIndex="2"
-                        AutomationProperties.Name=""/>
+                        TabIndex="2"/>
                 <TextBlock x:Name="TxtStatus" Text=""
                            FontSize="{StaticResource FontSizeSmallCaption}"
                            Foreground="{DynamicResource TextSecondaryBrush}"

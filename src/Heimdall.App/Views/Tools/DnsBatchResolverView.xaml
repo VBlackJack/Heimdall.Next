@@ -38,15 +38,13 @@
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
                         Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"
-                        TabIndex="4"
-                        AutomationProperties.Name=""/>
+                        TabIndex="4"/>
                 <Button x:Name="BtnResolve" DockPanel.Dock="Right"
                         Content="" Click="OnResolveClick"
                         Style="{DynamicResource PrimaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginInlineControl}"
                         VerticalAlignment="Center"
-                        TabIndex="1"
-                        AutomationProperties.Name=""/>
+                        TabIndex="1"/>
                 <TextBlock x:Name="HeaderTitle" Text=""
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
@@ -62,8 +60,7 @@
                         Click="OnCloseHelpClick"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
                         VerticalAlignment="Top" Width="24" Height="24"
-                        TabIndex="5"
-                        AutomationProperties.Name=""/>
+                        TabIndex="5"/>
                 <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
                     <TextBlock x:Name="TxtHelpContent" Text="" TextWrapping="Wrap"
                                FontSize="{StaticResource FontSizeBody}"
@@ -87,8 +84,7 @@
                      Background="{DynamicResource CardBrush}"
                      Foreground="{DynamicResource TextPrimaryBrush}"
                      BorderBrush="{DynamicResource BorderBrush}"
-                     TabIndex="0"
-                     AutomationProperties.Name=""/>
+                     TabIndex="0"/>
         </Border>
 
         <!-- Error + Loading -->
@@ -96,8 +92,7 @@
             <TextBlock x:Name="TxtError" Text=""
                        Style="{StaticResource ToolInlineErrorTextStyle}"/>
             <ProgressBar x:Name="LoadingBar"
-                         Style="{StaticResource ToolLoadingBarStyle}"
-                         AutomationProperties.Name=""/>
+                         Style="{StaticResource ToolLoadingBarStyle}"/>
         </StackPanel>
 
         <!-- Empty state hint -->
@@ -106,7 +101,7 @@
                 Margin="0,24,0,0">
             <StackPanel HorizontalAlignment="Center">
                 <TextBlock Text="&#xE774;" Style="{StaticResource ToolEmptyStateIconStyle}"
-                           AutomationProperties.Name=""/>
+                           Focusable="False"/>
                 <TextBlock x:Name="TxtEmptyState" Text=""
                            Style="{StaticResource ToolEmptyStateTextStyle}"/>
             </StackPanel>
@@ -134,7 +129,6 @@
                       CellStyle="{StaticResource ThemedDataGridCellStyle}"
                       RowStyle="{StaticResource ThemedDataGridRowStyle}"
                       TabIndex="2"
-                      AutomationProperties.Name=""
                       AutomationProperties.LiveSetting="Polite">
                 <DataGrid.Columns>
                     <DataGridTextColumn x:Name="ColHostname" Binding="{Binding Hostname}" Width="*"
@@ -164,8 +158,7 @@
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonCopy}"
                         VerticalAlignment="Center"
-                        TabIndex="3"
-                        AutomationProperties.Name=""/>
+                        TabIndex="3"/>
                 <TextBlock x:Name="TxtStatus" Text=""
                            FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                            Foreground="{DynamicResource TextSecondaryBrush}"

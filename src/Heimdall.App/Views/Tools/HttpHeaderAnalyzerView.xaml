@@ -36,8 +36,7 @@
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
                         Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"
-                        TabIndex="5"
-                        AutomationProperties.Name=""/>
+                        TabIndex="5"/>
                 <TextBlock x:Name="HeaderTitle" Text=""
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
@@ -53,8 +52,7 @@
                         Click="OnCloseHelpClick"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
                         VerticalAlignment="Top" Width="24" Height="24"
-                        TabIndex="6"
-                        AutomationProperties.Name=""/>
+                        TabIndex="6"/>
                 <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
                     <TextBlock x:Name="TxtHelpContent" Text="" TextWrapping="Wrap"
                                FontSize="{StaticResource FontSizeBody}"
@@ -78,8 +76,7 @@
                             Style="{DynamicResource PrimaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginInlineControl}"
                             VerticalAlignment="Center"
-                            TabIndex="0"
-                            AutomationProperties.Name=""/>
+                            TabIndex="0"/>
                     <TextBox x:Name="TxtUrl" Text=""
                              Style="{StaticResource WatermarkTextBoxStyle}"
                              Tag=""
@@ -89,8 +86,7 @@
                              Foreground="{DynamicResource TextPrimaryBrush}"
                              BorderBrush="{DynamicResource BorderBrush}"
                              VerticalAlignment="Center"
-                             TabIndex="1"
-                             AutomationProperties.Name=""/>
+                             TabIndex="1"/>
                 </DockPanel>
 
                 <!-- Route via gateway -->
@@ -105,8 +101,7 @@
                               Foreground="{DynamicResource TextPrimaryBrush}"
                               BorderBrush="{DynamicResource BorderBrush}"
                               VerticalAlignment="Center"
-                              TabIndex="2"
-                              AutomationProperties.Name=""/>
+                              TabIndex="2"/>
                 </DockPanel>
 
                 <!-- Error message -->
@@ -115,8 +110,7 @@
 
                 <!-- Loading indicator -->
                 <ProgressBar x:Name="LoadingBar"
-                             Style="{StaticResource ToolLoadingBarStyle}"
-                             AutomationProperties.Name=""/>
+                             Style="{StaticResource ToolLoadingBarStyle}"/>
 
                 <!-- Empty state hint -->
                 <Border x:Name="EmptyStatePanel"
@@ -125,7 +119,7 @@
                     <StackPanel HorizontalAlignment="Center">
                         <TextBlock Text="&#xE774;"
                                    Style="{StaticResource ToolEmptyStateIconStyle}"
-                                   AutomationProperties.Name=""/>
+                                   Focusable="False"/>
                         <TextBlock x:Name="TxtEmptyState" Text=""
                                    Style="{StaticResource ToolEmptyStateTextStyle}"/>
                     </StackPanel>
@@ -231,8 +225,7 @@
                     <!-- Raw Headers (collapsible) -->
                     <Expander x:Name="RawHeadersExpander" IsExpanded="False"
                               Foreground="{DynamicResource TextPrimaryBrush}"
-                              FontSize="{StaticResource FontSizeBody}" Margin="{StaticResource MarginSectionBottom}"
-                              AutomationProperties.Name="">
+                              FontSize="{StaticResource FontSizeBody}" Margin="{StaticResource MarginSectionBottom}">
                         <Border Background="{DynamicResource CardBrush}"
                                 BorderBrush="{DynamicResource BorderBrush}"
                                 BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
@@ -248,7 +241,6 @@
                                      BorderThickness="0"
                                      MaxHeight="300"
                                      TabIndex="3"
-                                     AutomationProperties.Name=""
                                      AutomationProperties.LiveSetting="Polite"/>
                         </Border>
                     </Expander>
@@ -258,8 +250,7 @@
                             Style="{DynamicResource SecondaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonCopy}"
                             HorizontalAlignment="Left"
-                            TabIndex="4"
-                            AutomationProperties.Name=""/>
+                            TabIndex="4"/>
 
                 </StackPanel>
 

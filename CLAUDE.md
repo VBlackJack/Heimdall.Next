@@ -4,7 +4,7 @@
 
 **Heimdall.Next** — .NET 10 + WPF secure Windows connection manager (RDP, SSH, SFTP, VNC, Telnet, FTP, Citrix, Local Shell). MobaXterm/mRemoteNG alternative. Ground-up rewrite of Heimdall (PowerShell 5.1 + WPF).
 
-**Current build**: v2026.033006 (Release)
+**Current build**: v2026.033106 (Release)
 
 ## Repository Layout
 
@@ -209,10 +209,13 @@ Wake-on-LAN (UDP magic packet), Open Ports (P/Invoke GetExtendedTcpTable), Netwo
 ### Design System (CommonControls.xaml)
 - Typography tokens: `FontSizeSmallCaption(11)` → `FontSizeHeadline(24)`, min 11px
 - Spacing tokens: `SpacingXs(4)` → `SpacingXl(24)` — uniform `Thickness` only
-- Padding tokens: `ToolHeaderPadding(12,8)`, `ToolFooterPadding(12,6)`, `PaddingButtonCopy`, `PaddingButtonPrimary` — all tool headers/footers use these tokens
+- Padding tokens: `ToolHeaderPadding(12,8)`, `ToolFooterPadding(12,8)`, `PaddingButtonCopy`, `PaddingButtonPrimary` — all tool headers/footers use these tokens
+- Tool async styles: `ToolLoadingBarStyle` (indeterminate, 4px), `ToolDeterminateProgressBarStyle` (determinate, 20px) — all tool ProgressBars use shared styles
+- Tool state: `ToolAsyncStateController` manages loading/error/empty/results visibility for async tools (13 tools adopted)
 - Asymmetric margins stay hardcoded (WPF `Thickness` resources are uniform-only)
 - Icons: `Geo.*` vectors in IconGeometries.xaml + Segoe MDL2 for UI chrome
 - Tool category brushes: Network (blue), Security (amber), Encoding (purple), System (teal)
+- Decorative icons: `Focusable="False"` on empty state MDL2 glyphs to exclude from tab order
 
 ### State Machines
 - **Connection**: Disconnected → Initializing → ValidatingConfig → EstablishingTunnel → TunnelEstablished → Launching{Protocol} → Connected → Disconnecting → Error

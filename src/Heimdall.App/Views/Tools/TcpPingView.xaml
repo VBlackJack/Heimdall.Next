@@ -44,8 +44,7 @@
                             Style="{DynamicResource SecondaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
                             Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"
-                            TabIndex="10"
-                            AutomationProperties.Name=""/>
+                            TabIndex="10"/>
                     <TextBlock x:Name="HeaderTitle" Text=""
                                FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                                Foreground="{DynamicResource TextPrimaryBrush}"
@@ -67,8 +66,7 @@
                                  Foreground="{DynamicResource TextPrimaryBrush}"
                                  BorderBrush="{DynamicResource BorderBrush}"
                                  VerticalAlignment="Center"
-                                 TabIndex="0"
-                                 AutomationProperties.Name=""/>
+                                 TabIndex="0"/>
                     </StackPanel>
 
                     <StackPanel Orientation="Horizontal" Margin="0,2,12,2">
@@ -83,8 +81,7 @@
                                  Foreground="{DynamicResource TextPrimaryBrush}"
                                  BorderBrush="{DynamicResource BorderBrush}"
                                  VerticalAlignment="Center"
-                                 TabIndex="1"
-                                 AutomationProperties.Name=""/>
+                                 TabIndex="1"/>
                     </StackPanel>
 
                     <StackPanel Orientation="Horizontal" Margin="0,2,12,2">
@@ -99,8 +96,7 @@
                                  Foreground="{DynamicResource TextPrimaryBrush}"
                                  BorderBrush="{DynamicResource BorderBrush}"
                                  VerticalAlignment="Center"
-                                 TabIndex="2"
-                                 AutomationProperties.Name=""/>
+                                 TabIndex="2"/>
                     </StackPanel>
 
                     <Button x:Name="BtnStart" Content=""
@@ -108,16 +104,14 @@
                             Style="{DynamicResource PrimaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonPrimary}" Margin="0,2,4,2"
                             VerticalAlignment="Center"
-                            TabIndex="3"
-                            AutomationProperties.Name=""/>
+                            TabIndex="3"/>
                     <Button x:Name="BtnStop" Content=""
                             Click="OnStopClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonPrimary}" Margin="0,2,0,2"
                             VerticalAlignment="Center"
                             IsEnabled="False"
-                            TabIndex="4"
-                            AutomationProperties.Name=""/>
+                            TabIndex="4"/>
                 </WrapPanel>
             </Grid>
         </Border>
@@ -130,8 +124,7 @@
                         Click="OnCloseHelpClick"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
                         VerticalAlignment="Top" Width="24" Height="24"
-                        TabIndex="11"
-                        AutomationProperties.Name=""/>
+                        TabIndex="11"/>
                 <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
                     <TextBlock x:Name="TxtHelpContent" Text="" TextWrapping="Wrap"
                                FontSize="{StaticResource FontSizeBody}"
@@ -161,7 +154,6 @@
                          IsReadOnly="True" TextWrapping="Wrap"
                          VerticalScrollBarVisibility="Disabled"
                          TabIndex="5"
-                         AutomationProperties.Name=""
                          AutomationProperties.LiveSetting="Polite"/>
             </ScrollViewer>
         </Border>
@@ -187,8 +179,7 @@
                         Content="" Click="OnCopyClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginInlineControl}"
-                        TabIndex="6"
-                        AutomationProperties.Name=""/>
+                        TabIndex="6"/>
                 <TextBlock x:Name="TxtStatus" Text=""
                            FontSize="{StaticResource FontSizeSmallCaption}"
                            Foreground="{DynamicResource TextSecondaryBrush}"

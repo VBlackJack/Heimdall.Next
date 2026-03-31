@@ -35,8 +35,7 @@
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
-                        Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"
-                        AutomationProperties.Name=""/>
+                        Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"/>
                 <TextBlock x:Name="HeaderTitle" FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
                            VerticalAlignment="Center"/>
@@ -50,8 +49,7 @@
                         FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeBody}"
                         Click="OnCloseHelpClick"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
-                        VerticalAlignment="Top" Width="24" Height="24"
-                        AutomationProperties.Name=""/>
+                        VerticalAlignment="Top" Width="24" Height="24"/>
                 <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
                     <TextBlock x:Name="TxtHelpContent" Text="" TextWrapping="Wrap"
                                FontSize="{StaticResource FontSizeBody}"
@@ -77,14 +75,12 @@
                           TabIndex="1"
                           Foreground="{DynamicResource TextPrimaryBrush}"
                           VerticalAlignment="Center"
-                          Margin="0,0,16,0"
-                          AutomationProperties.Name=""/>
+                          Margin="0,0,16,0"/>
                 <CheckBox x:Name="ChkFileMode"
                           TabIndex="2"
                           Foreground="{DynamicResource TextPrimaryBrush}"
                           Checked="OnFileModeChanged" Unchecked="OnFileModeChanged"
-                          VerticalAlignment="Center"
-                          AutomationProperties.Name=""/>
+                          VerticalAlignment="Center"/>
             </StackPanel>
             <TextBlock x:Name="InputLabel"
                        Foreground="{DynamicResource TextSecondaryBrush}"
@@ -105,8 +101,7 @@
                  BorderThickness="1"
                  Padding="{StaticResource PaddingInput}"
                  Tag=""
-                 TextChanged="OnInputTextChanged"
-                 AutomationProperties.Name=""/>
+                 TextChanged="OnInputTextChanged"/>
 
         <!-- Action buttons -->
         <StackPanel Grid.Row="2" Orientation="Horizontal"
@@ -114,13 +109,11 @@
             <Button x:Name="BtnEncode" Click="OnEncodeClick"
                     TabIndex="3"
                     Style="{DynamicResource PrimaryButtonStyle}"
-                    Padding="{StaticResource PaddingButtonPrimary}" Margin="0,0,8,0"
-                    AutomationProperties.Name=""/>
+                    Padding="{StaticResource PaddingButtonPrimary}" Margin="0,0,8,0"/>
             <Button x:Name="BtnDecode" Click="OnDecodeClick"
                     TabIndex="4"
                     Style="{DynamicResource SecondaryButtonStyle}"
-                    Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginInlineControl}"
-                    AutomationProperties.Name=""/>
+                    Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginInlineControl}"/>
         </StackPanel>
 
         <!-- Output text area -->
@@ -139,7 +132,7 @@
                 <StackPanel HorizontalAlignment="Center">
                     <TextBlock Text="&#xE943;"
                                Style="{StaticResource ToolEmptyStateIconStyle}"
-                               AutomationProperties.Name=""/>
+                               Focusable="False"/>
                     <TextBlock x:Name="TxtEmptyState" Text=""
                                Style="{StaticResource ToolEmptyStateTextStyle}"/>
                 </StackPanel>
@@ -158,8 +151,7 @@
                          Foreground="{DynamicResource TextPrimaryBrush}"
                          BorderBrush="{DynamicResource BorderBrush}"
                          BorderThickness="1"
-                         Padding="{StaticResource PaddingInput}"
-                         AutomationProperties.Name=""/>
+                         Padding="{StaticResource PaddingInput}"/>
             </Border>
         </Grid>
 
@@ -169,15 +161,13 @@
                     TabIndex="7"
                     Click="OnCopyOutputClick"
                     Style="{DynamicResource SecondaryButtonStyle}"
-                    Padding="{StaticResource PaddingButtonCopy}"
-                    AutomationProperties.Name=""/>
+                    Padding="{StaticResource PaddingButtonCopy}"/>
             <Button x:Name="BtnBrowseFile" DockPanel.Dock="Right"
                     TabIndex="6"
                     Click="OnBrowseFileClick"
                     Style="{DynamicResource SecondaryButtonStyle}"
                     Padding="{StaticResource PaddingButtonCopy}" Margin="0,0,8,0"
-                    Visibility="Collapsed"
-                    AutomationProperties.Name=""/>
+                    Visibility="Collapsed"/>
             <TextBlock x:Name="StatusText"
                        Foreground="{DynamicResource TextSecondaryBrush}"
                        FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center"/>

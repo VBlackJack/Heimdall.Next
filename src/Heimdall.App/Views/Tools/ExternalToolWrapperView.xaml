@@ -37,8 +37,7 @@
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
                         Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"
-                        TabIndex="10"
-                        AutomationProperties.Name=""/>
+                        TabIndex="10"/>
                 <TextBlock x:Name="HeaderTitle" Text=""
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
@@ -54,8 +53,7 @@
                         Click="OnCloseHelpClick"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
                         VerticalAlignment="Top" Width="24" Height="24"
-                        TabIndex="11"
-                        AutomationProperties.Name=""/>
+                        TabIndex="11"/>
                 <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
                     <TextBlock x:Name="TxtHelpContent" Text="" TextWrapping="Wrap"
                                FontSize="{StaticResource FontSizeBody}"
@@ -76,19 +74,16 @@
                         Style="{DynamicResource PrimaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginInlineControl}"
                         VerticalAlignment="Stretch"
-                        TabIndex="2"
-                        AutomationProperties.Name=""/>
+                        TabIndex="2"/>
                 <Button x:Name="BtnStop" DockPanel.Dock="Right"
                         Content="" Click="OnStopClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginInlineControl}"
                         VerticalAlignment="Stretch" Visibility="Collapsed"
-                        TabIndex="3"
-                        AutomationProperties.Name=""/>
+                        TabIndex="3"/>
                 <TextBox x:Name="TxtArguments"
                          FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
                          Padding="{StaticResource PaddingInput}"
-                         AutomationProperties.Name=""
                          Background="{DynamicResource CardBrush}"
                          Foreground="{DynamicResource TextPrimaryBrush}"
                          BorderBrush="{DynamicResource BorderBrush}"
@@ -99,8 +94,8 @@
         <!-- Results area -->
         <Grid Grid.Row="3">
             <!-- Loading indicator -->
-            <ProgressBar x:Name="LoadingBar" IsIndeterminate="True" Height="3"
-                         VerticalAlignment="Top" Visibility="Collapsed"/>
+            <ProgressBar x:Name="LoadingBar" Style="{StaticResource ToolLoadingBarStyle}"
+                         VerticalAlignment="Top"/>
 
             <!-- CSV DataGrid mode -->
             <DataGrid x:Name="ResultsGrid" Visibility="Collapsed"
@@ -114,8 +109,7 @@
                       AlternatingRowBackground="{DynamicResource SurfaceBrush}"
                       BorderBrush="{DynamicResource BorderBrush}"
                       HorizontalGridLinesBrush="{DynamicResource BorderBrush}"
-                      FontSize="{StaticResource FontSizeBody}"
-                      AutomationProperties.Name=""/>
+                      FontSize="{StaticResource FontSizeBody}"/>
 
             <!-- Text output mode -->
             <TextBox x:Name="TxtOutput"
@@ -124,7 +118,6 @@
                      IsReadOnly="True" AcceptsReturn="True" TextWrapping="NoWrap"
                      VerticalScrollBarVisibility="Auto"
                      HorizontalScrollBarVisibility="Auto"
-                     AutomationProperties.Name=""
                      AutomationProperties.LiveSetting="Polite"
                      Background="{DynamicResource BackgroundBrush}"
                      Foreground="{DynamicResource TextPrimaryBrush}"
@@ -146,8 +139,7 @@
                         Content="" Click="OnCopyClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginInlineControl}"
-                        TabIndex="4"
-                        AutomationProperties.Name=""/>
+                        TabIndex="4"/>
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <TextBlock x:Name="TxtProviderBadge" Text=""
                                FontSize="{StaticResource FontSizeSmallCaption}" FontWeight="SemiBold"

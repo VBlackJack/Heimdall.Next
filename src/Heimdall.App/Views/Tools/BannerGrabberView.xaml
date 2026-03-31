@@ -23,6 +23,7 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
@@ -37,13 +38,20 @@
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
-                        Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"
-                        AutomationProperties.Name=""/>
+                        Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"/>
                 <TextBlock x:Name="HeaderTitle" Text=""
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
                            VerticalAlignment="Center" DockPanel.Dock="Left"/>
-                <WrapPanel Margin="16,0,0,0" VerticalAlignment="Center">
+            </DockPanel>
+        </Border>
+
+        <!-- Input strip -->
+        <Border Grid.Row="2" Padding="{StaticResource ToolHeaderPadding}"
+                Background="{DynamicResource SurfaceBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="0,0,0,1">
+            <WrapPanel VerticalAlignment="Center">
                     <StackPanel Orientation="Horizontal" Margin="0,2,12,2">
                         <TextBlock x:Name="LblHost" Text=""
                                    FontSize="{StaticResource FontSizeCaption}"
@@ -58,8 +66,7 @@
                                  Foreground="{DynamicResource TextPrimaryBrush}"
                                  BorderBrush="{DynamicResource BorderBrush}"
                                  VerticalAlignment="Center"
-                                 TabIndex="0"
-                                 AutomationProperties.Name=""/>
+                                 TabIndex="0"/>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Margin="0,2,12,2">
                         <TextBlock x:Name="LblPorts" Text=""
@@ -75,8 +82,7 @@
                                  Foreground="{DynamicResource TextPrimaryBrush}"
                                  BorderBrush="{DynamicResource BorderBrush}"
                                  VerticalAlignment="Center"
-                                 TabIndex="1"
-                                 AutomationProperties.Name=""/>
+                                 TabIndex="1"/>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Margin="0,2,12,2">
                         <TextBlock x:Name="LblRouteVia" Text=""
@@ -88,18 +94,15 @@
                                   Foreground="{DynamicResource TextPrimaryBrush}"
                                   BorderBrush="{DynamicResource BorderBrush}"
                                   VerticalAlignment="Center"
-                                  TabIndex="2"
-                                  AutomationProperties.Name=""/>
+                                  TabIndex="2"/>
                     </StackPanel>
                     <Button x:Name="BtnGrab" Content=""
                             Click="OnGrabClick"
                             Style="{DynamicResource PrimaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonPrimary}" Margin="0,2,0,2"
                             VerticalAlignment="Center"
-                            TabIndex="3"
-                            AutomationProperties.Name=""/>
-                </WrapPanel>
-            </DockPanel>
+                            TabIndex="3"/>
+            </WrapPanel>
         </Border>
 
         <!-- Help panel -->
@@ -110,8 +113,7 @@
                         Click="OnCloseHelpClick"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
                         VerticalAlignment="Top" Width="24" Height="24"
-                        TabIndex="13"
-                        AutomationProperties.Name=""/>
+                        TabIndex="13"/>
                 <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
                     <TextBlock x:Name="TxtHelpContent" Text="" TextWrapping="Wrap"
                                FontSize="{StaticResource FontSizeBody}"
@@ -122,7 +124,7 @@
         </Border>
 
         <!-- Presets + filter row -->
-        <Border Grid.Row="2" Padding="{StaticResource ToolFooterPadding}"
+        <Border Grid.Row="3" Padding="{StaticResource ToolFooterPadding}"
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,0,0,1">
@@ -131,46 +133,39 @@
                           Foreground="{DynamicResource TextPrimaryBrush}"
                           VerticalAlignment="Center" Margin="12,0,0,0"
                           Checked="OnBannerOnlyChanged" Unchecked="OnBannerOnlyChanged"
-                          TabIndex="4"
-                          AutomationProperties.Name=""/>
+                          TabIndex="4"/>
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <Button x:Name="BtnPresetWeb" Click="OnPresetClick" Tag="80,443,8080,8443"
                             Style="{DynamicResource SecondaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonPreset}" Margin="0,0,4,0" FontSize="{StaticResource FontSizeCaption}"
-                            TabIndex="5"
-                            AutomationProperties.Name=""/>
+                            TabIndex="5"/>
                     <Button x:Name="BtnPresetRemote" Click="OnPresetClick" Tag="22,23,3389,5900"
                             Style="{DynamicResource SecondaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonPreset}" Margin="0,0,4,0" FontSize="{StaticResource FontSizeCaption}"
-                            TabIndex="6"
-                            AutomationProperties.Name=""/>
+                            TabIndex="6"/>
                     <Button x:Name="BtnPresetMail" Click="OnPresetClick" Tag="25,110,143,993,995,587"
                             Style="{DynamicResource SecondaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonPreset}" Margin="0,0,4,0" FontSize="{StaticResource FontSizeCaption}"
-                            TabIndex="7"
-                            AutomationProperties.Name=""/>
+                            TabIndex="7"/>
                     <Button x:Name="BtnPresetDatabase" Click="OnPresetClick" Tag="3306,5432,1433,6379,27017"
                             Style="{DynamicResource SecondaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonPreset}" FontSize="{StaticResource FontSizeCaption}"
-                            TabIndex="8"
-                            AutomationProperties.Name=""/>
+                            TabIndex="8"/>
                 </StackPanel>
             </DockPanel>
         </Border>
 
         <!-- Validation error -->
-        <TextBlock x:Name="TxtError" Grid.Row="3" Text=""
+        <TextBlock x:Name="TxtError" Grid.Row="4" Text=""
                    Style="{StaticResource ToolInlineErrorTextStyle}"
                    Margin="12,4,12,0"/>
 
         <!-- Progress bar with count overlay -->
-        <Grid Grid.Row="3" x:Name="ProgressPanel" Visibility="Collapsed">
+        <Grid Grid.Row="4" x:Name="ProgressPanel" Visibility="Collapsed">
             <ProgressBar x:Name="GrabProgress"
-                         Height="20" Minimum="0" Maximum="100"
+                         Style="{StaticResource ToolDeterminateProgressBarStyle}"
                          IsIndeterminate="False"
-                         Foreground="{DynamicResource AccentBrush}"
-                         Background="{DynamicResource SurfaceBrush}"
-                         AutomationProperties.Name=""/>
+                         Background="{DynamicResource SurfaceBrush}"/>
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
                 <TextBlock x:Name="TxtProgressPercent" Text="0%"
                            FontSize="{StaticResource FontSizeCaption}" FontWeight="SemiBold"
@@ -184,19 +179,20 @@
         </Grid>
 
         <!-- Empty state hint -->
-        <Border x:Name="EmptyStatePanel" Grid.Row="4"
+        <Border x:Name="EmptyStatePanel" Grid.Row="5"
                 Style="{StaticResource ToolEmptyStateStyle}"
                 Margin="0,24,0,0">
             <StackPanel HorizontalAlignment="Center">
                 <TextBlock Text="&#xE774;"
-                           Style="{StaticResource ToolEmptyStateIconStyle}"/>
+                           Style="{StaticResource ToolEmptyStateIconStyle}"
+                           Focusable="False"/>
                 <TextBlock x:Name="TxtEmptyState" Text=""
                            Style="{StaticResource ToolEmptyStateTextStyle}"/>
             </StackPanel>
         </Border>
 
         <!-- Results DataGrid -->
-        <Border x:Name="ResultsPanel" Grid.Row="4"
+        <Border x:Name="ResultsPanel" Grid.Row="5"
                 Style="{StaticResource ToolResultsCardStyle}"
                 Margin="{StaticResource SpacingSm}"
                 Padding="0">
@@ -217,7 +213,6 @@
                       CellStyle="{StaticResource ThemedDataGridCellStyle}"
                       RowStyle="{StaticResource ThemedDataGridRowStyle}"
                       TabIndex="9"
-                      AutomationProperties.Name=""
                       AutomationProperties.LiveSetting="Polite">
                 <DataGrid.Columns>
                     <DataGridTextColumn x:Name="ColPort" Binding="{Binding Port}" Width="80"
@@ -235,7 +230,7 @@
         </Border>
 
         <!-- Footer -->
-        <Border Grid.Row="5" Padding="{StaticResource ToolFooterPadding}"
+        <Border Grid.Row="6" Padding="{StaticResource ToolFooterPadding}"
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,1,0,0">
@@ -243,17 +238,15 @@
                 <Button x:Name="BtnExportCsv" Content=""
                         Click="OnExportCsvClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="{StaticResource PaddingButtonPrimary}" DockPanel.Dock="Right" Margin="{StaticResource MarginInlineControl}"
+                        Padding="{StaticResource PaddingButtonCopy}" DockPanel.Dock="Right" Margin="{StaticResource MarginInlineControl}"
                         VerticalAlignment="Center"
-                        TabIndex="10"
-                        AutomationProperties.Name=""/>
+                        TabIndex="10"/>
                 <Button x:Name="BtnCopy" Content=""
                         Click="OnCopyClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="{StaticResource PaddingButtonPrimary}" DockPanel.Dock="Right"
+                        Padding="{StaticResource PaddingButtonCopy}" DockPanel.Dock="Right"
                         VerticalAlignment="Center"
-                        TabIndex="11"
-                        AutomationProperties.Name=""/>
+                        TabIndex="11"/>
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <TextBlock x:Name="TxtResultCount" Text="" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                                Foreground="{DynamicResource TextSecondaryBrush}"/>

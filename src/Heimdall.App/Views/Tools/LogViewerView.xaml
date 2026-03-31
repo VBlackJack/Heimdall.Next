@@ -39,8 +39,7 @@
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
                         Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"
-                        TabIndex="10"
-                        AutomationProperties.Name=""/>
+                        TabIndex="10"/>
                 <TextBlock x:Name="HeaderTitle"
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
@@ -56,8 +55,7 @@
                         Click="OnCloseHelpClick"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
                         VerticalAlignment="Top" Width="24" Height="24"
-                        TabIndex="11"
-                        AutomationProperties.Name=""/>
+                        TabIndex="11"/>
                 <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
                     <TextBlock x:Name="TxtHelpContent" Text="" TextWrapping="Wrap"
                                FontSize="{StaticResource FontSizeBody}"
@@ -88,22 +86,19 @@
                          VerticalAlignment="Center"
                          Tag=""
                          KeyDown="OnFilePathKeyDown"
-                         TabIndex="0"
-                         AutomationProperties.Name=""/>
+                         TabIndex="0"/>
                 <Button x:Name="BtnBrowse" Grid.Column="1"
                         Click="OnBrowseClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonCopy}" Margin="4,0,0,0"
                         VerticalAlignment="Center"
-                        TabIndex="1"
-                        AutomationProperties.Name=""/>
+                        TabIndex="1"/>
                 <ToggleButton x:Name="BtnTail" Grid.Column="2"
                               Checked="OnTailChecked"
                               Unchecked="OnTailUnchecked"
                               Padding="{StaticResource PaddingButtonCopy}" Margin="4,0,0,0"
                               VerticalAlignment="Center"
-                              TabIndex="2"
-                              AutomationProperties.Name=""/>
+                              TabIndex="2"/>
             </Grid>
         </Border>
 
@@ -133,30 +128,26 @@
                              VerticalAlignment="Center"
                              Tag=""
                              KeyDown="OnFilterKeyDown"
-                             TabIndex="3"
-                             AutomationProperties.Name=""/>
+                             TabIndex="3"/>
                     <Button x:Name="BtnApplyFilter" Grid.Column="1"
                             Click="OnApplyFilterClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonPreset}" Margin="4,0,0,0"
                             VerticalAlignment="Center"
-                            TabIndex="4"
-                            AutomationProperties.Name=""/>
+                            TabIndex="4"/>
                     <Button x:Name="BtnClearFilter" Grid.Column="2"
                             Click="OnClearFilterClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonPreset}" Margin="4,0,0,0"
                             VerticalAlignment="Center"
-                            TabIndex="5"
-                            AutomationProperties.Name=""/>
+                            TabIndex="5"/>
                 </Grid>
 
                 <WrapPanel Grid.Row="1" Margin="0,8,0,0" VerticalAlignment="Center">
                     <CheckBox x:Name="ChkCaseSensitive"
                               Foreground="{DynamicResource TextPrimaryBrush}"
                               VerticalAlignment="Center"
-                              TabIndex="6"
-                              AutomationProperties.Name=""/>
+                              TabIndex="6"/>
                     <TextBlock x:Name="EncodingLabel"
                                Foreground="{DynamicResource TextSecondaryBrush}"
                                VerticalAlignment="Center" Margin="12,0,4,0"/>
@@ -165,8 +156,7 @@
                               MinWidth="120"
                               SelectionChanged="OnEncodingChanged"
                               VerticalAlignment="Center"
-                              TabIndex="7"
-                              AutomationProperties.Name="">
+                              TabIndex="7">
                         <ComboBoxItem x:Name="EncUtf8Item" Content="" Tag="UTF-8"/>
                         <ComboBoxItem x:Name="EncAsciiItem" Content="" Tag="ASCII"/>
                         <ComboBoxItem x:Name="EncUtf16Item" Content="" Tag="UTF-16"/>
@@ -186,7 +176,7 @@
                 Margin="0,24,0,0">
             <StackPanel HorizontalAlignment="Center">
                 <TextBlock Text="&#xE7BC;" Style="{StaticResource ToolEmptyStateIconStyle}"
-                           AutomationProperties.Name=""/>
+                           Focusable="False"/>
                 <TextBlock x:Name="TxtEmptyState" Text=""
                            Style="{StaticResource ToolEmptyStateTextStyle}"/>
             </StackPanel>
@@ -221,8 +211,7 @@
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonCopy}" FontSize="{StaticResource FontSizeCaption}"
                         Margin="{StaticResource MarginInlineControl}" VerticalAlignment="Center"
-                        TabIndex="9"
-                        AutomationProperties.Name=""/>
+                        TabIndex="9"/>
                 <TextBlock x:Name="TailStatusText" DockPanel.Dock="Right"
                            Foreground="{DynamicResource AccentBrush}"
                            FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center"

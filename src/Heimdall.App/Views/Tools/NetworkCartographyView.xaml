@@ -39,8 +39,7 @@
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
                         Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"
-                        TabIndex="14"
-                        AutomationProperties.Name=""/>
+                        TabIndex="14"/>
                 <TextBlock x:Name="HeaderTitle" Text=""
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
@@ -56,8 +55,7 @@
                         Click="OnCloseHelpClick"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
                         VerticalAlignment="Top" Width="24" Height="24"
-                        TabIndex="15"
-                        AutomationProperties.Name=""/>
+                        TabIndex="15"/>
                 <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
                     <TextBlock x:Name="TxtHelpContent" Text="" TextWrapping="Wrap"
                                FontSize="{StaticResource FontSizeBody}"
@@ -91,8 +89,7 @@
                              Foreground="{DynamicResource TextPrimaryBrush}"
                              BorderBrush="{DynamicResource BorderBrush}"
                              VerticalAlignment="Center"
-                             TabIndex="0"
-                             AutomationProperties.Name=""/>
+                             TabIndex="0"/>
 
                     <TextBlock x:Name="LblDepth" Text="" FontSize="{StaticResource FontSizeBody}"
                                Foreground="{DynamicResource TextSecondaryBrush}"
@@ -102,23 +99,20 @@
                               Foreground="{DynamicResource TextPrimaryBrush}"
                               BorderBrush="{DynamicResource BorderBrush}"
                               VerticalAlignment="Center"
-                              TabIndex="1"
-                              AutomationProperties.Name=""/>
+                              TabIndex="1"/>
 
                     <Button x:Name="BtnStart" Content=""
                             Click="OnStartClick"
                             Style="{DynamicResource PrimaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonPrimary}" Margin="16,0,0,0"
                             VerticalAlignment="Center"
-                            TabIndex="2"
-                            AutomationProperties.Name=""/>
+                            TabIndex="2"/>
                     <Button x:Name="BtnStop" Content=""
                             Click="OnStopClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginInlineControl}"
                             VerticalAlignment="Center" IsEnabled="False"
-                            TabIndex="3"
-                            AutomationProperties.Name=""/>
+                            TabIndex="3"/>
                     <TextBlock x:Name="TxtScanProgress" Text=""
                                FontSize="{StaticResource FontSizeCaption}"
                                Foreground="{DynamicResource TextSecondaryBrush}"
@@ -131,18 +125,15 @@
                     <CheckBox x:Name="ChkSkipPing"
                               Foreground="{DynamicResource TextPrimaryBrush}"
                               VerticalAlignment="Center"
-                              TabIndex="4"
-                              AutomationProperties.Name=""/>
+                              TabIndex="4"/>
                     <CheckBox x:Name="ChkReverseDns" IsChecked="True"
                               Foreground="{DynamicResource TextPrimaryBrush}"
                               VerticalAlignment="Center" Margin="16,0,0,0"
-                              TabIndex="5"
-                              AutomationProperties.Name=""/>
+                              TabIndex="5"/>
                     <CheckBox x:Name="ChkUseKnowledgeBase"
                               Foreground="{DynamicResource TextPrimaryBrush}"
                               VerticalAlignment="Center" Margin="16,0,0,0"
-                              TabIndex="6"
-                              AutomationProperties.Name=""/>
+                              TabIndex="6"/>
 
                     <TextBlock x:Name="LblRouteVia" Text=""
                                FontSize="{StaticResource FontSizeBody}" VerticalAlignment="Center" Margin="16,0,4,0"
@@ -153,8 +144,7 @@
                               Foreground="{DynamicResource TextPrimaryBrush}"
                               BorderBrush="{DynamicResource BorderBrush}"
                               VerticalAlignment="Center"
-                              TabIndex="7"
-                              AutomationProperties.Name=""/>
+                              TabIndex="7"/>
                 </WrapPanel>
             </Grid>
         </Border>
@@ -164,8 +154,7 @@
             <ProgressBar x:Name="ScanProgress" Height="4"
                          Minimum="0" Maximum="100"
                          Foreground="{DynamicResource AccentBrush}"
-                         Background="{DynamicResource SurfaceBrush}"
-                         AutomationProperties.Name=""/>
+                         Background="{DynamicResource SurfaceBrush}"/>
             <TextBlock x:Name="TxtStatus" Text="" FontSize="{StaticResource FontSizeCaption}"
                        Foreground="{DynamicResource TextSecondaryBrush}"
                        Margin="12,2,12,4"/>
@@ -177,7 +166,7 @@
                 Margin="0,24,0,0">
             <StackPanel HorizontalAlignment="Center">
                 <TextBlock Text="&#xE826;" Style="{StaticResource ToolEmptyStateIconStyle}"
-                           AutomationProperties.Name=""/>
+                           Focusable="False"/>
                 <TextBlock x:Name="TxtEmptyState" Text=""
                            Style="{StaticResource ToolEmptyStateTextStyle}"/>
             </StackPanel>
@@ -191,7 +180,6 @@
             <DataGrid x:Name="ResultsGrid"
                       AutoGenerateColumns="False"
                       IsReadOnly="True"
-                      AutomationProperties.Name=""
                       AutomationProperties.LiveSetting="Polite"
                       HeadersVisibility="Column"
                       GridLinesVisibility="Horizontal"
@@ -277,8 +265,7 @@
                             Style="{DynamicResource SecondaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonPreset}" Margin="{StaticResource MarginInlineControl}" FontSize="{StaticResource FontSizeCaption}"
                             VerticalAlignment="Center"
-                            TabIndex="9"
-                            AutomationProperties.Name=""/>
+                            TabIndex="9"/>
                 </WrapPanel>
 
                 <WrapPanel Grid.Row="1" HorizontalAlignment="Right" Margin="0,8,0,0">
@@ -288,29 +275,25 @@
                               Foreground="{DynamicResource TextPrimaryBrush}"
                               BorderBrush="{DynamicResource BorderBrush}"
                               VerticalAlignment="Center"
-                              TabIndex="10"
-                              AutomationProperties.Name=""/>
+                              TabIndex="10"/>
                     <Button x:Name="BtnExportDrawio" Content=""
                             Click="OnExportDrawioClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="{StaticResource PaddingButtonPrimary}" Margin="0,0,4,0"
+                            Padding="{StaticResource PaddingButtonCopy}" Margin="0,0,4,0"
                             VerticalAlignment="Center" IsEnabled="False"
-                            TabIndex="11"
-                            AutomationProperties.Name=""/>
+                            TabIndex="11"/>
                     <Button x:Name="BtnEditDiagram" Content=""
                             Click="OnEditDiagramClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonPrimary}" Margin="0,0,4,0"
                             VerticalAlignment="Center" IsEnabled="False"
-                            TabIndex="12"
-                            AutomationProperties.Name=""/>
+                            TabIndex="12"/>
                     <Button x:Name="BtnExportCsv" Content=""
                             Click="OnExportCsvClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="{StaticResource PaddingButtonPrimary}"
+                            Padding="{StaticResource PaddingButtonCopy}"
                             VerticalAlignment="Center" IsEnabled="False"
-                            TabIndex="13"
-                            AutomationProperties.Name=""/>
+                            TabIndex="13"/>
                 </WrapPanel>
             </Grid>
         </Border>

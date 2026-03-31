@@ -36,8 +36,7 @@
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
                         Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"
-                        TabIndex="4"
-                        AutomationProperties.Name=""/>
+                        TabIndex="4"/>
                 <TextBlock x:Name="HeaderTitle" Text=""
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
@@ -53,8 +52,7 @@
                         Click="OnCloseHelpClick"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
                         VerticalAlignment="Top" Width="24" Height="24"
-                        TabIndex="5"
-                        AutomationProperties.Name=""/>
+                        TabIndex="5"/>
                 <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
                     <TextBlock x:Name="TxtHelpContent" Text="" TextWrapping="Wrap"
                                FontSize="{StaticResource FontSizeBody}"
@@ -78,8 +76,7 @@
                             Style="{DynamicResource PrimaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginInlineControl}"
                             VerticalAlignment="Center"
-                            TabIndex="0"
-                            AutomationProperties.Name=""/>
+                            TabIndex="0"/>
                     <TextBox x:Name="TxtDomain" Text=""
                              Style="{StaticResource WatermarkTextBoxStyle}"
                              Tag=""
@@ -89,8 +86,7 @@
                              Foreground="{DynamicResource TextPrimaryBrush}"
                              BorderBrush="{DynamicResource BorderBrush}"
                              VerticalAlignment="Center"
-                             TabIndex="1"
-                             AutomationProperties.Name=""/>
+                             TabIndex="1"/>
                 </DockPanel>
 
                 <!-- Error message -->
@@ -99,8 +95,7 @@
 
                 <!-- Loading indicator -->
                 <ProgressBar x:Name="LoadingBar"
-                             Style="{StaticResource ToolLoadingBarStyle}"
-                             AutomationProperties.Name=""/>
+                             Style="{StaticResource ToolLoadingBarStyle}"/>
 
                 <!-- Empty state hint (hidden once results appear) -->
                 <Border x:Name="EmptyStatePanel"
@@ -109,7 +104,7 @@
                     <StackPanel HorizontalAlignment="Center">
                         <TextBlock Text="&#xE774;"
                                    Style="{StaticResource ToolEmptyStateIconStyle}"
-                                   AutomationProperties.Name=""/>
+                                   Focusable="False"/>
                         <TextBlock x:Name="TxtEmptyState" Text=""
                                    Style="{StaticResource ToolEmptyStateTextStyle}"/>
                     </StackPanel>
@@ -123,8 +118,7 @@
                             <Button x:Name="BtnCopyResults" DockPanel.Dock="Right" Click="OnCopyResultsClick"
                                     Style="{DynamicResource SecondaryButtonStyle}"
                                     Padding="{StaticResource PaddingButtonPreset}" FontSize="{StaticResource FontSizeCaption}" Margin="{StaticResource MarginInlineControl}" VerticalAlignment="Center"
-                                    TabIndex="2"
-                                    AutomationProperties.Name=""/>
+                                    TabIndex="2"/>
                             <TextBlock x:Name="TxtResultHeader" Text=""
                                        FontSize="{StaticResource FontSizeBodyLarge}" FontWeight="SemiBold"
                                        Foreground="{DynamicResource AccentBrush}"
@@ -141,7 +135,6 @@
                                  BorderThickness="0"
                                  MaxHeight="500"
                                  TabIndex="3"
-                                 AutomationProperties.Name=""
                                  AutomationProperties.LiveSetting="Polite"/>
                     </StackPanel>
                 </Border>

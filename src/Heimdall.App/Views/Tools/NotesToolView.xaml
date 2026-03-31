@@ -36,20 +36,17 @@
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
                         Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"
-                        TabIndex="16"
-                        AutomationProperties.Name=""/>
+                        TabIndex="16"/>
                 <Button x:Name="BtnMarkdownHelp" DockPanel.Dock="Right"
                         Click="OnMarkdownHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginInlineControl}"
-                        TabIndex="15"
-                        AutomationProperties.Name=""/>
+                        TabIndex="15"/>
                 <Button x:Name="BtnOpenFolder" DockPanel.Dock="Right"
                         Click="OnOpenFolderClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginInlineControl}"
-                        TabIndex="14"
-                        AutomationProperties.Name=""/>
+                        TabIndex="14"/>
                 <Button x:Name="BtnToggleSidebar" DockPanel.Dock="Left"
                         Click="OnToggleSidebarClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
@@ -57,8 +54,7 @@
                         FontFamily="{StaticResource FontFamilyMonospace}"
                         FontSize="{StaticResource FontSizeBody}"
                         Content="&#x2630;"
-                        TabIndex="0"
-                        AutomationProperties.Name=""/>
+                        TabIndex="0"/>
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <TextBlock x:Name="HeaderTitle"
                                FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
@@ -82,8 +78,7 @@
                         Click="OnCloseHelpClick"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
                         VerticalAlignment="Top" Width="24" Height="24"
-                        TabIndex="17"
-                        AutomationProperties.Name=""/>
+                        TabIndex="17"/>
                 <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
                     <TextBlock x:Name="TxtHelpContent" Text="" TextWrapping="Wrap"
                                FontSize="{StaticResource FontSizeBody}"
@@ -131,8 +126,7 @@
                                  Background="{DynamicResource SurfaceBrush}"
                                  Foreground="{DynamicResource TextPrimaryBrush}"
                                  BorderBrush="{DynamicResource BorderBrush}"
-                                 TabIndex="1"
-                                 AutomationProperties.Name=""/>
+                                 TabIndex="1"/>
                         <WrapPanel Grid.Row="1" Margin="0,8,0,0" HorizontalAlignment="Right">
                             <Button x:Name="BtnCollapseAll"
                                     Click="OnCollapseAllClick"
@@ -140,23 +134,20 @@
                                     Padding="{StaticResource PaddingButtonHelp}" Margin="4,0,0,0"
                                     FontSize="{StaticResource FontSizeCaption}"
                                     Content="&#x25B2;"
-                                    TabIndex="2"
-                                    AutomationProperties.Name=""/>
+                                    TabIndex="2"/>
                             <Button x:Name="BtnExpandAll"
                                     Click="OnExpandAllClick"
                                     Style="{DynamicResource SecondaryButtonStyle}"
                                     Padding="{StaticResource PaddingButtonHelp}" Margin="4,0,0,0"
                                     FontSize="{StaticResource FontSizeCaption}"
                                     Content="&#x25BC;"
-                                    TabIndex="3"
-                                    AutomationProperties.Name=""/>
+                                    TabIndex="3"/>
                             <Button x:Name="BtnNewNote"
                                     Click="OnNewNoteClick"
                                     Style="{DynamicResource SecondaryButtonStyle}"
                                     Padding="{StaticResource PaddingButtonCopy}" Margin="4,0,0,0"
                                     FontSize="{StaticResource FontSizeCaption}"
-                                    TabIndex="4"
-                                    AutomationProperties.Name=""/>
+                                    TabIndex="4"/>
                         </WrapPanel>
                     </Grid>
 
@@ -172,8 +163,7 @@
                                       HorizontalAlignment="Left"
                                       SelectedValuePath="Tag"
                                       SelectionChanged="OnSortOrderSelectionChanged"
-                                      TabIndex="5"
-                                      AutomationProperties.Name="">
+                                      TabIndex="5">
                                 <ComboBoxItem x:Name="SortNewestFirstItem" Tag="DateDescending"/>
                                 <ComboBoxItem x:Name="SortOldestFirstItem" Tag="DateAscending"/>
                                 <ComboBoxItem x:Name="SortNameAscItem" Tag="NameAscending"/>
@@ -308,41 +298,35 @@
                                     Padding="{StaticResource PaddingButtonToolbar}" Margin="0,0,4,0"
                                     FontSize="{StaticResource FontSizeBody}"
                                     IsEnabled="False"
-                                    TabIndex="7"
-                                    AutomationProperties.Name=""/>
+                                    TabIndex="7"/>
                             <Button x:Name="BtnNavForward" Content="&#x2192;"
                                     Click="OnNavForwardClick"
                                     Style="{DynamicResource SecondaryButtonStyle}"
                                     Padding="{StaticResource PaddingButtonToolbar}" Margin="0,0,8,0"
                                     FontSize="{StaticResource FontSizeBody}"
                                     IsEnabled="False"
-                                    TabIndex="8"
-                                    AutomationProperties.Name=""/>
+                                    TabIndex="8"/>
                             <Button x:Name="BtnNoteActions"
                                     Click="OnNoteActionsClick"
                                     Style="{DynamicResource SecondaryButtonStyle}"
                                     Padding="{StaticResource PaddingButtonCopy}" Margin="0,0,8,0"
                                     IsEnabled="False"
-                                    TabIndex="9"
-                                    AutomationProperties.Name=""/>
+                                    TabIndex="9"/>
                             <Button x:Name="BtnCopyConfluence"
                                     Click="OnCopyConfluenceClick"
                                     Style="{DynamicResource SecondaryButtonStyle}"
                                     Padding="{StaticResource PaddingButtonCopy}" Margin="0,0,4,0"
-                                    TabIndex="10"
-                                    AutomationProperties.Name=""/>
+                                    TabIndex="10"/>
                             <Button x:Name="BtnExportConfluence"
                                     Click="OnExportConfluenceClick"
                                     Style="{DynamicResource SecondaryButtonStyle}"
                                     Padding="{StaticResource PaddingButtonCopy}" Margin="0,0,4,0"
-                                    TabIndex="11"
-                                    AutomationProperties.Name=""/>
+                                    TabIndex="11"/>
                             <Button x:Name="BtnExportHtml"
                                     Click="OnExportHtmlClick"
                                     Style="{DynamicResource SecondaryButtonStyle}"
                                     Padding="{StaticResource PaddingButtonCopy}"
-                                    TabIndex="12"
-                                    AutomationProperties.Name=""/>
+                                    TabIndex="12"/>
                         </WrapPanel>
                         <StackPanel Grid.Row="0">
                             <TextBlock x:Name="SelectedNoteTitleText"
