@@ -295,36 +295,47 @@ Download the latest release from the [Releases](../../releases) page. Run the in
 
 ## Build from Source
 
-```bash
-# Restore, build, and test
-dotnet build
-dotnet test
+**Batch shortcuts** (double-click):
 
-# Run in development
+| File | Action |
+|------|--------|
+| `Run.bat` | Build + launch in Debug mode |
+| `Test.bat` | Run all tests |
+| `Build.bat` | Debug build with publish |
+| `Release.bat` | Full release: build, test, package, commit, push, GitHub release |
+
+**PowerShell** (advanced):
+
+```bash
+# Quick dev cycle
 dotnet run --project src/Heimdall.App
 
-# Portable build (Debug, auto-increments build number)
+# Debug build (auto-increments version)
 powershell -File Build.ps1
 
-# Release build — both variants (Light + Portable)
-powershell -File Build.ps1 -Mode Release -Variant Both
+# Release build — both editions + installers
+powershell -File Build.ps1 -Mode Release
 
-# Standard only (~195 MB, requires Edge/WebView2)
-powershell -File Build.ps1 -Mode Release -Variant Light
+# Release + publish to GitHub
+powershell -File Build.ps1 -Mode Release -Publish
 
-# Self-Contained only (~653 MB, bundles WebView2 runtime)
-powershell -File Build.ps1 -Mode Release -Variant Portable
+# Dry-run: full build + simulated publish (no git/gh changes)
+powershell -File Build.ps1 -Mode Release -DryRun
 
-# Skip tests
+# Force a specific version
+powershell -File Build.ps1 -Mode Release -Version 2026.033101
+
+# Standard edition only / skip tests
+powershell -File Build.ps1 -Mode Release -Variant Standard
 powershell -File Build.ps1 -SkipTests
 ```
 
 Build output goes to `Dist/debug/` or `Dist/release/` with versioned folder names.
 
-| Edition | Build Variant | Size | WebView2 |
-|---------|--------------|------|----------|
-| **Standard** | `Light` | ~195 MB (zip) / ~55 MB (installer) | Requires system Edge/WebView2 |
-| **Self-Contained** | `Portable` | ~653 MB (zip) / ~216 MB (installer) | Bundled Fixed Version Runtime |
+| Edition | Size (zip / installer) | WebView2 |
+|---------|----------------------|----------|
+| **Standard** | ~177 MB / ~127 MB | Requires system Edge/WebView2 |
+| **Self-Contained** | ~397 MB / ~288 MB | Bundled Fixed Version Runtime |
 
 Release mode also produces Inno Setup `.exe` installers in `Dist/installers/` with desktop/start menu shortcuts and upgrade detection.
 
