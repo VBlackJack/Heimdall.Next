@@ -1,16 +1,28 @@
 <#
 .SYNOPSIS
-    Build script for Heimdall.Next -produces portable distributions.
+    Build script for Heimdall.Next — produces portable distributions and installers.
 
 .PARAMETER Mode
     Build mode: 'Debug' (default) or 'Release'.
 
+.PARAMETER Variant
+    Which editions to produce: 'Both' (default), 'Standard', or 'SelfContained'.
+
 .PARAMETER SkipTests
     Skip running tests before build.
 
+.PARAMETER Publish
+    After build, create a GitHub release with all artifacts (Release mode only).
+
+.PARAMETER Version
+    Force a specific build number (e.g. '2026.033101') instead of auto-incrementing.
+
 .EXAMPLE
-    .\Build.ps1                    # Debug build
-    .\Build.ps1 -Mode Release      # Release build with installer prep
+    .\Build.ps1                              # Debug build
+    .\Build.ps1 -Mode Release                # Release build with installers
+    .\Build.ps1 -Mode Release -Publish       # Release + GitHub publish
+    .\Build.ps1 -Mode Release -DryRun        # Full build + simulated publish (no git/gh changes)
+    .\Build.ps1 -Mode Release -Version 2026.033101  # Force version
 
 .NOTES
     Copyright 2026 Julien Bombled
@@ -21,85 +33,99 @@ param(
     [ValidateSet('Debug', 'Release')]
     [string]$Mode = 'Debug',
 
-    # SelfContained: bundles WebView2 runtime (~653 MB) for air-gapped servers without Edge
-    # Standard:      no bundled runtime (~195 MB) for PCs with Edge (pre-installed on Windows 10/11)
-    # Both:          produces both editions (Release mode only)
-    # Legacy aliases: Light = Standard, Portable = SelfContained
-    [ValidateSet('Standard', 'SelfContained', 'Both', 'Light', 'Portable')]
+    [ValidateSet('Standard', 'SelfContained', 'Both')]
     [string]$Variant = 'Both',
 
-    [switch]$SkipTests
+    [switch]$SkipTests,
+
+    [switch]$Publish,
+
+    # Simulate -Publish without actually pushing or creating the GitHub release
+    [switch]$DryRun,
+
+    [string]$Version
 )
 
 $ErrorActionPreference = 'Stop'
 $ProjectRoot = $PSScriptRoot
 $AppProject = Join-Path $ProjectRoot 'src\Heimdall.App\Heimdall.App.csproj'
 $SolutionFile = Get-ChildItem -Path $ProjectRoot -Filter '*.slnx' | Select-Object -First 1
-
-# ── Build number: YYYY.MMDDxx (xx = sequential within day) ──────────────────
-
-$today = Get-Date
-$datePrefix = $today.ToString('yyyy.MMdd')
 $distDir = Join-Path $ProjectRoot "Dist\$($Mode.ToLower())"
 
 if (-not (Test-Path $distDir)) {
     New-Item -ItemType Directory -Path $distDir -Force | Out-Null
 }
 
-# Find highest existing build number for today across BOTH debug and release folders
-# so the sequence never regresses when switching between modes.
-$allDistDirs = @(
-    (Join-Path $ProjectRoot 'Dist\debug'),
-    (Join-Path $ProjectRoot 'Dist\release')
-) | Where-Object { Test-Path $_ }
+# ── Build number: YYYY.MMDDxx (xx = sequential within day) ──────────────────
 
-$existingBuilds = @($allDistDirs | ForEach-Object {
-    Get-ChildItem -Path $_ -Directory -Filter "Heimdall.Next_build.${datePrefix}*" -ErrorAction SilentlyContinue
-} | ForEach-Object {
-    if ($_.Name -match "build\.${datePrefix}(\d{2})(?:_|$)") { [int]$Matches[1] }
-})
+$today = Get-Date
+$datePrefix = $today.ToString('yyyy.MMdd')
 
-# Also check the csproj InformationalVersion to avoid duplicating a published release
-$csprojRaw = Get-Content $AppProject -Raw
-if ($csprojRaw -match '<InformationalVersion>(\d{4}\.\d{6})</InformationalVersion>') {
-    $currentVer = $Matches[1]
-    if ($currentVer -match "${datePrefix}(\d{2})$") {
-        $existingBuilds += [int]$Matches[1]
+if ($Version) {
+    # Forced version — validate format
+    if ($Version -notmatch '^\d{4}\.\d{6}$') {
+        Write-Host "[!] Invalid version format '$Version'. Expected YYYY.MMDDxx (e.g. 2026.033101)." -ForegroundColor Red
+        exit 1
     }
-}
+    $buildNumber = $Version
+    if ($Version -match '\d{4}\.\d{4}(\d{2})$') {
+        $sequence = [int]$Matches[1]
+    } else {
+        $sequence = 1
+    }
+} else {
+    # Auto-increment: find highest existing build number for today
+    $allDistDirs = @(
+        (Join-Path $ProjectRoot 'Dist\debug'),
+        (Join-Path $ProjectRoot 'Dist\release')
+    ) | Where-Object { Test-Path $_ }
 
-# Also check GitHub releases to avoid collisions with already-published versions
-try {
-    $ghTags = & gh release list --limit 20 2>$null
-    if ($LASTEXITCODE -eq 0 -and $ghTags) {
-        $ghTags | ForEach-Object {
-            if ($_ -match "v${datePrefix}(\d{2})") {
-                $existingBuilds += [int]$Matches[1]
-            }
+    $existingBuilds = @($allDistDirs | ForEach-Object {
+        Get-ChildItem -Path $_ -Directory -Filter "Heimdall.Next_build.${datePrefix}*" -ErrorAction SilentlyContinue
+    } | ForEach-Object {
+        if ($_.Name -match "build\.${datePrefix}(\d{2})(?:_|$)") { [int]$Matches[1] }
+    })
+
+    # Also check the csproj InformationalVersion
+    $csprojRaw = Get-Content $AppProject -Raw
+    if ($csprojRaw -match '<InformationalVersion>(\d{4}\.\d{6})</InformationalVersion>') {
+        $currentVer = $Matches[1]
+        if ($currentVer -match "${datePrefix}(\d{2})$") {
+            $existingBuilds += [int]$Matches[1]
         }
     }
-} catch {
-    # gh CLI not available or no network — continue with local-only detection
+
+    # Also check GitHub releases to avoid collisions
+    try {
+        $ghTags = & gh release list --limit 20 2>$null
+        if ($LASTEXITCODE -eq 0 -and $ghTags) {
+            $ghTags | ForEach-Object {
+                if ($_ -match "v${datePrefix}(\d{2})") {
+                    $existingBuilds += [int]$Matches[1]
+                }
+            }
+        }
+    } catch {}
+
+    $existingBuilds = $existingBuilds | Sort-Object -Descending
+    $sequence = if ($existingBuilds.Count -gt 0) { $existingBuilds[0] + 1 } else { 1 }
+    $buildNumber = "{0}{1:D2}" -f $datePrefix, $sequence
 }
 
-$existingBuilds = $existingBuilds | Sort-Object -Descending
-
-$sequence = if ($existingBuilds.Count -gt 0) { $existingBuilds[0] + 1 } else { 1 }
-$buildNumber = "{0}{1:D2}" -f $datePrefix, $sequence
-$buildFolder = "Heimdall.Next_build.${buildNumber}"
-$outputDir = Join-Path $distDir $buildFolder
+$assemblyVer = "1.0.$($today.ToString('MMdd')).$sequence"
+$totalSteps = if ($Mode -eq 'Release') { 5 } else { 4 }
+$step = 0
 
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host "  Heimdall.Next Build v${buildNumber}" -ForegroundColor Cyan
 Write-Host "  Mode: $Mode" -ForegroundColor Cyan
+if ($Publish) { Write-Host "  Publish: GitHub Release" -ForegroundColor Cyan }
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 
-# ── Update version in csproj ────────────────────────────────────────────────
+# ── Step 1: Update version in csproj ───────────────────────────────────────
 
-# Use InformationalVersion for our YYYY.MMDDxx format (no Win32 limit)
-# AssemblyVersion uses a compatible 1.0.MMDD.xx format
-$assemblyVer = "1.0.$($today.ToString('MMdd')).$sequence"
+$step++
 $csprojContent = Get-Content $AppProject -Raw
 $csprojContent = $csprojContent -replace '<Version>[^<]+</Version>', "<Version>${assemblyVer}</Version>"
 if ($csprojContent -match '<InformationalVersion>') {
@@ -108,12 +134,13 @@ if ($csprojContent -match '<InformationalVersion>') {
     $csprojContent = $csprojContent -replace '</Version>', "</Version>`n    <InformationalVersion>${buildNumber}</InformationalVersion>"
 }
 [System.IO.File]::WriteAllText($AppProject, $csprojContent, [System.Text.UTF8Encoding]::new($false))
-Write-Host "[1/5] Version set to $buildNumber (assembly: $assemblyVer)" -ForegroundColor Green
+Write-Host "[$step/$totalSteps] Version set to $buildNumber (assembly: $assemblyVer)" -ForegroundColor Green
 
-# ── Run tests ───────────────────────────────────────────────────────────────
+# ── Step 2: Run tests ─────────────────────────────────────────────────────
 
+$step++
 if (-not $SkipTests) {
-    Write-Host "[2/5] Running tests..." -ForegroundColor Yellow
+    Write-Host "[$step/$totalSteps] Running tests..." -ForegroundColor Yellow
     $testResult = dotnet test $SolutionFile.FullName --verbosity quiet --nologo 2>&1
     $testExitCode = $LASTEXITCODE
     if ($testExitCode -ne 0) {
@@ -122,29 +149,28 @@ if (-not $SkipTests) {
         exit 1
     }
     $passedMatch = ($testResult | Select-String 'réussite\s*:\s*(\d+)|Passed\s*:\s*(\d+)' | ForEach-Object { $_.Matches[0].Groups[1].Value, $_.Matches[0].Groups[2].Value } | Where-Object { $_ }) -join '+'
-    Write-Host "[2/5] Tests passed ($passedMatch)" -ForegroundColor Green
+    Write-Host "[$step/$totalSteps] Tests passed ($passedMatch)" -ForegroundColor Green
 } else {
-    Write-Host "[2/5] Tests skipped" -ForegroundColor DarkYellow
+    Write-Host "[$step/$totalSteps] Tests skipped" -ForegroundColor DarkYellow
 }
 
-# ── Build ───────────────────────────────────────────────────────────────────
+# ── Step 3: Build ─────────────────────────────────────────────────────────
 
-Write-Host "[3/5] Building $Mode..." -ForegroundColor Yellow
+$step++
+Write-Host "[$step/$totalSteps] Building $Mode..." -ForegroundColor Yellow
 dotnet build $AppProject -c $Mode --nologo --verbosity quiet
 if ($LASTEXITCODE -ne 0) {
     Write-Host "Build FAILED." -ForegroundColor Red
     exit 1
 }
-Write-Host "[3/5] Build succeeded" -ForegroundColor Green
+Write-Host "[$step/$totalSteps] Build succeeded" -ForegroundColor Green
 
-# ── Determine which variants to produce ────────────────────────────────────
+# ── Determine which variants to produce ───────────────────────────────────
 
 $variants = switch ($Variant) {
     'Both'          { @('Standard', 'SelfContained') }
     'Standard'      { @('Standard') }
-    'Light'         { @('Standard') }
     'SelfContained' { @('SelfContained') }
-    'Portable'      { @('SelfContained') }
 }
 
 $wv2Runtime = Join-Path $ProjectRoot 'runtimes\webview2'
@@ -157,13 +183,12 @@ if ($variants -contains 'SelfContained' -and -not $hasWv2Runtime) {
     $variants = @('Standard')
 }
 
-# ── Helper: publish one variant ────────────────────────────────────────────
+# ── Helper: publish one variant ───────────────────────────────────────────
 
 function Publish-Variant {
     param([string]$VariantName)
 
     $suffix = if ($VariantName -eq 'SelfContained') { '_selfcontained' } else { '_standard' }
-    # For single-variant builds, omit the suffix for backward compatibility
     if ($Variant -ne 'Both') { $suffix = '' }
 
     $variantFolder = "Heimdall.Next_build.${buildNumber}${suffix}"
@@ -221,10 +246,9 @@ function Publish-Variant {
     return $variantDir
 }
 
-# ── Publish all variants ───────────────────────────────────────────────────
+# ── Step 4: Publish all variants ──────────────────────────────────────────
 
-$step = 4
-$totalSteps = 5
+$step++
 Write-Host "[$step/$totalSteps] Publishing ($($variants -join ' + '))..." -ForegroundColor Yellow
 
 $outputs = @()
@@ -235,20 +259,19 @@ foreach ($v in $variants) {
 
 Write-Host "[$step/$totalSteps] Published" -ForegroundColor Green
 
-# ── Installers (Release mode only) ─────────────────────────────────────────
+# ── Step 5: Installers (Release mode only) ────────────────────────────────
 
 if ($Mode -eq 'Release') {
-    Write-Host "[5/6] Creating installers..." -ForegroundColor Yellow
+    $step++
+    Write-Host "[$step/$totalSteps] Creating installers..." -ForegroundColor Yellow
 
     $installerDir = Join-Path $ProjectRoot 'Dist\installers'
     if (-not (Test-Path $installerDir)) { New-Item -ItemType Directory -Path $installerDir -Force | Out-Null }
 
-    # Inno Setup (.exe installer)
     $issFile = Join-Path $ProjectRoot 'installer\innosetup.iss'
     $iscc = 'C:\Program Files (x86)\Inno Setup 6\ISCC.exe'
     if ((Test-Path $issFile) -and (Test-Path $iscc)) {
         foreach ($o in $outputs) {
-            $variantLower = $o.Name.ToLower()
             Write-Host "  Building Inno Setup installer ($($o.Name))..." -ForegroundColor DarkGray
             & $iscc /DAppVersion="$buildNumber" /DVariant="$($o.Name)" /DSourceDir="$($o.Dir)" /Q $issFile 2>&1 | Out-Null
             if ($LASTEXITCODE -eq 0) {
@@ -261,16 +284,10 @@ if ($Mode -eq 'Release') {
         Write-Host "  [!] Inno Setup not found - skipping .exe installer" -ForegroundColor DarkYellow
     }
 
-    # WiX MSI removed — requires WixToolset.UI.wixext NuGet extension which
-    # cannot be installed on air-gapped machines. Inno Setup covers the use case.
-
-    Write-Host "[5/6] Installers done" -ForegroundColor Green
-    Write-Host "[6/6] Release archives created" -ForegroundColor Green
-} else {
-    Write-Host "[5/5] Debug build - no archive" -ForegroundColor DarkYellow
+    Write-Host "[$step/$totalSteps] Installers done" -ForegroundColor Green
 }
 
-# ── Summary ────────────────────────────────────────────────────────────────
+# ── Summary ───────────────────────────────────────────────────────────────
 
 Write-Host ""
 Write-Host "========================================" -ForegroundColor Cyan
@@ -289,3 +306,89 @@ if ($Mode -eq 'Release') {
     }
 }
 Write-Host "========================================" -ForegroundColor Cyan
+
+# ── Publish to GitHub (Release mode + -Publish flag) ──────────────────────
+
+if (($Publish -or $DryRun) -and $Mode -eq 'Release') {
+    $isDry = $DryRun.IsPresent
+    $label = if ($isDry) { "DRY-RUN" } else { "Publish" }
+
+    Write-Host ""
+    Write-Host "[$label] Creating GitHub release v${buildNumber}..." -ForegroundColor $(if ($isDry) { 'Magenta' } else { 'Yellow' })
+
+    # Collect all release artifacts
+    $artifacts = @()
+    foreach ($o in $outputs) {
+        $suffix = if ($o.Name -eq 'SelfContained') { '_selfcontained' } else { '_standard' }
+        if ($Variant -ne 'Both') { $suffix = '' }
+        $zipPath = Join-Path $distDir "Heimdall.Next_build.${buildNumber}${suffix}.zip"
+        if (Test-Path $zipPath) { $artifacts += $zipPath }
+    }
+    $installerDir = Join-Path $ProjectRoot 'Dist\installers'
+    if (Test-Path $installerDir) {
+        Get-ChildItem $installerDir -File -Filter "*${buildNumber}*" | ForEach-Object {
+            $artifacts += $_.FullName
+        }
+    }
+
+    if ($artifacts.Count -eq 0) {
+        Write-Host "[!] No artifacts found for release." -ForegroundColor Red
+        exit 1
+    }
+
+    Write-Host "[$label] Artifacts ($($artifacts.Count)):" -ForegroundColor DarkGray
+    foreach ($a in $artifacts) {
+        $sz = [math]::Round((Get-Item $a).Length / 1MB, 0)
+        Write-Host "    $(Split-Path $a -Leaf) (~${sz} MB)" -ForegroundColor DarkGray
+    }
+
+    # Build release notes
+    $notes = "## Heimdall.Next v${buildNumber}`n`n"
+    $notes += "### Downloads`n`n"
+    $notes += "| File | Description |`n|------|-------------|`n"
+    foreach ($a in $artifacts) {
+        $name = Split-Path $a -Leaf
+        $sz = [math]::Round((Get-Item $a).Length / 1MB, 0)
+        $desc = if ($name -match 'selfcontained.*\.zip') { "Portable, bundled WebView2 (~${sz} MB)" }
+                elseif ($name -match 'standard.*\.zip') { "Portable, requires Edge/WebView2 (~${sz} MB)" }
+                elseif ($name -match 'SelfContained.*Setup') { "Installer, bundled WebView2 (~${sz} MB)" }
+                elseif ($name -match 'Standard.*Setup') { "Installer, requires Edge/WebView2 (~${sz} MB)" }
+                else { "~${sz} MB" }
+        $notes += "| ``$name`` | $desc |`n"
+    }
+
+    Write-Host "[$label] Release notes:" -ForegroundColor DarkGray
+    Write-Host $notes -ForegroundColor DarkGray
+
+    if ($isDry) {
+        Write-Host ""
+        Write-Host "[$label] Would run: git add + commit + push" -ForegroundColor Magenta
+        $artifactArgs = ($artifacts | ForEach-Object { "`"$(Split-Path $_ -Leaf)`"" }) -join ' '
+        Write-Host "[$label] Would run: gh release create v${buildNumber} $artifactArgs" -ForegroundColor Magenta
+        Write-Host ""
+        Write-Host "[$label] Dry run complete. No changes made to git or GitHub." -ForegroundColor Magenta
+    } else {
+        # Commit version bump + push
+        Write-Host "[$label] Committing version bump..." -ForegroundColor DarkGray
+        & git add $AppProject 2>$null
+        & git commit -m "release: v${buildNumber}" 2>$null
+        & git push 2>$null
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "[!] Git push failed. Create the release manually." -ForegroundColor DarkYellow
+        } else {
+            Write-Host "[$label] Pushed to remote." -ForegroundColor DarkGray
+        }
+
+        # Create release
+        $artifactArgs = ($artifacts | ForEach-Object { "`"$_`"" }) -join ' '
+        $cmd = "gh release create v${buildNumber} $artifactArgs --title `"v${buildNumber}`" --notes `"$notes`""
+        Invoke-Expression $cmd
+
+        if ($LASTEXITCODE -eq 0) {
+            Write-Host "[$label] Release published: https://github.com/VBlackJack/Heimdall.Next/releases/tag/v${buildNumber}" -ForegroundColor Green
+        } else {
+            Write-Host "[!] GitHub release creation failed." -ForegroundColor Red
+            exit 1
+        }
+    }
+}

@@ -553,12 +553,12 @@ WebView2 is required for embedded SSH terminals (xterm.js) and VNC sessions (noV
 
 Build editions:
 
-| Edition | Build flag | Size | WebView2 |
-|---------|-----------|------|----------|
-| **Standard** | `-Variant Light` | ~195 MB | Requires Edge (pre-installed on Windows 10/11) |
-| **Self-Contained** | `-Variant Portable` | ~653 MB | Bundled Fixed Version Runtime for air-gapped/isolated environments |
+| Edition | Build flag | Size (zip / installer) | WebView2 |
+|---------|-----------|----------------------|----------|
+| **Standard** | `-Variant Standard` | ~177 MB / ~127 MB | Requires Edge (pre-installed on Windows 10/11) |
+| **Self-Contained** | `-Variant SelfContained` | ~397 MB / ~288 MB | Bundled Fixed Version Runtime for air-gapped/isolated environments |
 
-`Build.ps1 -Variant Both` produces both variants. `Setup-WebView2.ps1` automates Evergreen Runtime installation on machines with internet access.
+`Build.ps1 -Variant Both` (default) produces both variants + Inno Setup installers. `Build.ps1 -Mode Release -Publish` creates a GitHub release with all artifacts. `Build.ps1 -DryRun` simulates the release without touching git/GitHub. Batch shortcuts: `Run.bat`, `Test.bat`, `Build.bat`, `Release.bat`.
 
 ## Tool Architecture
 
