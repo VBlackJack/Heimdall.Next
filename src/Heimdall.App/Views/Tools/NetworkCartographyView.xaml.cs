@@ -467,7 +467,9 @@ public partial class NetworkCartographyView : UserControl, IToolView
 
     /// <summary>
     /// Scans a subnet via SSH gateway using remote commands.
-    /// Uses ping, /dev/tcp probes, and nslookup on the gateway host.
+    /// Phase 1: Ping sweep + ARP table for host discovery.
+    /// Phase 2: Parallel /dev/tcp port probes with per-probe timeout.
+    /// Phase 3: Batch reverse DNS.
     /// </summary>
     private async Task<NetworkScanSnapshot> ScanViaTunnelAsync(ScanProfile profile, CancellationToken ct)
     {
@@ -484,26 +486,72 @@ public partial class NetworkCartographyView : UserControl, IToolView
         var hosts = new List<HostScanResult>();
         var ports = profile.CustomPorts ?? (profile.Depth == ScanDepth.Quick
             ? CartographyEngine.QuickPorts : CartographyEngine.StandardPorts);
-        var completed = 0;
 
         // Pre-compute validated port list once (invariant across hosts)
         var portList = string.Join(" ", ports.Where(p => p is >= 1 and <= 65535));
 
-        // Batch scan: for each IP, test ports via /dev/tcp
-        foreach (var ip in ipList)
+        // ── Phase 1: Host Discovery ──────────────────────────────────
+        HashSet<string> aliveHosts;
+
+        if (profile.SkipPing)
+        {
+            aliveHosts = new(ipList, StringComparer.OrdinalIgnoreCase);
+        }
+        else
+        {
+            await Dispatcher.InvokeAsync(() =>
+            {
+                ScanProgress.IsIndeterminate = true;
+                TxtStatus.Text = L("ToolNetMapTunnelPingSweep");
+            });
+
+            // Batch ping sweep via SSH (all IPs as parallel background jobs)
+            aliveHosts = await TunnelPingSweepAsync(sshClient, ipList, ct);
+
+            // ARP table: discover hosts that block ICMP but are in the gateway's cache
+            var arpHosts = await TunnelArpDiscoveryAsync(sshClient, ipList, ct);
+            foreach (var ip in arpHosts)
+                aliveHosts.Add(ip);
+
+            // If nothing responded, fall back to scanning all IPs
+            // (ping may be restricted on the gateway)
+            if (aliveHosts.Count == 0)
+                aliveHosts = new(ipList, StringComparer.OrdinalIgnoreCase);
+
+            await Dispatcher.InvokeAsync(() =>
+                TxtStatus.Text = string.Format(L("ToolNetMapTunnelDiscovered"),
+                    aliveHosts.Count, ipList.Count));
+        }
+
+        // ── Phase 2: Batch Reverse DNS ───────────────────────────────
+        var targetsInOrder = ipList.Where(aliveHosts.Contains).ToList();
+        var dnsMap = profile.ReverseDns
+            ? await TunnelBatchReverseDnsAsync(sshClient, targetsInOrder, ct)
+            : new Dictionary<string, string>();
+
+        // ── Phase 3: Port Scan ───────────────────────────────────────
+        var completed = 0;
+
+        foreach (var ip in targetsInOrder)
         {
             ct.ThrowIfCancellationRequested();
 
-            // Validate IP to prevent shell injection (CWE-78)
             if (!System.Net.IPAddress.TryParse(ip, out _)) continue;
 
             var openServices = new List<ServiceResult>();
             try
             {
                 var safeIp = InputValidator.EscapeShellArg(ip);
+
+                // All port probes run as parallel background jobs inside bash.
+                // Each probe is capped at 5 seconds (the sleep duration) — no
+                // single filtered port can block the entire scan for this host.
+                // Explicitly invoke bash for /dev/tcp support (dash/sh lack it).
                 using var cmd = sshClient.CreateCommand(
-                    $"for p in {portList}; do (echo >/dev/tcp/{safeIp}/$p) 2>/dev/null && echo $p; done");
-                cmd.CommandTimeout = TimeSpan.FromSeconds(Math.Max(MinCommandTimeoutSeconds, ports.Length / PortTimeoutDivisor));
+                    $"bash -c 'for p in {portList}; do " +
+                    $"(echo >/dev/tcp/{safeIp}/$p && echo $p) 2>/dev/null & " +
+                    "done; sleep 5; kill $(jobs -p) 2>/dev/null; wait'");
+                cmd.CommandTimeout = TimeSpan.FromSeconds(15);
                 var result = await Task.Run(() => cmd.Execute(), ct).ConfigureAwait(false);
 
                 if (result is not null)
@@ -523,45 +571,26 @@ public partial class NetworkCartographyView : UserControl, IToolView
             catch (OperationCanceledException) { throw; }
             catch { /* probe failed */ }
 
-            // Reverse DNS via gateway
-            string? hostname = null;
-            if (profile.ReverseDns)
-            {
-                try
-                {
-                    using var dnsCmd = sshClient.CreateCommand($"host {ip} 2>/dev/null | head -1");
-                    dnsCmd.CommandTimeout = TimeSpan.FromSeconds(3);
-                    var dnsResult = await Task.Run(() => dnsCmd.Execute(), ct).ConfigureAwait(false);
-                    if (dnsResult?.Contains("domain name pointer") == true)
-                    {
-                        hostname = dnsResult.Split("domain name pointer")[1].Trim().TrimEnd('.');
-                    }
-                }
-                catch (OperationCanceledException) { throw; }
-                catch { /* DNS failed */ }
-            }
+            dnsMap.TryGetValue(ip, out var hostname);
+            var openPorts = openServices.Select(s => s.Port).ToList();
+            var roles = RoleClassifier.Classify(openPorts);
 
-            if (openServices.Count > 0)
-            {
-                var openPorts = openServices.Select(s => s.Port).ToList();
-                var roles = RoleClassifier.Classify(openPorts);
+            var hostResult = new HostScanResult(ip, hostname, true, 0,
+                openServices, roles.FirstOrDefault(), roles);
+            hosts.Add(hostResult);
 
-                var hostResult = new HostScanResult(ip, hostname, true, 0,
-                    openServices, roles.FirstOrDefault(), roles);
-                hosts.Add(hostResult);
-
-                await Dispatcher.InvokeAsync(() => _results.Add(ToRow(hostResult)));
-            }
+            await Dispatcher.InvokeAsync(() => _results.Add(ToRow(hostResult)));
 
             completed++;
             await Dispatcher.InvokeAsync(() =>
             {
                 ScanProgress.IsIndeterminate = false;
-                ScanProgress.Maximum = ipList.Count;
+                ScanProgress.Maximum = targetsInOrder.Count;
                 ScanProgress.Value = completed;
-                TxtStatus.Text = string.Format(L("ToolNetMapStatusScanning"),
-                    ip, completed, ipList.Count);
-                TxtScanProgress.Text = string.Format(L("ToolNetMapScanProgress"), completed, ipList.Count);
+                TxtStatus.Text = string.Format(L("ToolNetMapTunnelScanningHost"),
+                    ip, completed, targetsInOrder.Count);
+                TxtScanProgress.Text = string.Format(L("ToolNetMapScanProgress"),
+                    completed, targetsInOrder.Count);
             });
         }
 
@@ -576,6 +605,129 @@ public partial class NetworkCartographyView : UserControl, IToolView
             DateTime.UtcNow - startTime,
             orderedHosts,
             vlans);
+    }
+
+    /// <summary>
+    /// Runs a batch ping sweep on the remote gateway.
+    /// All IPs are pinged in parallel as background shell jobs.
+    /// </summary>
+    private static async Task<HashSet<string>> TunnelPingSweepAsync(
+        Renci.SshNet.SshClient client, List<string> ips, CancellationToken ct)
+    {
+        var aliveHosts = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        var ipArgs = string.Join(" ", ips
+            .Where(ip => System.Net.IPAddress.TryParse(ip, out _))
+            .Select(InputValidator.EscapeShellArg));
+
+        try
+        {
+            using var cmd = client.CreateCommand(
+                $"for ip in {ipArgs}; do " +
+                "(ping -c1 -W1 $ip >/dev/null 2>&1 && echo $ip) & " +
+                "done; wait");
+            cmd.CommandTimeout = TimeSpan.FromSeconds(Math.Max(15, ips.Count / 4));
+            var result = await Task.Run(() => cmd.Execute(), ct).ConfigureAwait(false);
+
+            if (result is not null)
+            {
+                foreach (var line in result.Split('\n', StringSplitOptions.RemoveEmptyEntries))
+                {
+                    var ip = line.Trim();
+                    if (System.Net.IPAddress.TryParse(ip, out _))
+                        aliveHosts.Add(ip);
+                }
+            }
+        }
+        catch (OperationCanceledException) { throw; }
+        catch { /* ping sweep failed */ }
+
+        return aliveHosts;
+    }
+
+    /// <summary>
+    /// Reads the gateway's ARP table to discover hosts that block ICMP
+    /// but have recently communicated on the local network.
+    /// </summary>
+    private static async Task<HashSet<string>> TunnelArpDiscoveryAsync(
+        Renci.SshNet.SshClient client, List<string> subnetIps, CancellationToken ct)
+    {
+        var discovered = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var subnetSet = new HashSet<string>(subnetIps, StringComparer.OrdinalIgnoreCase);
+
+        try
+        {
+            using var cmd = client.CreateCommand(
+                "cat /proc/net/arp 2>/dev/null || arp -n 2>/dev/null");
+            cmd.CommandTimeout = TimeSpan.FromSeconds(5);
+            var result = await Task.Run(() => cmd.Execute(), ct).ConfigureAwait(false);
+
+            if (result is not null)
+            {
+                foreach (var line in result.Split('\n', StringSplitOptions.RemoveEmptyEntries))
+                {
+                    var parts = line.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                    if (parts.Length >= 1
+                        && System.Net.IPAddress.TryParse(parts[0], out _)
+                        && subnetSet.Contains(parts[0]))
+                    {
+                        discovered.Add(parts[0]);
+                    }
+                }
+            }
+        }
+        catch (OperationCanceledException) { throw; }
+        catch { /* ARP check failed */ }
+
+        return discovered;
+    }
+
+    /// <summary>
+    /// Resolves reverse DNS for all IPs in a single SSH command.
+    /// </summary>
+    private static async Task<Dictionary<string, string>> TunnelBatchReverseDnsAsync(
+        Renci.SshNet.SshClient client, List<string> ips, CancellationToken ct)
+    {
+        var dnsMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        if (ips.Count == 0) return dnsMap;
+
+        var ipArgs = string.Join(" ", ips
+            .Where(ip => System.Net.IPAddress.TryParse(ip, out _))
+            .Select(InputValidator.EscapeShellArg));
+
+        try
+        {
+            using var cmd = client.CreateCommand(
+                $"for ip in {ipArgs}; do " +
+                "r=$(host $ip 2>/dev/null | head -1); " +
+                "echo \"$ip|$r\"; " +
+                "done");
+            cmd.CommandTimeout = TimeSpan.FromSeconds(Math.Max(10, ips.Count));
+            var result = await Task.Run(() => cmd.Execute(), ct).ConfigureAwait(false);
+
+            if (result is not null)
+            {
+                foreach (var line in result.Split('\n', StringSplitOptions.RemoveEmptyEntries))
+                {
+                    var sep = line.IndexOf('|');
+                    if (sep <= 0) continue;
+                    var ip = line[..sep].Trim();
+                    var dnsLine = line[(sep + 1)..].Trim();
+                    if (dnsLine.Contains("domain name pointer")
+                        && System.Net.IPAddress.TryParse(ip, out _))
+                    {
+                        var hostname = dnsLine
+                            .Split("domain name pointer")[1].Trim().TrimEnd('.');
+                        if (hostname.Length > 0)
+                            dnsMap[ip] = hostname;
+                    }
+                }
+            }
+        }
+        catch (OperationCanceledException) { throw; }
+        catch { /* batch DNS failed */ }
+
+        return dnsMap;
     }
 
     private void StopScan()

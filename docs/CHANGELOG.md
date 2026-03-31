@@ -12,6 +12,31 @@
 
 All notable changes to Heimdall.Next are documented in this file.
 
+## [v2026.033108] - 2026-03-31
+
+### Fix tunnel scan — host discovery, per-probe timeout, zombie prevention
+
+#### Network Cartography (critical fix)
+- **Root cause**: scanning via SSH tunnel found only 1 host (the gateway itself) instead of the full subnet. Two bugs: (1) no host discovery phase (ping sweep, ARP) — only hosts with open ports on the scanned list were returned, (2) sequential `/dev/tcp` probes with no per-probe timeout — a single filtered port blocked the entire scan per IP for 20-127 seconds (kernel TCP retransmit timeout), causing `CommandTimeout` to kill the command before most ports were tested
+- **Phase 1 — Host discovery**: batch ping sweep via SSH (all IPs as parallel background jobs in a single `CreateCommand`), ARP table read (`/proc/net/arp`) for ICMP-blocked hosts, automatic fallback to full-subnet scan when ping is restricted on the gateway
+- **Phase 2 — Batch reverse DNS**: single SSH command for all alive hosts (was one command per IP)
+- **Phase 3 — Parallel port probes**: all ports for a host run as background bash jobs simultaneously (`(echo >/dev/tcp/IP/$p && echo $p) &`), bounded by `sleep 5; kill $(jobs -p); wait` fence — no single filtered port can block the scan
+- **Explicit `bash -c`**: ensures `/dev/tcp` support regardless of the gateway's login shell (`dash`/`sh` lack it)
+- All alive hosts now included in results (even those with no open ports), matching direct scan behavior
+
+#### Port Scanner, Banner Grabber, Firewall Tester, Default Credential Scanner
+- **Same `/dev/tcp` fix**: all four tools' tunnel probe functions wrapped with `timeout 2 bash -c` to prevent filtered ports from leaving zombie bash processes on the gateway
+- `CommandTimeout` raised from 2-3s to 5s as a safety net (per-probe timeout is now the primary mechanism)
+
+#### i18n
+- +3 keys (EN/FR): `ToolNetMapTunnelPingSweep`, `ToolNetMapTunnelDiscovered`, `ToolNetMapTunnelScanningHost`
+
+#### Housekeeping
+- Tests: 1,714 passing (unchanged)
+- i18n: 4,688 keys (EN/FR parity maintained)
+
+---
+
 ## [v2026.033006] - 2026-03-30
 
 ### UX audit remediation — Dispose memory leaks, i18n format strings
