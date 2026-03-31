@@ -36,8 +36,7 @@
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
-                        Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"
-                        AutomationProperties.Name=""/>
+                        Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"/>
                 <TextBlock x:Name="HeaderTitle" DockPanel.Dock="Left"
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
@@ -51,18 +50,15 @@
                     <Button x:Name="BtnCompare" Click="OnCompareClick"
                             TabIndex="2"
                             Style="{DynamicResource PrimaryButtonStyle}"
-                            Padding="{StaticResource PaddingButtonPrimary}" Margin="0,0,4,0"
-                            AutomationProperties.Name=""/>
+                            Padding="{StaticResource PaddingButtonPrimary}" Margin="0,0,4,0"/>
                     <Button x:Name="BtnSwap" Click="OnSwapClick"
                             TabIndex="3"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="{StaticResource PaddingButtonCopy}" Margin="4,0,4,0"
-                            AutomationProperties.Name=""/>
+                            Padding="{StaticResource PaddingButtonCopy}" Margin="4,0,4,0"/>
                     <Button x:Name="BtnClear" Click="OnClearClick"
                             TabIndex="4"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="{StaticResource PaddingButtonCopy}" Margin="4,0,0,0"
-                            AutomationProperties.Name=""/>
+                            Padding="{StaticResource PaddingButtonCopy}" Margin="4,0,0,0"/>
                 </StackPanel>
             </DockPanel>
         </Border>
@@ -74,8 +70,7 @@
                         FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeBody}"
                         Click="OnCloseHelpClick"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
-                        VerticalAlignment="Top" Width="24" Height="24"
-                        AutomationProperties.Name=""/>
+                        VerticalAlignment="Top" Width="24" Height="24"/>
                 <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
                     <TextBlock x:Name="TxtHelpContent" Text="" TextWrapping="Wrap"
                                FontSize="{StaticResource FontSizeBody}"
@@ -122,8 +117,7 @@
                          BorderBrush="{DynamicResource BorderBrush}"
                          BorderThickness="1"
                          Padding="{StaticResource PaddingInput}"
-                         Tag=""
-                         AutomationProperties.Name=""/>
+                         Tag=""/>
             </Grid>
 
             <!-- Right: Modified -->
@@ -147,8 +141,7 @@
                          BorderBrush="{DynamicResource BorderBrush}"
                          BorderThickness="1"
                          Padding="{StaticResource PaddingInput}"
-                         Tag=""
-                         AutomationProperties.Name=""/>
+                         Tag=""/>
             </Grid>
         </Grid>
 
@@ -161,27 +154,23 @@
                     TabIndex="8"
                     Click="OnCopyDiffClick"
                     Style="{DynamicResource SecondaryButtonStyle}"
-                    Padding="{StaticResource PaddingButtonCopy}" HorizontalAlignment="Right"
-                    AutomationProperties.Name=""/>
+                    Padding="{StaticResource PaddingButtonCopy}" HorizontalAlignment="Right"/>
             <StackPanel Orientation="Horizontal" Margin="16,0,8,0" VerticalAlignment="Center">
                 <CheckBox x:Name="ChkIgnoreWhitespace"
                           TabIndex="5"
                           Foreground="{DynamicResource TextPrimaryBrush}"
                           VerticalAlignment="Center" Margin="0,0,12,0"
-                          Checked="OnDiffOptionChanged" Unchecked="OnDiffOptionChanged"
-                          AutomationProperties.Name=""/>
+                          Checked="OnDiffOptionChanged" Unchecked="OnDiffOptionChanged"/>
                 <CheckBox x:Name="ChkIgnoreCase"
                           TabIndex="6"
                           Foreground="{DynamicResource TextPrimaryBrush}"
                           VerticalAlignment="Center" Margin="0,0,12,0"
-                          Checked="OnDiffOptionChanged" Unchecked="OnDiffOptionChanged"
-                          AutomationProperties.Name=""/>
+                          Checked="OnDiffOptionChanged" Unchecked="OnDiffOptionChanged"/>
                 <CheckBox x:Name="ChkAutoCompare"
                           TabIndex="7"
                           Foreground="{DynamicResource TextPrimaryBrush}"
                           VerticalAlignment="Center"
-                          Checked="OnAutoCompareChanged" Unchecked="OnAutoCompareChanged"
-                          AutomationProperties.Name=""/>
+                          Checked="OnAutoCompareChanged" Unchecked="OnAutoCompareChanged"/>
             </StackPanel>
         </DockPanel>
 
@@ -192,7 +181,7 @@
             <StackPanel HorizontalAlignment="Center">
                 <TextBlock Text="&#xE8AB;"
                            Style="{StaticResource ToolEmptyStateIconStyle}"
-                           AutomationProperties.Name=""/>
+                           Focusable="False"/>
                 <TextBlock x:Name="TxtEmptyState" Text=""
                            Style="{StaticResource ToolEmptyStateTextStyle}"/>
             </StackPanel>

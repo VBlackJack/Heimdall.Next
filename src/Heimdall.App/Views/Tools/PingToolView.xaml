@@ -36,8 +36,7 @@
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
                         Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"
-                        TabIndex="10"
-                        AutomationProperties.Name=""/>
+                        TabIndex="10"/>
                 <TextBlock x:Name="HeaderTitle" Text=""
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
@@ -62,8 +61,7 @@
                                  Foreground="{DynamicResource TextPrimaryBrush}"
                                  BorderBrush="{DynamicResource BorderBrush}"
                                  VerticalAlignment="Center"
-                                 TabIndex="0"
-                                 AutomationProperties.Name=""/>
+                                 TabIndex="0"/>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Margin="0,2,12,2">
                         <Button x:Name="BtnToggle" Content=""
@@ -71,29 +69,25 @@
                                 Style="{DynamicResource PrimaryButtonStyle}"
                                 Padding="{StaticResource PaddingButtonPrimary}" Margin="0,0,4,0"
                                 VerticalAlignment="Center"
-                                TabIndex="1"
-                                AutomationProperties.Name=""/>
+                                TabIndex="1"/>
                         <Button x:Name="BtnClear" Content=""
                                 Click="OnClearClick"
                                 Style="{DynamicResource SecondaryButtonStyle}"
                                 Padding="{StaticResource PaddingButtonCopy}" Margin="0,0,4,0"
                                 VerticalAlignment="Center"
-                                TabIndex="2"
-                                AutomationProperties.Name=""/>
+                                TabIndex="2"/>
                         <Button x:Name="BtnCopyLog" Content=""
                                 Click="OnCopyLogClick"
                                 Style="{DynamicResource SecondaryButtonStyle}"
                                 Padding="{StaticResource PaddingButtonCopy}" Margin="0,0,4,0"
                                 VerticalAlignment="Center"
-                                TabIndex="3"
-                                AutomationProperties.Name=""/>
+                                TabIndex="3"/>
                         <Button x:Name="BtnExportCsv" Content=""
                                 Click="OnExportCsvClick"
                                 Style="{DynamicResource SecondaryButtonStyle}"
                                 Padding="{StaticResource PaddingButtonCopy}"
                                 VerticalAlignment="Center"
-                                TabIndex="4"
-                                AutomationProperties.Name=""/>
+                                TabIndex="4"/>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Margin="0,2,12,2">
                         <TextBlock x:Name="LblInterval" Text=""
@@ -105,8 +99,7 @@
                                   Background="{DynamicResource CardBrush}"
                                   Foreground="{DynamicResource TextPrimaryBrush}"
                                   BorderBrush="{DynamicResource BorderBrush}"
-                                  TabIndex="5"
-                                  AutomationProperties.Name="">
+                                  TabIndex="5">
                             <ComboBoxItem x:Name="Ping500ms" Content="" Tag="500"/>
                             <ComboBoxItem x:Name="Ping1s" Content="" Tag="1000"/>
                             <ComboBoxItem x:Name="Ping2s" Content="" Tag="2000"/>
@@ -125,8 +118,7 @@
                                  Foreground="{DynamicResource TextPrimaryBrush}"
                                  BorderBrush="{DynamicResource BorderBrush}"
                                  VerticalAlignment="Center"
-                                 TabIndex="6"
-                                 AutomationProperties.Name=""/>
+                                 TabIndex="6"/>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Margin="0,2,0,2">
                         <TextBlock x:Name="LblCount" Text=""
@@ -139,8 +131,7 @@
                                  Foreground="{DynamicResource TextPrimaryBrush}"
                                  BorderBrush="{DynamicResource BorderBrush}"
                                  VerticalAlignment="Center"
-                                 TabIndex="7"
-                                 AutomationProperties.Name=""/>
+                                 TabIndex="7"/>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Margin="0,2,0,2">
                         <TextBlock x:Name="LblRouteVia" Text=""
@@ -153,8 +144,7 @@
                                   Foreground="{DynamicResource TextPrimaryBrush}"
                                   BorderBrush="{DynamicResource BorderBrush}"
                                   VerticalAlignment="Center"
-                                  TabIndex="9"
-                                  AutomationProperties.Name=""/>
+                                  TabIndex="9"/>
                     </StackPanel>
                 </WrapPanel>
             </DockPanel>
@@ -168,8 +158,7 @@
                         Click="OnCloseHelpClick"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
                         VerticalAlignment="Top" Width="24" Height="24"
-                        TabIndex="11"
-                        AutomationProperties.Name=""/>
+                        TabIndex="11"/>
                 <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
                     <TextBlock x:Name="TxtHelpContent" Text="" TextWrapping="Wrap"
                                FontSize="{StaticResource FontSizeBody}"
@@ -185,7 +174,7 @@
                 Margin="0,24,0,0">
             <StackPanel HorizontalAlignment="Center">
                 <TextBlock Text="&#xE968;" Style="{StaticResource ToolEmptyStateIconStyle}"
-                           AutomationProperties.Name=""/>
+                           Focusable="False"/>
                 <TextBlock x:Name="TxtEmptyState" Text=""
                            Style="{StaticResource ToolEmptyStateTextStyle}"/>
             </StackPanel>

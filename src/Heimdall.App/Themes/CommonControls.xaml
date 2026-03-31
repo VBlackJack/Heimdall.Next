@@ -29,9 +29,9 @@
     <!-- Max width for single-column tool content panels -->
     <sys:Double x:Key="ToolContentMaxWidth">700</sys:Double>
 
-    <!-- Tool panel header/footer padding (horizontal=12, vertical=8/6) -->
+    <!-- Tool panel header/footer padding (horizontal=12, vertical=8) -->
     <Thickness x:Key="ToolHeaderPadding">12,8</Thickness>
-    <Thickness x:Key="ToolFooterPadding">12,6</Thickness>
+    <Thickness x:Key="ToolFooterPadding">12,8</Thickness>
 
     <!-- Button padding by role -->
     <Thickness x:Key="PaddingButtonHelp">6,2</Thickness>
@@ -1921,6 +1921,15 @@
     <Style x:Key="ToolLoadingBarStyle" TargetType="{x:Type ProgressBar}">
         <Setter Property="IsIndeterminate" Value="True"/>
         <Setter Property="Height" Value="4"/>
+        <Setter Property="Margin" Value="{StaticResource MarginSectionBottom}"/>
+        <Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
+        <Setter Property="Visibility" Value="Collapsed"/>
+    </Style>
+
+    <Style x:Key="ToolDeterminateProgressBarStyle" TargetType="{x:Type ProgressBar}">
+        <Setter Property="Height" Value="20"/>
+        <Setter Property="Minimum" Value="0"/>
+        <Setter Property="Maximum" Value="100"/>
         <Setter Property="Margin" Value="{StaticResource MarginSectionBottom}"/>
         <Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
         <Setter Property="Visibility" Value="Collapsed"/>

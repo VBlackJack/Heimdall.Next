@@ -36,8 +36,7 @@
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
                         Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"
-                        TabIndex="2"
-                        AutomationProperties.Name=""/>
+                        TabIndex="2"/>
                 <TextBlock x:Name="HeaderTitle" Text=""
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
@@ -53,8 +52,7 @@
                         Click="OnCloseHelpClick"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
                         VerticalAlignment="Top" Width="24" Height="24"
-                        TabIndex="3"
-                        AutomationProperties.Name=""/>
+                        TabIndex="3"/>
                 <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
                     <TextBlock x:Name="TxtHelpContent" Text="" TextWrapping="Wrap"
                                FontSize="{StaticResource FontSizeBody}"
@@ -79,8 +77,7 @@
                          Background="{DynamicResource CardBrush}"
                          Foreground="{DynamicResource TextPrimaryBrush}"
                          BorderBrush="{DynamicResource BorderBrush}"
-                         TabIndex="0"
-                         AutomationProperties.Name=""/>
+                         TabIndex="0"/>
             </DockPanel>
         </Border>
 
@@ -89,8 +86,7 @@
                   Background="Transparent"
                   BorderThickness="0"
                   ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                  TabIndex="1"
-                  AutomationProperties.Name="">
+                  TabIndex="1">
             <ListView.ItemContainerStyle>
                 <Style TargetType="ListViewItem">
                     <Setter Property="HorizontalContentAlignment" Value="Stretch"/>

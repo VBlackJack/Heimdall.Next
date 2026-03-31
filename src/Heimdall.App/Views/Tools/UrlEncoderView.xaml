@@ -35,8 +35,7 @@
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
-                        Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"
-                        AutomationProperties.Name=""/>
+                        Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"/>
                 <TextBlock x:Name="HeaderTitle" Text=""
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
@@ -51,8 +50,7 @@
                         FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeBody}"
                         Click="OnCloseHelpClick"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
-                        VerticalAlignment="Top" Width="24" Height="24"
-                        AutomationProperties.Name=""/>
+                        VerticalAlignment="Top" Width="24" Height="24"/>
                 <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
                     <TextBlock x:Name="TxtHelpContent" Text="" TextWrapping="Wrap"
                                FontSize="{StaticResource FontSizeBody}"
@@ -73,8 +71,7 @@
                             Content="" Click="OnCopyDecodedClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginInlineControl}"
-                            VerticalAlignment="Bottom"
-                            AutomationProperties.Name=""/>
+                            VerticalAlignment="Bottom"/>
                     <TextBlock x:Name="LblDecoded" Text=""
                                FontSize="{StaticResource FontSizeBody}"
                                Foreground="{DynamicResource TextSecondaryBrush}"
@@ -92,7 +89,6 @@
                          BorderBrush="{DynamicResource BorderBrush}"
                          Tag=""
                          TextChanged="OnDecodedTextChanged"
-                         AutomationProperties.Name=""
                          AutomationProperties.LiveSetting="Polite"/>
 
                 <!-- Encoded field -->
@@ -102,8 +98,7 @@
                             Content="" Click="OnCopyEncodedClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginInlineControl}"
-                            VerticalAlignment="Bottom"
-                            AutomationProperties.Name=""/>
+                            VerticalAlignment="Bottom"/>
                     <TextBlock x:Name="LblEncoded" Text=""
                                FontSize="{StaticResource FontSizeBody}"
                                Foreground="{DynamicResource TextSecondaryBrush}"
@@ -121,14 +116,12 @@
                          BorderBrush="{DynamicResource BorderBrush}"
                          Tag=""
                          TextChanged="OnEncodedTextChanged"
-                         AutomationProperties.Name=""
                          AutomationProperties.LiveSetting="Polite"/>
 
                 <!-- Component encoding toggle -->
                 <CheckBox x:Name="ChkComponentEncoding" Margin="0,4,0,0"
                           TabIndex="4"
-                          Foreground="{DynamicResource TextSecondaryBrush}"
-                          AutomationProperties.Name="">
+                          Foreground="{DynamicResource TextSecondaryBrush}">
                     <TextBlock x:Name="LblComponentEncoding" Text="" FontSize="{StaticResource FontSizeBody}"/>
                 </CheckBox>
 

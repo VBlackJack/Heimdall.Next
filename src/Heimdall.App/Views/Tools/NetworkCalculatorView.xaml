@@ -34,8 +34,7 @@
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
-                        Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"
-                        AutomationProperties.Name=""/>
+                        Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"/>
                 <TextBlock x:Name="HeaderTitle" Text=""
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
@@ -50,8 +49,7 @@
                         FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeBody}"
                         Click="OnCloseHelpClick"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
-                        VerticalAlignment="Top" Width="24" Height="24"
-                        AutomationProperties.Name=""/>
+                        VerticalAlignment="Top" Width="24" Height="24"/>
                 <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
                     <TextBlock x:Name="TxtHelpContent" Text="" TextWrapping="Wrap"
                                FontSize="{StaticResource FontSizeBody}"
@@ -74,20 +72,17 @@
                                  IsChecked="True" Checked="OnModeChanged"
                                  Foreground="{DynamicResource TextPrimaryBrush}"
                                  Margin="0,0,16,4" FontSize="{StaticResource FontSizeBodyLarge}"
-                                 TabIndex="0"
-                                 AutomationProperties.Name=""/>
+                                 TabIndex="0"/>
                     <RadioButton x:Name="RbRangeToCidr" GroupName="Mode"
                                  Checked="OnModeChanged"
                                  Foreground="{DynamicResource TextPrimaryBrush}"
                                  Margin="0,0,16,4" FontSize="{StaticResource FontSizeBodyLarge}"
-                                 TabIndex="1"
-                                 AutomationProperties.Name=""/>
+                                 TabIndex="1"/>
                     <RadioButton x:Name="RbVlanPlanner" GroupName="Mode"
                                  Checked="OnModeChanged"
                                  Foreground="{DynamicResource TextPrimaryBrush}"
                                  Margin="0,0,0,4" FontSize="{StaticResource FontSizeBodyLarge}"
-                                 TabIndex="2"
-                                 AutomationProperties.Name=""/>
+                                 TabIndex="2"/>
                 </WrapPanel>
 
                 <!-- ═══ Supernet panel ═══ -->
@@ -110,13 +105,11 @@
                                  Background="{DynamicResource CardBrush}"
                                  BorderBrush="{DynamicResource BorderBrush}"
                                  Padding="{StaticResource PaddingInput}" Margin="0,0,0,8"
-                                 TabIndex="3"
-                                 AutomationProperties.Name=""/>
+                                 TabIndex="3"/>
                         <Button x:Name="BtnSupernetCompute" Click="OnSupernetComputeClick"
                                 Style="{DynamicResource PrimaryButtonStyle}"
                                 Padding="{StaticResource PaddingButtonPrimary}" HorizontalAlignment="Left" FontSize="{StaticResource FontSizeBody}"
-                                TabIndex="4"
-                                AutomationProperties.Name=""/>
+                                TabIndex="4"/>
                     </StackPanel>
                 </Border>
 
@@ -145,8 +138,7 @@
                                      Background="{DynamicResource CardBrush}"
                                      BorderBrush="{DynamicResource BorderBrush}"
                                      Padding="{StaticResource PaddingInput}"
-                                     TabIndex="5"
-                                     AutomationProperties.Name=""/>
+                                     TabIndex="5"/>
                             <TextBlock x:Name="LblEndIp" Grid.Column="3"
                                        Foreground="{DynamicResource TextPrimaryBrush}"
                                        VerticalAlignment="Center" Margin="0,0,8,0"/>
@@ -157,14 +149,12 @@
                                      Background="{DynamicResource CardBrush}"
                                      BorderBrush="{DynamicResource BorderBrush}"
                                      Padding="{StaticResource PaddingInput}"
-                                     TabIndex="6"
-                                     AutomationProperties.Name=""/>
+                                     TabIndex="6"/>
                         </Grid>
                         <Button x:Name="BtnRangeCompute" Click="OnRangeComputeClick"
                                 Style="{DynamicResource PrimaryButtonStyle}"
                                 Padding="{StaticResource PaddingButtonPrimary}" Margin="0,8,0,0" HorizontalAlignment="Left" FontSize="{StaticResource FontSizeBody}"
-                                TabIndex="7"
-                                AutomationProperties.Name=""/>
+                                TabIndex="7"/>
                     </StackPanel>
                 </Border>
 
@@ -196,8 +186,7 @@
                                      Background="{DynamicResource CardBrush}"
                                      BorderBrush="{DynamicResource BorderBrush}"
                                      Padding="{StaticResource PaddingInput}"
-                                     TabIndex="8"
-                                     AutomationProperties.Name=""/>
+                                     TabIndex="8"/>
                             <TextBlock x:Name="LblBaseNetwork" Grid.Row="2" Grid.Column="0"
                                        Foreground="{DynamicResource TextPrimaryBrush}"
                                        VerticalAlignment="Center" Margin="0,0,8,0"/>
@@ -209,14 +198,12 @@
                                      Background="{DynamicResource CardBrush}"
                                      BorderBrush="{DynamicResource BorderBrush}"
                                      Padding="{StaticResource PaddingInput}"
-                                     TabIndex="9"
-                                     AutomationProperties.Name=""/>
+                                     TabIndex="9"/>
                         </Grid>
                         <Button x:Name="BtnVlanCompute" Click="OnVlanComputeClick"
                                 Style="{DynamicResource PrimaryButtonStyle}"
                                 Padding="{StaticResource PaddingButtonPrimary}" Margin="0,8,0,0" HorizontalAlignment="Left" FontSize="{StaticResource FontSizeBody}"
-                                TabIndex="10"
-                                AutomationProperties.Name=""/>
+                                TabIndex="10"/>
                     </StackPanel>
                 </Border>
 
@@ -231,7 +218,7 @@
                         Margin="0,24,0,0">
                     <StackPanel HorizontalAlignment="Center">
                         <TextBlock Text="&#xE968;" Style="{StaticResource ToolEmptyStateIconStyle}"
-                                   AutomationProperties.Name=""/>
+                                   Focusable="False"/>
                         <TextBlock x:Name="TxtEmptyState" Text=""
                                    Style="{StaticResource ToolEmptyStateTextStyle}"/>
                     </StackPanel>
@@ -249,12 +236,10 @@
                                 Style="{DynamicResource SecondaryButtonStyle}"
                                 Padding="{StaticResource PaddingButtonCopy}" Margin="0,0,0,8"
                                 HorizontalAlignment="Left" FontSize="{StaticResource FontSizeCaption}"
-                                TabIndex="11"
-                                AutomationProperties.Name=""/>
+                                TabIndex="11"/>
                         <TextBox x:Name="TxtResult"
                                  IsReadOnly="True"
                                  TabIndex="12"
-                                 AutomationProperties.Name=""
                                  AutomationProperties.LiveSetting="Polite"
                                  FontFamily="Consolas" FontSize="{StaticResource FontSizeBodyLarge}"
                                  TextWrapping="Wrap"

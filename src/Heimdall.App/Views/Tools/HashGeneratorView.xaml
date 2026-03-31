@@ -36,8 +36,7 @@
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
-                        Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"
-                        AutomationProperties.Name=""/>
+                        Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"/>
                 <TextBlock x:Name="HeaderTitle" Text=""
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
@@ -52,8 +51,7 @@
                         FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeBody}"
                         Click="OnCloseHelpClick"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
-                        VerticalAlignment="Top" Width="24" Height="24"
-                        AutomationProperties.Name=""/>
+                        VerticalAlignment="Top" Width="24" Height="24"/>
                 <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
                     <TextBlock x:Name="TxtHelpContent" Text="" TextWrapping="Wrap"
                                FontSize="{StaticResource FontSizeBody}"
@@ -82,8 +80,7 @@
                          Foreground="{DynamicResource TextPrimaryBrush}"
                          BorderBrush="{DynamicResource BorderBrush}"
                          Tag=""
-                         TextChanged="OnInputTextChanged"
-                         AutomationProperties.Name=""/>
+                         TextChanged="OnInputTextChanged"/>
 
                 <!-- File hash zone -->
                 <Border x:Name="DropZoneBorder" Margin="{StaticResource MarginSectionTop}" Padding="{StaticResource PaddingAlertBanner}"
@@ -98,8 +95,7 @@
                                 Click="OnBrowseFileClick"
                                 Style="{DynamicResource SecondaryButtonStyle}"
                                 Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginInlineControl}"
-                                VerticalAlignment="Center"
-                                AutomationProperties.Name=""/>
+                                VerticalAlignment="Center"/>
                         <TextBlock x:Name="TxtFileDropZone"
                                    FontSize="{StaticResource FontSizeBody}"
                                    Foreground="{DynamicResource TextSecondaryBrush}"
@@ -109,9 +105,7 @@
                 </Border>
 
                 <!-- File hash progress bar -->
-                <ProgressBar x:Name="FileHashProgress" Height="4"
-                             IsIndeterminate="True" Visibility="Collapsed"
-                             Foreground="{DynamicResource AccentBrush}"
+                <ProgressBar x:Name="FileHashProgress" Style="{StaticResource ToolLoadingBarStyle}"
                              Background="{DynamicResource SurfaceBrush}"
                              Margin="0,4,0,0"/>
 
@@ -123,8 +117,7 @@
                             Style="{DynamicResource SecondaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginInlineControl}"
                             Visibility="Collapsed"
-                            VerticalAlignment="Center"
-                            AutomationProperties.Name=""/>
+                            VerticalAlignment="Center"/>
                     <TextBlock x:Name="TxtFileStatus" Text=""
                                FontSize="{StaticResource FontSizeCaption}"
                                Foreground="{DynamicResource TextSecondaryBrush}"
@@ -138,7 +131,7 @@
                     <StackPanel HorizontalAlignment="Center">
                         <TextBlock Text="&#xE8D7;"
                                    Style="{StaticResource ToolEmptyStateIconStyle}"
-                                   AutomationProperties.Name=""/>
+                                   Focusable="False"/>
                         <TextBlock x:Name="TxtEmptyState" Text=""
                                    Style="{StaticResource ToolEmptyStateTextStyle}"/>
                     </StackPanel>
@@ -176,8 +169,7 @@
                          Foreground="{DynamicResource TextPrimaryBrush}"
                          BorderBrush="{DynamicResource BorderBrush}"
                          Tag=""
-                         TextChanged="OnVerifyTextChanged"
-                         AutomationProperties.Name=""/>
+                         TextChanged="OnVerifyTextChanged"/>
                 <TextBlock x:Name="TxtVerifyResult" Text=""
                            FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,8"
                            FontWeight="SemiBold"/>

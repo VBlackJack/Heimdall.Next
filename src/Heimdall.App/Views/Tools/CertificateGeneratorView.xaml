@@ -35,8 +35,7 @@
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
-                        Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"
-                        AutomationProperties.Name=""/>
+                        Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"/>
                 <TextBlock x:Name="HeaderTitle"
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
@@ -51,8 +50,7 @@
                         FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeBody}"
                         Click="OnCloseHelpClick"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
-                        VerticalAlignment="Top" Width="24" Height="24"
-                        AutomationProperties.Name=""/>
+                        VerticalAlignment="Top" Width="24" Height="24"/>
                 <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
                     <TextBlock x:Name="TxtHelpContent" Text="" TextWrapping="Wrap"
                                FontSize="{StaticResource FontSizeBody}"
@@ -97,8 +95,7 @@
                                  Foreground="{DynamicResource TextPrimaryBrush}"
                                  Background="{DynamicResource CardBrush}"
                                  BorderBrush="{DynamicResource BorderBrush}"
-                                 Padding="{StaticResource PaddingInput}"
-                                 AutomationProperties.Name=""/>
+                                 Padding="{StaticResource PaddingInput}"/>
                     </DockPanel>
                     <!-- Organization -->
                     <DockPanel Margin="0,0,0,8">
@@ -110,8 +107,7 @@
                                  Foreground="{DynamicResource TextPrimaryBrush}"
                                  Background="{DynamicResource CardBrush}"
                                  BorderBrush="{DynamicResource BorderBrush}"
-                                 Padding="{StaticResource PaddingInput}"
-                                 AutomationProperties.Name=""/>
+                                 Padding="{StaticResource PaddingInput}"/>
                     </DockPanel>
                     <!-- Country -->
                     <DockPanel Margin="0,0,0,4">
@@ -123,8 +119,7 @@
                                  Foreground="{DynamicResource TextPrimaryBrush}"
                                  Background="{DynamicResource CardBrush}"
                                  BorderBrush="{DynamicResource BorderBrush}"
-                                 Padding="{StaticResource PaddingInput}" MaxLength="2"
-                                 AutomationProperties.Name=""/>
+                                 Padding="{StaticResource PaddingInput}" MaxLength="2"/>
                     </DockPanel>
                 </StackPanel>
             </Border>
@@ -147,8 +142,7 @@
                         <ComboBox x:Name="KeySizeCombo"
                                   TabIndex="3"
                                   SelectedIndex="0"
-                                  MinWidth="200"
-                                  AutomationProperties.Name="">
+                                  MinWidth="200">
                             <ComboBoxItem x:Name="CertRsa2048Item" Content="" Tag="RSA2048"/>
                             <ComboBoxItem x:Name="CertRsa4096Item" Content="" Tag="RSA4096"/>
                         </ComboBox>
@@ -165,8 +159,7 @@
                                  Background="{DynamicResource CardBrush}"
                                  BorderBrush="{DynamicResource BorderBrush}"
                                  Padding="{StaticResource PaddingInput}" Width="100"
-                                 HorizontalAlignment="Left"
-                                 AutomationProperties.Name=""/>
+                                 HorizontalAlignment="Left"/>
                     </DockPanel>
                     <!-- SANs -->
                     <DockPanel Margin="0,0,0,4">
@@ -178,8 +171,7 @@
                                  Foreground="{DynamicResource TextPrimaryBrush}"
                                  Background="{DynamicResource CardBrush}"
                                  BorderBrush="{DynamicResource BorderBrush}"
-                                 Padding="{StaticResource PaddingInput}"
-                                 AutomationProperties.Name=""/>
+                                 Padding="{StaticResource PaddingInput}"/>
                     </DockPanel>
                     <TextBlock x:Name="SanHint"
                                FontSize="{StaticResource FontSizeCaption}"
@@ -203,12 +195,10 @@
                                      TabIndex="6"
                                      IsChecked="True"
                                      Foreground="{DynamicResource TextPrimaryBrush}"
-                                     Margin="0,0,20,0"
-                                     AutomationProperties.Name=""/>
+                                     Margin="0,0,20,0"/>
                         <RadioButton x:Name="RadioCaLeaf"
                                      TabIndex="7"
-                                     Foreground="{DynamicResource TextPrimaryBrush}"
-                                     AutomationProperties.Name=""/>
+                                     Foreground="{DynamicResource TextPrimaryBrush}"/>
                     </StackPanel>
                 </StackPanel>
             </Border>
@@ -219,8 +209,7 @@
                     Click="OnGenerateClick"
                     Style="{DynamicResource PrimaryButtonStyle}"
                     Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginSectionSeparator}"
-                    HorizontalAlignment="Left"
-                    AutomationProperties.Name=""/>
+                    HorizontalAlignment="Left"/>
 
             <TextBlock x:Name="ValidationText" Grid.Row="4"
                        Style="{StaticResource ToolInlineErrorTextStyle}"/>
@@ -241,16 +230,14 @@
                             Click="OnCopyFingerprintClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginInlineControl}"
-                            VerticalAlignment="Center"
-                            AutomationProperties.Name=""/>
+                            VerticalAlignment="Center"/>
                     <TextBox x:Name="FingerprintOutput"
                              IsReadOnly="True"
                              FontFamily="Consolas" FontSize="{StaticResource FontSizeBody}"
                              Background="Transparent"
                              Foreground="{DynamicResource TextPrimaryBrush}"
                              BorderThickness="0"
-                             VerticalAlignment="Center"
-                             AutomationProperties.Name=""/>
+                             VerticalAlignment="Center"/>
                 </DockPanel>
             </Border>
 
@@ -270,8 +257,7 @@
                                 Click="OnCopyCertClick"
                                 Style="{DynamicResource SecondaryButtonStyle}"
                                 Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginInlineControl}"
-                                VerticalAlignment="Center"
-                                AutomationProperties.Name=""/>
+                                VerticalAlignment="Center"/>
                     </StackPanel>
                     <TextBox x:Name="CertOutput"
                              IsReadOnly="True"
@@ -281,8 +267,7 @@
                              VerticalScrollBarVisibility="Auto"
                              Background="Transparent"
                              Foreground="{DynamicResource TextPrimaryBrush}"
-                             BorderThickness="0"
-                             AutomationProperties.Name=""/>
+                             BorderThickness="0"/>
                 </DockPanel>
             </Border>
 
@@ -302,14 +287,12 @@
                                 Click="OnCopyKeyClick"
                                 Style="{DynamicResource SecondaryButtonStyle}"
                                 Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginInlineControl}"
-                                VerticalAlignment="Center"
-                                AutomationProperties.Name=""/>
+                                VerticalAlignment="Center"/>
                         <Button x:Name="BtnShowKey"
                                 Click="OnToggleKeyClick"
                                 Style="{DynamicResource SecondaryButtonStyle}"
                                 Padding="{StaticResource PaddingButtonCopy}" Margin="4,0,0,0"
-                                VerticalAlignment="Center"
-                                AutomationProperties.Name=""/>
+                                VerticalAlignment="Center"/>
                     </StackPanel>
                     <TextBox x:Name="KeyOutput"
                              IsReadOnly="True"
@@ -319,8 +302,7 @@
                              VerticalScrollBarVisibility="Auto"
                              Background="Transparent"
                              Foreground="{DynamicResource TextPrimaryBrush}"
-                             BorderThickness="0"
-                             AutomationProperties.Name=""/>
+                             BorderThickness="0"/>
                 </DockPanel>
             </Border>
 
@@ -341,8 +323,7 @@
                                 Click="OnCopyLeafCertClick"
                                 Style="{DynamicResource SecondaryButtonStyle}"
                                 Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginInlineControl}"
-                                VerticalAlignment="Center"
-                                AutomationProperties.Name=""/>
+                                VerticalAlignment="Center"/>
                     </StackPanel>
                     <TextBox x:Name="LeafCertOutput"
                              IsReadOnly="True"
@@ -353,8 +334,7 @@
                              Background="Transparent"
                              Foreground="{DynamicResource TextPrimaryBrush}"
                              BorderThickness="0"
-                             Margin="{StaticResource MarginSectionBottom}"
-                             AutomationProperties.Name=""/>
+                             Margin="{StaticResource MarginSectionBottom}"/>
                     <!-- Leaf Key -->
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
                         <TextBlock x:Name="LeafKeyLabel"
@@ -364,14 +344,12 @@
                                 Click="OnCopyLeafKeyClick"
                                 Style="{DynamicResource SecondaryButtonStyle}"
                                 Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginInlineControl}"
-                                VerticalAlignment="Center"
-                                AutomationProperties.Name=""/>
+                                VerticalAlignment="Center"/>
                         <Button x:Name="BtnShowLeafKey"
                                 Click="OnToggleLeafKeyClick"
                                 Style="{DynamicResource SecondaryButtonStyle}"
                                 Padding="{StaticResource PaddingButtonCopy}" Margin="4,0,0,0"
-                                VerticalAlignment="Center"
-                                AutomationProperties.Name=""/>
+                                VerticalAlignment="Center"/>
                     </StackPanel>
                     <TextBox x:Name="LeafKeyOutput"
                              IsReadOnly="True"
@@ -381,8 +359,7 @@
                              VerticalScrollBarVisibility="Auto"
                              Background="Transparent"
                              Foreground="{DynamicResource TextPrimaryBrush}"
-                             BorderThickness="0"
-                             AutomationProperties.Name=""/>
+                             BorderThickness="0"/>
                 </StackPanel>
             </Border>
 
@@ -393,13 +370,11 @@
                 <Button x:Name="BtnSavePem"
                         Click="OnSavePemClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="{StaticResource PaddingButtonPrimary}" Margin="0,0,8,0"
-                        AutomationProperties.Name=""/>
+                        Padding="{StaticResource PaddingButtonPrimary}" Margin="0,0,8,0"/>
                 <Button x:Name="BtnSavePfx"
                         Click="OnSavePfxClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="{StaticResource PaddingButtonPrimary}"
-                        AutomationProperties.Name=""/>
+                        Padding="{StaticResource PaddingButtonPrimary}"/>
             </StackPanel>
         </Grid>
     </ScrollViewer>

@@ -36,8 +36,7 @@
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
-                        Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"
-                        AutomationProperties.Name=""/>
+                        Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"/>
                 <TextBlock x:Name="HeaderTitle" FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
                            VerticalAlignment="Center"/>
@@ -51,8 +50,7 @@
                         FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeBody}"
                         Click="OnCloseHelpClick"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
-                        VerticalAlignment="Top" Width="24" Height="24"
-                        AutomationProperties.Name=""/>
+                        VerticalAlignment="Top" Width="24" Height="24"/>
                 <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
                     <TextBlock x:Name="TxtHelpContent" Text="" TextWrapping="Wrap"
                                FontSize="{StaticResource FontSizeBody}"
@@ -92,8 +90,7 @@
                      BorderThickness="1"
                      Padding="{StaticResource PaddingInput}"
                      Tag=""
-                     TextChanged="OnInputTextChanged"
-                     AutomationProperties.Name=""/>
+                     TextChanged="OnInputTextChanged"/>
         </Grid>
 
         <!-- Action buttons -->
@@ -102,13 +99,11 @@
             <Button x:Name="BtnPrettify" Click="OnPrettifyClick"
                     TabIndex="1"
                     Style="{DynamicResource PrimaryButtonStyle}"
-                    Padding="{StaticResource PaddingButtonPrimary}" Margin="0,0,8,0"
-                    AutomationProperties.Name=""/>
+                    Padding="{StaticResource PaddingButtonPrimary}" Margin="0,0,8,0"/>
             <Button x:Name="BtnMinify" Click="OnMinifyClick"
                     TabIndex="2"
                     Style="{DynamicResource SecondaryButtonStyle}"
-                    Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginInlineControl}"
-                    AutomationProperties.Name=""/>
+                    Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginInlineControl}"/>
         </StackPanel>
 
         <!-- Output text area -->
@@ -127,7 +122,7 @@
                 <StackPanel HorizontalAlignment="Center">
                     <TextBlock Text="&#xE943;"
                                Style="{StaticResource ToolEmptyStateIconStyle}"
-                               AutomationProperties.Name=""/>
+                               Focusable="False"/>
                     <TextBlock x:Name="TxtEmptyState" Text=""
                                Style="{StaticResource ToolEmptyStateTextStyle}"/>
                 </StackPanel>
@@ -144,7 +139,6 @@
                          FontFamily="Consolas" FontSize="{StaticResource FontSizeBodyLarge}"
                          Background="{DynamicResource SurfaceBrush}"
                          Foreground="{DynamicResource TextPrimaryBrush}"
-                         AutomationProperties.Name=""
                          AutomationProperties.LiveSetting="Polite"
                          BorderBrush="{DynamicResource BorderBrush}"
                          BorderThickness="1"
@@ -158,8 +152,7 @@
                     TabIndex="5"
                     Click="OnCopyOutputClick"
                     Style="{DynamicResource SecondaryButtonStyle}"
-                    Padding="{StaticResource PaddingButtonCopy}"
-                    AutomationProperties.Name=""/>
+                    Padding="{StaticResource PaddingButtonCopy}"/>
             <TextBlock x:Name="StatusText"
                        Foreground="{DynamicResource TextSecondaryBrush}"
                        FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center"/>

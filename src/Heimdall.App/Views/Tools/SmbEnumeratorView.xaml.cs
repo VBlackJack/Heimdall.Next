@@ -47,6 +47,7 @@ public partial class SmbEnumeratorView : UserControl, IToolView
     private Action<bool>? _setBusy;
     private List<SshGatewayDto>? _gateways;
     private SshGatewayDto? _selectedGateway;
+    private readonly ToolAsyncStateController _viewState;
 
     /// <summary>Stores the last enumeration report for clipboard copy.</summary>
     private string _lastReport = string.Empty;
@@ -54,6 +55,10 @@ public partial class SmbEnumeratorView : UserControl, IToolView
     public SmbEnumeratorView()
     {
         InitializeComponent();
+        _viewState = new ToolAsyncStateController(
+            isBusy => _setBusy?.Invoke(isBusy),
+            LoadingBar, TxtError, EmptyStatePanel, ResultsPanel, TxtStatus,
+            BtnEnumerate, TxtHost, CmbRouteVia);
         TxtHost.KeyDown += OnHostKeyDown;
     }
 
@@ -177,23 +182,18 @@ public partial class SmbEnumeratorView : UserControl, IToolView
         }
 
         var host = TxtHost.Text.Trim();
-        TxtError.Visibility = Visibility.Collapsed;
-        ResultsPanel.Visibility = Visibility.Collapsed;
-        EmptyStatePanel.Visibility = Visibility.Visible;
-        TxtStatus.Text = string.Empty;
+        _viewState.Reset();
         _lastReport = string.Empty;
 
         if (string.IsNullOrWhiteSpace(host))
         {
-            TxtError.Text = L("ToolValidationHostRequired");
-            TxtError.Visibility = Visibility.Visible;
+            _viewState.ShowError(L("ToolValidationHostRequired"));
             return;
         }
 
         if (!InputValidator.Validate(host, "Address"))
         {
-            TxtError.Text = L("ErrorInvalidHost");
-            TxtError.Visibility = Visibility.Visible;
+            _viewState.ShowError(L("ErrorInvalidHost"));
             return;
         }
 
@@ -202,11 +202,7 @@ public partial class SmbEnumeratorView : UserControl, IToolView
         _cts = new CancellationTokenSource();
 
         _isEnumerating = true;
-        _setBusy?.Invoke(true);
-        BtnEnumerate.IsEnabled = false;
-        TxtHost.IsReadOnly = true;
-        CmbRouteVia.IsEnabled = false;
-        LoadingBar.Visibility = Visibility.Visible;
+        _viewState.Begin();
 
         var stopwatch = Stopwatch.StartNew();
 
@@ -234,18 +230,13 @@ public partial class SmbEnumeratorView : UserControl, IToolView
         }
         catch (Exception ex)
         {
-            TxtError.Text = string.Format(L("ToolSmbErrorConnection"), ex.Message);
-            TxtError.Visibility = Visibility.Visible;
+            _viewState.ShowError(string.Format(L("ToolSmbErrorConnection"), ex.Message));
             Core.Logging.FileLogger.Warn($"SmbEnumerator failed for {host}: {ex.Message}");
         }
         finally
         {
             _isEnumerating = false;
-            _setBusy?.Invoke(false);
-            BtnEnumerate.IsEnabled = true;
-            TxtHost.IsReadOnly = false;
-            CmbRouteVia.IsEnabled = true;
-            LoadingBar.Visibility = Visibility.Collapsed;
+            _viewState.End();
         }
     }
 
@@ -292,8 +283,7 @@ public partial class SmbEnumeratorView : UserControl, IToolView
         {
             await Dispatcher.InvokeAsync(() =>
             {
-                TxtError.Text = string.Format(L("ToolSmbErrorNtlm"), ntlmError);
-                TxtError.Visibility = Visibility.Visible;
+                _viewState.ShowError(string.Format(L("ToolSmbErrorNtlm"), ntlmError));
             });
             return;
         }
@@ -302,8 +292,7 @@ public partial class SmbEnumeratorView : UserControl, IToolView
         {
             await Dispatcher.InvokeAsync(() =>
             {
-                TxtError.Text = string.Format(L("ToolSmbErrorConnection"), "port 445 closed or filtered");
-                TxtError.Visibility = Visibility.Visible;
+                _viewState.ShowError(string.Format(L("ToolSmbErrorConnection"), "port 445 closed or filtered"));
             });
             return;
         }
@@ -329,8 +318,7 @@ public partial class SmbEnumeratorView : UserControl, IToolView
             Core.Logging.FileLogger.Warn($"SmbEnumerator gateway connection failed: {ex.Message}");
             await Dispatcher.InvokeAsync(() =>
             {
-                TxtError.Text = string.Format(L("ToolTunnelFailed"), ex.Message);
-                TxtError.Visibility = Visibility.Visible;
+                _viewState.ShowError(string.Format(L("ToolTunnelFailed"), ex.Message));
             });
             return;
         }
@@ -424,8 +412,7 @@ public partial class SmbEnumeratorView : UserControl, IToolView
         // Build clipboard report
         _lastReport = BuildReport(ntlm, smb, nbName, nbDomain, nbMac);
 
-        EmptyStatePanel.Visibility = Visibility.Collapsed;
-        ResultsPanel.Visibility = Visibility.Visible;
+        _viewState.ShowResults();
     }
 
     /// <summary>
@@ -512,8 +499,7 @@ public partial class SmbEnumeratorView : UserControl, IToolView
 
         if (!hasData)
         {
-            TxtError.Text = string.Format(L("ToolSmbErrorConnection"), "port 445 closed or filtered");
-            TxtError.Visibility = Visibility.Visible;
+            _viewState.ShowError(string.Format(L("ToolSmbErrorConnection"), "port 445 closed or filtered"));
             return;
         }
 
@@ -545,8 +531,7 @@ public partial class SmbEnumeratorView : UserControl, IToolView
         sb.AppendLine($"{L("ToolSmbDialect"),-14}: {ValDialect.Text}");
         _lastReport = sb.ToString();
 
-        EmptyStatePanel.Visibility = Visibility.Collapsed;
-        ResultsPanel.Visibility = Visibility.Visible;
+        _viewState.ShowResults();
     }
 
     /// <summary>

@@ -38,21 +38,18 @@
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
                         Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"
-                        TabIndex="6"
-                        AutomationProperties.Name=""/>
+                        TabIndex="6"/>
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
                     <Button x:Name="BtnReload" Click="OnReloadClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonCopy}" Margin="0,0,6,0" FontSize="{StaticResource FontSizeBody}"
                             VerticalAlignment="Center"
-                            TabIndex="1"
-                            AutomationProperties.Name=""/>
+                            TabIndex="1"/>
                     <Button x:Name="BtnSave" Click="OnSaveClick"
                             Style="{DynamicResource PrimaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonCopy}" FontSize="{StaticResource FontSizeBody}"
                             VerticalAlignment="Center"
-                            TabIndex="2"
-                            AutomationProperties.Name=""/>
+                            TabIndex="2"/>
                 </StackPanel>
                 <TextBlock x:Name="HeaderTitle" Text=""
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
@@ -69,8 +66,7 @@
                         Click="OnCloseHelpClick"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
                         VerticalAlignment="Top" Width="24" Height="24"
-                        TabIndex="7"
-                        AutomationProperties.Name=""/>
+                        TabIndex="7"/>
                 <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
                     <TextBlock x:Name="TxtHelpContent" Text="" TextWrapping="Wrap"
                                FontSize="{StaticResource FontSizeBody}"
@@ -86,7 +82,7 @@
                 Margin="0,24,0,0">
             <StackPanel HorizontalAlignment="Center">
                 <TextBlock Text="&#xE8A5;" Style="{StaticResource ToolEmptyStateIconStyle}"
-                           AutomationProperties.Name=""/>
+                           Focusable="False"/>
                 <TextBlock x:Name="TxtEmptyState" Text=""
                            Style="{StaticResource ToolEmptyStateTextStyle}"/>
             </StackPanel>
@@ -95,7 +91,6 @@
         <!-- DataGrid -->
         <DataGrid x:Name="HostsGrid" Grid.Row="2"
                   TabIndex="0"
-                  AutomationProperties.Name=""
                   AutoGenerateColumns="False"
                   CanUserAddRows="False"
                   CanUserDeleteRows="False"
@@ -132,13 +127,11 @@
             <Button x:Name="BtnAddEntry" Click="OnAddEntryClick"
                     Style="{DynamicResource SecondaryButtonStyle}"
                     Padding="{StaticResource PaddingButtonCopy}" Margin="0,0,6,0" FontSize="{StaticResource FontSizeBody}"
-                    TabIndex="3"
-                    AutomationProperties.Name=""/>
+                    TabIndex="3"/>
             <Button x:Name="BtnDeleteSelected" Click="OnDeleteSelectedClick"
                     Style="{DynamicResource SecondaryButtonStyle}"
                     Padding="{StaticResource PaddingButtonCopy}" FontSize="{StaticResource FontSizeBody}"
-                    TabIndex="4"
-                    AutomationProperties.Name=""/>
+                    TabIndex="4"/>
         </StackPanel>
 
         <!-- Status bar -->

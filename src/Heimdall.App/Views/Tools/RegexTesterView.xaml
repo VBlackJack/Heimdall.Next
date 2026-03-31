@@ -35,8 +35,7 @@
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
-                        Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"
-                        AutomationProperties.Name=""/>
+                        Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"/>
                 <TextBlock x:Name="HeaderTitle" FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
                            VerticalAlignment="Center"/>
@@ -50,8 +49,7 @@
                         FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeBody}"
                         Click="OnCloseHelpClick"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
-                        VerticalAlignment="Top" Width="24" Height="24"
-                        AutomationProperties.Name=""/>
+                        VerticalAlignment="Top" Width="24" Height="24"/>
                 <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
                     <TextBlock x:Name="TxtHelpContent" Text="" TextWrapping="Wrap"
                                FontSize="{StaticResource FontSizeBody}"
@@ -87,7 +85,6 @@
                      Padding="{StaticResource PaddingInput}"
                      Tag=""
                      TextChanged="OnPatternTextChanged"
-                     AutomationProperties.Name=""
 />
         </DockPanel>
 
@@ -98,20 +95,17 @@
                       Foreground="{DynamicResource TextPrimaryBrush}"
                       Margin="0,0,16,0"
                       Checked="OnFlagChanged" Unchecked="OnFlagChanged"
-                      AutomationProperties.Name=""
 />
             <CheckBox x:Name="ChkMultiline"
                       TabIndex="2"
                       Foreground="{DynamicResource TextPrimaryBrush}"
                       Margin="0,0,16,0"
                       Checked="OnFlagChanged" Unchecked="OnFlagChanged"
-                      AutomationProperties.Name=""
 />
             <CheckBox x:Name="ChkSingleline"
                       TabIndex="3"
                       Foreground="{DynamicResource TextPrimaryBrush}"
                       Checked="OnFlagChanged" Unchecked="OnFlagChanged"
-                      AutomationProperties.Name=""
 />
         </StackPanel>
 
@@ -139,7 +133,6 @@
                          Padding="{StaticResource PaddingInput}"
                          Tag=""
                          TextChanged="OnTestTextChanged"
-                         AutomationProperties.Name=""
 />
                 <RichTextBox x:Name="HighlightDisplay"
                              IsReadOnly="True" IsHitTestVisible="False"
@@ -174,7 +167,7 @@
             <StackPanel HorizontalAlignment="Center">
                 <TextBlock Text="&#xE71E;"
                            Style="{StaticResource ToolEmptyStateIconStyle}"
-                           AutomationProperties.Name=""/>
+                           Focusable="False"/>
                 <TextBlock x:Name="TxtEmptyState" Text=""
                            Style="{StaticResource ToolEmptyStateTextStyle}"/>
             </StackPanel>
@@ -206,8 +199,7 @@
                     TabIndex="7"
                     Click="OnCopyMatchesClick"
                     Style="{DynamicResource SecondaryButtonStyle}"
-                    Padding="{StaticResource PaddingButtonCopy}"
-                    AutomationProperties.Name=""/>
+                    Padding="{StaticResource PaddingButtonCopy}"/>
         </DockPanel>
         </Grid>
     </Grid>

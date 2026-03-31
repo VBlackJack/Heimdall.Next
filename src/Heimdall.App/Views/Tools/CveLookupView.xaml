@@ -36,8 +36,7 @@
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
-                        Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"
-                        AutomationProperties.Name=""/>
+                        Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"/>
                 <TextBlock x:Name="HeaderTitle"
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
@@ -51,15 +50,13 @@
                              Background="{DynamicResource CardBrush}"
                              Foreground="{DynamicResource TextPrimaryBrush}"
                              BorderBrush="{DynamicResource BorderBrush}"
-                             VerticalAlignment="Center"
-                             AutomationProperties.Name=""/>
+                             VerticalAlignment="Center"/>
                     <Button x:Name="BtnSearch" Content=""
                             TabIndex="1"
                             Click="OnSearchClick"
                             Style="{DynamicResource PrimaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginInlineControl}"
-                            VerticalAlignment="Center"
-                            AutomationProperties.Name=""/>
+                            VerticalAlignment="Center"/>
                 </StackPanel>
             </DockPanel>
         </Border>
@@ -71,8 +68,7 @@
                         FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeBody}"
                         Click="OnCloseHelpClick"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
-                        VerticalAlignment="Top" Width="24" Height="24"
-                        AutomationProperties.Name=""/>
+                        VerticalAlignment="Top" Width="24" Height="24"/>
                 <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
                     <TextBlock x:Name="TxtHelpContent" Text="" TextWrapping="Wrap"
                                FontSize="{StaticResource FontSizeBody}"
@@ -91,7 +87,7 @@
                 <StackPanel HorizontalAlignment="Center">
                     <TextBlock Text="&#xE8B7;"
                                Style="{StaticResource ToolEmptyStateIconStyle}"
-                               AutomationProperties.Name=""/>
+                               Focusable="False"/>
                     <TextBlock x:Name="TxtEmptyState"
                                Style="{StaticResource ToolEmptyStateTextStyle}"/>
                     <TextBlock x:Name="TxtDbInfo"
@@ -108,7 +104,7 @@
                     <TextBlock Text="&#xE8B7;"
                                Style="{StaticResource ToolEmptyStateIconStyle}"
                                Foreground="{DynamicResource SuccessBrush}"
-                               AutomationProperties.Name=""/>
+                               Focusable="False"/>
                     <TextBlock x:Name="TxtNoResults"
                                Style="{StaticResource ToolEmptyStateTextStyle}"/>
                 </StackPanel>
@@ -202,9 +198,8 @@
                 <Button x:Name="BtnCopy" Content=""
                         Click="OnCopyClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="{StaticResource PaddingButtonPrimary}" DockPanel.Dock="Right"
-                        VerticalAlignment="Center" IsEnabled="False"
-                        AutomationProperties.Name=""/>
+                        Padding="{StaticResource PaddingButtonCopy}" DockPanel.Dock="Right"
+                        VerticalAlignment="Center" IsEnabled="False"/>
                 <TextBlock x:Name="TxtFooterInfo"
                            FontSize="{StaticResource FontSizeCaption}"
                            Foreground="{DynamicResource TextSecondaryBrush}"

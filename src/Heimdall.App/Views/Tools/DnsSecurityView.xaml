@@ -36,8 +36,7 @@
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
-                        Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"
-                        AutomationProperties.Name=""/>
+                        Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"/>
                 <TextBlock x:Name="HeaderTitle" Text=""
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
@@ -52,8 +51,7 @@
                         FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeBody}"
                         Click="OnCloseHelpClick"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
-                        VerticalAlignment="Top" Width="24" Height="24"
-                        AutomationProperties.Name=""/>
+                        VerticalAlignment="Top" Width="24" Height="24"/>
                 <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
                     <TextBlock x:Name="TxtHelpContent" Text="" TextWrapping="Wrap"
                                FontSize="{StaticResource FontSizeBody}"
@@ -77,8 +75,7 @@
                             Content="" Click="OnCheckClick"
                             Style="{DynamicResource PrimaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginInlineControl}"
-                            VerticalAlignment="Center"
-                            AutomationProperties.Name=""/>
+                            VerticalAlignment="Center"/>
                     <TextBox x:Name="TxtDomain" Text=""
                              TabIndex="0"
                              Style="{StaticResource WatermarkTextBoxStyle}"
@@ -88,8 +85,7 @@
                              Background="{DynamicResource CardBrush}"
                              Foreground="{DynamicResource TextPrimaryBrush}"
                              BorderBrush="{DynamicResource BorderBrush}"
-                             VerticalAlignment="Center"
-                             AutomationProperties.Name=""/>
+                             VerticalAlignment="Center"/>
                 </DockPanel>
 
                 <!-- Route via gateway -->
@@ -104,8 +100,7 @@
                               Background="{DynamicResource CardBrush}"
                               Foreground="{DynamicResource TextPrimaryBrush}"
                               BorderBrush="{DynamicResource BorderBrush}"
-                              VerticalAlignment="Center"
-                              AutomationProperties.Name=""/>
+                              VerticalAlignment="Center"/>
                 </DockPanel>
 
                 <!-- Error message -->
@@ -114,9 +109,7 @@
                            Foreground="{DynamicResource ErrorTextBrush}"/>
 
                 <!-- Loading indicator -->
-                <ProgressBar x:Name="LoadingBar" IsIndeterminate="True"
-                             Visibility="Collapsed" Height="4" Margin="{StaticResource MarginSectionBottom}"
-                             AutomationProperties.Name=""/>
+                <ProgressBar x:Name="LoadingBar" Style="{StaticResource ToolLoadingBarStyle}"/>
 
                 <!-- Empty state hint -->
                 <Border x:Name="EmptyStatePanel"
@@ -125,7 +118,7 @@
                     <StackPanel HorizontalAlignment="Center">
                         <TextBlock Text="&#xE774;"
                                    Style="{StaticResource ToolEmptyStateIconStyle}"
-                                   AutomationProperties.Name=""/>
+                                   Focusable="False"/>
                         <TextBlock x:Name="TxtEmptyState" Text=""
                                    Style="{StaticResource ToolEmptyStateTextStyle}"/>
                     </StackPanel>
@@ -188,8 +181,7 @@
                     <Button x:Name="BtnCopyReport" Click="OnCopyReportClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonCopy}"
-                            HorizontalAlignment="Left"
-                            AutomationProperties.Name=""/>
+                            HorizontalAlignment="Left"/>
 
                 </StackPanel>
 

@@ -40,8 +40,7 @@
                         Click="OnHelpClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
-                        Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"
-                        AutomationProperties.Name=""/>
+                        Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"/>
                 <TextBlock x:Name="HeaderTitle" Text=""
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
@@ -56,8 +55,7 @@
                         FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeBody}"
                         Click="OnCloseHelpClick"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
-                        VerticalAlignment="Top" Width="24" Height="24"
-                        AutomationProperties.Name=""/>
+                        VerticalAlignment="Top" Width="24" Height="24"/>
                 <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
                     <TextBlock x:Name="TxtHelpContent" Text="" TextWrapping="Wrap"
                                FontSize="{StaticResource FontSizeBody}"
@@ -93,8 +91,7 @@
                              Background="{DynamicResource CardBrush}"
                              Foreground="{DynamicResource TextPrimaryBrush}"
                              BorderBrush="{DynamicResource BorderBrush}"
-                             TextChanged="OnScopeTextChanged"
-                             AutomationProperties.Name=""/>
+                             TextChanged="OnScopeTextChanged"/>
                     <TextBlock x:Name="TxtDetected" Text="" FontSize="{StaticResource FontSizeCaption}"
                                Foreground="{DynamicResource TextSecondaryBrush}"
                                Margin="0,4,0,0"/>
@@ -109,29 +106,24 @@
                                   Background="{DynamicResource CardBrush}"
                                   Foreground="{DynamicResource TextPrimaryBrush}"
                                   BorderBrush="{DynamicResource BorderBrush}"
-                                  VerticalAlignment="Center"
-                                  AutomationProperties.Name=""/>
+                                  VerticalAlignment="Center"/>
 
                         <CheckBox x:Name="ChkNetwork" IsChecked="True"
                                   TabIndex="2"
                                   Foreground="{DynamicResource TextPrimaryBrush}"
-                                  VerticalAlignment="Center" Margin="16,0,0,0"
-                                  AutomationProperties.Name=""/>
+                                  VerticalAlignment="Center" Margin="16,0,0,0"/>
                         <CheckBox x:Name="ChkCrypto" IsChecked="True"
                                   TabIndex="3"
                                   Foreground="{DynamicResource TextPrimaryBrush}"
-                                  VerticalAlignment="Center" Margin="16,0,0,0"
-                                  AutomationProperties.Name=""/>
+                                  VerticalAlignment="Center" Margin="16,0,0,0"/>
                         <CheckBox x:Name="ChkAccess" IsChecked="True"
                                   TabIndex="4"
                                   Foreground="{DynamicResource TextPrimaryBrush}"
-                                  VerticalAlignment="Center" Margin="16,0,0,0"
-                                  AutomationProperties.Name=""/>
+                                  VerticalAlignment="Center" Margin="16,0,0,0"/>
                         <CheckBox x:Name="ChkOperations" IsChecked="True"
                                   TabIndex="5"
                                   Foreground="{DynamicResource TextPrimaryBrush}"
-                                  VerticalAlignment="Center" Margin="16,0,0,0"
-                                  AutomationProperties.Name=""/>
+                                  VerticalAlignment="Center" Margin="16,0,0,0"/>
 
                         <TextBlock x:Name="LblRouteVia" Text=""
                                    FontSize="{StaticResource FontSizeBody}" VerticalAlignment="Center" Margin="16,0,4,0"
@@ -142,16 +134,14 @@
                                   Background="{DynamicResource CardBrush}"
                                   Foreground="{DynamicResource TextPrimaryBrush}"
                                   BorderBrush="{DynamicResource BorderBrush}"
-                                  VerticalAlignment="Center"
-                                  AutomationProperties.Name=""/>
+                                  VerticalAlignment="Center"/>
 
                         <Button x:Name="BtnStartStop" Content=""
                                 TabIndex="7"
                                 Click="OnStartStopClick"
                                 Style="{DynamicResource PrimaryButtonStyle}"
                                 Padding="{StaticResource PaddingButtonPrimary}" Margin="16,0,0,0"
-                                VerticalAlignment="Center"
-                                AutomationProperties.Name=""/>
+                                VerticalAlignment="Center"/>
                     </WrapPanel>
                 </StackPanel>
             </Grid>
@@ -162,8 +152,7 @@
             <ProgressBar x:Name="AuditProgress" Height="4"
                          Minimum="0" Maximum="100"
                          Foreground="{DynamicResource AccentBrush}"
-                         Background="{DynamicResource SurfaceBrush}"
-                         AutomationProperties.Name=""/>
+                         Background="{DynamicResource SurfaceBrush}"/>
             <DockPanel Margin="12,2,12,4">
                 <TextBlock x:Name="TxtPhase" Text="" FontSize="{StaticResource FontSizeCaption}"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
@@ -211,7 +200,8 @@
                 Margin="0,24,0,0">
             <StackPanel HorizontalAlignment="Center">
                 <TextBlock Text="&#xE8D4;"
-                           Style="{StaticResource ToolEmptyStateIconStyle}"/>
+                           Style="{StaticResource ToolEmptyStateIconStyle}"
+                           Focusable="False"/>
                 <TextBlock x:Name="TxtEmptyState" Text=""
                            Style="{StaticResource ToolEmptyStateTextStyle}"/>
             </StackPanel>
@@ -235,22 +225,19 @@
                             Click="OnExportHtmlClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonPrimary}" Margin="0,0,4,0"
-                            VerticalAlignment="Center" IsEnabled="False"
-                            AutomationProperties.Name=""/>
+                            VerticalAlignment="Center" IsEnabled="False"/>
                     <Button x:Name="BtnExportCsv" Content=""
                             TabIndex="9"
                             Click="OnExportCsvClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonPrimary}" Margin="0,0,4,0"
-                            VerticalAlignment="Center" IsEnabled="False"
-                            AutomationProperties.Name=""/>
+                            VerticalAlignment="Center" IsEnabled="False"/>
                     <Button x:Name="BtnExportDrawio" Content=""
                             TabIndex="10"
                             Click="OnExportDrawioClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonPrimary}"
-                            VerticalAlignment="Center" IsEnabled="False"
-                            AutomationProperties.Name=""/>
+                            VerticalAlignment="Center" IsEnabled="False"/>
                 </StackPanel>
                 <TextBlock x:Name="TxtFooterStats" Text="" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                            Foreground="{DynamicResource TextSecondaryBrush}"

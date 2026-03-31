@@ -35,8 +35,7 @@
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
                         Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"
-                        TabIndex="12"
-                        AutomationProperties.Name=""/>
+                        TabIndex="12"/>
                 <TextBlock x:Name="HeaderTitle" Text=""
                            FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
@@ -52,8 +51,7 @@
                         Click="OnCloseHelpClick"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
                         VerticalAlignment="Top" Width="24" Height="24"
-                        TabIndex="13"
-                        AutomationProperties.Name=""/>
+                        TabIndex="13"/>
                 <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
                     <TextBlock x:Name="TxtHelpContent" Text="" TextWrapping="Wrap"
                                FontSize="{StaticResource FontSizeBody}"
@@ -77,19 +75,16 @@
                             Style="{DynamicResource SecondaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginInlineControl}"
                             VerticalAlignment="Stretch"
-                            TabIndex="1"
-                            AutomationProperties.Name=""/>
+                            TabIndex="1"/>
                     <Button x:Name="BtnGenerate" DockPanel.Dock="Right"
                             Content="" Click="OnGenerateClick"
                             Style="{DynamicResource PrimaryButtonStyle}"
                             Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginInlineControl}"
                             VerticalAlignment="Stretch"
-                            TabIndex="0"
-                            AutomationProperties.Name=""/>
+                            TabIndex="0"/>
                     <TextBox x:Name="TxtResult" Text=""
                              FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
                              Padding="{StaticResource PaddingInput}" IsReadOnly="True"
-                             AutomationProperties.Name=""
                              AutomationProperties.LiveSetting="Polite"
                              Background="{DynamicResource CardBrush}"
                              Foreground="{DynamicResource AccentBrush}"
@@ -105,8 +100,7 @@
                               BorderBrush="{DynamicResource BorderBrush}"
                               SelectionChanged="OnVersionChanged"
                               SelectedIndex="0"
-                              TabIndex="2"
-                              AutomationProperties.Name="">
+                              TabIndex="2">
                         <ComboBoxItem Tag="4"/>
                         <ComboBoxItem Tag="7"/>
                     </ComboBox>
@@ -114,13 +108,11 @@
                               Margin="0,0,16,0"
                               Foreground="{DynamicResource TextPrimaryBrush}"
                               Checked="OnFormatChanged" Unchecked="OnFormatChanged"
-                              TabIndex="3"
-                              AutomationProperties.Name=""/>
+                              TabIndex="3"/>
                     <CheckBox x:Name="ChkHyphens" IsChecked="True"
                               Foreground="{DynamicResource TextPrimaryBrush}"
                               Checked="OnFormatChanged" Unchecked="OnFormatChanged"
-                              TabIndex="4"
-                              AutomationProperties.Name=""/>
+                              TabIndex="4"/>
                 </StackPanel>
 
                 <!-- Batch generation -->
@@ -136,8 +128,7 @@
                                     Style="{DynamicResource SecondaryButtonStyle}"
                                     Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginInlineControl}"
                                     VerticalAlignment="Stretch"
-                                    TabIndex="6"
-                                    AutomationProperties.Name=""/>
+                                    TabIndex="6"/>
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                 <TextBlock x:Name="LblCount" Text=""
                                            FontSize="{StaticResource FontSizeBody}" Margin="0,0,8,0"
@@ -149,8 +140,7 @@
                                          Background="{DynamicResource CardBrush}"
                                          Foreground="{DynamicResource TextPrimaryBrush}"
                                          BorderBrush="{DynamicResource BorderBrush}"
-                                         TabIndex="5"
-                                         AutomationProperties.Name=""/>
+                                         TabIndex="5"/>
                             </StackPanel>
                         </DockPanel>
 
@@ -159,7 +149,6 @@
                                  FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                                  Padding="{StaticResource PaddingInput}" MaxHeight="300"
                                  IsReadOnly="True"
-                                 AutomationProperties.Name=""
                                  AutomationProperties.LiveSetting="Polite"
                                  AcceptsReturn="True"
                                  TextWrapping="NoWrap"
@@ -173,8 +162,7 @@
                                 Style="{DynamicResource SecondaryButtonStyle}"
                                 Padding="{StaticResource PaddingButtonPrimary}" Margin="0,8,0,0"
                                 HorizontalAlignment="Left"
-                                TabIndex="7"
-                                AutomationProperties.Name=""/>
+                                TabIndex="7"/>
                     </StackPanel>
                 </Border>
 
