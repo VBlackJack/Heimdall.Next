@@ -8,7 +8,7 @@
 
   <Package Name="Heimdall.Next"
            Manufacturer="Julien Bombled"
-           Version="!(bind.fileVersion.HeimdallExe)"
+           Version="!(wix.AppVersion)"
            UpgradeCode="B7A4D3E1-8F2C-4A91-9D5E-6C3B8A1F0E72"
            Scope="perMachine"
            InstallerVersion="500">
@@ -28,7 +28,7 @@
 
     <StandardDirectory Id="ProgramFiles6432Folder">
       <Directory Id="INSTALLFOLDER" Name="Heimdall.Next">
-        <Component Id="DesktopShortcut" Guid="A1B2C3D4-E5F6-7890-AB12-CD34EF56GH78">
+        <Component Id="DesktopShortcut" Guid="A1B2C3D4-E5F6-7890-AB12-CD34EF560A78">
           <Shortcut Id="DesktopShortcutFile"
                     Name="Heimdall.Next"
                     Target="[INSTALLFOLDER]Heimdall.Next.exe"
@@ -36,7 +36,7 @@
                     Directory="DesktopFolder" />
           <RegistryValue Root="HKCU" Key="Software\Heimdall.Next" Name="DesktopShortcut" Type="integer" Value="1" KeyPath="yes" />
         </Component>
-        <Component Id="StartMenuShortcut" Guid="B2C3D4E5-F6A7-8901-BC23-DE45FG67HI89">
+        <Component Id="StartMenuShortcut" Guid="B2C3D4E5-F6A7-8901-BC23-DE45FA670B89">
           <Shortcut Id="StartMenuShortcutFile"
                     Name="Heimdall.Next"
                     Target="[INSTALLFOLDER]Heimdall.Next.exe"
@@ -52,7 +52,7 @@
 
   </Package>
 
-  <!-- Product files harvested via heat.exe or manual ComponentGroup -->
+  <!-- Product files harvested via WiX Files element -->
   <Fragment>
     <ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER">
       <Files Include="..\Dist\release\Heimdall.Next_current\**">

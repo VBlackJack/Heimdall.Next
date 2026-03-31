@@ -261,35 +261,8 @@ if ($Mode -eq 'Release') {
         Write-Host "  [!] Inno Setup not found - skipping .exe installer" -ForegroundColor DarkYellow
     }
 
-    # WiX MSI (.msi installer)
-    $wixAvailable = $false
-    try { wix --version 2>&1 | Out-Null; $wixAvailable = ($LASTEXITCODE -eq 0) } catch {}
-    if ($wixAvailable) {
-        foreach ($o in $outputs) {
-            $msiOutput = Join-Path $installerDir "Heimdall.Next_${buildNumber}_$($o.Name).msi"
-            $wxsFile = Join-Path $ProjectRoot 'installer\Product.wxs'
-            if (Test-Path $wxsFile) {
-                Write-Host "  Building WiX MSI ($($o.Name))..." -ForegroundColor DarkGray
-                # Create a temp symlink/copy for the harvest path
-                $harvestLink = Join-Path $ProjectRoot 'Dist\release\Heimdall.Next_current'
-                if (Test-Path $harvestLink) { Remove-Item $harvestLink -Recurse -Force }
-                Copy-Item $o.Dir $harvestLink -Recurse -Force
-                try {
-                    wix build -o $msiOutput $wxsFile -ext WixToolset.UI.wixext 2>&1 | Out-Null
-                    if ($LASTEXITCODE -eq 0) {
-                        Write-Host "    + $(Split-Path $msiOutput -Leaf)" -ForegroundColor DarkGray
-                    } else {
-                        Write-Host "    [!] WiX build failed for $($o.Name)" -ForegroundColor DarkYellow
-                    }
-                } catch {
-                    Write-Host "    [!] WiX build error: $_" -ForegroundColor DarkYellow
-                }
-                if (Test-Path $harvestLink) { Remove-Item $harvestLink -Recurse -Force }
-            }
-        }
-    } else {
-        Write-Host "  [!] WiX Toolset not found - skipping .msi installer" -ForegroundColor DarkYellow
-    }
+    # WiX MSI removed — requires WixToolset.UI.wixext NuGet extension which
+    # cannot be installed on air-gapped machines. Inno Setup covers the use case.
 
     Write-Host "[5/6] Installers done" -ForegroundColor Green
     Write-Host "[6/6] Release archives created" -ForegroundColor Green
