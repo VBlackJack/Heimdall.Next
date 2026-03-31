@@ -53,6 +53,7 @@ Index of all issues encountered during development and their solutions.
 38. [SFTP — SshException("Failure") Not Caught as Permission Denied](#sftp-sshexception-failure-not-caught)
 39. [WebView2 — Side-by-Side Configuration Error (0x800736B1)](#webview2-sxs-error)
 40. [HTTP Traversal — Sibling Prefix Bypass](#http-traversal-sibling-prefix)
+41. [Tool Tunnel Scan — Few or No Hosts Found](#tool-tunnel-scan-few-hosts)
 
 ---
 
@@ -682,3 +683,23 @@ if (!fullPath.StartsWith(safeBase) && !string.Equals(fullPath, _servingDirectory
 Applied to both HTTP and TFTP handlers.
 
 **Files**: `Services/EphemeralFileServer.cs`
+
+## 41. Tool Tunnel Scan — Few or No Hosts Found {#tool-tunnel-scan-few-hosts}
+
+**Symptom**: Network Cartography (or Port Scanner, Banner Grabber, Firewall Tester, Default Credential Scanner) via "Route via" SSH gateway finds only the gateway host or very few hosts, while a direct scan from the same subnet returns dozens.
+
+**Root cause** (two issues):
+
+1. **No per-probe timeout on `/dev/tcp`**: The bash built-in `echo >/dev/tcp/HOST/PORT` blocks for the kernel's full TCP retransmit timeout (20-127 seconds) on filtered ports (packets silently dropped by a firewall). With a 10-35 second `CommandTimeout` on the SSH channel, a single filtered port caused the entire scan command to be killed before reaching later ports.
+
+2. **No host discovery phase** (Network Cartography only): The tunnel scan went straight to port probing without ping sweep or ARP table lookup. Only hosts with open ports on the exact scanned list were returned — hosts responding to ICMP but with no matching open ports were invisible.
+
+Additionally, `/dev/tcp` is a bash-only feature. If the gateway's login shell is `dash` or `sh`, all probes silently fail.
+
+**Solution** (applied):
+
+- **Per-probe timeout**: All 5 tool views now use `timeout 2 bash -c "echo >/dev/tcp/HOST/PORT"` instead of bare `(echo >/dev/tcp/HOST/PORT)`. The `timeout` command sends SIGTERM after 2 seconds (clean process cleanup), and explicit `bash -c` ensures `/dev/tcp` support.
+
+- **Network Cartography 3-phase tunnel scan**: (1) batch ping sweep via parallel background jobs + ARP table read, (2) batch reverse DNS in a single SSH command, (3) parallel `/dev/tcp` probes per host bounded by `sleep 5; kill $(jobs -p); wait`.
+
+**Files**: `Views/Tools/NetworkCartographyView.xaml.cs`, `Views/Tools/PortScannerView.xaml.cs`, `Views/Tools/BannerGrabberView.xaml.cs`, `Views/Tools/FirewallTesterView.xaml.cs`, `Views/Tools/DefaultCredentialView.xaml.cs`

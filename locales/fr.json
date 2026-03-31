@@ -4099,6 +4099,9 @@
   "_comment_ux_misc": "",
   "ToolNotesUnsaved": "Modifications non enregistr\u00e9es",
   "ToolNetMapScanProgress": "Scan\u00a0: {0}/{1} h\u00f4tes...",
+  "ToolNetMapTunnelPingSweep": "D\u00e9couverte des h\u00f4tes par ping...",
+  "ToolNetMapTunnelDiscovered": "{0} h\u00f4tes d\u00e9couverts sur {1}",
+  "ToolNetMapTunnelScanningHost": "Analyse de {0} ({1}/{2})...",
 
   "_comment_dirty_guards": "",
   "DialogUnsavedWarningTitle": "Modifications non enregistr\u00e9es",

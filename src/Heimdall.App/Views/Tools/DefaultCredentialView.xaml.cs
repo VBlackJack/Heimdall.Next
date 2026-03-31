@@ -585,9 +585,11 @@ public partial class DefaultCredentialView : UserControl, IToolView
             var result = await Task.Run(() =>
             {
                 var safeHost = InputValidator.EscapeShellArg(host);
+                // Use 'timeout' to prevent filtered ports from leaving zombie bash
+                // processes on the gateway. Explicit bash for /dev/tcp support.
                 using var cmd = sshClient.CreateCommand(
-                    $"(echo >/dev/tcp/{safeHost}/{port}) 2>/dev/null && echo OPEN || echo CLOSED");
-                cmd.CommandTimeout = TimeSpan.FromMilliseconds(PortProbeTimeoutMs);
+                    $"timeout 2 bash -c \"echo >/dev/tcp/{safeHost}/{port}\" 2>/dev/null && echo OPEN || echo CLOSED");
+                cmd.CommandTimeout = TimeSpan.FromSeconds(5);
                 cmd.Execute();
                 return cmd.Result?.Trim();
             }, ct).ConfigureAwait(false);
@@ -1183,13 +1185,14 @@ public partial class DefaultCredentialView : UserControl, IToolView
         {
             if (tunnelClient is not null)
             {
-                // Basic connectivity check via tunnel
+                // Basic connectivity check via tunnel — use 'timeout' to prevent
+                // filtered ports from leaving zombie bash processes on the gateway.
                 var safeVncHost = InputValidator.EscapeShellArg(host);
-                var vncCheck = $"(echo >/dev/tcp/{safeVncHost}/{port}) 2>/dev/null && echo OPEN || echo CLOSED";
+                var vncCheck = $"timeout 2 bash -c \"echo >/dev/tcp/{safeVncHost}/{port}\" 2>/dev/null && echo OPEN || echo CLOSED";
                 var result = await Task.Run(() =>
                 {
                     using var cmd = tunnelClient.CreateCommand(vncCheck);
-                    cmd.CommandTimeout = TimeSpan.FromMilliseconds(ConnectTimeoutMs);
+                    cmd.CommandTimeout = TimeSpan.FromSeconds(5);
                     cmd.Execute();
                     return cmd.Result?.Trim() ?? "";
                 }, ct).ConfigureAwait(false);

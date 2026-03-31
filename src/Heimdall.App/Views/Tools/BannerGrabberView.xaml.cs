@@ -490,12 +490,13 @@ public partial class BannerGrabberView : UserControl, IToolView
         {
             var safeHost = InputValidator.EscapeShellArg(host);
 
-            // First check connectivity
+            // First check connectivity — use 'timeout' to prevent filtered ports
+            // from leaving zombie bash processes on the gateway.
             var connectResult = await Task.Run(() =>
             {
                 using var cmd = sshClient.CreateCommand(
-                    $"(echo >/dev/tcp/{safeHost}/{port}) 2>/dev/null && echo OPEN || echo CLOSED");
-                cmd.CommandTimeout = TimeSpan.FromMilliseconds(ConnectTimeoutMs);
+                    $"timeout 2 bash -c \"echo >/dev/tcp/{safeHost}/{port}\" 2>/dev/null && echo OPEN || echo CLOSED");
+                cmd.CommandTimeout = TimeSpan.FromSeconds(5);
                 cmd.Execute();
                 return cmd.Result?.Trim();
             }, ct).ConfigureAwait(false);

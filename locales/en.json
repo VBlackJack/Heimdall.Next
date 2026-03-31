@@ -4100,6 +4100,9 @@
   "_comment_ux_misc": "",
   "ToolNotesUnsaved": "Unsaved changes",
   "ToolNetMapScanProgress": "Scanning: {0}/{1} hosts...",
+  "ToolNetMapTunnelPingSweep": "Discovering hosts via ping sweep...",
+  "ToolNetMapTunnelDiscovered": "Discovered {0} alive hosts out of {1}",
+  "ToolNetMapTunnelScanningHost": "Scanning {0} ({1}/{2})...",
 
   "_comment_dirty_guards": "",
   "DialogUnsavedWarningTitle": "Unsaved Changes",
