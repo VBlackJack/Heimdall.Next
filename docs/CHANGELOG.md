@@ -12,6 +12,28 @@
 
 All notable changes to Heimdall.Next are documented in this file.
 
+## [Unreleased] - 2026-04-01
+
+### Command Library UX audit — layout, responsiveness, feedback, performance
+
+#### Layout
+- **Generator panel sticky buttons**: Copy/Send/Edit/Delete action buttons moved outside the ScrollViewer into a fixed Grid row — always visible regardless of parameter count, notes, or examples in the scrollable area
+- **Generator ↔ History mutual exclusion**: selecting an action auto-closes the History panel; toggling History auto-closes the Generator — prevents both panels from crushing the action list on 1080p split panes
+- **Responsive filter bar**: replaced DockPanel with Grid+WrapPanel — search TextBox always gets full width (own row), filter ComboBoxes wrap gracefully on narrow panes instead of crushing the search input
+- **HistoryList themed hover/select**: added ControlTemplate with SurfaceBrush (hover) and CardBrush (select) matching the ActionList visual treatment
+
+#### Feedback
+- **Loading indicator**: ToolLoadingBarStyle ProgressBar shown during initial data load with `finally` block for guaranteed cleanup on error
+- **Example click clears stale validation**: clicking a pre-built example now clears any previous parameter validation error
+
+#### Performance
+- **O(1) search filtering**: replaced `_searchResults.Any(r => r.Id == ...)` (O(n) per item) with a `HashSet<string>` lookup in `FilterPredicate`
+
+#### Dialog
+- **DefaultValue watermark**: both Windows and Linux parameter DefaultValue TextBoxes now use `WatermarkTextBoxStyle` — placeholder text ("Default value") visible when empty and unfocused
+
+---
+
 ## [v2026.033108] - 2026-03-31
 
 ### Fix tunnel scan — host discovery, per-probe timeout, zombie prevention
