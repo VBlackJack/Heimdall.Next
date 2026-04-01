@@ -1,0 +1,40 @@
+{
+  "id": "linux-disk-df",
+  "title": "Vérifier espace disque (df)",
+  "description": "Affiche l'espace disque utilisé et disponible sur tous les systèmes de fichiers montés.",
+  "category": "📁 Files & Storage",
+  "platform": 1,
+  "level": 0,
+  "tags": [
+    "linux",
+    "disk",
+    "storage",
+    "space",
+    "df"
+  ],
+  "linuxCommandTemplate": {
+    "id": "a7f71b4b-d990-4438-8097-a1d3b590bd63",
+    "platform": 1,
+    "name": "df",
+    "commandPattern": "df -hT",
+    "parameters": []
+  },
+  "examples": [
+    {
+      "command": "df -hT",
+      "description": "🔥 VUE GLOBALE : Affiche l'espace en format humain (GB, MB) et le type de système de fichiers (ext4, xfs).",
+      "platform": 1
+    },
+    {
+      "command": "df -h .",
+      "description": "Affiche l'espace libre uniquement pour le dossier courant.",
+      "platform": 1
+    },
+    {
+      "command": "df -i",
+      "description": "Affiche l'utilisation des Inodes (parfois le disque est plein d'inodes même s'il reste de la place en Go).",
+      "platform": 1
+    }
+  ],
+  "linuxCommandTemplateId": "a7f71b4b-d990-4438-8097-a1d3b590bd63"
+}

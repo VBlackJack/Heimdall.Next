@@ -1,0 +1,83 @@
+{
+  "id": "wsus-configure-client",
+  "title": "Configurer le client WSUS via le registre",
+  "description": "Configure les paramètres du client WSUS en modifiant les clés de registre appropriées",
+  "category": "🔄 Windows Updates",
+  "platform": 0,
+  "level": 2,
+  "tags": [
+    "wsus",
+    "client",
+    "configuration",
+    "registry"
+  ],
+  "windowsCommandTemplateId": "wsus-configure-client-cmd",
+  "windowsCommandTemplate": {
+    "id": "wsus-configure-client-cmd",
+    "platform": 0,
+    "name": "Set-ItemProperty",
+    "commandPattern": "$WSUSServer = '{wsusServer}'; $WSUSPort = {wsusPort}; Set-ItemProperty -Path 'HKLM:\\Software\\Policies\\Microsoft\\Windows\\WindowsUpdate' -Name 'WUServer' -Value \"http://$WSUSServer`:$WSUSPort\" -Type String -Force; Set-ItemProperty -Path 'HKLM:\\Software\\Policies\\Microsoft\\Windows\\WindowsUpdate' -Name 'WUStatusServer' -Value \"http://$WSUSServer`:$WSUSPort\" -Type String -Force; Set-ItemProperty -Path 'HKLM:\\Software\\Policies\\Microsoft\\Windows\\WindowsUpdate\\AU' -Name 'UseWUServer' -Value 1 -Type DWord -Force; Restart-Service wuauserv",
+    "parameters": [
+      {
+        "name": "wsusServer",
+        "label": "Serveur WSUS",
+        "type": "string",
+        "defaultValue": "wsus.domain.local",
+        "required": true,
+        "description": "Nom d'hôte ou IP du serveur WSUS"
+      },
+      {
+        "name": "wsusPort",
+        "label": "Port WSUS",
+        "type": "number",
+        "defaultValue": "8530",
+        "required": true,
+        "description": "Port du serveur WSUS (8530 HTTP ou 8531 HTTPS)"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "Set-ItemProperty -Path 'HKLM:\\Software\\Policies\\Microsoft\\Windows\\WindowsUpdate' -Name 'WUServer' -Value 'http://wsus.domain.local:8530'",
+      "description": "Configure l'adresse du serveur WSUS",
+      "platform": 0
+    },
+    {
+      "command": "$WSUSServer = 'wsus.contoso.com'; $WSUSPort = 8530; Set-ItemProperty -Path 'HKLM:\\Software\\Policies\\Microsoft\\Windows\\WindowsUpdate' -Name 'WUServer' -Value \"http://$WSUSServer`:$WSUSPort\" -Type String -Force; Set-ItemProperty -Path 'HKLM:\\Software\\Policies\\Microsoft\\Windows\\WindowsUpdate' -Name 'WUStatusServer' -Value \"http://$WSUSServer`:$WSUSPort\" -Type String -Force; Set-ItemProperty -Path 'HKLM:\\Software\\Policies\\Microsoft\\Windows\\WindowsUpdate\\AU' -Name 'UseWUServer' -Value 1 -Type DWord -Force; Restart-Service wuauserv -WhatIf",
+      "description": "Simulation de l'action sans exécution réelle (dry-run). Le switch -WhatIf affiche ce qui serait modifié sans appliquer les changements. INDISPENSABLE avant toute action de masse ou modification critique. Retirez -WhatIf après validation pour exécuter.",
+      "platform": 0
+    },
+    {
+      "command": "$WSUSServer = 'wsus.contoso.com'; $WSUSPort = 8530; Set-ItemProperty -Path 'HKLM:\\Software\\Policies\\Microsoft\\Windows\\WindowsUpdate' -Name 'WUServer' -Value \"http://$WSUSServer`:$WSUSPort\" -Type String -Force; Set-ItemProperty -Path 'HKLM:\\Software\\Policies\\Microsoft\\Windows\\WindowsUpdate' -Name 'WUStatusServer' -Value \"http://$WSUSServer`:$WSUSPort\" -Type String -Force; Set-ItemProperty -Path 'HKLM:\\Software\\Policies\\Microsoft\\Windows\\WindowsUpdate\\AU' -Name 'UseWUServer' -Value 1 -Type DWord -Force; Restart-Service wuauserv -Confirm:$false",
+      "description": "Exécute l'action sans demander de confirmation interactive. -Confirm:$false supprime les invites de validation. Utile dans les scripts automatisés mais à utiliser avec précaution : aucun filet de sécurité.",
+      "platform": 0
+    },
+    {
+      "command": "$WSUSServer = 'wsus.contoso.com'; $WSUSPort = 8530; Set-ItemProperty -Path 'HKLM:\\Software\\Policies\\Microsoft\\Windows\\WindowsUpdate' -Name 'WUServer' -Value \"http://$WSUSServer`:$WSUSPort\" -Type String -Force; Set-ItemProperty -Path 'HKLM:\\Software\\Policies\\Microsoft\\Windows\\WindowsUpdate' -Name 'WUStatusServer' -Value \"http://$WSUSServer`:$WSUSPort\" -Type String -Force; Set-ItemProperty -Path 'HKLM:\\Software\\Policies\\Microsoft\\Windows\\WindowsUpdate\\AU' -Name 'UseWUServer' -Value 1 -Type DWord -Force; Restart-Service wuauserv -PassThru",
+      "description": "Force la commande à retourner l'objet modifié/créé dans le pipeline. Par défaut, les cmdlets Set-/New- ne retournent rien. -PassThru active le retour pour permettre des opérations en chaîne ou des vérifications immédiates.",
+      "platform": 0
+    },
+    {
+      "command": "$WSUSServer = 'wsus.contoso.com'; $WSUSPort = 8530; Set-ItemProperty -Path 'HKLM:\\Software\\Policies\\Microsoft\\Windows\\WindowsUpdate' -Name 'WUServer' -Value \"http://$WSUSServer`:$WSUSPort\" -Type String -Force; Set-ItemProperty -Path 'HKLM:\\Software\\Policies\\Microsoft\\Windows\\WindowsUpdate' -Name 'WUStatusServer' -Value \"http://$WSUSServer`:$WSUSPort\" -Type String -Force; Set-ItemProperty -Path 'HKLM:\\Software\\Policies\\Microsoft\\Windows\\WindowsUpdate\\AU' -Name 'UseWUServer' -Value 1 -Type DWord -Force; Restart-Service wuauserv -Verbose",
+      "description": "Affiche des informations détaillées sur l'exécution de la commande. -Verbose active les messages de débogage pour comprendre précisément ce qui se passe. Essentiel pour le troubleshooting et la compréhension des opérations internes.",
+      "platform": 0
+    },
+    {
+      "command": "$WSUSServer = 'wsus.domain.local'; $WSUSPort = 8530; Set-ItemProperty -Path 'HKLM:\\Software\\Policies\\Microsoft\\Windows\\WindowsUpdate' -Name 'WUServer' -Value \"http://$WSUSServer`:$WSUSPort\" -Type String -Force; Set-ItemProperty -Path 'HKLM:\\Software\\Policies\\Microsoft\\Windows\\WindowsUpdate' -Name 'WUStatusServer' -Value \"http://$WSUSServer`:$WSUSPort\" -Type String -Force; Set-ItemProperty -Path 'HKLM:\\Software\\Policies\\Microsoft\\Windows\\WindowsUpdate\\AU' -Name 'UseWUServer' -Value 1 -Type DWord -Force; Restart-Service wuauserv",
+      "description": "Exemple utilisant le paramètre 'wsusServer': Nom d'hôte ou IP du serveur WSUS. Remplacez wsus.contoso.com par la valeur appropriée selon votre environnement.",
+      "platform": 0
+    },
+    {
+      "command": "$WSUSServer = 'wsus.contoso.com'; $WSUSPort = 8530; Set-ItemProperty -Path 'HKLM:\\Software\\Policies\\Microsoft\\Windows\\WindowsUpdate' -Name 'WUServer' -Value \"http://$WSUSServer`:$WSUSPort\" -Type String -Force; Set-ItemProperty -Path 'HKLM:\\Software\\Policies\\Microsoft\\Windows\\WindowsUpdate' -Name 'WUStatusServer' -Value \"http://$WSUSServer`:$WSUSPort\" -Type String -Force; Set-ItemProperty -Path 'HKLM:\\Software\\Policies\\Microsoft\\Windows\\WindowsUpdate\\AU' -Name 'UseWUServer' -Value 1 -Type DWord -Force; Restart-Service wuauserv",
+      "description": "Exemple utilisant le paramètre 'wsusPort': Port du serveur WSUS (8530 HTTP ou 8531 HTTPS). Remplacez 8530 par la valeur appropriée selon votre environnement.",
+      "platform": 0
+    }
+  ],
+  "notes": "ATTENTION: Modifie le registre. Port 8530=HTTP, 8531=HTTPS. Nécessite redémarrage du service wuauserv. À utiliser pour machines hors domaine.",
+  "links": [
+    {
+      "title": "Configure WSUS Client",
+      "url": "https://blog.wapnet.nl/2022/05/configure-wsus-client-with-powershell-and-regedit/"
+    }
+  ]
+}

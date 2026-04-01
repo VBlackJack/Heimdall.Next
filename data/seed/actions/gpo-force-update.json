@@ -1,0 +1,36 @@
+{
+  "id": "gpo-force-update",
+  "title": "Forcer la mise à jour des GPO",
+  "description": "Force l'application immédiate des stratégies de groupe sans attendre le délai de rafraîchissement.",
+  "category": "🏢 Active Directory & GPO",
+  "platform": 0,
+  "level": 1,
+  "tags": [
+    "gpo",
+    "update",
+    "refresh",
+    "gpupdate"
+  ],
+  "windowsCommandTemplateId": "gpo-force-update-cmd",
+  "windowsCommandTemplate": {
+    "id": "gpo-force-update-cmd",
+    "platform": 0,
+    "name": "gpupdate",
+    "commandPattern": "gpupdate /force",
+    "parameters": []
+  },
+  "examples": [
+    {
+      "command": "gpupdate /force",
+      "description": "Force la mise à jour des GPO sur la machine locale",
+      "platform": 0
+    },
+    {
+      "command": "gpupdate /force -Confirm:$false",
+      "description": "Exécute l'action sans demander de confirmation interactive. Le paramètre -Confirm:$false supprime les invites de validation. Utile dans les scripts automatisés mais à utiliser avec précaution.",
+      "platform": 0
+    }
+  ],
+  "notes": "Peut nécessiter un redémarrage selon les paramètres de GPO. Utiliser /boot ou /logoff pour forcer.",
+  "links": []
+}

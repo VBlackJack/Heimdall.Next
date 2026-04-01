@@ -1,0 +1,60 @@
+{
+  "id": "pswindowsupdate-hide-update",
+  "title": "Masquer une mise à jour spécifique",
+  "description": "Masque une mise à jour Windows pour empêcher son installation automatique",
+  "category": "🔄 Windows Updates",
+  "platform": 0,
+  "level": 1,
+  "tags": [
+    "windows-update",
+    "hide",
+    "pswindowsupdate",
+    "management"
+  ],
+  "windowsCommandTemplateId": "pswindowsupdate-hide-update-cmd",
+  "windowsCommandTemplate": {
+    "id": "pswindowsupdate-hide-update-cmd",
+    "platform": 0,
+    "name": "Hide-WindowsUpdate",
+    "commandPattern": "Hide-WindowsUpdate -KBArticleID {kbNumber} -Confirm:$false",
+    "parameters": [
+      {
+        "name": "kbNumber",
+        "label": "Numéro KB",
+        "type": "string",
+        "defaultValue": "KB5001234",
+        "required": true,
+        "description": "Numéro KB de la mise à jour à masquer (ex: KB5001234)"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "Hide-WindowsUpdate -KBArticleID KB5001234",
+      "description": "Masque la mise à jour KB5001234",
+      "platform": 0
+    },
+    {
+      "command": "Get-WindowsUpdate | Where-Object {$_.Title -like '*Driver*'} | Hide-WindowsUpdate",
+      "description": "Masque toutes les mises à jour de pilotes",
+      "platform": 0
+    },
+    {
+      "command": "Hide-WindowsUpdate -KBArticleID KB5012345 -Confirm:$false",
+      "description": "Exécution standard de la commande None. Consultez la documentation officielle avec Get-Help Hide-WindowsUpdate -Full pour plus de détails sur les paramètres disponibles et les cas d'usage avancés.",
+      "platform": 0
+    },
+    {
+      "command": "Hide-WindowsUpdate -KBArticleID KB5001234 -Confirm:$false",
+      "description": "Exemple utilisant le paramètre 'kbNumber': Numéro KB de la mise à jour à masquer (ex: KB5001234). Remplacez KB5012345 par la valeur appropriée selon votre environnement.",
+      "platform": 0
+    }
+  ],
+  "notes": "ATTENTION: Masquer des mises à jour de sécurité peut créer des vulnérabilités. Nécessite PSWindowsUpdate.",
+  "links": [
+    {
+      "title": "Hide Windows Updates",
+      "url": "https://woshub.com/pswindowsupdate-module/"
+    }
+  ]
+}

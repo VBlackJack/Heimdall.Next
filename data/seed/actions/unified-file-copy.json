@@ -1,0 +1,181 @@
+{
+  "id": "unified-file-copy",
+  "title": "Copier des fichiers ou dossiers",
+  "description": "Copie des fichiers ou des répertoires avec leurs sous-dossiers.",
+  "category": "📁 Files & Storage",
+  "platform": 2,
+  "supportedPlatforms": [
+    0,
+    1
+  ],
+  "level": 0,
+  "tags": [
+    "linux",
+    "windows",
+    "fichier",
+    "cp",
+    "copy",
+    "copie"
+  ],
+  "notes": "Windows: -Recurse copie les sous-dossiers. -Force écrase les fichiers existants.\nLinux: -r pour récursif (dossiers), -v pour verbeux, -p pour préserver les permissions.",
+  "links": [
+    {
+      "title": "Documentation Copy-Item",
+      "url": "https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.management/copy-item"
+    }
+  ],
+  "windowsCommandTemplateId": "file-copy-windows-cmd",
+  "windowsCommandTemplate": {
+    "id": "file-copy-windows-cmd",
+    "platform": 0,
+    "name": "Copy-Item",
+    "commandPattern": "Copy-Item -Path \"{sourcePath}\" -Destination \"{destinationPath}\" -Recurse -Force",
+    "parameters": [
+      {
+        "name": "sourcePath",
+        "label": "Chemin source",
+        "type": "string",
+        "defaultValue": "",
+        "required": true,
+        "description": "Chemin du fichier ou dossier à copier"
+      },
+      {
+        "name": "destinationPath",
+        "label": "Chemin destination",
+        "type": "string",
+        "defaultValue": "",
+        "required": true,
+        "description": "Chemin de destination"
+      }
+    ]
+  },
+  "windowsExamples": [
+    {
+      "command": "Copy-Item -Path \"C:\\Source\\*\" -Destination \"D:\\Backup\" -Recurse -Force",
+      "description": "Copie tout le contenu de C:\\Source vers D:\\Backup",
+      "platform": 0
+    },
+    {
+      "command": "Copy-Item -Path \"{sourcePath}\" -Destination \"{destinationPath}\" -Recurse -Force",
+      "description": "Exécution standard de la commande None. Consultez la documentation officielle avec Get-Help Copy-Item -Full pour plus de détails sur les paramètres disponibles et les cas d'usage avancés.",
+      "platform": 0
+    },
+    {
+      "command": "Copy-Item -Path \"<sourcePath>\" -Destination \"{destinationPath}\" -Recurse -Force",
+      "description": "Exemple utilisant le paramètre 'sourcePath': Chemin du fichier ou dossier à copier. Remplacez <sourcePath> par la valeur appropriée selon votre environnement.",
+      "platform": 0
+    },
+    {
+      "command": "Copy-Item -Path \"{sourcePath}\" -Destination \"<destinationPath>\" -Recurse -Force",
+      "description": "Exemple utilisant le paramètre 'destinationPath': Chemin de destination. Remplacez <destinationPath> par la valeur appropriée selon votre environnement.",
+      "platform": 0
+    },
+    {
+      "command": "Copy-Item -Path \"{sourcePath}\" -Destination \"{destinationPath}\" -Recurse -Force",
+      "description": "Cas d'usage standard. Copie des fichiers ou des répertoires avec leurs sous-dossiers. Consultez la documentation pour des paramètres avancés et des options de filtrage.",
+      "platform": 0
+    },
+    {
+      "command": "Copy-Item -Path \"C:\\Source\\data.csv\" -Destination \"D:\\Backup\\data.csv\" -Recurse -Force",
+      "description": "Exemple Windows pour Copier des fichiers ou dossiers",
+      "platform": 0
+    }
+  ],
+  "linuxCommandTemplateId": "file-copy-linux-cmd",
+  "linuxCommandTemplate": {
+    "id": "file-copy-linux-cmd",
+    "platform": 1,
+    "name": "cp",
+    "commandPattern": "cp -r \"{sourcePath}\" \"{destinationPath}\"",
+    "parameters": [
+      {
+        "name": "sourcePath",
+        "label": "Chemin source",
+        "type": "string",
+        "defaultValue": "",
+        "required": true,
+        "description": "Chemin du fichier ou dossier à copier"
+      },
+      {
+        "name": "destinationPath",
+        "label": "Chemin destination",
+        "type": "string",
+        "defaultValue": "",
+        "required": true,
+        "description": "Chemin de destination"
+      }
+    ]
+  },
+  "linuxExamples": [
+    {
+      "command": "cp -r /home/user/documents /backup/documents",
+      "description": "Copie le dossier documents vers le backup",
+      "platform": 1
+    },
+    {
+      "command": "cp -v file.txt /destination/",
+      "description": "Copie un fichier en mode verbeux",
+      "platform": 1
+    },
+    {
+      "command": "cp -r \"{sourcePath}\" \"{destinationPath}\" -v",
+      "description": "Exécute la commande en mode verbeux. Le flag -v (verbose) affiche chaque action effectuée en temps réel. Essentiel pour suivre la progression des opérations longues et vérifier que tout se déroule correctement.",
+      "platform": 1
+    },
+    {
+      "command": "cp --help",
+      "description": "Affiche l'aide complète de la commande cp. --help liste tous les paramètres disponibles, les options et des exemples d'utilisation. Première commande à utiliser pour découvrir les capacités d'un outil.",
+      "platform": 1
+    },
+    {
+      "command": "man cp",
+      "description": "Affiche le manuel complet de cp. Les pages man fournissent la documentation détaillée : syntaxe, paramètres, exemples, notes. Plus complet que --help. Naviguez avec flèches, cherchez avec '/', quittez avec 'q'.",
+      "platform": 1
+    },
+    {
+      "command": "cp -r \"<sourcePath>\" \"{destinationPath}\"",
+      "description": "Exemple utilisant le paramètre 'sourcePath': Chemin du fichier ou dossier à copier. Remplacez <sourcePath> par la valeur appropriée selon votre environnement.",
+      "platform": 1
+    },
+    {
+      "command": "cp -r \"{sourcePath}\" \"<destinationPath>\"",
+      "description": "Exemple utilisant le paramètre 'destinationPath': Chemin de destination. Remplacez <destinationPath> par la valeur appropriée selon votre environnement.",
+      "platform": 1
+    },
+    {
+      "command": "cp -r /home/user/data.csv /backup/data.csv",
+      "description": "Exemple Linux pour Copier des fichiers ou dossiers",
+      "platform": 1
+    },
+    {
+      "command": "cp -r /home/user/docs /backup/",
+      "description": "Copier un dossier récursivement",
+      "platform": 1
+    },
+    {
+      "command": "cp -av /var/www /backup/www-$(date +%Y%m%d)",
+      "description": "Copie avec verbose et date",
+      "platform": 1
+    },
+    {
+      "command": "cp -p file.txt /tmp/",
+      "description": "Copier en préservant les attributs",
+      "platform": 1
+    },
+    {
+      "command": "cp -u *.log /archive/",
+      "description": "Copier uniquement les plus récents",
+      "platform": 1
+    }
+  ],
+  "crossPlatformNotes": {
+    "differences": [
+      "Syntaxe: Windows utilise 'Copy-Item', Linux utilise 'cp'"
+    ],
+    "commonalities": [
+      "Les deux permettent de copier des fichiers ou dossiers",
+      "Fonctionnalité équivalente sur les deux plateformes"
+    ]
+  },
+  "examples": []
+}

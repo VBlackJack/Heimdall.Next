@@ -1,0 +1,40 @@
+{
+  "id": "logrotate-status",
+  "title": "Vérifier l'état de la rotation des logs",
+  "description": "Affiche l'état actuel de la rotation des logs système",
+  "category": "📊 Monitoring & Logs",
+  "platform": 1,
+  "level": 0,
+  "tags": [
+    "logrotate",
+    "logs",
+    "maintenance"
+  ],
+  "linuxCommandTemplateId": "logrotate-status-cmd",
+  "linuxCommandTemplate": {
+    "id": "logrotate-status-cmd",
+    "platform": 1,
+    "name": "cat",
+    "commandPattern": "cat /var/lib/logrotate/status",
+    "parameters": []
+  },
+  "examples": [
+    {
+      "command": "logrotate -d /etc/logrotate.conf",
+      "description": "Test de la configuration logrotate (mode debug)",
+      "platform": 1
+    },
+    {
+      "command": "ls -la /var/log/*.gz",
+      "description": "Logs archivés",
+      "platform": 1
+    }
+  ],
+  "notes": "Le fichier status peut être à /var/lib/logrotate.status selon la distribution.",
+  "links": [
+    {
+      "title": "logrotate documentation",
+      "url": "https://linux.die.net/man/8/logrotate"
+    }
+  ]
+}

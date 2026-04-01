@@ -1,0 +1,113 @@
+{
+  "id": "ad-create-user",
+  "title": "Créer un nouvel utilisateur AD",
+  "description": "Crée un nouveau compte utilisateur dans Active Directory avec les paramètres de base.",
+  "category": "🏢 Active Directory & GPO",
+  "platform": 0,
+  "level": 1,
+  "tags": [
+    "ad",
+    "user",
+    "create",
+    "new"
+  ],
+  "windowsCommandTemplateId": "ad-create-user-cmd",
+  "windowsCommandTemplate": {
+    "id": "ad-create-user-cmd",
+    "platform": 0,
+    "name": "New-ADUser",
+    "commandPattern": "New-ADUser -Name \"{fullName}\" -SamAccountName {username} -UserPrincipalName {username}@{domain} -GivenName \"{firstName}\" -Surname \"{lastName}\" -DisplayName \"{fullName}\" -Path \"{ouPath}\" -AccountPassword (ConvertTo-SecureString \"{password}\" -AsPlainText -Force) -Enabled $true",
+    "parameters": [
+      {
+        "name": "fullName",
+        "label": "Nom complet",
+        "type": "string",
+        "defaultValue": "",
+        "required": true,
+        "description": "Nom complet de l'utilisateur (ex: Jean Dupont)"
+      },
+      {
+        "name": "username",
+        "label": "Nom d'utilisateur",
+        "type": "string",
+        "defaultValue": "",
+        "required": true,
+        "description": "SamAccountName (ex: jdupont)"
+      },
+      {
+        "name": "domain",
+        "label": "Domaine",
+        "type": "string",
+        "defaultValue": "contoso.com",
+        "required": true,
+        "description": "Domaine AD (ex: contoso.com)"
+      },
+      {
+        "name": "firstName",
+        "label": "Prénom",
+        "type": "string",
+        "defaultValue": "",
+        "required": true,
+        "description": "Prénom de l'utilisateur"
+      },
+      {
+        "name": "lastName",
+        "label": "Nom",
+        "type": "string",
+        "defaultValue": "",
+        "required": true,
+        "description": "Nom de famille de l'utilisateur"
+      },
+      {
+        "name": "ouPath",
+        "label": "Chemin OU",
+        "type": "string",
+        "defaultValue": "OU=Users,DC=contoso,DC=com",
+        "required": true,
+        "description": "Distinguished Name de l'OU de destination"
+      },
+      {
+        "name": "password",
+        "label": "Mot de passe",
+        "type": "string",
+        "defaultValue": "",
+        "required": true,
+        "description": "Mot de passe initial (doit respecter la politique)"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "New-ADUser -Name \"Jean Dupont\" -SamAccountName jdupont -UserPrincipalName jdupont@contoso.com -GivenName \"Jean\" -Surname \"Dupont\" -DisplayName \"Jean Dupont\" -Path \"OU=Users,DC=contoso,DC=com\" -AccountPassword (ConvertTo-SecureString \"P@ssw0rd123!\" -AsPlainText -Force) -Enabled $true",
+      "description": "Crée l'utilisateur Jean Dupont dans l'OU Users",
+      "platform": 0
+    },
+    {
+      "command": "New-ADUser -Name \"Jean Dupont\" -SamAccountName jdupont -UserPrincipalName jdupont@contoso.com -GivenName \"Jean\" -Surname \"Dupont\" -DisplayName \"Jean Dupont\" -Path \"OU=Users,DC=contoso,DC=com\" -AccountPassword (ConvertTo-SecureString \"P@ssw0rd123!\" -AsPlainText -Force) -Enabled $true -WhatIf",
+      "description": "Simulation de l'action sans exécution réelle (dry-run). Le switch -WhatIf affiche ce qui serait modifié sans appliquer les changements. INDISPENSABLE avant toute action de masse ou modification critique. Retirez -WhatIf après validation pour exécuter.",
+      "platform": 0
+    },
+    {
+      "command": "New-ADUser -Name \"Jean Dupont\" -SamAccountName jdupont -UserPrincipalName jdupont@contoso.com -GivenName \"Jean\" -Surname \"Dupont\" -DisplayName \"Jean Dupont\" -Path \"OU=Users,DC=contoso,DC=com\" -AccountPassword (ConvertTo-SecureString \"P@ssw0rd123!\" -AsPlainText -Force) -Enabled $true -Confirm:$false",
+      "description": "Exécute l'action sans demander de confirmation interactive. -Confirm:$false supprime les invites de validation. Utile dans les scripts automatisés mais à utiliser avec précaution : aucun filet de sécurité.",
+      "platform": 0
+    },
+    {
+      "command": "New-ADUser -Name \"Jean Dupont\" -SamAccountName jdupont -UserPrincipalName jdupont@contoso.com -GivenName \"Jean\" -Surname \"Dupont\" -DisplayName \"Jean Dupont\" -Path \"OU=Users,DC=contoso,DC=com\" -AccountPassword (ConvertTo-SecureString \"P@ssw0rd123!\" -AsPlainText -Force) -Enabled $true -PassThru",
+      "description": "Force la commande à retourner l'objet modifié/créé dans le pipeline. Par défaut, les cmdlets Set-/New- ne retournent rien. -PassThru active le retour pour permettre des opérations en chaîne ou des vérifications immédiates.",
+      "platform": 0
+    },
+    {
+      "command": "New-ADUser -Name \"Jean Dupont\" -SamAccountName jdupont -UserPrincipalName jdupont@contoso.com -GivenName \"Jean\" -Surname \"Dupont\" -DisplayName \"Jean Dupont\" -Path \"OU=Users,DC=contoso,DC=com\" -AccountPassword (ConvertTo-SecureString \"P@ssw0rd123!\" -AsPlainText -Force) -Enabled $true -Verbose",
+      "description": "Affiche des informations détaillées sur l'exécution de la commande. -Verbose active les messages de débogage pour comprendre précisément ce qui se passe. Essentiel pour le troubleshooting et la compréhension des opérations internes.",
+      "platform": 0
+    }
+  ],
+  "notes": "Nécessite des droits d'administration AD. Le mot de passe doit respecter la politique de domaine. L'utilisateur est activé par défaut.",
+  "links": [
+    {
+      "title": "Documentation New-ADUser",
+      "url": "https://learn.microsoft.com/en-us/powershell/module/activedirectory/new-aduser"
+    }
+  ]
+}

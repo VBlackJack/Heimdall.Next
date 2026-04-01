@@ -1,0 +1,44 @@
+{
+  "id": "defender-add-exclusion-process",
+  "title": "Ajouter une exclusion de processus Defender",
+  "description": "Exclut un processus spécifique de l'analyse Windows Defender (utile pour outils de dev).",
+  "category": "🔒 Security & Encryption",
+  "platform": 0,
+  "level": 1,
+  "tags": [
+    "defender",
+    "exclusion",
+    "process"
+  ],
+  "windowsCommandTemplateId": "defender-add-exclusion-process-cmd",
+  "windowsCommandTemplate": {
+    "id": "defender-add-exclusion-process-cmd",
+    "platform": 0,
+    "name": "Add-MpPreference",
+    "commandPattern": "Add-MpPreference -ExclusionProcess \"{processName}\"",
+    "parameters": [
+      {
+        "name": "processName",
+        "label": "Nom du processus",
+        "type": "string",
+        "defaultValue": "",
+        "required": true,
+        "description": "Nom du fichier .exe (ex: devenv.exe)"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "Get-MpPreference | Select-Object -ExpandProperty ExclusionProcess",
+      "description": "Liste toutes les exclusions de processus actuelles",
+      "platform": 0
+    }
+  ],
+  "notes": "Exclusions processus recommandées: IDE (devenv.exe, rider64.exe), compilateurs (msbuild.exe, dotnet.exe, node.exe), outils build. ⚠️ N'excluez JAMAIS: navigateurs web (sauf besoin spécifique), clients email, outils de téléchargement.",
+  "links": [
+    {
+      "title": "Defender Process Exclusions",
+      "url": "https://learn.microsoft.com/en-us/microsoft-365/security/defender-endpoint/configure-process-opened-file-exclusions-microsoft-defender-antivirus"
+    }
+  ]
+}

@@ -1,0 +1,66 @@
+{
+  "id": "hyperv-create-snapshot",
+  "title": "Créer un snapshot (point de contrôle) d'une VM",
+  "description": "Crée un point de contrôle (snapshot) d'une machine virtuelle Hyper-V, capturant son état actuel pour une restauration ultérieure.",
+  "category": "🐳 Containers & VMs",
+  "platform": 0,
+  "level": 1,
+  "tags": [
+    "hyperv",
+    "snapshot",
+    "checkpoint",
+    "backup",
+    "vm",
+    "restore",
+    "virtualization"
+  ],
+  "windowsCommandTemplateId": "hyperv-create-snapshot-cmd",
+  "windowsCommandTemplate": {
+    "id": "hyperv-create-snapshot-cmd",
+    "platform": 0,
+    "name": "Checkpoint-VM",
+    "commandPattern": "Checkpoint-VM -Name '{vmName}' -SnapshotName '{snapshotName}'",
+    "parameters": [
+      {
+        "name": "vmName",
+        "label": "Nom de la VM",
+        "type": "string",
+        "defaultValue": "",
+        "required": true,
+        "description": "Nom de la machine virtuelle"
+      },
+      {
+        "name": "snapshotName",
+        "label": "Nom du snapshot",
+        "type": "string",
+        "defaultValue": "Checkpoint-$(Get-Date -Format 'yyyy-MM-dd_HH-mm')",
+        "required": true,
+        "description": "Nom du point de contrôle"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "Checkpoint-VM -Name 'Windows11-Dev' -SnapshotName 'Before-Updates'",
+      "description": "Snapshot avant mise à jour",
+      "platform": 0
+    },
+    {
+      "command": "Get-VM 'Production-*' | Checkpoint-VM -SnapshotName 'Weekly-Backup'",
+      "description": "Snapshot de toutes les VMs de production",
+      "platform": 0
+    },
+    {
+      "command": "Restore-VMSnapshot -VMName 'TestVM' -Name 'Before-Updates' -Confirm:$false",
+      "description": "Restaure un snapshot",
+      "platform": 0
+    }
+  ],
+  "notes": "Les snapshots consomment de l'espace disque. Supprimez les anciens snapshots régulièrement. Évitez trop de snapshots en chaîne (impact performance).",
+  "links": [
+    {
+      "title": "Documentation Checkpoint-VM",
+      "url": "https://learn.microsoft.com/en-us/powershell/module/hyper-v/checkpoint-vm"
+    }
+  ]
+}

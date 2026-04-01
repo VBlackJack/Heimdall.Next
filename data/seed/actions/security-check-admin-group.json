@@ -1,0 +1,56 @@
+{
+  "id": "security-check-admin-group",
+  "title": "Lister les membres du groupe Administrateurs local",
+  "description": "Affiche tous les utilisateurs et groupes membres du groupe Administrateurs local",
+  "category": "🔒 Security & Encryption",
+  "platform": 0,
+  "level": 0,
+  "tags": [
+    "security",
+    "administrators",
+    "group",
+    "audit"
+  ],
+  "windowsCommandTemplateId": "security-check-admin-group-cmd",
+  "windowsCommandTemplate": {
+    "id": "security-check-admin-group-cmd",
+    "platform": 0,
+    "name": "Get-LocalGroupMember",
+    "commandPattern": "Get-LocalGroupMember -Group 'Administrators' | Select-Object Name,ObjectClass,PrincipalSource | Format-Table -AutoSize",
+    "parameters": []
+  },
+  "examples": [
+    {
+      "command": "Get-LocalGroupMember -Group 'Administrators'",
+      "description": "Liste les membres du groupe Administrateurs",
+      "platform": 0
+    },
+    {
+      "command": "net localgroup Administrators",
+      "description": "Alternative avec commande net",
+      "platform": 0
+    },
+    {
+      "command": "Get-LocalGroupMember -Group 'Administrators' | Select-Object * -First 1",
+      "description": "Affiche toutes les propriétés du premier objet retourné. Select-Object * élargit l'affichage pour montrer toutes les colonnes. -First 1 limite au premier résultat. Utilisez cette commande pour découvrir les propriétés disponibles avant de filtrer.",
+      "platform": 0
+    },
+    {
+      "command": "Get-LocalGroupMember -Group 'Administrators' | Export-Csv C:\\Temp\\Export.csv -NoTypeInformation -Encoding UTF8",
+      "description": "Exporte les résultats vers un fichier CSV exploitable dans Excel. -NoTypeInformation supprime la ligne de métadonnées. -Encoding UTF8 garantit la compatibilité des caractères accentués. Utile pour l'archivage, les rapports et l'analyse externe.",
+      "platform": 0
+    },
+    {
+      "command": "Get-LocalGroupMember -Group 'Administrators' | Measure-Object",
+      "description": "Compte le nombre total d'objets retournés. Measure-Object retourne Count, Sum, Average, Min, Max selon les propriétés. Utile pour les statistiques rapides et la validation de résultats.",
+      "platform": 0
+    }
+  ],
+  "notes": "Vérifiez régulièrement ce groupe. ObjectClass: User (utilisateur) ou Group (groupe). PrincipalSource: Local ou ActiveDirectory. Limitez le nombre d'administrateurs.",
+  "links": [
+    {
+      "title": "Get-LocalGroupMember Documentation",
+      "url": "https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.localaccounts/get-localgroupmember"
+    }
+  ]
+}

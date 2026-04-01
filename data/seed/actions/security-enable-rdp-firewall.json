@@ -1,0 +1,36 @@
+{
+  "id": "security-enable-rdp-firewall",
+  "title": "Activer la règle pare-feu pour RDP",
+  "description": "Active la règle de pare-feu Windows permettant les connexions Bureau à distance (RDP)",
+  "category": "🔒 Security & Encryption",
+  "platform": 0,
+  "level": 1,
+  "tags": [
+    "security",
+    "firewall",
+    "rdp",
+    "remote-desktop"
+  ],
+  "windowsCommandTemplateId": "security-enable-rdp-firewall-cmd",
+  "windowsCommandTemplate": {
+    "id": "security-enable-rdp-firewall-cmd",
+    "platform": 0,
+    "name": "Enable-NetFirewallRule",
+    "commandPattern": "Enable-NetFirewallRule -DisplayGroup 'Remote Desktop'",
+    "parameters": []
+  },
+  "examples": [
+    {
+      "command": "Set-ItemProperty -Path 'HKLM:\\System\\CurrentControlSet\\Control\\Terminal Server' -Name 'fDenyTSConnections' -Value 0",
+      "description": "Active RDP au niveau système (registre)",
+      "platform": 0
+    }
+  ],
+  "notes": "ATTENTION: Ouvre le port 3389. Assurez-vous que seuls les utilisateurs autorisés peuvent se connecter. Vérifiez aussi le paramètre système RDP.",
+  "links": [
+    {
+      "title": "Enable-NetFirewallRule Documentation",
+      "url": "https://learn.microsoft.com/en-us/powershell/module/netsecurity/enable-netfirewallrule"
+    }
+  ]
+}

@@ -1,0 +1,87 @@
+{
+  "id": "export-scheduledtask",
+  "title": "Exporter une tâche planifiée",
+  "description": "Exporte la définition d'une tâche planifiée au format XML pour sauvegarde ou migration",
+  "category": "⚙️ Services & Automation",
+  "platform": 0,
+  "level": 0,
+  "tags": [
+    "taskscheduler",
+    "export",
+    "backup",
+    "xml",
+    "automation"
+  ],
+  "windowsCommandTemplateId": "export-scheduledtask-cmd",
+  "windowsCommandTemplate": {
+    "id": "export-scheduledtask-cmd",
+    "platform": 0,
+    "name": "Export-ScheduledTask",
+    "commandPattern": "Export-ScheduledTask -TaskName '{taskname}' {taskpath} | Out-File '{outputfile}'",
+    "parameters": [
+      {
+        "name": "taskname",
+        "label": "Nom de la tâche",
+        "type": "string",
+        "defaultValue": "MyTask",
+        "required": true,
+        "description": "Nom de la tâche à exporter"
+      },
+      {
+        "name": "taskpath",
+        "label": "Chemin source",
+        "type": "string",
+        "defaultValue": "",
+        "required": false,
+        "description": "Chemin de la tâche"
+      },
+      {
+        "name": "outputfile",
+        "label": "Fichier de sortie",
+        "type": "string",
+        "defaultValue": "C:\\Backup\\task.xml",
+        "required": true,
+        "description": "Chemin du fichier XML de sortie"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "Export-ScheduledTask -TaskName 'DailyBackup' | Out-File 'C:\\Backup\\DailyBackup.xml'",
+      "description": "Exporte la tâche vers un fichier XML",
+      "platform": 0
+    },
+    {
+      "command": "Get-ScheduledTask | ForEach-Object { Export-ScheduledTask $_.TaskName | Out-File \"C:\\Backup\\$($_.TaskName).xml\" }",
+      "description": "Exporte toutes les tâches",
+      "platform": 0
+    },
+    {
+      "command": "Register-ScheduledTask -Xml (Get-Content 'C:\\Backup\\task.xml' | Out-String) -TaskName 'RestoredTask'",
+      "description": "Réimporte une tâche depuis XML",
+      "platform": 0
+    },
+    {
+      "command": "Export-ScheduledTask -TaskName 'MyTask' \\Microsoft\\Windows\\ | Out-File 'results.csv'",
+      "description": "Exemple utilisant le paramètre 'taskname': Nom de la tâche à exporter. Remplacez DailyBackup par la valeur appropriée selon votre environnement.",
+      "platform": 0
+    },
+    {
+      "command": "Export-ScheduledTask -TaskName 'DailyBackup' \\Microsoft\\Windows\\ | Out-File 'results.csv'",
+      "description": "Exemple utilisant le paramètre 'taskpath': Chemin de la tâche. Remplacez \\Microsoft\\Windows\\ par la valeur appropriée selon votre environnement.",
+      "platform": 0
+    },
+    {
+      "command": "Export-ScheduledTask -TaskName 'DailyBackup' \\Microsoft\\Windows\\ | Out-File 'C:\\Backup\\task.xml'",
+      "description": "Exemple utilisant le paramètre 'outputfile': Chemin du fichier XML de sortie. Remplacez results.csv par la valeur appropriée selon votre environnement.",
+      "platform": 0
+    }
+  ],
+  "notes": "Utile pour migration entre serveurs ou sauvegarde. Utilisez Register-ScheduledTask avec -Xml pour réimporter.",
+  "links": [
+    {
+      "title": "Export-ScheduledTask Documentation",
+      "url": "https://learn.microsoft.com/en-us/powershell/module/scheduledtasks/export-scheduledtask"
+    }
+  ]
+}

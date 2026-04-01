@@ -1,0 +1,70 @@
+{
+  "id": "ansible-galaxy-install",
+  "title": "Installer un rôle Ansible Galaxy",
+  "description": "Télécharge et installe un rôle depuis Ansible Galaxy",
+  "category": "⚙️ Services & Automation",
+  "platform": 2,
+  "level": 0,
+  "tags": [
+    "ansible",
+    "galaxy",
+    "role",
+    "install"
+  ],
+  "windowsCommandTemplateId": "ansible-galaxy-install-win",
+  "windowsCommandTemplate": {
+    "id": "ansible-galaxy-install-win",
+    "platform": 0,
+    "name": "ansible-galaxy",
+    "commandPattern": "ansible-galaxy install {roleName}",
+    "parameters": [
+      {
+        "name": "roleName",
+        "label": "Nom du rôle",
+        "type": "string",
+        "defaultValue": "geerlingguy.apache",
+        "required": true,
+        "description": "Nom du rôle à installer depuis Galaxy"
+      }
+    ]
+  },
+  "linuxCommandTemplateId": "ansible-galaxy-install-linux",
+  "linuxCommandTemplate": {
+    "id": "ansible-galaxy-install-linux",
+    "platform": 1,
+    "name": "ansible-galaxy",
+    "commandPattern": "ansible-galaxy install {roleName}",
+    "parameters": [
+      {
+        "name": "roleName",
+        "label": "Nom du rôle",
+        "type": "string",
+        "defaultValue": "geerlingguy.apache",
+        "required": true,
+        "description": "Nom du rôle à installer"
+      }
+    ]
+  },
+  "examples": [],
+  "notes": "Ansible Galaxy est le dépôt officiel de rôles Ansible réutilisables.",
+  "links": [
+    {
+      "title": "Ansible Galaxy",
+      "url": "https://galaxy.ansible.com/"
+    }
+  ],
+  "windowsExamples": [
+    {
+      "command": "ansible-galaxy install webserver",
+      "description": "Exemple Windows utilisant ansible-galaxy. Remplacez les paramètres entre <> par vos valeurs.",
+      "platform": 0
+    }
+  ],
+  "linuxExamples": [
+    {
+      "command": "ansible-galaxy install -r requirements.yml",
+      "description": "Installe tous les rôles listés dans requirements.yml",
+      "platform": 1
+    }
+  ]
+}

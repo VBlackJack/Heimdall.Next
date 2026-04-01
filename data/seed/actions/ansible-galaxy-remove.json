@@ -1,0 +1,76 @@
+{
+  "id": "ansible-galaxy-remove",
+  "title": "Supprimer un rôle installé",
+  "description": "Supprime un rôle Ansible Galaxy installé localement",
+  "category": "⚙️ Services & Automation",
+  "platform": 2,
+  "level": 0,
+  "tags": [
+    "ansible",
+    "galaxy",
+    "remove",
+    "uninstall",
+    "role"
+  ],
+  "windowsCommandTemplateId": "ansible-galaxy-remove-win",
+  "windowsCommandTemplate": {
+    "id": "ansible-galaxy-remove-win",
+    "platform": 0,
+    "name": "ansible-galaxy",
+    "commandPattern": "ansible-galaxy remove {roleName}",
+    "parameters": [
+      {
+        "name": "roleName",
+        "label": "Nom du rôle",
+        "type": "string",
+        "defaultValue": "geerlingguy.apache",
+        "required": true,
+        "description": "Nom du rôle à supprimer"
+      }
+    ]
+  },
+  "linuxCommandTemplateId": "ansible-galaxy-remove-linux",
+  "linuxCommandTemplate": {
+    "id": "ansible-galaxy-remove-linux",
+    "platform": 1,
+    "name": "ansible-galaxy",
+    "commandPattern": "ansible-galaxy remove {roleName}",
+    "parameters": [
+      {
+        "name": "roleName",
+        "label": "Nom du rôle",
+        "type": "string",
+        "defaultValue": "geerlingguy.apache",
+        "required": true,
+        "description": "Nom du rôle à supprimer"
+      }
+    ]
+  },
+  "examples": [],
+  "notes": "Cette commande supprime définitivement le rôle du système de fichiers local.",
+  "links": [
+    {
+      "title": "Ansible Galaxy",
+      "url": "https://galaxy.ansible.com/"
+    }
+  ],
+  "windowsExamples": [
+    {
+      "command": "ansible-galaxy remove webserver",
+      "description": "Exemple Windows utilisant ansible-galaxy. Remplacez les paramètres entre <> par vos valeurs.",
+      "platform": 0
+    }
+  ],
+  "linuxExamples": [
+    {
+      "command": "ansible-galaxy remove ansible.posix",
+      "description": "Supprime la collection posix",
+      "platform": 1
+    },
+    {
+      "command": "ansible-galaxy remove -p ./roles custom_role",
+      "description": "Dans un chemin",
+      "platform": 1
+    }
+  ]
+}

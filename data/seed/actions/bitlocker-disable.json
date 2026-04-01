@@ -1,0 +1,74 @@
+{
+  "id": "bitlocker-disable",
+  "title": "Désactiver et déchiffrer BitLocker",
+  "description": "Désactive complètement BitLocker et déchiffre le volume (opération irréversible).",
+  "category": "🔒 Security & Encryption",
+  "platform": 0,
+  "level": 2,
+  "tags": [
+    "bitlocker",
+    "disable",
+    "decrypt"
+  ],
+  "windowsCommandTemplateId": "bitlocker-disable-cmd",
+  "windowsCommandTemplate": {
+    "id": "bitlocker-disable-cmd",
+    "platform": 0,
+    "name": "Disable-BitLocker",
+    "commandPattern": "Disable-BitLocker -MountPoint \"{driveLetter}:\"",
+    "parameters": [
+      {
+        "name": "driveLetter",
+        "label": "Lettre du disque",
+        "type": "string",
+        "defaultValue": "C",
+        "required": true,
+        "description": "Lettre du volume à déchiffrer (ex: C, D, E)"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "Disable-BitLocker -MountPoint C:",
+      "description": "Désactive BitLocker et déchiffre complètement le volume C:",
+      "platform": 0
+    },
+    {
+      "command": "Disable-BitLocker -MountPoint D:",
+      "description": "Désactive BitLocker sur le volume de données D:",
+      "platform": 0
+    },
+    {
+      "command": "Get-BitLockerVolume D: | Select-Object VolumeStatus,EncryptionPercentage",
+      "description": "Surveille la progression du déchiffrement (à exécuter après Disable-BitLocker)",
+      "platform": 0
+    },
+    {
+      "command": "Disable-BitLocker -MountPoint \"D:\" -WhatIf",
+      "description": "Simulation de l'action sans exécution réelle (dry-run). Le switch -WhatIf affiche ce qui serait modifié sans appliquer les changements. INDISPENSABLE avant toute action de masse ou modification critique. Retirez -WhatIf après validation pour exécuter.",
+      "platform": 0
+    },
+    {
+      "command": "Disable-BitLocker -MountPoint \"D:\" -Confirm:$false",
+      "description": "Exécute l'action sans demander de confirmation interactive. -Confirm:$false supprime les invites de validation. Utile dans les scripts automatisés mais à utiliser avec précaution : aucun filet de sécurité.",
+      "platform": 0
+    },
+    {
+      "command": "Disable-BitLocker -MountPoint \"D:\" -Verbose",
+      "description": "Affiche des informations détaillées sur l'exécution de la commande. -Verbose active les messages de débogage pour comprendre précisément ce qui se passe. Essentiel pour le troubleshooting et la compréhension des opérations internes.",
+      "platform": 0
+    },
+    {
+      "command": "Disable-BitLocker -MountPoint \"C:\"",
+      "description": "Exemple utilisant le paramètre 'driveLetter': Lettre du volume à déchiffrer (ex: C, D, E). Remplacez D par la valeur appropriée selon votre environnement.",
+      "platform": 0
+    }
+  ],
+  "notes": "⚠️ ATTENTION: Cette opération DÉCHIFFRE complètement le disque! Vos données ne seront PLUS PROTÉGÉES. Le déchiffrement peut prendre plusieurs heures selon la taille du disque. Pensez à Suspend-BitLocker pour des besoins temporaires. Disable-BitLocker est PERMANENT.",
+  "links": [
+    {
+      "title": "Disable-BitLocker Documentation",
+      "url": "https://learn.microsoft.com/en-us/powershell/module/bitlocker/disable-bitlocker"
+    }
+  ]
+}

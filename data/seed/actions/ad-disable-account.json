@@ -1,0 +1,65 @@
+{
+  "id": "ad-disable-account",
+  "title": "Désactiver un compte utilisateur AD",
+  "description": "Désactive un compte utilisateur Active Directory sans le supprimer.",
+  "category": "🏢 Active Directory & GPO",
+  "platform": 0,
+  "level": 2,
+  "tags": [
+    "ad",
+    "disable",
+    "account",
+    "user"
+  ],
+  "windowsCommandTemplateId": "ad-disable-account-cmd",
+  "windowsCommandTemplate": {
+    "id": "ad-disable-account-cmd",
+    "platform": 0,
+    "name": "Disable-ADAccount",
+    "commandPattern": "Disable-ADAccount -Identity {username}",
+    "parameters": [
+      {
+        "name": "username",
+        "label": "Nom d'utilisateur",
+        "type": "string",
+        "defaultValue": "",
+        "required": true,
+        "description": "SamAccountName de l'utilisateur à désactiver"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "Disable-ADAccount -Identity jdupont",
+      "description": "Désactive immédiatement le compte de jdupont. L'utilisateur ne pourra plus se connecter mais le compte et toutes ses données restent dans AD. La désactivation est réversible avec Enable-ADAccount. Méthode recommandée pour les départs temporaires (congés longs, suspensions).",
+      "platform": 0
+    },
+    {
+      "command": "Disable-ADAccount -Identity jdupont -Confirm:$false",
+      "description": "Désactive le compte sans demander de confirmation. Le paramètre -Confirm:$false supprime l'invite (utile pour les scripts automatisés). Utilisez avec précaution : la désactivation est immédiate et peut déconnecter l'utilisateur de toutes ses sessions actives.",
+      "platform": 0
+    },
+    {
+      "command": "Get-ADUser -Filter {Enabled -eq $true -and LastLogonDate -lt (Get-Date).AddDays(-180)} -Properties LastLogonDate | Disable-ADAccount -WhatIf",
+      "description": "Simulation de désactivation des comptes inactifs depuis 180 jours. Le switch -WhatIf affiche ce qui serait fait SANS exécuter l'action (mode dry-run). Indispensable avant toute action de masse pour éviter les erreurs. Retirez -WhatIf après vérification pour exécuter réellement.",
+      "platform": 0
+    },
+    {
+      "command": "Get-ADUser jdupont -Properties Enabled | Select-Object Name,Enabled,SamAccountName",
+      "description": "Vérifie si un compte est actif ou désactivé. La propriété Enabled vaut $true (actif) ou $false (désactivé). Toujours vérifier l'état avant de désactiver ou réactiver. Utile aussi pour les scripts de reporting et les tableaux de bord.",
+      "platform": 0
+    },
+    {
+      "command": "Get-ADUser -Filter {Department -eq 'Finance' -and Enabled -eq $true} | Select-Object Name,SamAccountName | Export-Csv C:\\Temp\\FinanceUsersBeforeDisable.csv -NoTypeInformation; Get-ADUser -Filter {Department -eq 'Finance'} | Disable-ADAccount",
+      "description": "Désactivation massive avec sauvegarde préalable : exporte d'abord la liste des utilisateurs Finance actifs, puis les désactive tous. La sauvegarde CSV permet une restauration en cas d'erreur. Les deux commandes sont séparées par un point-virgule pour exécution séquentielle. Toujours faire une sauvegarde avant une opération de masse.",
+      "platform": 0
+    },
+    {
+      "command": "Get-ADUser -Filter * -Properties Enabled,LastLogonDate | Where-Object {$_.Enabled -eq $false} | Select-Object Name,SamAccountName,Enabled,LastLogonDate | Export-Csv C:\\Temp\\DisabledAccounts.csv -NoTypeInformation",
+      "description": "Exporte un rapport complet de tous les comptes désactivés avec leur dernière connexion. Utile pour les audits de sécurité, l'analyse des comptes dormants et la préparation au nettoyage de l'AD. Effectuez ce rapport trimestriellement pour maintenir un AD propre.",
+      "platform": 0
+    }
+  ],
+  "notes": "L'utilisateur ne pourra plus se connecter. Le compte peut être réactivé avec Enable-ADAccount.",
+  "links": []
+}

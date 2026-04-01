@@ -1,0 +1,78 @@
+{
+  "id": "gpo-link-to-ou",
+  "title": "Lier une GPO à une OU",
+  "description": "Lie une stratégie de groupe à une unité d'organisation.",
+  "category": "🏢 Active Directory & GPO",
+  "platform": 0,
+  "level": 1,
+  "tags": [
+    "gpo",
+    "link",
+    "ou",
+    "group-policy"
+  ],
+  "windowsCommandTemplateId": "gpo-link-to-ou-cmd",
+  "windowsCommandTemplate": {
+    "id": "gpo-link-to-ou-cmd",
+    "platform": 0,
+    "name": "New-GPLink",
+    "commandPattern": "New-GPLink -Name \"{gpoName}\" -Target \"{ouDN}\" -LinkEnabled Yes",
+    "parameters": [
+      {
+        "name": "gpoName",
+        "label": "Nom de la GPO",
+        "type": "string",
+        "defaultValue": "",
+        "required": true,
+        "description": "Nom de la GPO à lier"
+      },
+      {
+        "name": "ouDN",
+        "label": "DN de l'OU",
+        "type": "string",
+        "defaultValue": "",
+        "required": true,
+        "description": "Distinguished Name de l'OU cible"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "New-GPLink -Name \"Security-Policy-IT\" -Target \"OU=IT,DC=contoso,DC=com\" -LinkEnabled Yes",
+      "description": "Lie la GPO Security-Policy-IT à l'OU IT",
+      "platform": 0
+    },
+    {
+      "command": "New-GPLink -Name \"Security-Baseline\" -Target \"OU=Paris-Users,DC=contoso,DC=com\" -LinkEnabled Yes -WhatIf",
+      "description": "Simulation de l'action sans exécution réelle (dry-run). Le switch -WhatIf affiche ce qui serait modifié sans appliquer les changements. INDISPENSABLE avant toute action de masse ou modification critique. Retirez -WhatIf après validation pour exécuter.",
+      "platform": 0
+    },
+    {
+      "command": "New-GPLink -Name \"Security-Baseline\" -Target \"OU=Paris-Users,DC=contoso,DC=com\" -LinkEnabled Yes -Confirm:$false",
+      "description": "Exécute l'action sans demander de confirmation interactive. -Confirm:$false supprime les invites de validation. Utile dans les scripts automatisés mais à utiliser avec précaution : aucun filet de sécurité.",
+      "platform": 0
+    },
+    {
+      "command": "New-GPLink -Name \"Security-Baseline\" -Target \"OU=Paris-Users,DC=contoso,DC=com\" -LinkEnabled Yes -PassThru",
+      "description": "Force la commande à retourner l'objet modifié/créé dans le pipeline. Par défaut, les cmdlets Set-/New- ne retournent rien. -PassThru active le retour pour permettre des opérations en chaîne ou des vérifications immédiates.",
+      "platform": 0
+    },
+    {
+      "command": "New-GPLink -Name \"Security-Baseline\" -Target \"OU=Paris-Users,DC=contoso,DC=com\" -LinkEnabled Yes -Verbose",
+      "description": "Affiche des informations détaillées sur l'exécution de la commande. -Verbose active les messages de débogage pour comprendre précisément ce qui se passe. Essentiel pour le troubleshooting et la compréhension des opérations internes.",
+      "platform": 0
+    },
+    {
+      "command": "New-GPLink -Name \"Security-Baseline\" -Target \"OU=Paris-Users,DC=contoso,DC=com\" -LinkEnabled Yes",
+      "description": "Exemple utilisant le paramètre 'gpoName': Nom de la GPO à lier. Remplacez Security-Baseline par la valeur appropriée selon votre environnement.",
+      "platform": 0
+    }
+  ],
+  "notes": "Le lien est activé par défaut. Pour créer un lien désactivé, utiliser -LinkEnabled No.",
+  "links": [
+    {
+      "title": "Documentation New-GPLink",
+      "url": "https://learn.microsoft.com/en-us/powershell/module/grouppolicy/new-gplink"
+    }
+  ]
+}

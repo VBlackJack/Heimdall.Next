@@ -1,0 +1,77 @@
+{
+  "id": "laps-set-expiration-time",
+  "title": "Modifier la durée d'expiration du mot de passe LAPS",
+  "description": "Configure la durée de validité du mot de passe administrateur local géré par LAPS.",
+  "category": "🔒 Security & Encryption",
+  "platform": 0,
+  "level": 2,
+  "tags": [
+    "laps",
+    "configuration",
+    "expiration"
+  ],
+  "windowsCommandTemplateId": "laps-set-expiration-time-cmd",
+  "windowsCommandTemplate": {
+    "id": "laps-set-expiration-time-cmd",
+    "platform": 0,
+    "name": "Set-ADComputer",
+    "commandPattern": "$expDate = (Get-Date).AddDays({days}).ToFileTime(); Set-ADComputer -Identity {computerName} -Replace @{'ms-Mcs-AdmPwdExpirationTime'=$expDate}",
+    "parameters": [
+      {
+        "name": "computerName",
+        "label": "Nom de l'ordinateur",
+        "type": "string",
+        "defaultValue": "",
+        "required": true,
+        "description": "Nom NetBIOS de l'ordinateur"
+      },
+      {
+        "name": "days",
+        "label": "Jours avant expiration",
+        "type": "string",
+        "defaultValue": "30",
+        "required": true,
+        "description": "Nombre de jours avant expiration (ex: 30, 60, 90)"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "$expDate = (Get-Date).AddDays(30).ToFileTime(); Set-ADComputer -Identity PC-001 -Replace @{'ms-Mcs-AdmPwdExpirationTime'=$expDate}",
+      "description": "Configure l'expiration du mot de passe dans 30 jours",
+      "platform": 0
+    },
+    {
+      "command": "$expDate = (Get-Date).AddDays(1).ToFileTime(); Set-ADComputer -Identity PC-001 -Replace @{'ms-Mcs-AdmPwdExpirationTime'=$expDate}",
+      "description": "Force la rotation du mot de passe dans 24h",
+      "platform": 0
+    },
+    {
+      "command": "$expDate = (Get-Date).AddDays(30).ToFileTime(); Set-ADComputer -Identity PC-PARIS-001 -Replace @{'ms-Mcs-AdmPwdExpirationTime'=$expDate} | Select-Object * -First 1",
+      "description": "Affiche toutes les propriétés du premier objet retourné. Select-Object * élargit l'affichage pour montrer toutes les colonnes. -First 1 limite au premier résultat. Utilisez cette commande pour découvrir les propriétés disponibles avant de filtrer.",
+      "platform": 0
+    },
+    {
+      "command": "$expDate = (Get-Date).AddDays(30).ToFileTime(); Set-ADComputer -Identity PC-PARIS-001 -Replace @{'ms-Mcs-AdmPwdExpirationTime'=$expDate} | Format-Table -AutoSize",
+      "description": "Affiche les résultats dans un tableau optimisé pour la console. Format-Table -AutoSize ajuste automatiquement la largeur des colonnes pour un affichage lisible. Idéal pour visualiser rapidement les données structurées.",
+      "platform": 0
+    },
+    {
+      "command": "$expDate = (Get-Date).AddDays(30).ToFileTime(); Set-ADComputer -Identity PC-PARIS-001 -Replace @{'ms-Mcs-AdmPwdExpirationTime'=$expDate} | Export-Csv C:\\Temp\\Export.csv -NoTypeInformation -Encoding UTF8",
+      "description": "Exporte les résultats vers un fichier CSV exploitable dans Excel. -NoTypeInformation supprime la ligne de métadonnées. -Encoding UTF8 garantit la compatibilité des caractères accentués. Utile pour l'archivage, les rapports et l'analyse externe.",
+      "platform": 0
+    },
+    {
+      "command": "$expDate = (Get-Date).AddDays(30).ToFileTime(); Set-ADComputer -Identity PC-PARIS-001 -Replace @{'ms-Mcs-AdmPwdExpirationTime'=$expDate} | Measure-Object",
+      "description": "Compte le nombre total d'objets retournés. Measure-Object retourne Count, Sum, Average, Min, Max selon les propriétés. Utile pour les statistiques rapides et la validation de résultats.",
+      "platform": 0
+    }
+  ],
+  "notes": "⚠️ Cette commande force une date d'expiration spécifique. Pour forcer rotation immédiate: utilisez Reset-AdmPwdPassword. La durée par défaut LAPS (GPO) est généralement 30 jours. Durées recommandées: Serveurs critiques: 14-30j, Postes de travail: 30-60j, Laptops: 30-45j.",
+  "links": [
+    {
+      "title": "LAPS Configuration",
+      "url": "https://learn.microsoft.com/en-us/windows-server/identity/laps/laps-management-policy-settings"
+    }
+  ]
+}

@@ -1,0 +1,87 @@
+{
+  "id": "top-monitor",
+  "title": "Monitorer les processus en temps réel",
+  "description": "Affiche en temps réel la consommation CPU, mémoire et la liste des processus",
+  "category": "📊 Monitoring & Logs",
+  "platform": 1,
+  "level": 0,
+  "tags": [
+    "top",
+    "htop",
+    "cpu",
+    "memory",
+    "processes",
+    "monitoring"
+  ],
+  "linuxCommandTemplateId": "top-cmd",
+  "linuxCommandTemplate": {
+    "id": "top-cmd",
+    "platform": 1,
+    "name": "top",
+    "commandPattern": "top -n {iterations}",
+    "parameters": [
+      {
+        "name": "iterations",
+        "label": "Itérations",
+        "type": "number",
+        "defaultValue": "1",
+        "required": true,
+        "description": "Nombre de rafraîchissements (0 = infini)"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "top",
+      "description": "Affiche en temps réel l'utilisation CPU, mémoire et la liste des processus actifs. top est l'outil de monitoring système interactif de référence sous Linux. Rafraîchit automatiquement (par défaut toutes les 3 secondes). Appuyez sur 'q' pour quitter. Première commande pour diagnostiquer les problèmes de performance.",
+      "platform": 1
+    },
+    {
+      "command": "top -u www-data",
+      "description": "Affiche uniquement les processus de l'utilisateur www-data (utilisateur des serveurs web Apache/nginx). Le flag -u (user) filtre par propriétaire. Utile pour surveiller la consommation d'un service spécifique ou d'un utilisateur. Remplacez www-data par n'importe quel username.",
+      "platform": 1
+    },
+    {
+      "command": "top -bn1 | head -20",
+      "description": "Mode batch : exécute top une seule fois et affiche le résultat. -b = batch mode (output texte au lieu d'interactif). -n1 = une seule itération. head -20 limite aux 20 premières lignes. Parfait pour les scripts, les logs ou la capture de l'état système à un instant T.",
+      "platform": 1
+    },
+    {
+      "command": "top -o %CPU",
+      "description": "Trie les processus par utilisation CPU décroissante (macOS/BSD). Le flag -o (order by) spécifie la colonne de tri. %CPU trie du plus gourmand au moins. Sous Linux, appuyez sur 'Shift+P' dans top interactif pour le même effet. Identifie instantanément le processus qui consomme le plus de CPU.",
+      "platform": 1
+    },
+    {
+      "command": "top -bn1 -o +%MEM | head -20",
+      "description": "Affiche les processus triés par utilisation mémoire (Linux). -o +%MEM trie par mémoire décroissante. head -20 limite l'affichage. Parfait pour identifier rapidement les processus gourmands en RAM lors d'un problème de mémoire.",
+      "platform": 1
+    },
+    {
+      "command": "top -b -n 1 | head -20",
+      "description": "Snapshot des 20 premiers processus",
+      "platform": 1
+    },
+    {
+      "command": "top -p 1234,5678",
+      "description": "Monitorer des PIDs spécifiques",
+      "platform": 1
+    },
+    {
+      "command": "htop",
+      "description": "Version améliorée et interactive de top",
+      "platform": 1
+    },
+    {
+      "command": "top -o %MEM",
+      "description": "Trier par utilisation mémoire",
+      "platform": 1
+    }
+  ],
+  "notes": "Ne nécessite pas sudo. q pour quitter. htop est plus convivial mais nécessite installation.",
+  "links": [
+    {
+      "title": "top man page",
+      "url": "https://man7.org/linux/man-pages/man1/top.1.html"
+    }
+  ]
+}

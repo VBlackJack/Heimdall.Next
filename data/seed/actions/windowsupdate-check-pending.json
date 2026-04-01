@@ -1,0 +1,65 @@
+{
+  "id": "windowsupdate-check-pending",
+  "title": "Vérifier les mises à jour Windows en attente",
+  "description": "Liste toutes les mises à jour Windows disponibles mais non encore installées",
+  "category": "🔄 Windows Updates",
+  "platform": 0,
+  "level": 0,
+  "tags": [
+    "windows-update",
+    "pending",
+    "diagnostic",
+    "pswindowsupdate"
+  ],
+  "windowsCommandTemplateId": "windowsupdate-check-pending-cmd",
+  "windowsCommandTemplate": {
+    "id": "windowsupdate-check-pending-cmd",
+    "platform": 0,
+    "name": "Get-WindowsUpdate",
+    "commandPattern": "Get-WindowsUpdate -MicrosoftUpdate -Verbose",
+    "parameters": []
+  },
+  "examples": [
+    {
+      "command": "Get-WindowsUpdate -MicrosoftUpdate",
+      "description": "Liste toutes les mises à jour disponibles depuis Windows Update et Microsoft Update",
+      "platform": 0
+    },
+    {
+      "command": "Get-WindowsUpdate -NotCategory 'Drivers'",
+      "description": "Liste les mises à jour en excluant les pilotes",
+      "platform": 0
+    },
+    {
+      "command": "Get-WindowsUpdate -MicrosoftUpdate -Verbose | Select-Object * -First 1",
+      "description": "Affiche toutes les propriétés du premier objet retourné. Select-Object * élargit l'affichage pour montrer toutes les colonnes. -First 1 limite au premier résultat. Utilisez cette commande pour découvrir les propriétés disponibles avant de filtrer.",
+      "platform": 0
+    },
+    {
+      "command": "Get-WindowsUpdate -MicrosoftUpdate -Verbose | Format-Table -AutoSize",
+      "description": "Affiche les résultats dans un tableau optimisé pour la console. Format-Table -AutoSize ajuste automatiquement la largeur des colonnes pour un affichage lisible. Idéal pour visualiser rapidement les données structurées.",
+      "platform": 0
+    },
+    {
+      "command": "Get-WindowsUpdate -MicrosoftUpdate -Verbose | Export-Csv C:\\Temp\\Export.csv -NoTypeInformation -Encoding UTF8",
+      "description": "Exporte les résultats vers un fichier CSV exploitable dans Excel. -NoTypeInformation supprime la ligne de métadonnées. -Encoding UTF8 garantit la compatibilité des caractères accentués. Utile pour l'archivage, les rapports et l'analyse externe.",
+      "platform": 0
+    },
+    {
+      "command": "Get-WindowsUpdate -MicrosoftUpdate -Verbose | Measure-Object",
+      "description": "Compte le nombre total d'objets retournés. Measure-Object retourne Count, Sum, Average, Min, Max selon les propriétés. Utile pour les statistiques rapides et la validation de résultats.",
+      "platform": 0
+    }
+  ],
+  "notes": "Nécessite le module PSWindowsUpdate (Install-Module PSWindowsUpdate). Droits administrateur requis.",
+  "links": [
+    {
+      "title": "PSWindowsUpdate Module",
+      "url": "https://www.powershellgallery.com/packages/PSWindowsUpdate"
+    },
+    {
+      "title": "Documentation PSWindowsUpdate",
+      "url": "https://woshub.com/pswindowsupdate-module/"
+    }
+  ]
+}

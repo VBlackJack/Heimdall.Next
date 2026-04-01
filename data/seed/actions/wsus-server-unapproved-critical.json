@@ -1,0 +1,57 @@
+{
+  "id": "wsus-server-unapproved-critical",
+  "title": "Lister les mises à jour critiques non approuvées sur WSUS",
+  "description": "Affiche toutes les mises à jour critiques non encore approuvées sur le serveur WSUS",
+  "category": "🔄 Windows Updates",
+  "platform": 0,
+  "level": 0,
+  "tags": [
+    "wsus",
+    "server",
+    "critical",
+    "unapproved",
+    "updates"
+  ],
+  "windowsCommandTemplateId": "wsus-server-unapproved-critical-cmd",
+  "windowsCommandTemplate": {
+    "id": "wsus-server-unapproved-critical-cmd",
+    "platform": 0,
+    "name": "Get-WsusUpdate",
+    "commandPattern": "Get-WsusUpdate -Classification Critical -Approval Unapproved -Status Any | Select-Object Title,Classification,Approval,CreationDate | Format-Table -AutoSize",
+    "parameters": []
+  },
+  "examples": [
+    {
+      "command": "Get-WsusUpdate -Classification Critical,Security -Approval Unapproved -Status Any",
+      "description": "Liste les mises à jour critiques et de sécurité non approuvées",
+      "platform": 0
+    },
+    {
+      "command": "Get-WsusUpdate -Classification Critical -Approval Unapproved -Status Any | Select-Object * -First 1",
+      "description": "Affiche toutes les propriétés du premier objet retourné. Select-Object * élargit l'affichage pour montrer toutes les colonnes. -First 1 limite au premier résultat. Utilisez cette commande pour découvrir les propriétés disponibles avant de filtrer.",
+      "platform": 0
+    },
+    {
+      "command": "Get-WsusUpdate -Classification Critical -Approval Unapproved -Status Any | Export-Csv C:\\Temp\\Export.csv -NoTypeInformation -Encoding UTF8",
+      "description": "Exporte les résultats vers un fichier CSV exploitable dans Excel. -NoTypeInformation supprime la ligne de métadonnées. -Encoding UTF8 garantit la compatibilité des caractères accentués. Utile pour l'archivage, les rapports et l'analyse externe.",
+      "platform": 0
+    },
+    {
+      "command": "Get-WsusUpdate -Classification Critical -Approval Unapproved -Status Any | Measure-Object",
+      "description": "Compte le nombre total d'objets retournés. Measure-Object retourne Count, Sum, Average, Min, Max selon les propriétés. Utile pour les statistiques rapides et la validation de résultats.",
+      "platform": 0
+    },
+    {
+      "command": "Get-WsusUpdate -Classification Critical -Approval Unapproved -Status Any | Select-Object Title,Classification,Approval,CreationDate | Format-Table -AutoSize",
+      "description": "Cas d'usage standard. Affiche toutes les mises à jour critiques non encore approuvées sur le serveur WSUS Consultez la documentation pour des paramètres avancés et des options de filtrage.",
+      "platform": 0
+    }
+  ],
+  "notes": "À exécuter sur le serveur WSUS. Nécessite le module UpdateServices. Utile pour identifier les mises à jour importantes en attente d'approbation.",
+  "links": [
+    {
+      "title": "Get-WsusUpdate Documentation",
+      "url": "https://learn.microsoft.com/en-us/powershell/module/updateservices/get-wsusupdate"
+    }
+  ]
+}

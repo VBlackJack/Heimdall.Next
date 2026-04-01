@@ -1,0 +1,50 @@
+{
+  "id": "gpo-applied-machine",
+  "title": "Lister les GPO appliquées à une machine",
+  "description": "Affiche toutes les stratégies de groupe appliquées à un ordinateur spécifique.",
+  "category": "🏢 Active Directory & GPO",
+  "platform": 0,
+  "level": 1,
+  "tags": [
+    "gpo",
+    "diagnostic",
+    "windows",
+    "gpresult"
+  ],
+  "windowsCommandTemplateId": "gpo-applied-machine-cmd",
+  "windowsCommandTemplate": {
+    "id": "gpo-applied-machine-cmd",
+    "platform": 0,
+    "name": "gpresult",
+    "commandPattern": "gpresult /R /S {targetHost}",
+    "parameters": [
+      {
+        "name": "targetHost",
+        "label": "Machine cible",
+        "type": "string",
+        "defaultValue": "localhost",
+        "required": false,
+        "description": "Nom de la machine cible (localhost par défaut)"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "gpresult /R /S PC-PARIS-001",
+      "description": "Affiche les GPO appliquées sur FRPANSI001PC",
+      "platform": 0
+    },
+    {
+      "command": "gpresult /R",
+      "description": "Affiche les GPO appliquées sur la machine locale",
+      "platform": 0
+    },
+    {
+      "command": "gpresult /R /S localhost",
+      "description": "Exemple utilisant le paramètre 'targetHost': Nom de la machine cible (localhost par défaut). Remplacez PC-PARIS-001 par la valeur appropriée selon votre environnement.",
+      "platform": 0
+    }
+  ],
+  "notes": "À lancer avec droits administrateur. Utiliser /H pour générer un rapport HTML.",
+  "links": []
+}

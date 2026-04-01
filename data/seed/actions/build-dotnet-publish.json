@@ -1,0 +1,107 @@
+{
+  "id": "build-dotnet-publish",
+  "title": "Publier un projet .NET",
+  "description": "Publie un projet .NET pour le déploiement.",
+  "category": "🔧 Development",
+  "platform": 2,
+  "level": 0,
+  "tags": [
+    "build",
+    "dotnet",
+    "publish",
+    "deployment",
+    "development"
+  ],
+  "windowsCommandTemplateId": "build-dotnet-publish-win-cmd",
+  "windowsCommandTemplate": {
+    "id": "build-dotnet-publish-win-cmd",
+    "platform": 0,
+    "name": "dotnet publish",
+    "commandPattern": "dotnet publish \"{projectPath}\" --configuration Release --output \"{outputPath}\"",
+    "parameters": [
+      {
+        "name": "projectPath",
+        "label": "Projet",
+        "type": "string",
+        "defaultValue": ".",
+        "required": false,
+        "description": "Chemin du projet"
+      },
+      {
+        "name": "outputPath",
+        "label": "Dossier de sortie",
+        "type": "string",
+        "defaultValue": "./publish",
+        "required": false,
+        "description": "Dossier où publier"
+      }
+    ]
+  },
+  "linuxCommandTemplateId": "build-dotnet-publish-linux-cmd",
+  "linuxCommandTemplate": {
+    "id": "build-dotnet-publish-linux-cmd",
+    "platform": 1,
+    "name": "dotnet publish",
+    "commandPattern": "dotnet publish \"{projectPath}\" --configuration Release --output \"{outputPath}\"",
+    "parameters": [
+      {
+        "name": "projectPath",
+        "label": "Projet",
+        "type": "string",
+        "defaultValue": ".",
+        "required": false,
+        "description": "Chemin du projet"
+      },
+      {
+        "name": "outputPath",
+        "label": "Dossier de sortie",
+        "type": "string",
+        "defaultValue": "./publish",
+        "required": false,
+        "description": "Dossier où publier"
+      }
+    ]
+  },
+  "examples": [],
+  "notes": "--self-contained inclut le runtime. --runtime spécifie la plateforme cible (win-x64, linux-x64, osx-x64).",
+  "links": [
+    {
+      "title": "Documentation dotnet publish",
+      "url": "https://learn.microsoft.com/en-us/dotnet/core/tools/dotnet-publish"
+    }
+  ],
+  "windowsExamples": [
+    {
+      "command": "dotnet publish -c Release -o ./publish",
+      "description": "Publie en mode Release",
+      "platform": 0
+    },
+    {
+      "command": "dotnet publish --self-contained --runtime win-x64",
+      "description": "Publie avec runtime inclus pour Windows x64",
+      "platform": 0
+    },
+    {
+      "command": "dotnet publish \".\" --configuration Release --output \"C:\\Reports\\output.txt\"",
+      "description": "Exemple utilisant le paramètre 'projectPath': Chemin du projet. Remplacez C:\\Projects\\MyApp par la valeur appropriée selon votre environnement.",
+      "platform": 0
+    },
+    {
+      "command": "dotnet publish \"C:\\Projects\\MyApp\" --configuration Release --output \"./publish\"",
+      "description": "Exemple utilisant le paramètre 'outputPath': Dossier où publier. Remplacez C:\\Reports\\output.txt par la valeur appropriée selon votre environnement.",
+      "platform": 0
+    }
+  ],
+  "linuxExamples": [
+    {
+      "command": "dotnet publish \"./MyApp\" --configuration Release --output \"./publish\"",
+      "description": "Publie un projet .NET en mode Release",
+      "platform": 1
+    },
+    {
+      "command": "dotnet publish -c Release",
+      "description": "Publier en mode Release",
+      "platform": 1
+    }
+  ]
+}

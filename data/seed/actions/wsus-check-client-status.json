@@ -1,0 +1,56 @@
+{
+  "id": "wsus-check-client-status",
+  "title": "Vérifier la configuration WSUS du client",
+  "description": "Affiche la configuration actuelle du client WSUS en lisant le registre",
+  "category": "🔄 Windows Updates",
+  "platform": 0,
+  "level": 0,
+  "tags": [
+    "wsus",
+    "client",
+    "status",
+    "diagnostic"
+  ],
+  "windowsCommandTemplateId": "wsus-check-client-status-cmd",
+  "windowsCommandTemplate": {
+    "id": "wsus-check-client-status-cmd",
+    "platform": 0,
+    "name": "Get-ItemProperty",
+    "commandPattern": "$wu = Get-ItemProperty -Path 'HKLM:\\Software\\Policies\\Microsoft\\Windows\\WindowsUpdate' -ErrorAction SilentlyContinue; $au = Get-ItemProperty -Path 'HKLM:\\Software\\Policies\\Microsoft\\Windows\\WindowsUpdate\\AU' -ErrorAction SilentlyContinue; [PSCustomObject]@{WUServer=$wu.WUServer; WUStatusServer=$wu.WUStatusServer; UseWUServer=$au.UseWUServer; TargetGroup=$wu.TargetGroup} | Format-List",
+    "parameters": []
+  },
+  "examples": [
+    {
+      "command": "Get-ItemProperty 'HKLM:\\Software\\Policies\\Microsoft\\Windows\\WindowsUpdate' | Select-Object WUServer,WUStatusServer",
+      "description": "Affiche le serveur WSUS configuré",
+      "platform": 0
+    },
+    {
+      "command": "$wu = Get-ItemProperty -Path 'HKLM:\\Software\\Policies\\Microsoft\\Windows\\WindowsUpdate' -ErrorAction SilentlyContinue; $au = Get-ItemProperty -Path 'HKLM:\\Software\\Policies\\Microsoft\\Windows\\WindowsUpdate\\AU' -ErrorAction SilentlyContinue; [PSCustomObject]@{WUServer=$wu.WUServer; WUStatusServer=$wu.WUStatusServer; UseWUServer=$au.UseWUServer; TargetGroup=$wu.TargetGroup} | Select-Object * -First 1",
+      "description": "Affiche toutes les propriétés du premier objet retourné. Select-Object * élargit l'affichage pour montrer toutes les colonnes. -First 1 limite au premier résultat. Utilisez cette commande pour découvrir les propriétés disponibles avant de filtrer.",
+      "platform": 0
+    },
+    {
+      "command": "$wu = Get-ItemProperty -Path 'HKLM:\\Software\\Policies\\Microsoft\\Windows\\WindowsUpdate' -ErrorAction SilentlyContinue; $au = Get-ItemProperty -Path 'HKLM:\\Software\\Policies\\Microsoft\\Windows\\WindowsUpdate\\AU' -ErrorAction SilentlyContinue; [PSCustomObject]@{WUServer=$wu.WUServer; WUStatusServer=$wu.WUStatusServer; UseWUServer=$au.UseWUServer; TargetGroup=$wu.TargetGroup} | Export-Csv C:\\Temp\\Export.csv -NoTypeInformation -Encoding UTF8",
+      "description": "Exporte les résultats vers un fichier CSV exploitable dans Excel. -NoTypeInformation supprime la ligne de métadonnées. -Encoding UTF8 garantit la compatibilité des caractères accentués. Utile pour l'archivage, les rapports et l'analyse externe.",
+      "platform": 0
+    },
+    {
+      "command": "$wu = Get-ItemProperty -Path 'HKLM:\\Software\\Policies\\Microsoft\\Windows\\WindowsUpdate' -ErrorAction SilentlyContinue; $au = Get-ItemProperty -Path 'HKLM:\\Software\\Policies\\Microsoft\\Windows\\WindowsUpdate\\AU' -ErrorAction SilentlyContinue; [PSCustomObject]@{WUServer=$wu.WUServer; WUStatusServer=$wu.WUStatusServer; UseWUServer=$au.UseWUServer; TargetGroup=$wu.TargetGroup} | Measure-Object",
+      "description": "Compte le nombre total d'objets retournés. Measure-Object retourne Count, Sum, Average, Min, Max selon les propriétés. Utile pour les statistiques rapides et la validation de résultats.",
+      "platform": 0
+    },
+    {
+      "command": "$wu = Get-ItemProperty -Path 'HKLM:\\Software\\Policies\\Microsoft\\Windows\\WindowsUpdate' -ErrorAction SilentlyContinue; $au = Get-ItemProperty -Path 'HKLM:\\Software\\Policies\\Microsoft\\Windows\\WindowsUpdate\\AU' -ErrorAction SilentlyContinue; [PSCustomObject]@{WUServer=$wu.WUServer; WUStatusServer=$wu.WUStatusServer; UseWUServer=$au.UseWUServer; TargetGroup=$wu.TargetGroup} | Format-List",
+      "description": "Cas d'usage standard. Affiche la configuration actuelle du client WSUS en lisant le registre Consultez la documentation pour des paramètres avancés et des options de filtrage.",
+      "platform": 0
+    }
+  ],
+  "notes": "Vérifie la configuration WSUS dans le registre. Si les valeurs sont vides, le client utilise Windows Update public.",
+  "links": [
+    {
+      "title": "WSUS Client Registry Keys",
+      "url": "https://learn.microsoft.com/en-us/windows/deployment/update/waas-wu-settings"
+    }
+  ]
+}

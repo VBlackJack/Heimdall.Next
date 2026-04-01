@@ -1,0 +1,182 @@
+{
+  "id": "docker-exec",
+  "title": "Exécuter une commande dans un conteneur",
+  "description": "Exécute une commande dans un conteneur Docker en cours d'exécution",
+  "category": "🐳 Containers & VMs",
+  "platform": 2,
+  "level": 1,
+  "tags": [
+    "docker",
+    "exec",
+    "container",
+    "bash",
+    "shell",
+    "windows"
+  ],
+  "linuxCommandTemplateId": "docker-exec-cmd",
+  "linuxCommandTemplate": {
+    "id": "docker-exec-cmd",
+    "platform": 1,
+    "name": "docker",
+    "commandPattern": "docker exec {options} {container} {command}",
+    "parameters": [
+      {
+        "name": "options",
+        "label": "Options",
+        "type": "string",
+        "defaultValue": "-it",
+        "required": false,
+        "description": "Options (-it=interactive+tty, -u=user, -w=workdir)"
+      },
+      {
+        "name": "container",
+        "label": "Conteneur",
+        "type": "string",
+        "defaultValue": "mycontainer",
+        "required": true,
+        "description": "Nom ou ID du conteneur"
+      },
+      {
+        "name": "command",
+        "label": "Commande",
+        "type": "string",
+        "defaultValue": "/bin/bash",
+        "required": true,
+        "description": "Commande à exécuter"
+      }
+    ]
+  },
+  "notes": "Windows & Linux: -it nécessaire pour shell interactif. Le conteneur doit être en cours d'exécution.",
+  "links": [
+    {
+      "title": "Docker exec",
+      "url": "https://docs.docker.com/engine/reference/commandline/exec/"
+    }
+  ],
+  "supportedPlatforms": [
+    0,
+    1
+  ],
+  "windowsCommandTemplate": {
+    "id": "docker-exec-win-cmd",
+    "platform": 0,
+    "name": "docker",
+    "commandPattern": "docker exec {options} {container} {command}",
+    "parameters": [
+      {
+        "name": "options",
+        "label": "Options",
+        "type": "string",
+        "defaultValue": "-it",
+        "required": false,
+        "description": "Options (-it=interactive+tty, -u=user, -w=workdir)"
+      },
+      {
+        "name": "container",
+        "label": "Conteneur",
+        "type": "string",
+        "defaultValue": "mycontainer",
+        "required": true,
+        "description": "Nom ou ID du conteneur"
+      },
+      {
+        "name": "command",
+        "label": "Commande",
+        "type": "string",
+        "defaultValue": "/bin/bash",
+        "required": true,
+        "description": "Commande à exécuter"
+      }
+    ]
+  },
+  "windowsCommandTemplateId": "docker-exec-win-cmd",
+  "windowsExamples": [
+    {
+      "command": "docker exec -it mycontainer /bin/bash",
+      "description": "Ouvre un shell interactif dans le conteneur",
+      "platform": 0
+    },
+    {
+      "command": "docker exec mycontainer dir",
+      "description": "Execute une commande simple (dir) dans le conteneur.",
+      "platform": 0
+    },
+    {
+      "command": "docker exec -u root mycontainer apt update",
+      "description": "Exécute en tant que root",
+      "platform": 0
+    },
+    {
+      "command": "docker --help",
+      "description": "Affiche l'aide complète de la commande docker. --help liste tous les paramètres disponibles, les options et des exemples d'utilisation. Première commande à utiliser pour découvrir les capacités d'un outil.",
+      "platform": 0
+    },
+    {
+      "command": "man docker",
+      "description": "Affiche le manuel complet de docker. Les pages man fournissent la documentation détaillée : syntaxe, paramètres, exemples, notes. Plus complet que --help. Naviguez avec flèches, cherchez avec '/', quittez avec 'q'.",
+      "platform": 0
+    },
+    {
+      "command": "docker exec -it {container} {command}",
+      "description": "Exemple utilisant le paramètre 'options': Options (-it=interactive+tty, -u=user, -w=workdir). Remplacez <options> par la valeur appropriée selon votre environnement.",
+      "platform": 0
+    },
+    {
+      "command": "docker exec {options} mycontainer {command}",
+      "description": "Exemple utilisant le paramètre 'container': Nom ou ID du conteneur. Remplacez <container> par la valeur appropriée selon votre environnement.",
+      "platform": 0
+    },
+    {
+      "command": "docker exec -v -f webapp Get-Process",
+      "description": "Exemple Windows pour Exécuter une commande dans un conteneur",
+      "platform": 0
+    }
+  ],
+  "linuxExamples": [
+    {
+      "command": "docker exec -it mycontainer /bin/bash",
+      "description": "Ouvre un shell interactif dans le conteneur",
+      "platform": 1
+    },
+    {
+      "command": "docker exec mycontainer ls /var/log",
+      "description": "Exécute une commande simple",
+      "platform": 1
+    },
+    {
+      "command": "docker exec -u root mycontainer apt update",
+      "description": "Exécute en tant que root",
+      "platform": 1
+    },
+    {
+      "command": "docker --help",
+      "description": "Affiche l'aide complète de la commande docker. --help liste tous les paramètres disponibles, les options et des exemples d'utilisation. Première commande à utiliser pour découvrir les capacités d'un outil.",
+      "platform": 1
+    },
+    {
+      "command": "man docker",
+      "description": "Affiche le manuel complet de docker. Les pages man fournissent la documentation détaillée : syntaxe, paramètres, exemples, notes. Plus complet que --help. Naviguez avec flèches, cherchez avec '/', quittez avec 'q'.",
+      "platform": 1
+    },
+    {
+      "command": "docker exec -it {container} {command}",
+      "description": "Exemple utilisant le paramètre 'options': Options (-it=interactive+tty, -u=user, -w=workdir). Remplacez <options> par la valeur appropriée selon votre environnement.",
+      "platform": 1
+    },
+    {
+      "command": "docker exec {options} mycontainer {command}",
+      "description": "Exemple utilisant le paramètre 'container': Nom ou ID du conteneur. Remplacez <container> par la valeur appropriée selon votre environnement.",
+      "platform": 1
+    }
+  ],
+  "crossPlatformNotes": {
+    "differences": [
+      "Syntaxe identique sur Windows et Linux"
+    ],
+    "commonalities": [
+      "Docker CLI est cross-platform",
+      "Fonctionnalité identique sur les deux plateformes"
+    ]
+  },
+  "examples": []
+}

@@ -1,0 +1,63 @@
+{
+  "id": "archive-unzip-windows",
+  "title": "Extraire une archive ZIP",
+  "description": "Extrait le contenu d'une archive ZIP.",
+  "category": "📁 Files & Storage",
+  "platform": 0,
+  "level": 0,
+  "tags": [
+    "décompression",
+    "unzip",
+    "extract",
+    "windows"
+  ],
+  "windowsCommandTemplateId": "archive-unzip-windows-cmd",
+  "windowsCommandTemplate": {
+    "id": "archive-unzip-windows-cmd",
+    "platform": 0,
+    "name": "Expand-Archive",
+    "commandPattern": "Expand-Archive -Path \"{zipPath}\" -DestinationPath \"{destinationPath}\" -Force",
+    "parameters": [
+      {
+        "name": "zipPath",
+        "label": "Fichier ZIP",
+        "type": "string",
+        "defaultValue": "",
+        "required": true,
+        "description": "Chemin du fichier ZIP"
+      },
+      {
+        "name": "destinationPath",
+        "label": "Destination",
+        "type": "string",
+        "defaultValue": ".",
+        "required": true,
+        "description": "Dossier de destination"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "Expand-Archive -Path \"backup.zip\" -DestinationPath \"C:\\Restored\"",
+      "description": "Extrait une archive ZIP",
+      "platform": 0
+    },
+    {
+      "command": "Expand-Archive -Path \"C:\\Backup\\archive.zip\" -DestinationPath \"D:\\Backup\\data.csv\" -Force",
+      "description": "Exécution standard de la commande None. Consultez la documentation officielle avec Get-Help Expand-Archive -Full pour plus de détails sur les paramètres disponibles et les cas d'usage avancés.",
+      "platform": 0
+    },
+    {
+      "command": "Expand-Archive -Path \"C:\\Backup\\archive.zip\" -DestinationPath \".\" -Force",
+      "description": "Exemple utilisant le paramètre 'destinationPath': Dossier de destination. Remplacez D:\\Backup\\data.csv par la valeur appropriée selon votre environnement.",
+      "platform": 0
+    }
+  ],
+  "notes": "-Force écrase les fichiers existants.",
+  "links": [
+    {
+      "title": "Documentation Expand-Archive",
+      "url": "https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.archive/expand-archive"
+    }
+  ]
+}

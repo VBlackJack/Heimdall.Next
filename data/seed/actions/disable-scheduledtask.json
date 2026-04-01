@@ -1,0 +1,84 @@
+{
+  "id": "disable-scheduledtask",
+  "title": "Désactiver une tâche planifiée",
+  "description": "Désactive une tâche planifiée pour empêcher son exécution automatique",
+  "category": "⚙️ Services & Automation",
+  "platform": 0,
+  "level": 0,
+  "tags": [
+    "taskscheduler",
+    "disable",
+    "deactivate",
+    "automation",
+    "windows"
+  ],
+  "windowsCommandTemplateId": "disable-scheduledtask-cmd",
+  "windowsCommandTemplate": {
+    "id": "disable-scheduledtask-cmd",
+    "platform": 0,
+    "name": "Disable-ScheduledTask",
+    "commandPattern": "Disable-ScheduledTask -TaskName '{taskname}' {taskpath}",
+    "parameters": [
+      {
+        "name": "taskname",
+        "label": "Nom de la tâche",
+        "type": "string",
+        "defaultValue": "MyTask",
+        "required": true,
+        "description": "Nom de la tâche à désactiver"
+      },
+      {
+        "name": "taskpath",
+        "label": "Chemin",
+        "type": "string",
+        "defaultValue": "",
+        "required": false,
+        "description": "Chemin de la tâche"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "Disable-ScheduledTask -TaskName 'WindowsUpdate'",
+      "description": "Désactive temporairement les mises à jour",
+      "platform": 0
+    },
+    {
+      "command": "Get-ScheduledTask -TaskPath '\\Microsoft\\Windows\\Maintenance\\' | Disable-ScheduledTask",
+      "description": "Désactive toutes les tâches de maintenance",
+      "platform": 0
+    },
+    {
+      "command": "Disable-ScheduledTask -TaskName 'DailyBackup' \\Microsoft\\Windows\\ -WhatIf",
+      "description": "Simulation de l'action sans exécution réelle (dry-run). Le switch -WhatIf affiche ce qui serait modifié sans appliquer les changements. INDISPENSABLE avant toute action de masse ou modification critique. Retirez -WhatIf après validation pour exécuter.",
+      "platform": 0
+    },
+    {
+      "command": "Disable-ScheduledTask -TaskName 'DailyBackup' \\Microsoft\\Windows\\ -Confirm:$false",
+      "description": "Exécute l'action sans demander de confirmation interactive. -Confirm:$false supprime les invites de validation. Utile dans les scripts automatisés mais à utiliser avec précaution : aucun filet de sécurité.",
+      "platform": 0
+    },
+    {
+      "command": "Disable-ScheduledTask -TaskName 'DailyBackup' \\Microsoft\\Windows\\ -Verbose",
+      "description": "Affiche des informations détaillées sur l'exécution de la commande. -Verbose active les messages de débogage pour comprendre précisément ce qui se passe. Essentiel pour le troubleshooting et la compréhension des opérations internes.",
+      "platform": 0
+    },
+    {
+      "command": "Disable-ScheduledTask -TaskName 'MyTask' \\Microsoft\\Windows\\",
+      "description": "Exemple utilisant le paramètre 'taskname': Nom de la tâche à désactiver. Remplacez DailyBackup par la valeur appropriée selon votre environnement.",
+      "platform": 0
+    },
+    {
+      "command": "Disable-ScheduledTask -TaskName 'DailyBackup' \\Microsoft\\Windows\\",
+      "description": "Exemple utilisant le paramètre 'taskpath': Chemin de la tâche. Remplacez \\Microsoft\\Windows\\ par la valeur appropriée selon votre environnement.",
+      "platform": 0
+    }
+  ],
+  "notes": "Change l'état à Disabled. La tâche ne s'exécutera plus jusqu'à réactivation.",
+  "links": [
+    {
+      "title": "Disable-ScheduledTask Documentation",
+      "url": "https://learn.microsoft.com/en-us/powershell/module/scheduledtasks/disable-scheduledtask"
+    }
+  ]
+}

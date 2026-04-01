@@ -1,0 +1,40 @@
+{
+  "id": "reset-sccm-policy",
+  "title": "Réinitialiser les stratégies SCCM",
+  "description": "Supprime toutes les stratégies machine et utilisateur du client SCCM",
+  "category": "🔄 Windows Updates",
+  "platform": 0,
+  "level": 2,
+  "tags": [
+    "sccm",
+    "policy",
+    "reset"
+  ],
+  "windowsCommandTemplateId": "reset-sccm-policy-cmd",
+  "windowsCommandTemplate": {
+    "id": "reset-sccm-policy-cmd",
+    "platform": 0,
+    "name": "Invoke-WmiMethod",
+    "commandPattern": "powershell -Command \"Invoke-WmiMethod -Namespace root\\ccm -Class SMS_Client -Name ResetPolicy -ArgumentList 1\"",
+    "parameters": []
+  },
+  "examples": [
+    {
+      "command": "ss -tulpn",
+      "description": "🔥 STANDARD LINUX : Liste tous les ports TCP/UDP en écoute (-tul) avec les processus associés (-p) et sans résolution DNS (-n). La commande de référence pour savoir 'qui écoute sur ce port'.",
+      "platform": 1
+    },
+    {
+      "command": "ss -s",
+      "description": "Résumé statistique rapide des sockets (Total, TCP, UDP). Utile pour détecter une saturation de sockets ou une attaque DDoS.",
+      "platform": 1
+    },
+    {
+      "command": "powershell -Command \"Invoke-WmiMethod -Namespace root\\ccm -Class SMS_Client -Name ResetPolicy -ArgumentList 1\"",
+      "description": "Réinitialise toutes les stratégies SCCM",
+      "platform": 0
+    }
+  ],
+  "notes": "Supprime toutes les stratégies. Le client les re-téléchargera automatiquement. Droits administrateur requis.",
+  "links": []
+}

@@ -1,0 +1,45 @@
+{
+  "id": "laps-audit-permissions",
+  "title": "Auditer les permissions d'accès aux mots de passe LAPS",
+  "description": "Vérifie qui a les droits de lecture sur les attributs LAPS dans Active Directory.",
+  "category": "🔒 Security & Encryption",
+  "platform": 0,
+  "level": 2,
+  "tags": [
+    "laps",
+    "security",
+    "audit",
+    "permissions"
+  ],
+  "windowsCommandTemplateId": "laps-audit-permissions-cmd",
+  "windowsCommandTemplate": {
+    "id": "laps-audit-permissions-cmd",
+    "platform": 0,
+    "name": "Get-ADComputer",
+    "commandPattern": "$computer = Get-ADComputer -Identity {computerName}; $acl = Get-Acl \"AD:$($computer.DistinguishedName)\"; $acl.Access | Where-Object {$_.ActiveDirectoryRights -like '*ReadProperty*' -or $_.ActiveDirectoryRights -like '*GenericRead*'} | Select-Object IdentityReference,ActiveDirectoryRights,AccessControlType | Format-Table -AutoSize",
+    "parameters": [
+      {
+        "name": "computerName",
+        "label": "Nom de l'ordinateur",
+        "type": "string",
+        "defaultValue": "",
+        "required": true,
+        "description": "Nom NetBIOS de l'ordinateur"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "Import-Module AdmPwd.PS; Find-AdmPwdExtendedRights -Identity 'OU=Workstations,DC=contoso,DC=com'",
+      "description": "Utilise le module LAPS pour auditer les droits étendus sur une OU",
+      "platform": 0
+    }
+  ],
+  "notes": "⚠️ SÉCURITÉ CRITIQUE: Limitez l'accès aux mots de passe LAPS! Seuls les admins de confiance doivent avoir ReadProperty sur ms-Mcs-AdmPwd. GUID important: ms-Mcs-AdmPwd = {7D1E3A8C-7E99-11D2-9B5C-0000F87A57D4}. Auditez régulièrement qui peut lire ces mots de passe. Utilisez des groupes AD dédiés.",
+  "links": [
+    {
+      "title": "LAPS Security",
+      "url": "https://learn.microsoft.com/en-us/windows-server/identity/laps/laps-scenarios-legacy"
+    }
+  ]
+}

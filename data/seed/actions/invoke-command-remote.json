@@ -1,0 +1,77 @@
+{
+  "id": "invoke-command-remote",
+  "title": "Exécuter une commande à distance",
+  "description": "Exécute une commande PowerShell sur un ou plusieurs ordinateurs distants via PSRemoting",
+  "category": "⚙️ Services & Automation",
+  "platform": 0,
+  "level": 1,
+  "tags": [
+    "remote",
+    "psremoting",
+    "automation",
+    "windows",
+    "invoke"
+  ],
+  "windowsCommandTemplateId": "invoke-command-cmd",
+  "windowsCommandTemplate": {
+    "id": "invoke-command-cmd",
+    "platform": 0,
+    "name": "Invoke-Command",
+    "commandPattern": "Invoke-Command -ComputerName {computername} -ScriptBlock { {scriptblock} } {credential}",
+    "parameters": [
+      {
+        "name": "computername",
+        "label": "Ordinateur distant",
+        "type": "string",
+        "defaultValue": "Server01",
+        "required": true,
+        "description": "Nom ou IP du serveur distant (ou plusieurs séparés par virgule)"
+      },
+      {
+        "name": "scriptblock",
+        "label": "Commande à exécuter",
+        "type": "string",
+        "defaultValue": "Get-Service",
+        "required": true,
+        "description": "Commande PowerShell à exécuter à distance"
+      },
+      {
+        "name": "credential",
+        "label": "Identifiants",
+        "type": "string",
+        "defaultValue": "",
+        "required": false,
+        "description": "Identifiants (ex: -Credential (Get-Credential))"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "Invoke-Command -ComputerName Server01 -ScriptBlock { Get-Service }",
+      "description": "Liste les services sur Server01",
+      "platform": 0
+    },
+    {
+      "command": "Invoke-Command -ComputerName Server01,Server02,Server03 -ScriptBlock { Restart-Service -Name 'wuauserv' }",
+      "description": "Redémarre un service sur plusieurs serveurs",
+      "platform": 0
+    },
+    {
+      "command": "$cred = Get-Credential; Invoke-Command -ComputerName Server01 -Credential $cred -ScriptBlock { Get-Disk }",
+      "description": "Exécute avec identifiants spécifiques",
+      "platform": 0
+    },
+    {
+      "command": "Invoke-Command -ComputerName PC-PARIS-001 -ScriptBlock { Get-Service } $cred",
+      "description": "Exemple utilisant le paramètre 'scriptblock': Commande PowerShell à exécuter à distance. Remplacez { Get-Process } par la valeur appropriée selon votre environnement.",
+      "platform": 0
+    }
+  ],
+  "notes": "Nécessite WinRM activé (Enable-PSRemoting). Essentiel pour gérer Windows Core à distance. Utilisez Enter-PSSession pour session interactive.",
+  "links": [
+    {
+      "title": "Invoke-Command Documentation",
+      "url": "https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/invoke-command"
+    }
+  ]
+}

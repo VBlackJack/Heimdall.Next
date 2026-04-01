@@ -1,0 +1,74 @@
+{
+  "id": "cert-check-expiration",
+  "title": "Vérifier l'expiration des certificats",
+  "description": "Analyse tous les certificats installés et identifie ceux qui sont expirés ou proches de l'expiration (< 30 jours).",
+  "category": "🔒 Security & Encryption",
+  "platform": 0,
+  "level": 0,
+  "tags": [
+    "certificate",
+    "expiration",
+    "monitoring",
+    "ssl",
+    "tls",
+    "security",
+    "audit",
+    "compliance"
+  ],
+  "windowsCommandTemplateId": "cert-check-expiration-cmd",
+  "windowsCommandTemplate": {
+    "id": "cert-check-expiration-cmd",
+    "platform": 0,
+    "name": "Get-ChildItem",
+    "commandPattern": "$daysThreshold = {daysThreshold}; Get-ChildItem -Path Cert:\\LocalMachine\\My | Where-Object {$_.NotAfter -lt (Get-Date).AddDays($daysThreshold)} | Select-Object Subject, Issuer, NotAfter, @{Name='DaysRemaining';Expression={($_.NotAfter - (Get-Date)).Days}}, Thumbprint | Sort-Object NotAfter | Format-Table -AutoSize",
+    "parameters": [
+      {
+        "name": "daysThreshold",
+        "label": "Seuil en jours",
+        "type": "string",
+        "defaultValue": "30",
+        "required": true,
+        "description": "Nombre de jours avant expiration pour alerter"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "Get-ChildItem Cert:\\LocalMachine\\My | Where-Object {$_.NotAfter -lt (Get-Date).AddDays(30)} | Format-Table Subject, NotAfter",
+      "description": "Certificats expirant dans 30 jours",
+      "platform": 0
+    },
+    {
+      "command": "Get-ChildItem Cert:\\ -Recurse | Where-Object {$_.NotAfter -lt (Get-Date)} | Select-Object PSPath, Subject, NotAfter",
+      "description": "Tous les certificats déjà expirés",
+      "platform": 0
+    },
+    {
+      "command": "Get-ChildItem Cert:\\LocalMachine -Recurse | Where-Object {$_.NotAfter -lt (Get-Date).AddDays(90)} | Export-Csv C:\\cert-expiration-report.csv",
+      "description": "Export CSV des certificats à renouveler",
+      "platform": 0
+    },
+    {
+      "command": "$daysThreshold = 90; Get-ChildItem -Path Cert:\\LocalMachine\\My | Select-Object * -First 1",
+      "description": "Affiche toutes les propriétés du premier objet retourné. Select-Object * élargit l'affichage pour montrer toutes les colonnes. -First 1 limite au premier résultat. Utilisez cette commande pour découvrir les propriétés disponibles avant de filtrer.",
+      "platform": 0
+    },
+    {
+      "command": "$daysThreshold = 90; Get-ChildItem -Path Cert:\\LocalMachine\\My | Export-Csv C:\\Temp\\Export.csv -NoTypeInformation -Encoding UTF8",
+      "description": "Exporte les résultats vers un fichier CSV exploitable dans Excel. -NoTypeInformation supprime la ligne de métadonnées. -Encoding UTF8 garantit la compatibilité des caractères accentués. Utile pour l'archivage, les rapports et l'analyse externe.",
+      "platform": 0
+    },
+    {
+      "command": "$daysThreshold = 90; Get-ChildItem -Path Cert:\\LocalMachine\\My | Measure-Object",
+      "description": "Compte le nombre total d'objets retournés. Measure-Object retourne Count, Sum, Average, Min, Max selon les propriétés. Utile pour les statistiques rapides et la validation de résultats.",
+      "platform": 0
+    }
+  ],
+  "notes": "Automatisez cette vérification dans une tâche planifiée pour une surveillance proactive. Les certificats expirés causent des erreurs SSL/TLS.",
+  "links": [
+    {
+      "title": "Documentation Certificate Management",
+      "url": "https://learn.microsoft.com/en-us/powershell/module/pki/"
+    }
+  ]
+}

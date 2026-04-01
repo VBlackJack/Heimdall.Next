@@ -1,0 +1,118 @@
+{
+  "id": "unified-file-disk-usage",
+  "title": "Vérifier l'espace disque",
+  "description": "Affiche l'utilisation de l'espace disque pour les volumes.",
+  "category": "📁 Files & Storage",
+  "platform": 2,
+  "supportedPlatforms": [
+    0,
+    1
+  ],
+  "level": 0,
+  "tags": [
+    "espace",
+    "windows",
+    "linux",
+    "disque",
+    "usage",
+    "df",
+    "disk"
+  ],
+  "notes": "Windows: Affiche l'espace utilisé et libre pour chaque volume.\nLinux: -h pour format lisible (GB, MB). -i pour voir les inodes.",
+  "links": [],
+  "windowsCommandTemplateId": "file-disk-usage-windows-cmd",
+  "windowsCommandTemplate": {
+    "id": "file-disk-usage-windows-cmd",
+    "platform": 0,
+    "name": "Get-PSDrive",
+    "commandPattern": "Get-PSDrive -PSProvider FileSystem | Select-Object Name,Used,Free,@{Name='Size';Expression={$_.Used+$_.Free}} | Format-Table -AutoSize",
+    "parameters": []
+  },
+  "windowsExamples": [
+    {
+      "command": "Get-PSDrive -PSProvider FileSystem | Select-Object Name,Used,Free,@{Name='Size';Expression={$_.Used+$_.Free}} | Format-Table -AutoSize",
+      "description": "Affiche l'espace disque pour tous les lecteurs",
+      "platform": 0
+    },
+    {
+      "command": "Get-PSDrive -PSProvider FileSystem | Select-Object * -First 1",
+      "description": "Affiche toutes les propriétés du premier objet retourné. Select-Object * élargit l'affichage pour montrer toutes les colonnes. -First 1 limite au premier résultat. Utilisez cette commande pour découvrir les propriétés disponibles avant de filtrer.",
+      "platform": 0
+    },
+    {
+      "command": "Get-PSDrive -PSProvider FileSystem | Export-Csv C:\\Temp\\Export.csv -NoTypeInformation -Encoding UTF8",
+      "description": "Exporte les résultats vers un fichier CSV exploitable dans Excel. -NoTypeInformation supprime la ligne de métadonnées. -Encoding UTF8 garantit la compatibilité des caractères accentués. Utile pour l'archivage, les rapports et l'analyse externe.",
+      "platform": 0
+    },
+    {
+      "command": "Get-PSDrive -PSProvider FileSystem | Measure-Object",
+      "description": "Compte le nombre total d'objets retournés. Measure-Object retourne Count, Sum, Average, Min, Max selon les propriétés. Utile pour les statistiques rapides et la validation de résultats.",
+      "platform": 0
+    },
+    {
+      "command": "Get-PSDrive -PSProvider FileSystem | Select-Object Name,Used,Free,@{Name='Size';Expression={$_.Used+$_.Free}} | Format-Table -AutoSize",
+      "description": "Cas d'usage standard. Affiche l'utilisation de l'espace disque pour les volumes. Consultez la documentation pour des paramètres avancés et des options de filtrage.",
+      "platform": 0
+    }
+  ],
+  "linuxCommandTemplateId": "file-disk-usage-linux-cmd",
+  "linuxCommandTemplate": {
+    "id": "file-disk-usage-linux-cmd",
+    "platform": 1,
+    "name": "df",
+    "commandPattern": "df -h",
+    "parameters": []
+  },
+  "linuxExamples": [
+    {
+      "command": "df -h",
+      "description": "Affiche l'espace disque en format lisible",
+      "platform": 1
+    },
+    {
+      "command": "df -h /home",
+      "description": "Affiche l'espace pour un point de montage spécifique",
+      "platform": 1
+    },
+    {
+      "command": "man df",
+      "description": "Affiche le manuel complet de df. Les pages man fournissent la documentation détaillée : syntaxe, paramètres, exemples, notes. Plus complet que --help. Naviguez avec flèches, cherchez avec '/', quittez avec 'q'.",
+      "platform": 1
+    },
+    {
+      "command": "df -h",
+      "description": "Cas d'usage standard. Affiche l'utilisation de l'espace disque pour les systèmes de fichiers montés. Consultez la documentation pour des paramètres avancés et des options de filtrage.",
+      "platform": 1
+    },
+    {
+      "command": "df -h",
+      "description": "Exemple Linux pour Vérifier l'espace disque",
+      "platform": 1
+    },
+    {
+      "command": "df -h /home",
+      "description": "Espace disque du point de montage /home",
+      "platform": 1
+    },
+    {
+      "command": "df -T",
+      "description": "Afficher le type de filesystem",
+      "platform": 1
+    },
+    {
+      "command": "df -h --total",
+      "description": "Avec le total global",
+      "platform": 1
+    }
+  ],
+  "crossPlatformNotes": {
+    "differences": [
+      "Syntaxe: Windows utilise 'Get-PSDrive', Linux utilise 'df'"
+    ],
+    "commonalities": [
+      "Les deux permettent de vérifier l'espace disque",
+      "Fonctionnalité équivalente sur les deux plateformes"
+    ]
+  },
+  "examples": []
+}

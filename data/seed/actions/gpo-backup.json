@@ -1,0 +1,63 @@
+{
+  "id": "gpo-backup",
+  "title": "Sauvegarder une GPO",
+  "description": "Crée une sauvegarde d'une stratégie de groupe spécifique.",
+  "category": "🏢 Active Directory & GPO",
+  "platform": 0,
+  "level": 1,
+  "tags": [
+    "gpo",
+    "backup",
+    "save",
+    "group-policy"
+  ],
+  "windowsCommandTemplateId": "gpo-backup-cmd",
+  "windowsCommandTemplate": {
+    "id": "gpo-backup-cmd",
+    "platform": 0,
+    "name": "Backup-GPO",
+    "commandPattern": "Backup-GPO -Name \"{gpoName}\" -Path \"{backupPath}\"",
+    "parameters": [
+      {
+        "name": "gpoName",
+        "label": "Nom de la GPO",
+        "type": "string",
+        "defaultValue": "",
+        "required": true,
+        "description": "Nom de la GPO à sauvegarder"
+      },
+      {
+        "name": "backupPath",
+        "label": "Chemin de sauvegarde",
+        "type": "string",
+        "defaultValue": "C:\\GPOBackups",
+        "required": true,
+        "description": "Chemin du dossier de sauvegarde"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "Backup-GPO -Name \"Default Domain Policy\" -Path \"C:\\GPOBackups\"",
+      "description": "Sauvegarde la Default Domain Policy dans C:\\GPOBackups",
+      "platform": 0
+    },
+    {
+      "command": "Backup-GPO -Name \"Security-Baseline\" -Path \"D:\\Backups\\daily\"",
+      "description": "Exécution standard de la commande None. Consultez la documentation officielle avec Get-Help Backup-GPO -Full pour plus de détails sur les paramètres disponibles et les cas d'usage avancés.",
+      "platform": 0
+    },
+    {
+      "command": "Backup-GPO -Name \"Security-Baseline\" -Path \"C:\\GPOBackups\"",
+      "description": "Exemple utilisant le paramètre 'backupPath': Chemin du dossier de sauvegarde. Remplacez D:\\Backups\\daily par la valeur appropriée selon votre environnement.",
+      "platform": 0
+    }
+  ],
+  "notes": "Le dossier de destination doit exister. La sauvegarde inclut tous les paramètres de la GPO.",
+  "links": [
+    {
+      "title": "Documentation Backup-GPO",
+      "url": "https://learn.microsoft.com/en-us/powershell/module/grouppolicy/backup-gpo"
+    }
+  ]
+}

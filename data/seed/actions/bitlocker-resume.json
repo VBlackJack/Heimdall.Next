@@ -1,0 +1,64 @@
+{
+  "id": "bitlocker-resume",
+  "title": "Réactiver la protection BitLocker",
+  "description": "Réactive la protection BitLocker après une suspension temporaire.",
+  "category": "🔒 Security & Encryption",
+  "platform": 0,
+  "level": 1,
+  "tags": [
+    "bitlocker",
+    "resume",
+    "enable"
+  ],
+  "windowsCommandTemplateId": "bitlocker-resume-cmd",
+  "windowsCommandTemplate": {
+    "id": "bitlocker-resume-cmd",
+    "platform": 0,
+    "name": "Resume-BitLocker",
+    "commandPattern": "Resume-BitLocker -MountPoint \"{driveLetter}:\"",
+    "parameters": [
+      {
+        "name": "driveLetter",
+        "label": "Lettre du disque",
+        "type": "string",
+        "defaultValue": "C",
+        "required": true,
+        "description": "Lettre du volume (ex: C)"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "Resume-BitLocker -MountPoint C:",
+      "description": "Réactive immédiatement la protection BitLocker sur C:",
+      "platform": 0
+    },
+    {
+      "command": "Get-BitLockerVolume | Where-Object {$_.ProtectionStatus -eq 'Off'} | ForEach-Object { Resume-BitLocker -MountPoint $_.MountPoint }",
+      "description": "Réactive BitLocker sur tous les volumes dont la protection est désactivée",
+      "platform": 0
+    },
+    {
+      "command": "Resume-BitLocker -MountPoint C:; Get-BitLockerVolume C: | Select-Object MountPoint,ProtectionStatus",
+      "description": "Réactive BitLocker puis vérifie que la protection est bien active",
+      "platform": 0
+    },
+    {
+      "command": "Resume-BitLocker -MountPoint \"C:\"",
+      "description": "Exemple utilisant le paramètre 'driveLetter': Lettre du volume (ex: C). Remplacez D par la valeur appropriée selon votre environnement.",
+      "platform": 0
+    },
+    {
+      "command": "Resume-BitLocker -MountPoint \"D:\"",
+      "description": "Cas d'usage standard. Réactive la protection BitLocker après une suspension temporaire. Consultez la documentation pour des paramètres avancés et des options de filtrage.",
+      "platform": 0
+    }
+  ],
+  "notes": "Utilisez après Suspend-BitLocker ou si la protection a été suspendue automatiquement. La réactivation est immédiate (pas besoin de redémarrage). Vérifiez que tous les protecteurs de clés sont toujours en place.",
+  "links": [
+    {
+      "title": "Resume-BitLocker Documentation",
+      "url": "https://learn.microsoft.com/en-us/powershell/module/bitlocker/resume-bitlocker"
+    }
+  ]
+}

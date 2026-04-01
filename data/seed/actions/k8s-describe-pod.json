@@ -1,0 +1,73 @@
+{
+  "id": "k8s-describe-pod",
+  "title": "Diagnostiquer un Pod (Kubectl Describe)",
+  "description": "Affiche les détails complets d'un pod, y compris les événements (Events) qui expliquent pourquoi il ne démarre pas.",
+  "category": "🐳 Containers & VMs",
+  "platform": 2,
+  "level": 0,
+  "tags": [
+    "k8s",
+    "kubernetes",
+    "debug",
+    "describe",
+    "events"
+  ],
+  "windowsCommandTemplate": {
+    "id": "727348e4-a095-45aa-bfdd-33e3d368c08b",
+    "platform": 0,
+    "name": "kubectl",
+    "commandPattern": "kubectl describe pod {podName} -n {namespace}",
+    "parameters": [
+      {
+        "name": "podName",
+        "label": "Nom du Pod",
+        "type": "string",
+        "defaultValue": "",
+        "required": true,
+        "description": "Nom exact du pod"
+      },
+      {
+        "name": "namespace",
+        "label": "Namespace",
+        "type": "string",
+        "defaultValue": "default",
+        "required": true,
+        "description": "Namespace du pod"
+      }
+    ]
+  },
+  "linuxCommandTemplate": {
+    "id": "0031e0a8-2119-4cdd-b19f-405372f2dbec",
+    "platform": 1,
+    "name": "kubectl",
+    "commandPattern": "kubectl describe pod {podName} -n {namespace}",
+    "parameters": [
+      {
+        "name": "podName",
+        "label": "Nom du Pod",
+        "type": "string",
+        "defaultValue": "",
+        "required": true,
+        "description": "Nom exact du pod"
+      },
+      {
+        "name": "namespace",
+        "label": "Namespace",
+        "type": "string",
+        "defaultValue": "default",
+        "required": true,
+        "description": "Namespace du pod"
+      }
+    ]
+  },
+  "examples": [],
+  "linuxExamples": [
+    {
+      "command": "kubectl describe pod my-app-xyz -n prod",
+      "description": "🔥 POURQUOI ÇA PLANTE ? : Regardez la section 'Events' tout en bas de la sortie. C'est là que K8s explique les erreurs (ImagePullBackOff, OOMKilled, FailedScheduling).",
+      "platform": 1
+    }
+  ],
+  "linuxCommandTemplateId": "0031e0a8-2119-4cdd-b19f-405372f2dbec",
+  "windowsCommandTemplateId": "727348e4-a095-45aa-bfdd-33e3d368c08b"
+}

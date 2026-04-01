@@ -1,0 +1,1058 @@
+/*
+ * Copyright 2025 Julien Bombled
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+using System.IO;
+using System.Text.Json;
+using System.Text.RegularExpressions;
+using TwinShell.Core.Enums;
+using TwinShell.Core.Helpers;
+using TwinShell.Core.Interfaces;
+using TwinShell.Core.Models;
+
+namespace TwinShell.Infrastructure.Services;
+
+/// <summary>
+/// Service for GitOps synchronization of TwinShell data via JSON files.
+/// Enables collaborative editing through Git-synchronized folders.
+/// Decoupled from database context - uses repository interfaces for data access.
+/// </summary>
+public class JsonSyncService : ISyncService
+{
+    private readonly IActionRepository _actionRepository;
+    private readonly IBatchRepository _batchRepository;
+    private readonly ICustomCategoryRepository _categoryRepository;
+    private readonly ICommandTemplateRepository _templateRepository;
+    private readonly IUnitOfWork? _unitOfWork;
+    private readonly JsonSerializerOptions _jsonOptions;
+
+    // Folder structure constants
+    private const string ActionsFolderName = "actions";
+    private const string BatchesFolderName = "batches";
+    private const string TemplatesFolderName = "templates";
+    private const string CategoriesFolderName = "categories";
+
+    // File size limit for security (100KB per individual sync file)
+    private const long MaxFileSizeBytes = 100 * 1024; // 100 KB
+
+    public JsonSyncService(
+        IActionRepository actionRepository,
+        IBatchRepository batchRepository,
+        ICustomCategoryRepository categoryRepository,
+        ICommandTemplateRepository templateRepository,
+        IUnitOfWork? unitOfWork = null)
+    {
+        _actionRepository = actionRepository;
+        _batchRepository = batchRepository;
+        _categoryRepository = categoryRepository;
+        _templateRepository = templateRepository;
+        _unitOfWork = unitOfWork;
+        _jsonOptions = JsonOptionsHelper.SyncService;
+    }
+
+    #region Export
+
+    public async Task<SyncExportResult> ExportDataToYamlAsync(string rootFolderPath)
+    {
+        var result = new SyncExportResult { Success = true };
+
+        try
+        {
+            // Create folder structure
+            EnsureDirectoryExists(rootFolderPath);
+            EnsureDirectoryExists(Path.Combine(rootFolderPath, ActionsFolderName));
+            EnsureDirectoryExists(Path.Combine(rootFolderPath, BatchesFolderName));
+            EnsureDirectoryExists(Path.Combine(rootFolderPath, TemplatesFolderName));
+            EnsureDirectoryExists(Path.Combine(rootFolderPath, CategoriesFolderName));
+
+            // Export categories first (they may be referenced by actions)
+            result.CategoriesExported = await ExportCategoriesAsync(rootFolderPath, result);
+
+            // Export templates (they may be referenced by actions)
+            result.TemplatesExported = await ExportTemplatesAsync(rootFolderPath, result);
+
+            // Export actions (organized by category)
+            result.ActionsExported = await ExportActionsAsync(rootFolderPath, result);
+
+            // Export batches
+            result.BatchesExported = await ExportBatchesAsync(rootFolderPath, result);
+        }
+        catch (Exception ex)
+        {
+            result.Success = false;
+            result.Errors.Add($"Export failed: {ex.Message}");
+        }
+
+        return result;
+    }
+
+    private async Task<int> ExportCategoriesAsync(string rootFolderPath, SyncExportResult result)
+    {
+        var categoriesPath = Path.Combine(rootFolderPath, CategoriesFolderName);
+        var categories = await _categoryRepository.GetAllAsync();
+        int count = 0;
+
+        foreach (var category in categories)
+        {
+            try
+            {
+                var model = new CategoryModel
+                {
+                    Id = category.PublicId,
+                    Name = category.Name,
+                    Description = category.Description,
+                    IconKey = category.IconKey,
+                    ColorHex = category.ColorHex,
+                    IsSystemCategory = category.IsSystemCategory,
+                    DisplayOrder = category.DisplayOrder,
+                    IsHidden = category.IsHidden
+                };
+
+                var fileName = SanitizeFileName(category.Name) + ".json";
+                var filePath = Path.Combine(categoriesPath, fileName);
+
+                await WriteJsonFileAsync(filePath, model);
+                count++;
+            }
+            catch (Exception ex)
+            {
+                result.Warnings.Add($"Failed to export category '{category.Name}': {ex.Message}");
+            }
+        }
+
+        return count;
+    }
+
+    private async Task<int> ExportTemplatesAsync(string rootFolderPath, SyncExportResult result)
+    {
+        var templatesPath = Path.Combine(rootFolderPath, TemplatesFolderName);
+        var templates = await _templateRepository.GetAllAsync();
+        int count = 0;
+
+        foreach (var template in templates)
+        {
+            try
+            {
+                var parameters = template.Parameters.Select(p => new TemplateParameterModel
+                {
+                    Name = p.Name,
+                    Label = p.Label,
+                    Type = p.Type,
+                    DefaultValue = p.DefaultValue,
+                    Required = p.Required,
+                    Description = p.Description
+                }).ToList();
+
+                var model = new TemplateModel
+                {
+                    Id = template.PublicId,
+                    Name = template.Name,
+                    Platform = template.Platform.ToString(),
+                    CommandPattern = template.CommandPattern,
+                    Parameters = parameters
+                };
+
+                var fileName = SanitizeFileName(template.Name) + ".json";
+                var filePath = Path.Combine(templatesPath, fileName);
+
+                await WriteJsonFileAsync(filePath, model);
+                count++;
+            }
+            catch (Exception ex)
+            {
+                result.Warnings.Add($"Failed to export template '{template.Name}': {ex.Message}");
+            }
+        }
+
+        return count;
+    }
+
+    private async Task<int> ExportActionsAsync(string rootFolderPath, SyncExportResult result)
+    {
+        var actionsPath = Path.Combine(rootFolderPath, ActionsFolderName);
+        var actions = await _actionRepository.GetAllWithTemplatesAsync();
+
+        int count = 0;
+
+        foreach (var action in actions)
+        {
+            try
+            {
+                // Create category subfolder
+                var categoryFolder = SanitizeFileName(action.Category);
+                var categoryPath = Path.Combine(actionsPath, categoryFolder);
+                EnsureDirectoryExists(categoryPath);
+
+                // Get template references by PublicId
+                Guid? windowsTemplatePublicId = action.WindowsCommandTemplate?.PublicId;
+                Guid? linuxTemplatePublicId = action.LinuxCommandTemplate?.PublicId;
+
+                var model = new ActionModel
+                {
+                    Id = action.PublicId,
+                    Title = action.Title,
+                    Description = action.Description,
+                    Category = action.Category,
+                    Platform = action.Platform.ToString(),
+                    Level = action.Level.ToString(),
+                    Tags = action.Tags,
+                    WindowsTemplateId = windowsTemplatePublicId,
+                    LinuxTemplateId = linuxTemplatePublicId,
+                    Examples = action.Examples.Select(e => new ExampleModel
+                    {
+                        Command = e.Command,
+                        Description = e.Description,
+                        Platform = e.Platform.ToString()
+                    }).ToList(),
+                    WindowsExamples = action.WindowsExamples.Select(e => new ExampleModel
+                    {
+                        Command = e.Command,
+                        Description = e.Description,
+                        Platform = e.Platform.ToString()
+                    }).ToList(),
+                    LinuxExamples = action.LinuxExamples.Select(e => new ExampleModel
+                    {
+                        Command = e.Command,
+                        Description = e.Description,
+                        Platform = e.Platform.ToString()
+                    }).ToList(),
+                    Notes = action.Notes,
+                    Links = action.Links.Select(l => new LinkModel
+                    {
+                        Title = l.Title,
+                        Url = l.Url
+                    }).ToList(),
+                    IsUserCreated = action.IsUserCreated,
+                    UpdatedAt = action.UpdatedAt
+                };
+
+                var fileName = SanitizeFileName(action.Title) + ".json";
+                var filePath = Path.Combine(categoryPath, fileName);
+
+                await WriteJsonFileAsync(filePath, model);
+                count++;
+            }
+            catch (Exception ex)
+            {
+                result.Warnings.Add($"Failed to export action '{action.Title}': {ex.Message}");
+            }
+        }
+
+        return count;
+    }
+
+    private async Task<int> ExportBatchesAsync(string rootFolderPath, SyncExportResult result)
+    {
+        var batchesPath = Path.Combine(rootFolderPath, BatchesFolderName);
+        var batches = await _batchRepository.GetAllAsync();
+        int count = 0;
+
+        foreach (var batch in batches)
+        {
+            try
+            {
+                var commands = batch.Commands.Select(c => new BatchCommandModel
+                {
+                    Id = c.Id,
+                    Order = c.Order,
+                    ActionId = c.ActionId,
+                    ActionTitle = c.ActionTitle,
+                    Command = c.Command,
+                    Platform = c.Platform.ToString(),
+                    Description = c.Description
+                }).ToList();
+
+                var model = new BatchModel
+                {
+                    Id = batch.PublicId,
+                    Name = batch.Name,
+                    Description = batch.Description,
+                    ExecutionMode = batch.ExecutionMode.ToString(),
+                    Tags = batch.Tags,
+                    Commands = commands,
+                    IsUserCreated = batch.IsUserCreated,
+                    UpdatedAt = batch.UpdatedAt
+                };
+
+                var fileName = SanitizeFileName(batch.Name) + ".json";
+                var filePath = Path.Combine(batchesPath, fileName);
+
+                await WriteJsonFileAsync(filePath, model);
+                count++;
+            }
+            catch (Exception ex)
+            {
+                result.Warnings.Add($"Failed to export batch '{batch.Name}': {ex.Message}");
+            }
+        }
+
+        return count;
+    }
+
+    #endregion
+
+    #region Import
+
+    public async Task<SyncImportResult> ImportDataFromYamlAsync(string rootFolderPath)
+    {
+        var result = new SyncImportResult { Success = true };
+
+        try
+        {
+            // Start transaction for atomic import (all or nothing)
+            if (_unitOfWork != null)
+            {
+                await _unitOfWork.BeginTransactionAsync();
+            }
+
+            // Import in order: categories, templates, actions, batches
+            // (respecting dependencies)
+
+            var categoriesPath = Path.Combine(rootFolderPath, CategoriesFolderName);
+            if (Directory.Exists(categoriesPath))
+            {
+                await ImportCategoriesAsync(categoriesPath, result);
+            }
+
+            var templatesPath = Path.Combine(rootFolderPath, TemplatesFolderName);
+            if (Directory.Exists(templatesPath))
+            {
+                await ImportTemplatesAsync(templatesPath, result);
+            }
+
+            var actionsPath = Path.Combine(rootFolderPath, ActionsFolderName);
+            if (Directory.Exists(actionsPath))
+            {
+                await ImportActionsAsync(actionsPath, result);
+            }
+
+            var batchesPath = Path.Combine(rootFolderPath, BatchesFolderName);
+            if (Directory.Exists(batchesPath))
+            {
+                await ImportBatchesAsync(batchesPath, result);
+            }
+
+            // Commit transaction if successful
+            if (_unitOfWork != null && result.Success)
+            {
+                await _unitOfWork.CommitTransactionAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            result.Success = false;
+            result.Errors.Add($"Import failed: {ex.Message}");
+
+            // Rollback transaction on failure
+            if (_unitOfWork != null)
+            {
+                try
+                {
+                    await _unitOfWork.RollbackTransactionAsync();
+                    result.Errors.Add("All changes have been rolled back.");
+                }
+                catch (Exception rollbackEx)
+                {
+                    result.Errors.Add($"Rollback failed: {rollbackEx.Message}");
+                }
+            }
+        }
+
+        return result;
+    }
+
+    private async Task ImportCategoriesAsync(string folderPath, SyncImportResult result)
+    {
+        var files = Directory.GetFiles(folderPath, "*.json", SearchOption.TopDirectoryOnly);
+
+        foreach (var filePath in files)
+        {
+            try
+            {
+                if (!ValidateFileSize(filePath))
+                {
+                    result.Warnings.Add($"File too large, skipped: {filePath}");
+                    continue;
+                }
+
+                var json = await File.ReadAllTextAsync(filePath);
+
+                // SECURITY: Validate JSON against schema before processing
+                var validationResult = JsonSchemaValidator.ValidateCategory(json);
+                if (!validationResult.IsValid)
+                {
+                    result.Warnings.Add($"Schema validation failed for '{Path.GetFileName(filePath)}': {string.Join("; ", validationResult.Errors.Take(3))}");
+                    continue;
+                }
+
+                var model = JsonSerializer.Deserialize<CategoryModel>(json, _jsonOptions);
+
+                if (model == null || model.Id == Guid.Empty)
+                {
+                    result.Warnings.Add($"Invalid category file: {filePath}");
+                    continue;
+                }
+
+                var existing = await _categoryRepository.GetByPublicIdAsync(model.Id);
+
+                if (existing != null)
+                {
+                    // Update existing
+                    existing.Name = model.Name;
+                    existing.Description = model.Description;
+                    existing.IconKey = model.IconKey ?? "folder";
+                    existing.ColorHex = model.ColorHex ?? "#2196F3";
+                    existing.IsSystemCategory = model.IsSystemCategory;
+                    existing.DisplayOrder = model.DisplayOrder;
+                    existing.IsHidden = model.IsHidden;
+
+                    await _categoryRepository.UpdateAsync(existing);
+                    result.CategoriesUpdated++;
+                }
+                else
+                {
+                    // Create new
+                    var category = new CustomCategory
+                    {
+                        Id = Guid.NewGuid().ToString(),
+                        PublicId = model.Id,
+                        Name = model.Name,
+                        Description = model.Description,
+                        IconKey = model.IconKey ?? "folder",
+                        ColorHex = model.ColorHex ?? "#2196F3",
+                        IsSystemCategory = model.IsSystemCategory,
+                        DisplayOrder = model.DisplayOrder,
+                        IsHidden = model.IsHidden
+                    };
+                    await _categoryRepository.CreateAsync(category);
+                    result.CategoriesCreated++;
+                }
+            }
+            catch (Exception ex)
+            {
+                result.Warnings.Add($"Failed to import category from '{Path.GetFileName(filePath)}': {ex.Message}");
+            }
+        }
+    }
+
+    private async Task ImportTemplatesAsync(string folderPath, SyncImportResult result)
+    {
+        var files = Directory.GetFiles(folderPath, "*.json", SearchOption.TopDirectoryOnly);
+
+        foreach (var filePath in files)
+        {
+            try
+            {
+                if (!ValidateFileSize(filePath))
+                {
+                    result.Warnings.Add($"File too large, skipped: {filePath}");
+                    continue;
+                }
+
+                var json = await File.ReadAllTextAsync(filePath);
+
+                // SECURITY: Validate JSON against schema before processing
+                var validationResult = JsonSchemaValidator.ValidateTemplate(json);
+                if (!validationResult.IsValid)
+                {
+                    result.Warnings.Add($"Schema validation failed for '{Path.GetFileName(filePath)}': {string.Join("; ", validationResult.Errors.Take(3))}");
+                    continue;
+                }
+
+                var model = JsonSerializer.Deserialize<TemplateModel>(json, _jsonOptions);
+
+                if (model == null || model.Id == Guid.Empty)
+                {
+                    result.Warnings.Add($"Invalid template file: {filePath}");
+                    continue;
+                }
+
+                if (!Enum.TryParse<Platform>(model.Platform, true, out var platform))
+                {
+                    platform = Platform.Windows;
+                }
+
+                var parameters = (model.Parameters ?? new List<TemplateParameterModel>())
+                    .Select(p => new TemplateParameter
+                    {
+                        Name = p.Name,
+                        Label = p.Label,
+                        Type = p.Type ?? "string",
+                        DefaultValue = p.DefaultValue,
+                        Required = p.Required,
+                        Description = p.Description
+                    }).ToList();
+
+                var existing = await _templateRepository.GetByPublicIdAsync(model.Id);
+
+                if (existing != null)
+                {
+                    // Update existing
+                    existing.Name = model.Name;
+                    existing.Platform = platform;
+                    existing.CommandPattern = model.CommandPattern;
+                    existing.Parameters = parameters;
+
+                    await _templateRepository.UpdateAsync(existing);
+                    result.TemplatesUpdated++;
+                }
+                else
+                {
+                    // Create new
+                    var template = new CommandTemplate
+                    {
+                        Id = Guid.NewGuid().ToString(),
+                        PublicId = model.Id,
+                        Name = model.Name,
+                        Platform = platform,
+                        CommandPattern = model.CommandPattern,
+                        Parameters = parameters
+                    };
+                    await _templateRepository.AddAsync(template);
+                    result.TemplatesCreated++;
+                }
+            }
+            catch (Exception ex)
+            {
+                result.Warnings.Add($"Failed to import template from '{Path.GetFileName(filePath)}': {ex.Message}");
+            }
+        }
+    }
+
+    private async Task ImportActionsAsync(string folderPath, SyncImportResult result)
+    {
+        // Recursively find all JSON files (organized by category subfolders)
+        var files = Directory.GetFiles(folderPath, "*.json", SearchOption.AllDirectories);
+
+        foreach (var filePath in files)
+        {
+            try
+            {
+                if (!ValidateFileSize(filePath))
+                {
+                    result.Warnings.Add($"File too large, skipped: {filePath}");
+                    continue;
+                }
+
+                var json = await File.ReadAllTextAsync(filePath);
+
+                // SECURITY: Validate JSON against schema before processing
+                var validationResult = JsonSchemaValidator.ValidateAction(json);
+                if (!validationResult.IsValid)
+                {
+                    result.Warnings.Add($"Schema validation failed for '{Path.GetFileName(filePath)}': {string.Join("; ", validationResult.Errors.Take(3))}");
+                    continue;
+                }
+
+                var model = JsonSerializer.Deserialize<ActionModel>(json, _jsonOptions);
+
+                if (model == null || model.Id == Guid.Empty)
+                {
+                    result.Warnings.Add($"Invalid action file: {filePath}");
+                    continue;
+                }
+
+                if (!Enum.TryParse<Platform>(model.Platform, true, out var platform))
+                {
+                    platform = Platform.Windows;
+                }
+
+                if (!Enum.TryParse<CriticalityLevel>(model.Level, true, out var level))
+                {
+                    level = CriticalityLevel.Info;
+                }
+
+                // Resolve template references
+                CommandTemplate? windowsTemplate = null;
+                CommandTemplate? linuxTemplate = null;
+
+                if (model.WindowsTemplateId.HasValue)
+                {
+                    windowsTemplate = await _templateRepository.GetByPublicIdAsync(model.WindowsTemplateId.Value);
+                }
+
+                if (model.LinuxTemplateId.HasValue)
+                {
+                    linuxTemplate = await _templateRepository.GetByPublicIdAsync(model.LinuxTemplateId.Value);
+                }
+
+                var existing = await _actionRepository.GetByPublicIdAsync(model.Id);
+
+                if (existing != null)
+                {
+                    // Conflict detection: check if local is newer than remote
+                    var remoteUpdatedAt = model.UpdatedAt ?? DateTime.MinValue;
+                    if (existing.UpdatedAt > remoteUpdatedAt)
+                    {
+                        // Local is newer - this is a conflict
+                        result.Conflicts.Add(new SyncEntityConflict
+                        {
+                            EntityType = "Action",
+                            EntityId = model.Id,
+                            EntityName = model.Title,
+                            FilePath = filePath,
+                            LocalUpdatedAt = existing.UpdatedAt,
+                            RemoteUpdatedAt = remoteUpdatedAt,
+                            Resolution = SyncConflictResolution.KeepLocal
+                        });
+                        result.ActionsSkipped++;
+                        result.Warnings.Add($"Conflict: Action '{model.Title}' - local is newer, kept local version");
+                        continue;
+                    }
+
+                    // Update existing (remote is newer or same)
+                    existing.Title = model.Title;
+                    existing.Description = model.Description;
+                    existing.Category = model.Category;
+                    existing.Platform = platform;
+                    existing.Level = level;
+                    existing.Tags = model.Tags ?? new List<string>();
+                    existing.WindowsCommandTemplate = windowsTemplate;
+                    existing.LinuxCommandTemplate = linuxTemplate;
+                    existing.Examples = ParseExamples(model.Examples);
+                    existing.WindowsExamples = ParseExamples(model.WindowsExamples);
+                    existing.LinuxExamples = ParseExamples(model.LinuxExamples);
+                    existing.Notes = model.Notes;
+                    existing.Links = ParseLinks(model.Links);
+                    existing.IsUserCreated = model.IsUserCreated;
+                    existing.UpdatedAt = model.UpdatedAt ?? DateTime.UtcNow;
+
+                    await _actionRepository.UpdateAsync(existing);
+                    result.ActionsUpdated++;
+                }
+                else
+                {
+                    // Create new
+                    var action = new Core.Models.Action
+                    {
+                        Id = Guid.NewGuid().ToString(),
+                        PublicId = model.Id,
+                        Title = model.Title,
+                        Description = model.Description,
+                        Category = model.Category,
+                        Platform = platform,
+                        Level = level,
+                        Tags = model.Tags ?? new List<string>(),
+                        WindowsCommandTemplate = windowsTemplate,
+                        LinuxCommandTemplate = linuxTemplate,
+                        Examples = ParseExamples(model.Examples),
+                        WindowsExamples = ParseExamples(model.WindowsExamples),
+                        LinuxExamples = ParseExamples(model.LinuxExamples),
+                        Notes = model.Notes,
+                        Links = ParseLinks(model.Links),
+                        IsUserCreated = model.IsUserCreated,
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = model.UpdatedAt ?? DateTime.UtcNow
+                    };
+                    await _actionRepository.AddAsync(action);
+                    result.ActionsCreated++;
+                }
+            }
+            catch (Exception ex)
+            {
+                result.Warnings.Add($"Failed to import action from '{Path.GetFileName(filePath)}': {ex.Message}");
+            }
+        }
+    }
+
+    private async Task ImportBatchesAsync(string folderPath, SyncImportResult result)
+    {
+        var files = Directory.GetFiles(folderPath, "*.json", SearchOption.TopDirectoryOnly);
+
+        foreach (var filePath in files)
+        {
+            try
+            {
+                if (!ValidateFileSize(filePath))
+                {
+                    result.Warnings.Add($"File too large, skipped: {filePath}");
+                    continue;
+                }
+
+                var json = await File.ReadAllTextAsync(filePath);
+
+                // SECURITY: Validate JSON against schema before processing
+                var validationResult = JsonSchemaValidator.ValidateBatch(json);
+                if (!validationResult.IsValid)
+                {
+                    result.Warnings.Add($"Schema validation failed for '{Path.GetFileName(filePath)}': {string.Join("; ", validationResult.Errors.Take(3))}");
+                    continue;
+                }
+
+                var model = JsonSerializer.Deserialize<BatchModel>(json, _jsonOptions);
+
+                if (model == null || model.Id == Guid.Empty)
+                {
+                    result.Warnings.Add($"Invalid batch file: {filePath}");
+                    continue;
+                }
+
+                if (!Enum.TryParse<BatchExecutionMode>(model.ExecutionMode, true, out var executionMode))
+                {
+                    executionMode = BatchExecutionMode.StopOnError;
+                }
+
+                var commands = (model.Commands ?? new List<BatchCommandModel>())
+                    .Select(c => new BatchCommandItem
+                    {
+                        Id = c.Id ?? Guid.NewGuid().ToString(),
+                        Order = c.Order,
+                        ActionId = c.ActionId,
+                        ActionTitle = c.ActionTitle,
+                        Command = c.Command,
+                        Platform = Enum.TryParse<Platform>(c.Platform, true, out var p) ? p : Platform.Windows,
+                        Description = c.Description
+                    }).ToList();
+
+                var existing = await _batchRepository.GetByPublicIdAsync(model.Id);
+
+                if (existing != null)
+                {
+                    // Conflict detection: check if local is newer than remote
+                    var remoteUpdatedAt = model.UpdatedAt ?? DateTime.MinValue;
+                    if (existing.UpdatedAt > remoteUpdatedAt)
+                    {
+                        // Local is newer - this is a conflict
+                        result.Conflicts.Add(new SyncEntityConflict
+                        {
+                            EntityType = "Batch",
+                            EntityId = model.Id,
+                            EntityName = model.Name,
+                            FilePath = filePath,
+                            LocalUpdatedAt = existing.UpdatedAt,
+                            RemoteUpdatedAt = remoteUpdatedAt,
+                            Resolution = SyncConflictResolution.KeepLocal
+                        });
+                        result.BatchesSkipped++;
+                        result.Warnings.Add($"Conflict: Batch '{model.Name}' - local is newer, kept local version");
+                        continue;
+                    }
+
+                    // Update existing (remote is newer or same)
+                    existing.Name = model.Name;
+                    existing.Description = model.Description;
+                    existing.ExecutionMode = executionMode;
+                    existing.Commands = commands;
+                    existing.Tags = model.Tags ?? new List<string>();
+                    existing.IsUserCreated = model.IsUserCreated;
+                    existing.UpdatedAt = model.UpdatedAt ?? DateTime.UtcNow;
+
+                    await _batchRepository.UpdateAsync(existing);
+                    result.BatchesUpdated++;
+                }
+                else
+                {
+                    // Create new
+                    var batch = new CommandBatch
+                    {
+                        Id = Guid.NewGuid().ToString(),
+                        PublicId = model.Id,
+                        Name = model.Name,
+                        Description = model.Description,
+                        ExecutionMode = executionMode,
+                        Commands = commands,
+                        Tags = model.Tags ?? new List<string>(),
+                        IsUserCreated = model.IsUserCreated,
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = model.UpdatedAt ?? DateTime.UtcNow
+                    };
+                    await _batchRepository.AddAsync(batch);
+                    result.BatchesCreated++;
+                }
+            }
+            catch (Exception ex)
+            {
+                result.Warnings.Add($"Failed to import batch from '{Path.GetFileName(filePath)}': {ex.Message}");
+            }
+        }
+    }
+
+    #endregion
+
+    #region Validation
+
+    public async Task<SyncValidationResult> ValidateFolderAsync(string rootFolderPath)
+    {
+        var result = new SyncValidationResult { IsValid = true };
+
+        try
+        {
+            if (!Directory.Exists(rootFolderPath))
+            {
+                result.IsValid = false;
+                result.Errors.Add($"Folder does not exist: {rootFolderPath}");
+                return result;
+            }
+
+            // Check categories
+            var categoriesPath = Path.Combine(rootFolderPath, CategoriesFolderName);
+            if (Directory.Exists(categoriesPath))
+            {
+                result.CategoryFilesFound = await ValidateJsonFilesAsync<CategoryModel>(categoriesPath, result, "category");
+            }
+
+            // Check templates
+            var templatesPath = Path.Combine(rootFolderPath, TemplatesFolderName);
+            if (Directory.Exists(templatesPath))
+            {
+                result.TemplateFilesFound = await ValidateJsonFilesAsync<TemplateModel>(templatesPath, result, "template");
+            }
+
+            // Check actions (recursive)
+            var actionsPath = Path.Combine(rootFolderPath, ActionsFolderName);
+            if (Directory.Exists(actionsPath))
+            {
+                result.ActionFilesFound = await ValidateJsonFilesAsync<ActionModel>(actionsPath, result, "action", SearchOption.AllDirectories);
+            }
+
+            // Check batches
+            var batchesPath = Path.Combine(rootFolderPath, BatchesFolderName);
+            if (Directory.Exists(batchesPath))
+            {
+                result.BatchFilesFound = await ValidateJsonFilesAsync<BatchModel>(batchesPath, result, "batch");
+            }
+
+            if (result.TotalFilesFound == 0)
+            {
+                result.Warnings.Add("No JSON files found in the folder structure.");
+            }
+        }
+        catch (Exception ex)
+        {
+            result.IsValid = false;
+            result.Errors.Add($"Validation failed: {ex.Message}");
+        }
+
+        return result;
+    }
+
+    private async Task<int> ValidateJsonFilesAsync<T>(string folderPath, SyncValidationResult result, string entityType, SearchOption searchOption = SearchOption.TopDirectoryOnly)
+    {
+        var files = Directory.GetFiles(folderPath, "*.json", searchOption);
+        int validCount = 0;
+
+        foreach (var filePath in files)
+        {
+            try
+            {
+                if (!ValidateFileSize(filePath))
+                {
+                    result.Warnings.Add($"File too large: {Path.GetFileName(filePath)}");
+                    continue;
+                }
+
+                var json = await File.ReadAllTextAsync(filePath);
+                var model = JsonSerializer.Deserialize<T>(json, _jsonOptions);
+
+                if (model != null)
+                {
+                    validCount++;
+                }
+                else
+                {
+                    result.Warnings.Add($"Invalid {entityType} file: {Path.GetFileName(filePath)}");
+                }
+            }
+            catch (Exception ex)
+            {
+                result.Warnings.Add($"Failed to parse {entityType} file '{Path.GetFileName(filePath)}': {ex.Message}");
+            }
+        }
+
+        return validCount;
+    }
+
+    #endregion
+
+    #region Helpers
+
+    private static void EnsureDirectoryExists(string path)
+    {
+        if (!Directory.Exists(path))
+        {
+            Directory.CreateDirectory(path);
+        }
+    }
+
+    private async Task WriteJsonFileAsync<T>(string filePath, T model)
+    {
+        var json = JsonSerializer.Serialize(model, _jsonOptions);
+        await File.WriteAllTextAsync(filePath, json);
+    }
+
+    private static bool ValidateFileSize(string filePath)
+    {
+        var fileInfo = new FileInfo(filePath);
+        return fileInfo.Length <= MaxFileSizeBytes;
+    }
+
+    private static string SanitizeFileName(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return Guid.NewGuid().ToString();
+        }
+
+        // SECURITY: Protect against path traversal attacks
+        // Remove any path separators and parent directory references
+        var sanitized = name
+            .Replace("..", "")
+            .Replace("/", "_")
+            .Replace("\\", "_");
+
+        // Remove invalid characters
+        var invalidChars = Path.GetInvalidFileNameChars();
+        sanitized = new string(sanitized
+            .Select(c => invalidChars.Contains(c) ? '_' : c)
+            .ToArray());
+
+        // Replace multiple underscores with single
+        sanitized = Regex.Replace(sanitized, @"_+", "_");
+
+        // Trim and limit length
+        sanitized = sanitized.Trim('_').Trim();
+        if (sanitized.Length > 100)
+        {
+            sanitized = sanitized.Substring(0, 100);
+        }
+
+        // SECURITY: Final check - ensure no path traversal possible
+        if (sanitized.Contains("..") || Path.IsPathRooted(sanitized))
+        {
+            return Guid.NewGuid().ToString();
+        }
+
+        // If empty after sanitization, use GUID
+        return string.IsNullOrWhiteSpace(sanitized) ? Guid.NewGuid().ToString() : sanitized;
+    }
+
+    private static List<CommandExample> ParseExamples(List<ExampleModel>? models)
+    {
+        if (models == null) return new List<CommandExample>();
+
+        return models.Select(e => new CommandExample
+        {
+            Command = e.Command,
+            Description = e.Description,
+            Platform = Enum.TryParse<Platform>(e.Platform, true, out var p) ? p : Platform.Both
+        }).ToList();
+    }
+
+    private static List<ExternalLink> ParseLinks(List<LinkModel>? models)
+    {
+        if (models == null) return new List<ExternalLink>();
+
+        return models.Select(l => new ExternalLink
+        {
+            Title = l.Title,
+            Url = l.Url
+        }).ToList();
+    }
+
+    #endregion
+
+    #region JSON Models
+
+    private class CategoryModel
+    {
+        public Guid Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public string? IconKey { get; set; }
+        public string? ColorHex { get; set; }
+        public bool IsSystemCategory { get; set; }
+        public int DisplayOrder { get; set; }
+        public bool IsHidden { get; set; }
+    }
+
+    private class TemplateModel
+    {
+        public Guid Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string Platform { get; set; } = "Windows";
+        public string CommandPattern { get; set; } = string.Empty;
+        public List<TemplateParameterModel>? Parameters { get; set; }
+    }
+
+    private class TemplateParameterModel
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Label { get; set; } = string.Empty;
+        public string Type { get; set; } = "string";
+        public string? DefaultValue { get; set; }
+        public bool Required { get; set; }
+        public string? Description { get; set; }
+    }
+
+    private class ActionModel
+    {
+        public Guid Id { get; set; }
+        public string Title { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public string Category { get; set; } = string.Empty;
+        public string Platform { get; set; } = "Windows";
+        public string Level { get; set; } = "Info";
+        public List<string>? Tags { get; set; }
+        public Guid? WindowsTemplateId { get; set; }
+        public Guid? LinuxTemplateId { get; set; }
+        public List<ExampleModel>? Examples { get; set; }
+        public List<ExampleModel>? WindowsExamples { get; set; }
+        public List<ExampleModel>? LinuxExamples { get; set; }
+        public string? Notes { get; set; }
+        public List<LinkModel>? Links { get; set; }
+        public bool IsUserCreated { get; set; }
+        /// <summary>Timestamp for conflict detection during sync</summary>
+        public DateTime? UpdatedAt { get; set; }
+    }
+
+    private class ExampleModel
+    {
+        public string Command { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public string? Platform { get; set; }
+    }
+
+    private class LinkModel
+    {
+        public string Title { get; set; } = string.Empty;
+        public string Url { get; set; } = string.Empty;
+    }
+
+    private class BatchModel
+    {
+        public Guid Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public string ExecutionMode { get; set; } = "StopOnError";
+        public List<string>? Tags { get; set; }
+        public List<BatchCommandModel>? Commands { get; set; }
+        public bool IsUserCreated { get; set; }
+        /// <summary>Timestamp for conflict detection during sync</summary>
+        public DateTime? UpdatedAt { get; set; }
+    }
+
+    private class BatchCommandModel
+    {
+        public string? Id { get; set; }
+        public int Order { get; set; }
+        public string? ActionId { get; set; }
+        public string ActionTitle { get; set; } = string.Empty;
+        public string Command { get; set; } = string.Empty;
+        public string? Platform { get; set; }
+        public string? Description { get; set; }
+    }
+
+    #endregion
+}

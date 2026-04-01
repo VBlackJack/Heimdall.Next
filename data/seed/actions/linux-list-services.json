@@ -1,0 +1,31 @@
+{
+  "id": "linux-list-services",
+  "title": "Lister tous les services",
+  "description": "Affiche la liste de tous les services systemd avec leur état.",
+  "category": "⚙️ Services & Automation",
+  "platform": 1,
+  "level": 0,
+  "tags": [
+    "linux",
+    "systemd",
+    "service",
+    "list"
+  ],
+  "linuxCommandTemplateId": "linux-list-services-cmd",
+  "linuxCommandTemplate": {
+    "id": "linux-list-services-cmd",
+    "platform": 1,
+    "name": "systemctl",
+    "commandPattern": "systemctl list-units --type=service --all",
+    "parameters": []
+  },
+  "examples": [
+    {
+      "command": "systemctl list-units --type=service --all",
+      "description": "Liste tous les services",
+      "platform": 1
+    }
+  ],
+  "notes": "Utiliser --state=failed pour voir les services en échec.",
+  "links": []
+}

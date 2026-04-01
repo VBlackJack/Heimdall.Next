@@ -1,0 +1,51 @@
+{
+  "id": "sccm-trigger-app-deployment-eval",
+  "title": "Déclencher l'évaluation des déploiements d'applications",
+  "description": "Force l'évaluation de tous les déploiements d'applications SCCM pour vérifier les nouvelles applications disponibles",
+  "category": "🔄 Windows Updates",
+  "platform": 0,
+  "level": 0,
+  "tags": [
+    "sccm",
+    "application",
+    "deployment",
+    "trigger"
+  ],
+  "windowsCommandTemplateId": "sccm-trigger-app-deployment-eval-cmd",
+  "windowsCommandTemplate": {
+    "id": "sccm-trigger-app-deployment-eval-cmd",
+    "platform": 0,
+    "name": "Invoke-WmiMethod",
+    "commandPattern": "Invoke-WmiMethod -Namespace root\\ccm -Class sms_client -Name TriggerSchedule '{00000000-0000-0000-0000-000000000121}' -ErrorAction Stop",
+    "parameters": []
+  },
+  "examples": [
+    {
+      "command": "ss -tulpn",
+      "description": "🔥 STANDARD LINUX : Liste tous les ports TCP/UDP en écoute (-tul) avec les processus associés (-p) et sans résolution DNS (-n). La commande de référence pour savoir 'qui écoute sur ce port'.",
+      "platform": 1
+    },
+    {
+      "command": "ss -s",
+      "description": "Résumé statistique rapide des sockets (Total, TCP, UDP). Utile pour détecter une saturation de sockets ou une attaque DDoS.",
+      "platform": 1
+    },
+    {
+      "command": "Invoke-WmiMethod -Namespace root\\ccm -Class sms_client -Name TriggerSchedule '{00000000-0000-0000-0000-000000000121}'",
+      "description": "Déclenche l'évaluation des déploiements d'applications",
+      "platform": 0
+    },
+    {
+      "command": "Invoke-WmiMethod -Namespace root\\ccm -Class sms_client -Name TriggerSchedule '{00000000-0000-0000-0000-000000000121}' -ErrorAction Stop",
+      "description": "Exécution standard de la commande None. Consultez la documentation officielle avec Get-Help Invoke-WmiMethod -Full pour plus de détails sur les paramètres disponibles et les cas d'usage avancés.",
+      "platform": 0
+    }
+  ],
+  "notes": "Schedule ID {121} = Application Deployment Evaluation Cycle. Utile pour forcer la vérification de nouvelles applications déployées.",
+  "links": [
+    {
+      "title": "SCCM Client Actions PowerShell",
+      "url": "https://sccmpowershell.com/trigger-sccm-client-actions-remotely"
+    }
+  ]
+}

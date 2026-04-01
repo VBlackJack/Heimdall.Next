@@ -1,0 +1,60 @@
+{
+  "id": "pswindowsupdate-uninstall",
+  "title": "Désinstaller une mise à jour Windows",
+  "description": "Désinstalle une mise à jour Windows spécifique par son numéro KB",
+  "category": "🔄 Windows Updates",
+  "platform": 0,
+  "level": 2,
+  "tags": [
+    "windows-update",
+    "uninstall",
+    "remove",
+    "pswindowsupdate"
+  ],
+  "windowsCommandTemplateId": "pswindowsupdate-uninstall-cmd",
+  "windowsCommandTemplate": {
+    "id": "pswindowsupdate-uninstall-cmd",
+    "platform": 0,
+    "name": "Uninstall-WindowsUpdate",
+    "commandPattern": "Uninstall-WindowsUpdate -KBArticleID {kbNumber} -Confirm:$false",
+    "parameters": [
+      {
+        "name": "kbNumber",
+        "label": "Numéro KB",
+        "type": "string",
+        "defaultValue": "KB5001234",
+        "required": true,
+        "description": "Numéro KB de la mise à jour à désinstaller"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "Uninstall-WindowsUpdate -KBArticleID KB5001234",
+      "description": "Désinstalle la mise à jour KB5001234",
+      "platform": 0
+    },
+    {
+      "command": "Uninstall-WindowsUpdate -KBArticleID KB5001234 -IgnoreReboot",
+      "description": "Désinstalle sans redémarrer automatiquement",
+      "platform": 0
+    },
+    {
+      "command": "Uninstall-WindowsUpdate -KBArticleID KB5012345 -Confirm:$false",
+      "description": "Exécution standard de la commande Uninstall. Consultez la documentation officielle avec Get-Help Uninstall-WindowsUpdate -Full pour plus de détails sur les paramètres disponibles et les cas d'usage avancés.",
+      "platform": 0
+    },
+    {
+      "command": "Uninstall-WindowsUpdate -KBArticleID KB5001234 -Confirm:$false",
+      "description": "Exemple utilisant le paramètre 'kbNumber': Numéro KB de la mise à jour à désinstaller. Remplacez KB5012345 par la valeur appropriée selon votre environnement.",
+      "platform": 0
+    }
+  ],
+  "notes": "DANGER: Peut nécessiter un redémarrage. Peut créer des instabilités système. Nécessite droits administrateur et PSWindowsUpdate.",
+  "links": [
+    {
+      "title": "Uninstall Windows Updates",
+      "url": "https://woshub.com/pswindowsupdate-module/"
+    }
+  ]
+}

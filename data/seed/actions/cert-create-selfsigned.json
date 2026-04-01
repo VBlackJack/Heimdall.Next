@@ -1,0 +1,87 @@
+{
+  "id": "cert-create-selfsigned",
+  "title": "Créer un certificat auto-signé",
+  "description": "Génère un nouveau certificat auto-signé pour des tests, développement ou usage interne. Non recommandé pour la production publique.",
+  "category": "🔒 Security & Encryption",
+  "platform": 0,
+  "level": 1,
+  "tags": [
+    "certificate",
+    "self-signed",
+    "create",
+    "ssl",
+    "tls",
+    "development",
+    "testing",
+    "crypto"
+  ],
+  "windowsCommandTemplateId": "cert-create-selfsigned-cmd",
+  "windowsCommandTemplate": {
+    "id": "cert-create-selfsigned-cmd",
+    "platform": 0,
+    "name": "New-SelfSignedCertificate",
+    "commandPattern": "New-SelfSignedCertificate -DnsName '{dnsName}' -CertStoreLocation Cert:\\LocalMachine\\My -NotAfter (Get-Date).AddYears({validityYears}) -KeyExportPolicy Exportable -KeySpec KeyExchange",
+    "parameters": [
+      {
+        "name": "dnsName",
+        "label": "Nom DNS",
+        "type": "string",
+        "defaultValue": "localhost",
+        "required": true,
+        "description": "Nom DNS ou Subject du certificat (ex: localhost, *.example.com)"
+      },
+      {
+        "name": "validityYears",
+        "label": "Validité (années)",
+        "type": "string",
+        "defaultValue": "1",
+        "required": true,
+        "description": "Durée de validité en années"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "New-SelfSignedCertificate -DnsName 'localhost' -CertStoreLocation Cert:\\LocalMachine\\My",
+      "description": "Certificat pour localhost",
+      "platform": 0
+    },
+    {
+      "command": "New-SelfSignedCertificate -DnsName 'myapp.local', 'www.myapp.local' -CertStoreLocation Cert:\\LocalMachine\\My -NotAfter (Get-Date).AddYears(2)",
+      "description": "Certificat multi-domaines valide 2 ans",
+      "platform": 0
+    },
+    {
+      "command": "$cert = New-SelfSignedCertificate -DnsName 'dev.example.com' -CertStoreLocation Cert:\\CurrentUser\\My; Export-PfxCertificate -Cert $cert -FilePath 'C:\\cert.pfx' -Password (ConvertTo-SecureString -String 'pass' -AsPlainText -Force)",
+      "description": "Crée et exporte immédiatement",
+      "platform": 0
+    },
+    {
+      "command": "New-SelfSignedCertificate -DnsName 'www.contoso.com' -CertStoreLocation Cert:\\LocalMachine\\My -NotAfter (Get-Date).AddYears(2) -KeyExportPolicy Exportable -KeySpec KeyExchange | Select-Object * -First 1",
+      "description": "Affiche toutes les propriétés du premier objet retourné. Select-Object * élargit l'affichage pour montrer toutes les colonnes. -First 1 limite au premier résultat. Utilisez cette commande pour découvrir les propriétés disponibles avant de filtrer.",
+      "platform": 0
+    },
+    {
+      "command": "New-SelfSignedCertificate -DnsName 'www.contoso.com' -CertStoreLocation Cert:\\LocalMachine\\My -NotAfter (Get-Date).AddYears(2) -KeyExportPolicy Exportable -KeySpec KeyExchange | Format-Table -AutoSize",
+      "description": "Affiche les résultats dans un tableau optimisé pour la console. Format-Table -AutoSize ajuste automatiquement la largeur des colonnes pour un affichage lisible. Idéal pour visualiser rapidement les données structurées.",
+      "platform": 0
+    },
+    {
+      "command": "New-SelfSignedCertificate -DnsName 'www.contoso.com' -CertStoreLocation Cert:\\LocalMachine\\My -NotAfter (Get-Date).AddYears(2) -KeyExportPolicy Exportable -KeySpec KeyExchange | Export-Csv C:\\Temp\\Export.csv -NoTypeInformation -Encoding UTF8",
+      "description": "Exporte les résultats vers un fichier CSV exploitable dans Excel. -NoTypeInformation supprime la ligne de métadonnées. -Encoding UTF8 garantit la compatibilité des caractères accentués. Utile pour l'archivage, les rapports et l'analyse externe.",
+      "platform": 0
+    },
+    {
+      "command": "New-SelfSignedCertificate -DnsName 'www.contoso.com' -CertStoreLocation Cert:\\LocalMachine\\My -NotAfter (Get-Date).AddYears(2) -KeyExportPolicy Exportable -KeySpec KeyExchange | Measure-Object",
+      "description": "Compte le nombre total d'objets retournés. Measure-Object retourne Count, Sum, Average, Min, Max selon les propriétés. Utile pour les statistiques rapides et la validation de résultats.",
+      "platform": 0
+    }
+  ],
+  "notes": "Les certificats auto-signés génèrent des avertissements de sécurité dans les navigateurs. Pour IIS, liez le certificat au site après création.",
+  "links": [
+    {
+      "title": "Documentation New-SelfSignedCertificate",
+      "url": "https://learn.microsoft.com/en-us/powershell/module/pki/new-selfsignedcertificate"
+    }
+  ]
+}

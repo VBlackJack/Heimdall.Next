@@ -1,0 +1,75 @@
+{
+  "id": "perf-memory-analysis",
+  "title": "Analyser l'utilisation mémoire détaillée",
+  "description": "Analyse détaillée de l'utilisation de la mémoire système: RAM totale, disponible, utilisée, et répartition par processus.",
+  "category": "⚡ Performance",
+  "platform": 2,
+  "level": 0,
+  "tags": [
+    "performance",
+    "memory",
+    "ram",
+    "diagnostic",
+    "monitoring",
+    "troubleshooting",
+    "capacity"
+  ],
+  "windowsCommandTemplateId": "perf-memory-analysis-win",
+  "windowsCommandTemplate": {
+    "id": "perf-memory-analysis-win",
+    "platform": 0,
+    "name": "Memory Analysis",
+    "commandPattern": "$os = Get-CimInstance Win32_OperatingSystem; $totalGB = [Math]::Round($os.TotalVisibleMemorySize/1MB, 2); $freeGB = [Math]::Round($os.FreePhysicalMemory/1MB, 2); $usedGB = $totalGB - $freeGB; $usedPct = [Math]::Round(($usedGB/$totalGB)*100, 2); Write-Host \"=== Memory Summary ===\"; Write-Host \"Total: $totalGB GB\"; Write-Host \"Used: $usedGB GB ($usedPct%)\"; Write-Host \"Free: $freeGB GB\"; Write-Host \"\n=== Top 10 Processes by Memory ===\"; Get-Process | Sort-Object WorkingSet -Descending | Select-Object -First 10 ProcessName, Id, @{Name='MemoryMB';Expression={[Math]::Round($_.WorkingSet/1MB,2)}} | Format-Table -AutoSize",
+    "parameters": []
+  },
+  "linuxCommandTemplateId": "perf-memory-analysis-linux",
+  "linuxCommandTemplate": {
+    "id": "perf-memory-analysis-linux",
+    "platform": 1,
+    "name": "free",
+    "commandPattern": "free -h && echo '\n=== Top Memory Processes ===' && ps aux --sort=-%mem | head -n 11",
+    "parameters": []
+  },
+  "examples": [],
+  "notes": "WorkingSet = mémoire physique (RAM). PrivateMemorySize = mémoire virtuelle privée. Sur Linux, buff/cache est de la mémoire disponible.",
+  "links": [
+    {
+      "title": "Documentation Win32_OperatingSystem",
+      "url": "https://learn.microsoft.com/en-us/windows/win32/cimwin32prov/win32-operatingsystem"
+    }
+  ],
+  "windowsExamples": [
+    {
+      "command": "systeminfo | findstr /C:\"Total Physical Memory\" /C:\"Available Physical Memory\"",
+      "description": "Mémoire système Windows (cmd.exe)",
+      "platform": 0
+    }
+  ],
+  "linuxExamples": [
+    {
+      "command": "free -h",
+      "description": "Affichage mémoire Linux (human-readable)",
+      "platform": 1
+    },
+    {
+      "command": "free -m",
+      "description": "Utilisation mémoire en Mo",
+      "platform": 1
+    },
+    {
+      "command": "free -s 5",
+      "description": "Rafraîchir toutes les 5 secondes",
+      "platform": 1
+    },
+    {
+      "command": "free -t",
+      "description": "Avec le total RAM + swap",
+      "platform": 1
+    },
+    {
+      "command": "free -w",
+      "description": "Afficher buffers et cache séparément",
+      "platform": 1
+    }
+  ]
+}

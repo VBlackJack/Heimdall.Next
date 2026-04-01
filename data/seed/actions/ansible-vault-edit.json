@@ -1,0 +1,91 @@
+{
+  "id": "ansible-vault-edit",
+  "title": "Éditer un fichier chiffré avec Ansible Vault",
+  "description": "Ouvre un fichier chiffré dans l'éditeur pour modification",
+  "category": "🔒 Security & Encryption",
+  "platform": 2,
+  "level": 1,
+  "tags": [
+    "ansible",
+    "vault",
+    "edit",
+    "encryption",
+    "security"
+  ],
+  "windowsCommandTemplateId": "ansible-vault-edit-win",
+  "windowsCommandTemplate": {
+    "id": "ansible-vault-edit-win",
+    "platform": 0,
+    "name": "ansible-vault",
+    "commandPattern": "ansible-vault edit {filePath}",
+    "parameters": [
+      {
+        "name": "filePath",
+        "label": "Fichier à éditer",
+        "type": "string",
+        "defaultValue": "secrets.yml",
+        "required": true,
+        "description": "Chemin du fichier chiffré à éditer"
+      }
+    ]
+  },
+  "linuxCommandTemplateId": "ansible-vault-edit-linux",
+  "linuxCommandTemplate": {
+    "id": "ansible-vault-edit-linux",
+    "platform": 1,
+    "name": "ansible-vault",
+    "commandPattern": "ansible-vault edit {filePath}",
+    "parameters": [
+      {
+        "name": "filePath",
+        "label": "Fichier à éditer",
+        "type": "string",
+        "defaultValue": "secrets.yml",
+        "required": true,
+        "description": "Chemin du fichier chiffré"
+      }
+    ]
+  },
+  "examples": [],
+  "notes": "Le fichier est automatiquement déchiffré pour l'édition et rechiffré à la sauvegarde.",
+  "links": [
+    {
+      "title": "Ansible Vault",
+      "url": "https://docs.ansible.com/ansible/latest/user_guide/vault.html"
+    }
+  ],
+  "windowsExamples": [
+    {
+      "command": "ansible-vault edit C:\\Data\\report.xlsx",
+      "description": "Exemple Windows utilisant ansible-vault. Remplacez les paramètres entre <> par vos valeurs.",
+      "platform": 0
+    }
+  ],
+  "linuxExamples": [
+    {
+      "command": "ansible-vault edit group_vars/all/vault.yml",
+      "description": "Édite le fichier vault du groupe 'all'",
+      "platform": 1
+    },
+    {
+      "command": "ansible-vault edit --vault-id prod@prompt secrets.yml",
+      "description": "Édite avec un vault-id spécifique",
+      "platform": 1
+    },
+    {
+      "command": "ansible-vault edit secrets.yml",
+      "description": "Exemple utilisant le paramètre 'filePath': Chemin du fichier chiffré à éditer. Remplacez C:\\Data\\report.xlsx par la valeur appropriée selon votre environnement.",
+      "platform": 1
+    },
+    {
+      "command": "ansible-vault edit group_vars/prod/vault.yml",
+      "description": "Éditer dans group_vars",
+      "platform": 1
+    },
+    {
+      "command": "EDITOR=nano ansible-vault edit secrets.yml",
+      "description": "Avec nano",
+      "platform": 1
+    }
+  ]
+}

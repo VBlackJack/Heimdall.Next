@@ -1,0 +1,44 @@
+{
+  "id": "unified-network-routing-table",
+  "title": "Afficher la table de routage",
+  "description": "Affiche la table de routage IP complète avec les routes par défaut et statiques",
+  "category": "🌐 Network & DNS",
+  "platform": 2,
+  "level": 0,
+  "tags": [
+    "network",
+    "routing",
+    "route",
+    "gateway",
+    "diagnostic",
+    "ip"
+  ],
+  "windowsCommandTemplateId": "unified-network-routing-table-win-cmd",
+  "windowsCommandTemplate": {
+    "id": "unified-network-routing-table-win-cmd",
+    "platform": 0,
+    "commandPattern": "Get-NetRoute -AddressFamily IPv4 | Where-Object {$_.NextHop -ne '0.0.0.0'} | Select-Object DestinationPrefix,NextHop,RouteMetric,InterfaceAlias | Sort-Object RouteMetric | Format-Table -AutoSize",
+    "parameters": []
+  },
+  "linuxCommandTemplateId": "unified-network-routing-table-linux-cmd",
+  "linuxCommandTemplate": {
+    "id": "unified-network-routing-table-linux-cmd",
+    "platform": 1,
+    "commandPattern": "ip route show",
+    "parameters": []
+  },
+  "parameters": [],
+  "examples": [],
+  "windowsExamples": [
+    {
+      "command": "route print -4",
+      "description": "🔥 ROUTAGE WINDOWS : Affiche la table de routage IPv4 standard. Plus lisible que Get-NetRoute pour les anciens admins.",
+      "platform": 0
+    },
+    {
+      "command": "Get-NetRoute -AddressFamily IPv4 | Where-Object {$_.NextHop -ne '0.0.0.0'} | Select-Object DestinationPrefix,NextHop,RouteMetric,InterfaceAlias | Sort-Object RouteMetric | Format-Table -AutoSize",
+      "description": "Affiche la table de routage IPv4 sur Windows",
+      "platform": 0
+    }
+  ]
+}

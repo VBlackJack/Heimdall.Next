@@ -1,0 +1,57 @@
+{
+  "id": "apt-upgrade",
+  "title": "Mettre à niveau les paquets installés",
+  "description": "Met à jour tous les paquets installés vers leurs dernières versions disponibles",
+  "category": "📦 Package Management",
+  "platform": 1,
+  "level": 1,
+  "tags": [
+    "apt",
+    "upgrade",
+    "update",
+    "debian",
+    "ubuntu"
+  ],
+  "linuxCommandTemplateId": "apt-upgrade-cmd",
+  "linuxCommandTemplate": {
+    "id": "apt-upgrade-cmd",
+    "platform": 1,
+    "name": "apt",
+    "commandPattern": "apt upgrade -y",
+    "parameters": []
+  },
+  "examples": [
+    {
+      "command": "sudo apt upgrade",
+      "description": "Met à niveau tous les paquets (avec confirmation)",
+      "platform": 1
+    },
+    {
+      "command": "sudo apt full-upgrade",
+      "description": "Met à niveau en gérant les dépendances changées",
+      "platform": 1
+    },
+    {
+      "command": "apt upgrade -y -v",
+      "description": "Exécute la commande en mode verbeux. Le flag -v (verbose) affiche chaque action effectuée en temps réel. Essentiel pour suivre la progression des opérations longues et vérifier que tout se déroule correctement.",
+      "platform": 1
+    },
+    {
+      "command": "apt upgrade -y --dry-run",
+      "description": "Simulation sans exécution réelle (dry-run). --dry-run affiche ce qui serait fait sans appliquer les changements. INDISPENSABLE avant les opérations de masse ou les modifications critiques.",
+      "platform": 1
+    },
+    {
+      "command": "apt upgrade -y",
+      "description": "Mettre à jour tous les paquets installés",
+      "platform": 1
+    }
+  ],
+  "notes": "Nécessite sudo. Exécuter apt update d'abord. full-upgrade peut supprimer des paquets obsolètes.",
+  "links": [
+    {
+      "title": "APT upgrade guide",
+      "url": "https://help.ubuntu.com/community/AptGet/Howto"
+    }
+  ]
+}

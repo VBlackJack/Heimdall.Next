@@ -1,0 +1,98 @@
+{
+  "id": "last-logins",
+  "title": "Afficher l'historique des connexions",
+  "description": "Liste les dernières connexions utilisateurs au système",
+  "category": "📊 Monitoring & Logs",
+  "platform": 1,
+  "level": 0,
+  "tags": [
+    "last",
+    "login",
+    "users",
+    "audit"
+  ],
+  "linuxCommandTemplateId": "last-cmd",
+  "linuxCommandTemplate": {
+    "id": "last-cmd",
+    "platform": 1,
+    "name": "last",
+    "commandPattern": "last -n {count} {username}",
+    "parameters": [
+      {
+        "name": "count",
+        "label": "Nombre d'entrées",
+        "type": "number",
+        "defaultValue": "20",
+        "required": true,
+        "description": "Nombre de connexions à afficher"
+      },
+      {
+        "name": "username",
+        "label": "Nom d'utilisateur",
+        "type": "string",
+        "defaultValue": "",
+        "required": false,
+        "description": "Filtrer par utilisateur (vide = tous)"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "last -n 20",
+      "description": "Affiche les 20 dernières connexions",
+      "platform": 1
+    },
+    {
+      "command": "last root",
+      "description": "Affiche toutes les connexions de l'utilisateur root",
+      "platform": 1
+    },
+    {
+      "command": "lastb",
+      "description": "Affiche les tentatives de connexion échouées",
+      "platform": 1
+    },
+    {
+      "command": "last -n 20 jdupont",
+      "description": "Exemple utilisant le paramètre 'count': Nombre de connexions à afficher. Remplacez 10 par la valeur appropriée selon votre environnement.",
+      "platform": 1
+    },
+    {
+      "command": "last -n 10 jdupont",
+      "description": "Exemple utilisant le paramètre 'username': Filtrer par utilisateur (vide = tous). Remplacez jdupont par la valeur appropriée selon votre environnement.",
+      "platform": 1
+    },
+    {
+      "command": "last",
+      "description": "Historique des connexions",
+      "platform": 1
+    },
+    {
+      "command": "last -x",
+      "description": "Inclure shutdown et runlevel",
+      "platform": 1
+    },
+    {
+      "command": "lastlog",
+      "description": "Dernière connexion de chaque utilisateur",
+      "platform": 1
+    },
+    {
+      "command": "last reboot",
+      "description": "Historique des redémarrages",
+      "platform": 1
+    },
+    {
+      "command": "last -F",
+      "description": "Avec dates complètes",
+      "platform": 1
+    }
+  ],
+  "notes": "lastb affiche les bad logins. Les données proviennent de /var/log/wtmp et /var/log/btmp.",
+  "links": [
+    {
+      "title": "last command",
+      "url": "https://man7.org/linux/man-pages/man1/last.1.html"
+    }
+  ]
+}

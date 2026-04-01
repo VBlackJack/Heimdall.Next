@@ -1,0 +1,75 @@
+{
+  "id": "defender-add-exclusion-folder",
+  "title": "Ajouter une exclusion de dossier dans Defender",
+  "description": "Exclut un dossier de l'analyse en temps réel de Windows Defender (améliore performances).",
+  "category": "🔒 Security & Encryption",
+  "platform": 0,
+  "level": 1,
+  "tags": [
+    "defender",
+    "exclusion",
+    "folder",
+    "performance"
+  ],
+  "windowsCommandTemplateId": "defender-add-exclusion-folder-cmd",
+  "windowsCommandTemplate": {
+    "id": "defender-add-exclusion-folder-cmd",
+    "platform": 0,
+    "name": "Add-MpPreference",
+    "commandPattern": "Add-MpPreference -ExclusionPath \"{folderPath}\"",
+    "parameters": [
+      {
+        "name": "folderPath",
+        "label": "Chemin du dossier",
+        "type": "string",
+        "defaultValue": "",
+        "required": true,
+        "description": "Chemin complet du dossier à exclure"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "Add-MpPreference -ExclusionPath 'C:\\Dev'",
+      "description": "Exclut le dossier de développement (améliore perf compilation)",
+      "platform": 0
+    },
+    {
+      "command": "Add-MpPreference -ExclusionPath 'C:\\Program Files\\JetBrains'",
+      "description": "Exclut les IDE JetBrains (IntelliJ, PyCharm, etc.)",
+      "platform": 0
+    },
+    {
+      "command": "Add-MpPreference -ExclusionPath 'C:\\SteamLibrary'",
+      "description": "Exclut la bibliothèque Steam (améliore perf jeux)",
+      "platform": 0
+    },
+    {
+      "command": "Add-MpPreference -ExclusionPath 'C:\\VMs'",
+      "description": "Exclut les machines virtuelles (important pour performances VM)",
+      "platform": 0
+    },
+    {
+      "command": "@('C:\\Dev','C:\\Git','C:\\node_modules') | ForEach-Object { Add-MpPreference -ExclusionPath $_ }",
+      "description": "Ajoute plusieurs exclusions développeur d'un coup",
+      "platform": 0
+    },
+    {
+      "command": "Get-MpPreference | Select-Object -ExpandProperty ExclusionPath",
+      "description": "Liste toutes les exclusions de dossiers actuelles",
+      "platform": 0
+    },
+    {
+      "command": "Add-MpPreference -ExclusionPath \"C:\\Projects\\MyApp\"",
+      "description": "Exemple utilisant le paramètre 'folderPath': Chemin complet du dossier à exclure. Remplacez C:\\Projects\\MyApp par la valeur appropriée selon votre environnement.",
+      "platform": 0
+    }
+  ],
+  "notes": "⚠️ SÉCURITÉ: N'excluez JAMAIS: Downloads, Documents, Desktop, AppData, Temp. Exclusions recommandées: dossiers de dev, bibliothèques de jeux, VMs, outils de build. Chaque exclusion réduit la sécurité mais améliore les performances.",
+  "links": [
+    {
+      "title": "Add-MpPreference Documentation",
+      "url": "https://learn.microsoft.com/en-us/powershell/module/defender/add-mppreference"
+    }
+  ]
+}

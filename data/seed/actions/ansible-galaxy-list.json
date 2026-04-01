@@ -1,0 +1,65 @@
+{
+  "id": "ansible-galaxy-list",
+  "title": "Lister les rôles installés",
+  "description": "Affiche la liste de tous les rôles Ansible installés localement",
+  "category": "⚙️ Services & Automation",
+  "platform": 2,
+  "level": 0,
+  "tags": [
+    "ansible",
+    "galaxy",
+    "list",
+    "role"
+  ],
+  "windowsCommandTemplateId": "ansible-galaxy-list-win",
+  "windowsCommandTemplate": {
+    "id": "ansible-galaxy-list-win",
+    "platform": 0,
+    "name": "ansible-galaxy",
+    "commandPattern": "ansible-galaxy list",
+    "parameters": []
+  },
+  "linuxCommandTemplateId": "ansible-galaxy-list-linux",
+  "linuxCommandTemplate": {
+    "id": "ansible-galaxy-list-linux",
+    "platform": 1,
+    "name": "ansible-galaxy",
+    "commandPattern": "ansible-galaxy list",
+    "parameters": []
+  },
+  "examples": [],
+  "notes": "Par défaut, les rôles sont installés dans ~/.ansible/roles ou /etc/ansible/roles.",
+  "links": [
+    {
+      "title": "Ansible Galaxy",
+      "url": "https://galaxy.ansible.com/"
+    }
+  ],
+  "linuxExamples": [
+    {
+      "command": "ansible-galaxy list",
+      "description": "Liste tous les rôles installés",
+      "platform": 1
+    },
+    {
+      "command": "ansible-galaxy list --roles-path ./roles",
+      "description": "Liste les rôles d'un répertoire spécifique",
+      "platform": 1
+    },
+    {
+      "command": "ansible-galaxy role list",
+      "description": "Rôles uniquement",
+      "platform": 1
+    },
+    {
+      "command": "ansible-galaxy collection list",
+      "description": "Collections uniquement",
+      "platform": 1
+    },
+    {
+      "command": "ls -la ~/.ansible/roles/",
+      "description": "Répertoire des rôles",
+      "platform": 1
+    }
+  ]
+}

@@ -6,6 +6,9 @@
     <Project Path="src/Heimdall.Sftp/Heimdall.Sftp.csproj" />
     <Project Path="src/Heimdall.Ssh/Heimdall.Ssh.csproj" />
     <Project Path="src/Heimdall.Terminal/Heimdall.Terminal.csproj" />
+    <Project Path="src/TwinShell.Core/TwinShell.Core.csproj" />
+    <Project Path="src/TwinShell.Persistence/TwinShell.Persistence.csproj" />
+    <Project Path="src/TwinShell.Infrastructure/TwinShell.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Heimdall.App.Tests/Heimdall.App.Tests.csproj" />

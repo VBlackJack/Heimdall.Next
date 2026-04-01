@@ -1,0 +1,50 @@
+{
+  "id": "defender-restore-quarantine",
+  "title": "Restaurer un fichier de quarantaine Defender",
+  "description": "Restaure un fichier précédemment mis en quarantaine par Windows Defender.",
+  "category": "🔒 Security & Encryption",
+  "platform": 0,
+  "level": 2,
+  "tags": [
+    "defender",
+    "quarantine",
+    "restore"
+  ],
+  "windowsCommandTemplateId": "defender-restore-quarantine-cmd",
+  "windowsCommandTemplate": {
+    "id": "defender-restore-quarantine-cmd",
+    "platform": 0,
+    "name": "Get-MpThreatDetection",
+    "commandPattern": "Get-MpThreatDetection | Select-Object ThreatID,ThreatName,Resources | Format-Table -AutoSize",
+    "parameters": []
+  },
+  "examples": [
+    {
+      "command": "Get-MpThreatDetection | Select-Object ThreatID,ThreatName,Resources,RemediationTime",
+      "description": "Liste tous les fichiers en quarantaine avec leurs détails",
+      "platform": 0
+    },
+    {
+      "command": "Get-MpThreatDetection | Select-Object * -First 1",
+      "description": "Affiche toutes les propriétés du premier objet retourné. Select-Object * élargit l'affichage pour montrer toutes les colonnes. -First 1 limite au premier résultat. Utilisez cette commande pour découvrir les propriétés disponibles avant de filtrer.",
+      "platform": 0
+    },
+    {
+      "command": "Get-MpThreatDetection | Export-Csv C:\\Temp\\Export.csv -NoTypeInformation -Encoding UTF8",
+      "description": "Exporte les résultats vers un fichier CSV exploitable dans Excel. -NoTypeInformation supprime la ligne de métadonnées. -Encoding UTF8 garantit la compatibilité des caractères accentués. Utile pour l'archivage, les rapports et l'analyse externe.",
+      "platform": 0
+    },
+    {
+      "command": "Get-MpThreatDetection | Measure-Object",
+      "description": "Compte le nombre total d'objets retournés. Measure-Object retourne Count, Sum, Average, Min, Max selon les propriétés. Utile pour les statistiques rapides et la validation de résultats.",
+      "platform": 0
+    }
+  ],
+  "notes": "⚠️ ATTENTION: Restaurer un fichier détecté peut réinfecter votre système! Ne restaurez que si vous êtes CERTAIN qu'il s'agit d'un faux positif. Pour restaurer via GUI: Windows Security > Protection contre les virus > Historique de protection > Restaurer. PowerShell a des capacités limitées pour la restauration.",
+  "links": [
+    {
+      "title": "Defender Quarantine Management",
+      "url": "https://learn.microsoft.com/en-us/microsoft-365/security/defender-endpoint/restore-quarantined-files-microsoft-defender-antivirus"
+    }
+  ]
+}

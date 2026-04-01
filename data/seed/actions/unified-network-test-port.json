@@ -1,0 +1,191 @@
+{
+  "id": "unified-network-test-port",
+  "title": "Tester l'ouverture d'un port TCP",
+  "description": "Vérifie si un port TCP spécifique est ouvert et accessible sur un hôte distant",
+  "category": "🌐 Network & DNS",
+  "platform": 2,
+  "level": 0,
+  "tags": [
+    "network",
+    "port",
+    "tcp",
+    "connectivity",
+    "linux",
+    "netcat",
+    "nc"
+  ],
+  "windowsCommandTemplateId": "network-test-port-win-cmd",
+  "windowsCommandTemplate": {
+    "id": "network-test-port-win-cmd",
+    "platform": 0,
+    "name": "Test-NetConnection",
+    "commandPattern": "Test-NetConnection -ComputerName {hostname} -Port {port} | Select-Object ComputerName,RemoteAddress,RemotePort,TcpTestSucceeded",
+    "parameters": [
+      {
+        "name": "hostname",
+        "label": "Nom d'hôte ou IP",
+        "type": "string",
+        "defaultValue": "google.com",
+        "required": true,
+        "description": "Nom d'hôte ou adresse IP"
+      },
+      {
+        "name": "port",
+        "label": "Port TCP",
+        "type": "number",
+        "defaultValue": "443",
+        "required": true,
+        "description": "Numéro de port TCP à tester"
+      }
+    ]
+  },
+  "notes": "Windows: TcpTestSucceeded=$true signifie que le port est ouvert. Test-NetConnection plus verbeux.\nLinux: nc (netcat) avec -z (scan) et -v (verbose). Retourne 0 si succès.",
+  "links": [
+    {
+      "title": "Test-NetConnection Port Testing",
+      "url": "https://lazyadmin.nl/powershell/test-netconnection/"
+    },
+    {
+      "title": "Netcat (nc) documentation",
+      "url": "https://man7.org/linux/man-pages/man1/nc.1.html"
+    }
+  ],
+  "supportedPlatforms": [
+    0,
+    1
+  ],
+  "windowsExamples": [
+    {
+      "command": "Test-NetConnection google.com",
+      "description": "Test de connectivité complet vers google.com. Effectue un ping ICMP ET une résolution DNS. Retourne l'IP résolue, le temps de réponse ping et le statut de connectivité. Plus complet que Test-Connection car il combine ping + nslookup.",
+      "platform": 0
+    },
+    {
+      "command": "Test-NetConnection server01 -Port 3389",
+      "description": "Teste si le port RDP (3389) est ouvert sur server01. Effectue un test TCP sur le port spécifié. Retourne TcpTestSucceeded: True/False. Équivalent PowerShell de 'telnet server01 3389'. Essentiel pour diagnostiquer les problèmes de connectivité applicative et vérifier les règles de pare-feu.",
+      "platform": 0
+    },
+    {
+      "command": "Test-NetConnection 192.168.1.100 -Port 443 -InformationLevel Detailed",
+      "description": "Test TCP détaillé sur le port HTTPS (443). -InformationLevel Detailed affiche beaucoup plus d'informations : route réseau, temps de réponse, interfaces utilisées, etc. Utile pour le troubleshooting approfondi des problèmes de connectivité web.",
+      "platform": 0
+    },
+    {
+      "command": "Test-NetConnection mail.contoso.com -Port 25",
+      "description": "Vérifie si le port SMTP (25) est accessible sur le serveur mail. Test crucial avant de configurer un client mail ou diagnostiquer des problèmes d'envoi d'email. Un échec indique généralement un blocage par pare-feu ou un service mail arrêté.",
+      "platform": 0
+    },
+    {
+      "command": "Test-NetConnection server01 -Port 445 -WarningAction SilentlyContinue",
+      "description": "Teste le port SMB/CIFS (445) sans afficher les warnings. -WarningAction SilentlyContinue supprime les messages d'avertissement. Le port 445 est utilisé pour les partages réseau Windows. Utile pour diagnostiquer les problèmes d'accès aux partages.",
+      "platform": 0
+    },
+    {
+      "command": "1..100 | ForEach-Object {Test-NetConnection 192.168.1.$_ -Port 80 -WarningAction SilentlyContinue} | Where-Object {$_.TcpTestSucceeded -eq $true}",
+      "description": "Scan du réseau 192.168.1.0/24 pour trouver tous les serveurs web (port 80 ouvert). 1..100 génère une séquence de nombres. ForEach-Object teste chaque IP. Where-Object filtre les succès. Utile pour l'inventaire réseau ou la détection de serveurs. ATTENTION : peut être considéré comme du scanning et violer certaines politiques de sécurité.",
+      "platform": 0
+    },
+    {
+      "command": "Test-NetConnection server01 -CommonTCPPort RDP",
+      "description": "Teste un port courant en utilisant son nom au lieu du numéro. -CommonTCPPort accepte : HTTP (80), RDP (3389), SMB (445), WINRM (5985). Plus lisible que les numéros de port, facilite la compréhension des scripts.",
+      "platform": 0
+    },
+    {
+      "command": "Test-NetConnection -ComputerName srv-web-01 -Port 443 | Select-Object ComputerName,RemoteAddress,RemotePort,TcpTestSucceeded",
+      "description": "Exemple Windows pour Tester l'ouverture d'un port TCP",
+      "platform": 0
+    }
+  ],
+  "linuxCommandTemplateId": "network-test-port-linux-cmd",
+  "linuxCommandTemplate": {
+    "id": "network-test-port-linux-cmd",
+    "platform": 1,
+    "name": "nc",
+    "commandPattern": "nc -zv {hostname} {port}",
+    "parameters": [
+      {
+        "name": "hostname",
+        "label": "Nom d'hôte ou IP",
+        "type": "string",
+        "defaultValue": "google.com",
+        "required": true,
+        "description": "Nom d'hôte ou adresse IP"
+      },
+      {
+        "name": "port",
+        "label": "Port TCP",
+        "type": "number",
+        "defaultValue": "443",
+        "required": true,
+        "description": "Numéro de port TCP à tester"
+      }
+    ]
+  },
+  "linuxExamples": [
+    {
+      "command": "nc -zv google.com 443",
+      "description": "Teste si le port HTTPS est ouvert sur google.com",
+      "platform": 1
+    },
+    {
+      "command": "nc -zv 192.168.1.1 22",
+      "description": "Teste si le port SSH est ouvert",
+      "platform": 1
+    },
+    {
+      "command": "nc -zv server01 3389",
+      "description": "Teste si le port RDP est ouvert",
+      "platform": 1
+    },
+    {
+      "command": "nc -zv mail.example.com 25",
+      "description": "Teste si le port SMTP est ouvert",
+      "platform": 1
+    },
+    {
+      "command": "nc -w 3 -zv server01 80",
+      "description": "Test avec timeout de 3 secondes",
+      "platform": 1
+    },
+    {
+      "command": "for port in 22 80 443 3389; do nc -zv server01 $port; done",
+      "description": "Teste plusieurs ports sur un serveur",
+      "platform": 1
+    },
+    {
+      "command": "nc -zv srv-web-01 443",
+      "description": "Exemple Linux pour Tester l'ouverture d'un port TCP",
+      "platform": 1
+    },
+    {
+      "command": "nc -zv server.example.com 443",
+      "description": "Tester le port HTTPS",
+      "platform": 1
+    },
+    {
+      "command": "nc -zv 192.168.1.1 22",
+      "description": "Tester le port SSH",
+      "platform": 1
+    },
+    {
+      "command": "nc -zv -w 5 db.example.com 3306",
+      "description": "Tester MySQL avec timeout 5s",
+      "platform": 1
+    },
+    {
+      "command": "timeout 3 bash -c \"echo > /dev/tcp/host/80\"",
+      "description": "Test sans netcat",
+      "platform": 1
+    }
+  ],
+  "crossPlatformNotes": {
+    "differences": [
+      "Syntaxe: Windows utilise 'Test-NetConnection', Linux utilise 'nc' (netcat)"
+    ],
+    "commonalities": [
+      "Les deux permettent de tester si un port TCP est ouvert",
+      "Fonctionnalité équivalente sur les deux plateformes"
+    ]
+  },
+  "examples": []
+}

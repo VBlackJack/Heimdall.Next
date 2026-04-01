@@ -1,0 +1,86 @@
+{
+  "id": "iftop-bandwidth-monitor",
+  "title": "Monitorer la bande passante réseau",
+  "description": "Affiche l'utilisation de la bande passante réseau en temps réel par connexion",
+  "category": "🌐 Network & DNS",
+  "platform": 1,
+  "level": 0,
+  "tags": [
+    "iftop",
+    "bandwidth",
+    "network",
+    "monitoring",
+    "traffic"
+  ],
+  "linuxCommandTemplateId": "iftop-cmd",
+  "linuxCommandTemplate": {
+    "id": "iftop-cmd",
+    "platform": 1,
+    "name": "iftop",
+    "commandPattern": "iftop -i {interface}",
+    "parameters": [
+      {
+        "name": "interface",
+        "label": "Interface",
+        "type": "string",
+        "defaultValue": "eth0",
+        "required": false,
+        "description": "Interface réseau à monitorer"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "sudo iftop",
+      "description": "Monitore l'interface par défaut",
+      "platform": 1
+    },
+    {
+      "command": "sudo iftop -i eth0",
+      "description": "Monitore l'interface eth0",
+      "platform": 1
+    },
+    {
+      "command": "sudo iftop -n",
+      "description": "Désactive la résolution DNS (plus rapide)",
+      "platform": 1
+    },
+    {
+      "command": "iftop -i eth0",
+      "description": "Exemple utilisant le paramètre 'interface': Interface réseau à monitorer. Remplacez eth0 par la valeur appropriée selon votre environnement.",
+      "platform": 1
+    },
+    {
+      "command": "iftop",
+      "description": "Monitorer la bande passante",
+      "platform": 1
+    },
+    {
+      "command": "iftop -n",
+      "description": "Ne pas résoudre les hostnames",
+      "platform": 1
+    },
+    {
+      "command": "iftop -P",
+      "description": "Afficher les ports",
+      "platform": 1
+    },
+    {
+      "command": "iftop -B",
+      "description": "Afficher en bytes/s",
+      "platform": 1
+    },
+    {
+      "command": "nload",
+      "description": "Alternative nload",
+      "platform": 1
+    }
+  ],
+  "notes": "Nécessite sudo et le package iftop. q pour quitter. Très utile pour identifier l'usage réseau.",
+  "links": [
+    {
+      "title": "iftop documentation",
+      "url": "http://www.ex-parrot.com/pdw/iftop/"
+    }
+  ]
+}

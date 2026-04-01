@@ -1,0 +1,42 @@
+{
+  "id": "win-pkg-102",
+  "title": "Lister les packages Chocolatey installés",
+  "description": "Affiche la liste de tous les packages installés via Chocolatey.",
+  "category": "📦 Package Management",
+  "platform": 0,
+  "level": 0,
+  "tags": [
+    "chocolatey",
+    "package",
+    "list",
+    "inventory",
+    "windows"
+  ],
+  "windowsCommandTemplateId": "choco-list-cmd",
+  "windowsCommandTemplate": {
+    "id": "choco-list-cmd",
+    "platform": 0,
+    "name": "choco",
+    "commandPattern": "choco list --local-only",
+    "parameters": []
+  },
+  "examples": [
+    {
+      "command": "choco list --local-only",
+      "description": "Liste tous les packages Chocolatey installés localement",
+      "platform": 0
+    },
+    {
+      "command": "choco list --local-only --limit-output",
+      "description": "Liste avec sortie simplifiée (nom|version)",
+      "platform": 0
+    }
+  ],
+  "notes": "L'option --local-only affiche uniquement les packages installés sur cette machine.",
+  "links": [
+    {
+      "title": "Chocolatey list documentation",
+      "url": "https://docs.chocolatey.org/en-us/choco/commands/list"
+    }
+  ]
+}

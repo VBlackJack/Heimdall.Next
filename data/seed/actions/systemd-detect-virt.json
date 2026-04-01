@@ -1,0 +1,62 @@
+{
+  "id": "systemd-detect-virt",
+  "title": "Détecter la virtualisation",
+  "description": "Détecte si le système tourne dans un environnement virtualisé",
+  "category": "🐳 Containers & VMs",
+  "platform": 1,
+  "level": 0,
+  "tags": [
+    "systemd",
+    "virtualization",
+    "container",
+    "vm",
+    "detection"
+  ],
+  "linuxCommandTemplateId": "systemd-detect-virt-cmd",
+  "linuxCommandTemplate": {
+    "id": "systemd-detect-virt-cmd",
+    "platform": 1,
+    "name": "systemd-detect-virt",
+    "commandPattern": "systemd-detect-virt",
+    "parameters": []
+  },
+  "examples": [
+    {
+      "command": "systemd-detect-virt",
+      "description": "Détecte le type de virtualisation",
+      "platform": 1
+    },
+    {
+      "command": "systemd-detect-virt -c",
+      "description": "Détecte si dans un conteneur",
+      "platform": 1
+    },
+    {
+      "command": "systemd-detect-virt -v",
+      "description": "Détecte si dans une VM",
+      "platform": 1
+    },
+    {
+      "command": "virt-what",
+      "description": "Alternative: virt-what",
+      "platform": 1
+    },
+    {
+      "command": "dmidecode -s system-product-name",
+      "description": "Nom du produit système",
+      "platform": 1
+    },
+    {
+      "command": "hostnamectl | grep Virtualization",
+      "description": "Via hostnamectl",
+      "platform": 1
+    }
+  ],
+  "notes": "Retourne: none, kvm, qemu, vmware, docker, lxc, etc. Code retour 0 si virtualisé.",
+  "links": [
+    {
+      "title": "systemd-detect-virt",
+      "url": "https://www.freedesktop.org/software/systemd/man/systemd-detect-virt.html"
+    }
+  ]
+}

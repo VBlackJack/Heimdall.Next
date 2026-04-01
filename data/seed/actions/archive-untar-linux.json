@@ -1,0 +1,63 @@
+{
+  "id": "archive-untar-linux",
+  "title": "Extraire une archive TAR/GZ",
+  "description": "Extrait le contenu d'une archive tar ou tar.gz.",
+  "category": "📁 Files & Storage",
+  "platform": 1,
+  "level": 0,
+  "tags": [
+    "décompression",
+    "tar",
+    "extract",
+    "linux"
+  ],
+  "linuxCommandTemplateId": "archive-untar-linux-cmd",
+  "linuxCommandTemplate": {
+    "id": "archive-untar-linux-cmd",
+    "platform": 1,
+    "name": "tar",
+    "commandPattern": "tar -xzf \"{archivePath}\" -C \"{destinationPath}\"",
+    "parameters": [
+      {
+        "name": "archivePath",
+        "label": "Fichier archive",
+        "type": "string",
+        "defaultValue": "",
+        "required": true,
+        "description": "Chemin du fichier tar.gz"
+      },
+      {
+        "name": "destinationPath",
+        "label": "Destination",
+        "type": "string",
+        "defaultValue": ".",
+        "required": false,
+        "description": "Dossier de destination"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "tar -xzf archive.tar.gz -C /tmp",
+      "description": "Extrait dans /tmp",
+      "platform": 1
+    },
+    {
+      "command": "tar -tzf archive.tar.gz",
+      "description": "Liste le contenu sans extraire",
+      "platform": 1
+    },
+    {
+      "command": "tar -xzf \"/tmp/backup.tar.gz\" -C \"/tmp/extracted\" -v",
+      "description": "Exécute la commande en mode verbeux. Le flag -v (verbose) affiche chaque action effectuée en temps réel. Essentiel pour suivre la progression des opérations longues et vérifier que tout se déroule correctement.",
+      "platform": 1
+    },
+    {
+      "command": "tar -xzf \"/tmp/backup.tar.gz\" -C \"/tmp/extracted\"",
+      "description": "Exemple utilisant le paramètre 'archivePath': Chemin du fichier tar.gz. Remplacez C:\\Backup\\data.tar.gz par la valeur appropriée selon votre environnement.",
+      "platform": 1
+    }
+  ],
+  "notes": "-x extraire, -z gzip, -f fichier, -C destination, -t lister. -v pour verbeux.",
+  "links": []
+}

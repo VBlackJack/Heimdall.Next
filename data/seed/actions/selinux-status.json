@@ -1,0 +1,57 @@
+{
+  "id": "selinux-status",
+  "title": "Vérifier l'état de SELinux",
+  "description": "Affiche l'état et le mode de SELinux (Security-Enhanced Linux)",
+  "category": "🔒 Security & Encryption",
+  "platform": 1,
+  "level": 0,
+  "tags": [
+    "selinux",
+    "security",
+    "mandatory",
+    "access",
+    "control"
+  ],
+  "linuxCommandTemplateId": "getenforce-cmd",
+  "linuxCommandTemplate": {
+    "id": "getenforce-cmd",
+    "platform": 1,
+    "name": "getenforce",
+    "commandPattern": "getenforce",
+    "parameters": []
+  },
+  "examples": [
+    {
+      "command": "getenforce",
+      "description": "Affiche le mode SELinux (Enforcing/Permissive/Disabled)",
+      "platform": 1
+    },
+    {
+      "command": "sestatus",
+      "description": "État détaillé de SELinux",
+      "platform": 1
+    },
+    {
+      "command": "sudo setenforce 0",
+      "description": "Passe en mode Permissive (temporaire)",
+      "platform": 1
+    },
+    {
+      "command": "setenforce Permissive",
+      "description": "Passer en mode permissif",
+      "platform": 1
+    },
+    {
+      "command": "ausearch -m avc -ts recent",
+      "description": "Derniers refus",
+      "platform": 1
+    }
+  ],
+  "notes": "Ne nécessite pas sudo pour lecture. Principalement sur RHEL/CentOS/Fedora.",
+  "links": [
+    {
+      "title": "SELinux documentation",
+      "url": "https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/8/html/using_selinux/index"
+    }
+  ]
+}

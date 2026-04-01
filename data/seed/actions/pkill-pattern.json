@@ -1,0 +1,74 @@
+{
+  "id": "pkill-pattern",
+  "title": "Terminer des processus par pattern",
+  "description": "Envoie un signal aux processus correspondant à un pattern de nom",
+  "category": "📊 Monitoring & Logs",
+  "platform": 1,
+  "level": 1,
+  "tags": [
+    "pkill",
+    "pgrep",
+    "process",
+    "kill",
+    "pattern"
+  ],
+  "linuxCommandTemplateId": "pkill-cmd",
+  "linuxCommandTemplate": {
+    "id": "pkill-cmd",
+    "platform": 1,
+    "name": "pkill",
+    "commandPattern": "pkill {options} {pattern}",
+    "parameters": [
+      {
+        "name": "options",
+        "label": "Options",
+        "type": "string",
+        "defaultValue": "",
+        "required": false,
+        "description": "Options (-9=SIGKILL, -u user, -f=full command)"
+      },
+      {
+        "name": "pattern",
+        "label": "Pattern",
+        "type": "string",
+        "defaultValue": "nginx",
+        "required": true,
+        "description": "Pattern à rechercher dans le nom du processus"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "pgrep -a firefox",
+      "description": "Liste les processus firefox (sans les tuer)",
+      "platform": 1
+    },
+    {
+      "command": "pkill -u username",
+      "description": "Termine tous les processus d'un utilisateur",
+      "platform": 1
+    },
+    {
+      "command": "pkill -v -f *.txt",
+      "description": "Exemple utilisant le paramètre 'options': Options (-9=SIGKILL, -u user, -f=full command). Remplacez -v -f par la valeur appropriée selon votre environnement.",
+      "platform": 1
+    },
+    {
+      "command": "pkill -9 java",
+      "description": "Forcer l'arrêt des processus Java",
+      "platform": 1
+    },
+    {
+      "command": "pkill -u www-data",
+      "description": "Terminer les processus d'un utilisateur",
+      "platform": 1
+    }
+  ],
+  "notes": "Peut nécessiter sudo. pgrep pour lister sans tuer. -9 force la terminaison.",
+  "links": [
+    {
+      "title": "pkill documentation",
+      "url": "https://man7.org/linux/man-pages/man1/pkill.1.html"
+    }
+  ]
+}

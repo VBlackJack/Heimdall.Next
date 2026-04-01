@@ -1,0 +1,102 @@
+{
+  "id": "get-eventlog-latest",
+  "title": "Consulter les événements Windows récents",
+  "description": "Affiche les derniers événements du journal Windows (System, Application, Security)",
+  "category": "📊 Monitoring & Logs",
+  "platform": 0,
+  "level": 0,
+  "tags": [
+    "eventlog",
+    "logs",
+    "monitoring",
+    "windows",
+    "troubleshooting"
+  ],
+  "windowsCommandTemplateId": "get-eventlog-cmd",
+  "windowsCommandTemplate": {
+    "id": "get-eventlog-cmd",
+    "platform": 0,
+    "name": "Get-EventLog",
+    "commandPattern": "Get-EventLog -LogName {logname} -Newest {count} {entrytype} | Format-Table TimeGenerated, EntryType, Source, Message -AutoSize",
+    "parameters": [
+      {
+        "name": "logname",
+        "label": "Journal",
+        "type": "string",
+        "defaultValue": "System",
+        "required": true,
+        "description": "Nom du journal (System, Application, Security)"
+      },
+      {
+        "name": "count",
+        "label": "Nombre d'événements",
+        "type": "number",
+        "defaultValue": "20",
+        "required": false,
+        "description": "Nombre d'événements à afficher"
+      },
+      {
+        "name": "entrytype",
+        "label": "Type",
+        "type": "string",
+        "defaultValue": "",
+        "required": false,
+        "description": "Filtre par type (ex: -EntryType Error,Warning)"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "Get-EventLog -LogName System -EntryType Error -After (Get-Date).AddHours(-1)",
+      "description": "🔥 CRITIQUE : Affiche uniquement les ERREURS système de la DERNIÈRE HEURE. C'est la première commande à lancer en cas de plantage serveur.",
+      "platform": 0
+    },
+    {
+      "command": "Get-EventLog -LogName Security -InstanceId 4625 -Newest 20",
+      "description": "Sécurité : Affiche les 20 dernières tentatives de connexion échouées (Event ID 4625). Indique une potentielle attaque brute-force ou un compte de service verrouillé.",
+      "platform": 0
+    },
+    {
+      "command": "Get-EventLog -LogName System -Newest 20",
+      "description": "20 derniers événements système",
+      "platform": 0
+    },
+    {
+      "command": "Get-EventLog -LogName Application -EntryType Error -Newest 10",
+      "description": "10 dernières erreurs applicatives",
+      "platform": 0
+    },
+    {
+      "command": "Get-EventLog -LogName System -EntryType Error,Warning -Newest 50 | Out-GridView",
+      "description": "Erreurs et avertissements en grille interactive",
+      "platform": 0
+    },
+    {
+      "command": "Get-EventLog -LogName System -After (Get-Date).AddHours(-1)",
+      "description": "Événements de la dernière heure",
+      "platform": 0
+    },
+    {
+      "command": "Get-EventLog -LogName Application -Newest 10 Error | Select-Object * -First 1",
+      "description": "Affiche toutes les propriétés du premier objet retourné. Select-Object * élargit l'affichage pour montrer toutes les colonnes. -First 1 limite au premier résultat. Utilisez cette commande pour découvrir les propriétés disponibles avant de filtrer.",
+      "platform": 0
+    },
+    {
+      "command": "Get-EventLog -LogName Application -Newest 10 Error | Export-Csv C:\\Temp\\Export.csv -NoTypeInformation -Encoding UTF8",
+      "description": "Exporte les résultats vers un fichier CSV exploitable dans Excel. -NoTypeInformation supprime la ligne de métadonnées. -Encoding UTF8 garantit la compatibilité des caractères accentués. Utile pour l'archivage, les rapports et l'analyse externe.",
+      "platform": 0
+    },
+    {
+      "command": "Get-EventLog -LogName Application -Newest 10 Error | Measure-Object",
+      "description": "Compte le nombre total d'objets retournés. Measure-Object retourne Count, Sum, Average, Min, Max selon les propriétés. Utile pour les statistiques rapides et la validation de résultats.",
+      "platform": 0
+    }
+  ],
+  "notes": "Essentiel pour diagnostic. Utilisez Get-WinEvent pour logs plus récents (plus performant). EntryType: Error, Warning, Information.",
+  "links": [
+    {
+      "title": "Get-EventLog Documentation",
+      "url": "https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.management/get-eventlog"
+    }
+  ]
+}

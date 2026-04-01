@@ -1,0 +1,66 @@
+{
+  "id": "unified-network-connections",
+  "title": "Afficher les connexions réseau actives",
+  "description": "Affiche les ports ouverts et les connexions réseau actives",
+  "category": "🌐 Network & DNS",
+  "platform": 2,
+  "level": 0,
+  "tags": [
+    "network",
+    "connections",
+    "ports",
+    "tcp",
+    "netstat",
+    "diagnostic"
+  ],
+  "windowsCommandTemplateId": "unified-network-connections-win-cmd",
+  "windowsCommandTemplate": {
+    "id": "unified-network-connections-win-cmd",
+    "platform": 0,
+    "commandPattern": "Get-NetTCPConnection -State Listen | Select-Object LocalAddress,LocalPort,@{Name='ProcessName';Expression={(Get-Process -Id $_.OwningProcess).ProcessName}},OwningProcess | Sort-Object LocalPort | Format-Table -AutoSize",
+    "parameters": []
+  },
+  "linuxCommandTemplateId": "unified-network-connections-linux-cmd",
+  "linuxCommandTemplate": {
+    "id": "unified-network-connections-linux-cmd",
+    "platform": 1,
+    "commandPattern": "netstat -tulpn",
+    "parameters": []
+  },
+  "parameters": [],
+  "examples": [],
+  "windowsExamples": [
+    {
+      "command": "Get-Process | Sort-Object CPU -Descending | Select-Object -First 5",
+      "description": "🔥 PERFORMANCE : Identifie les 5 processus qui consomment le plus de CPU actuellement.",
+      "platform": 0
+    },
+    {
+      "command": "Get-Process | Where-Object {$_.Responding -eq $false}",
+      "description": "Trouve les applications 'Ne répond pas' (Frozen).",
+      "platform": 0
+    },
+    {
+      "command": "Get-NetTCPConnection -State Listen | Select-Object LocalAddress,LocalPort,ProcessName | Format-Table",
+      "description": "Liste les ports en écoute sur Windows",
+      "platform": 0
+    }
+  ],
+  "linuxExamples": [
+    {
+      "command": "ss -tulpn",
+      "description": "Liste les ports en ecoute avec les processus associes (alternative moderne a netstat).",
+      "platform": 1
+    },
+    {
+      "command": "netstat -i",
+      "description": "Statistiques des interfaces",
+      "platform": 1
+    },
+    {
+      "command": "netstat -s",
+      "description": "Statistiques des protocoles",
+      "platform": 1
+    }
+  ]
+}

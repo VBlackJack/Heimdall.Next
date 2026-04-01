@@ -1,0 +1,72 @@
+{
+  "id": "dnf-update",
+  "title": "Mettre à jour les paquets avec DNF",
+  "description": "Met à jour tous les paquets avec DNF (RHEL 8+/Fedora)",
+  "category": "📦 Package Management",
+  "platform": 1,
+  "level": 1,
+  "tags": [
+    "dnf",
+    "update",
+    "upgrade",
+    "rhel",
+    "fedora"
+  ],
+  "linuxCommandTemplateId": "dnf-update-cmd",
+  "linuxCommandTemplate": {
+    "id": "dnf-update-cmd",
+    "platform": 1,
+    "name": "dnf",
+    "commandPattern": "dnf update -y",
+    "parameters": []
+  },
+  "examples": [
+    {
+      "command": "sudo dnf update",
+      "description": "Met à jour tous les paquets",
+      "platform": 1
+    },
+    {
+      "command": "sudo dnf check-update",
+      "description": "Vérifie les mises à jour disponibles sans installer",
+      "platform": 1
+    },
+    {
+      "command": "dnf update -y -v",
+      "description": "Exécute la commande en mode verbeux. Le flag -v (verbose) affiche chaque action effectuée en temps réel. Essentiel pour suivre la progression des opérations longues et vérifier que tout se déroule correctement.",
+      "platform": 1
+    },
+    {
+      "command": "dnf update -y --dry-run",
+      "description": "Simulation sans exécution réelle (dry-run). --dry-run affiche ce qui serait fait sans appliquer les changements. INDISPENSABLE avant les opérations de masse ou les modifications critiques.",
+      "platform": 1
+    },
+    {
+      "command": "dnf update -y",
+      "description": "Mettre à jour tous les paquets",
+      "platform": 1
+    },
+    {
+      "command": "dnf install httpd -y",
+      "description": "Installer Apache HTTPD",
+      "platform": 1
+    },
+    {
+      "command": "dnf search nodejs",
+      "description": "Rechercher Node.js",
+      "platform": 1
+    },
+    {
+      "command": "dnf list installed | grep kernel",
+      "description": "Lister les kernels installés",
+      "platform": 1
+    }
+  ],
+  "notes": "Nécessite sudo. DNF est le successeur de YUM sur les systèmes modernes RHEL/Fedora.",
+  "links": [
+    {
+      "title": "DNF documentation",
+      "url": "https://docs.fedoraproject.org/en-US/quick-docs/dnf/"
+    }
+  ]
+}

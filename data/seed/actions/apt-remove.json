@@ -1,0 +1,76 @@
+{
+  "id": "apt-remove",
+  "title": "Désinstaller un paquet APT",
+  "description": "Supprime un paquet installé tout en conservant les fichiers de configuration",
+  "category": "📦 Package Management",
+  "platform": 1,
+  "level": 1,
+  "tags": [
+    "apt",
+    "remove",
+    "uninstall",
+    "debian",
+    "ubuntu"
+  ],
+  "linuxCommandTemplateId": "apt-remove-cmd",
+  "linuxCommandTemplate": {
+    "id": "apt-remove-cmd",
+    "platform": 1,
+    "name": "apt",
+    "commandPattern": "apt remove -y {package}",
+    "parameters": [
+      {
+        "name": "package",
+        "label": "Nom du paquet",
+        "type": "string",
+        "defaultValue": "nginx",
+        "required": true,
+        "description": "Nom du paquet à supprimer"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "sudo apt remove nginx",
+      "description": "Supprime nginx en gardant la configuration",
+      "platform": 1
+    },
+    {
+      "command": "sudo apt purge nginx",
+      "description": "Supprime nginx et ses fichiers de configuration",
+      "platform": 1
+    },
+    {
+      "command": "apt remove -y nginx -v",
+      "description": "Exécute la commande en mode verbeux. Le flag -v (verbose) affiche chaque action effectuée en temps réel. Essentiel pour suivre la progression des opérations longues et vérifier que tout se déroule correctement.",
+      "platform": 1
+    },
+    {
+      "command": "apt remove -y nginx --dry-run",
+      "description": "Simulation sans exécution réelle (dry-run). --dry-run affiche ce qui serait fait sans appliquer les changements. INDISPENSABLE avant les opérations de masse ou les modifications critiques.",
+      "platform": 1
+    },
+    {
+      "command": "apt remove -y nginx",
+      "description": "Exemple utilisant le paramètre 'package': Nom du paquet à supprimer. Remplacez nginx par la valeur appropriée selon votre environnement.",
+      "platform": 1
+    },
+    {
+      "command": "apt remove apache2",
+      "description": "Désinstaller Apache",
+      "platform": 1
+    },
+    {
+      "command": "apt autoremove",
+      "description": "Supprimer les paquets inutilisés",
+      "platform": 1
+    }
+  ],
+  "notes": "Nécessite sudo. Utiliser purge au lieu de remove pour supprimer aussi la configuration.",
+  "links": [
+    {
+      "title": "APT remove vs purge",
+      "url": "https://manpages.ubuntu.com/manpages/jammy/man8/apt.8.html"
+    }
+  ]
+}

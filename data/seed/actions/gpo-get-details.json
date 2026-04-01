@@ -1,0 +1,65 @@
+{
+  "id": "gpo-get-details",
+  "title": "Obtenir les détails d'une GPO",
+  "description": "Affiche toutes les propriétés détaillées d'une stratégie de groupe.",
+  "category": "🏢 Active Directory & GPO",
+  "platform": 0,
+  "level": 0,
+  "tags": [
+    "gpo",
+    "details",
+    "properties",
+    "group-policy"
+  ],
+  "windowsCommandTemplateId": "gpo-get-details-cmd",
+  "windowsCommandTemplate": {
+    "id": "gpo-get-details-cmd",
+    "platform": 0,
+    "name": "Get-GPO",
+    "commandPattern": "Get-GPO -Name \"{gpoName}\" | Select-Object *",
+    "parameters": [
+      {
+        "name": "gpoName",
+        "label": "Nom de la GPO",
+        "type": "string",
+        "defaultValue": "",
+        "required": true,
+        "description": "Nom de la GPO"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "Get-GPO -Name \"Default Domain Policy\" | Select-Object *",
+      "description": "Affiche tous les détails de la Default Domain Policy",
+      "platform": 0
+    },
+    {
+      "command": "Get-GPO -Name \"Security-Baseline\" | Select-Object * -First 1",
+      "description": "Affiche toutes les propriétés du premier objet retourné. Select-Object * élargit l'affichage pour montrer toutes les colonnes. -First 1 limite au premier résultat. Utilisez cette commande pour découvrir les propriétés disponibles avant de filtrer.",
+      "platform": 0
+    },
+    {
+      "command": "Get-GPO -Name \"Security-Baseline\" | Format-Table -AutoSize",
+      "description": "Affiche les résultats dans un tableau optimisé pour la console. Format-Table -AutoSize ajuste automatiquement la largeur des colonnes pour un affichage lisible. Idéal pour visualiser rapidement les données structurées.",
+      "platform": 0
+    },
+    {
+      "command": "Get-GPO -Name \"Security-Baseline\" | Export-Csv C:\\Temp\\Export.csv -NoTypeInformation -Encoding UTF8",
+      "description": "Exporte les résultats vers un fichier CSV exploitable dans Excel. -NoTypeInformation supprime la ligne de métadonnées. -Encoding UTF8 garantit la compatibilité des caractères accentués. Utile pour l'archivage, les rapports et l'analyse externe.",
+      "platform": 0
+    },
+    {
+      "command": "Get-GPO -Name \"Security-Baseline\" | Measure-Object",
+      "description": "Compte le nombre total d'objets retournés. Measure-Object retourne Count, Sum, Average, Min, Max selon les propriétés. Utile pour les statistiques rapides et la validation de résultats.",
+      "platform": 0
+    },
+    {
+      "command": "Get-GPO -Name \"Security-Baseline\" | Select-Object *",
+      "description": "Exemple utilisant le paramètre 'gpoName': Nom de la GPO. Remplacez Security-Baseline par la valeur appropriée selon votre environnement.",
+      "platform": 0
+    }
+  ],
+  "notes": "Affiche le GUID, le statut, les dates de création/modification, la version, etc.",
+  "links": []
+}

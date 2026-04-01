@@ -1,0 +1,60 @@
+{
+  "id": "systemctl-start",
+  "title": "Démarrer un service systemd",
+  "description": "Démarre immédiatement un service systemd",
+  "category": "⚙️ Services & Automation",
+  "platform": 1,
+  "level": 1,
+  "tags": [
+    "systemctl",
+    "systemd",
+    "service",
+    "start"
+  ],
+  "linuxCommandTemplateId": "systemctl-start-cmd",
+  "linuxCommandTemplate": {
+    "id": "systemctl-start-cmd",
+    "platform": 1,
+    "name": "systemctl",
+    "commandPattern": "systemctl start {service}",
+    "parameters": [
+      {
+        "name": "service",
+        "label": "Nom du service",
+        "type": "string",
+        "defaultValue": "nginx.service",
+        "required": true,
+        "description": "Nom de l'unité systemd à démarrer"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "sudo systemctl start nginx",
+      "description": "Démarre le service nginx",
+      "platform": 1
+    },
+    {
+      "command": "sudo systemctl start apache2.service",
+      "description": "Démarre Apache (l'extension .service est optionnelle)",
+      "platform": 1
+    },
+    {
+      "command": "systemctl start nginx.service",
+      "description": "Exemple utilisant le paramètre 'service': Nom de l'unité systemd à démarrer. Remplacez spooler par la valeur appropriée selon votre environnement.",
+      "platform": 1
+    },
+    {
+      "command": "systemctl start apache2",
+      "description": "Démarrer le service Apache",
+      "platform": 1
+    }
+  ],
+  "notes": "Nécessite sudo. Le service ne persiste pas au redémarrage sans 'enable'.",
+  "links": [
+    {
+      "title": "systemctl documentation",
+      "url": "https://www.freedesktop.org/software/systemd/man/systemctl.html"
+    }
+  ]
+}

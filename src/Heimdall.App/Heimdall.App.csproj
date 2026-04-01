@@ -10,9 +10,9 @@
     <ProjectReference Include="..\Heimdall.Rdp\Heimdall.Rdp.csproj" />
     <ProjectReference Include="..\Heimdall.Sftp\Heimdall.Sftp.csproj" />
     <ProjectReference Include="..\Heimdall.Terminal\Heimdall.Terminal.csproj" />
-    <ProjectReference Include="..\..\..\..\TwinShell\TwinShell\src\TwinShell.Core\TwinShell.Core.csproj" />
-    <ProjectReference Include="..\..\..\..\TwinShell\TwinShell\src\TwinShell.Persistence\TwinShell.Persistence.csproj" />
-    <ProjectReference Include="..\..\..\..\TwinShell\TwinShell\src\TwinShell.Infrastructure\TwinShell.Infrastructure.csproj" />
+    <ProjectReference Include="..\TwinShell.Core\TwinShell.Core.csproj" />
+    <ProjectReference Include="..\TwinShell.Persistence\TwinShell.Persistence.csproj" />
+    <ProjectReference Include="..\TwinShell.Infrastructure\TwinShell.Infrastructure.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -60,7 +60,7 @@
     <Content Include="..\..\locales\fr.json" Link="locales\fr.json" Condition="Exists('..\..\locales\fr.json')">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="..\..\..\..\TwinShell\TwinShell\data\seed\actions\**\*.json" Link="data\seed\actions\%(RecursiveDir)%(Filename)%(Extension)">
+    <Content Include="..\..\data\seed\actions\**\*.json" Link="data\seed\actions\%(RecursiveDir)%(Filename)%(Extension)">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>

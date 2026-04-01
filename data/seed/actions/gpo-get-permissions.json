@@ -1,0 +1,45 @@
+{
+  "id": "gpo-get-permissions",
+  "title": "Obtenir les permissions d'une GPO",
+  "description": "Affiche les permissions de sécurité configurées sur une stratégie de groupe.",
+  "category": "🏢 Active Directory & GPO",
+  "platform": 0,
+  "level": 0,
+  "tags": [
+    "gpo",
+    "permissions",
+    "security",
+    "acl"
+  ],
+  "windowsCommandTemplateId": "gpo-get-permissions-cmd",
+  "windowsCommandTemplate": {
+    "id": "gpo-get-permissions-cmd",
+    "platform": 0,
+    "name": "Get-GPPermission",
+    "commandPattern": "Get-GPPermission -Name \"{gpoName}\" -All | Select-Object Trustee,Permission,Inherited",
+    "parameters": [
+      {
+        "name": "gpoName",
+        "label": "Nom de la GPO",
+        "type": "string",
+        "defaultValue": "",
+        "required": true,
+        "description": "Nom de la GPO"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "Get-GPPermission -Name \"Default Domain Policy\" -All | Select-Object Trustee,Permission,Inherited",
+      "description": "Liste toutes les permissions de la Default Domain Policy",
+      "platform": 0
+    }
+  ],
+  "notes": "Affiche qui peut lire, modifier ou appliquer la GPO. Utile pour l'audit de sécurité.",
+  "links": [
+    {
+      "title": "Documentation Get-GPPermission",
+      "url": "https://learn.microsoft.com/en-us/powershell/module/grouppolicy/get-gppermission"
+    }
+  ]
+}

@@ -1,0 +1,48 @@
+{
+  "id": "git-status",
+  "title": "Afficher le statut Git",
+  "description": "Affiche l'état des fichiers dans le répertoire de travail et l'index",
+  "category": "🔧 Development",
+  "platform": 2,
+  "level": 0,
+  "tags": [
+    "git",
+    "status",
+    "working-directory"
+  ],
+  "windowsCommandTemplateId": "git-status-win",
+  "windowsCommandTemplate": {
+    "id": "git-status-win",
+    "platform": 0,
+    "name": "git",
+    "commandPattern": "git status",
+    "parameters": []
+  },
+  "linuxCommandTemplateId": "git-status-linux",
+  "linuxCommandTemplate": {
+    "id": "git-status-linux",
+    "platform": 1,
+    "name": "git",
+    "commandPattern": "git status",
+    "parameters": []
+  },
+  "examples": [
+    {
+      "command": "git status",
+      "description": "Affiche le statut complet",
+      "platform": 2
+    },
+    {
+      "command": "git status -s",
+      "description": "Affiche le statut en format court",
+      "platform": 2
+    }
+  ],
+  "notes": "Utilisez -s pour un format court, -b pour voir la branche actuelle.",
+  "links": [
+    {
+      "title": "Git Status Documentation",
+      "url": "https://git-scm.com/docs/git-status"
+    }
+  ]
+}

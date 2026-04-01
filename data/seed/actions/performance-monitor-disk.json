@@ -1,0 +1,73 @@
+{
+  "id": "performance-monitor-disk",
+  "title": "Surveiller l'utilisation du disque",
+  "description": "Collecte les statistiques d'utilisation des disques (temps actif, lectures/écritures par seconde)",
+  "category": "⚡ Performance",
+  "platform": 0,
+  "level": 0,
+  "tags": [
+    "performance",
+    "disk",
+    "io",
+    "monitoring"
+  ],
+  "windowsCommandTemplateId": "performance-monitor-disk-cmd",
+  "windowsCommandTemplate": {
+    "id": "performance-monitor-disk-cmd",
+    "platform": 0,
+    "name": "Get-Counter",
+    "commandPattern": "Get-Counter -Counter '\\PhysicalDisk(_Total)\\% Disk Time','\\PhysicalDisk(_Total)\\Disk Reads/sec','\\PhysicalDisk(_Total)\\Disk Writes/sec' -SampleInterval {intervalSeconds} -MaxSamples {maxSamples} | ForEach-Object {$_.CounterSamples | Select-Object Path,@{Name='Value';Expression={[math]::Round($_.CookedValue,2)}}} | Format-Table -AutoSize",
+    "parameters": [
+      {
+        "name": "intervalSeconds",
+        "label": "Intervalle (secondes)",
+        "type": "number",
+        "defaultValue": "2",
+        "required": true,
+        "description": "Intervalle entre échantillons"
+      },
+      {
+        "name": "maxSamples",
+        "label": "Nombre d'échantillons",
+        "type": "number",
+        "defaultValue": "5",
+        "required": true,
+        "description": "Nombre d'échantillons"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "Get-Counter '\\PhysicalDisk(_Total)\\% Disk Time'",
+      "description": "Affiche le temps d'activité du disque",
+      "platform": 0
+    },
+    {
+      "command": "Get-Counter '\\PhysicalDisk(*)\\Avg. Disk Queue Length'",
+      "description": "Affiche la file d'attente disque (tous les disques)",
+      "platform": 0
+    },
+    {
+      "command": "Get-Counter -Counter '\\PhysicalDisk(_Total)\\% Disk Time','\\PhysicalDisk(_Total)\\Disk Reads/sec','\\PhysicalDisk(_Total)\\Disk Writes/sec' -SampleInterval 60 -MaxSamples 10 | Select-Object * -First 1",
+      "description": "Affiche toutes les propriétés du premier objet retourné. Select-Object * élargit l'affichage pour montrer toutes les colonnes. -First 1 limite au premier résultat. Utilisez cette commande pour découvrir les propriétés disponibles avant de filtrer.",
+      "platform": 0
+    },
+    {
+      "command": "Get-Counter -Counter '\\PhysicalDisk(_Total)\\% Disk Time','\\PhysicalDisk(_Total)\\Disk Reads/sec','\\PhysicalDisk(_Total)\\Disk Writes/sec' -SampleInterval 60 -MaxSamples 10 | Export-Csv C:\\Temp\\Export.csv -NoTypeInformation -Encoding UTF8",
+      "description": "Exporte les résultats vers un fichier CSV exploitable dans Excel. -NoTypeInformation supprime la ligne de métadonnées. -Encoding UTF8 garantit la compatibilité des caractères accentués. Utile pour l'archivage, les rapports et l'analyse externe.",
+      "platform": 0
+    },
+    {
+      "command": "Get-Counter -Counter '\\PhysicalDisk(_Total)\\% Disk Time','\\PhysicalDisk(_Total)\\Disk Reads/sec','\\PhysicalDisk(_Total)\\Disk Writes/sec' -SampleInterval 60 -MaxSamples 10 | Measure-Object",
+      "description": "Compte le nombre total d'objets retournés. Measure-Object retourne Count, Sum, Average, Min, Max selon les propriétés. Utile pour les statistiques rapides et la validation de résultats.",
+      "platform": 0
+    }
+  ],
+  "notes": "% Disk Time >80% = surcharge disque. Avg Disk Queue Length >2 par disque physique = goulot d'étranglement.",
+  "links": [
+    {
+      "title": "Disk Performance Counters",
+      "url": "https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-2000-server/cc961619(v=technet.10)"
+    }
+  ]
+}

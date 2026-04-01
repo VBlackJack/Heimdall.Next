@@ -1,0 +1,46 @@
+{
+  "id": "wsus-server-cleanup",
+  "title": "Effectuer la maintenance du serveur WSUS",
+  "description": "Exécute les tâches de maintenance WSUS: suppression des mises à jour obsolètes, dépassées et des ordinateurs inactifs",
+  "category": "🔄 Windows Updates",
+  "platform": 0,
+  "level": 1,
+  "tags": [
+    "wsus",
+    "server",
+    "cleanup",
+    "maintenance"
+  ],
+  "windowsCommandTemplateId": "wsus-server-cleanup-cmd",
+  "windowsCommandTemplate": {
+    "id": "wsus-server-cleanup-cmd",
+    "platform": 0,
+    "name": "Invoke-WsusServerCleanup",
+    "commandPattern": "Invoke-WsusServerCleanup -CleanupObsoleteUpdates -CleanupUnneededContentFiles -CompressUpdates -DeclineExpiredUpdates -DeclineSupersededUpdates",
+    "parameters": []
+  },
+  "examples": [
+    {
+      "command": "Invoke-WsusServerCleanup -CleanupObsoleteUpdates -CompressUpdates",
+      "description": "Nettoie les mises à jour obsolètes et compresse les révisions",
+      "platform": 0
+    },
+    {
+      "command": "Invoke-WsusServerCleanup -CleanupObsoleteComputers",
+      "description": "Supprime les ordinateurs qui n'ont pas contacté le serveur depuis 30 jours",
+      "platform": 0
+    },
+    {
+      "command": "Invoke-WsusServerCleanup -CleanupObsoleteUpdates -CleanupUnneededContentFiles -CompressUpdates -DeclineExpiredUpdates -DeclineSupersededUpdates",
+      "description": "Exécution standard de la commande None. Consultez la documentation officielle avec Get-Help Invoke-WsusServerCleanup -Full pour plus de détails sur les paramètres disponibles et les cas d'usage avancés.",
+      "platform": 0
+    }
+  ],
+  "notes": "À exécuter sur le serveur WSUS. Peut prendre du temps selon la taille de la base WSUS. Libère de l'espace disque. Nécessite droits administrateur.",
+  "links": [
+    {
+      "title": "Invoke-WsusServerCleanup Documentation",
+      "url": "https://learn.microsoft.com/en-us/powershell/module/updateservices/invoke-wsusservercleanup"
+    }
+  ]
+}

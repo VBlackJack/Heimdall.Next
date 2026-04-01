@@ -1,0 +1,63 @@
+{
+  "id": "network-test-connection-advanced",
+  "title": "Test de connectivité réseau avancé",
+  "description": "Teste la connectivité réseau vers un hôte avec traceroute, test de port et informations de routage détaillées",
+  "category": "🌐 Network & DNS",
+  "platform": 0,
+  "level": 0,
+  "tags": [
+    "network",
+    "connectivity",
+    "diagnostic",
+    "test-netconnection"
+  ],
+  "windowsCommandTemplateId": "network-test-connection-advanced-cmd",
+  "windowsCommandTemplate": {
+    "id": "network-test-connection-advanced-cmd",
+    "platform": 0,
+    "name": "Test-NetConnection",
+    "commandPattern": "Test-NetConnection -ComputerName {hostname} -Port {port} -InformationLevel Detailed -TraceRoute",
+    "parameters": [
+      {
+        "name": "hostname",
+        "label": "Nom d'hôte ou IP",
+        "type": "string",
+        "defaultValue": "google.com",
+        "required": true,
+        "description": "Nom d'hôte ou adresse IP à tester"
+      },
+      {
+        "name": "port",
+        "label": "Port",
+        "type": "number",
+        "defaultValue": "443",
+        "required": true,
+        "description": "Port TCP à tester"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "Test-NetConnection -ComputerName google.com -Port 443",
+      "description": "DIAGNOSTIC EXPRESS : Vérifie si un port spécifique (ex: HTTPS) est ouvert. Indispensable pour distinguer un problème de service arrêté d'un problème de pare-feu.",
+      "platform": 0
+    },
+    {
+      "command": "Test-NetConnection -ComputerName 8.8.8.8 -TraceRoute",
+      "description": "Diagnostique la route réseau (Hops). Permet d'identifier à quel routeur/firewall les paquets sont perdus.",
+      "platform": 0
+    },
+    {
+      "command": "Test-NetConnection -ComputerName cloudflare.com -InformationLevel Detailed",
+      "description": "Affiche des détails techniques complets (résolution DNS, adresse source, interface de sortie).",
+      "platform": 0
+    }
+  ],
+  "notes": "Remplace ping et tracert. InformationLevel Detailed affiche toutes les informations. Ports courants: 80 (HTTP), 443 (HTTPS), 3389 (RDP), 445 (SMB).",
+  "links": [
+    {
+      "title": "Test-NetConnection Documentation",
+      "url": "https://learn.microsoft.com/en-us/powershell/module/nettcpip/test-netconnection"
+    }
+  ]
+}

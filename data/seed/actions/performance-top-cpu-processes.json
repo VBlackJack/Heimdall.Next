@@ -1,0 +1,85 @@
+{
+  "id": "performance-top-cpu-processes",
+  "title": "Lister les processus consommant le plus de CPU",
+  "description": "Affiche les processus classés par utilisation CPU décroissante",
+  "category": "⚡ Performance",
+  "platform": 0,
+  "level": 0,
+  "tags": [
+    "performance",
+    "processes",
+    "cpu",
+    "top"
+  ],
+  "windowsCommandTemplateId": "performance-top-cpu-processes-cmd",
+  "windowsCommandTemplate": {
+    "id": "performance-top-cpu-processes-cmd",
+    "platform": 0,
+    "name": "Get-Process",
+    "commandPattern": "Get-Process | Sort-Object CPU -Descending | Select-Object -First {topCount} | Select-Object ProcessName,Id,CPU,@{Name='CPU_Time';Expression={[string]::Format('{0:hh\\:mm\\:ss}',([TimeSpan]::FromSeconds($_.CPU)))}},WorkingSet | Format-Table -AutoSize",
+    "parameters": [
+      {
+        "name": "topCount",
+        "label": "Nombre de processus",
+        "type": "number",
+        "defaultValue": "10",
+        "required": true,
+        "description": "Nombre de processus à afficher"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "Get-Process | Sort-Object CPU -Descending | Select-Object -First 5",
+      "description": "🔥 PERFORMANCE : Identifie les 5 processus qui consomment le plus de CPU actuellement.",
+      "platform": 0
+    },
+    {
+      "command": "Get-Process | Where-Object {$_.Responding -eq $false}",
+      "description": "Trouve les applications 'Ne répond pas' (Frozen).",
+      "platform": 0
+    },
+    {
+      "command": "Get-Process -Name chrome | Stop-Process -Force",
+      "description": "Kill Switch : Ferme de force toutes les instances d'un processus spécifique. Utile pour nettoyer des processus zombies.",
+      "platform": 1
+    },
+    {
+      "command": "Get-Process | Sort-Object CPU -Descending | Select-Object -First 10",
+      "description": "Top 10 des processus par CPU",
+      "platform": 0
+    },
+    {
+      "command": "Get-Process | Where-Object {$_.CPU -gt 10} | Sort-Object CPU -Descending",
+      "description": "Processus ayant utilisé plus de 10 secondes CPU",
+      "platform": 0
+    },
+    {
+      "command": "Get-Process | Select-Object * -First 1",
+      "description": "Affiche toutes les propriétés du premier objet retourné. Select-Object * élargit l'affichage pour montrer toutes les colonnes. -First 1 limite au premier résultat. Utilisez cette commande pour découvrir les propriétés disponibles avant de filtrer.",
+      "platform": 0
+    },
+    {
+      "command": "Get-Process | Export-Csv C:\\Temp\\Export.csv -NoTypeInformation -Encoding UTF8",
+      "description": "Exporte les résultats vers un fichier CSV exploitable dans Excel. -NoTypeInformation supprime la ligne de métadonnées. -Encoding UTF8 garantit la compatibilité des caractères accentués. Utile pour l'archivage, les rapports et l'analyse externe.",
+      "platform": 0
+    },
+    {
+      "command": "Get-Process | Measure-Object",
+      "description": "Compte le nombre total d'objets retournés. Measure-Object retourne Count, Sum, Average, Min, Max selon les propriétés. Utile pour les statistiques rapides et la validation de résultats.",
+      "platform": 0
+    },
+    {
+      "command": "Get-Process | Sort-Object CPU -Descending | Select-Object -First 10 | Select-Object ProcessName,Id,CPU,@{Name='CPU_Time';Expression={[string]::Format('{0:hh\\:mm\\:ss}',([TimeSpan]::FromSeconds($_.CPU)))}},WorkingSet | Format-Table -AutoSize",
+      "description": "Exemple utilisant le paramètre 'topCount': Nombre de processus à afficher.",
+      "platform": 0
+    }
+  ],
+  "notes": "CPU = temps CPU cumulé depuis le démarrage du processus. WorkingSet = mémoire RAM utilisée. Triez par WS pour voir l'utilisation mémoire.",
+  "links": [
+    {
+      "title": "Get-Process Documentation",
+      "url": "https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.management/get-process"
+    }
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  "id": "windowsupdate-sfc-scan",
+  "title": "Vérifier l'intégrité des fichiers système (SFC)",
+  "description": "Exécute System File Checker pour détecter et réparer les fichiers système corrompus",
+  "category": "🔄 Windows Updates",
+  "platform": 0,
+  "level": 0,
+  "tags": [
+    "sfc",
+    "system",
+    "integrity",
+    "repair"
+  ],
+  "windowsCommandTemplateId": "windowsupdate-sfc-scan-cmd",
+  "windowsCommandTemplate": {
+    "id": "windowsupdate-sfc-scan-cmd",
+    "platform": 0,
+    "name": "sfc",
+    "commandPattern": "sfc /scannow",
+    "parameters": []
+  },
+  "examples": [
+    {
+      "command": "sfc /scannow",
+      "description": "Scanne et répare tous les fichiers système protégés",
+      "platform": 0
+    },
+    {
+      "command": "sfc /verifyonly",
+      "description": "Scanne sans réparer (diagnostic uniquement)",
+      "platform": 0
+    }
+  ],
+  "notes": "Nécessite des droits administrateur. Peut prendre 15-30 minutes. Logs disponibles dans C:\\Windows\\Logs\\CBS\\CBS.log. Exécuter DISM avant SFC si SFC échoue.",
+  "links": [
+    {
+      "title": "SFC Documentation",
+      "url": "https://learn.microsoft.com/en-us/troubleshoot/windows-server/deployment/fix-windows-update-errors"
+    }
+  ]
+}

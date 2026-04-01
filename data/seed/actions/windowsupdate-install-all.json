@@ -1,0 +1,46 @@
+{
+  "id": "windowsupdate-install-all",
+  "title": "Installer toutes les mises à jour Windows disponibles",
+  "description": "Télécharge et installe automatiquement toutes les mises à jour Windows disponibles",
+  "category": "🔄 Windows Updates",
+  "platform": 0,
+  "level": 1,
+  "tags": [
+    "windows-update",
+    "install",
+    "patch",
+    "pswindowsupdate"
+  ],
+  "windowsCommandTemplateId": "windowsupdate-install-all-cmd",
+  "windowsCommandTemplate": {
+    "id": "windowsupdate-install-all-cmd",
+    "platform": 0,
+    "name": "Install-WindowsUpdate",
+    "commandPattern": "Install-WindowsUpdate -MicrosoftUpdate -AcceptAll -IgnoreReboot -Verbose",
+    "parameters": []
+  },
+  "examples": [
+    {
+      "command": "Install-WindowsUpdate -MicrosoftUpdate -AcceptAll -AutoReboot",
+      "description": "Installe toutes les mises à jour et redémarre automatiquement si nécessaire",
+      "platform": 0
+    },
+    {
+      "command": "Install-WindowsUpdate -Category 'Critical Updates','Security Updates' -AcceptAll -IgnoreReboot",
+      "description": "Installe uniquement les mises à jour critiques et de sécurité sans redémarrer",
+      "platform": 0
+    },
+    {
+      "command": "Install-WindowsUpdate -MicrosoftUpdate -AcceptAll -IgnoreReboot -Verbose",
+      "description": "Exécution standard de la commande Install. Consultez la documentation officielle avec Get-Help Install-WindowsUpdate -Full pour plus de détails sur les paramètres disponibles et les cas d'usage avancés.",
+      "platform": 0
+    }
+  ],
+  "notes": "ATTENTION: Cette commande peut nécessiter un redémarrage. Utilisez -IgnoreReboot pour empêcher le redémarrage automatique. Nécessite PSWindowsUpdate.",
+  "links": [
+    {
+      "title": "Install Windows Updates with PowerShell",
+      "url": "https://www.alitajran.com/install-windows-updates-powershell/"
+    }
+  ]
+}

@@ -1,0 +1,81 @@
+{
+  "id": "build-make",
+  "title": "Compiler avec Make",
+  "description": "Exécute un Makefile pour compiler un projet C/C++.",
+  "category": "🔧 Development",
+  "platform": 1,
+  "level": 0,
+  "tags": [
+    "make",
+    "c",
+    "cpp",
+    "build",
+    "linux"
+  ],
+  "linuxCommandTemplateId": "build-make-cmd",
+  "linuxCommandTemplate": {
+    "id": "build-make-cmd",
+    "platform": 1,
+    "name": "make",
+    "commandPattern": "make {target}",
+    "parameters": [
+      {
+        "name": "target",
+        "label": "Cible",
+        "type": "string",
+        "defaultValue": "all",
+        "required": false,
+        "description": "Cible à compiler (all, clean, install, etc.)"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "make",
+      "description": "Compile la cible par défaut",
+      "platform": 1
+    },
+    {
+      "command": "make clean && make",
+      "description": "Nettoie puis recompile",
+      "platform": 1
+    },
+    {
+      "command": "make -j4",
+      "description": "Compile en parallèle (4 jobs)",
+      "platform": 1
+    },
+    {
+      "command": "make all",
+      "description": "Exemple utilisant le paramètre 'target': Cible à compiler (all, clean, install, etc.). Remplacez srv-web-01.contoso.com par la valeur appropriée selon votre environnement.",
+      "platform": 1
+    },
+    {
+      "command": "make clean",
+      "description": "Nettoyer les fichiers générés",
+      "platform": 1
+    },
+    {
+      "command": "make install",
+      "description": "Installer le programme",
+      "platform": 1
+    },
+    {
+      "command": "make test",
+      "description": "Exécuter les tests",
+      "platform": 1
+    },
+    {
+      "command": "make -j$(nproc)",
+      "description": "Compilation parallèle",
+      "platform": 1
+    },
+    {
+      "command": "make CFLAGS=\"-O2\" all",
+      "description": "Avec flags personnalisés",
+      "platform": 1
+    }
+  ],
+  "notes": "-j permet la compilation parallèle. make clean supprime les fichiers compilés.",
+  "links": []
+}

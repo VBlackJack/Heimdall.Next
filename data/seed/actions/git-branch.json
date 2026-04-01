@@ -1,0 +1,76 @@
+{
+  "id": "git-branch",
+  "title": "Gérer les branches Git",
+  "description": "Crée, liste ou supprime des branches",
+  "category": "🔧 Development",
+  "platform": 2,
+  "level": 0,
+  "tags": [
+    "git",
+    "branch",
+    "management"
+  ],
+  "windowsCommandTemplateId": "git-branch-win",
+  "windowsCommandTemplate": {
+    "id": "git-branch-win",
+    "platform": 0,
+    "name": "git",
+    "commandPattern": "git branch {branchName}",
+    "parameters": [
+      {
+        "name": "branchName",
+        "label": "Nom branche",
+        "type": "string",
+        "defaultValue": "",
+        "required": false,
+        "description": "Nom de la branche (vide pour lister)"
+      }
+    ]
+  },
+  "linuxCommandTemplateId": "git-branch-linux",
+  "linuxCommandTemplate": {
+    "id": "git-branch-linux",
+    "platform": 1,
+    "name": "git",
+    "commandPattern": "git branch {branchName}",
+    "parameters": [
+      {
+        "name": "branchName",
+        "label": "Nom branche",
+        "type": "string",
+        "defaultValue": "",
+        "required": false,
+        "description": "Nom de la branche"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "git branch",
+      "description": "Liste toutes les branches locales",
+      "platform": 2
+    },
+    {
+      "command": "git branch feature-login",
+      "description": "Crée une nouvelle branche",
+      "platform": 2
+    },
+    {
+      "command": "git branch -d old-feature",
+      "description": "Supprime une branche fusionnée",
+      "platform": 2
+    },
+    {
+      "command": "git branch feature/new-feature",
+      "description": "Exemple utilisant le paramètre 'branchName': Nom de la branche (vide pour lister). Remplacez feature/new-feature par la valeur appropriée selon votre environnement.",
+      "platform": 2
+    }
+  ],
+  "notes": "Utilisez -a pour voir toutes les branches (locales et distantes), -d pour supprimer une branche.",
+  "links": [
+    {
+      "title": "Git Branch Documentation",
+      "url": "https://git-scm.com/docs/git-branch"
+    }
+  ]
+}

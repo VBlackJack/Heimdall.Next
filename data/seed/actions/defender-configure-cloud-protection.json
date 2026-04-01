@@ -1,0 +1,74 @@
+{
+  "id": "defender-configure-cloud-protection",
+  "title": "Configurer la protection cloud Defender",
+  "description": "Active ou configure la protection cloud de Windows Defender (analyse dans le cloud Microsoft).",
+  "category": "🔒 Security & Encryption",
+  "platform": 0,
+  "level": 1,
+  "tags": [
+    "defender",
+    "cloud",
+    "protection"
+  ],
+  "windowsCommandTemplateId": "defender-configure-cloud-protection-cmd",
+  "windowsCommandTemplate": {
+    "id": "defender-configure-cloud-protection-cmd",
+    "platform": 0,
+    "name": "Set-MpPreference",
+    "commandPattern": "Set-MpPreference -MAPSReporting ${level}",
+    "parameters": [
+      {
+        "name": "level",
+        "label": "Niveau de reporting",
+        "type": "string",
+        "defaultValue": "2",
+        "required": true,
+        "description": "0=Désactivé, 1=Basique, 2=Avancé (recommandé)"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "Set-MpPreference -MAPSReporting 2",
+      "description": "Active la protection cloud avancée (recommandé - meilleure détection)",
+      "platform": 0
+    },
+    {
+      "command": "Set-MpPreference -MAPSReporting 1",
+      "description": "Active la protection cloud basique (moins de données envoyées)",
+      "platform": 0
+    },
+    {
+      "command": "Set-MpPreference -MAPSReporting 0",
+      "description": "Désactive la protection cloud (réduit la sécurité!)",
+      "platform": 0
+    },
+    {
+      "command": "Set-MpPreference -SubmitSamplesConsent 2",
+      "description": "Configure l'envoi automatique des échantillons suspects (0=Demander, 1=Envoyer sûrs, 2=Jamais, 3=Toujours)",
+      "platform": 0
+    },
+    {
+      "command": "Get-MpComputerStatus | Select-Object MAPSReporting,SubmitSamplesConsent",
+      "description": "Vérifie les paramètres actuels de protection cloud",
+      "platform": 0
+    },
+    {
+      "command": "Set-MpPreference -MAPSReporting 2 -SubmitSamplesConsent 1",
+      "description": "Configure protection cloud optimale (reporting avancé + envoi échantillons sûrs)",
+      "platform": 0
+    },
+    {
+      "command": "Set-MpPreference -MAPSReporting $2",
+      "description": "Exemple utilisant le paramètre 'level': 0=Désactivé, 1=Basique, 2=Avancé (recommandé). Remplacez Error par la valeur appropriée selon votre environnement.",
+      "platform": 0
+    }
+  ],
+  "notes": "MAPSReporting (Microsoft Active Protection Service): 0=Off, 1=Basic, 2=Advanced. Advanced recommandé: meilleure détection des menaces zero-day grâce à l'analyse cloud. SubmitSamplesConsent: 0=Toujours demander, 1=Envoyer échantillons sûrs auto, 2=Ne jamais envoyer, 3=Tout envoyer auto.",
+  "links": [
+    {
+      "title": "Defender Cloud Protection",
+      "url": "https://learn.microsoft.com/en-us/microsoft-365/security/defender-endpoint/cloud-protection-microsoft-defender-antivirus"
+    }
+  ]
+}

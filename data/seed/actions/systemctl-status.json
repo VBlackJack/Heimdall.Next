@@ -1,0 +1,65 @@
+{
+  "id": "systemctl-status",
+  "title": "Vérifier l'état d'un service",
+  "description": "Affiche l'état détaillé d'une unité systemd (actif, logs récents, etc.)",
+  "category": "⚙️ Services & Automation",
+  "platform": 1,
+  "level": 0,
+  "tags": [
+    "systemctl",
+    "systemd",
+    "status",
+    "monitoring"
+  ],
+  "linuxCommandTemplateId": "systemctl-status-cmd",
+  "linuxCommandTemplate": {
+    "id": "systemctl-status-cmd",
+    "platform": 1,
+    "name": "systemctl",
+    "commandPattern": "systemctl status {service}",
+    "parameters": [
+      {
+        "name": "service",
+        "label": "Nom du service",
+        "type": "string",
+        "defaultValue": "nginx.service",
+        "required": true,
+        "description": "Nom de l'unité systemd à vérifier"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "systemctl status nginx",
+      "description": "Affiche l'état complet de nginx",
+      "platform": 1
+    },
+    {
+      "command": "systemctl is-active nginx",
+      "description": "Retourne uniquement active/inactive",
+      "platform": 1
+    },
+    {
+      "command": "systemctl is-enabled nginx",
+      "description": "Vérifie si activé au boot",
+      "platform": 1
+    },
+    {
+      "command": "systemctl status nginx.service",
+      "description": "Exemple utilisant le paramètre 'service': Nom de l'unité systemd à vérifier. Remplacez spooler par la valeur appropriée selon votre environnement.",
+      "platform": 1
+    },
+    {
+      "command": "systemctl disable cups",
+      "description": "Désactiver le service d'impression au démarrage",
+      "platform": 1
+    }
+  ],
+  "notes": "Ne nécessite pas sudo pour la lecture. Affiche PID, mémoire, logs récents et état.",
+  "links": [
+    {
+      "title": "systemctl status",
+      "url": "https://www.freedesktop.org/software/systemd/man/systemctl.html"
+    }
+  ]
+}

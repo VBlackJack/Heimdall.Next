@@ -1,0 +1,55 @@
+{
+  "id": "systemctl-list-services",
+  "title": "Lister tous les services systemd",
+  "description": "Affiche la liste de toutes les unités de type service",
+  "category": "⚙️ Services & Automation",
+  "platform": 1,
+  "level": 0,
+  "tags": [
+    "systemctl",
+    "systemd",
+    "list",
+    "services"
+  ],
+  "linuxCommandTemplateId": "systemctl-list-cmd",
+  "linuxCommandTemplate": {
+    "id": "systemctl-list-cmd",
+    "platform": 1,
+    "name": "systemctl",
+    "commandPattern": "systemctl list-units --type=service --state={state}",
+    "parameters": [
+      {
+        "name": "state",
+        "label": "État",
+        "type": "string",
+        "defaultValue": "running",
+        "required": true,
+        "description": "État à filtrer (running, failed, active, inactive, all)"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "systemctl list-units --type=service --state=running",
+      "description": "Liste tous les services en cours d'exécution",
+      "platform": 1
+    },
+    {
+      "command": "systemctl list-units --type=service --state=failed",
+      "description": "Liste les services en échec",
+      "platform": 1
+    },
+    {
+      "command": "systemctl list-unit-files --type=service",
+      "description": "Liste tous les fichiers d'unités service",
+      "platform": 1
+    }
+  ],
+  "notes": "Ne nécessite pas sudo. --all affiche aussi les unités inactives.",
+  "links": [
+    {
+      "title": "systemctl list-units",
+      "url": "https://www.freedesktop.org/software/systemd/man/systemctl.html"
+    }
+  ]
+}

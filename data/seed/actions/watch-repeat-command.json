@@ -1,0 +1,64 @@
+{
+  "id": "watch-repeat-command",
+  "title": "Répéter une commande périodiquement",
+  "description": "Exécute une commande à intervalle régulier et affiche le résultat",
+  "category": "⚙️ Services & Automation",
+  "platform": 1,
+  "level": 0,
+  "tags": [
+    "watch",
+    "repeat",
+    "monitor",
+    "interval",
+    "automation"
+  ],
+  "linuxCommandTemplateId": "watch-cmd",
+  "linuxCommandTemplate": {
+    "id": "watch-cmd",
+    "platform": 1,
+    "name": "watch",
+    "commandPattern": "watch -n {interval} {command}",
+    "parameters": [
+      {
+        "name": "interval",
+        "label": "Intervalle (secondes)",
+        "type": "number",
+        "defaultValue": "2",
+        "required": true,
+        "description": "Intervalle en secondes entre chaque exécution"
+      },
+      {
+        "name": "command",
+        "label": "Commande",
+        "type": "string",
+        "defaultValue": "df -h",
+        "required": true,
+        "description": "Commande à répéter"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "watch -n 2 Get-Process",
+      "description": "Exemple utilisant le paramètre 'interval': Intervalle en secondes entre chaque exécution. Remplacez 3600 par la valeur appropriée selon votre environnement.",
+      "platform": 0
+    },
+    {
+      "command": "watch \"tail -n 10 /var/log/syslog\"",
+      "description": "Suivre les dernières lignes",
+      "platform": 1
+    },
+    {
+      "command": "watch -c \"ls --color\"",
+      "description": "Garder les couleurs",
+      "platform": 1
+    }
+  ],
+  "notes": "Ctrl+C pour arrêter. -d surligne les changements. -n définit l'intervalle.",
+  "links": [
+    {
+      "title": "watch command",
+      "url": "https://man7.org/linux/man-pages/man1/watch.1.html"
+    }
+  ]
+}

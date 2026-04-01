@@ -1,0 +1,90 @@
+{
+  "id": "ad-get-user-groups",
+  "title": "Lister les groupes d'un utilisateur",
+  "description": "Affiche tous les groupes Active Directory dont un utilisateur est membre.",
+  "category": "🏢 Active Directory & GPO",
+  "platform": 2,
+  "level": 0,
+  "tags": [
+    "ad",
+    "user",
+    "groups",
+    "membership"
+  ],
+  "windowsCommandTemplateId": "ad-get-user-groups-cmd",
+  "windowsCommandTemplate": {
+    "id": "ad-get-user-groups-cmd",
+    "platform": 0,
+    "name": "Get-ADPrincipalGroupMembership",
+    "commandPattern": "Get-ADPrincipalGroupMembership -Identity {username} | Select-Object Name,GroupCategory,GroupScope | Sort-Object Name",
+    "parameters": [
+      {
+        "name": "username",
+        "label": "Nom d'utilisateur",
+        "type": "string",
+        "defaultValue": "",
+        "required": true,
+        "description": "SamAccountName de l'utilisateur"
+      }
+    ]
+  },
+  "examples": [],
+  "notes": "Affiche les groupes directs et indirects (imbriqués). Utile pour l'audit des permissions.",
+  "links": [
+    {
+      "title": "Documentation Get-ADPrincipalGroupMembership",
+      "url": "https://learn.microsoft.com/en-us/powershell/module/activedirectory/get-adprincipalgroupmembership"
+    }
+  ],
+  "linuxCommandTemplate": {
+    "id": "groups-cmd",
+    "platform": 1,
+    "name": "groups",
+    "commandPattern": "groups {username}",
+    "parameters": [
+      {
+        "name": "username",
+        "label": "Nom d'utilisateur",
+        "type": "string",
+        "defaultValue": "",
+        "required": false,
+        "description": "Utilisateur (vide = utilisateur actuel)"
+      }
+    ]
+  },
+  "windowsExamples": [
+    {
+      "command": "Get-ADGroup -Filter {GroupCategory -eq 'Security' -and GroupScope -eq 'Global'}",
+      "description": "Liste uniquement les groupes de sécurité globaux. GroupCategory peut être 'Security' ou 'Distribution'. GroupScope peut être 'DomainLocal', 'Global' ou 'Universal'. Les groupes de sécurité globaux sont les plus courants pour les permissions sur ressources.",
+      "platform": 0
+    }
+  ],
+  "linuxExamples": [
+    {
+      "command": "groups",
+      "description": "Affiche vos groupes",
+      "platform": 1
+    },
+    {
+      "command": "groups john",
+      "description": "Affiche les groupes de john",
+      "platform": 1
+    },
+    {
+      "command": "id john",
+      "description": "Affiche UID, GID et groupes",
+      "platform": 1
+    },
+    {
+      "command": "id jdupont",
+      "description": "UID, GID et groupes",
+      "platform": 1
+    },
+    {
+      "command": "getent group sudo",
+      "description": "Membres du groupe sudo",
+      "platform": 1
+    }
+  ],
+  "linuxCommandTemplateId": "groups-cmd"
+}

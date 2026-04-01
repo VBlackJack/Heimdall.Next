@@ -1,0 +1,86 @@
+{
+  "id": "ansible-doc-module",
+  "title": "Consulter la documentation d'un module",
+  "description": "Affiche la documentation complète d'un module Ansible",
+  "category": "⚙️ Services & Automation",
+  "platform": 2,
+  "level": 0,
+  "tags": [
+    "ansible",
+    "doc",
+    "documentation",
+    "module",
+    "help"
+  ],
+  "windowsCommandTemplateId": "ansible-doc-module-win",
+  "windowsCommandTemplate": {
+    "id": "ansible-doc-module-win",
+    "platform": 0,
+    "name": "ansible-doc",
+    "commandPattern": "ansible-doc {moduleName}",
+    "parameters": [
+      {
+        "name": "moduleName",
+        "label": "Nom du module",
+        "type": "string",
+        "defaultValue": "copy",
+        "required": true,
+        "description": "Nom du module Ansible à documenter"
+      }
+    ]
+  },
+  "linuxCommandTemplateId": "ansible-doc-module-linux",
+  "linuxCommandTemplate": {
+    "id": "ansible-doc-module-linux",
+    "platform": 1,
+    "name": "ansible-doc",
+    "commandPattern": "ansible-doc {moduleName}",
+    "parameters": [
+      {
+        "name": "moduleName",
+        "label": "Nom du module",
+        "type": "string",
+        "defaultValue": "copy",
+        "required": true,
+        "description": "Nom du module Ansible"
+      }
+    ]
+  },
+  "examples": [],
+  "notes": "Utilisez -l pour lister tous les modules disponibles, -t pour spécifier le type de plugin (lookup, callback, etc.).",
+  "links": [
+    {
+      "title": "Ansible Modules Index",
+      "url": "https://docs.ansible.com/ansible/latest/collections/index_module.html"
+    }
+  ],
+  "windowsExamples": [
+    {
+      "command": "ansible-doc Az.Accounts",
+      "description": "Exemple Windows utilisant ansible-doc. Remplacez les paramètres entre <> par vos valeurs.",
+      "platform": 0
+    }
+  ],
+  "linuxExamples": [
+    {
+      "command": "ansible-doc copy",
+      "description": "Documentation du module copy",
+      "platform": 1
+    },
+    {
+      "command": "ansible-doc -t lookup file",
+      "description": "Documentation du plugin lookup 'file'",
+      "platform": 1
+    },
+    {
+      "command": "ansible-doc -l",
+      "description": "Lister les modules",
+      "platform": 1
+    },
+    {
+      "command": "ansible-doc -s copy",
+      "description": "Snippet du module",
+      "platform": 1
+    }
+  ]
+}

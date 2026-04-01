@@ -1,0 +1,81 @@
+{
+  "id": "fdisk-partition",
+  "title": "Gérer les partitions avec fdisk",
+  "description": "Outil de partitionnement de disques (MBR/GPT)",
+  "category": "📁 Files & Storage",
+  "platform": 1,
+  "level": 2,
+  "tags": [
+    "fdisk",
+    "partition",
+    "disk",
+    "mbr",
+    "gpt"
+  ],
+  "linuxCommandTemplateId": "fdisk-cmd",
+  "linuxCommandTemplate": {
+    "id": "fdisk-cmd",
+    "platform": 1,
+    "name": "fdisk",
+    "commandPattern": "fdisk -l {device}",
+    "parameters": [
+      {
+        "name": "device",
+        "label": "Périphérique",
+        "type": "string",
+        "defaultValue": "",
+        "required": false,
+        "description": "Disque à examiner (vide = tous)"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "sudo fdisk -l",
+      "description": "Liste toutes les partitions",
+      "platform": 1
+    },
+    {
+      "command": "sudo fdisk /dev/sdb",
+      "description": "Mode interactif pour partitionner /dev/sdb",
+      "platform": 1
+    },
+    {
+      "command": "fdisk -l /dev/sda1",
+      "description": "Exemple utilisant le paramètre 'device': Disque à examiner (vide = tous). Remplacez /dev/sda1 par la valeur appropriée selon votre environnement.",
+      "platform": 1
+    },
+    {
+      "command": "fdisk -l",
+      "description": "Lister les disques et partitions",
+      "platform": 1
+    },
+    {
+      "command": "fdisk /dev/sdb",
+      "description": "Gérer les partitions de sdb",
+      "platform": 1
+    },
+    {
+      "command": "fdisk -l /dev/sda",
+      "description": "Détails du disque sda",
+      "platform": 1
+    },
+    {
+      "command": "parted -l",
+      "description": "Alternative: lister avec parted",
+      "platform": 1
+    },
+    {
+      "command": "gdisk /dev/sdc",
+      "description": "Gérer les partitions GPT",
+      "platform": 1
+    }
+  ],
+  "notes": "Nécessite sudo. DANGER: peut détruire des données. Mode interactif: m=aide, p=afficher, w=écrire.",
+  "links": [
+    {
+      "title": "fdisk guide",
+      "url": "https://man7.org/linux/man-pages/man8/fdisk.8.html"
+    }
+  ]
+}

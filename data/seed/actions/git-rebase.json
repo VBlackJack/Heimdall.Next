@@ -1,0 +1,68 @@
+{
+  "id": "git-rebase",
+  "title": "Rebaser une branche",
+  "description": "Réapplique des commits sur une nouvelle base",
+  "category": "🔧 Development",
+  "platform": 2,
+  "level": 2,
+  "tags": [
+    "git",
+    "rebase",
+    "history"
+  ],
+  "windowsCommandTemplateId": "git-rebase-win",
+  "windowsCommandTemplate": {
+    "id": "git-rebase-win",
+    "platform": 0,
+    "name": "git",
+    "commandPattern": "git rebase {branch}",
+    "parameters": [
+      {
+        "name": "branch",
+        "label": "Branche de base",
+        "type": "string",
+        "defaultValue": "main",
+        "required": true,
+        "description": "Branche sur laquelle rebaser"
+      }
+    ]
+  },
+  "linuxCommandTemplateId": "git-rebase-linux",
+  "linuxCommandTemplate": {
+    "id": "git-rebase-linux",
+    "platform": 1,
+    "name": "git",
+    "commandPattern": "git rebase {branch}",
+    "parameters": [
+      {
+        "name": "branch",
+        "label": "Branche de base",
+        "type": "string",
+        "defaultValue": "main",
+        "required": true,
+        "description": "Branche sur laquelle rebaser"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "git rebase main",
+      "description": "Rebase la branche actuelle sur main",
+      "platform": 2
+    }
+  ],
+  "notes": "ATTENTION : Ne rebasez jamais des commits déjà poussés sur un dépôt public. Utilisez -i pour un rebase interactif.",
+  "links": [
+    {
+      "title": "Git Rebase Documentation",
+      "url": "https://git-scm.com/docs/git-rebase"
+    }
+  ],
+  "linuxExamples": [
+    {
+      "command": "git rebase -i HEAD~5",
+      "description": "Rebase interactif des 5 derniers commits",
+      "platform": 1
+    }
+  ]
+}

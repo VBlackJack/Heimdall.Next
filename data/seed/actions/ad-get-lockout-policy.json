@@ -1,0 +1,51 @@
+{
+  "id": "ad-get-lockout-policy",
+  "title": "Obtenir la politique de verrouillage de compte",
+  "description": "Affiche les paramètres de verrouillage de compte du domaine.",
+  "category": "🏢 Active Directory & GPO",
+  "platform": 0,
+  "level": 0,
+  "tags": [
+    "ad",
+    "lockout",
+    "policy",
+    "security"
+  ],
+  "windowsCommandTemplateId": "ad-get-lockout-policy-cmd",
+  "windowsCommandTemplate": {
+    "id": "ad-get-lockout-policy-cmd",
+    "platform": 0,
+    "name": "Get-ADDefaultDomainPasswordPolicy",
+    "commandPattern": "Get-ADDefaultDomainPasswordPolicy | Select-Object LockoutDuration,LockoutObservationWindow,LockoutThreshold",
+    "parameters": []
+  },
+  "examples": [
+    {
+      "command": "Get-ADDefaultDomainPasswordPolicy | Select-Object LockoutDuration,LockoutObservationWindow,LockoutThreshold",
+      "description": "Affiche les paramètres de verrouillage",
+      "platform": 0
+    },
+    {
+      "command": "Get-ADDefaultDomainPasswordPolicy | Select-Object * -First 1",
+      "description": "Affiche toutes les propriétés du premier objet retourné. Select-Object * élargit l'affichage pour montrer toutes les colonnes. -First 1 limite au premier résultat. Utilisez cette commande pour découvrir les propriétés disponibles avant de filtrer.",
+      "platform": 0
+    },
+    {
+      "command": "Get-ADDefaultDomainPasswordPolicy | Format-Table -AutoSize",
+      "description": "Affiche les résultats dans un tableau optimisé pour la console. Format-Table -AutoSize ajuste automatiquement la largeur des colonnes pour un affichage lisible. Idéal pour visualiser rapidement les données structurées.",
+      "platform": 0
+    },
+    {
+      "command": "Get-ADDefaultDomainPasswordPolicy | Export-Csv C:\\Temp\\Export.csv -NoTypeInformation -Encoding UTF8",
+      "description": "Exporte les résultats vers un fichier CSV exploitable dans Excel. -NoTypeInformation supprime la ligne de métadonnées. -Encoding UTF8 garantit la compatibilité des caractères accentués. Utile pour l'archivage, les rapports et l'analyse externe.",
+      "platform": 0
+    },
+    {
+      "command": "Get-ADDefaultDomainPasswordPolicy | Measure-Object",
+      "description": "Compte le nombre total d'objets retournés. Measure-Object retourne Count, Sum, Average, Min, Max selon les propriétés. Utile pour les statistiques rapides et la validation de résultats.",
+      "platform": 0
+    }
+  ],
+  "notes": "LockoutThreshold: nombre de tentatives échouées. LockoutDuration: durée du verrouillage.",
+  "links": []
+}

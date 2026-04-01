@@ -1,0 +1,65 @@
+{
+  "id": "bitlocker-enable-recovery",
+  "title": "Activer BitLocker avec mot de passe de récupération",
+  "description": "Active le chiffrement BitLocker sur un volume avec protection par mot de passe de récupération.",
+  "category": "🔒 Security & Encryption",
+  "platform": 0,
+  "level": 2,
+  "tags": [
+    "bitlocker",
+    "enable",
+    "encryption",
+    "recovery"
+  ],
+  "windowsCommandTemplateId": "bitlocker-enable-recovery-cmd",
+  "windowsCommandTemplate": {
+    "id": "bitlocker-enable-recovery-cmd",
+    "platform": 0,
+    "name": "Enable-BitLocker",
+    "commandPattern": "Enable-BitLocker -MountPoint \"{driveLetter}:\" -RecoveryPasswordProtector -UsedSpaceOnly",
+    "parameters": [
+      {
+        "name": "driveLetter",
+        "label": "Lettre du disque",
+        "type": "string",
+        "defaultValue": "C",
+        "required": true,
+        "description": "Lettre du volume à chiffrer (ex: C, D, E)"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "Enable-BitLocker -MountPoint \"C:\" -RecoveryPasswordProtector -UsedSpaceOnly",
+      "description": "Active BitLocker sur C: en chiffrant uniquement l'espace utilisé (plus rapide)",
+      "platform": 0
+    },
+    {
+      "command": "Enable-BitLocker -MountPoint \"D:\" -RecoveryPasswordProtector",
+      "description": "Active BitLocker sur D: en chiffrant tout le disque (plus sécurisé)",
+      "platform": 0
+    },
+    {
+      "command": "Enable-BitLocker -MountPoint \"E:\" -RecoveryPasswordProtector -EncryptionMethod XtsAes256",
+      "description": "Active BitLocker avec chiffrement AES-256 (recommandé pour haute sécurité)",
+      "platform": 0
+    },
+    {
+      "command": "$vol = Enable-BitLocker -MountPoint \"C:\" -RecoveryPasswordProtector -UsedSpaceOnly; $vol.KeyProtector[0].RecoveryPassword",
+      "description": "Active BitLocker et affiche immédiatement le mot de passe de récupération",
+      "platform": 0
+    },
+    {
+      "command": "Enable-BitLocker -MountPoint \"D:\" -RecoveryPasswordProtector -SkipHardwareTest",
+      "description": "Active BitLocker en sautant le test matériel (attention: risque si matériel incompatible)",
+      "platform": 0
+    }
+  ],
+  "notes": "⚠️ IMPORTANT: Sauvegardez immédiatement le mot de passe de récupération après activation! UsedSpaceOnly: chiffre uniquement l'espace utilisé (rapide). Sans cette option: chiffre tout le disque (lent mais plus sécurisé). EncryptionMethod: XtsAes256 recommandé pour Windows 10/11.",
+  "links": [
+    {
+      "title": "Enable-BitLocker Documentation",
+      "url": "https://learn.microsoft.com/en-us/powershell/module/bitlocker/enable-bitlocker"
+    }
+  ]
+}

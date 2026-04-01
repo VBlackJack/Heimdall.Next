@@ -1,0 +1,36 @@
+{
+  "id": "repair-wu-database",
+  "title": "Réparer la base de données Windows Update",
+  "description": "Utilise l'outil DISM pour réparer les composants Windows Update corrompus",
+  "category": "🔄 Windows Updates",
+  "platform": 0,
+  "level": 2,
+  "tags": [
+    "windows-update",
+    "dism",
+    "repair",
+    "sfc"
+  ],
+  "windowsCommandTemplateId": "repair-wu-database-cmd",
+  "windowsCommandTemplate": {
+    "id": "repair-wu-database-cmd",
+    "platform": 0,
+    "name": "DISM",
+    "commandPattern": "DISM /Online /Cleanup-Image /RestoreHealth && sfc /scannow",
+    "parameters": []
+  },
+  "examples": [
+    {
+      "command": "DISM /Online /Cleanup-Image /RestoreHealth && sfc /scannow",
+      "description": "Exécution standard de la commande None. Consultez la documentation officielle avec Get-Help DISM -Full pour plus de détails sur les paramètres disponibles et les cas d'usage avancés.",
+      "platform": 0
+    }
+  ],
+  "notes": "⏱️ Peut prendre 15-30 minutes selon la vitesse du PC et de la connexion Internet. Droits administrateur requis.",
+  "links": [
+    {
+      "title": "DISM Documentation",
+      "url": "https://learn.microsoft.com/en-us/windows-hardware/manufacture/desktop/dism-operating-system-package-servicing-command-line-options"
+    }
+  ]
+}

@@ -1,0 +1,46 @@
+{
+  "id": "security-audit-ntfs-permissions",
+  "title": "Auditer les permissions NTFS d'un dossier",
+  "description": "Affiche les permissions NTFS détaillées d'un dossier ou fichier avec les droits accordés à chaque utilisateur/groupe",
+  "category": "🔒 Security & Encryption",
+  "platform": 0,
+  "level": 0,
+  "tags": [
+    "security",
+    "ntfs",
+    "permissions",
+    "acl",
+    "audit"
+  ],
+  "windowsCommandTemplateId": "security-audit-ntfs-permissions-cmd",
+  "windowsCommandTemplate": {
+    "id": "security-audit-ntfs-permissions-cmd",
+    "platform": 0,
+    "name": "Get-Acl",
+    "commandPattern": "$acl = Get-Acl -Path '{path}'; $acl.Access | Select-Object @{Name='Path';Expression={'{path}'}},IdentityReference,FileSystemRights,AccessControlType,IsInherited | Format-Table -AutoSize",
+    "parameters": [
+      {
+        "name": "path",
+        "label": "Chemin du dossier/fichier",
+        "type": "string",
+        "defaultValue": "C:\\",
+        "required": true,
+        "description": "Chemin complet du dossier ou fichier à auditer"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "Get-Acl C:\\Users | Format-List",
+      "description": "Affiche les permissions du dossier Users",
+      "platform": 0
+    }
+  ],
+  "notes": "AccessControlType: Allow (autoriser) ou Deny (refuser). IsInherited: True (hérité du parent). FileSystemRights: droits spécifiques (Read, Write, FullControl, etc.).",
+  "links": [
+    {
+      "title": "Get-Acl Documentation",
+      "url": "https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.security/get-acl"
+    }
+  ]
+}

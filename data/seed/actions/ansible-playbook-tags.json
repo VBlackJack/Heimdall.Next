@@ -1,0 +1,127 @@
+{
+  "id": "ansible-playbook-tags",
+  "title": "Exécuter des tâches spécifiques avec --tags",
+  "description": "Exécute uniquement les tâches marquées avec des tags spécifiques",
+  "category": "⚙️ Services & Automation",
+  "platform": 2,
+  "level": 1,
+  "tags": [
+    "ansible",
+    "playbook",
+    "tags",
+    "filter"
+  ],
+  "windowsCommandTemplateId": "ansible-playbook-tags-win",
+  "windowsCommandTemplate": {
+    "id": "ansible-playbook-tags-win",
+    "platform": 0,
+    "name": "ansible-playbook",
+    "commandPattern": "ansible-playbook {playbookPath} -i {inventory} --tags \"{tags}\"",
+    "parameters": [
+      {
+        "name": "playbookPath",
+        "label": "Chemin du playbook",
+        "type": "string",
+        "defaultValue": "site.yml",
+        "required": true,
+        "description": "Chemin vers le fichier playbook YAML"
+      },
+      {
+        "name": "inventory",
+        "label": "Inventaire",
+        "type": "string",
+        "defaultValue": "inventory.ini",
+        "required": true,
+        "description": "Fichier d'inventaire des hôtes"
+      },
+      {
+        "name": "tags",
+        "label": "Tags",
+        "type": "string",
+        "defaultValue": "deploy",
+        "required": true,
+        "description": "Tags des tâches à exécuter (séparés par des virgules)"
+      }
+    ]
+  },
+  "linuxCommandTemplateId": "ansible-playbook-tags-linux",
+  "linuxCommandTemplate": {
+    "id": "ansible-playbook-tags-linux",
+    "platform": 1,
+    "name": "ansible-playbook",
+    "commandPattern": "ansible-playbook {playbookPath} -i {inventory} --tags \"{tags}\"",
+    "parameters": [
+      {
+        "name": "playbookPath",
+        "label": "Chemin du playbook",
+        "type": "string",
+        "defaultValue": "site.yml",
+        "required": true,
+        "description": "Chemin vers le fichier playbook YAML"
+      },
+      {
+        "name": "inventory",
+        "label": "Inventaire",
+        "type": "string",
+        "defaultValue": "inventory.ini",
+        "required": true,
+        "description": "Fichier d'inventaire des hôtes"
+      },
+      {
+        "name": "tags",
+        "label": "Tags",
+        "type": "string",
+        "defaultValue": "deploy",
+        "required": true,
+        "description": "Tags des tâches à exécuter"
+      }
+    ]
+  },
+  "examples": [],
+  "notes": "Les tags permettent d'exécuter sélectivement des parties d'un playbook. Utilisez --skip-tags pour exclure certaines tâches.",
+  "links": [
+    {
+      "title": "Ansible Tags",
+      "url": "https://docs.ansible.com/ansible/latest/user_guide/playbooks_tags.html"
+    }
+  ],
+  "windowsExamples": [
+    {
+      "command": "ansible-playbook site.yml --tags \"deploy,configure\"",
+      "description": "Execute uniquement les taches avec les tags deploy et configure.",
+      "platform": 0
+    },
+    {
+      "command": "ansible-playbook site.yml --skip-tags \"backup\"",
+      "description": "Execute toutes les taches sauf celles avec le tag backup.",
+      "platform": 0
+    }
+  ],
+  "linuxExamples": [
+    {
+      "command": "ansible-playbook site.yml --tags \"deploy,configure\"",
+      "description": "Exécute uniquement les tâches avec les tags deploy et configure",
+      "platform": 1
+    },
+    {
+      "command": "ansible-playbook site.yml --skip-tags \"backup\"",
+      "description": "Exécute toutes les tâches sauf celles avec le tag backup",
+      "platform": 1
+    },
+    {
+      "command": "ansible-playbook site.yml -i /etc/ansible/hosts --tags \"deploy,config\"",
+      "description": "Exemple utilisant le paramètre 'playbookPath': Chemin vers le fichier playbook YAML. Remplacez /etc/ansible/playbooks/deploy.yml par la valeur appropriée selon votre environnement.",
+      "platform": 1
+    },
+    {
+      "command": "ansible-playbook /etc/ansible/playbooks/deploy.yml -i inventory.ini --tags \"deploy,config\"",
+      "description": "Exemple utilisant le paramètre 'inventory': Fichier d'inventaire des hôtes. Remplacez /etc/ansible/hosts par la valeur appropriée selon votre environnement.",
+      "platform": 1
+    },
+    {
+      "command": "ansible-playbook /etc/ansible/playbooks/deploy.yml -i /etc/ansible/hosts --tags \"deploy\"",
+      "description": "Exemple utilisant le paramètre 'tags': Tags des tâches à exécuter (séparés par des virgules). Remplacez deploy,config par la valeur appropriée selon votre environnement.",
+      "platform": 1
+    }
+  ]
+}

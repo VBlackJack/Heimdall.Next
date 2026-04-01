@@ -1,0 +1,46 @@
+{
+  "id": "wsus-server-sync",
+  "title": "Synchroniser le serveur WSUS avec Microsoft Update",
+  "description": "Lance la synchronisation du serveur WSUS avec Microsoft Update pour récupérer les nouvelles mises à jour",
+  "category": "🔄 Windows Updates",
+  "platform": 0,
+  "level": 1,
+  "tags": [
+    "wsus",
+    "server",
+    "sync",
+    "microsoft-update"
+  ],
+  "windowsCommandTemplateId": "wsus-server-sync-cmd",
+  "windowsCommandTemplate": {
+    "id": "wsus-server-sync-cmd",
+    "platform": 0,
+    "name": "Get-WsusServer",
+    "commandPattern": "[void][reflection.assembly]::LoadWithPartialName('Microsoft.UpdateServices.Administration'); $wsus = [Microsoft.UpdateServices.Administration.AdminProxy]::GetUpdateServer(); $subscription = $wsus.GetSubscription(); $subscription.StartSynchronization()",
+    "parameters": []
+  },
+  "examples": [
+    {
+      "command": "(Get-WsusServer).GetSubscription().StartSynchronization()",
+      "description": "Démarre la synchronisation du serveur WSUS (méthode courte)",
+      "platform": 0
+    },
+    {
+      "command": "Start-PSWSUSSync",
+      "description": "Alternative si le module PSWSUS est installé",
+      "platform": 0
+    },
+    {
+      "command": "[void][reflection.assembly]::LoadWithPartialName('Microsoft.UpdateServices.Administration'); $wsus = [Microsoft.UpdateServices.Administration.AdminProxy]::GetUpdateServer(); $subscription = $wsus.GetSubscription(); $subscription.StartSynchronization()",
+      "description": "Exécution standard de la commande None. Consultez la documentation officielle avec Get-Help [void][reflection.assembly]::LoadWithPartialName('Microsoft.UpdateServices.Administration'); -Full pour plus de détails sur les paramètres disponibles et les cas d'usage avancés.",
+      "platform": 0
+    }
+  ],
+  "notes": "À exécuter sur le serveur WSUS. Nécessite droits administrateur et module UpdateServices. La synchronisation peut prendre plusieurs minutes.",
+  "links": [
+    {
+      "title": "WSUS Server Synchronization",
+      "url": "https://dscottraynsford.wordpress.com/2015/07/22/force-wsus-to-synchronize-now-from-powershell/"
+    }
+  ]
+}

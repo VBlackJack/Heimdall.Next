@@ -1,0 +1,84 @@
+{
+  "id": "ulimit-resource-limits",
+  "title": "Afficher/définir les limites de ressources",
+  "description": "Affiche ou modifie les limites de ressources des processus (fichiers, mémoire, CPU)",
+  "category": "⚡ Performance",
+  "platform": 1,
+  "level": 1,
+  "tags": [
+    "ulimit",
+    "limits",
+    "resources",
+    "performance",
+    "tuning"
+  ],
+  "linuxCommandTemplateId": "ulimit-cmd",
+  "linuxCommandTemplate": {
+    "id": "ulimit-cmd",
+    "platform": 1,
+    "name": "ulimit",
+    "commandPattern": "ulimit -{option} {value}",
+    "parameters": [
+      {
+        "name": "option",
+        "label": "Option",
+        "type": "string",
+        "defaultValue": "a",
+        "required": true,
+        "description": "Option (a=all, n=files, u=processes, m=memory)"
+      },
+      {
+        "name": "value",
+        "label": "Valeur",
+        "type": "string",
+        "defaultValue": "",
+        "required": false,
+        "description": "Nouvelle valeur (vide = afficher)"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "ulimit -a",
+      "description": "Affiche toutes les limites",
+      "platform": 1
+    },
+    {
+      "command": "ulimit -n 65535",
+      "description": "Augmente le nombre de fichiers ouverts",
+      "platform": 1
+    },
+    {
+      "command": "ulimit -u 4096",
+      "description": "Limite le nombre de processus",
+      "platform": 1
+    },
+    {
+      "command": "ulimit -a ConfigValue123",
+      "description": "Exemple utilisant le paramètre 'option': Option (a=all, n=files, u=processes, m=memory). Remplacez verbose par la valeur appropriée selon votre environnement.",
+      "platform": 1
+    },
+    {
+      "command": "ulimit -verbose ConfigValue123",
+      "description": "Exemple utilisant le paramètre 'value': Nouvelle valeur (vide = afficher). Remplacez ConfigValue123 par la valeur appropriée selon votre environnement.",
+      "platform": 1
+    },
+    {
+      "command": "ulimit -n",
+      "description": "Limite des fichiers ouverts",
+      "platform": 1
+    },
+    {
+      "command": "ulimit -u",
+      "description": "Limite des processus utilisateur",
+      "platform": 1
+    }
+  ],
+  "notes": "Modifications temporaires pour la session. Éditer /etc/security/limits.conf pour permanence.",
+  "links": [
+    {
+      "title": "ulimit guide",
+      "url": "https://man7.org/linux/man-pages/man1/bash.1.html#SHELL_BUILTIN_COMMANDS"
+    }
+  ]
+}

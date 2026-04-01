@@ -1,0 +1,64 @@
+{
+  "id": "sql-list-jobs",
+  "title": "Lister les jobs SQL Server Agent",
+  "description": "Affiche tous les jobs configurés dans SQL Server Agent avec leur statut, dernière exécution et prochaine planification.",
+  "category": "💽 Database",
+  "platform": 0,
+  "level": 0,
+  "tags": [
+    "sql",
+    "agent",
+    "jobs",
+    "scheduler",
+    "automation",
+    "monitoring",
+    "mssql",
+    "task"
+  ],
+  "windowsCommandTemplateId": "sql-list-jobs-cmd",
+  "windowsCommandTemplate": {
+    "id": "sql-list-jobs-cmd",
+    "platform": 0,
+    "name": "Invoke-Sqlcmd",
+    "commandPattern": "Invoke-Sqlcmd -ServerInstance '{serverInstance}' -Database 'msdb' -Query \"SELECT j.name AS JobName, j.enabled AS IsEnabled, CASE WHEN ja.run_requested_date IS NOT NULL THEN 'Running' WHEN jh.run_status = 1 THEN 'Success' WHEN jh.run_status = 0 THEN 'Failed' ELSE 'Unknown' END AS LastStatus, jh.run_date AS LastRunDate, jh.run_time AS LastRunTime FROM msdb.dbo.sysjobs j LEFT JOIN msdb.dbo.sysjobactivity ja ON j.job_id = ja.job_id AND ja.run_requested_date IS NOT NULL LEFT JOIN (SELECT job_id, run_status, run_date, run_time, ROW_NUMBER() OVER (PARTITION BY job_id ORDER BY run_date DESC, run_time DESC) AS rn FROM msdb.dbo.sysjobhistory WHERE step_id = 0) jh ON j.job_id = jh.job_id AND jh.rn = 1 ORDER BY j.name\" | Format-Table -AutoSize",
+    "parameters": [
+      {
+        "name": "serverInstance",
+        "label": "Instance SQL Server",
+        "type": "string",
+        "defaultValue": "localhost",
+        "required": true,
+        "description": "Instance SQL Server"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "Invoke-Sqlcmd -ServerInstance 'localhost' -Database 'msdb' -Query \"SELECT name, enabled FROM msdb.dbo.sysjobs\"",
+      "description": "Liste simple des jobs et leur état",
+      "platform": 0
+    },
+    {
+      "command": "Get-SqlAgentJob -ServerInstance 'localhost'",
+      "description": "Alternative avec cmdlet SQL Server",
+      "platform": 0
+    },
+    {
+      "command": "Invoke-Sqlcmd -Database 'msdb' -Query \"EXEC sp_help_job\"",
+      "description": "Utilise la procédure stockée native",
+      "platform": 0
+    },
+    {
+      "command": "Invoke-Sqlcmd -ServerInstance 'localhost\\SQLEXPRESS' -Database 'msdb' -Query \"SELECT j.name AS JobName, j.enabled AS IsEnabled, CASE WHEN ja.run_requested_date IS NOT NULL THEN 'Running' WHEN jh.run_status = 1 THEN 'Success' WHEN jh.run_status = 0 THEN 'Failed' ELSE 'Unknown' END AS LastStatus, jh.run_date AS LastRunDate, jh.run_time AS LastRunTime FROM msdb.dbo.sysjobs j LEFT JOIN msdb.dbo.sysjobactivity ja ON j.job_id = ja.job_id AND ja.run_requested_date IS NOT NULL LEFT JOIN (SELECT job_id, run_status, run_date, run_time, ROW_NUMBER() OVER (PARTITION BY job_id ORDER BY run_date DESC, run_time DESC) AS rn FROM msdb.dbo.sysjobhistory WHERE step_id = 0) jh ON j.job_id = jh.job_id AND jh.rn = 1 ORDER BY j.name\" | Format-Table -AutoSize",
+      "description": "Cas d'usage standard. Affiche tous les jobs configurés dans SQL Server Agent avec leur statut, dernière exécution et prochaine planification. Consultez la documentation pour des paramètres avancés et des options de filtrage.",
+      "platform": 0
+    }
+  ],
+  "notes": "Le service SQL Server Agent doit être démarré. Les jobs désactivés n'apparaissent pas dans les planifications actives.",
+  "links": [
+    {
+      "title": "Documentation SQL Server Agent",
+      "url": "https://learn.microsoft.com/en-us/sql/ssms/agent/sql-server-agent"
+    }
+  ]
+}

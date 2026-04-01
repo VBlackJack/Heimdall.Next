@@ -1,0 +1,49 @@
+{
+  "id": "bitlocker-test-protectors",
+  "title": "Tester les protecteurs de clé BitLocker",
+  "description": "Vérifie que tous les protecteurs de clé BitLocker d'un volume sont valides et fonctionnels.",
+  "category": "🔒 Security & Encryption",
+  "platform": 0,
+  "level": 1,
+  "tags": [
+    "bitlocker",
+    "test",
+    "validation"
+  ],
+  "windowsCommandTemplateId": "bitlocker-test-protectors-cmd",
+  "windowsCommandTemplate": {
+    "id": "bitlocker-test-protectors-cmd",
+    "platform": 0,
+    "name": "Get-BitLockerVolume",
+    "commandPattern": "$vol = Get-BitLockerVolume -MountPoint \"{driveLetter}:\"; Write-Host \"Volume: $($vol.MountPoint)\" -ForegroundColor Cyan; Write-Host \"Protection: $($vol.ProtectionStatus)\" -ForegroundColor $(if($vol.ProtectionStatus -eq 'On'){'Green'}else{'Red'}); Write-Host \"Protecteurs:\" -ForegroundColor Yellow; $vol.KeyProtector | Select-Object KeyProtectorType,KeyProtectorId | Format-Table",
+    "parameters": [
+      {
+        "name": "driveLetter",
+        "label": "Lettre du disque",
+        "type": "string",
+        "defaultValue": "C",
+        "required": true,
+        "description": "Lettre du volume"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "$vol = Get-BitLockerVolume C:; $vol.KeyProtector | Group-Object KeyProtectorType | Select-Object Name,Count",
+      "description": "Compte les protecteurs par type (combien de Recovery, TPM, etc.)",
+      "platform": 0
+    },
+    {
+      "command": "(Get-Tpm).TpmPresent -and (Get-Tpm).TpmReady",
+      "description": "Vérifie que le TPM est présent et opérationnel",
+      "platform": 0
+    }
+  ],
+  "notes": "Types de protecteurs: RecoveryPassword (obligatoire!), Tpm, TpmPin, TpmStartupKey, ExternalKey, Password. Bonne pratique: toujours avoir au moins 1 RecoveryPassword sauvegardé. Vérifiez régulièrement que le TPM est fonctionnel.",
+  "links": [
+    {
+      "title": "BitLocker Key Protectors",
+      "url": "https://learn.microsoft.com/en-us/windows/security/operating-system-security/data-protection/bitlocker/operations-guide"
+    }
+  ]
+}

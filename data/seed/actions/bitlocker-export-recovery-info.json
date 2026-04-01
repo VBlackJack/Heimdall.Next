@@ -1,0 +1,51 @@
+{
+  "id": "bitlocker-export-recovery-info",
+  "title": "Exporter toutes les informations de récupération BitLocker",
+  "description": "Exporte un rapport complet de tous les volumes BitLocker avec leurs mots de passe de récupération.",
+  "category": "🔒 Security & Encryption",
+  "platform": 0,
+  "level": 1,
+  "tags": [
+    "bitlocker",
+    "backup",
+    "export",
+    "recovery"
+  ],
+  "windowsCommandTemplateId": "bitlocker-export-recovery-info-cmd",
+  "windowsCommandTemplate": {
+    "id": "bitlocker-export-recovery-info-cmd",
+    "platform": 0,
+    "name": "Get-BitLockerVolume",
+    "commandPattern": "$report = @(); Get-BitLockerVolume | ForEach-Object { $vol = $_; $_.KeyProtector | Where-Object {$_.KeyProtectorType -eq 'RecoveryPassword'} | ForEach-Object { $report += [PSCustomObject]@{ Volume=$vol.MountPoint; RecoveryPassword=$_.RecoveryPassword; KeyId=$_.KeyProtectorId } } }; $report | Export-Csv C:\\BitLocker-Recovery-Report.csv -NoTypeInformation; Write-Host 'Rapport sauvegardé: C:\\BitLocker-Recovery-Report.csv' -ForegroundColor Green",
+    "parameters": []
+  },
+  "examples": [
+    {
+      "command": "$report = @(); Get-BitLockerVolume | ForEach-Object { $vol = $_; $_.KeyProtector | Where-Object {$_.KeyProtectorType -eq 'RecoveryPassword'} | ForEach-Object { $report += [PSCustomObject]@{Volume=$vol.MountPoint; Password=$_.RecoveryPassword} } }; $report | Format-Table",
+      "description": "Génère un rapport de tous les mots de passe de récupération",
+      "platform": 0
+    },
+    {
+      "command": "$report = @(); Get-BitLockerVolume | Select-Object * -First 1",
+      "description": "Affiche toutes les propriétés du premier objet retourné. Select-Object * élargit l'affichage pour montrer toutes les colonnes. -First 1 limite au premier résultat. Utilisez cette commande pour découvrir les propriétés disponibles avant de filtrer.",
+      "platform": 0
+    },
+    {
+      "command": "$report = @(); Get-BitLockerVolume | Format-Table -AutoSize",
+      "description": "Affiche les résultats dans un tableau optimisé pour la console. Format-Table -AutoSize ajuste automatiquement la largeur des colonnes pour un affichage lisible. Idéal pour visualiser rapidement les données structurées.",
+      "platform": 0
+    },
+    {
+      "command": "$report = @(); Get-BitLockerVolume | Measure-Object",
+      "description": "Compte le nombre total d'objets retournés. Measure-Object retourne Count, Sum, Average, Min, Max selon les propriétés. Utile pour les statistiques rapides et la validation de résultats.",
+      "platform": 0
+    }
+  ],
+  "notes": "⚠️ CRITIQUE: Sauvegardez ce rapport dans un coffre-fort sécurisé (gestionnaire de mots de passe, coffre physique, Active Directory). Ne l'envoyez JAMAIS par email non chiffré. Ne le stockez PAS sur le disque chiffré lui-même. Mettez à jour le rapport après chaque modification BitLocker.",
+  "links": [
+    {
+      "title": "BitLocker Recovery Keys Best Practices",
+      "url": "https://learn.microsoft.com/en-us/windows/security/operating-system-security/data-protection/bitlocker/recovery-overview"
+    }
+  ]
+}

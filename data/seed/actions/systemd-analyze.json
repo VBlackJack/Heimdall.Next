@@ -1,0 +1,75 @@
+{
+  "id": "systemd-analyze",
+  "title": "Analyser le temps de démarrage",
+  "description": "Analyse et affiche le temps de démarrage du système et des services",
+  "category": "⚙️ Services & Automation",
+  "platform": 1,
+  "level": 0,
+  "tags": [
+    "systemd-analyze",
+    "boot",
+    "performance",
+    "startup"
+  ],
+  "linuxCommandTemplateId": "systemd-analyze-cmd",
+  "linuxCommandTemplate": {
+    "id": "systemd-analyze-cmd",
+    "platform": 1,
+    "name": "systemd-analyze",
+    "commandPattern": "systemd-analyze blame | head -n {lines}",
+    "parameters": [
+      {
+        "name": "lines",
+        "label": "Nombre de services",
+        "type": "number",
+        "defaultValue": "20",
+        "required": true,
+        "description": "Nombre de services les plus lents à afficher"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "systemd-analyze",
+      "description": "Affiche le temps total de boot",
+      "platform": 1
+    },
+    {
+      "command": "systemd-analyze blame",
+      "description": "Liste les services par temps de démarrage",
+      "platform": 1
+    },
+    {
+      "command": "systemd-analyze critical-chain",
+      "description": "Affiche la chaîne critique du démarrage",
+      "platform": 1
+    },
+    {
+      "command": "systemd-analyze blame | head -n 20",
+      "description": "Exemple utilisant le paramètre 'lines': Nombre de services les plus lents à afficher. Remplacez 100 par la valeur appropriée selon votre environnement.",
+      "platform": 1
+    },
+    {
+      "command": "systemd-analyze plot > boot.svg",
+      "description": "Graphique du boot",
+      "platform": 1
+    },
+    {
+      "command": "systemd-analyze verify /etc/systemd/system/myapp.service",
+      "description": "Vérifier un service",
+      "platform": 1
+    },
+    {
+      "command": "systemd-analyze time",
+      "description": "Résumé du temps de boot",
+      "platform": 1
+    }
+  ],
+  "notes": "Ne nécessite pas sudo. blame liste par ordre décroissant de temps. Utile pour optimiser le boot.",
+  "links": [
+    {
+      "title": "systemd-analyze documentation",
+      "url": "https://www.freedesktop.org/software/systemd/man/systemd-analyze.html"
+    }
+  ]
+}

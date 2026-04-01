@@ -1,0 +1,30 @@
+{
+  "id": "dns-show-cache",
+  "title": "Afficher le cache DNS",
+  "description": "Affiche le contenu actuel du cache DNS local.",
+  "category": "🌐 Network & DNS",
+  "platform": 0,
+  "level": 0,
+  "tags": [
+    "dns",
+    "cache",
+    "view"
+  ],
+  "windowsCommandTemplateId": "dns-show-cache-cmd",
+  "windowsCommandTemplate": {
+    "id": "dns-show-cache-cmd",
+    "platform": 0,
+    "name": "ipconfig",
+    "commandPattern": "ipconfig /displaydns",
+    "parameters": []
+  },
+  "examples": [
+    {
+      "command": "ipconfig /displaydns",
+      "description": "Affiche tous les enregistrements en cache DNS",
+      "platform": 0
+    }
+  ],
+  "notes": "Commande Windows uniquement. Sortie volumineuse, pensez à filtrer avec | findstr.",
+  "links": []
+}

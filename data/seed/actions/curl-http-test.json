@@ -1,0 +1,89 @@
+{
+  "id": "curl-http-test",
+  "title": "Tester une requête HTTP",
+  "description": "Effectue une requête HTTP/HTTPS et affiche la réponse",
+  "category": "🌐 Network & DNS",
+  "platform": 1,
+  "level": 0,
+  "tags": [
+    "curl",
+    "http",
+    "https",
+    "api",
+    "web"
+  ],
+  "linuxCommandTemplateId": "curl-cmd",
+  "linuxCommandTemplate": {
+    "id": "curl-cmd",
+    "platform": 1,
+    "name": "curl",
+    "commandPattern": "curl {options} {url}",
+    "parameters": [
+      {
+        "name": "options",
+        "label": "Options",
+        "type": "string",
+        "defaultValue": "-I",
+        "required": false,
+        "description": "Options curl (-I=headers, -v=verbose, -L=follow redirects)"
+      },
+      {
+        "name": "url",
+        "label": "URL",
+        "type": "string",
+        "defaultValue": "http://localhost",
+        "required": true,
+        "description": "URL à tester"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "curl -I http://google.com",
+      "description": "Affiche uniquement les headers HTTP",
+      "platform": 1
+    },
+    {
+      "command": "curl -X GET https://api.example.com/users",
+      "description": "Requête GET sur une API",
+      "platform": 1
+    },
+    {
+      "command": "curl -o file.html http://example.com",
+      "description": "Télécharge dans un fichier",
+      "platform": 1
+    },
+    {
+      "command": "curl -I https://www.contoso.com",
+      "description": "Exemple utilisant le paramètre 'options': Options curl (-I=headers, -v=verbose, -L=follow redirects). Remplacez -v -f par la valeur appropriée selon votre environnement.",
+      "platform": 1
+    },
+    {
+      "command": "curl -v -f http://localhost",
+      "description": "Exemple utilisant le paramètre 'url': URL à tester. Remplacez https://www.contoso.com par la valeur appropriée selon votre environnement.",
+      "platform": 1
+    },
+    {
+      "command": "curl https://api.example.com",
+      "description": "Requête GET simple",
+      "platform": 1
+    },
+    {
+      "command": "curl -X POST -d '{\"key\":\"value\"}' -H \"Content-Type: application/json\" https://api.example.com",
+      "description": "Requête POST JSON",
+      "platform": 1
+    },
+    {
+      "command": "curl -I https://example.com",
+      "description": "Afficher les headers uniquement",
+      "platform": 1
+    }
+  ],
+  "notes": "Ne nécessite pas sudo. -v pour mode verbose. wget est une alternative pour télécharger.",
+  "links": [
+    {
+      "title": "curl documentation",
+      "url": "https://curl.se/docs/manpage.html"
+    }
+  ]
+}

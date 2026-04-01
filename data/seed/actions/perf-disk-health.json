@@ -1,0 +1,65 @@
+{
+  "id": "perf-disk-health",
+  "title": "Vérifier la santé des disques (SMART)",
+  "description": "Vérifie l'état de santé des disques physiques via SMART (Self-Monitoring, Analysis and Reporting Technology) pour détecter les problèmes potentiels.",
+  "category": "⚡ Performance",
+  "platform": 0,
+  "level": 0,
+  "tags": [
+    "disk",
+    "health",
+    "smart",
+    "diagnostic",
+    "storage",
+    "reliability",
+    "hardware",
+    "monitoring"
+  ],
+  "windowsCommandTemplateId": "perf-disk-health-cmd",
+  "windowsCommandTemplate": {
+    "id": "perf-disk-health-cmd",
+    "platform": 0,
+    "name": "Get-PhysicalDisk",
+    "commandPattern": "Get-PhysicalDisk | Select-Object FriendlyName, MediaType, OperationalStatus, HealthStatus, @{Name='SizeGB';Expression={[Math]::Round($_.Size/1GB,2)}}, BusType, SpindleSpeed | Format-Table -AutoSize",
+    "parameters": []
+  },
+  "examples": [
+    {
+      "command": "Get-PhysicalDisk | Where-Object {$_.HealthStatus -ne 'Healthy'}",
+      "description": "Affiche uniquement les disques avec problèmes",
+      "platform": 0
+    },
+    {
+      "command": "Get-Disk | Select-Object Number, FriendlyName, HealthStatus, OperationalStatus, PartitionStyle",
+      "description": "État détaillé de tous les disques",
+      "platform": 0
+    },
+    {
+      "command": "Get-CimInstance -ClassName Win32_DiskDrive | Select-Object",
+      "description": "Alternative WMIC (legacy) (modernisé depuis wmic) (modernisé depuis wmic)",
+      "platform": 0
+    },
+    {
+      "command": "Get-PhysicalDisk | Select-Object * -First 1",
+      "description": "Affiche toutes les propriétés du premier objet retourné. Select-Object * élargit l'affichage pour montrer toutes les colonnes. -First 1 limite au premier résultat. Utilisez cette commande pour découvrir les propriétés disponibles avant de filtrer.",
+      "platform": 0
+    },
+    {
+      "command": "Get-PhysicalDisk | Export-Csv C:\\Temp\\Export.csv -NoTypeInformation -Encoding UTF8",
+      "description": "Exporte les résultats vers un fichier CSV exploitable dans Excel. -NoTypeInformation supprime la ligne de métadonnées. -Encoding UTF8 garantit la compatibilité des caractères accentués. Utile pour l'archivage, les rapports et l'analyse externe.",
+      "platform": 0
+    },
+    {
+      "command": "Get-PhysicalDisk | Measure-Object",
+      "description": "Compte le nombre total d'objets retournés. Measure-Object retourne Count, Sum, Average, Min, Max selon les propriétés. Utile pour les statistiques rapides et la validation de résultats.",
+      "platform": 0
+    }
+  ],
+  "notes": "HealthStatus peut être: Healthy, Warning, Unhealthy. MediaType: HDD, SSD, SCM. BusType indique l'interface (SATA, NVMe, etc.).",
+  "links": [
+    {
+      "title": "Documentation Get-PhysicalDisk",
+      "url": "https://learn.microsoft.com/en-us/powershell/module/storage/get-physicaldisk"
+    }
+  ]
+}

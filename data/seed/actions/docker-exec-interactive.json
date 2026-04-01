@@ -1,0 +1,67 @@
+{
+  "id": "docker-exec-interactive",
+  "title": "Entrer dans un conteneur (Docker Exec)",
+  "description": "Ouvre un shell interactif (bash/sh) à l'intérieur d'un conteneur en cours d'exécution pour le débogage.",
+  "category": "🐳 Containers & VMs",
+  "platform": 2,
+  "level": 1,
+  "tags": [
+    "docker",
+    "container",
+    "debug",
+    "shell",
+    "bash"
+  ],
+  "windowsCommandTemplate": {
+    "id": "dddbeeba-1030-40be-8275-e624002f2889",
+    "platform": 0,
+    "name": "docker",
+    "commandPattern": "docker exec -it {container} powershell",
+    "parameters": [
+      {
+        "name": "container",
+        "label": "Conteneur",
+        "type": "string",
+        "defaultValue": "",
+        "required": true,
+        "description": "Nom ou ID"
+      }
+    ]
+  },
+  "linuxCommandTemplate": {
+    "id": "26d6e56f-5604-4a86-841e-e43e6b058dfc",
+    "platform": 1,
+    "name": "docker",
+    "commandPattern": "docker exec -it {container} /bin/bash",
+    "parameters": [
+      {
+        "name": "container",
+        "label": "Conteneur",
+        "type": "string",
+        "defaultValue": "",
+        "required": true,
+        "description": "Nom ou ID"
+      }
+    ]
+  },
+  "examples": [],
+  "linuxExamples": [
+    {
+      "command": "docker exec -it web_app /bin/bash",
+      "description": "🔥 DEBUG : Ouvre un terminal Bash dans le conteneur 'web_app'. Si bash n'existe pas, essayez /bin/sh.",
+      "platform": 1
+    },
+    {
+      "command": "docker exec -it db_prod mysql -u root -p",
+      "description": "Se connecte directement au client MySQL à l'intérieur du conteneur DB.",
+      "platform": 1
+    },
+    {
+      "command": "docker exec -u 0 -it web_app bash",
+      "description": "Entre dans le conteneur en tant que ROOT (user 0). Utile si l'user par défaut n'a pas les droits d'installation d'outils de debug.",
+      "platform": 1
+    }
+  ],
+  "linuxCommandTemplateId": "26d6e56f-5604-4a86-841e-e43e6b058dfc",
+  "windowsCommandTemplateId": "dddbeeba-1030-40be-8275-e624002f2889"
+}

@@ -1,0 +1,75 @@
+{
+  "id": "pswindowsupdate-install-specific",
+  "title": "Installer une mise à jour spécifique par KB",
+  "description": "Installe uniquement une mise à jour Windows spécifique identifiée par son numéro KB",
+  "category": "🔄 Windows Updates",
+  "platform": 0,
+  "level": 1,
+  "tags": [
+    "windows-update",
+    "install",
+    "kb",
+    "pswindowsupdate"
+  ],
+  "windowsCommandTemplateId": "pswindowsupdate-install-specific-cmd",
+  "windowsCommandTemplate": {
+    "id": "pswindowsupdate-install-specific-cmd",
+    "platform": 0,
+    "name": "Get-WindowsUpdate",
+    "commandPattern": "Get-WindowsUpdate -KBArticleID {kbNumber} -Install -AcceptAll -IgnoreReboot",
+    "parameters": [
+      {
+        "name": "kbNumber",
+        "label": "Numéro KB",
+        "type": "string",
+        "defaultValue": "KB5001234",
+        "required": true,
+        "description": "Numéro KB de la mise à jour à installer"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "Get-WindowsUpdate -KBArticleID KB5001234 -Install -AcceptAll",
+      "description": "Installe uniquement la mise à jour KB5001234",
+      "platform": 0
+    },
+    {
+      "command": "Get-WindowsUpdate -KBArticleID KB5001234 -Download",
+      "description": "Télécharge seulement la mise à jour sans installer",
+      "platform": 0
+    },
+    {
+      "command": "Get-WindowsUpdate -KBArticleID KB5012345 -Install -AcceptAll -IgnoreReboot | Select-Object * -First 1",
+      "description": "Affiche toutes les propriétés du premier objet retourné. Select-Object * élargit l'affichage pour montrer toutes les colonnes. -First 1 limite au premier résultat. Utilisez cette commande pour découvrir les propriétés disponibles avant de filtrer.",
+      "platform": 0
+    },
+    {
+      "command": "Get-WindowsUpdate -KBArticleID KB5012345 -Install -AcceptAll -IgnoreReboot | Format-Table -AutoSize",
+      "description": "Affiche les résultats dans un tableau optimisé pour la console. Format-Table -AutoSize ajuste automatiquement la largeur des colonnes pour un affichage lisible. Idéal pour visualiser rapidement les données structurées.",
+      "platform": 0
+    },
+    {
+      "command": "Get-WindowsUpdate -KBArticleID KB5012345 -Install -AcceptAll -IgnoreReboot | Export-Csv C:\\Temp\\Export.csv -NoTypeInformation -Encoding UTF8",
+      "description": "Exporte les résultats vers un fichier CSV exploitable dans Excel. -NoTypeInformation supprime la ligne de métadonnées. -Encoding UTF8 garantit la compatibilité des caractères accentués. Utile pour l'archivage, les rapports et l'analyse externe.",
+      "platform": 0
+    },
+    {
+      "command": "Get-WindowsUpdate -KBArticleID KB5012345 -Install -AcceptAll -IgnoreReboot | Measure-Object",
+      "description": "Compte le nombre total d'objets retournés. Measure-Object retourne Count, Sum, Average, Min, Max selon les propriétés. Utile pour les statistiques rapides et la validation de résultats.",
+      "platform": 0
+    },
+    {
+      "command": "Get-WindowsUpdate -KBArticleID KB5001234 -Install -AcceptAll -IgnoreReboot",
+      "description": "Exemple utilisant le paramètre 'kbNumber': Numéro KB de la mise à jour à installer. Remplacez KB5012345 par la valeur appropriée selon votre environnement.",
+      "platform": 0
+    }
+  ],
+  "notes": "Utile pour installer une mise à jour précise. Peut nécessiter un redémarrage. Nécessite PSWindowsUpdate.",
+  "links": [
+    {
+      "title": "Install Specific Windows Update",
+      "url": "https://woshub.com/pswindowsupdate-module/"
+    }
+  ]
+}

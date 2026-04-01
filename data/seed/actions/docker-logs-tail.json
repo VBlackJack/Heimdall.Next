@@ -1,0 +1,77 @@
+{
+  "id": "docker-logs-tail",
+  "title": "Voir les logs conteneur (Docker Logs)",
+  "description": "Affiche les logs de la sortie standard (stdout/stderr) d'un conteneur.",
+  "category": "🐳 Containers & VMs",
+  "platform": 2,
+  "level": 0,
+  "tags": [
+    "docker",
+    "logs",
+    "monitoring",
+    "troubleshoot"
+  ],
+  "windowsCommandTemplate": {
+    "id": "63bf7995-cb6c-4368-a5b3-f77ed0754d14",
+    "platform": 0,
+    "name": "docker",
+    "commandPattern": "docker logs --tail {lines} -f {container}",
+    "parameters": [
+      {
+        "name": "container",
+        "label": "Conteneur",
+        "type": "string",
+        "defaultValue": "",
+        "required": true,
+        "description": "Nom ou ID"
+      },
+      {
+        "name": "lines",
+        "label": "Lignes",
+        "type": "number",
+        "defaultValue": "100",
+        "required": true,
+        "description": "Nombre de lignes"
+      }
+    ]
+  },
+  "linuxCommandTemplate": {
+    "id": "ff040900-b553-4242-8926-017d7d19f7a8",
+    "platform": 1,
+    "name": "docker",
+    "commandPattern": "docker logs --tail {lines} -f {container}",
+    "parameters": [
+      {
+        "name": "container",
+        "label": "Conteneur",
+        "type": "string",
+        "defaultValue": "",
+        "required": true,
+        "description": "Nom ou ID"
+      },
+      {
+        "name": "lines",
+        "label": "Lignes",
+        "type": "number",
+        "defaultValue": "100",
+        "required": true,
+        "description": "Nombre de lignes"
+      }
+    ]
+  },
+  "examples": [],
+  "linuxExamples": [
+    {
+      "command": "docker logs --tail 50 -f web_server",
+      "description": "Suivi en temps réel (-f) des 50 dernières lignes de logs.",
+      "platform": 1
+    },
+    {
+      "command": "docker logs --since 30m db_server",
+      "description": "Affiche uniquement les logs générés depuis 30 minutes.",
+      "platform": 1
+    }
+  ],
+  "linuxCommandTemplateId": "ff040900-b553-4242-8926-017d7d19f7a8",
+  "windowsCommandTemplateId": "63bf7995-cb6c-4368-a5b3-f77ed0754d14"
+}

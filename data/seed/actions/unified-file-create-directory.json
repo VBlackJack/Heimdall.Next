@@ -1,0 +1,139 @@
+{
+  "id": "unified-file-create-directory",
+  "title": "Créer un répertoire",
+  "description": "Crée un nouveau dossier, y compris les dossiers parents si nécessaire.",
+  "category": "📁 Files & Storage",
+  "platform": 2,
+  "supportedPlatforms": [
+    0,
+    1
+  ],
+  "level": 0,
+  "tags": [
+    "linux",
+    "windows",
+    "mkdir",
+    "dossier",
+    "créer"
+  ],
+  "notes": "Windows: -Force crée les dossiers parents si nécessaire.\nLinux: -p crée les dossiers parents si nécessaire. -m définit les permissions.",
+  "links": [],
+  "windowsCommandTemplateId": "file-create-directory-windows-cmd",
+  "windowsCommandTemplate": {
+    "id": "file-create-directory-windows-cmd",
+    "platform": 0,
+    "name": "New-Item",
+    "commandPattern": "New-Item -Path \"{path}\" -ItemType Directory -Force",
+    "parameters": [
+      {
+        "name": "path",
+        "label": "Chemin du dossier",
+        "type": "string",
+        "defaultValue": "",
+        "required": true,
+        "description": "Chemin du nouveau dossier à créer"
+      }
+    ]
+  },
+  "windowsExamples": [
+    {
+      "command": "New-Item -Path \"C:\\Projects\\MyApp\\src\" -ItemType Directory -Force",
+      "description": "Crée une arborescence de dossiers",
+      "platform": 0
+    },
+    {
+      "command": "New-Item -Path \"{path}\" -ItemType Directory -Force -WhatIf",
+      "description": "Simulation de l'action sans exécution réelle (dry-run). Le switch -WhatIf affiche ce qui serait modifié sans appliquer les changements. INDISPENSABLE avant toute action de masse ou modification critique. Retirez -WhatIf après validation pour exécuter.",
+      "platform": 0
+    },
+    {
+      "command": "New-Item -Path \"{path}\" -ItemType Directory -Force -Confirm:$false",
+      "description": "Exécute l'action sans demander de confirmation interactive. -Confirm:$false supprime les invites de validation. Utile dans les scripts automatisés mais à utiliser avec précaution : aucun filet de sécurité.",
+      "platform": 0
+    },
+    {
+      "command": "New-Item -Path \"{path}\" -ItemType Directory -Force -PassThru",
+      "description": "Force la commande à retourner l'objet modifié/créé dans le pipeline. Par défaut, les cmdlets Set-/New- ne retournent rien. -PassThru active le retour pour permettre des opérations en chaîne ou des vérifications immédiates.",
+      "platform": 0
+    },
+    {
+      "command": "New-Item -Path \"{path}\" -ItemType Directory -Force -Verbose",
+      "description": "Affiche des informations détaillées sur l'exécution de la commande. -Verbose active les messages de débogage pour comprendre précisément ce qui se passe. Essentiel pour le troubleshooting et la compréhension des opérations internes.",
+      "platform": 0
+    },
+    {
+      "command": "New-Item -Path \"<path>\" -ItemType Directory -Force",
+      "description": "Exemple utilisant le paramètre 'path': Chemin du nouveau dossier à créer. Remplacez <path> par la valeur appropriée selon votre environnement.",
+      "platform": 0
+    },
+    {
+      "command": "New-Item -Path \"C:\\Logs\\app.log\" -ItemType Directory -Force",
+      "description": "Exemple Windows pour Créer un répertoire",
+      "platform": 0
+    },
+    {
+      "command": "New-Item -Path \"C:\\Projects\\src\",\"C:\\Projects\\bin\" -ItemType Directory -Force",
+      "description": "Cree plusieurs dossiers en une commande.",
+      "platform": 0
+    }
+  ],
+  "linuxCommandTemplateId": "file-create-directory-linux-cmd",
+  "linuxCommandTemplate": {
+    "id": "file-create-directory-linux-cmd",
+    "platform": 1,
+    "name": "mkdir",
+    "commandPattern": "mkdir -p \"{path}\"",
+    "parameters": [
+      {
+        "name": "path",
+        "label": "Chemin du dossier",
+        "type": "string",
+        "defaultValue": "",
+        "required": true,
+        "description": "Chemin du nouveau dossier à créer"
+      }
+    ]
+  },
+  "linuxExamples": [
+    {
+      "command": "mkdir -p /home/user/projects/myapp/src",
+      "description": "Crée une arborescence de dossiers",
+      "platform": 1
+    },
+    {
+      "command": "mkdir -m 755 newfolder",
+      "description": "Crée un dossier avec permissions spécifiques",
+      "platform": 1
+    },
+    {
+      "command": "mkdir -p \"{path}\" -v",
+      "description": "Exécute la commande en mode verbeux. Le flag -v (verbose) affiche chaque action effectuée en temps réel. Essentiel pour suivre la progression des opérations longues et vérifier que tout se déroule correctement.",
+      "platform": 1
+    },
+    {
+      "command": "mkdir --help",
+      "description": "Affiche l'aide complète de la commande mkdir. --help liste tous les paramètres disponibles, les options et des exemples d'utilisation. Première commande à utiliser pour découvrir les capacités d'un outil.",
+      "platform": 1
+    },
+    {
+      "command": "man mkdir",
+      "description": "Affiche le manuel complet de mkdir. Les pages man fournissent la documentation détaillée : syntaxe, paramètres, exemples, notes. Plus complet que --help. Naviguez avec flèches, cherchez avec '/', quittez avec 'q'.",
+      "platform": 1
+    },
+    {
+      "command": "mkdir -p \"<path>\"",
+      "description": "Exemple utilisant le paramètre 'path': Chemin du nouveau dossier à créer. Remplacez <path> par la valeur appropriée selon votre environnement.",
+      "platform": 1
+    }
+  ],
+  "crossPlatformNotes": {
+    "differences": [
+      "Syntaxe: Windows utilise 'New-Item', Linux utilise 'mkdir'"
+    ],
+    "commonalities": [
+      "Les deux permettent de créer un répertoire",
+      "Fonctionnalité équivalente sur les deux plateformes"
+    ]
+  },
+  "examples": []
+}

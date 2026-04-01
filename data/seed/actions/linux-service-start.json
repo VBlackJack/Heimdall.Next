@@ -1,0 +1,40 @@
+{
+  "id": "linux-service-start",
+  "title": "Démarrer un service",
+  "description": "Démarre un service systemd arrêté.",
+  "category": "⚙️ Services & Automation",
+  "platform": 1,
+  "level": 1,
+  "tags": [
+    "linux",
+    "systemd",
+    "service",
+    "start"
+  ],
+  "linuxCommandTemplateId": "linux-service-start-cmd",
+  "linuxCommandTemplate": {
+    "id": "linux-service-start-cmd",
+    "platform": 1,
+    "name": "systemctl",
+    "commandPattern": "sudo systemctl start {serviceName}",
+    "parameters": [
+      {
+        "name": "serviceName",
+        "label": "Nom du service",
+        "type": "string",
+        "defaultValue": "",
+        "required": true,
+        "description": "Nom du service à démarrer"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "sudo systemctl start wuauserv",
+      "description": "Exemple utilisant le paramètre 'serviceName': Nom du service à démarrer. Remplacez wuauserv par la valeur appropriée selon votre environnement.",
+      "platform": 1
+    }
+  ],
+  "notes": "Nécessite les droits sudo. Vérifier le statut après démarrage.",
+  "links": []
+}

@@ -1,0 +1,73 @@
+{
+  "id": "db-pg-isready",
+  "title": "Vérifier statut PostgreSQL (pg_isready)",
+  "description": "Vérifie l'état de la connexion au serveur PostgreSQL.",
+  "category": "💽 Database",
+  "platform": 2,
+  "level": 0,
+  "tags": [
+    "postgres",
+    "postgresql",
+    "db",
+    "status",
+    "ping"
+  ],
+  "windowsCommandTemplate": {
+    "id": "57114737-cf80-4f51-9af2-13a8b4f5ef1c",
+    "platform": 0,
+    "name": "pg_isready",
+    "commandPattern": "pg_isready -h {host} -p {port}",
+    "parameters": [
+      {
+        "name": "host",
+        "label": "Hôte",
+        "type": "string",
+        "defaultValue": "localhost",
+        "required": true,
+        "description": "IP ou nom du serveur"
+      },
+      {
+        "name": "port",
+        "label": "Port",
+        "type": "number",
+        "defaultValue": "5432",
+        "required": true,
+        "description": "Port (défaut 5432)"
+      }
+    ]
+  },
+  "linuxCommandTemplate": {
+    "id": "54f945cf-e616-428e-bd7d-4addd1d7e127",
+    "platform": 1,
+    "name": "pg_isready",
+    "commandPattern": "pg_isready -h {host} -p {port}",
+    "parameters": [
+      {
+        "name": "host",
+        "label": "Hôte",
+        "type": "string",
+        "defaultValue": "localhost",
+        "required": true,
+        "description": "IP ou nom du serveur"
+      },
+      {
+        "name": "port",
+        "label": "Port",
+        "type": "number",
+        "defaultValue": "5432",
+        "required": true,
+        "description": "Port (défaut 5432)"
+      }
+    ]
+  },
+  "examples": [],
+  "linuxExamples": [
+    {
+      "command": "pg_isready -h 192.168.1.10",
+      "description": "Simple ping PostgreSQL. Retourne 'accepting connections' ou 'no response'.",
+      "platform": 1
+    }
+  ],
+  "linuxCommandTemplateId": "54f945cf-e616-428e-bd7d-4addd1d7e127",
+  "windowsCommandTemplateId": "57114737-cf80-4f51-9af2-13a8b4f5ef1c"
+}

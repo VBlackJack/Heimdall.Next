@@ -1,0 +1,82 @@
+{
+  "id": "defender-schedule-scan",
+  "title": "Planifier une analyse Defender automatique",
+  "description": "Configure une planification pour les analyses automatiques de Windows Defender.",
+  "category": "🔒 Security & Encryption",
+  "platform": 0,
+  "level": 1,
+  "tags": [
+    "defender",
+    "schedule",
+    "scan"
+  ],
+  "windowsCommandTemplateId": "defender-schedule-scan-cmd",
+  "windowsCommandTemplate": {
+    "id": "defender-schedule-scan-cmd",
+    "platform": 0,
+    "name": "Set-MpPreference",
+    "commandPattern": "Set-MpPreference -ScanScheduleDay ${day} -ScanScheduleTime ${time}",
+    "parameters": [
+      {
+        "name": "day",
+        "label": "Jour",
+        "type": "string",
+        "defaultValue": "0",
+        "required": true,
+        "description": "0=Tous les jours, 1=Dimanche, 2=Lundi... 7=Samedi, 8=Jamais"
+      },
+      {
+        "name": "time",
+        "label": "Heure",
+        "type": "string",
+        "defaultValue": "02:00:00",
+        "required": true,
+        "description": "Heure au format HH:mm:ss (ex: 02:00:00 pour 2h du matin)"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "Set-MpPreference -ScanScheduleDay 0 -ScanScheduleTime 02:00:00",
+      "description": "Planifie une analyse quotidienne à 2h du matin",
+      "platform": 0
+    },
+    {
+      "command": "Set-MpPreference -ScanScheduleDay 7 -ScanScheduleTime 20:00:00",
+      "description": "Planifie une analyse tous les samedis à 20h",
+      "platform": 0
+    },
+    {
+      "command": "Set-MpPreference -ScanScheduleDay 1 -ScanScheduleTime 12:00:00 -ScanParameters 1",
+      "description": "Analyse rapide tous les dimanches à midi (ScanParameters: 1=Quick, 2=Full)",
+      "platform": 0
+    },
+    {
+      "command": "Get-MpPreference | Select-Object ScanScheduleDay,ScanScheduleTime,ScanParameters",
+      "description": "Affiche la planification actuelle des analyses",
+      "platform": 0
+    },
+    {
+      "command": "Set-MpPreference -ScanScheduleDay 8",
+      "description": "Désactive les analyses planifiées (8=Jamais)",
+      "platform": 0
+    },
+    {
+      "command": "Set-MpPreference -ScanScheduleDay $0 -ScanScheduleTime $14:30:00",
+      "description": "Exemple utilisant le paramètre 'day': 0=Tous les jours, 1=Dimanche, 2=Lundi... 7=Samedi, 8=Jamais. Remplacez Monday par la valeur appropriée selon votre environnement.",
+      "platform": 0
+    },
+    {
+      "command": "Set-MpPreference -ScanScheduleDay $Monday -ScanScheduleTime $02:00:00",
+      "description": "Exemple utilisant le paramètre 'time': Heure au format HH:mm:ss (ex: 02:00:00 pour 2h du matin). Remplacez 14:30:00 par la valeur appropriée selon votre environnement.",
+      "platform": 0
+    }
+  ],
+  "notes": "ScanScheduleDay: 0=Quotidien, 1=Dimanche, 2=Lundi, 3=Mardi, 4=Mercredi, 5=Jeudi, 6=Vendredi, 7=Samedi, 8=Jamais. ScanParameters: 1=QuickScan (recommandé), 2=FullScan. Choisissez une heure où le PC est allumé mais peu utilisé.",
+  "links": [
+    {
+      "title": "Schedule Defender Scans",
+      "url": "https://learn.microsoft.com/en-us/microsoft-365/security/defender-endpoint/scheduled-catch-up-scans-microsoft-defender-antivirus"
+    }
+  ]
+}

@@ -1,0 +1,99 @@
+{
+  "id": "run-java-jar",
+  "title": "Exécuter un fichier JAR Java",
+  "description": "Lance une application Java packagée en JAR.",
+  "category": "🔧 Development",
+  "platform": 2,
+  "level": 0,
+  "tags": [
+    "java",
+    "jar",
+    "run",
+    "execute"
+  ],
+  "windowsCommandTemplateId": "run-java-win-cmd",
+  "windowsCommandTemplate": {
+    "id": "run-java-win-cmd",
+    "platform": 0,
+    "name": "java",
+    "commandPattern": "java -jar \"{jarPath}\"",
+    "parameters": [
+      {
+        "name": "jarPath",
+        "label": "Fichier JAR",
+        "type": "string",
+        "defaultValue": "",
+        "required": true,
+        "description": "Chemin du fichier .jar"
+      }
+    ]
+  },
+  "linuxCommandTemplateId": "run-java-linux-cmd",
+  "linuxCommandTemplate": {
+    "id": "run-java-linux-cmd",
+    "platform": 1,
+    "name": "java",
+    "commandPattern": "java -jar \"{jarPath}\"",
+    "parameters": [
+      {
+        "name": "jarPath",
+        "label": "Fichier JAR",
+        "type": "string",
+        "defaultValue": "",
+        "required": true,
+        "description": "Chemin du fichier .jar"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "java -jar application.jar",
+      "description": "Lance un fichier JAR",
+      "platform": 2
+    },
+    {
+      "command": "java -Xmx2G -jar application.jar",
+      "description": "Lance avec 2GB de mémoire max",
+      "platform": 2
+    },
+    {
+      "command": "java -jar app.jar --spring.profiles.active=prod",
+      "description": "Lance avec des arguments Spring",
+      "platform": 2
+    },
+    {
+      "command": "java -jar \"C:\\Apps\\myapp.jar\"",
+      "description": "Exemple utilisant le paramètre 'jarPath': Chemin du fichier .jar. Remplacez C:\\Apps\\myapp.jar par la valeur appropriée selon votre environnement.",
+      "platform": 2
+    }
+  ],
+  "notes": "-Xmx définit la mémoire max. -Xms définit la mémoire initiale. Les arguments après le JAR sont passés à l'app.",
+  "links": [],
+  "linuxExamples": [
+    {
+      "command": "java -Xmx2g -jar app.jar",
+      "description": "Exécuter avec 2 Go de heap",
+      "platform": 1
+    },
+    {
+      "command": "java -version",
+      "description": "Afficher la version de Java",
+      "platform": 1
+    },
+    {
+      "command": "java -cp \"lib/*:.\" MainClass",
+      "description": "Exécuter avec classpath personnalisé",
+      "platform": 1
+    },
+    {
+      "command": "java -Dspring.profiles.active=prod -jar app.jar",
+      "description": "Définir un profil Spring",
+      "platform": 1
+    },
+    {
+      "command": "java -jar app.jar --server.port=8081",
+      "description": "Avec port personnalisé",
+      "platform": 1
+    }
+  ]
+}

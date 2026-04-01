@@ -1,0 +1,35 @@
+{
+  "id": "reregister-wu-dlls",
+  "title": "Réenregistrer les DLL Windows Update",
+  "description": "Réenregistre toutes les DLL critiques du système Windows Update",
+  "category": "🔄 Windows Updates",
+  "platform": 0,
+  "level": 1,
+  "tags": [
+    "windows-update",
+    "dll",
+    "repair"
+  ],
+  "windowsCommandTemplateId": "reregister-wu-dlls-cmd",
+  "windowsCommandTemplate": {
+    "id": "reregister-wu-dlls-cmd",
+    "platform": 0,
+    "name": "regsvr32",
+    "commandPattern": "regsvr32 /s wuaueng.dll && regsvr32 /s wuapi.dll && regsvr32 /s wups.dll && regsvr32 /s wups2.dll && regsvr32 /s wucltux.dll && regsvr32 /s wuwebv.dll && regsvr32 /s qmgr.dll && regsvr32 /s qmgrprxy.dll",
+    "parameters": []
+  },
+  "examples": [
+    {
+      "command": "regsvr32 /s wuaueng.dll",
+      "description": "Réenregistre la DLL du moteur Windows Update",
+      "platform": 0
+    },
+    {
+      "command": "regsvr32 /s wuaueng.dll && regsvr32 /s wuapi.dll && regsvr32 /s wups.dll && regsvr32 /s wups2.dll && regsvr32 /s wucltux.dll && regsvr32 /s wuwebv.dll && regsvr32 /s qmgr.dll && regsvr32 /s qmgrprxy.dll",
+      "description": "Exécution standard de la commande None. Consultez la documentation officielle avec Get-Help regsvr32 -Full pour plus de détails sur les paramètres disponibles et les cas d'usage avancés.",
+      "platform": 0
+    }
+  ],
+  "notes": "Droits administrateur requis. Résout les erreurs de composants Windows Update corrompus.",
+  "links": []
+}

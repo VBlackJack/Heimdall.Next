@@ -1,0 +1,56 @@
+{
+  "id": "windowsupdate-clear-cache",
+  "title": "Nettoyer le cache Windows Update",
+  "description": "Arrête les services Windows Update et nettoie le dossier SoftwareDistribution pour résoudre les problèmes de mises à jour",
+  "category": "🔄 Windows Updates",
+  "platform": 0,
+  "level": 1,
+  "tags": [
+    "windows-update",
+    "cache",
+    "cleanup",
+    "troubleshoot"
+  ],
+  "windowsCommandTemplateId": "windowsupdate-clear-cache-cmd",
+  "windowsCommandTemplate": {
+    "id": "windowsupdate-clear-cache-cmd",
+    "platform": 0,
+    "name": "Stop-Service",
+    "commandPattern": "Stop-Service -Name wuauserv,bits -Force; Remove-Item -Path C:\\Windows\\SoftwareDistribution\\Download\\* -Recurse -Force -ErrorAction SilentlyContinue; Start-Service -Name wuauserv,bits",
+    "parameters": []
+  },
+  "examples": [
+    {
+      "command": "Stop-Service wuauserv,bits -Force; Remove-Item C:\\Windows\\SoftwareDistribution\\Download\\* -Recurse -Force; Start-Service wuauserv,bits",
+      "description": "Nettoie complètement le cache de téléchargement Windows Update",
+      "platform": 0
+    },
+    {
+      "command": "Stop-Service -Name wuauserv,bits -Force; Remove-Item -Path C:\\Windows\\SoftwareDistribution\\Download\\* -Recurse -Force -ErrorAction SilentlyContinue; Start-Service -Name wuauserv,bits -WhatIf",
+      "description": "Simulation de l'action sans exécution réelle (dry-run). Le switch -WhatIf affiche ce qui serait modifié sans appliquer les changements. INDISPENSABLE avant toute action de masse ou modification critique. Retirez -WhatIf après validation pour exécuter.",
+      "platform": 0
+    },
+    {
+      "command": "Stop-Service -Name wuauserv,bits -Force; Remove-Item -Path C:\\Windows\\SoftwareDistribution\\Download\\* -Recurse -Force -ErrorAction SilentlyContinue; Start-Service -Name wuauserv,bits -Confirm:$false",
+      "description": "Exécute l'action sans demander de confirmation interactive. -Confirm:$false supprime les invites de validation. Utile dans les scripts automatisés mais à utiliser avec précaution : aucun filet de sécurité.",
+      "platform": 0
+    },
+    {
+      "command": "Stop-Service -Name wuauserv,bits -Force; Remove-Item -Path C:\\Windows\\SoftwareDistribution\\Download\\* -Recurse -Force -ErrorAction SilentlyContinue; Start-Service -Name wuauserv,bits -Verbose",
+      "description": "Affiche des informations détaillées sur l'exécution de la commande. -Verbose active les messages de débogage pour comprendre précisément ce qui se passe. Essentiel pour le troubleshooting et la compréhension des opérations internes.",
+      "platform": 0
+    },
+    {
+      "command": "Stop-Service -Name wuauserv,bits -Force; Remove-Item -Path C:\\Windows\\SoftwareDistribution\\Download\\* -Recurse -Force -ErrorAction SilentlyContinue; Start-Service -Name wuauserv,bits",
+      "description": "Cas d'usage standard. Arrête les services Windows Update et nettoie le dossier SoftwareDistribution pour résoudre les problèmes de mises à jour Consultez la documentation pour des paramètres avancés et des options de filtrage.",
+      "platform": 0
+    }
+  ],
+  "notes": "ATTENTION: Nécessite des droits administrateur. Arrête temporairement les services Windows Update. À utiliser en cas de problèmes de téléchargement de mises à jour.",
+  "links": [
+    {
+      "title": "Fix Windows Update Errors",
+      "url": "https://learn.microsoft.com/en-us/troubleshoot/windows-server/installing-updates-features-roles/fix-windows-update-errors"
+    }
+  ]
+}

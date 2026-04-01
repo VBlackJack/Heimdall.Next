@@ -1,0 +1,70 @@
+{
+  "id": "defender-remove-threat",
+  "title": "Supprimer une menace détectée manuellement",
+  "description": "Supprime manuellement une menace spécifique détectée par Windows Defender.",
+  "category": "🔒 Security & Encryption",
+  "platform": 0,
+  "level": 2,
+  "tags": [
+    "defender",
+    "threat",
+    "remove"
+  ],
+  "windowsCommandTemplateId": "defender-remove-threat-cmd",
+  "windowsCommandTemplate": {
+    "id": "defender-remove-threat-cmd",
+    "platform": 0,
+    "name": "Remove-MpThreat",
+    "commandPattern": "Get-MpThreat | Select-Object ThreatID,ThreatName,SeverityID",
+    "parameters": []
+  },
+  "examples": [
+    {
+      "command": "Get-MpThreat | Select-Object ThreatID,ThreatName,SeverityID,Resources",
+      "description": "Liste toutes les menaces avec leurs IDs",
+      "platform": 0
+    },
+    {
+      "command": "Remove-MpThreat -ThreatID 123456",
+      "description": "Supprime la menace avec l'ID 123456",
+      "platform": 0
+    },
+    {
+      "command": "Get-MpThreat | Where-Object {$_.IsActive -eq $true} | ForEach-Object { Remove-MpThreat -ThreatID $_.ThreatID }",
+      "description": "⚠️ Supprime TOUTES les menaces actives détectées",
+      "platform": 0
+    },
+    {
+      "command": "Get-MpThreat | Where-Object {$_.SeverityID -ge 4} | ForEach-Object { Remove-MpThreat -ThreatID $_.ThreatID; Write-Host \"Supprimé: $($_.ThreatName)\" -ForegroundColor Green }",
+      "description": "Supprime toutes les menaces graves/sévères (niveau 4-5)",
+      "platform": 0
+    },
+    {
+      "command": "Get-MpThreat | Select-Object * -First 1",
+      "description": "Affiche toutes les propriétés du premier objet retourné. Select-Object * élargit l'affichage pour montrer toutes les colonnes. -First 1 limite au premier résultat. Utilisez cette commande pour découvrir les propriétés disponibles avant de filtrer.",
+      "platform": 0
+    },
+    {
+      "command": "Get-MpThreat | Format-Table -AutoSize",
+      "description": "Affiche les résultats dans un tableau optimisé pour la console. Format-Table -AutoSize ajuste automatiquement la largeur des colonnes pour un affichage lisible. Idéal pour visualiser rapidement les données structurées.",
+      "platform": 0
+    },
+    {
+      "command": "Get-MpThreat | Export-Csv C:\\Temp\\Export.csv -NoTypeInformation -Encoding UTF8",
+      "description": "Exporte les résultats vers un fichier CSV exploitable dans Excel. -NoTypeInformation supprime la ligne de métadonnées. -Encoding UTF8 garantit la compatibilité des caractères accentués. Utile pour l'archivage, les rapports et l'analyse externe.",
+      "platform": 0
+    },
+    {
+      "command": "Get-MpThreat | Measure-Object",
+      "description": "Compte le nombre total d'objets retournés. Measure-Object retourne Count, Sum, Average, Min, Max selon les propriétés. Utile pour les statistiques rapides et la validation de résultats.",
+      "platform": 0
+    }
+  ],
+  "notes": "Remove-MpThreat supprime définitivement la menace de la quarantaine. ThreatID: identifiant unique de chaque détection. Généralement Defender nettoie automatiquement, utilisez Remove-MpThreat uniquement si nécessaire. Pour voir les actions effectuées: Get-MpThreatDetection.",
+  "links": [
+    {
+      "title": "Remove-MpThreat Documentation",
+      "url": "https://learn.microsoft.com/en-us/powershell/module/defender/remove-mpthreat"
+    }
+  ]
+}

@@ -1,0 +1,129 @@
+{
+  "id": "unified-service-restart",
+  "title": "Redémarrer un service",
+  "description": "Redémarre un service Windows.",
+  "category": "⚙️ Services & Automation",
+  "platform": 2,
+  "supportedPlatforms": [
+    0,
+    1
+  ],
+  "level": 1,
+  "tags": [
+    "linux",
+    "windows",
+    "restart",
+    "service",
+    "systemd"
+  ],
+  "notes": "Windows: Nécessite des droits administrateur. -Force arrête les services dépendants.\nLinux: Nécessite les droits sudo. Utile après modification de configuration.",
+  "links": [],
+  "windowsCommandTemplateId": "win-service-restart-cmd",
+  "windowsCommandTemplate": {
+    "id": "win-service-restart-cmd",
+    "platform": 0,
+    "name": "Restart-Service",
+    "commandPattern": "Restart-Service -Name {serviceName} -Force",
+    "parameters": [
+      {
+        "name": "serviceName",
+        "label": "Nom du service",
+        "type": "string",
+        "defaultValue": "",
+        "required": true,
+        "description": "Nom du service à redémarrer"
+      }
+    ]
+  },
+  "windowsExamples": [
+    {
+      "command": "Restart-Service -Name Spooler -Force",
+      "description": "Redémarre le service Spooler d'impression",
+      "platform": 0
+    },
+    {
+      "command": "Restart-Service -Name {serviceName} -Force -PassThru",
+      "description": "Exécute l'action et retourne l'objet résultant pour vérification immédiate. -PassThru permet de confirmer que l'opération a réussi en affichant le statut final. Utile pour les scripts avec gestion d'erreurs.",
+      "platform": 0
+    },
+    {
+      "command": "Restart-Service -Name {serviceName} -Force",
+      "description": "Exécution standard de la commande Restart. Consultez la documentation officielle avec Get-Help Restart-Service -Full pour plus de détails sur les paramètres disponibles et les cas d'usage avancés.",
+      "platform": 0
+    },
+    {
+      "command": "Restart-Service -Name W32Time -Force",
+      "description": "Redémarre le service Windows Time pour resynchroniser l'horloge.",
+      "platform": 0
+    },
+    {
+      "command": "Restart-Service -Name {serviceName} -Force",
+      "description": "Cas d'usage standard. Redémarre un service Windows. Consultez la documentation pour des paramètres avancés et des options de filtrage.",
+      "platform": 0
+    },
+    {
+      "command": "Restart-Service -Name wuauserv -Force",
+      "description": "Exemple Windows pour Redémarrer un service",
+      "platform": 0
+    }
+  ],
+  "linuxCommandTemplateId": "linux-service-restart-cmd",
+  "linuxCommandTemplate": {
+    "id": "linux-service-restart-cmd",
+    "platform": 1,
+    "name": "systemctl",
+    "commandPattern": "sudo systemctl restart {serviceName}",
+    "parameters": [
+      {
+        "name": "serviceName",
+        "label": "Nom du service",
+        "type": "string",
+        "defaultValue": "",
+        "required": true,
+        "description": "Nom du service à redémarrer"
+      }
+    ]
+  },
+  "linuxExamples": [
+    {
+      "command": "sudo systemctl restart nginx",
+      "description": "Redémarre le service nginx",
+      "platform": 1
+    },
+    {
+      "command": "sudo --help",
+      "description": "Affiche l'aide complète de la commande sudo. --help liste tous les paramètres disponibles, les options et des exemples d'utilisation. Première commande à utiliser pour découvrir les capacités d'un outil.",
+      "platform": 1
+    },
+    {
+      "command": "man sudo",
+      "description": "Affiche le manuel complet de sudo. Les pages man fournissent la documentation détaillée : syntaxe, paramètres, exemples, notes. Plus complet que --help. Naviguez avec flèches, cherchez avec '/', quittez avec 'q'.",
+      "platform": 1
+    },
+    {
+      "command": "sudo systemctl restart mysql",
+      "description": "Redémarre le service de base de données MySQL.",
+      "platform": 1
+    },
+    {
+      "command": "sudo systemctl restart sshd",
+      "description": "Redémarre le service SSH pour appliquer une nouvelle configuration.",
+      "platform": 1
+    },
+    {
+      "command": "sudo systemctl restart apache2",
+      "description": "Redémarre le serveur web Apache.",
+      "platform": 1
+    }
+  ],
+  "crossPlatformNotes": {
+    "differences": [
+      "Syntaxe: Windows utilise 'Restart-Service', Linux utilise 'systemctl'"
+    ],
+    "commonalities": [
+      "Les deux permettent de redémarrer un service",
+      "Fonctionnalité équivalente sur les deux plateformes"
+    ]
+  },
+  "examples": []
+}

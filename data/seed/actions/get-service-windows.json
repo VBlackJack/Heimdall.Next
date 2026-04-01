@@ -1,0 +1,84 @@
+{
+  "id": "get-service-windows",
+  "title": "Lister les services Windows",
+  "description": "Affiche tous les services Windows avec leur état (Running, Stopped, etc.)",
+  "category": "⚙️ Services & Automation",
+  "platform": 0,
+  "level": 0,
+  "tags": [
+    "service",
+    "windows",
+    "status",
+    "automation",
+    "management"
+  ],
+  "windowsCommandTemplateId": "get-service-cmd",
+  "windowsCommandTemplate": {
+    "id": "get-service-cmd",
+    "platform": 0,
+    "name": "Get-Service",
+    "commandPattern": "Get-Service {name} {displayname} | Format-Table Name, DisplayName, Status, StartType -AutoSize",
+    "parameters": [
+      {
+        "name": "name",
+        "label": "Nom du service",
+        "type": "string",
+        "defaultValue": "",
+        "required": false,
+        "description": "Nom du service (ex: -Name 'wuauserv') ou laissez vide"
+      },
+      {
+        "name": "displayname",
+        "label": "Nom affiché",
+        "type": "string",
+        "defaultValue": "",
+        "required": false,
+        "description": "Filtre par nom affiché (ex: -DisplayName '*update*')"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "Get-Service",
+      "description": "Liste tous les services",
+      "platform": 0
+    },
+    {
+      "command": "Get-Service | Where-Object {$_.Status -eq 'Running'}",
+      "description": "Services en cours d'exécution",
+      "platform": 0
+    },
+    {
+      "command": "Get-Service -Name 'wuauserv'",
+      "description": "Service Windows Update",
+      "platform": 0
+    },
+    {
+      "command": "Get-Service | Where-Object {$_.StartType -eq 'Automatic' -and $_.Status -ne 'Running'}",
+      "description": "Services automatiques arrêtés (problème potentiel)",
+      "platform": 0
+    },
+    {
+      "command": "Get-Service MyResource Jean Dupont | Select-Object * -First 1",
+      "description": "Affiche toutes les propriétés du premier objet retourné. Select-Object * élargit l'affichage pour montrer toutes les colonnes. -First 1 limite au premier résultat. Utilisez cette commande pour découvrir les propriétés disponibles avant de filtrer.",
+      "platform": 0
+    },
+    {
+      "command": "Get-Service MyResource Jean Dupont | Export-Csv C:\\Temp\\Export.csv -NoTypeInformation -Encoding UTF8",
+      "description": "Exporte les résultats vers un fichier CSV exploitable dans Excel. -NoTypeInformation supprime la ligne de métadonnées. -Encoding UTF8 garantit la compatibilité des caractères accentués. Utile pour l'archivage, les rapports et l'analyse externe.",
+      "platform": 0
+    },
+    {
+      "command": "Get-Service MyResource Jean Dupont | Measure-Object",
+      "description": "Compte le nombre total d'objets retournés. Measure-Object retourne Count, Sum, Average, Min, Max selon les propriétés. Utile pour les statistiques rapides et la validation de résultats.",
+      "platform": 0
+    }
+  ],
+  "notes": "Essentiel pour Windows Core. Voir aussi Start-Service, Stop-Service, Restart-Service pour contrôler les services.",
+  "links": [
+    {
+      "title": "Get-Service Documentation",
+      "url": "https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.management/get-service"
+    }
+  ]
+}

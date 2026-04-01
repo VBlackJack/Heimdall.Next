@@ -1,0 +1,54 @@
+{
+  "id": "iostat-disk-stats",
+  "title": "Statistiques d'I/O disque",
+  "description": "Affiche les statistiques d'entrées/sorties des disques et partitions",
+  "category": "📊 Monitoring & Logs",
+  "platform": 1,
+  "level": 0,
+  "tags": [
+    "iostat",
+    "io",
+    "disk",
+    "performance",
+    "statistics"
+  ],
+  "linuxCommandTemplateId": "iostat-cmd",
+  "linuxCommandTemplate": {
+    "id": "iostat-cmd",
+    "platform": 1,
+    "name": "iostat",
+    "commandPattern": "iostat -x {interval} {count}",
+    "parameters": [
+      {
+        "name": "interval",
+        "label": "Intervalle (secondes)",
+        "type": "number",
+        "defaultValue": "5",
+        "required": true,
+        "description": "Intervalle entre les mesures"
+      },
+      {
+        "name": "count",
+        "label": "Nombre de mesures",
+        "type": "number",
+        "defaultValue": "3",
+        "required": true,
+        "description": "Nombre de mesures à effectuer"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "iostat",
+      "description": "Statistiques CPU et disque",
+      "platform": 1
+    }
+  ],
+  "notes": "Fait partie du package sysstat. -x pour statistiques étendues. Utile pour détecter les goulots d'étranglement.",
+  "links": [
+    {
+      "title": "iostat command",
+      "url": "https://man7.org/linux/man-pages/man1/iostat.1.html"
+    }
+  ]
+}

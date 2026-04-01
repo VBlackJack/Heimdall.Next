@@ -1,0 +1,103 @@
+{
+  "id": "iis-create-site",
+  "title": "Créer un nouveau site IIS",
+  "description": "Crée un nouveau site web dans IIS avec un nom, un chemin physique et un binding spécifiques.",
+  "category": "🌐 Network & DNS",
+  "platform": 0,
+  "level": 2,
+  "tags": [
+    "iis",
+    "web",
+    "create",
+    "new",
+    "site",
+    "setup",
+    "webserver",
+    "deployment"
+  ],
+  "windowsCommandTemplateId": "iis-create-site-cmd",
+  "windowsCommandTemplate": {
+    "id": "iis-create-site-cmd",
+    "platform": 0,
+    "name": "New-IISSite",
+    "commandPattern": "Import-Module WebAdministration; New-Website -Name '{siteName}' -PhysicalPath '{physicalPath}' -Port {port} -HostHeader '{hostHeader}'",
+    "parameters": [
+      {
+        "name": "siteName",
+        "label": "Nom du site",
+        "type": "string",
+        "defaultValue": "",
+        "required": true,
+        "description": "Nom du nouveau site IIS"
+      },
+      {
+        "name": "physicalPath",
+        "label": "Chemin physique",
+        "type": "string",
+        "defaultValue": "C:\\inetpub\\wwwroot",
+        "required": true,
+        "description": "Chemin du dossier contenant le site"
+      },
+      {
+        "name": "port",
+        "label": "Port",
+        "type": "string",
+        "defaultValue": "80",
+        "required": true,
+        "description": "Port d'écoute HTTP"
+      },
+      {
+        "name": "hostHeader",
+        "label": "Host Header",
+        "type": "string",
+        "defaultValue": "",
+        "required": false,
+        "description": "En-tête d'hôte (ex: www.example.com)"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "New-Website -Name 'MonSite' -PhysicalPath 'C:\\Sites\\MonSite' -Port 8080",
+      "description": "Crée un site sur le port 8080",
+      "platform": 0
+    },
+    {
+      "command": "New-Website -Name 'App1' -PhysicalPath 'D:\\WebApps\\App1' -Port 80 -HostHeader 'app1.local'",
+      "description": "Crée un site avec un host header spécifique",
+      "platform": 0
+    },
+    {
+      "command": "New-Website -Name 'SecureSite' -PhysicalPath 'C:\\SecureSite' -Port 443 -Ssl",
+      "description": "Crée un site HTTPS",
+      "platform": 0
+    },
+    {
+      "command": "Import-Module WebAdministration; New-Website -Name 'Default Web Site' -PhysicalPath 'C:\\inetpub\\wwwroot' -Port 443 -HostHeader 'www.contoso.com' -WhatIf",
+      "description": "Simulation de l'action sans exécution réelle (dry-run). Le switch -WhatIf affiche ce qui serait modifié sans appliquer les changements. INDISPENSABLE avant toute action de masse ou modification critique. Retirez -WhatIf après validation pour exécuter.",
+      "platform": 0
+    },
+    {
+      "command": "Import-Module WebAdministration; New-Website -Name 'Default Web Site' -PhysicalPath 'C:\\inetpub\\wwwroot' -Port 443 -HostHeader 'www.contoso.com' -Confirm:$false",
+      "description": "Exécute l'action sans demander de confirmation interactive. -Confirm:$false supprime les invites de validation. Utile dans les scripts automatisés mais à utiliser avec précaution : aucun filet de sécurité.",
+      "platform": 0
+    },
+    {
+      "command": "Import-Module WebAdministration; New-Website -Name 'Default Web Site' -PhysicalPath 'C:\\inetpub\\wwwroot' -Port 443 -HostHeader 'www.contoso.com' -PassThru",
+      "description": "Force la commande à retourner l'objet modifié/créé dans le pipeline. Par défaut, les cmdlets Set-/New- ne retournent rien. -PassThru active le retour pour permettre des opérations en chaîne ou des vérifications immédiates.",
+      "platform": 0
+    },
+    {
+      "command": "Import-Module WebAdministration; New-Website -Name 'Default Web Site' -PhysicalPath 'C:\\inetpub\\wwwroot' -Port 443 -HostHeader 'www.contoso.com' -Verbose",
+      "description": "Affiche des informations détaillées sur l'exécution de la commande. -Verbose active les messages de débogage pour comprendre précisément ce qui se passe. Essentiel pour le troubleshooting et la compréhension des opérations internes.",
+      "platform": 0
+    }
+  ],
+  "notes": "DANGER: Le dossier physique doit exister. Vérifiez les permissions NTFS. Pour HTTPS, configurez le certificat SSL séparément.",
+  "links": [
+    {
+      "title": "Documentation New-Website",
+      "url": "https://learn.microsoft.com/en-us/powershell/module/webadministration/new-website"
+    }
+  ]
+}

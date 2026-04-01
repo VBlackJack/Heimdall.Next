@@ -1,0 +1,78 @@
+{
+  "id": "gpo-create-new",
+  "title": "Créer une nouvelle GPO",
+  "description": "Crée une nouvelle stratégie de groupe (GPO) dans le domaine.",
+  "category": "🏢 Active Directory & GPO",
+  "platform": 0,
+  "level": 1,
+  "tags": [
+    "gpo",
+    "create",
+    "new",
+    "group-policy"
+  ],
+  "windowsCommandTemplateId": "gpo-create-new-cmd",
+  "windowsCommandTemplate": {
+    "id": "gpo-create-new-cmd",
+    "platform": 0,
+    "name": "New-GPO",
+    "commandPattern": "New-GPO -Name \"{gpoName}\" -Comment \"{comment}\"",
+    "parameters": [
+      {
+        "name": "gpoName",
+        "label": "Nom de la GPO",
+        "type": "string",
+        "defaultValue": "",
+        "required": true,
+        "description": "Nom de la nouvelle GPO"
+      },
+      {
+        "name": "comment",
+        "label": "Commentaire",
+        "type": "string",
+        "defaultValue": "",
+        "required": false,
+        "description": "Description de la GPO"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "New-GPO -Name \"Security-Policy-IT\" -Comment \"Politique de sécurité pour le département IT\"",
+      "description": "Crée une nouvelle GPO pour la sécurité IT",
+      "platform": 0
+    },
+    {
+      "command": "New-GPO -Name \"Security-Baseline\" -Comment \"Created by automation script\" -WhatIf",
+      "description": "Simulation de l'action sans exécution réelle (dry-run). Le switch -WhatIf affiche ce qui serait modifié sans appliquer les changements. INDISPENSABLE avant toute action de masse ou modification critique. Retirez -WhatIf après validation pour exécuter.",
+      "platform": 0
+    },
+    {
+      "command": "New-GPO -Name \"Security-Baseline\" -Comment \"Created by automation script\" -Confirm:$false",
+      "description": "Exécute l'action sans demander de confirmation interactive. -Confirm:$false supprime les invites de validation. Utile dans les scripts automatisés mais à utiliser avec précaution : aucun filet de sécurité.",
+      "platform": 0
+    },
+    {
+      "command": "New-GPO -Name \"Security-Baseline\" -Comment \"Created by automation script\" -PassThru",
+      "description": "Force la commande à retourner l'objet modifié/créé dans le pipeline. Par défaut, les cmdlets Set-/New- ne retournent rien. -PassThru active le retour pour permettre des opérations en chaîne ou des vérifications immédiates.",
+      "platform": 0
+    },
+    {
+      "command": "New-GPO -Name \"Security-Baseline\" -Comment \"Created by automation script\" -Verbose",
+      "description": "Affiche des informations détaillées sur l'exécution de la commande. -Verbose active les messages de débogage pour comprendre précisément ce qui se passe. Essentiel pour le troubleshooting et la compréhension des opérations internes.",
+      "platform": 0
+    },
+    {
+      "command": "New-GPO -Name \"Security-Baseline\" -Comment \"Created by automation script\"",
+      "description": "Exemple utilisant le paramètre 'gpoName': Nom de la nouvelle GPO. Remplacez Security-Baseline par la valeur appropriée selon votre environnement.",
+      "platform": 0
+    }
+  ],
+  "notes": "Nécessite le module Group Policy. La GPO est créée mais n'est pas encore liée à une OU.",
+  "links": [
+    {
+      "title": "Documentation New-GPO",
+      "url": "https://learn.microsoft.com/en-us/powershell/module/grouppolicy/new-gpo"
+    }
+  ]
+}

@@ -1,0 +1,51 @@
+{
+  "id": "win-pkg-007",
+  "title": "Afficher les détails d'un package Winget",
+  "description": "Affiche les informations détaillées d'un package spécifique (version, éditeur, description, etc.).",
+  "category": "📦 Package Management",
+  "platform": 0,
+  "level": 0,
+  "tags": [
+    "winget",
+    "package",
+    "info",
+    "details",
+    "windows"
+  ],
+  "windowsCommandTemplateId": "winget-show-cmd",
+  "windowsCommandTemplate": {
+    "id": "winget-show-cmd",
+    "platform": 0,
+    "name": "winget",
+    "commandPattern": "winget show {packageName}",
+    "parameters": [
+      {
+        "name": "packageName",
+        "label": "Nom du package",
+        "type": "string",
+        "defaultValue": "",
+        "required": true,
+        "description": "Nom ou ID du package à afficher"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "winget show Microsoft.PowerToys",
+      "description": "Affiche les détails complets de PowerToys",
+      "platform": 0
+    },
+    {
+      "command": "winget show Microsoft.VisualStudioCode",
+      "description": "Exécution standard de la commande None. Consultez la documentation officielle avec Get-Help winget -Full pour plus de détails sur les paramètres disponibles et les cas d'usage avancés.",
+      "platform": 0
+    }
+  ],
+  "notes": "Affiche version, éditeur, licence, description et dépendances du package.",
+  "links": [
+    {
+      "title": "Winget show documentation",
+      "url": "https://learn.microsoft.com/en-us/windows/package-manager/winget/show"
+    }
+  ]
+}

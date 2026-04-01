@@ -1,0 +1,67 @@
+{
+  "id": "iis-manage-site",
+  "title": "Démarrer ou arrêter un site IIS",
+  "description": "Permet de démarrer, arrêter ou redémarrer un site web IIS spécifique. Utile pour la maintenance ou le troubleshooting.",
+  "category": "🌐 Network & DNS",
+  "platform": 0,
+  "level": 1,
+  "tags": [
+    "iis",
+    "web",
+    "site",
+    "start",
+    "stop",
+    "restart",
+    "control",
+    "webserver"
+  ],
+  "windowsCommandTemplateId": "iis-manage-site-cmd",
+  "windowsCommandTemplate": {
+    "id": "iis-manage-site-cmd",
+    "platform": 0,
+    "name": "Start/Stop-IISSite",
+    "commandPattern": "Import-Module WebAdministration; {action}-WebSite -Name '{siteName}'",
+    "parameters": [
+      {
+        "name": "siteName",
+        "label": "Nom du site",
+        "type": "string",
+        "defaultValue": "",
+        "required": true,
+        "description": "Nom du site IIS à gérer"
+      },
+      {
+        "name": "action",
+        "label": "Action",
+        "type": "string",
+        "defaultValue": "Start",
+        "required": true,
+        "description": "Action à effectuer: Start, Stop, Restart"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "Start-WebSite -Name 'Default Web Site'",
+      "description": "Démarre le site web par défaut",
+      "platform": 0
+    },
+    {
+      "command": "Import-Module WebAdministration; Restart-WebSite -Name 'Default Web Site'",
+      "description": "Exemple utilisant le paramètre 'siteName': Nom du site IIS à gérer. Remplacez Default Web Site par la valeur appropriée selon votre environnement.",
+      "platform": 0
+    },
+    {
+      "command": "Import-Module WebAdministration; Start-WebSite -Name 'Default Web Site'",
+      "description": "Exemple utilisant le paramètre 'action': Action à effectuer: Start, Stop, Restart. Remplacez Restart par la valeur appropriée selon votre environnement.",
+      "platform": 0
+    }
+  ],
+  "notes": "Privilèges administrateur requis. Pour redémarrer, utilisez Stop puis Start, ou recyclez le pool d'application.",
+  "links": [
+    {
+      "title": "Documentation WebAdministration",
+      "url": "https://learn.microsoft.com/en-us/powershell/module/webadministration/"
+    }
+  ]
+}

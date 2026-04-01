@@ -1,0 +1,65 @@
+{
+  "id": "systemctl-disable",
+  "title": "Désactiver un service au démarrage",
+  "description": "Empêche un service de démarrer automatiquement au boot",
+  "category": "⚙️ Services & Automation",
+  "platform": 1,
+  "level": 1,
+  "tags": [
+    "systemctl",
+    "systemd",
+    "disable",
+    "boot"
+  ],
+  "linuxCommandTemplateId": "systemctl-disable-cmd",
+  "linuxCommandTemplate": {
+    "id": "systemctl-disable-cmd",
+    "platform": 1,
+    "name": "systemctl",
+    "commandPattern": "systemctl disable {service}",
+    "parameters": [
+      {
+        "name": "service",
+        "label": "Nom du service",
+        "type": "string",
+        "defaultValue": "nginx.service",
+        "required": true,
+        "description": "Nom de l'unité systemd à désactiver"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "sudo systemctl disable nginx",
+      "description": "Désactive nginx au démarrage",
+      "platform": 1
+    },
+    {
+      "command": "sudo systemctl disable --now nginx",
+      "description": "Désactive et arrête immédiatement",
+      "platform": 1
+    },
+    {
+      "command": "systemctl disable nginx.service",
+      "description": "Exemple utilisant le paramètre 'service': Nom de l'unité systemd à désactiver. Remplacez spooler par la valeur appropriée selon votre environnement.",
+      "platform": 1
+    },
+    {
+      "command": "sudo systemctl disable apache2",
+      "description": "Désactive apache2 au démarrage",
+      "platform": 1
+    },
+    {
+      "command": "sudo systemctl disable wuauserv",
+      "description": "Exemple utilisant le paramètre 'serviceName': Nom du service à désactiver au démarrage. Remplacez wuauserv par la valeur appropriée selon votre environnement.",
+      "platform": 1
+    }
+  ],
+  "notes": "Nécessite sudo. N'arrête pas le service s'il est en cours d'exécution (sauf avec --now).",
+  "links": [
+    {
+      "title": "systemctl disable",
+      "url": "https://www.freedesktop.org/software/systemd/man/systemctl.html"
+    }
+  ]
+}

@@ -1,0 +1,81 @@
+{
+  "id": "systemd-timer-list",
+  "title": "Lister les timers systemd",
+  "description": "Affiche tous les timers systemd (alternative moderne à cron)",
+  "category": "⚙️ Services & Automation",
+  "platform": 1,
+  "level": 0,
+  "tags": [
+    "systemd",
+    "timer",
+    "scheduler",
+    "automation",
+    "cron"
+  ],
+  "linuxCommandTemplateId": "systemctl-timer-cmd",
+  "linuxCommandTemplate": {
+    "id": "systemctl-timer-cmd",
+    "platform": 1,
+    "name": "systemctl",
+    "commandPattern": "systemctl list-timers {options}",
+    "parameters": [
+      {
+        "name": "options",
+        "label": "Options",
+        "type": "string",
+        "defaultValue": "--all",
+        "required": false,
+        "description": "Options (--all, --state=active, etc.)"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "systemctl list-timers",
+      "description": "Liste les timers actifs",
+      "platform": 1
+    },
+    {
+      "command": "systemctl list-timers --all",
+      "description": "Liste tous les timers",
+      "platform": 1
+    },
+    {
+      "command": "systemctl status my-backup.timer",
+      "description": "État d'un timer spécifique",
+      "platform": 1
+    },
+    {
+      "command": "systemctl status nginx",
+      "description": "Vérifier l'état du service nginx",
+      "platform": 1
+    },
+    {
+      "command": "systemctl start apache2",
+      "description": "Démarrer le service Apache",
+      "platform": 1
+    },
+    {
+      "command": "systemctl stop mysql",
+      "description": "Arrêter le service MySQL",
+      "platform": 1
+    },
+    {
+      "command": "systemctl restart sshd",
+      "description": "Redémarrer le service SSH",
+      "platform": 1
+    },
+    {
+      "command": "systemctl enable docker",
+      "description": "Activer Docker au démarrage",
+      "platform": 1
+    }
+  ],
+  "notes": "Les timers systemd sont plus flexibles que cron. Voir /etc/systemd/system/ pour les définitions.",
+  "links": [
+    {
+      "title": "systemd timers",
+      "url": "https://www.freedesktop.org/software/systemd/man/systemd.timer.html"
+    }
+  ]
+}

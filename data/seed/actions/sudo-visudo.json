@@ -1,0 +1,62 @@
+{
+  "id": "sudo-visudo",
+  "title": "Éditer la configuration sudo",
+  "description": "Édite le fichier sudoers de manière sécurisée pour configurer les droits sudo",
+  "category": "🔒 Security & Encryption",
+  "platform": 1,
+  "level": 2,
+  "tags": [
+    "sudo",
+    "visudo",
+    "sudoers",
+    "permissions",
+    "security"
+  ],
+  "linuxCommandTemplateId": "visudo-cmd",
+  "linuxCommandTemplate": {
+    "id": "visudo-cmd",
+    "platform": 1,
+    "name": "visudo",
+    "commandPattern": "visudo",
+    "parameters": []
+  },
+  "examples": [
+    {
+      "command": "sudo visudo",
+      "description": "Édite /etc/sudoers en mode sécurisé",
+      "platform": 1
+    },
+    {
+      "command": "sudo visudo -c",
+      "description": "Vérifie la syntaxe du fichier sudoers",
+      "platform": 1
+    },
+    {
+      "command": "visudo",
+      "description": "Cas d'usage standard. Édite le fichier sudoers de manière sécurisée pour configurer les droits sudo Consultez la documentation pour des paramètres avancés et des options de filtrage.",
+      "platform": 1
+    },
+    {
+      "command": "visudo -c",
+      "description": "Vérifier la syntaxe de sudoers",
+      "platform": 1
+    },
+    {
+      "command": "visudo -f /etc/sudoers.d/custom",
+      "description": "Éditer un fichier sudoers personnalisé",
+      "platform": 1
+    },
+    {
+      "command": "sudo -l -U jdupont",
+      "description": "Afficher les permissions sudo d'un utilisateur",
+      "platform": 1
+    }
+  ],
+  "notes": "TOUJOURS utiliser visudo, JAMAIS éditer /etc/sudoers directement. Vérifie la syntaxe avant sauvegarde.",
+  "links": [
+    {
+      "title": "visudo documentation",
+      "url": "https://man7.org/linux/man-pages/man8/visudo.8.html"
+    }
+  ]
+}

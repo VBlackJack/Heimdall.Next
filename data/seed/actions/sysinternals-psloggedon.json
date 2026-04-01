@@ -1,0 +1,34 @@
+{
+  "id": "sysinternals-psloggedon",
+  "title": "Qui est connecté ? (PsLoggedOn)",
+  "description": "Affiche les utilisateurs connectés localement et via des partages de ressources.",
+  "category": "🔒 Security & Encryption",
+  "platform": 0,
+  "level": 0,
+  "tags": [
+    "sysinternals",
+    "psloggedon",
+    "user",
+    "session"
+  ],
+  "windowsCommandTemplate": {
+    "id": "e7e3cfd9-421d-4fdb-bf5e-bb11d5d7ab1c",
+    "platform": 0,
+    "name": "psloggedon",
+    "commandPattern": "psloggedon.exe -l -AcceptEula",
+    "parameters": []
+  },
+  "examples": [
+    {
+      "command": "psloggedon.exe -l -AcceptEula",
+      "description": "Affiche uniquement les connexions locales (-l), pas les connexions via partages réseau.",
+      "platform": 0
+    },
+    {
+      "command": "psloggedon.exe \\SERVER01",
+      "description": "Vérifie qui est connecté sur un serveur distant.",
+      "platform": 0
+    }
+  ],
+  "windowsCommandTemplateId": "e7e3cfd9-421d-4fdb-bf5e-bb11d5d7ab1c"
+}

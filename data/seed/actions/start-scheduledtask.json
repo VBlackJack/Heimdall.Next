@@ -1,0 +1,84 @@
+{
+  "id": "start-scheduledtask",
+  "title": "Démarrer une tâche planifiée",
+  "description": "Démarre immédiatement l'exécution d'une tâche planifiée",
+  "category": "⚙️ Services & Automation",
+  "platform": 0,
+  "level": 1,
+  "tags": [
+    "taskscheduler",
+    "start",
+    "run",
+    "automation",
+    "windows"
+  ],
+  "windowsCommandTemplateId": "start-scheduledtask-cmd",
+  "windowsCommandTemplate": {
+    "id": "start-scheduledtask-cmd",
+    "platform": 0,
+    "name": "Start-ScheduledTask",
+    "commandPattern": "Start-ScheduledTask -TaskName '{taskname}' {taskpath}",
+    "parameters": [
+      {
+        "name": "taskname",
+        "label": "Nom de la tâche",
+        "type": "string",
+        "defaultValue": "MyTask",
+        "required": true,
+        "description": "Nom de la tâche à démarrer"
+      },
+      {
+        "name": "taskpath",
+        "label": "Chemin",
+        "type": "string",
+        "defaultValue": "",
+        "required": false,
+        "description": "Chemin de la tâche (ex: -TaskPath '\\CustomTasks\\')"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "Start-ScheduledTask -TaskName 'DailyBackup'",
+      "description": "Démarre la tâche immédiatement",
+      "platform": 0
+    },
+    {
+      "command": "Start-ScheduledTask -TaskName 'Cleanup' -TaskPath '\\Maintenance\\'",
+      "description": "Démarre une tâche dans un chemin spécifique",
+      "platform": 0
+    },
+    {
+      "command": "Get-ScheduledTask -TaskPath '\\' | Where-Object {$_.State -eq 'Ready'} | Start-ScheduledTask",
+      "description": "Démarre toutes les tâches prêtes",
+      "platform": 0
+    },
+    {
+      "command": "Start-ScheduledTask -TaskName 'DailyBackup' \\Microsoft\\Windows\\ -PassThru",
+      "description": "Exécute l'action et retourne l'objet résultant pour vérification immédiate. -PassThru permet de confirmer que l'opération a réussi en affichant le statut final. Utile pour les scripts avec gestion d'erreurs.",
+      "platform": 0
+    },
+    {
+      "command": "Start-ScheduledTask -TaskName 'DailyBackup' \\Microsoft\\Windows\\ -Force",
+      "description": "Force l'action même en cas de résistance (services dépendants, processus protégés, etc.). -Force contourne certaines sécurités. À utiliser avec précaution après avoir vérifié les dépendances.",
+      "platform": 0
+    },
+    {
+      "command": "Start-ScheduledTask -TaskName 'MyTask' \\Microsoft\\Windows\\",
+      "description": "Exemple utilisant le paramètre 'taskname': Nom de la tâche à démarrer. Remplacez DailyBackup par la valeur appropriée selon votre environnement.",
+      "platform": 0
+    },
+    {
+      "command": "Start-ScheduledTask -TaskName 'DailyBackup' \\Microsoft\\Windows\\",
+      "description": "Exemple utilisant le paramètre 'taskpath': Chemin de la tâche (ex: -TaskPath '\\CustomTasks\\'). Remplacez \\Microsoft\\Windows\\ par la valeur appropriée selon votre environnement.",
+      "platform": 0
+    }
+  ],
+  "notes": "Exécute immédiatement sans attendre le déclencheur. Vérifiez l'état avec Get-ScheduledTaskInfo.",
+  "links": [
+    {
+      "title": "Start-ScheduledTask Documentation",
+      "url": "https://learn.microsoft.com/en-us/powershell/module/scheduledtasks/start-scheduledtask"
+    }
+  ]
+}

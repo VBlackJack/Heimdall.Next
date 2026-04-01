@@ -1,0 +1,36 @@
+{
+  "id": "sccm-repair-client",
+  "title": "Réparer le client SCCM",
+  "description": "Exécute la réparation automatique du client SCCM pour résoudre les problèmes de communication",
+  "category": "🔄 Windows Updates",
+  "platform": 0,
+  "level": 1,
+  "tags": [
+    "sccm",
+    "client",
+    "repair",
+    "troubleshoot"
+  ],
+  "windowsCommandTemplateId": "sccm-repair-client-cmd",
+  "windowsCommandTemplate": {
+    "id": "sccm-repair-client-cmd",
+    "platform": 0,
+    "name": "Invoke-WmiMethod",
+    "commandPattern": "Invoke-WmiMethod -Namespace root\\ccm -Class SMS_Client -Name RepairClient",
+    "parameters": []
+  },
+  "examples": [
+    {
+      "command": "& 'C:\\Windows\\CCM\\ccmrepair.exe'",
+      "description": "Alternative: lance l'outil de réparation via l'exécutable",
+      "platform": 0
+    }
+  ],
+  "notes": "ATTENTION: La réparation peut prendre plusieurs minutes. Le client SCCM réinstallera les composants endommagés. Vérifier les logs dans C:\\Windows\\CCM\\Logs\\ccmrepair.log",
+  "links": [
+    {
+      "title": "SCCM Client Repair",
+      "url": "https://learn.microsoft.com/en-us/mem/configmgr/core/clients/manage/client-notification"
+    }
+  ]
+}

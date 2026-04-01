@@ -1,0 +1,124 @@
+{
+  "id": "journalctl-kernel",
+  "title": "Afficher uniquement les messages du noyau",
+  "description": "Filtre les logs journald pour n'afficher que les messages du kernel",
+  "category": "📊 Monitoring & Logs",
+  "platform": 1,
+  "level": 0,
+  "tags": [
+    "journalctl",
+    "kernel",
+    "dmesg"
+  ],
+  "linuxCommandTemplateId": "journalctl-kernel-cmd",
+  "linuxCommandTemplate": {
+    "id": "journalctl-kernel-cmd",
+    "platform": 1,
+    "name": "journalctl",
+    "commandPattern": "journalctl -k -n {lines} --no-pager",
+    "parameters": [
+      {
+        "name": "lines",
+        "label": "Nombre de lignes",
+        "type": "number",
+        "defaultValue": "100",
+        "required": true,
+        "description": "Nombre de messages kernel à afficher"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "journalctl -xe",
+      "description": "🔥 STANDARD : Affiche les logs système les plus récents avec explications étendues. La commande réflexe quand un service Linux refuse de démarrer.",
+      "platform": 1
+    },
+    {
+      "command": "journalctl -p 3 -xb",
+      "description": "Affiche uniquement les Erreurs (p 3) survenues depuis le dernier démarrage (boot).",
+      "platform": 1
+    },
+    {
+      "command": "journalctl -n 50",
+      "description": "Affiche les 50 derniers messages du journal systemd. Le flag -n (lines) limite l'output. journalctl est le système de logs central de systemd qui agrège tous les journaux (kernel, services, applications). Première commande pour diagnostiquer n'importe quel problème sous Linux moderne.",
+      "platform": 1
+    },
+    {
+      "command": "journalctl -f",
+      "description": "Mode suivi en temps réel (follow). Le flag -f affiche les nouveaux messages au fur et à mesure. Équivalent de 'tail -f' mais pour tous les logs systemd. Essentiel pour observer en direct l'activité système, surveiller un déploiement ou debugger un service problématique. Arrêtez avec Ctrl+C.",
+      "platform": 1
+    },
+    {
+      "command": "journalctl -p err",
+      "description": "Affiche uniquement les messages d'erreur. Le flag -p (priority) filtre par niveau de sévérité. Niveaux : emerg, alert, crit, err, warning, notice, info, debug. Utilisez -p err pour se concentrer sur les vrais problèmes sans le bruit des infos/warnings.",
+      "platform": 1
+    },
+    {
+      "command": "journalctl -u nginx.service",
+      "description": "Affiche tous les logs d'un service spécifique (ici nginx). Le flag -u (unit) filtre par unité systemd. Équivalent de consulter /var/log/nginx/* mais via journalctl. Toutes les sorties stdout/stderr du service sont capturées. Parfait pour le troubleshooting service par service.",
+      "platform": 1
+    },
+    {
+      "command": "journalctl --since \"2024-01-15 10:00:00\" --until \"2024-01-15 11:00:00\"",
+      "description": "Affiche les logs d'une plage horaire précise. Les flags --since et --until acceptent des dates absolues. Format : 'YYYY-MM-DD HH:MM:SS'. Indispensable pour investiguer un incident survenu à un moment précis. Vous pouvez aussi utiliser des dates relatives : --since \"1 hour ago\".",
+      "platform": 1
+    },
+    {
+      "command": "journalctl --since today -p err",
+      "description": "Affiche toutes les erreurs depuis minuit (aujourd'hui). --since today est un raccourci pour depuis 00:00. Combiné avec -p err pour ne voir que les erreurs. Excellente commande pour la revue quotidienne des problèmes : à exécuter chaque matin pour identifier les incidents de la nuit.",
+      "platform": 1
+    },
+    {
+      "command": "journalctl -u ssh.service --since \"10 minutes ago\"",
+      "description": "Affiche les logs SSH des 10 dernières minutes. --since accepte des durées relatives (minutes, hours, days ago). Utile pour diagnostiquer un problème de connexion SSH juste après qu'il se soit produit. Adaptez le service et la durée selon vos besoins.",
+      "platform": 1
+    },
+    {
+      "command": "journalctl -k -n 100",
+      "description": "Affiche les 100 derniers messages du kernel. Le flag -k (kernel) filtre uniquement les messages noyau (équivalent de dmesg). Essentiel pour diagnostiquer les problèmes hardware, drivers, panics kernel, erreurs disque/réseau de bas niveau.",
+      "platform": 1
+    },
+    {
+      "command": "journalctl -b -1",
+      "description": "Affiche tous les logs du boot PRÉCÉDENT. Le flag -b (boot) filtre par session de démarrage. -b sans argument = boot actuel. -b -1 = boot précédent. -b -2 = avant-avant-dernier. Crucial pour diagnostiquer pourquoi un système a crashé ou n'a pas démarré correctement : après reboot, consultez les logs du boot raté.",
+      "platform": 1
+    },
+    {
+      "command": "journalctl --disk-usage",
+      "description": "Affiche l'espace disque utilisé par les journaux systemd. Les journaux peuvent occuper plusieurs Go sur des systèmes actifs. Utilisez cette commande pour surveiller l'espace et décider si un nettoyage est nécessaire (voir journalctl --vacuum-size ou --vacuum-time).",
+      "platform": 1
+    },
+    {
+      "command": "journalctl -u nginx -f",
+      "description": "Suivre les logs de nginx en temps réel",
+      "platform": 1
+    },
+    {
+      "command": "journalctl -p err -b",
+      "description": "Afficher les erreurs depuis le dernier boot",
+      "platform": 1
+    },
+    {
+      "command": "journalctl --since \"2024-01-01\" --until \"2024-01-02\"",
+      "description": "Logs entre deux dates",
+      "platform": 1
+    },
+    {
+      "command": "journalctl -u sshd --no-pager | tail -50",
+      "description": "Les 50 dernières lignes des logs SSH",
+      "platform": 1
+    },
+    {
+      "command": "journalctl -k",
+      "description": "Messages du noyau uniquement",
+      "platform": 1
+    }
+  ],
+  "notes": "-k est un raccourci pour --dmesg. Équivalent à dmesg mais avec persistance.",
+  "links": [
+    {
+      "title": "journalctl kernel logs",
+      "url": "https://www.freedesktop.org/software/systemd/man/journalctl.html"
+    }
+  ]
+}

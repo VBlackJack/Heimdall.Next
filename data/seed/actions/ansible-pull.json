@@ -1,0 +1,79 @@
+{
+  "id": "ansible-pull",
+  "title": "Exécuter Ansible en mode pull",
+  "description": "Configure un système pour récupérer et exécuter automatiquement des playbooks depuis un dépôt Git",
+  "category": "⚙️ Services & Automation",
+  "platform": 2,
+  "level": 2,
+  "tags": [
+    "ansible",
+    "pull",
+    "git",
+    "automation"
+  ],
+  "windowsCommandTemplateId": "ansible-pull-win",
+  "windowsCommandTemplate": {
+    "id": "ansible-pull-win",
+    "platform": 0,
+    "name": "ansible-pull",
+    "commandPattern": "ansible-pull -U {repoUrl} {playbookPath}",
+    "parameters": [
+      {
+        "name": "repoUrl",
+        "label": "URL du dépôt Git",
+        "type": "string",
+        "defaultValue": "https://github.com/user/ansible-repo.git",
+        "required": true,
+        "description": "URL du dépôt Git contenant les playbooks"
+      },
+      {
+        "name": "playbookPath",
+        "label": "Playbook",
+        "type": "string",
+        "defaultValue": "local.yml",
+        "required": true,
+        "description": "Nom du playbook à exécuter"
+      }
+    ]
+  },
+  "linuxCommandTemplateId": "ansible-pull-linux",
+  "linuxCommandTemplate": {
+    "id": "ansible-pull-linux",
+    "platform": 1,
+    "name": "ansible-pull",
+    "commandPattern": "ansible-pull -U {repoUrl} {playbookPath}",
+    "parameters": [
+      {
+        "name": "repoUrl",
+        "label": "URL du dépôt Git",
+        "type": "string",
+        "defaultValue": "https://github.com/user/ansible-repo.git",
+        "required": true,
+        "description": "URL du dépôt Git"
+      },
+      {
+        "name": "playbookPath",
+        "label": "Playbook",
+        "type": "string",
+        "defaultValue": "local.yml",
+        "required": true,
+        "description": "Nom du playbook"
+      }
+    ]
+  },
+  "examples": [],
+  "notes": "Mode pull inversé : les serveurs récupèrent leur configuration au lieu d'être configurés à distance. Idéal pour les environnements à grande échelle.",
+  "links": [
+    {
+      "title": "Ansible Pull",
+      "url": "https://docs.ansible.com/ansible/latest/cli/ansible-pull.html"
+    }
+  ],
+  "linuxExamples": [
+    {
+      "command": "ansible-pull -U https://github.com/user/repo.git",
+      "description": "Pull et exécuter",
+      "platform": 1
+    }
+  ]
+}

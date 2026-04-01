@@ -1,0 +1,70 @@
+{
+  "id": "ansible-galaxy-search",
+  "title": "Rechercher des rôles Ansible Galaxy",
+  "description": "Recherche des rôles disponibles sur Ansible Galaxy",
+  "category": "⚙️ Services & Automation",
+  "platform": 2,
+  "level": 0,
+  "tags": [
+    "ansible",
+    "galaxy",
+    "search",
+    "role"
+  ],
+  "windowsCommandTemplateId": "ansible-galaxy-search-win",
+  "windowsCommandTemplate": {
+    "id": "ansible-galaxy-search-win",
+    "platform": 0,
+    "name": "ansible-galaxy",
+    "commandPattern": "ansible-galaxy search {keyword}",
+    "parameters": [
+      {
+        "name": "keyword",
+        "label": "Mot-clé de recherche",
+        "type": "string",
+        "defaultValue": "nginx",
+        "required": true,
+        "description": "Mot-clé pour rechercher des rôles"
+      }
+    ]
+  },
+  "linuxCommandTemplateId": "ansible-galaxy-search-linux",
+  "linuxCommandTemplate": {
+    "id": "ansible-galaxy-search-linux",
+    "platform": 1,
+    "name": "ansible-galaxy",
+    "commandPattern": "ansible-galaxy search {keyword}",
+    "parameters": [
+      {
+        "name": "keyword",
+        "label": "Mot-clé",
+        "type": "string",
+        "defaultValue": "nginx",
+        "required": true,
+        "description": "Mot-clé de recherche"
+      }
+    ]
+  },
+  "examples": [],
+  "notes": "Galaxy héberge des milliers de rôles réutilisables créés par la communauté.",
+  "links": [
+    {
+      "title": "Ansible Galaxy",
+      "url": "https://galaxy.ansible.com/"
+    }
+  ],
+  "windowsExamples": [
+    {
+      "command": "ansible-galaxy search warning",
+      "description": "Exemple Windows utilisant ansible-galaxy. Remplacez les paramètres entre <> par vos valeurs.",
+      "platform": 0
+    }
+  ],
+  "linuxExamples": [
+    {
+      "command": "ansible-galaxy search --platforms ubuntu",
+      "description": "Pour Ubuntu",
+      "platform": 1
+    }
+  ]
+}

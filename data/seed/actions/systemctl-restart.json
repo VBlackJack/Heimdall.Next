@@ -1,0 +1,60 @@
+{
+  "id": "systemctl-restart",
+  "title": "Redémarrer un service systemd",
+  "description": "Redémarre un service (arrêt puis démarrage)",
+  "category": "⚙️ Services & Automation",
+  "platform": 1,
+  "level": 1,
+  "tags": [
+    "systemctl",
+    "systemd",
+    "service",
+    "restart"
+  ],
+  "linuxCommandTemplateId": "systemctl-restart-cmd",
+  "linuxCommandTemplate": {
+    "id": "systemctl-restart-cmd",
+    "platform": 1,
+    "name": "systemctl",
+    "commandPattern": "systemctl restart {service}",
+    "parameters": [
+      {
+        "name": "service",
+        "label": "Nom du service",
+        "type": "string",
+        "defaultValue": "nginx.service",
+        "required": true,
+        "description": "Nom de l'unité systemd à redémarrer"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "sudo systemctl restart nginx",
+      "description": "Redémarre nginx (utile après modification de config)",
+      "platform": 1
+    },
+    {
+      "command": "sudo systemctl restart sshd",
+      "description": "Redémarre SSH",
+      "platform": 1
+    },
+    {
+      "command": "systemctl restart nginx.service",
+      "description": "Exemple utilisant le paramètre 'service': Nom de l'unité systemd à redémarrer. Remplacez spooler par la valeur appropriée selon votre environnement.",
+      "platform": 1
+    },
+    {
+      "command": "systemctl restart sshd",
+      "description": "Redémarrer le service SSH",
+      "platform": 1
+    }
+  ],
+  "notes": "Nécessite sudo. Préférer reload si disponible pour éviter l'interruption du service.",
+  "links": [
+    {
+      "title": "systemctl restart",
+      "url": "https://www.freedesktop.org/software/systemd/man/systemctl.html"
+    }
+  ]
+}

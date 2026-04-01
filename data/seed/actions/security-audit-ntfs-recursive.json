@@ -1,0 +1,69 @@
+{
+  "id": "security-audit-ntfs-recursive",
+  "title": "Auditer récursivement les permissions NTFS",
+  "description": "Analyse récursivement tous les sous-dossiers et génère un rapport des permissions NTFS",
+  "category": "🔒 Security & Encryption",
+  "platform": 0,
+  "level": 0,
+  "tags": [
+    "security",
+    "ntfs",
+    "permissions",
+    "recursive",
+    "audit"
+  ],
+  "windowsCommandTemplateId": "security-audit-ntfs-recursive-cmd",
+  "windowsCommandTemplate": {
+    "id": "security-audit-ntfs-recursive-cmd",
+    "platform": 0,
+    "name": "Get-ChildItem",
+    "commandPattern": "Get-ChildItem -Path '{path}' -Directory -Recurse -Depth {depth} -ErrorAction SilentlyContinue | ForEach-Object {$path=$_.FullName; (Get-Acl $path).Access | Select-Object @{Name='Path';Expression={$path}},IdentityReference,FileSystemRights,AccessControlType} | Format-Table -AutoSize",
+    "parameters": [
+      {
+        "name": "path",
+        "label": "Chemin de base",
+        "type": "string",
+        "defaultValue": "C:\\Shares",
+        "required": true,
+        "description": "Chemin du dossier racine à auditer"
+      },
+      {
+        "name": "depth",
+        "label": "Profondeur",
+        "type": "number",
+        "defaultValue": "2",
+        "required": true,
+        "description": "Profondeur de récursion (niveaux de sous-dossiers)"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "Get-ChildItem C:\\Shares -Directory -Recurse | ForEach-Object {Get-Acl $_.FullName}",
+      "description": "Audit complet de tous les sous-dossiers de C:\\Shares",
+      "platform": 0
+    },
+    {
+      "command": "Get-ChildItem -Path 'C:\\Logs\\app.log' -Directory -Recurse -Depth 3 -ErrorAction SilentlyContinue | Select-Object * -First 1",
+      "description": "Affiche toutes les propriétés du premier objet retourné. Select-Object * élargit l'affichage pour montrer toutes les colonnes. -First 1 limite au premier résultat. Utilisez cette commande pour découvrir les propriétés disponibles avant de filtrer.",
+      "platform": 0
+    },
+    {
+      "command": "Get-ChildItem -Path 'C:\\Logs\\app.log' -Directory -Recurse -Depth 3 -ErrorAction SilentlyContinue | Export-Csv C:\\Temp\\Export.csv -NoTypeInformation -Encoding UTF8",
+      "description": "Exporte les résultats vers un fichier CSV exploitable dans Excel. -NoTypeInformation supprime la ligne de métadonnées. -Encoding UTF8 garantit la compatibilité des caractères accentués. Utile pour l'archivage, les rapports et l'analyse externe.",
+      "platform": 0
+    },
+    {
+      "command": "Get-ChildItem -Path 'C:\\Logs\\app.log' -Directory -Recurse -Depth 3 -ErrorAction SilentlyContinue | Measure-Object",
+      "description": "Compte le nombre total d'objets retournés. Measure-Object retourne Count, Sum, Average, Min, Max selon les propriétés. Utile pour les statistiques rapides et la validation de résultats.",
+      "platform": 0
+    }
+  ],
+  "notes": "ATTENTION: Peut être lent sur de grandes arborescences. Utilisez -Depth pour limiter la récursion. Exportez vers CSV pour analyse: | Export-Csv report.csv",
+  "links": [
+    {
+      "title": "NTFS Permissions Auditing",
+      "url": "https://jfrmilner.wordpress.com/2011/05/01/audit-ntfs-permissions-powershell-script/"
+    }
+  ]
+}

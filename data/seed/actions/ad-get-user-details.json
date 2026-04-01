@@ -1,0 +1,55 @@
+{
+  "id": "ad-get-user-details",
+  "title": "Obtenir les détails complets d'un utilisateur AD",
+  "description": "Affiche toutes les propriétés détaillées d'un utilisateur Active Directory.",
+  "category": "🏢 Active Directory & GPO",
+  "platform": 0,
+  "level": 0,
+  "tags": [
+    "ad",
+    "user",
+    "details",
+    "properties"
+  ],
+  "windowsCommandTemplateId": "ad-get-user-details-cmd",
+  "windowsCommandTemplate": {
+    "id": "ad-get-user-details-cmd",
+    "platform": 0,
+    "name": "Get-ADUser",
+    "commandPattern": "Get-ADUser -Identity {username} -Properties *",
+    "parameters": [
+      {
+        "name": "username",
+        "label": "Nom d'utilisateur",
+        "type": "string",
+        "defaultValue": "",
+        "required": true,
+        "description": "SamAccountName de l'utilisateur"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "Get-ADUser -Identity jdupont -Properties *",
+      "description": "Affiche toutes les propriétés de jdupont",
+      "platform": 0
+    },
+    {
+      "command": "Get-ADUser -Identity jdupont -Properties * | Format-Table -AutoSize",
+      "description": "Affiche les résultats dans un tableau optimisé pour la console. Format-Table -AutoSize ajuste automatiquement la largeur des colonnes pour un affichage lisible. Idéal pour visualiser rapidement les données structurées.",
+      "platform": 0
+    },
+    {
+      "command": "Get-ADUser -Identity jdupont -Properties * | Export-Csv C:\\Temp\\Export.csv -NoTypeInformation -Encoding UTF8",
+      "description": "Exporte les résultats vers un fichier CSV exploitable dans Excel. -NoTypeInformation supprime la ligne de métadonnées. -Encoding UTF8 garantit la compatibilité des caractères accentués. Utile pour l'archivage, les rapports et l'analyse externe.",
+      "platform": 0
+    },
+    {
+      "command": "Get-ADUser -Identity jdupont -Properties * | Measure-Object",
+      "description": "Compte le nombre total d'objets retournés. Measure-Object retourne Count, Sum, Average, Min, Max selon les propriétés. Utile pour les statistiques rapides et la validation de résultats.",
+      "platform": 0
+    }
+  ],
+  "notes": "Affiche toutes les propriétés disponibles. Pour filtrer certaines propriétés, remplacer * par une liste séparée par des virgules.",
+  "links": []
+}

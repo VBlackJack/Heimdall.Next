@@ -1,0 +1,102 @@
+{
+  "id": "rsync-sync-files",
+  "title": "Synchroniser des fichiers avec rsync",
+  "description": "Synchronise et copie des fichiers localement ou à distance de manière incrémentale",
+  "category": "📁 Files & Storage",
+  "platform": 1,
+  "level": 1,
+  "tags": [
+    "rsync",
+    "backup",
+    "sync",
+    "copy",
+    "transfer"
+  ],
+  "linuxCommandTemplateId": "rsync-cmd",
+  "linuxCommandTemplate": {
+    "id": "rsync-cmd",
+    "platform": 1,
+    "name": "rsync",
+    "commandPattern": "rsync -{options} {source} {destination}",
+    "parameters": [
+      {
+        "name": "options",
+        "label": "Options",
+        "type": "string",
+        "defaultValue": "avz",
+        "required": true,
+        "description": "Options (a=archive, v=verbose, z=compress, --delete, etc.)"
+      },
+      {
+        "name": "source",
+        "label": "Source",
+        "type": "string",
+        "defaultValue": "/source/path/",
+        "required": true,
+        "description": "Répertoire source"
+      },
+      {
+        "name": "destination",
+        "label": "Destination",
+        "type": "string",
+        "defaultValue": "/dest/path/",
+        "required": true,
+        "description": "Répertoire destination (local ou distant)"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "rsync -avz /source/ /backup/",
+      "description": "Sauvegarde locale avec compression",
+      "platform": 1
+    },
+    {
+      "command": "rsync -avz /data/ user@server:/backup/",
+      "description": "Sauvegarde distante via SSH",
+      "platform": 1
+    },
+    {
+      "command": "rsync -avz --delete /source/ /backup/",
+      "description": "Synchronisation miroir (supprime fichiers en trop)",
+      "platform": 1
+    },
+    {
+      "command": "rsync --v -f C:\\Original D:\\Archive -v",
+      "description": "Exécute la commande en mode verbeux. Le flag -v (verbose) affiche chaque action effectuée en temps réel. Essentiel pour suivre la progression des opérations longues et vérifier que tout se déroule correctement.",
+      "platform": 1
+    },
+    {
+      "command": "rsync --v -f C:\\Original D:\\Archive --dry-run",
+      "description": "Simulation sans exécution réelle (dry-run). --dry-run affiche ce qui serait fait sans appliquer les changements. INDISPENSABLE avant les opérations de masse ou les modifications critiques.",
+      "platform": 1
+    },
+    {
+      "command": "rsync -avz /source/ /dest/",
+      "description": "Synchroniser avec compression",
+      "platform": 1
+    },
+    {
+      "command": "rsync -avz --delete /src/ user@server:/dest/",
+      "description": "Sync vers serveur distant avec suppression",
+      "platform": 1
+    },
+    {
+      "command": "rsync -avzn /src/ /dest/",
+      "description": "Dry-run (simulation)",
+      "platform": 1
+    },
+    {
+      "command": "rsync -avz --exclude=\"*.log\" /app/ /backup/",
+      "description": "Exclure les fichiers .log",
+      "platform": 1
+    }
+  ],
+  "notes": "Le / final sur source change le comportement. --delete supprime les fichiers manquants. Très efficace.",
+  "links": [
+    {
+      "title": "rsync documentation",
+      "url": "https://man7.org/linux/man-pages/man1/rsync.1.html"
+    }
+  ]
+}

@@ -1,0 +1,79 @@
+{
+  "id": "defender-enable-realtime",
+  "title": "Activer/Désactiver la protection temps réel Defender",
+  "description": "Active ou désactive la protection en temps réel de Windows Defender.",
+  "category": "🔒 Security & Encryption",
+  "platform": 0,
+  "level": 2,
+  "tags": [
+    "defender",
+    "realtime",
+    "protection"
+  ],
+  "windowsCommandTemplateId": "defender-enable-realtime-cmd",
+  "windowsCommandTemplate": {
+    "id": "defender-enable-realtime-cmd",
+    "platform": 0,
+    "name": "Set-MpPreference",
+    "commandPattern": "Set-MpPreference -DisableRealtimeMonitoring ${enableDisable}",
+    "parameters": [
+      {
+        "name": "enableDisable",
+        "label": "Activer ou désactiver",
+        "type": "string",
+        "defaultValue": "$false",
+        "required": true,
+        "description": "$false pour activer, $true pour désactiver"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "Set-MpPreference -DisableRealtimeMonitoring $false",
+      "description": "Active la protection temps réel",
+      "platform": 0
+    },
+    {
+      "command": "Set-MpPreference -DisableRealtimeMonitoring $true",
+      "description": "⚠️ Désactive la protection temps réel (DANGEREUX - système non protégé!)",
+      "platform": 0
+    },
+    {
+      "command": "Get-MpComputerStatus | Select-Object RealTimeProtectionEnabled",
+      "description": "Vérifie si la protection temps réel est active",
+      "platform": 0
+    },
+    {
+      "command": "Set-MpPreference -DisableRealtimeMonitoring $true; Start-Sleep 300; Set-MpPreference -DisableRealtimeMonitoring $false",
+      "description": "Désactive temporairement pour 5 minutes puis réactive automatiquement",
+      "platform": 0
+    },
+    {
+      "command": "Set-MpPreference -DisableRealtimeMonitoring $Enable -WhatIf",
+      "description": "Simulation de l'action sans exécution réelle (dry-run). Le switch -WhatIf affiche ce qui serait modifié sans appliquer les changements. INDISPENSABLE avant toute action de masse ou modification critique. Retirez -WhatIf après validation pour exécuter.",
+      "platform": 0
+    },
+    {
+      "command": "Set-MpPreference -DisableRealtimeMonitoring $Enable -Confirm:$false",
+      "description": "Exécute l'action sans demander de confirmation interactive. -Confirm:$false supprime les invites de validation. Utile dans les scripts automatisés mais à utiliser avec précaution : aucun filet de sécurité.",
+      "platform": 0
+    },
+    {
+      "command": "Set-MpPreference -DisableRealtimeMonitoring $Enable -PassThru",
+      "description": "Force la commande à retourner l'objet modifié/créé dans le pipeline. Par défaut, les cmdlets Set-/New- ne retournent rien. -PassThru active le retour pour permettre des opérations en chaîne ou des vérifications immédiates.",
+      "platform": 0
+    },
+    {
+      "command": "Set-MpPreference -DisableRealtimeMonitoring $Enable -Verbose",
+      "description": "Affiche des informations détaillées sur l'exécution de la commande. -Verbose active les messages de débogage pour comprendre précisément ce qui se passe. Essentiel pour le troubleshooting et la compréhension des opérations internes.",
+      "platform": 0
+    }
+  ],
+  "notes": "⚠️ SÉCURITÉ CRITIQUE: Ne désactivez JAMAIS la protection temps réel sauf pour dépannage temporaire! Votre système est VULNÉRABLE sans cette protection. DisableRealtimeMonitoring $true = DÉSACTIVE (dangereux). $false = ACTIVE (recommandé). Sur Windows 10/11, la protection peut se réactiver automatiquement.",
+  "links": [
+    {
+      "title": "Set-MpPreference Documentation",
+      "url": "https://learn.microsoft.com/en-us/powershell/module/defender/set-mppreference"
+    }
+  ]
+}

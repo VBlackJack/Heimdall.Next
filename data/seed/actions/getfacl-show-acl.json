@@ -1,0 +1,75 @@
+{
+  "id": "getfacl-show-acl",
+  "title": "Afficher les ACL d'un fichier",
+  "description": "Affiche les listes de contrôle d'accès (ACL) étendues d'un fichier",
+  "category": "🔒 Security & Encryption",
+  "platform": 1,
+  "level": 0,
+  "tags": [
+    "getfacl",
+    "acl",
+    "permissions",
+    "access"
+  ],
+  "linuxCommandTemplateId": "getfacl-cmd",
+  "linuxCommandTemplate": {
+    "id": "getfacl-cmd",
+    "platform": 1,
+    "name": "getfacl",
+    "commandPattern": "getfacl {path}",
+    "parameters": [
+      {
+        "name": "path",
+        "label": "Chemin",
+        "type": "string",
+        "defaultValue": "/path/to/file",
+        "required": true,
+        "description": "Fichier ou répertoire à examiner"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "getfacl /var/www/html",
+      "description": "Affiche les ACL du répertoire",
+      "platform": 1
+    },
+    {
+      "command": "getfacl -R /home/shared",
+      "description": "Affiche les ACL récursivement",
+      "platform": 1
+    },
+    {
+      "command": "getfacl /path/to/file",
+      "description": "Exemple utilisant le paramètre 'path': Fichier ou répertoire à examiner. Remplacez C:\\Logs\\app.log par la valeur appropriée selon votre environnement.",
+      "platform": 1
+    },
+    {
+      "command": "getfacl -R /home/user",
+      "description": "ACL récursives",
+      "platform": 1
+    },
+    {
+      "command": "getfacl --omit-header file.txt",
+      "description": "Sans en-tête",
+      "platform": 1
+    },
+    {
+      "command": "getfacl -a /etc/passwd",
+      "description": "Uniquement les ACL d'accès",
+      "platform": 1
+    },
+    {
+      "command": "getfacl -d /shared",
+      "description": "ACL par défaut",
+      "platform": 1
+    }
+  ],
+  "notes": "Ne nécessite pas sudo pour lecture. Les ACL permettent des permissions plus fines que chmod.",
+  "links": [
+    {
+      "title": "ACL guide",
+      "url": "https://man7.org/linux/man-pages/man1/getfacl.1.html"
+    }
+  ]
+}

@@ -1,0 +1,67 @@
+{
+  "id": "repair-sccm-client-forced",
+  "title": "Réparer le client SCCM (installation forcée)",
+  "description": "Lance la réparation forcée du client Configuration Manager avec réinstallation",
+  "category": "🔄 Windows Updates",
+  "platform": 0,
+  "level": 1,
+  "tags": [
+    "sccm",
+    "repair",
+    "configuration-manager"
+  ],
+  "windowsCommandTemplateId": "repair-sccm-client-forced-cmd",
+  "windowsCommandTemplate": {
+    "id": "repair-sccm-client-forced-cmd",
+    "platform": 0,
+    "name": "ccmsetup",
+    "commandPattern": "C:\\Windows\\ccmsetup\\ccmsetup.exe /mp:{mp_server} SMSSITECODE={site_code} /forceinstall",
+    "parameters": [
+      {
+        "name": "mp_server",
+        "label": "Serveur MP SCCM",
+        "type": "string",
+        "defaultValue": "",
+        "required": true,
+        "description": "FQDN du serveur Management Point SCCM"
+      },
+      {
+        "name": "site_code",
+        "label": "Code du site",
+        "type": "string",
+        "defaultValue": "",
+        "required": true,
+        "description": "Code du site SCCM (3 caractères)"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "C:\\Windows\\ccmsetup\\ccmsetup.exe /mp:sccm.contoso.com SMSSITECODE=ABC /forceinstall",
+      "description": "Réinstalle le client SCCM avec le site ABC",
+      "platform": 0
+    },
+    {
+      "command": "C:\\Windows\\ccmsetup\\ccmsetup.exe /mp:{mp_server} SMSSITECODE={site_code} /forceinstall",
+      "description": "Exécution standard de la commande None. Consultez la documentation officielle avec Get-Help C:\\Windows\\ccmsetup\\ccmsetup.exe -Full pour plus de détails sur les paramètres disponibles et les cas d'usage avancés.",
+      "platform": 0
+    },
+    {
+      "command": "C:\\Windows\\ccmsetup\\ccmsetup.exe /mp:<mp_server> SMSSITECODE={site_code} /forceinstall",
+      "description": "Exemple utilisant le paramètre 'mp_server': FQDN du serveur Management Point SCCM.",
+      "platform": 0
+    },
+    {
+      "command": "C:\\Windows\\ccmsetup\\ccmsetup.exe /mp:{mp_server} SMSSITECODE=<site_code> /forceinstall",
+      "description": "Exemple utilisant le paramètre 'site_code': Code du site SCCM (3 caractères).",
+      "platform": 0
+    }
+  ],
+  "notes": "Droits administrateur requis. /forceinstall réinstalle le client même s'il est déjà présent.",
+  "links": [
+    {
+      "title": "SCCM Client Installation",
+      "url": "https://learn.microsoft.com/en-us/mem/configmgr/core/clients/deploy/about-client-installation-properties"
+    }
+  ]
+}
