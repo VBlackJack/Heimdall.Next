@@ -58,9 +58,9 @@ public partial class CommandLibraryView : UserControl, IToolView
     private string? _targetHost;
 
     private bool _suppressFilterEvents;
-
-    // Favorites filter sentinel (index 1 in category combo)
-    private const string FavoritesFilterKey = "__FAVORITES__";
+    private bool _isSyncing;
+    private bool _favoritesFilterActive;
+    private IServiceScope? _serviceScope;
 
     public CommandLibraryView()
     {
@@ -113,6 +113,13 @@ public partial class CommandLibraryView : UserControl, IToolView
         BtnHistory.ToolTip = L("ToolCmdLibBtnHistory");
         BtnClearHistory.ToolTip = L("ToolCmdLibHistoryClear");
 
+        System.Windows.Automation.AutomationProperties.SetName(BtnClearSearch, L("A11yClearSearch"));
+        BtnFavoriteFilter.ToolTip = L("ToolCmdLibFilterFavorites");
+        System.Windows.Automation.AutomationProperties.SetName(BtnFavoriteFilter, L("ToolCmdLibFilterFavorites"));
+
+        RbWindows.Content = L("ToolCmdLibPlatformWindows");
+        RbLinux.Content = L("ToolCmdLibPlatformLinux");
+
         BtnSend.Visibility = _sendCommand is not null ? Visibility.Visible : Visibility.Collapsed;
     }
 
@@ -122,8 +129,8 @@ public partial class CommandLibraryView : UserControl, IToolView
 
         CmbPlatform.Items.Clear();
         CmbPlatform.Items.Add(L("ToolCmdLibFilterPlatformAll"));
-        CmbPlatform.Items.Add("Windows");
-        CmbPlatform.Items.Add("Linux");
+        CmbPlatform.Items.Add(L("ToolCmdLibPlatformWindows"));
+        CmbPlatform.Items.Add(L("ToolCmdLibPlatformLinux"));
 
         var autoIndex = connectionType?.ToUpperInvariant() switch
         {
@@ -143,7 +150,6 @@ public partial class CommandLibraryView : UserControl, IToolView
 
         CmbCategory.Items.Clear();
         CmbCategory.Items.Add(L("ToolCmdLibFilterCategoryAll"));
-        CmbCategory.Items.Add("\u2605 " + L("ToolCmdLibFilterFavorites")); // ★ Favorites
         CmbCategory.SelectedIndex = 0;
 
         _suppressFilterEvents = false;
@@ -160,7 +166,9 @@ public partial class CommandLibraryView : UserControl, IToolView
 
         try
         {
-            using var scope = _services.CreateScope();
+            _serviceScope?.Dispose();
+            _serviceScope = _services.CreateScope();
+            var scope = _serviceScope;
             var actionService = scope.ServiceProvider.GetRequiredService<IActionService>();
             _searchService = scope.ServiceProvider.GetRequiredService<ISearchService>();
             _commandGenerator = scope.ServiceProvider.GetRequiredService<ICommandGeneratorService>();
@@ -173,11 +181,10 @@ public partial class CommandLibraryView : UserControl, IToolView
             var actions = (await actionService.GetAllActionsAsync()).ToList();
             _allEntries = actions.Select(a => new ActionEntry(a, this)).ToList();
 
-            // Populate category combo (keep All + Favorites at top)
+            // Populate category combo (keep "All" at top)
             _suppressFilterEvents = true;
             _categoryList = actions.Select(a => a.Category).Distinct().OrderBy(c => c).ToList();
-            // Remove old categories (keep first 2: All + Favorites)
-            while (CmbCategory.Items.Count > 2)
+            while (CmbCategory.Items.Count > 1)
                 CmbCategory.Items.RemoveAt(CmbCategory.Items.Count - 1);
             foreach (var cat in _categoryList)
             {
@@ -248,6 +255,9 @@ public partial class CommandLibraryView : UserControl, IToolView
         var token = _searchCts.Token;
         var term = TxtSearch.Text.Trim();
 
+        BtnClearSearch.Visibility = TxtSearch.Text.Length > 0
+            ? Visibility.Visible : Visibility.Collapsed;
+
         try { await Task.Delay(200, token); }
         catch (OperationCanceledException) { return; }
 
@@ -298,6 +308,22 @@ public partial class CommandLibraryView : UserControl, IToolView
         UpdateEmptyStates();
     }
 
+    private void OnClearSearchClick(object sender, RoutedEventArgs e)
+    {
+        TxtSearch.Text = string.Empty;
+        TxtSearch.Focus();
+    }
+
+    private void OnFavoriteFilterClick(object sender, RoutedEventArgs e)
+    {
+        _favoritesFilterActive = !_favoritesFilterActive;
+        BtnFavoriteFilter.Foreground = _favoritesFilterActive
+            ? TryGetBrush("WarningBrush", Brushes.Orange)
+            : TryGetBrush("TextSecondaryBrush", Brushes.Gray);
+        _collectionView?.Refresh();
+        UpdateEmptyStates();
+    }
+
     private bool FilterPredicate(object obj)
     {
         if (obj is not ActionEntry entry) return false;
@@ -320,13 +346,12 @@ public partial class CommandLibraryView : UserControl, IToolView
             if (entry.Source.Level != expectedLevel) return false;
         }
 
-        // Category filter (index 0=All, 1=Favorites, 2+=real categories)
-        if (CmbCategory.SelectedIndex == 1)
-        {
-            // Favorites filter
-            if (!_favoriteIds.Contains(entry.Source.Id)) return false;
-        }
-        else if (CmbCategory.SelectedIndex > 1)
+        // Favorites filter (independent toggle)
+        if (_favoritesFilterActive && !_favoriteIds.Contains(entry.Source.Id))
+            return false;
+
+        // Category filter (index 0=All, 1+=real categories)
+        if (CmbCategory.SelectedIndex > 0)
         {
             var selectedCategory = CmbCategory.SelectedItem as string;
             if (entry.Source.Category != selectedCategory) return false;
@@ -355,7 +380,8 @@ public partial class CommandLibraryView : UserControl, IToolView
 
         // No results — determine which empty state to show
         var hasSearch = TxtSearch.Text.Trim().Length > 0;
-        var hasFilters = CmbCategory.SelectedIndex > 0
+        var hasFilters = _favoritesFilterActive
+            || CmbCategory.SelectedIndex > 0
             || CmbPlatform.SelectedIndex > 0
             || CmbRisk.SelectedIndex > 0;
 
@@ -535,8 +561,9 @@ public partial class CommandLibraryView : UserControl, IToolView
                 _commandValid = false;
             }
         }
-        catch
+        catch (Exception ex)
         {
+            Heimdall.Core.Logging.FileLogger.Warn($"[CommandLibrary] Generate failed: {ex.Message}");
             TxtGenerated.Text = _activeTemplate.CommandPattern;
             TxtGenerated.Foreground = TryGetBrush("TextSecondaryBrush", System.Windows.Media.Brushes.Gray);
             TxtValidationError.Text = string.Empty;
@@ -737,7 +764,9 @@ public partial class CommandLibraryView : UserControl, IToolView
     private static readonly System.Text.Json.JsonSerializerOptions ImportOptions = new()
     {
         PropertyNameCaseInsensitive = true,
-        MaxDepth = 32
+        MaxDepth = 32,
+        Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter(
+            System.Text.Json.JsonNamingPolicy.CamelCase) }
     };
 
     private async void OnExportClick(object sender, RoutedEventArgs e)
@@ -841,11 +870,15 @@ public partial class CommandLibraryView : UserControl, IToolView
                     continue;
                 }
 
-                var existing = await actionService.GetActionByIdAsync(action.Id);
+                var existing = await actionService.GetActionByPublicIdAsync(action.PublicId)
+                    ?? await actionService.GetActionByIdAsync(action.Id);
                 if (existing is not null)
                 {
                     if (existing.IsUserCreated)
                     {
+                        action.Id = existing.Id;
+                        action.PublicId = existing.PublicId;
+                        action.IsUserCreated = existing.IsUserCreated;
                         action.UpdatedAt = DateTime.UtcNow;
                         await actionService.UpdateActionAsync(action);
                         updated++;
@@ -940,7 +973,9 @@ public partial class CommandLibraryView : UserControl, IToolView
         var gitSync = _services.GetRequiredService<TwinShell.Core.Interfaces.IGitSyncService>();
 
         BtnSync.IsEnabled = false;
-        TxtTitle.Text = L("ToolCmdLibSyncInProgress");
+        _isSyncing = true;
+        TxtSyncStatus.Text = L("ToolCmdLibSyncInProgress");
+        TxtSyncStatus.Visibility = Visibility.Visible;
 
         try
         {
@@ -949,17 +984,17 @@ public partial class CommandLibraryView : UserControl, IToolView
             if (result.Success)
             {
                 await ReloadActionsAsync();
-                TxtTitle.Text = L("ToolCmdLibTitle");
+                var hasWarnings = result.Warnings?.Count > 0;
                 MessageDialog.ShowMessage(
                     Window.GetWindow(this),
-                    L("ToolCmdLibSyncComplete"),
+                    L(hasWarnings ? "ToolCmdLibSyncPartial" : "ToolCmdLibSyncComplete"),
                     result.Message ?? L("ToolCmdLibSyncComplete"),
-                    "info",
+                    hasWarnings ? "warning" : "info",
                     L("BtnOk"));
             }
             else
             {
-                TxtTitle.Text = L("ToolCmdLibTitle");
+                await ReloadActionsAsync();
                 MessageDialog.ShowMessage(
                     Window.GetWindow(this),
                     L("ToolCmdLibSyncError"),
@@ -970,7 +1005,6 @@ public partial class CommandLibraryView : UserControl, IToolView
         }
         catch (Exception ex)
         {
-            TxtTitle.Text = L("ToolCmdLibTitle");
             Heimdall.Core.Logging.FileLogger.Warn(
                 $"[CommandLibrary] Sync failed: {ex.Message}");
             MessageDialog.ShowMessage(
@@ -982,6 +1016,8 @@ public partial class CommandLibraryView : UserControl, IToolView
         }
         finally
         {
+            _isSyncing = false;
+            TxtSyncStatus.Visibility = Visibility.Collapsed;
             BtnSync.IsEnabled = true;
         }
     }
@@ -1034,7 +1070,26 @@ public partial class CommandLibraryView : UserControl, IToolView
         if (HistoryList.SelectedItem is not HistoryEntry entry) return;
 
         try { Clipboard.SetText(entry.GeneratedCommand); }
-        catch (System.Runtime.InteropServices.ExternalException) { }
+        catch (System.Runtime.InteropServices.ExternalException) { return; }
+
+        ShowHistoryCopyFeedback();
+    }
+
+    private void ShowHistoryCopyFeedback()
+    {
+        TxtHistoryCopied.Text = L("ToolCmdLibCopied");
+        TxtHistoryCopied.Visibility = Visibility.Visible;
+
+        var timer = new System.Windows.Threading.DispatcherTimer
+        {
+            Interval = TimeSpan.FromSeconds(1)
+        };
+        timer.Tick += (_, _) =>
+        {
+            TxtHistoryCopied.Visibility = Visibility.Collapsed;
+            timer.Stop();
+        };
+        timer.Start();
     }
 
     private void OnHistoryCopyClick(object sender, RoutedEventArgs e)
@@ -1126,6 +1181,8 @@ public partial class CommandLibraryView : UserControl, IToolView
     {
         try
         {
+            if (e.Uri.Scheme is not ("http" or "https")) return;
+
             System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
             {
                 FileName = e.Uri.AbsoluteUri,
@@ -1191,10 +1248,13 @@ public partial class CommandLibraryView : UserControl, IToolView
     private static Brush TryGetBrush(string key, Brush fallback)
         => System.Windows.Application.Current.TryFindResource(key) as Brush ?? fallback;
 
+    public bool CanClose() => !_isSyncing;
+
     public void Dispose()
     {
         _searchCts?.Cancel();
         _searchCts?.Dispose();
+        _serviceScope?.Dispose();
         GC.SuppressFinalize(this);
     }
 
@@ -1226,9 +1286,9 @@ public partial class CommandLibraryView : UserControl, IToolView
 
         public string PlatformLabel => Source.Platform switch
         {
-            Platform.Windows => "WIN",
-            Platform.Linux => "LIN",
-            _ => "WIN/LIN"
+            Platform.Windows => _parent.L("ToolCmdLibPlatformLabelWin"),
+            Platform.Linux => _parent.L("ToolCmdLibPlatformLabelLin"),
+            _ => _parent.L("ToolCmdLibPlatformLabelBoth")
         };
 
         public Brush RiskBrush => Source.Level switch
@@ -1244,6 +1304,14 @@ public partial class CommandLibraryView : UserControl, IToolView
             CriticalityLevel.Info => _parent.L("ToolCmdLibRiskInfo"),
             CriticalityLevel.Run => _parent.L("ToolCmdLibRiskRun"),
             CriticalityLevel.Dangerous => _parent.L("ToolCmdLibRiskDangerous"),
+            _ => ""
+        };
+
+        public string RiskBadge => Source.Level switch
+        {
+            CriticalityLevel.Info => _parent.L("ToolCmdLibRiskBadgeInfo"),
+            CriticalityLevel.Run => _parent.L("ToolCmdLibRiskBadgeRun"),
+            CriticalityLevel.Dangerous => _parent.L("ToolCmdLibRiskBadgeDanger"),
             _ => ""
         };
     }

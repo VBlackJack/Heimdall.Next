@@ -69,9 +69,9 @@
                         <ComboBox x:Name="CmbPlatform"
                                   SelectedIndex="{Binding Platform}"
                                   Style="{StaticResource DialogFormComboBoxStyle}" TabIndex="2">
-                            <ComboBoxItem Content="Windows"/>
-                            <ComboBoxItem Content="Linux"/>
-                            <ComboBoxItem Content="Both"/>
+                            <ComboBoxItem x:Name="PlatformWindows" Content="Windows"/>
+                            <ComboBoxItem x:Name="PlatformLinux" Content="Linux"/>
+                            <ComboBoxItem x:Name="PlatformBoth" Content="Both"/>
                         </ComboBox>
                     </StackPanel>
 
