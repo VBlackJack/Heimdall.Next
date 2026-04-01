@@ -159,4 +159,14 @@ public class AppSettings
     // X11 forwarding
     public string? X11ServerPath { get; set; }
     public bool X11AutoStart { get; set; } = true;
+
+    // Command Library Git Sync
+    public bool CmdLibGitSyncEnabled { get; set; }
+    public string? CmdLibGitSyncUrl { get; set; }
+    public string? CmdLibGitSyncToken { get; set; }
+    public string CmdLibGitSyncBranch { get; set; } = "main";
+    public string CmdLibGitSyncAuthorName { get; set; } = "Heimdall User";
+    public string CmdLibGitSyncAuthorEmail { get; set; } = "heimdall@local";
+    public bool CmdLibGitSyncOnStartup { get; set; }
+    public bool CmdLibGitSyncAutoPush { get; set; } = true;
 }

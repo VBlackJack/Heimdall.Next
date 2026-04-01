@@ -134,6 +134,29 @@ public partial class SettingsViewModel : ObservableValidator
     [ObservableProperty]
     private string _nirSoftPath = "";
 
+    // --- Command Library Git Sync ---
+
+    [ObservableProperty]
+    private bool _cmdLibGitSyncEnabled;
+
+    [ObservableProperty]
+    private string _cmdLibGitSyncUrl = "";
+
+    [ObservableProperty]
+    private string _cmdLibGitSyncBranch = "main";
+
+    [ObservableProperty]
+    private string _cmdLibGitSyncAuthorName = "Heimdall User";
+
+    [ObservableProperty]
+    private string _cmdLibGitSyncAuthorEmail = "heimdall@local";
+
+    [ObservableProperty]
+    private bool _cmdLibGitSyncOnStartup;
+
+    [ObservableProperty]
+    private bool _cmdLibGitSyncAutoPush = true;
+
     // --- RDP defaults ---
 
     [ObservableProperty]
@@ -375,6 +398,15 @@ public partial class SettingsViewModel : ObservableValidator
         SysinternalsPath = settings.SysinternalsPath ?? "";
         NirSoftPath = settings.NirSoftPath ?? "";
 
+        // Command Library Git Sync
+        CmdLibGitSyncEnabled = settings.CmdLibGitSyncEnabled;
+        CmdLibGitSyncUrl = settings.CmdLibGitSyncUrl ?? "";
+        CmdLibGitSyncBranch = settings.CmdLibGitSyncBranch;
+        CmdLibGitSyncAuthorName = settings.CmdLibGitSyncAuthorName;
+        CmdLibGitSyncAuthorEmail = settings.CmdLibGitSyncAuthorEmail;
+        CmdLibGitSyncOnStartup = settings.CmdLibGitSyncOnStartup;
+        CmdLibGitSyncAutoPush = settings.CmdLibGitSyncAutoPush;
+
         // RDP defaults
         DefaultResolutionWidth = settings.DefaultResolutionWidth;
         DefaultResolutionHeight = settings.DefaultResolutionHeight;
@@ -486,6 +518,15 @@ public partial class SettingsViewModel : ObservableValidator
         settings.X11AutoStart = X11AutoStart;
         settings.SysinternalsPath = string.IsNullOrWhiteSpace(SysinternalsPath) ? null : SysinternalsPath;
         settings.NirSoftPath = string.IsNullOrWhiteSpace(NirSoftPath) ? null : NirSoftPath;
+
+        // Command Library Git Sync
+        settings.CmdLibGitSyncEnabled = CmdLibGitSyncEnabled;
+        settings.CmdLibGitSyncUrl = string.IsNullOrWhiteSpace(CmdLibGitSyncUrl) ? null : CmdLibGitSyncUrl;
+        settings.CmdLibGitSyncBranch = CmdLibGitSyncBranch;
+        settings.CmdLibGitSyncAuthorName = CmdLibGitSyncAuthorName;
+        settings.CmdLibGitSyncAuthorEmail = CmdLibGitSyncAuthorEmail;
+        settings.CmdLibGitSyncOnStartup = CmdLibGitSyncOnStartup;
+        settings.CmdLibGitSyncAutoPush = CmdLibGitSyncAutoPush;
 
         // RDP defaults
         settings.DefaultResolutionWidth = DefaultResolutionWidth;

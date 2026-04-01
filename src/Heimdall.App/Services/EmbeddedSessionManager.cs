@@ -563,10 +563,22 @@ public sealed class EmbeddedSessionManager
             };
         }
 
-        // Inject busy state callback so tools can signal long-running operations
+        // Inject busy state callback so tools can signal long-running operations.
+        // Inject send-to-terminal callback for command injection into sibling terminals.
         context = (context ?? new ToolContext()) with
         {
-            SetBusyAction = busy => sessionTab.IsBusy = busy
+            SetBusyAction = busy => sessionTab.IsBusy = busy,
+            SendCommandAction = command =>
+            {
+                foreach (var pane in Core.Models.SplitTreeHelper.EnumerateLeaves(sessionTab.RootContent))
+                {
+                    if (pane.HostControl is Views.EmbeddedSshView sshView)
+                    {
+                        sshView.WriteCommand(command);
+                        return;
+                    }
+                }
+            }
         };
 
         view.Initialize(context, _localizer);

@@ -113,6 +113,10 @@ public partial class App : System.Windows.Application
         // Apply sleep prevention setting
         SleepPrevention.Enabled = settings.PreventSleepDuringSession;
 
+        // Initialize TwinShell command library (DB + seed on first launch).
+        // Awaited to ensure seed completes before tools can be opened.
+        await Task.Run(() => TwinShellBootstrapper.InitializeAsync(_serviceProvider));
+
         // Pre-warm RDP COM/DLL chain and WinForms runtime on a background STA thread.
         // Forces loading of mstscax.dll + 22 static dependencies (~300-500ms) at startup
         // instead of on the first RDP connection.
@@ -266,6 +270,9 @@ public partial class App : System.Windows.Application
         services.AddSingleton<EmbeddedSessionManager>();
         services.AddSingleton<SplitService>();
         services.AddSingleton<IDialogService, WpfDialogService>();
+
+        // TwinShell command library
+        TwinShellBootstrapper.RegisterServices(services);
 
         // ViewModels
         services.AddTransient<MainViewModel>();
