@@ -69,9 +69,9 @@
                         <ComboBox x:Name="CmbPlatform"
                                   SelectedIndex="{Binding Platform}"
                                   Style="{StaticResource DialogFormComboBoxStyle}" TabIndex="2">
-                            <ComboBoxItem x:Name="PlatformWindows" Content="Windows"/>
-                            <ComboBoxItem x:Name="PlatformLinux" Content="Linux"/>
-                            <ComboBoxItem x:Name="PlatformBoth" Content="Both"/>
+                            <ComboBoxItem x:Name="PlatformWindows"/>
+                            <ComboBoxItem x:Name="PlatformLinux"/>
+                            <ComboBoxItem x:Name="PlatformBoth"/>
                         </ComboBox>
                     </StackPanel>
 
@@ -80,9 +80,9 @@
                         <ComboBox x:Name="CmbRisk"
                                   SelectedIndex="{Binding Level}"
                                   Style="{StaticResource DialogFormComboBoxStyle}" TabIndex="3">
-                            <ComboBoxItem x:Name="RiskInfo" Content="Info"/>
-                            <ComboBoxItem x:Name="RiskRun" Content="Run"/>
-                            <ComboBoxItem x:Name="RiskDangerous" Content="Dangerous"/>
+                            <ComboBoxItem x:Name="RiskInfo"/>
+                            <ComboBoxItem x:Name="RiskRun"/>
+                            <ComboBoxItem x:Name="RiskDangerous"/>
                         </ComboBox>
                     </StackPanel>
                 </Grid>
@@ -118,9 +118,9 @@
                         <ColumnDefinition Width="*"/><ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="80"/><ColumnDefinition Width="24"/>
                     </Grid.ColumnDefinitions>
-                    <TextBlock Grid.Column="0" x:Name="LblWinParamName" Text="Name" FontSize="{StaticResource FontSizeSmallCaption}" Foreground="{DynamicResource TextSecondaryBrush}" FontWeight="SemiBold"/>
-                    <TextBlock Grid.Column="1" x:Name="LblWinParamLabel" Text="Label" FontSize="{StaticResource FontSizeSmallCaption}" Foreground="{DynamicResource TextSecondaryBrush}" FontWeight="SemiBold"/>
-                    <TextBlock Grid.Column="2" x:Name="LblWinParamType" Text="Type" FontSize="{StaticResource FontSizeSmallCaption}" Foreground="{DynamicResource TextSecondaryBrush}" FontWeight="SemiBold"/>
+                    <TextBlock Grid.Column="0" x:Name="LblWinParamName" FontSize="{StaticResource FontSizeSmallCaption}" Foreground="{DynamicResource TextSecondaryBrush}" FontWeight="SemiBold"/>
+                    <TextBlock Grid.Column="1" x:Name="LblWinParamLabel" FontSize="{StaticResource FontSizeSmallCaption}" Foreground="{DynamicResource TextSecondaryBrush}" FontWeight="SemiBold"/>
+                    <TextBlock Grid.Column="2" x:Name="LblWinParamType" FontSize="{StaticResource FontSizeSmallCaption}" Foreground="{DynamicResource TextSecondaryBrush}" FontWeight="SemiBold"/>
                 </Grid>
                 <ItemsControl ItemsSource="{Binding WindowsParameters}" Margin="0,0,0,0">
                     <ItemsControl.ItemTemplate>
@@ -152,6 +152,7 @@
                                             FontSize="10" Width="20" Height="20"
                                         Command="{Binding DataContext.RemoveWindowsParameterCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                         CommandParameter="{Binding}"
+                                        ToolTip="{loc:Translate ToolCmdLibBtnDelete}"
                                         Style="{DynamicResource ToolbarGhostButtonStyle}"/>
                                 </Grid>
                                 <Grid Margin="0,2,0,0">
@@ -160,6 +161,7 @@
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
                                     <TextBox Grid.Column="0" Text="{Binding DefaultValue, UpdateSourceTrigger=PropertyChanged}"
+                                             Style="{StaticResource WatermarkTextBoxStyle}"
                                              Margin="0,0,4,0" Padding="4,3"
                                              Tag="{loc:Translate ToolCmdLibDialogParamDefault}"
                                              FontSize="{StaticResource FontSizeSmallCaption}"
@@ -176,7 +178,7 @@
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
-                <Button x:Name="BtnAddWinParam" Content="+ Parameter"
+                <Button x:Name="BtnAddWinParam" Content="{loc:Translate ToolCmdLibDialogBtnAddParam}"
                         Command="{Binding AddWindowsParameterCommand}"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         FontSize="{StaticResource FontSizeCaption}"
@@ -205,9 +207,9 @@
                         <ColumnDefinition Width="*"/><ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="80"/><ColumnDefinition Width="24"/>
                     </Grid.ColumnDefinitions>
-                    <TextBlock Grid.Column="0" x:Name="LblLinuxParamName" Text="Name" FontSize="{StaticResource FontSizeSmallCaption}" Foreground="{DynamicResource TextSecondaryBrush}" FontWeight="SemiBold"/>
-                    <TextBlock Grid.Column="1" x:Name="LblLinuxParamLabel" Text="Label" FontSize="{StaticResource FontSizeSmallCaption}" Foreground="{DynamicResource TextSecondaryBrush}" FontWeight="SemiBold"/>
-                    <TextBlock Grid.Column="2" x:Name="LblLinuxParamType" Text="Type" FontSize="{StaticResource FontSizeSmallCaption}" Foreground="{DynamicResource TextSecondaryBrush}" FontWeight="SemiBold"/>
+                    <TextBlock Grid.Column="0" x:Name="LblLinuxParamName" FontSize="{StaticResource FontSizeSmallCaption}" Foreground="{DynamicResource TextSecondaryBrush}" FontWeight="SemiBold"/>
+                    <TextBlock Grid.Column="1" x:Name="LblLinuxParamLabel" FontSize="{StaticResource FontSizeSmallCaption}" Foreground="{DynamicResource TextSecondaryBrush}" FontWeight="SemiBold"/>
+                    <TextBlock Grid.Column="2" x:Name="LblLinuxParamType" FontSize="{StaticResource FontSizeSmallCaption}" Foreground="{DynamicResource TextSecondaryBrush}" FontWeight="SemiBold"/>
                 </Grid>
                 <ItemsControl ItemsSource="{Binding LinuxParameters}" Margin="0,4,0,0">
                     <ItemsControl.ItemTemplate>
@@ -239,6 +241,7 @@
                                             FontSize="10" Width="20" Height="20"
                                         Command="{Binding DataContext.RemoveLinuxParameterCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                         CommandParameter="{Binding}"
+                                        ToolTip="{loc:Translate ToolCmdLibBtnDelete}"
                                         Style="{DynamicResource ToolbarGhostButtonStyle}"/>
                                 </Grid>
                                 <Grid Margin="0,2,0,0">
@@ -247,6 +250,7 @@
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
                                     <TextBox Grid.Column="0" Text="{Binding DefaultValue, UpdateSourceTrigger=PropertyChanged}"
+                                             Style="{StaticResource WatermarkTextBoxStyle}"
                                              Margin="0,0,4,0" Padding="4,3"
                                              Tag="{loc:Translate ToolCmdLibDialogParamDefault}"
                                              FontSize="{StaticResource FontSizeSmallCaption}"
@@ -263,7 +267,7 @@
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
-                <Button x:Name="BtnAddLinuxParam" Content="+ Parameter"
+                <Button x:Name="BtnAddLinuxParam" Content="{loc:Translate ToolCmdLibDialogBtnAddParam}"
                         Command="{Binding AddLinuxParameterCommand}"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         FontSize="{StaticResource FontSizeCaption}"

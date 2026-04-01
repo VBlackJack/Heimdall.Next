@@ -59,7 +59,9 @@ public partial class CommandLibraryView : UserControl, IToolView
 
     private bool _suppressFilterEvents;
     private bool _isSyncing;
+    private bool _isBusy;
     private bool _favoritesFilterActive;
+    private System.Windows.Threading.DispatcherTimer? _historyCopyTimer;
     private IServiceScope? _serviceScope;
 
     public CommandLibraryView()
@@ -89,7 +91,7 @@ public partial class CommandLibraryView : UserControl, IToolView
         BtnSend.Content = L("ToolCmdLibBtnSend");
         TxtHistoryTitle.Text = L("ToolCmdLibHistoryTitle");
         TxtHistoryEmpty.Text = L("ToolCmdLibHistoryEmpty");
-        TxtResultCount.Text = "0/0";
+        TxtResultCount.Text = string.Format(L("ToolCmdLibResultCountFormat"), 0, 0);
 
         System.Windows.Automation.AutomationProperties.SetName(TxtSearch, L("ToolCmdLibSearchPlaceholder"));
         System.Windows.Automation.AutomationProperties.SetName(ActionList, L("ToolCmdLibTitle"));
@@ -119,6 +121,14 @@ public partial class CommandLibraryView : UserControl, IToolView
 
         RbWindows.Content = L("ToolCmdLibPlatformWindows");
         RbLinux.Content = L("ToolCmdLibPlatformLinux");
+
+        System.Windows.Automation.AutomationProperties.SetName(CmbRisk, L("ToolCmdLibDialogLblRisk"));
+        System.Windows.Automation.AutomationProperties.SetName(CmbPlatform, L("ToolCmdLibDialogLblPlatform"));
+        System.Windows.Automation.AutomationProperties.SetName(CmbCategory, L("ToolCmdLibDialogLblCategory"));
+        System.Windows.Automation.AutomationProperties.SetName(BtnCopy, L("ToolCmdLibBtnCopy"));
+        System.Windows.Automation.AutomationProperties.SetName(BtnSend, L("ToolCmdLibBtnSend"));
+        System.Windows.Automation.AutomationProperties.SetName(RbWindows, L("ToolCmdLibPlatformWindows"));
+        System.Windows.Automation.AutomationProperties.SetName(RbLinux, L("ToolCmdLibPlatformLinux"));
 
         BtnSend.Visibility = _sendCommand is not null ? Visibility.Visible : Visibility.Collapsed;
     }
@@ -163,6 +173,7 @@ public partial class CommandLibraryView : UserControl, IToolView
 
         EmptyState.Visibility = Visibility.Visible;
         TxtEmptyState.Text = L("ToolCmdLibStatusLoading");
+        LoadingBar.Visibility = Visibility.Visible;
 
         try
         {
@@ -215,6 +226,10 @@ public partial class CommandLibraryView : UserControl, IToolView
             Heimdall.Core.Logging.FileLogger.Warn(
                 $"[CommandLibrary] Failed to load actions: {ex.Message}");
         }
+        finally
+        {
+            LoadingBar.Visibility = Visibility.Collapsed;
+        }
     }
 
     private async Task ReloadActionsAsync()
@@ -226,6 +241,8 @@ public partial class CommandLibraryView : UserControl, IToolView
 
         _collectionView = null;
         _searchResults = null;
+        _searchRankedIds = null;
+        _searchMatchIds = null;
         _lastSearchTerm = "";
         GeneratorPanel.Visibility = Visibility.Collapsed;
 
@@ -247,6 +264,7 @@ public partial class CommandLibraryView : UserControl, IToolView
     private string _lastSearchTerm = "";
     private List<ActionModel>? _searchResults;
     private List<string>? _searchRankedIds;
+    private HashSet<string>? _searchMatchIds;
 
     private async void OnSearchTextChanged(object sender, TextChangedEventArgs e)
     {
@@ -270,12 +288,14 @@ public partial class CommandLibraryView : UserControl, IToolView
 
             // Build ranked ID list to preserve relevance order
             _searchRankedIds = ranked.Select(r => r.Id).ToList();
+            _searchMatchIds = new HashSet<string>(_searchRankedIds, StringComparer.Ordinal);
         }
         else if (term.Length == 0)
         {
             _lastSearchTerm = "";
             _searchResults = null;
             _searchRankedIds = null;
+            _searchMatchIds = null;
         }
 
         // When searching, apply relevance-based sort; otherwise group by category
@@ -358,9 +378,9 @@ public partial class CommandLibraryView : UserControl, IToolView
         }
 
         // Search filter
-        if (_searchResults is not null)
+        if (_searchMatchIds is not null)
         {
-            return _searchResults.Any(r => r.Id == entry.Source.Id);
+            return _searchMatchIds.Contains(entry.Source.Id);
         }
 
         return true;
@@ -369,7 +389,7 @@ public partial class CommandLibraryView : UserControl, IToolView
     private void UpdateEmptyStates()
     {
         var visibleCount = _collectionView?.Cast<object>().Count() ?? 0;
-        TxtResultCount.Text = $"{visibleCount}/{_allEntries.Count}";
+        TxtResultCount.Text = string.Format(L("ToolCmdLibResultCountFormat"), visibleCount, _allEntries.Count);
 
         if (visibleCount > 0)
         {
@@ -455,6 +475,7 @@ public partial class CommandLibraryView : UserControl, IToolView
         BtnEdit.Visibility = canEdit;
         BtnDelete.Visibility = canEdit;
 
+        HistoryPanel.Visibility = Visibility.Collapsed;
         GeneratorPanel.Visibility = Visibility.Visible;
     }
 
@@ -566,8 +587,8 @@ public partial class CommandLibraryView : UserControl, IToolView
             Heimdall.Core.Logging.FileLogger.Warn($"[CommandLibrary] Generate failed: {ex.Message}");
             TxtGenerated.Text = _activeTemplate.CommandPattern;
             TxtGenerated.Foreground = TryGetBrush("TextSecondaryBrush", System.Windows.Media.Brushes.Gray);
-            TxtValidationError.Text = string.Empty;
-            TxtValidationError.Visibility = Visibility.Collapsed;
+            TxtValidationError.Text = string.Format(L("ToolCmdLibGenerateError"), ex.Message);
+            TxtValidationError.Visibility = Visibility.Visible;
             _commandValid = false;
         }
 
@@ -781,6 +802,7 @@ public partial class CommandLibraryView : UserControl, IToolView
 
         if (dlg.ShowDialog(Window.GetWindow(this)) != true) return;
 
+        _isBusy = true;
         try
         {
             using var scope = _services.CreateScope();
@@ -814,6 +836,10 @@ public partial class CommandLibraryView : UserControl, IToolView
                 ex.Message,
                 L("BtnOk"));
         }
+        finally
+        {
+            _isBusy = false;
+        }
     }
 
     private async void OnImportClick(object sender, RoutedEventArgs e)
@@ -828,6 +854,7 @@ public partial class CommandLibraryView : UserControl, IToolView
 
         if (dlg.ShowDialog(Window.GetWindow(this)) != true) return;
 
+        _isBusy = true;
         try
         {
             var fileInfo = new System.IO.FileInfo(dlg.FileName);
@@ -915,6 +942,10 @@ public partial class CommandLibraryView : UserControl, IToolView
                 L("ToolCmdLibImportError"),
                 ex.Message,
                 L("BtnOk"));
+        }
+        finally
+        {
+            _isBusy = false;
         }
     }
 
@@ -1032,6 +1063,7 @@ public partial class CommandLibraryView : UserControl, IToolView
             return;
         }
 
+        GeneratorPanel.Visibility = Visibility.Collapsed;
         HistoryPanel.Visibility = Visibility.Visible;
         _ = LoadHistoryAsync();
     }
@@ -1080,16 +1112,17 @@ public partial class CommandLibraryView : UserControl, IToolView
         TxtHistoryCopied.Text = L("ToolCmdLibCopied");
         TxtHistoryCopied.Visibility = Visibility.Visible;
 
-        var timer = new System.Windows.Threading.DispatcherTimer
+        _historyCopyTimer?.Stop();
+        _historyCopyTimer = new System.Windows.Threading.DispatcherTimer
         {
             Interval = TimeSpan.FromSeconds(1)
         };
-        timer.Tick += (_, _) =>
+        _historyCopyTimer.Tick += (_, _) =>
         {
             TxtHistoryCopied.Visibility = Visibility.Collapsed;
-            timer.Stop();
+            _historyCopyTimer.Stop();
         };
-        timer.Start();
+        _historyCopyTimer.Start();
     }
 
     private void OnHistoryCopyClick(object sender, RoutedEventArgs e)
@@ -1157,6 +1190,8 @@ public partial class CommandLibraryView : UserControl, IToolView
         {
             TxtGenerated.Text = command;
             TxtGenerated.Foreground = TryGetBrush("AccentBrush", System.Windows.Media.Brushes.DodgerBlue);
+            TxtValidationError.Text = string.Empty;
+            TxtValidationError.Visibility = Visibility.Collapsed;
             _commandValid = true;
             BtnCopy.IsEnabled = true;
             BtnSend.IsEnabled = true;
@@ -1248,10 +1283,11 @@ public partial class CommandLibraryView : UserControl, IToolView
     private static Brush TryGetBrush(string key, Brush fallback)
         => System.Windows.Application.Current.TryFindResource(key) as Brush ?? fallback;
 
-    public bool CanClose() => !_isSyncing;
+    public bool CanClose() => !_isSyncing && !_isBusy;
 
     public void Dispose()
     {
+        _historyCopyTimer?.Stop();
         _searchCts?.Cancel();
         _searchCts?.Dispose();
         _serviceScope?.Dispose();
