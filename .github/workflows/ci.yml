@@ -12,9 +12,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Clone TwinShell dependency
-        shell: bash
-        run: git clone --depth 1 https://github.com/VBlackJack/TwinShell.git "$GITHUB_WORKSPACE/../../TwinShell/TwinShell"
+      - name: Checkout TwinShell dependency
+        uses: actions/checkout@v4
+        with:
+          repository: VBlackJack/TwinShell
+          path: ../../TwinShell/TwinShell
 
       - name: Setup .NET 10
         uses: actions/setup-dotnet@v4
