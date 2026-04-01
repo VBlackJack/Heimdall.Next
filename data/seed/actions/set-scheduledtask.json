@@ -1,0 +1,84 @@
+{
+  "id": "set-scheduledtask",
+  "title": "Modifier une tâche planifiée",
+  "description": "Modifie les propriétés d'une tâche planifiée existante",
+  "category": "⚙️ Services & Automation",
+  "platform": 0,
+  "level": 1,
+  "tags": [
+    "taskscheduler",
+    "modify",
+    "update",
+    "automation",
+    "windows"
+  ],
+  "windowsCommandTemplateId": "set-scheduledtask-cmd",
+  "windowsCommandTemplate": {
+    "id": "set-scheduledtask-cmd",
+    "platform": 0,
+    "name": "Set-ScheduledTask",
+    "commandPattern": "Set-ScheduledTask -TaskName '{taskname}' {parameters}",
+    "parameters": [
+      {
+        "name": "taskname",
+        "label": "Nom de la tâche",
+        "type": "string",
+        "defaultValue": "MyTask",
+        "required": true,
+        "description": "Nom de la tâche à modifier"
+      },
+      {
+        "name": "parameters",
+        "label": "Paramètres à modifier",
+        "type": "string",
+        "defaultValue": "-Trigger (New-ScheduledTaskTrigger -Daily -At 3:00AM)",
+        "required": true,
+        "description": "Propriétés à modifier (-Trigger, -Action, -User, etc.)"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "$trigger = New-ScheduledTaskTrigger -Daily -At 3:00AM; Set-ScheduledTask -TaskName 'Backup' -Trigger $trigger",
+      "description": "Change l'heure d'exécution",
+      "platform": 0
+    },
+    {
+      "command": "$action = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument '-File C:\\Scripts\\new-backup.ps1'; Set-ScheduledTask -TaskName 'Backup' -Action $action",
+      "description": "Change le script exécuté",
+      "platform": 0
+    },
+    {
+      "command": "Set-ScheduledTask -TaskName 'MyTask' -User 'DOMAIN\\ServiceAccount'",
+      "description": "Change le compte d'exécution",
+      "platform": 0
+    },
+    {
+      "command": "Set-ScheduledTask -TaskName 'DailyBackup' -Name Test -WhatIf",
+      "description": "Simulation de l'action sans exécution réelle (dry-run). Le switch -WhatIf affiche ce qui serait modifié sans appliquer les changements. INDISPENSABLE avant toute action de masse ou modification critique. Retirez -WhatIf après validation pour exécuter.",
+      "platform": 0
+    },
+    {
+      "command": "Set-ScheduledTask -TaskName 'DailyBackup' -Name Test -Confirm:$false",
+      "description": "Exécute l'action sans demander de confirmation interactive. -Confirm:$false supprime les invites de validation. Utile dans les scripts automatisés mais à utiliser avec précaution : aucun filet de sécurité.",
+      "platform": 0
+    },
+    {
+      "command": "Set-ScheduledTask -TaskName 'DailyBackup' -Name Test -PassThru",
+      "description": "Force la commande à retourner l'objet modifié/créé dans le pipeline. Par défaut, les cmdlets Set-/New- ne retournent rien. -PassThru active le retour pour permettre des opérations en chaîne ou des vérifications immédiates.",
+      "platform": 0
+    },
+    {
+      "command": "Set-ScheduledTask -TaskName 'DailyBackup' -Name Test -Verbose",
+      "description": "Affiche des informations détaillées sur l'exécution de la commande. -Verbose active les messages de débogage pour comprendre précisément ce qui se passe. Essentiel pour le troubleshooting et la compréhension des opérations internes.",
+      "platform": 0
+    }
+  ],
+  "notes": "Nécessite des privilèges admin. Utilisez Get-ScheduledTask pour voir la config actuelle avant modification.",
+  "links": [
+    {
+      "title": "Set-ScheduledTask Documentation",
+      "url": "https://learn.microsoft.com/en-us/powershell/module/scheduledtasks/set-scheduledtask"
+    }
+  ]
+}

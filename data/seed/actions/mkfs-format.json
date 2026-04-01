@@ -1,0 +1,84 @@
+{
+  "id": "mkfs-format",
+  "title": "Formater une partition",
+  "description": "Crée un système de fichiers sur une partition",
+  "category": "📁 Files & Storage",
+  "platform": 1,
+  "level": 2,
+  "tags": [
+    "mkfs",
+    "format",
+    "filesystem",
+    "ext4",
+    "xfs"
+  ],
+  "linuxCommandTemplateId": "mkfs-cmd",
+  "linuxCommandTemplate": {
+    "id": "mkfs-cmd",
+    "platform": 1,
+    "name": "mkfs",
+    "commandPattern": "mkfs.{fstype} {device}",
+    "parameters": [
+      {
+        "name": "fstype",
+        "label": "Type de filesystem",
+        "type": "string",
+        "defaultValue": "ext4",
+        "required": true,
+        "description": "Type (ext4, xfs, ext3, btrfs, etc.)"
+      },
+      {
+        "name": "device",
+        "label": "Périphérique",
+        "type": "string",
+        "defaultValue": "/dev/sdb1",
+        "required": true,
+        "description": "Partition à formater"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "sudo mkfs.ext4 /dev/sdb1",
+      "description": "Formate en ext4",
+      "platform": 1
+    },
+    {
+      "command": "sudo mkfs.xfs /dev/sdc1",
+      "description": "Formate en XFS",
+      "platform": 1
+    },
+    {
+      "command": "mkfs.ext4 /dev/sda1",
+      "description": "Exemple utilisant le paramètre 'fstype': Type (ext4, xfs, ext3, btrfs, etc.). Remplacez ext4 par la valeur appropriée selon votre environnement.",
+      "platform": 1
+    },
+    {
+      "command": "mkfs.ext4 /dev/sdb1",
+      "description": "Exemple utilisant le paramètre 'device': Partition à formater. Remplacez /dev/sda1 par la valeur appropriée selon votre environnement.",
+      "platform": 1
+    },
+    {
+      "command": "mkfs.xfs /dev/sdc1",
+      "description": "Formater en XFS",
+      "platform": 1
+    },
+    {
+      "command": "mkfs.btrfs /dev/sde1",
+      "description": "Formater en Btrfs",
+      "platform": 1
+    },
+    {
+      "command": "mkswap /dev/sdf1",
+      "description": "Créer une partition swap",
+      "platform": 1
+    }
+  ],
+  "notes": "Nécessite sudo. DANGER: détruit toutes les données de la partition.",
+  "links": [
+    {
+      "title": "mkfs documentation",
+      "url": "https://man7.org/linux/man-pages/man8/mkfs.8.html"
+    }
+  ]
+}

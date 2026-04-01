@@ -1,0 +1,73 @@
+{
+  "id": "performance-monitor-cpu",
+  "title": "Surveiller l'utilisation CPU en temps réel",
+  "description": "Collecte et affiche l'utilisation du processeur en temps réel avec plusieurs échantillons",
+  "category": "⚡ Performance",
+  "platform": 0,
+  "level": 0,
+  "tags": [
+    "performance",
+    "cpu",
+    "monitoring",
+    "counter"
+  ],
+  "windowsCommandTemplateId": "performance-monitor-cpu-cmd",
+  "windowsCommandTemplate": {
+    "id": "performance-monitor-cpu-cmd",
+    "platform": 0,
+    "name": "Get-Counter",
+    "commandPattern": "Get-Counter -Counter '\\Processor(_Total)\\% Processor Time' -SampleInterval {intervalSeconds} -MaxSamples {maxSamples} | Select-Object -ExpandProperty CounterSamples | Select-Object Timestamp,@{Name='CPU_Usage_%';Expression={[math]::Round($_.CookedValue,2)}} | Format-Table -AutoSize",
+    "parameters": [
+      {
+        "name": "intervalSeconds",
+        "label": "Intervalle (secondes)",
+        "type": "number",
+        "defaultValue": "2",
+        "required": true,
+        "description": "Intervalle entre chaque échantillon en secondes"
+      },
+      {
+        "name": "maxSamples",
+        "label": "Nombre d'échantillons",
+        "type": "number",
+        "defaultValue": "10",
+        "required": true,
+        "description": "Nombre d'échantillons à collecter"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "Get-Counter '\\Processor(_Total)\\% Processor Time' -Continuous",
+      "description": "Surveillance CPU continue (Ctrl+C pour arrêter)",
+      "platform": 0
+    },
+    {
+      "command": "(Get-Counter '\\Processor(_Total)\\% Processor Time').CounterSamples.CookedValue",
+      "description": "Obtient la valeur CPU instantanée",
+      "platform": 0
+    },
+    {
+      "command": "Get-Counter -Counter '\\Processor(_Total)\\% Processor Time' -SampleInterval 60 -MaxSamples 10 | Select-Object * -First 1",
+      "description": "Affiche toutes les propriétés du premier objet retourné. Select-Object * élargit l'affichage pour montrer toutes les colonnes. -First 1 limite au premier résultat. Utilisez cette commande pour découvrir les propriétés disponibles avant de filtrer.",
+      "platform": 0
+    },
+    {
+      "command": "Get-Counter -Counter '\\Processor(_Total)\\% Processor Time' -SampleInterval 60 -MaxSamples 10 | Export-Csv C:\\Temp\\Export.csv -NoTypeInformation -Encoding UTF8",
+      "description": "Exporte les résultats vers un fichier CSV exploitable dans Excel. -NoTypeInformation supprime la ligne de métadonnées. -Encoding UTF8 garantit la compatibilité des caractères accentués. Utile pour l'archivage, les rapports et l'analyse externe.",
+      "platform": 0
+    },
+    {
+      "command": "Get-Counter -Counter '\\Processor(_Total)\\% Processor Time' -SampleInterval 60 -MaxSamples 10 | Measure-Object",
+      "description": "Compte le nombre total d'objets retournés. Measure-Object retourne Count, Sum, Average, Min, Max selon les propriétés. Utile pour les statistiques rapides et la validation de résultats.",
+      "platform": 0
+    }
+  ],
+  "notes": "Remplace Performance Monitor. Continuous = surveillance continue jusqu'à Ctrl+C. Valeurs >80% indiquent une charge élevée.",
+  "links": [
+    {
+      "title": "Get-Counter Documentation",
+      "url": "https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.diagnostics/get-counter"
+    }
+  ]
+}

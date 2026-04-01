@@ -1,0 +1,45 @@
+{
+  "id": "gpo-get-applied-to-user",
+  "title": "Lister les GPO appliquées à un utilisateur",
+  "description": "Affiche toutes les GPO appliquées à un utilisateur spécifique.",
+  "category": "🏢 Active Directory & GPO",
+  "platform": 0,
+  "level": 0,
+  "tags": [
+    "gpo",
+    "user",
+    "applied",
+    "diagnostic"
+  ],
+  "windowsCommandTemplateId": "gpo-get-applied-to-user-cmd",
+  "windowsCommandTemplate": {
+    "id": "gpo-get-applied-to-user-cmd",
+    "platform": 0,
+    "name": "gpresult",
+    "commandPattern": "gpresult /R /USER {username}",
+    "parameters": [
+      {
+        "name": "username",
+        "label": "Nom d'utilisateur",
+        "type": "string",
+        "defaultValue": "",
+        "required": true,
+        "description": "Nom d'utilisateur (format DOMAIN\\username)"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "gpresult /R /USER CONTOSO\\jdupont",
+      "description": "Affiche les GPO appliquées à l'utilisateur jdupont",
+      "platform": 0
+    },
+    {
+      "command": "gpresult /R /USER jdupont",
+      "description": "Exécution standard de la commande None. Consultez la documentation officielle avec Get-Help gpresult -Full pour plus de détails sur les paramètres disponibles et les cas d'usage avancés.",
+      "platform": 0
+    }
+  ],
+  "notes": "Pour un rapport HTML détaillé, utiliser /H au lieu de /R. Nécessite des droits administrateur.",
+  "links": []
+}

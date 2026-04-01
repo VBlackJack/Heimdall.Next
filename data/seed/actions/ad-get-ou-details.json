@@ -1,0 +1,60 @@
+{
+  "id": "ad-get-ou-details",
+  "title": "Obtenir les détails d'une OU",
+  "description": "Affiche toutes les propriétés détaillées d'une unité d'organisation.",
+  "category": "🏢 Active Directory & GPO",
+  "platform": 0,
+  "level": 0,
+  "tags": [
+    "ad",
+    "ou",
+    "details",
+    "organizational-unit"
+  ],
+  "windowsCommandTemplateId": "ad-get-ou-details-cmd",
+  "windowsCommandTemplate": {
+    "id": "ad-get-ou-details-cmd",
+    "platform": 0,
+    "name": "Get-ADOrganizationalUnit",
+    "commandPattern": "Get-ADOrganizationalUnit -Identity \"{ouDN}\" -Properties *",
+    "parameters": [
+      {
+        "name": "ouDN",
+        "label": "DN de l'OU",
+        "type": "string",
+        "defaultValue": "",
+        "required": true,
+        "description": "Distinguished Name de l'OU"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "Get-ADOrganizationalUnit -Identity \"OU=IT,DC=contoso,DC=com\" -Properties *",
+      "description": "Affiche tous les détails de l'OU IT",
+      "platform": 0
+    },
+    {
+      "command": "Get-ADOrganizationalUnit -Identity \"OU=Paris-Users,DC=contoso,DC=com\" -Properties * | Format-Table -AutoSize",
+      "description": "Affiche les résultats dans un tableau optimisé pour la console. Format-Table -AutoSize ajuste automatiquement la largeur des colonnes pour un affichage lisible. Idéal pour visualiser rapidement les données structurées.",
+      "platform": 0
+    },
+    {
+      "command": "Get-ADOrganizationalUnit -Identity \"OU=Paris-Users,DC=contoso,DC=com\" -Properties * | Export-Csv C:\\Temp\\Export.csv -NoTypeInformation -Encoding UTF8",
+      "description": "Exporte les résultats vers un fichier CSV exploitable dans Excel. -NoTypeInformation supprime la ligne de métadonnées. -Encoding UTF8 garantit la compatibilité des caractères accentués. Utile pour l'archivage, les rapports et l'analyse externe.",
+      "platform": 0
+    },
+    {
+      "command": "Get-ADOrganizationalUnit -Identity \"OU=Paris-Users,DC=contoso,DC=com\" -Properties * | Measure-Object",
+      "description": "Compte le nombre total d'objets retournés. Measure-Object retourne Count, Sum, Average, Min, Max selon les propriétés. Utile pour les statistiques rapides et la validation de résultats.",
+      "platform": 0
+    },
+    {
+      "command": "Get-ADOrganizationalUnit -Identity \"OU=Paris-Users,DC=contoso,DC=com\" -Properties *",
+      "description": "Exemple utilisant le paramètre 'ouDN': Distinguished Name de l'OU. Remplacez OU=Paris-Users,DC=contoso,DC=com par la valeur appropriée selon votre environnement.",
+      "platform": 0
+    }
+  ],
+  "notes": "Affiche toutes les propriétés incluant les GPO liées, la protection, etc.",
+  "links": []
+}

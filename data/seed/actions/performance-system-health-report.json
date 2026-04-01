@@ -1,0 +1,37 @@
+{
+  "id": "performance-system-health-report",
+  "title": "Générer un rapport de santé système complet",
+  "description": "Collecte et affiche un rapport complet sur la santé du système: CPU, RAM, disque, services, uptime",
+  "category": "⚡ Performance",
+  "platform": 0,
+  "level": 0,
+  "tags": [
+    "performance",
+    "health",
+    "report",
+    "monitoring",
+    "diagnostic"
+  ],
+  "windowsCommandTemplateId": "performance-system-health-report-cmd",
+  "windowsCommandTemplate": {
+    "id": "performance-system-health-report-cmd",
+    "platform": 0,
+    "name": "Get-ComputerInfo",
+    "commandPattern": "$os = Get-CimInstance Win32_OperatingSystem; $cpu = Get-Counter '\\Processor(_Total)\\% Processor Time'; $mem = Get-Counter '\\Memory\\Available MBytes'; [PSCustomObject]@{ComputerName=$env:COMPUTERNAME;OS=$os.Caption;LastBoot=$os.LastBootUpTime;Uptime=(New-TimeSpan -Start $os.LastBootUpTime -End (Get-Date)).ToString();CPU_Usage_Percent=[math]::Round($cpu.CounterSamples.CookedValue,2);Memory_Available_MB=[math]::Round($mem.CounterSamples.CookedValue,2);Memory_Total_MB=[math]::Round($os.TotalVisibleMemorySize/1KB,2);Disk_C_Free_GB=[math]::Round((Get-Volume -DriveLetter C).SizeRemaining/1GB,2);Failed_Services=(Get-Service | Where-Object {$_.StartType -eq 'Automatic' -and $_.Status -ne 'Running'}).Count} | Format-List",
+    "parameters": []
+  },
+  "examples": [
+    {
+      "command": "Get-ComputerInfo | Select-Object CsName,WindowsVersion,OsLastBootUpTime,OsTotalVisibleMemorySize",
+      "description": "Informations système de base",
+      "platform": 0
+    }
+  ],
+  "notes": "Rapport complet incluant: nom PC, OS, dernier boot, uptime, CPU, RAM, disque C:, services défaillants. Idéal pour un diagnostic rapide.",
+  "links": [
+    {
+      "title": "System Health Monitoring",
+      "url": "https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.management/get-computerinfo"
+    }
+  ]
+}

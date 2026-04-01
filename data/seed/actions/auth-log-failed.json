@@ -1,0 +1,55 @@
+{
+  "id": "auth-log-failed",
+  "title": "Analyser les échecs d'authentification",
+  "description": "Liste les tentatives de connexion échouées depuis /var/log/auth.log",
+  "category": "📊 Monitoring & Logs",
+  "platform": 1,
+  "level": 0,
+  "tags": [
+    "auth",
+    "security",
+    "login",
+    "ssh"
+  ],
+  "linuxCommandTemplateId": "auth-failed-cmd",
+  "linuxCommandTemplate": {
+    "id": "auth-failed-cmd",
+    "platform": 1,
+    "name": "grep",
+    "commandPattern": "grep \"Failed password\" /var/log/auth.log | tail -n {lines}",
+    "parameters": [
+      {
+        "name": "lines",
+        "label": "Nombre de lignes",
+        "type": "number",
+        "defaultValue": "50",
+        "required": true,
+        "description": "Nombre d'échecs à afficher"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "grep \"Failed password\" /var/log/auth.log | tail -n 50",
+      "description": "Affiche les 50 dernières tentatives échouées",
+      "platform": 1
+    },
+    {
+      "command": "grep \"authentication failure\" /var/log/auth.log",
+      "description": "Recherche tous les échecs d'authentification",
+      "platform": 1
+    },
+    {
+      "command": "grep -c \"failed\" auth.log",
+      "description": "Compter les occurrences",
+      "platform": 1
+    }
+  ],
+  "notes": "Nécessite sudo. Sur RHEL/CentOS, utiliser /var/log/secure au lieu de auth.log.",
+  "links": [
+    {
+      "title": "Linux authentication logs",
+      "url": "https://www.cyberciti.biz/faq/linux-log-files-location-and-how-do-i-view-logs-files/"
+    }
+  ]
+}

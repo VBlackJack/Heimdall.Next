@@ -1,0 +1,56 @@
+{
+  "id": "linux-chmod",
+  "title": "Changer permissions (chmod)",
+  "description": "Modifie les droits d'accès (Lecture/Écriture/Exécution) des fichiers.",
+  "category": "🔒 Security & Encryption",
+  "platform": 1,
+  "level": 1,
+  "tags": [
+    "linux",
+    "chmod",
+    "permissions",
+    "security"
+  ],
+  "linuxCommandTemplate": {
+    "id": "a9615835-5cdd-48bd-b864-f28a733d0feb",
+    "platform": 1,
+    "name": "chmod",
+    "commandPattern": "chmod {mode} {file}",
+    "parameters": [
+      {
+        "name": "mode",
+        "label": "Mode",
+        "type": "string",
+        "defaultValue": "755",
+        "required": true,
+        "description": "Octal (755) ou Symbolique (+x)"
+      },
+      {
+        "name": "file",
+        "label": "Fichier",
+        "type": "string",
+        "defaultValue": "script.sh",
+        "required": true,
+        "description": "Fichier cible"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "chmod +x script.sh",
+      "description": "Rend un script exécutable.",
+      "platform": 1
+    },
+    {
+      "command": "chmod -R 755 /var/www/html",
+      "description": "Applique les droits web standards (755) récursivement (-R).",
+      "platform": 1
+    },
+    {
+      "command": "chmod 600 id_rsa",
+      "description": "Sécurise une clé privée SSH (lecture/écriture uniquement pour le propriétaire).",
+      "platform": 1
+    }
+  ],
+  "linuxCommandTemplateId": "a9615835-5cdd-48bd-b864-f28a733d0feb"
+}

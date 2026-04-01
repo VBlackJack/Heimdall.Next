@@ -1,0 +1,64 @@
+{
+  "id": "bitlocker-add-tpm-protector",
+  "title": "Ajouter un protecteur TPM à BitLocker",
+  "description": "Ajoute une protection TPM (Trusted Platform Module) à un volume BitLocker existant.",
+  "category": "🔒 Security & Encryption",
+  "platform": 0,
+  "level": 2,
+  "tags": [
+    "bitlocker",
+    "tpm",
+    "protector"
+  ],
+  "windowsCommandTemplateId": "bitlocker-add-tpm-protector-cmd",
+  "windowsCommandTemplate": {
+    "id": "bitlocker-add-tpm-protector-cmd",
+    "platform": 0,
+    "name": "Add-BitLockerKeyProtector",
+    "commandPattern": "Add-BitLockerKeyProtector -MountPoint \"{driveLetter}:\" -TpmProtector",
+    "parameters": [
+      {
+        "name": "driveLetter",
+        "label": "Lettre du disque",
+        "type": "string",
+        "defaultValue": "C",
+        "required": true,
+        "description": "Lettre du volume"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "Add-BitLockerKeyProtector -MountPoint C: -TpmProtector",
+      "description": "Ajoute la protection TPM seule (déverrouillage automatique au boot)",
+      "platform": 0
+    },
+    {
+      "command": "Add-BitLockerKeyProtector -MountPoint C: -TpmAndPinProtector",
+      "description": "Ajoute TPM + PIN (saisie PIN au démarrage, sécurité renforcée)",
+      "platform": 0
+    },
+    {
+      "command": "Add-BitLockerKeyProtector -MountPoint C: -TpmAndStartupKeyProtector -StartupKeyPath 'E:\\'",
+      "description": "Ajoute TPM + clé USB de démarrage (nécessite la clé USB au boot)",
+      "platform": 0
+    },
+    {
+      "command": "(Get-Tpm).TpmReady",
+      "description": "Vérifie si le TPM est prêt et fonctionnel avant d'ajouter le protecteur",
+      "platform": 0
+    },
+    {
+      "command": "Add-BitLockerKeyProtector -MountPoint \"C:\" -TpmProtector",
+      "description": "Exemple utilisant le paramètre 'driveLetter': Lettre du volume. Remplacez D par la valeur appropriée selon votre environnement.",
+      "platform": 0
+    }
+  ],
+  "notes": "TPM: déverrouillage transparent au boot (pratique mais moins sécurisé). TPM+PIN: saisie d'un code au démarrage (équilibre sécurité/praticité). TPM+StartupKey: nécessite une clé USB au démarrage (haute sécurité). Le PC doit avoir un TPM 1.2+ activé dans le BIOS.",
+  "links": [
+    {
+      "title": "Add-BitLockerKeyProtector Documentation",
+      "url": "https://learn.microsoft.com/en-us/powershell/module/bitlocker/add-bitlockerkeyprotector"
+    }
+  ]
+}

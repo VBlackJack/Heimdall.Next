@@ -1,0 +1,29 @@
+{
+  "id": "linux-rsyslog-restart",
+  "title": "Gérer le service Rsyslog",
+  "description": "Redémarre ou vérifie le statut du démon de journalisation.",
+  "category": "📊 Monitoring & Logs",
+  "platform": 1,
+  "level": 1,
+  "tags": [
+    "linux",
+    "rsyslog",
+    "service",
+    "systemctl"
+  ],
+  "linuxCommandTemplate": {
+    "id": "ebd7dbea-68f6-4fb2-8499-aab345e0eb7d",
+    "platform": 1,
+    "name": "systemctl",
+    "commandPattern": "systemctl restart rsyslog",
+    "parameters": []
+  },
+  "examples": [
+    {
+      "command": "journalctl -u rsyslog -f",
+      "description": "Suit en temps réel les logs du service rsyslog (pour voir pourquoi il ne transfère pas les messages).",
+      "platform": 1
+    }
+  ],
+  "linuxCommandTemplateId": "ebd7dbea-68f6-4fb2-8499-aab345e0eb7d"
+}

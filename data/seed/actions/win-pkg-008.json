@@ -1,0 +1,59 @@
+{
+  "id": "win-pkg-008",
+  "title": "Ajouter une source Winget",
+  "description": "Ajoute une nouvelle source de packages Winget personnalisée.",
+  "category": "📦 Package Management",
+  "platform": 0,
+  "level": 1,
+  "tags": [
+    "winget",
+    "package",
+    "source",
+    "repository",
+    "windows"
+  ],
+  "windowsCommandTemplateId": "winget-source-add-cmd",
+  "windowsCommandTemplate": {
+    "id": "winget-source-add-cmd",
+    "platform": 0,
+    "name": "winget",
+    "commandPattern": "winget source add --name {name} {url}",
+    "parameters": [
+      {
+        "name": "name",
+        "label": "Nom de la source",
+        "type": "string",
+        "defaultValue": "",
+        "required": true,
+        "description": "Nom à donner à la source"
+      },
+      {
+        "name": "url",
+        "label": "URL de la source",
+        "type": "string",
+        "defaultValue": "",
+        "required": true,
+        "description": "URL du dépôt de packages"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "winget source add --name CustomRepo https://packages.example.com/winget",
+      "description": "Ajoute une source personnalisée",
+      "platform": 0
+    },
+    {
+      "command": "winget source add --name MyResource https://www.contoso.com",
+      "description": "Exécution standard de la commande None. Consultez la documentation officielle avec Get-Help winget -Full pour plus de détails sur les paramètres disponibles et les cas d'usage avancés.",
+      "platform": 0
+    }
+  ],
+  "notes": "Nécessite des droits administrateur. Vérifier la fiabilité de la source avant de l'ajouter.",
+  "links": [
+    {
+      "title": "Winget source documentation",
+      "url": "https://learn.microsoft.com/en-us/windows/package-manager/winget/source"
+    }
+  ]
+}

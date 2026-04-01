@@ -1,0 +1,84 @@
+{
+  "id": "get-scheduledtask",
+  "title": "Lister les tâches planifiées Windows",
+  "description": "Affiche toutes les tâches planifiées configurées dans le Planificateur de tâches Windows",
+  "category": "⚙️ Services & Automation",
+  "platform": 0,
+  "level": 0,
+  "tags": [
+    "taskscheduler",
+    "scheduled",
+    "automation",
+    "windows",
+    "tasks"
+  ],
+  "windowsCommandTemplateId": "get-scheduledtask-cmd",
+  "windowsCommandTemplate": {
+    "id": "get-scheduledtask-cmd",
+    "platform": 0,
+    "name": "Get-ScheduledTask",
+    "commandPattern": "Get-ScheduledTask {taskname} {taskpath} | Format-Table TaskName, State, LastRunTime, NextRunTime -AutoSize",
+    "parameters": [
+      {
+        "name": "taskname",
+        "label": "Nom de la tâche",
+        "type": "string",
+        "defaultValue": "",
+        "required": false,
+        "description": "Nom de la tâche (laissez vide pour toutes)"
+      },
+      {
+        "name": "taskpath",
+        "label": "Chemin",
+        "type": "string",
+        "defaultValue": "",
+        "required": false,
+        "description": "Chemin de la tâche (ex: -TaskPath '\\Microsoft\\Windows\\')"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "Get-ScheduledTask",
+      "description": "Liste toutes les tâches planifiées",
+      "platform": 0
+    },
+    {
+      "command": "Get-ScheduledTask | Where-Object {$_.State -eq 'Ready'}",
+      "description": "Liste uniquement les tâches actives",
+      "platform": 0
+    },
+    {
+      "command": "Get-ScheduledTask -TaskName 'MyBackup'",
+      "description": "Affiche une tâche spécifique",
+      "platform": 0
+    },
+    {
+      "command": "Get-ScheduledTask -TaskPath '\\' | Where-Object {$_.State -ne 'Disabled'}",
+      "description": "Tâches racine non désactivées",
+      "platform": 0
+    },
+    {
+      "command": "Get-ScheduledTask DailyBackup \\Microsoft\\Windows\\ | Select-Object * -First 1",
+      "description": "Affiche toutes les propriétés du premier objet retourné. Select-Object * élargit l'affichage pour montrer toutes les colonnes. -First 1 limite au premier résultat. Utilisez cette commande pour découvrir les propriétés disponibles avant de filtrer.",
+      "platform": 0
+    },
+    {
+      "command": "Get-ScheduledTask DailyBackup \\Microsoft\\Windows\\ | Export-Csv C:\\Temp\\Export.csv -NoTypeInformation -Encoding UTF8",
+      "description": "Exporte les résultats vers un fichier CSV exploitable dans Excel. -NoTypeInformation supprime la ligne de métadonnées. -Encoding UTF8 garantit la compatibilité des caractères accentués. Utile pour l'archivage, les rapports et l'analyse externe.",
+      "platform": 0
+    },
+    {
+      "command": "Get-ScheduledTask DailyBackup \\Microsoft\\Windows\\ | Measure-Object",
+      "description": "Compte le nombre total d'objets retournés. Measure-Object retourne Count, Sum, Average, Min, Max selon les propriétés. Utile pour les statistiques rapides et la validation de résultats.",
+      "platform": 0
+    }
+  ],
+  "notes": "Utilisez Get-ScheduledTaskInfo pour voir l'historique d'exécution. State peut être Ready, Running, Disabled.",
+  "links": [
+    {
+      "title": "Get-ScheduledTask Documentation",
+      "url": "https://learn.microsoft.com/en-us/powershell/module/scheduledtasks/get-scheduledtask"
+    }
+  ]
+}

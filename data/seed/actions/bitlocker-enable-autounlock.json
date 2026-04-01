@@ -1,0 +1,74 @@
+{
+  "id": "bitlocker-enable-autounlock",
+  "title": "Activer le déverrouillage automatique BitLocker",
+  "description": "Active le déverrouillage automatique pour un volume de données BitLocker (déverrouillé quand le volume système est déverrouillé).",
+  "category": "🔒 Security & Encryption",
+  "platform": 0,
+  "level": 1,
+  "tags": [
+    "bitlocker",
+    "autounlock",
+    "convenience"
+  ],
+  "windowsCommandTemplateId": "bitlocker-enable-autounlock-cmd",
+  "windowsCommandTemplate": {
+    "id": "bitlocker-enable-autounlock-cmd",
+    "platform": 0,
+    "name": "Enable-BitLockerAutoUnlock",
+    "commandPattern": "Enable-BitLockerAutoUnlock -MountPoint \"{driveLetter}:\"",
+    "parameters": [
+      {
+        "name": "driveLetter",
+        "label": "Lettre du disque",
+        "type": "string",
+        "defaultValue": "D",
+        "required": true,
+        "description": "Lettre du volume de données (PAS C:)"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "Enable-BitLockerAutoUnlock -MountPoint D:",
+      "description": "Active le déverrouillage automatique pour le volume D:",
+      "platform": 0
+    },
+    {
+      "command": "Get-BitLockerVolume | Where-Object {$_.VolumeType -eq 'Data' -and $_.ProtectionStatus -eq 'On'} | ForEach-Object { Enable-BitLockerAutoUnlock -MountPoint $_.MountPoint }",
+      "description": "Active le déverrouillage auto sur tous les volumes de données chiffrés",
+      "platform": 0
+    },
+    {
+      "command": "Get-BitLockerVolume D: | Select-Object MountPoint,AutoUnlockEnabled,AutoUnlockKeyStored",
+      "description": "Vérifie si le déverrouillage auto est activé pour D:",
+      "platform": 0
+    },
+    {
+      "command": "Disable-BitLockerAutoUnlock -MountPoint D:",
+      "description": "Désactive le déverrouillage automatique (nécessitera mot de passe à chaque boot)",
+      "platform": 0
+    },
+    {
+      "command": "Enable-BitLockerAutoUnlock -MountPoint \"D:\" -WhatIf",
+      "description": "Simulation de l'action sans exécution réelle (dry-run). Le switch -WhatIf affiche ce qui serait modifié sans appliquer les changements. INDISPENSABLE avant toute action de masse ou modification critique. Retirez -WhatIf après validation pour exécuter.",
+      "platform": 0
+    },
+    {
+      "command": "Enable-BitLockerAutoUnlock -MountPoint \"D:\" -Confirm:$false",
+      "description": "Exécute l'action sans demander de confirmation interactive. -Confirm:$false supprime les invites de validation. Utile dans les scripts automatisés mais à utiliser avec précaution : aucun filet de sécurité.",
+      "platform": 0
+    },
+    {
+      "command": "Enable-BitLockerAutoUnlock -MountPoint \"D:\" -Verbose",
+      "description": "Affiche des informations détaillées sur l'exécution de la commande. -Verbose active les messages de débogage pour comprendre précisément ce qui se passe. Essentiel pour le troubleshooting et la compréhension des opérations internes.",
+      "platform": 0
+    }
+  ],
+  "notes": "AutoUnlock: le volume de données se déverrouille automatiquement quand vous vous connectez à Windows. Fonctionne uniquement pour les volumes de données (pas C:). La clé est stockée chiffrée dans le volume système. Pratique pour disques internes, évitez pour disques externes amovibles.",
+  "links": [
+    {
+      "title": "Enable-BitLockerAutoUnlock Documentation",
+      "url": "https://learn.microsoft.com/en-us/powershell/module/bitlocker/enable-bitlockerautounlock"
+    }
+  ]
+}

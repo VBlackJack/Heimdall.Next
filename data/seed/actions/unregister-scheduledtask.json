@@ -1,0 +1,74 @@
+{
+  "id": "unregister-scheduledtask",
+  "title": "Supprimer une tâche planifiée",
+  "description": "Supprime une tâche planifiée du Planificateur de tâches Windows",
+  "category": "⚙️ Services & Automation",
+  "platform": 0,
+  "level": 1,
+  "tags": [
+    "taskscheduler",
+    "delete",
+    "remove",
+    "automation",
+    "windows"
+  ],
+  "windowsCommandTemplateId": "unregister-scheduledtask-cmd",
+  "windowsCommandTemplate": {
+    "id": "unregister-scheduledtask-cmd",
+    "platform": 0,
+    "name": "Unregister-ScheduledTask",
+    "commandPattern": "Unregister-ScheduledTask -TaskName '{taskname}' {confirm}",
+    "parameters": [
+      {
+        "name": "taskname",
+        "label": "Nom de la tâche",
+        "type": "string",
+        "defaultValue": "MyTask",
+        "required": true,
+        "description": "Nom de la tâche à supprimer"
+      },
+      {
+        "name": "confirm",
+        "label": "Confirmation",
+        "type": "string",
+        "defaultValue": "-Confirm:$false",
+        "required": false,
+        "description": "Confirmer la suppression (-Confirm:$false pour ignorer)"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "Unregister-ScheduledTask -TaskName 'MyBackup' -Confirm:$false",
+      "description": "Supprime la tâche sans confirmation",
+      "platform": 0
+    },
+    {
+      "command": "Get-ScheduledTask -TaskPath '\\CustomTasks\\' | Unregister-ScheduledTask -Confirm:$false",
+      "description": "Supprime toutes les tâches d'un dossier",
+      "platform": 0
+    },
+    {
+      "command": "Unregister-ScheduledTask -TaskName 'OldTask'",
+      "description": "Supprime avec confirmation interactive",
+      "platform": 0
+    },
+    {
+      "command": "Unregister-ScheduledTask -TaskName 'MyTask' $false",
+      "description": "Exemple utilisant le paramètre 'taskname': Nom de la tâche à supprimer. Remplacez DailyBackup par la valeur appropriée selon votre environnement.",
+      "platform": 0
+    },
+    {
+      "command": "Unregister-ScheduledTask -TaskName 'DailyBackup' -Confirm:$false",
+      "description": "Exemple utilisant le paramètre 'confirm': Confirmer la suppression (-Confirm:$false pour ignorer). Remplacez $false par la valeur appropriée selon votre environnement.",
+      "platform": 0
+    }
+  ],
+  "notes": "Nécessite des privilèges administrateur. Utilisez -Confirm:$false pour automatiser. La suppression est irréversible.",
+  "links": [
+    {
+      "title": "Unregister-ScheduledTask Documentation",
+      "url": "https://learn.microsoft.com/en-us/powershell/module/scheduledtasks/unregister-scheduledtask"
+    }
+  ]
+}

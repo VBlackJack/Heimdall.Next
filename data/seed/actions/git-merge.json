@@ -1,0 +1,71 @@
+{
+  "id": "git-merge",
+  "title": "Fusionner des branches",
+  "description": "Fusionne une ou plusieurs branches dans la branche actuelle",
+  "category": "🔧 Development",
+  "platform": 2,
+  "level": 2,
+  "tags": [
+    "git",
+    "merge",
+    "integration"
+  ],
+  "windowsCommandTemplateId": "git-merge-win",
+  "windowsCommandTemplate": {
+    "id": "git-merge-win",
+    "platform": 0,
+    "name": "git",
+    "commandPattern": "git merge {branchName}",
+    "parameters": [
+      {
+        "name": "branchName",
+        "label": "Branche",
+        "type": "string",
+        "defaultValue": "",
+        "required": true,
+        "description": "Branche à fusionner"
+      }
+    ]
+  },
+  "linuxCommandTemplateId": "git-merge-linux",
+  "linuxCommandTemplate": {
+    "id": "git-merge-linux",
+    "platform": 1,
+    "name": "git",
+    "commandPattern": "git merge {branchName}",
+    "parameters": [
+      {
+        "name": "branchName",
+        "label": "Branche",
+        "type": "string",
+        "defaultValue": "",
+        "required": true,
+        "description": "Branche à fusionner"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "git merge feature-branch",
+      "description": "Fusionne feature-branch dans la branche actuelle",
+      "platform": 2
+    },
+    {
+      "command": "git merge --no-ff feature",
+      "description": "Force un commit de merge même si fast-forward possible",
+      "platform": 2
+    },
+    {
+      "command": "git merge feature/new-feature",
+      "description": "Exemple utilisant le paramètre 'branchName': Branche à fusionner. Remplacez feature/new-feature par la valeur appropriée selon votre environnement.",
+      "platform": 2
+    }
+  ],
+  "notes": "En cas de conflits, résolvez-les puis faites 'git add' et 'git commit'.",
+  "links": [
+    {
+      "title": "Git Merge Documentation",
+      "url": "https://git-scm.com/docs/git-merge"
+    }
+  ]
+}

@@ -1,0 +1,46 @@
+{
+  "id": "defender-get-threats",
+  "title": "Lister les menaces détectées par Defender",
+  "description": "Affiche l'historique des menaces détectées et bloquées par Windows Defender.",
+  "category": "🔒 Security & Encryption",
+  "platform": 0,
+  "level": 0,
+  "tags": [
+    "defender",
+    "threats",
+    "malware",
+    "history"
+  ],
+  "windowsCommandTemplateId": "defender-get-threats-cmd",
+  "windowsCommandTemplate": {
+    "id": "defender-get-threats-cmd",
+    "platform": 0,
+    "name": "Get-MpThreat",
+    "commandPattern": "Get-MpThreat | Select-Object ThreatName,SeverityID,Resources,InitialDetectionTime | Format-Table -AutoSize",
+    "parameters": []
+  },
+  "examples": [
+    {
+      "command": "Get-MpThreat",
+      "description": "Liste toutes les menaces détectées récemment",
+      "platform": 0
+    },
+    {
+      "command": "(Get-MpThreat).Count",
+      "description": "Compte le nombre total de menaces détectées",
+      "platform": 0
+    },
+    {
+      "command": "Get-MpThreatDetection",
+      "description": "Affiche l'historique détaillé de toutes les détections avec actions",
+      "platform": 0
+    }
+  ],
+  "notes": "SeverityID: 0=Unknown, 1=Low, 2=Medium, 4=High, 5=Severe. Resources: chemin des fichiers infectés. IsActive: $true si menace toujours présente. Get-MpThreatDetection: historique détaillé avec actions effectuées.",
+  "links": [
+    {
+      "title": "Get-MpThreat Documentation",
+      "url": "https://learn.microsoft.com/en-us/powershell/module/defender/get-mpthreat"
+    }
+  ]
+}

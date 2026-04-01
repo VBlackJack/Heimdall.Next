@@ -1,0 +1,92 @@
+{
+  "id": "dd-disk-image",
+  "title": "Créer une image disque",
+  "description": "Copie bit à bit des données (disques, partitions, fichiers)",
+  "category": "📁 Files & Storage",
+  "platform": 1,
+  "level": 2,
+  "tags": [
+    "dd",
+    "disk",
+    "image",
+    "clone",
+    "backup"
+  ],
+  "linuxCommandTemplateId": "dd-cmd",
+  "linuxCommandTemplate": {
+    "id": "dd-cmd",
+    "platform": 1,
+    "name": "dd",
+    "commandPattern": "dd if={input} of={output} bs={blocksize} status=progress",
+    "parameters": [
+      {
+        "name": "input",
+        "label": "Entrée",
+        "type": "string",
+        "defaultValue": "/dev/sda",
+        "required": true,
+        "description": "Source (device, fichier, /dev/zero, etc.)"
+      },
+      {
+        "name": "output",
+        "label": "Sortie",
+        "type": "string",
+        "defaultValue": "/backup/disk.img",
+        "required": true,
+        "description": "Destination (fichier ou device)"
+      },
+      {
+        "name": "blocksize",
+        "label": "Taille de bloc",
+        "type": "string",
+        "defaultValue": "4M",
+        "required": true,
+        "description": "Taille des blocs (1M, 4M, etc.)"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "sudo dd if=/dev/sda of=/backup/sda.img bs=4M status=progress",
+      "description": "Clone un disque complet",
+      "platform": 1
+    },
+    {
+      "command": "dd if=/dev/zero of=/swapfile bs=1M count=4096",
+      "description": "Crée un fichier de swap de 4GB",
+      "platform": 1
+    },
+    {
+      "command": "dd if=/dev/sda of=/backup/sda.img bs=4M status=progress",
+      "description": "Image complète d'un disque",
+      "platform": 1
+    },
+    {
+      "command": "dd if=/dev/zero of=/dev/sdb bs=1M count=100",
+      "description": "Écrire 100 Mo de zéros",
+      "platform": 1
+    },
+    {
+      "command": "dd if=ubuntu.iso of=/dev/sdc bs=4M status=progress",
+      "description": "Créer une clé USB bootable",
+      "platform": 1
+    },
+    {
+      "command": "dd if=/dev/urandom of=random.bin bs=1M count=10",
+      "description": "Fichier aléatoire de 10 Mo",
+      "platform": 1
+    },
+    {
+      "command": "dd if=/backup/sda.img of=/dev/sda bs=4M",
+      "description": "Restaurer une image",
+      "platform": 1
+    }
+  ],
+  "notes": "Nécessite sudo. TRÈS DANGEREUX: une erreur peut détruire des données. Vérifier 2x if/of.",
+  "links": [
+    {
+      "title": "dd command",
+      "url": "https://man7.org/linux/man-pages/man1/dd.1.html"
+    }
+  ]
+}

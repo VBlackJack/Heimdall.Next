@@ -1,0 +1,65 @@
+{
+  "id": "cert-list-all",
+  "title": "Lister tous les certificats installés",
+  "description": "Affiche tous les certificats installés dans les magasins Windows Certificate Store (LocalMachine et CurrentUser) avec leur expiration et usage.",
+  "category": "🔒 Security & Encryption",
+  "platform": 0,
+  "level": 0,
+  "tags": [
+    "certificate",
+    "ssl",
+    "tls",
+    "security",
+    "crypto",
+    "x509",
+    "pki",
+    "inventory"
+  ],
+  "windowsCommandTemplateId": "cert-list-all-cmd",
+  "windowsCommandTemplate": {
+    "id": "cert-list-all-cmd",
+    "platform": 0,
+    "name": "Get-ChildItem",
+    "commandPattern": "Get-ChildItem -Path Cert:\\LocalMachine\\My | Select-Object Subject, Issuer, NotAfter, Thumbprint, @{Name='DaysUntilExpiration';Expression={($_.NotAfter - (Get-Date)).Days}} | Format-Table -AutoSize",
+    "parameters": []
+  },
+  "examples": [
+    {
+      "command": "Get-ChildItem -Path Cert:\\LocalMachine\\My | Format-List",
+      "description": "Liste détaillée des certificats personnels de la machine",
+      "platform": 0
+    },
+    {
+      "command": "Get-ChildItem -Path Cert:\\LocalMachine\\Root",
+      "description": "Certificats racine de confiance",
+      "platform": 0
+    },
+    {
+      "command": "Get-ChildItem -Path Cert:\\ -Recurse | Where-Object {$_.NotAfter -lt (Get-Date).AddDays(30)}",
+      "description": "Certificats expirant dans 30 jours",
+      "platform": 0
+    },
+    {
+      "command": "Get-ChildItem -Path Cert:\\LocalMachine\\My | Select-Object * -First 1",
+      "description": "Affiche toutes les propriétés du premier objet retourné. Select-Object * élargit l'affichage pour montrer toutes les colonnes. -First 1 limite au premier résultat. Utilisez cette commande pour découvrir les propriétés disponibles avant de filtrer.",
+      "platform": 0
+    },
+    {
+      "command": "Get-ChildItem -Path Cert:\\LocalMachine\\My | Export-Csv C:\\Temp\\Export.csv -NoTypeInformation -Encoding UTF8",
+      "description": "Exporte les résultats vers un fichier CSV exploitable dans Excel. -NoTypeInformation supprime la ligne de métadonnées. -Encoding UTF8 garantit la compatibilité des caractères accentués. Utile pour l'archivage, les rapports et l'analyse externe.",
+      "platform": 0
+    },
+    {
+      "command": "Get-ChildItem -Path Cert:\\LocalMachine\\My | Measure-Object",
+      "description": "Compte le nombre total d'objets retournés. Measure-Object retourne Count, Sum, Average, Min, Max selon les propriétés. Utile pour les statistiques rapides et la validation de résultats.",
+      "platform": 0
+    }
+  ],
+  "notes": "Principaux magasins: My (personnels), Root (racine), CA (intermédiaires), TrustedPublisher, AuthRoot.",
+  "links": [
+    {
+      "title": "Documentation Certificate Store",
+      "url": "https://learn.microsoft.com/en-us/windows-hardware/drivers/install/certificate-stores"
+    }
+  ]
+}

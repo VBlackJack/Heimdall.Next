@@ -1,0 +1,86 @@
+{
+  "id": "ad-create-ou",
+  "title": "Créer une nouvelle unité d'organisation",
+  "description": "Crée une nouvelle unité d'organisation (OU) dans Active Directory.",
+  "category": "🏢 Active Directory & GPO",
+  "platform": 0,
+  "level": 1,
+  "tags": [
+    "ad",
+    "ou",
+    "create",
+    "organizational-unit"
+  ],
+  "windowsCommandTemplateId": "ad-create-ou-cmd",
+  "windowsCommandTemplate": {
+    "id": "ad-create-ou-cmd",
+    "platform": 0,
+    "name": "New-ADOrganizationalUnit",
+    "commandPattern": "New-ADOrganizationalUnit -Name \"{ouName}\" -Path \"{parentPath}\" -Description \"{description}\" -ProtectedFromAccidentalDeletion $true",
+    "parameters": [
+      {
+        "name": "ouName",
+        "label": "Nom de l'OU",
+        "type": "string",
+        "defaultValue": "",
+        "required": true,
+        "description": "Nom de la nouvelle OU"
+      },
+      {
+        "name": "parentPath",
+        "label": "Chemin parent",
+        "type": "string",
+        "defaultValue": "DC=contoso,DC=com",
+        "required": true,
+        "description": "Distinguished Name de l'OU parente ou du domaine"
+      },
+      {
+        "name": "description",
+        "label": "Description",
+        "type": "string",
+        "defaultValue": "",
+        "required": false,
+        "description": "Description de l'OU"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "New-ADOrganizationalUnit -Name \"Departement IT\" -Path \"DC=contoso,DC=com\" -Description \"OU pour le département IT\" -ProtectedFromAccidentalDeletion $true",
+      "description": "Crée une nouvelle OU Departement IT",
+      "platform": 0
+    },
+    {
+      "command": "New-ADOrganizationalUnit -Name \"Paris-Users\" -Path \"DC=contoso,DC=com\" -Description \"Production environment resource\" -ProtectedFromAccidentalDeletion $true -WhatIf",
+      "description": "Simulation de l'action sans exécution réelle (dry-run). Le switch -WhatIf affiche ce qui serait modifié sans appliquer les changements. INDISPENSABLE avant toute action de masse ou modification critique. Retirez -WhatIf après validation pour exécuter.",
+      "platform": 0
+    },
+    {
+      "command": "New-ADOrganizationalUnit -Name \"Paris-Users\" -Path \"DC=contoso,DC=com\" -Description \"Production environment resource\" -ProtectedFromAccidentalDeletion $true -Confirm:$false",
+      "description": "Exécute l'action sans demander de confirmation interactive. -Confirm:$false supprime les invites de validation. Utile dans les scripts automatisés mais à utiliser avec précaution : aucun filet de sécurité.",
+      "platform": 0
+    },
+    {
+      "command": "New-ADOrganizationalUnit -Name \"Paris-Users\" -Path \"DC=contoso,DC=com\" -Description \"Production environment resource\" -ProtectedFromAccidentalDeletion $true -PassThru",
+      "description": "Force la commande à retourner l'objet modifié/créé dans le pipeline. Par défaut, les cmdlets Set-/New- ne retournent rien. -PassThru active le retour pour permettre des opérations en chaîne ou des vérifications immédiates.",
+      "platform": 0
+    },
+    {
+      "command": "New-ADOrganizationalUnit -Name \"Paris-Users\" -Path \"DC=contoso,DC=com\" -Description \"Production environment resource\" -ProtectedFromAccidentalDeletion $true -Verbose",
+      "description": "Affiche des informations détaillées sur l'exécution de la commande. -Verbose active les messages de débogage pour comprendre précisément ce qui se passe. Essentiel pour le troubleshooting et la compréhension des opérations internes.",
+      "platform": 0
+    },
+    {
+      "command": "New-ADOrganizationalUnit -Name \"Paris-Users\" -Path \"DC=contoso,DC=com\" -Description \"Production environment resource\" -ProtectedFromAccidentalDeletion $true",
+      "description": "Exemple utilisant le paramètre 'ouName': Nom de la nouvelle OU. Remplacez Paris-Users par la valeur appropriée selon votre environnement.",
+      "platform": 0
+    }
+  ],
+  "notes": "Nécessite des droits d'administration AD. L'OU est protégée contre la suppression accidentelle par défaut.",
+  "links": [
+    {
+      "title": "Documentation New-ADOrganizationalUnit",
+      "url": "https://learn.microsoft.com/en-us/powershell/module/activedirectory/new-adorganizationalunit"
+    }
+  ]
+}

@@ -1,0 +1,89 @@
+{
+  "id": "perf-profiling",
+  "title": "Profiler les performances CPU",
+  "description": "Analyse les performances CPU et identifie les hotspots",
+  "category": "⚡ Performance",
+  "platform": 1,
+  "level": 1,
+  "tags": [
+    "perf",
+    "profiling",
+    "cpu",
+    "performance",
+    "analysis"
+  ],
+  "linuxCommandTemplateId": "perf-cmd",
+  "linuxCommandTemplate": {
+    "id": "perf-cmd",
+    "platform": 1,
+    "name": "perf",
+    "commandPattern": "perf {subcommand} {options}",
+    "parameters": [
+      {
+        "name": "subcommand",
+        "label": "Sous-commande",
+        "type": "string",
+        "defaultValue": "top",
+        "required": true,
+        "description": "Sous-commande (top, record, report, stat)"
+      },
+      {
+        "name": "options",
+        "label": "Options",
+        "type": "string",
+        "defaultValue": "",
+        "required": false,
+        "description": "Options additionnelles"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "sudo perf top",
+      "description": "Vue en temps réel du profiling CPU",
+      "platform": 1
+    },
+    {
+      "command": "sudo perf record -a -g sleep 10",
+      "description": "Enregistre 10 secondes de profiling",
+      "platform": 1
+    },
+    {
+      "command": "perf report",
+      "description": "Affiche le rapport du dernier record",
+      "platform": 1
+    },
+    {
+      "command": "perf top -v -f",
+      "description": "Exemple utilisant le paramètre 'subcommand': Sous-commande (top, record, report, stat). Remplacez list par la valeur appropriée selon votre environnement.",
+      "platform": 1
+    },
+    {
+      "command": "perf list -v -f",
+      "description": "Exemple utilisant le paramètre 'options': Options additionnelles. Remplacez -v -f par la valeur appropriée selon votre environnement.",
+      "platform": 1
+    },
+    {
+      "command": "perf top",
+      "description": "Profiler en temps réel",
+      "platform": 1
+    },
+    {
+      "command": "perf record -g command",
+      "description": "Enregistrer avec call graph",
+      "platform": 1
+    },
+    {
+      "command": "perf list",
+      "description": "Lister les événements disponibles",
+      "platform": 1
+    }
+  ],
+  "notes": "Nécessite sudo et package linux-tools. Très puissant pour l'analyse de performance.",
+  "links": [
+    {
+      "title": "perf documentation",
+      "url": "https://perf.wiki.kernel.org/index.php/Tutorial"
+    }
+  ]
+}

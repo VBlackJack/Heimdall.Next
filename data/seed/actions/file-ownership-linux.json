@@ -1,0 +1,71 @@
+{
+  "id": "file-ownership-linux",
+  "title": "Changer le propriétaire de fichiers",
+  "description": "Modifie le propriétaire et le groupe d'un fichier ou dossier.",
+  "category": "📁 Files & Storage",
+  "platform": 1,
+  "level": 1,
+  "tags": [
+    "propriétaire",
+    "chown",
+    "permissions",
+    "linux"
+  ],
+  "linuxCommandTemplateId": "file-ownership-linux-cmd",
+  "linuxCommandTemplate": {
+    "id": "file-ownership-linux-cmd",
+    "platform": 1,
+    "name": "chown",
+    "commandPattern": "chown {owner}:{group} \"{path}\"",
+    "parameters": [
+      {
+        "name": "owner",
+        "label": "Propriétaire",
+        "type": "string",
+        "defaultValue": "",
+        "required": true,
+        "description": "Nom du nouveau propriétaire"
+      },
+      {
+        "name": "group",
+        "label": "Groupe",
+        "type": "string",
+        "defaultValue": "",
+        "required": false,
+        "description": "Nom du nouveau groupe"
+      },
+      {
+        "name": "path",
+        "label": "Chemin",
+        "type": "string",
+        "defaultValue": "",
+        "required": true,
+        "description": "Chemin du fichier ou dossier"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "chown www-data:www-data /var/www/html",
+      "description": "Change le propriétaire et le groupe",
+      "platform": 1
+    },
+    {
+      "command": "chown -R user:group /home/user/documents",
+      "description": "Change récursivement pour un dossier",
+      "platform": 1
+    },
+    {
+      "command": "chown admin:IT-Admins \"/var/log/app.log\" -v",
+      "description": "Exécute la commande en mode verbeux. Le flag -v (verbose) affiche chaque action effectuée en temps réel. Essentiel pour suivre la progression des opérations longues et vérifier que tout se déroule correctement.",
+      "platform": 1
+    },
+    {
+      "command": "chown admin:IT-Admins \"/var/log/app.log\"",
+      "description": "Exemple utilisant le paramètre 'owner': Nom du nouveau propriétaire. Remplacez admin par la valeur appropriée selon votre environnement.",
+      "platform": 1
+    }
+  ],
+  "notes": "-R pour récursif. Nécessite généralement sudo.",
+  "links": []
+}

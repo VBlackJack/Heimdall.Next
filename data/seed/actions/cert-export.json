@@ -1,0 +1,87 @@
+{
+  "id": "cert-export",
+  "title": "Exporter un certificat",
+  "description": "Exporte un certificat du magasin Windows vers un fichier .cer ou .pfx.",
+  "category": "🔒 Security & Encryption",
+  "platform": 0,
+  "level": 1,
+  "tags": [
+    "certificate",
+    "export",
+    "backup",
+    "ssl",
+    "tls",
+    "security",
+    "pfx",
+    "migration"
+  ],
+  "windowsCommandTemplateId": "cert-export-cmd",
+  "windowsCommandTemplate": {
+    "id": "cert-export-cmd",
+    "platform": 0,
+    "name": "Export-Certificate",
+    "commandPattern": "$cert = Get-ChildItem -Path Cert:\\LocalMachine\\My\\{thumbprint}; Export-Certificate -Cert $cert -FilePath '{exportPath}'",
+    "parameters": [
+      {
+        "name": "thumbprint",
+        "label": "Empreinte du certificat",
+        "type": "string",
+        "defaultValue": "",
+        "required": true,
+        "description": "Thumbprint (empreinte SHA-1) du certificat"
+      },
+      {
+        "name": "exportPath",
+        "label": "Chemin d'export",
+        "type": "string",
+        "defaultValue": "C:\\Export\\certificate.cer",
+        "required": true,
+        "description": "Chemin du fichier de destination"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "Export-Certificate -Cert (Get-ChildItem Cert:\\LocalMachine\\My\\1234567890ABCDEF) -FilePath 'C:\\cert.cer'",
+      "description": "Exporte un certificat public (.cer)",
+      "platform": 0
+    },
+    {
+      "command": "Export-PfxCertificate -Cert (Get-ChildItem Cert:\\LocalMachine\\My\\1234567890ABCDEF) -FilePath 'C:\\cert.pfx' -Password (ConvertTo-SecureString -String 'MyPassword' -AsPlainText -Force)",
+      "description": "Exporte avec clé privée (.pfx)",
+      "platform": 0
+    },
+    {
+      "command": "certutil -exportPFX My 1234567890ABCDEF C:\\cert.pfx",
+      "description": "Alternative avec certutil",
+      "platform": 0
+    },
+    {
+      "command": "$cert = Get-ChildItem -Path Cert:\\LocalMachine\\My\\A1B2C3D4E5F6G7H8I9J0K1L2M3N4O5P6Q7R8S9T0; Export-Certificate -Cert $cert -FilePath 'C:\\Export\\users.csv' | Select-Object * -First 1",
+      "description": "Affiche toutes les propriétés du premier objet retourné. Select-Object * élargit l'affichage pour montrer toutes les colonnes. -First 1 limite au premier résultat. Utilisez cette commande pour découvrir les propriétés disponibles avant de filtrer.",
+      "platform": 0
+    },
+    {
+      "command": "$cert = Get-ChildItem -Path Cert:\\LocalMachine\\My\\A1B2C3D4E5F6G7H8I9J0K1L2M3N4O5P6Q7R8S9T0; Export-Certificate -Cert $cert -FilePath 'C:\\Export\\users.csv' | Format-Table -AutoSize",
+      "description": "Affiche les résultats dans un tableau optimisé pour la console. Format-Table -AutoSize ajuste automatiquement la largeur des colonnes pour un affichage lisible. Idéal pour visualiser rapidement les données structurées.",
+      "platform": 0
+    },
+    {
+      "command": "$cert = Get-ChildItem -Path Cert:\\LocalMachine\\My\\A1B2C3D4E5F6G7H8I9J0K1L2M3N4O5P6Q7R8S9T0; Export-Certificate -Cert $cert -FilePath 'C:\\Export\\users.csv' | Export-Csv C:\\Temp\\Export.csv -NoTypeInformation -Encoding UTF8",
+      "description": "Exporte les résultats vers un fichier CSV exploitable dans Excel. -NoTypeInformation supprime la ligne de métadonnées. -Encoding UTF8 garantit la compatibilité des caractères accentués. Utile pour l'archivage, les rapports et l'analyse externe.",
+      "platform": 0
+    },
+    {
+      "command": "$cert = Get-ChildItem -Path Cert:\\LocalMachine\\My\\A1B2C3D4E5F6G7H8I9J0K1L2M3N4O5P6Q7R8S9T0; Export-Certificate -Cert $cert -FilePath 'C:\\Export\\users.csv' | Measure-Object",
+      "description": "Compte le nombre total d'objets retournés. Measure-Object retourne Count, Sum, Average, Min, Max selon les propriétés. Utile pour les statistiques rapides et la validation de résultats.",
+      "platform": 0
+    }
+  ],
+  "notes": "Export-Certificate exporte uniquement la clé publique. Utilisez Export-PfxCertificate pour inclure la clé privée (nécessite mot de passe).",
+  "links": [
+    {
+      "title": "Documentation Export-Certificate",
+      "url": "https://learn.microsoft.com/en-us/powershell/module/pki/export-certificate"
+    }
+  ]
+}

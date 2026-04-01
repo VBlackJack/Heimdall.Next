@@ -1,0 +1,65 @@
+{
+  "id": "blkid-show-uuid",
+  "title": "Afficher les UUID des partitions",
+  "description": "Affiche les UUID et informations des périphériques de bloc",
+  "category": "📁 Files & Storage",
+  "platform": 1,
+  "level": 0,
+  "tags": [
+    "blkid",
+    "uuid",
+    "filesystem",
+    "partition"
+  ],
+  "linuxCommandTemplateId": "blkid-cmd",
+  "linuxCommandTemplate": {
+    "id": "blkid-cmd",
+    "platform": 1,
+    "name": "blkid",
+    "commandPattern": "blkid {device}",
+    "parameters": [
+      {
+        "name": "device",
+        "label": "Périphérique",
+        "type": "string",
+        "defaultValue": "",
+        "required": false,
+        "description": "Périphérique spécifique (vide = tous)"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "sudo blkid",
+      "description": "Liste tous les UUID des partitions",
+      "platform": 1
+    },
+    {
+      "command": "blkid /dev/sda1",
+      "description": "UUID d'une partition spécifique",
+      "platform": 1
+    },
+    {
+      "command": "blkid",
+      "description": "Afficher les UUID de toutes les partitions",
+      "platform": 1
+    },
+    {
+      "command": "blkid -o list",
+      "description": "Format liste",
+      "platform": 1
+    },
+    {
+      "command": "blkid -t TYPE=ext4",
+      "description": "Partitions ext4 uniquement",
+      "platform": 1
+    }
+  ],
+  "notes": "Nécessite sudo. UUID utilisés dans /etc/fstab pour montage permanent.",
+  "links": [
+    {
+      "title": "blkid documentation",
+      "url": "https://man7.org/linux/man-pages/man8/blkid.8.html"
+    }
+  ]
+}

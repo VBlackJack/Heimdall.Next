@@ -1,0 +1,50 @@
+{
+  "id": "file-directory-size-linux",
+  "title": "Taille d'un répertoire",
+  "description": "Calcule la taille totale d'un répertoire et de son contenu.",
+  "category": "📁 Files & Storage",
+  "platform": 1,
+  "level": 0,
+  "tags": [
+    "taille",
+    "dossier",
+    "du",
+    "linux"
+  ],
+  "linuxCommandTemplateId": "file-directory-size-linux-cmd",
+  "linuxCommandTemplate": {
+    "id": "file-directory-size-linux-cmd",
+    "platform": 1,
+    "name": "du",
+    "commandPattern": "du -sh \"{path}\"",
+    "parameters": [
+      {
+        "name": "path",
+        "label": "Chemin",
+        "type": "string",
+        "defaultValue": ".",
+        "required": false,
+        "description": "Chemin du dossier à analyser"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "du -h --max-depth=1 /home | sort -h",
+      "description": "Liste les dossiers par taille",
+      "platform": 1
+    },
+    {
+      "command": "du -sh \".\"",
+      "description": "Exemple utilisant le paramètre 'path': Chemin du dossier à analyser. Remplacez C:\\Logs\\app.log par la valeur appropriée selon votre environnement.",
+      "platform": 1
+    },
+    {
+      "command": "du -sh /home/*",
+      "description": "Taille de chaque home",
+      "platform": 1
+    }
+  ],
+  "notes": "-s pour somme, -h pour format lisible. --max-depth limite la profondeur.",
+  "links": []
+}

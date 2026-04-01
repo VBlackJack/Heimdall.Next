@@ -1,0 +1,51 @@
+{
+  "id": "win-pkg-003",
+  "title": "Mettre à jour une application Winget",
+  "description": "Met à jour une application spécifique vers sa dernière version disponible via Winget.",
+  "category": "📦 Package Management",
+  "platform": 0,
+  "level": 1,
+  "tags": [
+    "winget",
+    "package",
+    "update",
+    "upgrade",
+    "windows"
+  ],
+  "windowsCommandTemplateId": "winget-upgrade-package-cmd",
+  "windowsCommandTemplate": {
+    "id": "winget-upgrade-package-cmd",
+    "platform": 0,
+    "name": "winget",
+    "commandPattern": "winget upgrade {packageName} --silent --accept-package-agreements --accept-source-agreements",
+    "parameters": [
+      {
+        "name": "packageName",
+        "label": "Nom du package",
+        "type": "string",
+        "defaultValue": "",
+        "required": true,
+        "description": "Nom ou ID du package à mettre à jour"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "winget upgrade Microsoft.PowerToys --silent",
+      "description": "Met à jour PowerToys vers la dernière version",
+      "platform": 0
+    },
+    {
+      "command": "winget upgrade Microsoft.VisualStudioCode --silent --accept-package-agreements --accept-source-agreements",
+      "description": "Exécution standard de la commande None. Consultez la documentation officielle avec Get-Help winget -Full pour plus de détails sur les paramètres disponibles et les cas d'usage avancés.",
+      "platform": 0
+    }
+  ],
+  "notes": "Vérifie d'abord si une mise à jour est disponible avant d'installer.",
+  "links": [
+    {
+      "title": "Winget upgrade documentation",
+      "url": "https://learn.microsoft.com/en-us/windows/package-manager/winget/upgrade"
+    }
+  ]
+}

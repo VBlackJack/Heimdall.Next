@@ -1,0 +1,89 @@
+{
+  "id": "gpo-set-permissions",
+  "title": "Définir les permissions d'une GPO",
+  "description": "Modifie les permissions de sécurité d'une stratégie de groupe.",
+  "category": "🏢 Active Directory & GPO",
+  "platform": 0,
+  "level": 1,
+  "tags": [
+    "gpo",
+    "permissions",
+    "security",
+    "acl"
+  ],
+  "windowsCommandTemplateId": "gpo-set-permissions-cmd",
+  "windowsCommandTemplate": {
+    "id": "gpo-set-permissions-cmd",
+    "platform": 0,
+    "name": "Set-GPPermission",
+    "commandPattern": "Set-GPPermission -Name \"{gpoName}\" -TargetName \"{targetName}\" -TargetType {targetType} -PermissionLevel {permission}",
+    "parameters": [
+      {
+        "name": "gpoName",
+        "label": "Nom de la GPO",
+        "type": "string",
+        "defaultValue": "",
+        "required": true,
+        "description": "Nom de la GPO"
+      },
+      {
+        "name": "targetName",
+        "label": "Utilisateur/Groupe",
+        "type": "string",
+        "defaultValue": "",
+        "required": true,
+        "description": "Nom de l'utilisateur ou du groupe"
+      },
+      {
+        "name": "targetType",
+        "label": "Type de cible",
+        "type": "string",
+        "defaultValue": "Group",
+        "required": true,
+        "description": "User, Group, ou Computer"
+      },
+      {
+        "name": "permission",
+        "label": "Niveau de permission",
+        "type": "string",
+        "defaultValue": "GpoRead",
+        "required": true,
+        "description": "GpoRead, GpoApply, GpoEdit, ou GpoEditDeleteModifySecurity"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "Set-GPPermission -Name \"Security-Policy\" -TargetName \"IT-Admins\" -TargetType Group -PermissionLevel GpoEdit",
+      "description": "Donne le droit d'édition au groupe IT-Admins",
+      "platform": 0
+    },
+    {
+      "command": "Set-GPPermission -Name \"Security-Baseline\" -TargetName \"TargetServer\" -TargetType User -PermissionLevel FullControl -WhatIf",
+      "description": "Simulation de l'action sans exécution réelle (dry-run). Le switch -WhatIf affiche ce qui serait modifié sans appliquer les changements. INDISPENSABLE avant toute action de masse ou modification critique. Retirez -WhatIf après validation pour exécuter.",
+      "platform": 0
+    },
+    {
+      "command": "Set-GPPermission -Name \"Security-Baseline\" -TargetName \"TargetServer\" -TargetType User -PermissionLevel FullControl -Confirm:$false",
+      "description": "Exécute l'action sans demander de confirmation interactive. -Confirm:$false supprime les invites de validation. Utile dans les scripts automatisés mais à utiliser avec précaution : aucun filet de sécurité.",
+      "platform": 0
+    },
+    {
+      "command": "Set-GPPermission -Name \"Security-Baseline\" -TargetName \"TargetServer\" -TargetType User -PermissionLevel FullControl -PassThru",
+      "description": "Force la commande à retourner l'objet modifié/créé dans le pipeline. Par défaut, les cmdlets Set-/New- ne retournent rien. -PassThru active le retour pour permettre des opérations en chaîne ou des vérifications immédiates.",
+      "platform": 0
+    },
+    {
+      "command": "Set-GPPermission -Name \"Security-Baseline\" -TargetName \"TargetServer\" -TargetType User -PermissionLevel FullControl -Verbose",
+      "description": "Affiche des informations détaillées sur l'exécution de la commande. -Verbose active les messages de débogage pour comprendre précisément ce qui se passe. Essentiel pour le troubleshooting et la compréhension des opérations internes.",
+      "platform": 0
+    }
+  ],
+  "notes": "PermissionLevel: GpoRead (lecture), GpoApply (application), GpoEdit (modification), GpoEditDeleteModifySecurity (contrôle total).",
+  "links": [
+    {
+      "title": "Documentation Set-GPPermission",
+      "url": "https://learn.microsoft.com/en-us/powershell/module/grouppolicy/set-gppermission"
+    }
+  ]
+}

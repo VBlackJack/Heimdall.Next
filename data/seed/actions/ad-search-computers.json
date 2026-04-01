@@ -1,0 +1,69 @@
+{
+  "id": "ad-search-computers",
+  "title": "Rechercher des ordinateurs AD",
+  "description": "Recherche des ordinateurs Active Directory par nom ou système d'exploitation.",
+  "category": "🏢 Active Directory & GPO",
+  "platform": 0,
+  "level": 0,
+  "tags": [
+    "ad",
+    "computer",
+    "search"
+  ],
+  "windowsCommandTemplateId": "ad-search-computers-cmd",
+  "windowsCommandTemplate": {
+    "id": "ad-search-computers-cmd",
+    "platform": 0,
+    "name": "Get-ADComputer",
+    "commandPattern": "Get-ADComputer -Filter \"Name -like '*{searchTerm}*'\" -Properties OperatingSystem,LastLogonDate | Select-Object Name,OperatingSystem,LastLogonDate",
+    "parameters": [
+      {
+        "name": "searchTerm",
+        "label": "Terme de recherche",
+        "type": "string",
+        "defaultValue": "",
+        "required": true,
+        "description": "Terme à rechercher dans le nom de l'ordinateur"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "Get-ADComputer -Filter *",
+      "description": "Liste tous les ordinateurs du domaine Active Directory avec leurs propriétés par défaut. Retourne Name, DNSHostName, DistinguishedName, Enabled, etc. Attention : peut être très long sur de gros domaines avec des milliers de machines.",
+      "platform": 0
+    },
+    {
+      "command": "Get-ADComputer -Filter {OperatingSystem -like '*Server*'} -Properties OperatingSystem,OperatingSystemVersion",
+      "description": "Liste uniquement les serveurs Windows. Le filtre sur OperatingSystem identifie les OS serveurs (Windows Server 2012/2016/2019/2022). Utile pour l'inventaire des serveurs, les rapports de compliance et la planification des mises à jour.",
+      "platform": 0
+    },
+    {
+      "command": "Get-ADComputer -Filter {Enabled -eq $true} -Properties LastLogonDate | Where-Object {$_.LastLogonDate -lt (Get-Date).AddDays(-90)} | Select-Object Name,LastLogonDate,Enabled",
+      "description": "Identifie les ordinateurs actifs mais non connectés depuis 90 jours. Détecte les machines zombies, les postes perdus ou volés. LastLogonDate doit être spécifié dans -Properties. Essentiel pour le nettoyage AD et les audits de sécurité.",
+      "platform": 0
+    },
+    {
+      "command": "Get-ADComputer -Filter {Name -like 'LAPTOP-*'} -Properties OperatingSystem,IPv4Address",
+      "description": "Recherche tous les ordinateurs portables (selon une convention de nommage). Retourne l'OS et l'adresse IP. Utile pour l'inventaire des laptops, la gestion du parc mobile et les déploiements ciblés.",
+      "platform": 0
+    },
+    {
+      "command": "Get-ADComputer -Filter * -Properties * | Select-Object -First 1 | Format-List *",
+      "description": "Affiche TOUTES les propriétés disponibles pour un ordinateur (mode découverte). -Properties * charge toutes les propriétés (coûteux). Format-List * affiche chaque propriété sur une ligne. Utilisez uniquement pour découvrir les noms de propriétés disponibles.",
+      "platform": 0
+    },
+    {
+      "command": "Get-ADComputer -Filter * -Properties OperatingSystem,OperatingSystemVersion,Created | Select-Object Name,OperatingSystem,OperatingSystemVersion,Created | Export-Csv C:\\Temp\\ComputerInventory.csv -NoTypeInformation",
+      "description": "Exporte un inventaire complet des ordinateurs avec OS et date de création. Le CSV peut être importé dans Excel pour analyse, reporting ou documentation. Utile pour les audits, la gestion du parc et les statistiques.",
+      "platform": 0
+    },
+    {
+      "command": "Get-ADComputer -Identity WKS-IT-01 -Properties *",
+      "description": "Affiche toutes les informations d'un ordinateur spécifique. -Identity accepte le nom, DN, GUID ou SID. Retourne toutes les propriétés. Utile pour le troubleshooting et la vérification de configuration d'une machine.",
+      "platform": 0
+    }
+  ],
+  "notes": "Pour rechercher par OS, modifier le filtre: -Filter {OperatingSystem -like '*Windows 11*'}.",
+  "links": []
+}

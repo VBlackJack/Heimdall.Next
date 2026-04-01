@@ -1,0 +1,89 @@
+{
+  "id": "sql-restore-database",
+  "title": "Restaurer une base de données SQL Server",
+  "description": "Restaure une base de données SQL Server à partir d'un fichier de sauvegarde .bak.",
+  "category": "💽 Database",
+  "platform": 0,
+  "level": 2,
+  "tags": [
+    "sql",
+    "restore",
+    "restauration",
+    "recovery",
+    "database",
+    "mssql",
+    "disaster-recovery"
+  ],
+  "windowsCommandTemplateId": "sql-restore-database-cmd",
+  "windowsCommandTemplate": {
+    "id": "sql-restore-database-cmd",
+    "platform": 0,
+    "name": "Restore-SqlDatabase",
+    "commandPattern": "Restore-SqlDatabase -ServerInstance '{serverInstance}' -Database '{databaseName}' -BackupFile '{backupPath}' -ReplaceDatabase",
+    "parameters": [
+      {
+        "name": "serverInstance",
+        "label": "Instance SQL Server",
+        "type": "string",
+        "defaultValue": "localhost",
+        "required": true,
+        "description": "Instance SQL Server cible"
+      },
+      {
+        "name": "databaseName",
+        "label": "Nom de la base",
+        "type": "string",
+        "defaultValue": "",
+        "required": true,
+        "description": "Nom de la base de données à restaurer"
+      },
+      {
+        "name": "backupPath",
+        "label": "Fichier de sauvegarde",
+        "type": "string",
+        "defaultValue": "C:\\Backups\\backup.bak",
+        "required": true,
+        "description": "Chemin du fichier .bak"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "Restore-SqlDatabase -ServerInstance 'localhost' -Database 'MyDB' -BackupFile 'C:\\Backups\\MyDB.bak' -ReplaceDatabase",
+      "description": "Restaure MyDB en écrasant la base existante",
+      "platform": 0
+    },
+    {
+      "command": "Restore-SqlDatabase -ServerInstance 'localhost' -Database 'MyDB_Test' -BackupFile 'C:\\Backups\\MyDB.bak'",
+      "description": "Restaure sous un nouveau nom",
+      "platform": 0
+    },
+    {
+      "command": "Invoke-Sqlcmd -Query \"RESTORE DATABASE [MyDB] FROM DISK='C:\\Backups\\MyDB.bak' WITH REPLACE\"",
+      "description": "Alternative avec T-SQL",
+      "platform": 0
+    },
+    {
+      "command": "Restore-SqlDatabase -ServerInstance 'localhost' -Database 'ProductionDB' -BackupFile 'D:\\Backups\\daily' -ReplaceDatabase",
+      "description": "Exemple utilisant le paramètre 'serverInstance': Instance SQL Server cible. Remplacez localhost\\SQLEXPRESS par la valeur appropriée selon votre environnement.",
+      "platform": 0
+    },
+    {
+      "command": "Restore-SqlDatabase -ServerInstance 'localhost\\SQLEXPRESS' -Database 'ProductionDB' -BackupFile 'D:\\Backups\\daily' -ReplaceDatabase",
+      "description": "Exemple utilisant le paramètre 'databaseName': Nom de la base de données à restaurer. Remplacez ProductionDB par la valeur appropriée selon votre environnement.",
+      "platform": 0
+    },
+    {
+      "command": "Restore-SqlDatabase -ServerInstance 'localhost\\SQLEXPRESS' -Database 'ProductionDB' -BackupFile 'C:\\Backups\\backup.bak' -ReplaceDatabase",
+      "description": "Exemple utilisant le paramètre 'backupPath': Chemin du fichier .bak. Remplacez D:\\Backups\\daily par la valeur appropriée selon votre environnement.",
+      "platform": 0
+    }
+  ],
+  "notes": "DANGER: -ReplaceDatabase écrase la base existante! Fermez toutes les connexions avant la restauration. Le compte SQL Server doit avoir accès au fichier .bak.",
+  "links": [
+    {
+      "title": "Documentation Restore-SqlDatabase",
+      "url": "https://learn.microsoft.com/en-us/powershell/module/sqlserver/restore-sqldatabase"
+    }
+  ]
+}

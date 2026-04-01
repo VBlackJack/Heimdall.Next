@@ -1,0 +1,59 @@
+{
+  "id": "bitlocker-lock",
+  "title": "Verrouiller un volume BitLocker",
+  "description": "Verrouille immédiatement un volume BitLocker (le rend inaccessible sans déverrouillage).",
+  "category": "🔒 Security & Encryption",
+  "platform": 0,
+  "level": 2,
+  "tags": [
+    "bitlocker",
+    "lock",
+    "security"
+  ],
+  "windowsCommandTemplateId": "bitlocker-lock-cmd",
+  "windowsCommandTemplate": {
+    "id": "bitlocker-lock-cmd",
+    "platform": 0,
+    "name": "Lock-BitLocker",
+    "commandPattern": "Lock-BitLocker -MountPoint \"{driveLetter}:\" -ForceDismount",
+    "parameters": [
+      {
+        "name": "driveLetter",
+        "label": "Lettre du disque",
+        "type": "string",
+        "defaultValue": "D",
+        "required": true,
+        "description": "Lettre du volume à verrouiller (généralement un disque de données, PAS C:)"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "Lock-BitLocker -MountPoint D: -ForceDismount",
+      "description": "Verrouille immédiatement le volume D: (ferme tous les fichiers ouverts)",
+      "platform": 0
+    },
+    {
+      "command": "Lock-BitLocker -MountPoint E:",
+      "description": "Verrouille E: sans forcer le démontage (échoue si fichiers ouverts)",
+      "platform": 0
+    },
+    {
+      "command": "Get-BitLockerVolume | Where-Object {$_.VolumeType -eq 'Data' -and $_.ProtectionStatus -eq 'On'} | ForEach-Object { Lock-BitLocker -MountPoint $_.MountPoint -ForceDismount }",
+      "description": "Verrouille tous les volumes de données chiffrés (sécurité maximale)",
+      "platform": 0
+    },
+    {
+      "command": "Lock-BitLocker -MountPoint \"D:\" -ForceDismount",
+      "description": "Exemple utilisant le paramètre 'driveLetter': Lettre du volume à verrouiller (généralement un disque de données, PAS C:). Remplacez D par la valeur appropriée selon votre environnement.",
+      "platform": 0
+    }
+  ],
+  "notes": "⚠️ Ne verrouillez JAMAIS le volume système (C:) pendant que Windows tourne! Utilisez pour sécuriser rapidement des disques externes ou de données. ForceDismount: ferme tous les fichiers ouverts (perte de données non sauvegardées possible). Sans ForceDismount: échoue si fichiers ouverts.",
+  "links": [
+    {
+      "title": "Lock-BitLocker Documentation",
+      "url": "https://learn.microsoft.com/en-us/powershell/module/bitlocker/lock-bitlocker"
+    }
+  ]
+}

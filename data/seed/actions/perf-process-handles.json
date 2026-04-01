@@ -1,0 +1,49 @@
+{
+  "id": "perf-process-handles",
+  "title": "Analyser les handles ouverts par processus",
+  "description": "Analyse et affiche le nombre de handles (fichiers, registre, threads, etc.) ouverts par chaque processus. Utile pour détecter les fuites de ressources.",
+  "category": "⚡ Performance",
+  "platform": 0,
+  "level": 0,
+  "tags": [
+    "performance",
+    "handles",
+    "process",
+    "resources",
+    "leak",
+    "diagnostic",
+    "troubleshooting",
+    "monitoring"
+  ],
+  "windowsCommandTemplateId": "perf-process-handles-cmd",
+  "windowsCommandTemplate": {
+    "id": "perf-process-handles-cmd",
+    "platform": 0,
+    "name": "Get-Process",
+    "commandPattern": "Get-Process | Sort-Object Handles -Descending | Select-Object -First {topCount} ProcessName, Id, Handles, @{Name='Threads';Expression={$_.Threads.Count}}, @{Name='MemoryMB';Expression={[Math]::Round($_.WorkingSet/1MB,2)}}, StartTime | Format-Table -AutoSize",
+    "parameters": [
+      {
+        "name": "topCount",
+        "label": "Nombre de processus",
+        "type": "string",
+        "defaultValue": "15",
+        "required": true,
+        "description": "Nombre de processus à afficher"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "(Get-Process).Handles | Measure-Object -Sum",
+      "description": "Nombre total de handles système",
+      "platform": 0
+    }
+  ],
+  "notes": "Un nombre excessif de handles peut indiquer une fuite de ressources. Les handles incluent: fichiers, clés de registre, threads, mutexes, etc.",
+  "links": [
+    {
+      "title": "Understanding Handles",
+      "url": "https://learn.microsoft.com/en-us/windows/win32/sysinfo/handles-and-objects"
+    }
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  "id": "win-legacy-dcdiag",
+  "title": "Santé Contrôleur de Domaine (DCDiag)",
+  "description": "Analyse l'état d'un contrôleur de domaine (DNS, Réplication, Système, NetLogon).",
+  "category": "🏢 Active Directory & GPO",
+  "platform": 0,
+  "level": 0,
+  "tags": [
+    "windows",
+    "ad",
+    "dcdiag",
+    "diagnostic",
+    "health",
+    "dns"
+  ],
+  "windowsCommandTemplate": {
+    "id": "c57ce5b7-d7a4-4349-950e-b77c237c7cdc",
+    "platform": 0,
+    "name": "dcdiag",
+    "commandPattern": "dcdiag /v",
+    "parameters": []
+  },
+  "examples": [
+    {
+      "command": "dcdiag /v",
+      "description": "Exécute tous les tests en mode verbeux (/v). Le diagnostic le plus complet.",
+      "platform": 0
+    },
+    {
+      "command": "dcdiag /test:DNS /DnsBasic /v",
+      "description": "🔥 DNS CHECK : Exécute uniquement les tests DNS approfondis. 90% des problèmes AD sont des problèmes DNS.",
+      "platform": 0
+    },
+    {
+      "command": "dcdiag /a",
+      "description": "Teste TOUS les contrôleurs de domaine du site. Utile pour une vue d'ensemble.",
+      "platform": 0
+    }
+  ],
+  "windowsCommandTemplateId": "c57ce5b7-d7a4-4349-950e-b77c237c7cdc"
+}

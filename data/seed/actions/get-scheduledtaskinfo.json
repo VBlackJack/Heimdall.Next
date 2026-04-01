@@ -1,0 +1,84 @@
+{
+  "id": "get-scheduledtaskinfo",
+  "title": "Voir l'historique d'une tâche planifiée",
+  "description": "Affiche les informations d'exécution et l'historique d'une tâche planifiée",
+  "category": "⚙️ Services & Automation",
+  "platform": 0,
+  "level": 0,
+  "tags": [
+    "taskscheduler",
+    "history",
+    "info",
+    "automation",
+    "windows"
+  ],
+  "windowsCommandTemplateId": "get-scheduledtaskinfo-cmd",
+  "windowsCommandTemplate": {
+    "id": "get-scheduledtaskinfo-cmd",
+    "platform": 0,
+    "name": "Get-ScheduledTaskInfo",
+    "commandPattern": "Get-ScheduledTaskInfo -TaskName '{taskname}' {taskpath}",
+    "parameters": [
+      {
+        "name": "taskname",
+        "label": "Nom de la tâche",
+        "type": "string",
+        "defaultValue": "MyTask",
+        "required": true,
+        "description": "Nom de la tâche"
+      },
+      {
+        "name": "taskpath",
+        "label": "Chemin",
+        "type": "string",
+        "defaultValue": "",
+        "required": false,
+        "description": "Chemin de la tâche"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "Get-ScheduledTaskInfo -TaskName 'DailyBackup'",
+      "description": "Affiche l'historique de la tâche de sauvegarde",
+      "platform": 0
+    },
+    {
+      "command": "Get-ScheduledTask | Get-ScheduledTaskInfo | Where-Object {$_.LastTaskResult -ne 0}",
+      "description": "Trouve les tâches avec erreurs",
+      "platform": 0
+    },
+    {
+      "command": "Get-ScheduledTaskInfo -TaskName 'MyTask' | Select-Object LastRunTime, LastTaskResult, NextRunTime, NumberOfMissedRuns",
+      "description": "Informations détaillées d'exécution",
+      "platform": 0
+    },
+    {
+      "command": "Get-ScheduledTaskInfo -TaskName 'DailyBackup' \\Microsoft\\Windows\\ | Select-Object * -First 1",
+      "description": "Affiche toutes les propriétés du premier objet retourné. Select-Object * élargit l'affichage pour montrer toutes les colonnes. -First 1 limite au premier résultat. Utilisez cette commande pour découvrir les propriétés disponibles avant de filtrer.",
+      "platform": 0
+    },
+    {
+      "command": "Get-ScheduledTaskInfo -TaskName 'DailyBackup' \\Microsoft\\Windows\\ | Format-Table -AutoSize",
+      "description": "Affiche les résultats dans un tableau optimisé pour la console. Format-Table -AutoSize ajuste automatiquement la largeur des colonnes pour un affichage lisible. Idéal pour visualiser rapidement les données structurées.",
+      "platform": 0
+    },
+    {
+      "command": "Get-ScheduledTaskInfo -TaskName 'DailyBackup' \\Microsoft\\Windows\\ | Export-Csv C:\\Temp\\Export.csv -NoTypeInformation -Encoding UTF8",
+      "description": "Exporte les résultats vers un fichier CSV exploitable dans Excel. -NoTypeInformation supprime la ligne de métadonnées. -Encoding UTF8 garantit la compatibilité des caractères accentués. Utile pour l'archivage, les rapports et l'analyse externe.",
+      "platform": 0
+    },
+    {
+      "command": "Get-ScheduledTaskInfo -TaskName 'DailyBackup' \\Microsoft\\Windows\\ | Measure-Object",
+      "description": "Compte le nombre total d'objets retournés. Measure-Object retourne Count, Sum, Average, Min, Max selon les propriétés. Utile pour les statistiques rapides et la validation de résultats.",
+      "platform": 0
+    }
+  ],
+  "notes": "LastTaskResult 0 = succès, autre = erreur. Voir aussi les événements dans Event Viewer (TaskScheduler).",
+  "links": [
+    {
+      "title": "Get-ScheduledTaskInfo Documentation",
+      "url": "https://learn.microsoft.com/en-us/powershell/module/scheduledtasks/get-scheduledtaskinfo"
+    }
+  ]
+}

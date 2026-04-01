@@ -1,0 +1,71 @@
+{
+  "id": "ad-list-users",
+  "title": "Lister tous les utilisateurs Active Directory",
+  "description": "Affiche une liste complète de tous les comptes utilisateurs dans Active Directory avec leurs propriétés principales.",
+  "category": "🏢 Active Directory & GPO",
+  "platform": 0,
+  "level": 0,
+  "tags": [
+    "ad",
+    "users",
+    "list",
+    "diagnostic"
+  ],
+  "windowsCommandTemplateId": "ad-list-users-cmd",
+  "windowsCommandTemplate": {
+    "id": "ad-list-users-cmd",
+    "platform": 0,
+    "name": "Get-ADUser",
+    "commandPattern": "Get-ADUser -Filter * -Properties DisplayName,EmailAddress,Enabled | Select-Object Name,DisplayName,EmailAddress,Enabled | Format-Table -AutoSize",
+    "parameters": []
+  },
+  "examples": [
+    {
+      "command": "Get-ADUser -Filter *",
+      "description": "Liste tous les utilisateurs Active Directory du domaine avec les propriétés par défaut (Name, SamAccountName, DistinguishedName, etc.). Attention : peut être long sur de gros domaines (>10000 utilisateurs), privilégier un filtre plus restrictif en production.",
+      "platform": 0
+    },
+    {
+      "command": "Get-ADUser -Filter * -Properties DisplayName,EmailAddress,Enabled,Department | Select-Object Name,DisplayName,EmailAddress,Enabled,Department | Format-Table -AutoSize",
+      "description": "Liste tous les utilisateurs avec leurs informations essentielles. Le paramètre -Properties charge des propriétés étendues non retournées par défaut. Select-Object permet de choisir les colonnes affichées. Format-Table -AutoSize optimise l'affichage en console.",
+      "platform": 0
+    },
+    {
+      "command": "Get-ADUser -Filter {Enabled -eq $true} -Properties LastLogonDate | Select-Object Name,SamAccountName,LastLogonDate | Sort-Object LastLogonDate -Descending",
+      "description": "Liste uniquement les utilisateurs actifs triés par date de dernière connexion (du plus récent au plus ancien). Le filtre {Enabled -eq $true} exclut les comptes désactivés. Utile pour identifier les utilisateurs actifs et repérer rapidement les connexions récentes.",
+      "platform": 0
+    },
+    {
+      "command": "Get-ADUser -Filter * -Properties LastLogonDate | Where-Object {$_.Enabled -eq $true -and $_.LastLogonDate -lt (Get-Date).AddDays(-90)} | Select-Object Name,SamAccountName,LastLogonDate,Enabled",
+      "description": "Audit de sécurité : identifie les utilisateurs actifs qui ne se sont pas connectés depuis 90 jours. LastLogonDate n'étant pas une propriété par défaut, elle doit être spécifiée dans -Properties. Where-Object filtre selon des conditions PowerShell complexes. Essentiel pour les audits trimestriels et l'identification des comptes zombies.",
+      "platform": 0
+    },
+    {
+      "command": "Get-ADUser -Filter {Department -like 'IT*'} -Properties Department,Title,Manager -SearchBase 'OU=Users,DC=contoso,DC=com'",
+      "description": "Recherche les utilisateurs d'un département spécifique dans une OU particulière. Le paramètre -SearchBase limite la recherche à une branche de l'arbre AD pour améliorer significativement les performances (jusqu'à 10x plus rapide sur de gros domaines). L'opérateur -like permet les wildcards (*) pour des recherches partielles.",
+      "platform": 0
+    },
+    {
+      "command": "Get-ADUser -Filter * -Properties * | Select-Object -First 1 | Format-List *",
+      "description": "Affiche TOUTES les propriétés disponibles pour un utilisateur (mode découverte). Le paramètre -Properties * charge l'intégralité des 100+ propriétés AD disponibles (très coûteux en performance). Format-List * affiche chaque propriété sur une ligne séparée. Utilisez cette commande uniquement pour découvrir les noms de propriétés, jamais en production sur de gros volumes.",
+      "platform": 0
+    },
+    {
+      "command": "Get-ADUser -Filter * -Properties Department,EmailAddress,Enabled | Export-Csv -Path C:\\Temp\\ADUsers.csv -NoTypeInformation -Encoding UTF8",
+      "description": "Exporte tous les utilisateurs vers un fichier CSV exploitable dans Excel. -NoTypeInformation supprime la ligne de métadonnées '#TYPE' du CSV. -Encoding UTF8 garantit la compatibilité internationale des caractères accentués. Le fichier CSV peut ensuite être utilisé pour des rapports, des imports ou des analyses tierces.",
+      "platform": 0
+    },
+    {
+      "command": "Get-ADUser -Filter * -ResultSetSize 100 -Properties DisplayName,EmailAddress",
+      "description": "Limite le résultat aux 100 premiers utilisateurs pour un aperçu rapide. Le paramètre -ResultSetSize plafonne le nombre de résultats retournés par le serveur AD, ce qui améliore drastiquement les performances et réduit la consommation mémoire. Idéal pour les tests et les vérifications rapides.",
+      "platform": 0
+    }
+  ],
+  "notes": "Nécessite le module Active Directory PowerShell. Peut être lent sur de gros domaines.",
+  "links": [
+    {
+      "title": "Documentation Get-ADUser",
+      "url": "https://learn.microsoft.com/en-us/powershell/module/activedirectory/get-aduser"
+    }
+  ]
+}

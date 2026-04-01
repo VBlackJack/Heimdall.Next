@@ -1,0 +1,82 @@
+{
+  "id": "ip-addr-show",
+  "title": "Afficher les adresses IP",
+  "description": "Affiche toutes les interfaces réseau et leurs adresses IP",
+  "category": "🌐 Network & DNS",
+  "platform": 1,
+  "level": 0,
+  "tags": [
+    "ip",
+    "network",
+    "interface",
+    "address",
+    "ipv4",
+    "ipv6"
+  ],
+  "linuxCommandTemplateId": "ip-addr-cmd",
+  "linuxCommandTemplate": {
+    "id": "ip-addr-cmd",
+    "platform": 1,
+    "name": "ip",
+    "commandPattern": "ip addr show {interface}",
+    "parameters": [
+      {
+        "name": "interface",
+        "label": "Interface",
+        "type": "string",
+        "defaultValue": "",
+        "required": false,
+        "description": "Nom de l'interface (vide = toutes)"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "ip addr show",
+      "description": "Affiche toutes les interfaces et IP",
+      "platform": 1
+    },
+    {
+      "command": "ip addr show eth0",
+      "description": "Affiche uniquement eth0",
+      "platform": 1
+    },
+    {
+      "command": "ip -br addr",
+      "description": "Format court (brief)",
+      "platform": 1
+    },
+    {
+      "command": "ip route show",
+      "description": "Afficher la table de routage",
+      "platform": 1
+    },
+    {
+      "command": "ip link set eth0 up",
+      "description": "Activer l'interface eth0",
+      "platform": 1
+    },
+    {
+      "command": "ip addr add 192.168.1.100/24 dev eth0",
+      "description": "Ajouter une adresse IP",
+      "platform": 1
+    },
+    {
+      "command": "ip neigh show",
+      "description": "Afficher la table ARP",
+      "platform": 1
+    },
+    {
+      "command": "ip -4 addr",
+      "description": "IPv4 uniquement",
+      "platform": 1
+    }
+  ],
+  "notes": "Ne nécessite pas sudo pour la lecture. Remplace ifconfig. -br pour format condensé.",
+  "links": [
+    {
+      "title": "ip command",
+      "url": "https://man7.org/linux/man-pages/man8/ip.8.html"
+    }
+  ]
+}

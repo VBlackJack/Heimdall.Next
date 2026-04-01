@@ -1,0 +1,61 @@
+{
+  "id": "pswindowsupdate-list-hidden",
+  "title": "Lister les mises à jour masquées",
+  "description": "Affiche toutes les mises à jour Windows qui ont été masquées",
+  "category": "🔄 Windows Updates",
+  "platform": 0,
+  "level": 0,
+  "tags": [
+    "windows-update",
+    "hidden",
+    "list",
+    "pswindowsupdate"
+  ],
+  "windowsCommandTemplateId": "pswindowsupdate-list-hidden-cmd",
+  "windowsCommandTemplate": {
+    "id": "pswindowsupdate-list-hidden-cmd",
+    "platform": 0,
+    "name": "Get-WindowsUpdate",
+    "commandPattern": "Get-WindowsUpdate -IsHidden",
+    "parameters": []
+  },
+  "examples": [
+    {
+      "command": "Get-WindowsUpdate -IsHidden",
+      "description": "Liste toutes les mises à jour masquées",
+      "platform": 0
+    },
+    {
+      "command": "Get-WindowsUpdate -IsHidden | Format-Table Title,KB -AutoSize",
+      "description": "Affiche les mises à jour masquées en tableau",
+      "platform": 0
+    },
+    {
+      "command": "Get-WindowsUpdate -IsHidden | Select-Object * -First 1",
+      "description": "Affiche toutes les propriétés du premier objet retourné. Select-Object * élargit l'affichage pour montrer toutes les colonnes. -First 1 limite au premier résultat. Utilisez cette commande pour découvrir les propriétés disponibles avant de filtrer.",
+      "platform": 0
+    },
+    {
+      "command": "Get-WindowsUpdate -IsHidden | Format-Table -AutoSize",
+      "description": "Affiche les résultats dans un tableau optimisé pour la console. Format-Table -AutoSize ajuste automatiquement la largeur des colonnes pour un affichage lisible. Idéal pour visualiser rapidement les données structurées.",
+      "platform": 0
+    },
+    {
+      "command": "Get-WindowsUpdate -IsHidden | Export-Csv C:\\Temp\\Export.csv -NoTypeInformation -Encoding UTF8",
+      "description": "Exporte les résultats vers un fichier CSV exploitable dans Excel. -NoTypeInformation supprime la ligne de métadonnées. -Encoding UTF8 garantit la compatibilité des caractères accentués. Utile pour l'archivage, les rapports et l'analyse externe.",
+      "platform": 0
+    },
+    {
+      "command": "Get-WindowsUpdate -IsHidden | Measure-Object",
+      "description": "Compte le nombre total d'objets retournés. Measure-Object retourne Count, Sum, Average, Min, Max selon les propriétés. Utile pour les statistiques rapides et la validation de résultats.",
+      "platform": 0
+    }
+  ],
+  "notes": "Permet de voir quelles mises à jour ont été volontairement exclues. Nécessite PSWindowsUpdate.",
+  "links": [
+    {
+      "title": "PSWindowsUpdate Module",
+      "url": "https://www.powershellgallery.com/packages/PSWindowsUpdate"
+    }
+  ]
+}

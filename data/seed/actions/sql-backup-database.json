@@ -1,0 +1,69 @@
+{
+  "id": "sql-backup-database",
+  "title": "Sauvegarder une base de données SQL Server",
+  "description": "Effectue une sauvegarde complète (FULL) d'une base de données SQL Server vers un fichier .bak spécifié.",
+  "category": "💽 Database",
+  "platform": 0,
+  "level": 2,
+  "tags": [
+    "sql",
+    "backup",
+    "sauvegarde",
+    "database",
+    "mssql",
+    "protection",
+    "recovery"
+  ],
+  "windowsCommandTemplateId": "sql-backup-database-cmd",
+  "windowsCommandTemplate": {
+    "id": "sql-backup-database-cmd",
+    "platform": 0,
+    "name": "Backup-SqlDatabase",
+    "commandPattern": "Backup-SqlDatabase -ServerInstance '{serverInstance}' -Database '{databaseName}' -BackupFile '{backupPath}' -CompressionOption On",
+    "parameters": [
+      {
+        "name": "serverInstance",
+        "label": "Instance SQL Server",
+        "type": "string",
+        "defaultValue": "localhost",
+        "required": true,
+        "description": "Instance SQL Server"
+      },
+      {
+        "name": "databaseName",
+        "label": "Nom de la base",
+        "type": "string",
+        "defaultValue": "",
+        "required": true,
+        "description": "Nom de la base de données à sauvegarder"
+      },
+      {
+        "name": "backupPath",
+        "label": "Chemin de sauvegarde",
+        "type": "string",
+        "defaultValue": "C:\\Backups\\backup.bak",
+        "required": true,
+        "description": "Chemin complet du fichier de sauvegarde"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "Backup-SqlDatabase -ServerInstance 'localhost' -Database 'MyDB' -BackupFile 'C:\\Backups\\MyDB.bak'",
+      "description": "Sauvegarde complète de MyDB",
+      "platform": 0
+    },
+    {
+      "command": "Invoke-Sqlcmd -Query \"BACKUP DATABASE [MyDB] TO DISK='C:\\Backups\\MyDB.bak' WITH COMPRESSION\"",
+      "description": "Alternative avec T-SQL",
+      "platform": 0
+    }
+  ],
+  "notes": "ATTENTION: Vérifiez l'espace disque disponible. La compression réduit la taille de ~50%. Le compte SQL Server doit avoir accès au chemin de backup.",
+  "links": [
+    {
+      "title": "Documentation Backup-SqlDatabase",
+      "url": "https://learn.microsoft.com/en-us/powershell/module/sqlserver/backup-sqldatabase"
+    }
+  ]
+}

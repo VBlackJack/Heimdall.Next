@@ -1,0 +1,76 @@
+{
+  "id": "eventlog-list-available-logs",
+  "title": "Lister tous les journaux d'événements disponibles",
+  "description": "Affiche la liste de tous les journaux d'événements disponibles sur le système avec leurs statistiques",
+  "category": "📊 Monitoring & Logs",
+  "platform": 0,
+  "level": 0,
+  "tags": [
+    "eventlog",
+    "list",
+    "logs",
+    "diagnostic"
+  ],
+  "windowsCommandTemplateId": "eventlog-list-available-logs-cmd",
+  "windowsCommandTemplate": {
+    "id": "eventlog-list-available-logs-cmd",
+    "platform": 0,
+    "name": "Get-WinEvent",
+    "commandPattern": "Get-WinEvent -ListLog * | Where-Object {$_.RecordCount -gt 0} | Select-Object LogName,RecordCount,FileSize,LastWriteTime | Sort-Object RecordCount -Descending | Format-Table -AutoSize",
+    "parameters": []
+  },
+  "examples": [
+    {
+      "command": "Get-WinEvent -FilterHashtable @{LogName='System'; Level=2; StartTime=(Get-Date).AddHours(-24)}",
+      "description": "Méthode performante pour filtrer les erreurs (Level=2) des dernières 24h. Beaucoup plus rapide que Get-EventLog sur les gros volumes.",
+      "platform": 0
+    },
+    {
+      "command": "Get-WinEvent -LogName System -MaxEvents 100",
+      "description": "Affiche les 100 derniers événements du journal Système. Get-WinEvent est la cmdlet moderne (remplace Get-EventLog). -MaxEvents limite les résultats. Supporte les journaux classiques ET les nouveaux journaux Applications and Services. Plus rapide et plus flexible que Get-EventLog.",
+      "platform": 0
+    },
+    {
+      "command": "Get-WinEvent -LogName Application -FilterHashtable @{Level=2; StartTime=(Get-Date).AddHours(-24)}",
+      "description": "Filtre les erreurs (Level=2) des dernières 24h avec FilterHashtable. -FilterHashtable utilise une table de hachage pour des filtres complexes côté serveur (plus rapide que Where-Object). Levels : 1=Critical, 2=Error, 3=Warning, 4=Information. Le filtrage côté serveur peut être 10x plus rapide sur de gros journaux.",
+      "platform": 0
+    },
+    {
+      "command": "Get-WinEvent -LogName Security -FilterHashtable @{ID=4624; StartTime=(Get-Date).AddDays(-1)} | Select-Object TimeCreated,Message -First 50",
+      "description": "Affiche les 50 premières connexions réussies (ID 4624) des dernières 24h. L'Event ID 4624 = authentification réussie. FilterHashtable filtre efficacement par ID et date. Utile pour auditer les connexions, identifier les patterns d'utilisation et détecter les connexions suspectes.",
+      "platform": 0
+    },
+    {
+      "command": "Get-WinEvent -ListLog *",
+      "description": "Liste TOUS les journaux d'événements disponibles sur le système. Retourne le nom, la taille max, le nombre d'enregistrements et le statut (activé/désactivé). Il peut y avoir des centaines de journaux (System, Application, Security + tous les journaux Applications and Services). Utilisez cette commande pour découvrir les journaux disponibles.",
+      "platform": 0
+    },
+    {
+      "command": "Get-WinEvent -LogName 'Microsoft-Windows-PowerShell/Operational' -MaxEvents 20",
+      "description": "Affiche les événements du journal PowerShell. Les journaux Applications and Services ont des noms avec chemins (slashes). Ce journal enregistre toutes les activités PowerShell : commandes exécutées, erreurs, scripts. Essentiel pour l'audit de sécurité et le troubleshooting PowerShell.",
+      "platform": 0
+    },
+    {
+      "command": "Get-WinEvent -LogName System -FilterHashtable @{ProviderName='Service Control Manager'; ID=7036}",
+      "description": "Filtre par fournisseur (source) et ID d'événement. ProviderName = composant émetteur. L'ID 7036 = changement d'état de service (démarré/arrêté). Retourne l'historique complet des démarrages/arrêts de services. Utile pour diagnostiquer les services qui crashent ou s'arrêtent.",
+      "platform": 0
+    },
+    {
+      "command": "$xml = 'Security,ApplicationSELECT * FROM Users WHERE Active = 1<Select Path=\"System\">*[System[(Level=1 or Level=2) and TimeCreated[timediff(@SystemTime) &lt;= 86400000]]]</Select></Query></QueryList>'; Get-WinEvent -FilterXml $xml",
+      "description": "Filtre avancé avec XPath/XML pour les requêtes complexes. FilterXml permet des filtres impossibles avec FilterHashtable (conditions multiples, OU logiques complexes, filtres sur le contenu du message). Cet exemple récupère Critical OU Error des dernières 24h. Courbe d'apprentissage élevée mais très puissant.",
+      "platform": 0
+    },
+    {
+      "command": "Get-WinEvent -LogName Application -FilterHashtable @{Level=2} | Group-Object ProviderName | Sort-Object Count -Descending | Select-Object Count,Name -First 10",
+      "description": "Analyse statistique : top 10 des sources d'erreurs dans Application. Group-Object agrège par fournisseur. Sort trie par fréquence. Identifie rapidement les applications les plus problématiques pour prioriser les actions de correction.",
+      "platform": 0
+    }
+  ],
+  "notes": "Utile pour découvrir les journaux disponibles avant de faire des requêtes spécifiques.",
+  "links": [
+    {
+      "title": "Get-WinEvent -ListLog",
+      "url": "https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.diagnostics/get-winevent"
+    }
+  ]
+}

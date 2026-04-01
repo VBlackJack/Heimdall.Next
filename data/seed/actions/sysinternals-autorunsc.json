@@ -1,0 +1,35 @@
+{
+  "id": "sysinternals-autorunsc",
+  "title": "Lister les programmes au démarrage (Autoruns)",
+  "description": "Version ligne de commande d'Autoruns. Liste tout ce qui démarre automatiquement (clés Run, Services, Drivers, Tâches planifiées).",
+  "category": "🔒 Security & Encryption",
+  "platform": 0,
+  "level": 0,
+  "tags": [
+    "sysinternals",
+    "autoruns",
+    "security",
+    "malware",
+    "boot"
+  ],
+  "windowsCommandTemplate": {
+    "id": "9077aae3-d9a7-430c-8d91-484989845849",
+    "platform": 0,
+    "name": "autorunsc",
+    "commandPattern": "autorunsc.exe -a * -c -h -AcceptEula",
+    "parameters": []
+  },
+  "examples": [
+    {
+      "command": "autorunsc.exe -a * -c -h -AcceptEula > autoruns.csv",
+      "description": "🔥 FORENSIC : Exporte TOUS les points de démarrage (-a *) en format CSV (-c) avec les hashs MD5 (-h). À analyser pour trouver la persistance d'un malware.",
+      "platform": 0
+    },
+    {
+      "command": "autorunsc.exe -v -AcceptEula",
+      "description": "Vérifie les signatures numériques (-v) de Microsoft. Cache les entrées signées par Microsoft pour se concentrer sur les tiers.",
+      "platform": 0
+    }
+  ],
+  "windowsCommandTemplateId": "9077aae3-d9a7-430c-8d91-484989845849"
+}

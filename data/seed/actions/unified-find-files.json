@@ -1,0 +1,171 @@
+{
+  "id": "unified-find-files",
+  "title": "Rechercher des fichiers par nom",
+  "description": "Recherche des fichiers ou dossiers par nom ou motif.",
+  "category": "📁 Files & Storage",
+  "platform": 2,
+  "supportedPlatforms": [
+    0,
+    1
+  ],
+  "level": 0,
+  "tags": [
+    "linux",
+    "windows",
+    "fichier",
+    "find",
+    "search",
+    "recherche"
+  ],
+  "notes": "Windows: -Recurse cherche dans les sous-dossiers. -ErrorAction SilentlyContinue ignore les erreurs d'accès.\nLinux: -name sensible à la casse, -iname insensible. -type f pour fichiers, -type d pour dossiers.",
+  "links": [
+    {
+      "title": "Documentation Get-ChildItem",
+      "url": "https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.management/get-childitem"
+    }
+  ],
+  "windowsCommandTemplateId": "search-find-files-windows-cmd",
+  "windowsCommandTemplate": {
+    "id": "search-find-files-windows-cmd",
+    "platform": 0,
+    "name": "Get-ChildItem",
+    "commandPattern": "Get-ChildItem -Path \"{searchPath}\" -Filter \"{pattern}\" -Recurse -ErrorAction SilentlyContinue | Select-Object FullName,Length,LastWriteTime",
+    "parameters": [
+      {
+        "name": "searchPath",
+        "label": "Chemin de recherche",
+        "type": "string",
+        "defaultValue": "C:\\",
+        "required": true,
+        "description": "Dossier où commencer la recherche"
+      },
+      {
+        "name": "pattern",
+        "label": "Motif de recherche",
+        "type": "string",
+        "defaultValue": "*.txt",
+        "required": true,
+        "description": "Motif de nom de fichier (ex: *.txt, *.log)"
+      }
+    ]
+  },
+  "windowsExamples": [
+    {
+      "command": "Get-ChildItem -Path \"C:\\Users\" -Filter \"*.pdf\" -Recurse -ErrorAction SilentlyContinue",
+      "description": "Trouve tous les fichiers PDF dans C:\\Users",
+      "platform": 0
+    },
+    {
+      "command": "Get-ChildItem -Path \"C:\\\" -Filter \"config.json\" -Recurse",
+      "description": "Cherche tous les fichiers config.json",
+      "platform": 0
+    },
+    {
+      "command": "Get-ChildItem -Path \"{searchPath}\" -Filter \"{pattern}\" -Recurse -ErrorAction SilentlyContinue | Select-Object * -First 1",
+      "description": "Affiche toutes les propriétés du premier objet retourné. Select-Object * élargit l'affichage pour montrer toutes les colonnes. -First 1 limite au premier résultat. Utilisez cette commande pour découvrir les propriétés disponibles avant de filtrer.",
+      "platform": 0
+    },
+    {
+      "command": "Get-ChildItem -Path \"{searchPath}\" -Filter \"{pattern}\" -Recurse -ErrorAction SilentlyContinue | Format-Table -AutoSize",
+      "description": "Affiche les résultats dans un tableau optimisé pour la console. Format-Table -AutoSize ajuste automatiquement la largeur des colonnes pour un affichage lisible. Idéal pour visualiser rapidement les données structurées.",
+      "platform": 0
+    },
+    {
+      "command": "Get-ChildItem -Path \"{searchPath}\" -Filter \"{pattern}\" -Recurse -ErrorAction SilentlyContinue | Export-Csv C:\\Temp\\Export.csv -NoTypeInformation -Encoding UTF8",
+      "description": "Exporte les résultats vers un fichier CSV exploitable dans Excel. -NoTypeInformation supprime la ligne de métadonnées. -Encoding UTF8 garantit la compatibilité des caractères accentués. Utile pour l'archivage, les rapports et l'analyse externe.",
+      "platform": 0
+    },
+    {
+      "command": "Get-ChildItem -Path \"{searchPath}\" -Filter \"{pattern}\" -Recurse -ErrorAction SilentlyContinue | Measure-Object",
+      "description": "Compte le nombre total d'objets retournés. Measure-Object retourne Count, Sum, Average, Min, Max selon les propriétés. Utile pour les statistiques rapides et la validation de résultats.",
+      "platform": 0
+    },
+    {
+      "command": "Get-ChildItem -Path \"C:\\\" -Filter \"{pattern}\" -Recurse -ErrorAction SilentlyContinue | Select-Object FullName,Length,LastWriteTime",
+      "description": "Exemple utilisant le paramètre 'searchPath': Dossier où commencer la recherche. Remplacez <searchPath> par la valeur appropriée selon votre environnement.",
+      "platform": 0
+    },
+    {
+      "command": "Get-ChildItem -Path \"C:\\Windows\\System32\" -Filter \"*.txt\" -Recurse -ErrorAction SilentlyContinue | Select-Object FullName,Length,LastWriteTime",
+      "description": "Exemple Windows pour Rechercher des fichiers par nom",
+      "platform": 0
+    }
+  ],
+  "linuxCommandTemplateId": "search-find-files-linux-cmd",
+  "linuxCommandTemplate": {
+    "id": "search-find-files-linux-cmd",
+    "platform": 1,
+    "name": "find",
+    "commandPattern": "find \"{searchPath}\" -name \"{pattern}\"",
+    "parameters": [
+      {
+        "name": "searchPath",
+        "label": "Chemin de recherche",
+        "type": "string",
+        "defaultValue": "/",
+        "required": true,
+        "description": "Dossier où commencer la recherche"
+      },
+      {
+        "name": "pattern",
+        "label": "Motif de recherche",
+        "type": "string",
+        "defaultValue": "*.txt",
+        "required": true,
+        "description": "Motif de nom de fichier (ex: *.txt, *.log)"
+      }
+    ]
+  },
+  "linuxExamples": [
+    {
+      "command": "find /home -name \"*.pdf\"",
+      "description": "Trouve tous les fichiers PDF dans /home",
+      "platform": 1
+    },
+    {
+      "command": "find / -name \"config.json\" 2>/dev/null",
+      "description": "Cherche config.json en ignorant les erreurs",
+      "platform": 1
+    },
+    {
+      "command": "find . -type f -mtime -7",
+      "description": "Fichiers modifiés dans les 7 derniers jours",
+      "platform": 1
+    },
+    {
+      "command": "find --help",
+      "description": "Affiche l'aide complète de la commande find. --help liste tous les paramètres disponibles, les options et des exemples d'utilisation. Première commande à utiliser pour découvrir les capacités d'un outil.",
+      "platform": 1
+    },
+    {
+      "command": "man find",
+      "description": "Affiche le manuel complet de find. Les pages man fournissent la documentation détaillée : syntaxe, paramètres, exemples, notes. Plus complet que --help. Naviguez avec flèches, cherchez avec '/', quittez avec 'q'.",
+      "platform": 1
+    },
+    {
+      "command": "find \"/\" -name \"{pattern}\"",
+      "description": "Exemple utilisant le paramètre 'searchPath': Dossier où commencer la recherche. Remplacez <searchPath> par la valeur appropriée selon votre environnement.",
+      "platform": 1
+    },
+    {
+      "command": "find \"{searchPath}\" -name \"*.txt\"",
+      "description": "Exemple utilisant le paramètre 'pattern': Motif de nom de fichier (ex: *.txt, *.log). Remplacez <pattern> par la valeur appropriée selon votre environnement.",
+      "platform": 1
+    },
+    {
+      "command": "find /usr/share -name \"*.txt\"",
+      "description": "Exemple Linux pour Rechercher des fichiers par nom",
+      "platform": 1
+    }
+  ],
+  "crossPlatformNotes": {
+    "differences": [
+      "Syntaxe: Windows utilise 'Get-ChildItem', Linux utilise 'find'"
+    ],
+    "commonalities": [
+      "Les deux permettent de rechercher des fichiers par nom",
+      "Fonctionnalité équivalente sur les deux plateformes"
+    ]
+  },
+  "examples": []
+}

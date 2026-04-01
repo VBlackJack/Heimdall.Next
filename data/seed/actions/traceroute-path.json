@@ -1,0 +1,51 @@
+{
+  "id": "traceroute-path",
+  "title": "Tracer le chemin réseau",
+  "description": "Affiche le chemin des paquets vers une destination (tous les routeurs intermédiaires)",
+  "category": "🌐 Network & DNS",
+  "platform": 1,
+  "level": 0,
+  "tags": [
+    "traceroute",
+    "mtr",
+    "network",
+    "routing",
+    "diagnostic"
+  ],
+  "linuxCommandTemplateId": "traceroute-cmd",
+  "linuxCommandTemplate": {
+    "id": "traceroute-cmd",
+    "platform": 1,
+    "name": "traceroute",
+    "commandPattern": "traceroute {host}",
+    "parameters": [
+      {
+        "name": "host",
+        "label": "Hôte",
+        "type": "string",
+        "defaultValue": "google.com",
+        "required": true,
+        "description": "Adresse IP ou nom d'hôte de destination"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "mtr google.com",
+      "description": "Version interactive et continue (MTR)",
+      "platform": 1
+    },
+    {
+      "command": "traceroute -T -p 443 example.com",
+      "description": "TCP sur port 443",
+      "platform": 1
+    }
+  ],
+  "notes": "Peut nécessiter sudo. mtr combine ping et traceroute. -n désactive la résolution DNS.",
+  "links": [
+    {
+      "title": "traceroute",
+      "url": "https://man7.org/linux/man-pages/man8/traceroute.8.html"
+    }
+  ]
+}

@@ -1,0 +1,94 @@
+{
+  "id": "strace-trace-syscalls",
+  "title": "Tracer les appels système d'un processus",
+  "description": "Trace tous les appels système effectués par un processus (debugging)",
+  "category": "⚡ Performance",
+  "platform": 1,
+  "level": 1,
+  "tags": [
+    "strace",
+    "syscalls",
+    "debug",
+    "performance",
+    "trace"
+  ],
+  "linuxCommandTemplateId": "strace-cmd",
+  "linuxCommandTemplate": {
+    "id": "strace-cmd",
+    "platform": 1,
+    "name": "strace",
+    "commandPattern": "strace {options} {command}",
+    "parameters": [
+      {
+        "name": "options",
+        "label": "Options",
+        "type": "string",
+        "defaultValue": "-c",
+        "required": false,
+        "description": "Options (-c=stats, -p PID, -e=filter, -o=output)"
+      },
+      {
+        "name": "command",
+        "label": "Commande",
+        "type": "string",
+        "defaultValue": "ls",
+        "required": true,
+        "description": "Commande à tracer ou -p PID"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "strace ls",
+      "description": "Trace tous les syscalls de ls",
+      "platform": 1
+    },
+    {
+      "command": "strace -c ls",
+      "description": "Statistiques d'appels système",
+      "platform": 1
+    },
+    {
+      "command": "strace -p 1234",
+      "description": "Attache à un processus existant",
+      "platform": 1
+    },
+    {
+      "command": "strace -c Get-Process",
+      "description": "Exemple utilisant le paramètre 'options': Options (-c=stats, -p PID, -e=filter, -o=output). Remplacez -v -f par la valeur appropriée selon votre environnement.",
+      "platform": 0
+    },
+    {
+      "command": "strace -v -f ls",
+      "description": "Exemple utilisant le paramètre 'command': Commande à tracer ou -p PID. Remplacez Get-Process par la valeur appropriée selon votre environnement.",
+      "platform": 1
+    },
+    {
+      "command": "strace -e open ls",
+      "description": "Tracer uniquement open()",
+      "platform": 1
+    },
+    {
+      "command": "strace -o trace.log command",
+      "description": "Sauvegarder dans un fichier",
+      "platform": 1
+    },
+    {
+      "command": "strace ls -la",
+      "description": "Tracer la commande ls",
+      "platform": 1
+    },
+    {
+      "command": "strace -o trace.log -f ./script.sh",
+      "description": "Tracer avec enfants",
+      "platform": 1
+    }
+  ],
+  "notes": "Peut nécessiter sudo. -c pour résumé statistique. Très utile pour le debugging.",
+  "links": [
+    {
+      "title": "strace documentation",
+      "url": "https://man7.org/linux/man-pages/man1/strace.1.html"
+    }
+  ]
+}

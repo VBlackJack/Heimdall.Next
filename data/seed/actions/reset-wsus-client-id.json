@@ -1,0 +1,35 @@
+{
+  "id": "reset-wsus-client-id",
+  "title": "Réinitialiser l'ID client WSUS",
+  "description": "Supprime le SusClientId pour forcer la re-création lors de la prochaine connexion",
+  "category": "🔄 Windows Updates",
+  "platform": 0,
+  "level": 1,
+  "tags": [
+    "wsus",
+    "reset",
+    "client-id"
+  ],
+  "windowsCommandTemplateId": "reset-wsus-client-id-cmd",
+  "windowsCommandTemplate": {
+    "id": "reset-wsus-client-id-cmd",
+    "platform": 0,
+    "name": "net",
+    "commandPattern": "net stop wuauserv && reg delete HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\WindowsUpdate /v SusClientId /f && reg delete HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\WindowsUpdate /v SusClientIdValidation /f && net start wuauserv && wuauclt /resetauthorization /detectnow",
+    "parameters": []
+  },
+  "examples": [
+    {
+      "command": "wuauclt /resetauthorization /detectnow",
+      "description": "Force la détection après réinitialisation de l'ID",
+      "platform": 0
+    },
+    {
+      "command": "net stop wuauserv && reg delete HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\WindowsUpdate /v SusClientId /f && reg delete HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\WindowsUpdate /v SusClientIdValidation /f && net start wuauserv && wuauclt /resetauthorization /detectnow",
+      "description": "Exécution standard de la commande None. Consultez la documentation officielle avec Get-Help net -Full pour plus de détails sur les paramètres disponibles et les cas d'usage avancés.",
+      "platform": 0
+    }
+  ],
+  "notes": "Droits administrateur requis. Utile quand un PC cloné apparaît en double dans WSUS.",
+  "links": []
+}

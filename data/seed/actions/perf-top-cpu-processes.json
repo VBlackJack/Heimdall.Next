@@ -1,0 +1,64 @@
+{
+  "id": "perf-top-cpu-processes",
+  "title": "Analyser les processus consommant le plus de CPU",
+  "description": "Identifie et affiche les processus consommant le plus de ressources CPU en temps réel avec leurs statistiques détaillées.",
+  "category": "⚡ Performance",
+  "platform": 2,
+  "level": 0,
+  "tags": [
+    "performance",
+    "cpu",
+    "process",
+    "monitoring",
+    "diagnostic",
+    "troubleshooting",
+    "top"
+  ],
+  "windowsCommandTemplateId": "perf-top-cpu-processes-win",
+  "windowsCommandTemplate": {
+    "id": "perf-top-cpu-processes-win",
+    "platform": 0,
+    "name": "Get-Process",
+    "commandPattern": "Get-Process | Sort-Object CPU -Descending | Select-Object -First {topCount} ProcessName, Id, CPU, @{Name='MemoryMB';Expression={[Math]::Round($_.WorkingSet/1MB,2)}}, Handles, StartTime | Format-Table -AutoSize",
+    "parameters": [
+      {
+        "name": "topCount",
+        "label": "Nombre de processus",
+        "type": "string",
+        "defaultValue": "10",
+        "required": true,
+        "description": "Nombre de top processus à afficher"
+      }
+    ]
+  },
+  "linuxCommandTemplateId": "perf-top-cpu-processes-linux",
+  "linuxCommandTemplate": {
+    "id": "perf-top-cpu-processes-linux",
+    "platform": 1,
+    "name": "top",
+    "commandPattern": "top -b -n 1 | head -n 20",
+    "parameters": []
+  },
+  "examples": [],
+  "notes": "CPU est le temps total cumulé. Pour une vue en temps réel, utilisez Task Manager/htop ou Get-Counter. Sur Linux, htop est plus interactif que top.",
+  "links": [
+    {
+      "title": "Documentation Get-Process",
+      "url": "https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.management/get-process"
+    }
+  ],
+  "windowsExamples": [
+    {
+      "command": "Get-Counter '\\Processor(_Total)\\% Processor Time' -Continuous -SampleInterval 1",
+      "description": "Surveillance CPU globale en continu",
+      "platform": 0
+    }
+  ],
+  "linuxExamples": [
+    {
+      "command": "ps aux --sort=-%cpu | head -n 11",
+      "description": "Top 10 processus Linux par CPU",
+      "platform": 1
+    }
+  ]
+}

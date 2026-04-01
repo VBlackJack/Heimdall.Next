@@ -1,0 +1,65 @@
+{
+  "id": "gpo-delete",
+  "title": "Supprimer une GPO",
+  "description": "Supprime une stratégie de groupe du domaine.",
+  "category": "🏢 Active Directory & GPO",
+  "platform": 0,
+  "level": 2,
+  "tags": [
+    "gpo",
+    "delete",
+    "remove",
+    "group-policy"
+  ],
+  "windowsCommandTemplateId": "gpo-delete-cmd",
+  "windowsCommandTemplate": {
+    "id": "gpo-delete-cmd",
+    "platform": 0,
+    "name": "Remove-GPO",
+    "commandPattern": "Remove-GPO -Name \"{gpoName}\"",
+    "parameters": [
+      {
+        "name": "gpoName",
+        "label": "Nom de la GPO",
+        "type": "string",
+        "defaultValue": "",
+        "required": true,
+        "description": "Nom de la GPO à supprimer"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "Remove-GPO -Name \"Old-Security-Policy\"",
+      "description": "Supprime la GPO Old-Security-Policy",
+      "platform": 0
+    },
+    {
+      "command": "Remove-GPO -Name \"Security-Baseline\" -WhatIf",
+      "description": "Simulation de l'action sans exécution réelle (dry-run). Le switch -WhatIf affiche ce qui serait modifié sans appliquer les changements. INDISPENSABLE avant toute action de masse ou modification critique. Retirez -WhatIf après validation pour exécuter.",
+      "platform": 0
+    },
+    {
+      "command": "Remove-GPO -Name \"Security-Baseline\" -Confirm:$false",
+      "description": "Exécute l'action sans demander de confirmation interactive. -Confirm:$false supprime les invites de validation. Utile dans les scripts automatisés mais à utiliser avec précaution : aucun filet de sécurité.",
+      "platform": 0
+    },
+    {
+      "command": "Remove-GPO -Name \"Security-Baseline\" -Verbose",
+      "description": "Affiche des informations détaillées sur l'exécution de la commande. -Verbose active les messages de débogage pour comprendre précisément ce qui se passe. Essentiel pour le troubleshooting et la compréhension des opérations internes.",
+      "platform": 0
+    },
+    {
+      "command": "Remove-GPO -Name \"Security-Baseline\"",
+      "description": "Exemple utilisant le paramètre 'gpoName': Nom de la GPO à supprimer. Remplacez Security-Baseline par la valeur appropriée selon votre environnement.",
+      "platform": 0
+    }
+  ],
+  "notes": "ATTENTION: Suppression définitive. Faire une sauvegarde avant. Tous les liens sont également supprimés.",
+  "links": [
+    {
+      "title": "Documentation Remove-GPO",
+      "url": "https://learn.microsoft.com/en-us/powershell/module/grouppolicy/remove-gpo"
+    }
+  ]
+}

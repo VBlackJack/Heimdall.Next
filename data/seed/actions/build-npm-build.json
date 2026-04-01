@@ -1,0 +1,45 @@
+{
+  "id": "build-npm-build",
+  "title": "Construire un projet npm",
+  "description": "Exécute le script de build défini dans package.json.",
+  "category": "🔧 Development",
+  "platform": 2,
+  "level": 0,
+  "tags": [
+    "npm",
+    "build",
+    "nodejs",
+    "development"
+  ],
+  "windowsCommandTemplateId": "build-npm-build-win-cmd",
+  "windowsCommandTemplate": {
+    "id": "build-npm-build-win-cmd",
+    "platform": 0,
+    "name": "npm run build",
+    "commandPattern": "npm run build",
+    "parameters": []
+  },
+  "linuxCommandTemplateId": "build-npm-build-linux-cmd",
+  "linuxCommandTemplate": {
+    "id": "build-npm-build-linux-cmd",
+    "platform": 1,
+    "name": "npm run build",
+    "commandPattern": "npm run build",
+    "parameters": []
+  },
+  "examples": [],
+  "notes": "Le script doit être défini dans package.json. npm run liste tous les scripts disponibles.",
+  "links": [],
+  "linuxExamples": [
+    {
+      "command": "npm run build",
+      "description": "Exécute le script build de package.json",
+      "platform": 1
+    },
+    {
+      "command": "npm run build:prod",
+      "description": "Exécute un script build personnalisé",
+      "platform": 1
+    }
+  ]
+}

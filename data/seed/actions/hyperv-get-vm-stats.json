@@ -1,0 +1,64 @@
+{
+  "id": "hyperv-get-vm-stats",
+  "title": "Obtenir les statistiques d'une VM",
+  "description": "Affiche des statistiques détaillées d'utilisation des ressources (CPU, mémoire, disque, réseau) pour une machine virtuelle Hyper-V.",
+  "category": "🐳 Containers & VMs",
+  "platform": 0,
+  "level": 0,
+  "tags": [
+    "hyperv",
+    "stats",
+    "monitoring",
+    "performance",
+    "vm",
+    "metrics",
+    "diagnostic",
+    "resources"
+  ],
+  "windowsCommandTemplateId": "hyperv-get-vm-stats-cmd",
+  "windowsCommandTemplate": {
+    "id": "hyperv-get-vm-stats-cmd",
+    "platform": 0,
+    "name": "Measure-VM",
+    "commandPattern": "Measure-VM -Name '{vmName}' | Select-Object VMName, AvgCPU, AvgRAM, MaxRAM, TotalDisk, NetworkMeteredTrafficReport | Format-List",
+    "parameters": [
+      {
+        "name": "vmName",
+        "label": "Nom de la VM",
+        "type": "string",
+        "defaultValue": "",
+        "required": true,
+        "description": "Nom de la VM à analyser"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "Measure-VM -Name 'Production-Web' | Format-List",
+      "description": "Statistiques détaillées de la VM Production-Web",
+      "platform": 0
+    },
+    {
+      "command": "Get-VM | Where-Object {$_.State -eq 'Running'} | Measure-VM | Sort-Object AvgCPU -Descending",
+      "description": "Toutes les VMs triées par utilisation CPU",
+      "platform": 0
+    },
+    {
+      "command": "Get-VM 'TestVM' | Select-Object Name, CPUUsage, MemoryDemand, Uptime",
+      "description": "Métriques en temps réel d'une VM",
+      "platform": 0
+    },
+    {
+      "command": "Measure-VM -Name 'VM-WEB-01' | Select-Object VMName, AvgCPU, AvgRAM, MaxRAM, TotalDisk, NetworkMeteredTrafficReport | Format-List",
+      "description": "Exemple utilisant le paramètre 'vmName': Nom de la VM à analyser. Remplacez VM-WEB-01 par la valeur appropriée selon votre environnement.",
+      "platform": 0
+    }
+  ],
+  "notes": "Measure-VM fournit des moyennes sur la durée de vie de la VM. Pour le temps réel, utilisez Get-VM avec CPUUsage et MemoryDemand.",
+  "links": [
+    {
+      "title": "Documentation Measure-VM",
+      "url": "https://learn.microsoft.com/en-us/powershell/module/hyper-v/measure-vm"
+    }
+  ]
+}

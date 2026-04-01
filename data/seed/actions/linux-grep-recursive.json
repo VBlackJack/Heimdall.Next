@@ -1,0 +1,47 @@
+{
+  "id": "linux-grep-recursive",
+  "title": "Recherche texte (grep)",
+  "description": "Recherche une chaîne de caractères dans le contenu des fichiers.",
+  "category": "📁 Files & Storage",
+  "platform": 1,
+  "level": 0,
+  "tags": [
+    "linux",
+    "grep",
+    "search",
+    "text",
+    "content"
+  ],
+  "linuxCommandTemplate": {
+    "id": "618a0557-eb37-4ce3-9dd8-3c9259176994",
+    "platform": 1,
+    "name": "grep",
+    "commandPattern": "grep -rnw \"{path}\" -e \"{pattern}\"",
+    "parameters": [
+      {
+        "name": "path",
+        "label": "Chemin",
+        "type": "string",
+        "defaultValue": ".",
+        "required": true,
+        "description": "Où chercher"
+      },
+      {
+        "name": "pattern",
+        "label": "Texte",
+        "type": "string",
+        "defaultValue": "error",
+        "required": true,
+        "description": "Texte à trouver"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "grep -rnw '/var/log' -e 'Exception'",
+      "description": "Cherche 'Exception' récursivement (-r), avec numéro de ligne (-n) et mot entier (-w) dans /var/log.",
+      "platform": 1
+    }
+  ],
+  "linuxCommandTemplateId": "618a0557-eb37-4ce3-9dd8-3c9259176994"
+}

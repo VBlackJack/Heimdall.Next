@@ -1,0 +1,46 @@
+{
+  "id": "ad-list-ous",
+  "title": "Lister toutes les unités d'organisation (OU)",
+  "description": "Affiche la liste de toutes les unités d'organisation dans Active Directory.",
+  "category": "🏢 Active Directory & GPO",
+  "platform": 0,
+  "level": 0,
+  "tags": [
+    "ad",
+    "ou",
+    "organizational-unit",
+    "list"
+  ],
+  "windowsCommandTemplateId": "ad-list-ous-cmd",
+  "windowsCommandTemplate": {
+    "id": "ad-list-ous-cmd",
+    "platform": 0,
+    "name": "Get-ADOrganizationalUnit",
+    "commandPattern": "Get-ADOrganizationalUnit -Filter * -Properties Description | Select-Object Name,DistinguishedName,Description | Format-Table -AutoSize",
+    "parameters": []
+  },
+  "examples": [
+    {
+      "command": "Get-ADOrganizationalUnit -Filter * -Properties Description | Select-Object Name,DistinguishedName,Description | Format-Table -AutoSize",
+      "description": "Liste toutes les OUs avec leurs descriptions",
+      "platform": 0
+    },
+    {
+      "command": "Get-ADOrganizationalUnit -Filter * -Properties Description | Export-Csv C:\\Temp\\Export.csv -NoTypeInformation -Encoding UTF8",
+      "description": "Exporte les résultats vers un fichier CSV exploitable dans Excel. -NoTypeInformation supprime la ligne de métadonnées. -Encoding UTF8 garantit la compatibilité des caractères accentués. Utile pour l'archivage, les rapports et l'analyse externe.",
+      "platform": 0
+    },
+    {
+      "command": "Get-ADOrganizationalUnit -Filter * -Properties Description | Measure-Object",
+      "description": "Compte le nombre total d'objets retournés. Measure-Object retourne Count, Sum, Average, Min, Max selon les propriétés. Utile pour les statistiques rapides et la validation de résultats.",
+      "platform": 0
+    }
+  ],
+  "notes": "Affiche toutes les OUs du domaine. Utile pour identifier les chemins pour la création d'objets.",
+  "links": [
+    {
+      "title": "Documentation Get-ADOrganizationalUnit",
+      "url": "https://learn.microsoft.com/en-us/powershell/module/activedirectory/get-adorganizationalunit"
+    }
+  ]
+}

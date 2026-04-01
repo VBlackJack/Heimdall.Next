@@ -1,0 +1,76 @@
+{
+  "id": "hyperv-export-vm",
+  "title": "Exporter une machine virtuelle",
+  "description": "Exporte une VM Hyper-V complète (configuration, disques virtuels, snapshots) vers un dossier pour sauvegarde ou migration.",
+  "category": "🐳 Containers & VMs",
+  "platform": 0,
+  "level": 1,
+  "tags": [
+    "hyperv",
+    "export",
+    "backup",
+    "migration",
+    "vm",
+    "disaster-recovery",
+    "clone"
+  ],
+  "windowsCommandTemplateId": "hyperv-export-vm-cmd",
+  "windowsCommandTemplate": {
+    "id": "hyperv-export-vm-cmd",
+    "platform": 0,
+    "name": "Export-VM",
+    "commandPattern": "Export-VM -Name '{vmName}' -Path '{exportPath}'",
+    "parameters": [
+      {
+        "name": "vmName",
+        "label": "Nom de la VM",
+        "type": "string",
+        "defaultValue": "",
+        "required": true,
+        "description": "Nom de la VM à exporter"
+      },
+      {
+        "name": "exportPath",
+        "label": "Chemin d'export",
+        "type": "string",
+        "defaultValue": "D:\\VM-Exports",
+        "required": true,
+        "description": "Dossier de destination de l'export"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "Export-VM -Name 'Windows11-Dev' -Path 'D:\\Backups\\VMs'",
+      "description": "Exporte une VM vers D:\\Backups\\VMs",
+      "platform": 0
+    },
+    {
+      "command": "Export-VM -Name 'Production-DB' -Path '\\\\NAS\\VM-Backups' -CaptureLiveState CaptureSavedState",
+      "description": "Exporte avec capture de l'état actuel",
+      "platform": 0
+    },
+    {
+      "command": "Import-VM -Path 'D:\\Backups\\VMs\\Windows11-Dev' -Copy -GenerateNewId",
+      "description": "Importe une VM exportée (avec nouvel ID)",
+      "platform": 0
+    },
+    {
+      "command": "Export-VM -Name 'VM-WEB-01' -Path 'C:\\Export\\users.csv'",
+      "description": "Exemple utilisant le paramètre 'vmName': Nom de la VM à exporter. Remplacez VM-WEB-01 par la valeur appropriée selon votre environnement.",
+      "platform": 0
+    },
+    {
+      "command": "Export-VM -Name 'VM-WEB-01' -Path 'D:\\VM-Exports'",
+      "description": "Exemple utilisant le paramètre 'exportPath': Dossier de destination de l'export. Remplacez C:\\Export\\users.csv par la valeur appropriée selon votre environnement.",
+      "platform": 0
+    }
+  ],
+  "notes": "L'export peut être long selon la taille de la VM. Vérifiez l'espace disque disponible. Utilisez Import-VM pour restaurer.",
+  "links": [
+    {
+      "title": "Documentation Export-VM",
+      "url": "https://learn.microsoft.com/en-us/powershell/module/hyper-v/export-vm"
+    }
+  ]
+}

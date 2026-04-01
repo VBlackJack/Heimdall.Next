@@ -1,0 +1,39 @@
+using TwinShell.Core.Enums;
+
+namespace TwinShell.Core.Models;
+
+/// <summary>
+/// Represents a command template with parameters
+/// </summary>
+public class CommandTemplate
+{
+    /// <summary>
+    /// Unique identifier
+    /// </summary>
+    public string Id { get; set; } = Guid.NewGuid().ToString();
+
+    /// <summary>
+    /// Universal unique identifier for GitOps synchronization
+    /// </summary>
+    public Guid PublicId { get; set; } = Guid.NewGuid();
+
+    /// <summary>
+    /// Platform for this template
+    /// </summary>
+    public Platform Platform { get; set; }
+
+    /// <summary>
+    /// Template name
+    /// </summary>
+    public string Name { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Command pattern with placeholders (e.g., "gpresult /R /S {targetHost}")
+    /// </summary>
+    public string CommandPattern { get; set; } = string.Empty;
+
+    /// <summary>
+    /// List of parameters for this template
+    /// </summary>
+    public List<TemplateParameter> Parameters { get; set; } = new();
+}

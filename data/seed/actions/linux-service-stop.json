@@ -1,0 +1,40 @@
+{
+  "id": "linux-service-stop",
+  "title": "Arrêter un service",
+  "description": "Arrête un service systemd en cours d'exécution.",
+  "category": "⚙️ Services & Automation",
+  "platform": 1,
+  "level": 1,
+  "tags": [
+    "linux",
+    "systemd",
+    "service",
+    "stop"
+  ],
+  "linuxCommandTemplateId": "linux-service-stop-cmd",
+  "linuxCommandTemplate": {
+    "id": "linux-service-stop-cmd",
+    "platform": 1,
+    "name": "systemctl",
+    "commandPattern": "sudo systemctl stop {serviceName}",
+    "parameters": [
+      {
+        "name": "serviceName",
+        "label": "Nom du service",
+        "type": "string",
+        "defaultValue": "",
+        "required": true,
+        "description": "Nom du service à arrêter"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "sudo systemctl stop wuauserv",
+      "description": "Exemple utilisant le paramètre 'serviceName': Nom du service à arrêter. Remplacez wuauserv par la valeur appropriée selon votre environnement.",
+      "platform": 1
+    }
+  ],
+  "notes": "Nécessite les droits sudo. Peut affecter les services dépendants.",
+  "links": []
+}

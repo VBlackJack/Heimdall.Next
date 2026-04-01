@@ -1,0 +1,46 @@
+{
+  "id": "run-npm-start",
+  "title": "Démarrer un projet npm",
+  "description": "Exécute le script de démarrage d'un projet Node.js.",
+  "category": "🔧 Development",
+  "platform": 2,
+  "level": 0,
+  "tags": [
+    "run",
+    "npm",
+    "start",
+    "nodejs",
+    "development"
+  ],
+  "windowsCommandTemplateId": "run-npm-start-win-cmd",
+  "windowsCommandTemplate": {
+    "id": "run-npm-start-win-cmd",
+    "platform": 0,
+    "name": "npm start",
+    "commandPattern": "npm start",
+    "parameters": []
+  },
+  "linuxCommandTemplateId": "run-npm-start-linux-cmd",
+  "linuxCommandTemplate": {
+    "id": "run-npm-start-linux-cmd",
+    "platform": 1,
+    "name": "npm start",
+    "commandPattern": "npm start",
+    "parameters": []
+  },
+  "examples": [],
+  "notes": "npm start exécute le script 'start' de package.json. npm run dev pour le mode développement.",
+  "links": [],
+  "linuxExamples": [
+    {
+      "command": "npm start",
+      "description": "Démarre l'application selon package.json",
+      "platform": 1
+    },
+    {
+      "command": "npm run dev",
+      "description": "Lance le script dev (mode développement)",
+      "platform": 1
+    }
+  ]
+}

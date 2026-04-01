@@ -1,0 +1,61 @@
+{
+  "id": "pswindowsupdate-get-history",
+  "title": "Afficher l'historique des mises à jour (PSWindowsUpdate)",
+  "description": "Liste l'historique détaillé de toutes les mises à jour Windows installées avec dates et statuts",
+  "category": "🔄 Windows Updates",
+  "platform": 0,
+  "level": 0,
+  "tags": [
+    "windows-update",
+    "history",
+    "pswindowsupdate",
+    "diagnostic"
+  ],
+  "windowsCommandTemplateId": "pswindowsupdate-get-history-cmd",
+  "windowsCommandTemplate": {
+    "id": "pswindowsupdate-get-history-cmd",
+    "platform": 0,
+    "name": "Get-WUHistory",
+    "commandPattern": "Get-WUHistory | Select-Object -First 20",
+    "parameters": []
+  },
+  "examples": [
+    {
+      "command": "Get-WUHistory | Select-Object -First 50",
+      "description": "Affiche les 50 dernières mises à jour installées",
+      "platform": 0
+    },
+    {
+      "command": "Get-WUHistory -MaxDate (Get-Date).AddDays(-30)",
+      "description": "Affiche l'historique des 30 derniers jours",
+      "platform": 0
+    },
+    {
+      "command": "Get-WUHistory | Select-Object * -First 1",
+      "description": "Affiche toutes les propriétés du premier objet retourné. Select-Object * élargit l'affichage pour montrer toutes les colonnes. -First 1 limite au premier résultat. Utilisez cette commande pour découvrir les propriétés disponibles avant de filtrer.",
+      "platform": 0
+    },
+    {
+      "command": "Get-WUHistory | Format-Table -AutoSize",
+      "description": "Affiche les résultats dans un tableau optimisé pour la console. Format-Table -AutoSize ajuste automatiquement la largeur des colonnes pour un affichage lisible. Idéal pour visualiser rapidement les données structurées.",
+      "platform": 0
+    },
+    {
+      "command": "Get-WUHistory | Export-Csv C:\\Temp\\Export.csv -NoTypeInformation -Encoding UTF8",
+      "description": "Exporte les résultats vers un fichier CSV exploitable dans Excel. -NoTypeInformation supprime la ligne de métadonnées. -Encoding UTF8 garantit la compatibilité des caractères accentués. Utile pour l'archivage, les rapports et l'analyse externe.",
+      "platform": 0
+    },
+    {
+      "command": "Get-WUHistory | Measure-Object",
+      "description": "Compte le nombre total d'objets retournés. Measure-Object retourne Count, Sum, Average, Min, Max selon les propriétés. Utile pour les statistiques rapides et la validation de résultats.",
+      "platform": 0
+    }
+  ],
+  "notes": "Nécessite le module PSWindowsUpdate. Fournit plus de détails que Get-HotFix.",
+  "links": [
+    {
+      "title": "PSWindowsUpdate Module",
+      "url": "https://www.powershellgallery.com/packages/PSWindowsUpdate"
+    }
+  ]
+}

@@ -1,0 +1,66 @@
+{
+  "id": "unified-disk-space",
+  "title": "Afficher l'espace disque disponible",
+  "description": "Affiche l'espace disque utilisé et disponible sur les partitions",
+  "category": "📁 Files & Storage",
+  "platform": 2,
+  "level": 0,
+  "tags": [
+    "disk",
+    "space",
+    "storage",
+    "partition",
+    "free",
+    "usage"
+  ],
+  "windowsCommandTemplateId": "unified-disk-space-win-cmd",
+  "windowsCommandTemplate": {
+    "id": "unified-disk-space-win-cmd",
+    "platform": 0,
+    "commandPattern": "Get-Volume | Where-Object {$_.DriveLetter} | Select-Object DriveLetter,FileSystemLabel,@{Name='Size_GB';Expression={[math]::Round($_.Size/1GB,2)}},@{Name='Free_GB';Expression={[math]::Round($_.SizeRemaining/1GB,2)}},@{Name='Free_%';Expression={[math]::Round(($_.SizeRemaining/$_.Size)*100,2)}} | Format-Table -AutoSize",
+    "parameters": []
+  },
+  "linuxCommandTemplateId": "unified-disk-space-linux-cmd",
+  "linuxCommandTemplate": {
+    "id": "unified-disk-space-linux-cmd",
+    "platform": 1,
+    "commandPattern": "df -h",
+    "parameters": []
+  },
+  "parameters": [],
+  "examples": [],
+  "windowsExamples": [
+    {
+      "command": "Get-Volume | Select-Object DriveLetter,Size,SizeRemaining | Format-Table",
+      "description": "Affiche l'espace disque sur Windows avec taille totale et restante",
+      "platform": 0
+    }
+  ],
+  "linuxExamples": [
+    {
+      "command": "df -h",
+      "description": "Affiche l'espace disque sur Linux",
+      "platform": 1
+    },
+    {
+      "command": "df -h /home",
+      "description": "Espace disque du point de montage /home",
+      "platform": 1
+    },
+    {
+      "command": "df -T",
+      "description": "Afficher le type de filesystem",
+      "platform": 1
+    },
+    {
+      "command": "df -i",
+      "description": "Afficher l'utilisation des inodes",
+      "platform": 1
+    },
+    {
+      "command": "df -h --total",
+      "description": "Avec le total global",
+      "platform": 1
+    }
+  ]
+}

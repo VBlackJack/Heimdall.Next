@@ -1,0 +1,49 @@
+{
+  "id": "gpo-search",
+  "title": "Rechercher des GPO par nom",
+  "description": "Recherche des stratégies de groupe par leur nom.",
+  "category": "🏢 Active Directory & GPO",
+  "platform": 0,
+  "level": 0,
+  "tags": [
+    "gpo",
+    "search",
+    "group-policy"
+  ],
+  "windowsCommandTemplateId": "gpo-search-cmd",
+  "windowsCommandTemplate": {
+    "id": "gpo-search-cmd",
+    "platform": 0,
+    "name": "Get-GPO",
+    "commandPattern": "Get-GPO -All | Where-Object {$_.DisplayName -like '*{searchTerm}*'} | Select-Object DisplayName,GpoStatus,CreationTime",
+    "parameters": [
+      {
+        "name": "searchTerm",
+        "label": "Terme de recherche",
+        "type": "string",
+        "defaultValue": "",
+        "required": true,
+        "description": "Terme à rechercher dans le nom de la GPO"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "Get-GPO -All | Where-Object {$_.DisplayName -like '*Security*'} | Select-Object DisplayName,GpoStatus,CreationTime",
+      "description": "Recherche toutes les GPO contenant 'Security'",
+      "platform": 0
+    },
+    {
+      "command": "Get-GPO -All | Format-Table -AutoSize",
+      "description": "Affiche les résultats dans un tableau optimisé pour la console. Format-Table -AutoSize ajuste automatiquement la largeur des colonnes pour un affichage lisible. Idéal pour visualiser rapidement les données structurées.",
+      "platform": 0
+    },
+    {
+      "command": "Get-GPO -All | Where-Object {$_.DisplayName -like '*Admin*'} | Select-Object DisplayName,GpoStatus,CreationTime",
+      "description": "Exemple utilisant le paramètre 'searchTerm': Terme à rechercher dans le nom de la GPO. Remplacez Admin par la valeur appropriée selon votre environnement.",
+      "platform": 0
+    }
+  ],
+  "notes": "Recherche insensible à la casse avec wildcard automatique.",
+  "links": []
+}

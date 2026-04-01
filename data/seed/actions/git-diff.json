@@ -1,0 +1,77 @@
+{
+  "id": "git-diff",
+  "title": "Afficher les différences",
+  "description": "Affiche les différences entre commits, branches ou fichiers",
+  "category": "🔧 Development",
+  "platform": 2,
+  "level": 0,
+  "tags": [
+    "git",
+    "diff",
+    "changes"
+  ],
+  "windowsCommandTemplateId": "git-diff-win",
+  "windowsCommandTemplate": {
+    "id": "git-diff-win",
+    "platform": 0,
+    "name": "git",
+    "commandPattern": "git diff {target}",
+    "parameters": [
+      {
+        "name": "target",
+        "label": "Cible",
+        "type": "string",
+        "defaultValue": "",
+        "required": false,
+        "description": "Branche, commit ou fichier à comparer"
+      }
+    ]
+  },
+  "linuxCommandTemplateId": "git-diff-linux",
+  "linuxCommandTemplate": {
+    "id": "git-diff-linux",
+    "platform": 1,
+    "name": "git",
+    "commandPattern": "git diff {target}",
+    "parameters": [
+      {
+        "name": "target",
+        "label": "Cible",
+        "type": "string",
+        "defaultValue": "",
+        "required": false,
+        "description": "Cible à comparer"
+      }
+    ]
+  },
+  "examples": [],
+  "notes": "Utilisez --staged pour voir ce qui sera commité, --stat pour un résumé.",
+  "links": [
+    {
+      "title": "Git Diff Documentation",
+      "url": "https://git-scm.com/docs/git-diff"
+    }
+  ],
+  "linuxExamples": [
+    {
+      "command": "git diff",
+      "description": "Affiche les modifications non staged",
+      "platform": 1
+    },
+    {
+      "command": "git diff --staged",
+      "description": "Affiche les modifications staged",
+      "platform": 1
+    },
+    {
+      "command": "git diff main..feature",
+      "description": "Compare deux branches",
+      "platform": 1
+    },
+    {
+      "command": "git diff srv-web-01.contoso.com",
+      "description": "Exemple utilisant le paramètre 'target': Branche, commit ou fichier à comparer. Remplacez srv-web-01.contoso.com par la valeur appropriée selon votre environnement.",
+      "platform": 1
+    }
+  ]
+}

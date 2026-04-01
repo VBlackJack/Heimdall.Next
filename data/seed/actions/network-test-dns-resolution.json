@@ -1,0 +1,106 @@
+{
+  "id": "network-test-dns-resolution",
+  "title": "Tester la résolution DNS",
+  "description": "Résout un nom de domaine en adresse IP et affiche les informations DNS détaillées",
+  "category": "🌐 Network & DNS",
+  "platform": 0,
+  "level": 0,
+  "tags": [
+    "network",
+    "dns",
+    "resolution",
+    "diagnostic"
+  ],
+  "windowsCommandTemplateId": "network-test-dns-resolution-cmd",
+  "windowsCommandTemplate": {
+    "id": "network-test-dns-resolution-cmd",
+    "platform": 0,
+    "name": "Resolve-DnsName",
+    "commandPattern": "Resolve-DnsName -Name {hostname} -Type {recordType} -Server {dnsServer} -DnsOnly",
+    "parameters": [
+      {
+        "name": "hostname",
+        "label": "Nom d'hôte",
+        "type": "string",
+        "defaultValue": "google.com",
+        "required": true,
+        "description": "Nom d'hôte à résoudre"
+      },
+      {
+        "name": "recordType",
+        "label": "Type d'enregistrement",
+        "type": "string",
+        "defaultValue": "A",
+        "required": true,
+        "description": "Type d'enregistrement DNS (A, AAAA, MX, TXT, etc.)"
+      },
+      {
+        "name": "dnsServer",
+        "label": "Serveur DNS",
+        "type": "string",
+        "defaultValue": "8.8.8.8",
+        "required": false,
+        "description": "Serveur DNS à interroger (optionnel)"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "Resolve-DnsName -Name microsoft.com -Server 8.8.8.8",
+      "description": "Force la résolution via un serveur externe (Google). Permet de savoir si le problème vient de votre DNS interne ou de la propagation mondiale.",
+      "platform": 0
+    },
+    {
+      "command": "Resolve-DnsName -Name outlook.com -Type TXT",
+      "description": "Vérifie les enregistrements TXT (souvent utilisés pour SPF, DKIM, validation de domaine).",
+      "platform": 0
+    },
+    {
+      "command": "Resolve-DnsName google.com",
+      "description": "Résout le nom de domaine google.com en adresse(s) IP. Équivalent PowerShell de 'nslookup'. Retourne tous les enregistrements A (IPv4) et AAAA (IPv6) associés. Utilise le serveur DNS configuré sur la machine.",
+      "platform": 0
+    },
+    {
+      "command": "Resolve-DnsName google.com -Type MX",
+      "description": "Interroge les enregistrements MX (Mail eXchange) de google.com. Les enregistrements MX indiquent les serveurs de messagerie responsables du domaine. Retourne les serveurs mail avec leur priorité. Essentiel pour diagnostiquer les problèmes d'email et vérifier les configurations SMTP.",
+      "platform": 0
+    },
+    {
+      "command": "Resolve-DnsName contoso.com -Type ALL -Server 8.8.8.8",
+      "description": "Interroge TOUS les types d'enregistrements DNS (A, AAAA, MX, TXT, NS, SOA, etc.) en utilisant le serveur DNS public de Google (8.8.8.8). -Type ALL retourne absolument tous les enregistrements disponibles. -Server force l'utilisation d'un DNS spécifique au lieu du DNS local. Utile pour comparer les résolutions ou diagnostiquer des problèmes de propagation DNS.",
+      "platform": 0
+    },
+    {
+      "command": "Resolve-DnsName _spf.google.com -Type TXT",
+      "description": "Interroge les enregistrements TXT, souvent utilisés pour SPF (Sender Policy Framework), DKIM, DMARC et vérifications de domaine. Les enregistrements TXT contiennent du texte libre utilisé pour la configuration d'email, la sécurité et les validations de propriété de domaine.",
+      "platform": 0
+    },
+    {
+      "command": "Resolve-DnsName 8.8.8.8 -Type PTR",
+      "description": "Résolution DNS inverse (reverse lookup) : cherche le nom de domaine associé à l'IP 8.8.8.8. Les enregistrements PTR mappent IP → nom (inverse de A qui mappe nom → IP). Utile pour identifier un serveur à partir de son IP ou vérifier la cohérence des configurations DNS.",
+      "platform": 0
+    },
+    {
+      "command": "Resolve-DnsName contoso.com -Type NS",
+      "description": "Interroge les enregistrements NS (Name Server) qui indiquent quels serveurs DNS sont autoritaires pour le domaine. Les enregistrements NS définissent où sont hébergées les zones DNS. Essentiel lors de migrations DNS ou pour identifier l'hébergeur DNS d'un domaine.",
+      "platform": 0
+    },
+    {
+      "command": "Resolve-DnsName google.com -DnsOnly",
+      "description": "Force une vraie requête DNS en désactivant le cache local. Le switch -DnsOnly ignore complètement le cache de résolution Windows et force une interrogation du serveur DNS. Utile pour vérifier les changements DNS récents ou diagnostiquer des problèmes de cache.",
+      "platform": 0
+    },
+    {
+      "command": "Get-Content C:\\domains.txt | ForEach-Object {Resolve-DnsName $_ -ErrorAction SilentlyContinue} | Select-Object Name,IPAddress",
+      "description": "Résout en masse une liste de domaines depuis un fichier. Get-Content charge le fichier. ForEach-Object résout chaque ligne. -ErrorAction SilentlyContinue ignore les erreurs (domaines inexistants). Select-Object formate les résultats. Idéal pour valider une liste de domaines ou créer un inventaire DNS.",
+      "platform": 0
+    }
+  ],
+  "notes": "Remplace nslookup. Types courants: A (IPv4), AAAA (IPv6), MX (mail), TXT (texte), CNAME (alias). Serveurs DNS publics: 8.8.8.8 (Google), 1.1.1.1 (Cloudflare).",
+  "links": [
+    {
+      "title": "Resolve-DnsName Documentation",
+      "url": "https://learn.microsoft.com/en-us/powershell/module/dnsclient/resolve-dnsname"
+    }
+  ]
+}

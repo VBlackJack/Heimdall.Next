@@ -1,0 +1,83 @@
+{
+  "id": "git-pull",
+  "title": "Récupérer et fusionner depuis le dépôt distant",
+  "description": "Récupère les modifications du dépôt distant et les fusionne avec la branche locale",
+  "category": "🔧 Development",
+  "platform": 2,
+  "level": 1,
+  "tags": [
+    "git",
+    "pull",
+    "fetch",
+    "merge"
+  ],
+  "windowsCommandTemplateId": "git-pull-win",
+  "windowsCommandTemplate": {
+    "id": "git-pull-win",
+    "platform": 0,
+    "name": "git",
+    "commandPattern": "git pull {remote} {branch}",
+    "parameters": [
+      {
+        "name": "remote",
+        "label": "Remote",
+        "type": "string",
+        "defaultValue": "origin",
+        "required": false,
+        "description": "Nom du dépôt distant"
+      },
+      {
+        "name": "branch",
+        "label": "Branche",
+        "type": "string",
+        "defaultValue": "",
+        "required": false,
+        "description": "Nom de la branche"
+      }
+    ]
+  },
+  "linuxCommandTemplateId": "git-pull-linux",
+  "linuxCommandTemplate": {
+    "id": "git-pull-linux",
+    "platform": 1,
+    "name": "git",
+    "commandPattern": "git pull {remote} {branch}",
+    "parameters": [
+      {
+        "name": "remote",
+        "label": "Remote",
+        "type": "string",
+        "defaultValue": "origin",
+        "required": false,
+        "description": "Nom du dépôt distant"
+      },
+      {
+        "name": "branch",
+        "label": "Branche",
+        "type": "string",
+        "defaultValue": "",
+        "required": false,
+        "description": "Nom de la branche"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "git pull origin main",
+      "description": "Récupère et fusionne les changements de main",
+      "platform": 2
+    },
+    {
+      "command": "git pull --rebase",
+      "description": "Récupère et rebase au lieu de merge",
+      "platform": 2
+    }
+  ],
+  "notes": "Utilisez --rebase pour un historique linéaire sans commits de merge.",
+  "links": [
+    {
+      "title": "Git Pull Documentation",
+      "url": "https://git-scm.com/docs/git-pull"
+    }
+  ]
+}

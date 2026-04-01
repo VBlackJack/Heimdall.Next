@@ -1,0 +1,56 @@
+{
+  "id": "defender-get-status",
+  "title": "Obtenir le statut complet de Windows Defender",
+  "description": "Affiche l'état détaillé de Windows Defender (protection temps réel, définitions, dernière analyse, etc.).",
+  "category": "🔒 Security & Encryption",
+  "platform": 0,
+  "level": 0,
+  "tags": [
+    "defender",
+    "antivirus",
+    "status",
+    "security"
+  ],
+  "windowsCommandTemplateId": "defender-get-status-cmd",
+  "windowsCommandTemplate": {
+    "id": "defender-get-status-cmd",
+    "platform": 0,
+    "name": "Get-MpComputerStatus",
+    "commandPattern": "Get-MpComputerStatus | Select-Object AntivirusEnabled,RealTimeProtectionEnabled,AntivirusSignatureLastUpdated,QuickScanAge,FullScanAge,NISEnabled | Format-List",
+    "parameters": []
+  },
+  "examples": [
+    {
+      "command": "Get-MpComputerStatus",
+      "description": "Affiche tous les détails du statut Defender",
+      "platform": 0
+    },
+    {
+      "command": "Get-MpComputerStatus | Select-Object RealTimeProtectionEnabled,BehaviorMonitorEnabled,IoavProtectionEnabled,OnAccessProtectionEnabled",
+      "description": "Vérifie les 4 protections en temps réel essentielles",
+      "platform": 0
+    },
+    {
+      "command": "Get-MpComputerStatus | Select-Object AntivirusSignatureVersion,AntivirusSignatureLastUpdated",
+      "description": "Affiche la version et date des définitions antivirus",
+      "platform": 0
+    },
+    {
+      "command": "Get-MpComputerStatus | Select-Object QuickScanStartTime,QuickScanEndTime,FullScanStartTime,FullScanEndTime",
+      "description": "Affiche les dates des dernières analyses rapides et complètes",
+      "platform": 0
+    },
+    {
+      "command": "Get-MpComputerStatus | Select-Object AMEngineVersion,AMProductVersion,AMServiceEnabled",
+      "description": "Vérifie les versions du moteur antimalware et du service",
+      "platform": 0
+    }
+  ],
+  "notes": "RealTimeProtectionEnabled: protection en temps réel. BehaviorMonitorEnabled: surveillance comportementale. IoavProtectionEnabled: inspection à l'accès. NISEnabled: système d'inspection réseau. QuickScanAge/FullScanAge: nombre de jours depuis dernière analyse.",
+  "links": [
+    {
+      "title": "Get-MpComputerStatus Documentation",
+      "url": "https://learn.microsoft.com/en-us/powershell/module/defender/get-mpcomputerstatus"
+    }
+  ]
+}

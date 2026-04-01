@@ -1,0 +1,76 @@
+{
+  "id": "git-log",
+  "title": "Afficher l'historique des commits",
+  "description": "Affiche l'historique des commits du dépôt",
+  "category": "🔧 Development",
+  "platform": 2,
+  "level": 0,
+  "tags": [
+    "git",
+    "log",
+    "history"
+  ],
+  "windowsCommandTemplateId": "git-log-win",
+  "windowsCommandTemplate": {
+    "id": "git-log-win",
+    "platform": 0,
+    "name": "git",
+    "commandPattern": "git log --oneline --graph --decorate -n {count}",
+    "parameters": [
+      {
+        "name": "count",
+        "label": "Nombre",
+        "type": "number",
+        "defaultValue": "20",
+        "required": false,
+        "description": "Nombre de commits à afficher"
+      }
+    ]
+  },
+  "linuxCommandTemplateId": "git-log-linux",
+  "linuxCommandTemplate": {
+    "id": "git-log-linux",
+    "platform": 1,
+    "name": "git",
+    "commandPattern": "git log --oneline --graph --decorate -n {count}",
+    "parameters": [
+      {
+        "name": "count",
+        "label": "Nombre",
+        "type": "number",
+        "defaultValue": "20",
+        "required": false,
+        "description": "Nombre de commits"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "git log --oneline",
+      "description": "Affiche l'historique en format compact",
+      "platform": 2
+    },
+    {
+      "command": "git log --graph --all",
+      "description": "Affiche toutes les branches avec un graphe",
+      "platform": 2
+    },
+    {
+      "command": "git log --author=\"John\"",
+      "description": "Filtre par auteur",
+      "platform": 2
+    },
+    {
+      "command": "git log --oneline --graph --decorate -n 20",
+      "description": "Exemple utilisant le paramètre 'count': Nombre de commits à afficher. Remplacez 10 par la valeur appropriée selon votre environnement.",
+      "platform": 2
+    }
+  ],
+  "notes": "Utilisez --graph pour visualiser les branches, --stat pour voir les statistiques de modifications.",
+  "links": [
+    {
+      "title": "Git Log Documentation",
+      "url": "https://git-scm.com/docs/git-log"
+    }
+  ]
+}

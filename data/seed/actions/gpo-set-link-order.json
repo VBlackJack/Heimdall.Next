@@ -1,0 +1,86 @@
+{
+  "id": "gpo-set-link-order",
+  "title": "Définir l'ordre de lien d'une GPO",
+  "description": "Modifie l'ordre de traitement d'un lien GPO sur une OU.",
+  "category": "🏢 Active Directory & GPO",
+  "platform": 0,
+  "level": 1,
+  "tags": [
+    "gpo",
+    "link",
+    "order",
+    "priority"
+  ],
+  "windowsCommandTemplateId": "gpo-set-link-order-cmd",
+  "windowsCommandTemplate": {
+    "id": "gpo-set-link-order-cmd",
+    "platform": 0,
+    "name": "Set-GPLink",
+    "commandPattern": "Set-GPLink -Name \"{gpoName}\" -Target \"{ouDN}\" -Order {order}",
+    "parameters": [
+      {
+        "name": "gpoName",
+        "label": "Nom de la GPO",
+        "type": "string",
+        "defaultValue": "",
+        "required": true,
+        "description": "Nom de la GPO"
+      },
+      {
+        "name": "ouDN",
+        "label": "DN de l'OU",
+        "type": "string",
+        "defaultValue": "",
+        "required": true,
+        "description": "Distinguished Name de l'OU"
+      },
+      {
+        "name": "order",
+        "label": "Ordre",
+        "type": "string",
+        "defaultValue": "1",
+        "required": true,
+        "description": "Position dans l'ordre (1 = priorité la plus haute)"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "Set-GPLink -Name \"Security-Policy\" -Target \"OU=IT,DC=contoso,DC=com\" -Order 1",
+      "description": "Place la GPO en première position sur l'OU IT",
+      "platform": 0
+    },
+    {
+      "command": "Set-GPLink -Name \"Security-Baseline\" -Target \"OU=Paris-Users,DC=contoso,DC=com\" -Order ascending -WhatIf",
+      "description": "Simulation de l'action sans exécution réelle (dry-run). Le switch -WhatIf affiche ce qui serait modifié sans appliquer les changements. INDISPENSABLE avant toute action de masse ou modification critique. Retirez -WhatIf après validation pour exécuter.",
+      "platform": 0
+    },
+    {
+      "command": "Set-GPLink -Name \"Security-Baseline\" -Target \"OU=Paris-Users,DC=contoso,DC=com\" -Order ascending -Confirm:$false",
+      "description": "Exécute l'action sans demander de confirmation interactive. -Confirm:$false supprime les invites de validation. Utile dans les scripts automatisés mais à utiliser avec précaution : aucun filet de sécurité.",
+      "platform": 0
+    },
+    {
+      "command": "Set-GPLink -Name \"Security-Baseline\" -Target \"OU=Paris-Users,DC=contoso,DC=com\" -Order ascending -PassThru",
+      "description": "Force la commande à retourner l'objet modifié/créé dans le pipeline. Par défaut, les cmdlets Set-/New- ne retournent rien. -PassThru active le retour pour permettre des opérations en chaîne ou des vérifications immédiates.",
+      "platform": 0
+    },
+    {
+      "command": "Set-GPLink -Name \"Security-Baseline\" -Target \"OU=Paris-Users,DC=contoso,DC=com\" -Order ascending -Verbose",
+      "description": "Affiche des informations détaillées sur l'exécution de la commande. -Verbose active les messages de débogage pour comprendre précisément ce qui se passe. Essentiel pour le troubleshooting et la compréhension des opérations internes.",
+      "platform": 0
+    },
+    {
+      "command": "Set-GPLink -Name \"Security-Baseline\" -Target \"OU=Paris-Users,DC=contoso,DC=com\" -Order ascending",
+      "description": "Exemple utilisant le paramètre 'gpoName': Nom de la GPO. Remplacez Security-Baseline par la valeur appropriée selon votre environnement.",
+      "platform": 0
+    }
+  ],
+  "notes": "L'ordre 1 a la priorité la plus haute. Les GPO sont traitées de la plus haute à la plus basse priorité.",
+  "links": [
+    {
+      "title": "Documentation Set-GPLink",
+      "url": "https://learn.microsoft.com/en-us/powershell/module/grouppolicy/set-gplink"
+    }
+  ]
+}

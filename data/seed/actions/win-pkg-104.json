@@ -1,0 +1,42 @@
+{
+  "id": "win-pkg-104",
+  "title": "Mettre à jour tous les packages Chocolatey",
+  "description": "Met à jour tous les packages installés vers leurs dernières versions disponibles.",
+  "category": "📦 Package Management",
+  "platform": 0,
+  "level": 1,
+  "tags": [
+    "chocolatey",
+    "package",
+    "update",
+    "upgrade-all",
+    "windows"
+  ],
+  "windowsCommandTemplateId": "choco-upgrade-all-cmd",
+  "windowsCommandTemplate": {
+    "id": "choco-upgrade-all-cmd",
+    "platform": 0,
+    "name": "choco",
+    "commandPattern": "choco upgrade all -y",
+    "parameters": []
+  },
+  "examples": [
+    {
+      "command": "choco upgrade all -y",
+      "description": "Met à jour tous les packages Chocolatey",
+      "platform": 0
+    },
+    {
+      "command": "choco upgrade all -y --except=\"package1,package2\"",
+      "description": "Met à jour tous sauf certains packages",
+      "platform": 0
+    }
+  ],
+  "notes": "Peut prendre du temps. L'option --except permet d'exclure certains packages.",
+  "links": [
+    {
+      "title": "Chocolatey upgrade documentation",
+      "url": "https://docs.chocolatey.org/en-us/choco/commands/upgrade"
+    }
+  ]
+}

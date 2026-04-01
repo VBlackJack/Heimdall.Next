@@ -1,0 +1,60 @@
+{
+  "id": "systemctl-stop",
+  "title": "Arrêter un service systemd",
+  "description": "Arrête immédiatement un service systemd en cours d'exécution",
+  "category": "⚙️ Services & Automation",
+  "platform": 1,
+  "level": 1,
+  "tags": [
+    "systemctl",
+    "systemd",
+    "service",
+    "stop"
+  ],
+  "linuxCommandTemplateId": "systemctl-stop-cmd",
+  "linuxCommandTemplate": {
+    "id": "systemctl-stop-cmd",
+    "platform": 1,
+    "name": "systemctl",
+    "commandPattern": "systemctl stop {service}",
+    "parameters": [
+      {
+        "name": "service",
+        "label": "Nom du service",
+        "type": "string",
+        "defaultValue": "nginx.service",
+        "required": true,
+        "description": "Nom de l'unité systemd à arrêter"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "sudo systemctl stop nginx",
+      "description": "Arrête le service nginx",
+      "platform": 1
+    },
+    {
+      "command": "sudo systemctl stop mysql.service",
+      "description": "Arrête MySQL/MariaDB",
+      "platform": 1
+    },
+    {
+      "command": "systemctl stop nginx.service",
+      "description": "Exemple utilisant le paramètre 'service': Nom de l'unité systemd à arrêter. Remplacez spooler par la valeur appropriée selon votre environnement.",
+      "platform": 1
+    },
+    {
+      "command": "systemctl stop mysql",
+      "description": "Arrêter le service MySQL",
+      "platform": 1
+    }
+  ],
+  "notes": "Nécessite sudo. Le service peut redémarrer automatiquement au prochain boot s'il est enabled.",
+  "links": [
+    {
+      "title": "systemctl stop",
+      "url": "https://www.freedesktop.org/software/systemd/man/systemctl.html"
+    }
+  ]
+}

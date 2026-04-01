@@ -1,0 +1,59 @@
+{
+  "id": "sql-check-space",
+  "title": "Vérifier l'espace disque des bases SQL",
+  "description": "Analyse l'espace disque utilisé et disponible pour chaque base de données SQL Server, incluant les fichiers de données (.mdf) et journaux (.ldf).",
+  "category": "💽 Database",
+  "platform": 0,
+  "level": 0,
+  "tags": [
+    "sql",
+    "space",
+    "disk",
+    "storage",
+    "capacity",
+    "monitoring",
+    "diagnostic",
+    "mssql"
+  ],
+  "windowsCommandTemplateId": "sql-check-space-cmd",
+  "windowsCommandTemplate": {
+    "id": "sql-check-space-cmd",
+    "platform": 0,
+    "name": "Invoke-Sqlcmd",
+    "commandPattern": "Invoke-Sqlcmd -ServerInstance '{serverInstance}' -Query \"SELECT DB_NAME(database_id) AS DatabaseName, name AS FileName, type_desc AS FileType, (size*8.0)/1024 AS SizeMB, (size*8.0/1024) - (FILEPROPERTY(name, 'SpaceUsed')*8.0/1024) AS FreeSpaceMB, physical_name AS FilePath FROM sys.master_files WHERE database_id > 4 ORDER BY database_id, type\" | Format-Table -AutoSize",
+    "parameters": [
+      {
+        "name": "serverInstance",
+        "label": "Instance SQL Server",
+        "type": "string",
+        "defaultValue": "localhost",
+        "required": true,
+        "description": "Instance SQL Server à analyser"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "Invoke-Sqlcmd -ServerInstance 'localhost' -Query \"EXEC sp_spaceused\"",
+      "description": "Espace utilisé de la base courante",
+      "platform": 0
+    },
+    {
+      "command": "Invoke-Sqlcmd -Query \"SELECT name, (size*8/1024) AS SizeMB FROM sys.master_files\"",
+      "description": "Taille de tous les fichiers SQL Server",
+      "platform": 0
+    },
+    {
+      "command": "Get-ChildItem 'C:\\Program Files\\Microsoft SQL Server\\*\\*.mdf' | Measure-Object -Property Length -Sum",
+      "description": "Taille totale des fichiers .mdf",
+      "platform": 0
+    }
+  ],
+  "notes": "Surveiller l'espace libre pour éviter les erreurs de croissance automatique. Les fichiers journaux (.ldf) peuvent grossir rapidement.",
+  "links": [
+    {
+      "title": "Documentation sys.master_files",
+      "url": "https://learn.microsoft.com/en-us/sql/relational-databases/system-catalog-views/sys-master-files-transact-sql"
+    }
+  ]
+}

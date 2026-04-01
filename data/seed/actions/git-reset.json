@@ -1,0 +1,101 @@
+{
+  "id": "git-reset",
+  "title": "Réinitialiser l'état du dépôt",
+  "description": "Réinitialise HEAD à un état spécifique",
+  "category": "🔧 Development",
+  "platform": 2,
+  "level": 2,
+  "tags": [
+    "git",
+    "reset",
+    "undo"
+  ],
+  "windowsCommandTemplateId": "git-reset-win",
+  "windowsCommandTemplate": {
+    "id": "git-reset-win",
+    "platform": 0,
+    "name": "git",
+    "commandPattern": "git reset {mode} {target}",
+    "parameters": [
+      {
+        "name": "mode",
+        "label": "Mode",
+        "type": "string",
+        "defaultValue": "--mixed",
+        "required": false,
+        "description": "Mode de reset (--soft, --mixed, --hard)"
+      },
+      {
+        "name": "target",
+        "label": "Cible",
+        "type": "string",
+        "defaultValue": "HEAD~1",
+        "required": false,
+        "description": "Commit cible"
+      }
+    ]
+  },
+  "linuxCommandTemplateId": "git-reset-linux",
+  "linuxCommandTemplate": {
+    "id": "git-reset-linux",
+    "platform": 1,
+    "name": "git",
+    "commandPattern": "git reset {mode} {target}",
+    "parameters": [
+      {
+        "name": "mode",
+        "label": "Mode",
+        "type": "string",
+        "defaultValue": "--mixed",
+        "required": false,
+        "description": "Mode de reset"
+      },
+      {
+        "name": "target",
+        "label": "Cible",
+        "type": "string",
+        "defaultValue": "HEAD~1",
+        "required": false,
+        "description": "Commit cible"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "git reset --hard origin/main",
+      "description": "Réinitialise complètement au state de origin/main",
+      "platform": 2
+    },
+    {
+      "command": "git reset --mixed srv-web-01.contoso.com",
+      "description": "Exemple utilisant le paramètre 'mode': Mode de reset (--soft, --mixed, --hard). Remplacez Full par la valeur appropriée selon votre environnement.",
+      "platform": 2
+    }
+  ],
+  "notes": "ATTENTION : --hard supprime les modifications. --soft garde tout staged, --mixed unstage.",
+  "links": [
+    {
+      "title": "Git Reset Documentation",
+      "url": "https://git-scm.com/docs/git-reset"
+    }
+  ],
+  "windowsExamples": [
+    {
+      "command": "git reset Full srv-web-01.contoso.com",
+      "description": "Exemple Windows utilisant git. Remplacez les paramètres entre <> par vos valeurs.",
+      "platform": 0
+    }
+  ],
+  "linuxExamples": [
+    {
+      "command": "git reset HEAD~1",
+      "description": "Annule le dernier commit en gardant les modifications",
+      "platform": 1
+    },
+    {
+      "command": "git reset Full HEAD~1",
+      "description": "Exemple utilisant le paramètre 'target': Commit cible. Remplacez srv-web-01.contoso.com par la valeur appropriée selon votre environnement.",
+      "platform": 1
+    }
+  ]
+}

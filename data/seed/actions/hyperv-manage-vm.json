@@ -1,0 +1,77 @@
+{
+  "id": "hyperv-manage-vm",
+  "title": "Démarrer, arrêter ou suspendre une VM",
+  "description": "Permet de contrôler l'état d'une machine virtuelle Hyper-V: démarrage, arrêt propre, arrêt forcé, suspension ou reprise.",
+  "category": "🐳 Containers & VMs",
+  "platform": 0,
+  "level": 1,
+  "tags": [
+    "hyperv",
+    "vm",
+    "start",
+    "stop",
+    "suspend",
+    "control",
+    "management",
+    "virtualization"
+  ],
+  "windowsCommandTemplateId": "hyperv-manage-vm-cmd",
+  "windowsCommandTemplate": {
+    "id": "hyperv-manage-vm-cmd",
+    "platform": 0,
+    "name": "VM Control",
+    "commandPattern": "{action}-VM -Name '{vmName}'",
+    "parameters": [
+      {
+        "name": "vmName",
+        "label": "Nom de la VM",
+        "type": "string",
+        "defaultValue": "",
+        "required": true,
+        "description": "Nom de la machine virtuelle"
+      },
+      {
+        "name": "action",
+        "label": "Action",
+        "type": "string",
+        "defaultValue": "Start",
+        "required": true,
+        "description": "Action: Start, Stop, Save, Suspend, Resume"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "Start-VM -Name 'Windows11-Dev'",
+      "description": "Démarre la VM Windows11-Dev",
+      "platform": 0
+    },
+    {
+      "command": "Save-VM -Name 'Production-DB'",
+      "description": "Sauvegarde l'état et suspend la VM",
+      "platform": 0
+    },
+    {
+      "command": "Suspend-VM -Name 'TestVM'; Resume-VM -Name 'TestVM'",
+      "description": "Pause puis reprend une VM",
+      "platform": 0
+    },
+    {
+      "command": "Restart-VM -Name 'VM-WEB-01'",
+      "description": "Exemple utilisant le paramètre 'vmName': Nom de la machine virtuelle. Remplacez VM-WEB-01 par la valeur appropriée selon votre environnement.",
+      "platform": 0
+    },
+    {
+      "command": "Start-VM -Name 'VM-WEB-01'",
+      "description": "Exemple utilisant le paramètre 'action': Action: Start, Stop, Save, Suspend, Resume. Remplacez Restart par la valeur appropriée selon votre environnement.",
+      "platform": 0
+    }
+  ],
+  "notes": "Stop-VM sans -Force tente un arrêt propre via Integration Services. Save-VM libère la RAM mais conserve l'état. -TurnOff équivaut à -Force.",
+  "links": [
+    {
+      "title": "Documentation Hyper-V VM Management",
+      "url": "https://learn.microsoft.com/en-us/powershell/module/hyper-v/"
+    }
+  ]
+}

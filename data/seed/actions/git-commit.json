@@ -1,0 +1,73 @@
+{
+  "id": "git-commit",
+  "title": "Créer un commit Git",
+  "description": "Enregistre les modifications de l'index dans l'historique du dépôt",
+  "category": "🔧 Development",
+  "platform": 2,
+  "level": 1,
+  "tags": [
+    "git",
+    "commit",
+    "history"
+  ],
+  "windowsCommandTemplateId": "git-commit-win",
+  "windowsCommandTemplate": {
+    "id": "git-commit-win",
+    "platform": 0,
+    "name": "git",
+    "commandPattern": "git commit -m \"{message}\"",
+    "parameters": [
+      {
+        "name": "message",
+        "label": "Message",
+        "type": "string",
+        "defaultValue": "",
+        "required": true,
+        "description": "Message du commit"
+      }
+    ]
+  },
+  "linuxCommandTemplateId": "git-commit-linux",
+  "linuxCommandTemplate": {
+    "id": "git-commit-linux",
+    "platform": 1,
+    "name": "git",
+    "commandPattern": "git commit -m \"{message}\"",
+    "parameters": [
+      {
+        "name": "message",
+        "label": "Message",
+        "type": "string",
+        "defaultValue": "",
+        "required": true,
+        "description": "Message du commit"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "git commit --amend",
+      "description": "Modifie le dernier commit",
+      "platform": 2
+    }
+  ],
+  "notes": "Écrivez des messages de commit clairs et descriptifs. Utilisez --amend pour corriger le dernier commit.",
+  "links": [
+    {
+      "title": "Git Commit Documentation",
+      "url": "https://git-scm.com/docs/git-commit"
+    }
+  ],
+  "linuxExamples": [
+    {
+      "command": "git commit -m \"Fix: correction du bug #123\"",
+      "description": "Crée un commit avec un message",
+      "platform": 1
+    },
+    {
+      "command": "git commit -m \"feat: ajout nouvelle fonctionnalité\"",
+      "description": "Créer un commit",
+      "platform": 1
+    }
+  ]
+}

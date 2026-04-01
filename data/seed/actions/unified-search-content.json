@@ -1,0 +1,179 @@
+{
+  "id": "unified-search-content",
+  "title": "Rechercher dans le contenu de fichiers",
+  "description": "Recherche une chaîne de caractères dans le contenu des fichiers.",
+  "category": "📁 Files & Storage",
+  "platform": 2,
+  "supportedPlatforms": [
+    0,
+    1
+  ],
+  "level": 0,
+  "tags": [
+    "linux",
+    "windows",
+    "grep",
+    "search",
+    "recherche",
+    "contenu"
+  ],
+  "notes": "Windows: Select-String est l'équivalent PowerShell de grep. Supporte les regex.\nLinux: -r récursif, -i insensible à la casse, -n affiche les numéros de ligne. --include pour filtrer les fichiers.",
+  "links": [
+    {
+      "title": "Documentation Select-String",
+      "url": "https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.utility/select-string"
+    }
+  ],
+  "windowsCommandTemplateId": "search-content-windows-cmd",
+  "windowsCommandTemplate": {
+    "id": "search-content-windows-cmd",
+    "platform": 0,
+    "name": "Select-String",
+    "commandPattern": "Get-ChildItem -Path \"{searchPath}\" -Filter \"{filePattern}\" -Recurse | Select-String -Pattern \"{searchTerm}\"",
+    "parameters": [
+      {
+        "name": "searchPath",
+        "label": "Chemin de recherche",
+        "type": "string",
+        "defaultValue": ".",
+        "required": true,
+        "description": "Dossier où chercher"
+      },
+      {
+        "name": "filePattern",
+        "label": "Type de fichiers",
+        "type": "string",
+        "defaultValue": "*.txt",
+        "required": true,
+        "description": "Motif de fichiers (ex: *.txt, *.log)"
+      },
+      {
+        "name": "searchTerm",
+        "label": "Terme recherché",
+        "type": "string",
+        "defaultValue": "",
+        "required": true,
+        "description": "Texte ou regex à rechercher"
+      }
+    ]
+  },
+  "windowsExamples": [
+    {
+      "command": "Get-ChildItem -Path \"C:\\Logs\" -Filter \"*.log\" -Recurse | Select-String -Pattern \"ERROR\"",
+      "description": "Cherche ERROR dans tous les fichiers .log",
+      "platform": 0
+    },
+    {
+      "command": "Select-String -Path \"*.cs\" -Pattern \"TODO\" -Recurse",
+      "description": "Trouve tous les TODO dans les fichiers C#",
+      "platform": 0
+    },
+    {
+      "command": "Get-ChildItem -Path \"{searchPath}\" -Filter \"{filePattern}\" -Recurse | Select-Object * -First 1",
+      "description": "Affiche toutes les propriétés du premier objet retourné. Select-Object * élargit l'affichage pour montrer toutes les colonnes. -First 1 limite au premier résultat. Utilisez cette commande pour découvrir les propriétés disponibles avant de filtrer.",
+      "platform": 0
+    },
+    {
+      "command": "Get-ChildItem -Path \"{searchPath}\" -Filter \"{filePattern}\" -Recurse | Format-Table -AutoSize",
+      "description": "Affiche les résultats dans un tableau optimisé pour la console. Format-Table -AutoSize ajuste automatiquement la largeur des colonnes pour un affichage lisible. Idéal pour visualiser rapidement les données structurées.",
+      "platform": 0
+    },
+    {
+      "command": "Get-ChildItem -Path \"{searchPath}\" -Filter \"{filePattern}\" -Recurse | Export-Csv C:\\Temp\\Export.csv -NoTypeInformation -Encoding UTF8",
+      "description": "Exporte les résultats vers un fichier CSV exploitable dans Excel. -NoTypeInformation supprime la ligne de métadonnées. -Encoding UTF8 garantit la compatibilité des caractères accentués. Utile pour l'archivage, les rapports et l'analyse externe.",
+      "platform": 0
+    },
+    {
+      "command": "Get-ChildItem -Path \"{searchPath}\" -Filter \"{filePattern}\" -Recurse | Measure-Object",
+      "description": "Compte le nombre total d'objets retournés. Measure-Object retourne Count, Sum, Average, Min, Max selon les propriétés. Utile pour les statistiques rapides et la validation de résultats.",
+      "platform": 0
+    },
+    {
+      "command": "Get-ChildItem -Path \".\" -Filter \"{filePattern}\" -Recurse | Select-String -Pattern \"{searchTerm}\"",
+      "description": "Exemple utilisant le paramètre 'searchPath': Dossier où chercher. Remplacez <searchPath> par la valeur appropriée selon votre environnement.",
+      "platform": 0
+    },
+    {
+      "command": "Get-ChildItem -Path \"C:\\Windows\\System32\" -Filter \"*.log\" -Recurse | Select-String -Pattern \"Admin\"",
+      "description": "Exemple Windows pour Rechercher dans le contenu de fichiers",
+      "platform": 0
+    }
+  ],
+  "linuxCommandTemplateId": "search-content-linux-cmd",
+  "linuxCommandTemplate": {
+    "id": "search-content-linux-cmd",
+    "platform": 1,
+    "name": "grep",
+    "commandPattern": "grep -r \"{searchTerm}\" \"{searchPath}\"",
+    "parameters": [
+      {
+        "name": "searchTerm",
+        "label": "Terme recherché",
+        "type": "string",
+        "defaultValue": "",
+        "required": true,
+        "description": "Texte ou regex à rechercher"
+      },
+      {
+        "name": "searchPath",
+        "label": "Chemin de recherche",
+        "type": "string",
+        "defaultValue": ".",
+        "required": true,
+        "description": "Dossier où chercher"
+      }
+    ]
+  },
+  "linuxExamples": [
+    {
+      "command": "grep -r \"ERROR\" /var/log",
+      "description": "Cherche ERROR dans tous les fichiers de /var/log",
+      "platform": 1
+    },
+    {
+      "command": "grep -rn \"TODO\" --include=\"*.py\"",
+      "description": "Trouve TODO dans les fichiers Python avec numéros de ligne",
+      "platform": 1
+    },
+    {
+      "command": "grep -i \"password\" config.txt",
+      "description": "Recherche insensible à la casse",
+      "platform": 1
+    },
+    {
+      "command": "grep --help",
+      "description": "Affiche l'aide complète de la commande grep. --help liste tous les paramètres disponibles, les options et des exemples d'utilisation. Première commande à utiliser pour découvrir les capacités d'un outil.",
+      "platform": 1
+    },
+    {
+      "command": "man grep",
+      "description": "Affiche le manuel complet de grep. Les pages man fournissent la documentation détaillée : syntaxe, paramètres, exemples, notes. Plus complet que --help. Naviguez avec flèches, cherchez avec '/', quittez avec 'q'.",
+      "platform": 1
+    },
+    {
+      "command": "grep -r \"<searchTerm>\" \"{searchPath}\"",
+      "description": "Exemple utilisant le paramètre 'searchTerm': Texte ou regex à rechercher. Remplacez <searchTerm> par la valeur appropriée selon votre environnement.",
+      "platform": 1
+    },
+    {
+      "command": "grep -r \"{searchTerm}\" \".\"",
+      "description": "Exemple utilisant le paramètre 'searchPath': Dossier où chercher. Remplacez <searchPath> par la valeur appropriée selon votre environnement.",
+      "platform": 1
+    },
+    {
+      "command": "grep -r \"error\" /var/log",
+      "description": "Exemple Linux pour Rechercher dans le contenu de fichiers",
+      "platform": 1
+    }
+  ],
+  "crossPlatformNotes": {
+    "differences": [
+      "Syntaxe: Windows utilise 'Select-String', Linux utilise 'grep'"
+    ],
+    "commonalities": [
+      "Les deux permettent de rechercher dans le contenu de fichiers",
+      "Fonctionnalité équivalente sur les deux plateformes"
+    ]
+  },
+  "examples": []
+}

@@ -1,0 +1,66 @@
+{
+  "id": "git-add",
+  "title": "Ajouter des fichiers à l'index Git",
+  "description": "Ajoute les modifications de fichiers à l'index (staging area)",
+  "category": "🔧 Development",
+  "platform": 2,
+  "level": 0,
+  "tags": [
+    "git",
+    "add",
+    "staging"
+  ],
+  "windowsCommandTemplateId": "git-add-win",
+  "windowsCommandTemplate": {
+    "id": "git-add-win",
+    "platform": 0,
+    "name": "git",
+    "commandPattern": "git add {files}",
+    "parameters": [
+      {
+        "name": "files",
+        "label": "Fichiers",
+        "type": "string",
+        "defaultValue": ".",
+        "required": true,
+        "description": "Fichiers à ajouter (. pour tous)"
+      }
+    ]
+  },
+  "linuxCommandTemplateId": "git-add-linux",
+  "linuxCommandTemplate": {
+    "id": "git-add-linux",
+    "platform": 1,
+    "name": "git",
+    "commandPattern": "git add {files}",
+    "parameters": [
+      {
+        "name": "files",
+        "label": "Fichiers",
+        "type": "string",
+        "defaultValue": ".",
+        "required": true,
+        "description": "Fichiers à ajouter"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "git add .",
+      "description": "Ajoute tous les fichiers modifiés",
+      "platform": 2
+    },
+    {
+      "command": "git add src/*.js",
+      "description": "Ajoute tous les fichiers JS du dossier src",
+      "platform": 2
+    }
+  ],
+  "notes": "Utilisez . pour ajouter tous les fichiers, -A pour inclure suppressions et renames.",
+  "links": [
+    {
+      "title": "Git Add Documentation",
+      "url": "https://git-scm.com/docs/git-add"
+    }
+  ]
+}

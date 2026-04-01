@@ -1,0 +1,69 @@
+{
+  "id": "ad-disable-computer",
+  "title": "Désactiver un compte ordinateur AD",
+  "description": "Désactive un compte ordinateur Active Directory.",
+  "category": "🏢 Active Directory & GPO",
+  "platform": 0,
+  "level": 2,
+  "tags": [
+    "ad",
+    "computer",
+    "disable"
+  ],
+  "windowsCommandTemplateId": "ad-disable-computer-cmd",
+  "windowsCommandTemplate": {
+    "id": "ad-disable-computer-cmd",
+    "platform": 0,
+    "name": "Disable-ADAccount",
+    "commandPattern": "Disable-ADAccount -Identity {computerName}$",
+    "parameters": [
+      {
+        "name": "computerName",
+        "label": "Nom de l'ordinateur",
+        "type": "string",
+        "defaultValue": "",
+        "required": true,
+        "description": "Nom de l'ordinateur AD (sans le $)"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "Disable-ADAccount -Identity jdupont",
+      "description": "Désactive immédiatement le compte de jdupont. L'utilisateur ne pourra plus se connecter mais le compte et toutes ses données restent dans AD. La désactivation est réversible avec Enable-ADAccount. Méthode recommandée pour les départs temporaires (congés longs, suspensions).",
+      "platform": 0
+    },
+    {
+      "command": "Disable-ADAccount -Identity jdupont -Confirm:$false",
+      "description": "Désactive le compte sans demander de confirmation. Le paramètre -Confirm:$false supprime l'invite (utile pour les scripts automatisés). Utilisez avec précaution : la désactivation est immédiate et peut déconnecter l'utilisateur de toutes ses sessions actives.",
+      "platform": 0
+    },
+    {
+      "command": "Get-ADUser -Filter {Enabled -eq $true -and LastLogonDate -lt (Get-Date).AddDays(-180)} -Properties LastLogonDate | Disable-ADAccount -WhatIf",
+      "description": "Simulation de désactivation des comptes inactifs depuis 180 jours. Le switch -WhatIf affiche ce qui serait fait SANS exécuter l'action (mode dry-run). Indispensable avant toute action de masse pour éviter les erreurs. Retirez -WhatIf après vérification pour exécuter réellement.",
+      "platform": 0
+    },
+    {
+      "command": "Get-ADUser jdupont -Properties Enabled | Select-Object Name,Enabled,SamAccountName",
+      "description": "Vérifie si un compte est actif ou désactivé. La propriété Enabled vaut $true (actif) ou $false (désactivé). Toujours vérifier l'état avant de désactiver ou réactiver. Utile aussi pour les scripts de reporting et les tableaux de bord.",
+      "platform": 0
+    },
+    {
+      "command": "Disable-ADAccount -Identity jdupont -PassThru | Set-ADUser -Description \"Compte désactivé le $(Get-Date -Format 'dd/MM/yyyy') - Départ entreprise\"",
+      "description": "Désactive le compte et ajoute automatiquement une note avec la date et la raison. Le switch -PassThru permet de passer l'objet au pipeline. Set-ADUser -Description documente l'action pour la traçabilité. Excellente pratique pour les audits : toujours documenter les raisons de désactivation.",
+      "platform": 0
+    },
+    {
+      "command": "Get-ADUser -Filter {Department -eq 'Finance' -and Enabled -eq $true} | Select-Object Name,SamAccountName | Export-Csv C:\\Temp\\FinanceUsersBeforeDisable.csv -NoTypeInformation; Get-ADUser -Filter {Department -eq 'Finance'} | Disable-ADAccount",
+      "description": "Désactivation massive avec sauvegarde préalable : exporte d'abord la liste des utilisateurs Finance actifs, puis les désactive tous. La sauvegarde CSV permet une restauration en cas d'erreur. Les deux commandes sont séparées par un point-virgule pour exécution séquentielle. Toujours faire une sauvegarde avant une opération de masse.",
+      "platform": 0
+    },
+    {
+      "command": "Get-ADUser -Filter * -Properties Enabled,LastLogonDate | Where-Object {$_.Enabled -eq $false} | Select-Object Name,SamAccountName,Enabled,LastLogonDate | Export-Csv C:\\Temp\\DisabledAccounts.csv -NoTypeInformation",
+      "description": "Exporte un rapport complet de tous les comptes désactivés avec leur dernière connexion. Utile pour les audits de sécurité, l'analyse des comptes dormants et la préparation au nettoyage de l'AD. Effectuez ce rapport trimestriellement pour maintenir un AD propre.",
+      "platform": 0
+    }
+  ],
+  "notes": "L'ordinateur ne pourra plus communiquer avec le domaine. Utile pour les machines retirées du service.",
+  "links": []
+}

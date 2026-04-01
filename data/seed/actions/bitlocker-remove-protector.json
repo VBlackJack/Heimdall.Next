@@ -1,0 +1,74 @@
+{
+  "id": "bitlocker-remove-protector",
+  "title": "Supprimer un protecteur de clé BitLocker",
+  "description": "Retire un protecteur de clé spécifique (TPM, Password, RecoveryPassword, etc.) d'un volume BitLocker.",
+  "category": "🔒 Security & Encryption",
+  "platform": 0,
+  "level": 2,
+  "tags": [
+    "bitlocker",
+    "protector",
+    "remove"
+  ],
+  "windowsCommandTemplateId": "bitlocker-remove-protector-cmd",
+  "windowsCommandTemplate": {
+    "id": "bitlocker-remove-protector-cmd",
+    "platform": 0,
+    "name": "Remove-BitLockerKeyProtector",
+    "commandPattern": "$protectors = (Get-BitLockerVolume -MountPoint \"{driveLetter}:\").KeyProtector; $protectors | Select-Object KeyProtectorId,KeyProtectorType | Format-Table",
+    "parameters": [
+      {
+        "name": "driveLetter",
+        "label": "Lettre du disque",
+        "type": "string",
+        "defaultValue": "C",
+        "required": true,
+        "description": "Lettre du volume"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "(Get-BitLockerVolume C:).KeyProtector | Select-Object KeyProtectorId,KeyProtectorType",
+      "description": "Liste tous les protecteurs de clés du volume C: avec leurs IDs",
+      "platform": 0
+    },
+    {
+      "command": "Remove-BitLockerKeyProtector -MountPoint C: -KeyProtectorId '{12345678-1234-1234-1234-123456789012}'",
+      "description": "Supprime un protecteur spécifique par son ID",
+      "platform": 0
+    },
+    {
+      "command": "$tpm = (Get-BitLockerVolume C:).KeyProtector | Where-Object {$_.KeyProtectorType -eq 'Tpm'}; Remove-BitLockerKeyProtector -MountPoint C: -KeyProtectorId $tpm[0].KeyProtectorId",
+      "description": "Supprime le protecteur TPM (utile avant remplacement carte mère)",
+      "platform": 0
+    },
+    {
+      "command": "$oldRecovery = (Get-BitLockerVolume C:).KeyProtector | Where-Object {$_.KeyProtectorType -eq 'RecoveryPassword'}; $oldRecovery | Select-Object -Skip 1 | ForEach-Object { Remove-BitLockerKeyProtector -MountPoint C: -KeyProtectorId $_.KeyProtectorId }",
+      "description": "Supprime tous les anciens mots de passe de récupération sauf le plus récent",
+      "platform": 0
+    },
+    {
+      "command": "$protectors = (Get-BitLockerVolume -MountPoint \"D:\").KeyProtector; $protectors | Select-Object * -First 1",
+      "description": "Affiche toutes les propriétés du premier objet retourné. Select-Object * élargit l'affichage pour montrer toutes les colonnes. -First 1 limite au premier résultat. Utilisez cette commande pour découvrir les propriétés disponibles avant de filtrer.",
+      "platform": 0
+    },
+    {
+      "command": "$protectors = (Get-BitLockerVolume -MountPoint \"D:\").KeyProtector; $protectors | Export-Csv C:\\Temp\\Export.csv -NoTypeInformation -Encoding UTF8",
+      "description": "Exporte les résultats vers un fichier CSV exploitable dans Excel. -NoTypeInformation supprime la ligne de métadonnées. -Encoding UTF8 garantit la compatibilité des caractères accentués. Utile pour l'archivage, les rapports et l'analyse externe.",
+      "platform": 0
+    },
+    {
+      "command": "$protectors = (Get-BitLockerVolume -MountPoint \"D:\").KeyProtector; $protectors | Measure-Object",
+      "description": "Compte le nombre total d'objets retournés. Measure-Object retourne Count, Sum, Average, Min, Max selon les propriétés. Utile pour les statistiques rapides et la validation de résultats.",
+      "platform": 0
+    }
+  ],
+  "notes": "⚠️ ATTENTION: Ne supprimez JAMAIS tous les protecteurs! Gardez toujours au moins un RecoveryPassword. Cas d'usage: nettoyer les anciens protecteurs, retirer TPM avant changement matériel, réorganiser les méthodes de déverrouillage.",
+  "links": [
+    {
+      "title": "Remove-BitLockerKeyProtector Documentation",
+      "url": "https://learn.microsoft.com/en-us/powershell/module/bitlocker/remove-bitlockerkeyprotector"
+    }
+  ]
+}

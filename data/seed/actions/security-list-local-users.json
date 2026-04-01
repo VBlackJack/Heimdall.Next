@@ -1,0 +1,56 @@
+{
+  "id": "security-list-local-users",
+  "title": "Lister tous les utilisateurs locaux",
+  "description": "Affiche tous les comptes utilisateurs locaux avec leur statut (activé/désactivé) et dernière connexion",
+  "category": "🔒 Security & Encryption",
+  "platform": 0,
+  "level": 0,
+  "tags": [
+    "security",
+    "users",
+    "local",
+    "audit"
+  ],
+  "windowsCommandTemplateId": "security-list-local-users-cmd",
+  "windowsCommandTemplate": {
+    "id": "security-list-local-users-cmd",
+    "platform": 0,
+    "name": "Get-LocalUser",
+    "commandPattern": "Get-LocalUser | Select-Object Name,Enabled,LastLogon,PasswordLastSet,PasswordExpires,UserMayChangePassword | Format-Table -AutoSize",
+    "parameters": []
+  },
+  "examples": [
+    {
+      "command": "Get-LocalUser | Where-Object {$_.Enabled -eq $true}",
+      "description": "Liste uniquement les utilisateurs activés",
+      "platform": 0
+    },
+    {
+      "command": "Get-LocalUser | Where-Object {$_.PasswordExpires -lt (Get-Date).AddDays(30)}",
+      "description": "Utilisateurs dont le mot de passe expire dans 30 jours",
+      "platform": 0
+    },
+    {
+      "command": "Get-LocalUser | Select-Object * -First 1",
+      "description": "Affiche toutes les propriétés du premier objet retourné. Select-Object * élargit l'affichage pour montrer toutes les colonnes. -First 1 limite au premier résultat. Utilisez cette commande pour découvrir les propriétés disponibles avant de filtrer.",
+      "platform": 0
+    },
+    {
+      "command": "Get-LocalUser | Export-Csv C:\\Temp\\Export.csv -NoTypeInformation -Encoding UTF8",
+      "description": "Exporte les résultats vers un fichier CSV exploitable dans Excel. -NoTypeInformation supprime la ligne de métadonnées. -Encoding UTF8 garantit la compatibilité des caractères accentués. Utile pour l'archivage, les rapports et l'analyse externe.",
+      "platform": 0
+    },
+    {
+      "command": "Get-LocalUser | Measure-Object",
+      "description": "Compte le nombre total d'objets retournés. Measure-Object retourne Count, Sum, Average, Min, Max selon les propriétés. Utile pour les statistiques rapides et la validation de résultats.",
+      "platform": 0
+    }
+  ],
+  "notes": "Enabled=$false = compte désactivé. PasswordExpires=Never ou date future. Vérifiez les comptes inactifs pour la sécurité.",
+  "links": [
+    {
+      "title": "Get-LocalUser Documentation",
+      "url": "https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.localaccounts/get-localuser"
+    }
+  ]
+}

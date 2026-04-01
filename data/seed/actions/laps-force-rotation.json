@@ -1,0 +1,55 @@
+{
+  "id": "laps-force-rotation",
+  "title": "Forcer la rotation immédiate du mot de passe LAPS",
+  "description": "Force le renouvellement immédiat du mot de passe administrateur local géré par LAPS.",
+  "category": "🔒 Security & Encryption",
+  "platform": 0,
+  "level": 2,
+  "tags": [
+    "laps",
+    "rotate",
+    "password",
+    "security"
+  ],
+  "windowsCommandTemplateId": "laps-force-rotation-cmd",
+  "windowsCommandTemplate": {
+    "id": "laps-force-rotation-cmd",
+    "platform": 0,
+    "name": "Reset-AdmPwdPassword",
+    "commandPattern": "Reset-AdmPwdPassword -ComputerName {computerName}",
+    "parameters": [
+      {
+        "name": "computerName",
+        "label": "Nom de l'ordinateur",
+        "type": "string",
+        "defaultValue": "",
+        "required": true,
+        "description": "Nom NetBIOS de l'ordinateur"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "Reset-AdmPwdPassword -ComputerName PC-001",
+      "description": "Force la rotation du mot de passe LAPS de PC-001 au prochain cycle GPO",
+      "platform": 0
+    },
+    {
+      "command": "Reset-AdmPwdPassword -ComputerName PC-001 -WhenEffective (Get-Date)",
+      "description": "Force la rotation immédiate du mot de passe",
+      "platform": 0
+    },
+    {
+      "command": "Reset-AdmPwdPassword -ComputerName PC-001; Start-Sleep 300; Get-AdmPwdPassword -ComputerName PC-001",
+      "description": "Rotation puis récupération du nouveau mot de passe après 5 minutes",
+      "platform": 0
+    }
+  ],
+  "notes": "⚠️ SÉCURITÉ: Utilisez après une compromission suspectée du mot de passe admin local. La rotation prend effet au prochain cycle GPO (90-120 min par défaut) ou utilisez gpupdate /force sur la machine cible. Nécessite droits d'écriture sur ms-Mcs-AdmPwdExpirationTime.",
+  "links": [
+    {
+      "title": "Reset-AdmPwdPassword",
+      "url": "https://learn.microsoft.com/en-us/powershell/module/admpwd.ps/reset-admpwdpassword"
+    }
+  ]
+}

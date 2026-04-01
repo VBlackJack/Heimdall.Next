@@ -1,0 +1,82 @@
+{
+  "id": "tar-create-archive",
+  "title": "Créer une archive tar",
+  "description": "Crée une archive compressée de fichiers et répertoires",
+  "category": "📁 Files & Storage",
+  "platform": 1,
+  "level": 0,
+  "tags": [
+    "tar",
+    "archive",
+    "compress",
+    "backup",
+    "gzip"
+  ],
+  "linuxCommandTemplateId": "tar-create-cmd",
+  "linuxCommandTemplate": {
+    "id": "tar-create-cmd",
+    "platform": 1,
+    "name": "tar",
+    "commandPattern": "tar -{options} {archive} {files}",
+    "parameters": [
+      {
+        "name": "options",
+        "label": "Options",
+        "type": "string",
+        "defaultValue": "czf",
+        "required": true,
+        "description": "Options (c=create, z=gzip, j=bzip2, x=extract, f=file, v=verbose)"
+      },
+      {
+        "name": "archive",
+        "label": "Archive",
+        "type": "string",
+        "defaultValue": "backup.tar.gz",
+        "required": true,
+        "description": "Nom du fichier d'archive"
+      },
+      {
+        "name": "files",
+        "label": "Fichiers",
+        "type": "string",
+        "defaultValue": "/path/to/files",
+        "required": true,
+        "description": "Fichiers/répertoires à archiver"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "tar -czf backup.tar.gz /home/user/data",
+      "description": "Crée une archive gzip",
+      "platform": 1
+    },
+    {
+      "command": "tar -xzf backup.tar.gz",
+      "description": "Extrait une archive gzip",
+      "platform": 1
+    },
+    {
+      "command": "tar -tjf backup.tar.bz2",
+      "description": "Liste le contenu sans extraire",
+      "platform": 1
+    },
+    {
+      "command": "tar --v -f backup.tar.gz file1.txt file2.txt -v",
+      "description": "Exécute la commande en mode verbeux. Le flag -v (verbose) affiche chaque action effectuée en temps réel. Essentiel pour suivre la progression des opérations longues et vérifier que tout se déroule correctement.",
+      "platform": 1
+    },
+    {
+      "command": "tar -czf backup.tar.gz file1.txt file2.txt",
+      "description": "Exemple utilisant le paramètre 'options': Options (c=create, z=gzip, j=bzip2, x=extract, f=file, v=verbose). Remplacez -v -f par la valeur appropriée selon votre environnement.",
+      "platform": 1
+    }
+  ],
+  "notes": "c=create, x=extract, t=list, z=gzip, j=bzip2, f=file. .tar.gz ou .tgz pour gzip.",
+  "links": [
+    {
+      "title": "tar command",
+      "url": "https://man7.org/linux/man-pages/man1/tar.1.html"
+    }
+  ]
+}

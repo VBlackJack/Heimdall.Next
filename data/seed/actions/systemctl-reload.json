@@ -1,0 +1,55 @@
+{
+  "id": "systemctl-reload",
+  "title": "Recharger la configuration d'un service",
+  "description": "Recharge la configuration du service sans l'arrêter (si supporté)",
+  "category": "⚙️ Services & Automation",
+  "platform": 1,
+  "level": 1,
+  "tags": [
+    "systemctl",
+    "systemd",
+    "reload",
+    "config"
+  ],
+  "linuxCommandTemplateId": "systemctl-reload-cmd",
+  "linuxCommandTemplate": {
+    "id": "systemctl-reload-cmd",
+    "platform": 1,
+    "name": "systemctl",
+    "commandPattern": "systemctl reload {service}",
+    "parameters": [
+      {
+        "name": "service",
+        "label": "Nom du service",
+        "type": "string",
+        "defaultValue": "nginx.service",
+        "required": true,
+        "description": "Nom de l'unité systemd à recharger"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "sudo systemctl reload nginx",
+      "description": "Recharge la config nginx sans interruption",
+      "platform": 1
+    },
+    {
+      "command": "sudo systemctl reload-or-restart nginx",
+      "description": "Recharge ou redémarre si reload non supporté",
+      "platform": 1
+    },
+    {
+      "command": "systemctl reload nginx.service",
+      "description": "Exemple utilisant le paramètre 'service': Nom de l'unité systemd à recharger. Remplacez spooler par la valeur appropriée selon votre environnement.",
+      "platform": 1
+    }
+  ],
+  "notes": "Nécessite sudo. Plus rapide que restart. Tous les services ne supportent pas reload.",
+  "links": [
+    {
+      "title": "systemctl reload",
+      "url": "https://www.freedesktop.org/software/systemd/man/systemctl.html"
+    }
+  ]
+}

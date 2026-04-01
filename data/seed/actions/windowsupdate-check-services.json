@@ -1,0 +1,56 @@
+{
+  "id": "windowsupdate-check-services",
+  "title": "Vérifier l'état des services Windows Update",
+  "description": "Vérifie l'état et le type de démarrage des services critiques pour Windows Update",
+  "category": "🔄 Windows Updates",
+  "platform": 0,
+  "level": 0,
+  "tags": [
+    "windows-update",
+    "services",
+    "diagnostic",
+    "wuauserv"
+  ],
+  "windowsCommandTemplateId": "windowsupdate-check-services-cmd",
+  "windowsCommandTemplate": {
+    "id": "windowsupdate-check-services-cmd",
+    "platform": 0,
+    "name": "Get-Service",
+    "commandPattern": "Get-Service -Name wuauserv,bits,cryptsvc,msiserver | Select-Object Name,DisplayName,Status,StartType | Format-Table -AutoSize",
+    "parameters": []
+  },
+  "examples": [
+    {
+      "command": "Get-Service wuauserv,bits,cryptsvc | Format-Table Name,Status,StartType",
+      "description": "Affiche l'état des services Windows Update essentiels",
+      "platform": 0
+    },
+    {
+      "command": "Start-Service wuauserv,bits -Verbose",
+      "description": "Démarre les services Windows Update si arrêtés",
+      "platform": 0
+    },
+    {
+      "command": "Get-Service -Name wuauserv,bits,cryptsvc,msiserver | Select-Object * -First 1",
+      "description": "Affiche toutes les propriétés du premier objet retourné. Select-Object * élargit l'affichage pour montrer toutes les colonnes. -First 1 limite au premier résultat. Utilisez cette commande pour découvrir les propriétés disponibles avant de filtrer.",
+      "platform": 0
+    },
+    {
+      "command": "Get-Service -Name wuauserv,bits,cryptsvc,msiserver | Export-Csv C:\\Temp\\Export.csv -NoTypeInformation -Encoding UTF8",
+      "description": "Exporte les résultats vers un fichier CSV exploitable dans Excel. -NoTypeInformation supprime la ligne de métadonnées. -Encoding UTF8 garantit la compatibilité des caractères accentués. Utile pour l'archivage, les rapports et l'analyse externe.",
+      "platform": 0
+    },
+    {
+      "command": "Get-Service -Name wuauserv,bits,cryptsvc,msiserver | Measure-Object",
+      "description": "Compte le nombre total d'objets retournés. Measure-Object retourne Count, Sum, Average, Min, Max selon les propriétés. Utile pour les statistiques rapides et la validation de résultats.",
+      "platform": 0
+    }
+  ],
+  "notes": "Services critiques: wuauserv (Windows Update), bits (Background Intelligent Transfer), cryptsvc (Cryptographic Services), msiserver (Windows Installer).",
+  "links": [
+    {
+      "title": "Windows Update Services",
+      "url": "https://learn.microsoft.com/en-us/troubleshoot/windows-server/installing-updates-features-roles/fix-windows-update-errors"
+    }
+  ]
+}

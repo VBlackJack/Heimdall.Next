@@ -1,0 +1,55 @@
+{
+  "id": "ad-check-lockout-status",
+  "title": "Vérifier le statut de verrouillage d'un compte",
+  "description": "Vérifie si un compte utilisateur est verrouillé et affiche les détails du verrouillage.",
+  "category": "🏢 Active Directory & GPO",
+  "platform": 0,
+  "level": 0,
+  "tags": [
+    "ad",
+    "lockout",
+    "diagnostic",
+    "security"
+  ],
+  "windowsCommandTemplateId": "ad-check-lockout-status-cmd",
+  "windowsCommandTemplate": {
+    "id": "ad-check-lockout-status-cmd",
+    "platform": 0,
+    "name": "Get-ADUser",
+    "commandPattern": "Get-ADUser -Identity {username} -Properties LockedOut,LockoutTime,BadPwdCount,LastBadPasswordAttempt | Select-Object Name,LockedOut,LockoutTime,BadPwdCount,LastBadPasswordAttempt",
+    "parameters": [
+      {
+        "name": "username",
+        "label": "Nom d'utilisateur",
+        "type": "string",
+        "defaultValue": "",
+        "required": true,
+        "description": "SamAccountName de l'utilisateur"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "Get-ADUser -Identity jdupont -Properties LockedOut,LockoutTime,BadPwdCount,LastBadPasswordAttempt | Select-Object Name,LockedOut,LockoutTime,BadPwdCount,LastBadPasswordAttempt",
+      "description": "Vérifie le statut de verrouillage de jdupont",
+      "platform": 0
+    },
+    {
+      "command": "Get-ADUser -Identity jdupont -Properties LockedOut,LockoutTime,BadPwdCount,LastBadPasswordAttempt | Format-Table -AutoSize",
+      "description": "Affiche les résultats dans un tableau optimisé pour la console. Format-Table -AutoSize ajuste automatiquement la largeur des colonnes pour un affichage lisible. Idéal pour visualiser rapidement les données structurées.",
+      "platform": 0
+    },
+    {
+      "command": "Get-ADUser -Identity jdupont -Properties LockedOut,LockoutTime,BadPwdCount,LastBadPasswordAttempt | Export-Csv C:\\Temp\\Export.csv -NoTypeInformation -Encoding UTF8",
+      "description": "Exporte les résultats vers un fichier CSV exploitable dans Excel. -NoTypeInformation supprime la ligne de métadonnées. -Encoding UTF8 garantit la compatibilité des caractères accentués. Utile pour l'archivage, les rapports et l'analyse externe.",
+      "platform": 0
+    },
+    {
+      "command": "Get-ADUser -Identity jdupont -Properties LockedOut,LockoutTime,BadPwdCount,LastBadPasswordAttempt | Measure-Object",
+      "description": "Compte le nombre total d'objets retournés. Measure-Object retourne Count, Sum, Average, Min, Max selon les propriétés. Utile pour les statistiques rapides et la validation de résultats.",
+      "platform": 0
+    }
+  ],
+  "notes": "Utile pour diagnostiquer les problèmes de connexion. Affiche le nombre de tentatives échouées et l'heure du verrouillage.",
+  "links": []
+}

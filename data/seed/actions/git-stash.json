@@ -1,0 +1,53 @@
+{
+  "id": "git-stash",
+  "title": "Sauvegarder temporairement des modifications",
+  "description": "Met de côté temporairement les modifications non commitées",
+  "category": "🔧 Development",
+  "platform": 2,
+  "level": 0,
+  "tags": [
+    "git",
+    "stash",
+    "temporary"
+  ],
+  "windowsCommandTemplateId": "git-stash-win",
+  "windowsCommandTemplate": {
+    "id": "git-stash-win",
+    "platform": 0,
+    "name": "git",
+    "commandPattern": "git stash",
+    "parameters": []
+  },
+  "linuxCommandTemplateId": "git-stash-linux",
+  "linuxCommandTemplate": {
+    "id": "git-stash-linux",
+    "platform": 1,
+    "name": "git",
+    "commandPattern": "git stash",
+    "parameters": []
+  },
+  "examples": [
+    {
+      "command": "git stash",
+      "description": "Sauvegarde les modifications actuelles",
+      "platform": 2
+    },
+    {
+      "command": "git stash pop",
+      "description": "Restaure les modifications et supprime le stash",
+      "platform": 2
+    },
+    {
+      "command": "git stash list",
+      "description": "Liste tous les stashs",
+      "platform": 2
+    }
+  ],
+  "notes": "Utilisez 'stash push -m \"message\"' pour nommer un stash, 'stash apply' pour restaurer sans supprimer.",
+  "links": [
+    {
+      "title": "Git Stash Documentation",
+      "url": "https://git-scm.com/docs/git-stash"
+    }
+  ]
+}

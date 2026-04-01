@@ -1,0 +1,52 @@
+{
+  "id": "sysinternals-accesschk",
+  "title": "Auditer les permissions (AccessChk)",
+  "description": "Vérifie les droits d'accès effectifs des utilisateurs sur des fichiers, clés de registre ou services.",
+  "category": "🔒 Security & Encryption",
+  "platform": 0,
+  "level": 0,
+  "tags": [
+    "sysinternals",
+    "accesschk",
+    "permissions",
+    "audit",
+    "security"
+  ],
+  "windowsCommandTemplate": {
+    "id": "82111b46-6e6b-4f61-bf2a-8c4a3d117390",
+    "platform": 0,
+    "name": "accesschk",
+    "commandPattern": "accesschk.exe -w -s -q -u {userGroup} {path}",
+    "parameters": [
+      {
+        "name": "userGroup",
+        "label": "Groupe/Utilisateur",
+        "type": "string",
+        "defaultValue": "Users",
+        "required": true,
+        "description": "Groupe à vérifier (ex: Users, Everyone)"
+      },
+      {
+        "name": "path",
+        "label": "Chemin cible",
+        "type": "string",
+        "defaultValue": "C:\\Windows",
+        "required": true,
+        "description": "Dossier ou clé de registre à scanner"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "accesschk.exe -w -s -q -u Users \"C:\\Program Files\"",
+      "description": "🔥 VULN CHECK : Cherche tous les dossiers dans Program Files où le groupe 'Users' a le droit d'écrire (-w). C'est une faille de sécurité classique (Privilege Escalation via DLL Hijacking).",
+      "platform": 0
+    },
+    {
+      "command": "accesschk.exe -c -w -u Users *",
+      "description": "Liste les services Windows modifiables par les utilisateurs simples. Permet de détecter des services mal configurés.",
+      "platform": 0
+    }
+  ],
+  "windowsCommandTemplateId": "82111b46-6e6b-4f61-bf2a-8c4a3d117390"
+}

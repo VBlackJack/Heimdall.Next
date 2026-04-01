@@ -1,0 +1,60 @@
+{
+  "id": "linux-chown",
+  "title": "Changer propriétaire (chown)",
+  "description": "Change le propriétaire et le groupe d'un fichier ou dossier.",
+  "category": "🔒 Security & Encryption",
+  "platform": 1,
+  "level": 1,
+  "tags": [
+    "linux",
+    "chown",
+    "owner",
+    "user",
+    "group"
+  ],
+  "linuxCommandTemplate": {
+    "id": "eb337443-e9db-4c46-843d-8addd385df09",
+    "platform": 1,
+    "name": "chown",
+    "commandPattern": "chown {owner}:{group} {file}",
+    "parameters": [
+      {
+        "name": "owner",
+        "label": "User",
+        "type": "string",
+        "defaultValue": "www-data",
+        "required": true,
+        "description": "Nouvel utilisateur"
+      },
+      {
+        "name": "group",
+        "label": "Groupe",
+        "type": "string",
+        "defaultValue": "www-data",
+        "required": true,
+        "description": "Nouveau groupe"
+      },
+      {
+        "name": "file",
+        "label": "Fichier",
+        "type": "string",
+        "defaultValue": "/var/www",
+        "required": true,
+        "description": "Cible"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "chown -R www-data:www-data /var/www/html",
+      "description": "Donne la propriété au serveur web (www-data) récursivement. Résout souvent les erreurs '403 Forbidden'.",
+      "platform": 1
+    },
+    {
+      "command": "chown root:root /etc/cron.d/mycron",
+      "description": "Remet les droits root sur un fichier système.",
+      "platform": 1
+    }
+  ],
+  "linuxCommandTemplateId": "eb337443-e9db-4c46-843d-8addd385df09"
+}

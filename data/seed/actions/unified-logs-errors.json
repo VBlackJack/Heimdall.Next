@@ -1,0 +1,76 @@
+{
+  "id": "unified-logs-errors",
+  "title": "Afficher les erreurs système récentes",
+  "description": "Affiche les erreurs récentes du journal système",
+  "category": "📊 Monitoring & Logs",
+  "platform": 2,
+  "level": 0,
+  "tags": [
+    "logs",
+    "errors",
+    "eventlog",
+    "journalctl",
+    "diagnostic",
+    "system"
+  ],
+  "windowsCommandTemplateId": "unified-logs-errors-win-cmd",
+  "windowsCommandTemplate": {
+    "id": "unified-logs-errors-win-cmd",
+    "platform": 0,
+    "commandPattern": "Get-EventLog -LogName {logName} -EntryType Error -Newest {count}",
+    "parameters": [
+      {
+        "name": "logName",
+        "label": "Nom du journal",
+        "type": "string",
+        "required": true,
+        "defaultValue": "System"
+      },
+      {
+        "name": "count",
+        "label": "Nombre d'entrées",
+        "type": "integer",
+        "required": true,
+        "defaultValue": "20"
+      }
+    ]
+  },
+  "linuxCommandTemplateId": "unified-logs-errors-linux-cmd",
+  "linuxCommandTemplate": {
+    "id": "unified-logs-errors-linux-cmd",
+    "platform": 1,
+    "commandPattern": "journalctl -p {priority} -n {count}",
+    "parameters": [
+      {
+        "name": "priority",
+        "label": "Priorité (0-7)",
+        "type": "string",
+        "required": true,
+        "defaultValue": "err"
+      },
+      {
+        "name": "count",
+        "label": "Nombre d'entrées",
+        "type": "integer",
+        "required": true,
+        "defaultValue": "20"
+      }
+    ]
+  },
+  "parameters": [],
+  "examples": [],
+  "windowsExamples": [
+    {
+      "command": "Get-EventLog -LogName System -EntryType Error -Newest 20",
+      "description": "Affiche les 20 dernières erreurs système sur Windows",
+      "platform": 0
+    }
+  ],
+  "linuxExamples": [
+    {
+      "command": "journalctl -p err -n 20",
+      "description": "Affiche les 20 dernières erreurs sur Linux",
+      "platform": 1
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "id": "linux-disk-lsblk",
+  "title": "Lister disques physiques (lsblk)",
+  "description": "Affiche les périphériques blocs (disques, partitions) et leurs points de montage.",
+  "category": "📁 Files & Storage",
+  "platform": 1,
+  "level": 0,
+  "tags": [
+    "linux",
+    "disk",
+    "partition",
+    "mount",
+    "lsblk"
+  ],
+  "linuxCommandTemplate": {
+    "id": "299ad41a-2aaa-42a8-86ef-1d9cc075e1c3",
+    "platform": 1,
+    "name": "lsblk",
+    "commandPattern": "lsblk -f",
+    "parameters": []
+  },
+  "examples": [
+    {
+      "command": "lsblk -o NAME,FSTYPE,SIZE,MOUNTPOINT,STATE",
+      "description": "Affichage personnalisé pour voir l'état des disques.",
+      "platform": 1
+    }
+  ],
+  "linuxCommandTemplateId": "299ad41a-2aaa-42a8-86ef-1d9cc075e1c3"
+}

@@ -1,0 +1,61 @@
+{
+  "id": "system-uptime",
+  "title": "Afficher le temps de fonctionnement du système",
+  "description": "Montre depuis combien de temps le système est démarré.",
+  "category": "⚡ Performance",
+  "platform": 2,
+  "level": 0,
+  "tags": [
+    "system",
+    "uptime",
+    "info"
+  ],
+  "windowsCommandTemplateId": "system-uptime-windows-cmd",
+  "windowsCommandTemplate": {
+    "id": "system-uptime-windows-cmd",
+    "platform": 0,
+    "name": "Get-CimInstance",
+    "commandPattern": "(Get-CimInstance -ClassName Win32_OperatingSystem).LastBootUpTime",
+    "parameters": []
+  },
+  "linuxCommandTemplateId": "system-uptime-linux-cmd",
+  "linuxCommandTemplate": {
+    "id": "system-uptime-linux-cmd",
+    "platform": 1,
+    "name": "uptime",
+    "commandPattern": "uptime -p",
+    "parameters": []
+  },
+  "examples": [],
+  "notes": "Sur Windows, calculer la différence avec Get-Date pour obtenir la durée. Sur Linux, 'uptime' sans option donne plus d'infos.",
+  "links": [],
+  "windowsExamples": [
+    {
+      "command": "(Get-CimInstance -ClassName Win32_OperatingSystem).LastBootUpTime",
+      "description": "Affiche la date/heure du dernier démarrage (Windows)",
+      "platform": 0
+    }
+  ],
+  "linuxExamples": [
+    {
+      "command": "uptime -p",
+      "description": "Affiche l'uptime en format lisible (Linux)",
+      "platform": 1
+    },
+    {
+      "command": "uptime",
+      "description": "Temps de fonctionnement et charge système",
+      "platform": 1
+    },
+    {
+      "command": "uptime -s",
+      "description": "Date et heure du dernier démarrage",
+      "platform": 1
+    },
+    {
+      "command": "w",
+      "description": "Uptime + utilisateurs connectés",
+      "platform": 1
+    }
+  ]
+}

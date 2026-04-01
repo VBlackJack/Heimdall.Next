@@ -1,0 +1,40 @@
+{
+  "id": "logs-clear-eventlog",
+  "title": "Vider un journal d'événements",
+  "description": "Efface tous les événements d'un journal Windows spécifique.",
+  "category": "📊 Monitoring & Logs",
+  "platform": 0,
+  "level": 2,
+  "tags": [
+    "logs",
+    "eventlog",
+    "clear",
+    "delete"
+  ],
+  "windowsCommandTemplateId": "logs-clear-eventlog-cmd",
+  "windowsCommandTemplate": {
+    "id": "logs-clear-eventlog-cmd",
+    "platform": 0,
+    "name": "Clear-EventLog",
+    "commandPattern": "Clear-EventLog -LogName {logName}",
+    "parameters": [
+      {
+        "name": "logName",
+        "label": "Journal",
+        "type": "string",
+        "defaultValue": "Application",
+        "required": true,
+        "description": "Nom du journal à vider (System, Application, Security)"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "Clear-EventLog -LogName Application",
+      "description": "Vide le journal Application",
+      "platform": 0
+    }
+  ],
+  "notes": "⚠️ ATTENTION : Cette action est irréversible ! Envisager d'exporter le journal avant de le vider.",
+  "links": []
+}

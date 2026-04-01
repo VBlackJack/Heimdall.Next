@@ -1,0 +1,72 @@
+{
+  "id": "git-tag",
+  "title": "Gérer les tags Git",
+  "description": "Crée, liste ou supprime des tags (versions)",
+  "category": "🔧 Development",
+  "platform": 2,
+  "level": 0,
+  "tags": [
+    "git",
+    "tag",
+    "version",
+    "release"
+  ],
+  "windowsCommandTemplateId": "git-tag-win",
+  "windowsCommandTemplate": {
+    "id": "git-tag-win",
+    "platform": 0,
+    "name": "git",
+    "commandPattern": "git tag {tagName}",
+    "parameters": [
+      {
+        "name": "tagName",
+        "label": "Nom du tag",
+        "type": "string",
+        "defaultValue": "",
+        "required": false,
+        "description": "Nom du tag (vide pour lister)"
+      }
+    ]
+  },
+  "linuxCommandTemplateId": "git-tag-linux",
+  "linuxCommandTemplate": {
+    "id": "git-tag-linux",
+    "platform": 1,
+    "name": "git",
+    "commandPattern": "git tag {tagName}",
+    "parameters": [
+      {
+        "name": "tagName",
+        "label": "Nom du tag",
+        "type": "string",
+        "defaultValue": "",
+        "required": false,
+        "description": "Nom du tag"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "git tag",
+      "description": "Liste tous les tags",
+      "platform": 2
+    },
+    {
+      "command": "git tag v1.0.0",
+      "description": "Crée un tag léger",
+      "platform": 2
+    },
+    {
+      "command": "git tag -a v1.0.0 -m \"Release 1.0.0\"",
+      "description": "Crée un tag annoté",
+      "platform": 2
+    }
+  ],
+  "notes": "Utilisez -a pour créer des tags annotés (recommandé). N'oubliez pas de pousser les tags avec 'git push --tags'.",
+  "links": [
+    {
+      "title": "Git Tag Documentation",
+      "url": "https://git-scm.com/docs/git-tag"
+    }
+  ]
+}

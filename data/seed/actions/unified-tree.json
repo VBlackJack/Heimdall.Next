@@ -1,0 +1,154 @@
+{
+  "id": "unified-tree",
+  "title": "Afficher l'arborescence de dossiers",
+  "description": "Affiche la structure hiérarchique d'un répertoire.",
+  "category": "📁 Files & Storage",
+  "platform": 2,
+  "supportedPlatforms": [
+    0,
+    1
+  ],
+  "level": 0,
+  "tags": [
+    "linux",
+    "windows",
+    "arborescence",
+    "structure",
+    "tree"
+  ],
+  "notes": "Windows: /F affiche les fichiers. /A utilise des caractères ASCII. Utiliser > pour rediriger vers un fichier.\nLinux: -L pour limiter la profondeur. -d pour dossiers seulement. Installer avec: sudo apt install tree.",
+  "links": [],
+  "windowsCommandTemplateId": "search-tree-windows-cmd",
+  "windowsCommandTemplate": {
+    "id": "search-tree-windows-cmd",
+    "platform": 0,
+    "name": "tree",
+    "commandPattern": "tree \"{path}\" /F /A",
+    "parameters": [
+      {
+        "name": "path",
+        "label": "Chemin",
+        "type": "string",
+        "defaultValue": ".",
+        "required": false,
+        "description": "Dossier à afficher"
+      }
+    ]
+  },
+  "windowsExamples": [
+    {
+      "command": "tree C:\\Projects /F",
+      "description": "Affiche l'arborescence avec les fichiers",
+      "platform": 0
+    },
+    {
+      "command": "tree /A > structure.txt",
+      "description": "Sauvegarde l'arborescence en ASCII dans un fichier",
+      "platform": 0
+    },
+    {
+      "command": "tree \"{path}\" /F /A",
+      "description": "Exécution standard de la commande None. Consultez la documentation officielle avec Get-Help tree -Full pour plus de détails sur les paramètres disponibles et les cas d'usage avancés.",
+      "platform": 0
+    },
+    {
+      "command": "tree \".\" /F /A",
+      "description": "Exemple utilisant le paramètre 'path': Dossier à afficher. Remplacez <path> par la valeur appropriée selon votre environnement.",
+      "platform": 0
+    },
+    {
+      "command": "tree \"{path}\" /F /A",
+      "description": "Cas d'usage standard. Affiche la structure hiérarchique d'un répertoire. Consultez la documentation pour des paramètres avancés et des options de filtrage.",
+      "platform": 0
+    },
+    {
+      "command": "tree \"C:\\Logs\\app.log\" /F /A",
+      "description": "Exemple Windows pour Afficher l'arborescence de dossiers",
+      "platform": 0
+    }
+  ],
+  "linuxCommandTemplateId": "search-tree-linux-cmd",
+  "linuxCommandTemplate": {
+    "id": "search-tree-linux-cmd",
+    "platform": 1,
+    "name": "tree",
+    "commandPattern": "tree \"{path}\"",
+    "parameters": [
+      {
+        "name": "path",
+        "label": "Chemin",
+        "type": "string",
+        "defaultValue": ".",
+        "required": false,
+        "description": "Dossier à afficher"
+      }
+    ]
+  },
+  "linuxExamples": [
+    {
+      "command": "tree -L 2",
+      "description": "Limite à 2 niveaux de profondeur",
+      "platform": 1
+    },
+    {
+      "command": "tree -d",
+      "description": "Affiche uniquement les dossiers",
+      "platform": 1
+    },
+    {
+      "command": "tree -h",
+      "description": "Affiche les tailles en format lisible",
+      "platform": 1
+    },
+    {
+      "command": "tree --help",
+      "description": "Affiche l'aide complète de la commande tree. --help liste tous les paramètres disponibles, les options et des exemples d'utilisation. Première commande à utiliser pour découvrir les capacités d'un outil.",
+      "platform": 1
+    },
+    {
+      "command": "man tree",
+      "description": "Affiche le manuel complet de tree. Les pages man fournissent la documentation détaillée : syntaxe, paramètres, exemples, notes. Plus complet que --help. Naviguez avec flèches, cherchez avec '/', quittez avec 'q'.",
+      "platform": 1
+    },
+    {
+      "command": "tree \".\"",
+      "description": "Exemple utilisant le paramètre 'path': Dossier à afficher. Remplacez <path> par la valeur appropriée selon votre environnement.",
+      "platform": 1
+    },
+    {
+      "command": "tree /var/log",
+      "description": "Exemple Linux pour Afficher l'arborescence de dossiers",
+      "platform": 1
+    },
+    {
+      "command": "tree /var/www",
+      "description": "Arborescence du dossier web",
+      "platform": 1
+    },
+    {
+      "command": "tree -L 2 /home",
+      "description": "Limiter à 2 niveaux",
+      "platform": 1
+    },
+    {
+      "command": "tree -d /etc",
+      "description": "Afficher uniquement les dossiers",
+      "platform": 1
+    },
+    {
+      "command": "tree -h /var/log",
+      "description": "Afficher les tailles",
+      "platform": 1
+    }
+  ],
+  "crossPlatformNotes": {
+    "differences": [
+      "Syntaxe: Windows utilise 'tree', Linux utilise 'tree'"
+    ],
+    "commonalities": [
+      "Les deux permettent de afficher l'arborescence de dossiers",
+      "Fonctionnalité équivalente sur les deux plateformes"
+    ]
+  },
+  "examples": []
+}

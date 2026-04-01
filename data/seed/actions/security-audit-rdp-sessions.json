@@ -1,0 +1,71 @@
+{
+  "id": "security-audit-rdp-sessions",
+  "title": "Auditer les connexions RDP récentes",
+  "description": "Liste les événements de connexion Bureau à distance (RDP) réussies et échouées",
+  "category": "🔒 Security & Encryption",
+  "platform": 0,
+  "level": 0,
+  "tags": [
+    "security",
+    "rdp",
+    "audit",
+    "sessions",
+    "login"
+  ],
+  "windowsCommandTemplateId": "security-audit-rdp-sessions-cmd",
+  "windowsCommandTemplate": {
+    "id": "security-audit-rdp-sessions-cmd",
+    "platform": 0,
+    "name": "Get-WinEvent",
+    "commandPattern": "Get-WinEvent -FilterHashtable @{LogName='Security'; Id=4624,4625; StartTime=(Get-Date).AddDays(-{days})} | Where-Object {$_.Message -like '*LogonType*10*' -or $_.Message -like '*LogonType*3*'} | Select-Object TimeCreated,Id,@{Name='EventType';Expression={if($_.Id -eq 4624){'Success'}else{'Failed'}}},Message | Format-Table -AutoSize",
+    "parameters": [
+      {
+        "name": "days",
+        "label": "Nombre de jours",
+        "type": "number",
+        "defaultValue": "7",
+        "required": true,
+        "description": "Nombre de jours à analyser en arrière"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "Get-WinEvent -FilterHashtable @{LogName='System'; Level=2; StartTime=(Get-Date).AddHours(-24)}",
+      "description": "Méthode performante pour filtrer les erreurs (Level=2) des dernières 24h. Beaucoup plus rapide que Get-EventLog sur les gros volumes.",
+      "platform": 0
+    },
+    {
+      "command": "Get-WinEvent -FilterHashtable @{LogName='Security'; Id=4624} | Where-Object {$_.Properties[8].Value -eq 10} | Select-Object TimeCreated,Message",
+      "description": "Connexions RDP réussies (LogonType 10)",
+      "platform": 0
+    },
+    {
+      "command": "Get-WinEvent -FilterHashtable @{LogName='Security'; Id=4625} | Select-Object -First 20",
+      "description": "20 dernières tentatives de connexion échouées",
+      "platform": 0
+    },
+    {
+      "command": "Get-WinEvent -FilterHashtable @{LogName='Security'; Id=4624,4625; StartTime=(Get-Date).AddDays(-30)} | Select-Object * -First 1",
+      "description": "Affiche toutes les propriétés du premier objet retourné. Select-Object * élargit l'affichage pour montrer toutes les colonnes. -First 1 limite au premier résultat. Utilisez cette commande pour découvrir les propriétés disponibles avant de filtrer.",
+      "platform": 0
+    },
+    {
+      "command": "Get-WinEvent -FilterHashtable @{LogName='Security'; Id=4624,4625; StartTime=(Get-Date).AddDays(-30)} | Export-Csv C:\\Temp\\Export.csv -NoTypeInformation -Encoding UTF8",
+      "description": "Exporte les résultats vers un fichier CSV exploitable dans Excel. -NoTypeInformation supprime la ligne de métadonnées. -Encoding UTF8 garantit la compatibilité des caractères accentués. Utile pour l'archivage, les rapports et l'analyse externe.",
+      "platform": 0
+    },
+    {
+      "command": "Get-WinEvent -FilterHashtable @{LogName='Security'; Id=4624,4625; StartTime=(Get-Date).AddDays(-30)} | Measure-Object",
+      "description": "Compte le nombre total d'objets retournés. Measure-Object retourne Count, Sum, Average, Min, Max selon les propriétés. Utile pour les statistiques rapides et la validation de résultats.",
+      "platform": 0
+    }
+  ],
+  "notes": "EventID 4624 = connexion réussie, 4625 = échec. LogonType 10 = RemoteInteractive (RDP), 3 = Network. Surveillez les échecs répétés (attaque).",
+  "links": [
+    {
+      "title": "Audit RDP Sessions",
+      "url": "https://learn.microsoft.com/en-us/windows/security/threat-protection/auditing/event-4624"
+    }
+  ]
+}

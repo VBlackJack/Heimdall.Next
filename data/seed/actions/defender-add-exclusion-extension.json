@@ -1,0 +1,69 @@
+{
+  "id": "defender-add-exclusion-extension",
+  "title": "Ajouter une exclusion d'extension de fichier Defender",
+  "description": "Exclut tous les fichiers d'une extension spécifique de l'analyse Defender.",
+  "category": "🔒 Security & Encryption",
+  "platform": 0,
+  "level": 1,
+  "tags": [
+    "defender",
+    "exclusion",
+    "extension"
+  ],
+  "windowsCommandTemplateId": "defender-add-exclusion-extension-cmd",
+  "windowsCommandTemplate": {
+    "id": "defender-add-exclusion-extension-cmd",
+    "platform": 0,
+    "name": "Add-MpPreference",
+    "commandPattern": "Add-MpPreference -ExclusionExtension \"{extension}\"",
+    "parameters": [
+      {
+        "name": "extension",
+        "label": "Extension",
+        "type": "string",
+        "defaultValue": "",
+        "required": true,
+        "description": "Extension à exclure (avec point, ex: .tmp)"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "Add-MpPreference -ExclusionExtension '.tmp'",
+      "description": "Exclut tous les fichiers temporaires .tmp",
+      "platform": 0
+    },
+    {
+      "command": "Add-MpPreference -ExclusionExtension '.bak'",
+      "description": "Exclut les fichiers de sauvegarde .bak",
+      "platform": 0
+    },
+    {
+      "command": "Add-MpPreference -ExclusionExtension '.log'",
+      "description": "Exclut les fichiers de log (améliore perf si logs volumin eux)",
+      "platform": 0
+    },
+    {
+      "command": "@('.tmp','.bak','.log','.cache') | ForEach-Object { Add-MpPreference -ExclusionExtension $_ }",
+      "description": "Exclut plusieurs extensions temporaires/cache",
+      "platform": 0
+    },
+    {
+      "command": "Get-MpPreference | Select-Object -ExpandProperty ExclusionExtension",
+      "description": "Liste toutes les exclusions d'extensions actuelles",
+      "platform": 0
+    },
+    {
+      "command": "Add-MpPreference -ExclusionExtension \".txt\"",
+      "description": "Exemple utilisant le paramètre 'extension': Extension à exclure (avec point, ex: .tmp). Remplacez .txt par la valeur appropriée selon votre environnement.",
+      "platform": 0
+    }
+  ],
+  "notes": "⚠️ DANGER: N'excluez JAMAIS les extensions exécutables (.exe, .dll, .bat, .ps1, .vbs, .js, .msi, .scr). Exclusions sûres: .tmp, .bak, .log, .cache, .obj. Chaque exclusion augmente le risque de sécurité!",
+  "links": [
+    {
+      "title": "Defender Extension Exclusions",
+      "url": "https://learn.microsoft.com/en-us/microsoft-365/security/defender-endpoint/configure-extension-file-exclusions-microsoft-defender-antivirus"
+    }
+  ]
+}

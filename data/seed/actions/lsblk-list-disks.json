@@ -1,0 +1,71 @@
+{
+  "id": "lsblk-list-disks",
+  "title": "Lister les disques et partitions",
+  "description": "Affiche tous les périphériques de bloc (disques, partitions) en arborescence",
+  "category": "📁 Files & Storage",
+  "platform": 1,
+  "level": 0,
+  "tags": [
+    "lsblk",
+    "disk",
+    "partition",
+    "storage",
+    "block"
+  ],
+  "linuxCommandTemplateId": "lsblk-cmd",
+  "linuxCommandTemplate": {
+    "id": "lsblk-cmd",
+    "platform": 1,
+    "name": "lsblk",
+    "commandPattern": "lsblk {options}",
+    "parameters": [
+      {
+        "name": "options",
+        "label": "Options",
+        "type": "string",
+        "defaultValue": "-f",
+        "required": false,
+        "description": "Options (-f=filesystems, -o=columns, -a=all)"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "lsblk",
+      "description": "Liste les disques en arborescence",
+      "platform": 1
+    },
+    {
+      "command": "lsblk -f",
+      "description": "Affiche les systèmes de fichiers et UUID",
+      "platform": 1
+    },
+    {
+      "command": "lsblk -o NAME,SIZE,FSTYPE,MOUNTPOINT",
+      "description": "Colonnes personnalisées",
+      "platform": 1
+    },
+    {
+      "command": "lsblk -o NAME,SIZE,TYPE,MOUNTPOINT",
+      "description": "Colonnes personnalisées",
+      "platform": 1
+    },
+    {
+      "command": "lsblk -d",
+      "description": "Afficher uniquement les disques (pas les partitions)",
+      "platform": 1
+    },
+    {
+      "command": "lsblk -J",
+      "description": "Sortie en format JSON",
+      "platform": 1
+    }
+  ],
+  "notes": "Ne nécessite pas sudo. Très utile pour identifier les disques avant partitionnement.",
+  "links": [
+    {
+      "title": "lsblk documentation",
+      "url": "https://man7.org/linux/man-pages/man8/lsblk.8.html"
+    }
+  ]
+}

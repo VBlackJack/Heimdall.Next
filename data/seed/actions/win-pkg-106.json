@@ -1,0 +1,56 @@
+{
+  "id": "win-pkg-106",
+  "title": "Rechercher un package Chocolatey",
+  "description": "Recherche des packages disponibles dans le dépôt Chocolatey.",
+  "category": "📦 Package Management",
+  "platform": 0,
+  "level": 0,
+  "tags": [
+    "chocolatey",
+    "package",
+    "search",
+    "find",
+    "windows"
+  ],
+  "windowsCommandTemplateId": "choco-search-cmd",
+  "windowsCommandTemplate": {
+    "id": "choco-search-cmd",
+    "platform": 0,
+    "name": "choco",
+    "commandPattern": "choco search {searchTerm}",
+    "parameters": [
+      {
+        "name": "searchTerm",
+        "label": "Terme de recherche",
+        "type": "string",
+        "defaultValue": "",
+        "required": true,
+        "description": "Mot-clé ou nom du package à rechercher"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "choco search chrome",
+      "description": "Recherche tous les packages contenant 'chrome'",
+      "platform": 0
+    },
+    {
+      "command": "choco search --exact googlechrome",
+      "description": "Recherche par nom exact",
+      "platform": 0
+    },
+    {
+      "command": "choco search Admin",
+      "description": "Exécution standard de la commande None. Consultez la documentation officielle avec Get-Help choco -Full pour plus de détails sur les paramètres disponibles et les cas d'usage avancés.",
+      "platform": 0
+    }
+  ],
+  "notes": "Recherche dans le dépôt community.chocolatey.org par défaut. Utiliser --exact pour correspondance exacte.",
+  "links": [
+    {
+      "title": "Chocolatey search documentation",
+      "url": "https://docs.chocolatey.org/en-us/choco/commands/search"
+    }
+  ]
+}

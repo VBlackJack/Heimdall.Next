@@ -1,0 +1,71 @@
+{
+  "id": "build-maven",
+  "title": "Construire un projet Maven",
+  "description": "Compile et package un projet Java avec Maven.",
+  "category": "🔧 Development",
+  "platform": 2,
+  "level": 0,
+  "tags": [
+    "maven",
+    "java",
+    "build",
+    "development"
+  ],
+  "windowsCommandTemplateId": "build-maven-win-cmd",
+  "windowsCommandTemplate": {
+    "id": "build-maven-win-cmd",
+    "platform": 0,
+    "name": "mvn",
+    "commandPattern": "mvn clean package",
+    "parameters": []
+  },
+  "linuxCommandTemplateId": "build-maven-linux-cmd",
+  "linuxCommandTemplate": {
+    "id": "build-maven-linux-cmd",
+    "platform": 1,
+    "name": "mvn",
+    "commandPattern": "mvn clean package",
+    "parameters": []
+  },
+  "examples": [
+    {
+      "command": "mvn clean package",
+      "description": "Nettoie et package le projet",
+      "platform": 2
+    },
+    {
+      "command": "mvn clean install",
+      "description": "Installe dans le repo local",
+      "platform": 2
+    },
+    {
+      "command": "mvn clean package -DskipTests",
+      "description": "Package sans exécuter les tests",
+      "platform": 2
+    }
+  ],
+  "notes": "clean supprime le dossier target. package crée le JAR/WAR. install met dans le repo local Maven.",
+  "links": [],
+  "linuxExamples": [
+    {
+      "command": "mvn test",
+      "description": "Exécuter les tests",
+      "platform": 1
+    },
+    {
+      "command": "mvn package -DskipTests",
+      "description": "Construire sans les tests",
+      "platform": 1
+    },
+    {
+      "command": "mvn dependency:tree",
+      "description": "Afficher l'arbre des dépendances",
+      "platform": 1
+    },
+    {
+      "command": "mvn spring-boot:run",
+      "description": "Démarrer une application Spring Boot",
+      "platform": 1
+    }
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  "id": "ad-check-fsmo-roles",
+  "title": "Vérifier les rôles FSMO",
+  "description": "Affiche les contrôleurs de domaine détenant les rôles FSMO (Flexible Single Master Operations).",
+  "category": "🏢 Active Directory & GPO",
+  "platform": 0,
+  "level": 0,
+  "tags": [
+    "ad",
+    "fsmo",
+    "roles",
+    "diagnostic"
+  ],
+  "windowsCommandTemplateId": "ad-check-fsmo-roles-cmd",
+  "windowsCommandTemplate": {
+    "id": "ad-check-fsmo-roles-cmd",
+    "platform": 0,
+    "name": "netdom",
+    "commandPattern": "netdom query fsmo",
+    "parameters": []
+  },
+  "examples": [
+    {
+      "command": "netdom query fsmo",
+      "description": "Affiche tous les détenteurs de rôles FSMO",
+      "platform": 0
+    },
+    {
+      "command": "netdom query fsmo -WhatIf",
+      "description": "Simulation de l'action avec -WhatIf (dry-run). Affiche ce qui serait fait sans exécuter réellement. Indispensable pour tester les commandes de modification avant exécution. Retirez -WhatIf après validation pour exécuter.",
+      "platform": 0
+    },
+    {
+      "command": "netdom query fsmo -Confirm:$false",
+      "description": "Exécute l'action sans demander de confirmation interactive. Le paramètre -Confirm:$false supprime les invites de validation. Utile dans les scripts automatisés mais à utiliser avec précaution.",
+      "platform": 0
+    }
+  ],
+  "notes": "Les 5 rôles FSMO: Schema Master, Domain Naming Master, RID Master, PDC Emulator, Infrastructure Master.",
+  "links": []
+}

@@ -1,0 +1,68 @@
+{
+  "id": "ad-remove-user-from-group",
+  "title": "Retirer un utilisateur d'un groupe AD",
+  "description": "Retire un utilisateur d'un groupe Active Directory.",
+  "category": "🏢 Active Directory & GPO",
+  "platform": 0,
+  "level": 1,
+  "tags": [
+    "ad",
+    "group",
+    "membership",
+    "user"
+  ],
+  "windowsCommandTemplateId": "ad-remove-user-from-group-cmd",
+  "windowsCommandTemplate": {
+    "id": "ad-remove-user-from-group-cmd",
+    "platform": 0,
+    "name": "Remove-ADGroupMember",
+    "commandPattern": "Remove-ADGroupMember -Identity \"{groupName}\" -Members {username} -Confirm:$false",
+    "parameters": [
+      {
+        "name": "groupName",
+        "label": "Nom du groupe",
+        "type": "string",
+        "defaultValue": "",
+        "required": true,
+        "description": "Nom du groupe AD"
+      },
+      {
+        "name": "username",
+        "label": "Nom d'utilisateur",
+        "type": "string",
+        "defaultValue": "",
+        "required": true,
+        "description": "SamAccountName de l'utilisateur à retirer"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "Remove-ADGroupMember -Identity 'Domain Admins' -Members jdupont -Confirm:$false",
+      "description": "Retire jdupont du groupe Domain Admins sans confirmation. -Confirm:$false supprime l'invite de confirmation (par défaut, Remove-ADGroupMember demande toujours confirmation pour les opérations sensibles). Le retrait est immédiat mais l'utilisateur doit se reconnecter pour perdre les droits.",
+      "platform": 0
+    },
+    {
+      "command": "Remove-ADGroupMember -Identity 'IT_Support' -Members jdupont,mmartin -Confirm:$false",
+      "description": "Retire plusieurs utilisateurs simultanément d'un groupe. -Members accepte un tableau de valeurs. Plus efficace que des commandes individuelles. Utile lors des départs de collaborateurs ou réorganisations.",
+      "platform": 0
+    },
+    {
+      "command": "Remove-ADGroupMember -Identity 'Groupe_Projet_X' -Members jdupont -WhatIf",
+      "description": "Simulation du retrait avec -WhatIf (dry-run). Affiche ce qui serait fait sans exécuter. Vérifiez toujours avec -WhatIf avant de retirer des membres de groupes sensibles. Retirez -WhatIf après validation.",
+      "platform": 0
+    },
+    {
+      "command": "Get-ADGroupMember -Identity 'IT_Support' | Export-Csv C:\\Temp\\IT_Support_Backup.csv -NoTypeInformation; Remove-ADGroupMember -Identity 'IT_Support' -Members jdupont -Confirm:$false",
+      "description": "Bonne pratique : sauvegarde les membres du groupe avant retrait. L'export CSV permet une restauration facile en cas d'erreur. Les deux commandes sont séparées par un point-virgule pour exécution séquentielle. Toujours sauvegarder avant modifications critiques.",
+      "platform": 0
+    }
+  ],
+  "notes": "Nécessite des droits d'administration AD. Retirer l'option -Confirm:$false pour demander confirmation.",
+  "links": [
+    {
+      "title": "Documentation Remove-ADGroupMember",
+      "url": "https://learn.microsoft.com/en-us/powershell/module/activedirectory/remove-adgroupmember"
+    }
+  ]
+}

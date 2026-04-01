@@ -1,0 +1,44 @@
+{
+  "id": "linux-dig",
+  "title": "Diagnostic DNS expert (Dig)",
+  "description": "Interroge les serveurs DNS. Plus précis et complet que nslookup.",
+  "category": "🌐 Network & DNS",
+  "platform": 1,
+  "level": 0,
+  "tags": [
+    "linux",
+    "dig",
+    "dns",
+    "lookup",
+    "domain"
+  ],
+  "linuxCommandTemplate": {
+    "id": "97e0881f-0806-45ae-864a-68b32ac5d383",
+    "platform": 1,
+    "name": "dig",
+    "commandPattern": "dig {domain} +short",
+    "parameters": [
+      {
+        "name": "domain",
+        "label": "Domaine",
+        "type": "string",
+        "defaultValue": "google.com",
+        "required": true,
+        "description": "Nom de domaine"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "dig @8.8.8.8 google.com",
+      "description": "Interroge un serveur DNS spécifique (Google) au lieu du DNS système. Utile pour comparer les réponses.",
+      "platform": 1
+    },
+    {
+      "command": "dig +trace google.com",
+      "description": "🔥 DNS TRACE : Trace la résolution depuis les serveurs racines (.) jusqu'au domaine final. Indispensable pour debuguer les problèmes de propagation.",
+      "platform": 1
+    }
+  ],
+  "linuxCommandTemplateId": "97e0881f-0806-45ae-864a-68b32ac5d383"
+}

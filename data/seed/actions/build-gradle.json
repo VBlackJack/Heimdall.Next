@@ -1,0 +1,71 @@
+{
+  "id": "build-gradle",
+  "title": "Construire un projet Gradle",
+  "description": "Compile et package un projet avec Gradle.",
+  "category": "🔧 Development",
+  "platform": 2,
+  "level": 0,
+  "tags": [
+    "gradle",
+    "java",
+    "build",
+    "development"
+  ],
+  "windowsCommandTemplateId": "build-gradle-win-cmd",
+  "windowsCommandTemplate": {
+    "id": "build-gradle-win-cmd",
+    "platform": 0,
+    "name": "gradle",
+    "commandPattern": "gradle build",
+    "parameters": []
+  },
+  "linuxCommandTemplateId": "build-gradle-linux-cmd",
+  "linuxCommandTemplate": {
+    "id": "build-gradle-linux-cmd",
+    "platform": 1,
+    "name": "gradle",
+    "commandPattern": "gradle build",
+    "parameters": []
+  },
+  "examples": [
+    {
+      "command": "gradle build",
+      "description": "Compile et teste le projet",
+      "platform": 2
+    },
+    {
+      "command": "gradle clean build",
+      "description": "Nettoie puis compile",
+      "platform": 2
+    }
+  ],
+  "notes": "Préférer ./gradlew (wrapper) pour la portabilité. --no-daemon pour CI/CD.",
+  "links": [],
+  "linuxExamples": [
+    {
+      "command": "./gradlew build",
+      "description": "Utilise le wrapper Gradle",
+      "platform": 1
+    },
+    {
+      "command": "./gradlew test",
+      "description": "Exécuter les tests",
+      "platform": 1
+    },
+    {
+      "command": "./gradlew clean build",
+      "description": "Nettoyer et construire",
+      "platform": 1
+    },
+    {
+      "command": "./gradlew bootRun",
+      "description": "Démarrer une application Spring Boot",
+      "platform": 1
+    },
+    {
+      "command": "./gradlew dependencies",
+      "description": "Afficher les dépendances",
+      "platform": 1
+    }
+  ]
+}

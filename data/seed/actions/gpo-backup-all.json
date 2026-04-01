@@ -1,0 +1,45 @@
+{
+  "id": "gpo-backup-all",
+  "title": "Sauvegarder toutes les GPO",
+  "description": "Crée une sauvegarde de toutes les stratégies de groupe du domaine.",
+  "category": "🏢 Active Directory & GPO",
+  "platform": 0,
+  "level": 1,
+  "tags": [
+    "gpo",
+    "backup",
+    "all",
+    "group-policy"
+  ],
+  "windowsCommandTemplateId": "gpo-backup-all-cmd",
+  "windowsCommandTemplate": {
+    "id": "gpo-backup-all-cmd",
+    "platform": 0,
+    "name": "Backup-GPO",
+    "commandPattern": "Backup-GPO -All -Path \"{backupPath}\"",
+    "parameters": [
+      {
+        "name": "backupPath",
+        "label": "Chemin de sauvegarde",
+        "type": "string",
+        "defaultValue": "C:\\GPOBackups",
+        "required": true,
+        "description": "Chemin du dossier de sauvegarde"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "Backup-GPO -All -Path \"C:\\GPOBackups\"",
+      "description": "Sauvegarde toutes les GPO dans C:\\GPOBackups",
+      "platform": 0
+    },
+    {
+      "command": "Backup-GPO -All -Path \"D:\\Backups\\daily\"",
+      "description": "Exécution standard de la commande None. Consultez la documentation officielle avec Get-Help Backup-GPO -Full pour plus de détails sur les paramètres disponibles et les cas d'usage avancés.",
+      "platform": 0
+    }
+  ],
+  "notes": "Recommandé avant toute modification majeure. Peut prendre du temps sur de gros domaines.",
+  "links": []
+}

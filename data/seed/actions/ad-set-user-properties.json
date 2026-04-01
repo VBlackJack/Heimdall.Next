@@ -1,0 +1,97 @@
+{
+  "id": "ad-set-user-properties",
+  "title": "Modifier les propriétés d'un utilisateur AD",
+  "description": "Modifie les propriétés d'un utilisateur AD (département, titre, téléphone, etc.).",
+  "category": "🏢 Active Directory & GPO",
+  "platform": 0,
+  "level": 1,
+  "tags": [
+    "ad",
+    "user",
+    "modify",
+    "properties"
+  ],
+  "windowsCommandTemplateId": "ad-set-user-properties-cmd",
+  "windowsCommandTemplate": {
+    "id": "ad-set-user-properties-cmd",
+    "platform": 0,
+    "name": "Set-ADUser",
+    "commandPattern": "Set-ADUser -Identity {username} -Department \"{department}\" -Title \"{title}\" -OfficePhone \"{phone}\" -EmailAddress \"{email}\"",
+    "parameters": [
+      {
+        "name": "username",
+        "label": "Nom d'utilisateur",
+        "type": "string",
+        "defaultValue": "",
+        "required": true,
+        "description": "SamAccountName de l'utilisateur"
+      },
+      {
+        "name": "department",
+        "label": "Département",
+        "type": "string",
+        "defaultValue": "",
+        "required": false,
+        "description": "Département de l'utilisateur"
+      },
+      {
+        "name": "title",
+        "label": "Titre",
+        "type": "string",
+        "defaultValue": "",
+        "required": false,
+        "description": "Titre/Poste de l'utilisateur"
+      },
+      {
+        "name": "phone",
+        "label": "Téléphone",
+        "type": "string",
+        "defaultValue": "",
+        "required": false,
+        "description": "Numéro de téléphone"
+      },
+      {
+        "name": "email",
+        "label": "Email",
+        "type": "string",
+        "defaultValue": "",
+        "required": false,
+        "description": "Adresse email"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "Set-ADUser -Identity jdupont -Department \"IT\" -Title \"Administrateur Système\" -OfficePhone \"+33123456789\" -EmailAddress \"j.dupont@contoso.com\"",
+      "description": "Met à jour les informations de jdupont",
+      "platform": 0
+    },
+    {
+      "command": "Set-ADUser -Identity jdupont -Department \"IT\" -Title \"Administrateur Système\" -OfficePhone \"+33 1 23 45 67 89\" -EmailAddress \"jdupont@contoso.com\" -WhatIf",
+      "description": "Simulation de l'action sans exécution réelle (dry-run). Le switch -WhatIf affiche ce qui serait modifié sans appliquer les changements. INDISPENSABLE avant toute action de masse ou modification critique. Retirez -WhatIf après validation pour exécuter.",
+      "platform": 0
+    },
+    {
+      "command": "Set-ADUser -Identity jdupont -Department \"IT\" -Title \"Administrateur Système\" -OfficePhone \"+33 1 23 45 67 89\" -EmailAddress \"jdupont@contoso.com\" -Confirm:$false",
+      "description": "Exécute l'action sans demander de confirmation interactive. -Confirm:$false supprime les invites de validation. Utile dans les scripts automatisés mais à utiliser avec précaution : aucun filet de sécurité.",
+      "platform": 0
+    },
+    {
+      "command": "Set-ADUser -Identity jdupont -Department \"IT\" -Title \"Administrateur Système\" -OfficePhone \"+33 1 23 45 67 89\" -EmailAddress \"jdupont@contoso.com\" -PassThru",
+      "description": "Force la commande à retourner l'objet modifié/créé dans le pipeline. Par défaut, les cmdlets Set-/New- ne retournent rien. -PassThru active le retour pour permettre des opérations en chaîne ou des vérifications immédiates.",
+      "platform": 0
+    },
+    {
+      "command": "Set-ADUser -Identity jdupont -Department \"IT\" -Title \"Administrateur Système\" -OfficePhone \"+33 1 23 45 67 89\" -EmailAddress \"jdupont@contoso.com\" -Verbose",
+      "description": "Affiche des informations détaillées sur l'exécution de la commande. -Verbose active les messages de débogage pour comprendre précisément ce qui se passe. Essentiel pour le troubleshooting et la compréhension des opérations internes.",
+      "platform": 0
+    }
+  ],
+  "notes": "Nécessite des droits d'administration AD. Seules les propriétés spécifiées seront modifiées.",
+  "links": [
+    {
+      "title": "Documentation Set-ADUser",
+      "url": "https://learn.microsoft.com/en-us/powershell/module/activedirectory/set-aduser"
+    }
+  ]
+}

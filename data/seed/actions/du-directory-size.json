@@ -1,0 +1,94 @@
+{
+  "id": "du-directory-size",
+  "title": "Calculer la taille d'un répertoire",
+  "description": "Calcule l'espace disque utilisé par un répertoire et ses sous-répertoires",
+  "category": "📊 Monitoring & Logs",
+  "platform": 1,
+  "level": 0,
+  "tags": [
+    "du",
+    "disk",
+    "size",
+    "directory",
+    "storage"
+  ],
+  "linuxCommandTemplateId": "du-cmd",
+  "linuxCommandTemplate": {
+    "id": "du-cmd",
+    "platform": 1,
+    "name": "du",
+    "commandPattern": "du -sh {path} | sort -hr | head -n {lines}",
+    "parameters": [
+      {
+        "name": "path",
+        "label": "Chemin",
+        "type": "string",
+        "defaultValue": ".",
+        "required": true,
+        "description": "Répertoire à analyser"
+      },
+      {
+        "name": "lines",
+        "label": "Nombre de résultats",
+        "type": "number",
+        "defaultValue": "20",
+        "required": true,
+        "description": "Nombre de plus gros répertoires à afficher"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "du -sh /var/log",
+      "description": "Taille totale du répertoire /var/log",
+      "platform": 1
+    },
+    {
+      "command": "du -h --max-depth=1 /home | sort -hr",
+      "description": "Taille des sous-répertoires de /home triée",
+      "platform": 1
+    },
+    {
+      "command": "du -sh . | sort -hr | head -n 100",
+      "description": "Exemple utilisant le paramètre 'path': Répertoire à analyser. Remplacez C:\\Logs\\app.log par la valeur appropriée selon votre environnement.",
+      "platform": 1
+    },
+    {
+      "command": "du -sh C:\\Logs\\app.log | sort -hr | head -n 20",
+      "description": "Exemple utilisant le paramètre 'lines': Nombre de plus gros répertoires à afficher. Remplacez 100 par la valeur appropriée selon votre environnement.",
+      "platform": 1
+    },
+    {
+      "command": "du -h --max-depth=1 /home",
+      "description": "Taille de chaque sous-dossier de /home",
+      "platform": 1
+    },
+    {
+      "command": "du -sh /var/log/* | sort -hr | head -10",
+      "description": "Top 10 des plus gros fichiers de logs",
+      "platform": 1
+    },
+    {
+      "command": "du -ah /tmp | sort -rh | head -20",
+      "description": "Les 20 plus gros fichiers dans /tmp",
+      "platform": 1
+    },
+    {
+      "command": "du -sm /var/* | sort -rn",
+      "description": "Taille en Mo de chaque dossier dans /var",
+      "platform": 1
+    },
+    {
+      "command": "du -sh /var/log/* | sort -hr | head",
+      "description": "Top fichiers",
+      "platform": 1
+    }
+  ],
+  "notes": "Ne nécessite pas sudo (sauf répertoires protégés). -s=summary, -h=human-readable.",
+  "links": [
+    {
+      "title": "du command",
+      "url": "https://man7.org/linux/man-pages/man1/du.1.html"
+    }
+  ]
+}

@@ -1,0 +1,56 @@
+{
+  "id": "laps-export-report",
+  "title": "Générer un rapport complet LAPS",
+  "description": "Génère un rapport CSV de tous les ordinateurs LAPS avec mots de passe et dates d'expiration.",
+  "category": "🔒 Security & Encryption",
+  "platform": 0,
+  "level": 1,
+  "tags": [
+    "laps",
+    "report",
+    "export",
+    "audit"
+  ],
+  "windowsCommandTemplateId": "laps-export-report-cmd",
+  "windowsCommandTemplate": {
+    "id": "laps-export-report-cmd",
+    "platform": 0,
+    "name": "Get-ADComputer",
+    "commandPattern": "$report = @(); Get-ADComputer -Filter * -Properties ms-Mcs-AdmPwd,ms-Mcs-AdmPwdExpirationTime | Where-Object {$_.'ms-Mcs-AdmPwd' -ne $null} | ForEach-Object { $report += [PSCustomObject]@{ Computer=$_.Name; Password=$_.'ms-Mcs-AdmPwd'; Expiration=[DateTime]::FromFileTime($_.'ms-Mcs-AdmPwdExpirationTime') } }; $report | Export-Csv C:\\LAPS-Report-$(Get-Date -Format 'yyyyMMdd').csv -NoTypeInformation; Write-Host \"Rapport généré: C:\\LAPS-Report-$(Get-Date -Format 'yyyyMMdd').csv\" -ForegroundColor Green",
+    "parameters": []
+  },
+  "examples": [
+    {
+      "command": "$report = Get-ADComputer -Filter * -Properties ms-Mcs-AdmPwd,ms-Mcs-AdmPwdExpirationTime | Where-Object {$_.'ms-Mcs-AdmPwd' -ne $null} | Select-Object Name,@{N='Password';E={$_.'ms-Mcs-AdmPwd'}},@{N='Expiration';E={[DateTime]::FromFileTime($_.'ms-Mcs-AdmPwdExpirationTime')}}; $report | Export-Csv C:\\LAPS-Full-Report.csv -NoTypeInformation",
+      "description": "Génère un rapport CSV complet avec tous les mots de passe LAPS",
+      "platform": 0
+    },
+    {
+      "command": "Get-ADComputer -Filter * -Properties ms-Mcs-AdmPwd,ms-Mcs-AdmPwdExpirationTime | Where-Object {$_.'ms-Mcs-AdmPwd' -ne $null -and [DateTime]::FromFileTime($_.'ms-Mcs-AdmPwdExpirationTime') -lt (Get-Date).AddDays(7)} | Select-Object Name,@{N='ExpiresIn';E={([DateTime]::FromFileTime($_.'ms-Mcs-AdmPwdExpirationTime') - (Get-Date)).Days}} | Export-Csv C:\\LAPS-Expiring-Soon.csv -NoTypeInformation",
+      "description": "Rapport des ordinateurs dont le mot de passe LAPS expire dans 7 jours",
+      "platform": 0
+    },
+    {
+      "command": "$stats = Get-ADComputer -Filter * -Properties ms-Mcs-AdmPwd | Group-Object -Property {if($_.'ms-Mcs-AdmPwd'){'LAPS OK'}else{'NO LAPS'}} | Select-Object Name,Count; $stats",
+      "description": "Statistiques de couverture LAPS (combien avec/sans LAPS)",
+      "platform": 0
+    },
+    {
+      "command": "$report = @(); Get-ADComputer -Filter * -Properties ms-Mcs-AdmPwd,ms-Mcs-AdmPwdExpirationTime | Format-Table -AutoSize",
+      "description": "Affiche les résultats dans un tableau optimisé pour la console. Format-Table -AutoSize ajuste automatiquement la largeur des colonnes pour un affichage lisible. Idéal pour visualiser rapidement les données structurées.",
+      "platform": 0
+    },
+    {
+      "command": "$report = @(); Get-ADComputer -Filter * -Properties ms-Mcs-AdmPwd,ms-Mcs-AdmPwdExpirationTime | Measure-Object",
+      "description": "Compte le nombre total d'objets retournés. Measure-Object retourne Count, Sum, Average, Min, Max selon les propriétés. Utile pour les statistiques rapides et la validation de résultats.",
+      "platform": 0
+    }
+  ],
+  "notes": "⚠️ SÉCURITÉ MAXIMALE: Ce rapport contient TOUS les mots de passe admin locaux! Stockez-le dans un coffre-fort chiffré (gestionnaire de mots de passe, Azure Key Vault, coffre physique). NE JAMAIS envoyer par email non chiffré. Supprimez après consultation. Auditez qui génère ces rapports.",
+  "links": [
+    {
+      "title": "LAPS Reporting",
+      "url": "https://learn.microsoft.com/en-us/windows-server/identity/laps/laps-management-policy-settings"
+    }
+  ]
+}

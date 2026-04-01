@@ -1,0 +1,47 @@
+{
+  "id": "defender-ad-get-protection-status-domain",
+  "title": "Auditer l'état de Windows Defender sur tout le domaine",
+  "description": "Vérifie l'état de Windows Defender (protection active/inactive) sur tous les ordinateurs du domaine via requêtes à distance.",
+  "category": "🔒 Security & Encryption",
+  "platform": 0,
+  "level": 1,
+  "tags": [
+    "defender",
+    "ad",
+    "audit",
+    "domain-admin",
+    "compliance"
+  ],
+  "windowsCommandTemplateId": "defender-ad-get-protection-status-domain-cmd",
+  "windowsCommandTemplate": {
+    "id": "defender-ad-get-protection-status-domain-cmd",
+    "platform": 0,
+    "name": "Get-ADComputer",
+    "commandPattern": "$report = @(); Get-ADComputer -Filter {Enabled -eq $true} | ForEach-Object { try { $status = Invoke-Command -ComputerName $_.Name -ScriptBlock { Get-MpComputerStatus | Select-Object RealTimeProtectionEnabled,AntivirusSignatureLastUpdated } -ErrorAction Stop; $report += [PSCustomObject]@{ Computer=$_.Name; RealtimeProtection=$status.RealTimeProtectionEnabled; LastUpdate=$status.AntivirusSignatureLastUpdated; Status='Online' } } catch { $report += [PSCustomObject]@{ Computer=$_.Name; RealtimeProtection='N/A'; LastUpdate='N/A'; Status='Offline/Error' } } }; $report | Format-Table -AutoSize",
+    "parameters": []
+  },
+  "examples": [
+    {
+      "command": "$report = @(); Get-ADComputer -Filter {Enabled -eq $true} | Select-Object * -First 1",
+      "description": "Affiche toutes les propriétés du premier objet retourné. Select-Object * élargit l'affichage pour montrer toutes les colonnes. -First 1 limite au premier résultat. Utilisez cette commande pour découvrir les propriétés disponibles avant de filtrer.",
+      "platform": 0
+    },
+    {
+      "command": "$report = @(); Get-ADComputer -Filter {Enabled -eq $true} | Export-Csv C:\\Temp\\Export.csv -NoTypeInformation -Encoding UTF8",
+      "description": "Exporte les résultats vers un fichier CSV exploitable dans Excel. -NoTypeInformation supprime la ligne de métadonnées. -Encoding UTF8 garantit la compatibilité des caractères accentués. Utile pour l'archivage, les rapports et l'analyse externe.",
+      "platform": 0
+    },
+    {
+      "command": "$report = @(); Get-ADComputer -Filter {Enabled -eq $true} | Measure-Object",
+      "description": "Compte le nombre total d'objets retournés. Measure-Object retourne Count, Sum, Average, Min, Max selon les propriétés. Utile pour les statistiques rapides et la validation de résultats.",
+      "platform": 0
+    }
+  ],
+  "notes": "⚠️ PERFORMANCE: Sur gros domaines, cette commande prend du temps (requêtes à distance). Optimisation: limitez avec -SearchBase à une OU. Nécessite: WinRM activé, droits admin sur machines cibles. Offline/Error: PC éteints, WinRM désactivé, firewall bloqué. COMPLIANCE: 100% protection temps réel obligatoire!",
+  "links": [
+    {
+      "title": "Remote Defender Management",
+      "url": "https://learn.microsoft.com/en-us/powershell/module/defender/"
+    }
+  ]
+}

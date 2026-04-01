@@ -1,0 +1,69 @@
+{
+  "id": "ad-search-groups",
+  "title": "Rechercher des groupes AD",
+  "description": "Recherche des groupes Active Directory par nom ou description.",
+  "category": "🏢 Active Directory & GPO",
+  "platform": 0,
+  "level": 0,
+  "tags": [
+    "ad",
+    "group",
+    "search"
+  ],
+  "windowsCommandTemplateId": "ad-search-groups-cmd",
+  "windowsCommandTemplate": {
+    "id": "ad-search-groups-cmd",
+    "platform": 0,
+    "name": "Get-ADGroup",
+    "commandPattern": "Get-ADGroup -Filter \"Name -like '*{searchTerm}*'\" -Properties Description | Select-Object Name,Description,GroupCategory,GroupScope",
+    "parameters": [
+      {
+        "name": "searchTerm",
+        "label": "Terme de recherche",
+        "type": "string",
+        "defaultValue": "",
+        "required": true,
+        "description": "Terme à rechercher dans le nom du groupe"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "Get-ADGroup -Filter *",
+      "description": "Liste tous les groupes Active Directory du domaine. Retourne le nom, le GroupCategory (Distribution/Security), le GroupScope (DomainLocal/Global/Universal) et le DistinguishedName. Peut être lent sur de gros domaines avec des milliers de groupes.",
+      "platform": 0
+    },
+    {
+      "command": "Get-ADGroup -Filter {GroupCategory -eq 'Security' -and GroupScope -eq 'Global'}",
+      "description": "Liste uniquement les groupes de sécurité globaux. GroupCategory peut être 'Security' ou 'Distribution'. GroupScope peut être 'DomainLocal', 'Global' ou 'Universal'. Les groupes de sécurité globaux sont les plus courants pour les permissions sur ressources.",
+      "platform": 0
+    },
+    {
+      "command": "Get-ADGroup -Filter {Name -like '*Admin*'} -Properties Description,Members",
+      "description": "Recherche tous les groupes contenant 'Admin' dans le nom. Utile pour identifier les groupes à privilèges élevés. La propriété Description aide à comprendre l'usage du groupe. Members liste les membres (mais utilisez plutôt Get-ADGroupMember pour une liste détaillée).",
+      "platform": 0
+    },
+    {
+      "command": "Get-ADGroup -Identity 'Domain Admins' -Properties Members,MemberOf,Description",
+      "description": "Affiche les détails d'un groupe spécifique. Members liste les membres directs. MemberOf liste les groupes dont ce groupe est membre (imbrication). Description documente le rôle du groupe. Essentiel pour l'audit des groupes sensibles.",
+      "platform": 0
+    },
+    {
+      "command": "Get-ADGroup -Filter * -Properties ManagedBy | Where-Object {$_.ManagedBy -ne $null} | Select-Object Name,ManagedBy",
+      "description": "Liste tous les groupes qui ont un gestionnaire défini. La propriété ManagedBy contient le DN de l'utilisateur responsable du groupe. Utile pour identifier les groupes gérés et contacter les responsables lors de revues d'accès.",
+      "platform": 0
+    },
+    {
+      "command": "Get-ADGroup -Filter {GroupCategory -eq 'Distribution'} | Measure-Object",
+      "description": "Compte le nombre de groupes de distribution (listes de diffusion Exchange). Measure-Object retourne le count total. Utile pour les statistiques, la documentation et les audits Exchange.",
+      "platform": 0
+    },
+    {
+      "command": "Get-ADGroup -Filter * -Properties Created | Sort-Object Created -Descending | Select-Object Name,Created -First 20",
+      "description": "Affiche les 20 groupes les plus récemment créés. Sort-Object -Descending trie du plus récent au plus ancien. Utile pour surveiller les créations de groupes, détecter les créations suspectes et suivre les changements organisationnels.",
+      "platform": 0
+    }
+  ],
+  "notes": "Utilise une recherche avec wildcard. Pour rechercher dans la description aussi, modifier le filtre.",
+  "links": []
+}

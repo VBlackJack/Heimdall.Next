@@ -1,0 +1,39 @@
+{
+  "id": "unified-memory-usage",
+  "title": "Afficher l'utilisation de la mémoire",
+  "description": "Affiche l'utilisation de la mémoire RAM du système",
+  "category": "📊 Monitoring & Logs",
+  "platform": 2,
+  "level": 0,
+  "tags": [
+    "memory",
+    "ram",
+    "usage",
+    "free",
+    "monitoring",
+    "performance"
+  ],
+  "windowsCommandTemplateId": "unified-memory-usage-win-cmd",
+  "windowsCommandTemplate": {
+    "id": "unified-memory-usage-win-cmd",
+    "platform": 0,
+    "commandPattern": "$mem = Get-CimInstance Win32_OperatingSystem; [PSCustomObject]@{Total_GB=[math]::Round($mem.TotalVisibleMemorySize/1MB,2);Free_GB=[math]::Round($mem.FreePhysicalMemory/1MB,2);Used_GB=[math]::Round(($mem.TotalVisibleMemorySize-$mem.FreePhysicalMemory)/1MB,2);Used_Percent=[math]::Round((($mem.TotalVisibleMemorySize-$mem.FreePhysicalMemory)/$mem.TotalVisibleMemorySize)*100,2)} | Format-List",
+    "parameters": []
+  },
+  "linuxCommandTemplateId": "unified-memory-usage-linux-cmd",
+  "linuxCommandTemplate": {
+    "id": "unified-memory-usage-linux-cmd",
+    "platform": 1,
+    "commandPattern": "free -h",
+    "parameters": []
+  },
+  "parameters": [],
+  "examples": [],
+  "windowsExamples": [
+    {
+      "command": "Get-CimInstance Win32_OperatingSystem | Select-Object TotalVisibleMemorySize,FreePhysicalMemory",
+      "description": "Affiche l'utilisation mémoire sur Windows",
+      "platform": 0
+    }
+  ]
+}

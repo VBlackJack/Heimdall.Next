@@ -1,0 +1,49 @@
+{
+  "id": "linux-curl-check",
+  "title": "Test HTTP/API (Curl)",
+  "description": "Transfère des données via URL. L'outil standard pour tester les API et sites web.",
+  "category": "🌐 Network & DNS",
+  "platform": 1,
+  "level": 0,
+  "tags": [
+    "linux",
+    "curl",
+    "http",
+    "api",
+    "web"
+  ],
+  "linuxCommandTemplate": {
+    "id": "9269b12e-99e9-42ee-85bd-c6ad069219db",
+    "platform": 1,
+    "name": "curl",
+    "commandPattern": "curl -I {url}",
+    "parameters": [
+      {
+        "name": "url",
+        "label": "URL",
+        "type": "string",
+        "defaultValue": "https://google.com",
+        "required": true,
+        "description": "Adresse cible"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "curl -I https://mon-site.com",
+      "description": "Affiche uniquement les en-têtes (Headers) HTTP (-I). Utile pour vérifier les codes 200/404/301 sans télécharger la page.",
+      "platform": 1
+    },
+    {
+      "command": "curl -k https://dev-interne.local",
+      "description": "Ignore les erreurs de certificat SSL (-k).",
+      "platform": 1
+    },
+    {
+      "command": "curl -L -v https://google.com",
+      "description": "Suit les redirections (-L) et affiche le détail de la connexion SSL (-v).",
+      "platform": 1
+    }
+  ],
+  "linuxCommandTemplateId": "9269b12e-99e9-42ee-85bd-c6ad069219db"
+}

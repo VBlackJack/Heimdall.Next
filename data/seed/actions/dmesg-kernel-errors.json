@@ -1,0 +1,93 @@
+{
+  "id": "dmesg-kernel-errors",
+  "title": "Afficher les messages du noyau",
+  "description": "Consulte les messages du noyau Linux, utile pour diagnostiquer les problèmes matériels et drivers",
+  "category": "📊 Monitoring & Logs",
+  "platform": 1,
+  "level": 0,
+  "tags": [
+    "dmesg",
+    "kernel",
+    "hardware",
+    "drivers"
+  ],
+  "linuxCommandTemplateId": "dmesg-cmd",
+  "linuxCommandTemplate": {
+    "id": "dmesg-cmd",
+    "platform": 1,
+    "name": "dmesg",
+    "commandPattern": "dmesg --level={level} --human --color=always | tail -n {lines}",
+    "parameters": [
+      {
+        "name": "level",
+        "label": "Niveau",
+        "type": "string",
+        "defaultValue": "err,warn",
+        "required": true,
+        "description": "Niveau de sévérité (emerg, alert, crit, err, warn, notice, info, debug)"
+      },
+      {
+        "name": "lines",
+        "label": "Nombre de lignes",
+        "type": "number",
+        "defaultValue": "100",
+        "required": true,
+        "description": "Nombre de lignes à afficher"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "dmesg --level=err,warn --human",
+      "description": "Affiche les erreurs et avertissements du noyau",
+      "platform": 1
+    },
+    {
+      "command": "dmesg | grep -i usb",
+      "description": "Recherche les messages concernant l'USB",
+      "platform": 1
+    },
+    {
+      "command": "dmesg --level=err,warn --human --color=always | tail -n 100",
+      "description": "Exemple utilisant le paramètre 'level': Niveau de sévérité (emerg, alert, crit, err, warn, notice, info, debug). Remplacez Error par la valeur appropriée selon votre environnement.",
+      "platform": 1
+    },
+    {
+      "command": "dmesg --level=Error --human --color=always | tail -n 100",
+      "description": "Exemple utilisant le paramètre 'lines': Nombre de lignes à afficher. Remplacez 100 par la valeur appropriée selon votre environnement.",
+      "platform": 1
+    },
+    {
+      "command": "dmesg",
+      "description": "Afficher les messages du noyau",
+      "platform": 1
+    },
+    {
+      "command": "dmesg -T",
+      "description": "Avec timestamps lisibles",
+      "platform": 1
+    },
+    {
+      "command": "dmesg -w",
+      "description": "Suivre en temps réel",
+      "platform": 1
+    },
+    {
+      "command": "dmesg | grep -i error",
+      "description": "Filtrer les erreurs",
+      "platform": 1
+    },
+    {
+      "command": "dmesg -l err,warn",
+      "description": "Afficher erreurs et warnings seulement",
+      "platform": 1
+    }
+  ],
+  "notes": "Nécessite sudo pour voir tous les messages sur certaines distributions. -w pour suivre en temps réel.",
+  "links": [
+    {
+      "title": "dmesg man page",
+      "url": "https://man7.org/linux/man-pages/man1/dmesg.1.html"
+    }
+  ]
+}

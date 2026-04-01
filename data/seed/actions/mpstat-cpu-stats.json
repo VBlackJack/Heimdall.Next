@@ -1,0 +1,59 @@
+{
+  "id": "mpstat-cpu-stats",
+  "title": "Statistiques CPU par processeur",
+  "description": "Affiche les statistiques d'utilisation CPU par processeur individuel",
+  "category": "📊 Monitoring & Logs",
+  "platform": 1,
+  "level": 0,
+  "tags": [
+    "mpstat",
+    "cpu",
+    "stats",
+    "performance",
+    "sysstat"
+  ],
+  "linuxCommandTemplateId": "mpstat-cmd",
+  "linuxCommandTemplate": {
+    "id": "mpstat-cmd",
+    "platform": 1,
+    "name": "mpstat",
+    "commandPattern": "mpstat {interval} {count}",
+    "parameters": [
+      {
+        "name": "interval",
+        "label": "Intervalle",
+        "type": "number",
+        "defaultValue": "5",
+        "required": true,
+        "description": "Intervalle en secondes"
+      },
+      {
+        "name": "count",
+        "label": "Nombre",
+        "type": "number",
+        "defaultValue": "3",
+        "required": true,
+        "description": "Nombre de mesures"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "mpstat",
+      "description": "Stats CPU par processeur",
+      "platform": 1
+    },
+    {
+      "command": "nproc",
+      "description": "Nombre de processeurs",
+      "platform": 1
+    }
+  ],
+  "notes": "Fait partie du package sysstat. -P ALL pour voir chaque cœur séparément.",
+  "links": [
+    {
+      "title": "mpstat documentation",
+      "url": "https://man7.org/linux/man-pages/man1/mpstat.1.html"
+    }
+  ]
+}

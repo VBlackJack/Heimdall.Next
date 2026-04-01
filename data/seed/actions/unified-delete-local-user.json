@@ -1,0 +1,170 @@
+{
+  "id": "unified-delete-local-user",
+  "title": "Supprimer un utilisateur local",
+  "description": "Supprime un compte utilisateur local du système.",
+  "category": "🔒 Security & Encryption",
+  "platform": 2,
+  "level": 2,
+  "tags": [
+    "user",
+    "account",
+    "delete",
+    "remove",
+    "userdel",
+    "remove-localuser",
+    "windows",
+    "linux"
+  ],
+  "linuxCommandTemplateId": "userdel-cmd",
+  "linuxCommandTemplate": {
+    "id": "userdel-cmd",
+    "platform": 1,
+    "name": "userdel",
+    "commandPattern": "userdel {options} {username}",
+    "parameters": [
+      {
+        "name": "options",
+        "label": "Options",
+        "type": "string",
+        "defaultValue": "-r",
+        "required": false,
+        "description": "Options (-r supprime aussi le home)"
+      },
+      {
+        "name": "username",
+        "label": "Nom d'utilisateur",
+        "type": "string",
+        "defaultValue": "john",
+        "required": true,
+        "description": "Utilisateur à supprimer"
+      }
+    ]
+  },
+  "notes": "Windows: Remove-LocalUser supprime l'utilisateur local (pas AD). Le profil utilisateur n'est pas supprimé automatiquement.\nLinux: userdel nécessite sudo. DANGER: -r supprime définitivement le home. Vérifier les processus actifs d'abord.",
+  "links": [
+    {
+      "title": "userdel documentation",
+      "url": "https://man7.org/linux/man-pages/man8/userdel.8.html"
+    },
+    {
+      "title": "Remove-LocalUser documentation",
+      "url": "https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.localaccounts/remove-localuser"
+    }
+  ],
+  "supportedPlatforms": [
+    0,
+    1
+  ],
+  "linuxExamples": [
+    {
+      "command": "sudo userdel john",
+      "description": "Supprime l'utilisateur john (garde le home)",
+      "platform": 1
+    },
+    {
+      "command": "sudo userdel -r john",
+      "description": "Supprime john et son répertoire home",
+      "platform": 1
+    },
+    {
+      "command": "userdel --help",
+      "description": "Affiche l'aide complète de la commande userdel. --help liste tous les paramètres disponibles, les options et des exemples d'utilisation. Première commande à utiliser pour découvrir les capacités d'un outil.",
+      "platform": 1
+    },
+    {
+      "command": "man userdel",
+      "description": "Affiche le manuel complet de userdel. Les pages man fournissent la documentation détaillée : syntaxe, paramètres, exemples, notes. Plus complet que --help. Naviguez avec flèches, cherchez avec '/', quittez avec 'q'.",
+      "platform": 1
+    },
+    {
+      "command": "userdel -r {username}",
+      "description": "Exemple utilisant le paramètre 'options': Options (-r supprime aussi le home). Remplacez <options> par la valeur appropriée selon votre environnement.",
+      "platform": 1
+    },
+    {
+      "command": "userdel {options} john",
+      "description": "Exemple utilisant le paramètre 'username': Utilisateur à supprimer. Remplacez <username> par la valeur appropriée selon votre environnement.",
+      "platform": 1
+    },
+    {
+      "command": "userdel -v -f jdupont",
+      "description": "Exemple Linux pour Supprimer un utilisateur local",
+      "platform": 1
+    },
+    {
+      "command": "userdel jdupont",
+      "description": "Supprimer l'utilisateur jdupont",
+      "platform": 1
+    },
+    {
+      "command": "userdel -r olduser",
+      "description": "Supprimer l'utilisateur et son home",
+      "platform": 1
+    },
+    {
+      "command": "userdel -f lockeduser",
+      "description": "Forcer la suppression même si connecté",
+      "platform": 1
+    },
+    {
+      "command": "userdel -r jdupont",
+      "description": "Avec suppression du home",
+      "platform": 1
+    }
+  ],
+  "windowsCommandTemplateId": "delete-localuser-win-cmd",
+  "windowsCommandTemplate": {
+    "id": "delete-localuser-win-cmd",
+    "platform": 0,
+    "name": "Remove-LocalUser",
+    "commandPattern": "Remove-LocalUser -Name \"{username}\"",
+    "parameters": [
+      {
+        "name": "username",
+        "label": "Nom d'utilisateur",
+        "type": "string",
+        "defaultValue": "john",
+        "required": true,
+        "description": "Utilisateur à supprimer"
+      }
+    ]
+  },
+  "windowsExamples": [
+    {
+      "command": "Remove-LocalUser -Name \"john\"",
+      "description": "Supprime l'utilisateur john",
+      "platform": 0
+    },
+    {
+      "command": "Remove-LocalUser -Name \"john\" -Confirm:$false",
+      "description": "Supprime sans confirmation",
+      "platform": 0
+    },
+    {
+      "command": "Get-LocalUser | Where-Object {$_.Enabled -eq $false} | Remove-LocalUser",
+      "description": "Supprime tous les utilisateurs désactivés",
+      "platform": 0
+    },
+    {
+      "command": "Get-Help Remove-LocalUser -Full",
+      "description": "Affiche l'aide complète de Remove-LocalUser",
+      "platform": 0
+    },
+    {
+      "command": "Remove-LocalUser -Name \"jdupont\"",
+      "description": "Exemple Windows pour Supprimer un utilisateur local",
+      "platform": 0
+    }
+  ],
+  "crossPlatformNotes": {
+    "differences": [
+      "Syntaxe: Windows utilise 'Remove-LocalUser', Linux utilise 'userdel'",
+      "Windows: profil conservé, Linux: -r pour supprimer le home"
+    ],
+    "commonalities": [
+      "Les deux permettent de supprimer un utilisateur local",
+      "Fonctionnalité équivalente sur les deux plateformes"
+    ]
+  },
+  "examples": []
+}

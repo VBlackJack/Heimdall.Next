@@ -1,0 +1,82 @@
+{
+  "id": "git-push",
+  "title": "Pousser les commits vers le dépôt distant",
+  "description": "Envoie les commits locaux vers le dépôt distant",
+  "category": "🔧 Development",
+  "platform": 2,
+  "level": 1,
+  "tags": [
+    "git",
+    "push",
+    "remote"
+  ],
+  "windowsCommandTemplateId": "git-push-win",
+  "windowsCommandTemplate": {
+    "id": "git-push-win",
+    "platform": 0,
+    "name": "git",
+    "commandPattern": "git push {remote} {branch}",
+    "parameters": [
+      {
+        "name": "remote",
+        "label": "Remote",
+        "type": "string",
+        "defaultValue": "origin",
+        "required": false,
+        "description": "Nom du dépôt distant"
+      },
+      {
+        "name": "branch",
+        "label": "Branche",
+        "type": "string",
+        "defaultValue": "",
+        "required": false,
+        "description": "Nom de la branche"
+      }
+    ]
+  },
+  "linuxCommandTemplateId": "git-push-linux",
+  "linuxCommandTemplate": {
+    "id": "git-push-linux",
+    "platform": 1,
+    "name": "git",
+    "commandPattern": "git push {remote} {branch}",
+    "parameters": [
+      {
+        "name": "remote",
+        "label": "Remote",
+        "type": "string",
+        "defaultValue": "origin",
+        "required": false,
+        "description": "Nom du dépôt distant"
+      },
+      {
+        "name": "branch",
+        "label": "Branche",
+        "type": "string",
+        "defaultValue": "",
+        "required": false,
+        "description": "Nom de la branche"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "git push origin main",
+      "description": "Pousse les commits vers la branche main",
+      "platform": 2
+    },
+    {
+      "command": "git push -u origin feature-branch",
+      "description": "Pousse et configure le tracking de la branche",
+      "platform": 2
+    }
+  ],
+  "notes": "Utilisez -f (force) avec précaution car cela peut écraser l'historique distant.",
+  "links": [
+    {
+      "title": "Git Push Documentation",
+      "url": "https://git-scm.com/docs/git-push"
+    }
+  ]
+}

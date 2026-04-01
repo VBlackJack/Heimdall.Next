@@ -1,0 +1,40 @@
+{
+  "id": "trigger-sccm-software-updates-scan",
+  "title": "Déclencher scan des mises à jour SCCM",
+  "description": "Force la recherche immédiate des mises à jour disponibles",
+  "category": "🔄 Windows Updates",
+  "platform": 0,
+  "level": 0,
+  "tags": [
+    "sccm",
+    "updates",
+    "scan"
+  ],
+  "windowsCommandTemplateId": "trigger-sccm-software-updates-scan-cmd",
+  "windowsCommandTemplate": {
+    "id": "trigger-sccm-software-updates-scan-cmd",
+    "platform": 0,
+    "name": "Invoke-WmiMethod",
+    "commandPattern": "powershell -Command \"Invoke-WmiMethod -Namespace root\\ccm -Class SMS_Client -Name TriggerSchedule -ArgumentList '{00000000-0000-0000-0000-000000000113}'\"",
+    "parameters": []
+  },
+  "examples": [
+    {
+      "command": "ss -tulpn",
+      "description": "🔥 STANDARD LINUX : Liste tous les ports TCP/UDP en écoute (-tul) avec les processus associés (-p) et sans résolution DNS (-n). La commande de référence pour savoir 'qui écoute sur ce port'.",
+      "platform": 1
+    },
+    {
+      "command": "ss -s",
+      "description": "Résumé statistique rapide des sockets (Total, TCP, UDP). Utile pour détecter une saturation de sockets ou une attaque DDoS.",
+      "platform": 1
+    },
+    {
+      "command": "powershell -Command \"Invoke-WmiMethod -Namespace root\\ccm -Class SMS_Client -Name TriggerSchedule -ArgumentList '{00000000-0000-0000-0000-000000000113}'\"",
+      "description": "Force le scan des mises à jour SCCM",
+      "platform": 0
+    }
+  ],
+  "notes": "Droits administrateur requis. GUID {00000000-0000-0000-0000-000000000113} = Software Updates Scan.",
+  "links": []
+}

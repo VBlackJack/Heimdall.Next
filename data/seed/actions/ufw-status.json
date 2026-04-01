@@ -1,0 +1,85 @@
+{
+  "id": "ufw-status",
+  "title": "Vérifier l'état du firewall UFW",
+  "description": "Affiche l'état et les règles du firewall UFW (Uncomplicated Firewall)",
+  "category": "🔒 Security & Encryption",
+  "platform": 1,
+  "level": 0,
+  "tags": [
+    "ufw",
+    "firewall",
+    "ubuntu",
+    "security"
+  ],
+  "linuxCommandTemplateId": "ufw-status-cmd",
+  "linuxCommandTemplate": {
+    "id": "ufw-status-cmd",
+    "platform": 1,
+    "name": "ufw",
+    "commandPattern": "ufw status {option}",
+    "parameters": [
+      {
+        "name": "option",
+        "label": "Option",
+        "type": "string",
+        "defaultValue": "verbose",
+        "required": false,
+        "description": "Option d'affichage (numbered, verbose, vide)"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "sudo ufw status",
+      "description": "Affiche l'état du firewall",
+      "platform": 1
+    },
+    {
+      "command": "sudo ufw status numbered",
+      "description": "Affiche avec numéros de règles",
+      "platform": 1
+    },
+    {
+      "command": "sudo ufw status verbose",
+      "description": "Affichage détaillé",
+      "platform": 1
+    },
+    {
+      "command": "ufw status verbose",
+      "description": "Exemple utilisant le paramètre 'option': Option d'affichage (numbered, verbose, vide). Remplacez verbose par la valeur appropriée selon votre environnement.",
+      "platform": 1
+    },
+    {
+      "command": "ufw allow 22/tcp",
+      "description": "Autoriser SSH",
+      "platform": 1
+    },
+    {
+      "command": "ufw allow from 192.168.1.0/24",
+      "description": "Autoriser un sous-réseau",
+      "platform": 1
+    },
+    {
+      "command": "ufw deny 3306",
+      "description": "Bloquer MySQL",
+      "platform": 1
+    },
+    {
+      "command": "ufw enable",
+      "description": "Activer le firewall",
+      "platform": 1
+    },
+    {
+      "command": "ufw status numbered",
+      "description": "Règles numérotées",
+      "platform": 1
+    }
+  ],
+  "notes": "Nécessite sudo. UFW est préinstallé sur Ubuntu/Debian. Frontend simplifié pour iptables.",
+  "links": [
+    {
+      "title": "UFW documentation",
+      "url": "https://help.ubuntu.com/community/UFW"
+    }
+  ]
+}

@@ -1,0 +1,99 @@
+{
+  "id": "git-clone",
+  "title": "Cloner un dépôt Git",
+  "description": "Clone un dépôt Git distant vers un répertoire local",
+  "category": "🔧 Development",
+  "platform": 2,
+  "level": 0,
+  "tags": [
+    "git",
+    "clone",
+    "repository"
+  ],
+  "windowsCommandTemplateId": "git-clone-win",
+  "windowsCommandTemplate": {
+    "id": "git-clone-win",
+    "platform": 0,
+    "name": "git",
+    "commandPattern": "git clone {repoUrl} {destination}",
+    "parameters": [
+      {
+        "name": "repoUrl",
+        "label": "URL du dépôt",
+        "type": "string",
+        "defaultValue": "https://github.com/user/repo.git",
+        "required": true,
+        "description": "URL du dépôt Git à cloner"
+      },
+      {
+        "name": "destination",
+        "label": "Destination",
+        "type": "string",
+        "defaultValue": "",
+        "required": false,
+        "description": "Répertoire de destination (optionnel)"
+      }
+    ]
+  },
+  "linuxCommandTemplateId": "git-clone-linux",
+  "linuxCommandTemplate": {
+    "id": "git-clone-linux",
+    "platform": 1,
+    "name": "git",
+    "commandPattern": "git clone {repoUrl} {destination}",
+    "parameters": [
+      {
+        "name": "repoUrl",
+        "label": "URL du dépôt",
+        "type": "string",
+        "defaultValue": "https://github.com/user/repo.git",
+        "required": true,
+        "description": "URL du dépôt Git"
+      },
+      {
+        "name": "destination",
+        "label": "Destination",
+        "type": "string",
+        "defaultValue": "",
+        "required": false,
+        "description": "Répertoire de destination"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "git clone https://github.com/torvalds/linux.git",
+      "description": "Clone le dépôt du noyau Linux",
+      "platform": 2
+    },
+    {
+      "command": "git clone --depth 1 https://github.com/user/repo.git",
+      "description": "Clone uniquement le dernier commit (shallow clone)",
+      "platform": 2
+    },
+    {
+      "command": "git clone https://github.com/user/repo.git D:\\Archive",
+      "description": "Exemple utilisant le paramètre 'repoUrl': URL du dépôt Git à cloner. Remplacez https://github.com/contoso/myapp.git par la valeur appropriée selon votre environnement.",
+      "platform": 2
+    },
+    {
+      "command": "git clone https://github.com/contoso/myapp.git D:\\Archive",
+      "description": "Exemple utilisant le paramètre 'destination': Répertoire de destination (optionnel). Remplacez D:\\Archive par la valeur appropriée selon votre environnement.",
+      "platform": 2
+    }
+  ],
+  "notes": "Utilisez --depth 1 pour un clone superficiel si vous n'avez pas besoin de l'historique complet.",
+  "links": [
+    {
+      "title": "Git Clone Documentation",
+      "url": "https://git-scm.com/docs/git-clone"
+    }
+  ],
+  "linuxExamples": [
+    {
+      "command": "git clone https://github.com/user/repo.git",
+      "description": "Cloner un dépôt",
+      "platform": 1
+    }
+  ]
+}

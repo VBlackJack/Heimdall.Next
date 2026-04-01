@@ -1,0 +1,56 @@
+{
+  "id": "zypper-install",
+  "title": "Installer un paquet avec Zypper",
+  "description": "Installe un paquet avec Zypper (openSUSE/SLES)",
+  "category": "📦 Package Management",
+  "platform": 1,
+  "level": 1,
+  "tags": [
+    "zypper",
+    "install",
+    "suse",
+    "opensuse",
+    "package"
+  ],
+  "linuxCommandTemplateId": "zypper-install-cmd",
+  "linuxCommandTemplate": {
+    "id": "zypper-install-cmd",
+    "platform": 1,
+    "name": "zypper",
+    "commandPattern": "zypper install -y {package}",
+    "parameters": [
+      {
+        "name": "package",
+        "label": "Nom du paquet",
+        "type": "string",
+        "defaultValue": "nginx",
+        "required": true,
+        "description": "Nom du paquet à installer"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "sudo zypper in vim",
+      "description": "Forme courte de install",
+      "platform": 1
+    },
+    {
+      "command": "zypper update",
+      "description": "Mettre à jour les paquets",
+      "platform": 1
+    },
+    {
+      "command": "zypper repos",
+      "description": "Lister les dépôts",
+      "platform": 1
+    }
+  ],
+  "notes": "Nécessite sudo. 'in' est un alias de 'install'. Gestionnaire de paquets de SUSE.",
+  "links": [
+    {
+      "title": "Zypper documentation",
+      "url": "https://en.opensuse.org/SDB:Zypper_usage"
+    }
+  ]
+}

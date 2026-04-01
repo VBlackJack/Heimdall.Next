@@ -1,0 +1,75 @@
+{
+  "id": "hostname-show",
+  "title": "Afficher/modifier le nom d'hôte",
+  "description": "Affiche ou modifie le nom d'hôte du système",
+  "category": "📊 Monitoring & Logs",
+  "platform": 1,
+  "level": 1,
+  "tags": [
+    "hostname",
+    "system",
+    "network",
+    "name"
+  ],
+  "linuxCommandTemplateId": "hostname-cmd",
+  "linuxCommandTemplate": {
+    "id": "hostname-cmd",
+    "platform": 1,
+    "name": "hostname",
+    "commandPattern": "hostname {options}",
+    "parameters": [
+      {
+        "name": "options",
+        "label": "Options",
+        "type": "string",
+        "defaultValue": "",
+        "required": false,
+        "description": "Options (-I=all IPs, -f=FQDN, -s=short)"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "hostname",
+      "description": "Affiche le nom d'hôte",
+      "platform": 1
+    },
+    {
+      "command": "hostname -I",
+      "description": "Affiche toutes les adresses IP",
+      "platform": 1
+    },
+    {
+      "command": "sudo hostnamectl set-hostname newname",
+      "description": "Change le nom d'hôte (permanent)",
+      "platform": 1
+    },
+    {
+      "command": "hostname -v -f",
+      "description": "Exemple utilisant le paramètre 'options': Options (-I=all IPs, -f=FQDN, -s=short). Remplacez -v -f par la valeur appropriée selon votre environnement.",
+      "platform": 1
+    },
+    {
+      "command": "hostname -f",
+      "description": "Afficher le FQDN",
+      "platform": 1
+    },
+    {
+      "command": "hostnamectl set-hostname server01",
+      "description": "Changer le hostname",
+      "platform": 1
+    },
+    {
+      "command": "hostnamectl",
+      "description": "Informations détaillées",
+      "platform": 1
+    }
+  ],
+  "notes": "hostnamectl est recommandé sur systemd pour changements permanents.",
+  "links": [
+    {
+      "title": "hostname command",
+      "url": "https://man7.org/linux/man-pages/man1/hostname.1.html"
+    }
+  ]
+}

@@ -1,0 +1,63 @@
+{
+  "id": "archive-zip-windows",
+  "title": "Créer une archive ZIP",
+  "description": "Compresse des fichiers ou dossiers dans une archive ZIP.",
+  "category": "📁 Files & Storage",
+  "platform": 0,
+  "level": 0,
+  "tags": [
+    "compression",
+    "zip",
+    "archive",
+    "windows"
+  ],
+  "windowsCommandTemplateId": "archive-zip-windows-cmd",
+  "windowsCommandTemplate": {
+    "id": "archive-zip-windows-cmd",
+    "platform": 0,
+    "name": "Compress-Archive",
+    "commandPattern": "Compress-Archive -Path \"{sourcePath}\" -DestinationPath \"{zipPath}\" -CompressionLevel Optimal -Force",
+    "parameters": [
+      {
+        "name": "sourcePath",
+        "label": "Source",
+        "type": "string",
+        "defaultValue": "",
+        "required": true,
+        "description": "Fichiers ou dossiers à compresser"
+      },
+      {
+        "name": "zipPath",
+        "label": "Fichier ZIP",
+        "type": "string",
+        "defaultValue": "",
+        "required": true,
+        "description": "Chemin du fichier ZIP à créer"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "Compress-Archive -Path \"C:\\Data\\*\" -DestinationPath \"C:\\Backup\\data.zip\"",
+      "description": "Compresse un dossier entier",
+      "platform": 0
+    },
+    {
+      "command": "Compress-Archive -Path \"*.txt\",\"*.log\" -DestinationPath \"logs.zip\"",
+      "description": "Compresse plusieurs types de fichiers",
+      "platform": 0
+    },
+    {
+      "command": "Compress-Archive -Path \"C:\\Source\\data.csv\" -DestinationPath \"C:\\Backup\\archive.zip\" -CompressionLevel Optimal -Force",
+      "description": "Exécution standard de la commande None. Consultez la documentation officielle avec Get-Help Compress-Archive -Full pour plus de détails sur les paramètres disponibles et les cas d'usage avancés.",
+      "platform": 0
+    }
+  ],
+  "notes": "-CompressionLevel: Optimal, Fastest, NoCompression. -Force écrase le ZIP existant.",
+  "links": [
+    {
+      "title": "Documentation Compress-Archive",
+      "url": "https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.archive/compress-archive"
+    }
+  ]
+}

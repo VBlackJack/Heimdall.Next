@@ -1,0 +1,66 @@
+{
+  "id": "iotop-disk-io",
+  "title": "Monitorer l'activité I/O disque",
+  "description": "Affiche en temps réel quels processus utilisent le plus l'I/O disque",
+  "category": "📊 Monitoring & Logs",
+  "platform": 1,
+  "level": 0,
+  "tags": [
+    "iotop",
+    "io",
+    "disk",
+    "monitoring",
+    "performance"
+  ],
+  "linuxCommandTemplateId": "iotop-cmd",
+  "linuxCommandTemplate": {
+    "id": "iotop-cmd",
+    "platform": 1,
+    "name": "iotop",
+    "commandPattern": "iotop -o -n {iterations}",
+    "parameters": [
+      {
+        "name": "iterations",
+        "label": "Itérations",
+        "type": "number",
+        "defaultValue": "5",
+        "required": true,
+        "description": "Nombre de rafraîchissements"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "iotop",
+      "description": "Monitorer I/O en temps réel",
+      "platform": 1
+    },
+    {
+      "command": "iotop -o",
+      "description": "Afficher seulement les processus actifs",
+      "platform": 1
+    },
+    {
+      "command": "iotop -b -n 5",
+      "description": "Batch mode, 5 itérations",
+      "platform": 1
+    },
+    {
+      "command": "iotop -a",
+      "description": "Afficher les I/O accumulés",
+      "platform": 1
+    },
+    {
+      "command": "iotop -P",
+      "description": "Afficher par processus (pas threads)",
+      "platform": 1
+    }
+  ],
+  "notes": "Nécessite sudo et le package iotop. -o affiche seulement les processus actifs.",
+  "links": [
+    {
+      "title": "iotop documentation",
+      "url": "http://guichaz.free.fr/iotop/"
+    }
+  ]
+}

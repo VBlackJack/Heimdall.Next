@@ -1,0 +1,65 @@
+{
+  "id": "apt-list-installed",
+  "title": "Lister les paquets installés",
+  "description": "Affiche la liste de tous les paquets installés sur le système",
+  "category": "📦 Package Management",
+  "platform": 1,
+  "level": 0,
+  "tags": [
+    "apt",
+    "list",
+    "installed",
+    "packages"
+  ],
+  "linuxCommandTemplateId": "apt-list-cmd",
+  "linuxCommandTemplate": {
+    "id": "apt-list-cmd",
+    "platform": 1,
+    "name": "apt",
+    "commandPattern": "apt list --installed | grep {filter}",
+    "parameters": [
+      {
+        "name": "filter",
+        "label": "Filtre",
+        "type": "string",
+        "defaultValue": ".",
+        "required": false,
+        "description": "Pattern pour filtrer la liste (. = tous)"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "apt list --installed",
+      "description": "Liste tous les paquets installés",
+      "platform": 1
+    },
+    {
+      "command": "apt list --installed | grep python",
+      "description": "Liste uniquement les paquets Python",
+      "platform": 1
+    },
+    {
+      "command": "dpkg -l",
+      "description": "Alternative avec dpkg",
+      "platform": 1
+    },
+    {
+      "command": "apt list --installed -v",
+      "description": "Exécute la commande en mode verbeux. Le flag -v (verbose) affiche chaque action effectuée en temps réel. Essentiel pour suivre la progression des opérations longues et vérifier que tout se déroule correctement.",
+      "platform": 1
+    },
+    {
+      "command": "apt list --installed --dry-run",
+      "description": "Simulation sans exécution réelle (dry-run). --dry-run affiche ce qui serait fait sans appliquer les changements. INDISPENSABLE avant les opérations de masse ou les modifications critiques.",
+      "platform": 1
+    }
+  ],
+  "notes": "Ne nécessite pas sudo. dpkg -l est une alternative. Ajouter | wc -l pour compter.",
+  "links": [
+    {
+      "title": "APT list",
+      "url": "https://manpages.ubuntu.com/manpages/jammy/man8/apt.8.html"
+    }
+  ]
+}

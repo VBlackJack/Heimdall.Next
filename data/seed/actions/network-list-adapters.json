@@ -1,0 +1,61 @@
+{
+  "id": "network-list-adapters",
+  "title": "Lister les adaptateurs réseau",
+  "description": "Affiche tous les adaptateurs réseau avec leur état, vitesse et adresses IP",
+  "category": "🌐 Network & DNS",
+  "platform": 0,
+  "level": 0,
+  "tags": [
+    "network",
+    "adapters",
+    "interfaces",
+    "diagnostic"
+  ],
+  "windowsCommandTemplateId": "network-list-adapters-cmd",
+  "windowsCommandTemplate": {
+    "id": "network-list-adapters-cmd",
+    "platform": 0,
+    "name": "Get-NetAdapter",
+    "commandPattern": "Get-NetAdapter | Select-Object Name,InterfaceDescription,Status,LinkSpeed,MacAddress | Format-Table -AutoSize; Get-NetIPAddress -AddressFamily IPv4 | Where-Object {$_.InterfaceAlias -notlike '*Loopback*'} | Select-Object InterfaceAlias,IPAddress,PrefixLength | Format-Table -AutoSize",
+    "parameters": []
+  },
+  "examples": [
+    {
+      "command": "Get-NetIPAddress",
+      "description": "Affiche toutes les adresses IP configurées sur la machine (IPv4 et IPv6). Retourne l'IP, le masque de sous-réseau (PrefixLength), l'interface réseau associée et le statut. Équivalent moderne de 'ipconfig' avec plus de détails.",
+      "platform": 0
+    },
+    {
+      "command": "Get-NetIPAddress -AddressFamily IPv4",
+      "description": "Affiche uniquement les adresses IPv4 (exclut IPv6). Le paramètre -AddressFamily filtre par famille d'adresses. Simplifie l'affichage quand vous ne travaillez qu'en IPv4. Évite le bruit des nombreuses adresses IPv6 link-local.",
+      "platform": 1
+    },
+    {
+      "command": "Get-NetIPAddress -InterfaceAlias 'Ethernet' -AddressFamily IPv4",
+      "description": "Affiche l'adresse IPv4 d'une interface réseau spécifique. -InterfaceAlias utilise le nom convivial de l'interface (visible dans 'Paramètres réseau'). Utile quand la machine a plusieurs cartes réseau et que vous voulez interroger une carte précise.",
+      "platform": 1
+    },
+    {
+      "command": "Get-NetIPAddress | Where-Object {$_.IPAddress -like '192.168.*'} | Select-Object IPAddress,InterfaceAlias,PrefixLength",
+      "description": "Filtre et affiche uniquement les adresses IP du réseau local 192.168.x.x. Where-Object filtre avec wildcard. Select-Object choisit les colonnes pertinentes. Utile pour identifier rapidement les interfaces sur le LAN dans un environnement multi-cartes.",
+      "platform": 1
+    },
+    {
+      "command": "Get-NetIPAddress -AddressFamily IPv4 | Where-Object {$_.PrefixOrigin -eq 'Dhcp'}",
+      "description": "Affiche uniquement les adresses IPv4 obtenues via DHCP. PrefixOrigin indique comment l'IP a été configurée (Dhcp/Manual/WellKnown). Utile pour distinguer les IPs statiques des IPs dynamiques lors du troubleshooting réseau.",
+      "platform": 1
+    },
+    {
+      "command": "Get-NetIPAddress | Export-Csv C:\\Temp\\NetworkConfig.csv -NoTypeInformation",
+      "description": "Exporte toute la configuration IP vers CSV. Utile pour documenter la configuration réseau avant modifications, créer des inventaires ou archiver l'état réseau. Le fichier CSV peut être analysé dans Excel.",
+      "platform": 0
+    }
+  ],
+  "notes": "Remplace ipconfig /all. Status 'Up' = connecté, 'Disabled' = désactivé. LinkSpeed affiche la vitesse de liaison (1 Gbps, 100 Mbps, etc.).",
+  "links": [
+    {
+      "title": "Get-NetAdapter Documentation",
+      "url": "https://learn.microsoft.com/en-us/powershell/module/netadapter/get-netadapter"
+    }
+  ]
+}

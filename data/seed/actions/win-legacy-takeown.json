@@ -1,0 +1,44 @@
+{
+  "id": "win-legacy-takeown",
+  "title": "S'approprier un fichier/dossier (TakeOwn)",
+  "description": "Permet à l'administrateur de devenir propriétaire d'un fichier refusé, souvent prérequis avant d'utiliser ICACLS.",
+  "category": "🔒 Security & Encryption",
+  "platform": 0,
+  "level": 1,
+  "tags": [
+    "windows",
+    "takeown",
+    "owner",
+    "permissions",
+    "security"
+  ],
+  "windowsCommandTemplate": {
+    "id": "656ebe05-656e-49a6-9356-faa48dcd87af",
+    "platform": 0,
+    "name": "takeown",
+    "commandPattern": "takeown /f \"{path}\" /r /d O",
+    "parameters": [
+      {
+        "name": "path",
+        "label": "Chemin",
+        "type": "string",
+        "defaultValue": "",
+        "required": true,
+        "description": "Dossier cible"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "takeown /f \"C:\\LockedFolder\" /r /d O",
+      "description": "Force la propriété récursivement (/r). /d O répond 'Oui' automatiquement aux invites. Indispensable pour supprimer des dossiers fantômes ou verrouillés.",
+      "platform": 0
+    },
+    {
+      "command": "takeown /f \"C:\\Windows\\System32\\drivers\\etc\\hosts\" /a",
+      "description": "Donne la propriété au groupe Administrateurs (/a) plutôt qu'à l'utilisateur courant.",
+      "platform": 0
+    }
+  ],
+  "windowsCommandTemplateId": "656ebe05-656e-49a6-9356-faa48dcd87af"
+}

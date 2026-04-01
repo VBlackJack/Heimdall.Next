@@ -1,0 +1,98 @@
+{
+  "id": "chmod-permissions",
+  "title": "Modifier les permissions d'un fichier",
+  "description": "Change les permissions (lecture, écriture, exécution) d'un fichier ou répertoire",
+  "category": "🔒 Security & Encryption",
+  "platform": 1,
+  "level": 1,
+  "tags": [
+    "chmod",
+    "permissions",
+    "access",
+    "security"
+  ],
+  "linuxCommandTemplateId": "chmod-cmd",
+  "linuxCommandTemplate": {
+    "id": "chmod-cmd",
+    "platform": 1,
+    "name": "chmod",
+    "commandPattern": "chmod {mode} {path}",
+    "parameters": [
+      {
+        "name": "mode",
+        "label": "Mode",
+        "type": "string",
+        "defaultValue": "755",
+        "required": true,
+        "description": "Permissions (755, 644, +x, u+w, etc.)"
+      },
+      {
+        "name": "path",
+        "label": "Chemin",
+        "type": "string",
+        "defaultValue": "/path/to/file",
+        "required": true,
+        "description": "Fichier ou répertoire à modifier"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "chmod 755 script.sh",
+      "description": "Rend un script exécutable",
+      "platform": 1
+    },
+    {
+      "command": "chmod -R 644 /var/www/html",
+      "description": "644 récursif sur un répertoire",
+      "platform": 1
+    },
+    {
+      "command": "chmod +x file.sh",
+      "description": "Ajoute le droit d'exécution",
+      "platform": 1
+    },
+    {
+      "command": "chmod Full /var/log/app.log -v",
+      "description": "Exécute la commande en mode verbeux. Le flag -v (verbose) affiche chaque action effectuée en temps réel. Essentiel pour suivre la progression des opérations longues et vérifier que tout se déroule correctement.",
+      "platform": 1
+    },
+    {
+      "command": "chmod 755 /var/log/app.log",
+      "description": "Exemple utilisant le paramètre 'mode': Permissions (755, 644, +x, u+w, etc.). Remplacez Full par la valeur appropriée selon votre environnement.",
+      "platform": 1
+    },
+    {
+      "command": "chmod 755 /var/www/html/index.php",
+      "description": "Permissions rwxr-xr-x pour un fichier web",
+      "platform": 1
+    },
+    {
+      "command": "chmod 600 ~/.ssh/id_rsa",
+      "description": "Sécuriser la clé SSH privée (lecture/écriture propriétaire seulement)",
+      "platform": 1
+    },
+    {
+      "command": "chmod -R 644 /var/log/*.log",
+      "description": "Permissions rw-r--r-- pour les fichiers de logs",
+      "platform": 1
+    },
+    {
+      "command": "chmod u+x script.sh",
+      "description": "Ajouter le droit d'exécution pour le propriétaire",
+      "platform": 1
+    },
+    {
+      "command": "chmod go-rwx /etc/secrets",
+      "description": "Retirer tous les droits pour groupe et autres",
+      "platform": 1
+    }
+  ],
+  "notes": "755=rwxr-xr-x, 644=rw-r--r--. -R pour récursif. u=user, g=group, o=others, a=all.",
+  "links": [
+    {
+      "title": "chmod guide",
+      "url": "https://man7.org/linux/man-pages/man1/chmod.1.html"
+    }
+  ]
+}

@@ -1,0 +1,108 @@
+{
+  "id": "register-scheduledtask",
+  "title": "Créer une tâche planifiée",
+  "description": "Enregistre une nouvelle tâche planifiée dans le Planificateur de tâches Windows",
+  "category": "⚙️ Services & Automation",
+  "platform": 0,
+  "level": 1,
+  "tags": [
+    "taskscheduler",
+    "create",
+    "automation",
+    "windows",
+    "register"
+  ],
+  "windowsCommandTemplateId": "register-scheduledtask-cmd",
+  "windowsCommandTemplate": {
+    "id": "register-scheduledtask-cmd",
+    "platform": 0,
+    "name": "Register-ScheduledTask",
+    "commandPattern": "$action = New-ScheduledTaskAction -Execute '{executable}' -Argument '{arguments}'; $trigger = New-ScheduledTaskTrigger {triggertype}; Register-ScheduledTask -TaskName '{taskname}' -Action $action -Trigger $trigger {user}",
+    "parameters": [
+      {
+        "name": "taskname",
+        "label": "Nom de la tâche",
+        "type": "string",
+        "defaultValue": "MyTask",
+        "required": true,
+        "description": "Nom de la tâche à créer"
+      },
+      {
+        "name": "executable",
+        "label": "Exécutable",
+        "type": "string",
+        "defaultValue": "powershell.exe",
+        "required": true,
+        "description": "Programme à exécuter"
+      },
+      {
+        "name": "arguments",
+        "label": "Arguments",
+        "type": "string",
+        "defaultValue": "-File C:\\Scripts\\backup.ps1",
+        "required": false,
+        "description": "Arguments de la commande"
+      },
+      {
+        "name": "triggertype",
+        "label": "Déclencheur",
+        "type": "string",
+        "defaultValue": "-Daily -At 9:00AM",
+        "required": true,
+        "description": "Type de déclencheur (-Daily, -Weekly, -AtStartup, -AtLogon)"
+      },
+      {
+        "name": "user",
+        "label": "Utilisateur",
+        "type": "string",
+        "defaultValue": "-User 'SYSTEM'",
+        "required": false,
+        "description": "Compte d'exécution (ex: -User 'SYSTEM')"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "$action = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument '-File C:\\Scripts\\backup.ps1'; $trigger = New-ScheduledTaskTrigger -Daily -At 2:00AM; Register-ScheduledTask -TaskName 'DailyBackup' -Action $action -Trigger $trigger -User 'SYSTEM'",
+      "description": "Tâche de sauvegarde quotidienne à 2h",
+      "platform": 0
+    },
+    {
+      "command": "$action = New-ScheduledTaskAction -Execute 'shutdown.exe' -Argument '/r /t 0'; $trigger = New-ScheduledTaskTrigger -Weekly -DaysOfWeek Sunday -At 3:00AM; Register-ScheduledTask -TaskName 'WeeklyReboot' -Action $action -Trigger $trigger",
+      "description": "Redémarrage hebdomadaire le dimanche",
+      "platform": 0
+    },
+    {
+      "command": "$action = New-ScheduledTaskAction -Execute 'C:\\Scripts\\startup.bat'; $trigger = New-ScheduledTaskTrigger -AtStartup; Register-ScheduledTask -TaskName 'StartupScript' -Action $action -Trigger $trigger -User 'SYSTEM'",
+      "description": "Script au démarrage du système",
+      "platform": 0
+    },
+    {
+      "command": "$action = New-ScheduledTaskAction -Execute 'notepad.exe' -Argument '-Force -Verbose'; $trigger = New-ScheduledTaskTrigger AtLogOn; Register-ScheduledTask -TaskName 'DailyBackup' -Action $action -Trigger $trigger jdupont -WhatIf",
+      "description": "Simulation de l'action sans exécution réelle (dry-run). Le switch -WhatIf affiche ce qui serait modifié sans appliquer les changements. INDISPENSABLE avant toute action de masse ou modification critique. Retirez -WhatIf après validation pour exécuter.",
+      "platform": 0
+    },
+    {
+      "command": "$action = New-ScheduledTaskAction -Execute 'notepad.exe' -Argument '-Force -Verbose'; $trigger = New-ScheduledTaskTrigger AtLogOn; Register-ScheduledTask -TaskName 'DailyBackup' -Action $action -Trigger $trigger jdupont -Confirm:$false",
+      "description": "Exécute l'action sans demander de confirmation interactive. -Confirm:$false supprime les invites de validation. Utile dans les scripts automatisés mais à utiliser avec précaution : aucun filet de sécurité.",
+      "platform": 0
+    },
+    {
+      "command": "$action = New-ScheduledTaskAction -Execute 'notepad.exe' -Argument '-Force -Verbose'; $trigger = New-ScheduledTaskTrigger AtLogOn; Register-ScheduledTask -TaskName 'DailyBackup' -Action $action -Trigger $trigger jdupont -PassThru",
+      "description": "Force la commande à retourner l'objet modifié/créé dans le pipeline. Par défaut, les cmdlets Set-/New- ne retournent rien. -PassThru active le retour pour permettre des opérations en chaîne ou des vérifications immédiates.",
+      "platform": 0
+    },
+    {
+      "command": "$action = New-ScheduledTaskAction -Execute 'notepad.exe' -Argument '-Force -Verbose'; $trigger = New-ScheduledTaskTrigger AtLogOn; Register-ScheduledTask -TaskName 'DailyBackup' -Action $action -Trigger $trigger jdupont -Verbose",
+      "description": "Affiche des informations détaillées sur l'exécution de la commande. -Verbose active les messages de débogage pour comprendre précisément ce qui se passe. Essentiel pour le troubleshooting et la compréhension des opérations internes.",
+      "platform": 0
+    }
+  ],
+  "notes": "Nécessite des privilèges administrateur. Utilisez -User 'SYSTEM' pour exécution système. Déclencheurs: -Daily, -Weekly, -AtStartup, -AtLogon, -Once.",
+  "links": [
+    {
+      "title": "Register-ScheduledTask Documentation",
+      "url": "https://learn.microsoft.com/en-us/powershell/module/scheduledtasks/register-scheduledtask"
+    }
+  ]
+}

@@ -1,0 +1,61 @@
+{
+  "id": "pswindowsupdate-service-manager",
+  "title": "Lister les services de mise à jour configurés",
+  "description": "Affiche tous les services de mise à jour Windows configurés (Windows Update, WSUS, Microsoft Update)",
+  "category": "🔄 Windows Updates",
+  "platform": 0,
+  "level": 0,
+  "tags": [
+    "windows-update",
+    "service",
+    "wsus",
+    "pswindowsupdate"
+  ],
+  "windowsCommandTemplateId": "pswindowsupdate-service-manager-cmd",
+  "windowsCommandTemplate": {
+    "id": "pswindowsupdate-service-manager-cmd",
+    "platform": 0,
+    "name": "Get-WUServiceManager",
+    "commandPattern": "Get-WUServiceManager",
+    "parameters": []
+  },
+  "examples": [
+    {
+      "command": "Get-WUServiceManager",
+      "description": "Liste tous les services de mise à jour configurés",
+      "platform": 0
+    },
+    {
+      "command": "Get-WUServiceManager | Where-Object {$_.IsDefaultAUService -eq $true}",
+      "description": "Affiche le service de mise à jour par défaut",
+      "platform": 0
+    },
+    {
+      "command": "Get-WUServiceManager | Select-Object * -First 1",
+      "description": "Affiche toutes les propriétés du premier objet retourné. Select-Object * élargit l'affichage pour montrer toutes les colonnes. -First 1 limite au premier résultat. Utilisez cette commande pour découvrir les propriétés disponibles avant de filtrer.",
+      "platform": 0
+    },
+    {
+      "command": "Get-WUServiceManager | Format-Table -AutoSize",
+      "description": "Affiche les résultats dans un tableau optimisé pour la console. Format-Table -AutoSize ajuste automatiquement la largeur des colonnes pour un affichage lisible. Idéal pour visualiser rapidement les données structurées.",
+      "platform": 0
+    },
+    {
+      "command": "Get-WUServiceManager | Export-Csv C:\\Temp\\Export.csv -NoTypeInformation -Encoding UTF8",
+      "description": "Exporte les résultats vers un fichier CSV exploitable dans Excel. -NoTypeInformation supprime la ligne de métadonnées. -Encoding UTF8 garantit la compatibilité des caractères accentués. Utile pour l'archivage, les rapports et l'analyse externe.",
+      "platform": 0
+    },
+    {
+      "command": "Get-WUServiceManager | Measure-Object",
+      "description": "Compte le nombre total d'objets retournés. Measure-Object retourne Count, Sum, Average, Min, Max selon les propriétés. Utile pour les statistiques rapides et la validation de résultats.",
+      "platform": 0
+    }
+  ],
+  "notes": "Utile pour diagnostiquer les problèmes de source de mises à jour. Nécessite PSWindowsUpdate.",
+  "links": [
+    {
+      "title": "Windows Update Service Manager",
+      "url": "https://woshub.com/pswindowsupdate-module/"
+    }
+  ]
+}

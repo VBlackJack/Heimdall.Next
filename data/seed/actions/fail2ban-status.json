@@ -1,0 +1,86 @@
+{
+  "id": "fail2ban-status",
+  "title": "Vérifier l'état de Fail2ban",
+  "description": "Affiche l'état des jails Fail2ban et les IP bannies",
+  "category": "🔒 Security & Encryption",
+  "platform": 1,
+  "level": 0,
+  "tags": [
+    "fail2ban",
+    "security",
+    "firewall",
+    "ban",
+    "intrusion"
+  ],
+  "linuxCommandTemplateId": "fail2ban-status-cmd",
+  "linuxCommandTemplate": {
+    "id": "fail2ban-status-cmd",
+    "platform": 1,
+    "name": "fail2ban-client",
+    "commandPattern": "fail2ban-client status {jail}",
+    "parameters": [
+      {
+        "name": "jail",
+        "label": "Jail",
+        "type": "string",
+        "defaultValue": "",
+        "required": false,
+        "description": "Nom de la jail (vide = liste des jails)"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "sudo fail2ban-client status",
+      "description": "Liste toutes les jails actives",
+      "platform": 1
+    },
+    {
+      "command": "sudo fail2ban-client status sshd",
+      "description": "État détaillé de la jail SSH",
+      "platform": 1
+    },
+    {
+      "command": "sudo fail2ban-client set sshd unbanip 1.2.3.4",
+      "description": "Débanne une IP",
+      "platform": 1
+    },
+    {
+      "command": "fail2ban-client status www",
+      "description": "Exemple utilisant le paramètre 'jail': Nom de la jail (vide = liste des jails). Remplacez www par la valeur appropriée selon votre environnement.",
+      "platform": 1
+    },
+    {
+      "command": "fail2ban-client status",
+      "description": "État de Fail2ban",
+      "platform": 1
+    },
+    {
+      "command": "fail2ban-client status sshd",
+      "description": "État du jail SSH",
+      "platform": 1
+    },
+    {
+      "command": "fail2ban-client set sshd unbanip 192.168.1.100",
+      "description": "Débannir une IP",
+      "platform": 1
+    },
+    {
+      "command": "fail2ban-client banned",
+      "description": "Lister les IP bannies",
+      "platform": 1
+    },
+    {
+      "command": "fail2ban-client reload",
+      "description": "Recharger la configuration",
+      "platform": 1
+    }
+  ],
+  "notes": "Nécessite sudo et fail2ban installé. Protège contre les attaques brute-force.",
+  "links": [
+    {
+      "title": "Fail2ban documentation",
+      "url": "https://www.fail2ban.org/wiki/index.php/Main_Page"
+    }
+  ]
+}

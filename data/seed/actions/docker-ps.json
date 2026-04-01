@@ -1,0 +1,154 @@
+{
+  "id": "docker-ps",
+  "title": "Lister les conteneurs Docker",
+  "description": "Affiche la liste des conteneurs Docker en cours d'exécution",
+  "category": "🐳 Containers & VMs",
+  "platform": 2,
+  "level": 0,
+  "tags": [
+    "docker",
+    "containers",
+    "list",
+    "ps",
+    "windows"
+  ],
+  "linuxCommandTemplateId": "docker-ps-cmd",
+  "linuxCommandTemplate": {
+    "id": "docker-ps-cmd",
+    "platform": 1,
+    "name": "docker",
+    "commandPattern": "docker ps {options}",
+    "parameters": [
+      {
+        "name": "options",
+        "label": "Options",
+        "type": "string",
+        "defaultValue": "",
+        "required": false,
+        "description": "Options (-a=all, -q=quiet, --filter, etc.)"
+      }
+    ]
+  },
+  "notes": "Windows & Linux: Nécessite accès au daemon Docker. -a pour voir aussi les conteneurs arrêtés.",
+  "links": [
+    {
+      "title": "Docker ps documentation",
+      "url": "https://docs.docker.com/engine/reference/commandline/ps/"
+    }
+  ],
+  "supportedPlatforms": [
+    0,
+    1
+  ],
+  "windowsCommandTemplate": {
+    "id": "docker-ps-win-cmd",
+    "platform": 0,
+    "name": "docker",
+    "commandPattern": "docker ps {options}",
+    "parameters": [
+      {
+        "name": "options",
+        "label": "Options",
+        "type": "string",
+        "defaultValue": "",
+        "required": false,
+        "description": "Options (-a=all, -q=quiet, --filter, etc.)"
+      }
+    ]
+  },
+  "windowsCommandTemplateId": "docker-ps-win-cmd",
+  "windowsExamples": [
+    {
+      "command": "docker ps",
+      "description": "Liste les conteneurs en cours",
+      "platform": 0
+    },
+    {
+      "command": "docker ps -a",
+      "description": "Liste tous les conteneurs (même arrêtés)",
+      "platform": 0
+    },
+    {
+      "command": "docker ps -q",
+      "description": "Affiche uniquement les IDs",
+      "platform": 0
+    },
+    {
+      "command": "docker --help",
+      "description": "Affiche l'aide complète de la commande docker. --help liste tous les paramètres disponibles, les options et des exemples d'utilisation. Première commande à utiliser pour découvrir les capacités d'un outil.",
+      "platform": 0
+    },
+    {
+      "command": "man docker",
+      "description": "Affiche le manuel complet de docker. Les pages man fournissent la documentation détaillée : syntaxe, paramètres, exemples, notes. Plus complet que --help. Naviguez avec flèches, cherchez avec '/', quittez avec 'q'.",
+      "platform": 0
+    },
+    {
+      "command": "docker ps --filter status=exited",
+      "description": "Filtre pour afficher uniquement les conteneurs arrêtés.",
+      "platform": 0
+    },
+    {
+      "command": "docker ps -v -f",
+      "description": "Exemple Windows pour Lister les conteneurs Docker",
+      "platform": 0
+    }
+  ],
+  "linuxExamples": [
+    {
+      "command": "docker ps",
+      "description": "Liste les conteneurs en cours",
+      "platform": 1
+    },
+    {
+      "command": "docker ps -a",
+      "description": "Liste tous les conteneurs (même arrêtés)",
+      "platform": 1
+    },
+    {
+      "command": "docker ps -q",
+      "description": "Affiche uniquement les IDs",
+      "platform": 1
+    },
+    {
+      "command": "docker --help",
+      "description": "Affiche l'aide complète de la commande docker. --help liste tous les paramètres disponibles, les options et des exemples d'utilisation. Première commande à utiliser pour découvrir les capacités d'un outil.",
+      "platform": 1
+    },
+    {
+      "command": "man docker",
+      "description": "Affiche le manuel complet de docker. Les pages man fournissent la documentation détaillée : syntaxe, paramètres, exemples, notes. Plus complet que --help. Naviguez avec flèches, cherchez avec '/', quittez avec 'q'.",
+      "platform": 1
+    },
+    {
+      "command": "docker ps --format \"table {{.Names}}\\t{{.Status}}\"",
+      "description": "Affiche les conteneurs avec un format personnalisé (nom et statut).",
+      "platform": 1
+    },
+    {
+      "command": "docker ps",
+      "description": "Lister les conteneurs en cours",
+      "platform": 1
+    },
+    {
+      "command": "docker ps -a",
+      "description": "Lister tous les conteneurs",
+      "platform": 1
+    },
+    {
+      "command": "docker images",
+      "description": "Lister les images locales",
+      "platform": 1
+    }
+  ],
+  "crossPlatformNotes": {
+    "differences": [
+      "Syntaxe identique sur Windows et Linux"
+    ],
+    "commonalities": [
+      "Docker CLI est cross-platform",
+      "Fonctionnalité identique sur les deux plateformes"
+    ]
+  },
+  "examples": []
+}

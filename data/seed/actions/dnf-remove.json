@@ -1,0 +1,71 @@
+{
+  "id": "dnf-remove",
+  "title": "Désinstaller un paquet avec DNF",
+  "description": "Supprime un paquet installé avec DNF",
+  "category": "📦 Package Management",
+  "platform": 1,
+  "level": 1,
+  "tags": [
+    "dnf",
+    "remove",
+    "uninstall",
+    "rhel",
+    "fedora"
+  ],
+  "linuxCommandTemplateId": "dnf-remove-cmd",
+  "linuxCommandTemplate": {
+    "id": "dnf-remove-cmd",
+    "platform": 1,
+    "name": "dnf",
+    "commandPattern": "dnf remove -y {package}",
+    "parameters": [
+      {
+        "name": "package",
+        "label": "Nom du paquet",
+        "type": "string",
+        "defaultValue": "httpd",
+        "required": true,
+        "description": "Nom du paquet à supprimer"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "sudo dnf remove httpd",
+      "description": "Supprime le serveur Apache",
+      "platform": 1
+    },
+    {
+      "command": "sudo dnf autoremove",
+      "description": "Supprime les dépendances inutilisées",
+      "platform": 1
+    },
+    {
+      "command": "dnf remove -y nginx -v",
+      "description": "Exécute la commande en mode verbeux. Le flag -v (verbose) affiche chaque action effectuée en temps réel. Essentiel pour suivre la progression des opérations longues et vérifier que tout se déroule correctement.",
+      "platform": 1
+    },
+    {
+      "command": "dnf remove -y nginx --dry-run",
+      "description": "Simulation sans exécution réelle (dry-run). --dry-run affiche ce qui serait fait sans appliquer les changements. INDISPENSABLE avant les opérations de masse ou les modifications critiques.",
+      "platform": 1
+    },
+    {
+      "command": "dnf remove -y httpd",
+      "description": "Exemple utilisant le paramètre 'package': Nom du paquet à supprimer. Remplacez nginx par la valeur appropriée selon votre environnement.",
+      "platform": 1
+    },
+    {
+      "command": "dnf remove mariadb",
+      "description": "Désinstaller MariaDB",
+      "platform": 1
+    }
+  ],
+  "notes": "Nécessite sudo. autoremove nettoie les paquets orphelins.",
+  "links": [
+    {
+      "title": "DNF remove",
+      "url": "https://docs.fedoraproject.org/en-US/quick-docs/dnf/"
+    }
+  ]
+}

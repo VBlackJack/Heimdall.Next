@@ -1,0 +1,76 @@
+{
+  "id": "nethogs-bandwidth",
+  "title": "Monitorer la bande passante par processus",
+  "description": "Affiche l'utilisation réseau en temps réel par processus",
+  "category": "🌐 Network & DNS",
+  "platform": 1,
+  "level": 0,
+  "tags": [
+    "nethogs",
+    "bandwidth",
+    "network",
+    "monitoring",
+    "traffic"
+  ],
+  "linuxCommandTemplateId": "nethogs-cmd",
+  "linuxCommandTemplate": {
+    "id": "nethogs-cmd",
+    "platform": 1,
+    "name": "nethogs",
+    "commandPattern": "nethogs {interface}",
+    "parameters": [
+      {
+        "name": "interface",
+        "label": "Interface",
+        "type": "string",
+        "defaultValue": "",
+        "required": false,
+        "description": "Interface réseau (vide = toutes)"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "sudo nethogs",
+      "description": "Monitore toutes les interfaces",
+      "platform": 1
+    },
+    {
+      "command": "sudo nethogs eth0",
+      "description": "Monitore uniquement eth0",
+      "platform": 1
+    },
+    {
+      "command": "nethogs eth0",
+      "description": "Exemple utilisant le paramètre 'interface': Interface réseau (vide = toutes). Remplacez eth0 par la valeur appropriée selon votre environnement.",
+      "platform": 1
+    },
+    {
+      "command": "nethogs",
+      "description": "Bande passante par processus",
+      "platform": 1
+    },
+    {
+      "command": "nethogs -t",
+      "description": "Mode texte (pour scripts)",
+      "platform": 1
+    },
+    {
+      "command": "nethogs -d 5",
+      "description": "Rafraîchir toutes les 5 secondes",
+      "platform": 1
+    },
+    {
+      "command": "nethogs -v 2",
+      "description": "Verbosité maximale",
+      "platform": 1
+    }
+  ],
+  "notes": "Nécessite sudo et le package nethogs. q pour quitter. Idéal pour identifier les processus gourmands.",
+  "links": [
+    {
+      "title": "nethogs documentation",
+      "url": "https://github.com/raboof/nethogs"
+    }
+  ]
+}

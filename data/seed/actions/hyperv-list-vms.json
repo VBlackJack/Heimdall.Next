@@ -1,0 +1,64 @@
+{
+  "id": "hyperv-list-vms",
+  "title": "Lister toutes les machines virtuelles Hyper-V",
+  "description": "Affiche la liste complète de toutes les machines virtuelles configurées dans Hyper-V avec leur état, mémoire allouée et version de configuration.",
+  "category": "🐳 Containers & VMs",
+  "platform": 0,
+  "level": 0,
+  "tags": [
+    "hyperv",
+    "vm",
+    "virtual-machine",
+    "list",
+    "virtualization",
+    "inventory",
+    "diagnostic"
+  ],
+  "windowsCommandTemplateId": "hyperv-list-vms-cmd",
+  "windowsCommandTemplate": {
+    "id": "hyperv-list-vms-cmd",
+    "platform": 0,
+    "name": "Get-VM",
+    "commandPattern": "Get-VM | Select-Object Name, State, CPUUsage, @{Name='MemoryAssignedMB';Expression={$_.MemoryAssigned/1MB}}, @{Name='MemoryDemandMB';Expression={$_.MemoryDemand/1MB}}, Uptime, Status, Version | Format-Table -AutoSize",
+    "parameters": []
+  },
+  "examples": [
+    {
+      "command": "Get-VM | Select-Object Name, State, Status",
+      "description": "Liste simple des VMs et leur état",
+      "platform": 0
+    },
+    {
+      "command": "Get-VM | Where-Object {$_.State -eq 'Running'}",
+      "description": "Affiche uniquement les VMs en cours d'exécution",
+      "platform": 0
+    },
+    {
+      "command": "Get-VM | Measure-VMResourcePool",
+      "description": "Statistiques d'utilisation des ressources",
+      "platform": 0
+    },
+    {
+      "command": "Get-VM | Select-Object * -First 1",
+      "description": "Affiche toutes les propriétés du premier objet retourné. Select-Object * élargit l'affichage pour montrer toutes les colonnes. -First 1 limite au premier résultat. Utilisez cette commande pour découvrir les propriétés disponibles avant de filtrer.",
+      "platform": 0
+    },
+    {
+      "command": "Get-VM | Export-Csv C:\\Temp\\Export.csv -NoTypeInformation -Encoding UTF8",
+      "description": "Exporte les résultats vers un fichier CSV exploitable dans Excel. -NoTypeInformation supprime la ligne de métadonnées. -Encoding UTF8 garantit la compatibilité des caractères accentués. Utile pour l'archivage, les rapports et l'analyse externe.",
+      "platform": 0
+    },
+    {
+      "command": "Get-VM | Measure-Object",
+      "description": "Compte le nombre total d'objets retournés. Measure-Object retourne Count, Sum, Average, Min, Max selon les propriétés. Utile pour les statistiques rapides et la validation de résultats.",
+      "platform": 0
+    }
+  ],
+  "notes": "Nécessite le rôle Hyper-V installé et des privilèges administrateur. États possibles: Running, Off, Saved, Paused.",
+  "links": [
+    {
+      "title": "Documentation Get-VM",
+      "url": "https://learn.microsoft.com/en-us/powershell/module/hyper-v/get-vm"
+    }
+  ]
+}

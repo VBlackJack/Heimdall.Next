@@ -1,0 +1,90 @@
+{
+  "id": "network-trace-route",
+  "title": "Tracer la route réseau",
+  "description": "Affiche le chemin complet des paquets réseau vers une destination.",
+  "category": "🌐 Network & DNS",
+  "platform": 2,
+  "level": 0,
+  "tags": [
+    "network",
+    "traceroute",
+    "diagnostic",
+    "routing"
+  ],
+  "windowsCommandTemplateId": "network-trace-route-windows-cmd",
+  "windowsCommandTemplate": {
+    "id": "network-trace-route-windows-cmd",
+    "platform": 0,
+    "name": "tracert",
+    "commandPattern": "tracert {target}",
+    "parameters": [
+      {
+        "name": "target",
+        "label": "Cible",
+        "type": "string",
+        "defaultValue": "",
+        "required": true,
+        "description": "Adresse IP ou nom d'hôte"
+      }
+    ]
+  },
+  "linuxCommandTemplateId": "network-trace-route-linux-cmd",
+  "linuxCommandTemplate": {
+    "id": "network-trace-route-linux-cmd",
+    "platform": 1,
+    "name": "traceroute",
+    "commandPattern": "traceroute {target}",
+    "parameters": [
+      {
+        "name": "target",
+        "label": "Cible",
+        "type": "string",
+        "defaultValue": "",
+        "required": true,
+        "description": "Adresse IP ou nom d'hôte"
+      }
+    ]
+  },
+  "examples": [],
+  "notes": "Peut être lent. Sur Linux, installer traceroute si non disponible : sudo apt install traceroute",
+  "links": [],
+  "windowsExamples": [
+    {
+      "command": "tracert google.com",
+      "description": "Trace la route vers google.com (Windows)",
+      "platform": 0
+    },
+    {
+      "command": "tracert srv-web-01.contoso.com",
+      "description": "Exemple utilisant le paramètre 'target': Adresse IP ou nom d'hôte. Remplacez srv-web-01.contoso.com par la valeur appropriée selon votre environnement.",
+      "platform": 0
+    }
+  ],
+  "linuxExamples": [
+    {
+      "command": "traceroute google.com",
+      "description": "Trace la route vers google.com (Linux)",
+      "platform": 1
+    },
+    {
+      "command": "traceroute -n 8.8.8.8",
+      "description": "Traceroute sans résolution DNS",
+      "platform": 1
+    },
+    {
+      "command": "traceroute -T -p 443 server.com",
+      "description": "Traceroute TCP sur port 443",
+      "platform": 1
+    },
+    {
+      "command": "traceroute -I 192.168.1.1",
+      "description": "Traceroute ICMP",
+      "platform": 1
+    },
+    {
+      "command": "traceroute -m 15 remote-server.com",
+      "description": "Limiter à 15 sauts maximum",
+      "platform": 1
+    }
+  ]
+}

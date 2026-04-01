@@ -1,0 +1,61 @@
+{
+  "id": "ss-sockets",
+  "title": "Afficher les sockets réseau (ss)",
+  "description": "Liste les sockets réseau actifs (remplaçant moderne de netstat)",
+  "category": "🌐 Network & DNS",
+  "platform": 1,
+  "level": 0,
+  "tags": [
+    "ss",
+    "sockets",
+    "network",
+    "connections",
+    "ports"
+  ],
+  "linuxCommandTemplateId": "ss-cmd",
+  "linuxCommandTemplate": {
+    "id": "ss-cmd",
+    "platform": 1,
+    "name": "ss",
+    "commandPattern": "ss -{options}",
+    "parameters": [
+      {
+        "name": "options",
+        "label": "Options",
+        "type": "string",
+        "defaultValue": "tulpn",
+        "required": true,
+        "description": "Options (t=TCP, u=UDP, l=listening, p=process, n=numeric)"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "command": "ss -tulpn",
+      "description": "Tous les ports TCP/UDP en écoute avec processus",
+      "platform": 1
+    },
+    {
+      "command": "ss -s",
+      "description": "Statistiques résumées",
+      "platform": 1
+    },
+    {
+      "command": "ss -ltn sport = :80",
+      "description": "Sockets écoutant sur le port 80",
+      "platform": 1
+    },
+    {
+      "command": "ss -o",
+      "description": "Avec timers",
+      "platform": 1
+    }
+  ],
+  "notes": "Nécessite sudo pour voir les PID. Plus rapide que netstat. Recommandé sur systèmes modernes.",
+  "links": [
+    {
+      "title": "ss command",
+      "url": "https://man7.org/linux/man-pages/man8/ss.8.html"
+    }
+  ]
+}

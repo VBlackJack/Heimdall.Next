@@ -1,0 +1,78 @@
+{
+  "id": "db-mysqladmin-ping",
+  "title": "Vérifier statut MySQL (MySQLAdmin)",
+  "description": "Vérifie si le serveur MySQL est en vie et répond.",
+  "category": "💽 Database",
+  "platform": 2,
+  "level": 0,
+  "tags": [
+    "mysql",
+    "mariadb",
+    "db",
+    "status",
+    "ping"
+  ],
+  "windowsCommandTemplate": {
+    "id": "193d03b3-ce1c-486a-82bc-cd26282ca996",
+    "platform": 0,
+    "name": "mysqladmin",
+    "commandPattern": "mysqladmin -h {host} -u {user} -p ping",
+    "parameters": [
+      {
+        "name": "host",
+        "label": "Hôte",
+        "type": "string",
+        "defaultValue": "localhost",
+        "required": true,
+        "description": "Serveur MySQL"
+      },
+      {
+        "name": "user",
+        "label": "Utilisateur",
+        "type": "string",
+        "defaultValue": "root",
+        "required": true,
+        "description": "User MySQL"
+      }
+    ]
+  },
+  "linuxCommandTemplate": {
+    "id": "fbe94b36-6f8b-42bc-85f7-d7714c5d61a4",
+    "platform": 1,
+    "name": "mysqladmin",
+    "commandPattern": "mysqladmin -h {host} -u {user} -p ping",
+    "parameters": [
+      {
+        "name": "host",
+        "label": "Hôte",
+        "type": "string",
+        "defaultValue": "localhost",
+        "required": true,
+        "description": "Serveur MySQL"
+      },
+      {
+        "name": "user",
+        "label": "Utilisateur",
+        "type": "string",
+        "defaultValue": "root",
+        "required": true,
+        "description": "User MySQL"
+      }
+    ]
+  },
+  "examples": [],
+  "linuxExamples": [
+    {
+      "command": "mysqladmin -u root -p processlist",
+      "description": "Affiche la liste des requêtes en cours d'exécution (équivalent de SHOW PROCESSLIST). Utile pour détecter les blocages.",
+      "platform": 1
+    },
+    {
+      "command": "mysqladmin -u root -p status",
+      "description": "Affiche les statistiques vitales (Uptime, Threads, Slow queries).",
+      "platform": 1
+    }
+  ],
+  "linuxCommandTemplateId": "fbe94b36-6f8b-42bc-85f7-d7714c5d61a4",
+  "windowsCommandTemplateId": "193d03b3-ce1c-486a-82bc-cd26282ca996"
+}
