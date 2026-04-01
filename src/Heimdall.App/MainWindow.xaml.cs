@@ -419,6 +419,27 @@ public partial class MainWindow : Window
         Mw_SettingsTunnelDelayLabel.Text = vm.Localize("SettingsLabelTunnelDelay");
         Mw_SettingsRdpTimeoutLabel.Text = vm.Localize("SettingsLabelRdpTimeout");
         Mw_SettingsExtToolTimeoutLabel.Text = vm.Localize("SettingsLabelExtToolTimeout");
+        // Command Library Git Sync
+        Mw_SettingsCmdLibSyncTitle.Text = vm.Localize("SettingsCmdLibSyncTitle");
+        Mw_SettingsCmdLibSyncEnable.Content = vm.Localize("SettingsCmdLibSyncEnable");
+        Mw_SettingsCmdLibSyncLblUrl.Text = vm.Localize("SettingsCmdLibSyncUrl");
+        Mw_SettingsCmdLibSyncLblBranch.Text = vm.Localize("SettingsCmdLibSyncBranch");
+        Mw_SettingsCmdLibSyncLblToken.Text = vm.Localize("SettingsCmdLibSyncToken");
+        Mw_SettingsCmdLibSyncLblAuthor.Text = vm.Localize("SettingsCmdLibSyncAuthor");
+        Mw_SettingsCmdLibSyncOnStartup.Content = vm.Localize("SettingsCmdLibSyncOnStartup");
+        Mw_SettingsCmdLibSyncAutoPush.Content = vm.Localize("SettingsCmdLibSyncAutoPush");
+        Mw_SettingsCmdLibSyncTestBtn.Content = vm.Localize("SettingsCmdLibSyncTestConnection");
+        Mw_SettingsCmdLibSyncTokenClear.ToolTip = vm.Localize("SettingsCmdLibSyncTokenClear");
+        // Check if a token is already stored (asynchronously loaded from settings)
+        _ = Task.Run(async () =>
+        {
+            var cfgMgr = (System.Windows.Application.Current as App)?.Services?
+                .GetService(typeof(Core.Configuration.ConfigManager)) as Core.Configuration.ConfigManager;
+            if (cfgMgr is null) return;
+            var s = await cfgMgr.LoadSettingsAsync();
+            Dispatcher.Invoke(() => UpdateTokenStatus(!string.IsNullOrEmpty(s.CmdLibGitSyncToken)));
+        });
+
         Mw_SettingsExtProvTitle.Text = vm.Localize("SettingsSectionExternalToolProviders");
         Mw_SettingsExtProvDesc.Text = vm.Localize("SettingsExternalToolProvidersDesc");
         Mw_SettingsLblSysintPath.Text = vm.Localize("SettingsLblSysinternalsPath");
@@ -2793,6 +2814,73 @@ public partial class MainWindow : Window
             ? string.Format(System.Globalization.CultureInfo.InvariantCulture,
                 vm.Localize("ExtToolStatusDetected"), count)
             : vm.Localize("ExtToolStatusNone");
+    }
+
+    private void OnCmdLibSyncTokenChanged(object sender, RoutedEventArgs e)
+    {
+        var password = Mw_SettingsCmdLibSyncToken.Password;
+        if (string.IsNullOrEmpty(password)) return;
+
+        var app = System.Windows.Application.Current as App;
+        var configManager = app?.Services?
+            .GetService(typeof(Core.Configuration.ConfigManager)) as Core.Configuration.ConfigManager;
+        if (configManager is null) return;
+
+        var encrypted = Core.Security.DpapiProvider.Protect(password);
+        _ = configManager.MergeSettingAsync(s => s.CmdLibGitSyncToken = encrypted);
+        UpdateTokenStatus(true);
+    }
+
+    private void OnCmdLibSyncTokenClear(object sender, RoutedEventArgs e)
+    {
+        var app = System.Windows.Application.Current as App;
+        var configManager = app?.Services?
+            .GetService(typeof(Core.Configuration.ConfigManager)) as Core.Configuration.ConfigManager;
+        if (configManager is null) return;
+
+        _ = configManager.MergeSettingAsync(s => s.CmdLibGitSyncToken = null);
+        Mw_SettingsCmdLibSyncToken.Password = "";
+        UpdateTokenStatus(false);
+    }
+
+    private void UpdateTokenStatus(bool hasToken)
+    {
+        if (DataContext is not MainViewModel vm) return;
+        Mw_SettingsCmdLibSyncTokenStatus.Text = hasToken
+            ? vm.Localize("SettingsCmdLibSyncTokenSaved") : "";
+        Mw_SettingsCmdLibSyncTokenClear.Visibility = hasToken
+            ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private async void OnCmdLibSyncTestClick(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is not MainViewModel vm) return;
+
+        var app = System.Windows.Application.Current as App;
+        var gitSync = app?.Services?
+            .GetService(typeof(TwinShell.Core.Interfaces.IGitSyncService))
+                as TwinShell.Core.Interfaces.IGitSyncService;
+        if (gitSync is null) return;
+
+        Mw_SettingsCmdLibSyncTestBtn.IsEnabled = false;
+        Mw_SettingsCmdLibSyncTestBtn.Content = "...";
+
+        try
+        {
+            var result = await gitSync.TestConnectionAsync();
+            Mw_SettingsCmdLibSyncTestBtn.Content = result.Success
+                ? vm.Localize("SettingsCmdLibSyncTestSuccess")
+                : vm.Localize("SettingsCmdLibSyncTestFailed");
+        }
+        catch (Exception ex)
+        {
+            Mw_SettingsCmdLibSyncTestBtn.Content = vm.Localize("SettingsCmdLibSyncTestFailed");
+            Core.Logging.FileLogger.Warn($"[GitSync] Test connection failed: {ex.Message}");
+        }
+        finally
+        {
+            Mw_SettingsCmdLibSyncTestBtn.IsEnabled = true;
+        }
     }
 
     private async void OnRescanExternalToolsClick(object sender, RoutedEventArgs e)

@@ -1,0 +1,489 @@
+<UserControl x:Class="Heimdall.App.Views.Tools.CommandLibraryView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:loc="clr-namespace:Heimdall.App.Localization"
+             Background="{DynamicResource BackgroundBrush}">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- ═══════════ ROW 0 — HEADER ═══════════ -->
+        <Border Grid.Row="0"
+                Padding="{StaticResource ToolHeaderPadding}"
+                Background="{DynamicResource SurfaceBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="0,0,0,1">
+            <DockPanel>
+                <Button x:Name="BtnHelp" DockPanel.Dock="Right"
+                        Content="?" Click="OnHelpClick"
+                        Style="{DynamicResource SecondaryButtonStyle}"
+                        Padding="{StaticResource PaddingButtonHelp}"
+                        FontSize="{StaticResource FontSizeBody}"
+                        FontWeight="Bold" Width="24" Height="24"
+                        Margin="{StaticResource MarginInlineControl}"
+                        TabIndex="14"/>
+                <Button x:Name="BtnHistory" DockPanel.Dock="Right"
+                        Content="&#xE81C;" FontFamily="Segoe MDL2 Assets"
+                        Click="OnHistoryToggle"
+                        Style="{DynamicResource ToolbarGhostButtonStyle}"
+                        FontSize="14" MinWidth="28" Height="28"
+                        Padding="4"
+                        Margin="{StaticResource MarginInlineControl}"
+                        TabIndex="16"/>
+                <Button x:Name="BtnSync" DockPanel.Dock="Right"
+                        Content="&#xE895;" FontFamily="Segoe MDL2 Assets"
+                        Click="OnSyncClick"
+                        Style="{DynamicResource ToolbarGhostButtonStyle}"
+                        FontSize="14" MinWidth="28" Height="28"
+                        Padding="4"
+                        Margin="{StaticResource MarginInlineControl}"
+                        TabIndex="15"/>
+                <Button x:Name="BtnImport" DockPanel.Dock="Right"
+                        Content="&#xE8B5;" FontFamily="Segoe MDL2 Assets"
+                        Click="OnImportClick"
+                        Style="{DynamicResource ToolbarGhostButtonStyle}"
+                        FontSize="14" MinWidth="28" Height="28"
+                        Padding="4"
+                        Margin="{StaticResource MarginInlineControl}"
+                        TabIndex="14"/>
+                <Button x:Name="BtnExport" DockPanel.Dock="Right"
+                        Content="&#xEDE1;" FontFamily="Segoe MDL2 Assets"
+                        Click="OnExportClick"
+                        Style="{DynamicResource ToolbarGhostButtonStyle}"
+                        FontSize="14" MinWidth="28" Height="28"
+                        Padding="4"
+                        Margin="{StaticResource MarginInlineControl}"
+                        TabIndex="13"/>
+                <Button x:Name="BtnAdd" DockPanel.Dock="Right"
+                        Content="&#xE710;" FontFamily="Segoe MDL2 Assets"
+                        Click="OnAddClick"
+                        Style="{DynamicResource ToolbarGhostButtonStyle}"
+                        FontSize="14" MinWidth="28" Height="28"
+                        Padding="4"
+                        Margin="{StaticResource MarginInlineControl}"
+                        TabIndex="12"/>
+                <TextBlock x:Name="TxtTitle"
+                           FontSize="{StaticResource FontSizeSubtitle}"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextPrimaryBrush}"
+                           VerticalAlignment="Center"/>
+            </DockPanel>
+        </Border>
+
+        <!-- ═══════════ ROW 1 — HELP PANEL ═══════════ -->
+        <Border x:Name="HelpPanel" Grid.Row="1"
+                Style="{StaticResource ToolHelpPanelStyle}">
+            <DockPanel>
+                <Button x:Name="BtnCloseHelp" DockPanel.Dock="Right"
+                        Content="&#xE711;" FontFamily="Segoe MDL2 Assets"
+                        FontSize="{StaticResource FontSizeBody}"
+                        Click="OnCloseHelpClick"
+                        Style="{DynamicResource ToolbarGhostButtonStyle}"
+                        VerticalAlignment="Top" Width="24" Height="24"
+                        TabIndex="15"/>
+                <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
+                    <TextBlock x:Name="TxtHelpContent" TextWrapping="Wrap"
+                               FontSize="{StaticResource FontSizeBody}"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               LineHeight="20"/>
+                </ScrollViewer>
+            </DockPanel>
+        </Border>
+
+        <!-- ═══════════ ROW 2 — FILTERS ═══════════ -->
+        <Border Grid.Row="2"
+                Padding="{StaticResource ToolHeaderPadding}"
+                Background="{DynamicResource SurfaceBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="0,0,0,1">
+            <DockPanel>
+                <TextBlock x:Name="TxtResultCount" DockPanel.Dock="Left"
+                           FontSize="{StaticResource FontSizeCaption}"
+                           Foreground="{DynamicResource TextSecondaryBrush}"
+                           VerticalAlignment="Center" Margin="0,0,8,0"
+                           MinWidth="50"/>
+                <ComboBox x:Name="CmbRisk" DockPanel.Dock="Right"
+                          Width="120" Margin="8,0,0,0"
+                          FontSize="{StaticResource FontSizeBody}"
+                          SelectionChanged="OnFilterChanged" TabIndex="3"
+                          ToolTip="{loc:Translate ToolCmdLibDialogLblRisk}"/>
+                <ComboBox x:Name="CmbPlatform" DockPanel.Dock="Right"
+                          Width="130" Margin="8,0,0,0"
+                          FontSize="{StaticResource FontSizeBody}"
+                          SelectionChanged="OnFilterChanged" TabIndex="2"
+                          ToolTip="{loc:Translate ToolCmdLibDialogLblPlatform}"/>
+                <ComboBox x:Name="CmbCategory" DockPanel.Dock="Right"
+                          Width="180" Margin="8,0,0,0"
+                          FontSize="{StaticResource FontSizeBody}"
+                          ToolTip="{loc:Translate ToolCmdLibDialogLblCategory}"
+                          SelectionChanged="OnFilterChanged" TabIndex="1"/>
+                <TextBox x:Name="TxtSearch"
+                         Style="{StaticResource WatermarkTextBoxStyle}"
+                         FontSize="{StaticResource FontSizeBodyLarge}"
+                         Padding="{StaticResource PaddingInput}"
+                         Background="{DynamicResource CardBrush}"
+                         Foreground="{DynamicResource TextPrimaryBrush}"
+                         BorderBrush="{DynamicResource BorderBrush}"
+                         TextChanged="OnSearchTextChanged" TabIndex="0"/>
+            </DockPanel>
+        </Border>
+
+        <!-- ═══════════ ROW 3 — ACTION LIST ═══════════ -->
+        <ListView x:Name="ActionList" Grid.Row="3"
+                  Background="Transparent" BorderThickness="0"
+                  ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                  SelectionChanged="OnActionSelected" TabIndex="4">
+            <ListView.ItemContainerStyle>
+                <Style TargetType="ListViewItem">
+                    <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                    <Setter Property="Padding" Value="{StaticResource ToolFooterPadding}"/>
+                    <Setter Property="Cursor" Value="Hand"/>
+                    <Setter Property="Background" Value="Transparent"/>
+                    <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="ListViewItem">
+                                <Border x:Name="Bd"
+                                        Padding="{TemplateBinding Padding}"
+                                        Background="{TemplateBinding Background}"
+                                        BorderBrush="{DynamicResource BorderBrush}"
+                                        BorderThickness="0,0,0,0.5">
+                                    <ContentPresenter/>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="Bd" Property="Background"
+                                                Value="{DynamicResource SurfaceBrush}"/>
+                                    </Trigger>
+                                    <Trigger Property="IsSelected" Value="True">
+                                        <Setter TargetName="Bd" Property="Background"
+                                                Value="{DynamicResource CardBrush}"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
+            </ListView.ItemContainerStyle>
+
+            <ListView.GroupStyle>
+                <GroupStyle>
+                    <GroupStyle.HeaderTemplate>
+                        <DataTemplate>
+                            <Border Padding="12,8,12,4"
+                                    Background="{DynamicResource BackgroundBrush}">
+                                <TextBlock Text="{Binding Name}"
+                                           FontSize="{StaticResource FontSizeBodyLarge}"
+                                           FontWeight="SemiBold"
+                                           Foreground="{DynamicResource AccentBrush}"/>
+                            </Border>
+                        </DataTemplate>
+                    </GroupStyle.HeaderTemplate>
+                </GroupStyle>
+            </ListView.GroupStyle>
+
+            <ListView.ItemTemplate>
+                <DataTemplate>
+                    <DockPanel>
+                        <!-- Favorite toggle -->
+                        <Button DockPanel.Dock="Right"
+                                Content="{Binding FavoriteIcon}"
+                                Click="OnFavoriteToggle"
+                                Tag="{Binding}"
+                                ToolTip="{Binding FavoriteTooltip}"
+                                Style="{DynamicResource ToolbarGhostButtonStyle}"
+                                FontSize="14" Width="24" Height="24"
+                                VerticalAlignment="Center" Margin="4,0,0,0"
+                                Foreground="{DynamicResource WarningBrush}"/>
+                        <!-- Risk indicator -->
+                        <Ellipse DockPanel.Dock="Left" Width="8" Height="8"
+                                 Fill="{Binding RiskBrush}"
+                                 VerticalAlignment="Center" Margin="0,0,4,0"
+                                 ToolTip="{Binding RiskLabel}"/>
+                        <!-- Platform badge -->
+                        <TextBlock DockPanel.Dock="Right"
+                                   Text="{Binding PlatformLabel}"
+                                   FontSize="{StaticResource FontSizeSmallCaption}"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                   VerticalAlignment="Center"
+                                   Margin="8,0,0,0"/>
+                        <!-- Title + description -->
+                        <StackPanel>
+                            <TextBlock Text="{Binding Title}"
+                                       FontSize="{StaticResource FontSizeBody}"
+                                       FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextPrimaryBrush}"
+                                       TextTrimming="CharacterEllipsis"/>
+                            <TextBlock Text="{Binding Description}"
+                                       FontSize="{StaticResource FontSizeCaption}"
+                                       Foreground="{DynamicResource TextSecondaryBrush}"
+                                       TextTrimming="CharacterEllipsis"/>
+                        </StackPanel>
+                    </DockPanel>
+                </DataTemplate>
+            </ListView.ItemTemplate>
+        </ListView>
+
+        <!-- No results -->
+        <TextBlock x:Name="TxtNoResults" Grid.Row="3"
+                   Visibility="Collapsed"
+                   Style="{StaticResource ToolEmptyStateTextStyle}"
+                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+
+        <!-- Empty state -->
+        <Border x:Name="EmptyState" Grid.Row="3"
+                Style="{StaticResource ToolEmptyStateStyle}">
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                <TextBlock Text="&#xE8F1;" FontFamily="Segoe MDL2 Assets"
+                           Style="{StaticResource ToolEmptyStateIconStyle}"
+                           Focusable="False"/>
+                <TextBlock x:Name="TxtEmptyState"
+                           Style="{StaticResource ToolEmptyStateTextStyle}"/>
+            </StackPanel>
+        </Border>
+
+        <!-- ═══════════ ROW 4 — GENERATOR PANEL ═══════════ -->
+        <Border x:Name="GeneratorPanel" Grid.Row="4"
+                Visibility="Collapsed"
+                Background="{DynamicResource SurfaceBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="0,1,0,0"
+                MaxHeight="450">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <StackPanel Margin="12">
+                    <DockPanel Margin="0,0,0,8">
+                        <StackPanel x:Name="TemplateSwitcher" DockPanel.Dock="Right"
+                                    Orientation="Horizontal" Visibility="Collapsed">
+                            <RadioButton x:Name="RbWindows" Content="Windows"
+                                         GroupName="TemplatePlatform"
+                                         Checked="OnTemplatePlatformChanged"
+                                         FontSize="{StaticResource FontSizeCaption}"
+                                         Foreground="{DynamicResource TextPrimaryBrush}"
+                                         VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <RadioButton x:Name="RbLinux" Content="Linux"
+                                         GroupName="TemplatePlatform"
+                                         Checked="OnTemplatePlatformChanged"
+                                         FontSize="{StaticResource FontSizeCaption}"
+                                         Foreground="{DynamicResource TextPrimaryBrush}"
+                                         VerticalAlignment="Center"/>
+                        </StackPanel>
+                        <TextBlock x:Name="TxtTemplateName"
+                                   FontSize="{StaticResource FontSizeBody}"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                   VerticalAlignment="Center"/>
+                    </DockPanel>
+
+                    <ItemsControl x:Name="ParametersList" Margin="0,0,0,4">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <DockPanel Margin="0,0,0,4"
+                                           ToolTip="{Binding DisplayTooltip}">
+                                    <TextBlock DockPanel.Dock="Left"
+                                               Text="{Binding DisplayLabel}" Width="130"
+                                               FontSize="{StaticResource FontSizeBody}"
+                                               Foreground="{DynamicResource TextSecondaryBrush}"
+                                               VerticalAlignment="Center"/>
+                                    <TextBox Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}"
+                                             ToolTip="{Binding DisplayTooltip}"
+                                             FontSize="{StaticResource FontSizeBody}"
+                                             FontFamily="Consolas"
+                                             Padding="{StaticResource PaddingInput}"
+                                             Background="{DynamicResource CardBrush}"
+                                             Foreground="{DynamicResource TextPrimaryBrush}"
+                                             BorderBrush="{DynamicResource BorderBrush}"
+                                             TextChanged="OnParameterChanged"/>
+                                </DockPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <!-- Validation errors (shown when parameters are invalid) -->
+                    <TextBlock x:Name="TxtValidationError"
+                               Visibility="Collapsed"
+                               FontSize="{StaticResource FontSizeCaption}"
+                               Foreground="{DynamicResource ErrorBrush}"
+                               TextWrapping="Wrap" Margin="0,0,0,4"/>
+
+                    <TextBox x:Name="TxtGenerated"
+                             IsReadOnly="True" TextWrapping="NoWrap"
+                             HorizontalScrollBarVisibility="Auto"
+                             FontFamily="Consolas"
+                             FontSize="{StaticResource FontSizeBody}"
+                             Padding="{StaticResource PaddingInput}"
+                             Background="{DynamicResource CardBrush}"
+                             Foreground="{DynamicResource AccentBrush}"
+                             BorderBrush="{DynamicResource BorderBrush}"
+                             Margin="0,0,0,8"/>
+
+                    <!-- Notes / Examples / Links (collapsed when empty) -->
+                    <StackPanel x:Name="DetailPanel" Visibility="Collapsed" Margin="0,0,0,8">
+                        <TextBlock x:Name="TxtNotes" TextWrapping="Wrap"
+                                   FontSize="{StaticResource FontSizeCaption}"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                   Margin="0,0,0,4"/>
+                        <ItemsControl x:Name="ExamplesList">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Padding="6,3" Margin="0,2,0,0"
+                                            Background="{DynamicResource BackgroundBrush}"
+                                            CornerRadius="3" Cursor="Hand"
+                                            MouseLeftButtonUp="OnExampleClick"
+                                            Tag="{Binding Command}">
+                                        <DockPanel>
+                                            <Button DockPanel.Dock="Right"
+                                                    Content="&#xE8C8;" FontFamily="Segoe MDL2 Assets"
+                                                    Click="OnExampleCopyClick"
+                                                    Tag="{Binding Command}"
+                                                    Style="{DynamicResource ToolbarGhostButtonStyle}"
+                                                    FontSize="11" Width="22" Height="22"
+                                                    Padding="2" VerticalAlignment="Top"
+                                                    Focusable="False"/>
+                                            <StackPanel>
+                                                <TextBlock Text="{Binding Command}"
+                                                           FontFamily="Consolas"
+                                                           FontSize="{StaticResource FontSizeCaption}"
+                                                           Foreground="{DynamicResource AccentBrush}"
+                                                           TextWrapping="Wrap"/>
+                                                <TextBlock Text="{Binding Description}"
+                                                           FontSize="{StaticResource FontSizeSmallCaption}"
+                                                           Foreground="{DynamicResource TextSecondaryBrush}"
+                                                           TextWrapping="Wrap"/>
+                                            </StackPanel>
+                                        </DockPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <ItemsControl x:Name="LinksList" Margin="0,4,0,0">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock FontSize="{StaticResource FontSizeCaption}">
+                                        <Hyperlink NavigateUri="{Binding Url}"
+                                                   RequestNavigate="OnLinkNavigate"
+                                                   Foreground="{DynamicResource AccentBrush}">
+                                            <Run Text="{Binding Title, Mode=OneWay}"/>
+                                        </Hyperlink>
+                                    </TextBlock>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+
+                    <DockPanel>
+                        <StackPanel DockPanel.Dock="Left" Orientation="Horizontal">
+                            <Button x:Name="BtnEdit" Click="OnEditClick"
+                                    Content="&#xE70F;" FontFamily="Segoe MDL2 Assets"
+                                    Style="{DynamicResource ToolbarGhostButtonStyle}"
+                                    FontSize="14" MinWidth="28" Height="28"
+                                    Padding="4"
+                                    Margin="0,0,4,0" TabIndex="7"/>
+                            <Button x:Name="BtnDelete" Click="OnDeleteClick"
+                                    Content="&#xE74D;" FontFamily="Segoe MDL2 Assets"
+                                    Style="{DynamicResource ToolbarGhostButtonStyle}"
+                                    FontSize="14" MinWidth="28" Height="28"
+                                    Padding="4"
+                                    TabIndex="8"/>
+                        </StackPanel>
+                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal"
+                                    HorizontalAlignment="Right">
+                            <Button x:Name="BtnCopy" Click="OnCopyClick"
+                                    Style="{DynamicResource SecondaryButtonStyle}"
+                                    Padding="{StaticResource PaddingButtonCopy}"
+                                    FontSize="{StaticResource FontSizeBody}"
+                                    Margin="0,0,8,0" TabIndex="5"/>
+                            <Button x:Name="BtnSend" Click="OnSendClick"
+                                    Style="{DynamicResource PrimaryButtonStyle}"
+                                    Padding="{StaticResource PaddingButtonPrimary}"
+                                    FontSize="{StaticResource FontSizeBody}"
+                                    TabIndex="6"/>
+                        </StackPanel>
+                    </DockPanel>
+                </StackPanel>
+            </ScrollViewer>
+        </Border>
+
+        <!-- ═══════════ ROW 5 — HISTORY PANEL ═══════════ -->
+        <Border x:Name="HistoryPanel" Grid.Row="5"
+                Visibility="Collapsed"
+                Background="{DynamicResource SurfaceBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="0,1,0,0"
+                MaxHeight="200">
+            <DockPanel>
+                <DockPanel DockPanel.Dock="Top" Margin="12,8,12,4">
+                    <Button x:Name="BtnClearHistory" DockPanel.Dock="Right"
+                            Content="&#xE74D;" FontFamily="Segoe MDL2 Assets"
+                            Click="OnClearHistory"
+                            Style="{DynamicResource ToolbarGhostButtonStyle}"
+                            FontSize="14" MinWidth="28" Height="28"
+                            Padding="4"/>
+                    <TextBlock x:Name="TxtHistoryTitle"
+                               FontSize="{StaticResource FontSizeBody}"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextPrimaryBrush}"
+                               VerticalAlignment="Center"/>
+                </DockPanel>
+                <ListView x:Name="HistoryList"
+                          Background="Transparent" BorderThickness="0"
+                          MouseDoubleClick="OnHistoryItemDoubleClick"
+                          ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                    <ListView.ItemContainerStyle>
+                        <Style TargetType="ListViewItem">
+                            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                            <Setter Property="Padding" Value="12,4"/>
+                            <Setter Property="Cursor" Value="Hand"/>
+                            <Setter Property="Background" Value="Transparent"/>
+                            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+                        </Style>
+                    </ListView.ItemContainerStyle>
+                    <ListView.ItemTemplate>
+                        <DataTemplate>
+                            <DockPanel>
+                                <Button DockPanel.Dock="Right"
+                                        Content="&#xE8C8;" FontFamily="Segoe MDL2 Assets"
+                                        Click="OnHistoryCopyClick"
+                                        Tag="{Binding GeneratedCommand}"
+                                        ToolTip="{loc:Translate ToolCmdLibBtnCopy}"
+                                        Style="{DynamicResource ToolbarGhostButtonStyle}"
+                                        FontSize="11" Width="22" Height="22"
+                                        Padding="2" VerticalAlignment="Center"
+                                        Margin="4,0,0,0" Focusable="False"/>
+                                <TextBlock DockPanel.Dock="Right"
+                                           Text="{Binding Timestamp}"
+                                           FontSize="{StaticResource FontSizeSmallCaption}"
+                                           Foreground="{DynamicResource TextSecondaryBrush}"
+                                           VerticalAlignment="Center"
+                                           Margin="8,0,0,0"/>
+                                <StackPanel>
+                                    <TextBlock Text="{Binding ActionTitle}"
+                                               FontSize="{StaticResource FontSizeCaption}"
+                                               Foreground="{DynamicResource TextSecondaryBrush}"
+                                               TextTrimming="CharacterEllipsis"/>
+                                    <ScrollViewer HorizontalScrollBarVisibility="Auto"
+                                                  VerticalScrollBarVisibility="Disabled">
+                                        <TextBlock Text="{Binding GeneratedCommand}"
+                                                   FontSize="{StaticResource FontSizeCaption}"
+                                                   FontFamily="Consolas"
+                                                   Foreground="{DynamicResource AccentBrush}"
+                                                   TextWrapping="NoWrap"/>
+                                    </ScrollViewer>
+                                </StackPanel>
+                            </DockPanel>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                </ListView>
+                <TextBlock x:Name="TxtHistoryEmpty" Visibility="Collapsed"
+                           Style="{StaticResource ToolEmptyStateTextStyle}"
+                           HorizontalAlignment="Center" VerticalAlignment="Center"
+                           Margin="0,8,0,8"/>
+            </DockPanel>
+        </Border>
+    </Grid>
+</UserControl>

@@ -1804,6 +1804,45 @@
                                     </StackPanel>
                                 </Border>
 
+                                <!-- Command Library Git Sync -->
+                                <Border Padding="{StaticResource SpacingLg}" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource CornerRadiusLg}" Margin="0,0,0,16">
+                                    <StackPanel>
+                                        <TextBlock x:Name="Mw_SettingsCmdLibSyncTitle" Text="" FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,12"/>
+                                        <CheckBox x:Name="Mw_SettingsCmdLibSyncEnable" Content="" IsChecked="{Binding Settings.CmdLibGitSyncEnabled}" Margin="0,0,0,8" FontSize="{StaticResource FontSizeBody}" Foreground="{DynamicResource TextPrimaryBrush}"/>
+                                        <Grid Margin="0,4,0,0">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="130"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                            </Grid.RowDefinitions>
+                                            <TextBlock x:Name="Mw_SettingsCmdLibSyncLblUrl" Grid.Row="0" Grid.Column="0" Text="" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeBody}"/>
+                                            <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding Settings.CmdLibGitSyncUrl, UpdateSourceTrigger=LostFocus}" Margin="0,0,0,8" FontSize="{StaticResource FontSizeBody}"/>
+                                            <TextBlock x:Name="Mw_SettingsCmdLibSyncLblBranch" Grid.Row="1" Grid.Column="0" Text="" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeBody}"/>
+                                            <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding Settings.CmdLibGitSyncBranch, UpdateSourceTrigger=LostFocus}" Margin="0,0,0,8" FontSize="{StaticResource FontSizeBody}"/>
+                                            <TextBlock x:Name="Mw_SettingsCmdLibSyncLblToken" Grid.Row="2" Grid.Column="0" Text="" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeBody}"/>
+                                            <DockPanel Grid.Row="2" Grid.Column="1" Margin="0,0,0,8">
+                                                <Button x:Name="Mw_SettingsCmdLibSyncTokenClear" DockPanel.Dock="Right" Content="&#xE711;" FontFamily="Segoe MDL2 Assets" Click="OnCmdLibSyncTokenClear" Style="{DynamicResource ToolbarGhostButtonStyle}" FontSize="12" Width="24" Height="24" Margin="4,0,0,0" Visibility="Collapsed"/>
+                                                <TextBlock x:Name="Mw_SettingsCmdLibSyncTokenStatus" DockPanel.Dock="Right" VerticalAlignment="Center" FontSize="{StaticResource FontSizeCaption}" Foreground="{DynamicResource SuccessBrush}" Margin="8,0,0,0"/>
+                                                <PasswordBox x:Name="Mw_SettingsCmdLibSyncToken" FontSize="{StaticResource FontSizeBody}" PasswordChanged="OnCmdLibSyncTokenChanged"/>
+                                            </DockPanel>
+                                            <TextBlock x:Name="Mw_SettingsCmdLibSyncLblAuthor" Grid.Row="3" Grid.Column="0" Text="" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeBody}"/>
+                                            <DockPanel Grid.Row="3" Grid.Column="1" Margin="0,0,0,8">
+                                                <TextBox Text="{Binding Settings.CmdLibGitSyncAuthorEmail, UpdateSourceTrigger=LostFocus}" DockPanel.Dock="Right" Width="180" FontSize="{StaticResource FontSizeBody}"/>
+                                                <TextBox Text="{Binding Settings.CmdLibGitSyncAuthorName, UpdateSourceTrigger=LostFocus}" Margin="0,0,8,0" FontSize="{StaticResource FontSizeBody}"/>
+                                            </DockPanel>
+                                        </Grid>
+                                        <CheckBox x:Name="Mw_SettingsCmdLibSyncOnStartup" Content="" IsChecked="{Binding Settings.CmdLibGitSyncOnStartup}" Margin="0,4,0,4" FontSize="{StaticResource FontSizeBody}" Foreground="{DynamicResource TextPrimaryBrush}"/>
+                                        <CheckBox x:Name="Mw_SettingsCmdLibSyncAutoPush" Content="" IsChecked="{Binding Settings.CmdLibGitSyncAutoPush}" Margin="0,0,0,8" FontSize="{StaticResource FontSizeBody}" Foreground="{DynamicResource TextPrimaryBrush}"/>
+                                        <Button x:Name="Mw_SettingsCmdLibSyncTestBtn" Content="" Click="OnCmdLibSyncTestClick" Style="{DynamicResource SecondaryButtonStyle}" Padding="8,3" FontSize="{StaticResource FontSizeCaption}" HorizontalAlignment="Left"/>
+                                    </StackPanel>
+                                </Border>
+
                                 <Border Padding="{StaticResource SpacingLg}" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource CornerRadiusLg}">
                                     <StackPanel>
                                         <DockPanel Margin="0,0,0,12">

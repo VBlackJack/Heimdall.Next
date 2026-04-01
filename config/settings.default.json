@@ -97,5 +97,13 @@
             "arguments": "{Host}",
             "iconGlyph": ""
         }
-    ]
+    ],
+    "cmdLibGitSyncEnabled": false,
+    "cmdLibGitSyncUrl": null,
+    "cmdLibGitSyncToken": null,
+    "cmdLibGitSyncBranch": "main",
+    "cmdLibGitSyncAuthorName": "Heimdall User",
+    "cmdLibGitSyncAuthorEmail": "heimdall@local",
+    "cmdLibGitSyncOnStartup": false,
+    "cmdLibGitSyncAutoPush": true
 }
