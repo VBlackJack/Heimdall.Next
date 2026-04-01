@@ -72,6 +72,11 @@ public partial class CommandActionDialog : Window
             BtnAddWinParam.Content = vm.Localizer["ToolCmdLibDialogBtnAddParam"];
             BtnAddLinuxParam.Content = vm.Localizer["ToolCmdLibDialogBtnAddParam"];
 
+            // Platform combo localization
+            PlatformWindows.Content = vm.Localizer["ToolCmdLibPlatformWindows"];
+            PlatformLinux.Content = vm.Localizer["ToolCmdLibPlatformLinux"];
+            PlatformBoth.Content = vm.Localizer["ToolCmdLibPlatformBoth"];
+
             // Risk combo localization
             RiskInfo.Content = vm.Localizer["ToolCmdLibRiskInfo"];
             RiskRun.Content = vm.Localizer["ToolCmdLibRiskRun"];

@@ -220,9 +220,33 @@ internal static class TwinShellBootstrapper
         {
             _configManager = configManager;
             _ = RefreshAsync();
+            _configManager.SettingsChanged += OnSettingsChanged;
         }
 
         public UserSettings CurrentSettings => _cached;
+
+        private static string? DecryptToken(string? encrypted)
+        {
+            if (string.IsNullOrWhiteSpace(encrypted)) return null;
+            try { return Heimdall.Core.Security.DpapiProvider.Unprotect(encrypted); }
+            catch { return null; }
+        }
+
+        private void OnSettingsChanged(Heimdall.Core.Configuration.AppSettings s)
+        {
+            _cached = new UserSettings
+            {
+                GitRemoteUrl = s.CmdLibGitSyncUrl,
+                GitAccessToken = DecryptToken(s.CmdLibGitSyncToken),
+                GitBranch = s.CmdLibGitSyncBranch,
+                GitUserName = s.CmdLibGitSyncAuthorName,
+                GitUserEmail = s.CmdLibGitSyncAuthorEmail,
+                GitSyncOnStartup = s.CmdLibGitSyncOnStartup,
+                GitAutoPush = s.CmdLibGitSyncAutoPush,
+                GitRepositoryPath = Path.Combine(DbDir, "git-repo"),
+                GitAuthMethod = "https"
+            };
+        }
 
         public async Task<UserSettings> LoadSettingsAsync()
         {
@@ -243,7 +267,7 @@ internal static class TwinShellBootstrapper
                 _cached = new UserSettings
                 {
                     GitRemoteUrl = s.CmdLibGitSyncUrl,
-                    GitAccessToken = s.CmdLibGitSyncToken,
+                    GitAccessToken = DecryptToken(s.CmdLibGitSyncToken),
                     GitBranch = s.CmdLibGitSyncBranch,
                     GitUserName = s.CmdLibGitSyncAuthorName,
                     GitUserEmail = s.CmdLibGitSyncAuthorEmail,

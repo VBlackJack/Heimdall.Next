@@ -49,6 +49,12 @@ public partial class CommandActionDialogViewModel : ObservableValidator
     private bool _isInitializing;
 
     private string? _editActionId;
+    private Guid? _editPublicId;
+    private DateTime? _editCreatedAt;
+    private string? _editWinTemplateId;
+    private Guid? _editWinTemplatePublicId;
+    private string? _editLinuxTemplateId;
+    private Guid? _editLinuxTemplatePublicId;
 
     // ── Action fields ─────────────────────────────────────────────
 
@@ -208,6 +214,7 @@ public partial class CommandActionDialogViewModel : ObservableValidator
         var action = new ActionModel
         {
             Id = _editActionId ?? Guid.NewGuid().ToString(),
+            PublicId = _editPublicId ?? Guid.NewGuid(),
             Title = Title.Trim(),
             Description = Description.Trim(),
             Category = Category.Trim(),
@@ -222,11 +229,12 @@ public partial class CommandActionDialogViewModel : ObservableValidator
 
         if (!string.IsNullOrWhiteSpace(WindowsPattern))
         {
-            var templateId = $"{action.Id}-win";
+            var templateId = _editWinTemplateId ?? $"{action.Id}-win";
             action.WindowsCommandTemplateId = templateId;
             action.WindowsCommandTemplate = new CommandTemplate
             {
                 Id = templateId,
+                PublicId = _editWinTemplatePublicId ?? Guid.NewGuid(),
                 Platform = TwinShell.Core.Enums.Platform.Windows,
                 Name = string.IsNullOrWhiteSpace(WindowsTemplateName) ? Title.Trim() : WindowsTemplateName.Trim(),
                 CommandPattern = WindowsPattern.Trim(),
@@ -236,11 +244,12 @@ public partial class CommandActionDialogViewModel : ObservableValidator
 
         if (!string.IsNullOrWhiteSpace(LinuxPattern))
         {
-            var templateId = $"{action.Id}-linux";
+            var templateId = _editLinuxTemplateId ?? $"{action.Id}-linux";
             action.LinuxCommandTemplateId = templateId;
             action.LinuxCommandTemplate = new CommandTemplate
             {
                 Id = templateId,
+                PublicId = _editLinuxTemplatePublicId ?? Guid.NewGuid(),
                 Platform = TwinShell.Core.Enums.Platform.Linux,
                 Name = string.IsNullOrWhiteSpace(LinuxTemplateName) ? Title.Trim() : LinuxTemplateName.Trim(),
                 CommandPattern = LinuxPattern.Trim(),
@@ -248,10 +257,7 @@ public partial class CommandActionDialogViewModel : ObservableValidator
             };
         }
 
-        if (!IsEditMode)
-        {
-            action.CreatedAt = DateTime.UtcNow;
-        }
+        action.CreatedAt = _editCreatedAt ?? DateTime.UtcNow;
 
         return action;
     }
@@ -263,6 +269,8 @@ public partial class CommandActionDialogViewModel : ObservableValidator
         var vm = new CommandActionDialogViewModel { _isInitializing = true };
         vm.IsEditMode = true;
         vm._editActionId = action.Id;
+        vm._editPublicId = action.PublicId;
+        vm._editCreatedAt = action.CreatedAt;
         vm.Title = action.Title;
         vm.Description = action.Description ?? "";
         vm.Category = action.Category;
@@ -273,6 +281,8 @@ public partial class CommandActionDialogViewModel : ObservableValidator
 
         if (action.WindowsCommandTemplate is { } winTemplate)
         {
+            vm._editWinTemplateId = winTemplate.Id;
+            vm._editWinTemplatePublicId = winTemplate.PublicId;
             vm.WindowsTemplateName = winTemplate.Name;
             vm.WindowsPattern = winTemplate.CommandPattern;
             foreach (var p in winTemplate.Parameters)
@@ -283,6 +293,8 @@ public partial class CommandActionDialogViewModel : ObservableValidator
 
         if (action.LinuxCommandTemplate is { } linuxTemplate)
         {
+            vm._editLinuxTemplateId = linuxTemplate.Id;
+            vm._editLinuxTemplatePublicId = linuxTemplate.PublicId;
             vm.LinuxTemplateName = linuxTemplate.Name;
             vm.LinuxPattern = linuxTemplate.CommandPattern;
             foreach (var p in linuxTemplate.Parameters)

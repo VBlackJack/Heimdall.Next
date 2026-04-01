@@ -237,10 +237,11 @@ public class ConfigManager
     {
         ArgumentNullException.ThrowIfNull(mutate);
 
+        AppSettings settings;
         await _writeLock.WaitAsync().ConfigureAwait(false);
         try
         {
-            var settings = await LoadSettingsInternalAsync().ConfigureAwait(false);
+            settings = await LoadSettingsInternalAsync().ConfigureAwait(false);
             mutate(settings);
             var json = JsonSerializer.Serialize(settings, JsonOptions);
             await WriteTextAsync(_settingsPath, json).ConfigureAwait(false);
@@ -250,6 +251,8 @@ public class ConfigManager
         {
             _writeLock.Release();
         }
+
+        SettingsChanged?.Invoke(settings);
     }
 
     /// <summary>
