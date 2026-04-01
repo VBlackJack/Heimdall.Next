@@ -12,12 +12,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Checkout TwinShell dependency
-        uses: actions/checkout@v4
-        with:
-          repository: VBlackJack/TwinShell
-          path: ../../TwinShell/TwinShell
-
       - name: Setup .NET 10
         uses: actions/setup-dotnet@v4
         with:
