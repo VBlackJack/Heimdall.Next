@@ -42,7 +42,7 @@
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
                     <Button x:Name="BtnReload" Click="OnReloadClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="{StaticResource PaddingButtonCopy}" Margin="0,0,6,0" FontSize="{StaticResource FontSizeBody}"
+                            Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginLabelInline}" FontSize="{StaticResource FontSizeBody}"
                             VerticalAlignment="Center"
                             TabIndex="1"/>
                     <Button x:Name="BtnSave" Click="OnSaveClick"
@@ -79,7 +79,7 @@
         <!-- Empty state hint (hidden once entries are loaded) -->
         <Border x:Name="EmptyStatePanel" Grid.Row="2"
                 Style="{StaticResource ToolEmptyStateStyle}"
-                Margin="0,24,0,0">
+               >
             <StackPanel HorizontalAlignment="Center">
                 <TextBlock Text="&#xE8A5;" Style="{StaticResource ToolEmptyStateIconStyle}"
                            Focusable="False"/>
@@ -126,7 +126,7 @@
         <StackPanel Grid.Row="4" Orientation="Horizontal" Margin="{StaticResource SpacingMd}">
             <Button x:Name="BtnAddEntry" Click="OnAddEntryClick"
                     Style="{DynamicResource SecondaryButtonStyle}"
-                    Padding="{StaticResource PaddingButtonCopy}" Margin="0,0,6,0" FontSize="{StaticResource FontSizeBody}"
+                    Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginLabelInline}" FontSize="{StaticResource FontSizeBody}"
                     TabIndex="3"/>
             <Button x:Name="BtnDeleteSelected" Click="OnDeleteSelectedClick"
                     Style="{DynamicResource SecondaryButtonStyle}"

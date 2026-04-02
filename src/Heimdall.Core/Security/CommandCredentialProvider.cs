@@ -35,7 +35,7 @@ namespace Heimdall.Core.Security;
 /// </remarks>
 public sealed class CommandCredentialProvider : ICredentialProvider
 {
-    private static readonly TimeSpan CommandTimeout = TimeSpan.FromSeconds(10);
+    private readonly TimeSpan _commandTimeout;
 
     private readonly string? _commandTemplate;
     private readonly string? _databasePath;
@@ -50,10 +50,12 @@ public sealed class CommandCredentialProvider : ICredentialProvider
     /// <param name="databasePath">
     /// Path to the password database file (replaces <c>{Database}</c>).
     /// </param>
-    public CommandCredentialProvider(string? commandTemplate, string? databasePath)
+    /// <param name="timeoutMs">Command execution timeout in milliseconds.</param>
+    public CommandCredentialProvider(string? commandTemplate, string? databasePath, int timeoutMs = 10000)
     {
         _commandTemplate = commandTemplate;
         _databasePath = databasePath;
+        _commandTimeout = TimeSpan.FromMilliseconds(timeoutMs);
     }
 
     /// <inheritdoc />
@@ -96,7 +98,7 @@ public sealed class CommandCredentialProvider : ICredentialProvider
             process.Start();
 
             using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-            linkedCts.CancelAfter(CommandTimeout);
+            linkedCts.CancelAfter(_commandTimeout);
 
             // Drain stderr concurrently to prevent pipe buffer deadlock (4 KB limit on Windows).
             // Not logged — external credential tools may echo credential fragments to stderr.

@@ -80,7 +80,7 @@
                 <StackPanel Grid.Column="0">
                     <TextBlock x:Name="LblScope" Text="" FontSize="{StaticResource FontSizeBody}"
                                Foreground="{DynamicResource TextSecondaryBrush}"
-                               Margin="0,0,0,4"/>
+                               Margin="{StaticResource MarginLabelBottom}"/>
                     <TextBox x:Name="TxtScope" AcceptsReturn="True" TextWrapping="Wrap"
                              TabIndex="0"
                              Height="60" VerticalScrollBarVisibility="Auto"
@@ -97,10 +97,10 @@
                                Margin="0,4,0,0"/>
 
                     <!-- Options row -->
-                    <WrapPanel Margin="0,8,0,0" VerticalAlignment="Center">
+                    <WrapPanel Margin="{StaticResource MarginSubsectionTop}" VerticalAlignment="Center">
                         <TextBlock x:Name="LblDepth" Text="" FontSize="{StaticResource FontSizeBody}"
                                    Foreground="{DynamicResource TextSecondaryBrush}"
-                                   VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                   VerticalAlignment="Center" Margin="{StaticResource MarginLabelInline}"/>
                         <ComboBox x:Name="CmbDepth" Width="140"
                                   TabIndex="1"
                                   Background="{DynamicResource CardBrush}"
@@ -197,7 +197,7 @@
         <!-- Empty state hint -->
         <Border x:Name="EmptyStatePanel" Grid.Row="6"
                 Style="{StaticResource ToolEmptyStateStyle}"
-                Margin="0,24,0,0">
+               >
             <StackPanel HorizontalAlignment="Center">
                 <TextBlock Text="&#xE8D4;"
                            Style="{StaticResource ToolEmptyStateIconStyle}"
@@ -224,13 +224,13 @@
                             TabIndex="8"
                             Click="OnExportHtmlClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="{StaticResource PaddingButtonPrimary}" Margin="0,0,4,0"
+                            Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginInlineXs}"
                             VerticalAlignment="Center" IsEnabled="False"/>
                     <Button x:Name="BtnExportCsv" Content=""
                             TabIndex="9"
                             Click="OnExportCsvClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="{StaticResource PaddingButtonPrimary}" Margin="0,0,4,0"
+                            Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginInlineXs}"
                             VerticalAlignment="Center" IsEnabled="False"/>
                     <Button x:Name="BtnExportDrawio" Content=""
                             TabIndex="10"

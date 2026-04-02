@@ -58,7 +58,7 @@ public partial class MainViewModel : ObservableObject
     internal AppSettings? CurrentSettings => _currentSettings;
 
     [ObservableProperty]
-    private string _windowTitle = "Heimdall";
+    private string _windowTitle = "";
 
     [ObservableProperty]
     private string _statusText = "";
@@ -1530,11 +1530,19 @@ public partial class MainViewModel : ObservableObject
                     gateway: selectedServer.GatewayName)
                 : extTool.Arguments;
 
+            if (Core.Security.InputValidator.IsShellTarget(extTool.ExecutablePath))
+            {
+                Core.Logging.FileLogger.Warn(
+                    $"Blocked external tool '{toolName}': executable is a shell target ({extTool.ExecutablePath}).");
+                return;
+            }
+
+            var needsElevation = extTool.RunAsAdministrator;
             var psi = new System.Diagnostics.ProcessStartInfo
             {
                 FileName = extTool.ExecutablePath,
                 Arguments = arguments,
-                UseShellExecute = true
+                UseShellExecute = needsElevation
             };
 
             if (!string.IsNullOrWhiteSpace(extTool.WorkingDirectory))
@@ -1542,7 +1550,7 @@ public partial class MainViewModel : ObservableObject
                 psi.WorkingDirectory = extTool.WorkingDirectory;
             }
 
-            if (extTool.RunAsAdministrator)
+            if (needsElevation)
             {
                 psi.Verb = "runas";
             }

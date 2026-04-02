@@ -60,5 +60,10 @@
     }
   ],
   "notes": "Utilise une recherche avec wildcard (*). Pour une recherche exacte, retirer les astérisques.",
-  "links": []
+  "links": [
+    {
+      "title": "Documentation Get-ADUser",
+      "url": "https://learn.microsoft.com/en-us/powershell/module/activedirectory/get-aduser"
+    }
+  ]
 }

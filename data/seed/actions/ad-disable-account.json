@@ -61,5 +61,10 @@
     }
   ],
   "notes": "L'utilisateur ne pourra plus se connecter. Le compte peut être réactivé avec Enable-ADAccount.",
-  "links": []
+  "links": [
+    {
+      "title": "Documentation Disable-ADAccount",
+      "url": "https://learn.microsoft.com/en-us/powershell/module/activedirectory/disable-adaccount"
+    }
+  ]
 }

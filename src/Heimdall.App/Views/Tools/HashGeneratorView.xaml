@@ -67,7 +67,7 @@
 
                 <!-- Input text -->
                 <TextBlock x:Name="LblInput" Text=""
-                           FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,4"
+                           FontSize="{StaticResource FontSizeBody}" Margin="{StaticResource MarginLabelBottom}"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
                 <TextBox x:Name="TxtInput" Text=""
                          TabIndex="0"
@@ -127,7 +127,7 @@
                 <!-- Empty state -->
                 <Border x:Name="EmptyStatePanel"
                         Style="{StaticResource ToolEmptyStateStyle}"
-                        Margin="0,24,0,0">
+                       >
                     <StackPanel HorizontalAlignment="Center">
                         <TextBlock Text="&#xE8D7;"
                                    Style="{StaticResource ToolEmptyStateIconStyle}"
@@ -145,7 +145,7 @@
                     <Border Background="{DynamicResource CardBrush}"
                             BorderBrush="{DynamicResource BorderBrush}"
                             BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
-                            Padding="{StaticResource PaddingAlertBanner}" Margin="0,0,0,8">
+                            Padding="{StaticResource PaddingAlertBanner}" Margin="{StaticResource MarginStackItem}">
                         <StackPanel x:Name="HashResultsPanel"
                                     AutomationProperties.LiveSetting="Polite"/>
                     </Border>
@@ -164,14 +164,14 @@
                          TabIndex="3"
                          Style="{DynamicResource WatermarkTextBoxStyle}"
                          FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
-                         Padding="{StaticResource PaddingInput}" Margin="0,0,0,4"
+                         Padding="{StaticResource PaddingInput}" Margin="{StaticResource MarginLabelBottom}"
                          Background="{DynamicResource CardBrush}"
                          Foreground="{DynamicResource TextPrimaryBrush}"
                          BorderBrush="{DynamicResource BorderBrush}"
                          Tag=""
                          TextChanged="OnVerifyTextChanged"/>
                 <TextBlock x:Name="TxtVerifyResult" Text=""
-                           FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,8"
+                           FontSize="{StaticResource FontSizeBody}" Margin="{StaticResource MarginStackItem}"
                            FontWeight="SemiBold"/>
 
             </StackPanel>

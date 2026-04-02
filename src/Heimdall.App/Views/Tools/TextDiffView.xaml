@@ -50,7 +50,7 @@
                     <Button x:Name="BtnCompare" Click="OnCompareClick"
                             TabIndex="2"
                             Style="{DynamicResource PrimaryButtonStyle}"
-                            Padding="{StaticResource PaddingButtonPrimary}" Margin="0,0,4,0"/>
+                            Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginInlineXs}"/>
                     <Button x:Name="BtnSwap" Click="OnSwapClick"
                             TabIndex="3"
                             Style="{DynamicResource SecondaryButtonStyle}"
@@ -58,7 +58,7 @@
                     <Button x:Name="BtnClear" Click="OnClearClick"
                             TabIndex="4"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="{StaticResource PaddingButtonCopy}" Margin="4,0,0,0"/>
+                            Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginInlineStart}"/>
                 </StackPanel>
             </DockPanel>
         </Border>
@@ -104,7 +104,7 @@
                 </Grid.RowDefinitions>
                 <TextBlock x:Name="OriginalLabel" Grid.Row="0"
                            Foreground="{DynamicResource TextSecondaryBrush}"
-                           FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,4"/>
+                           FontSize="{StaticResource FontSizeBody}" Margin="{StaticResource MarginLabelBottom}"/>
                 <TextBox x:Name="OriginalText" Grid.Row="1"
                          TabIndex="0"
                          AcceptsReturn="True" AcceptsTab="True"
@@ -128,7 +128,7 @@
                 </Grid.RowDefinitions>
                 <TextBlock x:Name="ModifiedLabel" Grid.Row="0"
                            Foreground="{DynamicResource TextSecondaryBrush}"
-                           FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,4"/>
+                           FontSize="{StaticResource FontSizeBody}" Margin="{StaticResource MarginLabelBottom}"/>
                 <TextBox x:Name="ModifiedText" Grid.Row="1"
                          TabIndex="1"
                          AcceptsReturn="True" AcceptsTab="True"
@@ -177,7 +177,7 @@
         <!-- Empty state -->
         <Border x:Name="EmptyStatePanel" Grid.Row="2"
                 Style="{StaticResource ToolEmptyStateStyle}"
-                Margin="0,24,0,0">
+               >
             <StackPanel HorizontalAlignment="Center">
                 <TextBlock Text="&#xE8AB;"
                            Style="{StaticResource ToolEmptyStateIconStyle}"
@@ -233,7 +233,7 @@
         <!-- Status bar -->
         <TextBlock x:Name="StatusText" Grid.Row="3"
                    Foreground="{DynamicResource TextSecondaryBrush}"
-                   FontSize="{StaticResource FontSizeCaption}" Margin="0,8,0,0"/>
+                   FontSize="{StaticResource FontSizeCaption}" Margin="{StaticResource MarginSubsectionTop}"/>
         </Grid>
     </Grid>
 </UserControl>

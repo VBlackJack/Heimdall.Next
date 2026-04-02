@@ -44,11 +44,11 @@
                            Foreground="{DynamicResource TextPrimaryBrush}"
                            VerticalAlignment="Center" DockPanel.Dock="Left"/>
                 <WrapPanel Margin="16,0,0,0" VerticalAlignment="Center">
-                    <StackPanel Orientation="Horizontal" Margin="0,2,12,2">
+                    <StackPanel Orientation="Horizontal" Margin="{StaticResource MarginFilterGroup}">
                         <TextBlock x:Name="LblHost" Text=""
                                    FontSize="{StaticResource FontSizeCaption}"
                                    Foreground="{DynamicResource TextSecondaryBrush}"
-                                   VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                   VerticalAlignment="Center" Margin="{StaticResource MarginLabelInline}"/>
                         <TextBox x:Name="TxtHost" Text="" MinWidth="140"
                                  Style="{StaticResource WatermarkTextBoxStyle}"
                                  Tag=""
@@ -60,11 +60,11 @@
                                  VerticalAlignment="Center"
                                  TabIndex="0"/>
                     </StackPanel>
-                    <StackPanel Orientation="Horizontal" Margin="0,2,12,2">
+                    <StackPanel Orientation="Horizontal" Margin="{StaticResource MarginFilterGroup}">
                         <TextBlock x:Name="LblCommunity" Text=""
                                    FontSize="{StaticResource FontSizeCaption}"
                                    Foreground="{DynamicResource TextSecondaryBrush}"
-                                   VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                   VerticalAlignment="Center" Margin="{StaticResource MarginLabelInline}"/>
                         <TextBox x:Name="TxtCommunity" Text="" MinWidth="120"
                                  Style="{StaticResource WatermarkTextBoxStyle}"
                                  Tag=""
@@ -76,11 +76,11 @@
                                  VerticalAlignment="Center"
                                  TabIndex="1"/>
                     </StackPanel>
-                    <StackPanel Orientation="Horizontal" Margin="0,2,12,2">
+                    <StackPanel Orientation="Horizontal" Margin="{StaticResource MarginFilterGroup}">
                         <TextBlock x:Name="LblOid" Text=""
                                    FontSize="{StaticResource FontSizeCaption}"
                                    Foreground="{DynamicResource TextSecondaryBrush}"
-                                   VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                   VerticalAlignment="Center" Margin="{StaticResource MarginLabelInline}"/>
                         <TextBox x:Name="TxtOid" Text="" MinWidth="140"
                                  Style="{StaticResource WatermarkTextBoxStyle}"
                                  Tag=""
@@ -92,9 +92,9 @@
                                  VerticalAlignment="Center"
                                  TabIndex="2"/>
                     </StackPanel>
-                    <StackPanel Orientation="Horizontal" Margin="0,2,12,2">
+                    <StackPanel Orientation="Horizontal" Margin="{StaticResource MarginFilterGroup}">
                         <TextBlock x:Name="LblRouteVia" Text=""
-                                   FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center" Margin="0,0,4,0"
+                                   FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center" Margin="{StaticResource MarginInlineXs}"
                                    Foreground="{DynamicResource TextSecondaryBrush}"/>
                         <ComboBox x:Name="CmbRouteVia" Width="180"
                                   SelectionChanged="OnRouteViaChanged"
@@ -140,19 +140,19 @@
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                 <Button x:Name="BtnPresetSystem" Click="OnPresetClick" Tag="1.3.6.1.2.1.1"
                         Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="{StaticResource PaddingButtonPreset}" Margin="0,0,4,0" FontSize="{StaticResource FontSizeCaption}"
+                        Padding="{StaticResource PaddingButtonPreset}" Margin="{StaticResource MarginInlineXs}" FontSize="{StaticResource FontSizeCaption}"
                         TabIndex="5"/>
                 <Button x:Name="BtnPresetInterfaces" Click="OnPresetClick" Tag="1.3.6.1.2.1.2"
                         Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="{StaticResource PaddingButtonPreset}" Margin="0,0,4,0" FontSize="{StaticResource FontSizeCaption}"
+                        Padding="{StaticResource PaddingButtonPreset}" Margin="{StaticResource MarginInlineXs}" FontSize="{StaticResource FontSizeCaption}"
                         TabIndex="6"/>
                 <Button x:Name="BtnPresetIp" Click="OnPresetClick" Tag="1.3.6.1.2.1.4"
                         Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="{StaticResource PaddingButtonPreset}" Margin="0,0,4,0" FontSize="{StaticResource FontSizeCaption}"
+                        Padding="{StaticResource PaddingButtonPreset}" Margin="{StaticResource MarginInlineXs}" FontSize="{StaticResource FontSizeCaption}"
                         TabIndex="7"/>
                 <Button x:Name="BtnPresetTcp" Click="OnPresetClick" Tag="1.3.6.1.2.1.6"
                         Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="{StaticResource PaddingButtonPreset}" Margin="0,0,4,0" FontSize="{StaticResource FontSizeCaption}"
+                        Padding="{StaticResource PaddingButtonPreset}" Margin="{StaticResource MarginInlineXs}" FontSize="{StaticResource FontSizeCaption}"
                         TabIndex="8"/>
                 <Button x:Name="BtnPresetUdp" Click="OnPresetClick" Tag="1.3.6.1.2.1.7"
                         Style="{DynamicResource SecondaryButtonStyle}"
@@ -172,7 +172,7 @@
         <!-- Empty state hint -->
         <Border x:Name="EmptyStatePanel" Grid.Row="4"
                 Style="{StaticResource ToolEmptyStateStyle}"
-                Margin="0,24,0,0">
+               >
             <StackPanel HorizontalAlignment="Center">
                 <TextBlock Text="&#xE968;" Style="{StaticResource ToolEmptyStateIconStyle}"
                            Focusable="False"/>
@@ -244,7 +244,7 @@
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="{Binding Community}" FontFamily="Consolas"
                                                FontSize="{StaticResource FontSizeCaption}" FontWeight="SemiBold"
-                                               Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,6,0"/>
+                                               Foreground="{DynamicResource TextPrimaryBrush}" Margin="{StaticResource MarginLabelInline}"/>
                                     <TextBlock Text="{Binding Status}"
                                                FontSize="{StaticResource FontSizeCaption}"
                                                Foreground="{DynamicResource SuccessTextBrush}"/>

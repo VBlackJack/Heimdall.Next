@@ -48,7 +48,8 @@ public partial class ConnectionService
         Core.Logging.FileLogger.Info(
             $"Launching Telnet session: {server.RemoteServer}:{port}");
 
-        var session = new Terminal.TelnetSession(server.RemoteServer, port);
+        var telnetTimeout = _currentSettings?.TelnetConnectTimeoutMs ?? 15000;
+        var session = new Terminal.TelnetSession(server.RemoteServer, port, telnetTimeout);
 
         try
         {

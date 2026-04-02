@@ -90,13 +90,13 @@
                 <Button x:Name="BtnBrowse" Grid.Column="1"
                         Click="OnBrowseClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="{StaticResource PaddingButtonCopy}" Margin="4,0,0,0"
+                        Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginInlineStart}"
                         VerticalAlignment="Center"
                         TabIndex="1"/>
                 <ToggleButton x:Name="BtnTail" Grid.Column="2"
                               Checked="OnTailChecked"
                               Unchecked="OnTailUnchecked"
-                              Padding="{StaticResource PaddingButtonCopy}" Margin="4,0,0,0"
+                              Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginInlineStart}"
                               VerticalAlignment="Center"
                               TabIndex="2"/>
             </Grid>
@@ -132,18 +132,18 @@
                     <Button x:Name="BtnApplyFilter" Grid.Column="1"
                             Click="OnApplyFilterClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="{StaticResource PaddingButtonPreset}" Margin="4,0,0,0"
+                            Padding="{StaticResource PaddingButtonPreset}" Margin="{StaticResource MarginInlineStart}"
                             VerticalAlignment="Center"
                             TabIndex="4"/>
                     <Button x:Name="BtnClearFilter" Grid.Column="2"
                             Click="OnClearFilterClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="{StaticResource PaddingButtonPreset}" Margin="4,0,0,0"
+                            Padding="{StaticResource PaddingButtonPreset}" Margin="{StaticResource MarginInlineStart}"
                             VerticalAlignment="Center"
                             TabIndex="5"/>
                 </Grid>
 
-                <WrapPanel Grid.Row="1" Margin="0,8,0,0" VerticalAlignment="Center">
+                <WrapPanel Grid.Row="1" Margin="{StaticResource MarginSubsectionTop}" VerticalAlignment="Center">
                     <CheckBox x:Name="ChkCaseSensitive"
                               Foreground="{DynamicResource TextPrimaryBrush}"
                               VerticalAlignment="Center"
@@ -173,7 +173,7 @@
         <!-- Empty state hint (hidden once a file is loaded) -->
         <Border x:Name="EmptyStatePanel" Grid.Row="5"
                 Style="{StaticResource ToolEmptyStateStyle}"
-                Margin="0,24,0,0">
+               >
             <StackPanel HorizontalAlignment="Center">
                 <TextBlock Text="&#xE7BC;" Style="{StaticResource ToolEmptyStateIconStyle}"
                            Focusable="False"/>

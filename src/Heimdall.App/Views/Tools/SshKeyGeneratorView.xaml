@@ -80,7 +80,7 @@
                     Margin="{StaticResource MarginSectionBottom}">
                 <StackPanel>
                     <!-- Algorithm -->
-                    <DockPanel Margin="0,0,0,8">
+                    <DockPanel Margin="{StaticResource MarginStackItem}">
                         <TextBlock x:Name="AlgorithmLabel"
                                    Foreground="{DynamicResource TextPrimaryBrush}"
                                    VerticalAlignment="Center" Width="120"/>
@@ -96,7 +96,7 @@
                     </DockPanel>
 
                     <!-- Comment -->
-                    <DockPanel Margin="0,0,0,8">
+                    <DockPanel Margin="{StaticResource MarginStackItem}">
                         <TextBlock x:Name="CommentLabel"
                                    Foreground="{DynamicResource TextPrimaryBrush}"
                                    VerticalAlignment="Center" Width="120"/>
@@ -110,7 +110,7 @@
                     </DockPanel>
 
                     <!-- Passphrase -->
-                    <DockPanel Margin="0,0,0,4">
+                    <DockPanel Margin="{StaticResource MarginLabelBottom}">
                         <TextBlock x:Name="PassphraseLabel"
                                    Foreground="{DynamicResource TextPrimaryBrush}"
                                    VerticalAlignment="Center" Width="120"/>
@@ -176,7 +176,7 @@
                     Margin="{StaticResource MarginSectionBottom}"
                     Visibility="Collapsed" x:Name="PublicKeyPanel">
                 <DockPanel>
-                    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,6">
+                    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="{StaticResource MarginDetailRow}">
                         <TextBlock x:Name="PublicKeyLabel"
                                    Foreground="{DynamicResource TextPrimaryBrush}"
                                    FontWeight="SemiBold" VerticalAlignment="Center"/>
@@ -188,7 +188,7 @@
                         <Button x:Name="BtnSavePublicKey"
                                 Click="OnSavePublicKeyClick"
                                 Style="{DynamicResource SecondaryButtonStyle}"
-                                Padding="{StaticResource PaddingButtonCopy}" Margin="4,0,0,0"
+                                Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginInlineStart}"
                                 VerticalAlignment="Center"/>
                     </StackPanel>
                     <TextBox x:Name="PublicKeyOutput"
@@ -212,7 +212,7 @@
                     Margin="{StaticResource MarginSectionBottom}"
                     Visibility="Collapsed" x:Name="PrivateKeyPanel">
                 <DockPanel>
-                    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,6">
+                    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="{StaticResource MarginDetailRow}">
                         <TextBlock x:Name="PrivateKeyLabel"
                                    Foreground="{DynamicResource TextPrimaryBrush}"
                                    FontWeight="SemiBold" VerticalAlignment="Center"/>
@@ -224,12 +224,12 @@
                         <Button x:Name="BtnShowPrivateKey"
                                 Click="OnTogglePrivateKeyClick"
                                 Style="{DynamicResource SecondaryButtonStyle}"
-                                Padding="{StaticResource PaddingButtonCopy}" Margin="4,0,0,0"
+                                Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginInlineStart}"
                                 VerticalAlignment="Center"/>
                         <Button x:Name="BtnSavePrivateKey"
                                 Click="OnSavePrivateKeyClick"
                                 Style="{DynamicResource SecondaryButtonStyle}"
-                                Padding="{StaticResource PaddingButtonCopy}" Margin="4,0,0,0"
+                                Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginInlineStart}"
                                 VerticalAlignment="Center"/>
                     </StackPanel>
                     <TextBox x:Name="PrivateKeyOutput"
@@ -249,7 +249,7 @@
             <TextBlock x:Name="Ed25519Notice" Grid.Row="6"
                        FontSize="{StaticResource FontSizeCaption}" FontStyle="Italic"
                        Foreground="{DynamicResource TextSecondaryBrush}"
-                       Margin="0,0,0,8"/>
+                       Margin="{StaticResource MarginStackItem}"/>
         </Grid>
     </ScrollViewer>
     </Grid>

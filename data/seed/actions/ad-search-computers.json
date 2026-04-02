@@ -65,5 +65,10 @@
     }
   ],
   "notes": "Pour rechercher par OS, modifier le filtre: -Filter {OperatingSystem -like '*Windows 11*'}.",
-  "links": []
+  "links": [
+    {
+      "title": "Documentation Get-ADComputer",
+      "url": "https://learn.microsoft.com/en-us/powershell/module/activedirectory/get-adcomputer"
+    }
+  ]
 }

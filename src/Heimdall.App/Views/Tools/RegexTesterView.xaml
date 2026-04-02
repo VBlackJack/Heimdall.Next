@@ -70,10 +70,10 @@
         </Grid.RowDefinitions>
 
         <!-- Pattern input -->
-        <DockPanel Grid.Row="0" Margin="0,0,0,8">
+        <DockPanel Grid.Row="0" Margin="{StaticResource MarginStackItem}">
             <TextBlock x:Name="PatternLabel" DockPanel.Dock="Top"
                        Foreground="{DynamicResource TextSecondaryBrush}"
-                       FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,4"/>
+                       FontSize="{StaticResource FontSizeBody}" Margin="{StaticResource MarginLabelBottom}"/>
             <TextBox x:Name="PatternText"
                      TabIndex="0"
                      Style="{DynamicResource WatermarkTextBoxStyle}"
@@ -89,7 +89,7 @@
         </DockPanel>
 
         <!-- Regex flags -->
-        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,8">
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="{StaticResource MarginStackItem}">
             <CheckBox x:Name="ChkIgnoreCase"
                       TabIndex="1"
                       Foreground="{DynamicResource TextPrimaryBrush}"
@@ -117,7 +117,7 @@
             </Grid.RowDefinitions>
             <TextBlock x:Name="TestTextLabel" Grid.Row="0"
                        Foreground="{DynamicResource TextSecondaryBrush}"
-                       FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,4"/>
+                       FontSize="{StaticResource FontSizeBody}" Margin="{StaticResource MarginLabelBottom}"/>
             <Grid Grid.Row="1">
                 <TextBox x:Name="TestText"
                          TabIndex="4"
@@ -163,7 +163,7 @@
         <!-- Empty state hint (hidden once matches appear) -->
         <Border x:Name="EmptyStatePanel" Grid.Row="4"
                 Style="{StaticResource ToolEmptyStateStyle}"
-                Margin="0,8,0,0">
+                Margin="{StaticResource MarginSubsectionTop}">
             <StackPanel HorizontalAlignment="Center">
                 <TextBlock Text="&#xE71E;"
                            Style="{StaticResource ToolEmptyStateIconStyle}"
@@ -181,7 +181,7 @@
             </Grid.RowDefinitions>
             <TextBlock x:Name="MatchesLabel" Grid.Row="0"
                        Foreground="{DynamicResource TextSecondaryBrush}"
-                       FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,4"/>
+                       FontSize="{StaticResource FontSizeBody}" Margin="{StaticResource MarginLabelBottom}"/>
             <ListBox x:Name="MatchesList" Grid.Row="1"
                      TabIndex="5"
                      Background="{DynamicResource SurfaceBrush}"
@@ -194,7 +194,7 @@
         </Grid>
 
         <!-- Status bar -->
-        <DockPanel Grid.Row="5" Margin="0,8,0,0">
+        <DockPanel Grid.Row="5" Margin="{StaticResource MarginSubsectionTop}">
             <Button x:Name="BtnCopyMatches" DockPanel.Dock="Right"
                     TabIndex="7"
                     Click="OnCopyMatchesClick"

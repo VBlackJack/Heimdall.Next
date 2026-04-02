@@ -56,5 +56,10 @@
     }
   ],
   "notes": "Affiche toutes les propriétés incluant les GPO liées, la protection, etc.",
-  "links": []
+  "links": [
+    {
+      "title": "Documentation Get-ADOrganizationalUnit",
+      "url": "https://learn.microsoft.com/en-us/powershell/module/activedirectory/get-adorganizationalunit"
+    }
+  ]
 }

@@ -50,6 +50,7 @@
                         FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeBody}"
                         Click="OnCloseHelpClick"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
+                        TabIndex="10"
                         VerticalAlignment="Top" Width="24" Height="24"/>
                 <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
                     <TextBlock x:Name="TxtHelpContent" Text="" TextWrapping="Wrap"
@@ -66,7 +67,7 @@
 
                 <!-- Input -->
                 <TextBlock x:Name="LblCidrInput" Text=""
-                           FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,4"
+                           FontSize="{StaticResource FontSizeBody}" Margin="{StaticResource MarginLabelBottom}"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
                 <DockPanel Margin="{StaticResource MarginSectionSeparator}">
                     <TextBox x:Name="TxtCidrInput" Text=""
@@ -90,7 +91,7 @@
                 <!-- Empty state hint (hidden once results appear) -->
                 <Border x:Name="EmptyStatePanel"
                         Style="{StaticResource ToolEmptyStateStyle}"
-                        Margin="0,24,0,0">
+                       >
                     <StackPanel HorizontalAlignment="Center">
                         <TextBlock Text="&#xE968;" Style="{StaticResource ToolEmptyStateIconStyle}"
                                    Focusable="False"/>

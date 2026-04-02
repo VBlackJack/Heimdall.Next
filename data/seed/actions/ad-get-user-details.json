@@ -51,5 +51,10 @@
     }
   ],
   "notes": "Affiche toutes les propriétés disponibles. Pour filtrer certaines propriétés, remplacer * par une liste séparée par des virgules.",
-  "links": []
+  "links": [
+    {
+      "title": "Documentation Get-ADUser",
+      "url": "https://learn.microsoft.com/en-us/powershell/module/activedirectory/get-aduser"
+    }
+  ]
 }

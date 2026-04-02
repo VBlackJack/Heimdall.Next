@@ -21,6 +21,8 @@ using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Collections;
+using Heimdall.Core.Configuration;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Models;
 using Heimdall.Core.Security;
@@ -41,6 +43,8 @@ public partial class WhoisLookupView : UserControl, IToolView
     private bool _disposed;
     private bool _isQuerying;
     private Action<bool>? _setBusy;
+    private List<SshGatewayDto>? _gateways;
+    private SshGatewayDto? _selectedGateway;
     private readonly ToolAsyncStateController _viewState;
 
     public WhoisLookupView()
@@ -54,7 +58,8 @@ public partial class WhoisLookupView : UserControl, IToolView
             ResultsPanel,
             TxtStatus,
             BtnLookup,
-            TxtDomain);
+            TxtDomain,
+            CmbRouteVia);
         TxtDomain.KeyDown += OnDomainKeyDown;
     }
 
@@ -66,6 +71,12 @@ public partial class WhoisLookupView : UserControl, IToolView
         _localizer = localizer;
         _setBusy = context?.SetBusyAction;
         ApplyLocalization();
+
+        if (context?.SshGateways is IList gateways)
+        {
+            _gateways = gateways.Cast<SshGatewayDto>().ToList();
+        }
+        PopulateRouteSelector();
 
         if (!string.IsNullOrWhiteSpace(context?.TargetHost))
         {
@@ -93,6 +104,9 @@ public partial class WhoisLookupView : UserControl, IToolView
         System.Windows.Automation.AutomationProperties.SetName(BtnCopyResults, L("ToolWhoisBtnCopy"));
         System.Windows.Automation.AutomationProperties.SetName(TxtResults, L("ToolWhoisResults"));
         System.Windows.Automation.AutomationProperties.SetName(LoadingBar, L("ToolWhoisStatusQuerying"));
+
+        LblRouteVia.Text = L("ToolTunnelRouteVia");
+        System.Windows.Automation.AutomationProperties.SetName(CmbRouteVia, L("ToolTunnelRouteVia"));
 
         BtnHelp.ToolTip = L("ToolHelpTooltip");
         System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
@@ -151,7 +165,9 @@ public partial class WhoisLookupView : UserControl, IToolView
 
         try
         {
-            var result = await WhoisQueryAsync(domain, _cts.Token);
+            var result = _selectedGateway is not null
+                ? await WhoisViaTunnelAsync(domain, _cts.Token)
+                : await WhoisQueryAsync(domain, _cts.Token);
             stopwatch.Stop();
 
             if (_cts.IsCancellationRequested) return;
@@ -218,6 +234,50 @@ public partial class WhoisLookupView : UserControl, IToolView
             "jp" => "whois.jprs.jp",
             _ => "whois.iana.org"
         };
+    }
+
+    /// <summary>
+    /// Performs a WHOIS lookup remotely via an SSH gateway.
+    /// </summary>
+    private async Task<string> WhoisViaTunnelAsync(string domain, CancellationToken ct)
+    {
+        return await Task.Run(() =>
+        {
+            using var client = ToolGatewayConnector.Connect(_selectedGateway!);
+            var safeDomain = InputValidator.EscapeShellArg(domain);
+            using var cmd = client.CreateCommand($"whois {safeDomain} 2>&1");
+            cmd.CommandTimeout = QueryTimeout;
+            return cmd.Execute()?.Trim() ?? string.Empty;
+        }, ct);
+    }
+
+    private void PopulateRouteSelector()
+    {
+        CmbRouteVia.Items.Clear();
+        CmbRouteVia.Items.Add(new ComboBoxItem { Content = L("ToolTunnelDirect") });
+
+        if (_gateways is not null)
+        {
+            foreach (var gw in _gateways)
+            {
+                var label = $"{gw.Name} ({gw.Host}:{gw.Port})";
+                CmbRouteVia.Items.Add(new ComboBoxItem { Content = label, Tag = gw });
+            }
+        }
+
+        CmbRouteVia.SelectedIndex = 0;
+    }
+
+    private void OnRouteViaChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (CmbRouteVia.SelectedItem is ComboBoxItem item && item.Tag is SshGatewayDto gw)
+        {
+            _selectedGateway = gw;
+        }
+        else
+        {
+            _selectedGateway = null;
+        }
     }
 
     private void OnCopyResultsClick(object sender, RoutedEventArgs e)

@@ -174,10 +174,12 @@ public partial class RegexTesterView : UserControl, IToolView
         {
             regex = new Regex(pattern, options, RegexTimeout);
             StatusText.Text = L("ToolRegexStatusValid");
+            StatusText.Foreground = (Brush)FindResource("TextSecondaryBrush");
         }
         catch (ArgumentException ex)
         {
             StatusText.Text = string.Format(L("ToolRegexStatusInvalid"), ex.Message);
+            StatusText.Foreground = (Brush)FindResource("ErrorTextBrush");
             return;
         }
 
@@ -236,6 +238,7 @@ public partial class RegexTesterView : UserControl, IToolView
         catch (RegexMatchTimeoutException)
         {
             StatusText.Text = L("ToolRegexStatusTimeout");
+            StatusText.Foreground = (Brush)FindResource("ErrorTextBrush");
         }
     }
 

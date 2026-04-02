@@ -92,8 +92,9 @@ public partial class ConnectionService
         TunnelResult result;
         if (chain.Count == 1)
         {
+            var keepAlive = _currentSettings?.SshKeepAliveIntervalSeconds ?? 30;
             result = await _tunnelManager.OpenTunnelAsync(
-                chain[0], remoteHost, remotePort, localPort, ct, _hostKeyStore)
+                chain[0], remoteHost, remotePort, localPort, ct, _hostKeyStore, keepAlive)
                 .ConfigureAwait(false);
         }
         else
@@ -157,7 +158,10 @@ public partial class ConnectionService
         // Look up TOFU host key for deterministic verification (no interactive prompt)
         var fingerprint = _hostKeyStore?.GetFingerprint(gatewayParams.Host, gatewayParams.Port);
 
-        var runner = new PlinkTunnelRunner();
+        var runner = new PlinkTunnelRunner(
+            _currentSettings?.PlinkPortCheckIntervalMs ?? 2000,
+            _currentSettings?.PlinkKillGracePeriodMs ?? 2000,
+            _currentSettings?.PlinkStderrReadTimeoutMs ?? 10000);
         var result = await runner.StartAsync(
                 plinkPath,
                 gatewayParams.Host,

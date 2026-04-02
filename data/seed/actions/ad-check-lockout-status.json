@@ -51,5 +51,10 @@
     }
   ],
   "notes": "Utile pour diagnostiquer les problèmes de connexion. Affiche le nombre de tentatives échouées et l'heure du verrouillage.",
-  "links": []
+  "links": [
+    {
+      "title": "Documentation Get-ADUser",
+      "url": "https://learn.microsoft.com/en-us/powershell/module/activedirectory/get-aduser"
+    }
+  ]
 }

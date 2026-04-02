@@ -41,6 +41,10 @@ MinVersion=10.0
 Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "french"; MessagesFile: "compiler:Languages\French.isl"
 
+[CustomMessages]
+english.UpgradePrompt=Heimdall.Next v%1 is already installed.%nDo you want to upgrade to v%2?
+french.UpgradePrompt=Heimdall.Next v%1 est déjà installé.%nVoulez-vous mettre à jour vers la v%2?
+
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"
 Name: "quicklaunchicon"; Description: "{cm:CreateQuickLaunchIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
@@ -64,7 +68,7 @@ begin
   // Check for existing installation and offer upgrade
   if RegQueryStringValue(HKCU, 'Software\Microsoft\Windows\CurrentVersion\Uninstall\{B7A4D3E1-8F2C-4A91-9D5E-6C3B8A1F0E72}_is1', 'DisplayVersion', OldVersion) then
   begin
-    if MsgBox('Heimdall.Next v' + OldVersion + ' is already installed.' + #13#10 + 'Do you want to upgrade to v{#AppVersion}?', mbConfirmation, MB_YESNO) = IDNO then
+    if MsgBox(FmtMessage(CustomMessage('UpgradePrompt'), [OldVersion, '{#AppVersion}']), mbConfirmation, MB_YESNO) = IDNO then
     begin
       Result := False;
       Exit;

@@ -222,7 +222,7 @@ public partial class ConnectionService
     /// entirely — Plink never needs a console device.
     /// Returns null if the key is already cached (no fingerprint needed).
     /// </summary>
-    private static async Task<string?> ProbeHostKeyFingerprintAsync(
+    private async Task<string?> ProbeHostKeyFingerprintAsync(
         string plinkPath, string host, int port, string? username, CancellationToken ct)
     {
         try

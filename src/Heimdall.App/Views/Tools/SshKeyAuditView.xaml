@@ -79,7 +79,7 @@
                         BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
                         Margin="{StaticResource MarginSectionBottom}">
                     <StackPanel>
-                        <DockPanel Margin="0,0,0,8">
+                        <DockPanel Margin="{StaticResource MarginStackItem}">
                             <Button x:Name="BtnBrowse" DockPanel.Dock="Right"
                                     Click="OnBrowseClick"
                                     Style="{DynamicResource SecondaryButtonStyle}"
@@ -89,7 +89,7 @@
                             <TextBlock x:Name="InputLabel"
                                        Foreground="{DynamicResource TextSecondaryBrush}"
                                        FontSize="{StaticResource FontSizeCaption}"
-                                       Margin="0,0,0,4"/>
+                                       Margin="{StaticResource MarginLabelBottom}"/>
                         </DockPanel>
                         <TextBox x:Name="KeyInput"
                                  AcceptsReturn="True"
@@ -111,7 +111,7 @@
                 <TextBlock x:Name="EmptyState" Grid.Row="1"
                            Style="{StaticResource ToolEmptyStateTextStyle}"
                            HorizontalAlignment="Center"
-                           Margin="0,24,0,0"/>
+                          />
 
                 <!-- Parse error -->
                 <TextBlock x:Name="ParseError" Grid.Row="1"
@@ -119,7 +119,7 @@
                            Foreground="{DynamicResource ErrorBrush}"
                            TextWrapping="Wrap"
                            Visibility="Collapsed"
-                           Margin="0,8,0,0"/>
+                           Margin="{StaticResource MarginSubsectionTop}"/>
 
                 <!-- Key type badge -->
                 <StackPanel x:Name="BadgePanel" Grid.Row="2"
@@ -129,7 +129,7 @@
                     <Border x:Name="AlgorithmBadge"
                             CornerRadius="{StaticResource CornerRadiusSm}"
                             Padding="12,4"
-                            Margin="0,0,8,0">
+                            Margin="{StaticResource MarginInlineSm}">
                         <TextBlock x:Name="AlgorithmBadgeText"
                                    FontSize="{StaticResource FontSizeBody}"
                                    FontWeight="SemiBold"
@@ -171,28 +171,28 @@
                         <TextBlock x:Name="DetailAlgorithmLabel" Grid.Row="0" Grid.Column="0"
                                    Foreground="{DynamicResource TextSecondaryBrush}"
                                    FontWeight="SemiBold" VerticalAlignment="Center"
-                                   Margin="0,0,0,6"/>
+                                   Margin="{StaticResource MarginDetailRow}"/>
                         <TextBlock x:Name="DetailAlgorithmValue" Grid.Row="0" Grid.Column="1"
                                    Foreground="{DynamicResource TextPrimaryBrush}"
                                    VerticalAlignment="Center"
-                                   Margin="0,0,0,6"/>
+                                   Margin="{StaticResource MarginDetailRow}"/>
 
                         <!-- Key Size -->
                         <TextBlock x:Name="DetailKeySizeLabel" Grid.Row="1" Grid.Column="0"
                                    Foreground="{DynamicResource TextSecondaryBrush}"
                                    FontWeight="SemiBold" VerticalAlignment="Center"
-                                   Margin="0,0,0,6"/>
+                                   Margin="{StaticResource MarginDetailRow}"/>
                         <TextBlock x:Name="DetailKeySizeValue" Grid.Row="1" Grid.Column="1"
                                    Foreground="{DynamicResource TextPrimaryBrush}"
                                    VerticalAlignment="Center"
-                                   Margin="0,0,0,6"/>
+                                   Margin="{StaticResource MarginDetailRow}"/>
 
                         <!-- Fingerprint -->
                         <TextBlock x:Name="DetailFingerprintLabel" Grid.Row="2" Grid.Column="0"
                                    Foreground="{DynamicResource TextSecondaryBrush}"
                                    FontWeight="SemiBold" VerticalAlignment="Center"
-                                   Margin="0,0,0,6"/>
-                        <DockPanel Grid.Row="2" Grid.Column="1" Margin="0,0,0,6">
+                                   Margin="{StaticResource MarginDetailRow}"/>
+                        <DockPanel Grid.Row="2" Grid.Column="1" Margin="{StaticResource MarginDetailRow}">
                             <Button x:Name="BtnCopyFingerprint" DockPanel.Dock="Right"
                                     Click="OnCopyFingerprintClick"
                                     Style="{DynamicResource SecondaryButtonStyle}"
@@ -212,21 +212,21 @@
                         <TextBlock x:Name="DetailFormatLabel" Grid.Row="3" Grid.Column="0"
                                    Foreground="{DynamicResource TextSecondaryBrush}"
                                    FontWeight="SemiBold" VerticalAlignment="Center"
-                                   Margin="0,0,0,6"/>
+                                   Margin="{StaticResource MarginDetailRow}"/>
                         <TextBlock x:Name="DetailFormatValue" Grid.Row="3" Grid.Column="1"
                                    Foreground="{DynamicResource TextPrimaryBrush}"
                                    VerticalAlignment="Center"
-                                   Margin="0,0,0,6"/>
+                                   Margin="{StaticResource MarginDetailRow}"/>
 
                         <!-- Type (public/private) -->
                         <TextBlock x:Name="DetailTypeLabel" Grid.Row="4" Grid.Column="0"
                                    Foreground="{DynamicResource TextSecondaryBrush}"
                                    FontWeight="SemiBold" VerticalAlignment="Center"
-                                   Margin="0,0,0,6"/>
+                                   Margin="{StaticResource MarginDetailRow}"/>
                         <TextBlock x:Name="DetailTypeValue" Grid.Row="4" Grid.Column="1"
                                    Foreground="{DynamicResource TextPrimaryBrush}"
                                    VerticalAlignment="Center"
-                                   Margin="0,0,0,6"/>
+                                   Margin="{StaticResource MarginDetailRow}"/>
 
                         <!-- Encrypted -->
                         <TextBlock x:Name="DetailEncryptedLabel" Grid.Row="5" Grid.Column="0"
@@ -249,11 +249,11 @@
                     <StackPanel>
                         <TextBlock x:Name="FindingsTitle"
                                    Foreground="{DynamicResource TextPrimaryBrush}"
-                                   FontWeight="SemiBold" Margin="0,0,0,8"/>
+                                   FontWeight="SemiBold" Margin="{StaticResource MarginStackItem}"/>
                         <ItemsControl x:Name="FindingsList">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <DockPanel Margin="0,0,0,4">
+                                    <DockPanel Margin="{StaticResource MarginLabelBottom}">
                                         <TextBlock Text="{Binding Icon}"
                                                    Foreground="{Binding IconBrush}"
                                                    FontWeight="Bold"

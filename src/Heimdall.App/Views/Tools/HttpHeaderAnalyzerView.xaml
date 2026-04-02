@@ -68,9 +68,9 @@
 
                 <!-- Input Row -->
                 <TextBlock x:Name="LblUrl" Text=""
-                           FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,4"
+                           FontSize="{StaticResource FontSizeBody}" Margin="{StaticResource MarginLabelBottom}"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
-                <DockPanel Margin="0,0,0,8">
+                <DockPanel Margin="{StaticResource MarginStackItem}">
                     <Button x:Name="BtnCheck" DockPanel.Dock="Right"
                             Content="" Click="OnCheckClick"
                             Style="{DynamicResource PrimaryButtonStyle}"
@@ -90,9 +90,9 @@
                 </DockPanel>
 
                 <!-- Route via gateway -->
-                <DockPanel Margin="0,0,0,8">
+                <DockPanel Margin="{StaticResource MarginStackItem}">
                     <TextBlock x:Name="LblRouteVia" Text=""
-                               FontSize="{StaticResource FontSizeBody}" Margin="0,0,8,0"
+                               FontSize="{StaticResource FontSizeBody}" Margin="{StaticResource MarginInlineSm}"
                                Foreground="{DynamicResource TextSecondaryBrush}"
                                VerticalAlignment="Center"/>
                     <ComboBox x:Name="CmbRouteVia" Width="240"
@@ -115,7 +115,7 @@
                 <!-- Empty state hint -->
                 <Border x:Name="EmptyStatePanel"
                         Style="{StaticResource ToolEmptyStateStyle}"
-                        Margin="0,24,0,0">
+                       >
                     <StackPanel HorizontalAlignment="Center">
                         <TextBlock Text="&#xE774;"
                                    Style="{StaticResource ToolEmptyStateIconStyle}"
@@ -136,7 +136,7 @@
                             <TextBlock x:Name="TxtGradeLabel" Text=""
                                        FontSize="{StaticResource FontSizeBody}" FontWeight="SemiBold"
                                        Foreground="{DynamicResource TextOnAccentBrush}"
-                                       VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                       VerticalAlignment="Center" Margin="{StaticResource MarginInlineSm}"/>
                             <TextBlock x:Name="TxtGrade" Text=""
                                        FontSize="{StaticResource FontSizeHeadline}" FontWeight="Bold"
                                        Foreground="{DynamicResource TextOnAccentBrush}"
@@ -148,7 +148,7 @@
                     <TextBlock x:Name="TxtSecuritySection" Text=""
                                FontSize="{StaticResource FontSizeBodyLarge}" FontWeight="SemiBold"
                                Foreground="{DynamicResource TextPrimaryBrush}"
-                               Margin="0,0,0,8"/>
+                               Margin="{StaticResource MarginStackItem}"/>
                     <Border Background="{DynamicResource CardBrush}"
                             BorderBrush="{DynamicResource BorderBrush}"
                             BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
@@ -187,7 +187,7 @@
                     <TextBlock x:Name="TxtDisclosureSection" Text=""
                                FontSize="{StaticResource FontSizeBodyLarge}" FontWeight="SemiBold"
                                Foreground="{DynamicResource TextPrimaryBrush}"
-                               Margin="0,0,0,8"/>
+                               Margin="{StaticResource MarginStackItem}"/>
                     <Border Background="{DynamicResource CardBrush}"
                             BorderBrush="{DynamicResource BorderBrush}"
                             BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"

@@ -37,5 +37,10 @@
     }
   ],
   "notes": "Les 5 rôles FSMO: Schema Master, Domain Naming Master, RID Master, PDC Emulator, Infrastructure Master.",
-  "links": []
+  "links": [
+    {
+      "title": "Documentation netdom query fsmo",
+      "url": "https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-server-2012-r2-and-2012/cc835085(v=ws.11)"
+    }
+  ]
 }

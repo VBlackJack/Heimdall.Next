@@ -35,20 +35,21 @@ public sealed class FileLogger : IDisposable
     private bool _disposed;
     private bool _aclApplied;
 
-    private FileLogger(string logDirectory)
+    private FileLogger(string logDirectory, int flushIntervalMs)
     {
         Directory.CreateDirectory(logDirectory);
         _logPath = Path.Combine(logDirectory, $"heimdall_{DateTime.Now:yyyyMMdd}.log");
-        _flushTimer = new Timer(_ => FlushInternal(), null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(2));
+        var interval = TimeSpan.FromMilliseconds(flushIntervalMs);
+        _flushTimer = new Timer(_ => FlushInternal(), null, TimeSpan.FromSeconds(1), interval);
     }
 
     /// <summary>
     /// Initialize the global logger instance.
     /// </summary>
-    public static void Initialize(string logDirectory)
+    public static void Initialize(string logDirectory, int flushIntervalMs = 2000)
     {
         _instance?.Dispose();
-        _instance = new FileLogger(logDirectory);
+        _instance = new FileLogger(logDirectory, flushIntervalMs);
     }
 
     /// <summary>

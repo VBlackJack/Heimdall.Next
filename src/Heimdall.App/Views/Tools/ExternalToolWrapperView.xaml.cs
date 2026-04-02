@@ -210,7 +210,7 @@ public partial class ExternalToolWrapperView : UserControl, IToolView
         {
             // Timeout or manual cancel — kill the process tree so it does not
             // continue running in the background after the tab shows a timeout.
-            try { if (!process.HasExited) process.Kill(entireProcessTree: true); } catch { }
+            try { if (!process.HasExited) process.Kill(entireProcessTree: true); } catch { /* process may have already exited */ }
             throw;
         }
         finally
@@ -249,7 +249,7 @@ public partial class ExternalToolWrapperView : UserControl, IToolView
         {
             // Timeout or manual cancel — kill the elevated process tree so it does not
             // continue running in the background after the tab shows a timeout.
-            try { if (_runningProcess is { HasExited: false } p) p.Kill(entireProcessTree: true); } catch { }
+            try { if (_runningProcess is { HasExited: false } p) p.Kill(entireProcessTree: true); } catch { /* process may have already exited */ }
             throw;
         }
         catch (System.ComponentModel.Win32Exception ex) when (ex.NativeErrorCode == 1223)
@@ -536,6 +536,7 @@ public partial class ExternalToolWrapperView : UserControl, IToolView
         BtnHelp.ToolTip = L("ToolHelpTooltip");
         System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
         System.Windows.Automation.AutomationProperties.SetName(BtnCloseHelp, L("BtnClose"));
+        System.Windows.Automation.AutomationProperties.SetName(LoadingBar, L("ExtToolA11yLoading"));
     }
 
     private void OnHelpClick(object sender, RoutedEventArgs e)

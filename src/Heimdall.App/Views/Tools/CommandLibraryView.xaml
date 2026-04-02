@@ -129,7 +129,7 @@
                             Content="&#xE711;" FontFamily="Segoe MDL2 Assets"
                             FontSize="{StaticResource FontSizeSmallCaption}"
                             HorizontalAlignment="Right" VerticalAlignment="Center"
-                            Margin="0,0,4,0" Padding="4"
+                            Margin="{StaticResource MarginInlineXs}" Padding="4"
                             Style="{DynamicResource ToolbarGhostButtonStyle}" MinHeight="0"
                             Click="OnClearSearchClick" Visibility="Collapsed"/>
                 </Grid>
@@ -235,17 +235,17 @@
                                 ToolTip="{Binding FavoriteTooltip}"
                                 Style="{DynamicResource ToolbarGhostButtonStyle}"
                                 FontSize="14" Width="24" Height="24"
-                                VerticalAlignment="Center" Margin="4,0,0,0"
+                                VerticalAlignment="Center" Margin="{StaticResource MarginInlineStart}"
                                 Foreground="{DynamicResource WarningBrush}"/>
                         <!-- Risk badge -->
                         <Border DockPanel.Dock="Left"
                                 Background="{Binding RiskBrush}"
-                                CornerRadius="3" Padding="4,1"
-                                VerticalAlignment="Center" Margin="0,0,6,0"
+                                CornerRadius="{StaticResource CornerRadiusSm}" Padding="4,1"
+                                VerticalAlignment="Center" Margin="{StaticResource MarginLabelInline}"
                                 ToolTip="{Binding RiskLabel}">
                             <TextBlock Text="{Binding RiskBadge}"
                                        FontSize="{StaticResource FontSizeSmallCaption}"
-                                       FontWeight="Bold" Foreground="White"/>
+                                       FontWeight="Bold" Foreground="{DynamicResource BadgeTextBrush}"/>
                         </Border>
                         <!-- Platform badge -->
                         <TextBlock DockPanel.Dock="Right"
@@ -253,7 +253,7 @@
                                    FontSize="{StaticResource FontSizeSmallCaption}"
                                    Foreground="{DynamicResource TextSecondaryBrush}"
                                    VerticalAlignment="Center"
-                                   Margin="8,0,0,0"/>
+                                   Margin="{StaticResource MarginInlineControl}"/>
                         <!-- Title + description -->
                         <StackPanel>
                             <TextBlock Text="{Binding Title}"
@@ -304,7 +304,7 @@
 
                 <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto">
                     <StackPanel Margin="12,12,12,8">
-                        <DockPanel Margin="0,0,0,8">
+                        <DockPanel Margin="{StaticResource MarginStackItem}">
                             <StackPanel x:Name="TemplateSwitcher" DockPanel.Dock="Right"
                                         Orientation="Horizontal" Visibility="Collapsed">
                                 <RadioButton x:Name="RbWindows"
@@ -312,7 +312,7 @@
                                              Checked="OnTemplatePlatformChanged"
                                              FontSize="{StaticResource FontSizeCaption}"
                                              Foreground="{DynamicResource TextPrimaryBrush}"
-                                             VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                             VerticalAlignment="Center" Margin="{StaticResource MarginInlineSm}"/>
                                 <RadioButton x:Name="RbLinux"
                                              GroupName="TemplatePlatform"
                                              Checked="OnTemplatePlatformChanged"
@@ -327,10 +327,10 @@
                                        VerticalAlignment="Center"/>
                         </DockPanel>
 
-                        <ItemsControl x:Name="ParametersList" Margin="0,0,0,4">
+                        <ItemsControl x:Name="ParametersList" Margin="{StaticResource MarginLabelBottom}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <DockPanel Margin="0,0,0,4"
+                                    <DockPanel Margin="{StaticResource MarginLabelBottom}"
                                                ToolTip="{Binding DisplayTooltip}">
                                         <TextBlock DockPanel.Dock="Left"
                                                    Text="{Binding DisplayLabel}" Width="130"
@@ -356,7 +356,7 @@
                                    Visibility="Collapsed"
                                    FontSize="{StaticResource FontSizeCaption}"
                                    Foreground="{DynamicResource ErrorBrush}"
-                                   TextWrapping="Wrap" Margin="0,0,0,4"/>
+                                   TextWrapping="Wrap" Margin="{StaticResource MarginLabelBottom}"/>
 
                         <TextBox x:Name="TxtGenerated"
                                  IsReadOnly="True" TextWrapping="NoWrap"
@@ -367,20 +367,20 @@
                                  Background="{DynamicResource CardBrush}"
                                  Foreground="{DynamicResource AccentBrush}"
                                  BorderBrush="{DynamicResource BorderBrush}"
-                                 Margin="0,0,0,8"/>
+                                 Margin="{StaticResource MarginStackItem}"/>
 
                         <!-- Notes / Examples / Links (collapsed when empty) -->
-                        <StackPanel x:Name="DetailPanel" Visibility="Collapsed" Margin="0,0,0,4">
+                        <StackPanel x:Name="DetailPanel" Visibility="Collapsed" Margin="{StaticResource MarginLabelBottom}">
                             <TextBlock x:Name="TxtNotes" TextWrapping="Wrap"
                                        FontSize="{StaticResource FontSizeCaption}"
                                        Foreground="{DynamicResource TextSecondaryBrush}"
-                                       Margin="0,0,0,4"/>
+                                       Margin="{StaticResource MarginLabelBottom}"/>
                             <ItemsControl x:Name="ExamplesList">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
                                         <Border Padding="6,3" Margin="0,2,0,0"
                                                 Background="{DynamicResource BackgroundBrush}"
-                                                CornerRadius="3" Cursor="Hand"
+                                                CornerRadius="{StaticResource CornerRadiusSm}" Cursor="Hand"
                                                 MouseLeftButtonUp="OnExampleClick"
                                                 Tag="{Binding Command}">
                                             <DockPanel>
@@ -433,7 +433,7 @@
                                 Style="{DynamicResource ToolbarGhostButtonStyle}"
                                 FontSize="14" MinWidth="28" Height="28"
                                 Padding="4"
-                                Margin="0,0,4,0" TabIndex="7"/>
+                                Margin="{StaticResource MarginInlineXs}" TabIndex="7"/>
                         <Button x:Name="BtnDelete" Click="OnDeleteClick"
                                 Content="&#xE74D;" FontFamily="Segoe MDL2 Assets"
                                 Style="{DynamicResource ToolbarGhostButtonStyle}"
@@ -447,7 +447,7 @@
                                 Style="{DynamicResource SecondaryButtonStyle}"
                                 Padding="{StaticResource PaddingButtonCopy}"
                                 FontSize="{StaticResource FontSizeBody}"
-                                Margin="0,0,8,0" TabIndex="5"/>
+                                Margin="{StaticResource MarginInlineSm}" TabIndex="5"/>
                         <Button x:Name="BtnSend" Click="OnSendClick"
                                 Style="{DynamicResource PrimaryButtonStyle}"
                                 Padding="{StaticResource PaddingButtonPrimary}"
@@ -483,7 +483,7 @@
                                FontSize="{StaticResource FontSizeCaption}"
                                Foreground="{DynamicResource SuccessBrush}"
                                VerticalAlignment="Center"
-                               Margin="8,0,0,0"/>
+                               Margin="{StaticResource MarginInlineControl}"/>
                 </DockPanel>
                 <ListView x:Name="HistoryList"
                           Background="Transparent" BorderThickness="0"
@@ -532,13 +532,13 @@
                                         Style="{DynamicResource ToolbarGhostButtonStyle}"
                                         FontSize="11" Width="22" Height="22"
                                         Padding="2" VerticalAlignment="Center"
-                                        Margin="4,0,0,0" Focusable="False"/>
+                                        Margin="{StaticResource MarginInlineStart}" Focusable="False"/>
                                 <TextBlock DockPanel.Dock="Right"
                                            Text="{Binding Timestamp}"
                                            FontSize="{StaticResource FontSizeSmallCaption}"
                                            Foreground="{DynamicResource TextSecondaryBrush}"
                                            VerticalAlignment="Center"
-                                           Margin="8,0,0,0"/>
+                                           Margin="{StaticResource MarginInlineControl}"/>
                                 <StackPanel>
                                     <TextBlock Text="{Binding ActionTitle}"
                                                FontSize="{StaticResource FontSizeCaption}"

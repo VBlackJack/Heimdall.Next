@@ -66,7 +66,7 @@
 
                 <!-- Input -->
                 <TextBlock x:Name="LblInput" Text=""
-                           FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,4"
+                           FontSize="{StaticResource FontSizeBody}" Margin="{StaticResource MarginLabelBottom}"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
                 <TextBox x:Name="TxtInput" Text=""
                          TabIndex="0"
@@ -122,12 +122,12 @@
 
                 <!-- Output -->
                 <TextBlock x:Name="LblOutput" Text=""
-                           FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,4"
+                           FontSize="{StaticResource FontSizeBody}" Margin="{StaticResource MarginLabelBottom}"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
 
                 <Border x:Name="EmptyStatePanel"
                         Style="{StaticResource ToolEmptyStateStyle}"
-                        Margin="0,24,0,0">
+                       >
                     <StackPanel HorizontalAlignment="Center">
                         <TextBlock Text="&#xE8D2;"
                                    Style="{StaticResource ToolEmptyStateIconStyle}"
@@ -137,7 +137,7 @@
                     </StackPanel>
                 </Border>
 
-                <DockPanel x:Name="ResultsPanel" Margin="0,0,0,8" Visibility="Collapsed">
+                <DockPanel x:Name="ResultsPanel" Margin="{StaticResource MarginStackItem}" Visibility="Collapsed">
                     <Button x:Name="BtnCopy" DockPanel.Dock="Right"
                             TabIndex="10"
                             Content="" Click="OnCopyClick"

@@ -50,7 +50,7 @@
                 <Button x:Name="BtnToggleSidebar" DockPanel.Dock="Left"
                         Click="OnToggleSidebarClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="{StaticResource PaddingButtonToolbar}" Margin="0,0,8,0"
+                        Padding="{StaticResource PaddingButtonToolbar}" Margin="{StaticResource MarginInlineSm}"
                         FontFamily="{StaticResource FontFamilyMonospace}"
                         FontSize="{StaticResource FontSizeBody}"
                         Content="&#x2630;"
@@ -113,7 +113,7 @@
                     </Grid.RowDefinitions>
 
                     <!-- Compact toolbar: search + buttons -->
-                    <Grid Margin="0,0,0,8">
+                    <Grid Margin="{StaticResource MarginStackItem}">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
@@ -127,32 +127,32 @@
                                  Foreground="{DynamicResource TextPrimaryBrush}"
                                  BorderBrush="{DynamicResource BorderBrush}"
                                  TabIndex="1"/>
-                        <WrapPanel Grid.Row="1" Margin="0,8,0,0" HorizontalAlignment="Right">
+                        <WrapPanel Grid.Row="1" Margin="{StaticResource MarginSubsectionTop}" HorizontalAlignment="Right">
                             <Button x:Name="BtnCollapseAll"
                                     Click="OnCollapseAllClick"
                                     Style="{DynamicResource SecondaryButtonStyle}"
-                                    Padding="{StaticResource PaddingButtonHelp}" Margin="4,0,0,0"
+                                    Padding="{StaticResource PaddingButtonHelp}" Margin="{StaticResource MarginInlineStart}"
                                     FontSize="{StaticResource FontSizeCaption}"
                                     Content="&#x25B2;"
                                     TabIndex="2"/>
                             <Button x:Name="BtnExpandAll"
                                     Click="OnExpandAllClick"
                                     Style="{DynamicResource SecondaryButtonStyle}"
-                                    Padding="{StaticResource PaddingButtonHelp}" Margin="4,0,0,0"
+                                    Padding="{StaticResource PaddingButtonHelp}" Margin="{StaticResource MarginInlineStart}"
                                     FontSize="{StaticResource FontSizeCaption}"
                                     Content="&#x25BC;"
                                     TabIndex="3"/>
                             <Button x:Name="BtnNewNote"
                                     Click="OnNewNoteClick"
                                     Style="{DynamicResource SecondaryButtonStyle}"
-                                    Padding="{StaticResource PaddingButtonCopy}" Margin="4,0,0,0"
+                                    Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginInlineStart}"
                                     FontSize="{StaticResource FontSizeCaption}"
                                     TabIndex="4"/>
                         </WrapPanel>
                     </Grid>
 
-                    <StackPanel Grid.Row="1" Margin="0,0,0,4">
-                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,0,8">
+                    <StackPanel Grid.Row="1" Margin="{StaticResource MarginLabelBottom}">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="{StaticResource MarginStackItem}">
                             <TextBlock x:Name="SortLabelText"
                                        VerticalAlignment="Center"
                                        Foreground="{DynamicResource TextSecondaryBrush}"
@@ -173,7 +173,7 @@
                         <TextBlock x:Name="TagsLabelText"
                                    Foreground="{DynamicResource TextSecondaryBrush}"
                                    FontSize="{StaticResource FontSizeCaption}"
-                                   Margin="0,0,0,4"
+                                   Margin="{StaticResource MarginLabelBottom}"
                                    Visibility="Collapsed"/>
                         <WrapPanel x:Name="TagFilterWrapPanel"
                                    Visibility="Collapsed"/>
@@ -291,36 +291,36 @@
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
-                        <WrapPanel Grid.Row="1" Margin="0,8,0,0" HorizontalAlignment="Right">
+                        <WrapPanel Grid.Row="1" Margin="{StaticResource MarginSubsectionTop}" HorizontalAlignment="Right">
                             <Button x:Name="BtnNavBack" Content="&#x2190;"
                                     Click="OnNavBackClick"
                                     Style="{DynamicResource SecondaryButtonStyle}"
-                                    Padding="{StaticResource PaddingButtonToolbar}" Margin="0,0,4,0"
+                                    Padding="{StaticResource PaddingButtonToolbar}" Margin="{StaticResource MarginInlineXs}"
                                     FontSize="{StaticResource FontSizeBody}"
                                     IsEnabled="False"
                                     TabIndex="7"/>
                             <Button x:Name="BtnNavForward" Content="&#x2192;"
                                     Click="OnNavForwardClick"
                                     Style="{DynamicResource SecondaryButtonStyle}"
-                                    Padding="{StaticResource PaddingButtonToolbar}" Margin="0,0,8,0"
+                                    Padding="{StaticResource PaddingButtonToolbar}" Margin="{StaticResource MarginInlineSm}"
                                     FontSize="{StaticResource FontSizeBody}"
                                     IsEnabled="False"
                                     TabIndex="8"/>
                             <Button x:Name="BtnNoteActions"
                                     Click="OnNoteActionsClick"
                                     Style="{DynamicResource SecondaryButtonStyle}"
-                                    Padding="{StaticResource PaddingButtonCopy}" Margin="0,0,8,0"
+                                    Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginInlineSm}"
                                     IsEnabled="False"
                                     TabIndex="9"/>
                             <Button x:Name="BtnCopyConfluence"
                                     Click="OnCopyConfluenceClick"
                                     Style="{DynamicResource SecondaryButtonStyle}"
-                                    Padding="{StaticResource PaddingButtonCopy}" Margin="0,0,4,0"
+                                    Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginInlineXs}"
                                     TabIndex="10"/>
                             <Button x:Name="BtnExportConfluence"
                                     Click="OnExportConfluenceClick"
                                     Style="{DynamicResource SecondaryButtonStyle}"
-                                    Padding="{StaticResource PaddingButtonCopy}" Margin="0,0,4,0"
+                                    Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginInlineXs}"
                                     TabIndex="11"/>
                             <Button x:Name="BtnExportHtml"
                                     Click="OnExportHtmlClick"

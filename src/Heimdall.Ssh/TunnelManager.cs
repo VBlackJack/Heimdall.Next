@@ -89,7 +89,8 @@ public sealed class TunnelManager : IDisposable
         int remotePort,
         int localPort,
         CancellationToken cancellationToken = default,
-        HostKeyStore? hostKeyStore = null)
+        HostKeyStore? hostKeyStore = null,
+        int keepAliveIntervalSeconds = 30)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         ArgumentNullException.ThrowIfNull(gatewayParams);
@@ -107,7 +108,7 @@ public sealed class TunnelManager : IDisposable
             var connectionInfo = SshConnectionFactory.CreateForTunnel(gatewayParams);
             client = new SshClient(connectionInfo)
             {
-                KeepAliveInterval = TimeSpan.FromSeconds(30)
+                KeepAliveInterval = TimeSpan.FromSeconds(keepAliveIntervalSeconds)
             };
 
             if (hostKeyStore is not null)

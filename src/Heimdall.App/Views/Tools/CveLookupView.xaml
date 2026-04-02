@@ -83,7 +83,7 @@
             <!-- Empty state -->
             <Border x:Name="EmptyStatePanel"
                     Style="{StaticResource ToolEmptyStateStyle}"
-                    Margin="0,24,0,0">
+                   >
                 <StackPanel HorizontalAlignment="Center">
                     <TextBlock Text="&#xE8B7;"
                                Style="{StaticResource ToolEmptyStateIconStyle}"
@@ -92,14 +92,14 @@
                                Style="{StaticResource ToolEmptyStateTextStyle}"/>
                     <TextBlock x:Name="TxtDbInfo"
                                FontSize="{StaticResource FontSizeCaption}" TextAlignment="Center"
-                               Foreground="{DynamicResource TextDisabledBrush}" Margin="0,8,0,0"/>
+                               Foreground="{DynamicResource TextDisabledBrush}" Margin="{StaticResource MarginSubsectionTop}"/>
                 </StackPanel>
             </Border>
 
             <!-- No results state -->
             <Border x:Name="NoResultsPanel" Visibility="Collapsed"
                     Style="{StaticResource ToolEmptyStateStyle}"
-                    Margin="0,24,0,0">
+                   >
                 <StackPanel HorizontalAlignment="Center">
                     <TextBlock Text="&#xE8B7;"
                                Style="{StaticResource ToolEmptyStateIconStyle}"
@@ -128,7 +128,7 @@
                                 <Border Background="{DynamicResource CardBrush}"
                                         BorderBrush="{DynamicResource BorderBrush}"
                                         BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
-                                        Padding="12,10" Margin="0,0,0,8">
+                                        Padding="12,10" Margin="{StaticResource MarginStackItem}">
                                     <Grid>
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*"/>

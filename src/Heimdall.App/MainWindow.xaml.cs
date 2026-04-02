@@ -1846,9 +1846,16 @@ public partial class MainWindow : Window
 
     private async void PersistToolsPanelState(bool isVisible)
     {
-        if (DataContext is not MainViewModel vm) return;
-        vm.Settings.ShowToolsPanel = isVisible;
-        await vm.ConfigManager.MergeSettingAsync(s => s.ShowToolsPanel = isVisible);
+        try
+        {
+            if (DataContext is not MainViewModel vm) return;
+            vm.Settings.ShowToolsPanel = isVisible;
+            await vm.ConfigManager.MergeSettingAsync(s => s.ShowToolsPanel = isVisible);
+        }
+        catch (Exception ex)
+        {
+            Core.Logging.FileLogger.Warn($"Failed to persist tools panel state: {ex.Message}");
+        }
     }
 
     private void PopulateToolsPanel()
@@ -2374,6 +2381,16 @@ public partial class MainWindow : Window
         return host is null ? null : new Core.Models.ToolContext(TargetHost: host);
     }
 
+    private string ResolveToolTabTitle(MainViewModel vm, Core.Models.ToolDescriptor descriptor, Core.Models.ToolContext? context)
+    {
+        if (context?.TargetHost is not null && descriptor.LabelWithArgKey is not null)
+        {
+            return string.Format(vm.Localize(descriptor.LabelWithArgKey), context.TargetHost);
+        }
+
+        return vm.Localize(descriptor.LabelKey);
+    }
+
     private void UpdateToolLaunchContextLabels()
     {
         if (DataContext is not MainViewModel vm)
@@ -2421,7 +2438,7 @@ public partial class MainWindow : Window
             TabServers.IsChecked = true;
             SwitchToTab("Servers");
 
-            await vm.OpenToolTabAsync(descriptor.Id, vm.Localize(descriptor.LabelKey), context);
+            await vm.OpenToolTabAsync(descriptor.Id, ResolveToolTabTitle(vm, descriptor, context), context);
             vm.TrackRecentTool(descriptor.Id);
         }
         catch (Exception ex)
@@ -2628,7 +2645,7 @@ public partial class MainWindow : Window
 
             await vm.OpenToolTabAsync(
                 descriptor.Id,
-                vm.Localize(descriptor.LabelKey),
+                ResolveToolTabTitle(vm, descriptor, context),
                 context);
 
             vm.TrackRecentTool(descriptor.Id);
@@ -4529,10 +4546,14 @@ public partial class MainWindow : Window
         if (dialog.ShowDialog() != System.Windows.Forms.DialogResult.OK) return;
 
         var directory = dialog.SelectedPath;
-        _fileServer = new EphemeralFileServer();
+        var settings = (DataContext as MainViewModel)?.CurrentSettings;
+        _fileServer = new EphemeralFileServer
+        {
+            ShutdownTimeoutMs = settings?.ServerShutdownTimeoutMs ?? 2000
+        };
 
-        const int httpPort = 8080;
-        const int tftpPort = 69;
+        var httpPort = settings?.EphemeralHttpPort ?? 8080;
+        var tftpPort = settings?.EphemeralTftpPort ?? 69;
 
         try
         {

@@ -37,5 +37,10 @@
     }
   ],
   "notes": "À exécuter sur un contrôleur de domaine. Pour vérifier tous les DCs: repadmin /replsummary.",
-  "links": []
+  "links": [
+    {
+      "title": "Documentation repadmin",
+      "url": "https://learn.microsoft.com/en-us/windows-server/identity/ad-ds/manage/replication/repadmin-showrepl"
+    }
+  ]
 }

@@ -67,9 +67,9 @@
 
                 <!-- Single UUID generation -->
                 <TextBlock x:Name="LblSingleResult" Text=""
-                           FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,4"
+                           FontSize="{StaticResource FontSizeBody}" Margin="{StaticResource MarginLabelBottom}"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
-                <DockPanel Margin="0,0,0,8">
+                <DockPanel Margin="{StaticResource MarginStackItem}">
                     <Button x:Name="BtnCopy" DockPanel.Dock="Right"
                             Content="" Click="OnCopyClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
@@ -117,10 +117,10 @@
 
                 <!-- Batch generation -->
                 <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0"
-                        Padding="0,16,0,0" Margin="0,8,0,0">
+                        Padding="0,16,0,0" Margin="{StaticResource MarginSubsectionTop}">
                     <StackPanel>
                         <TextBlock x:Name="LblBatch" Text=""
-                                   FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,8"
+                                   FontSize="{StaticResource FontSizeBody}" Margin="{StaticResource MarginStackItem}"
                                    Foreground="{DynamicResource TextSecondaryBrush}"/>
                         <DockPanel Margin="{StaticResource MarginSectionBottom}">
                             <Button x:Name="BtnGenerateBatch" DockPanel.Dock="Right"
@@ -131,7 +131,7 @@
                                     TabIndex="6"/>
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                 <TextBlock x:Name="LblCount" Text=""
-                                           FontSize="{StaticResource FontSizeBody}" Margin="0,0,8,0"
+                                           FontSize="{StaticResource FontSizeBody}" Margin="{StaticResource MarginInlineSm}"
                                            Foreground="{DynamicResource TextSecondaryBrush}"
                                            VerticalAlignment="Center"/>
                                 <TextBox x:Name="TxtCount" Text=""
@@ -160,7 +160,7 @@
                         <Button x:Name="BtnCopyBatch" Content=""
                                 Click="OnCopyBatchClick"
                                 Style="{DynamicResource SecondaryButtonStyle}"
-                                Padding="{StaticResource PaddingButtonPrimary}" Margin="0,8,0,0"
+                                Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginSubsectionTop}"
                                 HorizontalAlignment="Left"
                                 TabIndex="7"/>
                     </StackPanel>

@@ -32,7 +32,8 @@ namespace Heimdall.App.Services;
 /// </summary>
 public partial class ConnectionService
 {
-    private static readonly TimeSpan HostKeyProbeTimeout = TimeSpan.FromSeconds(8);
+    private TimeSpan HostKeyProbeTimeout =>
+        TimeSpan.FromMilliseconds(_currentSettings?.HostKeyProbeTimeoutMs ?? 8000);
 
     private readonly ConfigManager _configManager;
     private readonly TunnelManager _tunnelManager;

@@ -1,8 +1,9 @@
 {
   "version": "2.0",
   "format": "individual-files",
-  "totalActions": 513,
+  "totalActions": 514,
   "actions": [
+    "ad-delete-user",
     "ad-list-users",
     "ad-search-user",
     "ad-unlock-account",

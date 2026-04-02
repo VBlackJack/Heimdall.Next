@@ -47,5 +47,10 @@
     }
   ],
   "notes": "LockoutThreshold: nombre de tentatives échouées. LockoutDuration: durée du verrouillage.",
-  "links": []
+  "links": [
+    {
+      "title": "Documentation Get-ADDefaultDomainPasswordPolicy",
+      "url": "https://learn.microsoft.com/en-us/powershell/module/activedirectory/get-addefaultdomainpasswordpolicy"
+    }
+  ]
 }

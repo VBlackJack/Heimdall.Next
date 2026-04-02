@@ -69,7 +69,7 @@
         </Grid.RowDefinitions>
 
         <!-- Mode toggle + labels -->
-        <DockPanel Grid.Row="0" Margin="0,0,0,8">
+        <DockPanel Grid.Row="0" Margin="{StaticResource MarginStackItem}">
             <StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
                 <CheckBox x:Name="ChkUrlSafe"
                           TabIndex="1"
@@ -109,7 +109,7 @@
             <Button x:Name="BtnEncode" Click="OnEncodeClick"
                     TabIndex="3"
                     Style="{DynamicResource PrimaryButtonStyle}"
-                    Padding="{StaticResource PaddingButtonPrimary}" Margin="0,0,8,0"/>
+                    Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginInlineSm}"/>
             <Button x:Name="BtnDecode" Click="OnDecodeClick"
                     TabIndex="4"
                     Style="{DynamicResource SecondaryButtonStyle}"
@@ -124,11 +124,11 @@
             </Grid.RowDefinitions>
             <TextBlock x:Name="OutputLabel" Grid.Row="0"
                        Foreground="{DynamicResource TextSecondaryBrush}"
-                       FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,4"/>
+                       FontSize="{StaticResource FontSizeBody}" Margin="{StaticResource MarginLabelBottom}"/>
 
             <Border x:Name="EmptyStatePanel" Grid.Row="1"
                     Style="{StaticResource ToolEmptyStateStyle}"
-                    Margin="0,24,0,0">
+                   >
                 <StackPanel HorizontalAlignment="Center">
                     <TextBlock Text="&#xE943;"
                                Style="{StaticResource ToolEmptyStateIconStyle}"
@@ -156,7 +156,7 @@
         </Grid>
 
         <!-- Status bar -->
-        <DockPanel Grid.Row="4" Margin="0,8,0,0">
+        <DockPanel Grid.Row="4" Margin="{StaticResource MarginSubsectionTop}">
             <Button x:Name="BtnCopyOutput" DockPanel.Dock="Right"
                     TabIndex="7"
                     Click="OnCopyOutputClick"
@@ -166,7 +166,7 @@
                     TabIndex="6"
                     Click="OnBrowseFileClick"
                     Style="{DynamicResource SecondaryButtonStyle}"
-                    Padding="{StaticResource PaddingButtonCopy}" Margin="0,0,8,0"
+                    Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginInlineSm}"
                     Visibility="Collapsed"/>
             <TextBlock x:Name="StatusText"
                        Foreground="{DynamicResource TextSecondaryBrush}"

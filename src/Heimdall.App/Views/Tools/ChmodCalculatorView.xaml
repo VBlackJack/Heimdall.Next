@@ -89,13 +89,13 @@
             <!-- Column headers -->
             <TextBlock x:Name="HeaderRead" Grid.Row="0" Grid.Column="1"
                        FontWeight="SemiBold" HorizontalAlignment="Center"
-                       Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,6"/>
+                       Foreground="{DynamicResource TextPrimaryBrush}" Margin="{StaticResource MarginDetailRow}"/>
             <TextBlock x:Name="HeaderWrite" Grid.Row="0" Grid.Column="2"
                        FontWeight="SemiBold" HorizontalAlignment="Center"
-                       Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,6"/>
+                       Foreground="{DynamicResource TextPrimaryBrush}" Margin="{StaticResource MarginDetailRow}"/>
             <TextBlock x:Name="HeaderExecute" Grid.Row="0" Grid.Column="3"
                        FontWeight="SemiBold" HorizontalAlignment="Center"
-                       Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,6"/>
+                       Foreground="{DynamicResource TextPrimaryBrush}" Margin="{StaticResource MarginDetailRow}"/>
 
             <!-- Owner row -->
             <TextBlock x:Name="LabelOwner" Grid.Row="1" Grid.Column="0"
@@ -166,7 +166,7 @@
 
                 <TextBlock x:Name="OctalLabel" Grid.Column="0"
                            Foreground="{DynamicResource TextSecondaryBrush}"
-                           VerticalAlignment="Center" Margin="0,0,8,0"/>
+                           VerticalAlignment="Center" Margin="{StaticResource MarginInlineSm}"/>
                 <TextBox x:Name="OctalInput" Grid.Column="1"
                          FontFamily="Consolas" FontSize="{StaticResource FontSizeDisplay}" FontWeight="Bold"
                          MaxLength="3"
@@ -179,7 +179,7 @@
 
                 <TextBlock x:Name="SymbolicLabel" Grid.Column="3"
                            Foreground="{DynamicResource TextSecondaryBrush}"
-                           VerticalAlignment="Center" Margin="0,0,8,0"/>
+                           VerticalAlignment="Center" Margin="{StaticResource MarginInlineSm}"/>
                 <TextBlock x:Name="SymbolicDisplay" Grid.Column="4"
                            FontFamily="Consolas" FontSize="{StaticResource FontSizeDisplay}" FontWeight="Bold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
@@ -196,7 +196,7 @@
             <StackPanel>
                 <TextBlock x:Name="SymbolicInputLabel"
                            Foreground="{DynamicResource TextSecondaryBrush}"
-                           FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,4"/>
+                           FontSize="{StaticResource FontSizeBody}" Margin="{StaticResource MarginLabelBottom}"/>
                 <TextBox x:Name="SymbolicInput"
                          FontFamily="Consolas" FontSize="{StaticResource FontSizeSubtitle}"
                          Background="Transparent"
@@ -227,7 +227,7 @@
                 </Grid.ColumnDefinitions>
                 <TextBlock x:Name="CommandPreviewLabel" Grid.Column="0"
                            Foreground="{DynamicResource TextSecondaryBrush}"
-                           VerticalAlignment="Center" Margin="0,0,8,0"/>
+                           VerticalAlignment="Center" Margin="{StaticResource MarginInlineSm}"/>
                 <TextBlock x:Name="CommandPreviewText" Grid.Column="1"
                            FontFamily="Consolas" FontSize="{StaticResource FontSizeSubtitle}"
                            Foreground="{DynamicResource AccentBrush}"
@@ -244,7 +244,7 @@
         <StackPanel Grid.Row="4" Orientation="Horizontal" Margin="{StaticResource MarginSectionSeparator}">
             <Button x:Name="BtnCopyOctal" Click="OnCopyOctalClick"
                     Style="{DynamicResource SecondaryButtonStyle}"
-                    Padding="{StaticResource PaddingButtonCopy}" Margin="0,0,8,0"
+                    Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginInlineSm}"
                     TabIndex="12"/>
             <Button x:Name="BtnCopySymbolic" Click="OnCopySymbolicClick"
                     Style="{DynamicResource SecondaryButtonStyle}"
@@ -257,7 +257,7 @@
             <TextBlock x:Name="PresetsLabel"
                        FontSize="{StaticResource FontSizeBody}" FontWeight="SemiBold"
                        Foreground="{DynamicResource TextSecondaryBrush}"
-                       Margin="0,0,0,6"/>
+                       Margin="{StaticResource MarginDetailRow}"/>
             <WrapPanel Orientation="Horizontal">
                 <Button x:Name="BtnPreset644" Content="644" Click="OnPresetClick" Tag="644"
                         Style="{DynamicResource SecondaryButtonStyle}"

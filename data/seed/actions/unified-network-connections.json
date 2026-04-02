@@ -31,8 +31,8 @@
   "examples": [],
   "windowsExamples": [
     {
-      "command": "Get-Process | Sort-Object CPU -Descending | Select-Object -First 5",
-      "description": "🔥 PERFORMANCE : Identifie les 5 processus qui consomment le plus de CPU actuellement.",
+      "command": "Get-NetTCPConnection -State Established | Select-Object LocalAddress, LocalPort, RemoteAddress, RemotePort | Sort-Object RemoteAddress",
+      "description": "Affiche les connexions TCP actives triées par adresse distante.",
       "platform": 0
     },
     {
