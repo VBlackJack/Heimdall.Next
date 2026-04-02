@@ -444,6 +444,7 @@ public partial class MainWindow : Window
         Mw_SettingsExtProvDesc.Text = vm.Localize("SettingsExternalToolProvidersDesc");
         Mw_SettingsLblSysintPath.Text = vm.Localize("SettingsLblSysinternalsPath");
         Mw_SettingsLblNirSoftPath.Text = vm.Localize("SettingsLblNirSoftPath");
+        Mw_SettingsLblNanaRunPath.Text = vm.Localize("SettingsLblNanaRunPath");
         Mw_SettingsBtnRescan.Content = vm.Localize("ExtToolBtnRescan");
         UpdateExternalToolProviderStatus(vm);
         Mw_SettingsExtToolsTitle.Text = vm.Localize("SettingsSectionExternalToolsList");
@@ -2914,6 +2915,7 @@ public partial class MainWindow : Window
         var scanSettings = await configManager.LoadSettingsAsync();
         scanSettings.SysinternalsPath = string.IsNullOrWhiteSpace(vm.Settings.SysinternalsPath) ? null : vm.Settings.SysinternalsPath;
         scanSettings.NirSoftPath = string.IsNullOrWhiteSpace(vm.Settings.NirSoftPath) ? null : vm.Settings.NirSoftPath;
+        scanSettings.NanaRunPath = string.IsNullOrWhiteSpace(vm.Settings.NanaRunPath) ? null : vm.Settings.NanaRunPath;
 
         await Task.Run(() =>
         {
@@ -2961,6 +2963,24 @@ public partial class MainWindow : Window
         if (dlg.ShowDialog() == System.Windows.Forms.DialogResult.OK)
         {
             vm.Settings.NirSoftPath = dlg.SelectedPath;
+            vm.Settings.IsDirty = true;
+        }
+    }
+
+    private void OnNanaRunPathBrowseClick(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is not MainViewModel vm) return;
+        using var dlg = new System.Windows.Forms.FolderBrowserDialog
+        {
+            Description = "NanaRun",
+            ShowNewFolderButton = false
+        };
+        if (!string.IsNullOrEmpty(vm.Settings.NanaRunPath)
+            && System.IO.Directory.Exists(vm.Settings.NanaRunPath))
+            dlg.SelectedPath = vm.Settings.NanaRunPath;
+        if (dlg.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+        {
+            vm.Settings.NanaRunPath = dlg.SelectedPath;
             vm.Settings.IsDirty = true;
         }
     }

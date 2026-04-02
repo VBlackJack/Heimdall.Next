@@ -37,6 +37,7 @@ public sealed class ExternalToolProviderService
         [
             new SysinternalsToolProvider(),
             new NirSoftToolProvider(),
+            new NanaRunToolProvider(),
         ];
     }
 
@@ -47,13 +48,13 @@ public sealed class ExternalToolProviderService
     /// <param name="settings">Current app settings for user-configured search paths.</param>
     public void ScanAll(AppSettings? settings)
     {
-        var customPaths = BuildCustomPaths(settings);
         var allTools = new List<ExternalToolInfo>();
 
         foreach (var provider in _providers)
         {
             try
             {
+                var customPaths = BuildCustomPaths(settings, provider);
                 var tools = provider.Scan(customPaths);
                 allTools.AddRange(tools);
                 Core.Logging.FileLogger.Info(
@@ -69,17 +70,29 @@ public sealed class ExternalToolProviderService
         _detectedTools = allTools;
     }
 
-    private static IEnumerable<string>? BuildCustomPaths(AppSettings? settings)
+    private static IEnumerable<string>? BuildCustomPaths(
+        AppSettings? settings,
+        IExternalToolProvider provider)
     {
         if (settings is null) return null;
 
         var paths = new List<string>();
 
-        if (!string.IsNullOrWhiteSpace(settings.SysinternalsPath))
-            paths.Add(settings.SysinternalsPath);
-
-        if (!string.IsNullOrWhiteSpace(settings.NirSoftPath))
-            paths.Add(settings.NirSoftPath);
+        switch (provider)
+        {
+            case SysinternalsToolProvider:
+                if (!string.IsNullOrWhiteSpace(settings.SysinternalsPath))
+                    paths.Add(settings.SysinternalsPath);
+                break;
+            case NirSoftToolProvider:
+                if (!string.IsNullOrWhiteSpace(settings.NirSoftPath))
+                    paths.Add(settings.NirSoftPath);
+                break;
+            case NanaRunToolProvider:
+                if (!string.IsNullOrWhiteSpace(settings.NanaRunPath))
+                    paths.Add(settings.NanaRunPath);
+                break;
+        }
 
         return paths.Count > 0 ? paths : null;
     }
