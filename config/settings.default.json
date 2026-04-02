@@ -96,6 +96,7 @@
     "x11AutoStart": true,
     "sysinternalsPath": null,
     "nirSoftPath": null,
+    "nanaRunPath": null,
     "externalTools": [
         {
             "name": "Ping",

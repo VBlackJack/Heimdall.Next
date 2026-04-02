@@ -134,6 +134,9 @@ public partial class SettingsViewModel : ObservableValidator
     [ObservableProperty]
     private string _nirSoftPath = "";
 
+    [ObservableProperty]
+    private string _nanaRunPath = "";
+
     // --- Command Library Git Sync ---
 
     [ObservableProperty]
@@ -397,6 +400,7 @@ public partial class SettingsViewModel : ObservableValidator
         X11AutoStart = settings.X11AutoStart;
         SysinternalsPath = settings.SysinternalsPath ?? "";
         NirSoftPath = settings.NirSoftPath ?? "";
+        NanaRunPath = settings.NanaRunPath ?? "";
 
         // Command Library Git Sync
         CmdLibGitSyncEnabled = settings.CmdLibGitSyncEnabled;
@@ -518,6 +522,7 @@ public partial class SettingsViewModel : ObservableValidator
         settings.X11AutoStart = X11AutoStart;
         settings.SysinternalsPath = string.IsNullOrWhiteSpace(SysinternalsPath) ? null : SysinternalsPath;
         settings.NirSoftPath = string.IsNullOrWhiteSpace(NirSoftPath) ? null : NirSoftPath;
+        settings.NanaRunPath = string.IsNullOrWhiteSpace(NanaRunPath) ? null : NanaRunPath;
 
         // Command Library Git Sync
         settings.CmdLibGitSyncEnabled = CmdLibGitSyncEnabled;

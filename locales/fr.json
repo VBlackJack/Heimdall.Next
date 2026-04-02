@@ -4931,11 +4931,12 @@
   "ToolWolErrorSocket": "Erreur socket : {0}",
   "ToolHelpWOL": "Envoie un paquet magique Wake-on-LAN (6x 0xFF + 16x MAC) via broadcast UDP.\n\nLa machine cible doit avoir le WoL activ\u00e9 dans son BIOS/UEFI et les param\u00e8tres de la carte r\u00e9seau.\n\nFormats MAC accept\u00e9s : AA:BB:CC:DD:EE:FF, AA-BB-CC-DD-EE-FF, AABBCCDDEEFF.\n\nLe port 9 (discard) est le standard ; le port 7 (echo) est aussi courant.",
 
-  "_comment_external_tool_provider": "--- Fournisseur d'outils externes (Sysinternals / NirSoft) ---",
+  "_comment_external_tool_provider": "--- Fournisseur d'outils externes (Sysinternals / NirSoft / NanaRun) ---",
   "SettingsLblSysinternalsPath": "R\u00e9pertoire Sysinternals",
   "SettingsLblNirSoftPath": "R\u00e9pertoire NirSoft",
+  "SettingsLblNanaRunPath": "R\u00e9pertoire NanaRun",
   "SettingsSectionExternalToolProviders": "D\u00e9tection d'outils tiers",
-  "SettingsExternalToolProvidersDesc": "Indiquez les r\u00e9pertoires o\u00f9 les outils Sysinternals ou NirSoft sont install\u00e9s. Heimdall d\u00e9tectera et int\u00e9grera les outils CLI disponibles.",
+  "SettingsExternalToolProvidersDesc": "Indiquez les r\u00e9pertoires o\u00f9 les outils Sysinternals, NirSoft ou NanaRun sont install\u00e9s. Heimdall d\u00e9tectera et int\u00e9grera les outils CLI disponibles.",
   "TreeCtxDetectedTools": "Outils d\u00e9tect\u00e9s",
   "ExtToolBtnRun": "Ex\u00e9cuter",
   "ExtToolBtnStop": "Arr\u00eater",
@@ -4988,5 +4989,7 @@
   "ExtToolDescTaskSchView": "Visualiseur du planificateur de t\u00e2ches",
   "ExtToolDescUsbDeview": "Historique et gestion des p\u00e9riph\u00e9riques USB",
   "ExtToolDescBlueScreenView": "Analyseur de minidumps BSOD",
-  "ExtToolDescProduKey": "Visualiseur de cl\u00e9s de produit Windows et Office"
+  "ExtToolDescProduKey": "Visualiseur de cl\u00e9s de produit Windows et Office",
+  "ExtToolDescMinSudo": "Impl\u00e9mentation de sudo pour Windows avec \u00e9l\u00e9vation via l'UAC",
+  "ExtToolDescSynthRdp": "Service proxy Hyper-V Enhanced Session pour invit\u00e9s anciens ou non-Windows"
 }

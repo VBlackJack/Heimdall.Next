@@ -4932,11 +4932,12 @@
   "ToolWolErrorSocket": "Socket error: {0}",
   "ToolHelpWOL": "Sends a Wake-on-LAN magic packet (6x 0xFF + 16x MAC) via UDP broadcast.\n\nThe target machine must have WoL enabled in its BIOS/UEFI and network adapter settings.\n\nSupported MAC formats: AA:BB:CC:DD:EE:FF, AA-BB-CC-DD-EE-FF, AABBCCDDEEFF.\n\nDefault port 9 (discard protocol) is standard; port 7 (echo) is also common.",
 
-  "_comment_external_tool_provider": "--- External Tool Provider (Sysinternals / NirSoft) ---",
+  "_comment_external_tool_provider": "--- External Tool Provider (Sysinternals / NirSoft / NanaRun) ---",
   "SettingsLblSysinternalsPath": "Sysinternals directory",
   "SettingsLblNirSoftPath": "NirSoft directory",
+  "SettingsLblNanaRunPath": "NanaRun directory",
   "SettingsSectionExternalToolProviders": "Third-Party Tool Detection",
-  "SettingsExternalToolProvidersDesc": "Specify directories where Sysinternals or NirSoft tools are installed. Heimdall will detect and integrate available CLI tools.",
+  "SettingsExternalToolProvidersDesc": "Specify directories where Sysinternals, NirSoft, or NanaRun tools are installed. Heimdall will detect and integrate available CLI tools.",
   "TreeCtxDetectedTools": "Detected Tools",
   "ExtToolBtnRun": "Run",
   "ExtToolBtnStop": "Stop",
@@ -4989,5 +4990,7 @@
   "ExtToolDescTaskSchView": "Task Scheduler viewer with enable/disable",
   "ExtToolDescUsbDeview": "USB device history and management",
   "ExtToolDescBlueScreenView": "BSOD minidump analyzer",
-  "ExtToolDescProduKey": "Windows and Office product key viewer"
+  "ExtToolDescProduKey": "Windows and Office product key viewer",
+  "ExtToolDescMinSudo": "POSIX-style sudo for Windows with UAC-backed privilege elevation",
+  "ExtToolDescSynthRdp": "Hyper-V Enhanced Session proxy service for legacy or non-Windows guests"
 }
