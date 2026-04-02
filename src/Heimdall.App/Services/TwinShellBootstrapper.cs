@@ -105,6 +105,7 @@ internal static class TwinShellBootstrapper
         var context = scope.ServiceProvider.GetRequiredService<TwinShellDbContext>();
 
         await context.Database.EnsureCreatedAsync();
+        await context.EnsureGitOpsSchemaMigrationAsync();
 
         // Seed only if the database is empty
         var repo = scope.ServiceProvider.GetRequiredService<IActionRepository>();
