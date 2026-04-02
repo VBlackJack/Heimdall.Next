@@ -12,6 +12,13 @@
 
 All notable changes to Heimdall.Next are documented in this file.
 
+## [Unreleased] - 2026-04-02
+
+### Terminal keyboard fix — Delete key no longer triggers server deletion
+
+- **Root cause**: WebView2 SDK routes keys via `AcceleratorKeyPressed` → synthetic WPF `KeyDown`, but `Keyboard.FocusedElement` stays stale on the TreeView. The previous fallback (`FindAncestor<TreeView>` exclusion) was self-defeating in the most common scenario (user clicks TreeView then terminal).
+- **Fix**: Check `e.OriginalSource is WebView2` in the `OnKeyDown` handler — the SDK always sets `OriginalSource` to the WebView2 control for terminal-originated keys. Removed the unreliable `ActiveSession.ConnectionType` + `TreeView` exclusion fallback.
+
 ## [Unreleased] - 2026-04-01
 
 ### Command Library UX audit — layout, responsiveness, feedback, performance

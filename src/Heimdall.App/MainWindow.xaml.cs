@@ -892,19 +892,6 @@ public partial class MainWindow : Window
             return true;
         }
 
-        // Fallback: when an embedded session with WebView2 content is active and focus
-        // is NOT in the sidebar TreeView, assume the embedded content should receive
-        // keyboard input. This covers WebView2 focus-tracking gaps where the HWND has
-        // focus but WPF doesn't see it (SSH, Local Shell, Telnet, VNC, Tool sessions).
-        if (DataContext is MainViewModel vm
-            && vm.Connection.ActiveSession?.ConnectionType is { } ct
-            && (ct is "SSH" or "LOCAL" or "TELNET" or "VNC"
-                || ct.StartsWith("TOOL:", StringComparison.OrdinalIgnoreCase))
-            && FindAncestor<System.Windows.Controls.TreeView>(focused) is null)
-        {
-            return true;
-        }
-
         return false;
     }
 
@@ -917,7 +904,10 @@ public partial class MainWindow : Window
 
         // When a terminal has focus, only intercept Ctrl+Shift combos and F-keys;
         // let single-Ctrl shortcuts (Ctrl+B/F/K) pass through to the remote session.
-        var terminalHasFocus = IsEmbeddedContentFocused();
+        // The OriginalSource check catches WebView2 AcceleratorKeyPressed events that
+        // WPF's stale Keyboard.FocusedElement misses (known HwndHost focus gap).
+        var terminalHasFocus = IsEmbeddedContentFocused()
+            || e.OriginalSource is Microsoft.Web.WebView2.Wpf.WebView2;
 
         switch (e.Key)
         {
