@@ -47,11 +47,11 @@
                            VerticalAlignment="Center" DockPanel.Dock="Right"
                            HorizontalAlignment="Right"/>
                 <WrapPanel Margin="16,0,0,0" VerticalAlignment="Center">
-                    <StackPanel Orientation="Horizontal" Margin="0,2,12,2">
+                    <StackPanel Orientation="Horizontal" Margin="{StaticResource MarginFilterGroup}">
                         <TextBlock x:Name="LblHost" Text=""
                                    FontSize="{StaticResource FontSizeCaption}"
                                    Foreground="{DynamicResource TextSecondaryBrush}"
-                                   VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                   VerticalAlignment="Center" Margin="{StaticResource MarginLabelInline}"/>
                         <TextBox x:Name="TxtHost" Text="" MinWidth="140"
                                  Style="{StaticResource WatermarkTextBoxStyle}"
                                  Tag=""
@@ -63,23 +63,23 @@
                                  VerticalAlignment="Center"
                                  TabIndex="0"/>
                     </StackPanel>
-                    <StackPanel Orientation="Horizontal" Margin="0,2,12,2">
+                    <StackPanel Orientation="Horizontal" Margin="{StaticResource MarginFilterGroup}">
                         <Button x:Name="BtnToggle" Content=""
                                 Click="OnToggleClick"
                                 Style="{DynamicResource PrimaryButtonStyle}"
-                                Padding="{StaticResource PaddingButtonPrimary}" Margin="0,0,4,0"
+                                Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginInlineXs}"
                                 VerticalAlignment="Center"
                                 TabIndex="1"/>
                         <Button x:Name="BtnClear" Content=""
                                 Click="OnClearClick"
                                 Style="{DynamicResource SecondaryButtonStyle}"
-                                Padding="{StaticResource PaddingButtonCopy}" Margin="0,0,4,0"
+                                Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginInlineXs}"
                                 VerticalAlignment="Center"
                                 TabIndex="2"/>
                         <Button x:Name="BtnCopyLog" Content=""
                                 Click="OnCopyLogClick"
                                 Style="{DynamicResource SecondaryButtonStyle}"
-                                Padding="{StaticResource PaddingButtonCopy}" Margin="0,0,4,0"
+                                Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginInlineXs}"
                                 VerticalAlignment="Center"
                                 TabIndex="3"/>
                         <Button x:Name="BtnExportCsv" Content=""
@@ -89,10 +89,10 @@
                                 VerticalAlignment="Center"
                                 TabIndex="4"/>
                     </StackPanel>
-                    <StackPanel Orientation="Horizontal" Margin="0,2,12,2">
+                    <StackPanel Orientation="Horizontal" Margin="{StaticResource MarginFilterGroup}">
                         <TextBlock x:Name="LblInterval" Text=""
                                    Foreground="{DynamicResource TextSecondaryBrush}"
-                                   FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                                   FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center" Margin="{StaticResource MarginInlineXs}"/>
                         <ComboBox x:Name="CmbInterval" Width="70"
                                   SelectedIndex="1"
                                   VerticalAlignment="Center"
@@ -107,10 +107,10 @@
                             <ComboBoxItem x:Name="Ping10s" Content="" Tag="10000"/>
                         </ComboBox>
                     </StackPanel>
-                    <StackPanel Orientation="Horizontal" Margin="0,2,12,2">
+                    <StackPanel Orientation="Horizontal" Margin="{StaticResource MarginFilterGroup}">
                         <TextBlock x:Name="LblTimeout" Text=""
                                    Foreground="{DynamicResource TextSecondaryBrush}"
-                                   FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                                   FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center" Margin="{StaticResource MarginInlineXs}"/>
                         <TextBox x:Name="TxtTimeout" Text="" Width="60"
                                  FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                                  Padding="{StaticResource PaddingInput}"
@@ -123,7 +123,7 @@
                     <StackPanel Orientation="Horizontal" Margin="0,2,0,2">
                         <TextBlock x:Name="LblCount" Text=""
                                    Foreground="{DynamicResource TextSecondaryBrush}"
-                                   FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                                   FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center" Margin="{StaticResource MarginInlineXs}"/>
                         <TextBox x:Name="TxtCount" Text="" Width="50"
                                  FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                                  Padding="{StaticResource PaddingInput}"
@@ -137,7 +137,7 @@
                         <TextBlock x:Name="LblRouteVia" Text=""
                                    FontSize="{StaticResource FontSizeCaption}"
                                    Foreground="{DynamicResource TextSecondaryBrush}"
-                                   VerticalAlignment="Center" Margin="0,0,4,0"/>
+                                   VerticalAlignment="Center" Margin="{StaticResource MarginInlineXs}"/>
                         <ComboBox x:Name="CmbRouteVia" Width="180"
                                   SelectionChanged="OnRouteViaChanged"
                                   Background="{DynamicResource CardBrush}"
@@ -171,7 +171,7 @@
         <!-- Empty state hint -->
         <Border x:Name="EmptyStatePanel" Grid.Row="2"
                 Style="{StaticResource ToolEmptyStateStyle}"
-                Margin="0,24,0,0">
+               >
             <StackPanel HorizontalAlignment="Center">
                 <TextBlock Text="&#xE968;" Style="{StaticResource ToolEmptyStateIconStyle}"
                            Focusable="False"/>
@@ -202,7 +202,7 @@
                                Foreground="{DynamicResource TextSecondaryBrush}"
                                VerticalAlignment="Top" HorizontalAlignment="Left"/>
                     <TextBlock x:Name="TxtYMid" Text="" FontSize="{StaticResource FontSizeCaption}"
-                               FontFamily="Consolas" Margin="4,0,0,0"
+                               FontFamily="Consolas" Margin="{StaticResource MarginInlineStart}"
                                Foreground="{DynamicResource TextSecondaryBrush}"
                                VerticalAlignment="Center" HorizontalAlignment="Left"/>
                     <TextBlock x:Name="TxtYMin" Text="" FontSize="{StaticResource FontSizeCaption}"
@@ -240,7 +240,7 @@
                 BorderThickness="0,1,0,0">
             <StackPanel Orientation="Horizontal">
                 <TextBlock x:Name="LblMin" Text="" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
-                           Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,4,0"/>
+                           Foreground="{DynamicResource TextSecondaryBrush}" Margin="{StaticResource MarginInlineXs}"/>
                 <TextBlock x:Name="TxtMin" Text="—" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                            Foreground="{DynamicResource SuccessTextBrush}" FontWeight="SemiBold"/>
 
@@ -248,7 +248,7 @@
                            Foreground="{DynamicResource BorderBrush}"/>
 
                 <TextBlock x:Name="LblAvg" Text="" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
-                           Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,4,0"/>
+                           Foreground="{DynamicResource TextSecondaryBrush}" Margin="{StaticResource MarginInlineXs}"/>
                 <TextBlock x:Name="TxtAvg" Text="—" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                            Foreground="{DynamicResource AccentBrush}" FontWeight="SemiBold"/>
 
@@ -256,7 +256,7 @@
                            Foreground="{DynamicResource BorderBrush}"/>
 
                 <TextBlock x:Name="LblMax" Text="" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
-                           Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,4,0"/>
+                           Foreground="{DynamicResource TextSecondaryBrush}" Margin="{StaticResource MarginInlineXs}"/>
                 <TextBlock x:Name="TxtMax" Text="—" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                            Foreground="{DynamicResource WarningTextBrush}" FontWeight="SemiBold"/>
 
@@ -264,7 +264,7 @@
                            Foreground="{DynamicResource BorderBrush}"/>
 
                 <TextBlock x:Name="LblJitter" Text="" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
-                           Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,4,0"/>
+                           Foreground="{DynamicResource TextSecondaryBrush}" Margin="{StaticResource MarginInlineXs}"/>
                 <TextBlock x:Name="TxtJitter" Text="—" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                            Foreground="{DynamicResource TextPrimaryBrush}" FontWeight="SemiBold"/>
 
@@ -272,7 +272,7 @@
                            Foreground="{DynamicResource BorderBrush}"/>
 
                 <TextBlock x:Name="LblLoss" Text="" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
-                           Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,4,0"/>
+                           Foreground="{DynamicResource TextSecondaryBrush}" Margin="{StaticResource MarginInlineXs}"/>
                 <TextBlock x:Name="TxtLoss" Text="—" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                            Foreground="{DynamicResource ErrorTextBrush}" FontWeight="SemiBold"/>
             </StackPanel>

@@ -25,7 +25,7 @@
       {
         "name": "daysThreshold",
         "label": "Seuil en jours",
-        "type": "string",
+        "type": "number",
         "defaultValue": "30",
         "required": true,
         "description": "Nombre de jours avant expiration pour alerter"

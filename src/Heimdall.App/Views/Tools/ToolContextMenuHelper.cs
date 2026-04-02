@@ -140,7 +140,7 @@ public static class ToolContextMenuHelper
     public static MenuItem BuildCopyRowAction(string rowText, LocalizationManager? localizer)
     {
         var item = new MenuItem { Header = L(localizer, "ToolCtxCopyRow") };
-        item.Click += (_, _) => { try { Clipboard.SetText(rowText); } catch (System.Runtime.InteropServices.ExternalException) { /* clipboard locked */ } };
+        item.Click += (_, _) => { try { Clipboard.SetText(InputValidator.SanitizeCsvCell(rowText)); } catch (System.Runtime.InteropServices.ExternalException) { /* clipboard locked */ } };
         return item;
     }
 
@@ -154,16 +154,16 @@ public static class ToolContextMenuHelper
         {
             var sb = new System.Text.StringBuilder();
             // Header row
-            var headers = grid.Columns.Select(c => c.Header?.ToString() ?? "");
+            var headers = grid.Columns.Select(c => InputValidator.SanitizeCsvCell(c.Header?.ToString() ?? ""));
             sb.AppendLine(string.Join('\t', headers));
             // Data rows
             foreach (var row in grid.Items)
             {
-                var cells = grid.Columns.Select(c => c.GetCellContent(row) switch
+                var cells = grid.Columns.Select(c => InputValidator.SanitizeCsvCell(c.GetCellContent(row) switch
                 {
                     TextBlock tb => tb.Text,
                     _ => ""
-                });
+                }));
                 sb.AppendLine(string.Join('\t', cells));
             }
             try { Clipboard.SetText(sb.ToString()); } catch (System.Runtime.InteropServices.ExternalException) { /* clipboard locked */ }

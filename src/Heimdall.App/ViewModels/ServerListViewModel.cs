@@ -438,7 +438,8 @@ public partial class ServerListViewModel : ObservableObject
         }
 
         var provider = new Core.Security.CommandCredentialProvider(
-            settings.CredentialProviderCommand, settings.CredentialProviderDatabase);
+            settings.CredentialProviderCommand, settings.CredentialProviderDatabase,
+            settings.CredentialProviderTimeoutMs);
 
         if (!provider.IsAvailable)
         {
@@ -505,6 +506,7 @@ public partial class ServerListViewModel : ObservableObject
 
         var settings = await _configManager.LoadSettingsAsync();
         PopulateServerDialogOptions(dialogVm, settings);
+        dialogVm.Settings = settings;
 
         // Reset dirty state after initialization (gateway pre-selection is not a user change)
         dialogVm.IsDirty = false;
@@ -585,6 +587,7 @@ public partial class ServerListViewModel : ObservableObject
 
         var settings = await _configManager.LoadSettingsAsync();
         PopulateServerDialogOptions(dialogVm, settings);
+        dialogVm.Settings = settings;
 
         var result = await _dialogService.ShowServerDialogAsync(dialogVm);
 

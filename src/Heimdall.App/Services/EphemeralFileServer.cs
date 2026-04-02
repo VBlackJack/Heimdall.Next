@@ -60,6 +60,9 @@ public sealed class EphemeralFileServer : IDisposable, IAsyncDisposable
     /// <summary>The directory currently being served.</summary>
     public string ServingDirectory => _servingDirectory;
 
+    /// <summary>Graceful shutdown timeout for HTTP/TFTP tasks.</summary>
+    public int ShutdownTimeoutMs { get; set; } = 2000;
+
     /// <summary>Raised when a file is served (downloaded) by either server.</summary>
     public event Action<string>? FileServed;
 
@@ -111,7 +114,7 @@ public sealed class EphemeralFileServer : IDisposable, IAsyncDisposable
 
         if (_httpTask is not null)
         {
-            try { await _httpTask.WaitAsync(TimeSpan.FromSeconds(2)); }
+            try { await _httpTask.WaitAsync(TimeSpan.FromMilliseconds(ShutdownTimeoutMs)); }
             catch (Exception ex) { Core.Logging.FileLogger.Warn($"[EphemeralFileServer] HTTP task wait: {ex.Message}"); }
         }
 
@@ -154,7 +157,7 @@ public sealed class EphemeralFileServer : IDisposable, IAsyncDisposable
 
         if (_tftpTask is not null)
         {
-            try { await _tftpTask.WaitAsync(TimeSpan.FromSeconds(2)); }
+            try { await _tftpTask.WaitAsync(TimeSpan.FromMilliseconds(ShutdownTimeoutMs)); }
             catch (Exception ex) { Core.Logging.FileLogger.Warn($"[EphemeralFileServer] TFTP task wait: {ex.Message}"); }
         }
 

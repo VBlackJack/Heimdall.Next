@@ -65,7 +65,7 @@
             <StackPanel MaxWidth="{StaticResource ToolContentMaxWidth}">
 
                 <!-- Decoded field -->
-                <DockPanel Margin="0,0,0,4">
+                <DockPanel Margin="{StaticResource MarginLabelBottom}">
                     <Button x:Name="BtnCopyDecoded" DockPanel.Dock="Right"
                             TabIndex="1"
                             Content="" Click="OnCopyDecodedClick"
@@ -80,7 +80,7 @@
                 <TextBox x:Name="TxtDecoded" Text=""
                          TabIndex="0"
                          FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
-                         Padding="{StaticResource PaddingInput}" Margin="0,0,0,8"
+                         Padding="{StaticResource PaddingInput}" Margin="{StaticResource MarginStackItem}"
                          AcceptsReturn="True" TextWrapping="Wrap"
                          MinHeight="80" MaxHeight="200"
                          VerticalScrollBarVisibility="Auto"
@@ -107,7 +107,7 @@
                 <TextBox x:Name="TxtEncoded" Text=""
                          TabIndex="2"
                          FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
-                         Padding="{StaticResource PaddingInput}" Margin="0,0,0,8"
+                         Padding="{StaticResource PaddingInput}" Margin="{StaticResource MarginStackItem}"
                          AcceptsReturn="True" TextWrapping="Wrap"
                          MinHeight="80" MaxHeight="200"
                          VerticalScrollBarVisibility="Auto"

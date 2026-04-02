@@ -55,5 +55,10 @@
     }
   ],
   "notes": "Nécessite des droits d'administration AD. L'ordinateur pourra rejoindre le domaine après activation.",
-  "links": []
+  "links": [
+    {
+      "title": "Documentation Enable-ADAccount",
+      "url": "https://learn.microsoft.com/en-us/powershell/module/activedirectory/enable-adaccount"
+    }
+  ]
 }

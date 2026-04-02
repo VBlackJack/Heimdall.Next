@@ -194,7 +194,7 @@ public partial class ArpMonitorView : UserControl, IToolView
 
         try
         {
-            var current = await Task.Run(ReadArpTable);
+            var current = await Task.Run(ReadArpTableAsync);
 
             var now = DateTime.Now.ToString("HH:mm:ss");
             var successBrush = (Brush)FindResource("SuccessBrush");
@@ -378,7 +378,7 @@ public partial class ArpMonitorView : UserControl, IToolView
     /// Reads the local ARP table by running "arp -a" (Windows/macOS) or reading /proc/net/arp (Linux).
     /// Returns a dictionary mapping IP addresses to MAC addresses (dash-separated format).
     /// </summary>
-    private static Dictionary<string, string> ReadArpTable()
+    private static async Task<Dictionary<string, string>> ReadArpTableAsync()
     {
         var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
@@ -401,7 +401,7 @@ public partial class ArpMonitorView : UserControl, IToolView
             {
                 try { proc.Kill(); } catch { /* already exited */ }
             }
-            var output = outputTask.GetAwaiter().GetResult();
+            var output = await outputTask;
 
             // Parse lines like: "  10.0.0.1             aa-bb-cc-dd-ee-ff     dynamic"
             foreach (var line in output.Split('\n'))
@@ -461,7 +461,7 @@ public partial class ArpMonitorView : UserControl, IToolView
             {
                 try { proc.Kill(); } catch { /* already exited */ }
             }
-            var output = outputTask.GetAwaiter().GetResult();
+            var output = await outputTask;
 
             // Parse lines like: "? (192.168.1.1) at 00:11:22:33:44:55 on en0 ifscope [ether]"
             foreach (var line in output.Split('\n'))

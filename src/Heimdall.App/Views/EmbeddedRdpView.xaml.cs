@@ -38,7 +38,7 @@ namespace Heimdall.App.Views;
 /// </summary>
 public partial class EmbeddedRdpView : UserControl, IDisposable
 {
-    private static readonly TimeSpan InitialResizeEnableDelay = TimeSpan.FromSeconds(10);
+    private TimeSpan _initialResizeEnableDelay = TimeSpan.FromSeconds(10);
     private static readonly TimeSpan BeginConnectRetryDelay = TimeSpan.FromMilliseconds(120);
     private static readonly TimeSpan ResizeDebounceInterval = TimeSpan.FromMilliseconds(1000);
 
@@ -108,7 +108,8 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         SessionTabViewModel sessionTab,
         int antiIdleIntervalSeconds = 60,
         Core.Localization.LocalizationManager? localizer = null,
-        int? tunnelPort = null)
+        int? tunnelPort = null,
+        int resizeEnableDelayMs = 10000)
     {
         ArgumentNullException.ThrowIfNull(server);
         ArgumentNullException.ThrowIfNull(sessionTab);
@@ -128,6 +129,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
         _antiIdleIntervalSeconds = antiIdleIntervalSeconds;
         _localizer = localizer;
         _tunnelPort = tunnelPort;
+        _initialResizeEnableDelay = TimeSpan.FromMilliseconds(resizeEnableDelayMs);
         _initialized = true;
 
         SessionTitleText.Text = server.DisplayName;
@@ -474,7 +476,7 @@ public partial class EmbeddedRdpView : UserControl, IDisposable
     {
         try
         {
-            await Task.Delay(InitialResizeEnableDelay);
+            await Task.Delay(_initialResizeEnableDelay);
         }
         catch (Exception ex)
         {

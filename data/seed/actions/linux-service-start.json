@@ -30,8 +30,8 @@
   },
   "examples": [
     {
-      "command": "sudo systemctl start wuauserv",
-      "description": "Exemple utilisant le paramètre 'serviceName': Nom du service à démarrer. Remplacez wuauserv par la valeur appropriée selon votre environnement.",
+      "command": "sudo systemctl start nginx",
+      "description": "Exemple utilisant le paramètre 'serviceName': Nom du service à démarrer. Remplacez nginx par la valeur appropriée selon votre environnement.",
       "platform": 1
     }
   ],

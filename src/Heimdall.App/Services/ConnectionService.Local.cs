@@ -45,7 +45,7 @@ public partial class ConnectionService
         {
             var policyPrefix = "";
             if (!string.Equals(settings.PowerShellExecutionPolicy, "Default", StringComparison.OrdinalIgnoreCase)
-                && !string.IsNullOrWhiteSpace(settings.PowerShellExecutionPolicy))
+                && Core.Security.InputValidator.IsValidExecutionPolicy(settings.PowerShellExecutionPolicy))
             {
                 policyPrefix = $"-ExecutionPolicy {settings.PowerShellExecutionPolicy}";
             }

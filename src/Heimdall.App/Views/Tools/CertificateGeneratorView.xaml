@@ -84,9 +84,9 @@
                 <StackPanel>
                     <TextBlock x:Name="SubjectSectionLabel"
                                Foreground="{DynamicResource TextPrimaryBrush}"
-                               FontWeight="SemiBold" Margin="0,0,0,8"/>
+                               FontWeight="SemiBold" Margin="{StaticResource MarginStackItem}"/>
                     <!-- Common Name -->
-                    <DockPanel Margin="0,0,0,8">
+                    <DockPanel Margin="{StaticResource MarginStackItem}">
                         <TextBlock x:Name="CnLabel"
                                    Foreground="{DynamicResource TextPrimaryBrush}"
                                    VerticalAlignment="Center" Width="160"/>
@@ -98,7 +98,7 @@
                                  Padding="{StaticResource PaddingInput}"/>
                     </DockPanel>
                     <!-- Organization -->
-                    <DockPanel Margin="0,0,0,8">
+                    <DockPanel Margin="{StaticResource MarginStackItem}">
                         <TextBlock x:Name="OrgLabel"
                                    Foreground="{DynamicResource TextPrimaryBrush}"
                                    VerticalAlignment="Center" Width="160"/>
@@ -110,7 +110,7 @@
                                  Padding="{StaticResource PaddingInput}"/>
                     </DockPanel>
                     <!-- Country -->
-                    <DockPanel Margin="0,0,0,4">
+                    <DockPanel Margin="{StaticResource MarginLabelBottom}">
                         <TextBlock x:Name="CountryLabel"
                                    Foreground="{DynamicResource TextPrimaryBrush}"
                                    VerticalAlignment="Center" Width="160"/>
@@ -133,9 +133,9 @@
                 <StackPanel>
                     <TextBlock x:Name="OptionsSectionLabel"
                                Foreground="{DynamicResource TextPrimaryBrush}"
-                               FontWeight="SemiBold" Margin="0,0,0,8"/>
+                               FontWeight="SemiBold" Margin="{StaticResource MarginStackItem}"/>
                     <!-- Key Size -->
-                    <DockPanel Margin="0,0,0,8">
+                    <DockPanel Margin="{StaticResource MarginStackItem}">
                         <TextBlock x:Name="KeySizeLabel"
                                    Foreground="{DynamicResource TextPrimaryBrush}"
                                    VerticalAlignment="Center" Width="160"/>
@@ -148,7 +148,7 @@
                         </ComboBox>
                     </DockPanel>
                     <!-- Validity Days -->
-                    <DockPanel Margin="0,0,0,8">
+                    <DockPanel Margin="{StaticResource MarginStackItem}">
                         <TextBlock x:Name="ValidityLabel"
                                    Foreground="{DynamicResource TextPrimaryBrush}"
                                    VerticalAlignment="Center" Width="160"/>
@@ -162,7 +162,7 @@
                                  HorizontalAlignment="Left"/>
                     </DockPanel>
                     <!-- SANs -->
-                    <DockPanel Margin="0,0,0,4">
+                    <DockPanel Margin="{StaticResource MarginLabelBottom}">
                         <TextBlock x:Name="SanLabel"
                                    Foreground="{DynamicResource TextPrimaryBrush}"
                                    VerticalAlignment="Center" Width="160"/>
@@ -189,7 +189,7 @@
                 <StackPanel>
                     <TextBlock x:Name="TypeSectionLabel"
                                Foreground="{DynamicResource TextPrimaryBrush}"
-                               FontWeight="SemiBold" Margin="0,0,0,8"/>
+                               FontWeight="SemiBold" Margin="{StaticResource MarginStackItem}"/>
                     <StackPanel Orientation="Horizontal">
                         <RadioButton x:Name="RadioSelfSigned"
                                      TabIndex="6"
@@ -249,7 +249,7 @@
                     Margin="{StaticResource MarginSectionBottom}"
                     Visibility="Collapsed" x:Name="CertPanel">
                 <DockPanel>
-                    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,6">
+                    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="{StaticResource MarginDetailRow}">
                         <TextBlock x:Name="CertLabel"
                                    Foreground="{DynamicResource TextPrimaryBrush}"
                                    FontWeight="SemiBold" VerticalAlignment="Center"/>
@@ -279,7 +279,7 @@
                     Margin="{StaticResource MarginSectionBottom}"
                     Visibility="Collapsed" x:Name="KeyPanel">
                 <DockPanel>
-                    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,6">
+                    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="{StaticResource MarginDetailRow}">
                         <TextBlock x:Name="KeyLabel"
                                    Foreground="{DynamicResource TextPrimaryBrush}"
                                    FontWeight="SemiBold" VerticalAlignment="Center"/>
@@ -291,7 +291,7 @@
                         <Button x:Name="BtnShowKey"
                                 Click="OnToggleKeyClick"
                                 Style="{DynamicResource SecondaryButtonStyle}"
-                                Padding="{StaticResource PaddingButtonCopy}" Margin="4,0,0,0"
+                                Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginInlineStart}"
                                 VerticalAlignment="Center"/>
                     </StackPanel>
                     <TextBox x:Name="KeyOutput"
@@ -315,7 +315,7 @@
                     Visibility="Collapsed" x:Name="LeafPanel">
                 <StackPanel>
                     <!-- Leaf Cert -->
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                    <StackPanel Orientation="Horizontal" Margin="{StaticResource MarginDetailRow}">
                         <TextBlock x:Name="LeafCertLabel"
                                    Foreground="{DynamicResource TextPrimaryBrush}"
                                    FontWeight="SemiBold" VerticalAlignment="Center"/>
@@ -336,7 +336,7 @@
                              BorderThickness="0"
                              Margin="{StaticResource MarginSectionBottom}"/>
                     <!-- Leaf Key -->
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                    <StackPanel Orientation="Horizontal" Margin="{StaticResource MarginDetailRow}">
                         <TextBlock x:Name="LeafKeyLabel"
                                    Foreground="{DynamicResource TextPrimaryBrush}"
                                    FontWeight="SemiBold" VerticalAlignment="Center"/>
@@ -348,7 +348,7 @@
                         <Button x:Name="BtnShowLeafKey"
                                 Click="OnToggleLeafKeyClick"
                                 Style="{DynamicResource SecondaryButtonStyle}"
-                                Padding="{StaticResource PaddingButtonCopy}" Margin="4,0,0,0"
+                                Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginInlineStart}"
                                 VerticalAlignment="Center"/>
                     </StackPanel>
                     <TextBox x:Name="LeafKeyOutput"
@@ -370,7 +370,7 @@
                 <Button x:Name="BtnSavePem"
                         Click="OnSavePemClick"
                         Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="{StaticResource PaddingButtonPrimary}" Margin="0,0,8,0"/>
+                        Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginInlineSm}"/>
                 <Button x:Name="BtnSavePfx"
                         Click="OnSavePfxClick"
                         Style="{DynamicResource SecondaryButtonStyle}"

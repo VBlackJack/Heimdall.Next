@@ -105,7 +105,8 @@ public sealed class EmbeddedSessionManager
             session is RdpSessionResult rdp)
         {
             var view = new EmbeddedRdpView();
-            view.InitializeSession(rdp.Server, sessionTab, antiIdleInterval, _localizer, rdp.TunnelPort);
+            var resizeDelay = settings?.RdpResizeEnableDelayMs ?? 10000;
+            view.InitializeSession(rdp.Server, sessionTab, antiIdleInterval, _localizer, rdp.TunnelPort, resizeDelay);
             WireSplitRequested(view, sessionTab);
             view.ReconnectRequested += () =>
                 ReconnectRequestedCallback?.Invoke(

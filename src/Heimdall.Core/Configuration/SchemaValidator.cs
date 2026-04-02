@@ -89,6 +89,49 @@ public static partial class SchemaValidator
         ValidateRange(errors, settings.ProcessKillTimeoutMs, 0, 60000,
             nameof(settings.ProcessKillTimeoutMs));
 
+        ValidateRange(errors, settings.HostKeyProbeTimeoutMs, 1000, 120000,
+            nameof(settings.HostKeyProbeTimeoutMs));
+        ValidateRange(errors, settings.TelnetConnectTimeoutMs, 1000, 120000,
+            nameof(settings.TelnetConnectTimeoutMs));
+        ValidateRange(errors, settings.CredentialProviderTimeoutMs, 1000, 120000,
+            nameof(settings.CredentialProviderTimeoutMs));
+        ValidateRange(errors, settings.RdpCredentialAutofillTimeoutMs, 5000, 300000,
+            nameof(settings.RdpCredentialAutofillTimeoutMs));
+        ValidateRange(errors, settings.RdpArtifactCleanupDelayMs, 1000, 60000,
+            nameof(settings.RdpArtifactCleanupDelayMs));
+        ValidateRange(errors, settings.RdpResizeEnableDelayMs, 1000, 60000,
+            nameof(settings.RdpResizeEnableDelayMs));
+        ValidateRange(errors, settings.SshKeepAliveIntervalSeconds, 5, 600,
+            nameof(settings.SshKeepAliveIntervalSeconds));
+        ValidateRange(errors, settings.PlinkPortCheckIntervalMs, 500, 30000,
+            nameof(settings.PlinkPortCheckIntervalMs));
+        ValidateRange(errors, settings.PlinkKillGracePeriodMs, 500, 30000,
+            nameof(settings.PlinkKillGracePeriodMs));
+        ValidateRange(errors, settings.PlinkStderrReadTimeoutMs, 1000, 60000,
+            nameof(settings.PlinkStderrReadTimeoutMs));
+        ValidateRange(errors, settings.SftpUploadDebounceMs, 500, 30000,
+            nameof(settings.SftpUploadDebounceMs));
+        ValidateRange(errors, settings.ServerShutdownTimeoutMs, 500, 30000,
+            nameof(settings.ServerShutdownTimeoutMs));
+        ValidateRange(errors, settings.SleepPreventionIntervalSeconds, 10, 600,
+            nameof(settings.SleepPreventionIntervalSeconds));
+        ValidateRange(errors, settings.FileLoggerFlushIntervalMs, 500, 30000,
+            nameof(settings.FileLoggerFlushIntervalMs));
+        ValidateRange(errors, settings.DefaultRdpTunnelPort, 1, 65535,
+            nameof(settings.DefaultRdpTunnelPort));
+        ValidateRange(errors, settings.DefaultSshTunnelPort, 1, 65535,
+            nameof(settings.DefaultSshTunnelPort));
+        ValidateRange(errors, settings.EphemeralHttpPort, 1, 65535,
+            nameof(settings.EphemeralHttpPort));
+        ValidateRange(errors, settings.EphemeralTftpPort, 1, 65535,
+            nameof(settings.EphemeralTftpPort));
+
+        if (!string.IsNullOrWhiteSpace(settings.PowerShellExecutionPolicy)
+            && !Security.InputValidator.IsValidExecutionPolicy(settings.PowerShellExecutionPolicy))
+        {
+            errors.Add($"{nameof(settings.PowerShellExecutionPolicy)}: unknown policy '{settings.PowerShellExecutionPolicy}'.");
+        }
+
         if (!ValidModes.Contains(settings.SshDefaultMode))
         {
             errors.Add($"{nameof(settings.SshDefaultMode)}: must be 'External' or 'Embedded'.");

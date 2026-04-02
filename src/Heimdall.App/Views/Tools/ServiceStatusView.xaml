@@ -104,7 +104,7 @@
         <!-- Empty state hint (hidden once services are loaded) -->
         <Border x:Name="EmptyStatePanel" Grid.Row="2"
                 Style="{StaticResource ToolEmptyStateStyle}"
-                Margin="0,24,0,0">
+               >
             <StackPanel HorizontalAlignment="Center">
                 <TextBlock Text="&#xE770;"
                            Style="{StaticResource ToolEmptyStateIconStyle}"
@@ -168,7 +168,7 @@
                         TabIndex="5"/>
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <TextBlock x:Name="LblTotal" Text="" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
-                               Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,4,0"/>
+                               Foreground="{DynamicResource TextSecondaryBrush}" Margin="{StaticResource MarginInlineXs}"/>
                     <TextBlock x:Name="TxtTotal" Text="—" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                                Foreground="{DynamicResource AccentBrush}" FontWeight="SemiBold"/>
 
@@ -176,7 +176,7 @@
                                Foreground="{DynamicResource BorderBrush}"/>
 
                     <TextBlock x:Name="LblRunning" Text="" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
-                               Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,4,0"/>
+                               Foreground="{DynamicResource TextSecondaryBrush}" Margin="{StaticResource MarginInlineXs}"/>
                     <TextBlock x:Name="TxtRunning" Text="—" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                                Foreground="{DynamicResource SuccessTextBrush}" FontWeight="SemiBold"/>
 
@@ -184,7 +184,7 @@
                                Foreground="{DynamicResource BorderBrush}"/>
 
                     <TextBlock x:Name="LblStopped" Text="" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
-                               Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,4,0"/>
+                               Foreground="{DynamicResource TextSecondaryBrush}" Margin="{StaticResource MarginInlineXs}"/>
                     <TextBlock x:Name="TxtStopped" Text="—" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                                Foreground="{DynamicResource ErrorTextBrush}" FontWeight="SemiBold"/>
                 </StackPanel>

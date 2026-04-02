@@ -65,7 +65,7 @@
         <!-- Empty state hint (hidden once content is loaded) -->
         <Border x:Name="EmptyStatePanel" Grid.Row="2"
                 Style="{StaticResource ToolEmptyStateStyle}"
-                Margin="0,24,0,0">
+               >
             <StackPanel HorizontalAlignment="Center">
                 <TextBlock Text="&#xE787;"
                            Style="{StaticResource ToolEmptyStateIconStyle}"
@@ -101,7 +101,7 @@
 
                     <!-- Instructions -->
                     <TextBlock x:Name="LblPasteInstructions" Grid.Row="0" Text=""
-                               FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,8"
+                               FontSize="{StaticResource FontSizeBody}" Margin="{StaticResource MarginStackItem}"
                                Foreground="{DynamicResource TextSecondaryBrush}"
                                TextWrapping="Wrap"/>
 
@@ -118,7 +118,7 @@
                              TabIndex="0"/>
 
                     <!-- Parse button -->
-                    <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,8,0,0">
+                    <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="{StaticResource MarginSubsectionTop}">
                         <Button x:Name="BtnParse" Content=""
                                 Click="OnParseClick"
                                 Style="{DynamicResource PrimaryButtonStyle}"
@@ -134,12 +134,12 @@
                     <!-- Error message -->
                     <TextBlock x:Name="TxtCronError" Grid.Row="3" Text=""
                                Style="{StaticResource ToolInlineErrorTextStyle}"
-                               Margin="0,8,0,0"/>
+                               Margin="{StaticResource MarginSubsectionTop}"/>
 
                     <!-- Parsed entries DataGrid -->
                     <Border x:Name="CronResultsPanel" Grid.Row="4"
                             Style="{StaticResource ToolResultsCardStyle}"
-                            Margin="0,8,0,0"
+                            Margin="{StaticResource MarginSubsectionTop}"
                             Padding="0">
                         <DataGrid x:Name="CronResultsGrid"
                                   AutoGenerateColumns="False"
@@ -172,7 +172,7 @@
 
                     <!-- Detail panel -->
                     <Border x:Name="CronDetailPanel" Grid.Row="5" Visibility="Collapsed"
-                            Margin="0,8,0,0" Padding="{StaticResource PaddingAlertBanner}"
+                            Margin="{StaticResource MarginSubsectionTop}" Padding="{StaticResource PaddingAlertBanner}"
                             Background="{DynamicResource CardBrush}"
                             BorderBrush="{DynamicResource AccentBrush}"
                             BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}">
@@ -180,7 +180,7 @@
                             <TextBlock x:Name="TxtDetailHeader" Text=""
                                        FontSize="{StaticResource FontSizeBodyLarge}" FontWeight="SemiBold"
                                        Foreground="{DynamicResource AccentBrush}"
-                                       Margin="0,0,0,4"/>
+                                       Margin="{StaticResource MarginLabelBottom}"/>
                             <TextBlock x:Name="TxtDetailSchedule" Text=""
                                        FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                                        Foreground="{DynamicResource TextPrimaryBrush}"
@@ -209,7 +209,7 @@
                     </Grid.RowDefinitions>
 
                     <!-- Controls row -->
-                    <DockPanel Grid.Row="0" Margin="0,0,0,8">
+                    <DockPanel Grid.Row="0" Margin="{StaticResource MarginStackItem}">
                         <Button x:Name="BtnRefreshTasks" Content=""
                                 Click="OnRefreshTasksClick"
                                 Style="{DynamicResource PrimaryButtonStyle}"
@@ -224,7 +224,7 @@
                     <!-- Error message -->
                     <TextBlock x:Name="TxtTasksError" Grid.Row="1" Text=""
                                Style="{StaticResource ToolInlineErrorTextStyle}"
-                               Margin="0,0,0,8"/>
+                               Margin="{StaticResource MarginStackItem}"/>
 
                     <!-- Windows Tasks DataGrid -->
                     <Border x:Name="TasksResultsPanel" Grid.Row="2"

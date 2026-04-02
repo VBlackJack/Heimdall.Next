@@ -57,22 +57,22 @@
       "platform": 0
     },
     {
-      "command": "$cert = Get-ChildItem -Path Cert:\\LocalMachine\\My\\A1B2C3D4E5F6G7H8I9J0K1L2M3N4O5P6Q7R8S9T0; Export-Certificate -Cert $cert -FilePath 'C:\\Export\\users.csv' | Select-Object * -First 1",
+      "command": "$cert = Get-ChildItem -Path Cert:\\LocalMachine\\My\\A1B2C3D4E5F6G7H8I9J0K1L2M3N4O5P6Q7R8S9T0; Export-Certificate -Cert $cert -FilePath 'C:\\Export\\certificate.cer' | Select-Object * -First 1",
       "description": "Affiche toutes les propriétés du premier objet retourné. Select-Object * élargit l'affichage pour montrer toutes les colonnes. -First 1 limite au premier résultat. Utilisez cette commande pour découvrir les propriétés disponibles avant de filtrer.",
       "platform": 0
     },
     {
-      "command": "$cert = Get-ChildItem -Path Cert:\\LocalMachine\\My\\A1B2C3D4E5F6G7H8I9J0K1L2M3N4O5P6Q7R8S9T0; Export-Certificate -Cert $cert -FilePath 'C:\\Export\\users.csv' | Format-Table -AutoSize",
+      "command": "$cert = Get-ChildItem -Path Cert:\\LocalMachine\\My\\A1B2C3D4E5F6G7H8I9J0K1L2M3N4O5P6Q7R8S9T0; Export-Certificate -Cert $cert -FilePath 'C:\\Export\\certificate.cer' | Format-Table -AutoSize",
       "description": "Affiche les résultats dans un tableau optimisé pour la console. Format-Table -AutoSize ajuste automatiquement la largeur des colonnes pour un affichage lisible. Idéal pour visualiser rapidement les données structurées.",
       "platform": 0
     },
     {
-      "command": "$cert = Get-ChildItem -Path Cert:\\LocalMachine\\My\\A1B2C3D4E5F6G7H8I9J0K1L2M3N4O5P6Q7R8S9T0; Export-Certificate -Cert $cert -FilePath 'C:\\Export\\users.csv' | Export-Csv C:\\Temp\\Export.csv -NoTypeInformation -Encoding UTF8",
+      "command": "$cert = Get-ChildItem -Path Cert:\\LocalMachine\\My\\A1B2C3D4E5F6G7H8I9J0K1L2M3N4O5P6Q7R8S9T0; Export-Certificate -Cert $cert -FilePath 'C:\\Export\\certificate.cer' | Export-Csv C:\\Temp\\Export.csv -NoTypeInformation -Encoding UTF8",
       "description": "Exporte les résultats vers un fichier CSV exploitable dans Excel. -NoTypeInformation supprime la ligne de métadonnées. -Encoding UTF8 garantit la compatibilité des caractères accentués. Utile pour l'archivage, les rapports et l'analyse externe.",
       "platform": 0
     },
     {
-      "command": "$cert = Get-ChildItem -Path Cert:\\LocalMachine\\My\\A1B2C3D4E5F6G7H8I9J0K1L2M3N4O5P6Q7R8S9T0; Export-Certificate -Cert $cert -FilePath 'C:\\Export\\users.csv' | Measure-Object",
+      "command": "$cert = Get-ChildItem -Path Cert:\\LocalMachine\\My\\A1B2C3D4E5F6G7H8I9J0K1L2M3N4O5P6Q7R8S9T0; Export-Certificate -Cert $cert -FilePath 'C:\\Export\\certificate.cer' | Measure-Object",
       "description": "Compte le nombre total d'objets retournés. Measure-Object retourne Count, Sum, Average, Min, Max selon les propriétés. Utile pour les statistiques rapides et la validation de résultats.",
       "platform": 0
     }

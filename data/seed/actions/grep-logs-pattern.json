@@ -61,13 +61,13 @@
       "platform": 1
     },
     {
-      "command": "grep -i \"*.txt\" /var/log/syslog | tail -n 100",
+      "command": "grep -i \"error|warning\" /var/log/syslog | tail -n 100",
       "description": "Exemple utilisant le paramètre 'logfile': Chemin vers le fichier de log. Remplacez /var/log/syslog par la valeur appropriée selon votre environnement.",
       "platform": 1
     },
     {
-      "command": "grep -i \"*.txt\" /var/log/syslog | tail -n 50",
-      "description": "Exemple utilisant le paramètre 'lines': Nombre de résultats à afficher. Remplacez 100 par la valeur appropriée selon votre environnement.",
+      "command": "grep -i \"failed|denied\" /var/log/auth.log | tail -n 50",
+      "description": "Recherche les tentatives d'authentification échouées dans le journal d'authentification. Remplacez le fichier et le pattern selon votre environnement.",
       "platform": 1
     },
     {

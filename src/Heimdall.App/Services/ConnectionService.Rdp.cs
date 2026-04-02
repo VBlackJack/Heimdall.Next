@@ -173,9 +173,11 @@ public partial class ConnectionService
                 {
                     try
                     {
+                        var autofillTimeout = TimeSpan.FromMilliseconds(
+                            _currentSettings?.RdpCredentialAutofillTimeoutMs ?? 90000);
                         var filled = await Heimdall.Rdp.CredentialAutofill.WaitAndFillAsync(
                             mstscPid, rdpHost, autofillPassword,
-                            TimeSpan.FromSeconds(90), ct).ConfigureAwait(false);
+                            autofillTimeout, ct).ConfigureAwait(false);
                         if (!filled)
                             Core.Logging.FileLogger.Warn($"External RDP CredUI autofill timed out for {server.DisplayName}");
                     }
@@ -193,9 +195,10 @@ public partial class ConnectionService
             // Clean up .rdp file and CredMan entry after delay
             var credCleanupTarget = !string.IsNullOrEmpty(server.RdpUsername) && !string.IsNullOrEmpty(server.RdpPasswordEncrypted)
                 ? $"TERMSRV/{rdpHost}" : null;
+            var cleanupDelay = TimeSpan.FromMilliseconds(_currentSettings?.RdpArtifactCleanupDelayMs ?? 10000);
             _ = Task.Run(async () =>
             {
-                try { await CleanupRdpArtifactsAsync(rdpFile, credCleanupTarget, ct); }
+                try { await CleanupRdpArtifactsAsync(rdpFile, credCleanupTarget, cleanupDelay, ct); }
                 catch (Exception ex) { Core.Logging.FileLogger.Warn($"RDP cleanup failed: {ex.Message}"); }
             }, CancellationToken.None);
 
@@ -218,11 +221,11 @@ public partial class ConnectionService
     /// Cleans up the temporary .rdp file and CredMan entry after a delay.
     /// </summary>
     private static async Task CleanupRdpArtifactsAsync(
-        string rdpFile, string? credCleanupTarget, CancellationToken ct)
+        string rdpFile, string? credCleanupTarget, TimeSpan cleanupDelay, CancellationToken ct)
     {
         try
         {
-            await Task.Delay(TimeSpan.FromSeconds(10), ct).ConfigureAwait(false);
+            await Task.Delay(cleanupDelay, ct).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {

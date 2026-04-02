@@ -76,7 +76,7 @@
             </Grid.RowDefinitions>
             <TextBlock x:Name="InputLabel" Grid.Row="0"
                        Foreground="{DynamicResource TextSecondaryBrush}"
-                       FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,4"/>
+                       FontSize="{StaticResource FontSizeBody}" Margin="{StaticResource MarginLabelBottom}"/>
             <TextBox x:Name="InputText" Grid.Row="1"
                      TabIndex="0"
                      AcceptsReturn="True" AcceptsTab="True"
@@ -99,7 +99,7 @@
             <Button x:Name="BtnPrettify" Click="OnPrettifyClick"
                     TabIndex="1"
                     Style="{DynamicResource PrimaryButtonStyle}"
-                    Padding="{StaticResource PaddingButtonPrimary}" Margin="0,0,8,0"/>
+                    Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginInlineSm}"/>
             <Button x:Name="BtnMinify" Click="OnMinifyClick"
                     TabIndex="2"
                     Style="{DynamicResource SecondaryButtonStyle}"
@@ -114,11 +114,11 @@
             </Grid.RowDefinitions>
             <TextBlock x:Name="OutputLabel" Grid.Row="0"
                        Foreground="{DynamicResource TextSecondaryBrush}"
-                       FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,4"/>
+                       FontSize="{StaticResource FontSizeBody}" Margin="{StaticResource MarginLabelBottom}"/>
 
             <Border x:Name="EmptyStatePanel" Grid.Row="1"
                     Style="{StaticResource ToolEmptyStateStyle}"
-                    Margin="0,24,0,0">
+                   >
                 <StackPanel HorizontalAlignment="Center">
                     <TextBlock Text="&#xE943;"
                                Style="{StaticResource ToolEmptyStateIconStyle}"
@@ -147,7 +147,7 @@
         </Grid>
 
         <!-- Status bar -->
-        <DockPanel Grid.Row="3" Margin="0,8,0,0">
+        <DockPanel Grid.Row="3" Margin="{StaticResource MarginSubsectionTop}">
             <Button x:Name="BtnCopyOutput" DockPanel.Dock="Right"
                     TabIndex="5"
                     Click="OnCopyOutputClick"

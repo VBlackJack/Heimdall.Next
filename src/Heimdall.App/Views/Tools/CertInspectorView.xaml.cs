@@ -391,7 +391,7 @@ public partial class CertInspectorView : UserControl, IToolView
             }
             else
             {
-                result = await Task.Run(() => RetrieveCertificate(host, port, _cts.Token), _cts.Token);
+                result = await RetrieveCertificateAsync(host, port, _cts.Token);
             }
 
             SingleResultPanel.Visibility = Visibility.Visible;
@@ -533,7 +533,7 @@ public partial class CertInspectorView : UserControl, IToolView
                         }
                         else
                         {
-                            result = RetrieveCertificate(host, port, linked.Token);
+                            result = await RetrieveCertificateAsync(host, port, linked.Token);
                         }
                     }
                     catch (OperationCanceledException) when (!ct.IsCancellationRequested)
@@ -831,12 +831,12 @@ public partial class CertInspectorView : UserControl, IToolView
 
     // ===== Certificate retrieval =====
 
-    private CertInspectionResult RetrieveCertificate(string host, int port, CancellationToken ct)
+    private async Task<CertInspectionResult> RetrieveCertificateAsync(string host, int port, CancellationToken ct)
     {
         X509Certificate? remoteCert = null;
 
         using var tcp = new TcpClient();
-        tcp.ConnectAsync(host, port, ct).AsTask().GetAwaiter().GetResult();
+        await tcp.ConnectAsync(host, port, ct).AsTask().ConfigureAwait(false);
 
         using var ssl = new SslStream(tcp.GetStream(), false, (_, cert, _, _) =>
         {
@@ -844,8 +844,8 @@ public partial class CertInspectorView : UserControl, IToolView
             return true;
         });
 
-        ssl.AuthenticateAsClientAsync(
-            new SslClientAuthenticationOptions { TargetHost = host }, ct).GetAwaiter().GetResult();
+        await ssl.AuthenticateAsClientAsync(
+            new SslClientAuthenticationOptions { TargetHost = host }, ct).ConfigureAwait(false);
 
         if (remoteCert == null)
         {
@@ -876,15 +876,12 @@ public partial class CertInspectorView : UserControl, IToolView
     private CertInspectionResult RetrieveCertificateViaTunnel(
         Renci.SshNet.SshClient sshClient, string host, int port, CancellationToken ct)
     {
-        var pemOutput = Task.Run(() =>
-        {
-            var escapedHost = InputValidator.EscapeShellArg(host);
-            using var cmd = sshClient.CreateCommand(
-                $"echo | openssl s_client -connect {escapedHost}:{port} -servername {escapedHost} 2>/dev/null");
-            cmd.CommandTimeout = TimeSpan.FromSeconds(10);
-            cmd.Execute();
-            return cmd.Result ?? string.Empty;
-        }, ct).GetAwaiter().GetResult();
+        var escapedHost = InputValidator.EscapeShellArg(host);
+        using var cmd = sshClient.CreateCommand(
+            $"echo | openssl s_client -connect {escapedHost}:{port} -servername {escapedHost} 2>/dev/null");
+        cmd.CommandTimeout = TimeSpan.FromSeconds(10);
+        cmd.Execute();
+        var pemOutput = cmd.Result ?? string.Empty;
 
         var beginMarker = "-----BEGIN CERTIFICATE-----";
         var endMarker = "-----END CERTIFICATE-----";

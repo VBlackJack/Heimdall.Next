@@ -67,9 +67,9 @@
 
                 <!-- MAC Address input -->
                 <TextBlock x:Name="LblMac" Text=""
-                           FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,4"
+                           FontSize="{StaticResource FontSizeBody}" Margin="{StaticResource MarginLabelBottom}"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
-                <DockPanel Margin="0,0,0,12">
+                <DockPanel Margin="{StaticResource MarginSectionBottom}">
                     <Button x:Name="BtnSend" DockPanel.Dock="Right"
                             Content="" Click="OnSendClick"
                             Style="{DynamicResource PrimaryButtonStyle}"
@@ -87,11 +87,11 @@
 
                 <!-- Broadcast address -->
                 <TextBlock x:Name="LblBroadcast" Text=""
-                           FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,4"
+                           FontSize="{StaticResource FontSizeBody}" Margin="{StaticResource MarginLabelBottom}"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
                 <TextBox x:Name="TxtBroadcast"
                          FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
-                         Padding="{StaticResource PaddingInput}" Margin="0,0,0,12"
+                         Padding="{StaticResource PaddingInput}" Margin="{StaticResource MarginSectionBottom}"
                          Background="{DynamicResource CardBrush}"
                          Foreground="{DynamicResource TextPrimaryBrush}"
                          BorderBrush="{DynamicResource BorderBrush}"
@@ -99,7 +99,7 @@
 
                 <!-- Port -->
                 <TextBlock x:Name="LblPort" Text=""
-                           FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,4"
+                           FontSize="{StaticResource FontSizeBody}" Margin="{StaticResource MarginLabelBottom}"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
                 <TextBox x:Name="TxtPort"
                          FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
@@ -118,10 +118,10 @@
 
                 <!-- History -->
                 <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0"
-                        Padding="0,16,0,0" Margin="0,8,0,0">
+                        Padding="0,16,0,0" Margin="{StaticResource MarginSubsectionTop}">
                     <StackPanel>
                         <TextBlock x:Name="LblHistory" Text=""
-                                   FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,8"
+                                   FontSize="{StaticResource FontSizeBody}" Margin="{StaticResource MarginStackItem}"
                                    Foreground="{DynamicResource TextSecondaryBrush}"/>
                         <TextBox x:Name="TxtHistory" Text=""
                                  FontSize="{StaticResource FontSizeSmallCaption}" FontFamily="Consolas"

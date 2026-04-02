@@ -68,9 +68,9 @@
 
                 <!-- Input -->
                 <TextBlock x:Name="LblInput" Text=""
-                           FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,4"
+                           FontSize="{StaticResource FontSizeBody}" Margin="{StaticResource MarginLabelBottom}"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
-                <DockPanel Margin="0,0,0,8">
+                <DockPanel Margin="{StaticResource MarginStackItem}">
                     <Button x:Name="BtnNow" DockPanel.Dock="Right"
                             Content="" Click="OnNowClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
@@ -97,7 +97,7 @@
                 <!-- Empty state hint (hidden once a valid conversion is done) -->
                 <Border x:Name="EmptyStatePanel"
                         Style="{StaticResource ToolEmptyStateStyle}"
-                        Margin="0,24,0,0">
+                       >
                     <StackPanel HorizontalAlignment="Center">
                         <TextBlock Text="&#xE787;" Style="{StaticResource ToolEmptyStateIconStyle}"
                                    Focusable="False"/>
@@ -109,7 +109,7 @@
                 <StackPanel x:Name="ResultsPanel" Visibility="Collapsed">
                 <!-- Unix Timestamp -->
                 <TextBlock x:Name="LblUnixTimestamp" Text=""
-                           FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,4"
+                           FontSize="{StaticResource FontSizeBody}" Margin="{StaticResource MarginLabelBottom}"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
                 <DockPanel Margin="{StaticResource MarginSectionBottom}">
                     <Button x:Name="BtnCopyUnix" DockPanel.Dock="Right"
@@ -128,7 +128,7 @@
 
                 <!-- ISO 8601 UTC -->
                 <TextBlock x:Name="LblIsoUtc" Text=""
-                           FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,4"
+                           FontSize="{StaticResource FontSizeBody}" Margin="{StaticResource MarginLabelBottom}"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
                 <DockPanel Margin="{StaticResource MarginSectionBottom}">
                     <Button x:Name="BtnCopyIsoUtc" DockPanel.Dock="Right"
@@ -147,7 +147,7 @@
 
                 <!-- ISO 8601 Local -->
                 <TextBlock x:Name="LblIsoLocal" Text=""
-                           FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,4"
+                           FontSize="{StaticResource FontSizeBody}" Margin="{StaticResource MarginLabelBottom}"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
                 <DockPanel Margin="{StaticResource MarginSectionBottom}">
                     <Button x:Name="BtnCopyIsoLocal" DockPanel.Dock="Right"
@@ -166,7 +166,7 @@
 
                 <!-- Local time display -->
                 <TextBlock x:Name="LblLocalTime" Text=""
-                           FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,4"
+                           FontSize="{StaticResource FontSizeBody}" Margin="{StaticResource MarginLabelBottom}"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
                 <DockPanel Margin="{StaticResource MarginSectionBottom}">
                     <Button x:Name="BtnCopyLocalTime" DockPanel.Dock="Right"
@@ -185,9 +185,9 @@
 
                 <!-- Timezone converter -->
                 <TextBlock x:Name="LblTimezone" Text=""
-                           FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,4"
+                           FontSize="{StaticResource FontSizeBody}" Margin="{StaticResource MarginLabelBottom}"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
-                <DockPanel Margin="0,0,0,4">
+                <DockPanel Margin="{StaticResource MarginLabelBottom}">
                     <Button x:Name="BtnCopyTzTime" DockPanel.Dock="Right"
                             Content="" Click="OnCopyTzTimeClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
@@ -195,7 +195,7 @@
                             VerticalAlignment="Stretch"
                             TabIndex="7"/>
                     <ComboBox x:Name="CmbTimezone" MinWidth="200" MaxWidth="400"
-                              VerticalAlignment="Center" DockPanel.Dock="Left" Margin="0,0,8,0"
+                              VerticalAlignment="Center" DockPanel.Dock="Left" Margin="{StaticResource MarginInlineSm}"
                               Background="{DynamicResource CardBrush}"
                               Foreground="{DynamicResource TextPrimaryBrush}"
                               BorderBrush="{DynamicResource BorderBrush}"
@@ -216,7 +216,7 @@
                 <TextBlock x:Name="TxtRelativeTime" Text=""
                            FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
                            Foreground="{DynamicResource AccentBrush}"
-                           Margin="0,0,0,8"/>
+                           Margin="{StaticResource MarginStackItem}"/>
                 </StackPanel>
 
             </StackPanel>

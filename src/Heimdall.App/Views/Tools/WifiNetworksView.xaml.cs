@@ -107,7 +107,7 @@ public partial class WifiNetworksView : UserControl, IToolView
 
         try
         {
-            var entries = await Task.Run(RunNetshScan);
+            var entries = await Task.Run(RunNetshScanAsync);
 
             foreach (var entry in entries.OrderByDescending(e => e.SignalValue))
             {
@@ -141,7 +141,7 @@ public partial class WifiNetworksView : UserControl, IToolView
     /// Runs <c>netsh wlan show networks mode=bssid</c> and parses the output into Wi-Fi entries.
     /// Each network block starts with "SSID N :" and may contain multiple BSSID sub-blocks.
     /// </summary>
-    private static List<WifiEntry> RunNetshScan()
+    private static async Task<List<WifiEntry>> RunNetshScanAsync()
     {
         var psi = new ProcessStartInfo
         {
@@ -160,7 +160,7 @@ public partial class WifiNetworksView : UserControl, IToolView
         {
             try { proc.Kill(); } catch { /* already exited */ }
         }
-        var output = outputTask.GetAwaiter().GetResult();
+        var output = await outputTask;
 
         return ParseNetshOutput(output);
     }

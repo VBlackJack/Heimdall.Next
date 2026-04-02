@@ -289,6 +289,26 @@ public static class InputValidator
     }
 
     /// <summary>
+    /// Valid PowerShell execution policies. Used to whitelist the user-configurable
+    /// setting before interpolating it into shell arguments (CWE-78 prevention).
+    /// </summary>
+    private static readonly FrozenSet<string> ValidExecutionPolicies =
+        FrozenSet.ToFrozenSet(
+        [
+            "AllSigned", "Bypass", "Default", "RemoteSigned",
+            "Restricted", "Undefined", "Unrestricted"
+        ], StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Returns true when the value is a known PowerShell execution policy.
+    /// </summary>
+    public static bool IsValidExecutionPolicy(string? value)
+    {
+        return !string.IsNullOrWhiteSpace(value)
+            && ValidExecutionPolicies.Contains(value);
+    }
+
+    /// <summary>
     /// Compile a regex pattern with timeout protection against ReDoS.
     /// </summary>
     private static Regex CompilePattern(string pattern)

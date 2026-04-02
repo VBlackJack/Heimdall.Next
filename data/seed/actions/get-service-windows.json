@@ -17,7 +17,7 @@
     "id": "get-service-cmd",
     "platform": 0,
     "name": "Get-Service",
-    "commandPattern": "Get-Service {name} {displayname} | Format-Table Name, DisplayName, Status, StartType -AutoSize",
+    "commandPattern": "Get-Service -Name {name} | Format-Table Name, DisplayName, Status, StartType -AutoSize",
     "parameters": [
       {
         "name": "name",

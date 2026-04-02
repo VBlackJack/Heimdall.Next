@@ -61,5 +61,10 @@
     }
   ],
   "notes": "Affiche toutes les propriétés disponibles incluant l'OS, la date de dernier logon, etc.",
-  "links": []
+  "links": [
+    {
+      "title": "Documentation Get-ADComputer",
+      "url": "https://learn.microsoft.com/en-us/powershell/module/activedirectory/get-adcomputer"
+    }
+  ]
 }

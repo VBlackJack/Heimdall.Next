@@ -63,6 +63,7 @@ public sealed class ToolRegistry
             Entry("FWTEST",   ToolCategory.Network,  "ToolCategoryNetwork",  "PaletteToolFwTest",   "PaletteToolFwTestWith",   ["fw","firewall","fwtest"],      false, () => new Views.Tools.FirewallTesterView(),     "Geo.Tool.FirewallTester"),
             Entry("NETMAP",   ToolCategory.Network,  "ToolCategoryNetwork",  "PaletteToolNetMap",   "PaletteToolNetMapWith",   ["netmap","cartography","discover"], false, () => new Views.Tools.NetworkCartographyView(), "Geo.Tool.NetMap"),
             Entry("NETCALC",  ToolCategory.Network,  "ToolCategoryNetwork",  "PaletteToolNetCalc",  "PaletteToolNetCalcWith",  ["netcalc","vlan","supernet"], false, () => new Views.Tools.NetworkCalculatorView(), "Geo.Tool.NetworkCalculator"),
+            Entry("TCPPING",  ToolCategory.Network,  "ToolCategoryNetwork",  "PaletteToolTcpPing",  "PaletteToolTcpPingWith",  ["tcpping","tcping","portping"],              true,  () => new Views.Tools.TcpPingView(),           "Geo.Tool.NetworkScanner"),
 
             // ── Security ──────────────────────────────────────────────
             Entry("HASH",     ToolCategory.Security, "ToolCategorySecurity", "PaletteToolHash",     "PaletteToolHashWith",     ["hash"],                false, () => new Views.Tools.HashGeneratorView(),      "Geo.Tool.HashGenerator"),
@@ -102,7 +103,7 @@ public sealed class ToolRegistry
             Entry("NOTES",    ToolCategory.System,   "ToolCategorySystem",   "PaletteToolNotes",    "PaletteToolNotesWith",    ["notes","note","markdown","md","confluence"], false, () => new Views.Tools.NotesToolView(), "Geo.Tool.Notes"),
             Entry("DIAGRAM",  ToolCategory.System,   "ToolCategorySystem",   "PaletteToolDiagram",  "PaletteToolDiagramWith",  ["diagram","drawio","schema"],         false, () => new Views.Tools.DiagramEditorView(),  "Geo.Tool.Diagram"),
             Entry("HACKERSIM",ToolCategory.System,   "ToolCategorySystem",   "PaletteToolHackerSim","PaletteToolHackerSimWith",["hacker","matrix","hackersim"],        false, () => new Views.Tools.HackerSimulatorView(),"Geo.Tool.HackerSimulator"),
-            Entry("CMDLIB",   ToolCategory.System,   "ToolCategorySystem",   "PaletteToolCmdLib",   null,                      ["cmd","command","library","snippet","twinshell","cheat","cheatsheet","powershell","bash"], false, () => new Views.Tools.CommandLibraryView(), "Geo.Tool.CommandLibrary"),
+            Entry("CMDLIB",   ToolCategory.System,   "ToolCategorySystem",   "PaletteToolCmdLib",   "PaletteToolCmdLibWith",   ["cmd","command","library","snippet","twinshell","cheat","cheatsheet","powershell","bash"], false, () => new Views.Tools.CommandLibraryView(), "Geo.Tool.CommandLibrary"),
 
             // ── External ─────────────────────────────────────────────
             Entry("WOL",       ToolCategory.External, "ToolCategoryExternal", "PaletteToolWol",       "PaletteToolWolWith",       ["wol","wake","wakeonlan"],              false, () => new Views.Tools.WakeOnLanView(),      "Geo.Tool.WakeOnLan"),
@@ -111,7 +112,6 @@ public sealed class ToolRegistry
             Entry("ROUTES",    ToolCategory.External, "ToolCategoryExternal", "PaletteToolRoutes",    "PaletteToolRoutesWith",    ["routes","route","routing"],                 false, () => new Views.Tools.RouteTableView(),        "Geo.Tool.Traceroute"),
             Entry("DNSBATCH",  ToolCategory.External, "ToolCategoryExternal", "PaletteToolDnsBatch",  "PaletteToolDnsBatchWith",  ["dnsbatch","resolve","resolver"],            false, () => new Views.Tools.DnsBatchResolverView(),  "Geo.Tool.DnsLookup"),
             Entry("WIFI",      ToolCategory.External, "ToolCategoryExternal", "PaletteToolWifi",      "PaletteToolWifiWith",      ["wifi","wlan","ssid","wireless"],            false, () => new Views.Tools.WifiNetworksView(),      "Geo.Tool.NetworkScanner"),
-            Entry("TCPPING",   ToolCategory.External, "ToolCategoryExternal", "PaletteToolTcpPing",   "PaletteToolTcpPingWith",   ["tcpping","tcping","portping"],              true,  () => new Views.Tools.TcpPingView(),           "Geo.Tool.NetworkScanner"),
         };
 
         _entries = entries;
@@ -264,6 +264,7 @@ public sealed class ToolRegistry
         ["NOTES"]     = "Geo.Tool.Notes",
         ["DIAGRAM"]   = "Geo.Tool.Diagram",
         ["HACKERSIM"] = "Geo.Tool.HackerSimulator",
+        ["CMDLIB"]    = "Geo.Tool.CommandLibrary",
         ["WOL"]       = "Geo.Tool.WakeOnLan",
         ["OPENPORTS"] = "Geo.Tool.PortScanner",
         ["NETIF"]     = "Geo.Tool.NetworkScanner",
@@ -303,13 +304,14 @@ public sealed class ToolRegistry
         ["SERVICES"]  = "ToolSystemBrush",   ["NOTES"]    = "ToolSystemBrush",
         ["DIAGRAM"]   = "ToolSystemBrush",
         ["HACKERSIM"] = "ToolSystemBrush",
+        ["CMDLIB"]    = "ToolSystemBrush",
         ["WOL"]       = "ToolExternalBrush",
         ["OPENPORTS"] = "ToolExternalBrush",
         ["NETIF"]     = "ToolExternalBrush",
         ["ROUTES"]    = "ToolExternalBrush",
         ["DNSBATCH"]  = "ToolExternalBrush",
         ["WIFI"]      = "ToolExternalBrush",
-        ["TCPPING"]   = "ToolExternalBrush",
+        ["TCPPING"]   = "ToolNetworkBrush",
     }.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>

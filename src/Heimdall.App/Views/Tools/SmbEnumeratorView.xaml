@@ -67,7 +67,7 @@
 
                 <!-- Input Row -->
                 <TextBlock x:Name="LblHost" Text=""
-                           FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,4"
+                           FontSize="{StaticResource FontSizeBody}" Margin="{StaticResource MarginLabelBottom}"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
                 <DockPanel Margin="{StaticResource MarginSectionBottom}">
                     <Button x:Name="BtnEnumerate" DockPanel.Dock="Right"
@@ -89,9 +89,9 @@
                 </DockPanel>
 
                 <!-- Route via gateway -->
-                <DockPanel Margin="0,0,0,8">
+                <DockPanel Margin="{StaticResource MarginStackItem}">
                     <TextBlock x:Name="LblRouteVia" Text=""
-                               FontSize="{StaticResource FontSizeBody}" Margin="0,0,8,0"
+                               FontSize="{StaticResource FontSizeBody}" Margin="{StaticResource MarginInlineSm}"
                                Foreground="{DynamicResource TextSecondaryBrush}"
                                VerticalAlignment="Center"/>
                     <ComboBox x:Name="CmbRouteVia" Width="240"
@@ -114,7 +114,7 @@
                 <!-- Empty state hint -->
                 <Border x:Name="EmptyStatePanel"
                         Style="{StaticResource ToolEmptyStateStyle}"
-                        Margin="0,24,0,0">
+                       >
                     <StackPanel HorizontalAlignment="Center">
                         <TextBlock Text="&#xE774;"
                                    Style="{StaticResource ToolEmptyStateIconStyle}"
@@ -138,7 +138,7 @@
                             <TextBlock x:Name="TxtCardIdentity" Text=""
                                        FontSize="{StaticResource FontSizeBodyLarge}" FontWeight="SemiBold"
                                        Foreground="{DynamicResource AccentBrush}"
-                                       Margin="0,0,0,8"/>
+                                       Margin="{StaticResource MarginStackItem}"/>
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="140"/>
@@ -203,7 +203,7 @@
                             <TextBlock x:Name="TxtCardProtocol" Text=""
                                        FontSize="{StaticResource FontSizeBodyLarge}" FontWeight="SemiBold"
                                        Foreground="{DynamicResource AccentBrush}"
-                                       Margin="0,0,0,8"/>
+                                       Margin="{StaticResource MarginStackItem}"/>
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="140"/>
@@ -256,7 +256,7 @@
                             <TextBlock x:Name="TxtCardFindings" Text=""
                                        FontSize="{StaticResource FontSizeBodyLarge}" FontWeight="SemiBold"
                                        Foreground="{DynamicResource AccentBrush}"
-                                       Margin="0,0,0,8"/>
+                                       Margin="{StaticResource MarginStackItem}"/>
                             <StackPanel x:Name="FindingsList"/>
                         </StackPanel>
                     </Border>

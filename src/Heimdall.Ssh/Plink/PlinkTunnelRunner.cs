@@ -40,12 +40,23 @@ public record PlinkTunnelResult(bool Success, string? ErrorMessage, SshFailureCo
 public sealed class PlinkTunnelRunner : IDisposable
 {
     private static readonly int PortCheckMaxAttempts = 15;
-    private static readonly TimeSpan PortCheckInterval = TimeSpan.FromSeconds(2);
-    private static readonly TimeSpan ProcessKillGracePeriod = TimeSpan.FromSeconds(2);
+    private readonly TimeSpan _portCheckInterval;
+    private readonly TimeSpan _processKillGracePeriod;
+    private readonly TimeSpan _stderrReadTimeout;
 
     private Process? _process;
     private string? _pwFilePath;
     private bool _disposed;
+
+    public PlinkTunnelRunner(
+        int portCheckIntervalMs = 2000,
+        int killGracePeriodMs = 2000,
+        int stderrReadTimeoutMs = 10000)
+    {
+        _portCheckInterval = TimeSpan.FromMilliseconds(portCheckIntervalMs);
+        _processKillGracePeriod = TimeSpan.FromMilliseconds(killGracePeriodMs);
+        _stderrReadTimeout = TimeSpan.FromMilliseconds(stderrReadTimeoutMs);
+    }
 
     /// <summary>Whether the underlying plink process is running.</summary>
     public bool IsRunning => _process is { HasExited: false };
@@ -187,7 +198,7 @@ public sealed class PlinkTunnelRunner : IDisposable
                 if (!_process.HasExited)
                 {
                     _process.Kill();
-                    _process.WaitForExit((int)ProcessKillGracePeriod.TotalMilliseconds);
+                    _process.WaitForExit((int)_processKillGracePeriod.TotalMilliseconds);
                 }
             }
             catch (InvalidOperationException ex)
@@ -295,13 +306,13 @@ public sealed class PlinkTunnelRunner : IDisposable
     /// the tunnel is established and forwarding traffic.
     /// Uses a retry loop with configurable attempts and interval.
     /// </summary>
-    private static async Task<bool> WaitForPortBindAsync(int localPort, CancellationToken cancellationToken)
+    private async Task<bool> WaitForPortBindAsync(int localPort, CancellationToken cancellationToken)
     {
         for (int attempt = 0; attempt < PortCheckMaxAttempts; attempt++)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            await Task.Delay(PortCheckInterval, cancellationToken).ConfigureAwait(false);
+            await Task.Delay(_portCheckInterval, cancellationToken).ConfigureAwait(false);
 
             if (await IsPortListeningAsync(localPort).ConfigureAwait(false))
             {
@@ -344,7 +355,7 @@ public sealed class PlinkTunnelRunner : IDisposable
 
         try
         {
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+            using var cts = new CancellationTokenSource(_stderrReadTimeout);
             return await _process.StandardError.ReadToEndAsync(cts.Token).ConfigureAwait(false);
         }
         catch (Exception ex)

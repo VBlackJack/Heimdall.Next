@@ -35,6 +35,16 @@ public static class SleepPrevention
     private static int _activeSessionCount;
     private static System.Threading.Timer? _keepAliveTimer;
     private static bool _enabled = true;
+    private static int _intervalSeconds = 60;
+
+    /// <summary>
+    /// Heartbeat interval in seconds. Set before the first session starts.
+    /// </summary>
+    public static int IntervalSeconds
+    {
+        get => _intervalSeconds;
+        set => _intervalSeconds = value > 0 ? value : 60;
+    }
 
     /// <summary>
     /// Controls whether sleep prevention is active. When false,
@@ -75,11 +85,12 @@ public static class SleepPrevention
             // Start a heartbeat that resets the OS idle timer every 60 seconds.
             // Without ES_CONTINUOUS, the call acts as a one-shot "mouse move" equivalent,
             // which overrides VM/group-policy idle timeouts that ignore ES_CONTINUOUS.
+            var interval = TimeSpan.FromSeconds(_intervalSeconds);
             _keepAliveTimer = new System.Threading.Timer(
                 _ => SetThreadExecutionState(ES_SYSTEM_REQUIRED | ES_DISPLAY_REQUIRED),
                 null,
-                TimeSpan.FromSeconds(60),
-                TimeSpan.FromSeconds(60));
+                interval,
+                interval);
 
             Core.Logging.FileLogger.Info("Sleep prevention enabled (sessions active, heartbeat started)");
         }

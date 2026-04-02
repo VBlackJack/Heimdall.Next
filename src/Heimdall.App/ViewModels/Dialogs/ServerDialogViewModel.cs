@@ -34,13 +34,24 @@ public partial class ServerDialogViewModel : ObservableValidator
     private const int DefaultRdpPort = 3389;
     private const int DefaultSshPort = 22;
     private const int DefaultTelnetPort = 23;
-    private const int DefaultRdpTunnelPort = 33890;
-    private const int DefaultSshTunnelPort = 2222;
+    private int _defaultRdpTunnelPort = 33890;
+    private int _defaultSshTunnelPort = 2222;
 
     /// <summary>
     /// Localizer for translating validation error messages. Set by the dialog service.
     /// </summary>
     public LocalizationManager? Localizer { get; set; }
+
+    /// <summary>Application settings for configurable defaults.</summary>
+    public AppSettings? Settings
+    {
+        set
+        {
+            if (value is null) return;
+            _defaultRdpTunnelPort = value.DefaultRdpTunnelPort;
+            _defaultSshTunnelPort = value.DefaultSshTunnelPort;
+        }
+    }
 
     private string L(string key) => Localizer?[key] ?? key;
 
@@ -130,7 +141,7 @@ public partial class ServerDialogViewModel : ObservableValidator
     [ObservableProperty]
     [NotifyDataErrorInfo]
     [Range(1, 65535, ErrorMessage = "Local tunnel port must be between 1 and 65535.")]
-    private int _localPort = DefaultRdpTunnelPort;
+    private int _localPort = 33890;
 
     [ObservableProperty]
     private bool _useAutomaticTunnelPort = true;
@@ -777,7 +788,8 @@ public partial class ServerDialogViewModel : ObservableValidator
         ArgumentNullException.ThrowIfNull(dto);
 
         var connectionType = string.IsNullOrWhiteSpace(dto.ConnectionType) ? "RDP" : dto.ConnectionType;
-        var suggestedTunnelPort = GetSuggestedTunnelPort(connectionType);
+        var suggestedTunnelPort = string.Equals(connectionType, "RDP", StringComparison.OrdinalIgnoreCase)
+            ? 33890 : 2222;
         var storedLocalPort = dto.LocalPort <= 0 ? suggestedTunnelPort : dto.LocalPort;
 
         var vm = new ServerDialogViewModel { _isInitializing = true };
@@ -992,11 +1004,11 @@ public partial class ServerDialogViewModel : ObservableValidator
         return DefaultSshPort;
     }
 
-    private static int GetSuggestedTunnelPort(string connectionType)
+    private int GetSuggestedTunnelPort(string connectionType)
     {
         return string.Equals(connectionType, "RDP", StringComparison.OrdinalIgnoreCase)
-            ? DefaultRdpTunnelPort
-            : DefaultSshTunnelPort;
+            ? _defaultRdpTunnelPort
+            : _defaultSshTunnelPort;
     }
 
     private string GetDestinationHost()

@@ -72,22 +72,22 @@
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                 <Button x:Name="BtnProfileQuick" Click="OnProfileClick" Tag="quick"
                         Style="{DynamicResource PrimaryButtonStyle}"
-                        Padding="{StaticResource PaddingButtonPreset}" Margin="0,0,4,0" FontSize="{StaticResource FontSizeCaption}"
+                        Padding="{StaticResource PaddingButtonPreset}" Margin="{StaticResource MarginInlineXs}" FontSize="{StaticResource FontSizeCaption}"
                         TabIndex="4"/>
                 <Button x:Name="BtnProfileExtended" Click="OnProfileClick" Tag="extended"
                         Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="{StaticResource PaddingButtonPreset}" Margin="0,0,4,0" FontSize="{StaticResource FontSizeCaption}"
+                        Padding="{StaticResource PaddingButtonPreset}" Margin="{StaticResource MarginInlineXs}" FontSize="{StaticResource FontSizeCaption}"
                         TabIndex="5"/>
                 <Button x:Name="BtnProfileCustom" Click="OnProfileClick" Tag="custom"
                         Style="{DynamicResource SecondaryButtonStyle}"
-                        Padding="{StaticResource PaddingButtonPreset}" Margin="0,0,4,0" FontSize="{StaticResource FontSizeCaption}"
+                        Padding="{StaticResource PaddingButtonPreset}" Margin="{StaticResource MarginInlineXs}" FontSize="{StaticResource FontSizeCaption}"
                         TabIndex="6"/>
                 <TextBox x:Name="TxtCustomPorts" Visibility="Collapsed"
                          Width="260"
                          Style="{StaticResource WatermarkTextBoxStyle}"
                          Tag=""
                          FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
-                         Padding="{StaticResource PaddingInput}" Margin="4,0,0,0"
+                         Padding="{StaticResource PaddingInput}" Margin="{StaticResource MarginInlineStart}"
                          Background="{DynamicResource CardBrush}"
                          Foreground="{DynamicResource TextPrimaryBrush}"
                          BorderBrush="{DynamicResource BorderBrush}"
@@ -120,9 +120,9 @@
 
                 <!-- Input row -->
                 <TextBlock x:Name="LblHost" Text=""
-                           FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,4"
+                           FontSize="{StaticResource FontSizeBody}" Margin="{StaticResource MarginLabelBottom}"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
-                <DockPanel Margin="0,0,0,8">
+                <DockPanel Margin="{StaticResource MarginStackItem}">
                     <Button x:Name="BtnCheck" DockPanel.Dock="Right"
                             Content="" Click="OnCheckClick"
                             Style="{DynamicResource PrimaryButtonStyle}"
@@ -141,7 +141,7 @@
                              VerticalAlignment="Center"
                              TabIndex="1"/>
                     <TextBlock DockPanel.Dock="Right" Text=":"
-                               FontSize="{StaticResource FontSizeBodyLarge}" Margin="4,0,0,0"
+                               FontSize="{StaticResource FontSizeBodyLarge}" Margin="{StaticResource MarginInlineStart}"
                                Foreground="{DynamicResource TextSecondaryBrush}"
                                VerticalAlignment="Center"/>
                     <TextBox x:Name="TxtHost" Text=""
@@ -157,9 +157,9 @@
                 </DockPanel>
 
                 <!-- Route via gateway -->
-                <DockPanel Margin="0,0,0,8">
+                <DockPanel Margin="{StaticResource MarginStackItem}">
                     <TextBlock x:Name="LblRouteVia" Text=""
-                               FontSize="{StaticResource FontSizeBody}" Margin="0,0,8,0"
+                               FontSize="{StaticResource FontSizeBody}" Margin="{StaticResource MarginInlineSm}"
                                Foreground="{DynamicResource TextSecondaryBrush}"
                                VerticalAlignment="Center"/>
                     <ComboBox x:Name="CmbRouteVia" Width="240"
@@ -179,7 +179,7 @@
                 <!-- Empty state hint -->
                 <Border x:Name="EmptyStatePanel"
                         Style="{StaticResource ToolEmptyStateStyle}"
-                        Margin="0,24,0,0">
+                       >
                     <StackPanel HorizontalAlignment="Center">
                         <TextBlock Text="&#xEB95;" Style="{StaticResource ToolEmptyStateIconStyle}"
                                    Focusable="False"/>
@@ -299,7 +299,7 @@
                             BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
                             Padding="{StaticResource PaddingSectionCard}" Margin="{StaticResource MarginSectionTop}">
                         <StackPanel>
-                            <DockPanel Margin="0,0,0,8">
+                            <DockPanel Margin="{StaticResource MarginStackItem}">
                                 <TextBlock x:Name="LblTlsVersion" Text=""
                                            FontSize="{StaticResource FontSizeBody}" Foreground="{DynamicResource TextSecondaryBrush}"
                                            VerticalAlignment="Center" Width="120"/>
@@ -326,13 +326,13 @@
                             <TextBlock x:Name="LblChainTitle" Text=""
                                        FontSize="{StaticResource FontSizeBodyLarge}" FontWeight="SemiBold"
                                        Foreground="{DynamicResource TextPrimaryBrush}"
-                                       Margin="0,0,0,8"/>
+                                       Margin="{StaticResource MarginStackItem}"/>
                             <ItemsControl x:Name="ChainList">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
                                         <Border BorderBrush="{DynamicResource BorderBrush}"
                                                 BorderThickness="0,0,0,1"
-                                                Padding="0,4" Margin="0,0,0,4">
+                                                Padding="0,4" Margin="{StaticResource MarginLabelBottom}">
                                             <StackPanel>
                                                 <TextBlock Text="{Binding Subject}" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
                                                            Foreground="{DynamicResource TextPrimaryBrush}" TextWrapping="Wrap"/>
@@ -391,7 +391,7 @@
                                         </DockPanel>
 
                                         <!-- Details grid -->
-                                        <Grid Margin="0,0,0,8">
+                                        <Grid Margin="{StaticResource MarginStackItem}">
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="Auto"/>
                                                 <ColumnDefinition Width="12"/>
@@ -457,7 +457,7 @@
                                         </Grid>
 
                                         <!-- TLS version + hostname match -->
-                                        <DockPanel Margin="0,0,0,4">
+                                        <DockPanel Margin="{StaticResource MarginLabelBottom}">
                                             <TextBlock Text="{Binding TlsVersionLabel}"
                                                        FontSize="{StaticResource FontSizeCaption}" Foreground="{DynamicResource TextSecondaryBrush}"
                                                        VerticalAlignment="Center" Width="90"/>
@@ -469,13 +469,13 @@
                                         <TextBlock Text="{Binding HostnameMatchText}"
                                                    FontSize="{StaticResource FontSizeCaption}" FontWeight="SemiBold"
                                                    Foreground="{Binding HostnameMatchBrush}"
-                                                   Margin="0,0,0,4"/>
+                                                   Margin="{StaticResource MarginLabelBottom}"/>
 
                                         <!-- SANs -->
-                                        <DockPanel Margin="0,0,0,4">
+                                        <DockPanel Margin="{StaticResource MarginLabelBottom}">
                                             <TextBlock Text="{Binding SansLabel}" DockPanel.Dock="Left"
                                                        FontSize="{StaticResource FontSizeCaption}" Foreground="{DynamicResource TextSecondaryBrush}"
-                                                       VerticalAlignment="Top" Margin="0,0,8,0"/>
+                                                       VerticalAlignment="Top" Margin="{StaticResource MarginInlineSm}"/>
                                             <ItemsControl ItemsSource="{Binding Sans}">
                                                 <ItemsControl.ItemTemplate>
                                                     <DataTemplate>

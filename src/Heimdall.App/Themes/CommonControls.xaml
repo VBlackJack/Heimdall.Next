@@ -64,6 +64,36 @@
     <!-- Section top margin (top spacing before stacked content) -->
     <Thickness x:Key="MarginSectionTop">0,12,0,0</Thickness>
 
+    <!-- Stack item bottom margin (gap between stacked controls/rows in a form) -->
+    <Thickness x:Key="MarginStackItem">0,0,0,8</Thickness>
+
+    <!-- Label bottom margin (tight gap between label and its associated control) -->
+    <Thickness x:Key="MarginLabelBottom">0,0,0,4</Thickness>
+
+    <!-- Inline element right margin, extra-small (buttons/controls in horizontal groups) -->
+    <Thickness x:Key="MarginInlineXs">0,0,4,0</Thickness>
+
+    <!-- Inline element right margin, small (controls/labels in horizontal layouts) -->
+    <Thickness x:Key="MarginInlineSm">0,0,8,0</Thickness>
+
+    <!-- Empty state top margin (spacing above centered empty-state panels) -->
+    <Thickness x:Key="MarginEmptyStateTop">0,24,0,0</Thickness>
+
+    <!-- Sub-section top margin (spacing above secondary content blocks) -->
+    <Thickness x:Key="MarginSubsectionTop">0,8,0,0</Thickness>
+
+    <!-- Label inline right margin (label-to-input gap in horizontal filter groups) -->
+    <Thickness x:Key="MarginLabelInline">0,0,6,0</Thickness>
+
+    <!-- Detail row bottom margin (key-value pairs in detail grids) -->
+    <Thickness x:Key="MarginDetailRow">0,0,0,6</Thickness>
+
+    <!-- Inline start margin (left gap for adjacent controls) -->
+    <Thickness x:Key="MarginInlineStart">4,0,0,0</Thickness>
+
+    <!-- Filter group spacing in WrapPanel (right + vertical gap between field groups) -->
+    <Thickness x:Key="MarginFilterGroup">0,2,12,2</Thickness>
+
     <!-- Grid row spacer height (Double for Margin/Height, GridLength for RowDefinition) -->
     <sys:Double x:Key="SpacingRowGap">8</sys:Double>
     <GridLength x:Key="SpacingRowGapGrid">8</GridLength>
@@ -1965,6 +1995,7 @@
         <Setter Property="HorizontalAlignment" Value="Center"/>
         <Setter Property="VerticalAlignment" Value="Center"/>
         <Setter Property="Padding" Value="24"/>
+        <Setter Property="Margin" Value="{StaticResource MarginEmptyStateTop}"/>
     </Style>
 
     <!-- ========================================================= -->

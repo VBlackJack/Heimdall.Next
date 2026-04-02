@@ -179,7 +179,7 @@
                 <WrapPanel Margin="{StaticResource MarginSectionBottom}">
                     <Button x:Name="BtnGenerate" Click="OnGenerateClick"
                             Style="{DynamicResource PrimaryButtonStyle}"
-                            Padding="{StaticResource PaddingButtonPrimary}" Margin="0,0,8,0" FontSize="{StaticResource FontSizeBody}"
+                            Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginInlineSm}" FontSize="{StaticResource FontSizeBody}"
                             TabIndex="8"/>
                     <Button x:Name="BtnGenerateAll" Click="OnGenerateAllClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
@@ -190,7 +190,7 @@
                 <!-- Empty state hint (hidden once output is generated) -->
                 <Border x:Name="EmptyStatePanel"
                         Style="{StaticResource ToolEmptyStateStyle}"
-                        Margin="0,24,0,0">
+                       >
                     <StackPanel HorizontalAlignment="Center">
                         <TextBlock Text="&#xE756;" Style="{StaticResource ToolEmptyStateIconStyle}"
                                    Focusable="False"/>
@@ -203,12 +203,12 @@
                 <Border x:Name="OutputPanel" Visibility="Collapsed" Background="{DynamicResource CardBrush}"
                         BorderBrush="{DynamicResource BorderBrush}"
                         BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
-                        Padding="{StaticResource PaddingAlertBanner}" Margin="0,0,0,8">
+                        Padding="{StaticResource PaddingAlertBanner}" Margin="{StaticResource MarginStackItem}">
                     <DockPanel>
                         <Button x:Name="BtnCopy" DockPanel.Dock="Top"
                                 Click="OnCopyClick"
                                 Style="{DynamicResource SecondaryButtonStyle}"
-                                Padding="{StaticResource PaddingButtonCopy}" Margin="0,0,0,8"
+                                Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginStackItem}"
                                 HorizontalAlignment="Left" FontSize="{StaticResource FontSizeBody}"
                                 TabIndex="10"/>
                         <TextBox x:Name="TxtOutput"

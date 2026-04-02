@@ -65,5 +65,10 @@
     }
   ],
   "notes": "Utilise une recherche avec wildcard. Pour rechercher dans la description aussi, modifier le filtre.",
-  "links": []
+  "links": [
+    {
+      "title": "Documentation Get-ADGroup",
+      "url": "https://learn.microsoft.com/en-us/powershell/module/activedirectory/get-adgroup"
+    }
+  ]
 }

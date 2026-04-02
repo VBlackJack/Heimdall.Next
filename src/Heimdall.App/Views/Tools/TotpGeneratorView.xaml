@@ -66,7 +66,7 @@
 
                 <!-- Secret key input -->
                 <TextBlock x:Name="LblSecret" Text=""
-                           FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,4"
+                           FontSize="{StaticResource FontSizeBody}" Margin="{StaticResource MarginLabelBottom}"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
                 <DockPanel Margin="{StaticResource MarginSectionSeparator}">
                     <Button x:Name="BtnGenerate" DockPanel.Dock="Right"
@@ -101,7 +101,7 @@
                         Padding="24,16" Margin="{StaticResource MarginSectionSeparator}">
                     <StackPanel HorizontalAlignment="Center">
                         <TextBlock x:Name="LblCode" Text=""
-                                   FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,8"
+                                   FontSize="{StaticResource FontSizeBody}" Margin="{StaticResource MarginStackItem}"
                                    Foreground="{DynamicResource TextSecondaryBrush}"
                                    HorizontalAlignment="Center"/>
                         <DockPanel HorizontalAlignment="Center" Margin="{StaticResource MarginSectionBottom}">
@@ -120,7 +120,7 @@
 
                         <!-- Time remaining -->
                         <TextBlock x:Name="LblTimeRemaining" Text=""
-                                   FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,4"
+                                   FontSize="{StaticResource FontSizeBody}" Margin="{StaticResource MarginLabelBottom}"
                                    Foreground="{DynamicResource TextSecondaryBrush}"
                                    HorizontalAlignment="Center"/>
                         <ProgressBar x:Name="ProgressTime"

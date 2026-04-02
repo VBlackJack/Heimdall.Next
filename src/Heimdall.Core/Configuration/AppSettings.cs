@@ -41,6 +41,26 @@ public class AppSettings
     public int ProcessKillTimeoutMs { get; set; } = 2000;
     public int ExternalToolTimeoutMs { get; set; } = 60000;
 
+    // Infrastructure timeouts (centralized from previously hardcoded values)
+    public int HostKeyProbeTimeoutMs { get; set; } = 8000;
+    public int TelnetConnectTimeoutMs { get; set; } = 15000;
+    public int CredentialProviderTimeoutMs { get; set; } = 10000;
+    public int RdpCredentialAutofillTimeoutMs { get; set; } = 90000;
+    public int RdpArtifactCleanupDelayMs { get; set; } = 10000;
+    public int RdpResizeEnableDelayMs { get; set; } = 10000;
+    public int SshKeepAliveIntervalSeconds { get; set; } = 30;
+    public int PlinkPortCheckIntervalMs { get; set; } = 2000;
+    public int PlinkKillGracePeriodMs { get; set; } = 2000;
+    public int PlinkStderrReadTimeoutMs { get; set; } = 10000;
+    public int SftpUploadDebounceMs { get; set; } = 2000;
+    public int ServerShutdownTimeoutMs { get; set; } = 2000;
+    public int SleepPreventionIntervalSeconds { get; set; } = 60;
+    public int FileLoggerFlushIntervalMs { get; set; } = 2000;
+    public int DefaultRdpTunnelPort { get; set; } = 33890;
+    public int DefaultSshTunnelPort { get; set; } = 2222;
+    public int EphemeralHttpPort { get; set; } = 8080;
+    public int EphemeralTftpPort { get; set; } = 69;
+
     // Logging
     public bool EnableLogging { get; set; } = true;
     public string LogFilePath { get; set; } = @"logs\heimdall.log";

@@ -67,7 +67,7 @@
 
                 <!-- Quick presets -->
                 <TextBlock x:Name="LblPresets" Text=""
-                           FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,6"
+                           FontSize="{StaticResource FontSizeBody}" Margin="{StaticResource MarginDetailRow}"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
                 <WrapPanel Margin="{StaticResource MarginSectionSeparator}">
                     <Button x:Name="BtnPresetEveryMin" Click="OnPresetClick" Tag="* * * * *"
@@ -174,7 +174,7 @@
                 <Border Background="{DynamicResource SurfaceBrush}"
                         BorderBrush="{DynamicResource BorderBrush}"
                         BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
-                        Padding="{StaticResource SpacingMd}" Margin="0,0,0,8">
+                        Padding="{StaticResource SpacingMd}" Margin="{StaticResource MarginStackItem}">
                     <DockPanel>
                         <Button x:Name="BtnCopy" DockPanel.Dock="Right"
                                 Click="OnCopyClick"
@@ -200,12 +200,12 @@
 
                 <!-- Manual edit -->
                 <TextBlock x:Name="LblManualEdit" Text=""
-                           FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,4"
+                           FontSize="{StaticResource FontSizeBody}" Margin="{StaticResource MarginLabelBottom}"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
                 <TextBox x:Name="TxtManualInput" Text=""
                          Style="{DynamicResource WatermarkTextBoxStyle}"
                          FontSize="{StaticResource FontSizeBodyLarge}" FontFamily="Consolas"
-                         Padding="{StaticResource PaddingInput}" Margin="0,0,0,4"
+                         Padding="{StaticResource PaddingInput}" Margin="{StaticResource MarginLabelBottom}"
                          Background="{DynamicResource CardBrush}"
                          Foreground="{DynamicResource TextPrimaryBrush}"
                          BorderBrush="{DynamicResource BorderBrush}"
@@ -221,7 +221,7 @@
 
                 <!-- Next executions -->
                 <TextBlock x:Name="LblNextRuns" Text=""
-                           FontSize="{StaticResource FontSizeBody}" FontWeight="SemiBold" Margin="0,0,0,6"
+                           FontSize="{StaticResource FontSizeBody}" FontWeight="SemiBold" Margin="{StaticResource MarginDetailRow}"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
                 <Border Background="{DynamicResource CardBrush}"
                         BorderBrush="{DynamicResource BorderBrush}"

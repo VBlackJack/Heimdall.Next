@@ -79,9 +79,9 @@
 
                 <!-- Input row -->
                 <TextBlock x:Name="LblHost" Text=""
-                           FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,4"
+                           FontSize="{StaticResource FontSizeBody}" Margin="{StaticResource MarginLabelBottom}"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
-                <DockPanel Margin="0,0,0,8">
+                <DockPanel Margin="{StaticResource MarginStackItem}">
                     <Button x:Name="BtnAudit" DockPanel.Dock="Right"
                             TabIndex="2"
                             Content="" Click="OnAuditClick"
@@ -100,7 +100,7 @@
                              BorderBrush="{DynamicResource BorderBrush}"
                              VerticalAlignment="Center"/>
                     <TextBlock DockPanel.Dock="Right" Text=":"
-                               FontSize="{StaticResource FontSizeBodyLarge}" Margin="4,0,0,0"
+                               FontSize="{StaticResource FontSizeBodyLarge}" Margin="{StaticResource MarginInlineStart}"
                                Foreground="{DynamicResource TextSecondaryBrush}"
                                VerticalAlignment="Center"/>
                     <TextBox x:Name="TxtHost" Text=""
@@ -116,9 +116,9 @@
                 </DockPanel>
 
                 <!-- Route via gateway -->
-                <DockPanel Margin="0,0,0,8">
+                <DockPanel Margin="{StaticResource MarginStackItem}">
                     <TextBlock x:Name="LblRouteVia" Text=""
-                               FontSize="{StaticResource FontSizeBody}" Margin="0,0,8,0"
+                               FontSize="{StaticResource FontSizeBody}" Margin="{StaticResource MarginInlineSm}"
                                Foreground="{DynamicResource TextSecondaryBrush}"
                                VerticalAlignment="Center"/>
                     <ComboBox x:Name="CmbRouteVia" Width="240"
@@ -138,7 +138,7 @@
                 <!-- Empty state hint -->
                 <Border x:Name="EmptyStatePanel"
                         Style="{StaticResource ToolEmptyStateStyle}"
-                        Margin="0,24,0,0">
+                       >
                     <StackPanel HorizontalAlignment="Center">
                         <TextBlock Text="&#xE72E;"
                                    Style="{StaticResource ToolEmptyStateIconStyle}"
@@ -159,7 +159,7 @@
                             <TextBlock x:Name="LblGradeCaption" Text=""
                                        FontSize="{StaticResource FontSizeCaption}"
                                        Foreground="{DynamicResource TextOnAccentBrush}"
-                                       HorizontalAlignment="Center" Margin="0,0,0,4"/>
+                                       HorizontalAlignment="Center" Margin="{StaticResource MarginLabelBottom}"/>
                             <TextBlock x:Name="TxtGrade" Text=""
                                        FontSize="{StaticResource FontSizeHeadline}" FontWeight="Bold"
                                        Foreground="{DynamicResource TextOnAccentBrush}"
@@ -178,7 +178,7 @@
                             <TextBlock x:Name="LblProtocols" Text=""
                                        FontSize="{StaticResource FontSizeBodyLarge}" FontWeight="SemiBold"
                                        Foreground="{DynamicResource TextPrimaryBrush}"
-                                       Margin="0,0,0,8"/>
+                                       Margin="{StaticResource MarginStackItem}"/>
                             <ItemsControl x:Name="ProtocolList">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
@@ -212,7 +212,7 @@
                             <TextBlock x:Name="LblCiphers" Text=""
                                        FontSize="{StaticResource FontSizeBodyLarge}" FontWeight="SemiBold"
                                        Foreground="{DynamicResource TextPrimaryBrush}"
-                                       Margin="0,0,0,8"/>
+                                       Margin="{StaticResource MarginStackItem}"/>
                             <ItemsControl x:Name="CipherList">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
@@ -270,7 +270,7 @@
                             <TextBlock x:Name="LblCertSection" Text=""
                                        FontSize="{StaticResource FontSizeBodyLarge}" FontWeight="SemiBold"
                                        Foreground="{DynamicResource TextPrimaryBrush}"
-                                       Margin="0,0,0,8"/>
+                                       Margin="{StaticResource MarginStackItem}"/>
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto"/>
@@ -323,7 +323,7 @@
                             <TextBlock x:Name="LblFindings" Text=""
                                        FontSize="{StaticResource FontSizeBodyLarge}" FontWeight="SemiBold"
                                        Foreground="{DynamicResource TextPrimaryBrush}"
-                                       Margin="0,0,0,8"/>
+                                       Margin="{StaticResource MarginStackItem}"/>
                             <ItemsControl x:Name="FindingsList">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>

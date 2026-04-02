@@ -65,5 +65,10 @@
     }
   ],
   "notes": "L'ordinateur ne pourra plus communiquer avec le domaine. Utile pour les machines retirées du service.",
-  "links": []
+  "links": [
+    {
+      "title": "Documentation Disable-ADAccount",
+      "url": "https://learn.microsoft.com/en-us/powershell/module/activedirectory/disable-adaccount"
+    }
+  ]
 }

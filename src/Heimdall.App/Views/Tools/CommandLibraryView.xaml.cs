@@ -39,6 +39,8 @@ namespace Heimdall.App.Views.Tools;
 /// </summary>
 public partial class CommandLibraryView : UserControl, IToolView
 {
+    private const long MaxImportFileSizeBytes = 50 * 1024 * 1024;
+
     private LocalizationManager? _localizer;
     private Action<string>? _sendCommand;
     private IServiceProvider? _services;
@@ -269,6 +271,7 @@ public partial class CommandLibraryView : UserControl, IToolView
     private async void OnSearchTextChanged(object sender, TextChangedEventArgs e)
     {
         _searchCts?.Cancel();
+        _searchCts?.Dispose();
         _searchCts = new CancellationTokenSource();
         var token = _searchCts.Token;
         var term = TxtSearch.Text.Trim();
@@ -858,7 +861,7 @@ public partial class CommandLibraryView : UserControl, IToolView
         try
         {
             var fileInfo = new System.IO.FileInfo(dlg.FileName);
-            if (fileInfo.Length > 50 * 1024 * 1024)
+            if (fileInfo.Length > MaxImportFileSizeBytes)
             {
                 MessageDialog.ShowMessage(
                     Window.GetWindow(this),
@@ -1112,17 +1115,23 @@ public partial class CommandLibraryView : UserControl, IToolView
         TxtHistoryCopied.Text = L("ToolCmdLibCopied");
         TxtHistoryCopied.Visibility = Visibility.Visible;
 
-        _historyCopyTimer?.Stop();
-        _historyCopyTimer = new System.Windows.Threading.DispatcherTimer
+        if (_historyCopyTimer is null)
         {
-            Interval = TimeSpan.FromSeconds(1)
-        };
-        _historyCopyTimer.Tick += (_, _) =>
-        {
-            TxtHistoryCopied.Visibility = Visibility.Collapsed;
-            _historyCopyTimer.Stop();
-        };
+            _historyCopyTimer = new System.Windows.Threading.DispatcherTimer
+            {
+                Interval = TimeSpan.FromSeconds(1)
+            };
+            _historyCopyTimer.Tick += OnHistoryCopyTimerTick;
+        }
+
+        _historyCopyTimer.Stop();
         _historyCopyTimer.Start();
+    }
+
+    private void OnHistoryCopyTimerTick(object? sender, EventArgs e)
+    {
+        TxtHistoryCopied.Visibility = Visibility.Collapsed;
+        _historyCopyTimer?.Stop();
     }
 
     private void OnHistoryCopyClick(object sender, RoutedEventArgs e)
@@ -1287,7 +1296,12 @@ public partial class CommandLibraryView : UserControl, IToolView
 
     public void Dispose()
     {
-        _historyCopyTimer?.Stop();
+        if (_historyCopyTimer is not null)
+        {
+            _historyCopyTimer.Tick -= OnHistoryCopyTimerTick;
+            _historyCopyTimer.Stop();
+        }
+
         _searchCts?.Cancel();
         _searchCts?.Dispose();
         _serviceScope?.Dispose();

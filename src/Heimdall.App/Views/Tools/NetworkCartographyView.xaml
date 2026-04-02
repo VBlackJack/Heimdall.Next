@@ -79,7 +79,7 @@
                 <WrapPanel Grid.Row="0" VerticalAlignment="Center">
                     <TextBlock x:Name="LblSubnet" Text="" FontSize="{StaticResource FontSizeBody}"
                                Foreground="{DynamicResource TextSecondaryBrush}"
-                               VerticalAlignment="Center" Margin="0,0,6,0"/>
+                               VerticalAlignment="Center" Margin="{StaticResource MarginLabelInline}"/>
                     <TextBox x:Name="TxtSubnet" Text="" Width="180"
                              Style="{StaticResource WatermarkTextBoxStyle}"
                              Tag=""
@@ -163,7 +163,7 @@
         <!-- Empty state hint -->
         <Border x:Name="EmptyStatePanel" Grid.Row="4"
                 Style="{StaticResource ToolEmptyStateStyle}"
-                Margin="0,24,0,0">
+               >
             <StackPanel HorizontalAlignment="Center">
                 <TextBlock Text="&#xE826;" Style="{StaticResource ToolEmptyStateIconStyle}"
                            Focusable="False"/>
@@ -268,8 +268,8 @@
                             TabIndex="9"/>
                 </WrapPanel>
 
-                <WrapPanel Grid.Row="1" HorizontalAlignment="Right" Margin="0,8,0,0">
-                    <ComboBox x:Name="CmbHistory" Width="220" Margin="0,0,8,0"
+                <WrapPanel Grid.Row="1" HorizontalAlignment="Right" Margin="{StaticResource MarginSubsectionTop}">
+                    <ComboBox x:Name="CmbHistory" Width="220" Margin="{StaticResource MarginInlineSm}"
                               SelectionChanged="OnHistorySelected"
                               Background="{DynamicResource CardBrush}"
                               Foreground="{DynamicResource TextPrimaryBrush}"
@@ -279,13 +279,13 @@
                     <Button x:Name="BtnExportDrawio" Content=""
                             Click="OnExportDrawioClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="{StaticResource PaddingButtonCopy}" Margin="0,0,4,0"
+                            Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginInlineXs}"
                             VerticalAlignment="Center" IsEnabled="False"
                             TabIndex="11"/>
                     <Button x:Name="BtnEditDiagram" Content=""
                             Click="OnEditDiagramClick"
                             Style="{DynamicResource SecondaryButtonStyle}"
-                            Padding="{StaticResource PaddingButtonPrimary}" Margin="0,0,4,0"
+                            Padding="{StaticResource PaddingButtonPrimary}" Margin="{StaticResource MarginInlineXs}"
                             VerticalAlignment="Center" IsEnabled="False"
                             TabIndex="12"/>
                     <Button x:Name="BtnExportCsv" Content=""

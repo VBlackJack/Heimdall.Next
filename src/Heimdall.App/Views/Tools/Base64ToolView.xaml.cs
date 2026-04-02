@@ -19,6 +19,7 @@ using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Models;
 using SaveFileDialog = Microsoft.Win32.SaveFileDialog;
@@ -28,7 +29,7 @@ namespace Heimdall.App.Views.Tools;
 /// <summary>
 /// Base64 encoder/decoder tool supporting both text and file input modes.
 /// </summary>
-public partial class Base64ToolView : UserControl, IToolView
+public partial class Base64ToolView : UserControl, IToolView, IDisposable
 {
     private const long MaxFileSizeBytes = 5 * 1024 * 1024; // 5 MB
     private const int AsyncThresholdBytes = 100 * 1024; // 100 KB
@@ -146,12 +147,14 @@ public partial class Base64ToolView : UserControl, IToolView
             EmptyStatePanel.Visibility = Visibility.Collapsed;
             ResultsPanel.Visibility = Visibility.Visible;
             StatusText.Text = string.Format(L("ToolBase64StatusEncoded"), data.Length);
+            StatusText.Foreground = (Brush)FindResource("TextSecondaryBrush");
         }
         catch (Exception ex)
         {
             BtnEncode.IsEnabled = true;
             OutputText.Text = string.Empty;
             StatusText.Text = string.Format(L("ToolBase64StatusError"), ex.Message);
+            StatusText.Foreground = (Brush)FindResource("ErrorTextBrush");
         }
     }
 
@@ -199,6 +202,7 @@ public partial class Base64ToolView : UserControl, IToolView
                 {
                     File.WriteAllBytes(dialog.FileName, decoded);
                     StatusText.Text = string.Format(L("ToolBase64StatusSaved"), dialog.FileName);
+                    StatusText.Foreground = (Brush)FindResource("TextSecondaryBrush");
                 }
 
                 return;
@@ -208,16 +212,19 @@ public partial class Base64ToolView : UserControl, IToolView
             EmptyStatePanel.Visibility = Visibility.Collapsed;
             ResultsPanel.Visibility = Visibility.Visible;
             StatusText.Text = string.Format(L("ToolBase64StatusDecoded"), decoded.Length);
+            StatusText.Foreground = (Brush)FindResource("TextSecondaryBrush");
         }
         catch (FormatException)
         {
             OutputText.Text = string.Empty;
             StatusText.Text = L("ToolBase64StatusInvalidInput");
+            StatusText.Foreground = (Brush)FindResource("ErrorTextBrush");
         }
         catch (Exception ex)
         {
             OutputText.Text = string.Empty;
             StatusText.Text = string.Format(L("ToolBase64StatusError"), ex.Message);
+            StatusText.Foreground = (Brush)FindResource("ErrorTextBrush");
         }
     }
 
@@ -247,6 +254,7 @@ public partial class Base64ToolView : UserControl, IToolView
             if (fileInfo.Length > MaxFileSizeBytes)
             {
                 StatusText.Text = L("ToolBase64ErrorFileTooLarge");
+                StatusText.Foreground = (Brush)FindResource("ErrorTextBrush");
                 return;
             }
 
@@ -257,6 +265,7 @@ public partial class Base64ToolView : UserControl, IToolView
         catch (Exception ex)
         {
             StatusText.Text = string.Format(L("ToolBase64StatusError"), ex.Message);
+            StatusText.Foreground = (Brush)FindResource("ErrorTextBrush");
         }
     }
 

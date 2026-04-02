@@ -37,6 +37,7 @@ public class TelnetSession : ITerminalSession
 
     private readonly string _host;
     private readonly int _port;
+    private readonly int _connectTimeoutMs;
 
     private TcpClient? _client;
     private NetworkStream? _stream;
@@ -54,11 +55,12 @@ public class TelnetSession : ITerminalSession
     public int? ProcessId => null;
     public Dictionary<string, string>? EnvironmentVariables { get; set; }
 
-    public TelnetSession(string host, int port)
+    public TelnetSession(string host, int port, int connectTimeoutMs = 15000)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(host);
         _host = host;
         _port = port > 0 ? port : 23;
+        _connectTimeoutMs = connectTimeoutMs;
     }
 
     /// <summary>
@@ -80,7 +82,7 @@ public class TelnetSession : ITerminalSession
 
         _client = new TcpClient();
         using var connectTimeout = CancellationTokenSource.CreateLinkedTokenSource(_cts.Token);
-        connectTimeout.CancelAfter(TimeSpan.FromSeconds(15));
+        connectTimeout.CancelAfter(TimeSpan.FromMilliseconds(_connectTimeoutMs));
         await _client.ConnectAsync(_host, _port, connectTimeout.Token).ConfigureAwait(false);
         _stream = _client.GetStream();
 

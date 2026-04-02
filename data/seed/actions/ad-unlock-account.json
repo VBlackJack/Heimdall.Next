@@ -66,5 +66,10 @@
     }
   ],
   "notes": "Nécessite des droits d'administration AD. Vérifier la cause du verrouillage avant de déverrouiller.",
-  "links": []
+  "links": [
+    {
+      "title": "Documentation Unlock-ADAccount",
+      "url": "https://learn.microsoft.com/en-us/powershell/module/activedirectory/unlock-adaccount"
+    }
+  ]
 }

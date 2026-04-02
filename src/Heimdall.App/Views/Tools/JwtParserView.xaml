@@ -66,7 +66,7 @@
 
                 <!-- Input -->
                 <TextBlock x:Name="LblInput" Text=""
-                           FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,4"
+                           FontSize="{StaticResource FontSizeBody}" Margin="{StaticResource MarginLabelBottom}"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
                 <TextBox x:Name="TxtInput" Text=""
                          TabIndex="0"
@@ -99,7 +99,7 @@
                 <!-- Empty state -->
                 <Border x:Name="EmptyStatePanel"
                         Style="{StaticResource ToolEmptyStateStyle}"
-                        Margin="0,24,0,0">
+                       >
                     <StackPanel HorizontalAlignment="Center">
                         <TextBlock Text="&#xE8D7;"
                                    Style="{StaticResource ToolEmptyStateIconStyle}"
@@ -190,7 +190,7 @@
                         <TextBlock x:Name="LblVerifyTitle" Text=""
                                    FontSize="{StaticResource FontSizeBody}" FontWeight="SemiBold"
                                    Foreground="{DynamicResource TextPrimaryBrush}"
-                                   Margin="0,0,0,8"/>
+                                   Margin="{StaticResource MarginStackItem}"/>
 
                         <!-- Unsupported algorithm message (for RS/ES) -->
                         <TextBlock x:Name="TxtUnsupportedAlg" Text=""
@@ -202,9 +202,9 @@
                         <!-- HMAC verification controls -->
                         <StackPanel x:Name="HmacVerifyPanel" Visibility="Collapsed">
                             <TextBlock x:Name="LblSecret" Text=""
-                                       FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,4"
+                                       FontSize="{StaticResource FontSizeBody}" Margin="{StaticResource MarginLabelBottom}"
                                        Foreground="{DynamicResource TextSecondaryBrush}"/>
-                            <DockPanel Margin="0,0,0,8">
+                            <DockPanel Margin="{StaticResource MarginStackItem}">
                                 <Button x:Name="BtnVerify" DockPanel.Dock="Right"
                                         TabIndex="5"
                                         Content="" Click="OnVerifyClick"

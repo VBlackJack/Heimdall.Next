@@ -32,10 +32,10 @@
                     <TextBlock x:Name="LblScenario"
                                FontFamily="Consolas" FontSize="{StaticResource FontSizeCaption}"
                                Foreground="{DynamicResource HackerSimTextMutedBrush}" VerticalAlignment="Center"
-                               Margin="0,0,6,0"/>
+                               Margin="{StaticResource MarginLabelInline}"/>
 
                     <ComboBox x:Name="CmbScenario"
-                              Width="260" Margin="0,0,8,0"
+                              Width="260" Margin="{StaticResource MarginInlineSm}"
                               FontFamily="Consolas" FontSize="{StaticResource FontSizeCaption}"
                               Background="{DynamicResource HackerSimSurfaceBrush}" Foreground="{DynamicResource HackerSimTextPrimaryBrush}" BorderBrush="{DynamicResource HackerSimInputBorderBrush}"
                               DisplayMemberPath="Display"
@@ -59,7 +59,7 @@
                     <TextBlock x:Name="LblSearch"
                                FontFamily="Consolas" FontSize="{StaticResource FontSizeCaption}"
                                Foreground="{DynamicResource HackerSimTextMutedBrush}" VerticalAlignment="Center"
-                               Margin="0,0,6,0"/>
+                               Margin="{StaticResource MarginLabelInline}"/>
 
                     <TextBox x:Name="TxtScenarioSearch"
                              Width="180" Margin="0,0,12,0"
@@ -71,7 +71,7 @@
                     <TextBlock x:Name="LblCategory"
                                FontFamily="Consolas" FontSize="{StaticResource FontSizeCaption}"
                                Foreground="{DynamicResource HackerSimTextMutedBrush}" VerticalAlignment="Center"
-                               Margin="0,0,6,0"/>
+                               Margin="{StaticResource MarginLabelInline}"/>
 
                     <ComboBox x:Name="CmbCategory"
                               Width="135" Margin="0,0,12,0"
@@ -84,7 +84,7 @@
                     <TextBlock x:Name="LblRealism"
                                FontFamily="Consolas" FontSize="{StaticResource FontSizeCaption}"
                                Foreground="{DynamicResource HackerSimTextMutedBrush}" VerticalAlignment="Center"
-                               Margin="0,0,6,0"/>
+                               Margin="{StaticResource MarginLabelInline}"/>
 
                     <ComboBox x:Name="CmbRealism"
                               Width="135" Margin="0,0,12,0"
@@ -97,7 +97,7 @@
                     <TextBlock x:Name="LblSpeed"
                                FontFamily="Consolas" FontSize="{StaticResource FontSizeCaption}"
                                Foreground="{DynamicResource HackerSimTextMutedBrush}" VerticalAlignment="Center"
-                               Margin="0,0,4,0"/>
+                               Margin="{StaticResource MarginInlineXs}"/>
 
                     <Slider x:Name="SliderSpeed"
                             Width="100" Minimum="0.25" Maximum="3.0" Value="1.0"
@@ -110,7 +110,7 @@
                                Text="1.00x" FontFamily="Consolas"
                                FontSize="{StaticResource FontSizeCaption}"
                                Foreground="{DynamicResource HackerSimAccentBrush}" VerticalAlignment="Center"
-                               Margin="4,0,0,0" MinWidth="34"/>
+                               Margin="{StaticResource MarginInlineStart}" MinWidth="34"/>
 
                     <Button x:Name="BtnStartStop"
                             Click="OnStartStopClick"
@@ -123,7 +123,7 @@
                             Click="OnHelpClick"
                             FontFamily="Consolas" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
                             Foreground="{DynamicResource HackerSimTextPrimaryBrush}" Background="{DynamicResource HackerSimButtonBackgroundBrush}" BorderBrush="{DynamicResource HackerSimInputBorderBrush}"
-                            Width="24" Height="24" Padding="0" Margin="8,0,0,0" Cursor="Hand"
+                            Width="24" Height="24" Padding="0" Margin="{StaticResource MarginInlineControl}" Cursor="Hand"
                             TabIndex="15"/>
                 </WrapPanel>
 
@@ -138,11 +138,11 @@
                            Margin="2,2,0,0"
                            TextWrapping="Wrap"/>
 
-                <WrapPanel VerticalAlignment="Center" ItemHeight="28" Margin="0,8,0,0">
+                <WrapPanel VerticalAlignment="Center" ItemHeight="28" Margin="{StaticResource MarginSubsectionTop}">
                     <TextBlock x:Name="LblPlaylist"
                                FontFamily="Consolas" FontSize="{StaticResource FontSizeCaption}"
                                Foreground="{DynamicResource HackerSimTextMutedBrush}" VerticalAlignment="Center"
-                               Margin="0,0,6,0"/>
+                               Margin="{StaticResource MarginLabelInline}"/>
 
                     <ComboBox x:Name="CmbPlaylist"
                               Width="220" Margin="0,0,12,0"
@@ -156,7 +156,7 @@
                             Click="OnReplaySeedClick"
                             FontFamily="Consolas" FontSize="{StaticResource FontSizeCaption}"
                             Foreground="{DynamicResource HackerSimTextPrimaryBrush}" Background="{DynamicResource HackerSimButtonBackgroundBrush}" BorderBrush="{DynamicResource HackerSimInputBorderBrush}"
-                            Padding="{StaticResource PaddingButtonToolbar}" Margin="0,0,8,0" Cursor="Hand"
+                            Padding="{StaticResource PaddingButtonToolbar}" Margin="{StaticResource MarginInlineSm}" Cursor="Hand"
                             TabIndex="9"/>
 
                     <Button x:Name="BtnExportTranscript"
@@ -176,12 +176,12 @@
                     <TextBlock x:Name="LblSeed"
                                FontFamily="Consolas" FontSize="{StaticResource FontSizeCaption}"
                                Foreground="{DynamicResource HackerSimTextMutedBrush}" VerticalAlignment="Center"
-                               Margin="0,0,6,0"/>
+                               Margin="{StaticResource MarginLabelInline}"/>
 
                     <TextBlock x:Name="LblSeedValue"
                                FontFamily="Consolas" FontSize="{StaticResource FontSizeCaption}"
                                Foreground="{DynamicResource HackerSimAccentBrush}" VerticalAlignment="Center"
-                               Margin="0,0,6,0"/>
+                               Margin="{StaticResource MarginLabelInline}"/>
                 </WrapPanel>
             </StackPanel>
         </Border>

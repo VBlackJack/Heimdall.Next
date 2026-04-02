@@ -29,7 +29,7 @@ namespace Heimdall.Sftp;
 public class RemoteFileEditor : IDisposable
 {
     /// <summary>Minimum interval between consecutive auto-uploads for the same file.</summary>
-    internal static readonly TimeSpan UploadDebounceInterval = TimeSpan.FromSeconds(2);
+    public static TimeSpan UploadDebounceInterval { get; set; } = TimeSpan.FromSeconds(2);
     private const string RemoteTempPrefix = "/tmp/.heimdall_";
 
     private readonly IRemoteBrowser _browser;

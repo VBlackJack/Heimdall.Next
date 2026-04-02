@@ -112,6 +112,9 @@ public partial class App : System.Windows.Application
 
         // Apply sleep prevention setting
         SleepPrevention.Enabled = settings.PreventSleepDuringSession;
+        SleepPrevention.IntervalSeconds = settings.SleepPreventionIntervalSeconds;
+        Heimdall.Sftp.RemoteFileEditor.UploadDebounceInterval =
+            TimeSpan.FromMilliseconds(settings.SftpUploadDebounceMs);
 
         // Initialize TwinShell command library (DB + seed on first launch).
         // Awaited to ensure seed completes before tools can be opened.
