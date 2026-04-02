@@ -892,12 +892,14 @@ public partial class MainWindow : Window
             return true;
         }
 
-        // Fallback: when a tool session is active and focus is NOT in the sidebar
-        // TreeView, assume the tool's embedded content should receive keyboard input.
-        // This covers WebView2 focus-tracking gaps (HWND has focus but WPF doesn't see it).
+        // Fallback: when an embedded session with WebView2 content is active and focus
+        // is NOT in the sidebar TreeView, assume the embedded content should receive
+        // keyboard input. This covers WebView2 focus-tracking gaps where the HWND has
+        // focus but WPF doesn't see it (SSH, Local Shell, Telnet, VNC, Tool sessions).
         if (DataContext is MainViewModel vm
             && vm.Connection.ActiveSession?.ConnectionType is { } ct
-            && ct.StartsWith("TOOL:", StringComparison.OrdinalIgnoreCase)
+            && (ct is "SSH" or "LOCAL" or "TELNET" or "VNC"
+                || ct.StartsWith("TOOL:", StringComparison.OrdinalIgnoreCase))
             && FindAncestor<System.Windows.Controls.TreeView>(focused) is null)
         {
             return true;
