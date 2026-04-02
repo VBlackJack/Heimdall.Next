@@ -357,6 +357,7 @@
 
                     // Ctrl+Shift+V or Ctrl+V: paste from host clipboard
                     if (event.ctrlKey && (event.code === 'KeyV')) {
+                        event.preventDefault();
                         postMessage('clipboard-read:');
                         return false;
                     }
