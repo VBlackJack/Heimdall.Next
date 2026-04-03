@@ -104,6 +104,7 @@ public sealed class ToolRegistry
             Entry("DIAGRAM",  ToolCategory.System,   "ToolCategorySystem",   "PaletteToolDiagram",  "PaletteToolDiagramWith",  ["diagram","drawio","schema"],         false, () => new Views.Tools.DiagramEditorView(),  "Geo.Tool.Diagram"),
             Entry("HACKERSIM",ToolCategory.System,   "ToolCategorySystem",   "PaletteToolHackerSim","PaletteToolHackerSimWith",["hacker","matrix","hackersim"],        false, () => new Views.Tools.HackerSimulatorView(),"Geo.Tool.HackerSimulator"),
             Entry("CMDLIB",   ToolCategory.System,   "ToolCategorySystem",   "PaletteToolCmdLib",   "PaletteToolCmdLibWith",   ["cmd","command","library","snippet","twinshell","cheat","cheatsheet","powershell","bash"], false, () => new Views.Tools.CommandLibraryView(), "Geo.Tool.CommandLibrary"),
+            Entry("PRIVLAUNCH", ToolCategory.System, "ToolCategorySystem", "PaletteToolPrivLaunch", null, ["privlaunch","sudo","nsudo","elevate","system","trustedinstaller"], false, () => new Views.Tools.PrivilegeLauncherView(), "Geo.Tool.PrivilegeLauncher"),
 
             // ── External ─────────────────────────────────────────────
             Entry("WOL",       ToolCategory.External, "ToolCategoryExternal", "PaletteToolWol",       "PaletteToolWolWith",       ["wol","wake","wakeonlan"],              false, () => new Views.Tools.WakeOnLanView(),      "Geo.Tool.WakeOnLan"),
@@ -265,6 +266,7 @@ public sealed class ToolRegistry
         ["DIAGRAM"]   = "Geo.Tool.Diagram",
         ["HACKERSIM"] = "Geo.Tool.HackerSimulator",
         ["CMDLIB"]    = "Geo.Tool.CommandLibrary",
+        ["PRIVLAUNCH"] = "Geo.Tool.PrivilegeLauncher",
         ["WOL"]       = "Geo.Tool.WakeOnLan",
         ["OPENPORTS"] = "Geo.Tool.PortScanner",
         ["NETIF"]     = "Geo.Tool.NetworkScanner",
@@ -305,6 +307,7 @@ public sealed class ToolRegistry
         ["DIAGRAM"]   = "ToolSystemBrush",
         ["HACKERSIM"] = "ToolSystemBrush",
         ["CMDLIB"]    = "ToolSystemBrush",
+        ["PRIVLAUNCH"] = "ToolSystemBrush",
         ["WOL"]       = "ToolExternalBrush",
         ["OPENPORTS"] = "ToolExternalBrush",
         ["NETIF"]     = "ToolExternalBrush",

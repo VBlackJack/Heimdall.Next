@@ -1,0 +1,194 @@
+<!--
+  Copyright 2026 Julien Bombled
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<UserControl x:Class="Heimdall.App.Views.Tools.PrivilegeLauncherView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="{DynamicResource BackgroundBrush}">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Border Grid.Row="0" Padding="{StaticResource ToolHeaderPadding}"
+                Background="{DynamicResource SurfaceBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="0,0,0,1">
+            <DockPanel>
+                <Button x:Name="BtnHelp" DockPanel.Dock="Right" Content="?"
+                        Click="OnHelpClick"
+                        Style="{DynamicResource SecondaryButtonStyle}"
+                        Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
+                        Width="24" Height="24" Margin="{StaticResource MarginInlineControl}"
+                        TabIndex="20"/>
+                <TextBlock x:Name="HeaderTitle" FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextPrimaryBrush}"
+                           VerticalAlignment="Center"/>
+            </DockPanel>
+        </Border>
+
+        <!-- Help panel -->
+        <Border x:Name="HelpPanel" Grid.Row="1" Style="{StaticResource ToolHelpPanelStyle}">
+            <DockPanel>
+                <Button x:Name="BtnCloseHelp" DockPanel.Dock="Right" Content="&#xE711;"
+                        FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeBody}"
+                        Click="OnCloseHelpClick"
+                        Style="{DynamicResource ToolbarGhostButtonStyle}"
+                        VerticalAlignment="Top" Width="24" Height="24"
+                        TabIndex="21"/>
+                <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
+                    <TextBlock x:Name="TxtHelpContent" Text="" TextWrapping="Wrap"
+                               FontSize="{StaticResource FontSizeBody}"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               LineHeight="20"/>
+                </ScrollViewer>
+            </DockPanel>
+        </Border>
+
+        <!-- Content -->
+        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
+            <StackPanel Margin="{StaticResource ContentAreaMargin}" MaxWidth="{StaticResource ToolContentMaxWidth}">
+
+                <!-- Elevation warning -->
+                <Border x:Name="WarningPanel" Padding="{StaticResource SpacingMd}"
+                        Background="{DynamicResource SurfaceBrush}"
+                        BorderBrush="{DynamicResource WarningBrush}"
+                        BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
+                        Margin="{StaticResource MarginSectionBottom}" Visibility="Collapsed">
+                    <DockPanel>
+                        <TextBlock Text="&#xE7BA;" FontFamily="Segoe MDL2 Assets"
+                                   FontSize="{StaticResource FontSizeBodyLarge}"
+                                   Foreground="{DynamicResource WarningTextBrush}"
+                                   VerticalAlignment="Center" Margin="{StaticResource MarginInlineSm}"
+                                   Focusable="False"/>
+                        <TextBlock x:Name="TxtWarning" TextWrapping="Wrap"
+                                   FontSize="{StaticResource FontSizeBody}"
+                                   Foreground="{DynamicResource WarningTextBrush}"
+                                   VerticalAlignment="Center"/>
+                    </DockPanel>
+                </Border>
+
+                <!-- Executable path -->
+                <Border Padding="{StaticResource SpacingMd}"
+                        Background="{DynamicResource SurfaceBrush}"
+                        BorderBrush="{DynamicResource BorderBrush}"
+                        BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
+                        Margin="{StaticResource MarginSectionBottom}">
+                    <StackPanel>
+                        <TextBlock x:Name="LblExecutable"
+                                   FontSize="{StaticResource FontSizeBody}" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                   Margin="{StaticResource MarginLabelBottom}"/>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="TxtExecutablePath" Grid.Column="0"
+                                     FontFamily="Consolas" FontSize="{StaticResource FontSizeBody}"
+                                     Padding="{StaticResource PaddingInput}"
+                                     Background="Transparent"
+                                     Foreground="{DynamicResource TextPrimaryBrush}"
+                                     BorderBrush="{DynamicResource BorderBrush}"
+                                     TabIndex="0"/>
+                            <Button x:Name="BtnBrowse" Grid.Column="1"
+                                    Click="OnBrowseClick"
+                                    Style="{DynamicResource SecondaryButtonStyle}"
+                                    Padding="{StaticResource PaddingButtonPrimary}"
+                                    Margin="{StaticResource MarginInlineControl}"
+                                    TabIndex="1"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- Quick launch shortcuts -->
+                <StackPanel Margin="{StaticResource MarginSectionBottom}">
+                    <TextBlock x:Name="LblQuickLaunch"
+                               FontSize="{StaticResource FontSizeBody}" FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               Margin="{StaticResource MarginLabelBottom}"/>
+                    <WrapPanel x:Name="QuickLaunchPanel" Orientation="Horizontal"/>
+                </StackPanel>
+
+                <!-- Privilege level -->
+                <Border Padding="{StaticResource SpacingMd}"
+                        Background="{DynamicResource SurfaceBrush}"
+                        BorderBrush="{DynamicResource BorderBrush}"
+                        BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
+                        Margin="{StaticResource MarginSectionBottom}">
+                    <StackPanel>
+                        <TextBlock x:Name="LblPrivilegeLevel"
+                                   FontSize="{StaticResource FontSizeBody}" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                   Margin="{StaticResource MarginLabelBottom}"/>
+                        <ComboBox x:Name="CmbPrivilegeLevel"
+                                  FontSize="{StaticResource FontSizeBody}"
+                                  Padding="{StaticResource PaddingInput}"
+                                  TabIndex="2"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Arguments -->
+                <Border Padding="{StaticResource SpacingMd}"
+                        Background="{DynamicResource SurfaceBrush}"
+                        BorderBrush="{DynamicResource BorderBrush}"
+                        BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
+                        Margin="{StaticResource MarginSectionBottom}">
+                    <StackPanel>
+                        <TextBlock x:Name="LblArguments"
+                                   FontSize="{StaticResource FontSizeBody}" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                   Margin="{StaticResource MarginLabelBottom}"/>
+                        <TextBox x:Name="TxtArguments"
+                                 FontFamily="Consolas" FontSize="{StaticResource FontSizeBody}"
+                                 Padding="{StaticResource PaddingInput}"
+                                 Background="Transparent"
+                                 Foreground="{DynamicResource TextPrimaryBrush}"
+                                 BorderBrush="{DynamicResource BorderBrush}"
+                                 TabIndex="3"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Launch button -->
+                <Button x:Name="BtnLaunch" Click="OnLaunchClick"
+                        Style="{DynamicResource PrimaryButtonStyle}"
+                        Padding="{StaticResource PaddingButtonPrimary}"
+                        HorizontalAlignment="Left"
+                        Margin="{StaticResource MarginSectionBottom}"
+                        TabIndex="4"/>
+
+                <!-- Status -->
+                <Border x:Name="StatusPanel" Padding="{StaticResource SpacingMd}"
+                        BorderBrush="{DynamicResource BorderBrush}"
+                        BorderThickness="1" CornerRadius="{StaticResource CornerRadiusSm}"
+                        Visibility="Collapsed">
+                    <DockPanel>
+                        <TextBlock x:Name="TxtStatusIcon" FontFamily="Segoe MDL2 Assets"
+                                   FontSize="{StaticResource FontSizeBodyLarge}"
+                                   VerticalAlignment="Center" Margin="{StaticResource MarginInlineSm}"
+                                   Focusable="False"/>
+                        <TextBlock x:Name="TxtStatus" TextWrapping="Wrap"
+                                   FontSize="{StaticResource FontSizeBody}"
+                                   VerticalAlignment="Center"/>
+                    </DockPanel>
+                </Border>
+
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</UserControl>
