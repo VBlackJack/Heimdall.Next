@@ -43,6 +43,16 @@ public partial class App : System.Windows.Application
     {
         base.OnStartup(e);
 
+        // Headless privilege launch mode: the app was re-launched elevated
+        // via UAC to perform token-based process creation (SYSTEM / TrustedInstaller).
+        // Do the work and exit immediately — no UI, no DI, no splash.
+        var privExitCode = PrivilegeLauncher.HandlePrivilegeLaunchArgs(e.Args);
+        if (privExitCode.HasValue)
+        {
+            Shutdown(privExitCode.Value);
+            return;
+        }
+
         // Show splash screen during initialization (custom window for controlled size).
         // Temporarily switch to explicit shutdown so closing the splash doesn't kill the app
         // (WPF treats the first Window shown as MainWindow when ShutdownMode is OnMainWindowClose).
