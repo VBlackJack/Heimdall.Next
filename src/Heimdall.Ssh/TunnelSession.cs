@@ -25,7 +25,7 @@ namespace Heimdall.Ssh;
 /// </summary>
 public sealed class TunnelSession : IDisposable
 {
-    private bool _disposed;
+    private int _disposed;
 
     /// <summary>The SSH client connection to the gateway.</summary>
     public SshClient Client { get; }
@@ -72,37 +72,22 @@ public sealed class TunnelSession : IDisposable
 
     public void Dispose()
     {
-        if (_disposed)
+        if (Interlocked.Exchange(ref _disposed, 1) != 0)
         {
             return;
         }
-
-        _disposed = true;
 
         // Stop and dispose the final forwarded port
         StopPortSafe(ForwardedPort);
 
         // Stop and dispose the optional SOCKS5 dynamic proxy
-        if (DynamicPort is not null)
-        {
-            try
-            {
-                if (DynamicPort.IsStarted) DynamicPort.Stop();
-                DynamicPort.Dispose();
-            }
-            catch (ObjectDisposedException) { }
-        }
+        // Bare catch: Dispose() must never throw (IDisposable contract)
+        try { if (DynamicPort is { IsStarted: true }) DynamicPort.Stop(); } catch { }
+        try { DynamicPort?.Dispose(); } catch { }
 
         // Stop and dispose the optional remote (reverse) port forward
-        if (RemotePort is not null)
-        {
-            try
-            {
-                if (RemotePort.IsStarted) RemotePort.Stop();
-                RemotePort.Dispose();
-            }
-            catch (ObjectDisposedException) { }
-        }
+        try { if (RemotePort is { IsStarted: true }) RemotePort.Stop(); } catch { }
+        try { RemotePort?.Dispose(); } catch { }
 
         // Disconnect and dispose the final client
         DisconnectClientSafe(Client);

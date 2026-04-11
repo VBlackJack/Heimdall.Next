@@ -27,6 +27,8 @@ public static class WorkspaceService
     private static readonly string WorkspacePath = Path.Combine(
         AppDomain.CurrentDomain.BaseDirectory, "workspace.json");
 
+    private static readonly SemaphoreSlim _fileLock = new(1, 1);
+
     private static readonly System.Text.Json.JsonSerializerOptions JsonOptions = new()
     {
         WriteIndented = true,
@@ -41,13 +43,25 @@ public static class WorkspaceService
             SavedAt = DateTime.UtcNow
         };
         var json = System.Text.Json.JsonSerializer.Serialize(dto, JsonOptions);
-        await File.WriteAllTextAsync(WorkspacePath, json).ConfigureAwait(false);
+
+        await _fileLock.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            await File.WriteAllTextAsync(WorkspacePath, json).ConfigureAwait(false);
+        }
+        finally
+        {
+            _fileLock.Release();
+        }
+
         Core.Logging.FileLogger.Info($"Workspace saved: {dto.Sessions.Count} session(s)");
     }
 
     public static async Task<WorkspaceDto?> LoadAsync()
     {
         if (!File.Exists(WorkspacePath)) return null;
+
+        await _fileLock.WaitAsync().ConfigureAwait(false);
         try
         {
             var json = await File.ReadAllTextAsync(WorkspacePath).ConfigureAwait(false);
@@ -59,14 +73,17 @@ public static class WorkspaceService
             Core.Logging.FileLogger.Error($"Workspace load failed: {ex.Message}");
             return null;
         }
+        finally
+        {
+            _fileLock.Release();
+        }
     }
 
     public static void Delete()
     {
         try
         {
-            if (File.Exists(WorkspacePath))
-                File.Delete(WorkspacePath);
+            File.Delete(WorkspacePath);
         }
         catch (Exception ex)
         {

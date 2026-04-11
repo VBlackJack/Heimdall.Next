@@ -34,7 +34,7 @@ namespace Heimdall.App.ViewModels;
 /// Root ViewModel orchestrating the application shell: tabs, status bar,
 /// and coordination between child ViewModels.
 /// </summary>
-public partial class MainViewModel : ObservableObject
+public partial class MainViewModel : ObservableObject, IDisposable
 {
     private readonly ConfigManager _configManager;
     private readonly LocalizationManager _localizer;
@@ -45,6 +45,11 @@ public partial class MainViewModel : ObservableObject
     private readonly IDialogService _dialogService;
     private readonly EmbeddedSessionManager _embeddedSessionManager;
     private readonly TaskSchedulerService _taskScheduler;
+
+    private bool _disposed;
+    private Action? _onConfigurationChanged;
+    private Action<string, string, Core.Models.ToolContext>? _onToolSessionRequested;
+    private Action<string>? _onStatusMessageRequested;
 
     private AppSettings? _currentSettings;
 
@@ -180,37 +185,66 @@ public partial class MainViewModel : ObservableObject
     {
         Heimdall.Core.Logging.FileLogger.Info($"MainViewModel SelectedTab changed to {value}");
 
-        // Guard: prompt to save unsaved settings when leaving Settings tab
+        // Guard: prompt to save unsaved settings when leaving Settings tab.
+        // Revert immediately and handle the dialog asynchronously to avoid
+        // blocking the WPF dispatcher (the previous .GetAwaiter().GetResult()
+        // pattern caused deadlocks when the dialog posted back to the UI thread).
         if (!_suppressTabChangeGuard
             && string.Equals(_previousTab, "Settings", StringComparison.Ordinal)
             && !string.Equals(value, "Settings", StringComparison.Ordinal)
             && Settings.IsDirty)
         {
-            var title = _localizer["SettingsUnsavedWarningTitle"];
-            var message = _localizer["SettingsUnsavedWarning"];
-            var result = _dialogService.ShowSaveDiscardCancelAsync(title, message).GetAwaiter().GetResult();
-
-            if (result is null)
-            {
-                // Cancel: revert to Settings tab
-                _suppressTabChangeGuard = true;
-                SelectedTab = "Settings";
-                _suppressTabChangeGuard = false;
-                return;
-            }
-
-            if (result == true)
-            {
-                // Save
-                Settings.SaveCommand.Execute(null);
-            }
-            else
-            {
-                // Discard
-                Settings.DiscardChangesAsync().GetAwaiter().GetResult();
-            }
+            _suppressTabChangeGuard = true;
+            SelectedTab = "Settings";
+            _suppressTabChangeGuard = false;
+            _ = SafeFireAndForgetAsync(HandleUnsavedSettingsGuardAsync(value));
+            return;
         }
 
+        ApplyTabChange(value);
+    }
+
+    /// <summary>
+    /// Shows the save/discard/cancel dialog asynchronously when leaving the
+    /// Settings tab with unsaved changes, then navigates to the target tab
+    /// if the user chose Save or Discard.
+    /// </summary>
+    private async Task HandleUnsavedSettingsGuardAsync(string targetTab)
+    {
+        var title = _localizer["SettingsUnsavedWarningTitle"];
+        var message = _localizer["SettingsUnsavedWarning"];
+        var result = await _dialogService.ShowSaveDiscardCancelAsync(title, message);
+
+        if (result is null)
+        {
+            // Cancel: stay on Settings (already reverted)
+            return;
+        }
+
+        if (result == true)
+        {
+            // Save
+            Settings.SaveCommand.Execute(null);
+        }
+        else
+        {
+            // Discard
+            await Settings.DiscardChangesAsync();
+        }
+
+        // Navigate to the originally intended tab
+        _suppressTabChangeGuard = true;
+        SelectedTab = targetTab;
+        _suppressTabChangeGuard = false;
+    }
+
+    /// <summary>
+    /// Applies the post-navigation side effects for a tab change:
+    /// updates <c>_previousTab</c>, raises property-changed notifications,
+    /// and refreshes tab-specific data.
+    /// </summary>
+    private void ApplyTabChange(string value)
+    {
         _previousTab = value;
 
         OnPropertyChanged(nameof(IsServersTabSelected));
@@ -325,8 +359,9 @@ public partial class MainViewModel : ObservableObject
         _configManager.SettingsChanged += OnSettingsChanged;
 
         // Reload server list after a config import
-        Settings.ConfigurationChanged += async () =>
+        _onConfigurationChanged = async () =>
             await ReloadConfigurationAsync(await _configManager.LoadSettingsAsync());
+        Settings.ConfigurationChanged += _onConfigurationChanged;
 
         // Wire broadcast relay so terminal views can fan out input
         _embeddedSessionManager.BroadcastCallback = BroadcastToAllTerminals;
@@ -344,12 +379,14 @@ public partial class MainViewModel : ObservableObject
 
         // Wire server list session events to the connection tab manager
         ServerList.SessionReady += OnSessionReady;
-        ServerList.ToolSessionRequested += (toolId, title, ctx) =>
+        _onToolSessionRequested = (toolId, title, ctx) =>
         {
             TrackRecentTool(toolId.ToUpperInvariant());
             _ = SafeFireAndForgetAsync(OpenToolTabAsync(toolId, title, ctx));
         };
-        ServerList.StatusMessageRequested += message => StatusText = message;
+        ServerList.ToolSessionRequested += _onToolSessionRequested;
+        _onStatusMessageRequested = message => StatusText = message;
+        ServerList.StatusMessageRequested += _onStatusMessageRequested;
 
         StatusText = _localizer["StatusReady"];
     }
@@ -489,7 +526,7 @@ public partial class MainViewModel : ObservableObject
         if (string.Equals(connectionType, "SSH", StringComparison.OrdinalIgnoreCase)
             && _currentSettings?.SftpAutoOpenOnSsh == true)
         {
-            _ = SafeFireAndForgetAsync(AutoOpenSftpAsync(tab, originalServerId));
+            _ = SafeFireAndForgetAsync(AutoOpenSftpAsync(tab, originalServerId, Split.GetSessionToken(tab)));
         }
     }
 
@@ -545,7 +582,7 @@ public partial class MainViewModel : ObservableObject
     /// Automatically connects an SFTP session and attaches it as the secondary
     /// split pane of an existing SSH session tab.
     /// </summary>
-    private async Task AutoOpenSftpAsync(SessionTabViewModel tab, string serverId)
+    private async Task AutoOpenSftpAsync(SessionTabViewModel tab, string serverId, CancellationToken ct = default)
     {
         try
         {
@@ -561,7 +598,7 @@ public partial class MainViewModel : ObservableObject
             }
 
             var sftpResult = await ServerList.ConnectionService
-                .ConnectSftpAsync(server, _currentSettings!, CancellationToken.None)
+                .ConnectSftpAsync(server, _currentSettings!, ct)
                 .ConfigureAwait(false);
 
             if (!sftpResult.Success || sftpResult.Session is null)
@@ -889,6 +926,22 @@ public partial class MainViewModel : ObservableObject
         _taskScheduler.Dispose();
     }
 
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _disposed = true;
+
+        _appStatus.StatusChanged -= OnApplicationStatusChanged;
+        _tunnelManager.TunnelOpened -= OnTunnelOpened;
+        _tunnelManager.TunnelClosed -= OnTunnelClosed;
+        _configManager.SettingsChanged -= OnSettingsChanged;
+        Settings.ConfigurationChanged -= _onConfigurationChanged;
+        Settings.ThemeChanged -= OnThemeChanged;
+        ServerList.SessionReady -= OnSessionReady;
+        ServerList.ToolSessionRequested -= _onToolSessionRequested;
+        ServerList.StatusMessageRequested -= _onStatusMessageRequested;
+    }
+
     private static async Task SafeFireAndForgetAsync(Task task)
     {
         try
@@ -1123,13 +1176,13 @@ public partial class MainViewModel : ObservableObject
 
             if (!item.Id.StartsWith("adhoc-", StringComparison.Ordinal))
             {
-                _ = SplitSessionWithServerAsync(splitSession, item.Id, splitOrientation, splitPaneId);
+                _ = SafeFireAndForgetAsync(SplitSessionWithServerAsync(splitSession, item.Id, splitOrientation, splitPaneId));
                 return;
             }
         }
 
         // Fall through to normal palette behavior
-        _ = ConnectFromPaletteInternalAsync(item);
+        _ = SafeFireAndForgetAsync(ConnectFromPaletteInternalAsync(item));
     }
 
     [RelayCommand]

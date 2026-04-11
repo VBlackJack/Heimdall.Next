@@ -30,7 +30,7 @@ namespace Heimdall.App.ViewModels;
 /// <summary>
 /// ViewModel for the server list with filtering, sorting, and connection actions.
 /// </summary>
-public partial class ServerListViewModel : ObservableObject
+public partial class ServerListViewModel : ObservableObject, IDisposable
 {
     private readonly ConfigManager _configManager;
     private readonly LocalizationManager _localizer;
@@ -39,6 +39,7 @@ public partial class ServerListViewModel : ObservableObject
 
     internal ConnectionService ConnectionService => _connectionService;
     private readonly IDialogService _dialogService;
+    private bool _disposed;
 
     private List<ServerItemViewModel> _allServers = [];
     private List<ProjectTarget> _projectTargets = [];
@@ -118,6 +119,14 @@ public partial class ServerListViewModel : ObservableObject
         _dialogService = dialogService;
 
         _connectionSm.StateChanged += OnConnectionStateChanged;
+    }
+
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _disposed = true;
+        _expandSaveTimer?.Dispose();
+        _connectionSm.StateChanged -= OnConnectionStateChanged;
     }
 
     /// <summary>
@@ -1098,7 +1107,17 @@ public partial class ServerListViewModel : ObservableObject
 
     private void SaveExpandStateAsync()
     {
-        _ = SaveExpandStateCoreAsync();
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await SaveExpandStateCoreAsync().ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                Core.Logging.FileLogger.Error($"SaveExpandStateCoreAsync failed: {ex.Message}");
+            }
+        });
     }
 
     private async Task SaveExpandStateCoreAsync()

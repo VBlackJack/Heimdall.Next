@@ -105,6 +105,8 @@ public sealed class TunnelManager : IDisposable
 
         SshClient? client = null;
         ForwardedPortLocal? forwardedPort = null;
+        ForwardedPortDynamic? dynamicPort = null;
+        ForwardedPortRemote? remotePortFwd = null;
 
         try
         {
@@ -123,6 +125,8 @@ public sealed class TunnelManager : IDisposable
             client.ErrorOccurred += (_, args) =>
                 Core.Logging.FileLogger.Error($"SSH tunnel error on port {localPort}: {args.Exception.Message}");
 
+            await using var connectReg = cancellationToken.Register(
+                () => { try { client.Disconnect(); } catch { } });
             await Task.Run(() =>
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -139,7 +143,6 @@ public sealed class TunnelManager : IDisposable
             client.AddForwardedPort(forwardedPort);
             forwardedPort.Start();
 
-            ForwardedPortDynamic? dynamicPort = null;
             if (socksProxyPort > 0)
             {
                 dynamicPort = new ForwardedPortDynamic("127.0.0.1", (uint)socksProxyPort);
@@ -149,7 +152,6 @@ public sealed class TunnelManager : IDisposable
                     $"SOCKS5 proxy started on 127.0.0.1:{socksProxyPort}");
             }
 
-            ForwardedPortRemote? remotePortFwd = null;
             if (remoteBindPort > 0)
             {
                 int localFwd = remoteLocalPort > 0 ? remoteLocalPort : remoteBindPort;
@@ -189,32 +191,44 @@ public sealed class TunnelManager : IDisposable
         }
         catch (OperationCanceledException)
         {
+            try { dynamicPort?.Dispose(); } catch { }
+            try { remotePortFwd?.Dispose(); } catch { }
             CleanupPartial(client, forwardedPort);
             return new TunnelResult(false, null, "Tunnel establishment was cancelled.", SshFailureCode.Cancelled);
         }
         catch (SshAuthenticationException ex)
         {
+            try { dynamicPort?.Dispose(); } catch { }
+            try { remotePortFwd?.Dispose(); } catch { }
             CleanupPartial(client, forwardedPort);
             return new TunnelResult(false, null, ex.Message, SshFailureCode.AuthRejected);
         }
         catch (SocketException ex)
         {
+            try { dynamicPort?.Dispose(); } catch { }
+            try { remotePortFwd?.Dispose(); } catch { }
             CleanupPartial(client, forwardedPort);
             var code = ClassifySocketException(ex);
             return new TunnelResult(false, null, ex.Message, code);
         }
         catch (SshConnectionException ex)
         {
+            try { dynamicPort?.Dispose(); } catch { }
+            try { remotePortFwd?.Dispose(); } catch { }
             CleanupPartial(client, forwardedPort);
             return new TunnelResult(false, null, ex.Message, SshFailureCode.NetworkRefused);
         }
         catch (SshException ex) when (ex.Message.Contains("port", StringComparison.OrdinalIgnoreCase))
         {
+            try { dynamicPort?.Dispose(); } catch { }
+            try { remotePortFwd?.Dispose(); } catch { }
             CleanupPartial(client, forwardedPort);
             return new TunnelResult(false, null, ex.Message, SshFailureCode.PortInUse);
         }
         catch (Exception ex)
         {
+            try { dynamicPort?.Dispose(); } catch { }
+            try { remotePortFwd?.Dispose(); } catch { }
             CleanupPartial(client, forwardedPort);
             return new TunnelResult(false, null, ex.Message, SshFailureCode.Unknown);
         }
@@ -268,6 +282,8 @@ public sealed class TunnelManager : IDisposable
         var intermediatePorts = new List<ForwardedPortLocal>();
         SshClient? finalClient = null;
         ForwardedPortLocal? finalPort = null;
+        ForwardedPortDynamic? dynamicPort = null;
+        ForwardedPortRemote? remotePortFwd = null;
 
         try
         {
@@ -289,6 +305,8 @@ public sealed class TunnelManager : IDisposable
                     rootClient, gatewayChain[0].Host, gatewayChain[0].Port, hostKeyStore);
             }
 
+            await using var rootConnectReg = cancellationToken.Register(
+                () => { try { rootClient.Disconnect(); } catch { } });
             await Task.Run(() =>
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -339,6 +357,8 @@ public sealed class TunnelManager : IDisposable
                         hopClient, nextGateway.Host, nextGateway.Port, hostKeyStore);
                 }
 
+                await using var hopConnectReg = cancellationToken.Register(
+                    () => { try { hopClient.Disconnect(); } catch { } });
                 await Task.Run(() =>
                 {
                     cancellationToken.ThrowIfCancellationRequested();
@@ -364,7 +384,6 @@ public sealed class TunnelManager : IDisposable
             finalClient!.AddForwardedPort(finalPort);
             finalPort.Start();
 
-            ForwardedPortDynamic? dynamicPort = null;
             if (socksProxyPort > 0)
             {
                 dynamicPort = new ForwardedPortDynamic("127.0.0.1", (uint)socksProxyPort);
@@ -374,7 +393,6 @@ public sealed class TunnelManager : IDisposable
                     $"SOCKS5 proxy started on 127.0.0.1:{socksProxyPort} (chained tunnel)");
             }
 
-            ForwardedPortRemote? remotePortFwd = null;
             if (remoteBindPort > 0)
             {
                 int localFwd = remoteLocalPort > 0 ? remoteLocalPort : remoteBindPort;
@@ -419,22 +437,30 @@ public sealed class TunnelManager : IDisposable
         }
         catch (OperationCanceledException)
         {
+            try { dynamicPort?.Dispose(); } catch { }
+            try { remotePortFwd?.Dispose(); } catch { }
             CleanupChainPartial(finalClient, finalPort, intermediateClients, intermediatePorts);
             return new TunnelResult(false, null, "Chained tunnel establishment was cancelled.", SshFailureCode.Cancelled);
         }
         catch (SshAuthenticationException ex)
         {
+            try { dynamicPort?.Dispose(); } catch { }
+            try { remotePortFwd?.Dispose(); } catch { }
             CleanupChainPartial(finalClient, finalPort, intermediateClients, intermediatePorts);
             return new TunnelResult(false, null, ex.Message, SshFailureCode.AuthRejected);
         }
         catch (SocketException ex)
         {
+            try { dynamicPort?.Dispose(); } catch { }
+            try { remotePortFwd?.Dispose(); } catch { }
             CleanupChainPartial(finalClient, finalPort, intermediateClients, intermediatePorts);
             var code = ClassifySocketException(ex);
             return new TunnelResult(false, null, ex.Message, code);
         }
         catch (Exception ex)
         {
+            try { dynamicPort?.Dispose(); } catch { }
+            try { remotePortFwd?.Dispose(); } catch { }
             CleanupChainPartial(finalClient, finalPort, intermediateClients, intermediatePorts);
             return new TunnelResult(false, null, ex.Message, SshFailureCode.Unknown);
         }

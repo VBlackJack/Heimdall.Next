@@ -30,8 +30,9 @@ namespace Heimdall.App.Services;
 /// Resolves gateway chains, opens tunnels, performs preflight checks, and
 /// delegates to the appropriate session engine.
 /// </summary>
-public partial class ConnectionService
+public partial class ConnectionService : IDisposable
 {
+    private bool _disposed;
     private TimeSpan HostKeyProbeTimeout =>
         TimeSpan.FromMilliseconds(_currentSettings?.HostKeyProbeTimeoutMs ?? 8000);
 
@@ -87,6 +88,13 @@ public partial class ConnectionService
     {
         _currentSettings = newSettings;
         Core.Logging.FileLogger.Info("ConnectionService: settings refreshed at runtime");
+    }
+
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _disposed = true;
+        _configManager.SettingsChanged -= OnSettingsChanged;
     }
 
     /// <summary>
