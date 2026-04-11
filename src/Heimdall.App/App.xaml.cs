@@ -489,19 +489,23 @@ public partial class App : System.Windows.Application
     }
 
     /// <summary>
-    /// Replaces the default theme dictionary loaded from App.xaml with the
-    /// one selected in the user's saved settings (Light or Dark).
+    /// Replaces the active theme dictionary loaded from App.xaml with the
+    /// one matching <paramref name="themeName"/>.
     /// </summary>
     private void ApplyThemeFromSettings(string themeName)
     {
-        if (string.Equals(themeName, "Dark", StringComparison.OrdinalIgnoreCase))
+        var themeUri = themeName.ToUpperInvariant() switch
         {
-            // App.xaml already loads DarkTheme.xaml by default.
-            return;
-        }
-
-        var themeUri = new Uri("Themes/LightTheme.xaml", UriKind.Relative);
-        var newTheme = new ResourceDictionary { Source = themeUri };
+            "LIGHT"      => new Uri("Themes/LightTheme.xaml",      UriKind.Relative),
+            "DRACULAPRO" => new Uri("Themes/DraculaProTheme.xaml",  UriKind.Relative),
+            "BLADE"      => new Uri("Themes/BladeTheme.xaml",       UriKind.Relative),
+            "BUFFY"      => new Uri("Themes/BuffyTheme.xaml",       UriKind.Relative),
+            "LINCOLN"    => new Uri("Themes/LincolnTheme.xaml",     UriKind.Relative),
+            "MORBIUS"    => new Uri("Themes/MorbiusTheme.xaml",     UriKind.Relative),
+            "VANHELSING" => new Uri("Themes/VanHelsingTheme.xaml",  UriKind.Relative),
+            "ALUCARD"    => new Uri("Themes/AlucardTheme.xaml",     UriKind.Relative),
+            _            => new Uri("Themes/DarkTheme.xaml",        UriKind.Relative),
+        };
 
         var existing = Resources.MergedDictionaries
             .FirstOrDefault(d => d.Source?.OriginalString.Contains("Theme") == true);
@@ -511,7 +515,7 @@ public partial class App : System.Windows.Application
             Resources.MergedDictionaries.Remove(existing);
         }
 
-        Resources.MergedDictionaries.Add(newTheme);
+        Resources.MergedDictionaries.Add(new ResourceDictionary { Source = themeUri });
     }
 
     protected override void OnExit(ExitEventArgs e)
