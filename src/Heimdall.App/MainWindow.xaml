@@ -1398,6 +1398,13 @@
                                                 <ComboBox SelectedValue="{Binding Settings.DefaultTheme}" SelectedValuePath="Tag">
                                                     <ComboBoxItem x:Name="Mw_ThemeDark" Content="" Tag="Dark"/>
                                                     <ComboBoxItem x:Name="Mw_ThemeLight" Content="" Tag="Light"/>
+                                                    <ComboBoxItem x:Name="Mw_ThemeDraculaPro" Content="" Tag="DraculaPro"/>
+                                                    <ComboBoxItem x:Name="Mw_ThemeAlucard" Content="" Tag="Alucard"/>
+                                                    <ComboBoxItem x:Name="Mw_ThemeBlade" Content="" Tag="Blade"/>
+                                                    <ComboBoxItem x:Name="Mw_ThemeBuffy" Content="" Tag="Buffy"/>
+                                                    <ComboBoxItem x:Name="Mw_ThemeLincoln" Content="" Tag="Lincoln"/>
+                                                    <ComboBoxItem x:Name="Mw_ThemeMorbius" Content="" Tag="Morbius"/>
+                                                    <ComboBoxItem x:Name="Mw_ThemeVanHelsing" Content="" Tag="VanHelsing"/>
                                                 </ComboBox>
                                             </StackPanel>
                                         </Grid>

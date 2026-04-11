@@ -587,9 +587,18 @@ public partial class MainViewModel : ObservableObject
             return;
         }
 
-        var themeUri = string.Equals(themeName, "Light", StringComparison.OrdinalIgnoreCase)
-            ? new Uri("Themes/LightTheme.xaml", UriKind.Relative)
-            : new Uri("Themes/DarkTheme.xaml", UriKind.Relative);
+        var themeUri = themeName.ToUpperInvariant() switch
+        {
+            "LIGHT"      => new Uri("Themes/LightTheme.xaml",      UriKind.Relative),
+            "DRACULAPRO" => new Uri("Themes/DraculaProTheme.xaml",  UriKind.Relative),
+            "BLADE"      => new Uri("Themes/BladeTheme.xaml",       UriKind.Relative),
+            "BUFFY"      => new Uri("Themes/BuffyTheme.xaml",       UriKind.Relative),
+            "LINCOLN"    => new Uri("Themes/LincolnTheme.xaml",     UriKind.Relative),
+            "MORBIUS"    => new Uri("Themes/MorbiusTheme.xaml",     UriKind.Relative),
+            "VANHELSING" => new Uri("Themes/VanHelsingTheme.xaml",  UriKind.Relative),
+            "ALUCARD"    => new Uri("Themes/AlucardTheme.xaml",     UriKind.Relative),
+            _            => new Uri("Themes/DarkTheme.xaml",        UriKind.Relative),
+        };
 
         var newTheme = new ResourceDictionary { Source = themeUri };
 
