@@ -1413,6 +1413,7 @@
                                             <TextBox Text="{Binding Settings.MaxEmbeddedSessions}" Width="100" HorizontalAlignment="Left"/>
                                         </StackPanel>
                                         <CheckBox x:Name="Mw_SettingsPreventSleep" Content="" IsChecked="{Binding Settings.PreventSleepDuringSession}" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,12,0,0"/>
+                                        <CheckBox x:Name="Mw_SettingsEnableSessionPersistence" Content="" IsChecked="{Binding Settings.EnableSessionPersistence}" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,6,0,0"/>
                                         <StackPanel Margin="0,12,0,0">
                                             <TextBlock x:Name="Mw_SettingsEditorPathLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,0,4"/>
                                             <DockPanel>

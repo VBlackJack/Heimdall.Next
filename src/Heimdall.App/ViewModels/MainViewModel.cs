@@ -396,6 +396,36 @@ public partial class MainViewModel : ObservableObject
 
             _taskScheduler.Start();
 
+            // Restore previous workspace if session persistence is enabled
+            if (settings.EnableSessionPersistence)
+            {
+                var workspace = await WorkspaceService.LoadAsync().ConfigureAwait(false);
+                if (workspace?.Sessions.Count > 0)
+                {
+                    StatusText = _localizer["WorkspaceRestoring"];
+                    int restored = 0;
+                    foreach (var session in workspace.Sessions)
+                    {
+                        var server = ServerList.Servers.FirstOrDefault(
+                            s => string.Equals(s.Id, session.ServerId,
+                                 StringComparison.OrdinalIgnoreCase));
+                        if (server is null) continue;
+                        try
+                        {
+                            ServerList.ConnectCommand.Execute(server);
+                            restored++;
+                        }
+                        catch (Exception ex)
+                        {
+                            Core.Logging.FileLogger.Error(
+                                $"Workspace restore failed for {session.ServerName}: {ex.Message}");
+                        }
+                    }
+                    Core.Logging.FileLogger.Info(
+                        _localizer.Format("LogWorkspaceRestored", restored));
+                }
+            }
+
             // OperationScope.Dispose() handles the Ready transition
             StatusText = _localizer["StatusReady"];
             WindowTitle = _localizer.Format("WindowTitle", ServerCount);
@@ -404,6 +434,21 @@ public partial class MainViewModel : ObservableObject
         {
             IsBusy = false;
         }
+    }
+
+    /// <summary>
+    /// Collects the currently open session tabs for workspace persistence.
+    /// </summary>
+    public IEnumerable<WorkspaceSessionDto> GetOpenSessions()
+    {
+        return Connection.ActiveSessions
+            .Where(t => !string.IsNullOrWhiteSpace(t.OriginalServerId))
+            .Select(t => new WorkspaceSessionDto
+            {
+                ServerId = t.OriginalServerId,
+                ServerName = t.Title ?? t.OriginalServerId,
+                Protocol = t.ConnectionType ?? ""
+            });
     }
 
     /// <summary>
