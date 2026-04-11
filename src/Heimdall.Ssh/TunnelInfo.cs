@@ -31,4 +31,15 @@ public record TunnelInfo(
     string RemoteHost,
     int RemotePort,
     DateTime StartedAt,
-    bool IsAlive);
+    bool IsAlive)
+{
+    /// <summary>
+    /// Local port for the SOCKS5 dynamic proxy, or 0 if disabled.
+    /// </summary>
+    public int SocksProxyPort { get; init; }
+
+    /// <summary>
+    /// Port opened on the remote server for reverse forwarding, or 0 if disabled.
+    /// </summary>
+    public int RemoteBindPort { get; init; }
+}

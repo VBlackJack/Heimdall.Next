@@ -360,9 +360,15 @@ public partial class MainWindow : Window
 
         Mw_SettingsSshTitle.Text = vm.Localize("SettingsSectionSshDefaults");
         Mw_SettingsPlinkPathLabel.Text = vm.Localize("SettingsLabelPlinkPath");
+        Mw_SettingsPlinkPathHint.Text = vm.Localize("SettingsPlinkPathHint");
+        Mw_SettingsPuttyPathLabel.Text = vm.Localize("SettingsLabelPuttyPath");
+        Mw_SettingsPuttyPathHint.Text = vm.Localize("SettingsPuttyPathHint");
         Mw_SettingsSshModeLabel.Text = vm.Localize("SettingsLabelSshMode");
         Mw_SshModeEmbedded.Content = vm.Localize("SettingsSshModeEmbedded");
+        System.Windows.Automation.AutomationProperties.SetName(Mw_SshModeEmbedded, vm.Localize("SettingsSshModeEmbedded"));
         Mw_SshModeExternal.Content = vm.Localize("SettingsSshModeExternal");
+        System.Windows.Automation.AutomationProperties.SetName(Mw_SshModeExternal, vm.Localize("SettingsSshModeExternal"));
+        Mw_SettingsSshModeHint.Text = vm.Localize("SettingsSshModeHint");
         Mw_SettingsAntiIdleLabel.Text = vm.Localize("SettingsLabelAntiIdleInterval");
         Mw_SettingsSshTmoutLabel.Text = vm.Localize("SettingsLabelSshTmoutReset");
         Mw_SettingsAutoOpenSftp.Content = vm.Localize("SettingsLabelAutoOpenSftp");
@@ -370,26 +376,42 @@ public partial class MainWindow : Window
         Mw_SettingsX11AutoStart.Content = vm.Localize("SettingsLabelX11AutoStart");
         Mw_SettingsGatewaysTitle.Text = vm.Localize("GatewaysSectionTitle");
         Mw_SettingsGatewaysAddBtn.Content = vm.Localize("GatewaysBtnAdd");
+        System.Windows.Automation.AutomationProperties.SetName(Mw_SettingsGatewaysAddBtn, vm.Localize("GatewaysBtnAdd"));
         Mw_SettingsGatewaysEditBtn.Content = vm.Localize("GatewaysBtnEdit");
+        System.Windows.Automation.AutomationProperties.SetName(Mw_SettingsGatewaysEditBtn, vm.Localize("GatewaysBtnEdit"));
         Mw_SettingsGatewaysDeleteBtn.Content = vm.Localize("GatewaysBtnDelete");
+        System.Windows.Automation.AutomationProperties.SetName(Mw_SettingsGatewaysDeleteBtn, vm.Localize("GatewaysBtnDelete"));
 
         Mw_ApplySshModeAll.Content = vm.Localize("SettingsApplyModeToAll");
+        Mw_ApplySshModeAll.ToolTip = vm.Localize("TooltipApplyModeToAll");
+        System.Windows.Automation.AutomationProperties.SetName(Mw_ApplySshModeAll, vm.Localize("SettingsApplyModeToAll"));
 
         Mw_SettingsRdpDefaultsTitle.Text = vm.Localize("SettingsSectionRdpDefaults");
         Mw_SettingsRdpModeLabel.Text = vm.Localize("SettingsLabelRdpMode");
-        Mw_RdpModeEmbedded.Content = vm.Localize("SettingsSshModeEmbedded");
-        Mw_RdpModeExternal.Content = vm.Localize("SettingsSshModeExternal");
+        Mw_RdpModeEmbedded.Content = vm.Localize("SettingsRdpModeEmbedded");
+        System.Windows.Automation.AutomationProperties.SetName(Mw_RdpModeEmbedded, vm.Localize("SettingsRdpModeEmbedded"));
+        Mw_RdpModeExternal.Content = vm.Localize("SettingsRdpModeExternal");
+        System.Windows.Automation.AutomationProperties.SetName(Mw_RdpModeExternal, vm.Localize("SettingsRdpModeExternal"));
+        Mw_SettingsRdpModeHint.Text = vm.Localize("SettingsRdpModeHint");
         Mw_ApplyRdpModeAll.Content = vm.Localize("SettingsApplyModeToAll");
+        Mw_ApplyRdpModeAll.ToolTip = vm.Localize("TooltipApplyModeToAll");
+        System.Windows.Automation.AutomationProperties.SetName(Mw_ApplyRdpModeAll, vm.Localize("SettingsApplyModeToAll"));
         Mw_SettingsRdpWidthLabel.Text = vm.Localize("SettingsLabelRdpWidth");
         Mw_SettingsRdpHeightLabel.Text = vm.Localize("SettingsLabelRdpHeight");
         Mw_SettingsRdpColorDepthLabel.Text = vm.Localize("SettingsLabelRdpColorDepth");
         Mw_ColorDepth16.Content = vm.Localize("SettingsColorDepth16");
+        System.Windows.Automation.AutomationProperties.SetName(Mw_ColorDepth16, vm.Localize("SettingsColorDepth16"));
         Mw_ColorDepth24.Content = vm.Localize("SettingsColorDepth24");
+        System.Windows.Automation.AutomationProperties.SetName(Mw_ColorDepth24, vm.Localize("SettingsColorDepth24"));
         Mw_ColorDepth32.Content = vm.Localize("SettingsColorDepth32");
+        System.Windows.Automation.AutomationProperties.SetName(Mw_ColorDepth32, vm.Localize("SettingsColorDepth32"));
         Mw_SettingsRdpAudioLabel.Text = vm.Localize("SettingsLabelRdpAudio");
         Mw_SettingsRdpAudioDisabled.Content = vm.Localize("ServerDialogAudioDisabled");
+        System.Windows.Automation.AutomationProperties.SetName(Mw_SettingsRdpAudioDisabled, vm.Localize("ServerDialogAudioDisabled"));
         Mw_SettingsRdpAudioLocal.Content = vm.Localize("ServerDialogAudioLocal");
+        System.Windows.Automation.AutomationProperties.SetName(Mw_SettingsRdpAudioLocal, vm.Localize("ServerDialogAudioLocal"));
         Mw_SettingsRdpAudioRemote.Content = vm.Localize("ServerDialogAudioRemote");
+        System.Windows.Automation.AutomationProperties.SetName(Mw_SettingsRdpAudioRemote, vm.Localize("ServerDialogAudioRemote"));
         Mw_SettingsRdpNla.Content = vm.Localize("SettingsLabelRdpNla");
         Mw_SettingsRdpDynRes.Content = vm.Localize("SettingsLabelRdpDynamicRes");
         Mw_SettingsRdpMultiMon.Content = vm.Localize("SettingsLabelRdpMultiMonitor");
@@ -406,9 +428,11 @@ public partial class MainWindow : Window
         Mw_SettingsCredProvPresetLabel.Text = vm.Localize("CredProvPresetLabel");
         PopulateCredProvPresets(vm);
         Mw_SettingsCredProviderCmdLabel.Text = vm.Localize("SettingsLabelCredProviderCommand");
+        Mw_SettingsCredProvCmd.Tag = vm.Localize("SettingsCredProvCmdPlaceholder");
         Mw_SettingsCredProvCmdHint.Text = vm.Localize("CredProvCmdHint");
         Mw_SettingsCredProviderDbLabel.Text = vm.Localize("SettingsLabelCredProviderDatabase");
         Mw_SettingsCredProvTestBtn.Content = vm.Localize("CredProvBtnTest");
+        System.Windows.Automation.AutomationProperties.SetName(Mw_SettingsCredProvTestBtn, vm.Localize("CredProvBtnTest"));
         Mw_SettingsCredGuard.Content = vm.Localize("SettingsLabelCredentialGuard");
 
         Mw_SettingsSessionLoggingTitle.Text = vm.Localize("SettingsSectionSessionLogging");
@@ -3019,6 +3043,24 @@ public partial class MainWindow : Window
         }
         if (dlg.ShowDialog(this) == true)
             vm.Settings.PlinkPath = dlg.FileName;
+    }
+
+    private void OnBrowsePuttyPathClick(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is not MainViewModel vm) return;
+        var dlg = new Microsoft.Win32.OpenFileDialog
+        {
+            Title = vm.Localize("BrowsePuttyTitle"),
+            Filter = vm.Localize("BrowsePuttyFilter")
+        };
+        if (!string.IsNullOrEmpty(vm.Settings.PuttyPath))
+        {
+            var dir = System.IO.Path.GetDirectoryName(vm.Settings.PuttyPath);
+            if (!string.IsNullOrEmpty(dir) && System.IO.Directory.Exists(dir))
+                dlg.InitialDirectory = dir;
+        }
+        if (dlg.ShowDialog(this) == true)
+            vm.Settings.PuttyPath = dlg.FileName;
     }
 
     private void OnBrowseX11PathClick(object sender, RoutedEventArgs e)

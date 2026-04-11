@@ -116,6 +116,19 @@ public static class FailureClassifier
         if (msg.Contains("too many", StringComparison.OrdinalIgnoreCase))
             return new SshFailureInfo(SshFailureCode.TooManyAuthFailures, "Too many auth failures.", true, ex);
 
+        // Server requires keyboard-interactive but no password was supplied.
+        // This happens when PasswordAuthentication is disabled server-side and the
+        // KeyboardInteractiveAuthenticationMethod has no response for the prompt.
+        if (msg.Contains("keyboard-interactive", StringComparison.OrdinalIgnoreCase)
+            && string.IsNullOrEmpty(connectionParams?.Password))
+        {
+            return new SshFailureInfo(
+                SshFailureCode.KeyboardInteractiveNoPassword,
+                "Server requires keyboard-interactive authentication, but no password was provided.",
+                true,
+                ex);
+        }
+
         return new SshFailureInfo(SshFailureCode.NoSupportedAuth, "No supported authentication method.", true, ex);
     }
 

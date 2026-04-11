@@ -55,6 +55,13 @@ public partial class ConnectionService
     /// </summary>
     public AppSettings? CurrentSettings => _currentSettings;
 
+    /// <summary>
+    /// Delegate wired by the shell to surface transient status messages
+    /// (e.g., "retrying via Plink…") in the global status bar.
+    /// Same pattern as <see cref="SplitService.SetStatusText"/>.
+    /// </summary>
+    internal Action<string>? SetStatusText { get; set; }
+
     public ConnectionService(
         ConfigManager configManager,
         TunnelManager tunnelManager,
@@ -151,6 +158,45 @@ public partial class ConnectionService
         if (File.Exists(embeddedPath))
         {
             Core.Logging.FileLogger.Info($"Using embedded plink: {embeddedPath}");
+            return embeddedPath;
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Resolves the path to putty.exe: uses the user-configured path if valid,
+    /// falls back to the directory containing plink.exe, then the embedded
+    /// copy in Assets/Tools/.
+    /// </summary>
+    private static string? ResolvePuttyPath(string? settingsPath, string? plinkPath)
+    {
+        // User-configured PuTTY path takes priority
+        if (!string.IsNullOrWhiteSpace(settingsPath) && File.Exists(settingsPath))
+        {
+            return settingsPath;
+        }
+
+        // Try to find putty.exe next to plink.exe
+        if (!string.IsNullOrWhiteSpace(plinkPath))
+        {
+            var plinkDir = Path.GetDirectoryName(plinkPath);
+            if (!string.IsNullOrEmpty(plinkDir))
+            {
+                var candidate = Path.Combine(plinkDir, "putty.exe");
+                if (File.Exists(candidate))
+                {
+                    Core.Logging.FileLogger.Info($"Using PuTTY found next to Plink: {candidate}");
+                    return candidate;
+                }
+            }
+        }
+
+        // Embedded putty.exe shipped with the application
+        var embeddedPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Tools", "putty.exe");
+        if (File.Exists(embeddedPath))
+        {
+            Core.Logging.FileLogger.Info($"Using embedded PuTTY: {embeddedPath}");
             return embeddedPath;
         }
 

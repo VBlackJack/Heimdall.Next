@@ -22,7 +22,6 @@ jobs:
 
       - name: Check code formatting
         run: dotnet format Heimdall.slnx --no-restore --verify-no-changes --verbosity diagnostic
-        continue-on-error: true
 
       - name: Build
         run: dotnet build Heimdall.slnx --no-restore -c Release

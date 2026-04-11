@@ -240,8 +240,8 @@ public class ToolRegistryLocaleCoherenceTests
     [Fact]
     public void Registry_HasExpectedToolCount()
     {
-        // 57 tools (50 built-in + 7 External: WoL, Open Ports, Network Interfaces, Route Table, DNS Batch, WiFi, TCP Ping)
-        Assert.Equal(57, Registry.All.Count);
+        // 58 tools (52 built-in + 6 External: WoL, Open Ports, Network Interfaces, Route Table, DNS Batch, WiFi)
+        Assert.Equal(58, Registry.All.Count);
     }
 
     [Fact]

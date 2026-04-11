@@ -35,7 +35,10 @@ public partial class ConnectionService
         int remotePort,
         int localPort,
         AppSettings settings,
-        CancellationToken ct)
+        CancellationToken ct,
+        int socksProxyPort = 0,
+        int remoteBindPort = 0,
+        int remoteLocalPort = 0)
     {
         Core.Logging.FileLogger.Info($"EstablishTunnelAsync: serverId={serverId} gatewayId={gatewayId} target={remoteHost}:{remotePort} requestedPort={localPort}");
 
@@ -94,13 +97,15 @@ public partial class ConnectionService
         {
             var keepAlive = _currentSettings?.SshKeepAliveIntervalSeconds ?? 30;
             result = await _tunnelManager.OpenTunnelAsync(
-                chain[0], remoteHost, remotePort, localPort, ct, _hostKeyStore, keepAlive)
+                chain[0], remoteHost, remotePort, localPort, ct, _hostKeyStore, keepAlive,
+                socksProxyPort, remoteBindPort, remoteLocalPort)
                 .ConfigureAwait(false);
         }
         else
         {
             result = await _tunnelManager.OpenChainedTunnelAsync(
-                chain, remoteHost, remotePort, localPort, ct, _hostKeyStore)
+                chain, remoteHost, remotePort, localPort, ct, _hostKeyStore,
+                socksProxyPort, remoteBindPort, remoteLocalPort)
                 .ConfigureAwait(false);
         }
 

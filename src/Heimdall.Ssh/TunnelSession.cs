@@ -33,6 +33,12 @@ public sealed class TunnelSession : IDisposable
     /// <summary>The local port forward bound to this session.</summary>
     public ForwardedPortLocal ForwardedPort { get; }
 
+    /// <summary>Optional SOCKS5 dynamic proxy port bound to this session.</summary>
+    public ForwardedPortDynamic? DynamicPort { get; set; }
+
+    /// <summary>Optional remote (reverse) port forward bound to this session.</summary>
+    public ForwardedPortRemote? RemotePort { get; set; }
+
     /// <summary>Descriptive metadata about this tunnel.</summary>
     public TunnelInfo Info { get; }
 
@@ -75,6 +81,28 @@ public sealed class TunnelSession : IDisposable
 
         // Stop and dispose the final forwarded port
         StopPortSafe(ForwardedPort);
+
+        // Stop and dispose the optional SOCKS5 dynamic proxy
+        if (DynamicPort is not null)
+        {
+            try
+            {
+                if (DynamicPort.IsStarted) DynamicPort.Stop();
+                DynamicPort.Dispose();
+            }
+            catch (ObjectDisposedException) { }
+        }
+
+        // Stop and dispose the optional remote (reverse) port forward
+        if (RemotePort is not null)
+        {
+            try
+            {
+                if (RemotePort.IsStarted) RemotePort.Stop();
+                RemotePort.Dispose();
+            }
+            catch (ObjectDisposedException) { }
+        }
 
         // Disconnect and dispose the final client
         DisconnectClientSafe(Client);

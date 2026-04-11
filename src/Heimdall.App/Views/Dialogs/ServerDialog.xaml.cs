@@ -78,6 +78,15 @@ public partial class ServerDialog : Window
         var settings = await _configManager.LoadSettingsAsync();
         vm.IsAdvancedMode = settings.ServerDialogAdvancedMode;
         vm.PropertyChanged += OnViewModelPropertyChanged;
+
+        // Set initial focus: edit mode → display name field, add mode → first protocol card
+        _ = Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Input, () =>
+        {
+            if (vm.IsEditMode)
+                DlgSrv_DisplayNameBox.Focus();
+            else
+                ProtocolCard_Rdp?.Focus();
+        });
     }
 
     private void OnViewModelPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
@@ -104,7 +113,11 @@ public partial class ServerDialog : Window
 
         if (e.NewValue is false)
         {
-            tab.ToolTip = _localizer?["ServerDialogTabDisabledHint"];
+            var message = ReferenceEquals(tab, DlgSrv_TabTunneling)
+                ? _localizer?["ServerDialogTunnelingUnavailable"]
+                : _localizer?["ServerDialogTabDisabledHint"];
+            tab.ToolTip = message;
+            System.Windows.Automation.AutomationProperties.SetHelpText(tab, message ?? "");
             if (tab.IsSelected)
             {
                 MainTabControl.SelectedItem = DlgSrv_TabConnection;
@@ -113,6 +126,7 @@ public partial class ServerDialog : Window
         else
         {
             tab.ToolTip = null;
+            System.Windows.Automation.AutomationProperties.SetHelpText(tab, "");
         }
     }
 
@@ -289,6 +303,44 @@ public partial class ServerDialog : Window
         }
     }
 
+    private async void OnEditGatewayClick(object sender, RoutedEventArgs e)
+    {
+        if (_configManager is null || _localizer is null) return;
+        if (DataContext is not ServerDialogViewModel vm) return;
+        if (string.IsNullOrWhiteSpace(vm.SelectedGatewayId)) return;
+
+        var settings = await _configManager.LoadSettingsAsync();
+        var gwDto = settings.SshGateways.FirstOrDefault(
+            g => string.Equals(g.Id, vm.SelectedGatewayId, StringComparison.OrdinalIgnoreCase));
+        if (gwDto is null) return;
+
+        var gwVm = GatewayDialogViewModel.FromDto(gwDto);
+        gwVm.Localizer = _localizer;
+        gwVm.AvailableParents = new System.Collections.ObjectModel.ObservableCollection<GatewayOption>(
+            settings.SshGateways
+                .Where(g => g.Id != gwDto.Id)
+                .Select(g => new GatewayOption(g.Id, $"{g.Name} ({g.Host})")));
+
+        var gwDialog = new GatewayDialog
+        {
+            DataContext = gwVm,
+            Owner = this
+        };
+
+        if (gwDialog.ShowDialog() == true)
+        {
+            var updated = gwVm.ToDto();
+            updated.Id = gwDto.Id;
+            var idx = settings.SshGateways.FindIndex(
+                g => string.Equals(g.Id, gwDto.Id, StringComparison.OrdinalIgnoreCase));
+            if (idx >= 0)
+            {
+                settings.SshGateways[idx] = updated;
+                await _configManager.SaveSettingsAsync(settings);
+            }
+        }
+    }
+
     // ------------------------------------------------------------------
     // Localization
     // ------------------------------------------------------------------
@@ -303,8 +355,12 @@ public partial class ServerDialog : Window
         // Tab headers
         DlgSrv_TabConnection.Header = _localizer["ServerDialogTabConnection"];
         DlgSrv_TabTunnelingText.Text = _localizer["ServerDialogTabTunneling"];
+        System.Windows.Automation.AutomationProperties.SetName(
+            DlgSrv_TabTunneling, _localizer["ServerDialogTabTunneling"]);
         DlgSrv_TabAuthentication.Header = _localizer["ServerDialogTabAuthentication"];
         DlgSrv_TabOptionsText.Text = _localizer["ServerDialogTabOptions"];
+        System.Windows.Automation.AutomationProperties.SetName(
+            DlgSrv_TabOptions, _localizer["ServerDialogTabOptions"]);
         DlgSrv_TabInfo.Header = _localizer["ServerDialogTabInfo"];
 
         // Protocol selector (Step 1)
@@ -341,9 +397,11 @@ public partial class ServerDialog : Window
 
         // Project + Gateway routing (essential section)
         DlgSrv_ProjectLabel.Text = _localizer["ServerDialogLabelProject"];
+        System.Windows.Automation.AutomationProperties.SetLabeledBy(DlgSrv_ProjectCmb, DlgSrv_ProjectLabel);
         DlgSrv_GatewayRoutingTitle.Text = _localizer["ServerDialogGatewayRouting"];
         DlgSrv_GatewayRoutingDesc.Text = _localizer["ServerDialogGatewayRoutingDesc"];
         DlgSrv_DirectConnectCb.Content = _localizer["ServerDialogDirectConnect"];
+        System.Windows.Automation.AutomationProperties.SetName(DlgSrv_GatewayCmb, _localizer["ServerDialogGatewayRouting"]);
 
         // Advanced toggle
         DlgSrv_AdvancedToggle.Content = _localizer["ServerDialogAdvancedSettings"];
@@ -368,6 +426,17 @@ public partial class ServerDialog : Window
         DlgSrv_LocalTunnelPortDesc.Text = _localizer["ServerDialogLocalTunnelPortDesc"];
         DlgSrv_AutoTunnelPortCb.Content = _localizer["ServerDialogAutoTunnelPort"];
         DlgSrv_ManualPortLabel.Text = _localizer["ServerDialogManualLocalPort"];
+        DlgSrv_SocksSectionTitle.Text = _localizer["TunnelingSocksSectionTitle"];
+        DlgSrv_SocksDesc.Text = _localizer["TunnelingSocksDesc"];
+        DlgSrv_SocksPortLabel.Text = _localizer["TunnelingSocksPortLabel"];
+        System.Windows.Automation.AutomationProperties.SetName(DlgSrv_SocksPortBox, _localizer["TunnelingSocksPortLabel"]);
+        DlgSrv_RemoteFwdSectionTitle.Text = _localizer["TunnelingRemoteSectionTitle"];
+        DlgSrv_RemoteFwdDesc.Text = _localizer["TunnelingRemoteDesc"];
+        DlgSrv_RemoteBindPortLabel.Text = _localizer["TunnelingRemoteBindPortLabel"];
+        DlgSrv_RemoteLocalPortLabel.Text = _localizer["TunnelingRemoteLocalPortLabel"];
+        DlgSrv_RemoteLocalPortHint.Text = _localizer["TunnelingRemoteLocalPortHint"];
+        System.Windows.Automation.AutomationProperties.SetName(DlgSrv_RemoteBindPortBox, _localizer["TunnelingRemoteBindPortLabel"]);
+        System.Windows.Automation.AutomationProperties.SetName(DlgSrv_RemoteLocalPortBox, _localizer["TunnelingRemoteLocalPortLabel"]);
         DlgSrv_TunnelMappingTitle.Text = _localizer["ServerDialogTunnelMapping"];
         DlgSrv_ChainLabel.Text = _localizer["ServerDialogTunnelLabelChain"];
         DlgSrv_LocalEndpointLabel.Text = _localizer["ServerDialogTunnelLabelLocal"];
@@ -382,19 +451,22 @@ public partial class ServerDialog : Window
         DlgSrv_BasicSshCredentialsDesc.Text = _localizer["ServerDialogSshCredentialsDesc"];
         DlgSrv_BasicSshUsernameLabel.Text = _localizer["ServerDialogLabelUsername"];
         DlgSrv_BasicSshKeyLabel.Text = _localizer["ServerDialogLabelSshKey"];
+        System.Windows.Automation.AutomationProperties.SetLabeledBy(DlgSrv_SshKeyPathBox, DlgSrv_BasicSshKeyLabel);
         DlgSrv_BasicBrowseBtn.Content = _localizer["ServerDialogBtnBrowse"];
-        DlgSrv_BasicPassphraseLabel.Text = _localizer["ServerDialogLabelPassphrase"];
-        DlgSrv_BasicSshAuthHint.Text = _localizer["ServerDialogSshAuthHint"];
+        // DlgSrv_BasicPassphraseLabel and DlgSrv_BasicSshAuthHint are bound
+        // to SshPasswordLabel / SshAuthHint computed properties on the ViewModel.
         DlgSrv_BasicVncCredentialsTitle.Text = _localizer["ServerDialogVncCredentials"];
         DlgSrv_BasicVncCredentialsDesc.Text = _localizer["ServerDialogVncCredentialsDesc"];
         DlgSrv_BasicVncPasswordLabel.Text = _localizer["ServerDialogVncPassword"];
         DlgSrv_BasicFtpCredentialsTitle.Text = _localizer["ServerDialogFtpCredentials"];
         DlgSrv_BasicFtpCredentialsDesc.Text = _localizer["ServerDialogFtpCredentialsDesc"];
         DlgSrv_BasicFtpUsernameLabel.Text = _localizer["ServerDialogFtpUsername"];
+        System.Windows.Automation.AutomationProperties.SetLabeledBy(DlgSrv_FtpUsernameBox, DlgSrv_BasicFtpUsernameLabel);
         DlgSrv_BasicFtpPasswordLabel.Text = _localizer["ServerDialogFtpPassword"];
         DlgSrv_BasicTelnetCredentialsTitle.Text = _localizer["ServerDialogTelnetCredentials"];
         DlgSrv_BasicTelnetCredentialsDesc.Text = _localizer["ServerDialogTelnetCredentialsDesc"];
         DlgSrv_BasicTelnetUsernameLabel.Text = _localizer["ServerDialogLabelUsername"];
+        System.Windows.Automation.AutomationProperties.SetLabeledBy(DlgSrv_TelnetUsernameBox, DlgSrv_BasicTelnetUsernameLabel);
         DlgSrv_BasicTelnetPasswordLabel.Text = _localizer["ServerDialogLabelPassword"];
         DlgSrv_BasicLocalShellTitle.Text = _localizer["ServerDialogLocalShell"];
         DlgSrv_BasicLocalShellDesc.Text = _localizer["ServerDialogLocalShellDesc"];
@@ -405,14 +477,20 @@ public partial class ServerDialog : Window
         DlgSrv_BasicShellBash.Content = _localizer["LocalShellBash"];
         DlgSrv_BasicShellWsl.Content = _localizer["LocalShellWsl"];
         DlgSrv_BasicArgumentsLabel.Text = _localizer["ServerDialogLabelArguments"];
+        System.Windows.Automation.AutomationProperties.SetLabeledBy(DlgSrv_ShellArgsBox, DlgSrv_BasicArgumentsLabel);
         DlgSrv_BasicCitrixTitle.Text = _localizer["ServerDialogCitrixWorkspace"];
         DlgSrv_BasicCitrixDesc.Text = _localizer["ServerDialogCitrixWorkspaceDesc"];
         DlgSrv_BasicStoreFrontLabel.Text = _localizer["ServerDialogLabelStoreFrontUrl"];
+        System.Windows.Automation.AutomationProperties.SetLabeledBy(DlgSrv_StoreFrontBox, DlgSrv_BasicStoreFrontLabel);
         DlgSrv_BasicAppNameLabel.Text = _localizer["ServerDialogLabelAppName"];
+        System.Windows.Automation.AutomationProperties.SetLabeledBy(DlgSrv_CitrixAppNameBox, DlgSrv_BasicAppNameLabel);
 
         // Gateway authentication tab (advanced, only when gateway is active)
         DlgSrv_GatewayAuthTitle.Text = _localizer["ServerDialogGatewayAuth"];
         DlgSrv_GatewayAuthDesc.Text = _localizer["ServerDialogGatewayAuthDesc"];
+        DlgSrv_EditGatewayBtn.Content = _localizer["ServerDialogEditGatewayBtn"];
+        System.Windows.Automation.AutomationProperties.SetName(
+            DlgSrv_EditGatewayBtn, _localizer["ServerDialogEditGatewayBtn"]);
 
         // RDP options
         DlgSrv_RdpOptionsTitle.Text = _localizer["ServerDialogRdpOptions"];
@@ -501,11 +579,17 @@ public partial class ServerDialog : Window
         DlgSrv_SshCompressionCb.Content = _localizer["ServerDialogSshCompression"];
         DlgSrv_SshAgentFwdCb.Content = _localizer["ServerDialogSshAgentForward"];
         DlgSrv_SshX11Cb.Content = _localizer["ServerDialogSshX11"];
+        DlgSrv_PostConnectLabel.Text = _localizer["ServerDialogPostConnectLabel"];
+        DlgSrv_PostConnectHint.Text = _localizer["ServerDialogPostConnectHint"];
+        DlgSrv_PostConnectDelayLabel.Text = _localizer["ServerDialogPostConnectDelayLabel"];
+        System.Windows.Automation.AutomationProperties.SetName(DlgSrv_PostConnectBox, _localizer["ServerDialogPostConnectLabel"]);
+        System.Windows.Automation.AutomationProperties.SetName(DlgSrv_PostConnectDelayBox, _localizer["ServerDialogPostConnectDelayLabel"]);
 
         // Local shell advanced options
         DlgSrv_LocalShellTitle.Text = _localizer["ServerDialogLocalShellAdvanced"];
         DlgSrv_LocalShellDesc.Text = _localizer["ServerDialogLocalShellAdvancedDesc"];
         DlgSrv_WorkingDirLabel.Text = _localizer["ServerDialogLabelWorkingDir"];
+        System.Windows.Automation.AutomationProperties.SetLabeledBy(DlgSrv_WorkingDirBox, DlgSrv_WorkingDirLabel);
         DlgSrv_ElevationModeLabel.Text = _localizer["ServerDialogElevationMode"];
         PopulateElevationModeCombo();
 
@@ -513,6 +597,7 @@ public partial class ServerDialog : Window
         DlgSrv_CitrixTitle.Text = _localizer["ServerDialogCitrixAdvanced"];
         DlgSrv_CitrixDesc.Text = _localizer["ServerDialogCitrixAdvancedDesc"];
         DlgSrv_IcaFileLabel.Text = _localizer["ServerDialogLabelIcaFilePath"];
+        System.Windows.Automation.AutomationProperties.SetLabeledBy(DlgSrv_IcaFileBox, DlgSrv_IcaFileLabel);
         DlgSrv_CitrixHint.Text = _localizer["ServerDialogCitrixHint"];
         DlgSrv_SeamlessCb.Content = _localizer["ServerDialogCitrixSeamless"];
         DlgSrv_SsoCb.Content = _localizer["ServerDialogCitrixSso"];
@@ -539,7 +624,9 @@ public partial class ServerDialog : Window
         DlgSrv_OrgTitle.Text = _localizer["ServerDialogOrganization"];
         DlgSrv_OrgDesc.Text = _localizer["ServerDialogOrganizationDesc"];
         DlgSrv_FolderLabel.Text = _localizer["ServerDialogLabelFolder"];
+        System.Windows.Automation.AutomationProperties.SetLabeledBy(DlgSrv_FolderBox, DlgSrv_FolderLabel);
         DlgSrv_EnvironmentLabel.Text = _localizer["ServerDialogLabelEnvironment"];
+        System.Windows.Automation.AutomationProperties.SetLabeledBy(DlgSrv_EnvironmentCmb, DlgSrv_EnvironmentLabel);
         DlgSrv_FavoriteLabel.Text = _localizer["ServerDialogLabelFavorite"];
         DlgSrv_MarkFavoriteCb.Content = _localizer["ServerDialogMarkFavorite"];
         DlgSrv_EnvNone.Content = _localizer["ServerDialogEnvNone"];
@@ -552,7 +639,9 @@ public partial class ServerDialog : Window
         DlgSrv_MetadataTitle.Text = _localizer["ServerDialogMetadata"];
         DlgSrv_MetadataDesc.Text = _localizer["ServerDialogMetadataDesc"];
         DlgSrv_TagsLabel.Text = _localizer["ServerDialogLabelTags"];
+        System.Windows.Automation.AutomationProperties.SetLabeledBy(DlgSrv_TagsBox, DlgSrv_TagsLabel);
         DlgSrv_MacAddressLabel.Text = _localizer["ServerDialogLabelMacAddress"];
+        System.Windows.Automation.AutomationProperties.SetLabeledBy(DlgSrv_MacAddressBox, DlgSrv_MacAddressLabel);
 
         // Action buttons
         DlgSrv_CancelBtn.Content = _localizer["ServerDialogBtnCancel"];

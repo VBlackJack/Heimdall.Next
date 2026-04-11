@@ -36,6 +36,7 @@ public partial class ConnectionService
         ArgumentNullException.ThrowIfNull(server);
         ArgumentNullException.ThrowIfNull(settings);
 
+        Core.Logging.FileLogger.Info($"ConnectSshAsync: {server.DisplayName} ({server.RemoteServer}:{server.SshPort}) Gateway={server.SshGatewayId ?? "none"} Direct={server.UseDirectConnection}");
         _connectionSm.TryTransition(server.Id, Core.Models.ConnectionState.ValidatingConfig);
 
         string targetHost = server.RemoteServer;
@@ -46,7 +47,8 @@ public partial class ConnectionService
         {
             var tunnelResult = await EstablishTunnelAsync(
                 server.Id, server.SshGatewayId, server.RemoteServer,
-                server.SshPort, server.LocalPort, settings, ct)
+                server.SshPort, server.LocalPort, settings, ct,
+                server.SocksProxyPort, server.RemoteBindPort, server.RemoteLocalPort)
                 .ConfigureAwait(false);
 
             if (!tunnelResult.Success)
@@ -67,6 +69,14 @@ public partial class ConnectionService
 
         _connectionSm.TryTransition(server.Id, Core.Models.ConnectionState.LaunchingSsh);
 
+        var sshMode = server.SshMode ?? "Embedded";
+        Core.Logging.FileLogger.Info($"SSH mode: {sshMode}");
+
+        if (string.Equals(sshMode, "External", StringComparison.OrdinalIgnoreCase))
+        {
+            return ConnectSshExternal(server, settings, targetHost, targetPort);
+        }
+
         var sshParams = new SshConnectionParams
         {
             Host = targetHost,
@@ -83,7 +93,7 @@ public partial class ConnectionService
         if (SshConnectionFactory.RequiresPageantFallback(sshParams))
         {
             Core.Logging.FileLogger.Info($"SSH using Plink fallback (Pageant) for {server.DisplayName}");
-            return await ConnectSshViaPlinkAsync(server, settings, targetHost, targetPort, ct);
+            return await ConnectSshViaPlinkAsync(server, settings, targetHost, targetPort, originalFailure: null, ct);
         }
 
         // Try SSH.NET first
@@ -91,26 +101,136 @@ public partial class ConnectionService
         try
         {
             await session.ConnectAsync(sshParams, hostKeyStore: _hostKeyStore, cancellationToken: ct).ConfigureAwait(false);
+            if (session.Client is { } connectedClient)
+            {
+                var keepAlive = _currentSettings?.SshKeepAliveIntervalSeconds ?? 30;
+                connectedClient.KeepAliveInterval = TimeSpan.FromSeconds(keepAlive);
+            }
         }
         catch (Exception ex)
         {
             session.Dispose();
             var failure = FailureClassifier.Classify(ex, sshParams);
 
-            // Fallback to Plink if auth failed and Pageant is available
-            if (failure.Code is SshFailureCode.AuthRejected or SshFailureCode.KeyRejected
-                && Heimdall.Ssh.Pageant.PageantClient.IsAvailable())
+            // Fallback to Plink when SSH.NET auth is rejected.
+            // Plink handles keyboard-interactive, password prompts, and Pageant natively —
+            // so it succeeds in scenarios where SSH.NET's typed auth methods are rejected
+            // (e.g., server with PasswordAuthentication no + KbdInteractiveAuthentication yes).
+            // Pageant availability is NOT a prerequisite: Plink can prompt interactively.
+            if (failure.Code is SshFailureCode.AuthRejected
+                    or SshFailureCode.KeyRejected
+                    or SshFailureCode.PasswordRejected
+                    or SshFailureCode.NoSupportedAuth
+                    or SshFailureCode.KeyboardInteractiveNoPassword)
             {
-                Core.Logging.FileLogger.Info($"SSH.NET auth failed, falling back to Plink: {failure.Message}");
-                return await ConnectSshViaPlinkAsync(server, settings, targetHost, targetPort, ct);
+                Core.Logging.FileLogger.Info($"SSH.NET auth failed ({failure.Code}), falling back to Plink: {failure.Message}");
+                SetStatusText?.Invoke(_localizer["StatusSshRetryingViaPlink"]);
+                return await ConnectSshViaPlinkAsync(server, settings, targetHost, targetPort, failure.Code, ct);
             }
 
             _connectionSm.SetError(server.Id, failure.Message);
             return new ConnectionResult(false, failure.Message, null);
         }
 
+        if (!string.IsNullOrWhiteSpace(server.PostConnectCommand))
+        {
+            var delayMs = server.PostConnectDelayMs > 0 ? server.PostConnectDelayMs : 800;
+            await Task.Delay(delayMs, ct).ConfigureAwait(false);
+
+            var lines = server.PostConnectCommand
+                .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+            foreach (var line in lines)
+            {
+                session.Write(line + "\n");
+                if (lines.Length > 1)
+                    await Task.Delay(150, ct).ConfigureAwait(false);
+            }
+
+            Core.Logging.FileLogger.Info(
+                $"Post-connect: sent {lines.Length} command(s) to {server.DisplayName}");
+        }
+
         _connectionSm.TryTransition(server.Id, Core.Models.ConnectionState.Connected);
         return new ConnectionResult(true, null, new SshSessionResult(session));
+    }
+
+    /// <summary>
+    /// Launches putty.exe as an external (non-embedded) SSH session.
+    /// Used when <see cref="ServerProfileDto.SshMode"/> is "External".
+    /// </summary>
+    private ConnectionResult ConnectSshExternal(
+        ServerProfileDto server,
+        AppSettings settings,
+        string targetHost,
+        int targetPort)
+    {
+        var puttyPath = ResolvePuttyPath(settings.PuttyPath, settings.PlinkPath);
+        if (string.IsNullOrWhiteSpace(puttyPath) || !File.Exists(puttyPath))
+        {
+            var msg = _localizer["ErrorPuttyNotConfigured"];
+            _connectionSm.SetError(server.Id, msg);
+            return new ConnectionResult(false, msg, null);
+        }
+
+        // Validate user-supplied fields before building the command line (CWE-78)
+        if (!string.IsNullOrEmpty(server.SshUsername) &&
+            !InputValidator.Validate(server.SshUsername, "SshUser"))
+        {
+            var msg = _localizer["ErrorInvalidSshUsername"];
+            _connectionSm.SetError(server.Id, msg);
+            return new ConnectionResult(false, msg, null);
+        }
+
+        if (!InputValidator.Validate(targetHost, "Address"))
+        {
+            var msg = _localizer["ErrorInvalidTargetHost"];
+            _connectionSm.SetError(server.Id, msg);
+            return new ConnectionResult(false, msg, null);
+        }
+
+        // Build PuTTY arguments as a structured list (CWE-78 prevention)
+        var args = new List<string> { "-ssh" };
+        if (!string.IsNullOrEmpty(server.SshKeyPath))
+        {
+            args.Add("-i");
+            args.Add($"\"{server.SshKeyPath}\"");
+        }
+        if (server.SshCompression)
+            args.Add("-C");
+        if (server.SshAgentForwarding)
+            args.Add("-A");
+        if (server.SshX11Forwarding)
+            args.Add("-X");
+        args.Add("-P");
+        args.Add(targetPort.ToString());
+        var target = !string.IsNullOrEmpty(server.SshUsername)
+            ? $"{server.SshUsername}@{targetHost}"
+            : targetHost;
+        args.Add(target);
+
+        try
+        {
+            var arguments = string.Join(' ', args);
+            Core.Logging.FileLogger.Info($"Launching PuTTY: {puttyPath} {arguments}");
+
+            using var process = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = puttyPath,
+                Arguments = arguments,
+                UseShellExecute = false
+            });
+
+            Core.Logging.FileLogger.Info($"Launched putty.exe PID={process?.Id ?? 0} for {server.DisplayName} ({targetHost}:{targetPort})");
+            _connectionSm.TryTransition(server.Id, Core.Models.ConnectionState.Connected);
+            return new ConnectionResult(true, null, null);
+        }
+        catch (Exception ex)
+        {
+            Core.Logging.FileLogger.Error("PuTTY launch failed", ex);
+            _connectionSm.SetError(server.Id, ex.Message);
+            return new ConnectionResult(false, ex.Message, null);
+        }
     }
 
     /// <summary>
@@ -123,12 +243,15 @@ public partial class ConnectionService
         AppSettings settings,
         string targetHost,
         int targetPort,
+        SshFailureCode? originalFailure,
         CancellationToken ct)
     {
         var plinkPath = ResolvePlinkPath(settings.PlinkPath);
         if (string.IsNullOrWhiteSpace(plinkPath) || !File.Exists(plinkPath))
         {
-            var msg = _localizer["ErrorPlinkNotConfigured"];
+            var msg = originalFailure is not null
+                ? _localizer.Format("ErrorPlinkNotConfiguredWithReason", originalFailure)
+                : _localizer["ErrorPlinkNotConfigured"];
             _connectionSm.SetError(server.Id, msg);
             return new ConnectionResult(false, msg, null);
         }

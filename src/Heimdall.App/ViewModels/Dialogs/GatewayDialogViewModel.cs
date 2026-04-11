@@ -77,6 +77,31 @@ public partial class GatewayDialogViewModel : ObservableValidator
     public string? ExistingSshPasswordEncrypted { get; set; }
 
     /// <summary>
+    /// Returns a context-aware label for the password field:
+    /// "Password" when no key is configured, "Passphrase" when a key is set.
+    /// </summary>
+    public string GatewayPasswordLabel => string.IsNullOrWhiteSpace(KeyPath)
+        ? Localizer?["GatewayDialogLabelPassword"] ?? "Password"
+        : Localizer?["GatewayDialogLabelPassphrase"] ?? "Passphrase";
+
+    /// <summary>
+    /// Returns a context-aware hint explaining the gateway auth mode:
+    /// password-centric hint when no key is configured, key-centric hint otherwise.
+    /// </summary>
+    public string GatewayAuthHint => string.IsNullOrWhiteSpace(KeyPath)
+        ? Localizer?["GatewayAuthHintPassword"] ?? ""
+        : Localizer?["GatewayAuthHintKey"] ?? "";
+
+    /// <summary>
+    /// Shows the resulting chain topology when a parent gateway is selected.
+    /// </summary>
+    public string GatewayChainSummary => string.IsNullOrWhiteSpace(SelectedParentGatewayId)
+        ? ""
+        : Localizer?["GatewayChainLabel"] is string label
+            ? $"{label}: {AvailableParents.FirstOrDefault(p => p.Id == SelectedParentGatewayId)?.DisplayText ?? SelectedParentGatewayId} \u2192 {Name}"
+            : "";
+
+    /// <summary>
     /// Optional parent gateway for chained SSH tunnels.
     /// Empty string means no parent (direct connection).
     /// </summary>
@@ -161,8 +186,26 @@ public partial class GatewayDialogViewModel : ObservableValidator
 
     // --- Live re-validation (only when errors are already showing) ---
 
+    partial void OnKeyPathChanged(string value)
+    {
+        OnPropertyChanged(nameof(GatewayPasswordLabel));
+        OnPropertyChanged(nameof(GatewayAuthHint));
+    }
+
+    partial void OnSelectedParentGatewayIdChanged(string value)
+    {
+        OnPropertyChanged(nameof(GatewayChainSummary));
+    }
+
+    partial void OnAvailableParentsChanged(ObservableCollection<GatewayOption> value)
+    {
+        OnPropertyChanged(nameof(GatewayChainSummary));
+    }
+
     partial void OnNameChanged(string value)
     {
+        OnPropertyChanged(nameof(GatewayChainSummary));
+
         if (NameError is not null)
         {
             ValidateProperty(value, nameof(Name));

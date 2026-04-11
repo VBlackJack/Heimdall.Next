@@ -105,6 +105,9 @@ public partial class SettingsViewModel : ObservableValidator
     private string _plinkPath = "";
 
     [ObservableProperty]
+    private string _puttyPath = "";
+
+    [ObservableProperty]
     private string _sshDefaultMode = "Embedded";
 
     [ObservableProperty]
@@ -208,6 +211,15 @@ public partial class SettingsViewModel : ObservableValidator
 
     [ObservableProperty]
     private bool _useExternalCredentialProvider;
+
+    public string CredProvHelpText => UseExternalCredentialProvider
+        ? ""
+        : _localizer["SettingsCredProvDisabledHint"];
+
+    partial void OnUseExternalCredentialProviderChanged(bool value)
+    {
+        OnPropertyChanged(nameof(CredProvHelpText));
+    }
 
     [ObservableProperty]
     private string _credentialProviderCommand = "";
@@ -392,6 +404,7 @@ public partial class SettingsViewModel : ObservableValidator
 
         // SSH & SFTP
         PlinkPath = settings.PlinkPath;
+        PuttyPath = settings.PuttyPath ?? "";
         SshDefaultMode = settings.SshDefaultMode;
         AntiIdleInterval = settings.AntiIdleIntervalSeconds;
         SshTmoutResetInterval = settings.SshTmoutResetIntervalSeconds;
@@ -514,6 +527,7 @@ public partial class SettingsViewModel : ObservableValidator
 
         // SSH & SFTP
         settings.PlinkPath = PlinkPath;
+        settings.PuttyPath = string.IsNullOrWhiteSpace(PuttyPath) ? null : PuttyPath;
         settings.SshDefaultMode = SshDefaultMode;
         settings.AntiIdleIntervalSeconds = AntiIdleInterval;
         settings.SshTmoutResetIntervalSeconds = SshTmoutResetInterval;
