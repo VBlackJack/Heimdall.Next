@@ -353,6 +353,8 @@ public partial class MainWindow : Window
         System.Windows.Automation.AutomationProperties.SetName(Mw_ThemeVanHelsing, vm.Localize("ThemeVanHelsing"));
         Mw_SettingsMaxSessionsLabel.Text = vm.Localize("SettingsLabelMaxEmbeddedSessions");
         Mw_SettingsPreventSleep.Content = vm.Localize("SettingsLabelPreventSleep");
+        Mw_SettingsEnableSessionPersistence.Content = vm.Localize("SettingsWorkspaceRestore");
+        System.Windows.Automation.AutomationProperties.SetName(Mw_SettingsEnableSessionPersistence, vm.Localize("SettingsWorkspaceRestore"));
         Mw_SettingsEditorPathLabel.Text = vm.Localize("SettingsLabelEditorPath");
 
         Mw_SettingsTerminalTitle.Text = vm.Localize("SettingsSectionTerminal");
@@ -4762,6 +4764,12 @@ public partial class MainWindow : Window
         if (DataContext is not MainViewModel vm) return;
 
         SaveWindowBounds(vm);
+
+        if (vm.Settings.EnableSessionPersistence)
+        {
+            var sessions = vm.GetOpenSessions();
+            _ = Services.WorkspaceService.SaveAsync(sessions);
+        }
 
         if (vm.Settings.IsDirty)
         {

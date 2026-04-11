@@ -81,6 +81,9 @@ public partial class SettingsViewModel : ObservableValidator
     private bool _preventSleepDuringSession = true;
 
     [ObservableProperty]
+    private bool _enableSessionPersistence;
+
+    [ObservableProperty]
     private string _externalEditorPath = "";
 
     // --- Terminal ---
@@ -391,6 +394,7 @@ public partial class SettingsViewModel : ObservableValidator
         _originalTheme = settings.DefaultTheme;
         MaxEmbeddedSessions = settings.MaxEmbeddedSessions;
         PreventSleepDuringSession = settings.PreventSleepDuringSession;
+        EnableSessionPersistence = settings.EnableSessionPersistence;
         ExternalEditorPath = settings.ExternalEditorPath;
 
         // UI state
@@ -517,6 +521,7 @@ public partial class SettingsViewModel : ObservableValidator
         settings.DefaultTheme = DefaultTheme;
         settings.MaxEmbeddedSessions = MaxEmbeddedSessions;
         settings.PreventSleepDuringSession = PreventSleepDuringSession;
+        settings.EnableSessionPersistence = EnableSessionPersistence;
         settings.ExternalEditorPath = ExternalEditorPath;
 
         // Terminal
