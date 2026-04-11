@@ -90,7 +90,10 @@ public sealed class TunnelManager : IDisposable
         int localPort,
         CancellationToken cancellationToken = default,
         HostKeyStore? hostKeyStore = null,
-        int keepAliveIntervalSeconds = 30)
+        int keepAliveIntervalSeconds = 30,
+        int socksProxyPort = 0,
+        int remoteBindPort = 0,
+        int remoteLocalPort = 0)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         ArgumentNullException.ThrowIfNull(gatewayParams);
@@ -105,7 +108,7 @@ public sealed class TunnelManager : IDisposable
 
         try
         {
-            var connectionInfo = SshConnectionFactory.CreateForTunnel(gatewayParams);
+            var connectionInfo = SshConnectionFactory.Create(gatewayParams);
             client = new SshClient(connectionInfo)
             {
                 KeepAliveInterval = TimeSpan.FromSeconds(keepAliveIntervalSeconds)
@@ -136,15 +139,40 @@ public sealed class TunnelManager : IDisposable
             client.AddForwardedPort(forwardedPort);
             forwardedPort.Start();
 
+            ForwardedPortDynamic? dynamicPort = null;
+            if (socksProxyPort > 0)
+            {
+                dynamicPort = new ForwardedPortDynamic("127.0.0.1", (uint)socksProxyPort);
+                client.AddForwardedPort(dynamicPort);
+                dynamicPort.Start();
+                Core.Logging.FileLogger.Info(
+                    $"SOCKS5 proxy started on 127.0.0.1:{socksProxyPort}");
+            }
+
+            ForwardedPortRemote? remotePortFwd = null;
+            if (remoteBindPort > 0)
+            {
+                int localFwd = remoteLocalPort > 0 ? remoteLocalPort : remoteBindPort;
+                remotePortFwd = new ForwardedPortRemote(
+                    "127.0.0.1", (uint)remoteBindPort,
+                    "127.0.0.1", (uint)localFwd);
+                client.AddForwardedPort(remotePortFwd);
+                remotePortFwd.Start();
+                Core.Logging.FileLogger.Info(
+                    $"Remote forward started: server:{remoteBindPort} \u2192 local:{localFwd}");
+            }
+
             var info = new TunnelInfo(
                 gatewayParams.Host,
                 localPort,
                 remoteHost,
                 remotePort,
                 DateTime.UtcNow,
-                IsAlive: true);
+                IsAlive: true)
+            { SocksProxyPort = socksProxyPort, RemoteBindPort = remoteBindPort };
 
-            var session = new TunnelSession(client, forwardedPort, info);
+            var session = new TunnelSession(client, forwardedPort, info)
+            { DynamicPort = dynamicPort, RemotePort = remotePortFwd };
 
             lock (_registryLock)
             {
@@ -210,7 +238,10 @@ public sealed class TunnelManager : IDisposable
         int remotePort,
         int localPort,
         CancellationToken cancellationToken = default,
-        HostKeyStore? hostKeyStore = null)
+        HostKeyStore? hostKeyStore = null,
+        int socksProxyPort = 0,
+        int remoteBindPort = 0,
+        int remoteLocalPort = 0)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         ArgumentNullException.ThrowIfNull(gatewayChain);
@@ -223,7 +254,8 @@ public sealed class TunnelManager : IDisposable
         // Single gateway: delegate to simple tunnel
         if (gatewayChain.Count == 1)
         {
-            return await OpenTunnelAsync(gatewayChain[0], remoteHost, remotePort, localPort, cancellationToken, hostKeyStore)
+            return await OpenTunnelAsync(gatewayChain[0], remoteHost, remotePort, localPort, cancellationToken, hostKeyStore,
+                    socksProxyPort: socksProxyPort, remoteBindPort: remoteBindPort, remoteLocalPort: remoteLocalPort)
                 .ConfigureAwait(false);
         }
 
@@ -248,7 +280,7 @@ public sealed class TunnelManager : IDisposable
             int nextLocalPort = GetEphemeralPort();
 
             // Connect to the first (root) gateway directly
-            var rootInfo = SshConnectionFactory.CreateForTunnel(gatewayChain[0]);
+            var rootInfo = SshConnectionFactory.Create(gatewayChain[0]);
             var rootClient = new SshClient(rootInfo);
 
             if (hostKeyStore is not null)
@@ -297,7 +329,7 @@ public sealed class TunnelManager : IDisposable
                     Compression = nextGateway.Compression,
                     ConnectTimeout = nextGateway.ConnectTimeout
                 };
-                var hopInfo = SshConnectionFactory.CreateForTunnel(hopParams);
+                var hopInfo = SshConnectionFactory.Create(hopParams);
                 var hopClient = new SshClient(hopInfo);
 
                 if (hostKeyStore is not null)
@@ -332,20 +364,45 @@ public sealed class TunnelManager : IDisposable
             finalClient!.AddForwardedPort(finalPort);
             finalPort.Start();
 
+            ForwardedPortDynamic? dynamicPort = null;
+            if (socksProxyPort > 0)
+            {
+                dynamicPort = new ForwardedPortDynamic("127.0.0.1", (uint)socksProxyPort);
+                finalClient.AddForwardedPort(dynamicPort);
+                dynamicPort.Start();
+                Core.Logging.FileLogger.Info(
+                    $"SOCKS5 proxy started on 127.0.0.1:{socksProxyPort} (chained tunnel)");
+            }
+
+            ForwardedPortRemote? remotePortFwd = null;
+            if (remoteBindPort > 0)
+            {
+                int localFwd = remoteLocalPort > 0 ? remoteLocalPort : remoteBindPort;
+                remotePortFwd = new ForwardedPortRemote(
+                    "127.0.0.1", (uint)remoteBindPort,
+                    "127.0.0.1", (uint)localFwd);
+                finalClient.AddForwardedPort(remotePortFwd);
+                remotePortFwd.Start();
+                Core.Logging.FileLogger.Info(
+                    $"Remote forward started: server:{remoteBindPort} \u2192 local:{localFwd} (chained tunnel)");
+            }
+
             var tunnelInfo = new TunnelInfo(
                 gatewayChain[^1].Host,
                 localPort,
                 remoteHost,
                 remotePort,
                 DateTime.UtcNow,
-                IsAlive: true);
+                IsAlive: true)
+            { SocksProxyPort = socksProxyPort, RemoteBindPort = remoteBindPort };
 
             var session = new TunnelSession(
                 finalClient,
                 finalPort,
                 tunnelInfo,
                 intermediateClients,
-                intermediatePorts);
+                intermediatePorts)
+            { DynamicPort = dynamicPort, RemotePort = remotePortFwd };
 
             lock (_registryLock)
             {

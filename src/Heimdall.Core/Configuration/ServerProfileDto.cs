@@ -45,6 +45,11 @@ public class ServerProfileDto
     public string? SshPasswordEncrypted { get; set; }
     public bool SshCompression { get; set; }
     public bool SshX11Forwarding { get; set; }
+    public int SocksProxyPort { get; set; }
+    public int RemoteBindPort { get; set; }
+    public int RemoteLocalPort { get; set; }
+    public string PostConnectCommand { get; set; } = "";
+    public int PostConnectDelayMs { get; set; } = 800;
 
     // RDP display settings
     public bool RdpAntiIdle { get; set; }

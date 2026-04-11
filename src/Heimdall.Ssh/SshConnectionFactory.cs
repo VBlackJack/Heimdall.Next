@@ -53,31 +53,6 @@ public static class SshConnectionFactory
     }
 
     /// <summary>
-    /// Creates a <see cref="ConnectionInfo"/> optimized for port-forwarding tunnels.
-    /// Functionally identical to <see cref="Create"/> but semantically separated
-    /// for future tunnel-specific tuning (e.g., keep-alive, no shell).
-    /// </summary>
-    /// <param name="connectionParams">SSH connection parameters.</param>
-    /// <returns>A fully configured <see cref="ConnectionInfo"/> for tunneling.</returns>
-    public static ConnectionInfo CreateForTunnel(SshConnectionParams connectionParams)
-    {
-        ArgumentNullException.ThrowIfNull(connectionParams);
-
-        var authMethods = BuildAuthMethods(connectionParams);
-
-        var info = new ConnectionInfo(
-            connectionParams.Host,
-            connectionParams.Port,
-            connectionParams.Username,
-            [.. authMethods])
-        {
-            Timeout = connectionParams.ConnectTimeout
-        };
-
-        return info;
-    }
-
-    /// <summary>
     /// Attaches TOFU (Trust On First Use) host key verification to an SSH.NET client.
     /// Call this on <see cref="Renci.SshNet.SshClient"/> or <see cref="Renci.SshNet.SftpClient"/>
     /// BEFORE calling <c>Connect()</c>.
@@ -159,11 +134,27 @@ public static class SshConnectionFactory
             methods.Add(new PrivateKeyAuthenticationMethod(connectionParams.Username, keyFile));
         }
 
-        // Password authentication
+        // Password authentication.
+        // Two methods are registered in sequence so SSH.NET tries them in order:
+        //   1. "password" (RFC 4252 §8): supported by most servers.
+        //   2. "keyboard-interactive" (RFC 4256): required when PasswordAuthentication is
+        //      disabled server-side but KbdInteractiveAuthentication is enabled (common on
+        //      hardened Linux). SSH.NET tries the next method automatically on rejection.
         if (!string.IsNullOrEmpty(connectionParams.Password) &&
             string.IsNullOrWhiteSpace(connectionParams.KeyPath))
         {
             methods.Add(new PasswordAuthenticationMethod(connectionParams.Username, connectionParams.Password));
+
+            var password = connectionParams.Password; // Captured in closure — avoid re-reading mutable param
+            var kbdInteractive = new KeyboardInteractiveAuthenticationMethod(connectionParams.Username);
+            kbdInteractive.AuthenticationPrompt += (_, e) =>
+            {
+                foreach (var prompt in e.Prompts)
+                {
+                    prompt.Response = password;
+                }
+            };
+            methods.Add(kbdInteractive);
         }
 
         // Pageant agent key authentication (Windows SSH agent).

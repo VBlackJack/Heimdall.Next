@@ -45,7 +45,8 @@ public partial class ConnectionService
         {
             var tunnelResult = await EstablishTunnelAsync(
                 server.Id, server.SshGatewayId, server.RemoteServer,
-                server.SshPort, server.LocalPort, settings, ct)
+                server.SshPort, server.LocalPort, settings, ct,
+                server.SocksProxyPort, server.RemoteBindPort, server.RemoteLocalPort)
                 .ConfigureAwait(false);
 
             if (!tunnelResult.Success)

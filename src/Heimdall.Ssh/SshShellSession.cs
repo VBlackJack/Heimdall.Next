@@ -27,7 +27,7 @@ namespace Heimdall.Ssh;
 /// </summary>
 public sealed class SshShellSession : IDisposable
 {
-    private static readonly int ReadBufferSize = 8192;
+    private const int ReadBufferSize = 8192;
 
     private SshClient? _client;
     private ShellStream? _stream;
@@ -145,6 +145,11 @@ public sealed class SshShellSession : IDisposable
         // SSH.NET ShellStream does not expose window-change directly, but the
         // underlying IChannelSession has SendWindowChangeRequest. Access it via
         // reflection on the private _channel field.
+        //
+        // TODO: Remove reflection once SSH.NET exposes a public window-change API on ShellStream.
+        // Track: https://github.com/sshnet/SSH.NET/issues — search "window change" or "resize".
+        // If SSH.NET's internal field layout changes, this fails gracefully (logged as Warn,
+        // session continues — only terminal reflow is lost).
         try
         {
             var channelField = _stream.GetType().GetField(
@@ -160,7 +165,19 @@ public sealed class SshShellSession : IDisposable
                     [typeof(uint), typeof(uint), typeof(uint), typeof(uint)],
                     null);
 
-                method?.Invoke(channel, [(uint)columns, (uint)rows, 0u, 0u]);
+                if (method is null)
+                {
+                    Core.Logging.FileLogger.Warn(
+                        "SSH window-change: SendWindowChangeRequest not found — SSH.NET internal layout may have changed.");
+                    return;
+                }
+
+                method.Invoke(channel, [(uint)columns, (uint)rows, 0u, 0u]);
+            }
+            else
+            {
+                Core.Logging.FileLogger.Warn(
+                    "SSH window-change: _channel field is null on ShellStream — resize skipped.");
             }
         }
         catch (Exception ex)

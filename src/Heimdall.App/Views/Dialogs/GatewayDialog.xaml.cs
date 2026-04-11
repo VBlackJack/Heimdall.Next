@@ -47,10 +47,12 @@ public partial class GatewayDialog : Window
                 LblPort.Text = vm.Localizer["GatewayDialogLabelPort"];
                 LblUsername.Text = vm.Localizer["GatewayDialogLabelUsername"];
                 LblKeyPath.Text = vm.Localizer["GatewayDialogLabelKeyPath"];
-                LblPassword.Text = vm.Localizer["GatewayDialogLabelPassword"];
+                // LblPassword is bound to GatewayPasswordLabel on the ViewModel.
                 LblParentGateway.Text = vm.Localizer["GatewayDialogLabelParentGateway"];
                 LblHostKeyFingerprint.Text = vm.Localizer["GatewayDialogLabelHostKeyFingerprint"];
+                LblHostKeyFingerprintHint.Text = vm.Localizer["GatewayHostKeyFingerprintHint"];
                 BtnBrowse.Content = vm.Localizer["GatewayDialogBtnBrowse"];
+                BtnBrowse.ToolTip = vm.Localizer["TooltipBrowse"];
                 System.Windows.Automation.AutomationProperties.SetName(BtnBrowse, vm.Localizer["GatewayDialogBtnBrowse"]);
 
                 // Input field accessibility
@@ -59,9 +61,15 @@ public partial class GatewayDialog : Window
                 System.Windows.Automation.AutomationProperties.SetName(TxtPort, vm.Localizer["GatewayDialogLabelPort"]);
                 System.Windows.Automation.AutomationProperties.SetName(TxtUsername, vm.Localizer["GatewayDialogLabelUsername"]);
                 System.Windows.Automation.AutomationProperties.SetName(TxtKeyPath, vm.Localizer["GatewayDialogLabelKeyPath"]);
-                System.Windows.Automation.AutomationProperties.SetName(PasswordBox, vm.Localizer["GatewayDialogLabelPassword"]);
+                System.Windows.Automation.AutomationProperties.SetName(PasswordBox, vm.GatewayPasswordLabel);
                 System.Windows.Automation.AutomationProperties.SetName(CmbParentGateway, vm.Localizer["GatewayDialogLabelParentGateway"]);
                 System.Windows.Automation.AutomationProperties.SetName(TxtHostKeyFingerprint, vm.Localizer["GatewayDialogLabelHostKeyFingerprint"]);
+
+                vm.PropertyChanged += (_, e) =>
+                {
+                    if (e.PropertyName == nameof(GatewayDialogViewModel.GatewayPasswordLabel))
+                        System.Windows.Automation.AutomationProperties.SetName(PasswordBox, vm.GatewayPasswordLabel);
+                };
             }
 
             TxtName.Focus();

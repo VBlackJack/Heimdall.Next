@@ -315,6 +315,7 @@ public partial class MainViewModel : ObservableObject
         Split.SetActiveSession = s => Connection.ActiveSession = s;
         Split.SetHasActiveSessions = v => Connection.HasActiveSessions = v;
         Split.SetStatusText = s => StatusText = s;
+        ServerList.ConnectionService.SetStatusText = s => StatusText = s;
 
         _appStatus.StatusChanged += OnApplicationStatusChanged;
         _tunnelManager.TunnelOpened += OnTunnelOpened;
@@ -349,6 +350,8 @@ public partial class MainViewModel : ObservableObject
             _ = SafeFireAndForgetAsync(OpenToolTabAsync(toolId, title, ctx));
         };
         ServerList.StatusMessageRequested += message => StatusText = message;
+
+        StatusText = _localizer["StatusReady"];
     }
 
     /// <summary>
@@ -1325,8 +1328,13 @@ public partial class MainViewModel : ObservableObject
             var tab = Connection.AddSession(dto.Id, dto.DisplayName, connType);
             tab.HostControl = _embeddedSessionManager.CreateHostControl(
                 tab, dto.DisplayName, connType, result.Session, settings);
-            tab.Status = "Connected";
-            StatusText = _localizer.Format("StatusConnected", dto.DisplayName);
+            tab.Status = _localizer["StatusConnected"];
+            StatusText = _localizer.Format("StatusConnected", !string.IsNullOrWhiteSpace(dto.DisplayName) ? dto.DisplayName : dto.RemoteServer);
+        }
+        else if (result.Success)
+        {
+            // External mode: process launched, no embedded tab needed
+            StatusText = _localizer.Format("StatusConnected", !string.IsNullOrWhiteSpace(dto.DisplayName) ? dto.DisplayName : dto.RemoteServer);
         }
         else
         {

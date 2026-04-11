@@ -1449,7 +1449,7 @@
                                                 <TextBlock x:Name="Mw_SettingsTerminalFontSizeLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,0,4"/>
                                                 <StackPanel Orientation="Horizontal">
                                                     <TextBox Text="{Binding Settings.TerminalFontSize}" Width="80"/>
-                                                    <TextBlock Text="px" VerticalAlignment="Center" Margin="6,0,0,0" Foreground="{DynamicResource TextDisabledBrush}" FontSize="{StaticResource FontSizeCaption}" IsHitTestVisible="False"/>
+                                                    <TextBlock Text="px" VerticalAlignment="Center" Margin="6,0,0,0" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" IsHitTestVisible="False"/>
                                                 </StackPanel>
                                             </StackPanel>
                                         </Grid>
@@ -1493,18 +1493,36 @@
                                                     Padding="6,2" Margin="4,0,0,0" Click="OnBrowsePlinkPathClick"
                                                     Style="{DynamicResource SecondaryButtonStyle}"
                                                     FontSize="{StaticResource FontSizeCaption}"
-                                                    AutomationProperties.Name="{loc:Translate A11yBrowsePlinkPath}">
+                                                    AutomationProperties.Name="{loc:Translate A11yBrowsePlinkPath}"
+                                                    TabIndex="2">
                                                 <StackPanel Orientation="Horizontal">
                                                     <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE838;" FontSize="12" VerticalAlignment="Center"/>
                                                     <TextBlock Text="{loc:Translate BtnBrowse}" Margin="4,0,0,0" VerticalAlignment="Center"/>
                                                 </StackPanel>
                                             </Button>
-                                            <TextBox Text="{Binding Settings.PlinkPath}"/>
+                                            <TextBox Text="{Binding Settings.PlinkPath}" TabIndex="1" AutomationProperties.LabeledBy="{x:Reference Mw_SettingsPlinkPathLabel}"/>
                                         </DockPanel>
+                                        <TextBlock x:Name="Mw_SettingsPlinkPathHint" Text="" Foreground="{DynamicResource TextTertiaryBrush}" FontSize="{StaticResource FontSizeCaption}" Margin="0,4,0,0" TextWrapping="Wrap"/>
+                                        <TextBlock x:Name="Mw_SettingsPuttyPathLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Margin="0,12,0,4"/>
+                                        <DockPanel>
+                                            <Button x:Name="Mw_SettingsBrowsePuttyPath" DockPanel.Dock="Right"
+                                                    Padding="6,2" Margin="4,0,0,0" Click="OnBrowsePuttyPathClick"
+                                                    Style="{DynamicResource SecondaryButtonStyle}"
+                                                    FontSize="{StaticResource FontSizeCaption}"
+                                                    AutomationProperties.Name="{loc:Translate A11yBrowsePuttyPath}"
+                                                    TabIndex="4">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE838;" FontSize="12" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="{loc:Translate BtnBrowse}" Margin="4,0,0,0" VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                            </Button>
+                                            <TextBox Text="{Binding Settings.PuttyPath}" TabIndex="3" AutomationProperties.LabeledBy="{x:Reference Mw_SettingsPuttyPathLabel}"/>
+                                        </DockPanel>
+                                        <TextBlock x:Name="Mw_SettingsPuttyPathHint" Text="" Foreground="{DynamicResource TextTertiaryBrush}" FontSize="{StaticResource FontSizeCaption}" Margin="0,4,0,0" TextWrapping="Wrap"/>
                                         <StackPanel Margin="0,12,0,0">
                                             <TextBlock x:Name="Mw_SettingsSshModeLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,0,4"/>
                                             <StackPanel Orientation="Horizontal">
-                                                <ComboBox SelectedValue="{Binding Settings.SshDefaultMode}" SelectedValuePath="Tag" Width="200" HorizontalAlignment="Left">
+                                                <ComboBox SelectedValue="{Binding Settings.SshDefaultMode}" SelectedValuePath="Tag" Width="200" HorizontalAlignment="Left" AutomationProperties.LabeledBy="{x:Reference Mw_SettingsSshModeLabel}">
                                                     <ComboBoxItem x:Name="Mw_SshModeEmbedded" Content="" Tag="Embedded"/>
                                                     <ComboBoxItem x:Name="Mw_SshModeExternal" Content="" Tag="External"/>
                                                 </ComboBox>
@@ -1513,8 +1531,10 @@
                                                         Command="{Binding Settings.ApplySshModeToAllCommand}"
                                                         Style="{DynamicResource SecondaryButtonStyle}"
                                                         Padding="8,2" FontSize="{StaticResource FontSizeCaption}"
-                                                        Margin="8,0,0,0" VerticalAlignment="Center"/>
+                                                        Margin="8,0,0,0" VerticalAlignment="Center"
+                                                        ToolTip=""/>
                                             </StackPanel>
+                                            <TextBlock x:Name="Mw_SettingsSshModeHint" Text="" Foreground="{DynamicResource TextTertiaryBrush}" FontSize="{StaticResource FontSizeCaption}" Margin="0,4,0,0" TextWrapping="Wrap"/>
                                         </StackPanel>
                                         <Grid Margin="0,12,0,0">
                                             <Grid.ColumnDefinitions>
@@ -1524,15 +1544,15 @@
                                             <StackPanel Grid.Column="0" Margin="0,0,8,0">
                                                 <TextBlock x:Name="Mw_SettingsAntiIdleLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,0,4"/>
                                                 <StackPanel Orientation="Horizontal">
-                                                    <TextBox Text="{Binding Settings.AntiIdleInterval}" Width="100"/>
-                                                    <TextBlock Text="s" VerticalAlignment="Center" Margin="6,0,0,0" Foreground="{DynamicResource TextDisabledBrush}" FontSize="{StaticResource FontSizeCaption}" IsHitTestVisible="False"/>
+                                                    <TextBox Text="{Binding Settings.AntiIdleInterval}" Width="100" AutomationProperties.LabeledBy="{x:Reference Mw_SettingsAntiIdleLabel}"/>
+                                                    <TextBlock Text="s" VerticalAlignment="Center" Margin="6,0,0,0" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" IsHitTestVisible="False"/>
                                                 </StackPanel>
                                             </StackPanel>
                                             <StackPanel Grid.Column="1" Margin="8,0,0,0">
                                                 <TextBlock x:Name="Mw_SettingsSshTmoutLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,0,4"/>
                                                 <StackPanel Orientation="Horizontal">
-                                                    <TextBox Text="{Binding Settings.SshTmoutResetInterval}" Width="100"/>
-                                                    <TextBlock Text="s" VerticalAlignment="Center" Margin="6,0,0,0" Foreground="{DynamicResource TextDisabledBrush}" FontSize="{StaticResource FontSizeCaption}" IsHitTestVisible="False"/>
+                                                    <TextBox Text="{Binding Settings.SshTmoutResetInterval}" Width="100" AutomationProperties.LabeledBy="{x:Reference Mw_SettingsSshTmoutLabel}"/>
+                                                    <TextBlock Text="s" VerticalAlignment="Center" Margin="6,0,0,0" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" IsHitTestVisible="False"/>
                                                 </StackPanel>
                                             </StackPanel>
                                         </Grid>
@@ -1550,10 +1570,10 @@
                                                         <TextBlock Text="{loc:Translate BtnBrowse}" Margin="4,0,0,0" VerticalAlignment="Center"/>
                                                     </StackPanel>
                                                 </Button>
-                                                <TextBox Text="{Binding Settings.X11ServerPath}"/>
+                                                <TextBox Text="{Binding Settings.X11ServerPath}" AutomationProperties.LabeledBy="{x:Reference Mw_SettingsX11PathLabel}"/>
                                             </DockPanel>
                                         </StackPanel>
-                                        <CheckBox x:Name="Mw_SettingsX11AutoStart" Content="" IsChecked="{Binding Settings.X11AutoStart}" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,8,0,0"/>
+                                        <CheckBox x:Name="Mw_SettingsX11AutoStart" Content="" IsChecked="{Binding Settings.X11AutoStart}" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,12,0,0"/>
                                     </StackPanel>
                                 </Border>
 
@@ -1597,7 +1617,7 @@
                                         <StackPanel Margin="0,0,0,8">
                                             <TextBlock x:Name="Mw_SettingsRdpModeLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,0,4"/>
                                             <StackPanel Orientation="Horizontal">
-                                                <ComboBox SelectedValue="{Binding Settings.RdpDefaultMode}" SelectedValuePath="Tag" Width="200" HorizontalAlignment="Left">
+                                                <ComboBox SelectedValue="{Binding Settings.RdpDefaultMode}" SelectedValuePath="Tag" Width="200" HorizontalAlignment="Left" AutomationProperties.LabeledBy="{x:Reference Mw_SettingsRdpModeLabel}">
                                                     <ComboBoxItem x:Name="Mw_RdpModeEmbedded" Content="" Tag="Embedded"/>
                                                     <ComboBoxItem x:Name="Mw_RdpModeExternal" Content="" Tag="External"/>
                                                 </ComboBox>
@@ -1606,8 +1626,10 @@
                                                         Command="{Binding Settings.ApplyRdpModeToAllCommand}"
                                                         Style="{DynamicResource SecondaryButtonStyle}"
                                                         Padding="8,2" FontSize="{StaticResource FontSizeCaption}"
-                                                        Margin="8,0,0,0" VerticalAlignment="Center"/>
+                                                        Margin="8,0,0,0" VerticalAlignment="Center"
+                                                        ToolTip=""/>
                                             </StackPanel>
+                                            <TextBlock x:Name="Mw_SettingsRdpModeHint" Text="" Foreground="{DynamicResource TextTertiaryBrush}" FontSize="{StaticResource FontSizeCaption}" Margin="0,4,0,0" TextWrapping="Wrap"/>
                                         </StackPanel>
                                         <Grid Margin="0,8,0,0">
                                             <Grid.ColumnDefinitions>
@@ -1617,29 +1639,29 @@
                                             <StackPanel Grid.Column="0" Margin="0,0,8,0">
                                                 <TextBlock x:Name="Mw_SettingsRdpWidthLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,0,4"/>
                                                 <StackPanel Orientation="Horizontal">
-                                                    <TextBox Text="{Binding Settings.DefaultResolutionWidth}" Width="100"/>
-                                                    <TextBlock Text="px" VerticalAlignment="Center" Margin="6,0,0,0" Foreground="{DynamicResource TextDisabledBrush}" FontSize="{StaticResource FontSizeCaption}" IsHitTestVisible="False"/>
+                                                    <TextBox Text="{Binding Settings.DefaultResolutionWidth}" Width="100" AutomationProperties.LabeledBy="{x:Reference Mw_SettingsRdpWidthLabel}"/>
+                                                    <TextBlock Text="px" VerticalAlignment="Center" Margin="6,0,0,0" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" IsHitTestVisible="False"/>
                                                 </StackPanel>
                                             </StackPanel>
                                             <StackPanel Grid.Column="1" Margin="8,0,0,0">
                                                 <TextBlock x:Name="Mw_SettingsRdpHeightLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,0,4"/>
                                                 <StackPanel Orientation="Horizontal">
-                                                    <TextBox Text="{Binding Settings.DefaultResolutionHeight}" Width="100"/>
-                                                    <TextBlock Text="px" VerticalAlignment="Center" Margin="6,0,0,0" Foreground="{DynamicResource TextDisabledBrush}" FontSize="{StaticResource FontSizeCaption}" IsHitTestVisible="False"/>
+                                                    <TextBox Text="{Binding Settings.DefaultResolutionHeight}" Width="100" AutomationProperties.LabeledBy="{x:Reference Mw_SettingsRdpHeightLabel}"/>
+                                                    <TextBlock Text="px" VerticalAlignment="Center" Margin="6,0,0,0" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" IsHitTestVisible="False"/>
                                                 </StackPanel>
                                             </StackPanel>
                                         </Grid>
                                         <StackPanel Margin="0,8,0,0">
                                             <TextBlock x:Name="Mw_SettingsRdpColorDepthLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,0,4"/>
-                                            <ComboBox SelectedValue="{Binding Settings.RdpDefaultColorDepth}" SelectedValuePath="Tag" Width="120" HorizontalAlignment="Left">
-                                                <ComboBoxItem x:Name="Mw_ColorDepth16" Content="16 bit" Tag="16"/>
-                                                <ComboBoxItem x:Name="Mw_ColorDepth24" Content="24 bit" Tag="24"/>
-                                                <ComboBoxItem x:Name="Mw_ColorDepth32" Content="32 bit" Tag="32"/>
+                                            <ComboBox SelectedValue="{Binding Settings.RdpDefaultColorDepth}" SelectedValuePath="Tag" Width="120" HorizontalAlignment="Left" AutomationProperties.LabeledBy="{x:Reference Mw_SettingsRdpColorDepthLabel}">
+                                                <ComboBoxItem x:Name="Mw_ColorDepth16" Content="" Tag="16"/>
+                                                <ComboBoxItem x:Name="Mw_ColorDepth24" Content="" Tag="24"/>
+                                                <ComboBoxItem x:Name="Mw_ColorDepth32" Content="" Tag="32"/>
                                             </ComboBox>
                                         </StackPanel>
                                         <StackPanel Margin="0,8,0,0">
                                             <TextBlock x:Name="Mw_SettingsRdpAudioLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,0,4"/>
-                                            <ComboBox SelectedValue="{Binding Settings.RdpDefaultAudioMode}" SelectedValuePath="Tag" Width="200" HorizontalAlignment="Left">
+                                            <ComboBox SelectedValue="{Binding Settings.RdpDefaultAudioMode}" SelectedValuePath="Tag" Width="200" HorizontalAlignment="Left" AutomationProperties.LabeledBy="{x:Reference Mw_SettingsRdpAudioLabel}">
                                                 <ComboBoxItem x:Name="Mw_SettingsRdpAudioDisabled" Content="" Tag="0"/>
                                                 <ComboBoxItem x:Name="Mw_SettingsRdpAudioLocal" Content="" Tag="1"/>
                                                 <ComboBoxItem x:Name="Mw_SettingsRdpAudioRemote" Content="" Tag="2"/>
@@ -1652,7 +1674,7 @@
                                         <CheckBox x:Name="Mw_SettingsRdpBitmapCache" Content="" IsChecked="{Binding Settings.RdpDefaultBitmapCaching}" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,6,0,0"/>
                                         <CheckBox x:Name="Mw_SettingsRdpCompression" Content="" IsChecked="{Binding Settings.RdpDefaultCompression}" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,6,0,0"/>
                                         <TextBlock x:Name="Mw_SettingsRdpRedirTitle" Text="" FontSize="{StaticResource FontSizeBody}" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,16,0,8"/>
-                                        <CheckBox x:Name="Mw_SettingsRdpClipboard" Content="" IsChecked="{Binding Settings.RdpDefaultRedirectClipboard}" Foreground="{DynamicResource TextPrimaryBrush}"/>
+                                        <CheckBox x:Name="Mw_SettingsRdpClipboard" Content="" IsChecked="{Binding Settings.RdpDefaultRedirectClipboard}" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,6,0,0"/>
                                         <CheckBox x:Name="Mw_SettingsRdpDrives" Content="" IsChecked="{Binding Settings.RdpDefaultRedirectDrives}" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,6,0,0"/>
                                         <CheckBox x:Name="Mw_SettingsRdpPrinters" Content="" IsChecked="{Binding Settings.RdpDefaultRedirectPrinters}" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,6,0,0"/>
                                     </StackPanel>
@@ -1669,16 +1691,16 @@
                                     <StackPanel>
                                         <TextBlock x:Name="Mw_SettingsCredProviderTitle" Text="" FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,12"/>
                                         <CheckBox x:Name="Mw_SettingsCredProviderEnabled" Content="" IsChecked="{Binding Settings.UseExternalCredentialProvider}" Foreground="{DynamicResource TextPrimaryBrush}"/>
-                                        <StackPanel Margin="0,12,0,0" IsEnabled="{Binding Settings.UseExternalCredentialProvider}">
+                                        <StackPanel Margin="0,12,0,0" IsEnabled="{Binding Settings.UseExternalCredentialProvider}" AutomationProperties.HelpText="{Binding Settings.CredProvHelpText}">
                                             <TextBlock x:Name="Mw_SettingsCredProvPresetLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,0,4"/>
                                             <ComboBox x:Name="Mw_SettingsCredProvPreset" SelectionChanged="OnCredProvPresetChanged" FontSize="{StaticResource FontSizeBody}" Margin="0,0,0,12"/>
                                         </StackPanel>
-                                        <StackPanel Margin="0,12,0,0" IsEnabled="{Binding Settings.UseExternalCredentialProvider}">
+                                        <StackPanel Margin="0,12,0,0" IsEnabled="{Binding Settings.UseExternalCredentialProvider}" AutomationProperties.HelpText="{Binding Settings.CredProvHelpText}">
                                             <TextBlock x:Name="Mw_SettingsCredProviderCmdLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,0,4"/>
-                                            <TextBox Text="{Binding Settings.CredentialProviderCommand}" Tag="keepassxc-cli show -s -a Password &quot;{Database}&quot; &quot;{Title}&quot;"/>
-                                            <TextBlock x:Name="Mw_SettingsCredProvCmdHint" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeSmallCaption}" FontFamily="Consolas" Opacity="0.7" Margin="0,4,0,0"/>
+                                            <TextBox x:Name="Mw_SettingsCredProvCmd" Text="{Binding Settings.CredentialProviderCommand}" Tag=""/>
+                                            <TextBlock x:Name="Mw_SettingsCredProvCmdHint" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeSmallCaption}" FontFamily="Consolas" Margin="0,4,0,0"/>
                                         </StackPanel>
-                                        <StackPanel Margin="0,12,0,0" IsEnabled="{Binding Settings.UseExternalCredentialProvider}">
+                                        <StackPanel Margin="0,12,0,0" IsEnabled="{Binding Settings.UseExternalCredentialProvider}" AutomationProperties.HelpText="{Binding Settings.CredProvHelpText}">
                                             <TextBlock x:Name="Mw_SettingsCredProviderDbLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,0,4"/>
                                             <DockPanel>
                                                 <Button x:Name="Mw_SettingsCredProvDbBrowseBtn" DockPanel.Dock="Right" Padding="6,2" Margin="4,0,0,0" Click="OnCredProvDbBrowseClick" Style="{DynamicResource SecondaryButtonStyle}" FontSize="{StaticResource FontSizeCaption}" AutomationProperties.Name="{loc:Translate A11yBrowseDatabase}">
@@ -1687,10 +1709,10 @@
                                                         <TextBlock Text="{loc:Translate BtnBrowse}" Margin="4,0,0,0" VerticalAlignment="Center"/>
                                                     </StackPanel>
                                                 </Button>
-                                                <TextBox Text="{Binding Settings.CredentialProviderDatabase}"/>
+                                                <TextBox Text="{Binding Settings.CredentialProviderDatabase}" AutomationProperties.LabeledBy="{x:Reference Mw_SettingsCredProviderDbLabel}"/>
                                             </DockPanel>
                                         </StackPanel>
-                                        <DockPanel Margin="0,16,0,0" IsEnabled="{Binding Settings.UseExternalCredentialProvider}">
+                                        <DockPanel Margin="0,16,0,0" IsEnabled="{Binding Settings.UseExternalCredentialProvider}" AutomationProperties.HelpText="{Binding Settings.CredProvHelpText}">
                                             <Button x:Name="Mw_SettingsCredProvTestBtn" DockPanel.Dock="Right" Command="{Binding Settings.TestCredentialProviderCommand}" Style="{DynamicResource SecondaryButtonStyle}" Padding="8,4" FontSize="{StaticResource FontSizeCaption}"/>
                                             <TextBlock x:Name="Mw_SettingsCredProvTestResult" Text="{Binding Settings.CredentialProviderTestResult}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" FontStyle="Italic" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
                                         </DockPanel>
@@ -1743,21 +1765,21 @@
                                                 <TextBlock x:Name="Mw_SettingsTunnelDelayLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,0,4"/>
                                                 <StackPanel Orientation="Horizontal">
                                                     <TextBox Text="{Binding Settings.TunnelEstablishmentDelayMs}" Width="100"/>
-                                                    <TextBlock Text="ms" VerticalAlignment="Center" Margin="6,0,0,0" Foreground="{DynamicResource TextDisabledBrush}" FontSize="{StaticResource FontSizeCaption}" IsHitTestVisible="False"/>
+                                                    <TextBlock Text="ms" VerticalAlignment="Center" Margin="6,0,0,0" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" IsHitTestVisible="False"/>
                                                 </StackPanel>
                                             </StackPanel>
                                             <StackPanel Grid.Column="1" Margin="8,0,0,0">
                                                 <TextBlock x:Name="Mw_SettingsRdpTimeoutLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,0,4"/>
                                                 <StackPanel Orientation="Horizontal">
                                                     <TextBox Text="{Binding Settings.EmbeddedRdpTimeoutMs}" Width="100"/>
-                                                    <TextBlock Text="ms" VerticalAlignment="Center" Margin="6,0,0,0" Foreground="{DynamicResource TextDisabledBrush}" FontSize="{StaticResource FontSizeCaption}" IsHitTestVisible="False"/>
+                                                    <TextBlock Text="ms" VerticalAlignment="Center" Margin="6,0,0,0" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" IsHitTestVisible="False"/>
                                                 </StackPanel>
                                             </StackPanel>
                                             <StackPanel Margin="0,12,0,0">
                                                 <TextBlock x:Name="Mw_SettingsExtToolTimeoutLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,0,4"/>
                                                 <StackPanel Orientation="Horizontal">
                                                     <TextBox Text="{Binding Settings.ExternalToolTimeoutMs}" Width="100"/>
-                                                    <TextBlock Text="ms" VerticalAlignment="Center" Margin="6,0,0,0" Foreground="{DynamicResource TextDisabledBrush}" FontSize="{StaticResource FontSizeCaption}" IsHitTestVisible="False"/>
+                                                    <TextBlock Text="ms" VerticalAlignment="Center" Margin="6,0,0,0" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" IsHitTestVisible="False"/>
                                                 </StackPanel>
                                             </StackPanel>
                                         </Grid>
@@ -2101,11 +2123,13 @@
         <Border Grid.Row="2"
                 Background="{DynamicResource SurfaceBrush}"
                 BorderThickness="0,1,0,0"
-                BorderBrush="{DynamicResource BorderBrush}">
+                BorderBrush="{DynamicResource BorderBrush}"
+                AutomationProperties.Name="Status">
             <DockPanel Margin="8,0">
                 <TextBlock Text="{Binding StatusText}"
                            Foreground="{DynamicResource TextSecondaryBrush}"
-                           VerticalAlignment="Center" FontSize="{StaticResource FontSizeCaption}"/>
+                           VerticalAlignment="Center" FontSize="{StaticResource FontSizeCaption}"
+                           AutomationProperties.LiveSetting="Polite"/>
                 <!-- Subtle F1 shortcut hint — visible when status shows default ready text -->
                 <TextBlock x:Name="Mw_StatusBarShortcutHint" Text=""
                            FontSize="{StaticResource FontSizeSmallCaption}"

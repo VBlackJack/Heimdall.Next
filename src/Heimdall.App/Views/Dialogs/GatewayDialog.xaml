@@ -35,7 +35,7 @@
 
         <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
             <StackPanel Margin="0,0,8,0">
-                <TextBlock x:Name="LblName" Style="{StaticResource DialogLabelStyle}"/>
+                <TextBlock x:Name="LblName" Style="{StaticResource DialogLabelStyle}" Margin="0,0,0,4"/>
                 <TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}"
                          Style="{StaticResource DialogFormTextBoxStyle}"
                          x:Name="TxtName" TabIndex="0"/>
@@ -76,16 +76,22 @@
                             Command="{Binding BrowseKeyCommand}"
                             Style="{DynamicResource SecondaryButtonStyle}"
                             Margin="4,0,0,0"
+                            ToolTip=""
+                            TabIndex="5"
                             Click="OnBrowseKeyClick"/>
                     <TextBox Text="{Binding KeyPath}"
                              Style="{StaticResource DialogFormTextBoxStyle}"
                              x:Name="TxtKeyPath" TabIndex="4"/>
                 </DockPanel>
 
-                <TextBlock x:Name="LblPassword" Style="{StaticResource DialogLabelStyle}" Margin="0,12,0,4"/>
+                <TextBlock x:Name="LblPassword" Text="{Binding GatewayPasswordLabel}" Style="{StaticResource DialogLabelStyle}" Margin="0,12,0,4"/>
                 <PasswordBox x:Name="PasswordBox"
                              Style="{StaticResource DialogFormPasswordBoxStyle}"
-                             TabIndex="5"/>
+                             TabIndex="6"/>
+                <TextBlock Text="{Binding GatewayAuthHint}"
+                           Style="{StaticResource DialogHintTextStyle}" Margin="0,4,0,0"
+                           TextWrapping="Wrap"
+                           Visibility="{Binding GatewayAuthHint, Converter={StaticResource NullToVisibilityConverter}}"/>
 
                 <TextBlock x:Name="LblParentGateway" Style="{StaticResource DialogLabelStyle}" Margin="0,12,0,4"/>
                 <ComboBox ItemsSource="{Binding AvailableParents}"
@@ -93,13 +99,21 @@
                           SelectedValuePath="Id"
                           DisplayMemberPath="DisplayText"
                           Style="{StaticResource DialogFormComboBoxStyle}"
-                          x:Name="CmbParentGateway" TabIndex="6"/>
+                          x:Name="CmbParentGateway" TabIndex="7"/>
+                <TextBlock Text="{Binding GatewayChainSummary}"
+                           Style="{StaticResource DialogHintTextStyle}" Margin="0,4,0,0"
+                           Visibility="{Binding GatewayChainSummary, Converter={StaticResource NullToVisibilityConverter}}"/>
 
                 <TextBlock x:Name="LblHostKeyFingerprint" Style="{StaticResource DialogLabelStyle}" Margin="0,12,0,4"/>
                 <TextBox Text="{Binding HostKeyFingerprint, Mode=OneWay}"
                          Style="{StaticResource DialogFormTextBoxStyle}"
                          IsReadOnly="True"
-                         x:Name="TxtHostKeyFingerprint"/>
+                         x:Name="TxtHostKeyFingerprint"
+                         TabIndex="8"/>
+                <TextBlock x:Name="LblHostKeyFingerprintHint"
+                           Style="{StaticResource DialogHintTextStyle}"
+                           Margin="0,4,0,0"
+                           TextWrapping="Wrap"/>
             </StackPanel>
         </ScrollViewer>
 

@@ -147,6 +147,32 @@ public partial class ServerDialogViewModel : ObservableValidator
     private bool _useAutomaticTunnelPort = true;
 
     [ObservableProperty]
+    private int _socksProxyPort;
+
+    public string SocksProxyDisplay => SocksProxyPort > 0
+        ? $"127.0.0.1:{SocksProxyPort}"
+        : L("TunnelingNoSocks");
+
+    partial void OnSocksProxyPortChanged(int value)
+        => OnPropertyChanged(nameof(SocksProxyDisplay));
+
+    [ObservableProperty]
+    private int _remoteBindPort;
+
+    [ObservableProperty]
+    private int _remoteLocalPort;
+
+    public string RemoteForwardDisplay => RemoteBindPort > 0
+        ? $"server:{RemoteBindPort} \u2192 local:{(RemoteLocalPort > 0 ? RemoteLocalPort : RemoteBindPort)}"
+        : L("TunnelingNoRemoteFwd");
+
+    partial void OnRemoteBindPortChanged(int value)
+        => OnPropertyChanged(nameof(RemoteForwardDisplay));
+
+    partial void OnRemoteLocalPortChanged(int value)
+        => OnPropertyChanged(nameof(RemoteForwardDisplay));
+
+    [ObservableProperty]
     private string _group = "";
 
     [ObservableProperty]
@@ -183,6 +209,34 @@ public partial class ServerDialogViewModel : ObservableValidator
 
     [ObservableProperty]
     private string _sshMode = "Embedded";
+
+    [ObservableProperty]
+    private string _postConnectCommand = "";
+
+    [ObservableProperty]
+    private int _postConnectDelayMs = 800;
+
+    /// <summary>
+    /// Returns a context-aware label for the SSH password field:
+    /// "Password" when no key is configured, "Passphrase" when a key is set.
+    /// </summary>
+    public string SshPasswordLabel => string.IsNullOrWhiteSpace(SshKeyPath)
+        ? L("ServerDialogLabelPassword")
+        : L("ServerDialogLabelPassphrase");
+
+    /// <summary>
+    /// Returns a context-aware hint explaining the SSH auth mode:
+    /// password-centric hint when no key is configured, key-centric hint otherwise.
+    /// </summary>
+    public string SshAuthHint => string.IsNullOrWhiteSpace(SshKeyPath)
+        ? L("ServerDialogSshAuthHintPassword")
+        : L("ServerDialogSshAuthHintKey");
+
+    partial void OnSshKeyPathChanged(string value)
+    {
+        OnPropertyChanged(nameof(SshPasswordLabel));
+        OnPropertyChanged(nameof(SshAuthHint));
+    }
 
     // --- Local Shell settings ---
 
@@ -494,6 +548,10 @@ public partial class ServerDialogViewModel : ObservableValidator
 
     public bool CanSelectGateway => !DirectConnection;
 
+    public string GatewayComboHelpText => CanSelectGateway
+        ? ""
+        : L("ServerDialogGatewayDisabledHint");
+
     public bool CanEditTunnelPort => UsesGateway && !UseAutomaticTunnelPort;
 
     public int EndpointPort
@@ -657,8 +715,7 @@ public partial class ServerDialogViewModel : ObservableValidator
         // Custom tunnel port check
         if (LocalPortError is null && UsesGateway && !UseAutomaticTunnelPort && LocalPort <= 0)
         {
-            LocalPortError = Localizer?["ValidationTunnelPortRequired"]
-                ?? "Enter a local tunnel port or switch back to Auto.";
+            LocalPortError = L("ValidationTunnelPortRequired");
         }
 
         // Options tab errors (RDP-specific)
@@ -715,7 +772,12 @@ public partial class ServerDialogViewModel : ObservableValidator
             SshCompression = SshCompression,
             SshX11Forwarding = SshX11Forwarding,
             SshAgentForwarding = SshAgentForwarding,
+            SocksProxyPort = SocksProxyPort,
+            RemoteBindPort = RemoteBindPort,
+            RemoteLocalPort = RemoteLocalPort,
             SshMode = SshMode,
+            PostConnectCommand = PostConnectCommand,
+            PostConnectDelayMs = PostConnectDelayMs,
             LocalShellExecutable = string.IsNullOrWhiteSpace(LocalShellExecutable) ? null : LocalShellExecutable,
             LocalShellArguments = string.IsNullOrWhiteSpace(LocalShellArguments) ? null : LocalShellArguments,
             LocalShellWorkingDirectory = string.IsNullOrWhiteSpace(LocalShellWorkingDirectory) ? null : LocalShellWorkingDirectory,
@@ -810,7 +872,12 @@ public partial class ServerDialogViewModel : ObservableValidator
         vm.SshCompression = dto.SshCompression;
         vm.SshX11Forwarding = dto.SshX11Forwarding;
         vm.SshAgentForwarding = dto.SshAgentForwarding;
+        vm.SocksProxyPort = dto.SocksProxyPort;
+        vm.RemoteBindPort = dto.RemoteBindPort;
+        vm.RemoteLocalPort = dto.RemoteLocalPort;
         vm.SshMode = dto.SshMode;
+        vm.PostConnectCommand = dto.PostConnectCommand;
+        vm.PostConnectDelayMs = dto.PostConnectDelayMs;
         vm.LocalShellExecutable = dto.LocalShellExecutable ?? "powershell.exe";
         vm.LocalShellArguments = dto.LocalShellArguments ?? "";
         vm.LocalShellWorkingDirectory = dto.LocalShellWorkingDirectory ?? "";
@@ -937,6 +1004,7 @@ public partial class ServerDialogViewModel : ObservableValidator
             EndpointPortError = IsVncConnection ? GetLocalizedFieldError(nameof(VncPort)) : null;
             RefreshValidationSummary();
         }
+        RaisePortDerivedStateChanged();
     }
 
     partial void OnFtpPortChanged(int value)
@@ -947,6 +1015,7 @@ public partial class ServerDialogViewModel : ObservableValidator
             EndpointPortError = IsFtpConnection ? GetLocalizedFieldError(nameof(FtpPort)) : null;
             RefreshValidationSummary();
         }
+        RaisePortDerivedStateChanged();
     }
 
     partial void OnLocalPortChanged(int value)
@@ -1035,6 +1104,7 @@ public partial class ServerDialogViewModel : ObservableValidator
         OnPropertyChanged(nameof(IsSshFamilyConnection));
         OnPropertyChanged(nameof(UsesGateway));
         OnPropertyChanged(nameof(CanSelectGateway));
+        OnPropertyChanged(nameof(GatewayComboHelpText));
         OnPropertyChanged(nameof(CanEditTunnelPort));
         OnPropertyChanged(nameof(EndpointPort));
         OnPropertyChanged(nameof(EndpointPortLabel));
@@ -1053,6 +1123,8 @@ public partial class ServerDialogViewModel : ObservableValidator
         OnPropertyChanged(nameof(DestinationNodeCaption));
         OnPropertyChanged(nameof(ClientToGatewayLabel));
         OnPropertyChanged(nameof(GatewayToServerLabel));
+        OnPropertyChanged(nameof(IsVncConnection));
+        OnPropertyChanged(nameof(RequiresNetworkEndpoint));
     }
 
     private static readonly Dictionary<string, string> ValidationKeyMap = new(StringComparer.Ordinal)
