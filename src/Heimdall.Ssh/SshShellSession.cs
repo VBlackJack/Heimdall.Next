@@ -84,6 +84,8 @@ public sealed class SshShellSession : IDisposable
                 _client, connectionParams.Host, connectionParams.Port, hostKeyStore);
         }
 
+        await using var connectReg = cancellationToken.Register(
+            () => { try { _client.Disconnect(); } catch { } });
         await Task.Run(() =>
         {
             cancellationToken.ThrowIfCancellationRequested();

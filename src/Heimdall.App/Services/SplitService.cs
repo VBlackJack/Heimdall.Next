@@ -112,7 +112,7 @@ public sealed class SplitService
         }
     }
 
-    private CancellationToken GetSessionToken(SessionTabViewModel session)
+    internal CancellationToken GetSessionToken(SessionTabViewModel session)
     {
         return _sessionCts.TryGetValue(session, out var cts) ? cts.Token : CancellationToken.None;
     }
