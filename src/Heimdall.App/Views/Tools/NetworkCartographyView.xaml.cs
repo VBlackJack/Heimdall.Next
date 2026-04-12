@@ -895,8 +895,11 @@ public partial class NetworkCartographyView : UserControl, IToolView
         {
             var dialectStr = host.SmbInfo.DialectRevision switch
             {
-                0x0202 => "SMB 2.0.2", 0x0210 => "SMB 2.1", 0x0300 => "SMB 3.0",
-                0x0302 => "SMB 3.0.2", 0x0311 => "SMB 3.1.1",
+                0x0202 => "SMB 2.0.2",
+                0x0210 => "SMB 2.1",
+                0x0300 => "SMB 3.0",
+                0x0302 => "SMB 3.0.2",
+                0x0311 => "SMB 3.1.1",
                 _ => $"SMB 0x{host.SmbInfo.DialectRevision:X4}"
             };
             tooltipParts.Add($"{L("ToolNetMapTipSmb")}: {dialectStr}{(host.SmbInfo.SigningRequired ? $" ({L("ToolNetMapTipSmbSigning")})" : "")}");

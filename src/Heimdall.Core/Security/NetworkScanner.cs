@@ -63,33 +63,33 @@ public static class NetworkScanner
         var semaphore = new SemaphoreSlim(64);
         try
         {
-        var tasks = addresses.Select(async ip =>
-        {
-            await semaphore.WaitAsync(ct).ConfigureAwait(false);
-            try
+            var tasks = addresses.Select(async ip =>
+            {
+                await semaphore.WaitAsync(ct).ConfigureAwait(false);
+                try
+                {
+                    ct.ThrowIfCancellationRequested();
+                    var result = await PingHostAsync(ip, ct).ConfigureAwait(false);
+                    Interlocked.Increment(ref completed);
+                    progress?.Invoke(completed, total);
+                    return result;
+                }
+                finally
+                {
+                    semaphore.Release();
+                }
+            });
+
+            var pingResults = await Task.WhenAll(tasks).ConfigureAwait(false);
+
+            // Port probe on alive hosts
+            foreach (var result in pingResults.Where(r => r is { IsAlive: true }))
             {
                 ct.ThrowIfCancellationRequested();
-                var result = await PingHostAsync(ip, ct).ConfigureAwait(false);
-                Interlocked.Increment(ref completed);
-                progress?.Invoke(completed, total);
-                return result;
+                var openPorts = await ProbePortsAsync(result!.IpAddress, ct)
+                    .ConfigureAwait(false);
+                results.Add(result with { OpenPorts = openPorts });
             }
-            finally
-            {
-                semaphore.Release();
-            }
-        });
-
-        var pingResults = await Task.WhenAll(tasks).ConfigureAwait(false);
-
-        // Port probe on alive hosts
-        foreach (var result in pingResults.Where(r => r is { IsAlive: true }))
-        {
-            ct.ThrowIfCancellationRequested();
-            var openPorts = await ProbePortsAsync(result!.IpAddress, ct)
-                .ConfigureAwait(false);
-            results.Add(result with { OpenPorts = openPorts });
-        }
         }
         finally
         {

@@ -250,53 +250,53 @@ public partial class ServerItemViewModel : ObservableObject
         switch (type)
         {
             case "SSH" or "SFTP":
-            {
-                var parts = new List<string>();
-                if (!string.IsNullOrWhiteSpace(dto.SshKeyPath))
                 {
-                    parts.Add("SSH Key");
-                }
+                    var parts = new List<string>();
+                    if (!string.IsNullOrWhiteSpace(dto.SshKeyPath))
+                    {
+                        parts.Add("SSH Key");
+                    }
 
-                if (!string.IsNullOrWhiteSpace(dto.SshPasswordEncrypted))
-                {
-                    parts.Add("Password");
-                }
+                    if (!string.IsNullOrWhiteSpace(dto.SshPasswordEncrypted))
+                    {
+                        parts.Add("Password");
+                    }
 
-                if (dto.SshAgentForwarding)
-                {
-                    parts.Add("Agent");
-                }
+                    if (dto.SshAgentForwarding)
+                    {
+                        parts.Add("Agent");
+                    }
 
-                return parts.Count > 0 ? string.Join(" + ", parts) : "Password";
-            }
+                    return parts.Count > 0 ? string.Join(" + ", parts) : "Password";
+                }
 
             case "RDP":
-            {
-                return !string.IsNullOrWhiteSpace(dto.RdpPasswordEncrypted)
-                    ? "Password"
-                    : "Prompt";
-            }
+                {
+                    return !string.IsNullOrWhiteSpace(dto.RdpPasswordEncrypted)
+                        ? "Password"
+                        : "Prompt";
+                }
 
             case "FTP":
-            {
-                return !string.IsNullOrWhiteSpace(dto.FtpPasswordEncrypted)
-                    ? "Password"
-                    : "Prompt";
-            }
+                {
+                    return !string.IsNullOrWhiteSpace(dto.FtpPasswordEncrypted)
+                        ? "Password"
+                        : "Prompt";
+                }
 
             case "TELNET":
-            {
-                return !string.IsNullOrWhiteSpace(dto.TelnetPasswordEncrypted)
-                    ? "Password"
-                    : "Prompt";
-            }
+                {
+                    return !string.IsNullOrWhiteSpace(dto.TelnetPasswordEncrypted)
+                        ? "Password"
+                        : "Prompt";
+                }
 
             case "VNC":
-            {
-                return !string.IsNullOrWhiteSpace(dto.VncPassword)
-                    ? "Password"
-                    : "Prompt";
-            }
+                {
+                    return !string.IsNullOrWhiteSpace(dto.VncPassword)
+                        ? "Password"
+                        : "Prompt";
+                }
 
             default:
                 return "";

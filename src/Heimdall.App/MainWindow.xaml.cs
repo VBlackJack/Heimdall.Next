@@ -1029,28 +1029,28 @@ public partial class MainWindow : Window
                 break;
 
             case Key.Tab when Keyboard.Modifiers == ModifierKeys.Control:
-            {
-                var sessions = vm.Connection.ActiveSessions;
-                if (sessions.Count > 1 && vm.Connection.ActiveSession is not null)
                 {
-                    var idx = sessions.IndexOf(vm.Connection.ActiveSession);
-                    vm.Connection.ActiveSession = sessions[(idx + 1) % sessions.Count];
+                    var sessions = vm.Connection.ActiveSessions;
+                    if (sessions.Count > 1 && vm.Connection.ActiveSession is not null)
+                    {
+                        var idx = sessions.IndexOf(vm.Connection.ActiveSession);
+                        vm.Connection.ActiveSession = sessions[(idx + 1) % sessions.Count];
+                    }
+                    e.Handled = true;
+                    break;
                 }
-                e.Handled = true;
-                break;
-            }
 
             case Key.Tab when Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift):
-            {
-                var sessions = vm.Connection.ActiveSessions;
-                if (sessions.Count > 1 && vm.Connection.ActiveSession is not null)
                 {
-                    var idx = sessions.IndexOf(vm.Connection.ActiveSession);
-                    vm.Connection.ActiveSession = sessions[(idx - 1 + sessions.Count) % sessions.Count];
+                    var sessions = vm.Connection.ActiveSessions;
+                    if (sessions.Count > 1 && vm.Connection.ActiveSession is not null)
+                    {
+                        var idx = sessions.IndexOf(vm.Connection.ActiveSession);
+                        vm.Connection.ActiveSession = sessions[(idx - 1 + sessions.Count) % sessions.Count];
+                    }
+                    e.Handled = true;
+                    break;
                 }
-                e.Handled = true;
-                break;
-            }
 
             case Key.F1:
                 ShowKeyboardShortcutHelp();
@@ -2068,10 +2068,10 @@ public partial class MainWindow : Window
     private static string GetCategoryBrushKey(Core.Models.ToolCategory category)
         => category switch
         {
-            Core.Models.ToolCategory.Network  => "ToolNetworkBrush",
+            Core.Models.ToolCategory.Network => "ToolNetworkBrush",
             Core.Models.ToolCategory.Security => "ToolSecurityBrush",
             Core.Models.ToolCategory.Encoding => "ToolEncodingBrush",
-            Core.Models.ToolCategory.System   => "ToolSystemBrush",
+            Core.Models.ToolCategory.System => "ToolSystemBrush",
             Core.Models.ToolCategory.External => "ToolExternalBrush",
             _ => "TextSecondaryBrush"
         };
@@ -2252,7 +2252,8 @@ public partial class MainWindow : Window
         };
         var accentBar = new Border
         {
-            Width = 3, Height = 16,
+            Width = 3,
+            Height = 16,
             CornerRadius = new CornerRadius(1.5),
             VerticalAlignment = VerticalAlignment.Center,
             Margin = new Thickness(0, 0, 6, 0)
@@ -2354,7 +2355,8 @@ public partial class MainWindow : Window
         {
             var iconBorder = new Border
             {
-                Width = 32, Height = 32,
+                Width = 32,
+                Height = 32,
                 CornerRadius = new CornerRadius(6),
                 Opacity = 0.12,
                 Margin = new Thickness(0, 0, 10, 0),
@@ -2550,7 +2552,8 @@ public partial class MainWindow : Window
         {
             OnboardingDots.Children.Add(new System.Windows.Shapes.Ellipse
             {
-                Width = 8, Height = 8,
+                Width = 8,
+                Height = 8,
                 Fill = i == _onboardingStep
                     ? (Brush)FindResource("AccentBrush")
                     : (Brush)FindResource("TextDisabledBrush"),

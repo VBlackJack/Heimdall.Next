@@ -565,28 +565,28 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
         try
         {
-        // Close the old tab (disposes the dead session)
-        Connection.CloseSessionCommand.Execute(tab);
+            // Close the old tab (disposes the dead session)
+            Connection.CloseSessionCommand.Execute(tab);
 
-        // Re-connect through the server list's standard connection path
-        var servers = await _configManager.LoadServersAsync();
-        var serverDto = servers.FirstOrDefault(
-            s => string.Equals(s.Id, serverId, StringComparison.Ordinal));
+            // Re-connect through the server list's standard connection path
+            var servers = await _configManager.LoadServersAsync();
+            var serverDto = servers.FirstOrDefault(
+                s => string.Equals(s.Id, serverId, StringComparison.Ordinal));
 
-        if (serverDto is null)
-        {
-            StatusText = _localizer["ErrorServerNotFound"];
-            return;
-        }
+            if (serverDto is null)
+            {
+                StatusText = _localizer["ErrorServerNotFound"];
+                return;
+            }
 
-        // Trigger the same flow as double-clicking the server in the tree
-        var serverVm = ServerList.Servers.FirstOrDefault(
-            s => string.Equals(s.Id, serverId, StringComparison.Ordinal));
+            // Trigger the same flow as double-clicking the server in the tree
+            var serverVm = ServerList.Servers.FirstOrDefault(
+                s => string.Equals(s.Id, serverId, StringComparison.Ordinal));
 
-        if (serverVm is not null)
-        {
-            ServerList.ConnectCommand.Execute(serverVm);
-        }
+            if (serverVm is not null)
+            {
+                ServerList.ConnectCommand.Execute(serverVm);
+            }
         }
         catch (Exception ex)
         {

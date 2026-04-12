@@ -1,7 +1,7 @@
-using Microsoft.Extensions.Logging;
-using Microsoft.Win32;
 using System.Windows;
 using System.Windows.Media.Animation;
+using Microsoft.Extensions.Logging;
+using Microsoft.Win32;
 using TwinShell.Core.Enums;
 using TwinShell.Core.Interfaces;
 

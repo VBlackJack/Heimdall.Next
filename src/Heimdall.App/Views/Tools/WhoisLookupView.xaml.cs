@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+using System.Collections;
 using System.Diagnostics;
 using System.IO;
 using System.Net.Sockets;
@@ -21,7 +22,6 @@ using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
-using System.Collections;
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Models;

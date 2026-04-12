@@ -407,19 +407,19 @@ public partial class OpenPortsView : UserControl, IToolView
 
     private static string GetTcpStateName(uint state) => state switch
     {
-        1  => "CLOSED",
-        2  => "LISTEN",
-        3  => "SYN_SENT",
-        4  => "SYN_RCVD",
-        5  => "ESTABLISHED",
-        6  => "FIN_WAIT1",
-        7  => "FIN_WAIT2",
-        8  => "CLOSE_WAIT",
-        9  => "CLOSING",
+        1 => "CLOSED",
+        2 => "LISTEN",
+        3 => "SYN_SENT",
+        4 => "SYN_RCVD",
+        5 => "ESTABLISHED",
+        6 => "FIN_WAIT1",
+        7 => "FIN_WAIT2",
+        8 => "CLOSE_WAIT",
+        9 => "CLOSING",
         10 => "LAST_ACK",
         11 => "TIME_WAIT",
         12 => "DELETE_TCB",
-        _  => state.ToString(CultureInfo.InvariantCulture),
+        _ => state.ToString(CultureInfo.InvariantCulture),
     };
 
     // ── Data model ───────────────────────────────────────────────────
