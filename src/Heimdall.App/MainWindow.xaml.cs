@@ -876,8 +876,8 @@ public partial class MainWindow : Window
             var keywords = SettingsTabKeywords[i];
             // Also match against the tab header text
             var headerText = tabs[i].Header?.ToString()?.ToLowerInvariant() ?? "";
-            bool matches = keywords.Any(k => k.Contains(queryLower, StringComparison.OrdinalIgnoreCase))
-                           || headerText.Contains(queryLower, StringComparison.OrdinalIgnoreCase);
+            bool matches = keywords.Any(k => k.IndexOf(queryLower, StringComparison.OrdinalIgnoreCase) >= 0)
+                           || headerText.IndexOf(queryLower, StringComparison.OrdinalIgnoreCase) >= 0;
 
             tabs[i].Visibility = matches ? Visibility.Visible : Visibility.Collapsed;
 
@@ -1984,7 +1984,7 @@ public partial class MainWindow : Window
             var visibleInCategory = 0;
             foreach (var tool in category.Tools)
             {
-                var matches = !hasFilter || tool.Searchable.Contains(filterLower, StringComparison.Ordinal);
+                var matches = !hasFilter || tool.Searchable.IndexOf(filterLower, StringComparison.Ordinal) >= 0;
                 tool.IsVisible = matches;
                 if (matches)
                 {
