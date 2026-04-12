@@ -2817,22 +2817,26 @@ public partial class MainWindow : Window
         foreach (var (variable, descKey) in Core.Configuration.ExternalToolDefinition.SupportedPlaceholders)
         {
             var panel = new StackPanel { Orientation = System.Windows.Controls.Orientation.Horizontal, Margin = new Thickness(0, 0, 12, 2) };
-            panel.Children.Add(new TextBlock
+            var variableLabel = new TextBlock
             {
                 Text = variable,
                 FontFamily = new System.Windows.Media.FontFamily("Consolas"),
                 FontSize = (double)FindResource("FontSizeCaption"),
-                Foreground = (System.Windows.Media.Brush)FindResource("AccentBrush"),
                 VerticalAlignment = VerticalAlignment.Center
-            });
-            panel.Children.Add(new TextBlock
+            };
+            variableLabel.SetResourceReference(TextBlock.ForegroundProperty, "AccentBrush");
+            panel.Children.Add(variableLabel);
+
+            var descLabel = new TextBlock
             {
                 Text = $" \u2014 {vm.Localize(descKey)}",
                 FontSize = (double)FindResource("FontSizeCaption"),
-                Foreground = (System.Windows.Media.Brush)FindResource("TextSecondaryBrush"),
                 Opacity = 0.8,
                 VerticalAlignment = VerticalAlignment.Center
-            });
+            };
+            descLabel.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondaryBrush");
+            panel.Children.Add(descLabel);
+
             Mw_ExtToolPlaceholderList.Items.Add(panel);
         }
     }
