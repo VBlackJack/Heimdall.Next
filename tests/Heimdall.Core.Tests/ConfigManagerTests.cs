@@ -100,7 +100,7 @@ public class ConfigManagerTests : IDisposable
         var configDir = Path.Combine(_tempDir, "config");
         Directory.CreateDirectory(configDir);
 
-        var defaultSettings = new AppSettings { DefaultLocale = "fr", DefaultTheme = "Light" };
+        var defaultSettings = new AppSettings { DefaultLocale = "fr", DefaultTheme = "Blade" };
         var json = JsonSerializer.Serialize(defaultSettings, new JsonSerializerOptions
         {
             WriteIndented = true,
@@ -113,7 +113,7 @@ public class ConfigManagerTests : IDisposable
 
         var loaded = await _manager.LoadSettingsAsync();
         Assert.Equal("fr", loaded.DefaultLocale);
-        Assert.Equal("Light", loaded.DefaultTheme);
+        Assert.Equal("Blade", loaded.DefaultTheme);
     }
 
     [Fact]
@@ -171,7 +171,7 @@ public class ConfigManagerTests : IDisposable
 
         Assert.NotNull(settings);
         Assert.Equal("en", settings.DefaultLocale);
-        Assert.Equal("Dark", settings.DefaultTheme);
+        Assert.Equal("DraculaPro", settings.DefaultTheme);
         Assert.Equal(1920, settings.DefaultResolutionWidth);
         Assert.Equal(1080, settings.DefaultResolutionHeight);
     }
@@ -185,7 +185,7 @@ public class ConfigManagerTests : IDisposable
         var json = """
         {
             "defaultLocale": "fr",
-            "defaultTheme": "Light",
+            "defaultTheme": "Buffy",
             "defaultResolutionWidth": 2560,
             "defaultResolutionHeight": 1440,
             "fullScreen": false,
@@ -197,7 +197,7 @@ public class ConfigManagerTests : IDisposable
         var settings = await _manager.LoadSettingsAsync();
 
         Assert.Equal("fr", settings.DefaultLocale);
-        Assert.Equal("Light", settings.DefaultTheme);
+        Assert.Equal("Buffy", settings.DefaultTheme);
         Assert.Equal(2560, settings.DefaultResolutionWidth);
         Assert.Equal(1440, settings.DefaultResolutionHeight);
         Assert.False(settings.FullScreen);
@@ -244,7 +244,7 @@ public class ConfigManagerTests : IDisposable
         var original = new AppSettings
         {
             DefaultLocale = "fr",
-            DefaultTheme = "Light",
+            DefaultTheme = "Morbius",
             DefaultResolutionWidth = 3840,
             DefaultResolutionHeight = 2160,
             FullScreen = false,

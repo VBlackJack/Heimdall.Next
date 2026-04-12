@@ -1,4 +1,5 @@
 <Window x:Class="Heimdall.App.MainWindow"
+        x:Name="MainWindowRoot"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -182,8 +183,8 @@
                         BorderBrush="{DynamicResource BorderBrush}"
                         >
                     <DockPanel>
-                        <!-- Filter + collapse button at top of TreeView -->
-                        <DockPanel DockPanel.Dock="Top" Margin="8,8,8,4">
+                        <!-- Sidebar tab selector: Servers / Tools + collapse sidebar button -->
+                        <DockPanel DockPanel.Dock="Top" Margin="8,8,8,0">
                             <Button x:Name="ToggleSidebarButton"
                                     DockPanel.Dock="Right"
                                     Content="&#xE89F;"
@@ -193,200 +194,99 @@
                                     Padding="6,6" FontSize="{StaticResource FontSizeBody}"
                                     Width="32" Height="32"
                                     Margin="4,0,0,0"/>
-                            <Button x:Name="CollapseAllButton"
-                                    DockPanel.Dock="Right"
-                                    Content="&#xE70D;"
-                                    FontFamily="Segoe MDL2 Assets"
-                                    Click="OnCollapseAllClick"
-                                    Style="{DynamicResource ToolbarGhostButtonStyle}"
-                                    Padding="6,6" FontSize="{StaticResource FontSizeCaption}"
-                                    Width="32" Height="32"
-                                    Margin="2,0,0,0"/>
-                            <Button x:Name="ExpandAllButton"
-                                    DockPanel.Dock="Right"
-                                    Content="&#xE70E;"
-                                    FontFamily="Segoe MDL2 Assets"
-                                    Click="OnExpandAllClick"
-                                    Style="{DynamicResource ToolbarGhostButtonStyle}"
-                                    Padding="6,6" FontSize="{StaticResource FontSizeCaption}"
-                                    Width="32" Height="32"
-                                    Margin="2,0,0,0"/>
-                            <Button x:Name="AddButton"
-                                    DockPanel.Dock="Right"
-                                    Click="OnAddButtonClick"
-                                    Style="{DynamicResource ToolbarGhostButtonStyle}"
-                                    Padding="6,6" FontSize="{StaticResource FontSizeBody}"
-                                    Width="32" Height="32"
-                                    Margin="4,0,0,0">
-                                <TextBlock Text="&#xE710;" FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeBody}"
-                                           AutomationProperties.Name=""/>
-                                <Button.ContextMenu>
-                                    <ContextMenu x:Name="AddMenu"
-                                                 DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
-                                        <MenuItem x:Name="Mw_AddMenuServer" Header="" Command="{Binding ServerList.AddServerCommand}"/>
-                                        <MenuItem x:Name="Mw_AddMenuTool" Header="" Click="OnAddToolMenuClick"/>
-                                        <Separator/>
-                                        <MenuItem x:Name="Mw_AddMenuGateway" Header="" Command="{Binding Settings.AddGatewayCommand}"/>
-                                        <MenuItem x:Name="Mw_AddMenuFolder" Header="" Click="OnAddFolderFromMenu"/>
-                                    </ContextMenu>
-                                </Button.ContextMenu>
-                            </Button>
-                            <Grid>
-                                <TextBox x:Name="Mw_FilterBox" Text="{Binding ServerList.SearchText, UpdateSourceTrigger=PropertyChanged}"
-                                         Style="{DynamicResource SearchTextBoxStyle}"
-                                         Tag="" Padding="10,6,28,6"
-                                         AutomationProperties.Name="{loc:Translate A11ySearchAndFilter}"/>
-                                <Button x:Name="Mw_FilterClearBtn"
-                                        Content="&#xE711;"
-                                        FontFamily="Segoe MDL2 Assets"
-                                        FontSize="{StaticResource FontSizeSmallCaption}"
-                                        HorizontalAlignment="Right" VerticalAlignment="Center"
-                                        Margin="0,0,4,0"
-                                        Padding="4"
-                                        Style="{DynamicResource ToolbarGhostButtonStyle}"
-                                        MinHeight="0"
-                                        Click="OnFilterClearClick"
-                                        Visibility="Collapsed"
-                                        AutomationProperties.Name="{loc:Translate A11yClearSearchFilter}"/>
-                            </Grid>
-                            <TextBlock x:Name="Mw_FilterResultCount"
-                                       FontSize="{StaticResource FontSizeSmallCaption}"
-                                       Foreground="{DynamicResource TextSecondaryBrush}"
-                                       HorizontalAlignment="Right"
-                                       Margin="0,2,4,0"
-                                       Visibility="Collapsed"/>
+                            <UniformGrid Columns="2">
+                                <RadioButton x:Name="SidebarTabServers"
+                                             GroupName="SidebarTabs"
+                                             IsChecked="True"
+                                             Content="{loc:Translate SidebarTabServers}"
+                                             Style="{DynamicResource SidebarTabStyle}"
+                                             KeyboardNavigation.TabIndex="0"
+                                             AutomationProperties.Name="{loc:Translate A11ySidebarTabServers}"/>
+                                <RadioButton x:Name="SidebarTabTools"
+                                             GroupName="SidebarTabs"
+                                             Content="{loc:Translate SidebarTabTools}"
+                                             Style="{DynamicResource SidebarTabStyle}"
+                                             KeyboardNavigation.TabIndex="1"
+                                             Checked="OnSidebarTabToolsChecked"
+                                             AutomationProperties.Name="{loc:Translate A11ySidebarTabTools}"/>
+                            </UniformGrid>
                         </DockPanel>
 
-                        <!-- TOOLS: Expandable panel (above toggle, collapsed by default) -->
-                        <Border x:Name="ToolsQuickPanel" DockPanel.Dock="Bottom"
-                                Background="{DynamicResource SurfaceBrush}"
-                                BorderBrush="{DynamicResource BorderBrush}"
-                                BorderThickness="0,1,0,0"
-                                MaxHeight="350"
-                                Style="{StaticResource FadeInPanelStyle}"
-                                Visibility="Collapsed">
-                            <Grid>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="*"/>
-                                </Grid.RowDefinitions>
-                                <!-- Header bar with title + close button -->
-                                <Border Grid.Row="0" Padding="6,4"
-                                        Background="{DynamicResource CardBrush}"
-                                        BorderBrush="{DynamicResource BorderBrush}"
-                                        BorderThickness="0,0,0,1">
-                                    <DockPanel>
-                                        <Button x:Name="BtnCloseToolsPanel"
-                                                DockPanel.Dock="Right"
-                                                Content="&#xE70D;"
+                        <!-- Sidebar tab content: Servers (TreeView) and Tools are mutually exclusive.
+                             Placed in a Grid so they both consume the remaining vertical space; only
+                             one is visible at a time via the RadioButton IsChecked state. -->
+                        <Grid>
+                            <!-- ============ SERVERS TAB CONTENT ============ -->
+                            <DockPanel x:Name="SidebarServersContent"
+                                       Visibility="{Binding IsChecked, ElementName=SidebarTabServers, Converter={StaticResource BoolToVisibilityConverter}}">
+                                <!-- Filter + add/expand/collapse toolbar -->
+                                <DockPanel DockPanel.Dock="Top" Margin="8,8,8,4">
+                                    <Button x:Name="CollapseAllButton"
+                                            DockPanel.Dock="Right"
+                                            Content="&#xE70D;"
+                                            FontFamily="Segoe MDL2 Assets"
+                                            Click="OnCollapseAllClick"
+                                            Style="{DynamicResource ToolbarGhostButtonStyle}"
+                                            Padding="6,6" FontSize="{StaticResource FontSizeCaption}"
+                                            Width="32" Height="32"
+                                            Margin="2,0,0,0"/>
+                                    <Button x:Name="ExpandAllButton"
+                                            DockPanel.Dock="Right"
+                                            Content="&#xE70E;"
+                                            FontFamily="Segoe MDL2 Assets"
+                                            Click="OnExpandAllClick"
+                                            Style="{DynamicResource ToolbarGhostButtonStyle}"
+                                            Padding="6,6" FontSize="{StaticResource FontSizeCaption}"
+                                            Width="32" Height="32"
+                                            Margin="2,0,0,0"/>
+                                    <Button x:Name="AddButton"
+                                            DockPanel.Dock="Right"
+                                            Click="OnAddButtonClick"
+                                            Style="{DynamicResource ToolbarGhostButtonStyle}"
+                                            Padding="6,6" FontSize="{StaticResource FontSizeBody}"
+                                            Width="32" Height="32"
+                                            Margin="4,0,0,0">
+                                        <TextBlock Text="&#xE710;" FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeBody}"
+                                                   AutomationProperties.Name=""/>
+                                        <Button.ContextMenu>
+                                            <ContextMenu x:Name="AddMenu"
+                                                         DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
+                                                <MenuItem x:Name="Mw_AddMenuServer" Header="" Command="{Binding ServerList.AddServerCommand}"/>
+                                                <MenuItem x:Name="Mw_AddMenuTool" Header="" Click="OnAddToolMenuClick"/>
+                                                <Separator/>
+                                                <MenuItem x:Name="Mw_AddMenuGateway" Header="" Command="{Binding Settings.AddGatewayCommand}"/>
+                                                <MenuItem x:Name="Mw_AddMenuFolder" Header="" Click="OnAddFolderFromMenu"/>
+                                            </ContextMenu>
+                                        </Button.ContextMenu>
+                                    </Button>
+                                    <Grid>
+                                        <TextBox x:Name="Mw_FilterBox" Text="{Binding ServerList.SearchText, UpdateSourceTrigger=PropertyChanged}"
+                                                 Style="{DynamicResource SearchTextBoxStyle}"
+                                                 Tag="" Padding="10,6,28,6"
+                                                 AutomationProperties.Name="{loc:Translate A11ySearchAndFilter}"/>
+                                        <Button x:Name="Mw_FilterClearBtn"
+                                                Content="&#xE711;"
                                                 FontFamily="Segoe MDL2 Assets"
                                                 FontSize="{StaticResource FontSizeSmallCaption}"
-                                                Click="OnToggleToolsPanel"
+                                                HorizontalAlignment="Right" VerticalAlignment="Center"
+                                                Margin="0,0,4,0"
+                                                Padding="4"
                                                 Style="{DynamicResource ToolbarGhostButtonStyle}"
-                                                Padding="4,2" Width="24" Height="24"
-                                                AutomationProperties.Name="{loc:Translate A11yToggleToolsPanel}"/>
-                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                            <TextBlock Text="&#xE90F;" FontFamily="Segoe MDL2 Assets"
-                                                       FontSize="{StaticResource FontSizeCaption}"
-                                                       Foreground="{DynamicResource AccentBrush}"
-                                                       VerticalAlignment="Center" Margin="0,0,6,0"
-                                                       AutomationProperties.Name=""/>
-                                            <TextBlock x:Name="Mw_ToolsPanelHeaderLabel" Text=""
-                                                       FontSize="{StaticResource FontSizeCaption}"
-                                                       FontWeight="SemiBold"
-                                                       Foreground="{DynamicResource TextPrimaryBrush}"
-                                                       VerticalAlignment="Center"/>
-                                            <TextBlock x:Name="Mw_ToolsScanIndicator" Text=""
-                                                       FontSize="{StaticResource FontSizeSmallCaption}"
-                                                       Foreground="{DynamicResource TextDisabledBrush}"
-                                                       FontStyle="Italic"
-                                                       VerticalAlignment="Center" Margin="8,0,0,0"
-                                                       Visibility="Collapsed"/>
-                                        </StackPanel>
-                                    </DockPanel>
-                                </Border>
-                                <!-- Search filter -->
-                                <TextBox x:Name="TxtToolsFilter" Grid.Row="1"
-                                         Style="{StaticResource WatermarkTextBoxStyle}"
-                                         Tag=""
-                                         FontSize="{StaticResource FontSizeCaption}"
-                                         Padding="{StaticResource PaddingInput}"
-                                         Margin="4,4,4,0"
-                                         Background="{DynamicResource CardBrush}"
-                                         Foreground="{DynamicResource TextPrimaryBrush}"
-                                         BorderBrush="{DynamicResource BorderBrush}"
-                                         TextChanged="OnToolsFilterChanged"
-                                         AutomationProperties.Name=""/>
-                                <TextBlock x:Name="Mw_ToolsPanelContextText" Grid.Row="2"
-                                           Text=""
-                                           Margin="8,4,8,0"
-                                           FontSize="{StaticResource FontSizeSmallCaption}"
-                                           Foreground="{DynamicResource TextSecondaryBrush}"
-                                           TextTrimming="CharacterEllipsis"/>
-                                <Grid Grid.Row="3">
-                                    <ScrollViewer x:Name="ToolsPanelScroll"
-                                                  VerticalScrollBarVisibility="Auto" Padding="4,4,4,4"
-                                                  ScrollChanged="OnToolsPanelScrollChanged">
-                                        <StackPanel x:Name="ToolsCategoryStack"/>
-                                    </ScrollViewer>
-                                    <TextBlock x:Name="Mw_ToolsPanelNoResults" Text=""
-                                               FontSize="{StaticResource FontSizeCaption}"
+                                                MinHeight="0"
+                                                Click="OnFilterClearClick"
+                                                Visibility="Collapsed"
+                                                AutomationProperties.Name="{loc:Translate A11yClearSearchFilter}"/>
+                                    </Grid>
+                                    <TextBlock x:Name="Mw_FilterResultCount"
+                                               FontSize="{StaticResource FontSizeSmallCaption}"
                                                Foreground="{DynamicResource TextSecondaryBrush}"
-                                               HorizontalAlignment="Center"
-                                               VerticalAlignment="Center"
+                                               HorizontalAlignment="Right"
+                                               Margin="0,2,4,0"
                                                Visibility="Collapsed"/>
-                                    <Border x:Name="ToolsPanelScrollHint" Height="20" VerticalAlignment="Bottom"
-                                            IsHitTestVisible="False" Visibility="Collapsed">
-                                        <TextBlock Text="&#xE70D;" FontFamily="Segoe MDL2 Assets"
-                                                   FontSize="10" HorizontalAlignment="Center"
-                                                   Foreground="{DynamicResource TextDisabledBrush}"
-                                                   AutomationProperties.Name=""/>
-                                    </Border>
-                                </Grid>
-                            </Grid>
-                        </Border>
-
-                        <!-- TOOLS: Toggle button (always at bottom) -->
-                        <Border DockPanel.Dock="Bottom"
-                                Background="{DynamicResource SurfaceBrush}"
-                                BorderBrush="{DynamicResource BorderBrush}"
-                                BorderThickness="0,1,0,0"
-                                Padding="4,2">
-                            <Button x:Name="BtnToggleToolsPanel"
-                                    Click="OnToggleToolsPanel"
-                                    Style="{DynamicResource ToolbarGhostButtonStyle}"
-                                    HorizontalAlignment="Stretch"
-                                    HorizontalContentAlignment="Left"
-                                    Padding="4,3" FontSize="{StaticResource FontSizeCaption}"
-                                    AutomationProperties.Name="{loc:Translate A11yToggleToolsPanel}">
-                                <DockPanel>
-                                    <TextBlock x:Name="ToolsToggleChevron" DockPanel.Dock="Right"
-                                               Text="&#xE70E;" FontFamily="Segoe MDL2 Assets"
-                                               FontSize="{StaticResource FontSizeCaption}"
-                                               Foreground="{DynamicResource TextSecondaryBrush}"
-                                               VerticalAlignment="Center" Margin="0,0,2,0"
-                                               AutomationProperties.Name=""/>
-                                    <StackPanel Orientation="Horizontal">
-                                        <TextBlock Text="&#xE90F;" FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeCaption}"
-                                                   Foreground="{DynamicResource AccentBrush}"
-                                                   VerticalAlignment="Center" Margin="0,0,6,0"
-                                                   AutomationProperties.Name=""/>
-                                        <TextBlock x:Name="Mw_ToolsToggleLabel" Text=""
-                                                   Foreground="{DynamicResource TextPrimaryBrush}"
-                                                   VerticalAlignment="Center"/>
-                                        <TextBlock Text=" (Ctrl+Shift+T)"
-                                                   FontSize="{StaticResource FontSizeCaption}"
-                                                   Foreground="{DynamicResource TextSecondaryBrush}"
-                                                   VerticalAlignment="Center" Margin="4,0,0,0"/>
-                                    </StackPanel>
                                 </DockPanel>
-                            </Button>
-                        </Border>
 
-                        <!-- Hierarchical TreeView (fills remaining space) -->
-                        <TreeView x:Name="ServerTreeView"
+                                <!-- Hierarchical TreeView (fills remaining space) -->
+                                <TreeView x:Name="ServerTreeView"
                                   ItemsSource="{Binding ServerList.GroupedServers}"
                                   Style="{DynamicResource ThemedTreeViewStyle}"
                                   Padding="0,4,0,0"
@@ -439,11 +339,18 @@
                                 <DataTemplate DataType="{x:Type vm:ServerItemViewModel}">
                                     <StackPanel Orientation="Horizontal" Margin="0,1"
                                                 ToolTip="{Binding DisplayName}">
-                                        <!-- Protocol / tool vector icon (resolved by converters) -->
+                                        <!-- Protocol / tool vector icon (resolved by converters).
+                                             The ThemeRevision trigger forces re-evaluation on runtime theme swap. -->
                                         <Path Data="{Binding ConnectionType, Converter={StaticResource TypeToGeoConverter}}"
-                                              Fill="{Binding ConnectionType, Converter={StaticResource TypeToColorConverter}}"
                                               Style="{StaticResource GeoIconSmall}"
-                                              VerticalAlignment="Center" Margin="0,0,4,0"/>
+                                              VerticalAlignment="Center" Margin="0,0,4,0">
+                                            <Path.Fill>
+                                                <MultiBinding Converter="{StaticResource TypeToColorConverter}">
+                                                    <Binding Path="ConnectionType"/>
+                                                    <Binding Path="DataContext.ThemeRevision" ElementName="MainWindowRoot"/>
+                                                </MultiBinding>
+                                            </Path.Fill>
+                                        </Path>
                                         <!-- Status dot -->
                                         <Ellipse Width="7" Height="7" Margin="2,0,8,0"
                                                  VerticalAlignment="Center">
@@ -451,6 +358,7 @@
                                                 <MultiBinding Converter="{StaticResource ServerStatusToColorConverter}">
                                                     <Binding Path="ConnectionType"/>
                                                     <Binding Path="ConnectionState"/>
+                                                    <Binding Path="DataContext.ThemeRevision" ElementName="MainWindowRoot"/>
                                                 </MultiBinding>
                                             </Ellipse.Fill>
                                         </Ellipse>
@@ -473,7 +381,124 @@
                                 </Style>
                             </TreeView.ItemContainerStyle>
 
-                        </TreeView>
+                                </TreeView>
+                            </DockPanel>
+
+                            <!-- ============ TOOLS TAB CONTENT ============ -->
+                            <DockPanel x:Name="SidebarToolsContent"
+                                       Visibility="{Binding IsChecked, ElementName=SidebarTabTools, Converter={StaticResource BoolToVisibilityConverter}}">
+                                <Grid DockPanel.Dock="Top" Margin="8,8,8,4">
+                                    <TextBox x:Name="Mw_SidebarToolsFilter"
+                                             Style="{DynamicResource SearchTextBoxStyle}"
+                                             Tag=""
+                                             Padding="10,6,28,6"
+                                             TextChanged="OnSidebarToolsFilterChanged"
+                                             AutomationProperties.Name="{loc:Translate A11ySidebarTabTools}"/>
+                                </Grid>
+                                <TextBlock x:Name="Mw_SidebarToolsContextText"
+                                           DockPanel.Dock="Top"
+                                           Margin="10,2,10,4"
+                                           FontSize="{StaticResource FontSizeSmallCaption}"
+                                           Foreground="{DynamicResource TextSecondaryBrush}"
+                                           TextTrimming="CharacterEllipsis"/>
+                                <TextBlock x:Name="Mw_SidebarToolsNoResults"
+                                           DockPanel.Dock="Top"
+                                           Margin="10,16,10,0"
+                                           FontSize="{StaticResource FontSizeCaption}"
+                                           Foreground="{DynamicResource TextDisabledBrush}"
+                                           HorizontalAlignment="Center"
+                                           Visibility="Collapsed"/>
+                                <TreeView x:Name="SidebarToolsTreeView"
+                                          Style="{DynamicResource ThemedTreeViewStyle}"
+                                          Padding="0,2,0,0"
+                                          BorderThickness="0"
+                                          Background="Transparent"
+                                          SelectedItemChanged="OnSidebarToolsSelectedItemChanged"
+                                          MouseDoubleClick="OnSidebarToolsDoubleClick"
+                                          ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                          VirtualizingPanel.IsVirtualizing="True"
+                                          VirtualizingPanel.VirtualizationMode="Recycling">
+                                    <TreeView.Resources>
+                                        <!-- Category header: accent dot + name + count badge -->
+                                        <HierarchicalDataTemplate DataType="{x:Type vm:SidebarToolCategoryViewModel}"
+                                                                  ItemsSource="{Binding Tools}">
+                                            <Grid Margin="0,2,4,2" ToolTip="{Binding CategoryName}">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <Ellipse Grid.Column="0"
+                                                         Width="8" Height="8"
+                                                         VerticalAlignment="Center"
+                                                         Margin="0,0,6,0">
+                                                    <Ellipse.Fill>
+                                                        <MultiBinding Converter="{StaticResource ResourceKeyToBrushConverter}">
+                                                            <Binding Path="BrushKey"/>
+                                                            <Binding Path="DataContext.ThemeRevision" ElementName="MainWindowRoot"/>
+                                                        </MultiBinding>
+                                                    </Ellipse.Fill>
+                                                </Ellipse>
+                                                <TextBlock Grid.Column="1"
+                                                           Text="{Binding CategoryName}"
+                                                           Foreground="{DynamicResource TextPrimaryBrush}"
+                                                           FontWeight="SemiBold"
+                                                           FontSize="{StaticResource FontSizeBody}"
+                                                           VerticalAlignment="Center"
+                                                           TextTrimming="CharacterEllipsis"
+                                                           AutomationProperties.Name="{Binding CategoryName}"/>
+                                                <Border Grid.Column="2"
+                                                        Background="{DynamicResource CardBrush}"
+                                                        CornerRadius="{StaticResource CornerRadiusMd}"
+                                                        Padding="6,1" Margin="6,0,0,0"
+                                                        VerticalAlignment="Center">
+                                                    <TextBlock Text="{Binding VisibleCount}"
+                                                               Foreground="{DynamicResource TextSecondaryBrush}"
+                                                               FontSize="{StaticResource FontSizeCaption}"
+                                                               HorizontalAlignment="Center"/>
+                                                </Border>
+                                            </Grid>
+                                        </HierarchicalDataTemplate>
+                                        <!-- Tool leaf: icon + name (compact single-line) -->
+                                        <DataTemplate DataType="{x:Type vm:SidebarToolItemViewModel}">
+                                            <StackPanel Orientation="Horizontal"
+                                                        Margin="0,1"
+                                                        Cursor="Hand"
+                                                        ToolTip="{Binding Name}">
+                                                <Path Width="14" Height="14"
+                                                      Stretch="Uniform"
+                                                      VerticalAlignment="Center"
+                                                      Margin="0,0,8,0"
+                                                      Data="{Binding IconGeometryKey, Converter={StaticResource ResourceKeyToGeometryConverter}}">
+                                                    <Path.Fill>
+                                                        <MultiBinding Converter="{StaticResource ResourceKeyToBrushConverter}">
+                                                            <Binding Path="BrushKey"/>
+                                                            <Binding Path="DataContext.ThemeRevision" ElementName="MainWindowRoot"/>
+                                                        </MultiBinding>
+                                                    </Path.Fill>
+                                                </Path>
+                                                <TextBlock Text="{Binding Name}"
+                                                           Foreground="{DynamicResource TextPrimaryBrush}"
+                                                           FontSize="{StaticResource FontSizeBody}"
+                                                           VerticalAlignment="Center"
+                                                           TextTrimming="CharacterEllipsis"
+                                                           AutomationProperties.Name="{Binding Name}"/>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </TreeView.Resources>
+                                    <TreeView.ItemContainerStyle>
+                                        <Style TargetType="TreeViewItem"
+                                               BasedOn="{StaticResource ThemedTreeViewItemStyle}">
+                                            <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}"/>
+                                            <Setter Property="Visibility"
+                                                    Value="{Binding IsVisible, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                                            <Setter Property="Padding" Value="1,1"/>
+                                            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                        </Style>
+                                    </TreeView.ItemContainerStyle>
+                                </TreeView>
+                            </DockPanel>
+                        </Grid>
                     </DockPanel>
                 </Border>
 
@@ -575,9 +600,15 @@
                                                 Style="{DynamicResource SecondaryButtonStyle}"/>
                                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                             <Path Data="{Binding ConnectionType, Converter={StaticResource TypeToGeoConverter}}"
-                                                  Fill="{Binding ConnectionType, Converter={StaticResource TypeToColorConverter}}"
                                                   Style="{StaticResource GeoIconSmall}"
-                                                  VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                                  VerticalAlignment="Center" Margin="0,0,5,0">
+                                                <Path.Fill>
+                                                    <MultiBinding Converter="{StaticResource TypeToColorConverter}">
+                                                        <Binding Path="ConnectionType"/>
+                                                        <Binding Path="DataContext.ThemeRevision" ElementName="MainWindowRoot"/>
+                                                    </MultiBinding>
+                                                </Path.Fill>
+                                            </Path>
                                             <TextBlock Text="{Binding Title}" FontSize="{StaticResource FontSizeBody}" FontWeight="SemiBold"
                                                        Foreground="{DynamicResource TextPrimaryBrush}"
                                                        VerticalAlignment="Center"
@@ -664,7 +695,7 @@
                     <!-- Drop zone overlay for drag-to-split (shown during tab drag over content area) -->
                     <Border x:Name="ContentDropZone" Grid.Row="0"
                             Visibility="Collapsed"
-                            Background="#300078D7"
+                            Background="{DynamicResource DragDropOverlayBackground}"
                             BorderBrush="{DynamicResource AccentBrush}"
                             BorderThickness="2"
                             CornerRadius="4"
@@ -692,18 +723,27 @@
                                            TextTrimming="CharacterEllipsis"/>
 
                                 <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                                    <Border CornerRadius="{StaticResource CornerRadiusSm}" Padding="6,2" Margin="0,0,8,0"
-                                            Background="{Binding ServerList.SelectedServer.ConnectionType,
-                                                Converter={StaticResource ConnectionTypeToBrushConverter}}">
+                                    <Border CornerRadius="{StaticResource CornerRadiusSm}" Padding="6,2" Margin="0,0,8,0">
+                                        <Border.Background>
+                                            <MultiBinding Converter="{StaticResource ConnectionTypeToBrushConverter}">
+                                                <Binding Path="ServerList.SelectedServer.ConnectionType"/>
+                                                <Binding Path="DataContext.ThemeRevision" ElementName="MainWindowRoot"/>
+                                            </MultiBinding>
+                                        </Border.Background>
                                         <TextBlock Text="{Binding ServerList.SelectedServer.ConnectionType}"
                                                    FontSize="{StaticResource FontSizeCaption}" FontWeight="SemiBold"
                                                    Foreground="{DynamicResource BadgeTextBrush}"
                                                    TextTrimming="CharacterEllipsis"/>
                                     </Border>
                                     <Ellipse Width="8" Height="8" Margin="0,0,6,0"
-                                             VerticalAlignment="Center"
-                                             Fill="{Binding ServerList.SelectedServer.ConnectionState,
-                                                 Converter={StaticResource ConnectionStateToBrushConverter}}"/>
+                                             VerticalAlignment="Center">
+                                        <Ellipse.Fill>
+                                            <MultiBinding Converter="{StaticResource ConnectionStateToBrushConverter}">
+                                                <Binding Path="ServerList.SelectedServer.ConnectionState"/>
+                                                <Binding Path="DataContext.ThemeRevision" ElementName="MainWindowRoot"/>
+                                            </MultiBinding>
+                                        </Ellipse.Fill>
+                                    </Ellipse>
                                     <TextBlock Text="{Binding ServerList.SelectedServer.ConnectionState}"
                                                FontSize="{StaticResource FontSizeCaption}"
                                                Foreground="{DynamicResource TextSecondaryBrush}"
@@ -1396,8 +1436,6 @@
                                             <StackPanel Grid.Column="1" Margin="8,0,0,0">
                                                 <TextBlock x:Name="Mw_SettingsThemeLabel" Text="" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,0,4"/>
                                                 <ComboBox SelectedValue="{Binding Settings.DefaultTheme}" SelectedValuePath="Tag">
-                                                    <ComboBoxItem x:Name="Mw_ThemeDark" Content="" Tag="Dark"/>
-                                                    <ComboBoxItem x:Name="Mw_ThemeLight" Content="" Tag="Light"/>
                                                     <ComboBoxItem x:Name="Mw_ThemeDraculaPro" Content="" Tag="DraculaPro"/>
                                                     <ComboBoxItem x:Name="Mw_ThemeAlucard" Content="" Tag="Alucard"/>
                                                     <ComboBoxItem x:Name="Mw_ThemeBlade" Content="" Tag="Blade"/>
@@ -2190,7 +2228,7 @@
                             <Style TargetType="Button" BasedOn="{StaticResource ToolbarGhostButtonStyle}">
                                 <Style.Triggers>
                                     <DataTrigger Binding="{Binding IsBroadcastMode}" Value="True">
-                                        <Setter Property="Background" Value="#33FF5555"/>
+                                        <Setter Property="Background" Value="{DynamicResource BroadcastActiveBrush}"/>
                                         <Setter Property="Foreground" Value="{DynamicResource ErrorTextBrush}"/>
                                     </DataTrigger>
                                 </Style.Triggers>
@@ -2271,13 +2309,25 @@
                                           Margin="8,0,0,0"
                                           VerticalAlignment="Center">
                                         <Border CornerRadius="{StaticResource CornerRadiusXs}"
-                                                Background="{Binding ConnectionType, Converter={StaticResource ConnectionTypeToBrushConverter}}"
-                                                Opacity="0.15"/>
+                                                Opacity="0.15">
+                                            <Border.Background>
+                                                <MultiBinding Converter="{StaticResource ConnectionTypeToBrushConverter}">
+                                                    <Binding Path="ConnectionType"/>
+                                                    <Binding Path="DataContext.ThemeRevision" ElementName="MainWindowRoot"/>
+                                                </MultiBinding>
+                                            </Border.Background>
+                                        </Border>
                                         <TextBlock Margin="6,2"
                                                    Text="{Binding ConnectionTypeBadge}"
                                                    FontSize="{StaticResource FontSizeSmallCaption}"
-                                                   FontWeight="SemiBold"
-                                                   Foreground="{Binding ConnectionType, Converter={StaticResource ConnectionTypeToBrushConverter}}"/>
+                                                   FontWeight="SemiBold">
+                                            <TextBlock.Foreground>
+                                                <MultiBinding Converter="{StaticResource ConnectionTypeToBrushConverter}">
+                                                    <Binding Path="ConnectionType"/>
+                                                    <Binding Path="DataContext.ThemeRevision" ElementName="MainWindowRoot"/>
+                                                </MultiBinding>
+                                            </TextBlock.Foreground>
+                                        </TextBlock>
                                     </Grid>
 
                                     <StackPanel>
@@ -2291,9 +2341,15 @@
                                                   Height="14"
                                                   Stretch="Uniform"
                                                   Data="{Binding ConnectionType, Converter={StaticResource TypeToGeoConverter}}"
-                                                  Fill="{Binding ConnectionType, Converter={StaticResource TypeToColorConverter}}"
                                                   VerticalAlignment="Center"
-                                                  Margin="0,0,6,0"/>
+                                                  Margin="0,0,6,0">
+                                                <Path.Fill>
+                                                    <MultiBinding Converter="{StaticResource TypeToColorConverter}">
+                                                        <Binding Path="ConnectionType"/>
+                                                        <Binding Path="DataContext.ThemeRevision" ElementName="MainWindowRoot"/>
+                                                    </MultiBinding>
+                                                </Path.Fill>
+                                            </Path>
                                             <TextBlock Grid.Column="1"
                                                        Text="{Binding DisplayName}"
                                                        FontSize="{StaticResource FontSizeBody}"

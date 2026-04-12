@@ -25,8 +25,13 @@ namespace Heimdall.App.Converters;
 /// Multi-value converter that merges connection type and connection state into a single
 /// status indicator color. When connected/connecting/error, the state color wins;
 /// when disconnected, the color reflects the connection type (RDP/SSH/SFTP).
-/// Brush values are resolved from theme resources so they adapt to Light/Dark themes.
+/// Brush values are resolved from theme resources so they adapt to the active theme.
 /// </summary>
+/// <remarks>
+/// Accepts 2 or 3 binding values: <c>[0]</c> connection type, <c>[1]</c> connection state,
+/// and optionally <c>[2]</c> a <c>ThemeRevision</c> trigger that forces WPF to re-run the
+/// converter after a runtime theme swap (the trigger value itself is ignored).
+/// </remarks>
 public sealed class ServerStatusToColorConverter : IMultiValueConverter
 {
     public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
@@ -40,6 +45,7 @@ public sealed class ServerStatusToColorConverter : IMultiValueConverter
 
         string connectionType = values[0]?.ToString()?.ToUpperInvariant() ?? string.Empty;
         string connectionState = values[1]?.ToString()?.ToLowerInvariant() ?? string.Empty;
+        // values[2], when present, is the ThemeRevision trigger — intentionally ignored.
 
         // State-based colors take priority over type-based colors
         return connectionState switch
@@ -68,7 +74,7 @@ public sealed class ServerStatusToColorConverter : IMultiValueConverter
     }
 
     public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture)
-        => [DependencyProperty.UnsetValue, DependencyProperty.UnsetValue];
+        => [DependencyProperty.UnsetValue, DependencyProperty.UnsetValue, DependencyProperty.UnsetValue];
 
     private static Brush ResolveBrush(string resourceKey, Brush fallback)
         => Application.Current.TryFindResource(resourceKey) as Brush ?? fallback;

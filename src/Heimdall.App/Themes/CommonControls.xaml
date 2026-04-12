@@ -2009,4 +2009,52 @@
         <Setter Property="Visibility" Value="Collapsed"/>
     </Style>
 
+    <!-- ========================================================= -->
+    <!-- Sidebar Tab Style (RadioButton as flat tab with accent    -->
+    <!-- underline). Used by the Servers / Tools selector at the   -->
+    <!-- top of the left sidebar.                                  -->
+    <!-- ========================================================= -->
+    <Style x:Key="SidebarTabStyle" TargetType="{x:Type RadioButton}">
+        <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="FontSize" Value="{StaticResource FontSizeBody}"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="HorizontalAlignment" Value="Stretch"/>
+        <Setter Property="HorizontalContentAlignment" Value="Center"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="Height" Value="32"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type RadioButton}">
+                    <Border x:Name="TabBorder"
+                            Background="{TemplateBinding Background}"
+                            BorderThickness="0,0,0,2"
+                            BorderBrush="Transparent"
+                            SnapsToDevicePixels="True">
+                        <ContentPresenter HorizontalAlignment="Center"
+                                          VerticalAlignment="Center"
+                                          Margin="8,0"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="TabBorder" Property="BorderBrush"
+                                    Value="{DynamicResource AccentBrush}"/>
+                            <Setter Property="Foreground"
+                                    Value="{DynamicResource TextPrimaryBrush}"/>
+                            <Setter Property="FontWeight" Value="SemiBold"/>
+                        </Trigger>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="TabBorder" Property="Background"
+                                    Value="{DynamicResource HighlightBrush}"/>
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="TabBorder" Property="BorderBrush"
+                                    Value="{DynamicResource FocusIndicatorBrush}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
 </ResourceDictionary>

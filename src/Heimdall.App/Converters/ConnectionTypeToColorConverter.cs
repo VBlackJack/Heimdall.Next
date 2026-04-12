@@ -28,9 +28,38 @@ namespace Heimdall.App.Converters;
 /// Tool types resolve to per-category brushes (Network, Security, Encoding, System)
 /// via <see cref="ToolRegistry"/> static lookup.
 /// </summary>
-public sealed class ConnectionTypeToColorConverter : IValueConverter
+/// <remarks>
+/// Implements both <see cref="IValueConverter"/> (for legacy single-value bindings
+/// and direct code-behind use) and <see cref="IMultiValueConverter"/> (so XAML can
+/// pass a <c>ThemeRevision</c> trigger as a second value to force re-evaluation
+/// when the active theme dictionary is swapped at runtime).
+/// </remarks>
+public sealed class ConnectionTypeToColorConverter : IValueConverter, IMultiValueConverter
 {
     public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        return ResolveBrush(value);
+    }
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+        => DependencyProperty.UnsetValue;
+
+    public object? Convert(object[] values, Type targetType, object? parameter, CultureInfo culture)
+    {
+        // values[0] = connection type; values[1..] = theme revision triggers (ignored here,
+        // they only exist to force WPF to re-run this converter on theme swap).
+        if (values.Length == 0 || values[0] == DependencyProperty.UnsetValue)
+        {
+            return Brushes.Gray;
+        }
+
+        return ResolveBrush(values[0]);
+    }
+
+    public object[] ConvertBack(object value, Type[] targetTypes, object? parameter, CultureInfo culture)
+        => [DependencyProperty.UnsetValue];
+
+    private static Brush ResolveBrush(object? value)
     {
         string typeStr = value?.ToString()?.ToUpperInvariant() ?? string.Empty;
 
@@ -58,7 +87,4 @@ public sealed class ConnectionTypeToColorConverter : IValueConverter
         return Application.Current.TryFindResource(resourceKey) as Brush
             ?? Brushes.Gray;
     }
-
-    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
-        => DependencyProperty.UnsetValue;
 }

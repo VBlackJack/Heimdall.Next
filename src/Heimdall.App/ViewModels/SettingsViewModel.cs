@@ -70,7 +70,7 @@ public partial class SettingsViewModel : ObservableValidator
     private string _defaultLocale = "en";
 
     [ObservableProperty]
-    private string _defaultTheme = "Dark";
+    private string _defaultTheme = "DraculaPro";
 
     [ObservableProperty]
     [NotifyDataErrorInfo]

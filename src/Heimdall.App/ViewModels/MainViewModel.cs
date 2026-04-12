@@ -17,9 +17,7 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using System.Windows;
 using Heimdall.App.Services;
-using Heimdall.App.Theming;
 using Heimdall.App.ViewModels.Dialogs;
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Localization;
@@ -44,6 +42,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
     private readonly HostKeyStore _hostKeyStore;
     private readonly IDialogService _dialogService;
     private readonly EmbeddedSessionManager _embeddedSessionManager;
+    private readonly ThemeService _themeService;
     private readonly TaskSchedulerService _taskScheduler;
 
     private bool _disposed;
@@ -79,6 +78,15 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
     [ObservableProperty]
     private bool _isBroadcastMode;
+
+    /// <summary>
+    /// Monotonic counter bumped after every theme swap. Bound as a trigger value
+    /// by <c>MultiBinding</c>s that need to re-run their brush-resolving converters
+    /// when the active theme changes (see e.g. <c>ConnectionTypeToColorConverter</c>
+    /// in the server TreeView).
+    /// </summary>
+    [ObservableProperty]
+    private int _themeRevision;
 
     [ObservableProperty]
     private string _selectedTab = "Servers";
@@ -316,6 +324,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         HostKeyStore hostKeyStore,
         IDialogService dialogService,
         EmbeddedSessionManager embeddedSessionManager,
+        ThemeService themeService,
         ToolRegistry toolRegistry,
         SplitService splitService,
         ServerListViewModel serverList,
@@ -330,6 +339,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         _hostKeyStore = hostKeyStore;
         _dialogService = dialogService;
         _embeddedSessionManager = embeddedSessionManager;
+        _themeService = themeService;
         ToolRegistry = toolRegistry;
         Split = splitService;
         ServerList = serverList;
@@ -374,8 +384,15 @@ public partial class MainViewModel : ObservableObject, IDisposable
         _embeddedSessionManager.OpenToolCallback = (toolId, title, ctx) =>
             OpenToolTabAsync(toolId, title, ctx);
 
-        // Swap WPF theme ResourceDictionary when the user changes the theme setting
-        Settings.ThemeChanged += OnThemeChanged;
+        // Instant theme preview when the user changes the Settings combo.
+        // Actual persistence triggers a second ApplyTheme via ConfigManager.SettingsChanged,
+        // which is a no-op because ThemeService is idempotent.
+        Settings.ThemeChanged += OnSettingsThemePreview;
+
+        // Track the theme revision counter so MultiBinding triggers fire on swap.
+        // Initial sync covers the startup apply that happened before this subscription.
+        _themeService.ThemeChanged += OnThemeServiceThemeChanged;
+        ThemeRevision = _themeService.ThemeRevision;
 
         // Wire server list session events to the connection tab manager
         ServerList.SessionReady += OnSessionReady;
@@ -658,48 +675,22 @@ public partial class MainViewModel : ObservableObject, IDisposable
     }
 
     /// <summary>
-    /// Swaps the active theme <see cref="ResourceDictionary"/> and updates the
-    /// DWM title bar to match. Called when the user changes the theme combo in Settings.
+    /// Forwards the instant-preview theme change from the Settings combo to
+    /// the centralized <see cref="ThemeService"/>. The service performs the
+    /// actual dictionary swap, DWM title bar update, and event broadcast.
     /// </summary>
-    private static void OnThemeChanged(string themeName)
+    private void OnSettingsThemePreview(string themeName)
     {
-        var app = Application.Current;
-        if (app is null)
-        {
-            return;
-        }
+        _themeService.ApplyTheme(themeName);
+    }
 
-        var themeUri = themeName.ToUpperInvariant() switch
-        {
-            "LIGHT"      => new Uri("Themes/LightTheme.xaml",      UriKind.Relative),
-            "DRACULAPRO" => new Uri("Themes/DraculaProTheme.xaml",  UriKind.Relative),
-            "BLADE"      => new Uri("Themes/BladeTheme.xaml",       UriKind.Relative),
-            "BUFFY"      => new Uri("Themes/BuffyTheme.xaml",       UriKind.Relative),
-            "LINCOLN"    => new Uri("Themes/LincolnTheme.xaml",     UriKind.Relative),
-            "MORBIUS"    => new Uri("Themes/MorbiusTheme.xaml",     UriKind.Relative),
-            "VANHELSING" => new Uri("Themes/VanHelsingTheme.xaml",  UriKind.Relative),
-            "ALUCARD"    => new Uri("Themes/AlucardTheme.xaml",     UriKind.Relative),
-            _            => new Uri("Themes/DarkTheme.xaml",        UriKind.Relative),
-        };
-
-        var newTheme = new ResourceDictionary { Source = themeUri };
-
-        // Find and replace the current theme dictionary
-        var existing = app.Resources.MergedDictionaries
-            .FirstOrDefault(d => d.Source?.OriginalString.Contains("Theme") == true);
-
-        if (existing is not null)
-        {
-            app.Resources.MergedDictionaries.Remove(existing);
-        }
-
-        app.Resources.MergedDictionaries.Add(newTheme);
-
-        // Update DWM dark/light title bar on every open window
-        foreach (Window window in app.Windows)
-        {
-            WindowThemeHelper.ApplyCurrentTheme(window);
-        }
+    /// <summary>
+    /// Mirrors <see cref="ThemeService.ThemeRevision"/> into <see cref="ThemeRevision"/>
+    /// so XAML <c>MultiBinding</c>s re-run their brush-resolving converters after a swap.
+    /// </summary>
+    private void OnThemeServiceThemeChanged(string themeName)
+    {
+        ThemeRevision = _themeService.ThemeRevision;
     }
 
     private void OnTunnelOpened(TunnelInfo info)
@@ -936,7 +927,8 @@ public partial class MainViewModel : ObservableObject, IDisposable
         _tunnelManager.TunnelClosed -= OnTunnelClosed;
         _configManager.SettingsChanged -= OnSettingsChanged;
         Settings.ConfigurationChanged -= _onConfigurationChanged;
-        Settings.ThemeChanged -= OnThemeChanged;
+        Settings.ThemeChanged -= OnSettingsThemePreview;
+        _themeService.ThemeChanged -= OnThemeServiceThemeChanged;
         ServerList.SessionReady -= OnSessionReady;
         ServerList.ToolSessionRequested -= _onToolSessionRequested;
         ServerList.StatusMessageRequested -= _onStatusMessageRequested;
