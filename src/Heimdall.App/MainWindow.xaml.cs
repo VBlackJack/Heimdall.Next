@@ -867,19 +867,19 @@ public partial class MainWindow : Window
             return;
         }
 
-        var queryLower = query.ToLowerInvariant();
+        string queryLower = query.ToLowerInvariant();
         int matchCount = 0;
         TabItem? firstMatch = null;
 
         for (int i = 0; i < tabs.Length && i < SettingsTabKeywords.Length; i++)
         {
-            var keywords = SettingsTabKeywords[i];
+            string[] keywords = SettingsTabKeywords[i];
             // Also match against the tab header text
-            var headerText = tabs[i].Header?.ToString()?.ToLowerInvariant() ?? "";
-            // Both sides already lowercased (SettingsTabKeywords literals + headerText via ToLowerInvariant),
-            // so the plain string.Contains(string) overload gives the same result as OrdinalIgnoreCase
-            // without triggering the overload-resolution regression seen on .NET SDK 10.0.201.
-            bool matches = keywords.Any(k => k.Contains(queryLower))
+            string headerText = tabs[i].Header?.ToString()?.ToLowerInvariant() ?? "";
+            // Explicit string types (instead of var) avoid an SDK 10.0.201 overload-resolution
+            // quirk that was mis-inferring queryLower as int and routing Contains to the
+            // Contains(char, StringComparison) overload.
+            bool matches = keywords.Any((string k) => k.Contains(queryLower))
                            || headerText.Contains(queryLower);
 
             tabs[i].Visibility = matches ? Visibility.Visible : Visibility.Collapsed;
@@ -1977,18 +1977,19 @@ public partial class MainWindow : Window
             return;
         }
 
-        var filter = Mw_SidebarToolsFilter.Text.Trim();
-        var hasFilter = !string.IsNullOrEmpty(filter);
-        var filterLower = filter.ToLowerInvariant();
-        var anyVisibleTool = false;
+        string filter = Mw_SidebarToolsFilter.Text.Trim();
+        bool hasFilter = !string.IsNullOrEmpty(filter);
+        string filterLower = filter.ToLowerInvariant();
+        bool anyVisibleTool = false;
 
         foreach (var category in _sidebarToolsCategories)
         {
-            var visibleInCategory = 0;
+            int visibleInCategory = 0;
             foreach (var tool in category.Tools)
             {
                 // tool.Searchable is pre-lowercased in BuildSidebarToolsData; plain Contains is fine.
-                var matches = !hasFilter || tool.Searchable.Contains(filterLower);
+                string searchable = tool.Searchable;
+                bool matches = !hasFilter || searchable.Contains(filterLower);
                 tool.IsVisible = matches;
                 if (matches)
                 {
