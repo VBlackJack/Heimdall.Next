@@ -876,8 +876,11 @@ public partial class MainWindow : Window
             var keywords = SettingsTabKeywords[i];
             // Also match against the tab header text
             var headerText = tabs[i].Header?.ToString()?.ToLowerInvariant() ?? "";
-            bool matches = keywords.Any(k => k.IndexOf(queryLower, StringComparison.OrdinalIgnoreCase) >= 0)
-                           || headerText.IndexOf(queryLower, StringComparison.OrdinalIgnoreCase) >= 0;
+            // Both sides already lowercased (SettingsTabKeywords literals + headerText via ToLowerInvariant),
+            // so the plain string.Contains(string) overload gives the same result as OrdinalIgnoreCase
+            // without triggering the overload-resolution regression seen on .NET SDK 10.0.201.
+            bool matches = keywords.Any(k => k.Contains(queryLower))
+                           || headerText.Contains(queryLower);
 
             tabs[i].Visibility = matches ? Visibility.Visible : Visibility.Collapsed;
 
@@ -1984,7 +1987,8 @@ public partial class MainWindow : Window
             var visibleInCategory = 0;
             foreach (var tool in category.Tools)
             {
-                var matches = !hasFilter || tool.Searchable.IndexOf(filterLower, StringComparison.Ordinal) >= 0;
+                // tool.Searchable is pre-lowercased in BuildSidebarToolsData; plain Contains is fine.
+                var matches = !hasFilter || tool.Searchable.Contains(filterLower);
                 tool.IsVisible = matches;
                 if (matches)
                 {
