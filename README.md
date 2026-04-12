@@ -152,7 +152,7 @@ Built with .NET 10 and WPF. Secure, feature-rich Windows connection manager with
 
 ### Built-in Sysops Toolbox (49 tools)
 
-All tools open as session tabs (split with any session or tool, detach, reorder). Accessible via **dedicated Tools tab**, **Ctrl+K** palette, **Ctrl+Shift+T** sidebar panel, or **"+" → Add Tool** menu. Tools can be saved in the TreeView alongside servers. Centralized `ToolRegistry` with vector icons, categories, and command aliases. **Favorites** (pin/unpin with persistence) and **recently used** tools for quick access. Sidebar mini-cards with category badge, icon, and description. Singleton behavior for context-free tools. Built-in help system with usage examples (? button). Dedicated detail panel for tools with descriptions. Password Generator supports saveable custom presets (JSON persistence), optional clipboard auto-clear, and 3 generation modes (Random, Syllable, Passphrase). Cross-tool navigation via right-click context menus (IP → Port Scanner → Cert Inspector). Network tools support scanning via SSH tunnel ("Route via" gateway selector). **First-launch onboarding** overlay with guided introduction.
+All tools open as session tabs (split with any session or tool, detach, reorder). Accessible via **dedicated Tools tab**, **Ctrl+K** palette, the **sidebar Tools tab** (Servers/Tools toggle at the top of the left panel, **Ctrl+Shift+T**), or **"+" → Add Tool** menu. The tabbed sidebar hosts the server `TreeView` and a full-height tool browser side by side — the Tools tab displays a collapsible `TreeView` of categories (Network, Security, Encoding, System, External) populated from `ToolRegistry`, with a filter box matching on name + aliases. Tools can be saved in the server `TreeView` alongside real servers. Centralized `ToolRegistry` with vector icons, categories, and command aliases. **Favorites** (pin/unpin with persistence) and **recently used** tools for quick access on the dedicated Tools tab. Singleton behavior for context-free tools. Built-in help system with usage examples (? button). Dedicated detail panel for tools with descriptions. Password Generator supports saveable custom presets (JSON persistence), optional clipboard auto-clear, and 3 generation modes (Random, Syllable, Passphrase). Cross-tool navigation via right-click context menus (IP → Port Scanner → Cert Inspector). Network tools support scanning via SSH tunnel ("Route via" gateway selector). **First-launch onboarding** overlay with guided introduction.
 
 | Category | Tools |
 |----------|-------|
@@ -188,9 +188,10 @@ All tools open as session tabs (split with any session or tool, detach, reorder)
 - Screenshot capture to clipboard (Ctrl+Shift+S)
 
 ### User Interface
-- Runtime Dark and Light theme switching (1,870+ lines of WPF control styles)
+- Runtime theme switching across **7 Dracula variants** (DraculaPro default, Alucard, Blade, Buffy, Lincoln, Morbius, VanHelsing) via a centralized `ThemeService` (singleton DI) exposing `ApplyTheme()` and a `ThemeChanged` event consumed by converters and code-built panels
+- 1,870+ lines of WPF control styles shared across all variants, reactive to runtime theme swaps (`DynamicResource` everywhere; `MultiBinding` + `ThemeRevision` trigger for brush-resolving converters; `SetResourceReference` in code-behind panels)
 - Design System with 45 tokens: typography (10 sizes, min 11px), spacing (8 tokens incl. asymmetric), button padding (4 roles), input padding, corner radius, opacity, icon sizes, monospace font family, micro-animations (150ms/250ms)
-- WCAG AA compliant: all foreground/background pairs verified at 4.5:1+ contrast ratio, scrollbar thumb 4.2:1+ (dark/light)
+- WCAG AA compliant: all foreground/background pairs verified at 4.5:1+ contrast ratio, scrollbar thumb 4.2:1+ across every Dracula variant
 - FocusIndicatorBrush for keyboard navigation accessibility on all button styles
 - Unified two-tier icon system: vector geometries (`Geo.*`) for domain icons + Segoe MDL2 for UI chrome
 - Localized tooltips on all icon-only buttons; AutomationProperties.Name on all interactive controls via i18n
@@ -205,7 +206,7 @@ All tools open as session tabs (split with any session or tool, detach, reorder)
 - Empty states: tool views show guidance before first query, welcome panel with import CTA
 - Built-in help button ("?") on all 49 tools with localized usage instructions
 - Tab busy indicator: pulsing accent dot on tabs during long-running tool operations
-- Tools Panel: category fallback icons, scroll-more indicator
+- **Tabbed sidebar** (Servers / Tools): full-height tool browser with collapsible categories, lazy-populated from `ToolRegistry`, single-click launch. Ctrl+Shift+T toggles the active sidebar tab
 - Fullscreen mode (F11), toggle sidebar (Ctrl+B), filter (Ctrl+F)
 - **First-launch onboarding**: 3-step guided introduction overlay with skip/next/get started
 - Bilingual interface: English and French (~4,496 i18n keys)
@@ -276,7 +277,7 @@ Download the latest release from the [Releases](../../releases) page. Run the in
 |----------|--------|
 | F1 | Keyboard shortcut help |
 | Ctrl+K | Quick Connect palette (servers, tools, external tools) |
-| Ctrl+Shift+T | Toggle Tools sidebar panel |
+| Ctrl+Shift+T | Toggle sidebar tab (Servers / Tools) |
 | Ctrl+N | Add new server |
 | Ctrl+E | Edit selected server |
 | Ctrl+Del | Delete selected server |

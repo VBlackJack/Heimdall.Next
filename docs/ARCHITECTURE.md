@@ -376,7 +376,7 @@ ISplitContent (marker interface)
 
 ## Design System (CommonControls.xaml — 1,880+ lines, 45 tokens, WCAG AA)
 
-The application uses a centralized Design System defined in `CommonControls.xaml` with full WCAG AA contrast compliance across both Dark and Light themes.
+The application uses a centralized Design System defined in `CommonControls.xaml` with full WCAG AA contrast compliance across all **7 Dracula theme variants** (DraculaPro, Alucard, Blade, Buffy, Lincoln, Morbius, VanHelsing). Theme swapping is owned by the centralized `ThemeService` (singleton DI) — see `docs/TROUBLESHOOTING.md` ("Theme Switching — Stale Colors After Swap") for the reactivity patterns.
 
 **Typography tokens (10)** — `sys:Double` resources for consistent font sizing:
 - `FontSizeSmallCaption` (11), `FontSizeCaption` (12), `FontSizeBody` (13), `FontSizeBodyLarge` (14), `FontSizeSubtitle` (15), `FontSizeLarge` (17), `FontSizeTitle` (20), `FontSizeDisplay` (22), `FontSizeHeadline` (24), `FontSizeHero` (64)
@@ -398,7 +398,7 @@ The application uses a centralized Design System defined in `CommonControls.xaml
 
 **Icon size tokens (6)**: `IconSizeSmall` (12), `IconSizeMedium` (16), `IconSizeLarge` (20), `IconSizeXLarge` (36), `IconSizeEmptyState` (32), `IconSizeHero` (48)
 
-**Tool category brushes** — 4 distinct colors per tool category (defined in both Light/Dark themes):
+**Tool category brushes** — 4 distinct colors per tool category (defined once per Dracula variant):
 - `ToolNetworkBrush` (blue), `ToolSecurityBrush` (amber), `ToolEncodingBrush` (purple), `ToolSystemBrush` (teal)
 - Each tool has a per-tool glyph (Segoe MDL2 Assets) + category color in tree view and palette
 
@@ -617,7 +617,7 @@ When opening a tool from a server context menu, all available server metadata is
 
 ### Tool Navigation
 
-- **Ctrl+Shift+T**: Toggle retractable Tools sidebar panel (categorized with colored accent bars, alphabetically sorted per category)
+- **Ctrl+Shift+T**: Toggle between the Servers and Tools tabs of the left sidebar (`SidebarTabServers` / `SidebarTabTools` grouped RadioButtons)
 - **Ctrl+K → "tools"**: Command palette lists all tools grouped by category
 - **Ctrl+K → "ping 10.0.0.1"**: Opens tool with prefilled argument
 - **Recent tools**: Last 5 used tools shown at top of palette when opened
@@ -626,7 +626,7 @@ When opening a tool from a server context menu, all available server metadata is
 - **Help system**: "?" button on all 49 tools shows localized description, usage instructions, and examples (i18n key pattern: `ToolHelp<UPPERCASE_ID>`, e.g., `ToolHelpBASE64`)
 - **Detail panel**: Selecting a tool in TreeView shows dedicated panel (name, category, description, "Open in Tab")
 - **Password presets**: Custom presets saved to `config/password-presets.json`, restored on click, deleted via right-click
-- **Protocol colors**: Theme-aware brushes (bright on dark, darker on light) defined per-theme, not globally
+- **Protocol colors**: Theme-aware brushes defined once per Dracula variant (DraculaPro, Alucard, Blade, Buffy, Lincoln, Morbius, VanHelsing) — resolved through `DynamicResource` everywhere and re-evaluated on theme swap via `ThemeService.ThemeRevision` triggers for converter-based bindings
 - **Cross-tool navigation**: `ToolContextMenuHelper` with `OpenToolAction` callback enables right-click → open another tool with prefilled context
 
 ### Notes Tool (Obsidian-style)
@@ -665,15 +665,54 @@ The Notes tool (#34) provides a local-first Markdown editing experience inspired
 - **PowerShell Execution Policy**: Configurable in Settings > Terminal, applied as `-ExecutionPolicy` flag on local shell launch
 - **Elevation modes**: `None` / `Auto` (gsudo `--direct` → external window fallback) / `Gsudo` / `Runas` — `Auto` default for AdminByRequest/CyberArk/BeyondTrust compatibility, configurable per server profile
 
-### Tool Panel & Tools Tab Architecture
+### Theme System (`ThemeService`)
 
-**Sidebar panel** (`ToolsQuickPanel`, Ctrl+Shift+T): Collapsible panel at the bottom of the Servers tab sidebar. Renders tool mini-cards via `CreateToolCard()` — each card shows a category color badge (4px accent bar), vector icon, tool name, and 1-line description. Header bar with close button, search filter, MaxHeight=350 to preserve TreeView visibility.
+**Problem**: Runtime theme swapping across 7 Dracula variants must keep every surface in sync — including converters that resolve brushes at convert time (server icons, status dots), UI built in code-behind (sidebar tool browser), the AvalonEdit file editor, and the DWM title-bar chrome. Duplicated swap logic in multiple places caused drift (one code path knew only Dark/Light, another knew all variants).
 
-**Dedicated Tools tab**: Full-page browser with 3 sections — Favorites (pinned tools, persisted in `AppSettings.FavoriteToolIds`), Recently Used (`_recentToolIds`, max 5), and All Tools by category. Cards are 280px wide with pin/unpin button and category-colored icon background. Search filters across name, aliases, and descriptions.
+**Solution**: `Services/ThemeService.cs` is the single owner of the theme dictionary swap.
 
-**Launch flow** (both entry points): `OnToolsPanelItemClick` / `OnToolsTabCardClick` → `OpenToolTabAsync` → `EmbeddedSessionManager.CreateToolControl` → `ToolRegistry.CreateView` (factory lambda) → `view.Initialize(context, localizer)`. Non-network tools use singleton tab behavior. Network tools pass selected server as `TargetHost` directly (no intermediate prompt). `OpenToolTabAsync` cleans up orphaned tabs on `CreateToolControl` failure.
+- **Singleton DI**: registered once in `App.xaml.cs`, injected into `MainWindow`, `MainViewModel`, and `EmbeddedEditorView`
+- **`ApplyTheme(string? themeName)`**: idempotent swap. Replaces the existing theme `ResourceDictionary` in `Application.Resources.MergedDictionaries` by searching for a `Source.OriginalString` containing `Theme.xaml`. Legacy values `"Dark"` / `"Light"` from pre-Dracula settings are silently migrated to `DraculaPro` and persisted via `ConfigManager.MergeSettingAsync`. Unknown names fall back to `DraculaPro`. After a successful swap the service updates the DWM dark-mode flag on every open `Window` via `WindowThemeHelper.ApplyCurrentTheme`.
+- **`ThemeRevision` counter**: monotonic `int`, bumped *before* `ThemeChanged` fires. XAML `MultiBinding`s that depend on brush-resolving converters add `DataContext.ThemeRevision` (`ElementName=MainWindowRoot`) as a trailing trigger value to force WPF to re-run the converter on each swap. `ElementName` (not `RelativeSource AncestorType=Window`) is required so the binding resolves from inside the Command Palette `Popup`, whose content has its own visual root.
+- **`event Action<string> ThemeChanged`**: consumed by downstream views that rebuild brush caches (`EmbeddedEditorView.ApplyTheme` re-reads AvalonEdit chrome colors from the active dictionary) and by `MainWindow.OnThemeServiceThemeChanged` as a safety-net for any residual code-behind UI not expressible via `DynamicResource`.
 
-**Onboarding**: 3-step first-launch overlay (`OnboardingOverlay`, Panel.ZIndex=500). Steps: Connect to Servers → Built-in Tools → Quick Connect. Each step navigates to the relevant UI area (Servers tab → Settings tab → enables Tools panel). Keyboard accessible (Escape, Tab cycle, focus management). Persisted via `AppSettings.OnboardingCompleted`.
+**Brush-resolving converters** (4 in total): `ConnectionTypeToColorConverter`, `ConnectionTypeToBrushConverter`, `ConnectionStateToBrushConverter`, `ServerStatusToColorConverter`. Each implements both `IValueConverter` (for legacy single-value bindings and direct code-behind use in `FloatingSessionWindow`) and `IMultiValueConverter` (accepts the `ThemeRevision` trigger, delegates to a shared `ResolveBrush` helper).
+
+**Generic resource-key converters**: `ResourceKeyToBrushConverter` (dual `IValue`/`IMulti`, used by the sidebar tool browser to resolve category brushes from VM properties) and `ResourceKeyToGeometryConverter` (simple `IValue`, resolves `Geo.Tool.*` geometries — immutable across themes, no trigger needed).
+
+**Code-built UI reactivity**: instead of caching `Brush` instances from `FindResource`, builders like `MainWindow.PopulateToolsTab` / `RefreshToolsTabSections` / `CreateToolsTabCard` use `element.SetResourceReference(<DP>, "BrushKey")`. Hover-state toggles (e.g. `cardBorder` active/default) call `SetResourceReference` with a conditional key inside the handler rather than flipping pre-cached brushes. Residual `FindResource("<Name>Brush")` call sites remain in transient contexts (drag highlights, context menus rebuilt per interaction) or one-shot views (onboarding overlay, ext-tool placeholder list).
+
+### Sidebar (Servers / Tools Tabs)
+
+**Problem**: The legacy collapsible `ToolsQuickPanel` (`MaxHeight=350`, bottom-docked inside the Servers sidebar) was cramped and competed for vertical space with the server `TreeView`. Mini-card rendering in code-behind froze brushes at build time and required a lazy-rebuild safety net after every theme swap.
+
+**Solution**: the left sidebar is now a tabbed region. Two `RadioButton`s (`SidebarTabServers` / `SidebarTabTools`, `GroupName=SidebarTabs`) sit at the top of the sidebar, styled via `SidebarTabStyle` in `CommonControls.xaml` (flat tab with accent underline on `IsChecked`, `HighlightBrush` hover, `FocusIndicatorBrush` keyboard focus, all colors via `DynamicResource`). `Visibility` of `SidebarServersContent` and `SidebarToolsContent` is bound to each RadioButton's `IsChecked` via `BoolToVisibilityConverter`, so both content containers consume the full remaining sidebar height, one at a time.
+
+**Servers tab**: unchanged — toolbar (search, add, expand/collapse) on top of the `ServerTreeView`.
+
+**Tools tab**: filter `TextBox` + context label (mirrors `Mw_ToolsTabContextText` — "Network tools open without gateway" / "…with <host>") + full-height `TreeView` populated lazily from `ToolRegistry.All` on first `SidebarTabTools.Checked`. Data model:
+- `SidebarToolCategoryViewModel` (`ObservableObject` via CommunityToolkit.Mvvm): `CategoryName`, `BrushKey`, `Tools`, `VisibleCount` (drives the header badge), `IsExpanded` (two-way), `IsVisible`
+- `SidebarToolItemViewModel`: `Id`, `Name`, `BrushKey`, `IconGeometryKey`, pre-lowercased `Searchable` blob (`name + aliases`) for allocation-free filtering
+
+`HierarchicalDataTemplate` renders category headers (accent dot + name + count badge) and leaves (14×14 vector icon + name). Brush bindings use `MultiBinding` over `[BrushKey, DataContext.ThemeRevision]` routed through `ResourceKeyToBrushConverter` — theme swap reactivity is automatic, no rebuild required. Icon geometries use `ResourceKeyToGeometryConverter` (immutable across themes).
+
+**Filter**: `OnSidebarToolsFilterChanged` updates `IsVisible` per item (via `Searchable.Contains(filterLower)`) and `VisibleCount` / `IsExpanded` per category. Auto-expand when a filter is active, collapse when cleared. An empty-state label appears when no category has a visible child.
+
+**Launch flow**: `OnSidebarToolsSelectedItemChanged` / `OnSidebarToolsDoubleClick` → `LaunchSidebarTool(item)` → resolves descriptor via `ToolRegistry.All.FirstOrDefault(Id)` → reuses the same `CreateInheritedToolContext` / `ResolveToolTabTitle` / `vm.OpenToolTabAsync` / `vm.TrackRecentTool` primitives as the full-page Tools tab. Before opening, the main Servers tab is activated so the session panel is visible.
+
+**Ctrl+Shift+T gotcha**: `RadioButton.IsChecked = !IsChecked` on a grouped button does **not** auto-check its sibling — both end up unchecked, both content containers collapse, the sidebar goes blank. `ToggleSidebarTab()` therefore explicitly sets the target: `if (SidebarTabTools.IsChecked == true) SidebarTabServers.IsChecked = true; else SidebarTabTools.IsChecked = true;`.
+
+**Persistence**: reuses the existing `ShowToolsPanel` bool setting (`true` = Tools tab active at startup). Restored in the window `Loaded` handler.
+
+**External tools refresh**: `ToolRegistry.ExternalToolsChanged` invalidates `_sidebarToolsPopulated` and rebuilds immediately if the sidebar Tools tab is currently active; lazy rebuild on next switch otherwise.
+
+### Dedicated Tools Tab (full-page)
+
+Full-page browser on the main navigation rail, independent of the sidebar Tools tab. Contains 3 sections — Favorites (pinned tools, persisted in `AppSettings.FavoriteToolIds`), Recently Used (`_recentToolIds`, max 5), and All Tools by category. Cards are 280px wide with pin/unpin button and category-colored icon background. Search filters across name, aliases, and descriptions.
+
+**Launch flow**: `OnToolsTabCardClick` → `vm.OpenToolTabAsync` → `EmbeddedSessionManager.CreateToolControl` → `ToolRegistry.CreateView` (factory lambda) → `view.Initialize(context, localizer)`. Non-network tools use singleton tab behavior. Network tools pass selected server as `TargetHost` directly (no intermediate prompt). `OpenToolTabAsync` cleans up orphaned tabs on `CreateToolControl` failure.
+
+**Onboarding**: 3-step first-launch overlay (`OnboardingOverlay`, `Panel.ZIndex=500`). Steps: Connect to Servers → Built-in Tools → Quick Connect. Each step navigates to the relevant UI area (Servers tab → Settings tab → switches the sidebar to the Tools tab). Keyboard accessible (Escape, Tab cycle, focus management). Persisted via `AppSettings.OnboardingCompleted`.
 
 **NetworkCartography responsive**: Columns use proportional (`*`) widths with `MinWidth`. `SizeChanged` handler hides detail columns below 1100px and secondary columns below 800px for split pane support.
 
