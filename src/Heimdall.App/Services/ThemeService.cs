@@ -34,11 +34,11 @@ public sealed class ThemeService
     private static readonly Dictionary<string, Uri> ThemeUris = new(StringComparer.OrdinalIgnoreCase)
     {
         ["DraculaPro"] = new Uri("Themes/DraculaProTheme.xaml", UriKind.Relative),
-        ["Alucard"]    = new Uri("Themes/AlucardTheme.xaml",    UriKind.Relative),
-        ["Blade"]      = new Uri("Themes/BladeTheme.xaml",      UriKind.Relative),
-        ["Buffy"]      = new Uri("Themes/BuffyTheme.xaml",      UriKind.Relative),
-        ["Lincoln"]    = new Uri("Themes/LincolnTheme.xaml",    UriKind.Relative),
-        ["Morbius"]    = new Uri("Themes/MorbiusTheme.xaml",    UriKind.Relative),
+        ["Alucard"] = new Uri("Themes/AlucardTheme.xaml", UriKind.Relative),
+        ["Blade"] = new Uri("Themes/BladeTheme.xaml", UriKind.Relative),
+        ["Buffy"] = new Uri("Themes/BuffyTheme.xaml", UriKind.Relative),
+        ["Lincoln"] = new Uri("Themes/LincolnTheme.xaml", UriKind.Relative),
+        ["Morbius"] = new Uri("Themes/MorbiusTheme.xaml", UriKind.Relative),
         ["VanHelsing"] = new Uri("Themes/VanHelsingTheme.xaml", UriKind.Relative),
     };
 

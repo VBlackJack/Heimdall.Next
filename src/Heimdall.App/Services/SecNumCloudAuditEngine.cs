@@ -131,8 +131,8 @@ public sealed class SecNumCloudAuditEngine
 
     private static readonly Dictionary<string, List<CveEntry>> CveDatabase =
         new(StringComparer.OrdinalIgnoreCase)
-    {
-        ["OpenSSH"] =
+        {
+            ["OpenSSH"] =
         [
             new("CVE-2024-6387", 8.1, "High",
                 "regreSSHion: Race condition in signal handler allows unauthenticated RCE",
@@ -144,7 +144,7 @@ public sealed class SecNumCloudAuditEngine
                 "Terrapin: Prefix truncation attack on SSH BPP (strict kex bypass)",
                 "< 9.6", v => VersionBelow(v, "9.6")),
         ],
-        ["Apache"] =
+            ["Apache"] =
         [
             new("CVE-2021-41773", 7.5, "High",
                 "Path traversal and file disclosure in Apache HTTP Server 2.4.49",
@@ -153,7 +153,7 @@ public sealed class SecNumCloudAuditEngine
                 "HTTP request smuggling via mod_proxy with RewriteRule",
                 "< 2.4.56", v => VersionBelow(v, "2.4.56")),
         ],
-        ["nginx"] =
+            ["nginx"] =
         [
             new("CVE-2021-23017", 7.7, "High",
                 "DNS resolver off-by-one heap write allows RCE",
@@ -162,13 +162,13 @@ public sealed class SecNumCloudAuditEngine
                 "Memory corruption via crafted mp4 file (ngx_http_mp4_module)",
                 "< 1.23.2", v => VersionBelow(v, "1.23.2")),
         ],
-        ["MySQL"] =
+            ["MySQL"] =
         [
             new("CVE-2023-21980", 7.1, "High",
                 "Client: buffer overflow in C API",
                 "< 8.0.33", v => VersionBelow(v, "8.0.33")),
         ],
-        ["PostgreSQL"] =
+            ["PostgreSQL"] =
         [
             new("CVE-2024-10979", 8.8, "High",
                 "Arbitrary code execution via environment variable manipulation in PL/Perl",
@@ -177,13 +177,13 @@ public sealed class SecNumCloudAuditEngine
                 "Buffer overflow in integer overflow in array modification",
                 "< 16.1", v => VersionBelow(v, "16.1")),
         ],
-        ["Microsoft IIS"] =
+            ["Microsoft IIS"] =
         [
             new("CVE-2022-21907", 9.8, "Critical",
                 "HTTP Protocol Stack (http.sys) RCE in trailer support",
                 "IIS 10.0 (Win Server 2022)", v => v.StartsWith("10.", StringComparison.Ordinal) || v == "10"),
         ],
-    };
+        };
 
     /// <summary>Banner regex patterns mapping raw banners to product names.</summary>
     private static readonly (Regex Pattern, string Software)[] BannerPatterns =

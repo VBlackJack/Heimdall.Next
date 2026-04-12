@@ -344,7 +344,7 @@ public partial class DefaultCredentialView : UserControl, IToolView
             {
                 UpdateProgress(L("ToolDefCredDetecting"), true);
 
-        var portsToScan = DefaultCredentialPresets.ServicePorts.Keys.ToList();
+                var portsToScan = DefaultCredentialPresets.ServicePorts.Keys.ToList();
                 var semaphore = new SemaphoreSlim(tunnelClient is not null ? 5 : 20);
 
                 try
@@ -361,7 +361,7 @@ public partial class DefaultCredentialView : UserControl, IToolView
 
                             if (isOpen)
                             {
-                return (Port: port, Service: DefaultCredentialPresets.ServicePorts[port]);
+                                return (Port: port, Service: DefaultCredentialPresets.ServicePorts[port]);
                             }
 
                             return ((int Port, string Service)?)null;
@@ -383,7 +383,7 @@ public partial class DefaultCredentialView : UserControl, IToolView
             else
             {
                 // Test all known service ports without probing
-            detectedServices.AddRange(DefaultCredentialPresets.ServicePorts.Select(kv => (kv.Key, kv.Value)));
+                detectedServices.AddRange(DefaultCredentialPresets.ServicePorts.Select(kv => (kv.Key, kv.Value)));
             }
 
             if (detectedServices.Count == 0)
@@ -418,7 +418,7 @@ public partial class DefaultCredentialView : UserControl, IToolView
                         foreach (var (port, service) in group)
                         {
                             ct.ThrowIfCancellationRequested();
-        var credentials = DefaultCredentialPresets.CredentialsByService.GetValueOrDefault(service);
+                            var credentials = DefaultCredentialPresets.CredentialsByService.GetValueOrDefault(service);
                             if (credentials is null)
                             {
                                 continue;

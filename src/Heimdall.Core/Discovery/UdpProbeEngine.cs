@@ -104,7 +104,7 @@ public static class UdpProbeEngine
         catch (OperationCanceledException) { return (null, null, null); }
         catch (Exception ex)
         {
-            FileLogger.Log("DEBUG",$"NetBIOS query to {ip} failed: {ex.Message}");
+            FileLogger.Log("DEBUG", $"NetBIOS query to {ip} failed: {ex.Message}");
             return (null, null, null);
         }
     }
@@ -264,7 +264,7 @@ public static class UdpProbeEngine
         catch (OperationCanceledException) { return null; }
         catch (Exception ex)
         {
-            FileLogger.Log("DEBUG",$"SNMP query to {ip} failed: {ex.Message}");
+            FileLogger.Log("DEBUG", $"SNMP query to {ip} failed: {ex.Message}");
             return null;
         }
     }
@@ -456,7 +456,7 @@ public static class UdpProbeEngine
         catch (OperationCanceledException) { /* expected */ }
         catch (Exception ex)
         {
-            FileLogger.Log("DEBUG",$"mDNS discovery failed: {ex.Message}");
+            FileLogger.Log("DEBUG", $"mDNS discovery failed: {ex.Message}");
         }
 
         return results;

@@ -46,29 +46,79 @@ public partial class PasswordGeneratorView : UserControl, IToolView
     // NATO phonetic alphabet — internationally standardized (ICAO), not translated.
     private static readonly Dictionary<char, string> NatoAlphabet = new()
     {
-        ['A'] = "Alpha", ['B'] = "Bravo", ['C'] = "Charlie", ['D'] = "Delta",
-        ['E'] = "Echo", ['F'] = "Foxtrot", ['G'] = "Golf", ['H'] = "Hotel",
-        ['I'] = "India", ['J'] = "Juliet", ['K'] = "Kilo", ['L'] = "Lima",
-        ['M'] = "Mike", ['N'] = "November", ['O'] = "Oscar", ['P'] = "Papa",
-        ['Q'] = "Quebec", ['R'] = "Romeo", ['S'] = "Sierra", ['T'] = "Tango",
-        ['U'] = "Uniform", ['V'] = "Victor", ['W'] = "Whiskey", ['X'] = "X-ray",
-        ['Y'] = "Yankee", ['Z'] = "Zulu",
-        ['0'] = "Zero", ['1'] = "One", ['2'] = "Two", ['3'] = "Three",
-        ['4'] = "Four", ['5'] = "Five", ['6'] = "Six", ['7'] = "Seven",
-        ['8'] = "Eight", ['9'] = "Nine"
+        ['A'] = "Alpha",
+        ['B'] = "Bravo",
+        ['C'] = "Charlie",
+        ['D'] = "Delta",
+        ['E'] = "Echo",
+        ['F'] = "Foxtrot",
+        ['G'] = "Golf",
+        ['H'] = "Hotel",
+        ['I'] = "India",
+        ['J'] = "Juliet",
+        ['K'] = "Kilo",
+        ['L'] = "Lima",
+        ['M'] = "Mike",
+        ['N'] = "November",
+        ['O'] = "Oscar",
+        ['P'] = "Papa",
+        ['Q'] = "Quebec",
+        ['R'] = "Romeo",
+        ['S'] = "Sierra",
+        ['T'] = "Tango",
+        ['U'] = "Uniform",
+        ['V'] = "Victor",
+        ['W'] = "Whiskey",
+        ['X'] = "X-ray",
+        ['Y'] = "Yankee",
+        ['Z'] = "Zulu",
+        ['0'] = "Zero",
+        ['1'] = "One",
+        ['2'] = "Two",
+        ['3'] = "Three",
+        ['4'] = "Four",
+        ['5'] = "Five",
+        ['6'] = "Six",
+        ['7'] = "Seven",
+        ['8'] = "Eight",
+        ['9'] = "Nine"
     };
 
     // Special character technical names — universal terminology, not translated.
     private static readonly Dictionary<char, string> SpecialCharNames = new()
     {
-        ['!'] = "Exclamation", ['@'] = "At", ['#'] = "Hash", ['$'] = "Dollar",
-        ['%'] = "Percent", ['^'] = "Caret", ['&'] = "Ampersand", ['*'] = "Asterisk",
-        ['('] = "OpenParen", [')'] = "CloseParen", ['-'] = "Dash", ['_'] = "Underscore",
-        ['='] = "Equals", ['+'] = "Plus", ['['] = "OpenBracket", [']'] = "CloseBracket",
-        ['{'] = "OpenBrace", ['}'] = "CloseBrace", ['\\'] = "Backslash", ['/'] = "Slash",
-        [';'] = "Semicolon", [':'] = "Colon", ['\''] = "Apostrophe", ['"'] = "Quote",
-        [','] = "Comma", ['.'] = "Period", ['<'] = "LessThan", ['>'] = "GreaterThan",
-        ['?'] = "Question", ['~'] = "Tilde", ['`'] = "Backtick", ['|'] = "Pipe",
+        ['!'] = "Exclamation",
+        ['@'] = "At",
+        ['#'] = "Hash",
+        ['$'] = "Dollar",
+        ['%'] = "Percent",
+        ['^'] = "Caret",
+        ['&'] = "Ampersand",
+        ['*'] = "Asterisk",
+        ['('] = "OpenParen",
+        [')'] = "CloseParen",
+        ['-'] = "Dash",
+        ['_'] = "Underscore",
+        ['='] = "Equals",
+        ['+'] = "Plus",
+        ['['] = "OpenBracket",
+        [']'] = "CloseBracket",
+        ['{'] = "OpenBrace",
+        ['}'] = "CloseBrace",
+        ['\\'] = "Backslash",
+        ['/'] = "Slash",
+        [';'] = "Semicolon",
+        [':'] = "Colon",
+        ['\''] = "Apostrophe",
+        ['"'] = "Quote",
+        [','] = "Comma",
+        ['.'] = "Period",
+        ['<'] = "LessThan",
+        ['>'] = "GreaterThan",
+        ['?'] = "Question",
+        ['~'] = "Tilde",
+        ['`'] = "Backtick",
+        ['|'] = "Pipe",
         [' '] = "Space"
     };
 
@@ -76,14 +126,14 @@ public partial class PasswordGeneratorView : UserControl, IToolView
     private const string LayoutUnsafeChars = "aqwzmAQWZM";
 
     private static readonly string[] LayoutSafeConsonants =
-        ["b","c","d","f","g","h","j","k","l","n","p","r","s","t","v","x"];
-    private static readonly string[] LayoutSafeVowels = ["e","i","o","u","y"];
+        ["b", "c", "d", "f", "g", "h", "j", "k", "l", "n", "p", "r", "s", "t", "v", "x"];
+    private static readonly string[] LayoutSafeVowels = ["e", "i", "o", "u", "y"];
 
     private static readonly string[] Consonants =
-        ["b","c","d","f","g","h","j","k","l","m","n","p","r","s","t","v","w","x","z"];
-    private static readonly string[] Vowels = ["a","e","i","o","u","y"];
+        ["b", "c", "d", "f", "g", "h", "j", "k", "l", "m", "n", "p", "r", "s", "t", "v", "w", "x", "z"];
+    private static readonly string[] Vowels = ["a", "e", "i", "o", "u", "y"];
     private static readonly string[] EndingConsonants =
-        ["b","d","f","g","k","l","m","n","p","r","s","t"];
+        ["b", "d", "f", "g", "k", "l", "m", "n", "p", "r", "s", "t"];
 
     private static readonly string[] FallbackEnglishWords =
     [

@@ -237,156 +237,156 @@ public partial class ServerListViewModel : ObservableObject, IDisposable
         try
         {
 
-        var servers = await _configManager.LoadServersAsync();
-        var serverDto = servers.FirstOrDefault(
-            s => string.Equals(s.Id, server.Id, StringComparison.Ordinal));
+            var servers = await _configManager.LoadServersAsync();
+            var serverDto = servers.FirstOrDefault(
+                s => string.Equals(s.Id, server.Id, StringComparison.Ordinal));
 
-        if (serverDto is null)
-        {
-            return;
-        }
-
-        var settings = await _configManager.LoadSettingsAsync();
-
-        // Apply group-level inherited defaults (gateway, SSH username, key path)
-        // before preflight and connection. Server's own values take priority.
-        if (settings.GroupDefaults.Count > 0 && !string.IsNullOrEmpty(serverDto.Group))
-        {
-            var groupDefaults = Core.Configuration.GroupDefaultsDto.Resolve(
-                serverDto.Group, settings.GroupDefaults);
-            groupDefaults.ApplyTo(serverDto);
-        }
-
-        // Resolve credentials from external provider if configured and server
-        // has no stored password. The retrieved password is DPAPI-encrypted into
-        // the DTO so all downstream code (ConnectionService, EmbeddedRdpView) works
-        // without modification.
-        await TryResolveExternalCredentialsAsync(serverDto, settings, cancellationToken);
-
-        var preflight = _connectionService.RunPreflight(serverDto, settings);
-        if (!preflight.Success)
-        {
-            server.ConnectionState = "Error";
-            _dialogService.ShowError(
-                _localizer["ErrorPreflightTitle"],
-                preflight.Message ?? _localizer["ErrorPreflightFailed"]);
-            return;
-        }
-
-        // Generate a unique session ID so duplicate connections to the same server
-        // get independent state tracking (tunnel lifecycle, error recovery)
-        var sessionId = $"{server.Id}_{Guid.NewGuid().ToString("N")[..8]}";
-
-        Core.Logging.FileLogger.Info($"ConnectAsync: {server.DisplayName} type={serverDto.ConnectionType} gateway={serverDto.SshGatewayId} sessionId={sessionId}");
-
-        // Use sessionId for state machine keying — allows duplicate connections
-        // to the same server without sharing state or tunnels
-        var originalId = serverDto.Id;
-        serverDto.Id = sessionId;
-        _connectionSm.TryTransition(sessionId, Core.Models.ConnectionState.Initializing);
-
-        // Tool entries bypass the connection pipeline entirely
-        if (serverDto.ConnectionType?.StartsWith("TOOL:", StringComparison.OrdinalIgnoreCase) == true)
-        {
-            var toolId = serverDto.ConnectionType["TOOL:".Length..];
-            var context = new Core.Models.ToolContext(
-                TargetHost: serverDto.RemoteServer,
-                TargetPort: serverDto.RemotePort > 0 ? serverDto.RemotePort : null,
-                Argument: serverDto.RemoteServer,
-                DisplayName: serverDto.DisplayName,
-                Username: serverDto.SshUsername ?? serverDto.RdpUsername,
-                ConnectionType: serverDto.ConnectionType,
-                ProjectName: server.ProjectName);
-            ToolSessionRequested?.Invoke(toolId, server.DisplayName, context);
-            serverDto.Id = originalId;
-            _connectionSm.Reset(sessionId);
-            return;
-        }
-
-        try
-        {
-            ConnectionResult result;
-
-            switch (serverDto.ConnectionType?.ToUpperInvariant())
+            if (serverDto is null)
             {
-                case "RDP":
-                    result = await _connectionService.ConnectRdpAsync(
-                        serverDto, settings, cancellationToken);
-                    break;
-
-                case "SSH":
-                    result = await _connectionService.ConnectSshAsync(
-                        serverDto, settings, cancellationToken);
-                    break;
-
-                case "SFTP":
-                    result = await _connectionService.ConnectSftpAsync(
-                        serverDto, settings, cancellationToken);
-                    break;
-
-                case "FTP":
-                    result = await _connectionService.ConnectFtpAsync(
-                        serverDto, settings, cancellationToken);
-                    break;
-
-                case "LOCAL":
-                    result = await _connectionService.ConnectLocalShellAsync(
-                        serverDto, settings, cancellationToken);
-                    break;
-
-                case "CITRIX":
-                    result = await _connectionService.ConnectCitrixAsync(
-                        serverDto, settings, cancellationToken);
-                    break;
-
-                case "VNC":
-                    result = await _connectionService.ConnectVncAsync(
-                        serverDto, settings, cancellationToken);
-                    break;
-
-                case "TELNET":
-                    result = await _connectionService.ConnectTelnetAsync(
-                        serverDto, settings, cancellationToken);
-                    break;
-
-                default:
-                    _connectionSm.SetError(sessionId,
-                        _localizer.Format("ErrorUnsupportedConnectionType", serverDto.ConnectionType ?? ""));
-                    server.ConnectionState = "Error";
-                    serverDto.Id = originalId;
-                    return;
+                return;
             }
 
-            if (result.Success)
+            var settings = await _configManager.LoadSettingsAsync();
+
+            // Apply group-level inherited defaults (gateway, SSH username, key path)
+            // before preflight and connection. Server's own values take priority.
+            if (settings.GroupDefaults.Count > 0 && !string.IsNullOrEmpty(serverDto.Group))
             {
-                SessionReady?.Invoke(
-                    sessionId, originalId, server.DisplayName,
-                    serverDto.ConnectionType, result.Session);
+                var groupDefaults = Core.Configuration.GroupDefaultsDto.Resolve(
+                    serverDto.Group, settings.GroupDefaults);
+                groupDefaults.ApplyTo(serverDto);
             }
-            else
+
+            // Resolve credentials from external provider if configured and server
+            // has no stored password. The retrieved password is DPAPI-encrypted into
+            // the DTO so all downstream code (ConnectionService, EmbeddedRdpView) works
+            // without modification.
+            await TryResolveExternalCredentialsAsync(serverDto, settings, cancellationToken);
+
+            var preflight = _connectionService.RunPreflight(serverDto, settings);
+            if (!preflight.Success)
             {
                 server.ConnectionState = "Error";
                 _dialogService.ShowError(
-                    _localizer["ErrorConnectionTitle"],
-                    result.ErrorMessage ?? _localizer["ErrorConnectionFailed"]);
+                    _localizer["ErrorPreflightTitle"],
+                    preflight.Message ?? _localizer["ErrorPreflightFailed"]);
+                return;
             }
-        }
-        catch (OperationCanceledException)
-        {
-            _connectionSm.Reset(sessionId);
-        }
-        catch (Exception ex)
-        {
-            var failure = Ssh.FailureClassifier.Classify(ex);
-            _connectionSm.SetError(sessionId, failure.Message);
-            server.ConnectionState = "Error";
-            _dialogService.ShowError(
-                _localizer["ErrorConnectionTitle"], failure.Message);
-        }
-        finally
-        {
-            serverDto.Id = originalId;
-        }
+
+            // Generate a unique session ID so duplicate connections to the same server
+            // get independent state tracking (tunnel lifecycle, error recovery)
+            var sessionId = $"{server.Id}_{Guid.NewGuid().ToString("N")[..8]}";
+
+            Core.Logging.FileLogger.Info($"ConnectAsync: {server.DisplayName} type={serverDto.ConnectionType} gateway={serverDto.SshGatewayId} sessionId={sessionId}");
+
+            // Use sessionId for state machine keying — allows duplicate connections
+            // to the same server without sharing state or tunnels
+            var originalId = serverDto.Id;
+            serverDto.Id = sessionId;
+            _connectionSm.TryTransition(sessionId, Core.Models.ConnectionState.Initializing);
+
+            // Tool entries bypass the connection pipeline entirely
+            if (serverDto.ConnectionType?.StartsWith("TOOL:", StringComparison.OrdinalIgnoreCase) == true)
+            {
+                var toolId = serverDto.ConnectionType["TOOL:".Length..];
+                var context = new Core.Models.ToolContext(
+                    TargetHost: serverDto.RemoteServer,
+                    TargetPort: serverDto.RemotePort > 0 ? serverDto.RemotePort : null,
+                    Argument: serverDto.RemoteServer,
+                    DisplayName: serverDto.DisplayName,
+                    Username: serverDto.SshUsername ?? serverDto.RdpUsername,
+                    ConnectionType: serverDto.ConnectionType,
+                    ProjectName: server.ProjectName);
+                ToolSessionRequested?.Invoke(toolId, server.DisplayName, context);
+                serverDto.Id = originalId;
+                _connectionSm.Reset(sessionId);
+                return;
+            }
+
+            try
+            {
+                ConnectionResult result;
+
+                switch (serverDto.ConnectionType?.ToUpperInvariant())
+                {
+                    case "RDP":
+                        result = await _connectionService.ConnectRdpAsync(
+                            serverDto, settings, cancellationToken);
+                        break;
+
+                    case "SSH":
+                        result = await _connectionService.ConnectSshAsync(
+                            serverDto, settings, cancellationToken);
+                        break;
+
+                    case "SFTP":
+                        result = await _connectionService.ConnectSftpAsync(
+                            serverDto, settings, cancellationToken);
+                        break;
+
+                    case "FTP":
+                        result = await _connectionService.ConnectFtpAsync(
+                            serverDto, settings, cancellationToken);
+                        break;
+
+                    case "LOCAL":
+                        result = await _connectionService.ConnectLocalShellAsync(
+                            serverDto, settings, cancellationToken);
+                        break;
+
+                    case "CITRIX":
+                        result = await _connectionService.ConnectCitrixAsync(
+                            serverDto, settings, cancellationToken);
+                        break;
+
+                    case "VNC":
+                        result = await _connectionService.ConnectVncAsync(
+                            serverDto, settings, cancellationToken);
+                        break;
+
+                    case "TELNET":
+                        result = await _connectionService.ConnectTelnetAsync(
+                            serverDto, settings, cancellationToken);
+                        break;
+
+                    default:
+                        _connectionSm.SetError(sessionId,
+                            _localizer.Format("ErrorUnsupportedConnectionType", serverDto.ConnectionType ?? ""));
+                        server.ConnectionState = "Error";
+                        serverDto.Id = originalId;
+                        return;
+                }
+
+                if (result.Success)
+                {
+                    SessionReady?.Invoke(
+                        sessionId, originalId, server.DisplayName,
+                        serverDto.ConnectionType, result.Session);
+                }
+                else
+                {
+                    server.ConnectionState = "Error";
+                    _dialogService.ShowError(
+                        _localizer["ErrorConnectionTitle"],
+                        result.ErrorMessage ?? _localizer["ErrorConnectionFailed"]);
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                _connectionSm.Reset(sessionId);
+            }
+            catch (Exception ex)
+            {
+                var failure = Ssh.FailureClassifier.Classify(ex);
+                _connectionSm.SetError(sessionId, failure.Message);
+                server.ConnectionState = "Error";
+                _dialogService.ShowError(
+                    _localizer["ErrorConnectionTitle"], failure.Message);
+            }
+            finally
+            {
+                serverDto.Id = originalId;
+            }
 
         }
         finally

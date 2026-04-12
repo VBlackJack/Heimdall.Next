@@ -24,10 +24,9 @@ using Heimdall.Core.Discovery;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Models;
 using Heimdall.Core.Security;
-
-using SaveFileDialog = Microsoft.Win32.SaveFileDialog;
 using FontFamily = System.Windows.Media.FontFamily;
 using Orientation = System.Windows.Controls.Orientation;
+using SaveFileDialog = Microsoft.Win32.SaveFileDialog;
 using TextBox = System.Windows.Controls.TextBox;
 
 namespace Heimdall.App.Views.Tools;
