@@ -6,8 +6,8 @@
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <!-- Default theme: Dark -->
-                <ResourceDictionary Source="Themes/DarkTheme.xaml"/>
+                <!-- Default theme: DraculaPro -->
+                <ResourceDictionary Source="Themes/DraculaProTheme.xaml"/>
                 <!-- Vector icon geometries -->
                 <ResourceDictionary Source="Themes/IconGeometries.xaml"/>
             </ResourceDictionary.MergedDictionaries>
@@ -23,6 +23,8 @@
             <converters:ConnectionTypeToColorConverter x:Key="TypeToColorConverter"/>
             <converters:ConnectionStateToGeometryConverter x:Key="StateToGeoConverter"/>
             <converters:StringToBrushConverter x:Key="StringToBrushConverter"/>
+            <converters:ResourceKeyToBrushConverter x:Key="ResourceKeyToBrushConverter"/>
+            <converters:ResourceKeyToGeometryConverter x:Key="ResourceKeyToGeometryConverter"/>
 
             <!-- Toolbar navigation tab style (RadioButton as flat tab) -->
             <Style x:Key="ToolbarTabStyle" TargetType="RadioButton">

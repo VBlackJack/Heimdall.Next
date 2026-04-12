@@ -18,7 +18,9 @@ using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using Heimdall.App.Services;
 using ICSharpCode.AvalonEdit.Highlighting;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Heimdall.App.Views;
 
@@ -31,8 +33,8 @@ public partial class EmbeddedEditorView : UserControl
     private string? _filePath;
     private bool _isModified;
     private bool _isRemote;
-    private string _currentTheme = "Dark";
-    private Core.Localization.LocalizationManager? _localizer;
+    private readonly Core.Localization.LocalizationManager? _localizer;
+    private ThemeService? _themeService;
 
     /// <summary>Raised when the user saves the file.</summary>
     public event Action<string, string>? FileSaved;
@@ -40,11 +42,11 @@ public partial class EmbeddedEditorView : UserControl
     /// <summary>Raised when the user closes the editor.</summary>
     public event Action? CloseRequested;
 
-    public EmbeddedEditorView(Core.Localization.LocalizationManager? localizer = null, string theme = "Dark")
+    public EmbeddedEditorView(Core.Localization.LocalizationManager? localizer = null)
     {
         _localizer = localizer;
         InitializeComponent();
-        ApplyTheme(theme);
+        ApplyTheme();
 
         // Localize button labels
         BtnSave.Content = L("EditorBtnSave");
@@ -62,6 +64,39 @@ public partial class EmbeddedEditorView : UserControl
         };
 
         Editor.TextArea.Caret.PositionChanged += (_, _) => UpdateCursorPosition();
+
+        Loaded += OnViewLoaded;
+        Unloaded += OnViewUnloaded;
+    }
+
+    private void OnViewLoaded(object sender, RoutedEventArgs e)
+    {
+        if (_themeService is not null)
+        {
+            return;
+        }
+
+        _themeService = (Application.Current as App)?.Services?.GetService<ThemeService>();
+        if (_themeService is not null)
+        {
+            _themeService.ThemeChanged += OnThemeServiceThemeChanged;
+            // Re-apply in case the active theme was swapped before this view was created.
+            ApplyTheme();
+        }
+    }
+
+    private void OnViewUnloaded(object sender, RoutedEventArgs e)
+    {
+        if (_themeService is not null)
+        {
+            _themeService.ThemeChanged -= OnThemeServiceThemeChanged;
+            _themeService = null;
+        }
+    }
+
+    private void OnThemeServiceThemeChanged(string themeName)
+    {
+        Dispatcher.BeginInvoke(ApplyTheme);
     }
 
     /// <summary>
@@ -216,68 +251,45 @@ public partial class EmbeddedEditorView : UserControl
     }
 
     /// <summary>
-    /// Applies the specified theme to the editor. Supports "Dark" and "Light".
+    /// Applies the editor chrome colors (background, line numbers, selection,
+    /// current-line highlight) from the active theme's <see cref="ResourceDictionary"/>.
+    /// All 7 themes are Dracula variants and share the same syntax palette, so the
+    /// token-level highlighting is fixed Dracula while the outer chrome follows the
+    /// theme swap.
     /// </summary>
-    public void ApplyTheme(string themeName)
+    public void ApplyTheme()
     {
-        _currentTheme = themeName;
-        if (string.Equals(themeName, "Light", StringComparison.OrdinalIgnoreCase))
-        {
-            ApplyLightTheme();
-        }
-        else
-        {
-            ApplyDarkTheme();
-        }
-    }
+        // DraculaPro fallbacks — used if the theme resource is missing (e.g. during
+        // XAML designer preview) so the editor never renders with unset brushes.
+        var background = ResolveColor("BackgroundBrush", System.Windows.Media.Color.FromRgb(0x28, 0x2A, 0x36));
+        var foreground = ResolveColor("TextPrimaryBrush", System.Windows.Media.Color.FromRgb(0xF8, 0xF8, 0xF2));
+        var lineNumber = ResolveColor("TextSecondaryBrush", System.Windows.Media.Color.FromRgb(0x62, 0x72, 0xA4));
+        var selection = ResolveColor("HighlightBrush", System.Windows.Media.Color.FromRgb(0x44, 0x47, 0x5A));
+        var border = ResolveColor("BorderBrush", System.Windows.Media.Color.FromRgb(0x44, 0x47, 0x5A));
 
-    private void ApplyDarkTheme()
-    {
-        // Dracula editor colors
-        Editor.Background = new SolidColorBrush(ColorFromHex("#282A36"));
-        Editor.Foreground = new SolidColorBrush(ColorFromHex("#F8F8F2"));
-        Editor.LineNumbersForeground = new SolidColorBrush(ColorFromHex("#6272A4"));
+        Editor.Background = new SolidColorBrush(background);
+        Editor.Foreground = new SolidColorBrush(foreground);
+        Editor.LineNumbersForeground = new SolidColorBrush(lineNumber);
 
-        Editor.TextArea.SelectionBrush = new SolidColorBrush(ColorFromHex("#44475A"));
+        Editor.TextArea.SelectionBrush = new SolidColorBrush(selection);
         Editor.TextArea.SelectionForeground = null;
 
-        var currentLineBrush = new SolidColorBrush(ColorFromHex("#44475A"));
-        currentLineBrush.Opacity = 0.3;
+        var currentLineBrush = new SolidColorBrush(selection) { Opacity = 0.3 };
         Editor.TextArea.TextView.CurrentLineBackground = currentLineBrush;
         Editor.TextArea.TextView.CurrentLineBorder = new System.Windows.Media.Pen(
-            new SolidColorBrush(ColorFromHex("#44475A")), 1);
+            new SolidColorBrush(border), 1);
 
-        // Override AvalonEdit default syntax colors with Dracula palette
-        // Default colors are designed for white background — too dark on #282A36
+        // Syntax tokens use the fixed Dracula palette — it reads well against every
+        // Dracula variant and avoids per-theme highlight-definition plumbing.
         ApplyDraculaSyntaxColors();
     }
 
-    private void ApplyLightTheme()
+    private static System.Windows.Media.Color ResolveColor(
+        string brushKey, System.Windows.Media.Color fallback)
     {
-        Editor.Background = new SolidColorBrush(ColorFromHex("#FFFFFF"));
-        Editor.Foreground = new SolidColorBrush(ColorFromHex("#1A1A2E"));
-        Editor.LineNumbersForeground = new SolidColorBrush(ColorFromHex("#6B7280"));
-
-        Editor.TextArea.SelectionBrush = new SolidColorBrush(ColorFromHex("#B4D5FE"));
-        Editor.TextArea.SelectionForeground = null;
-
-        var currentLineBrush = new SolidColorBrush(ColorFromHex("#F0F0F0"));
-        currentLineBrush.Opacity = 0.5;
-        Editor.TextArea.TextView.CurrentLineBackground = currentLineBrush;
-        Editor.TextArea.TextView.CurrentLineBorder = new System.Windows.Media.Pen(
-            new SolidColorBrush(ColorFromHex("#E0E0E0")), 1);
-
-        // Reset syntax colors to AvalonEdit defaults (designed for light background)
-        ResetSyntaxColors();
-    }
-
-    private void ResetSyntaxColors()
-    {
-        if (Editor.SyntaxHighlighting is null) return;
-
-        // Reload the definition to reset to AvalonEdit defaults
-        var name = Editor.SyntaxHighlighting.Name;
-        Editor.SyntaxHighlighting = HighlightingManager.Instance.GetDefinition(name);
+        return Application.Current?.TryFindResource(brushKey) is SolidColorBrush brush
+            ? brush.Color
+            : fallback;
     }
 
     private void ApplyDraculaSyntaxColors()

@@ -25,9 +25,35 @@ namespace Heimdall.App.Converters;
 /// Converts a connection state value to a status indicator brush.
 /// Connected = green, Error = red, transitional states = amber, idle = gray.
 /// </summary>
-public sealed class ConnectionStateToBrushConverter : IValueConverter
+/// <remarks>
+/// Dual <see cref="IValueConverter"/> / <see cref="IMultiValueConverter"/> implementation:
+/// the multi variant accepts a <c>ThemeRevision</c> trigger so bindings re-resolve brushes
+/// when the active theme dictionary is swapped at runtime.
+/// </remarks>
+public sealed class ConnectionStateToBrushConverter : IValueConverter, IMultiValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        return ResolveBrush(value);
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        => DependencyProperty.UnsetValue;
+
+    public object Convert(object[] values, Type targetType, object? parameter, CultureInfo culture)
+    {
+        if (values.Length == 0 || values[0] == DependencyProperty.UnsetValue)
+        {
+            return Brushes.Gray;
+        }
+
+        return ResolveBrush(values[0]);
+    }
+
+    public object[] ConvertBack(object value, Type[] targetTypes, object? parameter, CultureInfo culture)
+        => [DependencyProperty.UnsetValue];
+
+    private static Brush ResolveBrush(object? value)
     {
         string state = value?.ToString()?.ToLowerInvariant() ?? string.Empty;
         string resourceKey = state switch
@@ -45,7 +71,4 @@ public sealed class ConnectionStateToBrushConverter : IValueConverter
         return Application.Current.TryFindResource(resourceKey) as Brush
                ?? Brushes.Gray;
     }
-
-    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
-        => DependencyProperty.UnsetValue;
 }

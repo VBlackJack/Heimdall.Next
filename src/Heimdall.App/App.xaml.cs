@@ -186,7 +186,7 @@ public partial class App : System.Windows.Application
         configManager.SettingsChanged += OnSettingsChanged;
 
         // Apply the saved theme before showing any window
-        ApplyThemeFromSettings(settings.DefaultTheme);
+        _serviceProvider.GetRequiredService<ThemeService>().ApplyTheme(settings.DefaultTheme);
 
         // Check for legacy Heimdall installation and offer migration on first run
         await TryMigrateLegacyAsync(configManager, localization);
@@ -279,6 +279,7 @@ public partial class App : System.Windows.Application
         services.AddSingleton<X11ServerManager>();
         services.AddSingleton<ExternalToolProviderService>();
         services.AddSingleton<ToolRegistry>();
+        services.AddSingleton<ThemeService>();
         services.AddSingleton<ConnectionService>();
         services.AddSingleton<EmbeddedSessionManager>();
         services.AddSingleton<SplitService>();
@@ -484,38 +485,13 @@ public partial class App : System.Windows.Application
         // Update logging state
         Core.Logging.FileLogger.SetEnabled(newSettings.EnableLogging);
 
-        // Apply theme change on the UI thread
-        Dispatcher.InvokeAsync(() => ApplyThemeFromSettings(newSettings.DefaultTheme));
-    }
-
-    /// <summary>
-    /// Replaces the active theme dictionary loaded from App.xaml with the
-    /// one matching <paramref name="themeName"/>.
-    /// </summary>
-    private void ApplyThemeFromSettings(string themeName)
-    {
-        var themeUri = themeName.ToUpperInvariant() switch
+        // Delegate theme swap to the centralized service on the UI thread.
+        // Idempotent: ThemeService skips the swap when the theme is unchanged.
+        var themeService = _serviceProvider?.GetService<ThemeService>();
+        if (themeService is not null)
         {
-            "LIGHT"      => new Uri("Themes/LightTheme.xaml",      UriKind.Relative),
-            "DRACULAPRO" => new Uri("Themes/DraculaProTheme.xaml",  UriKind.Relative),
-            "BLADE"      => new Uri("Themes/BladeTheme.xaml",       UriKind.Relative),
-            "BUFFY"      => new Uri("Themes/BuffyTheme.xaml",       UriKind.Relative),
-            "LINCOLN"    => new Uri("Themes/LincolnTheme.xaml",     UriKind.Relative),
-            "MORBIUS"    => new Uri("Themes/MorbiusTheme.xaml",     UriKind.Relative),
-            "VANHELSING" => new Uri("Themes/VanHelsingTheme.xaml",  UriKind.Relative),
-            "ALUCARD"    => new Uri("Themes/AlucardTheme.xaml",     UriKind.Relative),
-            _            => new Uri("Themes/DarkTheme.xaml",        UriKind.Relative),
-        };
-
-        var existing = Resources.MergedDictionaries
-            .FirstOrDefault(d => d.Source?.OriginalString.Contains("Theme") == true);
-
-        if (existing is not null)
-        {
-            Resources.MergedDictionaries.Remove(existing);
+            Dispatcher.InvokeAsync(() => themeService.ApplyTheme(newSettings.DefaultTheme));
         }
-
-        Resources.MergedDictionaries.Add(new ResourceDictionary { Source = themeUri });
     }
 
     protected override void OnExit(ExitEventArgs e)

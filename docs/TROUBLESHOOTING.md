@@ -437,18 +437,20 @@ if (sessionTab.ConnectionType == ConnectionType.Sftp)
 
 ---
 
-## Theme Switching — Light Theme Looks Wrong
+## Theme Switching — Stale Colors After Swap
 
-**Symptom**: After switching to the Light theme at runtime, some controls appear with incorrect colors, missing borders, or unstyled backgrounds.
+**Symptom**: After switching themes at runtime, some controls appear with incorrect colors, missing borders, or unstyled backgrounds.
 
-**Root Cause**: WPF `ResourceDictionary` merge order matters. If a custom control style uses `BasedOn="{StaticResource ...}"` referencing a key from `CommonControls.xaml`, and the theme dictionary is swapped AFTER the control is already loaded, the `StaticResource` reference is not re-evaluated (only `DynamicResource` responds to runtime changes).
+**Root Cause**: WPF `ResourceDictionary` merge order matters. If a custom control style uses `BasedOn="{StaticResource ...}"` referencing a key from `CommonControls.xaml`, and the theme dictionary is swapped AFTER the control is already loaded, the `StaticResource` reference is not re-evaluated (only `DynamicResource` responds to runtime changes). Converters that resolve brushes via `TryFindResource` at convert time snapshot the result and do not re-run on theme swap unless their binding inputs change.
 
 **Solution**:
 1. Ensure all theme-dependent styles in `CommonControls.xaml` use `DynamicResource` for color brushes
 2. `BasedOn` must always use `StaticResource` (WPF limitation), but the referenced style itself should use `DynamicResource` for its brush properties
-3. If a specific control still renders incorrectly after theme switch, force a visual tree refresh by toggling its `Visibility`
+3. For converters that resolve brushes via `TryFindResource`, bind them through a `MultiBinding` that adds `DataContext.ThemeRevision` (ElementName=`MainWindowRoot`) as a trailing trigger value so WPF re-runs the converter after each swap
+4. For UI built in code-behind, use `element.SetResourceReference(DP, "BrushKey")` instead of assigning a concrete `Brush` from `FindResource`
+5. If a specific control still renders incorrectly after theme switch, force a visual tree refresh by toggling its `Visibility`
 
-**Files**: `Themes/CommonControls.xaml`, `Themes/DarkTheme.xaml`, `Themes/LightTheme.xaml`, `Theming/WindowThemeHelper.cs`
+**Files**: `Themes/CommonControls.xaml`, `Themes/DraculaProTheme.xaml` (and the other 6 Dracula variants: `AlucardTheme`, `BladeTheme`, `BuffyTheme`, `LincolnTheme`, `MorbiusTheme`, `VanHelsingTheme`), `Services/ThemeService.cs`, `Theming/WindowThemeHelper.cs`. The project uses exclusively the 7 Dracula variants — no Dark/Light fallback themes.
 
 ---
 

@@ -55,12 +55,15 @@ public partial class MainWindow : Window
     private bool _treeContextTargetFromPointer;
     private bool _treeContextPointerHitEmptyArea;
     private EphemeralFileServer? _fileServer;
+    private readonly Services.ThemeService _themeService;
 
-    public MainWindow(MainViewModel viewModel)
+    public MainWindow(MainViewModel viewModel, Services.ThemeService themeService)
     {
         InitializeComponent();
         WindowThemeHelper.ApplyCurrentTheme(this);
         DataContext = viewModel;
+        _themeService = themeService;
+        _themeService.ThemeChanged += OnThemeServiceThemeChanged;
         ApplyLocalization();
 
         TabServers.Checked += OnServersTabChecked;
@@ -86,18 +89,22 @@ public partial class MainWindow : Window
             }
         };
 
-        // Show scan indicator while background tool detection runs
-        Mw_ToolsScanIndicator.Text = viewModel.Localize("ToolsScanInProgress");
-        Mw_ToolsScanIndicator.Visibility = Visibility.Visible;
-
         // Refresh Tools tab and Settings status when background scan discovers external tools
         viewModel.ToolRegistry.ExternalToolsChanged += () =>
         {
             Dispatcher.BeginInvoke(() =>
             {
-                Mw_ToolsScanIndicator.Visibility = Visibility.Collapsed;
                 _toolsTabPopulated = false;
                 PopulateToolsTab();
+
+                // Invalidate the sidebar Tools cache too; rebuild if it is the
+                // currently active sidebar tab, otherwise lazy-rebuild on next switch.
+                _sidebarToolsPopulated = false;
+                if (SidebarTabTools.IsChecked == true)
+                {
+                    BuildSidebarToolsData();
+                }
+
                 if (DataContext is MainViewModel vm)
                     UpdateExternalToolProviderStatus(vm);
             });
@@ -116,16 +123,11 @@ public partial class MainWindow : Window
             RestoreWindowBounds(viewModel);
             PopulateAboutSection();
 
-            // Restore tools panel visibility from persisted setting
+            // Restore the active sidebar tab (Servers / Tools) from persisted setting.
+            // ShowToolsPanel is reused as a bool flag: true = Tools tab, false = Servers tab.
             if (viewModel.Settings.ShowToolsPanel)
             {
-                ToolsQuickPanel.Visibility = Visibility.Visible;
-                ToolsToggleChevron.Text = "\uE70D";
-                if (!_toolsPanelPopulated)
-                {
-                    PopulateToolsPanel();
-                    _toolsPanelPopulated = true;
-                }
+                SidebarTabTools.IsChecked = true;
             }
 
             // Show onboarding overlay on first launch
@@ -335,8 +337,6 @@ public partial class MainWindow : Window
         Mw_SettingsAppearanceTitle.Text = vm.Localize("SettingsSectionAppearance");
         Mw_SettingsLanguageLabel.Text = vm.Localize("SettingsLabelLanguage");
         Mw_SettingsThemeLabel.Text = vm.Localize("SettingsLabelTheme");
-        Mw_ThemeDark.Content = vm.Localize("SettingsThemeDarkValue");
-        Mw_ThemeLight.Content = vm.Localize("SettingsThemeLightValue");
         Mw_ThemeDraculaPro.Content = vm.Localize("ThemeDraculaPro");
         Mw_ThemeAlucard.Content = vm.Localize("ThemeAlucard");
         Mw_ThemeBlade.Content = vm.Localize("ThemeBlade");
@@ -488,11 +488,7 @@ public partial class MainWindow : Window
         Mw_SettingsBtnRescan.Content = vm.Localize("ExtToolBtnRescan");
         UpdateExternalToolProviderStatus(vm);
         Mw_SettingsExtToolsTitle.Text = vm.Localize("SettingsSectionExternalToolsList");
-        Mw_ToolsToggleLabel.Text = vm.Localize("ToolsPanelToggle");
-        Mw_ToolsPanelHeaderLabel.Text = vm.Localize("ToolsPanelTitle");
-        TxtToolsFilter.Tag = vm.Localize("ToolsPanelFilterPlaceholder");
-        System.Windows.Automation.AutomationProperties.SetName(TxtToolsFilter, vm.Localize("ToolsPanelFilterPlaceholder"));
-        Mw_ToolsPanelNoResults.Text = vm.Localize("ToolsNoResults");
+        Mw_SidebarToolsFilter.Tag = vm.Localize("ToolsPanelFilterPlaceholder");
         Mw_SettingsExtToolsAddBtn.Content = vm.Localize("BtnAdd");
         Mw_SettingsExtToolsRemoveBtn.Content = vm.Localize("BtnRemove");
         Mw_ExtToolLblName.Text = vm.Localize("ExternalToolLabelName");
@@ -547,7 +543,6 @@ public partial class MainWindow : Window
         System.Windows.Automation.AutomationProperties.SetName(AddButton, vm.Localize("TooltipAddMenu"));
         System.Windows.Automation.AutomationProperties.SetName(SessionTabControl, vm.Localize("NavTabSessions"));
         System.Windows.Automation.AutomationProperties.SetName(QuickConnectButton, vm.Localize("QuickConnectShortcut"));
-        BtnToggleToolsPanel.ToolTip = vm.Localize("TooltipToggleToolsPanel");
 
         // DataTemplate relay: session tab close button and busy indicator bind to ancestor Tag
         SessionTabControl.Tag = vm.Localize("A11yCloseSessionTab");
@@ -1011,7 +1006,7 @@ public partial class MainWindow : Window
                 break;
 
             case Key.T when Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift):
-                ToggleToolsPanel();
+                ToggleSidebarTab();
                 e.Handled = true;
                 break;
 
@@ -1844,195 +1839,230 @@ public partial class MainWindow : Window
     /// <summary>
     /// Launches an external tool in a visible console window with variable placeholders resolved.
     /// </summary>
-    // ── Tools Quick-Access Panel ──────────────────────────────────────────
+    // ── Sidebar Tab Selector (Servers / Tools) ──────────────────────────
 
-    private bool _toolsPanelPopulated;
-
-    private void OnToggleToolsPanel(object sender, RoutedEventArgs e) => ToggleToolsPanel();
+    /// <summary>
+    /// Toggles the sidebar between the Servers tab and the Tools tab.
+    /// Bound to Ctrl+Shift+T. Setting <c>IsChecked=false</c> on a grouped
+    /// <see cref="RadioButton"/> leaves BOTH buttons unchecked — the sibling
+    /// is not auto-selected. We therefore explicitly check the target button.
+    /// </summary>
+    private void ToggleSidebarTab()
+    {
+        if (SidebarTabTools.IsChecked == true)
+        {
+            SidebarTabServers.IsChecked = true;
+        }
+        else
+        {
+            SidebarTabTools.IsChecked = true;
+        }
+    }
 
     private void OnEmptyExploreToolsClick(object sender, RoutedEventArgs e)
     {
-        if (ToolsQuickPanel.Visibility != Visibility.Visible)
-            ToggleToolsPanel();
+        SidebarTabTools.IsChecked = true;
     }
 
-    private void ToggleToolsPanel()
+    // ── Sidebar Tools tab ───────────────────────────────────────────────
+
+    private bool _sidebarToolsPopulated;
+    private System.Collections.ObjectModel.ObservableCollection<ViewModels.SidebarToolCategoryViewModel>? _sidebarToolsCategories;
+
+    /// <summary>
+    /// Builds the category/tool hierarchy from <see cref="ToolRegistry"/> and
+    /// attaches it to the sidebar Tools <see cref="TreeView"/>. Lazy: only
+    /// invoked the first time the user switches to the Tools tab, and re-run
+    /// when external tools are discovered (the External category changes).
+    /// </summary>
+    private void BuildSidebarToolsData()
     {
-        if (ToolsQuickPanel.Visibility == Visibility.Visible)
+        if (DataContext is not MainViewModel vm)
         {
-            ToolsQuickPanel.Visibility = Visibility.Collapsed;
-            ToolsToggleChevron.Text = "\uE70E"; // ChevronUp
-            PersistToolsPanelState(false);
             return;
         }
 
-        if (!_toolsPanelPopulated)
+        var grouped = ToolRegistry.All
+            .GroupBy(d => d.Category)
+            .OrderBy(g => g.Key);
+
+        var categories = new System.Collections.ObjectModel.ObservableCollection<ViewModels.SidebarToolCategoryViewModel>();
+
+        foreach (var group in grouped)
         {
-            PopulateToolsPanel();
-            _toolsPanelPopulated = true;
-        }
+            var brushKey = GetCategoryBrushKey(group.Key);
+            var tools = new System.Collections.ObjectModel.ObservableCollection<ViewModels.SidebarToolItemViewModel>();
 
-        ToolsQuickPanel.Visibility = Visibility.Visible;
-        ToolsToggleChevron.Text = "\uE70D"; // ChevronDown
-        PersistToolsPanelState(true);
-    }
+            var sortedTools = group
+                .Select(d => new
+                {
+                    Descriptor = d,
+                    Name = vm.Localize(d.LabelKey)
+                })
+                .OrderBy(x => x.Name, StringComparer.OrdinalIgnoreCase);
 
-    private async void PersistToolsPanelState(bool isVisible)
-    {
-        try
-        {
-            if (DataContext is not MainViewModel vm) return;
-            vm.Settings.ShowToolsPanel = isVisible;
-            await vm.ConfigManager.MergeSettingAsync(s => s.ShowToolsPanel = isVisible);
-        }
-        catch (Exception ex)
-        {
-            Core.Logging.FileLogger.Warn($"Failed to persist tools panel state: {ex.Message}");
-        }
-    }
-
-    private void PopulateToolsPanel()
-    {
-        if (DataContext is not MainViewModel vm) return;
-
-        ToolsCategoryStack.Children.Clear();
-        string? lastCategory = null;
-
-        var sorted = ToolRegistry.All
-            .OrderBy(d => d.Category)
-            .ThenBy(d => vm.Localize(d.LabelKey), StringComparer.OrdinalIgnoreCase);
-
-        foreach (var descriptor in sorted)
-        {
-            if (!string.Equals(descriptor.CategoryLabelKey, lastCategory, StringComparison.Ordinal))
+            foreach (var tool in sortedTools)
             {
-                var categoryBrushKey = GetCategoryBrushKey(descriptor.Category);
-
-                var accentBar = new Border
+                var aliases = string.Join(' ', tool.Descriptor.CommandPrefixes);
+                tools.Add(new ViewModels.SidebarToolItemViewModel
                 {
-                    Width = 3,
-                    Height = 14,
-                    CornerRadius = new CornerRadius(1.5),
-                    Background = (Brush)FindResource(categoryBrushKey),
-                    VerticalAlignment = VerticalAlignment.Center,
-                    Margin = new Thickness(0, 0, 6, 0)
-                };
-
-                var label = new TextBlock
-                {
-                    Text = vm.Localize(descriptor.CategoryLabelKey).ToUpperInvariant(),
-                    FontSize = 10,
-                    FontWeight = FontWeights.SemiBold,
-                    Foreground = (Brush)FindResource(categoryBrushKey),
-                    VerticalAlignment = VerticalAlignment.Center
-                };
-
-                var headerPanel = new StackPanel
-                {
-                    Orientation = System.Windows.Controls.Orientation.Horizontal,
-                    Margin = new Thickness(4, lastCategory is null ? 2 : 10, 0, 4)
-                };
-                headerPanel.Children.Add(accentBar);
-                headerPanel.Children.Add(label);
-
-                ToolsCategoryStack.Children.Add(headerPanel);
-                lastCategory = descriptor.CategoryLabelKey;
+                    Id = tool.Descriptor.Id,
+                    Name = tool.Name,
+                    BrushKey = brushKey,
+                    IconGeometryKey = tool.Descriptor.IconResourceKey,
+                    Searchable = $"{tool.Name} {aliases}".ToLowerInvariant()
+                });
             }
 
-            ToolsCategoryStack.Children.Add(CreateToolCard(vm, descriptor));
+            var categoryName = vm.Localize(group.First().CategoryLabelKey);
+            categories.Add(new ViewModels.SidebarToolCategoryViewModel
+            {
+                CategoryName = categoryName,
+                BrushKey = brushKey,
+                Tools = tools,
+                VisibleCount = tools.Count,
+                IsExpanded = false
+            });
         }
+
+        _sidebarToolsCategories = categories;
+        SidebarToolsTreeView.ItemsSource = categories;
+        _sidebarToolsPopulated = true;
+
+        UpdateSidebarToolsContextLabel();
     }
 
     /// <summary>
-    /// Creates a mini-card for a tool: [category badge] [icon] [name + description].
+    /// Populates the sidebar Tools tab the first time the user switches to it.
+    /// Wired from the <c>SidebarTabTools</c> <see cref="RadioButton"/> Checked event.
     /// </summary>
-    private Button CreateToolCard(MainViewModel vm, Core.Models.ToolDescriptor descriptor)
+    private void OnSidebarTabToolsChecked(object sender, RoutedEventArgs e)
     {
-        var categoryBrushKey = GetCategoryBrushKey(descriptor.Category);
-        var categoryBrush = (Brush)FindResource(categoryBrushKey);
+        if (!_sidebarToolsPopulated)
+        {
+            BuildSidebarToolsData();
+        }
+        else
+        {
+            // Data already built — refresh context label in case the selected
+            // server changed while the Tools tab was hidden.
+            UpdateSidebarToolsContextLabel();
+        }
+    }
 
-        // Category color badge (left accent dot)
-        var badge = new Border
+    private void UpdateSidebarToolsContextLabel()
+    {
+        if (DataContext is not MainViewModel vm)
         {
-            Width = 4,
-            Height = 28,
-            CornerRadius = new CornerRadius(2),
-            Background = categoryBrush,
-            VerticalAlignment = VerticalAlignment.Center,
-            Margin = new Thickness(0, 0, 8, 0),
-            Opacity = 0.7
-        };
-
-        // Icon
-        var iconContainer = new Border
-        {
-            Width = 24,
-            Height = 24,
-            Margin = new Thickness(0, 0, 8, 0),
-            VerticalAlignment = VerticalAlignment.Center
-        };
-        if (descriptor.IconResourceKey is not null
-            && TryFindResource(descriptor.IconResourceKey) is System.Windows.Media.Geometry geo)
-        {
-            iconContainer.Child = new System.Windows.Shapes.Path
-            {
-                Data = geo,
-                Fill = categoryBrush,
-                Width = 16,
-                Height = 16,
-                Stretch = System.Windows.Media.Stretch.Uniform,
-                HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Center
-            };
+            return;
         }
 
-        // Text column: name + description
-        var nameBlock = new TextBlock
+        var host = GetInheritedToolTargetHost(vm);
+        var hasTarget = !string.IsNullOrEmpty(host);
+        var text = hasTarget
+            ? vm.Localize("ToolsNetworkContextWith").Replace("{0}", host)
+            : vm.Localize("ToolsNetworkContextNone");
+
+        Mw_SidebarToolsContextText.Text = text;
+        Mw_SidebarToolsContextText.ToolTip = text;
+    }
+
+    private void OnSidebarToolsFilterChanged(object sender, TextChangedEventArgs e)
+    {
+        if (_sidebarToolsCategories is null)
         {
-            Text = vm.Localize(descriptor.LabelKey),
-            FontSize = (double)FindResource("FontSizeCaption"),
-            FontWeight = FontWeights.SemiBold,
-            Foreground = (Brush)FindResource("TextPrimaryBrush"),
-            TextTrimming = TextTrimming.CharacterEllipsis
-        };
+            return;
+        }
 
-        var descKey = descriptor.DescriptionKey ?? $"ToolDesc{descriptor.Id}";
-        var descText = vm.Localize(descKey);
-        var descBlock = new TextBlock
+        var filter = Mw_SidebarToolsFilter.Text.Trim();
+        var hasFilter = !string.IsNullOrEmpty(filter);
+        var filterLower = filter.ToLowerInvariant();
+        var anyVisibleTool = false;
+
+        foreach (var category in _sidebarToolsCategories)
         {
-            Text = descText != descKey ? descText : "",
-            FontSize = (double)FindResource("FontSizeSmallCaption"),
-            Foreground = (Brush)FindResource("TextSecondaryBrush"),
-            TextTrimming = TextTrimming.CharacterEllipsis,
-            Margin = new Thickness(0, 1, 0, 0)
-        };
+            var visibleInCategory = 0;
+            foreach (var tool in category.Tools)
+            {
+                var matches = !hasFilter || tool.Searchable.Contains(filterLower, StringComparison.Ordinal);
+                tool.IsVisible = matches;
+                if (matches)
+                {
+                    visibleInCategory++;
+                }
+            }
 
-        var textStack = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
-        textStack.Children.Add(nameBlock);
-        if (!string.IsNullOrEmpty(descBlock.Text))
-            textStack.Children.Add(descBlock);
+            category.VisibleCount = hasFilter ? visibleInCategory : category.Tools.Count;
+            category.IsVisible = !hasFilter || visibleInCategory > 0;
+            // Auto-expand matching categories when filtering; collapse when cleared.
+            category.IsExpanded = hasFilter && visibleInCategory > 0;
 
-        var cardContent = new DockPanel();
-        cardContent.Children.Add(badge);
-        DockPanel.SetDock(badge, Dock.Left);
-        cardContent.Children.Add(iconContainer);
-        DockPanel.SetDock(iconContainer, Dock.Left);
-        cardContent.Children.Add(textStack);
+            if (category.IsVisible)
+            {
+                anyVisibleTool = true;
+            }
+        }
 
-        var btn = new Button
+        if (DataContext is MainViewModel vm)
         {
-            Content = cardContent,
-            Tag = descriptor,
-            Style = (Style)FindResource("ToolbarGhostButtonStyle"),
-            HorizontalAlignment = System.Windows.HorizontalAlignment.Stretch,
-            HorizontalContentAlignment = System.Windows.HorizontalAlignment.Stretch,
-            Padding = new Thickness(4, 4, 8, 4),
-            Margin = new Thickness(0, 1, 0, 1),
-            ToolTip = descText != descKey ? descText : null
-        };
-        System.Windows.Automation.AutomationProperties.SetName(btn, vm.Localize(descriptor.LabelKey));
-        btn.Click += OnToolsPanelItemClick;
-        return btn;
+            Mw_SidebarToolsNoResults.Text = vm.Localize("ToolsNoResults");
+        }
+        Mw_SidebarToolsNoResults.Visibility = hasFilter && !anyVisibleTool
+            ? Visibility.Visible
+            : Visibility.Collapsed;
+    }
+
+    private void OnSidebarToolsSelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
+    {
+        if (e.NewValue is ViewModels.SidebarToolItemViewModel item)
+        {
+            LaunchSidebarTool(item);
+        }
+    }
+
+    private void OnSidebarToolsDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        if (SidebarToolsTreeView.SelectedItem is ViewModels.SidebarToolItemViewModel item)
+        {
+            LaunchSidebarTool(item);
+            e.Handled = true;
+        }
+    }
+
+    private async void LaunchSidebarTool(ViewModels.SidebarToolItemViewModel item)
+    {
+        if (DataContext is not MainViewModel vm)
+        {
+            return;
+        }
+
+        var descriptor = ToolRegistry.All.FirstOrDefault(
+            d => string.Equals(d.Id, item.Id, StringComparison.OrdinalIgnoreCase));
+        if (descriptor is null)
+        {
+            return;
+        }
+
+        try
+        {
+            var context = CreateInheritedToolContext(vm, descriptor);
+
+            // Match the full-page Tools tab: make sure the session panel is visible
+            // before opening the tool tab.
+            TabServers.IsChecked = true;
+            SwitchToTab("Servers");
+
+            await vm.OpenToolTabAsync(
+                descriptor.Id,
+                ResolveToolTabTitle(vm, descriptor, context),
+                context);
+            vm.TrackRecentTool(descriptor.Id);
+        }
+        catch (Exception ex)
+        {
+            Core.Logging.FileLogger.Error($"Sidebar tool launch failed: {descriptor.Id}", ex);
+            vm.StatusText = $"Tool launch failed: {descriptor.Id} — {ex.Message}";
+        }
     }
 
     private static string GetCategoryBrushKey(Core.Models.ToolCategory category)
@@ -2096,13 +2126,14 @@ public partial class MainWindow : Window
             else
             {
                 AddToolsTabSectionHeader(vm.Localize("ToolsFavoritesHeader"), "WarningBrush");
-                ToolsTabContent.Children.Add(new TextBlock
+                var emptyFav = new TextBlock
                 {
                     Text = vm.Localize("ToolsEmptyFavorites"),
                     FontSize = (double)FindResource("FontSizeCaption"),
-                    Foreground = (Brush)FindResource("TextDisabledBrush"),
                     Margin = new Thickness(4, 0, 0, 16)
-                });
+                };
+                emptyFav.SetResourceReference(TextBlock.ForegroundProperty, "TextDisabledBrush");
+                ToolsTabContent.Children.Add(emptyFav);
             }
 
             // ── Recent section ──
@@ -2174,23 +2205,26 @@ public partial class MainWindow : Window
                 HorizontalAlignment = System.Windows.HorizontalAlignment.Center
             };
 
-            emptyState.Children.Add(new TextBlock
+            var noResultsTitle = new TextBlock
             {
                 Text = vm.Localize("ToolsNoResults"),
                 FontSize = (double)FindResource("FontSizeBodyLarge"),
                 FontWeight = FontWeights.SemiBold,
-                Foreground = (Brush)FindResource("TextSecondaryBrush"),
                 HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
                 Margin = new Thickness(0, 0, 0, 6)
-            });
-            emptyState.Children.Add(new TextBlock
+            };
+            noResultsTitle.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondaryBrush");
+            emptyState.Children.Add(noResultsTitle);
+
+            var noResultsHint = new TextBlock
             {
                 Text = vm.Localize("ToolsNoResultsHint"),
                 FontSize = (double)FindResource("FontSizeCaption"),
-                Foreground = (Brush)FindResource("TextDisabledBrush"),
                 HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
                 TextAlignment = TextAlignment.Center
-            });
+            };
+            noResultsHint.SetResourceReference(TextBlock.ForegroundProperty, "TextDisabledBrush");
+            emptyState.Children.Add(noResultsHint);
 
             ToolsTabContent.Children.Add(emptyState);
         }
@@ -2198,14 +2232,15 @@ public partial class MainWindow : Window
 
     private void AddToolsTabSectionHeader(string text, string brushKey)
     {
-        ToolsTabContent.Children.Add(new TextBlock
+        var sectionHeader = new TextBlock
         {
             Text = text,
             FontSize = (double)FindResource("FontSizeBodyLarge"),
             FontWeight = FontWeights.SemiBold,
-            Foreground = (Brush)FindResource(brushKey),
             Margin = new Thickness(0, 8, 0, 8)
-        });
+        };
+        sectionHeader.SetResourceReference(TextBlock.ForegroundProperty, brushKey);
+        ToolsTabContent.Children.Add(sectionHeader);
     }
 
     private void AddToolsTabCategoryHeader(string text, string brushKey)
@@ -2215,22 +2250,25 @@ public partial class MainWindow : Window
             Orientation = System.Windows.Controls.Orientation.Horizontal,
             Margin = new Thickness(0, 4, 0, 4)
         };
-        header.Children.Add(new Border
+        var accentBar = new Border
         {
             Width = 3, Height = 16,
             CornerRadius = new CornerRadius(1.5),
-            Background = (Brush)FindResource(brushKey),
             VerticalAlignment = VerticalAlignment.Center,
             Margin = new Thickness(0, 0, 6, 0)
-        });
-        header.Children.Add(new TextBlock
+        };
+        accentBar.SetResourceReference(Border.BackgroundProperty, brushKey);
+        header.Children.Add(accentBar);
+
+        var label = new TextBlock
         {
             Text = text.ToUpperInvariant(),
             FontSize = (double)FindResource("FontSizeCaption"),
             FontWeight = FontWeights.SemiBold,
-            Foreground = (Brush)FindResource(brushKey),
             VerticalAlignment = VerticalAlignment.Center
-        });
+        };
+        label.SetResourceReference(TextBlock.ForegroundProperty, brushKey);
+        header.Children.Add(label);
         ToolsTabContent.Children.Add(header);
     }
 
@@ -2240,11 +2278,10 @@ public partial class MainWindow : Window
     private FrameworkElement CreateToolsTabCard(MainViewModel vm, Core.Models.ToolDescriptor descriptor)
     {
         var categoryBrushKey = GetCategoryBrushKey(descriptor.Category);
-        var categoryBrush = (Brush)FindResource(categoryBrushKey);
-        var defaultBorderBrush = (Brush)FindResource("BorderBrush");
-        var activeBorderBrush = (Brush)FindResource("AccentBrush");
-        var defaultBackgroundBrush = (Brush)FindResource("CardBrush");
-        var activeBackgroundBrush = (Brush)FindResource("HighlightBrush");
+        const string DefaultBorderKey = "BorderBrush";
+        const string ActiveBorderKey = "AccentBrush";
+        const string DefaultBackgroundKey = "CardBrush";
+        const string ActiveBackgroundKey = "HighlightBrush";
 
         // Icon
         System.Windows.Shapes.Path? iconPath = null;
@@ -2254,12 +2291,12 @@ public partial class MainWindow : Window
             iconPath = new System.Windows.Shapes.Path
             {
                 Data = geo,
-                Fill = categoryBrush,
                 Width = 20,
                 Height = 20,
                 Stretch = System.Windows.Media.Stretch.Uniform,
                 VerticalAlignment = VerticalAlignment.Center
             };
+            iconPath.SetResourceReference(System.Windows.Shapes.Shape.FillProperty, categoryBrushKey);
         }
 
         var nameBlock = new TextBlock
@@ -2267,9 +2304,9 @@ public partial class MainWindow : Window
             Text = vm.Localize(descriptor.LabelKey),
             FontSize = (double)FindResource("FontSizeBody"),
             FontWeight = FontWeights.SemiBold,
-            Foreground = (Brush)FindResource("TextPrimaryBrush"),
             TextTrimming = TextTrimming.CharacterEllipsis
         };
+        nameBlock.SetResourceReference(TextBlock.ForegroundProperty, "TextPrimaryBrush");
 
         var descKey = descriptor.DescriptionKey ?? $"ToolDesc{descriptor.Id}";
         var descText = vm.Localize(descKey);
@@ -2277,10 +2314,10 @@ public partial class MainWindow : Window
         {
             Text = descText != descKey ? descText : "",
             FontSize = (double)FindResource("FontSizeSmallCaption"),
-            Foreground = (Brush)FindResource("TextSecondaryBrush"),
             TextTrimming = TextTrimming.CharacterEllipsis,
             TextWrapping = TextWrapping.NoWrap
         };
+        descBlock.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondaryBrush");
 
         // Pin/Unpin button
         var isFav = vm.FavoriteToolIds.Contains(descriptor.Id, StringComparer.OrdinalIgnoreCase);
@@ -2292,12 +2329,13 @@ public partial class MainWindow : Window
             Style = (Style)FindResource("ToolbarGhostButtonStyle"),
             Padding = new Thickness(2),
             Opacity = isFav ? 1.0 : 0.4,
-            Foreground = isFav ? (Brush)FindResource("WarningBrush") : (Brush)FindResource("TextSecondaryBrush"),
             VerticalAlignment = VerticalAlignment.Top,
             Margin = new Thickness(4, 0, 0, 0),
             Tag = descriptor.Id,
             ToolTip = isFav ? vm.Localize("ToolsUnpinTooltip") : vm.Localize("ToolsPinTooltip")
         };
+        pinBtn.SetResourceReference(System.Windows.Controls.Control.ForegroundProperty,
+            isFav ? "WarningBrush" : "TextSecondaryBrush");
         System.Windows.Automation.AutomationProperties.SetName(pinBtn,
             isFav ? vm.Localize("A11yUnpinTool") : vm.Localize("A11yPinTool"));
         pinBtn.Click += OnToolPinClick;
@@ -2318,12 +2356,12 @@ public partial class MainWindow : Window
             {
                 Width = 32, Height = 32,
                 CornerRadius = new CornerRadius(6),
-                Background = categoryBrush,
                 Opacity = 0.12,
                 Margin = new Thickness(0, 0, 10, 0),
                 VerticalAlignment = VerticalAlignment.Center,
                 Child = iconPath
             };
+            iconBorder.SetResourceReference(Border.BackgroundProperty, categoryBrushKey);
             content.Children.Add(iconBorder);
             DockPanel.SetDock(iconBorder, Dock.Left);
         }
@@ -2356,11 +2394,11 @@ public partial class MainWindow : Window
         var cardBorder = new Border
         {
             BorderThickness = new Thickness(1),
-            BorderBrush = defaultBorderBrush,
-            Background = defaultBackgroundBrush,
             CornerRadius = new CornerRadius(8),
             Child = launchButton
         };
+        cardBorder.SetResourceReference(Border.BorderBrushProperty, DefaultBorderKey);
+        cardBorder.SetResourceReference(Border.BackgroundProperty, DefaultBackgroundKey);
 
         void UpdateCardVisualState()
         {
@@ -2369,8 +2407,12 @@ public partial class MainWindow : Window
                 || pinBtn.IsMouseOver
                 || pinBtn.IsKeyboardFocusWithin;
 
-            cardBorder.BorderBrush = isActive ? activeBorderBrush : defaultBorderBrush;
-            cardBorder.Background = isActive ? activeBackgroundBrush : defaultBackgroundBrush;
+            // Resolve via SetResourceReference so the hover-state brushes track
+            // runtime theme swaps without needing a manual rebuild.
+            cardBorder.SetResourceReference(Border.BorderBrushProperty,
+                isActive ? ActiveBorderKey : DefaultBorderKey);
+            cardBorder.SetResourceReference(Border.BackgroundProperty,
+                isActive ? ActiveBackgroundKey : DefaultBackgroundKey);
         }
 
         launchButton.MouseEnter += (_, _) => UpdateCardVisualState();
@@ -2436,15 +2478,14 @@ public partial class MainWindow : Window
         var text = hasTarget
             ? vm.Localize("ToolsNetworkContextWith").Replace("{0}", host)
             : vm.Localize("ToolsNetworkContextNone");
-        var brush = (Brush)FindResource(hasTarget ? "AccentBrush" : "TextDisabledBrush");
-
-        Mw_ToolsPanelContextText.Text = text;
-        Mw_ToolsPanelContextText.Foreground = brush;
-        Mw_ToolsPanelContextText.ToolTip = text;
+        var brushKey = hasTarget ? "AccentBrush" : "TextDisabledBrush";
 
         Mw_ToolsTabContextText.Text = text;
-        Mw_ToolsTabContextText.Foreground = brush;
+        Mw_ToolsTabContextText.SetResourceReference(TextBlock.ForegroundProperty, brushKey);
         Mw_ToolsTabContextText.ToolTip = text;
+
+        // Mirror the same context line in the sidebar Tools tab.
+        UpdateSidebarToolsContextLabel();
     }
 
     private async void OnToolPinClick(object sender, RoutedEventArgs e)
@@ -2572,9 +2613,11 @@ public partial class MainWindow : Window
         }
         else
         {
-            // Step 3 done → show Tools panel and complete
+            // Step 3 done → switch sidebar to the Tools tab and complete onboarding.
+            // ShowToolsPanel is reused as a bool flag: true = Tools tab, false = Servers tab.
             if (vm.CurrentSettings is not null)
                 vm.CurrentSettings.ShowToolsPanel = true;
+            SidebarTabTools.IsChecked = true;
             await CompleteOnboardingAsync();
         }
     }
@@ -2595,75 +2638,6 @@ public partial class MainWindow : Window
         if (DataContext is not MainViewModel vm || vm.CurrentSettings is null) return;
         vm.CurrentSettings.OnboardingCompleted = true;
         await vm.ConfigManager.MergeSettingAsync(s => s.OnboardingCompleted = true);
-    }
-
-    private void OnToolsFilterChanged(object sender, TextChangedEventArgs e)
-    {
-        var filter = TxtToolsFilter.Text.Trim();
-        var hasFilter = !string.IsNullOrEmpty(filter);
-        var visibleToolCount = 0;
-
-        foreach (UIElement child in ToolsCategoryStack.Children)
-        {
-            if (child is Button btn && btn.Tag is Core.Models.ToolDescriptor descriptor)
-            {
-                if (!hasFilter)
-                {
-                    btn.Visibility = Visibility.Visible;
-                    visibleToolCount++;
-                    continue;
-                }
-
-                var name = btn.ToolTip?.ToString() ?? "";
-                var label = (DataContext as ViewModels.MainViewModel)?.Localize(descriptor.LabelKey) ?? "";
-                var aliases = string.Join(" ", descriptor.CommandPrefixes);
-                var searchable = $"{label} {aliases} {name}";
-                btn.Visibility = searchable.Contains(filter, StringComparison.OrdinalIgnoreCase)
-                    ? Visibility.Visible
-                    : Visibility.Collapsed;
-                if (btn.Visibility == Visibility.Visible)
-                {
-                    visibleToolCount++;
-                }
-            }
-            else if (child is StackPanel header)
-            {
-                // Category headers: show if at least one tool in this category is visible
-                // We'll update after the loop
-                header.Visibility = hasFilter ? Visibility.Collapsed : Visibility.Visible;
-            }
-        }
-
-        // Show category headers that have visible tools below them
-        if (hasFilter)
-        {
-            StackPanel? currentHeader = null;
-            foreach (UIElement child in ToolsCategoryStack.Children)
-            {
-                if (child is StackPanel header)
-                    currentHeader = header;
-                else if (child is Button { Visibility: Visibility.Visible } && currentHeader is not null)
-                {
-                    currentHeader.Visibility = Visibility.Visible;
-                    currentHeader = null;
-                }
-            }
-        }
-
-        Mw_ToolsPanelNoResults.Visibility = hasFilter && visibleToolCount == 0
-            ? Visibility.Visible
-            : Visibility.Collapsed;
-        if (Mw_ToolsPanelNoResults.Visibility == Visibility.Visible)
-        {
-            ToolsPanelScrollHint.Visibility = Visibility.Collapsed;
-        }
-    }
-
-    private void OnToolsPanelScrollChanged(object sender, ScrollChangedEventArgs e)
-    {
-        if (sender is not ScrollViewer sv) return;
-        var hasMore = sv.VerticalOffset + sv.ViewportHeight < sv.ExtentHeight - 2;
-        ToolsPanelScrollHint.Visibility = hasMore ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private async void OnToolsPanelItemClick(object sender, RoutedEventArgs e)
@@ -4795,7 +4769,30 @@ public partial class MainWindow : Window
     /// <inheritdoc />
     protected override void OnClosed(EventArgs e)
     {
+        _themeService.ThemeChanged -= OnThemeServiceThemeChanged;
         StopFileServer();
         base.OnClosed(e);
+    }
+
+    /// <summary>
+    /// Rebuilds any code-built tool panel UI after a runtime theme swap.
+    /// Most brush properties on the generated elements use
+    /// <see cref="FrameworkElement.SetResourceReference(DependencyProperty, object)"/>
+    /// so they update automatically; this handler is the safety net for anything
+    /// that can't be expressed as a dynamic resource reference (e.g. hover-state
+    /// brush toggling driven from code-behind).
+    /// </summary>
+    private void OnThemeServiceThemeChanged(string themeName)
+    {
+        Dispatcher.BeginInvoke(() =>
+        {
+            var toolsTabVisible = DataContext is MainViewModel vm
+                && string.Equals(vm.SelectedTab, "Tools", StringComparison.Ordinal);
+            _toolsTabPopulated = false;
+            if (toolsTabVisible)
+            {
+                PopulateToolsTab();
+            }
+        });
     }
 }

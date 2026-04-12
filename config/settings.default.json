@@ -4,7 +4,7 @@
     "fullScreen": true,
     "adminMode": true,
     "defaultLocale": "en",
-    "defaultTheme": "Dark",
+    "defaultTheme": "DraculaPro",
     "plinkPath": "C:\\Program Files\\PuTTY\\plink.exe",
     "puttyPath": null,
     "psftpPath": null,

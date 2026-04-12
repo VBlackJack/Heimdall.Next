@@ -28,7 +28,7 @@ public class AppSettings
     public bool FullScreen { get; set; } = true;
     public bool AdminMode { get; set; } = true;
     public string DefaultLocale { get; set; } = "en";
-    public string DefaultTheme { get; set; } = "Dark";
+    public string DefaultTheme { get; set; } = "DraculaPro";
 
     // Tools (legacy Plink paths, kept for import compatibility)
     public string PlinkPath { get; set; } = @"C:\Program Files\PuTTY\plink.exe";
