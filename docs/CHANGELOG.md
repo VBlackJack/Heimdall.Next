@@ -12,6 +12,66 @@
 
 All notable changes to Heimdall.Next are documented in this file.
 
+## [v2026.041202] - 2026-04-12
+
+### Theme system overhaul — centralized ThemeService, 7 Dracula variants only
+
+#### ThemeService (single owner of the theme swap)
+- **`Services/ThemeService.cs`**: singleton DI service with `ApplyTheme(string?)` as the only code path that replaces the theme `ResourceDictionary` in `Application.Resources.MergedDictionaries`
+- **Idempotent swap**: no-op when the requested theme is already active; searches the existing dictionary via `Source.OriginalString.Contains("Theme.xaml")`
+- **Legacy migration**: settings containing `"Dark"` or `"Light"` are silently migrated to `DraculaPro` and persisted via `ConfigManager.MergeSettingAsync`
+- **`ThemeRevision`**: monotonic counter bumped *before* the `ThemeChanged` event fires, used by XAML `MultiBinding` triggers
+- **DWM integration**: every open `Window` gets its dark-mode title bar flag refreshed via `WindowThemeHelper.ApplyCurrentTheme` after each successful swap
+- **Duplication removed**: `App.xaml.cs` and `MainViewModel.cs` no longer contain their own theme switch statements (the previous duplication was the root cause of commit `0d3d9c0`, where `ApplyThemeFromSettings` only knew Dark/Light)
+
+#### Themes removed
+- **Deleted**: `src/Heimdall.App/Themes/DarkTheme.xaml`, `src/Heimdall.App/Themes/LightTheme.xaml`
+- **Kept**: 7 Dracula variants — `DraculaProTheme` (default), `AlucardTheme`, `BladeTheme`, `BuffyTheme`, `LincolnTheme`, `MorbiusTheme`, `VanHelsingTheme`
+- `App.xaml` default merged dictionary → `Themes/DraculaProTheme.xaml`
+- `config/settings.default.json`, `AppSettings.DefaultTheme`, `SettingsViewModel._defaultTheme`, `SchemaValidator.ValidThemes` all updated to `DraculaPro` / the 7-variant set
+- Settings theme `ComboBox` in `MainWindow.xaml` cleaned up (removed `Mw_ThemeDark` and `Mw_ThemeLight` items + their localization hooks)
+
+#### Theme reactivity — converters, code-behind, editor
+- **Brush-resolving converters** (`ConnectionTypeToColorConverter`, `ConnectionTypeToBrushConverter`, `ConnectionStateToBrushConverter`, `ServerStatusToColorConverter`) implement both `IValueConverter` *and* `IMultiValueConverter` with a shared `ResolveBrush` helper. XAML sites route them through `MultiBinding [value, DataContext.ThemeRevision]` so WPF re-runs the converter on each swap. `ElementName=MainWindowRoot` required (not `RelativeSource AncestorType=Window`) so the binding resolves from inside Command Palette `Popup` content
+- **Generic resource-key converters**: `ResourceKeyToBrushConverter` (dual `IValue`/`IMulti`, used by the sidebar Tools `TreeView`) and `ResourceKeyToGeometryConverter` (simple `IValue`, resolves `Geo.Tool.*` keys)
+- **Code-built UI in `MainWindow.xaml.cs`** (`PopulateToolsTab`, `RefreshToolsTabSections`, `CreateToolsTabCard`, `UpdateToolLaunchContextLabels`): `element.SetResourceReference(<DP>, "BrushKey")` instead of caching `Brush` instances from `FindResource`. Hover-state toggles call `SetResourceReference` with a conditional key rather than flipping pre-cached brushes
+- **`EmbeddedEditorView`**: reads AvalonEdit chrome colors (`Background`, `Foreground`, `LineNumbersForeground`, `SelectionBrush`, `CurrentLineBackground/Border`) via `ResolveColor("BrushKey", fallback)` — no more Dark/Light branches. Subscribes to `ThemeService.ThemeChanged` in `Loaded`, unsubscribes in `Unloaded`. Syntax token palette stays fixed Dracula (shared across all variants)
+- **Hardcoded hex cleanup in `MainWindow.xaml`**: `ContentDropZone` background → `{DynamicResource DragDropOverlayBackground}`, broadcast-mode `DataTrigger` → `{DynamicResource BroadcastActiveBrush}`
+
+### Sidebar UX redesign — tabbed Servers / Tools panel
+
+- **Tabbed sidebar**: two `RadioButton`s (`SidebarTabServers` / `SidebarTabTools`, `GroupName=SidebarTabs`) replace the collapsible `ToolsQuickPanel` (`MaxHeight=350`, bottom-docked). Both tabs now share the full sidebar height; `Visibility` of `SidebarServersContent` / `SidebarToolsContent` is bound to each RadioButton's `IsChecked`
+- **`SidebarTabStyle`** (`CommonControls.xaml`): flat `RadioButton` template with accent underline on `IsChecked`, `HighlightBrush` on hover, `FocusIndicatorBrush` on keyboard focus — all colors via `DynamicResource`
+- **Servers tab**: unchanged — toolbar (search, add, expand/collapse) + `ServerTreeView`
+- **Tools tab**: filter `TextBox` + context label + full-height `TreeView` with collapsible categories. Data model:
+  - `SidebarToolCategoryViewModel` (ObservableObject): `CategoryName`, `BrushKey`, `Tools`, `VisibleCount`, `IsExpanded`, `IsVisible`
+  - `SidebarToolItemViewModel`: `Id`, `Name`, `BrushKey`, `IconGeometryKey`, pre-lowercased `Searchable` blob (`name + aliases`)
+- **Lazy populate**: `BuildSidebarToolsData()` reads `ToolRegistry.All`, groups by `Category`, sorts alphabetically per group — invoked on first `SidebarTabTools.Checked` and rebuilt when `ToolRegistry.ExternalToolsChanged` fires
+- **Filter**: `Searchable.Contains(filterLower)` per item, auto-expand matching categories, empty-state label when no results
+- **Launch flow**: `LaunchSidebarTool(item)` reuses the same primitives as the full-page Tools tab (`CreateInheritedToolContext` / `ResolveToolTabTitle` / `vm.OpenToolTabAsync` / `vm.TrackRecentTool`)
+- **Ctrl+Shift+T**: toggles the active sidebar tab. Gotcha: setting `RadioButton.IsChecked = false` on a grouped button does NOT auto-check the sibling; `ToggleSidebarTab()` explicitly assigns `IsChecked = true` on the target
+- **Persistence**: reuses the existing `ShowToolsPanel` bool setting (`true` = Tools tab active at startup)
+
+### Locales
+- +4 keys (EN/FR): `SidebarTabServers`, `SidebarTabTools`, `A11ySidebarTabServers`, `A11ySidebarTabTools`
+
+### Removed
+- `Themes/DarkTheme.xaml`, `Themes/LightTheme.xaml`
+- `ToolsQuickPanel`, `BtnToggleToolsPanel`, `ToolsToggleChevron`, `Mw_ToolsToggleLabel`, `Mw_ToolsPanelHeaderLabel`, `Mw_ToolsPanelNoResults`, `Mw_ToolsPanelContextText`, `Mw_ToolsScanIndicator`, `ToolsCategoryStack`, `ToolsPanelScroll`, `ToolsPanelScrollHint`
+- `MainWindow.ToggleToolsPanel()`, `PopulateToolsPanel()`, `CreateToolCard()`, `PersistToolsPanelState()`, `OnToolsFilterChanged`, `OnToolsPanelScrollChanged`, `_toolsPanelPopulated`
+- `App.xaml.cs::ApplyThemeFromSettings()` and `MainViewModel::OnThemeChanged()` — both switch statements moved into the centralized `ThemeService`
+
+### CI fix — SDK 10.0.201 overload resolution
+- `dotnet format` on SDK 10.0.201 mis-inferred `var queryLower = query.ToLowerInvariant()` as `int` in 3 specific sites with lambda / nested `var` contexts, routing `string.Contains(string, StringComparison)` to the `char` overload (CS1503). Replaced `var` with explicit `string` types in `MainWindow.OnSettingsSearchTextChanged` and `OnSidebarToolsFilterChanged` — 67 other call sites in the codebase were unaffected
+- `dotnet format` pass applied in a separate commit to fix ENDOFLINE / CHARSET / IMPORTS drift that had accumulated across recent PRs
+
+### Housekeeping
+- Tests: 1,730 passing
+- i18n: parity maintained EN/FR (+4 keys)
+- CI build: .NET 10.0.x runner
+
+---
+
 ## [Unreleased] - 2026-04-02
 
 ### Terminal keyboard fix — Delete key no longer triggers server deletion

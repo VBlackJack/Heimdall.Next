@@ -36,7 +36,7 @@ Index of all issues encountered during development and their solutions.
 21. [SFTP — CheckBox Fires During XAML Parse](#sftp-checkbox-fires-during-xaml-parse)
 22. [SFTP — Context Menu Intercepted by MainWindow](#sftp-context-menu-intercepted-by-mainwindow)
 23. [Citrix — storebrowse.exe Not Found](#citrix-storebrowseexe-not-found)
-24. [Theme Switching — Light Theme Looks Wrong](#theme-switching-light-theme-looks-wrong)
+24. [Theme Switching — Stale Colors After Swap](#theme-switching-stale-colors-after-swap)
 25. [Multi-Exec — Broadcast Sends to Wrong Terminals](#multi-exec-broadcast-sends-to-wrong-terminals)
 26. [RDP Embedded — Resize Flicker](#rdp-embedded-resize-flicker)
 27. [VNC — noVNC Library Unavailable](#vnc-novnc-unavailable)
