@@ -346,7 +346,7 @@ public sealed class ConnectionStateData
 /// <param name="IsTerminal">Whether this state represents a final endpoint.</param>
 /// <param name="AllowsUserAction">Whether user interactions are permitted in this state.</param>
 /// <param name="IsProgress">Whether this state indicates an ongoing operation.</param>
-public record StateMetadata(
+public sealed record StateMetadata(
     string DisplayKey,
     string LogKey,
     bool IsTerminal,

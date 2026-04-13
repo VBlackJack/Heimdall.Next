@@ -13,7 +13,7 @@ namespace TwinShell.Core.Services;
 /// - Relevance scoring (Title > Tags > Description > Category > Template > Notes)
 /// - Fuzzy matching with Levenshtein distance (tolerates typos up to 30%)
 /// </summary>
-public class SearchService : ISearchService
+public sealed class SearchService : ISearchService
 {
     // Relevance score weights
     private const double TITLE_SCORE_WEIGHT = 100.0;

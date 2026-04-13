@@ -122,7 +122,7 @@ public interface IGitSyncService
 /// <summary>
 /// Result of a Git operation
 /// </summary>
-public class GitOperationResult
+public sealed class GitOperationResult
 {
     public bool Success { get; set; }
     public string Message { get; set; } = string.Empty;
@@ -176,7 +176,7 @@ public class GitOperationResult
 /// <summary>
 /// Represents a sync conflict between local and remote data
 /// </summary>
-public class SyncConflict
+public sealed class SyncConflict
 {
     /// <summary>Entity type (Action, Template, Category, Batch)</summary>
     public string EntityType { get; set; } = string.Empty;
@@ -215,7 +215,7 @@ public enum ConflictResolution
 /// <summary>
 /// Status of the local Git repository
 /// </summary>
-public class GitRepositoryStatus
+public sealed class GitRepositoryStatus
 {
     public bool IsInitialized { get; set; }
     public string? CurrentBranch { get; set; }
@@ -230,7 +230,7 @@ public class GitRepositoryStatus
 /// <summary>
 /// Event args for sync status changes
 /// </summary>
-public class GitSyncStatusEventArgs : EventArgs
+public sealed class GitSyncStatusEventArgs : EventArgs
 {
     /// <summary>Current status message</summary>
     public string Status { get; set; } = string.Empty;

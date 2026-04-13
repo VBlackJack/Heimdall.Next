@@ -4,7 +4,7 @@ using TwinShell.Persistence.Entities;
 
 namespace TwinShell.Persistence.Configurations;
 
-public class ActionCategoryMappingConfiguration : IEntityTypeConfiguration<ActionCategoryMappingEntity>
+public sealed class ActionCategoryMappingConfiguration : IEntityTypeConfiguration<ActionCategoryMappingEntity>
 {
     public void Configure(EntityTypeBuilder<ActionCategoryMappingEntity> builder)
     {

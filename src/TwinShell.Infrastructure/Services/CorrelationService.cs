@@ -24,7 +24,7 @@ namespace TwinShell.Infrastructure.Services;
 /// Implementation of correlation service for request tracing.
 /// Uses AsyncLocal to maintain correlation context across async calls.
 /// </summary>
-public class CorrelationService : ICorrelationService
+public sealed class CorrelationService : ICorrelationService
 {
     private readonly ILogger<CorrelationService> _logger;
     private readonly AsyncLocal<CorrelationContext?> _currentContext = new();
@@ -99,7 +99,7 @@ public class CorrelationService : ICorrelationService
     /// <summary>
     /// Internal context for tracking correlation state.
     /// </summary>
-    private class CorrelationContext
+    private sealed class CorrelationContext
     {
         public string CorrelationId { get; }
         public string OperationName { get; }
@@ -118,7 +118,7 @@ public class CorrelationService : ICorrelationService
     /// <summary>
     /// Disposable scope that restores parent context when disposed.
     /// </summary>
-    private class CorrelationScope : IDisposable
+    private sealed class CorrelationScope : IDisposable
     {
         private readonly CorrelationService _service;
         private readonly CorrelationContext? _parentContext;

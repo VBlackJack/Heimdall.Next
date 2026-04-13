@@ -204,7 +204,7 @@ public partial class ConnectionService
 /// <summary>
 /// Wraps a Citrix Workspace process handle for session lifecycle management.
 /// </summary>
-public record CitrixSessionResult(
+public sealed record CitrixSessionResult(
     Process? Process,
     string? StoreFrontUrl = null,
     string? AppName = null) : ISessionResult;

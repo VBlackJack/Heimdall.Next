@@ -5,7 +5,7 @@ namespace TwinShell.Core.Models;
 /// <summary>
 /// Represents a command template with parameters
 /// </summary>
-public class CommandTemplate
+public sealed class CommandTemplate
 {
     /// <summary>
     /// Unique identifier

@@ -5,7 +5,7 @@ using TwinShell.Persistence.Entities;
 
 namespace TwinShell.Persistence.Configurations;
 
-public class CommandTemplateConfiguration : IEntityTypeConfiguration<CommandTemplateEntity>
+public sealed class CommandTemplateConfiguration : IEntityTypeConfiguration<CommandTemplateEntity>
 {
     public void Configure(EntityTypeBuilder<CommandTemplateEntity> builder)
     {

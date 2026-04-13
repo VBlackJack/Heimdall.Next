@@ -24,7 +24,7 @@ namespace TwinShell.Persistence.Repositories;
 /// <summary>
 /// Repository implementation for CommandTemplate persistence
 /// </summary>
-public class CommandTemplateRepository : ICommandTemplateRepository
+public sealed class CommandTemplateRepository : ICommandTemplateRepository
 {
     private readonly TwinShellDbContext _context;
 

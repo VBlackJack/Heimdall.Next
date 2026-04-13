@@ -9,7 +9,7 @@ namespace TwinShell.Persistence.Repositories;
 /// <summary>
 /// Repository implementation for AuditLog persistence
 /// </summary>
-public class AuditLogRepository : IAuditLogRepository
+public sealed class AuditLogRepository : IAuditLogRepository
 {
     private readonly TwinShellDbContext _context;
     private readonly ILogger<AuditLogRepository> _logger;

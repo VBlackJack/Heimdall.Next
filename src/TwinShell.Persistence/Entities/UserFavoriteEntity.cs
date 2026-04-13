@@ -3,7 +3,7 @@ namespace TwinShell.Persistence.Entities;
 /// <summary>
 /// Database entity for UserFavorite
 /// </summary>
-public class UserFavoriteEntity
+public sealed class UserFavoriteEntity
 {
     public string Id { get; set; } = string.Empty;
     public string? UserId { get; set; }

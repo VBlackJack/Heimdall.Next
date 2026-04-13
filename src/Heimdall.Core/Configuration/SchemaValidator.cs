@@ -285,4 +285,4 @@ public static partial class SchemaValidator
 /// </summary>
 /// <param name="IsValid">Whether the validation passed without errors.</param>
 /// <param name="Errors">List of validation error messages (empty if valid).</param>
-public record ValidationResult(bool IsValid, List<string> Errors);
+public sealed record ValidationResult(bool IsValid, List<string> Errors);

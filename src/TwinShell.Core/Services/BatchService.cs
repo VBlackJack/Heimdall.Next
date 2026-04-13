@@ -8,7 +8,7 @@ namespace TwinShell.Core.Services;
 /// <summary>
 /// Service for managing command batches
 /// </summary>
-public class BatchService : IBatchService
+public sealed class BatchService : IBatchService
 {
     private readonly IBatchRepository _repository;
 

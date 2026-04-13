@@ -3,7 +3,7 @@ namespace TwinShell.Persistence.Entities;
 /// <summary>
 /// Database entity for custom user-defined categories.
 /// </summary>
-public class CustomCategoryEntity
+public sealed class CustomCategoryEntity
 {
     public string Id { get; set; } = string.Empty;
 

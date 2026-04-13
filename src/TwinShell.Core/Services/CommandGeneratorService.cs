@@ -12,7 +12,7 @@ namespace TwinShell.Core.Services;
 /// <summary>
 /// Service for generating commands from templates
 /// </summary>
-public class CommandGeneratorService : ICommandGeneratorService
+public sealed class CommandGeneratorService : ICommandGeneratorService
 {
     private readonly ILocalizationService _localizationService;
 

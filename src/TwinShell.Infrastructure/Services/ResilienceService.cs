@@ -26,7 +26,7 @@ namespace TwinShell.Infrastructure.Services;
 /// Provides resilience patterns (circuit breaker, retry, timeout) for external service calls.
 /// Implements fault-tolerance patterns for PowerShell Gallery, Git operations, etc.
 /// </summary>
-public class ResilienceService
+public sealed class ResilienceService
 {
     private readonly ILogger<ResilienceService> _logger;
 
@@ -206,7 +206,7 @@ public class ResilienceService
     /// <summary>
     /// Provider for tracking circuit breaker state.
     /// </summary>
-    private class CircuitBreakerStateProvider
+    private sealed class CircuitBreakerStateProvider
     {
         private bool _isOpen;
 
@@ -227,7 +227,7 @@ public class ResilienceService
 /// <summary>
 /// Status of a circuit breaker.
 /// </summary>
-public class CircuitBreakerStatus
+public sealed class CircuitBreakerStatus
 {
     public string Name { get; set; } = string.Empty;
     public bool IsOpen { get; set; }

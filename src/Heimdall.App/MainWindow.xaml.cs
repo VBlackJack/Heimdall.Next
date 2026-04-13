@@ -56,6 +56,16 @@ public partial class MainWindow : Window
     private bool _treeContextPointerHitEmptyArea;
     private EphemeralFileServer? _fileServer;
     private readonly Services.ThemeService _themeService;
+    private bool _sidebarTabRestored;
+    private bool _closeConfirmed;
+
+    // Stored delegate references so the long-lived service/ViewModel events
+    // wired in the constructor can be unsubscribed in OnClosed. Without this,
+    // the captured-`this` lambdas would keep the window alive past Close().
+    private System.ComponentModel.PropertyChangedEventHandler? _connectionPropertyChangedHandler;
+    private System.ComponentModel.PropertyChangedEventHandler? _serverListPropertyChangedHandler;
+    private Action? _externalToolsChangedHandler;
+    private Action<string>? _localeChangedHandler;
 
     public MainWindow(MainViewModel viewModel, Services.ThemeService themeService)
     {
@@ -66,13 +76,13 @@ public partial class MainWindow : Window
         _themeService.ThemeChanged += OnThemeServiceThemeChanged;
         ApplyLocalization();
 
-        TabServers.Checked += OnServersTabChecked;
+        TabSessions.Checked += OnSessionsTabChecked;
         TabTunnels.Checked += OnTunnelsTabChecked;
         TabScheduled.Checked += OnScheduledTabChecked;
         TabTools.Checked += OnToolsTabChecked;
         TabSettings.Checked += OnSettingsTabChecked;
         TabAbout.Checked += OnAboutTabChecked;
-        viewModel.Connection.PropertyChanged += (_, e) =>
+        _connectionPropertyChangedHandler = (_, e) =>
         {
             if (string.Equals(e.PropertyName, nameof(ConnectionViewModel.HasActiveSessions), StringComparison.Ordinal))
             {
@@ -81,16 +91,19 @@ public partial class MainWindow : Window
                 UpdateTabVisibility(viewModel);
             }
         };
-        viewModel.ServerList.PropertyChanged += (_, e) =>
+        viewModel.Connection.PropertyChanged += _connectionPropertyChangedHandler;
+
+        _serverListPropertyChangedHandler = (_, e) =>
         {
             if (string.Equals(e.PropertyName, nameof(ServerListViewModel.SelectedServer), StringComparison.Ordinal))
             {
                 Dispatcher.Invoke(UpdateToolLaunchContextLabels);
             }
         };
+        viewModel.ServerList.PropertyChanged += _serverListPropertyChangedHandler;
 
         // Refresh Tools tab and Settings status when background scan discovers external tools
-        viewModel.ToolRegistry.ExternalToolsChanged += () =>
+        _externalToolsChangedHandler = () =>
         {
             Dispatcher.BeginInvoke(() =>
             {
@@ -109,6 +122,7 @@ public partial class MainWindow : Window
                     UpdateExternalToolProviderStatus(vm);
             });
         };
+        viewModel.ToolRegistry.ExternalToolsChanged += _externalToolsChangedHandler;
 
         // Wire split button callback from embedded views
         viewModel.EmbeddedSessionManager.SplitRequestedCallback = OnEmbeddedSplitRequested;
@@ -120,7 +134,10 @@ public partial class MainWindow : Window
                 await viewModel.LoadCommand.ExecuteAsync(null);
             }
 
-            RestoreWindowBounds(viewModel);
+            if (viewModel.CurrentSettings is { } loadedSettings)
+            {
+                RestoreWindowBounds(loadedSettings);
+            }
             PopulateAboutSection();
 
             // Restore the active sidebar tab (Servers / Tools) from persisted setting.
@@ -129,6 +146,7 @@ public partial class MainWindow : Window
             {
                 SidebarTabTools.IsChecked = true;
             }
+            _sidebarTabRestored = true;
 
             // Show onboarding overlay on first launch
             if (viewModel.CurrentSettings is not null && !viewModel.CurrentSettings.OnboardingCompleted)
@@ -138,10 +156,11 @@ public partial class MainWindow : Window
         };
 
         // Re-apply all localized strings when the user switches language at runtime
-        viewModel.GetLocalizer().LocaleChanged += (_) =>
+        _localeChangedHandler = (_) =>
         {
             Dispatcher.Invoke(() => ApplyLocalization());
         };
+        viewModel.GetLocalizer().LocaleChanged += _localeChangedHandler;
 
         KeyDown += OnKeyDown;
         PreviewMouseDown += OnWindowPreviewMouseDown;
@@ -199,7 +218,7 @@ public partial class MainWindow : Window
     {
         Mw_AppTitle.Text = vm.Localize("AppName");
 
-        TabServers.Content = vm.Localize("NavTabServers");
+        TabSessions.Content = vm.Localize("NavTabSessions");
         TabTunnels.Content = vm.Localize("NavTabTunnels");
         TabScheduled.Content = vm.Localize("NavTabScheduled");
         TabTools.Content = vm.Localize("NavTabTools");
@@ -214,7 +233,7 @@ public partial class MainWindow : Window
 
         Mw_StatusTunnelToggle.ToolTip = vm.Localize("TunnelPanelToggle");
         Mw_BroadcastLabel.Text = vm.Localize("BroadcastBadgeLabel");
-        Mw_StatusBarServersLabel.Text = " " + vm.Localize("StatusBarServers") + " " + vm.Localize("StatusBarSeparator");
+        Mw_StatusBarServersLabel.Text = " " + vm.Localize("StatusBarSessions") + " " + vm.Localize("StatusBarSeparator");
         Mw_StatusBarTunnelsLabel.Text = " " + vm.Localize("StatusBarTunnels");
         Mw_StatusBarShortcutHint.Text = vm.Localize("StatusBarShortcutHint");
 
@@ -231,7 +250,7 @@ public partial class MainWindow : Window
         ExpandAllButton.ToolTip = vm.Localize("TooltipExpandAll");
         CollapseAllButton.ToolTip = vm.Localize("TooltipCollapseAll");
 
-        Mw_AddMenuServer.Header = vm.Localize("AddMenuServer");
+        Mw_AddMenuSession.Header = vm.Localize("AddMenuSession");
         Mw_AddMenuTool.Header = vm.Localize("AddMenuTool");
         Mw_AddMenuGateway.Header = vm.Localize("AddMenuGateway");
         Mw_AddMenuFolder.Header = vm.Localize("AddMenuFolder");
@@ -256,11 +275,11 @@ public partial class MainWindow : Window
 
         Mw_EmptyStateTitle.Text = vm.Localize("EmptyStateTitle");
         Mw_EmptyStateSubtitle.Text = vm.Localize("EmptyStateSubtitle");
-        Mw_EmptyBtnAddServer.Content = vm.Localize("EmptyStateBtnAddServer");
+        Mw_EmptyBtnAddSession.Content = vm.Localize("EmptyStateBtnAddSession");
         Mw_EmptyBtnImport.Content = vm.Localize("EmptyStateBtnImport");
         Mw_EmptyBtnImport.ToolTip = vm.Localize("TooltipImport");
         Mw_EmptyBtnExploreTools.Content = vm.Localize("EmptyStateBtnExploreTools");
-        Mw_EmptySelectServer.Text = vm.Localize("EmptyStateSelectServer");
+        Mw_EmptySelectSession.Text = vm.Localize("EmptyStateSelectSession");
         Mw_EmptyQuickConnectHint.Text = vm.Localize("HintQuickConnect");
         Mw_EmptyStateShortcutHints.Text = vm.Localize("EmptyStateShortcutHints");
         Mw_DetailActionHints.Text = vm.Localize("DetailActionHints");
@@ -531,7 +550,7 @@ public partial class MainWindow : Window
 
     private void ApplyAccessibilityLocalization(MainViewModel vm)
     {
-        System.Windows.Automation.AutomationProperties.SetName(TabServers, vm.Localize("NavTabServers"));
+        System.Windows.Automation.AutomationProperties.SetName(TabSessions, vm.Localize("NavTabSessions"));
         System.Windows.Automation.AutomationProperties.SetName(TabTunnels, vm.Localize("NavTabTunnels"));
         System.Windows.Automation.AutomationProperties.SetName(TabScheduled, vm.Localize("NavTabScheduled"));
         System.Windows.Automation.AutomationProperties.SetName(TabSettings, vm.Localize("NavTabSettings"));
@@ -553,7 +572,7 @@ public partial class MainWindow : Window
         System.Windows.Automation.AutomationProperties.SetName(Mw_ToolDetailOpenBtn, vm.Localize("AccessDetailOpen"));
         System.Windows.Automation.AutomationProperties.SetName(Mw_DetailEditBtn, vm.Localize("BtnEdit"));
         System.Windows.Automation.AutomationProperties.SetName(Mw_DetailDeleteBtn, vm.Localize("BtnDelete"));
-        System.Windows.Automation.AutomationProperties.SetName(Mw_EmptyBtnAddServer, vm.Localize("AccessEmptyAddServer"));
+        System.Windows.Automation.AutomationProperties.SetName(Mw_EmptyBtnAddSession, vm.Localize("AccessEmptyAddServer"));
         System.Windows.Automation.AutomationProperties.SetName(Mw_EmptyBtnImport, vm.Localize("AccessEmptyImport"));
         System.Windows.Automation.AutomationProperties.SetName(Mw_EmptyBtnExploreTools, vm.Localize("AccessEmptyExploreTools"));
 
@@ -590,12 +609,12 @@ public partial class MainWindow : Window
         System.Windows.Automation.AutomationProperties.SetName(Mw_SettingsExtToolsRemoveBtn, vm.Localize("AccessSettingsExtToolsRemove"));
     }
 
-    private async void OnServersTabChecked(object sender, RoutedEventArgs e)
+    private async void OnSessionsTabChecked(object sender, RoutedEventArgs e)
     {
         try
         {
             if (!await CheckUnsavedSettingsAsync()) { TabSettings.IsChecked = true; return; }
-            SwitchToTab("Servers");
+            SwitchToTab("Sessions");
         }
         catch (Exception ex) { Core.Logging.FileLogger.Error($"Tab switch failed: {ex.Message}"); }
     }
@@ -760,8 +779,8 @@ public partial class MainWindow : Window
             vm.CloseCommandPaletteCommand.Execute(null);
         }
 
-        // Save TreeView scroll position when leaving Servers tab
-        if (vm.IsServersTabSelected && !string.Equals(tabName, "Servers", StringComparison.Ordinal))
+        // Save TreeView scroll position when leaving Sessions tab
+        if (vm.IsSessionsTabSelected && !string.Equals(tabName, "Sessions", StringComparison.Ordinal))
         {
             SaveTreeViewScrollPosition();
         }
@@ -772,14 +791,14 @@ public partial class MainWindow : Window
         vm.SelectedTab = tabName;
         UpdateTabVisibility(vm);
 
-        // Restore TreeView scroll position when returning to Servers tab
-        if (string.Equals(tabName, "Servers", StringComparison.Ordinal))
+        // Restore TreeView scroll position when returning to Sessions tab
+        if (string.Equals(tabName, "Sessions", StringComparison.Ordinal))
         {
             RestoreTreeViewScrollPosition();
         }
 
         Heimdall.Core.Logging.FileLogger.Info(
-            $"Navigation applied: tab={vm.SelectedTab}, serversVisible={vm.IsServersTabSelected}, tunnelsVisible={vm.IsTunnelsTabSelected}, scheduledVisible={vm.IsScheduledTabSelected}, settingsVisible={vm.IsSettingsTabSelected}");
+            $"Navigation applied: tab={vm.SelectedTab}, sessionsVisible={vm.IsSessionsTabSelected}, tunnelsVisible={vm.IsTunnelsTabSelected}, scheduledVisible={vm.IsScheduledTabSelected}, settingsVisible={vm.IsSettingsTabSelected}");
     }
 
     private void OnAddButtonClick(object sender, RoutedEventArgs e)
@@ -1094,16 +1113,16 @@ public partial class MainWindow : Window
     /// </summary>
     private void OpenTreeViewKeyboardContextMenu(MainViewModel vm)
     {
-        if (!ServerTreeView.IsKeyboardFocusWithin)
+        if (!SessionTreeView.IsKeyboardFocusWithin)
         {
             return;
         }
 
-        var target = ServerTreeView.SelectedItem;
+        var target = SessionTreeView.SelectedItem;
         var menu = CreateTreeContextMenu(vm, target);
 
         // Try to position the menu at the selected item's location
-        var container = FindTreeViewItemContainer(ServerTreeView, target);
+        var container = FindTreeViewItemContainer(SessionTreeView, target);
         if (container is not null)
         {
             menu.PlacementTarget = container;
@@ -1111,11 +1130,11 @@ public partial class MainWindow : Window
         }
         else
         {
-            menu.PlacementTarget = ServerTreeView;
+            menu.PlacementTarget = SessionTreeView;
             menu.Placement = PlacementMode.Center;
         }
 
-        ServerTreeView.ContextMenu = menu;
+        SessionTreeView.ContextMenu = menu;
         menu.IsOpen = true;
     }
 
@@ -1300,13 +1319,13 @@ public partial class MainWindow : Window
             var isTool = server.ConnectionType?.StartsWith("TOOL:", StringComparison.OrdinalIgnoreCase) == true;
             if (isTool)
             {
-                ServerDetailPanel.Visibility = Visibility.Collapsed;
+                SessionDetailPanel.Visibility = Visibility.Collapsed;
                 ToolDetailPanel.Visibility = Visibility.Visible;
                 UpdateToolDetailPanel(vm, server.ConnectionType!);
             }
             else
             {
-                ServerDetailPanel.Visibility = Visibility.Visible;
+                SessionDetailPanel.Visibility = Visibility.Visible;
                 ToolDetailPanel.Visibility = Visibility.Collapsed;
                 Mw_DetailConnectBtn.Content = vm.Localize("DetailBtnConnect");
                 Mw_DetailHostPort.Visibility = Visibility.Visible;
@@ -1315,7 +1334,7 @@ public partial class MainWindow : Window
         else
         {
             vm.ServerList.SelectedServer = null;
-            ServerDetailPanel.Visibility = Visibility.Collapsed;
+            SessionDetailPanel.Visibility = Visibility.Collapsed;
             ToolDetailPanel.Visibility = Visibility.Collapsed;
         }
     }
@@ -1854,7 +1873,7 @@ public partial class MainWindow : Window
     {
         if (SidebarTabTools.IsChecked == true)
         {
-            SidebarTabServers.IsChecked = true;
+            SidebarTabSessions.IsChecked = true;
         }
         else
         {
@@ -1951,6 +1970,32 @@ public partial class MainWindow : Window
             // server changed while the Tools tab was hidden.
             UpdateSidebarToolsContextLabel();
         }
+
+        PersistSidebarTabChoice(isTools: true);
+    }
+
+    private void OnSidebarTabSessionsChecked(object sender, RoutedEventArgs e)
+    {
+        PersistSidebarTabChoice(isTools: false);
+    }
+
+    /// <summary>
+    /// Persists the active sidebar tab (Servers or Tools) so the choice is
+    /// restored on next launch. Reuses <see cref="Heimdall.Core.Configuration.AppSettings.ShowToolsPanel"/>.
+    /// Guarded by <see cref="_sidebarTabRestored"/> to avoid overwriting the saved
+    /// value during XAML initialization, when the default <c>IsChecked="True"</c>
+    /// on <c>SidebarTabSessions</c> would otherwise fire before the Loaded handler
+    /// has restored the persisted state.
+    /// </summary>
+    private async void PersistSidebarTabChoice(bool isTools)
+    {
+        if (!_sidebarTabRestored) return;
+        if (DataContext is not MainViewModel vm) return;
+        if (vm.CurrentSettings is null) return;
+        if (vm.CurrentSettings.ShowToolsPanel == isTools) return;
+
+        vm.CurrentSettings.ShowToolsPanel = isTools;
+        await vm.ConfigManager.MergeSettingAsync(s => s.ShowToolsPanel = isTools);
     }
 
     private void UpdateSidebarToolsContextLabel()
@@ -2054,8 +2099,8 @@ public partial class MainWindow : Window
 
             // Match the full-page Tools tab: make sure the session panel is visible
             // before opening the tool tab.
-            TabServers.IsChecked = true;
-            SwitchToTab("Servers");
+            TabSessions.IsChecked = true;
+            SwitchToTab("Sessions");
 
             await vm.OpenToolTabAsync(
                 descriptor.Id,
@@ -2516,8 +2561,8 @@ public partial class MainWindow : Window
             var context = CreateInheritedToolContext(vm, descriptor);
 
             // Switch to Servers tab first so the session panel is visible
-            TabServers.IsChecked = true;
-            SwitchToTab("Servers");
+            TabSessions.IsChecked = true;
+            SwitchToTab("Sessions");
 
             await vm.OpenToolTabAsync(descriptor.Id, ResolveToolTabTitle(vm, descriptor, context), context);
             vm.TrackRecentTool(descriptor.Id);
@@ -2606,9 +2651,9 @@ public partial class MainWindow : Window
             // Perform action for the completed step
             switch (_onboardingStep)
             {
-                case 0: // Step 1 done → navigate to Servers tab
-                    TabServers.IsChecked = true;
-                    SwitchToTab("Servers");
+                case 0: // Step 1 done → navigate to Sessions tab
+                    TabSessions.IsChecked = true;
+                    SwitchToTab("Sessions");
                     break;
                 case 1: // Step 2 done → navigate to Settings tab
                     TabSettings.IsChecked = true;
@@ -2622,9 +2667,8 @@ public partial class MainWindow : Window
         else
         {
             // Step 3 done → switch sidebar to the Tools tab and complete onboarding.
-            // ShowToolsPanel is reused as a bool flag: true = Tools tab, false = Servers tab.
-            if (vm.CurrentSettings is not null)
-                vm.CurrentSettings.ShowToolsPanel = true;
+            // The RadioButton Checked event routes through OnSidebarTabToolsChecked
+            // which calls PersistSidebarTabChoice(true) to save ShowToolsPanel.
             SidebarTabTools.IsChecked = true;
             await CompleteOnboardingAsync();
         }
@@ -3485,7 +3529,7 @@ public partial class MainWindow : Window
 
     private void SaveTreeViewScrollPosition()
     {
-        var sv = FindScrollViewer(ServerTreeView);
+        var sv = FindScrollViewer(SessionTreeView);
         if (sv is not null)
         {
             _treeScrollVerticalOffset = sv.VerticalOffset;
@@ -3500,7 +3544,7 @@ public partial class MainWindow : Window
             System.Windows.Threading.DispatcherPriority.Loaded,
             new Action(() =>
             {
-                var sv = FindScrollViewer(ServerTreeView);
+                var sv = FindScrollViewer(SessionTreeView);
                 if (sv is not null)
                 {
                     sv.ScrollToVerticalOffset(_treeScrollVerticalOffset);
@@ -4247,9 +4291,9 @@ public partial class MainWindow : Window
             // Show toolbar, TreeView, status bar
             ToolbarRow.Height = new GridLength(48);
             StatusBarRow.Height = new GridLength(28);
-            ServerTreeColumn.Width = new GridLength(260);
-            ServerTreeColumn.MinWidth = 180;
-            ServerTreeColumn.MaxWidth = 500;
+            SessionTreeColumn.Width = new GridLength(260);
+            SessionTreeColumn.MinWidth = 180;
+            SessionTreeColumn.MaxWidth = 500;
             SplitterColumn.Width = GridLength.Auto;
 
             WindowStyle = WindowStyle.SingleBorderWindow;
@@ -4271,9 +4315,9 @@ public partial class MainWindow : Window
             // Hide toolbar, TreeView, status bar
             ToolbarRow.Height = new GridLength(0);
             StatusBarRow.Height = new GridLength(0);
-            ServerTreeColumn.MinWidth = 0;
-            ServerTreeColumn.MaxWidth = 0;
-            ServerTreeColumn.Width = new GridLength(0);
+            SessionTreeColumn.MinWidth = 0;
+            SessionTreeColumn.MaxWidth = 0;
+            SessionTreeColumn.Width = new GridLength(0);
             SplitterColumn.Width = new GridLength(0);
 
             WindowStyle = WindowStyle.None;
@@ -4291,36 +4335,36 @@ public partial class MainWindow : Window
 
     /// <summary>
     /// When switching to Tunnels/Scheduled/Settings while sessions are active,
-    /// the Servers Grid must stay visible (for sessions) but TreeView hides.
-    /// When returning to Servers, TreeView restores.
+    /// the Sessions Grid must stay visible (for sessions) but TreeView hides.
+    /// When returning to Sessions, TreeView restores.
     /// </summary>
     private void UpdateTabVisibility(MainViewModel vm)
     {
-        var isServers = vm.SelectedTab == "Servers";
+        var isSessions = vm.SelectedTab == "Sessions";
         var hasSessions = vm.Connection.HasActiveSessions;
 
         Heimdall.Core.Logging.FileLogger.Info(
-            $"UpdateTabVisibility: selectedTab={vm.SelectedTab}, isServers={isServers}, hasSessions={hasSessions}, sidebarHidden={_sidebarHidden}");
+            $"UpdateTabVisibility: selectedTab={vm.SelectedTab}, isSessions={isSessions}, hasSessions={hasSessions}, sidebarHidden={_sidebarHidden}");
 
-        // If not on Servers but sessions active, show sessions full-width
-        if (!isServers && hasSessions)
+        // If not on Sessions but sessions active, show sessions full-width
+        if (!isSessions && hasSessions)
         {
             // Hide TreeView temporarily
             if (!_sidebarHidden)
             {
-                _savedSidebarWidth = ServerTreeColumn.ActualWidth;
-                ServerTreeColumn.MinWidth = 0;
-                ServerTreeColumn.MaxWidth = 0;
-                ServerTreeColumn.Width = new GridLength(0);
+                _savedSidebarWidth = SessionTreeColumn.ActualWidth;
+                SessionTreeColumn.MinWidth = 0;
+                SessionTreeColumn.MaxWidth = 0;
+                SessionTreeColumn.Width = new GridLength(0);
                 SplitterColumn.Width = new GridLength(0);
             }
         }
-        else if (isServers && !_sidebarHidden)
+        else if (isSessions && !_sidebarHidden)
         {
             // Restore TreeView
-            ServerTreeColumn.MinWidth = 180;
-            ServerTreeColumn.MaxWidth = 500;
-            ServerTreeColumn.Width = new GridLength(_savedSidebarWidth > 0 ? _savedSidebarWidth : 260);
+            SessionTreeColumn.MinWidth = 180;
+            SessionTreeColumn.MaxWidth = 500;
+            SessionTreeColumn.Width = new GridLength(_savedSidebarWidth > 0 ? _savedSidebarWidth : 260);
             SplitterColumn.Width = GridLength.Auto;
         }
     }
@@ -4366,19 +4410,19 @@ public partial class MainWindow : Window
         if (_sidebarHidden)
         {
             _sidebarHidden = false;
-            ServerTreeColumn.MinWidth = 180;
-            ServerTreeColumn.MaxWidth = 500;
-            ServerTreeColumn.Width = new GridLength(_savedSidebarWidth);
+            SessionTreeColumn.MinWidth = 180;
+            SessionTreeColumn.MaxWidth = 500;
+            SessionTreeColumn.Width = new GridLength(_savedSidebarWidth);
             SplitterColumn.Width = GridLength.Auto;
             ShowSidebarButton.Visibility = Visibility.Collapsed;
         }
         else
         {
             _sidebarHidden = true;
-            _savedSidebarWidth = ServerTreeColumn.ActualWidth;
-            ServerTreeColumn.MinWidth = 0;
-            ServerTreeColumn.MaxWidth = 0;
-            ServerTreeColumn.Width = new GridLength(0);
+            _savedSidebarWidth = SessionTreeColumn.ActualWidth;
+            SessionTreeColumn.MinWidth = 0;
+            SessionTreeColumn.MaxWidth = 0;
+            SessionTreeColumn.Width = new GridLength(0);
             SplitterColumn.Width = new GridLength(0);
             ShowSidebarButton.Visibility = Visibility.Visible;
         }
@@ -4584,7 +4628,7 @@ public partial class MainWindow : Window
 
     // ── Ephemeral File Server ─────────────────────────────────────────
 
-    private void OnShareFolderClick(object sender, RoutedEventArgs e)
+    private async void OnShareFolderClick(object sender, RoutedEventArgs e)
     {
         if (DataContext is not MainViewModel vm) return;
 
@@ -4613,7 +4657,7 @@ public partial class MainWindow : Window
 
         try
         {
-            _fileServer.StartHttpServer(directory, httpPort);
+            await _fileServer.StartHttpServerAsync(directory, httpPort);
         }
         catch (Exception ex)
         {
@@ -4622,7 +4666,7 @@ public partial class MainWindow : Window
 
         try
         {
-            _fileServer.StartTftpServer(directory, tftpPort);
+            await _fileServer.StartTftpServerAsync(directory, tftpPort);
         }
         catch (Exception ex)
         {
@@ -4692,9 +4736,8 @@ public partial class MainWindow : Window
         }
     }
 
-    private void RestoreWindowBounds(MainViewModel vm)
+    private void RestoreWindowBounds(Heimdall.Core.Configuration.AppSettings settings)
     {
-        var settings = vm.ConfigManager.LoadSettingsAsync().GetAwaiter().GetResult();
         if (settings.WindowWidth > 0 && settings.WindowHeight > 0)
         {
             // Validate that the saved position is within the virtual screen area
@@ -4742,7 +4785,16 @@ public partial class MainWindow : Window
     }
 
     /// <inheritdoc />
-    protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
+    /// <remarks>
+    /// <c>async void</c> is intentional and required: <see cref="Window.OnClosing"/>
+    /// is a synchronous override, but the unsaved-settings dialog must be awaited
+    /// without blocking the dispatcher (<c>.GetAwaiter().GetResult()</c> deadlocks
+    /// because the dialog posts back to the UI thread). The standard WPF pattern
+    /// is to cancel the close, await the dialog, then re-invoke <see cref="Window.Close"/>.
+    /// The <see cref="_closeConfirmed"/> flag prevents infinite recursion on the
+    /// second pass through this handler.
+    /// </remarks>
+    protected override async void OnClosing(System.ComponentModel.CancelEventArgs e)
     {
         base.OnClosing(e);
         if (e.Cancel) return;
@@ -4757,16 +4809,19 @@ public partial class MainWindow : Window
             _ = Services.WorkspaceService.SaveAsync(sessions);
         }
 
-        if (vm.Settings.IsDirty)
+        if (vm.Settings.IsDirty && !_closeConfirmed)
         {
+            // Cancel this close, show the dialog asynchronously, then re-close
+            // (or stay open) based on the user's choice.
+            e.Cancel = true;
+
             var title = vm.Localize("SettingsUnsavedWarningTitle");
             var message = vm.Localize("SettingsUnsavedWarning");
-            var result = vm.DialogService.ShowSaveDiscardCancelAsync(title, message)
-                .GetAwaiter().GetResult();
+            var result = await vm.DialogService.ShowSaveDiscardCancelAsync(title, message);
 
             if (result is null)
             {
-                e.Cancel = true;
+                // User cancelled — stay open.
                 return;
             }
 
@@ -4774,7 +4829,20 @@ public partial class MainWindow : Window
             {
                 vm.Settings.SaveCommand.Execute(null);
             }
-            // false = Discard — let the window close without saving
+            // false = Discard — fall through and re-close.
+
+            _closeConfirmed = true;
+            try
+            {
+                Close();
+            }
+            catch
+            {
+                // If the second Close() somehow gets cancelled, reset the flag so
+                // the user can try again instead of being stuck in a confirmed state.
+                _closeConfirmed = false;
+                throw;
+            }
         }
     }
 
@@ -4782,6 +4850,23 @@ public partial class MainWindow : Window
     protected override void OnClosed(EventArgs e)
     {
         _themeService.ThemeChanged -= OnThemeServiceThemeChanged;
+
+        // Unsubscribe from long-lived service/ViewModel events. The DataContext
+        // is the same MainViewModel instance the constructor wired up; without
+        // these unsubscriptions the captured-`this` lambdas would keep this
+        // window alive past Close().
+        if (DataContext is MainViewModel vm)
+        {
+            if (_connectionPropertyChangedHandler is not null)
+                vm.Connection.PropertyChanged -= _connectionPropertyChangedHandler;
+            if (_serverListPropertyChangedHandler is not null)
+                vm.ServerList.PropertyChanged -= _serverListPropertyChangedHandler;
+            if (_externalToolsChangedHandler is not null)
+                vm.ToolRegistry.ExternalToolsChanged -= _externalToolsChangedHandler;
+            if (_localeChangedHandler is not null)
+                vm.GetLocalizer().LocaleChanged -= _localeChangedHandler;
+        }
+
         StopFileServer();
         base.OnClosed(e);
     }

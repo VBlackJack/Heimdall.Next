@@ -3,7 +3,7 @@ namespace TwinShell.Persistence.Entities;
 /// <summary>
 /// Join table entity for many-to-many relationship between Actions and CustomCategories.
 /// </summary>
-public class ActionCategoryMappingEntity
+public sealed class ActionCategoryMappingEntity
 {
     public string Id { get; set; } = Guid.NewGuid().ToString();
 

@@ -10,7 +10,7 @@ namespace TwinShell.Infrastructure.Services;
 /// <summary>
 /// Service for executing PowerShell and Bash commands using System.Diagnostics.Process
 /// </summary>
-public class CommandExecutionService : ICommandExecutionService
+public sealed class CommandExecutionService : ICommandExecutionService
 {
     private readonly ILogger<CommandExecutionService>? _logger;
 

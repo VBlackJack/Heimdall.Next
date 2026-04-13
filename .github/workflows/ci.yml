@@ -33,6 +33,21 @@ jobs:
           --collect:"XPlat Code Coverage"
           --results-directory TestResults
 
+      - name: Check for vulnerable dependencies
+        shell: pwsh
+        # Informational only — emits a workflow warning instead of failing the
+        # build, since vulnerability databases occasionally include false
+        # positives or advisories without an upgrade path. Maintainers should
+        # review the warning and act accordingly.
+        run: |
+          $report = dotnet list Heimdall.slnx package --vulnerable --include-transitive 2>&1 | Out-String
+          Write-Host $report
+          if ($report -match "has the following vulnerable packages") {
+            Write-Host "::warning::Vulnerable dependencies detected - see output above"
+          } else {
+            Write-Host "No vulnerable dependencies detected."
+          }
+
       - name: Upload coverage report
         uses: actions/upload-artifact@v4
         if: always()

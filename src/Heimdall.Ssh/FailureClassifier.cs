@@ -26,7 +26,7 @@ namespace Heimdall.Ssh;
 /// <param name="Message">Human-readable description.</param>
 /// <param name="IsFatal">Whether the connection should be aborted.</param>
 /// <param name="OriginalException">The original exception, if any.</param>
-public record SshFailureInfo(
+public sealed record SshFailureInfo(
     SshFailureCode Code,
     string Message,
     bool IsFatal,

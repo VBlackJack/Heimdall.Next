@@ -70,10 +70,10 @@ public sealed class EphemeralFileServer : IDisposable, IAsyncDisposable
     /// Starts the HTTP file server on the specified directory and port.
     /// Serves files via GET and provides a simple HTML directory listing at root.
     /// </summary>
-    public void StartHttpServer(string directory, int port = DefaultPorts.Http)
+    public async Task StartHttpServerAsync(string directory, int port = DefaultPorts.Http)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(directory);
-        if (IsHttpRunning) StopHttpServerAsync().GetAwaiter().GetResult();
+        if (IsHttpRunning) await StopHttpServerAsync();
 
         _servingDirectory = Path.GetFullPath(directory);
         _httpCts = new CancellationTokenSource();
@@ -131,10 +131,10 @@ public sealed class EphemeralFileServer : IDisposable, IAsyncDisposable
     /// Starts the TFTP server on the specified directory and port.
     /// Implements minimal TFTP (RFC 1350): read requests only, octet mode, 512-byte blocks.
     /// </summary>
-    public void StartTftpServer(string directory, int port = DefaultPorts.Tftp)
+    public async Task StartTftpServerAsync(string directory, int port = DefaultPorts.Tftp)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(directory);
-        if (IsTftpRunning) StopTftpServerAsync().GetAwaiter().GetResult();
+        if (IsTftpRunning) await StopTftpServerAsync();
 
         _servingDirectory = Path.GetFullPath(directory);
         _tftpCts = new CancellationTokenSource();

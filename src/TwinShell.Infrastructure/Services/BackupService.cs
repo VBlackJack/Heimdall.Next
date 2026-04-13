@@ -26,7 +26,7 @@ namespace TwinShell.Infrastructure.Services;
 /// Implementation of backup service with automatic scheduling and retention policy.
 /// Supports RPO of 15 minutes through configurable backup intervals.
 /// </summary>
-public class BackupService : IBackupService, IDisposable
+public sealed class BackupService : IBackupService, IDisposable
 {
     private readonly IActionRepository _actionRepository;
     private readonly IBatchRepository _batchRepository;
@@ -254,7 +254,10 @@ public class BackupService : IBackupService, IDisposable
                 {
                     Directory.Delete(tempDir, recursive: true);
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to clean up temp directory: {Path}", tempDir);
+                }
             }
         }
         catch (Exception ex)
@@ -427,7 +430,10 @@ public class BackupService : IBackupService, IDisposable
                 var meta = JsonSerializer.Deserialize<BackupMeta>(json);
                 LastBackupTime = meta?.LastBackupTime;
             }
-            catch { }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to load backup metadata from {Path}", metaFile);
+            }
         }
     }
 
@@ -439,7 +445,10 @@ public class BackupService : IBackupService, IDisposable
             var meta = new BackupMeta { LastBackupTime = LastBackupTime };
             File.WriteAllText(metaFile, JsonSerializer.Serialize(meta));
         }
-        catch { }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to write backup metadata to {Path}", metaFile);
+        }
     }
 
     private static async Task WriteJsonFileAsync<T>(string path, T data)
@@ -461,7 +470,7 @@ public class BackupService : IBackupService, IDisposable
         _disposed = true;
     }
 
-    private class BackupManifest
+    private sealed class BackupManifest
     {
         public string Version { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
@@ -470,7 +479,7 @@ public class BackupService : IBackupService, IDisposable
         public BackupContents Contents { get; set; } = new();
     }
 
-    private class BackupMeta
+    private sealed class BackupMeta
     {
         public DateTime? LastBackupTime { get; set; }
     }

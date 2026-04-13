@@ -6,7 +6,7 @@ namespace TwinShell.Persistence;
 /// <summary>
 /// Factory for creating DbContext instances at design time (for EF Core migrations).
 /// </summary>
-public class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<TwinShellDbContext>
+public sealed class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<TwinShellDbContext>
 {
     public TwinShellDbContext CreateDbContext(string[] args)
     {

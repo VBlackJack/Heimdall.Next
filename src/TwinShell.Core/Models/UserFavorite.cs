@@ -3,7 +3,7 @@ namespace TwinShell.Core.Models;
 /// <summary>
 /// Represents a user's favorite action
 /// </summary>
-public class UserFavorite
+public sealed class UserFavorite
 {
     /// <summary>
     /// Unique identifier

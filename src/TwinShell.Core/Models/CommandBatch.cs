@@ -5,7 +5,7 @@ namespace TwinShell.Core.Models;
 /// <summary>
 /// Represents a batch of commands to be executed sequentially
 /// </summary>
-public class CommandBatch
+public sealed class CommandBatch
 {
     /// <summary>
     /// Unique identifier

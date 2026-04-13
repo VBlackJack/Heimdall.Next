@@ -5,7 +5,7 @@ namespace TwinShell.Persistence.Entities;
 /// <summary>
 /// Database entity for AuditLog
 /// </summary>
-public class AuditLogEntity
+public sealed class AuditLogEntity
 {
     public string Id { get; set; } = string.Empty;
     public DateTime Timestamp { get; set; }

@@ -23,7 +23,7 @@ namespace TwinShell.Persistence.Configurations;
 /// <summary>
 /// EF Core configuration for SyncHistoryEntity
 /// </summary>
-public class SyncHistoryConfiguration : IEntityTypeConfiguration<SyncHistoryEntity>
+public sealed class SyncHistoryConfiguration : IEntityTypeConfiguration<SyncHistoryEntity>
 {
     public void Configure(EntityTypeBuilder<SyncHistoryEntity> builder)
     {

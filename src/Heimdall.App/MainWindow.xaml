@@ -53,14 +53,14 @@
                                VerticalAlignment="Center"
                                Margin="0,0,24,0"/>
 
-                    <RadioButton x:Name="TabServers"
+                    <RadioButton x:Name="TabSessions"
                                  Content=""
                                  GroupName="NavTabs"
                                  IsChecked="True"
                                  Focusable="True"
                                  Style="{DynamicResource ToolbarTabStyle}"
                                  Margin="0,0,4,0"
-                                 AutomationProperties.Name="{loc:Translate A11yServersTab}"/>
+                                 AutomationProperties.Name="{loc:Translate A11ySessionsTab}"/>
                     <RadioButton x:Name="TabTunnels"
                                  Content=""
                                  GroupName="NavTabs"
@@ -166,10 +166,10 @@
             <!-- ============================================================ -->
             <!-- SERVERS TAB: TreeView left panel + detail/sessions right      -->
             <!-- ============================================================ -->
-            <Grid Visibility="{Binding IsServersTabSelected, Converter={StaticResource BoolToVisibilityConverter}}">
+            <Grid Visibility="{Binding IsSessionsTabSelected, Converter={StaticResource BoolToVisibilityConverter}}">
                 <Grid.ColumnDefinitions>
                     <!-- Left: TreeView panel -->
-                    <ColumnDefinition x:Name="ServerTreeColumn" Width="260" MinWidth="180" MaxWidth="500"/>
+                    <ColumnDefinition x:Name="SessionTreeColumn" Width="260" MinWidth="180" MaxWidth="500"/>
                     <!-- Splitter -->
                     <ColumnDefinition x:Name="SplitterColumn" Width="Auto"/>
                     <!-- Right: Detail / session content -->
@@ -195,13 +195,14 @@
                                     Width="32" Height="32"
                                     Margin="4,0,0,0"/>
                             <UniformGrid Columns="2">
-                                <RadioButton x:Name="SidebarTabServers"
+                                <RadioButton x:Name="SidebarTabSessions"
                                              GroupName="SidebarTabs"
                                              IsChecked="True"
-                                             Content="{loc:Translate SidebarTabServers}"
+                                             Content="{loc:Translate SidebarTabSessions}"
                                              Style="{DynamicResource SidebarTabStyle}"
                                              KeyboardNavigation.TabIndex="0"
-                                             AutomationProperties.Name="{loc:Translate A11ySidebarTabServers}"/>
+                                             Checked="OnSidebarTabSessionsChecked"
+                                             AutomationProperties.Name="{loc:Translate A11ySidebarTabSessions}"/>
                                 <RadioButton x:Name="SidebarTabTools"
                                              GroupName="SidebarTabs"
                                              Content="{loc:Translate SidebarTabTools}"
@@ -212,13 +213,13 @@
                             </UniformGrid>
                         </DockPanel>
 
-                        <!-- Sidebar tab content: Servers (TreeView) and Tools are mutually exclusive.
+                        <!-- Sidebar tab content: Sessions (TreeView) and Tools are mutually exclusive.
                              Placed in a Grid so they both consume the remaining vertical space; only
                              one is visible at a time via the RadioButton IsChecked state. -->
                         <Grid>
-                            <!-- ============ SERVERS TAB CONTENT ============ -->
-                            <DockPanel x:Name="SidebarServersContent"
-                                       Visibility="{Binding IsChecked, ElementName=SidebarTabServers, Converter={StaticResource BoolToVisibilityConverter}}">
+                            <!-- ============ SESSIONS TAB CONTENT ============ -->
+                            <DockPanel x:Name="SidebarSessionsContent"
+                                       Visibility="{Binding IsChecked, ElementName=SidebarTabSessions, Converter={StaticResource BoolToVisibilityConverter}}">
                                 <!-- Filter + add/expand/collapse toolbar -->
                                 <DockPanel DockPanel.Dock="Top" Margin="8,8,8,4">
                                     <Button x:Name="CollapseAllButton"
@@ -251,7 +252,7 @@
                                         <Button.ContextMenu>
                                             <ContextMenu x:Name="AddMenu"
                                                          DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
-                                                <MenuItem x:Name="Mw_AddMenuServer" Header="" Command="{Binding ServerList.AddServerCommand}"/>
+                                                <MenuItem x:Name="Mw_AddMenuSession" Header="" Command="{Binding ServerList.AddServerCommand}"/>
                                                 <MenuItem x:Name="Mw_AddMenuTool" Header="" Click="OnAddToolMenuClick"/>
                                                 <Separator/>
                                                 <MenuItem x:Name="Mw_AddMenuGateway" Header="" Command="{Binding Settings.AddGatewayCommand}"/>
@@ -286,7 +287,7 @@
                                 </DockPanel>
 
                                 <!-- Hierarchical TreeView (fills remaining space) -->
-                                <TreeView x:Name="ServerTreeView"
+                                <TreeView x:Name="SessionTreeView"
                                   ItemsSource="{Binding ServerList.GroupedServers}"
                                   Style="{DynamicResource ThemedTreeViewStyle}"
                                   Padding="0,4,0,0"
@@ -713,7 +714,7 @@
                     <Grid Grid.Row="0"
                           Visibility="{Binding Connection.HasActiveSessions, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=Invert}">
                         <!-- Server detail panel (shown when a non-tool server is selected) -->
-                        <Border x:Name="ServerDetailPanel"
+                        <Border x:Name="SessionDetailPanel"
                                 Visibility="{Binding ServerList.HasSelection, Converter={StaticResource BoolToVisibilityConverter}}"
                                 Padding="{StaticResource SpacingXl}">
                             <StackPanel VerticalAlignment="Top">
@@ -961,7 +962,7 @@
                                            TextWrapping="Wrap" MaxWidth="400"
                                            TextAlignment="Center"/>
                                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                    <Button x:Name="Mw_EmptyBtnAddServer" Content=""
+                                    <Button x:Name="Mw_EmptyBtnAddSession" Content=""
                                             Command="{Binding ServerList.AddServerCommand}"
                                             Style="{DynamicResource PrimaryButtonStyle}"
                                             Padding="16,8" FontSize="{StaticResource FontSizeBodyLarge}"/>
@@ -997,7 +998,7 @@
                                                Opacity="0.5"
                                                Margin="0,0,0,12"
                                                AutomationProperties.Name=""/>
-                                    <TextBlock x:Name="Mw_EmptySelectServer" Text=""
+                                    <TextBlock x:Name="Mw_EmptySelectSession" Text=""
                                                HorizontalAlignment="Center"
                                                Foreground="{DynamicResource TextSecondaryBrush}"
                                                FontSize="{StaticResource FontSizeSubtitle}"
@@ -1392,13 +1393,13 @@
                             <Button x:Name="Mw_SettingsSaveBtn" Content="" Command="{Binding Settings.SaveCommand}"
                                     Style="{DynamicResource PrimaryButtonStyle}" MinWidth="130" Margin="0,0,16,4"/>
                             <Button x:Name="Mw_SettingsResetBtn" Content="" Command="{Binding Settings.ResetToDefaultsCommand}"
-                                    Style="{DynamicResource SecondaryButtonStyle}" Width="130" Margin="0,0,8,4"/>
+                                    Style="{DynamicResource SecondaryButtonStyle}" MinWidth="130" Margin="0,0,8,4"/>
                             <Button x:Name="Mw_SettingsExportBtn" Content="" Command="{Binding Settings.ExportConfigCommand}"
-                                    Style="{DynamicResource SecondaryButtonStyle}" Width="130" Margin="0,0,8,4"/>
+                                    Style="{DynamicResource SecondaryButtonStyle}" MinWidth="130" Margin="0,0,8,4"/>
                             <Button x:Name="Mw_SettingsImportBtn" Content="" Command="{Binding Settings.ImportConfigCommand}"
-                                    Style="{DynamicResource SecondaryButtonStyle}" Width="130" Margin="0,0,8,4"/>
+                                    Style="{DynamicResource SecondaryButtonStyle}" MinWidth="130" Margin="0,0,8,4"/>
                             <Button x:Name="Mw_SettingsCitrixBtn" Content="" Command="{Binding Settings.ImportCitrixAppsCommand}"
-                                    Style="{DynamicResource SecondaryButtonStyle}" Width="160" Margin="0,0,8,4"/>
+                                    Style="{DynamicResource SecondaryButtonStyle}" MinWidth="160" Margin="0,0,8,4"/>
                         </WrapPanel>
                     </DockPanel>
                 </Border>

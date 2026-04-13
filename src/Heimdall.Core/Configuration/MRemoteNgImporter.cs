@@ -247,7 +247,7 @@ public static class MRemoteNgImporter
             setter(string.Equals(val, "True", StringComparison.OrdinalIgnoreCase));
     }
 
-    public class ImportResult
+    public sealed class ImportResult
     {
         public List<ServerProfileDto> Servers { get; } = [];
         public List<string> Warnings { get; } = [];

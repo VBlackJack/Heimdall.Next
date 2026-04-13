@@ -16,7 +16,7 @@ namespace TwinShell.Infrastructure.Services;
 /// Service for GitOps synchronization of TwinShell data via YAML files.
 /// Enables collaborative editing through Git-synchronized folders.
 /// </summary>
-public class YamlSyncService : ISyncService
+public sealed class YamlSyncService : ISyncService
 {
     private readonly TwinShellDbContext _dbContext;
     private readonly ISerializer _yamlSerializer;
@@ -818,7 +818,7 @@ public class YamlSyncService : ISyncService
     /// <summary>
     /// YAML model for Category export/import
     /// </summary>
-    private class CategoryYamlModel
+    private sealed class CategoryYamlModel
     {
         public Guid Id { get; set; }
         public string Name { get; set; } = string.Empty;
@@ -833,7 +833,7 @@ public class YamlSyncService : ISyncService
     /// <summary>
     /// YAML model for Template export/import
     /// </summary>
-    private class TemplateYamlModel
+    private sealed class TemplateYamlModel
     {
         public Guid Id { get; set; }
         public string Name { get; set; } = string.Empty;
@@ -842,7 +842,7 @@ public class YamlSyncService : ISyncService
         public List<TemplateParameterYaml>? Parameters { get; set; }
     }
 
-    private class TemplateParameterYaml
+    private sealed class TemplateParameterYaml
     {
         public string Name { get; set; } = string.Empty;
         public string Label { get; set; } = string.Empty;
@@ -855,7 +855,7 @@ public class YamlSyncService : ISyncService
     /// <summary>
     /// YAML model for Action export/import
     /// </summary>
-    private class ActionYamlModel
+    private sealed class ActionYamlModel
     {
         public Guid Id { get; set; }
         public string Title { get; set; } = string.Empty;
@@ -874,14 +874,14 @@ public class YamlSyncService : ISyncService
         public bool IsUserCreated { get; set; }
     }
 
-    private class ExampleYaml
+    private sealed class ExampleYaml
     {
         public string Command { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
         public string? Platform { get; set; }
     }
 
-    private class LinkYaml
+    private sealed class LinkYaml
     {
         public string Title { get; set; } = string.Empty;
         public string Url { get; set; } = string.Empty;
@@ -890,7 +890,7 @@ public class YamlSyncService : ISyncService
     /// <summary>
     /// YAML model for Batch export/import
     /// </summary>
-    private class BatchYamlModel
+    private sealed class BatchYamlModel
     {
         public Guid Id { get; set; }
         public string Name { get; set; } = string.Empty;
@@ -901,7 +901,7 @@ public class YamlSyncService : ISyncService
         public bool IsUserCreated { get; set; }
     }
 
-    private class BatchCommandYaml
+    private sealed class BatchCommandYaml
     {
         public string? Id { get; set; }
         public int Order { get; set; }

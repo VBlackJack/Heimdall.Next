@@ -4,7 +4,7 @@ using TwinShell.Persistence.Entities;
 
 namespace TwinShell.Persistence.Configurations;
 
-public class CommandHistoryConfiguration : IEntityTypeConfiguration<CommandHistoryEntity>
+public sealed class CommandHistoryConfiguration : IEntityTypeConfiguration<CommandHistoryEntity>
 {
     public void Configure(EntityTypeBuilder<CommandHistoryEntity> builder)
     {

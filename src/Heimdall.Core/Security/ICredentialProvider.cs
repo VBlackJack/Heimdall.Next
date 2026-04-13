@@ -50,4 +50,4 @@ public interface ICredentialProvider
 /// </summary>
 /// <param name="Username">The resolved username (may differ from the hint).</param>
 /// <param name="Password">The plaintext password.</param>
-public record CredentialResult(string Username, string Password);
+public sealed record CredentialResult(string Username, string Password);

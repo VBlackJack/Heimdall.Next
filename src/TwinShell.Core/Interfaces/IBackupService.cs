@@ -87,7 +87,7 @@ public interface IBackupService
 /// <summary>
 /// Result of a backup or restore operation.
 /// </summary>
-public class BackupResult
+public sealed class BackupResult
 {
     public bool Success { get; set; }
     public string Message { get; set; } = string.Empty;
@@ -121,7 +121,7 @@ public class BackupResult
 /// <summary>
 /// Contents included in a backup.
 /// </summary>
-public class BackupContents
+public sealed class BackupContents
 {
     public int ActionsCount { get; set; }
     public int CategoriesCount { get; set; }
@@ -136,7 +136,7 @@ public class BackupContents
 /// <summary>
 /// Metadata about an existing backup file.
 /// </summary>
-public class BackupMetadata
+public sealed class BackupMetadata
 {
     public string FilePath { get; set; } = string.Empty;
     public string FileName { get; set; } = string.Empty;
@@ -150,7 +150,7 @@ public class BackupMetadata
 /// <summary>
 /// Result of backup validation.
 /// </summary>
-public class BackupValidationResult
+public sealed class BackupValidationResult
 {
     public bool IsValid { get; set; }
     public string Version { get; set; } = string.Empty;
@@ -162,7 +162,7 @@ public class BackupValidationResult
 /// <summary>
 /// Event arguments for backup completed event.
 /// </summary>
-public class BackupCompletedEventArgs : EventArgs
+public sealed class BackupCompletedEventArgs : EventArgs
 {
     public BackupResult Result { get; }
     public bool WasScheduled { get; }

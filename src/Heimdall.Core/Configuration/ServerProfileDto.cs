@@ -21,7 +21,7 @@ namespace Heimdall.Core.Configuration;
 /// Compatible with legacy servers.json format.
 /// The ViewModel layer converts these to ObservableObject models.
 /// </summary>
-public class ServerProfileDto
+public sealed class ServerProfileDto
 {
     public string Id { get; set; } = string.Empty;
     public string DisplayName { get; set; } = string.Empty;

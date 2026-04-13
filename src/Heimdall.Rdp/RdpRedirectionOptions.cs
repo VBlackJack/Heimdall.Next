@@ -19,7 +19,7 @@ namespace Heimdall.Rdp;
 /// <summary>
 /// Configuration options for RDP device and feature redirections.
 /// </summary>
-public class RdpRedirectionOptions
+public sealed class RdpRedirectionOptions
 {
     /// <summary>Redirect clipboard contents between local and remote sessions.</summary>
     public bool Clipboard { get; set; } = true;

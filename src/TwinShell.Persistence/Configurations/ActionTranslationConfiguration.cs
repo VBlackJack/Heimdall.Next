@@ -7,7 +7,7 @@ namespace TwinShell.Persistence.Configurations;
 /// <summary>
 /// EF Core configuration for ActionTranslationEntity
 /// </summary>
-public class ActionTranslationConfiguration : IEntityTypeConfiguration<ActionTranslationEntity>
+public sealed class ActionTranslationConfiguration : IEntityTypeConfiguration<ActionTranslationEntity>
 {
     public void Configure(EntityTypeBuilder<ActionTranslationEntity> builder)
     {

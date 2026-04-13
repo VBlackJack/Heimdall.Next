@@ -4,7 +4,7 @@ using TwinShell.Persistence.Entities;
 
 namespace TwinShell.Persistence.Configurations;
 
-public class CommandBatchConfiguration : IEntityTypeConfiguration<CommandBatchEntity>
+public sealed class CommandBatchConfiguration : IEntityTypeConfiguration<CommandBatchEntity>
 {
     public void Configure(EntityTypeBuilder<CommandBatchEntity> builder)
     {

@@ -3,7 +3,7 @@ namespace TwinShell.Core.Models;
 /// <summary>
 /// Represents a parameter in a command template
 /// </summary>
-public class TemplateParameter
+public sealed class TemplateParameter
 {
     /// <summary>
     /// Parameter name (used in template substitution, e.g., {targetHost})

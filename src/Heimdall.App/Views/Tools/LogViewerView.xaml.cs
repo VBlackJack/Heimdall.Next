@@ -95,7 +95,7 @@ public partial class LogViewerView : UserControl, IToolView
 
         // Accessibility
         System.Windows.Automation.AutomationProperties.SetName(BtnBrowse, L("ToolLogViewBtnBrowse"));
-        System.Windows.Automation.AutomationProperties.SetName(BtnTail, L("ToolLogViewBtnTail"));
+        System.Windows.Automation.AutomationProperties.SetName(BtnTail, L("A11yLogViewerTailToggle"));
         System.Windows.Automation.AutomationProperties.SetName(BtnApplyFilter, L("ToolLogViewBtnFilter"));
         System.Windows.Automation.AutomationProperties.SetName(BtnClearFilter, L("ToolLogViewBtnClear"));
         System.Windows.Automation.AutomationProperties.SetName(FilePathInput, L("ToolLogViewFilePathHint"));

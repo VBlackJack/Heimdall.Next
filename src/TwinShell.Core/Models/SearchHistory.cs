@@ -4,7 +4,7 @@ namespace TwinShell.Core.Models;
 /// Represents a search history entry for autocomplete and suggestions.
 /// Stores recent searches to improve user experience.
 /// </summary>
-public class SearchHistory
+public sealed class SearchHistory
 {
     /// <summary>
     /// Unique identifier

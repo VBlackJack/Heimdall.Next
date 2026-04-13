@@ -20,7 +20,7 @@ namespace Heimdall.Core.Configuration;
 /// Strongly-typed application settings mapped to settings.json.
 /// Default values match the legacy settings.default.json for backward compatibility.
 /// </summary>
-public class AppSettings
+public sealed class AppSettings
 {
     // Display
     public int DefaultResolutionWidth { get; set; } = 1920;

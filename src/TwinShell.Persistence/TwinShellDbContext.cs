@@ -7,7 +7,7 @@ namespace TwinShell.Persistence;
 /// <summary>
 /// Database context for TwinShell
 /// </summary>
-public class TwinShellDbContext : DbContext
+public sealed class TwinShellDbContext : DbContext
 {
     // SECURITY: Whitelist of valid table names to prevent SQL injection
     private static readonly HashSet<string> AllowedTableNames = new(StringComparer.OrdinalIgnoreCase)

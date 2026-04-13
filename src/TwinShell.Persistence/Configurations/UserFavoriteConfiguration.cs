@@ -4,7 +4,7 @@ using TwinShell.Persistence.Entities;
 
 namespace TwinShell.Persistence.Configurations;
 
-public class UserFavoriteConfiguration : IEntityTypeConfiguration<UserFavoriteEntity>
+public sealed class UserFavoriteConfiguration : IEntityTypeConfiguration<UserFavoriteEntity>
 {
     public void Configure(EntityTypeBuilder<UserFavoriteEntity> builder)
     {

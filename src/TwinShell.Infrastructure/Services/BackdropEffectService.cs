@@ -26,7 +26,7 @@ namespace TwinShell.Infrastructure.Services;
 /// Automatically falls back to solid colors on unsupported systems or when
 /// accessibility settings disable transparency effects.
 /// </summary>
-public class BackdropEffectService : IBackdropEffectService
+public sealed class BackdropEffectService : IBackdropEffectService
 {
     private readonly ILogger<BackdropEffectService>? _logger;
     private readonly ISettingsService? _settingsService;

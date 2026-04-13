@@ -3,7 +3,7 @@ namespace TwinShell.Core.Models;
 /// <summary>
 /// Represents the result of a command execution
 /// </summary>
-public class ExecutionResult
+public sealed class ExecutionResult
 {
     /// <summary>
     /// Whether the execution completed successfully (ExitCode == 0)

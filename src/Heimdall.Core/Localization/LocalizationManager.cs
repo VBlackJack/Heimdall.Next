@@ -22,7 +22,7 @@ namespace Heimdall.Core.Localization;
 /// Manages localized string resources loaded from JSON locale files.
 /// Supports runtime locale switching and format string interpolation.
 /// </summary>
-public class LocalizationManager
+public sealed class LocalizationManager
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
     {

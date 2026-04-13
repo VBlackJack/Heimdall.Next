@@ -6,7 +6,7 @@ namespace TwinShell.Core.Models;
 /// Represents user preferences and application settings.
 /// Persisted in JSON format at %APPDATA%/TwinShell/settings.json
 /// </summary>
-public class UserSettings
+public sealed class UserSettings
 {
     /// <summary>
     /// The selected application theme (Light, Dark, or System).

@@ -21,7 +21,7 @@ namespace Heimdall.Ssh;
 /// Callers are responsible for decrypting secrets (e.g., via DPAPI) before
 /// populating <see cref="Password"/>; this class never touches encrypted storage.
 /// </summary>
-public class SshConnectionParams
+public sealed class SshConnectionParams
 {
     /// <summary>SSH server hostname or IP address.</summary>
     public required string Host { get; init; }

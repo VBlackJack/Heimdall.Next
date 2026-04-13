@@ -5,7 +5,7 @@ namespace TwinShell.Core.Models;
 /// <summary>
 /// Represents an audit log entry for command execution
 /// </summary>
-public class AuditLog
+public sealed class AuditLog
 {
     /// <summary>
     /// Unique identifier

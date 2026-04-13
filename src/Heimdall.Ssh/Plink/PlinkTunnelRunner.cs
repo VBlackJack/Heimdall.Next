@@ -25,7 +25,7 @@ namespace Heimdall.Ssh.Plink;
 /// <param name="Success">Whether the tunnel was established and is forwarding traffic.</param>
 /// <param name="ErrorMessage">Error description on failure; null on success.</param>
 /// <param name="FailureCode">Structured failure code on failure; null on success.</param>
-public record PlinkTunnelResult(bool Success, string? ErrorMessage, SshFailureCode? FailureCode);
+public sealed record PlinkTunnelResult(bool Success, string? ErrorMessage, SshFailureCode? FailureCode);
 
 /// <summary>
 /// Fallback tunnel implementation using an external plink.exe process.

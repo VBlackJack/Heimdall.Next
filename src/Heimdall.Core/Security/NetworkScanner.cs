@@ -33,7 +33,7 @@ public static class NetworkScanner
     /// <summary>
     /// Result of scanning a single host.
     /// </summary>
-    public record ScanResult(
+    public sealed record ScanResult(
         string IpAddress,
         bool IsAlive,
         long RoundtripMs,

@@ -9,7 +9,7 @@ namespace TwinShell.Persistence.Repositories;
 /// <summary>
 /// Repository implementation for UserFavorite persistence
 /// </summary>
-public class FavoritesRepository : IFavoritesRepository
+public sealed class FavoritesRepository : IFavoritesRepository
 {
     private readonly TwinShellDbContext _context;
     private readonly ILogger<FavoritesRepository> _logger;

@@ -25,7 +25,7 @@ namespace Heimdall.Terminal;
 /// required for plink SSH where ConPTY breaks arrow keys.
 /// The -t flag on plink forces remote PTY allocation.
 /// </summary>
-public class PipeModeSession : ITerminalSession
+public sealed class PipeModeSession : ITerminalSession
 {
     private Process? _process;
     private Task? _readLoop;

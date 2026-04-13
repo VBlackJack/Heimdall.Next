@@ -10,7 +10,7 @@ namespace TwinShell.Persistence.Repositories;
 /// <summary>
 /// Repository implementation for CommandHistory persistence
 /// </summary>
-public class CommandHistoryRepository : ICommandHistoryRepository
+public sealed class CommandHistoryRepository : ICommandHistoryRepository
 {
     private readonly TwinShellDbContext _context;
     private readonly ILogger<CommandHistoryRepository> _logger;

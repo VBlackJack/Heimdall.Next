@@ -24,7 +24,7 @@ namespace TwinShell.Persistence.Repositories;
 /// <summary>
 /// Repository implementation for Git sync history
 /// </summary>
-public class SyncHistoryRepository : ISyncHistoryRepository
+public sealed class SyncHistoryRepository : ISyncHistoryRepository
 {
     private readonly TwinShellDbContext _dbContext;
 

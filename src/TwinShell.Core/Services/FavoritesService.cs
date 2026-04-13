@@ -8,7 +8,7 @@ namespace TwinShell.Core.Services;
 /// Service for managing user favorites
 /// </summary>
 // BUGFIX: Implement IDisposable to properly dispose SemaphoreSlim
-public class FavoritesService : IFavoritesService, IDisposable
+public sealed class FavoritesService : IFavoritesService, IDisposable
 {
     private readonly IFavoritesRepository _repository;
     private readonly SemaphoreSlim _favoritesLock = new SemaphoreSlim(1, 1);

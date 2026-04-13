@@ -5,7 +5,7 @@ namespace TwinShell.Core.Models;
 /// <summary>
 /// Represents a single command within a batch
 /// </summary>
-public class BatchCommandItem
+public sealed class BatchCommandItem
 {
     /// <summary>
     /// Unique identifier

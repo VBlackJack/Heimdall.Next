@@ -21,7 +21,7 @@ namespace Heimdall.Core.Configuration;
 /// Servers in this group inherit these values when their own fields are null/empty.
 /// Supports hierarchical resolution: "PROD/Linux" inherits from "PROD" if not overridden.
 /// </summary>
-public class GroupDefaultsDto
+public sealed class GroupDefaultsDto
 {
     /// <summary>Default SSH gateway for servers in this group.</summary>
     public string? SshGatewayId { get; set; }

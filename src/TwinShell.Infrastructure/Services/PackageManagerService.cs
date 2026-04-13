@@ -9,7 +9,7 @@ namespace TwinShell.Infrastructure.Services;
 /// <summary>
 /// Service for managing package operations (Winget and Chocolatey)
 /// </summary>
-public class PackageManagerService : IPackageManagerService
+public sealed class PackageManagerService : IPackageManagerService
 {
     private const int DefaultTimeoutSeconds = 30;
     private static readonly Regex ValidSearchTermRegex = new(@"^[a-zA-Z0-9\s\-_.]+$", RegexOptions.Compiled);

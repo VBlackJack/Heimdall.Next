@@ -62,7 +62,7 @@ public interface IHealthCheckService
 /// <summary>
 /// Result of a single health check.
 /// </summary>
-public class HealthCheckResult
+public sealed class HealthCheckResult
 {
     public string ComponentName { get; set; } = string.Empty;
     public HealthStatus Status { get; set; }
@@ -106,7 +106,7 @@ public class HealthCheckResult
 /// <summary>
 /// Aggregated health check report for all components.
 /// </summary>
-public class HealthCheckReport
+public sealed class HealthCheckReport
 {
     public HealthStatus OverallStatus { get; set; }
     public DateTime GeneratedAt { get; set; }

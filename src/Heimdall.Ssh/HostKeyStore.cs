@@ -26,7 +26,7 @@ namespace Heimdall.Ssh;
 /// <param name="FirstUse">Whether this is the first time seeing this host.</param>
 /// <param name="Fingerprint">SHA256 fingerprint of the presented host key.</param>
 /// <param name="StoredFingerprint">Previously stored fingerprint, if any.</param>
-public record HostKeyVerifyResult(
+public sealed record HostKeyVerifyResult(
     bool Trusted,
     bool FirstUse,
     string Fingerprint,
@@ -37,7 +37,7 @@ public record HostKeyVerifyResult(
 /// Stores SHA256 fingerprints per host:port, blocks on mismatch.
 /// Thread-safe via <see cref="ConcurrentDictionary{TKey, TValue}"/>.
 /// </summary>
-public class HostKeyStore
+public sealed class HostKeyStore
 {
     private readonly ConcurrentDictionary<string, string> _trustedKeys = new();
 

@@ -4,7 +4,7 @@ using TwinShell.Persistence.Entities;
 
 namespace TwinShell.Persistence.Configurations;
 
-public class SearchHistoryConfiguration : IEntityTypeConfiguration<SearchHistoryEntity>
+public sealed class SearchHistoryConfiguration : IEntityTypeConfiguration<SearchHistoryEntity>
 {
     public void Configure(EntityTypeBuilder<SearchHistoryEntity> builder)
     {

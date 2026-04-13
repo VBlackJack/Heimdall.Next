@@ -3,7 +3,7 @@ namespace TwinShell.Core.Models;
 /// <summary>
 /// Represents real-time progress of a batch execution
 /// </summary>
-public class BatchExecutionProgress
+public sealed class BatchExecutionProgress
 {
     /// <summary>
     /// Current command being executed (0-based index)

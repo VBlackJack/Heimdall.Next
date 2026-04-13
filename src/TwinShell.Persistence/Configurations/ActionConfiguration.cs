@@ -5,7 +5,7 @@ using TwinShell.Persistence.Entities;
 
 namespace TwinShell.Persistence.Configurations;
 
-public class ActionConfiguration : IEntityTypeConfiguration<ActionEntity>
+public sealed class ActionConfiguration : IEntityTypeConfiguration<ActionEntity>
 {
     public void Configure(EntityTypeBuilder<ActionEntity> builder)
     {

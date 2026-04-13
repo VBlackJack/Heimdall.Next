@@ -22,7 +22,7 @@ namespace Heimdall.Core.Configuration;
 /// <c>{Host}</c>, <c>{Port}</c>, <c>{User}</c>, <c>{ServerName}</c>,
 /// <c>{Protocol}</c>, <c>{KeyFile}</c>, <c>{Project}</c>, <c>{Gateway}</c>.
 /// </summary>
-public class ExternalToolDefinition
+public sealed class ExternalToolDefinition
 {
     public string Name { get; set; } = string.Empty;
     public string ExecutablePath { get; set; } = string.Empty;

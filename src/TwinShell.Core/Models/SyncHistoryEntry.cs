@@ -21,7 +21,7 @@ namespace TwinShell.Core.Models;
 /// <summary>
 /// Represents a Git sync operation history entry
 /// </summary>
-public class SyncHistoryEntry
+public sealed class SyncHistoryEntry
 {
     /// <summary>
     /// Unique identifier

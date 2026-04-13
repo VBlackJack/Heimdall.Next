@@ -24,7 +24,7 @@ namespace Heimdall.Terminal;
 /// Implements <see cref="ITerminalSession"/> so it can be rendered in
 /// the same WebView2 + xterm.js infrastructure used by SSH pipe mode.
 /// </summary>
-public class TelnetSession : ITerminalSession
+public sealed class TelnetSession : ITerminalSession
 {
     private const byte IAC = 255;
     private const byte WILL = 251;

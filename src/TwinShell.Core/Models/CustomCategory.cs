@@ -3,7 +3,7 @@ namespace TwinShell.Core.Models;
 /// <summary>
 /// Represents a custom user-defined category for organizing actions.
 /// </summary>
-public class CustomCategory
+public sealed class CustomCategory
 {
     /// <summary>
     /// Unique identifier for the custom category.
