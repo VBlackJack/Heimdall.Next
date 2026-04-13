@@ -29,10 +29,12 @@ Heimdall.slnx (8 projects)
 │       ├── Views/Tools: 49 built-in sysops tools (IToolView interface)
 │       └── Services: ConnectionService (.Rdp/.Ssh/.Sftp/.Ftp/.Vnc/.Telnet/.Citrix/.Local/.Tunnel),
 │                     SplitService, EmbeddedSessionManager, ToolRegistry, TaskSchedulerService,
-│                     MacroService, EphemeralFileServer, X11ServerManager, WebSocketVncProxy
+│                     MacroService, EphemeralFileServer, X11ServerManager, WebSocketVncProxy,
+│                     ContextMenuFactory, ToolsTabPopulationService
 └── tests/
     ├── Heimdall.Core.Tests    State machine, HMAC integrity, input validation, PIN manager, config manager tests
-    └── Heimdall.Ssh.Tests     SSH engine tests (failure classifier, preflight, TOFU, Pageant, Plink)
+    ├── Heimdall.Ssh.Tests     SSH engine tests (failure classifier, preflight, TOFU, Pageant, Plink)
+    └── Heimdall.App.Tests     SplitService, NotesStorage, ThemeService, Migration, EphemeralFileServer, tool coherence
 ```
 
 ## Dependency Graph
@@ -373,6 +375,23 @@ ISplitContent (marker interface)
 **Problem**: X11 forwarding over SSH requires a local X server (VcXsrv, Xming, X410, XWin). Users forget to start one, or the `DISPLAY` variable is misconfigured.
 
 **Solution**: `X11ServerManager` detects running X server processes by scanning known process names. If none is found, it searches known installation paths and starts the first available server automatically. The `DISPLAY` environment variable is set to `localhost:0.0` for the SSH session. The manager disposes the started process on shutdown.
+
+### 26. MainWindow Code-Behind Split Strategy
+
+**Problem**: `MainWindow.xaml.cs` naturally accretes: it is the owner of ~300 named XAML elements, event handlers, localization wiring, context menus, tab population, and session orchestration. Left unchecked it bloats past 5,000 lines, making navigation, review, and unit testing hard.
+
+**Solution**: two complementary patterns applied as pure structural splits (no logic change, no rename, no signature change):
+
+1. **Extract to DI-registered services** when the logic does not need named XAML element access — a service takes a handful of dependencies via its constructor, is registered as a singleton in `App.xaml.cs`, and is injected into `MainWindow` alongside `MainViewModel`. Communication back into the window uses either a small callback interface (when many methods need window state) or plain `Action<T>` delegates (when only one or two callbacks are needed).
+   - **`ContextMenuFactory`** (647 lines) — builds the four session `TreeView` context menus and the "Detected Tools" submenu. Reaches back into `MainWindow` through `IContextMenuCallbacks`.
+   - **`ToolsTabPopulationService`** (605 lines) — owns the full-page Tools tab rebuild and the sidebar Tools `TreeView` data/filter. Reaches back via `Action<ToolDescriptor>` (card click) + `Action<string>` (pin click). Theme tokens are resolved via `Application.Current.FindResource` so the service stays decoupled from any `FrameworkElement`.
+
+2. **Split into `partial class` files** when the logic *must* touch named XAML elements directly (so extraction to a service would require passing dozens of `FrameworkElement` parameters on every call). The new file declares `public partial class MainWindow` and holds a thematically coherent subset of methods. Cross-file access is free (same class, same assembly) so static helpers and private fields remain shared without any visibility changes.
+   - **`MainWindow.Localization.cs`** (519 lines) — the 8 `Apply*Localization` methods (`ApplyLocalization` orchestrator + Navigation / Toolbar / Tunnel / Scheduled / Settings / About / Accessibility) plus the three helpers that are only ever called from `ApplySettingsLocalization` (`PopulateCredProvPresets`, `PopulateExtToolPlaceholderList`, `UpdateExtToolPreview`). `UpdateExternalToolProviderStatus` and `UpdateTokenStatus` stayed in the main code-behind because they have additional callers outside the localization flow.
+
+**Decision rule**: if the method's entire body is `Mw_X.Text = vm.Localize(...)` against named elements, use a partial class. If it manipulates the tree or builds controls from data and can be reshaped to take a `Panel`/`Control` parameter, extract to a service. The same `ConnectionService` in `Heimdall.App/Services/` already uses this partial-class pattern with 10 files for its per-protocol connection flows.
+
+**Result (Chantier 1)**: `MainWindow.xaml.cs` dropped from 4,895 → 3,490 lines (−29%), with each extracted unit now independently reviewable and the door open for targeted unit tests where appropriate.
 
 ## Design System (CommonControls.xaml — 1,880+ lines, 45 tokens, WCAG AA)
 

@@ -16,6 +16,7 @@
 
 using System.IO;
 using System.Text;
+using Heimdall.Core.Logging;
 using Heimdall.Core.Models;
 
 namespace Heimdall.App.Services;
@@ -366,7 +367,12 @@ public sealed class NotesStorageService
         ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
         ValidatePathWithinRoot(filePath);
 
-        _writeLock.Wait();
+        if (!_writeLock.Wait(TimeSpan.FromSeconds(2)))
+        {
+            FileLogger.Warn($"SaveNote timed out waiting for write lock: {filePath}");
+            return;
+        }
+
         try
         {
             var directory = Path.GetDirectoryName(filePath);

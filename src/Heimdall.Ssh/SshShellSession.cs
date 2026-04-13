@@ -85,7 +85,7 @@ public sealed class SshShellSession : IDisposable
         }
 
         await using var connectReg = cancellationToken.Register(
-            () => { try { _client.Disconnect(); } catch { } });
+            () => { try { _client.Disconnect(); } catch (Exception ex) { Core.Logging.FileLogger.Debug("SSH disconnect cleanup suppressed", ex); } });
         await Task.Run(() =>
         {
             cancellationToken.ThrowIfCancellationRequested();

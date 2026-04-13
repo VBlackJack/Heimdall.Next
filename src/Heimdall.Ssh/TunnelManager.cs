@@ -126,7 +126,7 @@ public sealed class TunnelManager : IDisposable
                 Core.Logging.FileLogger.Error($"SSH tunnel error on port {localPort}: {args.Exception.Message}");
 
             await using var connectReg = cancellationToken.Register(
-                () => { try { client.Disconnect(); } catch { } });
+                () => { try { client.Disconnect(); } catch (Exception ex) { Core.Logging.FileLogger.Debug("Client disconnect on cancel suppressed", ex); } });
             await Task.Run(() =>
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -191,44 +191,44 @@ public sealed class TunnelManager : IDisposable
         }
         catch (OperationCanceledException)
         {
-            try { dynamicPort?.Dispose(); } catch { }
-            try { remotePortFwd?.Dispose(); } catch { }
+            try { dynamicPort?.Dispose(); } catch (Exception cleanupEx) { Core.Logging.FileLogger.Debug("Dynamic port dispose suppressed", cleanupEx); }
+            try { remotePortFwd?.Dispose(); } catch (Exception cleanupEx) { Core.Logging.FileLogger.Debug("Remote port forward dispose suppressed", cleanupEx); }
             CleanupPartial(client, forwardedPort);
             return new TunnelResult(false, null, "Tunnel establishment was cancelled.", SshFailureCode.Cancelled);
         }
         catch (SshAuthenticationException ex)
         {
-            try { dynamicPort?.Dispose(); } catch { }
-            try { remotePortFwd?.Dispose(); } catch { }
+            try { dynamicPort?.Dispose(); } catch (Exception cleanupEx) { Core.Logging.FileLogger.Debug("Dynamic port dispose suppressed", cleanupEx); }
+            try { remotePortFwd?.Dispose(); } catch (Exception cleanupEx) { Core.Logging.FileLogger.Debug("Remote port forward dispose suppressed", cleanupEx); }
             CleanupPartial(client, forwardedPort);
             return new TunnelResult(false, null, ex.Message, SshFailureCode.AuthRejected);
         }
         catch (SocketException ex)
         {
-            try { dynamicPort?.Dispose(); } catch { }
-            try { remotePortFwd?.Dispose(); } catch { }
+            try { dynamicPort?.Dispose(); } catch (Exception cleanupEx) { Core.Logging.FileLogger.Debug("Dynamic port dispose suppressed", cleanupEx); }
+            try { remotePortFwd?.Dispose(); } catch (Exception cleanupEx) { Core.Logging.FileLogger.Debug("Remote port forward dispose suppressed", cleanupEx); }
             CleanupPartial(client, forwardedPort);
             var code = ClassifySocketException(ex);
             return new TunnelResult(false, null, ex.Message, code);
         }
         catch (SshConnectionException ex)
         {
-            try { dynamicPort?.Dispose(); } catch { }
-            try { remotePortFwd?.Dispose(); } catch { }
+            try { dynamicPort?.Dispose(); } catch (Exception cleanupEx) { Core.Logging.FileLogger.Debug("Dynamic port dispose suppressed", cleanupEx); }
+            try { remotePortFwd?.Dispose(); } catch (Exception cleanupEx) { Core.Logging.FileLogger.Debug("Remote port forward dispose suppressed", cleanupEx); }
             CleanupPartial(client, forwardedPort);
             return new TunnelResult(false, null, ex.Message, SshFailureCode.NetworkRefused);
         }
         catch (SshException ex) when (ex.Message.Contains("port", StringComparison.OrdinalIgnoreCase))
         {
-            try { dynamicPort?.Dispose(); } catch { }
-            try { remotePortFwd?.Dispose(); } catch { }
+            try { dynamicPort?.Dispose(); } catch (Exception cleanupEx) { Core.Logging.FileLogger.Debug("Dynamic port dispose suppressed", cleanupEx); }
+            try { remotePortFwd?.Dispose(); } catch (Exception cleanupEx) { Core.Logging.FileLogger.Debug("Remote port forward dispose suppressed", cleanupEx); }
             CleanupPartial(client, forwardedPort);
             return new TunnelResult(false, null, ex.Message, SshFailureCode.PortInUse);
         }
         catch (Exception ex)
         {
-            try { dynamicPort?.Dispose(); } catch { }
-            try { remotePortFwd?.Dispose(); } catch { }
+            try { dynamicPort?.Dispose(); } catch (Exception cleanupEx) { Core.Logging.FileLogger.Debug("Dynamic port dispose suppressed", cleanupEx); }
+            try { remotePortFwd?.Dispose(); } catch (Exception cleanupEx) { Core.Logging.FileLogger.Debug("Remote port forward dispose suppressed", cleanupEx); }
             CleanupPartial(client, forwardedPort);
             return new TunnelResult(false, null, ex.Message, SshFailureCode.Unknown);
         }
@@ -306,7 +306,7 @@ public sealed class TunnelManager : IDisposable
             }
 
             await using var rootConnectReg = cancellationToken.Register(
-                () => { try { rootClient.Disconnect(); } catch { } });
+                () => { try { rootClient.Disconnect(); } catch (Exception ex) { Core.Logging.FileLogger.Debug("Root client disconnect on cancel suppressed", ex); } });
             await Task.Run(() =>
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -358,7 +358,7 @@ public sealed class TunnelManager : IDisposable
                 }
 
                 await using var hopConnectReg = cancellationToken.Register(
-                    () => { try { hopClient.Disconnect(); } catch { } });
+                    () => { try { hopClient.Disconnect(); } catch (Exception ex) { Core.Logging.FileLogger.Debug("Hop client disconnect on cancel suppressed", ex); } });
                 await Task.Run(() =>
                 {
                     cancellationToken.ThrowIfCancellationRequested();
@@ -437,30 +437,30 @@ public sealed class TunnelManager : IDisposable
         }
         catch (OperationCanceledException)
         {
-            try { dynamicPort?.Dispose(); } catch { }
-            try { remotePortFwd?.Dispose(); } catch { }
+            try { dynamicPort?.Dispose(); } catch (Exception cleanupEx) { Core.Logging.FileLogger.Debug("Dynamic port dispose suppressed", cleanupEx); }
+            try { remotePortFwd?.Dispose(); } catch (Exception cleanupEx) { Core.Logging.FileLogger.Debug("Remote port forward dispose suppressed", cleanupEx); }
             CleanupChainPartial(finalClient, finalPort, intermediateClients, intermediatePorts);
             return new TunnelResult(false, null, "Chained tunnel establishment was cancelled.", SshFailureCode.Cancelled);
         }
         catch (SshAuthenticationException ex)
         {
-            try { dynamicPort?.Dispose(); } catch { }
-            try { remotePortFwd?.Dispose(); } catch { }
+            try { dynamicPort?.Dispose(); } catch (Exception cleanupEx) { Core.Logging.FileLogger.Debug("Dynamic port dispose suppressed", cleanupEx); }
+            try { remotePortFwd?.Dispose(); } catch (Exception cleanupEx) { Core.Logging.FileLogger.Debug("Remote port forward dispose suppressed", cleanupEx); }
             CleanupChainPartial(finalClient, finalPort, intermediateClients, intermediatePorts);
             return new TunnelResult(false, null, ex.Message, SshFailureCode.AuthRejected);
         }
         catch (SocketException ex)
         {
-            try { dynamicPort?.Dispose(); } catch { }
-            try { remotePortFwd?.Dispose(); } catch { }
+            try { dynamicPort?.Dispose(); } catch (Exception cleanupEx) { Core.Logging.FileLogger.Debug("Dynamic port dispose suppressed", cleanupEx); }
+            try { remotePortFwd?.Dispose(); } catch (Exception cleanupEx) { Core.Logging.FileLogger.Debug("Remote port forward dispose suppressed", cleanupEx); }
             CleanupChainPartial(finalClient, finalPort, intermediateClients, intermediatePorts);
             var code = ClassifySocketException(ex);
             return new TunnelResult(false, null, ex.Message, code);
         }
         catch (Exception ex)
         {
-            try { dynamicPort?.Dispose(); } catch { }
-            try { remotePortFwd?.Dispose(); } catch { }
+            try { dynamicPort?.Dispose(); } catch (Exception cleanupEx) { Core.Logging.FileLogger.Debug("Dynamic port dispose suppressed", cleanupEx); }
+            try { remotePortFwd?.Dispose(); } catch (Exception cleanupEx) { Core.Logging.FileLogger.Debug("Remote port forward dispose suppressed", cleanupEx); }
             CleanupChainPartial(finalClient, finalPort, intermediateClients, intermediatePorts);
             return new TunnelResult(false, null, ex.Message, SshFailureCode.Unknown);
         }

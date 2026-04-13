@@ -75,6 +75,8 @@ public sealed class FileLogger : IDisposable
         System.Diagnostics.Debug.WriteLine(entry);
     }
 
+    public static void Debug(string message) => Log("DEBUG", message);
+    public static void Debug(string message, Exception ex) => Log("DEBUG", $"{message}: {ex.Message}");
     public static void Info(string message) => Log("INFO", message);
     public static void Warn(string message) => Log("WARN", message);
     public static void Error(string message) => Log("ERROR", message);

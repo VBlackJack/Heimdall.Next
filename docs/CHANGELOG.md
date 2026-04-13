@@ -12,6 +12,49 @@
 
 All notable changes to Heimdall.Next are documented in this file.
 
+## [Unreleased] - 2026-04-13
+
+### Post-v2026.041301 audit follow-up — code-behind split, observability, assets diet
+
+#### Code organization — MainWindow code-behind split (Chantier 1)
+- **`MainWindow.xaml.cs` shrunk from 4,895 → 3,490 lines** (−1,405 lines, −29%) via three structural extractions. Zero behavior change — pure file splits verified by build + full test suite
+- **`Services/ContextMenuFactory.cs`** (647 lines, new) — builds the four session `TreeView` context menus (server, folder, tool, empty area) and the "Detected Tools" submenu from `ExternalToolProviderService`. Constructor-injected via DI; reached from MainWindow through a small `IContextMenuCallbacks` interface so the menu builder never touches window-scoped state directly
+- **`Services/ToolsTabPopulationService.cs`** (605 lines, new) — owns the full-page Tools tab rebuild (Favorites / Recents / categories / 280px cards with search filter), the sidebar Tools `TreeView` data + filter logic, and the pure helpers `GetCategoryBrushKey` / `GetInheritedToolTargetHost` / `CreateInheritedToolContext` / `ResolveToolTabTitle`. Tool card click/pin callbacks are plain `Action<T>` delegates (no interface ceremony for two callbacks). Uses `Application.Current.FindResource` for theme tokens so the service stays decoupled from any specific `FrameworkElement`. `PopulateToolsTab` itself stayed in `MainWindow.xaml.cs` as a thin wrapper because it writes to named header elements (`Mw_ToolsTabTitle`, `Mw_ToolsTabCount`) that are tightly coupled to the XAML tree
+- **`MainWindow.Localization.cs`** (519 lines, new partial class) — holds the 8 `Apply*Localization` methods (`ApplyLocalization` orchestrator + Navigation / Toolbar / Tunnel / Scheduled / Settings / About / Accessibility) and the three helpers that are only ever called from `ApplySettingsLocalization` (`PopulateCredProvPresets`, `PopulateExtToolPlaceholderList`, `UpdateExtToolPreview`). `UpdateExternalToolProviderStatus` and `UpdateTokenStatus` stayed in the main code-behind because they have additional callers (external-tool rescan, Git sync token save/clear handlers)
+- All three extractions were carried out as pure structural moves with no logic change, no rename, and no signature change. `ContextMenuFactory` and `ToolsTabPopulationService` are registered as singletons in `App.xaml.cs` DI
+
+#### Observability — empty catch blocks (CQ-01)
+- **`FileLogger.Debug(string)` + `FileLogger.Debug(string, Exception)`** added to `Heimdall.Core.Logging.FileLogger` — mirrors the existing `Error` overloads, emits at level `DEBUG` through the same queue-and-flush pipeline
+- **`TunnelManager.cs`** — 21 empty `catch {}` blocks now log at Debug level: 18 `dispose?.Dispose()` pairs in the tunnel-establishment error handlers (`Dynamic port dispose suppressed` / `Remote port forward dispose suppressed`), plus 3 lambda `Disconnect()` calls wired to `CancellationToken.Register` (`Client disconnect on cancel suppressed` / `Root client` / `Hop client`). Inner catches use a local `cleanupEx` variable to avoid shadowing the outer exception dispatch
+- **`SshShellSession.cs`** — single `_client.Disconnect()` cancellation lambda now logs `SSH disconnect cleanup suppressed` at Debug level
+- Rationale: these sites are defensible (cleanup paths shouldn't throw) but silent failures hid any surprising exception at runtime. Logging at Debug is cheap, observable through the dev-console trace, and doesn't change behaviour
+
+#### Performance — NotesStorageService dispatcher starvation (PERF-03)
+- **`NotesStorageService.SaveNote()`** — the synchronous save path called from `IToolView.CanClose()` / `IDisposable.Dispose()` now waits on its `SemaphoreSlim` with a 2-second timeout instead of blocking indefinitely. On timeout it logs `SaveNote timed out waiting for write lock` via `FileLogger.Warn` and returns without writing — far better than stalling the WPF dispatcher if an async `SaveNoteAsync` is in flight
+
+#### Testing — SplitService unit tests (TEST-01)
+- **`tests/Heimdall.App.Tests/SplitServiceTests.cs`** (+14 tests) covering `SplitService`'s synchronous, self-contained methods — the service had zero direct coverage despite being the central owner of pane lifecycle
+- **Category A — CancellationTokenSource lifecycle (5 tests)**: `RegisterSession` token creation, `CancelSession` cancels a previously captured token, unknown-session `GetSessionToken` returns `CancellationToken.None`, unknown-session `CancelSession` no-op safety, idempotent re-register (second `TryAdd` keeps original)
+- **Category B — `CloseAllPanes` tool-pane blocking (4 tests)**: empty tree, single closable tool pane (disposed + host control cleared), single blocking tool pane (host control preserved, no dispose), mixed tree with one blocker (pre-check means neither pane is disposed)
+- **Category D — `ToggleSplitOrientation` (3 tests)**: Horizontal↔Vertical both directions plus unsplit no-op
+- **Category E — `SplitSessionWithTool` guards (2 tests)**: unknown tool id short-circuit + max-panes (8) cap with `SetStatusText` callback capture
+- **All 7 `SplitService` dependencies are `sealed`** — Moq cannot mock them. The fixture uses real instances for `ConfigManager` (temp dir), `LocalizationManager` (unlocalized, keys return verbatim), and `ToolRegistry` (built-in registry), and passes `null!` for `ConnectionStateMachine` / `TunnelManager` / `EmbeddedSessionManager` / `ConnectionService` because every tested code path was verified to never dereference them. A code comment in the fixture documents this rationale. **Moq was NOT added to the project** despite the initial plan suggesting it
+- **`SwapSplitPanesAsync` intentionally untested** — it early-returns when `System.Windows.Application.Current?.Dispatcher` is null, which is always the case in xUnit. Standing up a WPF `Application` + STA dispatcher pump is the same blocker that keeps `ThemeServiceTests` at `[Skip]` and is out of scope here
+
+#### Assets diet (Chantier 3 — PERF-04 + PERF-05)
+- **Orphaned PNGs removed (−9.6 MB)**: `Assets/Icons/app/icon-flat.png` (4.19 MB), `icon-rays.png` (3.18 MB), `logo.png` (1.85 MB). Reference audit (`git grep` across source + XAML + csproj + installer scripts) turned up only historical `docs/CHANGELOG.md` mentions and unrelated `/logo.png` references inside `drawio/js/*.min.js` (which point at `Assets/drawio/images/logo.png`, a different file). The real app icon `src/Heimdall.App/app.ico`, wired via `<ApplicationIcon>` in the csproj, is untouched
+- **Draw.io locales pruned (−2.95 MB)**: `Assets/drawio/resources/` went from 59 files / 3.1 MB down to 4 files / 149 KB. Kept `dia.txt` (base / English fallback — draw.io's loader uses this name for English), `dia_fr.txt`, `dia_i18n.txt` (auto-generated key manifest), and `README.md`. Removed 55 other `dia_*.txt` locale files — Heimdall is English/French only and draw.io falls back to `dia.txt` for any missing locale
+- **`Assets/drawio/VENDORED.md`** updated with three new sections documenting what was pruned, what is a candidate for further pruning *with a runtime test plan* (viewer bundles ~5.6 MB, `shapes-14-6-5.min.js` vs `shapes.min.js` duplication ~1.4 MB, clipart `img/` categories up to ~8 MB), and what is intentionally kept
+- **Total on-disk savings: ~12.55 MB** from source control. The `Assets\**\*` glob in `Heimdall.App.csproj` means removed files simply drop out of the deploy — no csproj edit required
+
+#### Housekeeping
+- Tests: **1,775 passing** (was 1,761) + 6 skipped (WPF Application context gating — intentional)
+- Build: clean, 0 warnings, 0 errors
+- i18n: 4,855 keys (EN/FR parity maintained, no changes this round)
+- `MainWindow.xaml.cs`: 4,895 → 3,490 lines across Chantier 1 (Step 1 extracted `ContextMenuFactory`, Step 2 extracted `ToolsTabPopulationService`, Step 3 extracted `MainWindow.Localization.cs`)
+
+---
+
 ## [v2026.041301] - 2026-04-13
 
 ### Sessions rename + full project audit pass
