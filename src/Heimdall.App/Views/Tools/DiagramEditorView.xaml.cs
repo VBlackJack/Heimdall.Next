@@ -70,6 +70,18 @@ public partial class DiagramEditorView : UserControl, IToolView
                 return;
             }
 
+            // Draw.io assets are excluded from Debug builds (~48 MB / 2258 files,
+            // see Heimdall.App.csproj). Show a friendly message instead of crashing.
+            var assetsPath = Path.Combine(AppContext.BaseDirectory, "Assets", "drawio");
+            if (!Directory.Exists(assetsPath))
+            {
+                Core.Logging.FileLogger.Warn(
+                    "[DiagramEditor] Draw.io assets not found at " + assetsPath +
+                    " — expected in Release builds only.");
+                ShowFallback(L("DiagramEditorDebugOnly"));
+                return;
+            }
+
             var env = await Services.WebView2Helper.CreateEnvironmentAsync("DrawIO");
             await DiagramWebView.EnsureCoreWebView2Async(env);
 
@@ -80,7 +92,6 @@ public partial class DiagramEditorView : UserControl, IToolView
             core.Settings.IsZoomControlEnabled = false;
 
             // Virtual host mapping for local draw.io files
-            var assetsPath = Path.Combine(AppContext.BaseDirectory, "Assets", "drawio");
             core.SetVirtualHostNameToFolderMapping(
                 VirtualHost, assetsPath,
                 CoreWebView2HostResourceAccessKind.Allow);

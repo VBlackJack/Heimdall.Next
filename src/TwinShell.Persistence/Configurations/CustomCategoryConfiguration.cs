@@ -4,7 +4,7 @@ using TwinShell.Persistence.Entities;
 
 namespace TwinShell.Persistence.Configurations;
 
-public class CustomCategoryConfiguration : IEntityTypeConfiguration<CustomCategoryEntity>
+public sealed class CustomCategoryConfiguration : IEntityTypeConfiguration<CustomCategoryEntity>
 {
     public void Configure(EntityTypeBuilder<CustomCategoryEntity> builder)
     {

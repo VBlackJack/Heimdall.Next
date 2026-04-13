@@ -158,7 +158,7 @@ public static class RdcManImporter
     private static string? El(XElement parent, string localName) =>
         parent.Elements().FirstOrDefault(e => e.Name.LocalName == localName)?.Value?.Trim();
 
-    public class ImportResult
+    public sealed class ImportResult
     {
         public List<ServerProfileDto> Servers { get; } = [];
         public List<string> Warnings { get; } = [];

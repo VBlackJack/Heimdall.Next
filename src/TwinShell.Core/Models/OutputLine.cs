@@ -3,7 +3,7 @@ namespace TwinShell.Core.Models;
 /// <summary>
 /// Represents a single line of output from a command execution
 /// </summary>
-public class OutputLine
+public sealed class OutputLine
 {
     /// <summary>
     /// The output text

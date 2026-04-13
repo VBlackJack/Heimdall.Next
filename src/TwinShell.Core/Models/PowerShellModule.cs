@@ -3,7 +3,7 @@ namespace TwinShell.Core.Models;
 /// <summary>
 /// Represents a PowerShell module from the PowerShell Gallery
 /// </summary>
-public class PowerShellModule
+public sealed class PowerShellModule
 {
     /// <summary>
     /// Module name

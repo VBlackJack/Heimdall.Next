@@ -19,7 +19,7 @@ namespace Heimdall.Core.Models;
 /// <summary>
 /// A recorded sequence of terminal inputs that can be replayed against an SSH session.
 /// </summary>
-public class TerminalMacro
+public sealed class TerminalMacro
 {
     public string Id { get; set; } = Guid.NewGuid().ToString();
     public string Name { get; set; } = "";
@@ -32,7 +32,7 @@ public class TerminalMacro
 /// A single input entry within a terminal macro, capturing the text sent
 /// and the delay since the previous entry.
 /// </summary>
-public class MacroEntry
+public sealed class MacroEntry
 {
     public string Input { get; set; } = "";
     public int DelayMs { get; set; }

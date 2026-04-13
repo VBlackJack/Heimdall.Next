@@ -9,7 +9,7 @@ namespace TwinShell.Core.Services;
 /// <summary>
 /// Service for managing actions
 /// </summary>
-public class ActionService : IActionService
+public sealed class ActionService : IActionService
 {
     private readonly IActionRepository _repository;
 

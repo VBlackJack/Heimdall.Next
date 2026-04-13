@@ -7,7 +7,7 @@ namespace TwinShell.Core.Services;
 /// <summary>
 /// Service for managing command history
 /// </summary>
-public class CommandHistoryService : ICommandHistoryService
+public sealed class CommandHistoryService : ICommandHistoryService
 {
     private readonly ICommandHistoryRepository _repository;
 

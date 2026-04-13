@@ -34,7 +34,7 @@ public interface ISyncService
 /// <summary>
 /// Result of a YAML export operation
 /// </summary>
-public class SyncExportResult
+public sealed class SyncExportResult
 {
     public bool Success { get; set; }
     public int ActionsExported { get; set; }
@@ -50,7 +50,7 @@ public class SyncExportResult
 /// <summary>
 /// Result of a YAML import operation
 /// </summary>
-public class SyncImportResult
+public sealed class SyncImportResult
 {
     public bool Success { get; set; }
 
@@ -84,7 +84,7 @@ public class SyncImportResult
 /// <summary>
 /// Represents a conflict between local and remote entity versions
 /// </summary>
-public class SyncEntityConflict
+public sealed class SyncEntityConflict
 {
     /// <summary>Entity type (Action, Batch, Template, Category)</summary>
     public string EntityType { get; set; } = string.Empty;
@@ -129,7 +129,7 @@ public enum SyncConflictResolution
 /// <summary>
 /// Result of YAML folder validation
 /// </summary>
-public class SyncValidationResult
+public sealed class SyncValidationResult
 {
     public bool IsValid { get; set; }
     public int ActionFilesFound { get; set; }

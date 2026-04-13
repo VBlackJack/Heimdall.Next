@@ -89,9 +89,9 @@ public partial class MainViewModel : ObservableObject, IDisposable
     private int _themeRevision;
 
     [ObservableProperty]
-    private string _selectedTab = "Servers";
+    private string _selectedTab = "Sessions";
 
-    private string _previousTab = "Servers";
+    private string _previousTab = "Sessions";
     private bool _suppressTabChangeGuard;
 
     // --- Retractable Tunnel Panel ---
@@ -156,8 +156,8 @@ public partial class MainViewModel : ObservableObject, IDisposable
     /// <summary>True when there are no scheduled tasks.</summary>
     public bool HasNoScheduledTasks => ScheduledTasks.Count == 0;
 
-    /// <summary>True when the Servers tab is selected.</summary>
-    public bool IsServersTabSelected => string.Equals(SelectedTab, "Servers", StringComparison.Ordinal);
+    /// <summary>True when the Sessions tab is selected.</summary>
+    public bool IsSessionsTabSelected => string.Equals(SelectedTab, "Sessions", StringComparison.Ordinal);
 
     /// <summary>True when the Tunnels tab is selected.</summary>
     public bool IsTunnelsTabSelected => string.Equals(SelectedTab, "Tunnels", StringComparison.Ordinal);
@@ -255,7 +255,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
     {
         _previousTab = value;
 
-        OnPropertyChanged(nameof(IsServersTabSelected));
+        OnPropertyChanged(nameof(IsSessionsTabSelected));
         OnPropertyChanged(nameof(IsTunnelsTabSelected));
         OnPropertyChanged(nameof(IsScheduledTabSelected));
         OnPropertyChanged(nameof(IsToolsTabSelected));

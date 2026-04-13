@@ -9,7 +9,7 @@ namespace TwinShell.Persistence.Repositories;
 /// <summary>
 /// Repository implementation for managing custom categories.
 /// </summary>
-public class CustomCategoryRepository : ICustomCategoryRepository
+public sealed class CustomCategoryRepository : ICustomCategoryRepository
 {
     private readonly TwinShellDbContext _context;
 

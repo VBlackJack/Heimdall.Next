@@ -20,7 +20,7 @@ namespace Heimdall.Core.Configuration;
 /// Flat DTO for project JSON deserialization.
 /// The ViewModel layer converts these to ObservableObject models.
 /// </summary>
-public class ProjectDto
+public sealed class ProjectDto
 {
     public string Id { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;

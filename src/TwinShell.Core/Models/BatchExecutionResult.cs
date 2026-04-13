@@ -3,7 +3,7 @@ namespace TwinShell.Core.Models;
 /// <summary>
 /// Represents the result of executing a batch of commands
 /// </summary>
-public class BatchExecutionResult
+public sealed class BatchExecutionResult
 {
     /// <summary>
     /// The batch that was executed

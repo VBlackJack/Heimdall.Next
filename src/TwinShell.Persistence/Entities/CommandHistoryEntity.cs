@@ -5,7 +5,7 @@ namespace TwinShell.Persistence.Entities;
 /// <summary>
 /// Database entity for CommandHistory
 /// </summary>
-public class CommandHistoryEntity
+public sealed class CommandHistoryEntity
 {
     public string Id { get; set; } = string.Empty;
     public string? UserId { get; set; }

@@ -3,7 +3,7 @@ namespace TwinShell.Core.Models;
 /// <summary>
 /// Represents a package search result from Winget or Chocolatey
 /// </summary>
-public class PackageSearchResult
+public sealed class PackageSearchResult
 {
     public string Id { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;

@@ -21,7 +21,7 @@ namespace Heimdall.Core.Models;
 /// Enriched fields allow tools to prefill with server-specific values
 /// instead of generic placeholders like "example.com".
 /// </summary>
-public record ToolContext(
+public sealed record ToolContext(
     string? TargetHost = null,
     int? TargetPort = null,
     string? Argument = null,

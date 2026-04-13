@@ -5,7 +5,7 @@ namespace TwinShell.Persistence.Entities;
 /// <summary>
 /// Database entity for CommandBatch
 /// </summary>
-public class CommandBatchEntity
+public sealed class CommandBatchEntity
 {
     public string Id { get; set; } = string.Empty;
 

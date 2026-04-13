@@ -27,7 +27,7 @@ namespace TwinShell.Infrastructure.Services;
 /// Service for performing health checks on application components.
 /// Used for smoke tests, startup verification, and monitoring.
 /// </summary>
-public class HealthCheckService : IHealthCheckService
+public sealed class HealthCheckService : IHealthCheckService
 {
     private readonly IActionRepository _actionRepository;
     private readonly ISettingsService _settingsService;

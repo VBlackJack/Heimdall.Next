@@ -20,7 +20,7 @@ namespace Heimdall.Core.Configuration;
 /// Flat DTO for SSH gateway JSON deserialization.
 /// The ViewModel layer converts these to ObservableObject models.
 /// </summary>
-public class SshGatewayDto
+public sealed class SshGatewayDto
 {
     public string Id { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;

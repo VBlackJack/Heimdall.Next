@@ -3,7 +3,7 @@ namespace TwinShell.Core.Models;
 /// <summary>
 /// Represents a translation for an action
 /// </summary>
-public class ActionTranslation
+public sealed class ActionTranslation
 {
     /// <summary>
     /// Unique identifier

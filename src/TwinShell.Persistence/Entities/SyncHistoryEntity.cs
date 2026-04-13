@@ -19,7 +19,7 @@ namespace TwinShell.Persistence.Entities;
 /// <summary>
 /// Database entity for tracking Git sync history
 /// </summary>
-public class SyncHistoryEntity
+public sealed class SyncHistoryEntity
 {
     /// <summary>
     /// Unique identifier

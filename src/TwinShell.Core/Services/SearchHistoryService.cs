@@ -8,7 +8,7 @@ namespace TwinShell.Core.Services;
 /// Service for managing search history for autocomplete and suggestions.
 /// Stores recent searches to improve user experience.
 /// </summary>
-public class SearchHistoryService : ISearchHistoryService
+public sealed class SearchHistoryService : ISearchHistoryService
 {
     private readonly ISearchHistoryRepository _repository;
 

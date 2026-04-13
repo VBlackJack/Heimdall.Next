@@ -12,7 +12,7 @@ namespace TwinShell.Core.Services;
 /// <summary>
 /// Service for configuration export/import
 /// </summary>
-public class ConfigurationService : IConfigurationService
+public sealed class ConfigurationService : IConfigurationService
 {
     private readonly IFavoritesRepository _favoritesRepository;
     private readonly ICommandHistoryRepository _historyRepository;

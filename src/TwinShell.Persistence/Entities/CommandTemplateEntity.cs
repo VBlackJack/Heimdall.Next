@@ -5,7 +5,7 @@ namespace TwinShell.Persistence.Entities;
 /// <summary>
 /// Database entity for CommandTemplate
 /// </summary>
-public class CommandTemplateEntity
+public sealed class CommandTemplateEntity
 {
     public string Id { get; set; } = string.Empty;
 

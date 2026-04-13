@@ -7,7 +7,7 @@ namespace TwinShell.Core.Services;
 /// <summary>
 /// Service for managing custom user-defined categories.
 /// </summary>
-public class CustomCategoryService : ICustomCategoryService
+public sealed class CustomCategoryService : ICustomCategoryService
 {
     private readonly ICustomCategoryRepository _repository;
 

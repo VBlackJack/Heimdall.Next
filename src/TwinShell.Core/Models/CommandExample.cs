@@ -5,7 +5,7 @@ namespace TwinShell.Core.Models;
 /// <summary>
 /// Represents a concrete example of a command
 /// </summary>
-public class CommandExample
+public sealed class CommandExample
 {
     /// <summary>
     /// The actual command to execute

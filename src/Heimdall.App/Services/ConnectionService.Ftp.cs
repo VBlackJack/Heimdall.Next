@@ -77,4 +77,4 @@ public partial class ConnectionService
 /// <summary>
 /// Bundles an FTP browser session for use by the embedded SFTP/FTP view.
 /// </summary>
-public record FtpSessionBundle(FtpBrowser Browser) : ISessionResult;
+public sealed record FtpSessionBundle(FtpBrowser Browser) : ISessionResult;

@@ -224,4 +224,4 @@ public partial class ProjectDialogViewModel : ObservableValidator
 /// </summary>
 /// <param name="Project">The project DTO with user-entered values.</param>
 /// <param name="Saved">True if the user clicked Save, false if cancelled.</param>
-public record ProjectDialogResult(ProjectDto Project, bool Saved);
+public sealed record ProjectDialogResult(ProjectDto Project, bool Saved);

@@ -8,7 +8,7 @@ namespace TwinShell.Persistence.Repositories;
 /// <summary>
 /// Repository implementation for CommandBatch persistence
 /// </summary>
-public class BatchRepository : IBatchRepository
+public sealed class BatchRepository : IBatchRepository
 {
     private readonly TwinShellDbContext _context;
 

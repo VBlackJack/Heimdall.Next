@@ -1049,7 +1049,7 @@ public static class RoleClassifier
         return end > start ? dn[start..end].Trim() : dn[start..].Trim();
     }
 
-    private record RoleDefinition(
+    private sealed record RoleDefinition(
         string RoleName,
         int[] RequiredPorts,
         int[] OptionalPorts,

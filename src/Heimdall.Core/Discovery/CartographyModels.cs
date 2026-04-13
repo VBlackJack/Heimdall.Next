@@ -19,7 +19,7 @@ namespace Heimdall.Core.Discovery;
 /// <summary>
 /// Defines the parameters for a network cartography scan.
 /// </summary>
-public record ScanProfile(
+public sealed record ScanProfile(
     string Subnet,
     ScanDepth Depth,
     int[]? CustomPorts,
@@ -36,7 +36,7 @@ public enum ScanDepth { Quick, Standard, Deep }
 /// <summary>
 /// Complete snapshot of a network scan run.
 /// </summary>
-public record NetworkScanSnapshot(
+public sealed record NetworkScanSnapshot(
     string Id,
     DateTime Timestamp,
     ScanProfile Profile,
@@ -48,7 +48,7 @@ public record NetworkScanSnapshot(
 /// <summary>
 /// SNMP system information retrieved via SNMPv2c GET.
 /// </summary>
-public record SnmpInfo(
+public sealed record SnmpInfo(
     string? SysDescr,
     string? SysName,
     string? SysLocation,
@@ -60,7 +60,7 @@ public record SnmpInfo(
 /// NTLM challenge information extracted from SMB2/HTTP NTLMSSP exchange.
 /// Provides hostname, domain, and OS build without credentials.
 /// </summary>
-public record NtlmInfo(
+public sealed record NtlmInfo(
     string? NetBiosComputerName,
     string? NetBiosDomainName,
     string? DnsComputerName,
@@ -71,7 +71,7 @@ public record NtlmInfo(
 /// <summary>
 /// SMB2 Negotiate response metadata extracted without authentication.
 /// </summary>
-public record SmbNegotiateInfo(
+public sealed record SmbNegotiateInfo(
     string? ServerGuid,
     ushort DialectRevision,
     bool SigningRequired,
@@ -83,7 +83,7 @@ public record SmbNegotiateInfo(
 /// <summary>
 /// HTTP fingerprint evidence collected from cookies, error pages, and URL probes.
 /// </summary>
-public record HttpFingerprint(
+public sealed record HttpFingerprint(
     string? Framework,
     string? ProductUrl,
     string? ProductName);
@@ -91,7 +91,7 @@ public record HttpFingerprint(
 /// <summary>
 /// SSDP/UPnP device information retrieved via M-SEARCH multicast discovery.
 /// </summary>
-public record SsdpInfo(
+public sealed record SsdpInfo(
     string? DeviceType,
     string? FriendlyName,
     string? Manufacturer,
@@ -104,7 +104,7 @@ public record SsdpInfo(
 /// <summary>
 /// Inferred operating system with confidence and detection source.
 /// </summary>
-public record OsFingerprint(
+public sealed record OsFingerprint(
     string OsGuess,
     string Source,
     int Confidence);
@@ -112,7 +112,7 @@ public record OsFingerprint(
 /// <summary>
 /// Aggregated scan result for a single host.
 /// </summary>
-public record HostScanResult(
+public sealed record HostScanResult(
     string IpAddress,
     string? Hostname,
     bool IsAlive,
@@ -156,7 +156,7 @@ public record HostScanResult(
 /// <summary>
 /// Result of probing a single port on a host.
 /// </summary>
-public record ServiceResult(
+public sealed record ServiceResult(
     int Port,
     bool IsOpen,
     string? ServiceName,
@@ -169,7 +169,7 @@ public record ServiceResult(
 /// <summary>
 /// TLS certificate information gathered from a host's service.
 /// </summary>
-public record CertificateInfo(
+public sealed record CertificateInfo(
     string Subject,
     string Issuer,
     DateTime NotBefore,
@@ -185,7 +185,7 @@ public record CertificateInfo(
 /// <summary>
 /// A heuristic role match with confidence score and supporting evidence.
 /// </summary>
-public record RoleMatch(
+public sealed record RoleMatch(
     string Role,
     int Confidence,
     string[] Evidence);
@@ -193,7 +193,7 @@ public record RoleMatch(
 /// <summary>
 /// VLAN or network segment information inferred from scan results.
 /// </summary>
-public record VlanInfo(
+public sealed record VlanInfo(
     int? VlanId,
     string Name,
     string Subnet,
@@ -217,7 +217,7 @@ public enum HostChangeType
 /// <summary>
 /// A single structural change detected on a host.
 /// </summary>
-public record HostChange(
+public sealed record HostChange(
     HostChangeType Type,
     string? OldValue,
     string? NewValue,
@@ -226,7 +226,7 @@ public record HostChange(
 /// <summary>
 /// Difference between two scan snapshots.
 /// </summary>
-public record ScanDiff(
+public sealed record ScanDiff(
     List<HostScanResult> NewHosts,
     List<HostScanResult> RemovedHosts,
     List<(HostScanResult Old, HostScanResult New, List<HostChange> Changes)> ModifiedHosts);
@@ -238,14 +238,14 @@ public record ScanDiff(
 /// in the knowledge base. The <paramref name="Source"/> field identifies
 /// the scan vantage point (gateway name or "local").
 /// </summary>
-public record Observation<T>(T Value, DateTime ObservedAt, string? Source = null);
+public sealed record Observation<T>(T Value, DateTime ObservedAt, string? Source = null);
 
 /// <summary>
 /// Accumulated knowledge about a single host, merged from multiple scans.
 /// Keyed by IP address. Each field carries its own observation timestamp
 /// so the merge engine can apply "newest wins" per field.
 /// </summary>
-public record KnownHost(
+public sealed record KnownHost(
     string IpAddress,
     DateTime FirstSeen,
     DateTime LastSeen,
@@ -273,7 +273,7 @@ public record KnownHost(
 /// <summary>
 /// A service/port observation with its own timestamp for TTL-based cache invalidation.
 /// </summary>
-public record KnownService(
+public sealed record KnownService(
     int Port,
     bool IsOpen,
     string? ServiceName,
@@ -287,7 +287,7 @@ public record KnownService(
 /// <summary>
 /// Root container for the entire knowledge base.
 /// </summary>
-public record NetworkKnowledgeBase(
+public sealed record NetworkKnowledgeBase(
     int Version,
     DateTime LastUpdated,
     KnowledgeBaseTtlConfig TtlConfig,
@@ -297,7 +297,7 @@ public record NetworkKnowledgeBase(
 /// Configurable TTL values (in hours) that control when cached data is
 /// considered stale and should be re-probed.
 /// </summary>
-public record KnowledgeBaseTtlConfig(
+public sealed record KnowledgeBaseTtlConfig(
     int HostAliveHours = 4,
     int PortScanHours = 24,
     int BannerGrabHours = 168,

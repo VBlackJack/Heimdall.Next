@@ -3,7 +3,7 @@ namespace TwinShell.Persistence.Entities;
 /// <summary>
 /// Database entity for SearchHistory
 /// </summary>
-public class SearchHistoryEntity
+public sealed class SearchHistoryEntity
 {
     public string Id { get; set; } = string.Empty;
     public string SearchTerm { get; set; } = string.Empty;

@@ -46,7 +46,7 @@ public interface IImportExportService
 /// <summary>
 /// Result of an export operation
 /// </summary>
-public class ExportResult
+public sealed class ExportResult
 {
     public bool Success { get; set; }
     public int ActionCount { get; set; }
@@ -56,7 +56,7 @@ public class ExportResult
 /// <summary>
 /// Result of an import operation
 /// </summary>
-public class ImportResult
+public sealed class ImportResult
 {
     public bool Success { get; set; }
     public int Imported { get; set; }
@@ -69,7 +69,7 @@ public class ImportResult
 /// <summary>
 /// Result of a validation operation
 /// </summary>
-public class ValidationResult
+public sealed class ValidationResult
 {
     public bool IsValid { get; set; }
     public string? ErrorMessage { get; set; }

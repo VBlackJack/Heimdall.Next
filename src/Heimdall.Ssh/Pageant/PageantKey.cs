@@ -22,4 +22,4 @@ namespace Heimdall.Ssh.Pageant;
 /// <param name="Blob">Raw public key blob as returned by the agent.</param>
 /// <param name="Comment">Human-readable comment associated with the key (typically the file path).</param>
 /// <param name="KeyType">SSH key type identifier (e.g., "ssh-rsa", "ssh-ed25519").</param>
-public record PageantKey(byte[] Blob, string Comment, string KeyType);
+public sealed record PageantKey(byte[] Blob, string Comment, string KeyType);

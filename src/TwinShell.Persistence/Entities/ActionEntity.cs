@@ -5,7 +5,7 @@ namespace TwinShell.Persistence.Entities;
 /// <summary>
 /// Database entity for Action
 /// </summary>
-public class ActionEntity
+public sealed class ActionEntity
 {
     public string Id { get; set; } = string.Empty;
 

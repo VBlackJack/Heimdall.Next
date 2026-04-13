@@ -20,7 +20,7 @@ namespace Heimdall.Core.Configuration;
 /// Flat DTO for scheduled task JSON serialization.
 /// Persisted inside <see cref="AppSettings.ScheduledTasks"/>.
 /// </summary>
-public class ScheduledTaskDto
+public sealed class ScheduledTaskDto
 {
     public string Id { get; set; } = string.Empty;
     public string ServerId { get; set; } = string.Empty;

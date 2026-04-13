@@ -242,7 +242,7 @@ public static class RdpFileGenerator
 /// <summary>
 /// Options for generating an .rdp file.
 /// </summary>
-public class RdpFileOptions
+public sealed class RdpFileOptions
 {
     /// <summary>Target host address.</summary>
     public required string Host { get; init; }

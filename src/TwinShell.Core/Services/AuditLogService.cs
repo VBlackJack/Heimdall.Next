@@ -9,7 +9,7 @@ namespace TwinShell.Core.Services;
 /// <summary>
 /// Service for managing audit logs
 /// </summary>
-public class AuditLogService : IAuditLogService
+public sealed class AuditLogService : IAuditLogService
 {
     private readonly IAuditLogRepository _repository;
 

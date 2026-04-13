@@ -460,7 +460,7 @@ public static class JsonSchemaValidator
 /// <summary>
 /// Result of JSON schema validation
 /// </summary>
-public class SchemaValidationResult
+public sealed class SchemaValidationResult
 {
     public bool IsValid { get; set; }
     public List<string> Errors { get; set; } = new();

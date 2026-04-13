@@ -25,7 +25,7 @@ namespace Heimdall.Ssh;
 /// <param name="RemotePort">Target port on the remote network.</param>
 /// <param name="StartedAt">UTC timestamp when the tunnel was established.</param>
 /// <param name="IsAlive">Whether the underlying SSH connection is still active.</param>
-public record TunnelInfo(
+public sealed record TunnelInfo(
     string ServerName,
     int LocalPort,
     string RemoteHost,

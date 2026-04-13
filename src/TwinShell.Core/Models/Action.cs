@@ -5,7 +5,7 @@ namespace TwinShell.Core.Models;
 /// <summary>
 /// Represents a system administration action
 /// </summary>
-public class Action
+public sealed class Action
 {
     /// <summary>
     /// Unique identifier

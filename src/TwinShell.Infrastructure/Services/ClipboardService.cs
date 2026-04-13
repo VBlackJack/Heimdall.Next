@@ -6,7 +6,7 @@ namespace TwinShell.Infrastructure.Services;
 /// <summary>
 /// Service for Windows clipboard operations
 /// </summary>
-public class ClipboardService : IClipboardService
+public sealed class ClipboardService : IClipboardService
 {
     public void SetText(string text)
     {

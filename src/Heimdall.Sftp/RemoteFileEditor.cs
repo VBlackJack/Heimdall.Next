@@ -26,7 +26,7 @@ namespace Heimdall.Sftp;
 /// opens it in an external editor, and auto-uploads changes via a
 /// <see cref="FileSystemWatcher"/> with debounce protection.
 /// </summary>
-public class RemoteFileEditor : IDisposable
+public sealed class RemoteFileEditor : IDisposable
 {
     /// <summary>Minimum interval between consecutive auto-uploads for the same file.</summary>
     public static TimeSpan UploadDebounceInterval { get; set; } = TimeSpan.FromSeconds(2);
@@ -460,7 +460,7 @@ public class RemoteFileEditor : IDisposable
 /// <summary>
 /// Tracks state for a single remote file editing session.
 /// </summary>
-internal class EditSession : IDisposable
+internal sealed class EditSession : IDisposable
 {
     /// <summary>Full remote path of the file being edited.</summary>
     public required string RemotePath { get; init; }

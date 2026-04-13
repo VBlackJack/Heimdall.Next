@@ -3,7 +3,7 @@ namespace TwinShell.Core.Models;
 /// <summary>
 /// Represents a PowerShell cmdlet or function
 /// </summary>
-public class PowerShellCommand
+public sealed class PowerShellCommand
 {
     /// <summary>
     /// Command name
@@ -49,7 +49,7 @@ public class PowerShellCommand
 /// <summary>
 /// Represents a PowerShell command parameter
 /// </summary>
-public class PowerShellParameter
+public sealed class PowerShellParameter
 {
     /// <summary>
     /// Parameter name

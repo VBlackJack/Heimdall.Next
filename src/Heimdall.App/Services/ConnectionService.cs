@@ -235,30 +235,30 @@ public partial class ConnectionService : IDisposable
 /// <see cref="TerminalSessionResult"/>, <see cref="SftpSessionBundle"/>,
 /// <see cref="LocalShellBundle"/>.
 /// </param>
-public record ConnectionResult(bool Success, string? ErrorMessage, Heimdall.Core.Models.ISessionResult? Session);
+public sealed record ConnectionResult(bool Success, string? ErrorMessage, Heimdall.Core.Models.ISessionResult? Session);
 
 /// <summary>Wraps a <see cref="ServerProfileDto"/> for embedded RDP sessions.</summary>
 /// <param name="Server">Server profile DTO.</param>
 /// <param name="TunnelPort">Dynamically allocated tunnel port, or null for direct connections.</param>
-public record RdpSessionResult(ServerProfileDto Server, int? TunnelPort = null) : Heimdall.Core.Models.ISessionResult;
+public sealed record RdpSessionResult(ServerProfileDto Server, int? TunnelPort = null) : Heimdall.Core.Models.ISessionResult;
 
 /// <summary>Wraps an SSH.NET shell session.</summary>
-public record SshSessionResult(Heimdall.Ssh.SshShellSession Session) : Heimdall.Core.Models.ISessionResult;
+public sealed record SshSessionResult(Heimdall.Ssh.SshShellSession Session) : Heimdall.Core.Models.ISessionResult;
 
 /// <summary>Wraps a terminal session (Plink pipe mode or ConPTY).</summary>
-public record TerminalSessionResult(Heimdall.Terminal.ITerminalSession Session) : Heimdall.Core.Models.ISessionResult;
+public sealed record TerminalSessionResult(Heimdall.Terminal.ITerminalSession Session) : Heimdall.Core.Models.ISessionResult;
 
 /// <summary>
 /// Bundles an SFTP browser session with the SSH connection parameters needed for
 /// sudo operations (edit files owned by root via <c>sudo cat</c> / <c>sudo tee</c>).
 /// </summary>
-public record SftpSessionBundle(SftpBrowser Browser, SshConnectionParams SshParams) : Heimdall.Core.Models.ISessionResult;
+public sealed record SftpSessionBundle(SftpBrowser Browser, SshConnectionParams SshParams) : Heimdall.Core.Models.ISessionResult;
 
 /// <summary>
 /// Bundles a local shell terminal session with the resolved working directory
 /// so the file browser panel can start at the same path as the shell.
 /// </summary>
-public record LocalShellBundle(
+public sealed record LocalShellBundle(
     Heimdall.Terminal.ITerminalSession? Session,
     string WorkingDirectory,
     string ShellExecutable,

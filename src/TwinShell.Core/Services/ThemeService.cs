@@ -12,7 +12,7 @@ namespace TwinShell.Core.Services;
 /// Handles dynamic theme switching by merging ResourceDictionaries.
 /// BUGFIX: Now listens to Windows theme changes for System mode.
 /// </summary>
-public class ThemeService : IThemeService, IDisposable
+public sealed class ThemeService : IThemeService, IDisposable
 {
     private Theme _currentTheme = Theme.Light;
     private const string LightThemeUri = "/TwinShell.App;component/Themes/LightTheme.xaml";

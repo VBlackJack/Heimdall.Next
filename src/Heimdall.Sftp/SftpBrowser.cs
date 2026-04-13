@@ -24,7 +24,7 @@ namespace Heimdall.Sftp;
 /// SFTP browser backed by SSH.NET's native <see cref="SftpClient"/>.
 /// Provides async file operations with progress reporting and cancellation support.
 /// </summary>
-public class SftpBrowser : IRemoteBrowser
+public sealed class SftpBrowser : IRemoteBrowser
 {
     private SftpClient? _client;
     private bool _disposed;
@@ -590,7 +590,7 @@ internal static class SftpFileAttributesExtensions
 /// <param name="Permissions">POSIX permission string, e.g., "rwxr-xr-x".</param>
 /// <param name="Owner">Numeric owner ID as a string.</param>
 /// <param name="Group">Numeric group ID as a string.</param>
-public record SftpFileInfo(
+public sealed record SftpFileInfo(
     string Name,
     string FullPath,
     bool IsDirectory,
@@ -605,7 +605,7 @@ public record SftpFileInfo(
 /// <param name="BytesTransferred">Number of bytes transferred so far.</param>
 /// <param name="TotalBytes">Total file size in bytes.</param>
 /// <param name="IsUpload">True for uploads, false for downloads.</param>
-public record SftpTransferProgress(
+public sealed record SftpTransferProgress(
     string FileName,
     long BytesTransferred,
     long TotalBytes,

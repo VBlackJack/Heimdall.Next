@@ -9,7 +9,7 @@ namespace TwinShell.Infrastructure.Services;
 /// <summary>
 /// Service for executing batches of commands sequentially
 /// </summary>
-public class BatchExecutionService : IBatchExecutionService
+public sealed class BatchExecutionService : IBatchExecutionService
 {
     private readonly ICommandExecutionService _commandExecutionService;
     private readonly IAuditLogService _auditLogService;

@@ -13,7 +13,7 @@ namespace TwinShell.Core.Services;
 /// Service for managing user settings and preferences.
 /// Settings are persisted in JSON format at %APPDATA%/TwinShell/settings.json
 /// </summary>
-public class SettingsService : ISettingsService
+public sealed class SettingsService : ISettingsService
 {
     private readonly string _settingsDirectory;
     private readonly string _settingsFilePath;

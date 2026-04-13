@@ -3,7 +3,7 @@ namespace TwinShell.Core.Models;
 /// <summary>
 /// DTO for user configuration export/import
 /// </summary>
-public class UserConfigurationDto
+public sealed class UserConfigurationDto
 {
     /// <summary>
     /// Version of the configuration format
@@ -39,7 +39,7 @@ public class UserConfigurationDto
 /// <summary>
 /// Favorite DTO for export
 /// </summary>
-public class FavoriteDto
+public sealed class FavoriteDto
 {
     public string ActionId { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }
@@ -49,7 +49,7 @@ public class FavoriteDto
 /// <summary>
 /// Command history DTO for export
 /// </summary>
-public class CommandHistoryDto
+public sealed class CommandHistoryDto
 {
     public string ActionId { get; set; } = string.Empty;
     public string GeneratedCommand { get; set; } = string.Empty;

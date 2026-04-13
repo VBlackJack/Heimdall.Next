@@ -5,7 +5,7 @@ namespace TwinShell.Core.Models;
 /// <summary>
 /// Represents a command history entry
 /// </summary>
-public class CommandHistory
+public sealed class CommandHistory
 {
     /// <summary>
     /// Unique identifier

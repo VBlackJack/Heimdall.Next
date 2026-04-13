@@ -29,7 +29,7 @@ namespace Heimdall.Rdp.ActiveX;
 /// <see cref="AxHost.CreateSink"/> override — this causes hangs in non-STA
 /// contexts (e.g., unit tests). Call it explicitly after the handle is created.
 /// </summary>
-public class RdpActiveXHost : AxHost, IRdpSession
+public sealed class RdpActiveXHost : AxHost, IRdpSession
 {
     // MsTscAx ActiveX control CLSID — Terminal Services Client 8.0+
     public const string DefaultMsTscAxClsid = "7cacbd7b-0d99-468f-ac33-22e495c0afe5";

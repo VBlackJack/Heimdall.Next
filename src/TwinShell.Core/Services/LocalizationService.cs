@@ -8,7 +8,7 @@ namespace TwinShell.Core.Services;
 /// <summary>
 /// Service for managing application localization
 /// </summary>
-public class LocalizationService : ILocalizationService
+public sealed class LocalizationService : ILocalizationService
 {
     private CultureInfo _currentCulture;
     private readonly ResourceManager _resourceManager;

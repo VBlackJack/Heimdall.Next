@@ -1172,7 +1172,7 @@ public partial class ServerDialogViewModel : ObservableValidator
 /// Represents an SSH gateway option in the dialog's gateway dropdown.
 /// Additional metadata is carried so the UX can explain the route.
 /// </summary>
-public record GatewayOption(
+public sealed record GatewayOption(
     string Id,
     string DisplayText,
     string Name = "",
@@ -1192,9 +1192,9 @@ public record GatewayOption(
 /// <summary>
 /// Represents a project option in the server dialog's project dropdown.
 /// </summary>
-public record ProjectOption(string Id, string Name, string Color);
+public sealed record ProjectOption(string Id, string Name, string Color);
 
 /// <summary>
 /// Immutable result returned by the server dialog on close.
 /// </summary>
-public record ServerDialogResult(ServerProfileDto Server, bool Saved);
+public sealed record ServerDialogResult(ServerProfileDto Server, bool Saved);

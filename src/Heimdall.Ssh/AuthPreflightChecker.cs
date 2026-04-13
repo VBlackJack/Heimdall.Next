@@ -24,7 +24,7 @@ namespace Heimdall.Ssh;
 /// <param name="Success">Whether all pre-flight checks passed.</param>
 /// <param name="FailureCode">Failure code if checks failed.</param>
 /// <param name="Message">Human-readable failure description.</param>
-public record PreflightResult(bool Success, SshFailureCode? FailureCode, string? Message)
+public sealed record PreflightResult(bool Success, SshFailureCode? FailureCode, string? Message)
 {
     /// <summary>Create a passing result.</summary>
     public static PreflightResult Ok() => new(true, null, null);

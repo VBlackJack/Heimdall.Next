@@ -378,11 +378,11 @@ public partial class ScheduledTaskDialogViewModel : ObservableValidator
 /// <param name="Name">Raw server display name (for persistence).</param>
 /// <param name="DisplayText">User-visible server name with protocol badge.</param>
 /// <param name="ConnectionType">Protocol type (RDP, SSH, etc.).</param>
-public record ServerOption(string Id, string Name, string DisplayText, string ConnectionType);
+public sealed record ServerOption(string Id, string Name, string DisplayText, string ConnectionType);
 
 /// <summary>
 /// Immutable result returned by the scheduled task dialog on close.
 /// </summary>
 /// <param name="Task">The scheduled task DTO with user-entered values.</param>
 /// <param name="Saved">True if the user clicked Save, false if cancelled.</param>
-public record ScheduledTaskDialogResult(ScheduledTaskDto Task, bool Saved);
+public sealed record ScheduledTaskDialogResult(ScheduledTaskDto Task, bool Saved);

@@ -12,7 +12,7 @@ namespace TwinShell.Infrastructure.Services;
 /// <summary>
 /// Service for importing and exporting actions to/from JSON files
 /// </summary>
-public class ImportExportService : IImportExportService
+public sealed class ImportExportService : IImportExportService
 {
     private readonly IActionRepository _actionRepository;
 
@@ -631,7 +631,7 @@ public class ImportExportService : IImportExportService
     /// <summary>
     /// Data structure for JSON import (compatible with initial-actions.json)
     /// </summary>
-    private class ImportData
+    private sealed class ImportData
     {
         public string? SchemaVersion { get; set; }
         public List<ActionModel> Actions { get; set; } = new();
@@ -640,7 +640,7 @@ public class ImportExportService : IImportExportService
     /// <summary>
     /// Data structure for single action JSON import (compatible with data/seed/actions/*.json format)
     /// </summary>
-    private class SingleActionImportData
+    private sealed class SingleActionImportData
     {
         public string Id { get; set; } = string.Empty;
         public string Title { get; set; } = string.Empty;
@@ -660,7 +660,7 @@ public class ImportExportService : IImportExportService
         public bool IsUserCreated { get; set; }
     }
 
-    private class CommandTemplateData
+    private sealed class CommandTemplateData
     {
         public string Id { get; set; } = string.Empty;
         public string? Platform { get; set; }
@@ -669,7 +669,7 @@ public class ImportExportService : IImportExportService
         public List<ParameterData>? Parameters { get; set; }
     }
 
-    private class ParameterData
+    private sealed class ParameterData
     {
         public string Name { get; set; } = string.Empty;
         public string? Label { get; set; }
@@ -679,13 +679,13 @@ public class ImportExportService : IImportExportService
         public string? Description { get; set; }
     }
 
-    private class ExampleData
+    private sealed class ExampleData
     {
         public string Command { get; set; } = string.Empty;
         public string? Description { get; set; }
     }
 
-    private class LinkData
+    private sealed class LinkData
     {
         public string Url { get; set; } = string.Empty;
         public string? Title { get; set; }

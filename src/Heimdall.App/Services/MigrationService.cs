@@ -27,7 +27,7 @@ namespace Heimdall.App.Services;
 /// DPAPI-encrypted fields are transferred as-is because encryption is
 /// scoped to the same Windows user and machine.
 /// </summary>
-public class MigrationService
+public sealed class MigrationService
 {
     private readonly ConfigManager _configManager;
     private readonly LocalizationManager _localizer;
@@ -387,7 +387,7 @@ public class MigrationService
 /// <summary>
 /// Describes the outcome of a legacy configuration import operation.
 /// </summary>
-public class MigrationResult
+public sealed class MigrationResult
 {
     /// <summary>Whether the migration completed without fatal errors.</summary>
     public bool Success { get; set; }

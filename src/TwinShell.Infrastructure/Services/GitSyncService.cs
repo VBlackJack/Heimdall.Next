@@ -14,7 +14,7 @@ namespace TwinShell.Infrastructure.Services;
 /// Uses LibGit2Sharp for Git operations with retry logic and detailed progress.
 /// Thread-safe: uses SemaphoreSlim to prevent concurrent sync operations.
 /// </summary>
-public class GitSyncService : IGitSyncService
+public sealed class GitSyncService : IGitSyncService
 {
     private readonly ISettingsService _settingsService;
     private readonly ISyncService _yamlSyncService;

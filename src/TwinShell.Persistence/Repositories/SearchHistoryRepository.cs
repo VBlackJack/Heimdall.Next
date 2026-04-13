@@ -10,7 +10,7 @@ namespace TwinShell.Persistence.Repositories;
 /// <summary>
 /// Repository implementation for SearchHistory persistence
 /// </summary>
-public class SearchHistoryRepository : ISearchHistoryRepository
+public sealed class SearchHistoryRepository : ISearchHistoryRepository
 {
     private readonly TwinShellDbContext _context;
     private readonly ILogger<SearchHistoryRepository> _logger;

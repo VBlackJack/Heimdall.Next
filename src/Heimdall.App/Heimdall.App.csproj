@@ -33,7 +33,15 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="Assets\**\*" Exclude="Assets\milkdown-editor\**">
+    <!-- All assets except drawio (always copied). -->
+    <Content Include="Assets\**\*" Exclude="Assets\milkdown-editor\**;Assets\drawio\**">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+
+    <!-- Draw.io assets: Release only (~48 MB / 2258 files — skipped in Debug
+         to keep iterative dev builds fast. The Diagram tool falls back to a
+         localized "Release-only" message when the directory is missing.) -->
+    <Content Include="Assets\drawio\**" Condition="'$(Configuration)' != 'Debug'">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="lib\webview2\WebView2Loader.dll">

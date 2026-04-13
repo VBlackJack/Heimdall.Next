@@ -11,7 +11,7 @@ namespace TwinShell.Infrastructure.Services;
 /// <summary>
 /// Service for interacting with the PowerShell Gallery
 /// </summary>
-public class PowerShellGalleryService : IPowerShellGalleryService
+public sealed class PowerShellGalleryService : IPowerShellGalleryService
 {
     private readonly ICommandExecutionService _commandExecutionService;
     private readonly IActionService _actionService;
@@ -417,7 +417,7 @@ public class PowerShellGalleryService : IPowerShellGalleryService
     }
 
     // DTOs for JSON deserialization
-    private class PowerShellGalleryModuleDto
+    private sealed class PowerShellGalleryModuleDto
     {
         public string? Name { get; set; }
         public string? Version { get; set; }
@@ -431,14 +431,14 @@ public class PowerShellGalleryService : IPowerShellGalleryService
         public string? LicenseUri { get; set; }
     }
 
-    private class PowerShellCommandDto
+    private sealed class PowerShellCommandDto
     {
         public string? Name { get; set; }
         public string? ModuleName { get; set; }
         public string? CommandType { get; set; }
     }
 
-    private class PowerShellHelpDto
+    private sealed class PowerShellHelpDto
     {
         public string? Name { get; set; }
         public string? Synopsis { get; set; }
@@ -448,7 +448,7 @@ public class PowerShellGalleryService : IPowerShellGalleryService
         public List<string>? Examples { get; set; }
     }
 
-    private class PowerShellParameterDto
+    private sealed class PowerShellParameterDto
     {
         public string? Name { get; set; }
         public string? Type { get; set; }

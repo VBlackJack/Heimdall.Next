@@ -242,7 +242,7 @@ public sealed class ApplicationStatusMachine
 /// <param name="DisplayKey">i18n key for user-facing display text.</param>
 /// <param name="AllowsUserAction">Whether user interactions are permitted in this status.</param>
 /// <param name="IsTerminal">Whether this status represents a final endpoint.</param>
-public record ApplicationStatusMetadata(
+public sealed record ApplicationStatusMetadata(
     string DisplayKey,
     bool AllowsUserAction,
     bool IsTerminal

@@ -416,7 +416,7 @@ public static partial class MobaXtermImporter
 /// <summary>
 /// Result of a MobaXterm session file import operation.
 /// </summary>
-public class MobaXtermImportResult
+public sealed class MobaXtermImportResult
 {
     /// <summary>Successfully parsed server profiles.</summary>
     public List<ServerProfileDto> Servers { get; } = [];

@@ -44,7 +44,7 @@ public sealed record AuditScope(
 /// <summary>
 /// Toggles for individual audit chapters and overall depth.
 /// </summary>
-public record AuditOptions(
+public sealed record AuditOptions(
     AuditDepth Depth = AuditDepth.Standard,
     bool CheckNetwork = true,
     bool CheckCrypto = true,

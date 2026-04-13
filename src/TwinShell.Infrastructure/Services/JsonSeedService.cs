@@ -11,7 +11,7 @@ namespace TwinShell.Infrastructure.Services;
 /// Service for seeding initial data from individual JSON action files.
 /// Each action is stored in its own file in data/seed/actions/*.json
 /// </summary>
-public class JsonSeedService : ISeedService
+public sealed class JsonSeedService : ISeedService
 {
     private readonly IActionRepository _actionRepository;
     private readonly string _actionsDir;

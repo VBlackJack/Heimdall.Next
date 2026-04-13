@@ -7,7 +7,7 @@ namespace TwinShell.Persistence.Configurations;
 /// <summary>
 /// EF Core configuration for AuditLogEntity
 /// </summary>
-public class AuditLogConfiguration : IEntityTypeConfiguration<AuditLogEntity>
+public sealed class AuditLogConfiguration : IEntityTypeConfiguration<AuditLogEntity>
 {
     public void Configure(EntityTypeBuilder<AuditLogEntity> builder)
     {

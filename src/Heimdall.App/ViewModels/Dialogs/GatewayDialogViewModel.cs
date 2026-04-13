@@ -334,4 +334,4 @@ public partial class GatewayDialogViewModel : ObservableValidator
 /// </summary>
 /// <param name="Gateway">The gateway DTO with user-entered values.</param>
 /// <param name="Saved">True if the user clicked Save, false if cancelled.</param>
-public record GatewayDialogResult(SshGatewayDto Gateway, bool Saved);
+public sealed record GatewayDialogResult(SshGatewayDto Gateway, bool Saved);

@@ -3,7 +3,7 @@ namespace TwinShell.Core.Models;
 /// <summary>
 /// Represents an external documentation link
 /// </summary>
-public class ExternalLink
+public sealed class ExternalLink
 {
     /// <summary>
     /// Display title for the link

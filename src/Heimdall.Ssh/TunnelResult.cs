@@ -23,7 +23,7 @@ namespace Heimdall.Ssh;
 /// <param name="Tunnel">Tunnel details when successful; null on failure.</param>
 /// <param name="ErrorMessage">Human-readable error description on failure; null on success.</param>
 /// <param name="FailureCode">Structured failure classification; null on success.</param>
-public record TunnelResult(
+public sealed record TunnelResult(
     bool Success,
     TunnelInfo? Tunnel,
     string? ErrorMessage,

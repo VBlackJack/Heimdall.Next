@@ -29,7 +29,7 @@ namespace TwinShell.Infrastructure.Services;
 /// Enables collaborative editing through Git-synchronized folders.
 /// Decoupled from database context - uses repository interfaces for data access.
 /// </summary>
-public class JsonSyncService : ISyncService
+public sealed class JsonSyncService : ISyncService
 {
     private readonly IActionRepository _actionRepository;
     private readonly IBatchRepository _batchRepository;
@@ -965,7 +965,7 @@ public class JsonSyncService : ISyncService
 
     #region JSON Models
 
-    private class CategoryModel
+    private sealed class CategoryModel
     {
         public Guid Id { get; set; }
         public string Name { get; set; } = string.Empty;
@@ -977,7 +977,7 @@ public class JsonSyncService : ISyncService
         public bool IsHidden { get; set; }
     }
 
-    private class TemplateModel
+    private sealed class TemplateModel
     {
         public Guid Id { get; set; }
         public string Name { get; set; } = string.Empty;
@@ -986,7 +986,7 @@ public class JsonSyncService : ISyncService
         public List<TemplateParameterModel>? Parameters { get; set; }
     }
 
-    private class TemplateParameterModel
+    private sealed class TemplateParameterModel
     {
         public string Name { get; set; } = string.Empty;
         public string Label { get; set; } = string.Empty;
@@ -996,7 +996,7 @@ public class JsonSyncService : ISyncService
         public string? Description { get; set; }
     }
 
-    private class ActionModel
+    private sealed class ActionModel
     {
         public Guid Id { get; set; }
         public string Title { get; set; } = string.Empty;
@@ -1017,20 +1017,20 @@ public class JsonSyncService : ISyncService
         public DateTime? UpdatedAt { get; set; }
     }
 
-    private class ExampleModel
+    private sealed class ExampleModel
     {
         public string Command { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
         public string? Platform { get; set; }
     }
 
-    private class LinkModel
+    private sealed class LinkModel
     {
         public string Title { get; set; } = string.Empty;
         public string Url { get; set; } = string.Empty;
     }
 
-    private class BatchModel
+    private sealed class BatchModel
     {
         public Guid Id { get; set; }
         public string Name { get; set; } = string.Empty;
@@ -1043,7 +1043,7 @@ public class JsonSyncService : ISyncService
         public DateTime? UpdatedAt { get; set; }
     }
 
-    private class BatchCommandModel
+    private sealed class BatchCommandModel
     {
         public string? Id { get; set; }
         public int Order { get; set; }

@@ -155,7 +155,7 @@ public static class CitrixCacheScanner
 /// <summary>
 /// Result of scanning Citrix SelfService cache files.
 /// </summary>
-public class CitrixScanResult
+public sealed class CitrixScanResult
 {
     /// <summary>Discovered Citrix published applications and desktops.</summary>
     public List<CitrixResource> Resources { get; } = [];
@@ -167,7 +167,7 @@ public class CitrixScanResult
 /// <summary>
 /// A single Citrix published resource (application or desktop) discovered from cache.
 /// </summary>
-public class CitrixResource
+public sealed class CitrixResource
 {
     /// <summary>Display name of the application (e.g., "Excel 2024").</summary>
     public string FriendlyName { get; set; } = string.Empty;

@@ -753,4 +753,4 @@ public partial class LocalFileBrowserView : UserControl
 }
 
 /// <summary>Local filesystem entry for the file browser ListView.</summary>
-public record LocalFileEntry(string Name, string FullPath, bool IsDirectory, long Size, DateTime LastModified);
+public sealed record LocalFileEntry(string Name, string FullPath, bool IsDirectory, long Size, DateTime LastModified);

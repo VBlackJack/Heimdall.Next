@@ -6,7 +6,7 @@ namespace TwinShell.Core.Models;
 /// Represents a search result with relevance scoring.
 /// Used to sort search results by relevance to the search query.
 /// </summary>
-public class SearchResult
+public sealed class SearchResult
 {
     /// <summary>
     /// The action that matched the search query
@@ -40,7 +40,7 @@ public class SearchResult
 /// <summary>
 /// Detailed breakdown of how the relevance score was calculated
 /// </summary>
-public class SearchScoreBreakdown
+public sealed class SearchScoreBreakdown
 {
     public double TitleScore { get; set; }
     public double TagsScore { get; set; }

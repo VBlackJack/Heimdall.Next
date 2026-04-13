@@ -64,7 +64,7 @@ public partial class ConnectionService
 /// Holds VNC connection parameters for the embedded noVNC view.
 /// The proxy and WebView2 rendering are managed by <see cref="Views.EmbeddedVncView"/>.
 /// </summary>
-public record VncSessionResult(
+public sealed record VncSessionResult(
     string ServerId,
     string Host,
     int Port,

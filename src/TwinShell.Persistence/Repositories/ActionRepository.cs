@@ -10,7 +10,7 @@ namespace TwinShell.Persistence.Repositories;
 /// <summary>
 /// Repository implementation for Action persistence
 /// </summary>
-public class ActionRepository : IActionRepository
+public sealed class ActionRepository : IActionRepository
 {
     private readonly TwinShellDbContext _context;
     private readonly IMemoryCache _cache;
