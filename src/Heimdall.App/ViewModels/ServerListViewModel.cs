@@ -125,8 +125,24 @@ public partial class ServerListViewModel : ObservableObject, IDisposable
     {
         if (_disposed) return;
         _disposed = true;
+        UnsubscribeFolderEvents(GroupedServers);
         _expandSaveTimer?.Dispose();
         _connectionSm.StateChanged -= OnConnectionStateChanged;
+    }
+
+    /// <summary>
+    /// Recursively detaches <see cref="OnFolderExpandedChanged"/> from every folder
+    /// in the supplied tree. Called before rebuilding <see cref="GroupedServers"/>
+    /// and in <see cref="Dispose"/> to ensure handler subscriptions do not
+    /// accumulate across tree rebuilds.
+    /// </summary>
+    private void UnsubscribeFolderEvents(IEnumerable<FolderViewModel> folders)
+    {
+        foreach (var folder in folders)
+        {
+            folder.PropertyChanged -= OnFolderExpandedChanged;
+            UnsubscribeFolderEvents(folder.SubFolders);
+        }
     }
 
     /// <summary>
@@ -953,6 +969,11 @@ public partial class ServerListViewModel : ObservableObject, IDisposable
     /// </summary>
     private void RebuildGroupedView(List<ServerItemViewModel> filteredServers)
     {
+        // Detach handlers from the previous tree before rebuilding so that
+        // replaced FolderViewModel instances do not retain subscriptions back
+        // to this ViewModel.
+        UnsubscribeFolderEvents(GroupedServers);
+
         // Build the folder tree from server Group paths
         var root = new FolderViewModel { Name = "__root__", FullPath = "" };
 
