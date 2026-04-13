@@ -34,7 +34,7 @@ namespace Heimdall.App;
 /// Main application window. All logic lives in <see cref="MainViewModel"/>.
 /// Code-behind is limited to keyboard shortcut routing, TreeView interaction, and window lifecycle.
 /// </summary>
-public partial class MainWindow : Window
+public partial class MainWindow : Window, IContextMenuCallbacks
 {
     [DllImport("user32.dll")]
     private static extern bool SetForegroundWindow(IntPtr hWnd);
@@ -55,7 +55,10 @@ public partial class MainWindow : Window
     private bool _treeContextTargetFromPointer;
     private bool _treeContextPointerHitEmptyArea;
     private EphemeralFileServer? _fileServer;
+    private string? _fileServerBaseUrl;
     private readonly Services.ThemeService _themeService;
+    private readonly ContextMenuFactory _contextMenuFactory;
+    private readonly ToolsTabPopulationService _toolsTabPopulation;
     private bool _sidebarTabRestored;
     private bool _closeConfirmed;
 
@@ -67,12 +70,18 @@ public partial class MainWindow : Window
     private Action? _externalToolsChangedHandler;
     private Action<string>? _localeChangedHandler;
 
-    public MainWindow(MainViewModel viewModel, Services.ThemeService themeService)
+    public MainWindow(
+        MainViewModel viewModel,
+        Services.ThemeService themeService,
+        ContextMenuFactory contextMenuFactory,
+        ToolsTabPopulationService toolsTabPopulation)
     {
         InitializeComponent();
         WindowThemeHelper.ApplyCurrentTheme(this);
         DataContext = viewModel;
         _themeService = themeService;
+        _contextMenuFactory = contextMenuFactory;
+        _toolsTabPopulation = toolsTabPopulation;
         _themeService.ThemeChanged += OnThemeServiceThemeChanged;
         ApplyLocalization();
 
@@ -194,419 +203,6 @@ public partial class MainWindow : Window
             AboutVersionText.Text = string.Format("Version {0}", infoVersion);
         AboutRuntimeText.Text = System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription;
         AboutPlatformText.Text = $"{System.Runtime.InteropServices.RuntimeInformation.OSDescription} ({System.Runtime.InteropServices.RuntimeInformation.OSArchitecture})";
-    }
-
-    /// <summary>
-    /// Sets all user-facing strings from locale resources.
-    /// Called once after DataContext is assigned.
-    /// </summary>
-    private void ApplyLocalization()
-    {
-        if (DataContext is not MainViewModel vm) return;
-
-        ApplyNavigationLocalization(vm);
-        ApplyToolbarLocalization(vm);
-        ApplyTunnelLocalization(vm);
-        ApplyScheduledLocalization(vm);
-        ApplySettingsLocalization(vm);
-        ApplyAboutLocalization(vm);
-        ApplyAccessibilityLocalization(vm);
-        UpdateToolLaunchContextLabels();
-    }
-
-    private void ApplyNavigationLocalization(MainViewModel vm)
-    {
-        Mw_AppTitle.Text = vm.Localize("AppName");
-
-        TabSessions.Content = vm.Localize("NavTabSessions");
-        TabTunnels.Content = vm.Localize("NavTabTunnels");
-        TabScheduled.Content = vm.Localize("NavTabScheduled");
-        TabTools.Content = vm.Localize("NavTabTools");
-        Mw_TabSettingsText.Text = vm.Localize("NavTabSettings");
-        Mw_SettingsUnsavedDot.ToolTip = vm.Localize("SettingsUnsavedChanges");
-        TabAbout.Content = vm.Localize("NavTabAbout");
-
-        Mw_FilterBox.Tag = vm.Localize("SearchPlaceholder");
-        Mw_FilterBox.TextChanged += OnFilterBoxTextChanged;
-
-        FullscreenBar.ToolTip = vm.Localize("TooltipExitFullscreenEsc");
-
-        Mw_StatusTunnelToggle.ToolTip = vm.Localize("TunnelPanelToggle");
-        Mw_BroadcastLabel.Text = vm.Localize("BroadcastBadgeLabel");
-        Mw_StatusBarServersLabel.Text = " " + vm.Localize("StatusBarSessions") + " " + vm.Localize("StatusBarSeparator");
-        Mw_StatusBarTunnelsLabel.Text = " " + vm.Localize("StatusBarTunnels");
-        Mw_StatusBarShortcutHint.Text = vm.Localize("StatusBarShortcutHint");
-
-        Mw_PaletteNoResults.Text = vm.Localize("QuickConnectNoResults");
-        Mw_PaletteHints.Text = vm.Localize("QuickConnectHints");
-        System.Windows.Automation.AutomationProperties.SetName(PaletteInput, vm.Localize("PaletteSearchPlaceholder"));
-    }
-
-    private void ApplyToolbarLocalization(MainViewModel vm)
-    {
-        ToggleSidebarButton.ToolTip = vm.Localize("TooltipHideSidebar");
-        ShowSidebarButton.ToolTip = vm.Localize("TooltipShowSidebar");
-        AddButton.ToolTip = vm.Localize("TooltipAddMenu");
-        ExpandAllButton.ToolTip = vm.Localize("TooltipExpandAll");
-        CollapseAllButton.ToolTip = vm.Localize("TooltipCollapseAll");
-
-        Mw_AddMenuSession.Header = vm.Localize("AddMenuSession");
-        Mw_AddMenuTool.Header = vm.Localize("AddMenuTool");
-        Mw_AddMenuGateway.Header = vm.Localize("AddMenuGateway");
-        Mw_AddMenuFolder.Header = vm.Localize("AddMenuFolder");
-
-        Mw_ShareFolderLabel.Text = vm.Localize("ToolsShareFolder");
-        Mw_QuickConnectLabel.Text = vm.Localize("QuickConnectShortcut");
-
-        Mw_DetailGroupLabel.Text = vm.Localize("DetailLabelGroup");
-        Mw_DetailEnvLabel.Text = vm.Localize("DetailLabelEnvironment");
-        Mw_DetailProjectLabel.Text = vm.Localize("DetailLabelProject");
-        Mw_DetailUsernameLabel.Text = vm.Localize("DetailLabelUsername");
-        Mw_DetailGatewayLabel.Text = vm.Localize("DetailLabelGateway");
-        Mw_DetailAuthLabel.Text = vm.Localize("DetailLabelAuth");
-        Mw_DetailTagsLabel.Text = vm.Localize("DetailLabelTags");
-        Mw_DetailFavoriteLabel.Text = vm.Localize("DetailLabelFavorite");
-        Mw_DetailConnectBtn.Content = vm.Localize("DetailBtnConnect");
-        Mw_DetailEditBtn.Content = vm.Localize("BtnEdit");
-        Mw_DetailEditBtn.ToolTip = vm.Localize("TooltipEdit");
-        Mw_DetailDeleteBtn.Content = vm.Localize("BtnDelete");
-        Mw_DetailDeleteBtn.ToolTip = vm.Localize("TooltipDelete");
-        QuickConnectButton.ToolTip = vm.Localize("QuickConnectShortcut");
-
-        Mw_EmptyStateTitle.Text = vm.Localize("EmptyStateTitle");
-        Mw_EmptyStateSubtitle.Text = vm.Localize("EmptyStateSubtitle");
-        Mw_EmptyBtnAddSession.Content = vm.Localize("EmptyStateBtnAddSession");
-        Mw_EmptyBtnImport.Content = vm.Localize("EmptyStateBtnImport");
-        Mw_EmptyBtnImport.ToolTip = vm.Localize("TooltipImport");
-        Mw_EmptyBtnExploreTools.Content = vm.Localize("EmptyStateBtnExploreTools");
-        Mw_EmptySelectSession.Text = vm.Localize("EmptyStateSelectSession");
-        Mw_EmptyQuickConnectHint.Text = vm.Localize("HintQuickConnect");
-        Mw_EmptyStateShortcutHints.Text = vm.Localize("EmptyStateShortcutHints");
-        Mw_DetailActionHints.Text = vm.Localize("DetailActionHints");
-    }
-
-    private void ApplyTunnelLocalization(MainViewModel vm)
-    {
-        Mw_TunnelPanelCloseAllBtn.Content = vm.Localize("TunnelsBtnCloseAll");
-        Mw_TunnelPanelEmpty.Text = vm.Localize("TunnelsEmptyState");
-
-        Mw_TunnelPanelGrid.Tag = vm.Localize("TooltipCloseTunnel");
-
-        var tunnelHeader = vm.Localize("TunnelPanelHeader");
-        var placeholderIdx = tunnelHeader.IndexOf("{0}", StringComparison.Ordinal);
-        if (placeholderIdx >= 0)
-        {
-            Mw_TunnelPanelHeaderPrefix.Text = tunnelHeader[..placeholderIdx];
-            Mw_TunnelPanelHeaderSuffix.Text = tunnelHeader[(placeholderIdx + 3)..];
-        }
-        else
-        {
-            Mw_TunnelPanelHeaderPrefix.Text = tunnelHeader;
-        }
-
-        Mw_TpColGateway.Header = vm.Localize("TunnelsColGateway");
-        Mw_TpColLocal.Header = vm.Localize("TunnelPanelColLocal");
-        Mw_TpColRemote.Header = vm.Localize("TunnelPanelColRemote");
-        Mw_TpColPort.Header = vm.Localize("TunnelPanelColPort");
-
-        Mw_TpCtxClose.Header = vm.Localize("TunnelCtxClose");
-        Mw_TpCtxCopyPort.Header = vm.Localize("TunnelCtxCopyPort");
-        Mw_TpCtxCloseAll.Header = vm.Localize("TunnelCtxCloseAll");
-
-        Mw_TunnelsTitle.Text = vm.Localize("TunnelsSectionTitle");
-        Mw_TunnelsCloseSelectedBtn.Content = vm.Localize("TunnelsBtnCloseSelected");
-        Mw_TunnelsCloseAllBtn.Content = vm.Localize("TunnelsBtnCloseAll");
-        Mw_TunnelsEmpty.Text = vm.Localize("TunnelsEmptyState");
-
-        Mw_TunnelsColGateway.Header = vm.Localize("TunnelsColGateway");
-        Mw_TunnelsColLocalPort.Header = vm.Localize("TunnelsColLocalPort");
-        Mw_TunnelsColRemoteHost.Header = vm.Localize("TunnelsColRemoteHost");
-        Mw_TunnelsColRemotePort.Header = vm.Localize("TunnelsColRemotePort");
-        Mw_TunnelsColStarted.Header = vm.Localize("TunnelsColStarted");
-        Mw_TunnelsManageGatewaysLink.Content = vm.Localize("TunnelsManageGatewaysLink");
-    }
-
-    private void ApplyScheduledLocalization(MainViewModel vm)
-    {
-        Mw_ScheduledTitle.Text = vm.Localize("ScheduledSectionTitle");
-        Mw_ScheduledAddBtn.Content = vm.Localize("ScheduledBtnAdd");
-        Mw_ScheduledEditBtn.Content = vm.Localize("ScheduledBtnEdit");
-        Mw_ScheduledDeleteBtn.Content = vm.Localize("ScheduledBtnDelete");
-        Mw_ScheduledEmpty.Text = vm.Localize("ScheduledEmptyState");
-        Mw_ScheduledCreateBtn.Content = vm.Localize("ScheduledEmptyAddButton");
-
-        Mw_ScheduledColEnabled.Header = vm.Localize("ScheduledColEnabled");
-        Mw_ScheduledColServer.Header = vm.Localize("ScheduledColServer");
-        Mw_ScheduledColType.Header = vm.Localize("ScheduledColType");
-        Mw_ScheduledColSchedule.Header = vm.Localize("ScheduledColSchedule");
-        Mw_ScheduledColLastRun.Header = vm.Localize("ScheduledColLastRun");
-        Mw_ScheduledColNextRun.Header = vm.Localize("ScheduledColNextRun");
-    }
-
-    private void ApplySettingsLocalization(MainViewModel vm)
-    {
-        Mw_SettingsTabGeneral.Header = vm.Localize("SettingsTabGeneral");
-        Mw_SettingsTabTerminal.Header = vm.Localize("SettingsTabTerminal");
-        Mw_SettingsTabSsh.Header = vm.Localize("SettingsTabSshSftp");
-        Mw_SettingsTabRdp.Header = vm.Localize("SettingsTabRdp");
-        Mw_SettingsTabSecurity.Header = vm.Localize("SettingsTabSecurity");
-        Mw_SettingsTabAdvanced.Header = vm.Localize("SettingsTabAdvanced");
-        Mw_SettingsSearchBox.Tag = vm.Localize("SettingsSearchPlaceholder");
-
-        Mw_SettingsAppearanceTitle.Text = vm.Localize("SettingsSectionAppearance");
-        Mw_SettingsLanguageLabel.Text = vm.Localize("SettingsLabelLanguage");
-        Mw_SettingsThemeLabel.Text = vm.Localize("SettingsLabelTheme");
-        Mw_ThemeDraculaPro.Content = vm.Localize("ThemeDraculaPro");
-        Mw_ThemeAlucard.Content = vm.Localize("ThemeAlucard");
-        Mw_ThemeBlade.Content = vm.Localize("ThemeBlade");
-        Mw_ThemeBuffy.Content = vm.Localize("ThemeBuffy");
-        Mw_ThemeLincoln.Content = vm.Localize("ThemeLincoln");
-        Mw_ThemeMorbius.Content = vm.Localize("ThemeMorbius");
-        Mw_ThemeVanHelsing.Content = vm.Localize("ThemeVanHelsing");
-        System.Windows.Automation.AutomationProperties.SetName(Mw_ThemeDraculaPro, vm.Localize("ThemeDraculaPro"));
-        System.Windows.Automation.AutomationProperties.SetName(Mw_ThemeAlucard, vm.Localize("ThemeAlucard"));
-        System.Windows.Automation.AutomationProperties.SetName(Mw_ThemeBlade, vm.Localize("ThemeBlade"));
-        System.Windows.Automation.AutomationProperties.SetName(Mw_ThemeBuffy, vm.Localize("ThemeBuffy"));
-        System.Windows.Automation.AutomationProperties.SetName(Mw_ThemeLincoln, vm.Localize("ThemeLincoln"));
-        System.Windows.Automation.AutomationProperties.SetName(Mw_ThemeMorbius, vm.Localize("ThemeMorbius"));
-        System.Windows.Automation.AutomationProperties.SetName(Mw_ThemeVanHelsing, vm.Localize("ThemeVanHelsing"));
-        Mw_SettingsMaxSessionsLabel.Text = vm.Localize("SettingsLabelMaxEmbeddedSessions");
-        Mw_SettingsPreventSleep.Content = vm.Localize("SettingsLabelPreventSleep");
-        Mw_SettingsEnableSessionPersistence.Content = vm.Localize("SettingsWorkspaceRestore");
-        System.Windows.Automation.AutomationProperties.SetName(Mw_SettingsEnableSessionPersistence, vm.Localize("SettingsWorkspaceRestore"));
-        Mw_SettingsEditorPathLabel.Text = vm.Localize("SettingsLabelEditorPath");
-
-        Mw_SettingsTerminalTitle.Text = vm.Localize("SettingsSectionTerminal");
-        Mw_SettingsTerminalFontLabel.Text = vm.Localize("SettingsLabelTerminalFont");
-        Mw_SettingsTerminalFontSizeLabel.Text = vm.Localize("SettingsLabelTerminalFontSize");
-        Mw_SettingsTerminalColorSchemeLabel.Text = vm.Localize("SettingsLabelTerminalColorScheme");
-        Mw_SchemeDefault.Content = vm.Localize("TerminalSchemeDefault");
-        Mw_SchemeDracula.Content = vm.Localize("TerminalSchemeDracula");
-        Mw_SchemeSolarized.Content = vm.Localize("TerminalSchemeSolarizedDark");
-        Mw_SchemeMonokai.Content = vm.Localize("TerminalSchemeMonokai");
-        Mw_SchemeNord.Content = vm.Localize("TerminalSchemeNord");
-        Mw_SettingsPsPolicyLabel.Text = vm.Localize("SettingsPsExecutionPolicy");
-        Mw_PsDefault.Content = vm.Localize("PsPolicyDefault");
-        Mw_PsBypass.Content = vm.Localize("PsPolicyBypass");
-        Mw_PsRemoteSigned.Content = vm.Localize("PsPolicyRemoteSigned");
-        Mw_PsUnrestricted.Content = vm.Localize("PsPolicyUnrestricted");
-        Mw_PsAllSigned.Content = vm.Localize("PsPolicyAllSigned");
-        Mw_SettingsPsPolicyHint.Text = vm.Localize("SettingsPsExecutionPolicyHint");
-
-        Mw_SettingsSshTitle.Text = vm.Localize("SettingsSectionSshDefaults");
-        Mw_SettingsPlinkPathLabel.Text = vm.Localize("SettingsLabelPlinkPath");
-        Mw_SettingsPlinkPathHint.Text = vm.Localize("SettingsPlinkPathHint");
-        Mw_SettingsPuttyPathLabel.Text = vm.Localize("SettingsLabelPuttyPath");
-        Mw_SettingsPuttyPathHint.Text = vm.Localize("SettingsPuttyPathHint");
-        Mw_SettingsSshModeLabel.Text = vm.Localize("SettingsLabelSshMode");
-        Mw_SshModeEmbedded.Content = vm.Localize("SettingsSshModeEmbedded");
-        System.Windows.Automation.AutomationProperties.SetName(Mw_SshModeEmbedded, vm.Localize("SettingsSshModeEmbedded"));
-        Mw_SshModeExternal.Content = vm.Localize("SettingsSshModeExternal");
-        System.Windows.Automation.AutomationProperties.SetName(Mw_SshModeExternal, vm.Localize("SettingsSshModeExternal"));
-        Mw_SettingsSshModeHint.Text = vm.Localize("SettingsSshModeHint");
-        Mw_SettingsAntiIdleLabel.Text = vm.Localize("SettingsLabelAntiIdleInterval");
-        Mw_SettingsSshTmoutLabel.Text = vm.Localize("SettingsLabelSshTmoutReset");
-        Mw_SettingsAutoOpenSftp.Content = vm.Localize("SettingsLabelAutoOpenSftp");
-        Mw_SettingsX11PathLabel.Text = vm.Localize("SettingsLabelX11ServerPath");
-        Mw_SettingsX11AutoStart.Content = vm.Localize("SettingsLabelX11AutoStart");
-        Mw_SettingsGatewaysTitle.Text = vm.Localize("GatewaysSectionTitle");
-        Mw_SettingsGatewaysAddBtn.Content = vm.Localize("GatewaysBtnAdd");
-        System.Windows.Automation.AutomationProperties.SetName(Mw_SettingsGatewaysAddBtn, vm.Localize("GatewaysBtnAdd"));
-        Mw_SettingsGatewaysEditBtn.Content = vm.Localize("GatewaysBtnEdit");
-        System.Windows.Automation.AutomationProperties.SetName(Mw_SettingsGatewaysEditBtn, vm.Localize("GatewaysBtnEdit"));
-        Mw_SettingsGatewaysDeleteBtn.Content = vm.Localize("GatewaysBtnDelete");
-        System.Windows.Automation.AutomationProperties.SetName(Mw_SettingsGatewaysDeleteBtn, vm.Localize("GatewaysBtnDelete"));
-
-        Mw_ApplySshModeAll.Content = vm.Localize("SettingsApplyModeToAll");
-        Mw_ApplySshModeAll.ToolTip = vm.Localize("TooltipApplyModeToAll");
-        System.Windows.Automation.AutomationProperties.SetName(Mw_ApplySshModeAll, vm.Localize("SettingsApplyModeToAll"));
-
-        Mw_SettingsRdpDefaultsTitle.Text = vm.Localize("SettingsSectionRdpDefaults");
-        Mw_SettingsRdpModeLabel.Text = vm.Localize("SettingsLabelRdpMode");
-        Mw_RdpModeEmbedded.Content = vm.Localize("SettingsRdpModeEmbedded");
-        System.Windows.Automation.AutomationProperties.SetName(Mw_RdpModeEmbedded, vm.Localize("SettingsRdpModeEmbedded"));
-        Mw_RdpModeExternal.Content = vm.Localize("SettingsRdpModeExternal");
-        System.Windows.Automation.AutomationProperties.SetName(Mw_RdpModeExternal, vm.Localize("SettingsRdpModeExternal"));
-        Mw_SettingsRdpModeHint.Text = vm.Localize("SettingsRdpModeHint");
-        Mw_ApplyRdpModeAll.Content = vm.Localize("SettingsApplyModeToAll");
-        Mw_ApplyRdpModeAll.ToolTip = vm.Localize("TooltipApplyModeToAll");
-        System.Windows.Automation.AutomationProperties.SetName(Mw_ApplyRdpModeAll, vm.Localize("SettingsApplyModeToAll"));
-        Mw_SettingsRdpWidthLabel.Text = vm.Localize("SettingsLabelRdpWidth");
-        Mw_SettingsRdpHeightLabel.Text = vm.Localize("SettingsLabelRdpHeight");
-        Mw_SettingsRdpColorDepthLabel.Text = vm.Localize("SettingsLabelRdpColorDepth");
-        Mw_ColorDepth16.Content = vm.Localize("SettingsColorDepth16");
-        System.Windows.Automation.AutomationProperties.SetName(Mw_ColorDepth16, vm.Localize("SettingsColorDepth16"));
-        Mw_ColorDepth24.Content = vm.Localize("SettingsColorDepth24");
-        System.Windows.Automation.AutomationProperties.SetName(Mw_ColorDepth24, vm.Localize("SettingsColorDepth24"));
-        Mw_ColorDepth32.Content = vm.Localize("SettingsColorDepth32");
-        System.Windows.Automation.AutomationProperties.SetName(Mw_ColorDepth32, vm.Localize("SettingsColorDepth32"));
-        Mw_SettingsRdpAudioLabel.Text = vm.Localize("SettingsLabelRdpAudio");
-        Mw_SettingsRdpAudioDisabled.Content = vm.Localize("ServerDialogAudioDisabled");
-        System.Windows.Automation.AutomationProperties.SetName(Mw_SettingsRdpAudioDisabled, vm.Localize("ServerDialogAudioDisabled"));
-        Mw_SettingsRdpAudioLocal.Content = vm.Localize("ServerDialogAudioLocal");
-        System.Windows.Automation.AutomationProperties.SetName(Mw_SettingsRdpAudioLocal, vm.Localize("ServerDialogAudioLocal"));
-        Mw_SettingsRdpAudioRemote.Content = vm.Localize("ServerDialogAudioRemote");
-        System.Windows.Automation.AutomationProperties.SetName(Mw_SettingsRdpAudioRemote, vm.Localize("ServerDialogAudioRemote"));
-        Mw_SettingsRdpNla.Content = vm.Localize("SettingsLabelRdpNla");
-        Mw_SettingsRdpDynRes.Content = vm.Localize("SettingsLabelRdpDynamicRes");
-        Mw_SettingsRdpMultiMon.Content = vm.Localize("SettingsLabelRdpMultiMonitor");
-        Mw_SettingsRdpAutoReconnect.Content = vm.Localize("SettingsLabelRdpAutoReconnect");
-        Mw_SettingsRdpBitmapCache.Content = vm.Localize("SettingsLabelRdpBitmapCache");
-        Mw_SettingsRdpCompression.Content = vm.Localize("SettingsLabelRdpCompression");
-        Mw_SettingsRdpRedirTitle.Text = vm.Localize("SettingsLabelRdpRedirection");
-        Mw_SettingsRdpClipboard.Content = vm.Localize("ServerDialogRedirectClipboard");
-        Mw_SettingsRdpDrives.Content = vm.Localize("ServerDialogRedirectDrives");
-        Mw_SettingsRdpPrinters.Content = vm.Localize("ServerDialogRedirectPrinters");
-
-        Mw_SettingsCredProviderTitle.Text = vm.Localize("SettingsSectionCredentialProvider");
-        Mw_SettingsCredProviderEnabled.Content = vm.Localize("SettingsLabelCredProviderEnabled");
-        Mw_SettingsCredProvPresetLabel.Text = vm.Localize("CredProvPresetLabel");
-        PopulateCredProvPresets(vm);
-        Mw_SettingsCredProviderCmdLabel.Text = vm.Localize("SettingsLabelCredProviderCommand");
-        Mw_SettingsCredProvCmd.Tag = vm.Localize("SettingsCredProvCmdPlaceholder");
-        Mw_SettingsCredProvCmdHint.Text = vm.Localize("CredProvCmdHint");
-        Mw_SettingsCredProviderDbLabel.Text = vm.Localize("SettingsLabelCredProviderDatabase");
-        Mw_SettingsCredProvTestBtn.Content = vm.Localize("CredProvBtnTest");
-        System.Windows.Automation.AutomationProperties.SetName(Mw_SettingsCredProvTestBtn, vm.Localize("CredProvBtnTest"));
-        Mw_SettingsCredGuard.Content = vm.Localize("SettingsLabelCredentialGuard");
-
-        Mw_SettingsSessionLoggingTitle.Text = vm.Localize("SettingsSectionSessionLogging");
-        Mw_SettingsEnableLogging.Content = vm.Localize("SettingsLabelEnableLogging");
-        Mw_SettingsSessionLoggingEnabled.Content = vm.Localize("SettingsLabelSessionLoggingEnabled");
-        Mw_SettingsSessionLogDirLabel.Text = vm.Localize("SettingsLabelSessionLogDirectory");
-        Mw_SettingsTimeoutsTitle.Text = vm.Localize("SettingsSectionTimeouts");
-        Mw_SettingsTunnelDelayLabel.Text = vm.Localize("SettingsLabelTunnelDelay");
-        Mw_SettingsRdpTimeoutLabel.Text = vm.Localize("SettingsLabelRdpTimeout");
-        Mw_SettingsExtToolTimeoutLabel.Text = vm.Localize("SettingsLabelExtToolTimeout");
-        // Command Library Git Sync
-        Mw_SettingsCmdLibSyncTitle.Text = vm.Localize("SettingsCmdLibSyncTitle");
-        Mw_SettingsCmdLibSyncEnable.Content = vm.Localize("SettingsCmdLibSyncEnable");
-        Mw_SettingsCmdLibSyncLblUrl.Text = vm.Localize("SettingsCmdLibSyncUrl");
-        Mw_SettingsCmdLibSyncLblBranch.Text = vm.Localize("SettingsCmdLibSyncBranch");
-        Mw_SettingsCmdLibSyncLblToken.Text = vm.Localize("SettingsCmdLibSyncToken");
-        Mw_SettingsCmdLibSyncLblAuthor.Text = vm.Localize("SettingsCmdLibSyncAuthor");
-        Mw_SettingsCmdLibSyncOnStartup.Content = vm.Localize("SettingsCmdLibSyncOnStartup");
-        Mw_SettingsCmdLibSyncAutoPush.Content = vm.Localize("SettingsCmdLibSyncAutoPush");
-        Mw_SettingsCmdLibSyncTestBtn.Content = vm.Localize("SettingsCmdLibSyncTestConnection");
-        Mw_SettingsCmdLibSyncTokenClear.ToolTip = vm.Localize("SettingsCmdLibSyncTokenClear");
-        // Check if a token is already stored (asynchronously loaded from settings)
-        _ = Task.Run(async () =>
-        {
-            var cfgMgr = (System.Windows.Application.Current as App)?.Services?
-                .GetService(typeof(Core.Configuration.ConfigManager)) as Core.Configuration.ConfigManager;
-            if (cfgMgr is null) return;
-            var s = await cfgMgr.LoadSettingsAsync();
-            Dispatcher.Invoke(() => UpdateTokenStatus(!string.IsNullOrEmpty(s.CmdLibGitSyncToken)));
-        });
-
-        Mw_SettingsExtProvTitle.Text = vm.Localize("SettingsSectionExternalToolProviders");
-        Mw_SettingsExtProvDesc.Text = vm.Localize("SettingsExternalToolProvidersDesc");
-        Mw_SettingsLblSysintPath.Text = vm.Localize("SettingsLblSysinternalsPath");
-        Mw_SettingsLblNirSoftPath.Text = vm.Localize("SettingsLblNirSoftPath");
-        Mw_SettingsLblNanaRunPath.Text = vm.Localize("SettingsLblNanaRunPath");
-        Mw_SettingsBtnRescan.Content = vm.Localize("ExtToolBtnRescan");
-        UpdateExternalToolProviderStatus(vm);
-        Mw_SettingsExtToolsTitle.Text = vm.Localize("SettingsSectionExternalToolsList");
-        Mw_SidebarToolsFilter.Tag = vm.Localize("ToolsPanelFilterPlaceholder");
-        Mw_SettingsExtToolsAddBtn.Content = vm.Localize("BtnAdd");
-        Mw_SettingsExtToolsRemoveBtn.Content = vm.Localize("BtnRemove");
-        Mw_ExtToolLblName.Text = vm.Localize("ExternalToolLabelName");
-        Mw_ExtToolLblPath.Text = vm.Localize("ExternalToolLabelPath");
-        Mw_ExtToolLblArgs.Text = vm.Localize("ExternalToolLabelArguments");
-        Mw_ExtToolLblWorkDir.Text = vm.Localize("ExternalToolLabelWorkDir");
-        Mw_ExtToolChkAdmin.Content = vm.Localize("ExternalToolRunAsAdmin");
-        Mw_ExtToolChkHidden.Content = vm.Localize("ExternalToolRunHidden");
-        Mw_ExtToolTestBtn.Content = vm.Localize("ExtToolBtnTest");
-        PopulateExtToolPlaceholderList(vm);
-        UpdateExtToolPreview();
-
-        Mw_SettingsSaveBtn.Content = vm.Localize("SettingsBtnSaveSettings");
-        Mw_SettingsResetBtn.Content = vm.Localize("SettingsBtnResetDefaults");
-        Mw_SettingsExportBtn.Content = vm.Localize("SettingsBtnExportServers");
-        Mw_SettingsExportBtn.ToolTip = vm.Localize("TooltipExport");
-        Mw_SettingsImportBtn.Content = vm.Localize("SettingsBtnImportServers");
-        Mw_SettingsImportBtn.ToolTip = vm.Localize("TooltipImport");
-        Mw_SettingsCitrixBtn.Content = vm.Localize("BtnImportCitrix");
-        Mw_SettingsCitrixBtn.ToolTip = vm.Localize("TooltipImportCitrix");
-    }
-
-    private void ApplyAboutLocalization(MainViewModel vm)
-    {
-        Mw_AboutAppName.Text = vm.Localize("AppName");
-        Mw_AboutTagline.Text = vm.Localize("AboutTagline");
-        Mw_AboutAuthorLabel.Text = vm.Localize("AboutLabelAuthor");
-        Mw_AboutLicenseLabel.Text = vm.Localize("AboutLabelLicense");
-        Mw_AboutLicenseValue.Text = vm.Localize("AboutLicenseValue");
-        Mw_AboutRuntimeLabel.Text = vm.Localize("AboutLabelRuntime");
-        Mw_AboutPlatformLabel.Text = vm.Localize("AboutLabelPlatform");
-        Mw_AboutFeaturesTitle.Text = vm.Localize("AboutLabelFeatures");
-        Mw_AboutFeature1.Text = "\u2022 " + vm.Localize("AboutFeatureEmbedded");
-        Mw_AboutFeature2.Text = "\u2022 " + vm.Localize("AboutFeatureDpapi");
-        Mw_AboutFeature3.Text = "\u2022 " + vm.Localize("AboutFeatureTunneling");
-        Mw_AboutFeature4.Text = "\u2022 " + vm.Localize("AboutFeatureSftp");
-        Mw_AboutFeature5.Text = "\u2022 " + vm.Localize("AboutFeatureBilingual");
-        Mw_AboutFeature6.Text = "\u2022 " + vm.Localize("AboutFeatureTheme");
-    }
-
-    private void ApplyAccessibilityLocalization(MainViewModel vm)
-    {
-        System.Windows.Automation.AutomationProperties.SetName(TabSessions, vm.Localize("NavTabSessions"));
-        System.Windows.Automation.AutomationProperties.SetName(TabTunnels, vm.Localize("NavTabTunnels"));
-        System.Windows.Automation.AutomationProperties.SetName(TabScheduled, vm.Localize("NavTabScheduled"));
-        System.Windows.Automation.AutomationProperties.SetName(TabSettings, vm.Localize("NavTabSettings"));
-        System.Windows.Automation.AutomationProperties.SetName(TabAbout, vm.Localize("NavTabAbout"));
-        System.Windows.Automation.AutomationProperties.SetName(ToggleSidebarButton, vm.Localize("TooltipHideSidebar"));
-        System.Windows.Automation.AutomationProperties.SetName(ShowSidebarButton, vm.Localize("TooltipShowSidebar"));
-        System.Windows.Automation.AutomationProperties.SetName(ExpandAllButton, vm.Localize("TooltipExpandAll"));
-        System.Windows.Automation.AutomationProperties.SetName(CollapseAllButton, vm.Localize("TooltipCollapseAll"));
-        System.Windows.Automation.AutomationProperties.SetName(AddButton, vm.Localize("TooltipAddMenu"));
-        System.Windows.Automation.AutomationProperties.SetName(SessionTabControl, vm.Localize("NavTabSessions"));
-        System.Windows.Automation.AutomationProperties.SetName(QuickConnectButton, vm.Localize("QuickConnectShortcut"));
-
-        // DataTemplate relay: session tab close button and busy indicator bind to ancestor Tag
-        SessionTabControl.Tag = vm.Localize("A11yCloseSessionTab");
-        Mw_SessionsGrid.Tag = vm.Localize("A11yOperationInProgress");
-
-        // Server detail and empty state buttons
-        System.Windows.Automation.AutomationProperties.SetName(Mw_DetailConnectBtn, vm.Localize("AccessDetailConnect"));
-        System.Windows.Automation.AutomationProperties.SetName(Mw_ToolDetailOpenBtn, vm.Localize("AccessDetailOpen"));
-        System.Windows.Automation.AutomationProperties.SetName(Mw_DetailEditBtn, vm.Localize("BtnEdit"));
-        System.Windows.Automation.AutomationProperties.SetName(Mw_DetailDeleteBtn, vm.Localize("BtnDelete"));
-        System.Windows.Automation.AutomationProperties.SetName(Mw_EmptyBtnAddSession, vm.Localize("AccessEmptyAddServer"));
-        System.Windows.Automation.AutomationProperties.SetName(Mw_EmptyBtnImport, vm.Localize("AccessEmptyImport"));
-        System.Windows.Automation.AutomationProperties.SetName(Mw_EmptyBtnExploreTools, vm.Localize("AccessEmptyExploreTools"));
-
-        // Tunnel panel icon buttons
-        Mw_TunnelPanelCollapseBtn.ToolTip = vm.Localize("TooltipCollapseTunnelPanel");
-
-        // Tunnel tab buttons
-        System.Windows.Automation.AutomationProperties.SetName(Mw_TunnelsCloseSelectedBtn, vm.Localize("AccessTunnelsCloseSelected"));
-        System.Windows.Automation.AutomationProperties.SetName(Mw_TunnelsCloseAllBtn, vm.Localize("AccessTunnelsCloseAll"));
-
-        // Manage gateways link
-        System.Windows.Automation.AutomationProperties.SetName(Mw_TunnelsManageGatewaysLink, vm.Localize("TunnelsManageGatewaysLink"));
-
-        // Scheduled task buttons
-        System.Windows.Automation.AutomationProperties.SetName(Mw_ScheduledAddBtn, vm.Localize("AccessScheduledAdd"));
-        System.Windows.Automation.AutomationProperties.SetName(Mw_ScheduledEditBtn, vm.Localize("AccessScheduledEdit"));
-        System.Windows.Automation.AutomationProperties.SetName(Mw_ScheduledDeleteBtn, vm.Localize("AccessScheduledDelete"));
-        System.Windows.Automation.AutomationProperties.SetName(Mw_ScheduledCreateBtn, vm.Localize("AccessScheduledCreate"));
-
-        // Settings action buttons
-        System.Windows.Automation.AutomationProperties.SetName(Mw_SettingsSaveBtn, vm.Localize("AccessSettingsSave"));
-        System.Windows.Automation.AutomationProperties.SetName(Mw_SettingsResetBtn, vm.Localize("AccessSettingsReset"));
-        System.Windows.Automation.AutomationProperties.SetName(Mw_SettingsExportBtn, vm.Localize("AccessSettingsExport"));
-        System.Windows.Automation.AutomationProperties.SetName(Mw_SettingsImportBtn, vm.Localize("AccessSettingsImport"));
-        System.Windows.Automation.AutomationProperties.SetName(Mw_SettingsCitrixBtn, vm.Localize("AccessSettingsCitrix"));
-
-        // Settings gateway sub-panel buttons
-        System.Windows.Automation.AutomationProperties.SetName(Mw_SettingsGatewaysAddBtn, vm.Localize("AccessSettingsGatewaysAdd"));
-        System.Windows.Automation.AutomationProperties.SetName(Mw_SettingsGatewaysEditBtn, vm.Localize("AccessSettingsGatewaysEdit"));
-        System.Windows.Automation.AutomationProperties.SetName(Mw_SettingsGatewaysDeleteBtn, vm.Localize("AccessSettingsGatewaysDelete"));
-
-        // External tools management buttons
-        System.Windows.Automation.AutomationProperties.SetName(Mw_SettingsExtToolsAddBtn, vm.Localize("AccessSettingsExtToolsAdd"));
-        System.Windows.Automation.AutomationProperties.SetName(Mw_SettingsExtToolsRemoveBtn, vm.Localize("AccessSettingsExtToolsRemove"));
     }
 
     private async void OnSessionsTabChecked(object sender, RoutedEventArgs e)
@@ -1119,7 +715,7 @@ public partial class MainWindow : Window
         }
 
         var target = SessionTreeView.SelectedItem;
-        var menu = CreateTreeContextMenu(vm, target);
+        var menu = _contextMenuFactory.CreateTreeContextMenu(target, vm, this);
 
         // Try to position the menu at the selected item's location
         var container = FindTreeViewItemContainer(SessionTreeView, target);
@@ -1545,260 +1141,10 @@ public partial class MainWindow : Window
         _treeContextPointerHitEmptyArea = false;
         _treeContextTarget = target;
 
-        var menu = CreateTreeContextMenu(vm, target);
+        var menu = _contextMenuFactory.CreateTreeContextMenu(target, vm, this);
         menu.PlacementTarget = treeView;
         menu.Placement = PlacementMode.MousePoint;
         treeView.ContextMenu = menu;
-    }
-
-    private ContextMenu CreateTreeContextMenu(MainViewModel vm, object? target)
-    {
-        return target switch
-        {
-            ServerItemViewModel server when server.ConnectionType?.StartsWith(
-                "TOOL:", StringComparison.OrdinalIgnoreCase) == true
-                => CreateToolContextMenu(vm, server),
-            ServerItemViewModel server => CreateServerContextMenu(vm, server),
-            FolderViewModel folder => CreateFolderContextMenu(vm, folder),
-            _ => CreateEmptyAreaContextMenu(vm)
-        };
-    }
-
-    private ContextMenu CreateServerContextMenu(MainViewModel vm, ServerItemViewModel server)
-    {
-        var menu = CreateContextMenu();
-
-        menu.Items.Add(CreateMenuItem(
-            vm.Localize("TreeCtxConnect"),
-            vm.ServerList.ConnectCommand,
-            server));
-        menu.Items.Add(CreateMenuItem(
-            vm.Localize("TreeCtxEdit"),
-            vm.ServerList.EditServerCommand,
-            server,
-            inputGestureText: "Ctrl+E"));
-        menu.Items.Add(CreateMenuItem(
-            vm.Localize("TreeCtxDuplicate"),
-            vm.ServerList.DuplicateServerCommand,
-            server));
-        menu.Items.Add(new Separator());
-        menu.Items.Add(CreateMoveToProjectMenu(vm, server));
-        menu.Items.Add(CreateMoveToGroupMenu(vm, server));
-        menu.Items.Add(new Separator());
-        menu.Items.Add(CreateMenuItem(
-            vm.Localize("TreeCtxCopyHostname"),
-            vm.ServerList.CopyHostnameCommand,
-            server));
-        menu.Items.Add(CreateMenuItem(
-            vm.Localize("TreeCtxCopyUsername"),
-            vm.ServerList.CopyUsernameCommand,
-            server,
-            !string.IsNullOrWhiteSpace(server.Username)));
-
-        // Wake-on-LAN (only shown when MAC address is configured)
-        if (Core.Security.WakeOnLan.IsValidMac(server.MacAddress))
-        {
-            var wolItem = new MenuItem { Header = vm.Localize("TreeCtxWakeOnLan") };
-            wolItem.Click += async (_, _) =>
-            {
-                var sent = await Core.Security.WakeOnLan.SendAsync(server.MacAddress);
-                vm.StatusText = sent
-                    ? vm.Localize("WolSent")
-                    : vm.Localize("WolFailed");
-            };
-            menu.Items.Add(wolItem);
-        }
-
-        // Notes submenu
-        menu.Items.Add(new Separator());
-        menu.Items.Add(CreateNotesSubmenu(vm, server));
-
-        // External tools submenu
-        var externalToolsMenu = CreateExternalToolsMenu(vm, server);
-        if (externalToolsMenu is not null)
-        {
-            menu.Items.Add(new Separator());
-            menu.Items.Add(externalToolsMenu);
-        }
-
-        // Detected third-party tools submenu (Sysinternals / NirSoft)
-        var detectedToolsMenu = CreateDetectedToolsMenu(vm, server);
-        if (detectedToolsMenu is not null)
-        {
-            if (externalToolsMenu is null) menu.Items.Add(new Separator());
-            menu.Items.Add(detectedToolsMenu);
-        }
-
-        menu.Items.Add(new Separator());
-        var deleteItem = CreateMenuItem(
-            vm.Localize("TreeCtxDelete"),
-            vm.ServerList.DeleteServerCommand,
-            server,
-            inputGestureText: "Ctrl+Del");
-        deleteItem.Foreground = Application.Current.TryFindResource("ErrorBrush") as Brush
-            ?? new System.Windows.Media.SolidColorBrush(Colors.Red);
-        menu.Items.Add(deleteItem);
-
-        return menu;
-    }
-
-    private MenuItem CreateNotesSubmenu(MainViewModel vm, ServerItemViewModel server)
-    {
-        var submenu = new MenuItem { Header = vm.Localize("TreeCtxNotes") };
-
-        var blankItem = new MenuItem { Header = vm.Localize("ToolNotesBtnNew") };
-        blankItem.Click += (_, _) => OpenNotesForServer(vm, server, NoteTemplateKind.Blank);
-        submenu.Items.Add(blankItem);
-
-        var dailyItem = new MenuItem { Header = vm.Localize("ToolNotesBtnDaily") };
-        dailyItem.Click += (_, _) => OpenNotesForServer(vm, server, NoteTemplateKind.Daily);
-        submenu.Items.Add(dailyItem);
-
-        var incidentItem = new MenuItem { Header = vm.Localize("ToolNotesBtnIncident") };
-        incidentItem.Click += (_, _) => OpenNotesForServer(vm, server, NoteTemplateKind.Incident);
-        submenu.Items.Add(incidentItem);
-
-        var procedureItem = new MenuItem { Header = vm.Localize("ToolNotesBtnProcedure") };
-        procedureItem.Click += (_, _) => OpenNotesForServer(vm, server, NoteTemplateKind.Procedure);
-        submenu.Items.Add(procedureItem);
-
-        return submenu;
-    }
-
-    private static void OpenNotesForServer(
-        MainViewModel vm,
-        ServerItemViewModel server,
-        NoteTemplateKind templateKind)
-    {
-        var context = new Core.Models.ToolContext(
-            TargetHost: server.RemoteServer,
-            TargetPort: server.RemotePort > 0 ? server.RemotePort : null,
-            Argument: $"template:{templateKind.ToString().ToLowerInvariant()}",
-            DisplayName: server.DisplayName,
-            Username: server.Username,
-            ProjectName: server.ProjectName,
-            GroupName: server.Group,
-            ConnectionType: server.ConnectionType);
-
-        _ = vm.OpenToolTabAsync("NOTES", server.DisplayName, context);
-    }
-
-    /// <summary>
-    /// Builds a context menu specific to tool entries (TOOL:*) in the TreeView.
-    /// Excludes server-specific actions like Connect, Copy Hostname, Wake-on-LAN, External Tools.
-    /// </summary>
-    private ContextMenu CreateToolContextMenu(MainViewModel vm, ServerItemViewModel tool)
-    {
-        var menu = CreateContextMenu();
-
-        // "Open in Tab" — the primary action for tools
-        var openItem = new MenuItem { Header = vm.Localize("TreeCtxOpenToolInTab") };
-        openItem.Click += (_, _) =>
-        {
-            var toolId = tool.ConnectionType!["TOOL:".Length..];
-            vm.TrackRecentTool(toolId.ToUpperInvariant());
-            var context = new Core.Models.ToolContext(
-                TargetHost: tool.RemoteServer,
-                TargetPort: tool.RemotePort > 0 ? tool.RemotePort : null,
-                Argument: tool.RemoteServer);
-            _ = vm.OpenToolTabAsync(toolId, tool.DisplayName, context);
-        };
-        menu.Items.Add(openItem);
-
-        menu.Items.Add(new Separator());
-
-        // Move to Project / Group (tools can be organized just like servers)
-        menu.Items.Add(CreateMoveToProjectMenu(vm, tool));
-        menu.Items.Add(CreateMoveToGroupMenu(vm, tool));
-
-        menu.Items.Add(new Separator());
-
-        // Remove from inventory
-        var removeItem = CreateMenuItem(
-            vm.Localize("TreeCtxRemoveTool"),
-            vm.ServerList.DeleteServerCommand,
-            tool);
-        removeItem.Foreground = Application.Current.TryFindResource("ErrorBrush") as Brush
-            ?? new System.Windows.Media.SolidColorBrush(Colors.Red);
-        menu.Items.Add(removeItem);
-
-        return menu;
-    }
-
-    /// <summary>
-    /// Builds the "External Tools" submenu for a server context menu.
-    /// Returns null if no external tools are configured.
-    /// </summary>
-    private MenuItem? CreateExternalToolsMenu(MainViewModel vm, ServerItemViewModel server)
-    {
-        var tools = vm.CurrentSettings?.ExternalTools;
-        if (tools is null || tools.Count == 0)
-        {
-            return null;
-        }
-
-        var submenu = new MenuItem
-        {
-            Header = vm.Localize("TreeCtxExternalTools")
-        };
-
-        foreach (var tool in tools)
-        {
-            var toolItem = new MenuItem
-            {
-                Header = tool.Name
-            };
-
-            // Capture for closure
-            var capturedTool = tool;
-            toolItem.Click += (_, _) => LaunchExternalTool(vm, capturedTool, server);
-            submenu.Items.Add(toolItem);
-        }
-
-        return submenu;
-    }
-
-    /// <summary>
-    /// Creates a submenu for auto-detected third-party tools (Sysinternals, NirSoft),
-    /// grouped by provider. Only shown if at least one tool is detected.
-    /// </summary>
-    private MenuItem? CreateDetectedToolsMenu(MainViewModel vm, ServerItemViewModel server)
-    {
-        var app = System.Windows.Application.Current as App;
-        var providerService = app?.Services?
-            .GetService(typeof(Services.ExternalToolProviderService)) as Services.ExternalToolProviderService;
-
-        var tools = providerService?.DetectedTools;
-        if (tools is null || tools.Count == 0)
-            return null;
-
-        var submenu = new MenuItem
-        {
-            Header = vm.Localize("TreeCtxDetectedTools")
-        };
-
-        // Group by provider (Sysinternals, NirSoft, etc.)
-        var groups = tools.GroupBy(t => t.ProviderName, StringComparer.OrdinalIgnoreCase);
-        foreach (var group in groups)
-        {
-            var providerMenu = new MenuItem { Header = group.Key, FontWeight = FontWeights.SemiBold };
-
-            foreach (var tool in group.OrderBy(t => t.Name, StringComparer.OrdinalIgnoreCase))
-            {
-                var toolItem = new MenuItem { Header = tool.Name };
-
-                if (tool.DescriptionKey is not null)
-                    toolItem.ToolTip = vm.Localize(tool.DescriptionKey);
-
-                var captured = tool;
-                toolItem.Click += (_, _) => LaunchDetectedTool(vm, captured, server);
-                providerMenu.Items.Add(toolItem);
-            }
-
-            submenu.Items.Add(providerMenu);
-        }
-
-        return submenu;
     }
 
     /// <summary>
@@ -1892,10 +1238,11 @@ public partial class MainWindow : Window
     private System.Collections.ObjectModel.ObservableCollection<ViewModels.SidebarToolCategoryViewModel>? _sidebarToolsCategories;
 
     /// <summary>
-    /// Builds the category/tool hierarchy from <see cref="ToolRegistry"/> and
-    /// attaches it to the sidebar Tools <see cref="TreeView"/>. Lazy: only
-    /// invoked the first time the user switches to the Tools tab, and re-run
-    /// when external tools are discovered (the External category changes).
+    /// Builds the category/tool hierarchy via
+    /// <see cref="ToolsTabPopulationService.BuildSidebarToolsData"/> and attaches
+    /// it to the sidebar Tools <see cref="TreeView"/>. Lazy: only invoked the
+    /// first time the user switches to the Tools tab, and re-run when external
+    /// tools are discovered (the External category changes).
     /// </summary>
     private void BuildSidebarToolsData()
     {
@@ -1904,51 +1251,8 @@ public partial class MainWindow : Window
             return;
         }
 
-        var grouped = ToolRegistry.All
-            .GroupBy(d => d.Category)
-            .OrderBy(g => g.Key);
-
-        var categories = new System.Collections.ObjectModel.ObservableCollection<ViewModels.SidebarToolCategoryViewModel>();
-
-        foreach (var group in grouped)
-        {
-            var brushKey = GetCategoryBrushKey(group.Key);
-            var tools = new System.Collections.ObjectModel.ObservableCollection<ViewModels.SidebarToolItemViewModel>();
-
-            var sortedTools = group
-                .Select(d => new
-                {
-                    Descriptor = d,
-                    Name = vm.Localize(d.LabelKey)
-                })
-                .OrderBy(x => x.Name, StringComparer.OrdinalIgnoreCase);
-
-            foreach (var tool in sortedTools)
-            {
-                var aliases = string.Join(' ', tool.Descriptor.CommandPrefixes);
-                tools.Add(new ViewModels.SidebarToolItemViewModel
-                {
-                    Id = tool.Descriptor.Id,
-                    Name = tool.Name,
-                    BrushKey = brushKey,
-                    IconGeometryKey = tool.Descriptor.IconResourceKey,
-                    Searchable = $"{tool.Name} {aliases}".ToLowerInvariant()
-                });
-            }
-
-            var categoryName = vm.Localize(group.First().CategoryLabelKey);
-            categories.Add(new ViewModels.SidebarToolCategoryViewModel
-            {
-                CategoryName = categoryName,
-                BrushKey = brushKey,
-                Tools = tools,
-                VisibleCount = tools.Count,
-                IsExpanded = false
-            });
-        }
-
-        _sidebarToolsCategories = categories;
-        SidebarToolsTreeView.ItemsSource = categories;
+        _sidebarToolsCategories = _toolsTabPopulation.BuildSidebarToolsData(vm);
+        SidebarToolsTreeView.ItemsSource = _sidebarToolsCategories;
         _sidebarToolsPopulated = true;
 
         UpdateSidebarToolsContextLabel();
@@ -2005,7 +1309,7 @@ public partial class MainWindow : Window
             return;
         }
 
-        var host = GetInheritedToolTargetHost(vm);
+        var host = ToolsTabPopulationService.GetInheritedToolTargetHost(vm);
         var hasTarget = !string.IsNullOrEmpty(host);
         var text = hasTarget
             ? vm.Localize("ToolsNetworkContextWith").Replace("{0}", host)
@@ -2022,36 +1326,9 @@ public partial class MainWindow : Window
             return;
         }
 
-        string filter = Mw_SidebarToolsFilter.Text.Trim();
-        bool hasFilter = !string.IsNullOrEmpty(filter);
-        string filterLower = filter.ToLowerInvariant();
-        bool anyVisibleTool = false;
-
-        foreach (var category in _sidebarToolsCategories)
-        {
-            int visibleInCategory = 0;
-            foreach (var tool in category.Tools)
-            {
-                // tool.Searchable is pre-lowercased in BuildSidebarToolsData; plain Contains is fine.
-                string searchable = tool.Searchable;
-                bool matches = !hasFilter || searchable.Contains(filterLower);
-                tool.IsVisible = matches;
-                if (matches)
-                {
-                    visibleInCategory++;
-                }
-            }
-
-            category.VisibleCount = hasFilter ? visibleInCategory : category.Tools.Count;
-            category.IsVisible = !hasFilter || visibleInCategory > 0;
-            // Auto-expand matching categories when filtering; collapse when cleared.
-            category.IsExpanded = hasFilter && visibleInCategory > 0;
-
-            if (category.IsVisible)
-            {
-                anyVisibleTool = true;
-            }
-        }
+        var filter = Mw_SidebarToolsFilter.Text;
+        var anyVisibleTool = _toolsTabPopulation.FilterSidebarTools(_sidebarToolsCategories, filter);
+        var hasFilter = !string.IsNullOrWhiteSpace(filter);
 
         if (DataContext is MainViewModel vm)
         {
@@ -2095,7 +1372,7 @@ public partial class MainWindow : Window
 
         try
         {
-            var context = CreateInheritedToolContext(vm, descriptor);
+            var context = ToolsTabPopulationService.CreateInheritedToolContext(descriptor, vm);
 
             // Match the full-page Tools tab: make sure the session panel is visible
             // before opening the tool tab.
@@ -2104,7 +1381,7 @@ public partial class MainWindow : Window
 
             await vm.OpenToolTabAsync(
                 descriptor.Id,
-                ResolveToolTabTitle(vm, descriptor, context),
+                ToolsTabPopulationService.ResolveToolTabTitle(descriptor, context, vm),
                 context);
             vm.TrackRecentTool(descriptor.Id);
         }
@@ -2114,17 +1391,6 @@ public partial class MainWindow : Window
             vm.StatusText = $"Tool launch failed: {descriptor.Id} — {ex.Message}";
         }
     }
-
-    private static string GetCategoryBrushKey(Core.Models.ToolCategory category)
-        => category switch
-        {
-            Core.Models.ToolCategory.Network => "ToolNetworkBrush",
-            Core.Models.ToolCategory.Security => "ToolSecurityBrush",
-            Core.Models.ToolCategory.Encoding => "ToolEncodingBrush",
-            Core.Models.ToolCategory.System => "ToolSystemBrush",
-            Core.Models.ToolCategory.External => "ToolExternalBrush",
-            _ => "TextSecondaryBrush"
-        };
 
     // ── Tools Tab (dedicated full-page browser) ──────────────────────
 
@@ -2152,370 +1418,13 @@ public partial class MainWindow : Window
 
     private void RefreshToolsTabSections(MainViewModel vm)
     {
-        ToolsTabContent.Children.Clear();
-        var filter = Mw_ToolsTabSearch.Text.Trim();
-        var hasFilter = !string.IsNullOrEmpty(filter);
-        var matchingToolCount = 0;
-
-        // ── Favorites section ──
-        if (!hasFilter)
-        {
-            var favIds = vm.FavoriteToolIds;
-            if (favIds.Count > 0)
-            {
-                AddToolsTabSectionHeader(vm.Localize("ToolsFavoritesHeader"), "WarningBrush");
-                var favPanel = new WrapPanel { Margin = new Thickness(0, 0, 0, 16) };
-                foreach (var favId in favIds)
-                {
-                    var desc = ToolRegistry.All.FirstOrDefault(d => string.Equals(d.Id, favId, StringComparison.OrdinalIgnoreCase));
-                    if (desc is not null)
-                        favPanel.Children.Add(CreateToolsTabCard(vm, desc));
-                }
-                ToolsTabContent.Children.Add(favPanel);
-            }
-            else
-            {
-                AddToolsTabSectionHeader(vm.Localize("ToolsFavoritesHeader"), "WarningBrush");
-                var emptyFav = new TextBlock
-                {
-                    Text = vm.Localize("ToolsEmptyFavorites"),
-                    FontSize = (double)FindResource("FontSizeCaption"),
-                    Margin = new Thickness(4, 0, 0, 16)
-                };
-                emptyFav.SetResourceReference(TextBlock.ForegroundProperty, "TextDisabledBrush");
-                ToolsTabContent.Children.Add(emptyFav);
-            }
-
-            // ── Recent section ──
-            var recentIds = vm.RecentToolIds;
-            if (recentIds.Count > 0)
-            {
-                AddToolsTabSectionHeader(vm.Localize("ToolsRecentHeader"), "AccentBrush");
-                var recentPanel = new WrapPanel { Margin = new Thickness(0, 0, 0, 16) };
-                foreach (var rid in recentIds)
-                {
-                    var desc = ToolRegistry.All.FirstOrDefault(d => string.Equals(d.Id, rid, StringComparison.OrdinalIgnoreCase));
-                    if (desc is not null)
-                        recentPanel.Children.Add(CreateToolsTabCard(vm, desc));
-                }
-                ToolsTabContent.Children.Add(recentPanel);
-            }
-        }
-
-        // ── All tools by category ──
-        if (!hasFilter)
-            AddToolsTabSectionHeader(vm.Localize("ToolsAllHeader"), "TextPrimaryBrush");
-
-        string? lastCategory = null;
-        var sorted = ToolRegistry.All
-            .OrderBy(d => d.Category)
-            .ThenBy(d => vm.Localize(d.LabelKey), StringComparer.OrdinalIgnoreCase);
-
-        WrapPanel? currentWrap = null;
-
-        foreach (var descriptor in sorted)
-        {
-            if (hasFilter)
-            {
-                var label = vm.Localize(descriptor.LabelKey);
-                var aliases = string.Join(" ", descriptor.CommandPrefixes);
-                var descKey = descriptor.DescriptionKey ?? $"ToolDesc{descriptor.Id}";
-                var descText = vm.Localize(descKey);
-                var searchable = $"{label} {aliases} {descText}";
-                if (!searchable.Contains(filter, StringComparison.OrdinalIgnoreCase))
-                    continue;
-            }
-
-            matchingToolCount++;
-
-            if (!string.Equals(descriptor.CategoryLabelKey, lastCategory, StringComparison.Ordinal))
-            {
-                if (currentWrap is not null)
-                    ToolsTabContent.Children.Add(currentWrap);
-
-                var brushKey = GetCategoryBrushKey(descriptor.Category);
-                AddToolsTabCategoryHeader(vm.Localize(descriptor.CategoryLabelKey), brushKey);
-                currentWrap = new WrapPanel { Margin = new Thickness(0, 0, 0, 8) };
-                lastCategory = descriptor.CategoryLabelKey;
-            }
-
-            currentWrap?.Children.Add(CreateToolsTabCard(vm, descriptor));
-        }
-        if (currentWrap is not null)
-            ToolsTabContent.Children.Add(currentWrap);
-
-        Mw_ToolsTabCount.Text = vm.Localize("ToolsToolCount")
-            .Replace("{0}", (hasFilter ? matchingToolCount : ToolRegistry.All.Count).ToString());
-
-        if (hasFilter && matchingToolCount == 0)
-        {
-            var emptyState = new StackPanel
-            {
-                Margin = new Thickness(0, 24, 0, 0),
-                HorizontalAlignment = System.Windows.HorizontalAlignment.Center
-            };
-
-            var noResultsTitle = new TextBlock
-            {
-                Text = vm.Localize("ToolsNoResults"),
-                FontSize = (double)FindResource("FontSizeBodyLarge"),
-                FontWeight = FontWeights.SemiBold,
-                HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
-                Margin = new Thickness(0, 0, 0, 6)
-            };
-            noResultsTitle.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondaryBrush");
-            emptyState.Children.Add(noResultsTitle);
-
-            var noResultsHint = new TextBlock
-            {
-                Text = vm.Localize("ToolsNoResultsHint"),
-                FontSize = (double)FindResource("FontSizeCaption"),
-                HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
-                TextAlignment = TextAlignment.Center
-            };
-            noResultsHint.SetResourceReference(TextBlock.ForegroundProperty, "TextDisabledBrush");
-            emptyState.Children.Add(noResultsHint);
-
-            ToolsTabContent.Children.Add(emptyState);
-        }
-    }
-
-    private void AddToolsTabSectionHeader(string text, string brushKey)
-    {
-        var sectionHeader = new TextBlock
-        {
-            Text = text,
-            FontSize = (double)FindResource("FontSizeBodyLarge"),
-            FontWeight = FontWeights.SemiBold,
-            Margin = new Thickness(0, 8, 0, 8)
-        };
-        sectionHeader.SetResourceReference(TextBlock.ForegroundProperty, brushKey);
-        ToolsTabContent.Children.Add(sectionHeader);
-    }
-
-    private void AddToolsTabCategoryHeader(string text, string brushKey)
-    {
-        var header = new StackPanel
-        {
-            Orientation = System.Windows.Controls.Orientation.Horizontal,
-            Margin = new Thickness(0, 4, 0, 4)
-        };
-        var accentBar = new Border
-        {
-            Width = 3,
-            Height = 16,
-            CornerRadius = new CornerRadius(1.5),
-            VerticalAlignment = VerticalAlignment.Center,
-            Margin = new Thickness(0, 0, 6, 0)
-        };
-        accentBar.SetResourceReference(Border.BackgroundProperty, brushKey);
-        header.Children.Add(accentBar);
-
-        var label = new TextBlock
-        {
-            Text = text.ToUpperInvariant(),
-            FontSize = (double)FindResource("FontSizeCaption"),
-            FontWeight = FontWeights.SemiBold,
-            VerticalAlignment = VerticalAlignment.Center
-        };
-        label.SetResourceReference(TextBlock.ForegroundProperty, brushKey);
-        header.Children.Add(label);
-        ToolsTabContent.Children.Add(header);
-    }
-
-    /// <summary>
-    /// Creates a wider card for the Tools tab grid layout with a pin/unpin button.
-    /// </summary>
-    private FrameworkElement CreateToolsTabCard(MainViewModel vm, Core.Models.ToolDescriptor descriptor)
-    {
-        var categoryBrushKey = GetCategoryBrushKey(descriptor.Category);
-        const string DefaultBorderKey = "BorderBrush";
-        const string ActiveBorderKey = "AccentBrush";
-        const string DefaultBackgroundKey = "CardBrush";
-        const string ActiveBackgroundKey = "HighlightBrush";
-
-        // Icon
-        System.Windows.Shapes.Path? iconPath = null;
-        if (descriptor.IconResourceKey is not null
-            && TryFindResource(descriptor.IconResourceKey) is System.Windows.Media.Geometry geo)
-        {
-            iconPath = new System.Windows.Shapes.Path
-            {
-                Data = geo,
-                Width = 20,
-                Height = 20,
-                Stretch = System.Windows.Media.Stretch.Uniform,
-                VerticalAlignment = VerticalAlignment.Center
-            };
-            iconPath.SetResourceReference(System.Windows.Shapes.Shape.FillProperty, categoryBrushKey);
-        }
-
-        var nameBlock = new TextBlock
-        {
-            Text = vm.Localize(descriptor.LabelKey),
-            FontSize = (double)FindResource("FontSizeBody"),
-            FontWeight = FontWeights.SemiBold,
-            TextTrimming = TextTrimming.CharacterEllipsis
-        };
-        nameBlock.SetResourceReference(TextBlock.ForegroundProperty, "TextPrimaryBrush");
-
-        var descKey = descriptor.DescriptionKey ?? $"ToolDesc{descriptor.Id}";
-        var descText = vm.Localize(descKey);
-        var descBlock = new TextBlock
-        {
-            Text = descText != descKey ? descText : "",
-            FontSize = (double)FindResource("FontSizeSmallCaption"),
-            TextTrimming = TextTrimming.CharacterEllipsis,
-            TextWrapping = TextWrapping.NoWrap
-        };
-        descBlock.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondaryBrush");
-
-        // Pin/Unpin button
-        var isFav = vm.FavoriteToolIds.Contains(descriptor.Id, StringComparer.OrdinalIgnoreCase);
-        var pinBtn = new Button
-        {
-            Content = isFav ? "\uE735" : "\uE734",
-            FontFamily = new System.Windows.Media.FontFamily("Segoe MDL2 Assets"),
-            FontSize = 12,
-            Style = (Style)FindResource("ToolbarGhostButtonStyle"),
-            Padding = new Thickness(2),
-            Opacity = isFav ? 1.0 : 0.4,
-            VerticalAlignment = VerticalAlignment.Top,
-            Margin = new Thickness(4, 0, 0, 0),
-            Tag = descriptor.Id,
-            ToolTip = isFav ? vm.Localize("ToolsUnpinTooltip") : vm.Localize("ToolsPinTooltip")
-        };
-        pinBtn.SetResourceReference(System.Windows.Controls.Control.ForegroundProperty,
-            isFav ? "WarningBrush" : "TextSecondaryBrush");
-        System.Windows.Automation.AutomationProperties.SetName(pinBtn,
-            isFav ? vm.Localize("A11yUnpinTool") : vm.Localize("A11yPinTool"));
-        pinBtn.Click += OnToolPinClick;
-
-        var textStack = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
-        textStack.Children.Add(nameBlock);
-        if (!string.IsNullOrEmpty(descBlock.Text))
-            textStack.Children.Add(descBlock);
-
-        var content = new DockPanel
-        {
-            LastChildFill = true,
-            Margin = new Thickness(0, 0, 24, 0)
-        };
-        if (iconPath is not null)
-        {
-            var iconBorder = new Border
-            {
-                Width = 32,
-                Height = 32,
-                CornerRadius = new CornerRadius(6),
-                Opacity = 0.12,
-                Margin = new Thickness(0, 0, 10, 0),
-                VerticalAlignment = VerticalAlignment.Center,
-                Child = iconPath
-            };
-            iconBorder.SetResourceReference(Border.BackgroundProperty, categoryBrushKey);
-            content.Children.Add(iconBorder);
-            DockPanel.SetDock(iconBorder, Dock.Left);
-        }
-        content.Children.Add(textStack);
-
-        // Use a bare template so the button has no hover chrome —
-        // all visual feedback comes from the outer cardBorder.
-        var btnTemplate = new ControlTemplate(typeof(Button));
-        var btnPresenter = new FrameworkElementFactory(typeof(ContentPresenter));
-        btnPresenter.SetValue(MarginProperty, new Thickness(10, 8, 10, 8));
-        btnPresenter.SetValue(ContentPresenter.HorizontalAlignmentProperty, System.Windows.HorizontalAlignment.Stretch);
-        btnPresenter.SetValue(ContentPresenter.VerticalAlignmentProperty, VerticalAlignment.Stretch);
-        btnTemplate.VisualTree = btnPresenter;
-
-        var launchButton = new Button
-        {
-            Content = content,
-            Tag = descriptor,
-            Background = Brushes.Transparent,
-            BorderThickness = new Thickness(0),
-            HorizontalContentAlignment = System.Windows.HorizontalAlignment.Stretch,
-            VerticalContentAlignment = VerticalAlignment.Stretch,
-            Cursor = System.Windows.Input.Cursors.Hand,
-            ToolTip = descBlock.Text.Length > 0 ? descBlock.Text : null,
-            Template = btnTemplate
-        };
-        System.Windows.Automation.AutomationProperties.SetName(launchButton, vm.Localize(descriptor.LabelKey));
-        launchButton.Click += OnToolsTabCardClick;
-
-        var cardBorder = new Border
-        {
-            BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(8),
-            Child = launchButton
-        };
-        cardBorder.SetResourceReference(Border.BorderBrushProperty, DefaultBorderKey);
-        cardBorder.SetResourceReference(Border.BackgroundProperty, DefaultBackgroundKey);
-
-        void UpdateCardVisualState()
-        {
-            var isActive = launchButton.IsMouseOver
-                || launchButton.IsKeyboardFocusWithin
-                || pinBtn.IsMouseOver
-                || pinBtn.IsKeyboardFocusWithin;
-
-            // Resolve via SetResourceReference so the hover-state brushes track
-            // runtime theme swaps without needing a manual rebuild.
-            cardBorder.SetResourceReference(Border.BorderBrushProperty,
-                isActive ? ActiveBorderKey : DefaultBorderKey);
-            cardBorder.SetResourceReference(Border.BackgroundProperty,
-                isActive ? ActiveBackgroundKey : DefaultBackgroundKey);
-        }
-
-        launchButton.MouseEnter += (_, _) => UpdateCardVisualState();
-        launchButton.MouseLeave += (_, _) => UpdateCardVisualState();
-        launchButton.GotKeyboardFocus += (_, _) => UpdateCardVisualState();
-        launchButton.LostKeyboardFocus += (_, _) => UpdateCardVisualState();
-        pinBtn.MouseEnter += (_, _) => UpdateCardVisualState();
-        pinBtn.MouseLeave += (_, _) => UpdateCardVisualState();
-        pinBtn.GotKeyboardFocus += (_, _) => UpdateCardVisualState();
-        pinBtn.LostKeyboardFocus += (_, _) => UpdateCardVisualState();
-
-        var card = new Grid
-        {
-            Width = 280,
-            Margin = new Thickness(0, 0, 8, 8)
-        };
-        card.Children.Add(cardBorder);
-
-        pinBtn.HorizontalAlignment = System.Windows.HorizontalAlignment.Right;
-        pinBtn.VerticalAlignment = VerticalAlignment.Top;
-        pinBtn.Margin = new Thickness(0, 6, 6, 0);
-        card.Children.Add(pinBtn);
-
-        return card;
-    }
-
-    private string? GetInheritedToolTargetHost(MainViewModel vm)
-    {
-        var host = vm.ServerList.SelectedServer?.RemoteServer;
-        return string.IsNullOrWhiteSpace(host) ? null : host.Trim();
-    }
-
-    private Core.Models.ToolContext? CreateInheritedToolContext(MainViewModel vm, Core.Models.ToolDescriptor descriptor)
-    {
-        if (!descriptor.IsNetworkTool)
-        {
-            return null;
-        }
-
-        var host = GetInheritedToolTargetHost(vm);
-        return host is null ? null : new Core.Models.ToolContext(TargetHost: host);
-    }
-
-    private string ResolveToolTabTitle(MainViewModel vm, Core.Models.ToolDescriptor descriptor, Core.Models.ToolContext? context)
-    {
-        if (context?.TargetHost is not null && descriptor.LabelWithArgKey is not null)
-        {
-            return string.Format(vm.Localize(descriptor.LabelWithArgKey), context.TargetHost);
-        }
-
-        return vm.Localize(descriptor.LabelKey);
+        var visibleCount = _toolsTabPopulation.RefreshToolsTabSections(
+            ToolsTabContent,
+            vm,
+            Mw_ToolsTabSearch.Text,
+            OnToolsTabCardClickInternal,
+            OnToolPinClickInternal);
+        Mw_ToolsTabCount.Text = vm.Localize("ToolsToolCount").Replace("{0}", visibleCount.ToString());
     }
 
     private void UpdateToolLaunchContextLabels()
@@ -2525,7 +1434,7 @@ public partial class MainWindow : Window
             return;
         }
 
-        var host = GetInheritedToolTargetHost(vm);
+        var host = ToolsTabPopulationService.GetInheritedToolTargetHost(vm);
         var hasTarget = !string.IsNullOrEmpty(host);
         var text = hasTarget
             ? vm.Localize("ToolsNetworkContextWith").Replace("{0}", host)
@@ -2540,31 +1449,29 @@ public partial class MainWindow : Window
         UpdateSidebarToolsContextLabel();
     }
 
-    private async void OnToolPinClick(object sender, RoutedEventArgs e)
+    private async void OnToolPinClickInternal(string toolId)
     {
-        if (sender is not Button btn || DataContext is not MainViewModel vm) return;
-        e.Handled = true;
-        var toolId = btn.Tag as string;
-        if (toolId is null) return;
+        if (DataContext is not MainViewModel vm) return;
         await vm.ToggleFavoriteToolAsync(toolId);
         RefreshToolsTabSections(vm);
     }
 
-    private async void OnToolsTabCardClick(object sender, RoutedEventArgs e)
+    private async void OnToolsTabCardClickInternal(Core.Models.ToolDescriptor descriptor)
     {
-        if (sender is not FrameworkElement element || element.Tag is not Core.Models.ToolDescriptor descriptor
-            || DataContext is not MainViewModel vm)
-            return;
+        if (DataContext is not MainViewModel vm) return;
 
         try
         {
-            var context = CreateInheritedToolContext(vm, descriptor);
+            var context = ToolsTabPopulationService.CreateInheritedToolContext(descriptor, vm);
 
             // Switch to Servers tab first so the session panel is visible
             TabSessions.IsChecked = true;
             SwitchToTab("Sessions");
 
-            await vm.OpenToolTabAsync(descriptor.Id, ResolveToolTabTitle(vm, descriptor, context), context);
+            await vm.OpenToolTabAsync(
+                descriptor.Id,
+                ToolsTabPopulationService.ResolveToolTabTitle(descriptor, context, vm),
+                context);
             vm.TrackRecentTool(descriptor.Id);
         }
         catch (Exception ex)
@@ -2700,11 +1607,11 @@ public partial class MainWindow : Window
 
         try
         {
-            var context = CreateInheritedToolContext(vm, descriptor);
+            var context = ToolsTabPopulationService.CreateInheritedToolContext(descriptor, vm);
 
             await vm.OpenToolTabAsync(
                 descriptor.Id,
-                ResolveToolTabTitle(vm, descriptor, context),
+                ToolsTabPopulationService.ResolveToolTabTitle(descriptor, context, vm),
                 context);
 
             vm.TrackRecentTool(descriptor.Id);
@@ -2779,39 +1686,6 @@ public partial class MainWindow : Window
         }
     }
 
-    private void UpdateExtToolPreview()
-    {
-        if (DataContext is not MainViewModel vm || vm.Settings.SelectedExternalTool is null)
-        {
-            Mw_ExtToolPreview.Text = "";
-            return;
-        }
-
-        var tool = vm.Settings.SelectedExternalTool;
-        var selectedServer = vm.ServerList.SelectedServer;
-        string preview;
-        if (selectedServer is not null)
-        {
-            var def = new Core.Configuration.ExternalToolDefinition
-            {
-                ExecutablePath = tool.ExecutablePath,
-                Arguments = tool.Arguments
-            };
-            var resolved = def.ResolveArguments(
-                selectedServer.RemoteServer, selectedServer.EffectivePort, selectedServer.Username,
-                serverName: selectedServer.DisplayName, protocol: selectedServer.ConnectionType,
-                keyFile: selectedServer.SshKeyPath, project: selectedServer.ProjectName,
-                gateway: selectedServer.GatewayName);
-            preview = $"{tool.ExecutablePath} {resolved}";
-        }
-        else
-        {
-            preview = $"{tool.ExecutablePath} {tool.Arguments}";
-        }
-
-        Mw_ExtToolPreview.Text = preview;
-    }
-
     private void OnCredProvDbBrowseClick(object sender, RoutedEventArgs e)
     {
         var dialog = new Microsoft.Win32.OpenFileDialog
@@ -2835,16 +1709,6 @@ public partial class MainWindow : Window
         ("pass (GPG)", "pass show \"{Title}\""),
     ];
 
-    private void PopulateCredProvPresets(MainViewModel vm)
-    {
-        Mw_SettingsCredProvPreset.Items.Clear();
-        foreach (var (label, _) in CredProvPresets)
-        {
-            Mw_SettingsCredProvPreset.Items.Add(label);
-        }
-        Mw_SettingsCredProvPreset.SelectedIndex = 0;
-    }
-
     private void OnCredProvPresetChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
     {
         if (Mw_SettingsCredProvPreset.SelectedIndex < 1) return; // skip "Custom"
@@ -2853,36 +1717,6 @@ public partial class MainWindow : Window
         var (_, command) = CredProvPresets[Mw_SettingsCredProvPreset.SelectedIndex];
         vm.Settings.CredentialProviderCommand = command;
         vm.Settings.IsDirty = true;
-    }
-
-    private void PopulateExtToolPlaceholderList(MainViewModel vm)
-    {
-        Mw_ExtToolPlaceholderList.Items.Clear();
-        foreach (var (variable, descKey) in Core.Configuration.ExternalToolDefinition.SupportedPlaceholders)
-        {
-            var panel = new StackPanel { Orientation = System.Windows.Controls.Orientation.Horizontal, Margin = new Thickness(0, 0, 12, 2) };
-            var variableLabel = new TextBlock
-            {
-                Text = variable,
-                FontFamily = new System.Windows.Media.FontFamily("Consolas"),
-                FontSize = (double)FindResource("FontSizeCaption"),
-                VerticalAlignment = VerticalAlignment.Center
-            };
-            variableLabel.SetResourceReference(TextBlock.ForegroundProperty, "AccentBrush");
-            panel.Children.Add(variableLabel);
-
-            var descLabel = new TextBlock
-            {
-                Text = $" \u2014 {vm.Localize(descKey)}",
-                FontSize = (double)FindResource("FontSizeCaption"),
-                Opacity = 0.8,
-                VerticalAlignment = VerticalAlignment.Center
-            };
-            descLabel.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondaryBrush");
-            panel.Children.Add(descLabel);
-
-            Mw_ExtToolPlaceholderList.Items.Add(panel);
-        }
     }
 
     private void UpdateExternalToolProviderStatus(MainViewModel vm)
@@ -3198,305 +2032,6 @@ public partial class MainWindow : Window
                 MessageBoxButton.OK,
                 MessageBoxImage.Warning);
         }
-    }
-
-    /// <summary>
-    /// Recursively collects all <see cref="ServerItemViewModel"/> instances from a folder and its sub-folders.
-    /// </summary>
-    private static List<ServerItemViewModel> GetAllServersRecursive(FolderViewModel folder)
-    {
-        var result = new List<ServerItemViewModel>(folder.Servers);
-        foreach (var sub in folder.SubFolders)
-        {
-            result.AddRange(GetAllServersRecursive(sub));
-        }
-        return result;
-    }
-
-    private ContextMenu CreateFolderContextMenu(MainViewModel vm, FolderViewModel folder)
-    {
-        var menu = CreateContextMenu();
-
-        // Connect all servers in this folder (recursively)
-        var allServers = GetAllServersRecursive(folder);
-        var connectAllItem = new MenuItem
-        {
-            Header = string.Format(vm.Localize("TreeCtxConnectAllCount"), allServers.Count),
-            IsEnabled = allServers.Count > 0
-        };
-        connectAllItem.Click += async (_, _) =>
-        {
-            var confirmed = await vm.DialogService.ShowConfirmAsync(
-                vm.Localize("ConfirmConnectAllTitle"),
-                string.Format(vm.Localize("ConfirmConnectAllMessage"), allServers.Count));
-
-            if (!confirmed) return;
-
-            for (int i = 0; i < allServers.Count; i++)
-            {
-                var server = allServers[i];
-                vm.StatusText = string.Format(
-                    vm.Localize("StatusConnectAllProgress"),
-                    i + 1, allServers.Count, server.DisplayName);
-
-                if (vm.ServerList.ConnectCommand.CanExecute(server))
-                {
-                    vm.ServerList.ConnectCommand.Execute(server);
-                    if (i < allServers.Count - 1)
-                    {
-                        await Task.Delay(500);
-                    }
-                }
-            }
-            vm.StatusText = string.Format(
-                vm.Localize("StatusConnectedAllCount"), allServers.Count);
-        };
-        menu.Items.Add(connectAllItem);
-
-        menu.Items.Add(new Separator());
-
-        // Add server to this folder
-        var seed = new ServerDialogSeed(null, folder.FullPath);
-        menu.Items.Add(CreateMenuItem(
-            vm.Localize("DialogTitleAddServer"),
-            vm.ServerList.AddServerCommand,
-            seed));
-
-        // Add sub-folder (via input dialog)
-        var addSubItem = new MenuItem { Header = vm.Localize("TreeCtxNewGroup") };
-        addSubItem.Click += async (_, _) =>
-        {
-            var name = await vm.DialogService.ShowInputAsync(
-                vm.Localize("TreeCtxNewGroup"),
-                vm.Localize("ServerFieldGroup"));
-
-            if (!string.IsNullOrWhiteSpace(name))
-            {
-                string newPath = string.IsNullOrEmpty(folder.FullPath)
-                    ? name.Trim()
-                    : $"{folder.FullPath}/{name.Trim()}";
-
-                var settings = await vm.ConfigManager.LoadSettingsAsync();
-                if (!settings.EmptyGroups.Contains(newPath, StringComparer.OrdinalIgnoreCase))
-                {
-                    settings.EmptyGroups.Add(newPath);
-                    await vm.ConfigManager.SaveSettingsAsync(settings);
-                    var servers = await vm.ConfigManager.LoadServersAsync();
-                    vm.ServerList.LoadServers(servers, settings);
-                }
-            }
-        };
-        menu.Items.Add(addSubItem);
-        menu.Items.Add(CreateAddToolMenuItem(vm, folder.FullPath));
-
-        menu.Items.Add(new Separator());
-
-        // Rename folder
-        if (!string.IsNullOrEmpty(folder.FullPath))
-        {
-            var renameItem = new MenuItem { Header = vm.Localize("TreeCtxRenameGroup") };
-            renameItem.Click += async (_, _) =>
-            {
-                var newName = await vm.DialogService.ShowInputAsync(
-                    vm.Localize("TreeCtxRenameGroup"),
-                    vm.Localize("ServerFieldGroup"),
-                    folder.Name);
-
-                if (!string.IsNullOrWhiteSpace(newName) &&
-                    !string.Equals(newName.Trim(), folder.Name, StringComparison.Ordinal))
-                {
-                    var servers = await vm.ConfigManager.LoadServersAsync();
-                    string oldPath = folder.FullPath;
-                    string parentPath = oldPath.Contains('/')
-                        ? oldPath[..oldPath.LastIndexOf('/')]
-                        : "";
-                    string newPath = string.IsNullOrEmpty(parentPath)
-                        ? newName.Trim()
-                        : $"{parentPath}/{newName.Trim()}";
-
-                    // Rename in server Group paths
-                    foreach (var dto in servers)
-                    {
-                        if (dto.Group is not null &&
-                            (dto.Group.Equals(oldPath, StringComparison.OrdinalIgnoreCase) ||
-                             dto.Group.StartsWith(oldPath + "/", StringComparison.OrdinalIgnoreCase)))
-                        {
-                            dto.Group = newPath + dto.Group[oldPath.Length..];
-                        }
-                    }
-
-                    // Rename in EmptyGroups
-                    var settings = await vm.ConfigManager.LoadSettingsAsync();
-                    for (int i = 0; i < settings.EmptyGroups.Count; i++)
-                    {
-                        var eg = settings.EmptyGroups[i];
-                        if (eg.Equals(oldPath, StringComparison.OrdinalIgnoreCase) ||
-                            eg.StartsWith(oldPath + "/", StringComparison.OrdinalIgnoreCase))
-                        {
-                            settings.EmptyGroups[i] = newPath + eg[oldPath.Length..];
-                        }
-                    }
-
-                    await vm.ConfigManager.SaveSettingsAsync(settings);
-                    await vm.ConfigManager.SaveServersAsync(servers);
-                    vm.ServerList.LoadServers(servers, settings);
-                }
-            };
-            menu.Items.Add(renameItem);
-
-            // Delete folder (move servers to root)
-            var deleteItem = new MenuItem
-            {
-                Header = vm.Localize("TreeCtxDeleteGroup"),
-                Foreground = Application.Current.TryFindResource("ErrorBrush") as Brush
-                    ?? new System.Windows.Media.SolidColorBrush(Colors.Red)
-            };
-            deleteItem.Click += async (_, _) =>
-            {
-                var confirmed = await vm.DialogService.ShowConfirmAsync(
-                    vm.Localize("TreeCtxDeleteGroup"),
-                    string.Format(vm.Localize("TreeCtxDeleteGroupConfirm"), folder.Name),
-                    "warning");
-
-                if (!confirmed) return;
-
-                var servers = await vm.ConfigManager.LoadServersAsync();
-                foreach (var dto in servers)
-                {
-                    if (dto.Group is not null &&
-                        (dto.Group.Equals(folder.FullPath, StringComparison.OrdinalIgnoreCase) ||
-                         dto.Group.StartsWith(folder.FullPath + "/", StringComparison.OrdinalIgnoreCase)))
-                    {
-                        dto.Group = null;
-                    }
-                }
-
-                var settings = await vm.ConfigManager.LoadSettingsAsync();
-                settings.EmptyGroups.RemoveAll(p =>
-                    p.Equals(folder.FullPath, StringComparison.OrdinalIgnoreCase) ||
-                    p.StartsWith(folder.FullPath + "/", StringComparison.OrdinalIgnoreCase));
-                await vm.ConfigManager.SaveSettingsAsync(settings);
-                await vm.ConfigManager.SaveServersAsync(servers);
-                vm.ServerList.LoadServers(servers, settings);
-            };
-            menu.Items.Add(deleteItem);
-        }
-
-        return menu;
-    }
-
-    private ContextMenu CreateEmptyAreaContextMenu(MainViewModel vm)
-    {
-        var menu = CreateContextMenu();
-
-        menu.Items.Add(CreateMenuItem(
-            vm.Localize("DialogTitleAddServer"),
-            vm.ServerList.AddServerCommand,
-            inputGestureText: "Ctrl+N"));
-        menu.Items.Add(CreateMenuItem(
-            vm.Localize("BtnAddGateway"),
-            vm.Settings.AddGatewayCommand));
-
-        // New root folder
-        var newFolderItem = new MenuItem { Header = vm.Localize("TreeCtxNewGroup") };
-        newFolderItem.Click += async (_, _) =>
-        {
-            var name = await vm.DialogService.ShowInputAsync(
-                vm.Localize("TreeCtxNewGroup"),
-                vm.Localize("ServerFieldGroup"));
-
-            if (!string.IsNullOrWhiteSpace(name))
-            {
-                var settings = await vm.ConfigManager.LoadSettingsAsync();
-                var path = name.Trim();
-                if (!settings.EmptyGroups.Contains(path, StringComparer.OrdinalIgnoreCase))
-                {
-                    settings.EmptyGroups.Add(path);
-                    await vm.ConfigManager.SaveSettingsAsync(settings);
-                    var servers = await vm.ConfigManager.LoadServersAsync();
-                    vm.ServerList.LoadServers(servers, settings);
-                }
-            }
-        };
-        menu.Items.Add(newFolderItem);
-
-        menu.Items.Add(new Separator());
-        menu.Items.Add(CreateAddToolMenuItem(vm));
-
-        return menu;
-    }
-
-    private MenuItem CreateAddToolMenuItem(MainViewModel vm, string? group = null)
-    {
-        var item = new MenuItem { Header = vm.Localize("AddMenuTool"), Tag = group };
-        item.Click += OnAddToolMenuClick;
-        return item;
-    }
-
-    private MenuItem CreateMoveToProjectMenu(MainViewModel vm, ServerItemViewModel server)
-    {
-        var item = new MenuItem
-        {
-            Header = vm.Localize("TreeCtxMoveToProject")
-        };
-
-        foreach (var project in vm.ServerList.GetProjectTargets(includeNoProject: true))
-        {
-            var targetProjectId = string.IsNullOrWhiteSpace(project.Id) ? null : project.Id;
-            var child = CreateMenuItem(
-                project.Name,
-                vm.ServerList.MoveToProjectCommand,
-                new ServerMoveToProjectRequest(server, targetProjectId),
-                !string.Equals(server.ProjectId, project.Id, StringComparison.Ordinal));
-
-            item.Items.Add(child);
-        }
-
-        return item;
-    }
-
-    private MenuItem CreateMoveToGroupMenu(MainViewModel vm, ServerItemViewModel server)
-    {
-        var item = new MenuItem
-        {
-            Header = vm.Localize("TreeCtxMoveToGroup")
-        };
-
-        foreach (var group in vm.ServerList.GetGroupTargets(server.ProjectId, includeNoGroup: true))
-        {
-            var targetGroupName = string.IsNullOrWhiteSpace(group.GroupName) ? null : group.GroupName;
-            var child = CreateMenuItem(
-                group.DisplayName,
-                vm.ServerList.MoveToGroupCommand,
-                new ServerMoveToGroupRequest(server, targetGroupName),
-                !string.Equals(server.Group, group.GroupName, StringComparison.OrdinalIgnoreCase));
-
-            item.Items.Add(child);
-        }
-
-        return item;
-    }
-
-    private static ContextMenu CreateContextMenu()
-    {
-        return new ContextMenu();
-    }
-
-    private static MenuItem CreateMenuItem(
-        string header,
-        ICommand command,
-        object? parameter = null,
-        bool isEnabled = true,
-        string? inputGestureText = null)
-    {
-        return new MenuItem
-        {
-            Header = header,
-            Command = command,
-            CommandParameter = parameter,
-            IsEnabled = isEnabled,
-            InputGestureText = inputGestureText ?? string.Empty
-        };
     }
 
     private static void HideTabStripPanel(System.Windows.Controls.TabControl tabControl, bool hide)
@@ -4708,24 +3243,84 @@ public partial class MainWindow : Window
             MessageBoxButton.OK,
             MessageBoxImage.Information);
 
-        _fileServer.FileServed += fileName =>
+        _fileServerBaseUrl = baseUrl;
+        _fileServer.FileServed += OnFileServed;
+    }
+
+    // ── IContextMenuCallbacks ─────────────────────────────────────────
+    // Window-layer callbacks surfaced to ContextMenuFactory for actions that
+    // require DataContext access, modal dialog ownership, or window-local state.
+
+    /// <inheritdoc />
+    void IContextMenuCallbacks.OpenNotesForServer(
+        ServerItemViewModel server,
+        NoteTemplateKind templateKind)
+    {
+        if (DataContext is not MainViewModel vm) return;
+
+        var context = new Core.Models.ToolContext(
+            TargetHost: server.RemoteServer,
+            TargetPort: server.RemotePort > 0 ? server.RemotePort : null,
+            Argument: $"template:{templateKind.ToString().ToLowerInvariant()}",
+            DisplayName: server.DisplayName,
+            Username: server.Username,
+            ProjectName: server.ProjectName,
+            GroupName: server.Group,
+            ConnectionType: server.ConnectionType);
+
+        _ = vm.OpenToolTabAsync("NOTES", server.DisplayName, context);
+    }
+
+    /// <inheritdoc />
+    void IContextMenuCallbacks.LaunchExternalTool(
+        ServerItemViewModel server,
+        Core.Configuration.ExternalToolDefinition tool)
+    {
+        if (DataContext is not MainViewModel vm) return;
+        LaunchExternalTool(vm, tool, server);
+    }
+
+    /// <inheritdoc />
+    void IContextMenuCallbacks.LaunchDetectedTool(
+        ServerItemViewModel server,
+        Core.Configuration.ExternalToolInfo tool)
+    {
+        if (DataContext is not MainViewModel vm) return;
+        LaunchDetectedTool(vm, tool, server);
+    }
+
+    /// <inheritdoc />
+    void IContextMenuCallbacks.AddToolFromMenu(string? group)
+    {
+        if (DataContext is not MainViewModel vm) return;
+        _ = ShowAddToolPickerAsync(vm, group);
+    }
+
+    /// <summary>
+    /// Updates the status bar when the ephemeral file server serves a file.
+    /// Named handler (rather than an anonymous lambda) so that
+    /// <see cref="StopFileServer"/> can detach symmetrically before disposal.
+    /// </summary>
+    private void OnFileServed(string fileName)
+    {
+        Dispatcher.Invoke(() =>
         {
-            Dispatcher.Invoke(() =>
-            {
-                if (DataContext is MainViewModel mvm)
-                    mvm.StatusText = string.Format(vm.Localize("ToolsSharingServed"), fileName, baseUrl);
-            });
-        };
+            if (DataContext is MainViewModel mvm)
+                mvm.StatusText = string.Format(
+                    mvm.Localize("ToolsSharingServed"), fileName, _fileServerBaseUrl);
+        });
     }
 
     private async void StopFileServer()
     {
         if (_fileServer is not null)
         {
+            _fileServer.FileServed -= OnFileServed;
             await _fileServer.DisposeAsync();
             _fileServer = null;
         }
 
+        _fileServerBaseUrl = null;
         Mw_SharingStatus.Visibility = Visibility.Collapsed;
         Mw_SharingStatus.Text = string.Empty;
 

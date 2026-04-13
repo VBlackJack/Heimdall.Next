@@ -283,6 +283,8 @@ public partial class App : System.Windows.Application
         services.AddSingleton<ConnectionService>();
         services.AddSingleton<EmbeddedSessionManager>();
         services.AddSingleton<SplitService>();
+        services.AddSingleton<ContextMenuFactory>();
+        services.AddSingleton<ToolsTabPopulationService>();
         services.AddSingleton<IDialogService, WpfDialogService>();
 
         // TwinShell command library
