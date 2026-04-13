@@ -57,17 +57,35 @@ public partial class FolderViewModel : ObservableObject
     [ObservableProperty]
     private ObservableCollection<ServerItemViewModel> _servers = [];
 
-    partial void OnSubFoldersChanged(ObservableCollection<FolderViewModel> value)
+    partial void OnSubFoldersChanged(
+        ObservableCollection<FolderViewModel>? oldValue,
+        ObservableCollection<FolderViewModel> newValue)
     {
+        if (oldValue is not null)
+            oldValue.CollectionChanged -= OnCollectionInvalidated;
+        newValue.CollectionChanged += OnCollectionInvalidated;
         InvalidateChildren();
-        value.CollectionChanged += (_, _) => InvalidateChildren();
     }
 
-    partial void OnServersChanged(ObservableCollection<ServerItemViewModel> value)
+    partial void OnServersChanged(
+        ObservableCollection<ServerItemViewModel>? oldValue,
+        ObservableCollection<ServerItemViewModel> newValue)
     {
+        if (oldValue is not null)
+            oldValue.CollectionChanged -= OnCollectionInvalidated;
+        newValue.CollectionChanged += OnCollectionInvalidated;
         InvalidateChildren();
-        value.CollectionChanged += (_, _) => InvalidateChildren();
     }
+
+    /// <summary>
+    /// Shared handler for <see cref="INotifyCollectionChanged.CollectionChanged"/> on
+    /// the <see cref="SubFolders"/> and <see cref="Servers"/> backing collections.
+    /// A single named method (instead of per-assignment lambdas) allows symmetric
+    /// detach in the partial setter below, preventing handler accumulation when a
+    /// collection reference is replaced.
+    /// </summary>
+    private void OnCollectionInvalidated(object? sender, NotifyCollectionChangedEventArgs e)
+        => InvalidateChildren();
 
     private ArrayList? _childrenCache;
     private int? _serverCountCache;
