@@ -14,7 +14,7 @@
 
 [![CI](https://github.com/VBlackJack/Heimdall.Next/actions/workflows/ci.yml/badge.svg)](https://github.com/VBlackJack/Heimdall.Next/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-1714%20passing-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/tests-1761%20passing-brightgreen.svg)]()
 [![Tools](https://img.shields.io/badge/tools-49%20sysops-blue.svg)]()
 [![.NET](https://img.shields.io/badge/.NET-10.0-purple.svg)]()
 
@@ -128,7 +128,7 @@ Built with .NET 10 and WPF. Secure, feature-rich Windows connection manager with
 ### Network Scanner
 - ICMP ping sweep on CIDR subnets (Ctrl+Shift+N)
 - TCP port probe on responsive hosts (SSH, RDP, VNC, HTTP, HTTPS)
-- One-click "Add to Servers" for discovered hosts with auto-detected connection type
+- One-click "Add to Sessions" for discovered hosts with auto-detected connection type
 
 ### Scheduled Tasks
 - Daily or interval-based automatic connection scheduler
@@ -152,7 +152,7 @@ Built with .NET 10 and WPF. Secure, feature-rich Windows connection manager with
 
 ### Built-in Sysops Toolbox (49 tools)
 
-All tools open as session tabs (split with any session or tool, detach, reorder). Accessible via **dedicated Tools tab**, **Ctrl+K** palette, the **sidebar Tools tab** (Servers/Tools toggle at the top of the left panel, **Ctrl+Shift+T**), or **"+" → Add Tool** menu. The tabbed sidebar hosts the server `TreeView` and a full-height tool browser side by side — the Tools tab displays a collapsible `TreeView` of categories (Network, Security, Encoding, System, External) populated from `ToolRegistry`, with a filter box matching on name + aliases. Tools can be saved in the server `TreeView` alongside real servers. Centralized `ToolRegistry` with vector icons, categories, and command aliases. **Favorites** (pin/unpin with persistence) and **recently used** tools for quick access on the dedicated Tools tab. Singleton behavior for context-free tools. Built-in help system with usage examples (? button). Dedicated detail panel for tools with descriptions. Password Generator supports saveable custom presets (JSON persistence), optional clipboard auto-clear, and 3 generation modes (Random, Syllable, Passphrase). Cross-tool navigation via right-click context menus (IP → Port Scanner → Cert Inspector). Network tools support scanning via SSH tunnel ("Route via" gateway selector). **First-launch onboarding** overlay with guided introduction.
+All tools open as session tabs (split with any session or tool, detach, reorder). Accessible via **dedicated Tools tab**, **Ctrl+K** palette, the **sidebar Tools tab** (Sessions/Tools toggle at the top of the left panel, **Ctrl+Shift+T**), or **"+" → Add Tool** menu. The tabbed sidebar hosts the session `TreeView` and a full-height tool browser side by side — the Tools tab displays a collapsible `TreeView` of categories (Network, Security, Encoding, System, External) populated from `ToolRegistry`, with a filter box matching on name + aliases. Tools can be saved in the session `TreeView` alongside real sessions. Centralized `ToolRegistry` with vector icons, categories, and command aliases. **Favorites** (pin/unpin with persistence) and **recently used** tools for quick access on the dedicated Tools tab. Singleton behavior for context-free tools. Built-in help system with usage examples (? button). Dedicated detail panel for tools with descriptions. Password Generator supports saveable custom presets (JSON persistence), optional clipboard auto-clear, and 3 generation modes (Random, Syllable, Passphrase). Cross-tool navigation via right-click context menus (IP → Port Scanner → Cert Inspector). Network tools support scanning via SSH tunnel ("Route via" gateway selector). **First-launch onboarding** overlay with guided introduction.
 
 | Category | Tools |
 |----------|-------|
@@ -206,7 +206,7 @@ All tools open as session tabs (split with any session or tool, detach, reorder)
 - Empty states: tool views show guidance before first query, welcome panel with import CTA
 - Built-in help button ("?") on all 49 tools with localized usage instructions
 - Tab busy indicator: pulsing accent dot on tabs during long-running tool operations
-- **Tabbed sidebar** (Servers / Tools): full-height tool browser with collapsible categories, lazy-populated from `ToolRegistry`, single-click launch. Ctrl+Shift+T toggles the active sidebar tab
+- **Tabbed sidebar** (Sessions / Tools): full-height tool browser with collapsible categories, lazy-populated from `ToolRegistry`, single-click launch. Ctrl+Shift+T toggles the active sidebar tab
 - Fullscreen mode (F11), toggle sidebar (Ctrl+B), filter (Ctrl+F)
 - **First-launch onboarding**: 3-step guided introduction overlay with skip/next/get started
 - Bilingual interface: English and French (~4,496 i18n keys)
@@ -277,7 +277,7 @@ Download the latest release from the [Releases](../../releases) page. Run the in
 |----------|--------|
 | F1 | Keyboard shortcut help |
 | Ctrl+K | Quick Connect palette (servers, tools, external tools) |
-| Ctrl+Shift+T | Toggle sidebar tab (Servers / Tools) |
+| Ctrl+Shift+T | Toggle sidebar tab (Sessions / Tools) |
 | Ctrl+N | Add new server |
 | Ctrl+E | Edit selected server |
 | Ctrl+Del | Delete selected server |
@@ -356,7 +356,7 @@ Release mode also produces Inno Setup `.exe` installers in `Dist/installers/` wi
 | RDP | ActiveX MsTscAx (WindowsFormsHost) |
 | Citrix | StoreBrowse CLI integration |
 | Crypto | System.Security.Cryptography.ProtectedData (DPAPI) |
-| Testing | xUnit + Moq + FluentAssertions (1,633 tests) |
+| Testing | xUnit + Moq + FluentAssertions (1,761 tests) |
 | Built-in Tools | 49 sysops tools (Ctrl+K → `tools` or Ctrl+Shift+T) |
 | Serialization | System.Text.Json |
 

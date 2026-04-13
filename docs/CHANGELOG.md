@@ -12,6 +12,67 @@
 
 All notable changes to Heimdall.Next are documented in this file.
 
+## [v2026.041301] - 2026-04-13
+
+### Sessions rename + full project audit pass
+
+#### UX — Servers → Sessions rename
+- **Wholesale rename** of all user-facing "Servers" labels to "Sessions" across navigation tabs, sidebar tabs, dialog titles, status bar, tooltips, error messages, accessibility names, onboarding steps, and tree/empty-state hints — better reflects that Heimdall manages local shells (PowerShell, CMD, WSL) alongside remote SSH/RDP/VNC/SFTP/FTP/Citrix sessions
+- **XAML element renames**: `TabServers → TabSessions`, `SidebarTabServers → SidebarTabSessions`, `SidebarServersContent → SidebarSessionsContent`, `ServerTreeView → SessionTreeView`, `ServerTreeColumn → SessionTreeColumn`, `ServerDetailPanel → SessionDetailPanel`, `Mw_AddMenuServer → Mw_AddMenuSession`, `Mw_EmptyBtnAddServer → Mw_EmptyBtnAddSession`, `Mw_EmptySelectServer → Mw_EmptySelectSession`
+- **MainViewModel**: `IsServersTabSelected → IsSessionsTabSelected`, `_selectedTab` / `_previousTab` defaults `"Servers" → "Sessions"`, all tab-routing string literals updated
+- **Event handlers**: `OnServersTabChecked → OnSessionsTabChecked`, `OnSidebarTabServersChecked → OnSidebarTabSessionsChecked`
+- **Preserved as-is** (intentional): `ServerListViewModel`, `ServerItemViewModel`, `ServerDialog`, `ServerProfileDto`, `ServerId` / `OriginalServerId` model properties, `EphemeralFileServer`, `X11ServerManager`, `servers.default.json` filename, and every `server` reference in tool help text that means an actual remote machine (HTTP / DNS / SMB / FTP / VNC / TLS / SSH server, host key verification, etc.)
+
+#### UX — Sidebar tab persistence (PERF-99 / DOC-03)
+- **Bidirectional persistence**: new `PersistSidebarTabChoice(bool isTools)` writes the choice via `ConfigManager.MergeSettingAsync(s => s.ShowToolsPanel = isTools)` whenever either RadioButton is checked. Previously only the onboarding flow set `ShowToolsPanel = true`; manually switching back to Sessions never wrote `false`, so every subsequent launch defaulted to Tools
+- **`_sidebarTabRestored` startup guard**: prevents `InitializeComponent()`'s default `IsChecked="True"` from clobbering the persisted preference before the `Loaded` handler can restore it. The `OnSidebarTabSessionsChecked` / `OnSidebarTabToolsChecked` handlers no-op until the flag is set in the Loaded handler, immediately after the restore block
+- **Onboarding cleanup**: removed the dead in-memory `vm.CurrentSettings.ShowToolsPanel = true` assignment that never actually persisted (the subsequent `MergeSettingAsync(s => s.OnboardingCompleted = true)` reloads from disk and only mutates that one field). Now the RadioButton check naturally routes through the new persist helper
+
+#### Performance
+- **PERF-05 (critical) — Async/await replaces blocking `.GetAwaiter().GetResult()`** in 4 sites:
+  - `RestoreWindowBounds`: signature changed to `(AppSettings settings)`, settings now passed from the Loaded handler (already loaded by `LoadCommand.ExecuteAsync`)
+  - `OnClosing`: converted to `protected override async void` with a deferred-close pattern (`_closeConfirmed` guard). Cancels the close, awaits `ShowSaveDiscardCancelAsync`, then re-invokes `Close()` — previously deadlocked on the dispatcher when the dialog tried to post back
+  - `EphemeralFileServer.StartHttpServer` / `StartTftpServer` → renamed to `StartHttpServerAsync` / `StartTftpServerAsync` with `await StopHttpServerAsync()` / `await StopTftpServerAsync()` for the double-start path. Caller (`OnShareFolderClick`) converted to `async void`
+- **PERF-01 — Event cleanup in `MainWindow.OnClosed`**: stored 4 long-lived event handler delegates in fields (`_connectionPropertyChangedHandler`, `_serverListPropertyChangedHandler`, `_externalToolsChangedHandler`, `_localeChangedHandler`) so they can be unsubscribed via `-=` on close. Without this, the captured-`this` lambdas kept the window rooted past `Close()`
+- **PERF-07 — Draw.io excluded from Debug builds**: `Heimdall.App.csproj` `<Content Include="Assets\drawio\**">` now wrapped in `Condition="'$(Configuration)' != 'Debug'"`. Saves ~48 MB / 2258 files copied to `bin/Debug/` on every iterative dev build. `DiagramEditorView.InitializeWebViewAsync` shows a localized "Release-only" fallback panel (new key `DiagramEditorDebugOnly`) when the directory is missing instead of crashing
+- **PERF-09 — Lossless PNG re-compression**: `icon-flat.png` 4.41 → 4.19 MB (-224 KB), `icon-rays.png` 4.55 → 3.18 MB (-1.37 MB) via Pillow `optimize=True compress_level=9` with byte-perfect pixel verification. `logo.png` and `splash-screen.png` left untouched (already encoded by a stronger optimizer; Pillow output was *larger*). ~1.6 MB saved on disk
+
+#### Code Quality
+- **CQ-08 — `sealed` modifier** added to **225 non-inherited declarations** (170 classes + 55 records) across 9 projects: TwinShell.Core (60), TwinShell.Infrastructure (48), Heimdall.Core (45), TwinShell.Persistence (33), Heimdall.App (20), Heimdall.Ssh (9), Heimdall.Sftp (5), Heimdall.Rdp (3), Heimdall.Terminal (2). Audit script applied skip rules for inherited types (built a cross-codebase derived-name index), WPF view bases (`Window`/`UserControl`/`Page`/`Control`/`MarkupExtension`), classes containing the `virtual` keyword in their body, and an explicit blocklist for COM event sinks (`MsTscAxEventSink`). Zero build errors, zero rollbacks
+- **CQ-06 — Empty `catch {}` blocks fixed in `BackupService.cs`** (3 sites): temp directory cleanup, backup metadata read, backup metadata write — all replaced with `catch (Exception ex) { _logger.LogWarning(ex, ...) }` using the existing injected `ILogger<BackupService>`. Other bare catches across the codebase already had inline rationale comments (`/* best effort */`, `/* already exited */`, etc.) and were left untouched
+
+#### Accessibility
+- **A11Y-04** — `LogViewerView` `BtnTail` `ToggleButton` now sets a descriptive `AutomationProperties.Name` (new key `A11yLogViewerTailToggle` — EN: "Toggle live tail mode" / FR: "Activer/désactiver le mode tail temps réel") via the existing code-behind localization pattern. The previous "Tail" label was non-descriptive for screen reader users. Every other tool-view `ToggleButton` was audited — this was the only gap
+
+#### UI
+- **Settings toolbar button truncation** — replaced fixed `Width="130"` / `Width="160"` with `MinWidth` on 4 buttons (`Mw_SettingsResetBtn`, `Mw_SettingsExportBtn`, `Mw_SettingsImportBtn`, `Mw_SettingsCitrixBtn`). French translations now auto-size instead of clipping mid-word. `SecondaryButtonStyle` already defines `Padding="16,8"`, so no inline padding override needed
+
+#### i18n
+- **fr.json mojibake repair (1170 substitutions across 631 lines)**: fixed double-UTF-8 encoding affecting all French accented characters (ô è é à ç î ê ù â É À) via a two-pass codec round-trip — pass 1 (latin-1) for accented lowercase forms, pass 2 (CP1252) for the uppercase `É` / `À` whose smart-punctuation second char (`‰` U+2030, `€` U+20AC) sits outside the latin-1 0x80-0xBF continuation range. `WindowTitle` now correctly displays "Centre de Contrôle d'Accès Distant"
+- **Stale Heimdall-profile values cleaned** (13 keys × 2 locales): `ErrorEmergencyResolveServers`, `ErrorEmergencySaveServers`, `ErrorRestoreServersFailed`, `SettingsApplyModeToAll`, `ConfirmDeleteGatewayDetailMessage`, `ToolSshConfigGenerateAllHint`, `AccessSearchFilter`, `SearchResultCount`, `AccessDetailConnect`, `AccessEmptyImport`, `A11ySearchAndFilter`, `OnboardingStep1Title`, `OnboardingStep1Desc` — all updated from "server(s)" to "session(s)" where the term refers to a saved profile, not an actual remote machine
+- **Sessions rename** (locale value updates for the wholesale UX rename): `TabSessions`, `SidebarTabSessions`, `A11ySidebarTabSessions`, `A11ySessionsTab`, `StatusBarSessions`, `EmptyStateBtnAddSession`, `EmptyStateSelectSession`, `AddMenuSession`, plus 119 value-only updates across status messages, dialog titles, confirmations, tooltips, tree/empty-state hints, error messages, scheduled task labels, and accessibility names. Dropped the duplicate `NavTabServers` (`NavTabSessions` already existed)
+- **+2 keys** (EN/FR): `DiagramEditorDebugOnly`, `A11yLogViewerTailToggle`. Final state: 4855 keys per locale, parity verified, JSON valid
+
+#### DevOps
+- **DEVOPS-02** — `dotnet list package --vulnerable --include-transitive` step added to `.github/workflows/ci.yml` after the test step. Emits a `::warning::` instead of failing the build (vulnerability databases occasionally have false positives or no upgrade path; informational only). Implemented in `pwsh` to match the runner's default shell
+
+#### Documentation
+- **DOC-03** — `CLAUDE.md` updated for the Sessions rename: 3 stale "Servers" references in the sidebar/tools description and Session-Grid airspace section. The 6 remaining "server" hits are all preserved C# class/file/property identifiers (`EphemeralFileServer`, `X11ServerManager`, `ServerListViewModel`, `servers.default.json`, `ServerId`, `### ServerDialog` section header)
+
+#### Testing
+- **+37 new tests** in `tests/Heimdall.App.Tests/` covering services with previously zero coverage:
+  - `ThemeServiceTests` (10 — 4 active + 6 `[Skip]` for WPF Application context): `AvailableThemes` enumeration, constructor defaults, `ThemeRevision` initial value, no-throw under no-Application. Migration / idempotence / event / canonical-casing scaffolds wait for a future WPF fixture
+  - `MigrationServiceTests` (13): `DetectLegacyInstallation` positive/negative/null path, `ImportFromLegacyAsync` round-trip with valid settings + server inventory, empty arrays, malformed JSON, missing-file failure mode
+  - `EphemeralFileServerTests` (14): HTTP/TFTP lifecycle, argument validation, idempotent stop-when-not-running, **PERF-05 double-start regression guard**, `Dispose`/`DisposeAsync` cleanup, `GetLocalIpAddress` static helper. Each test uses a distinct port in the IANA dynamic range (49510-49514) and silently skips when port acquisition fails for restricted CI environments
+- All new tests follow the existing project pattern: xUnit only, `IDisposable` cleanup with temp directories, no mocking library
+
+#### Housekeeping
+- Tests: **1,761 passing** (was 1,724) + 6 skipped (intentional WPF scaffolds)
+- i18n: 4,855 keys (EN/FR parity maintained, +2 net)
+- Build: clean, 0 warnings, 0 errors
+
+---
+
 ## [v2026.041202] - 2026-04-12
 
 ### Theme system overhaul — centralized ThemeService, 7 Dracula variants only
