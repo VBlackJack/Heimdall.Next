@@ -46,7 +46,11 @@ public partial class MainWindow
         ApplySettingsLocalization(vm);
         ApplyAboutLocalization(vm);
         ApplyAccessibilityLocalization(vm);
-        UpdateToolLaunchContextLabels();
+
+        // Tools tab labels and rendered cards: VM-driven, just trigger refresh.
+        vm.ToolsTab.RefreshHeaderText();
+        vm.ToolsTab.RefreshContextLabel();
+        vm.ToolsTab.InvalidateSections();
     }
 
     private void ApplyNavigationLocalization(MainViewModel vm)

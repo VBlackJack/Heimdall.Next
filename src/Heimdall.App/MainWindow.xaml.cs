@@ -95,6 +95,7 @@ public partial class MainWindow : Window, IContextMenuCallbacks
         _fileShareService.SharingStopped += OnFileShareSharingStopped;
         _fileShareService.FileServed += OnFileShareFileServed;
         _themeService.ThemeChanged += OnThemeServiceThemeChanged;
+        viewModel.ToolsTab.SectionsInvalidated += OnToolsTabSectionsInvalidated;
         ApplyLocalization();
 
         TabSessions.Checked += OnSessionsTabChecked;
@@ -118,7 +119,7 @@ public partial class MainWindow : Window, IContextMenuCallbacks
         {
             if (string.Equals(e.PropertyName, nameof(ServerListViewModel.SelectedServer), StringComparison.Ordinal))
             {
-                Dispatcher.Invoke(UpdateToolLaunchContextLabels);
+                Dispatcher.Invoke(() => viewModel.ToolsTab.RefreshContextLabel());
             }
         };
         viewModel.ServerList.PropertyChanged += _serverListPropertyChangedHandler;
@@ -128,11 +129,8 @@ public partial class MainWindow : Window, IContextMenuCallbacks
         {
             Dispatcher.BeginInvoke(() =>
             {
-                _toolsTabPopulated = false;
-                PopulateToolsTab();
-
+                viewModel.ToolsTab.OnExternalToolsChanged();
                 viewModel.Sidebar.OnExternalToolsChanged();
-
                 UpdateExternalToolProviderStatus(viewModel);
             });
         };
@@ -354,7 +352,12 @@ public partial class MainWindow : Window, IContextMenuCallbacks
         {
             if (!await CheckUnsavedSettingsAsync()) { TabSettings.IsChecked = true; return; }
             SwitchToTab("Tools");
-            PopulateToolsTab();
+            if (DataContext is MainViewModel vm)
+            {
+                vm.ToolsTab.RefreshHeaderText();
+                vm.ToolsTab.RefreshContextLabel();
+                vm.ToolsTab.InvalidateSections();
+            }
         }
         catch (Exception ex) { Core.Logging.FileLogger.Error($"Tab switch failed: {ex.Message}"); }
     }
@@ -1272,97 +1275,38 @@ public partial class MainWindow : Window, IContextMenuCallbacks
     }
 
     // ── Tools Tab (dedicated full-page browser) ──────────────────────
+    // State, search, filter and context labels live in ToolsTabViewModel.
+    // The view keeps only: (a) the SectionsInvalidated handler that re-runs
+    // the imperative ToolsTabPopulationService card rendering, (b) the two
+    // card callbacks that are passed into that service, and (c) tab-strip
+    // navigation on card click (which stays in the view layer).
 
-    private bool _toolsTabPopulated;
-
-    private void PopulateToolsTab()
+    private void OnToolsTabSectionsInvalidated(object? sender, EventArgs e)
     {
         if (DataContext is not MainViewModel vm) return;
-
-        // Header localization
-        Mw_ToolsTabTitle.Text = vm.Localize("ToolsTabTitle");
-        Mw_ToolsTabSearch.Tag = vm.Localize("ToolsTabSearchPlaceholder");
-        Mw_ToolsTabCount.Text = vm.Localize("ToolsToolCount").Replace("{0}", ToolRegistry.All.Count.ToString());
-
-        if (_toolsTabPopulated)
-        {
-            RefreshToolsTabSections(vm);
-            UpdateToolLaunchContextLabels();
-            return;
-        }
-        _toolsTabPopulated = true;
-        RefreshToolsTabSections(vm);
-        UpdateToolLaunchContextLabels();
-    }
-
-    private void RefreshToolsTabSections(MainViewModel vm)
-    {
         var visibleCount = _toolsTabPopulation.RefreshToolsTabSections(
             ToolsTabContent,
             vm,
-            Mw_ToolsTabSearch.Text,
+            vm.ToolsTab.SearchText,
             OnToolsTabCardClickInternal,
             OnToolPinClickInternal);
-        Mw_ToolsTabCount.Text = vm.Localize("ToolsToolCount").Replace("{0}", visibleCount.ToString());
+        vm.ToolsTab.UpdateVisibleCount(visibleCount);
     }
 
-    private void UpdateToolLaunchContextLabels()
+    private void OnToolPinClickInternal(string toolId)
     {
-        if (DataContext is not MainViewModel vm)
+        if (DataContext is MainViewModel vm)
         {
-            return;
-        }
-
-        var host = ToolsTabPopulationService.GetInheritedToolTargetHost(vm);
-        var hasTarget = !string.IsNullOrEmpty(host);
-        var text = hasTarget
-            ? vm.Localize("ToolsNetworkContextWith").Replace("{0}", host)
-            : vm.Localize("ToolsNetworkContextNone");
-        var brushKey = hasTarget ? "AccentBrush" : "TextDisabledBrush";
-
-        Mw_ToolsTabContextText.Text = text;
-        Mw_ToolsTabContextText.SetResourceReference(TextBlock.ForegroundProperty, brushKey);
-        Mw_ToolsTabContextText.ToolTip = text;
-
-        // Mirror the same context line in the sidebar Tools tab.
-        vm.Sidebar.RefreshContextLabel();
-    }
-
-    private async void OnToolPinClickInternal(string toolId)
-    {
-        if (DataContext is not MainViewModel vm) return;
-        await vm.ToggleFavoriteToolAsync(toolId);
-        RefreshToolsTabSections(vm);
-    }
-
-    private async void OnToolsTabCardClickInternal(Core.Models.ToolDescriptor descriptor)
-    {
-        if (DataContext is not MainViewModel vm) return;
-
-        try
-        {
-            var context = ToolsTabPopulationService.CreateInheritedToolContext(descriptor, vm);
-
-            // Switch to Servers tab first so the session panel is visible
-            TabSessions.IsChecked = true;
-            SwitchToTab("Sessions");
-
-            await vm.OpenToolTabAsync(
-                descriptor.Id,
-                ToolsTabPopulationService.ResolveToolTabTitle(descriptor, context, vm),
-                context);
-            vm.TrackRecentTool(descriptor.Id);
-        }
-        catch (Exception ex)
-        {
-            Core.Logging.FileLogger.Error($"Tool tab card launch failed: {descriptor.Id}", ex);
+            vm.ToolsTab.ToggleFavoriteCommand.Execute(toolId);
         }
     }
 
-    private void OnToolsTabSearchChanged(object sender, TextChangedEventArgs e)
+    private void OnToolsTabCardClickInternal(Core.Models.ToolDescriptor descriptor)
     {
         if (DataContext is not MainViewModel vm) return;
-        RefreshToolsTabSections(vm);
+        TabSessions.IsChecked = true;
+        SwitchToTab("Sessions");
+        vm.ToolsTab.LaunchToolCommand.Execute(descriptor);
     }
 
     // ── Onboarding overlay ───────────────────────────────────────────
@@ -1646,8 +1590,7 @@ public partial class MainWindow : Window, IContextMenuCallbacks
         UpdateExternalToolProviderStatus(vm);
 
         // Refresh tools tab to show newly detected tools
-        _toolsTabPopulated = false;
-        PopulateToolsTab();
+        vm.ToolsTab.OnExternalToolsChanged();
     }
 
     private void OnSysinternalsPathBrowseClick(object sender, RoutedEventArgs e)
@@ -3008,6 +2951,7 @@ public partial class MainWindow : Window, IContextMenuCallbacks
                 vm.ToolRegistry.ExternalToolsChanged -= _externalToolsChangedHandler;
             if (_localeChangedHandler is not null)
                 vm.GetLocalizer().LocaleChanged -= _localeChangedHandler;
+            vm.ToolsTab.SectionsInvalidated -= OnToolsTabSectionsInvalidated;
         }
 
         _fileShareService.SharingStarted -= OnFileShareSharingStarted;
@@ -3029,13 +2973,11 @@ public partial class MainWindow : Window, IContextMenuCallbacks
     {
         Dispatcher.BeginInvoke(() =>
         {
-            var toolsTabVisible = DataContext is MainViewModel vm
-                && string.Equals(vm.SelectedTab, "Tools", StringComparison.Ordinal);
-            _toolsTabPopulated = false;
-            if (toolsTabVisible)
-            {
-                PopulateToolsTab();
-            }
+            if (DataContext is not MainViewModel vm) return;
+            if (!string.Equals(vm.SelectedTab, "Tools", StringComparison.Ordinal)) return;
+
+            // Re-render the cards so brushes reflect the new theme.
+            vm.ToolsTab.InvalidateSections();
         });
     }
 }
