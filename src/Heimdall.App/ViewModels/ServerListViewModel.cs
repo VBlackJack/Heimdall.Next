@@ -793,6 +793,50 @@ public partial class ServerListViewModel : ObservableObject, IDisposable
         ApplyFilter(request.Server.Id);
     }
 
+    /// <summary>
+    /// Moves a server to the specified group (folder path), persists the change,
+    /// and rebuilds the folder hierarchy via <see cref="LoadServers"/>. Used by
+    /// the TreeView drag-drop path which depends on a full re-load to reshuffle
+    /// nested folders correctly. No-op when the server is already in the target
+    /// group (case-insensitive). The caller is responsible for any status text
+    /// surfaced after a successful move.
+    /// </summary>
+    /// <param name="server">The server view model being moved.</param>
+    /// <param name="targetGroup">Destination folder path (null or whitespace = root).</param>
+    /// <param name="cancellationToken">Optional cancellation token.</param>
+    /// <returns><c>true</c> if the server was moved and the model rebuilt; <c>false</c> otherwise.</returns>
+    public async Task<bool> MoveServerToGroupAsync(
+        ServerItemViewModel server,
+        string? targetGroup,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(server);
+
+        var normalizedTarget = string.IsNullOrWhiteSpace(targetGroup) ? null : targetGroup;
+        var currentGroup = string.IsNullOrWhiteSpace(server.Group) ? null : server.Group;
+        if (string.Equals(currentGroup, normalizedTarget, StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        var servers = await _configManager.LoadServersAsync();
+        var dto = servers.FirstOrDefault(
+            s => string.Equals(s.Id, server.Id, StringComparison.Ordinal));
+
+        if (dto is null)
+        {
+            return false;
+        }
+
+        dto.Group = normalizedTarget;
+        await _configManager.SaveServersAsync(servers);
+
+        var settings = await _configManager.LoadSettingsAsync();
+        LoadServers(servers, settings);
+
+        return true;
+    }
+
     [RelayCommand]
     private void CopyHostname(ServerItemViewModel? server)
     {
