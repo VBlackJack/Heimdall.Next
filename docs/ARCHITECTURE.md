@@ -10,7 +10,7 @@
 
 # Architecture
 
-Heimdall.Next is a .NET 10 WPF application organized as a multi-project solution with strict dependency boundaries. Supports RDP, SSH, SFTP, FTP, VNC, Telnet, Citrix, and Local Shell connection types with ~4,685 i18n keys per locale (EN/FR), 49 built-in sysops tools with contextual help, cross-tool navigation, and 1,761 automated tests. Health monitor polls in parallel (Task.WhenAll), XML importers hardened against XXE, all Debug.WriteLine replaced with FileLogger. WCAG AA compliant Design System with 45 design tokens (typography min 11px, spacing, corner radius, opacity, icon sizes, font family), micro-animations, FocusIndicatorBrush for keyboard accessibility, unified two-tier icon system (vector geometries + MDL2), per-category tool color coding, declarative i18n via `{loc:Translate}` markup extension, and progressive disclosure ServerDialog.
+Heimdall.Next is a .NET 10 WPF application organized as a multi-project solution with strict dependency boundaries. Supports RDP, SSH, SFTP, FTP, VNC, Telnet, Citrix, and Local Shell connection types with ~4,685 i18n keys per locale (EN/FR), 49 built-in sysops tools with contextual help, cross-tool navigation, and 1,775 automated tests. Health monitor polls in parallel (Task.WhenAll), XML importers hardened against XXE, all Debug.WriteLine replaced with FileLogger. WCAG AA compliant Design System with 45 design tokens (typography min 11px, spacing, corner radius, opacity, icon sizes, font family), micro-animations, FocusIndicatorBrush for keyboard accessibility, unified two-tier icon system (vector geometries + MDL2), per-category tool color coding, declarative i18n via `{loc:Translate}` markup extension, and progressive disclosure ServerDialog.
 
 ## Solution Structure
 
@@ -28,9 +28,10 @@ Heimdall.slnx (8 projects)
 │       │          EmbeddedCitrixView, EmbeddedVncView, FloatingSessionWindow
 │       ├── Views/Tools: 49 built-in sysops tools (IToolView interface)
 │       └── Services: ConnectionService (.Rdp/.Ssh/.Sftp/.Ftp/.Vnc/.Telnet/.Citrix/.Local/.Tunnel),
-│                     SplitService, EmbeddedSessionManager, ToolRegistry, TaskSchedulerService,
-│                     MacroService, EphemeralFileServer, X11ServerManager, WebSocketVncProxy,
-│                     ContextMenuFactory, ToolsTabPopulationService
+│                     SplitService, SessionSplitService, EmbeddedSessionManager, ToolRegistry,
+│                     TaskSchedulerService, MacroService, EphemeralFileServer, FileShareService,
+│                     X11ServerManager, WebSocketVncProxy, KeyboardShortcutService,
+│                     ContextMenuFactory, SessionTabContextMenuFactory, ToolsTabPopulationService
 └── tests/
     ├── Heimdall.Core.Tests    State machine, HMAC integrity, input validation, PIN manager, config manager tests
     ├── Heimdall.Ssh.Tests     SSH engine tests (failure classifier, preflight, TOFU, Pageant, Plink)
@@ -384,14 +385,41 @@ ISplitContent (marker interface)
 
 1. **Extract to DI-registered services** when the logic does not need named XAML element access — a service takes a handful of dependencies via its constructor, is registered as a singleton in `App.xaml.cs`, and is injected into `MainWindow` alongside `MainViewModel`. Communication back into the window uses either a small callback interface (when many methods need window state) or plain `Action<T>` delegates (when only one or two callbacks are needed).
    - **`ContextMenuFactory`** (647 lines) — builds the four session `TreeView` context menus and the "Detected Tools" submenu. Reaches back into `MainWindow` through `IContextMenuCallbacks`.
+   - **`SessionTabContextMenuFactory`** (335 lines) — builds the session tab strip context menu (19 conditional items: close/close others/close all/rename/duplicate/detach/split/merge/unsplit/reconnect/…). Reaches back through `ISessionTabContextCallbacks`.
    - **`ToolsTabPopulationService`** (605 lines) — owns the full-page Tools tab rebuild and the sidebar Tools `TreeView` data/filter. Reaches back via `Action<ToolDescriptor>` (card click) + `Action<string>` (pin click). Theme tokens are resolved via `Application.Current.FindResource` so the service stays decoupled from any `FrameworkElement`.
+   - **`FileShareService`** — ephemeral HTTP/TFTP folder sharing lifecycle (previously inline in `OnShareFolderClick`). Event-based API (`ShareStarted` / `ShareStopped`), `IAsyncDisposable` — `App.OnExit` routes through `IAsyncDisposable.DisposeAsync` on the service provider to properly dispose async-only services.
+   - **`KeyboardShortcutService`** (18 shortcuts) — fluent shortcut registration with `canExecute` gating, replacing the monolithic `OnPreviewKeyDown` switch. Registered in `MainWindow` constructor.
+   - **`SessionSplitService`** — split/merge/detach/unsplit orchestration moved out of MainWindow. Exposes `SplitPaletteRequested` event for MainWindow to open the palette in split mode.
 
-2. **Split into `partial class` files** when the logic *must* touch named XAML elements directly (so extraction to a service would require passing dozens of `FrameworkElement` parameters on every call). The new file declares `public partial class MainWindow` and holds a thematically coherent subset of methods. Cross-file access is free (same class, same assembly) so static helpers and private fields remain shared without any visibility changes.
-   - **`MainWindow.Localization.cs`** (519 lines) — the 8 `Apply*Localization` methods (`ApplyLocalization` orchestrator + Navigation / Toolbar / Tunnel / Scheduled / Settings / About / Accessibility) plus the three helpers that are only ever called from `ApplySettingsLocalization` (`PopulateCredProvPresets`, `PopulateExtToolPlaceholderList`, `UpdateExtToolPreview`). `UpdateExternalToolProviderStatus` and `UpdateTokenStatus` stayed in the main code-behind because they have additional callers outside the localization flow.
+2. **Split into `partial class` files** when the logic *must* touch named XAML elements directly (so extraction to a service would require passing dozens of `FrameworkElement` parameters on every call). The new file declares `public partial class MainWindow` and holds a thematically coherent subset of methods. Cross-file access is free (same class, same assembly) so static helpers and private fields remain shared without any visibility changes. POCOs co-located with the partials (`WindowUIState`, `TreeInteractionState`, `TabInteractionState`) own the fields/flags previously scattered across the monolith.
+   - **`MainWindow.Localization.cs`** (519 lines) — the 8 `Apply*Localization` methods (`ApplyLocalization` orchestrator + Navigation / Toolbar / Tunnel / Scheduled / Settings / About / Accessibility). Phase 5A/5B have since migrated Navigation/Toolbar/Accessibility to `{loc:Translate}` — those apply helpers are now empty stubs pending deletion after Phase 5C/5D.
+   - **`MainWindow.WindowUI.cs`** + `WindowUIState` POCO — fullscreen toggle, sidebar collapse, tree scroll persistence, folder expand/collapse memory, window-bounds save/restore.
+   - **`MainWindow.TreeInteractions.cs`** + `TreeInteractionState` POCO — session `TreeView` drag-drop, filter box, inline rename, context-menu plumbing.
+   - **`MainWindow.TabInteractions.cs`** + `TabInteractionState` POCO — session tab drag-to-reorder, drag-to-detach, drop target resolution, tab-strip hover tracking.
 
 **Decision rule**: if the method's entire body is `Mw_X.Text = vm.Localize(...)` against named elements, use a partial class. If it manipulates the tree or builds controls from data and can be reshaped to take a `Panel`/`Control` parameter, extract to a service. The same `ConnectionService` in `Heimdall.App/Services/` already uses this partial-class pattern with 10 files for its per-protocol connection flows.
 
-**Result (Chantier 1)**: `MainWindow.xaml.cs` dropped from 4,895 → 3,490 lines (−29%), with each extracted unit now independently reviewable and the door open for targeted unit tests where appropriate.
+**Result**: `MainWindow.xaml.cs` dropped from **4,895 → 2,123 lines (−57%)** across Chantier 1 + Phases 1–3, with each extracted unit now independently reviewable and the door open for targeted unit tests where appropriate. Phase 1 extracted `OnboardingFlowViewModel`, `FileShareService`, and the `WindowUI` partial. Phase 2 extracted `KeyboardShortcutService`, `SidebarViewModel`, `ToolsTabViewModel`, and removed a dead `OnWindowDeactivated` Command Palette handler that had been closing the palette on open. Phase 3 extracted `TreeInteractions`/`TabInteractions` partials, `SessionTabContextMenuFactory`, and `SessionSplitService`.
+
+### 27. MainViewModel Sub-VM Composition
+
+**Problem**: `MainViewModel.cs` had grown to 1,917 lines as the single orchestration point for the sidebar, tools tab, command palette, tunnels panel, scheduled tasks, session lifecycle, broadcast mode, and workspace restore. Every new feature landed a few more `[ObservableProperty]` / `[RelayCommand]` / event handler in the same class, blurring domain boundaries and making the VM hard to test in isolation.
+
+**Solution**: composed sub-VMs instantiated inside the `MainViewModel` constructor (no DI registration, no service-locator lookup). Each sub-VM takes `MainViewModel` as its first constructor parameter and reaches sibling state through `_main.X` (same pattern already used by `TunnelsViewModel` and `ScheduledTasksViewModel`). Sub-VMs that own event subscriptions implement `IDisposable` and are disposed from `MainViewModel.Dispose`.
+
+Four sub-VMs extracted in Phase 4:
+
+- **`CommandPaletteViewModel`** (Ctrl+K palette) — 14 methods covering fuzzy search ranking, tool-command parsing (`tools`, `ping 10.0.0.1`), ad-hoc connection string parsing (`user@host:port` with protocol inference), recent-tools boosting, and the connect/split flows. Owns the `IsCommandPaletteOpen` state and the `SplitLayoutMemory` pairing lookup.
+- **`TunnelsViewModel`** — tunnel panel collection, tunnel tab, route resolver (`ResolveRoute(sessionId)` for the session header display). Subscribes to `TunnelManager.ActiveTunnels` `CollectionChanged` and tears it down in `Dispose`.
+- **`ScheduledTasksViewModel`** — `TaskSchedulerService` ownership, `TasksProvider`/`TaskDueCallback`/`PersistCallback` wire-up, idempotent `_started` flag to survive `LoadAsync` re-entrancy.
+- **`SessionCoordinator`** — session-lifecycle hub: 8 external wire-ups (5 `Split.*` providers/setters + 3 `EmbeddedSessionManager` callbacks: `BroadcastCallback`, `IsBroadcastActive`, `ReconnectRequestedCallback`), the broadcast-mode cluster (toggle + fan-out + per-view indicators), `OnSessionReady` (materialize session tabs, resolve tunnel route, record history, auto-open SFTP companion pane), `OnReconnectRequestedAsync` (close stale tab + re-trigger connect flow), and `RestoreWorkspaceAsync` (called from `LoadAsync` when `EnableSessionPersistence` is on). `OpenToolCallback` stayed on `MainViewModel` because `OpenToolTabAsync` is a shell concern shared with the sidebar/tools-tab/palette consumers.
+
+Two additional shell-layer sub-VMs were extracted during Phase 2 to mirror the XAML binding story for the left sidebar:
+
+- **`SidebarViewModel`** — Sessions/Tools tab toggle, tool filter text, `SidebarToolCategoryViewModel` tree, lazy population on first activation, `Ctrl+Shift+T` toggle target selection (the sibling RadioButton must be explicitly set — see `ToggleSidebarTab()` gotcha in §Sidebar).
+- **`ToolsTabViewModel`** — full-page Tools browser VM state (favorites, recents, filter, section visibility). Section rendering itself stays in `ToolsTabPopulationService` (which writes to named XAML panels), wired through a Panel-injection event so the VM never touches `FrameworkElement` directly.
+
+**Result**: `MainViewModel.cs` dropped from **1,917 → 628 lines (−67%)**. The shell class now orchestrates sub-VM instantiation, shared settings, the single `OpenToolCallback`, and the composed `LoadAsync` pipeline. Each sub-VM is independently navigable, testable in isolation (sub-VMs that don't touch `Application.Current.Dispatcher` run cleanly in xUnit), and owns its own event-subscription lifecycle via `IDisposable`.
 
 ## Design System (CommonControls.xaml — 1,880+ lines, 45 tokens, WCAG AA)
 

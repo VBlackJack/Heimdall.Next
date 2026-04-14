@@ -210,8 +210,8 @@ All tools open as session tabs (split with any session or tool, detach, reorder)
 - Fullscreen mode (F11), toggle sidebar (Ctrl+B), filter (Ctrl+F)
 - **First-launch onboarding**: 3-step guided introduction overlay with skip/next/get started
 - Bilingual interface: English and French (~4,496 i18n keys)
-- Declarative i18n: `{loc:Translate Key}` WPF markup extension with runtime language switching (coexists with legacy ApplyLocalization pattern)
-- WCAG 2.1 AA accessibility: AutomationProperties.Name on all interactive controls via code-behind and `{loc:Translate}`, LiveSetting="Polite" on dynamic outputs, keyboard focus indicators, disabled state tooltips
+- Declarative i18n: `{loc:Translate Key}` WPF markup extension with runtime language switching
+- WCAG 2.1 AA accessibility: AutomationProperties.Name on all interactive controls via `{loc:Translate}`, LiveSetting="Polite" on dynamic outputs, keyboard focus indicators, disabled state tooltips
 
 ### Security
 - DPAPI encryption + HMAC-SHA256 integrity via unified `CredentialProtector`

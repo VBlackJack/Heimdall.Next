@@ -12,9 +12,64 @@
 
 All notable changes to Heimdall.Next are documented in this file.
 
-## [Unreleased] - 2026-04-13
+## [Unreleased] - 2026-04-14
 
-### Post-v2026.041301 audit follow-up — code-behind split, observability, assets diet
+### Refactor — MainWindow + MainViewModel decomposition (Phases 1–4)
+
+**`MainWindow.xaml.cs`: 3,490 → 2,123 LOC (−39%)**
+
+- **Phase 1** — Extract 3 isolated low-risk domains:
+  - `OnboardingFlowViewModel` (first-launch 3-step overlay, resolved by `MainWindow` via DI)
+  - `FileShareService` (ephemeral HTTP/TFTP folder sharing, event-based API, `IAsyncDisposable`)
+  - `WindowUIState` POCO + `MainWindow.WindowUI.cs` partial (fullscreen, sidebar toggle, tree scroll persistence, folder expand/collapse memory, window-bounds save/restore)
+
+- **Phase 2** — Extract keyboard + sidebar + tools tab:
+  - `KeyboardShortcutService` (18 shortcuts, fluent registration, `canExecute` gating) replaces the monolithic `OnPreviewKeyDown` switch
+  - `SidebarViewModel` with XAML bindings (Sessions/Tools toggle, tool filter, lazy population, Ctrl+Shift+T toggle)
+  - `ToolsTabViewModel` (full-page Tools browser VM state — favorites, recents, filter; section rendering still in `ToolsTabPopulationService` via Panel injection)
+  - **Fix**: remove dead `OnWindowDeactivated` Command Palette auto-close handler that had been closing the palette on every open (pre-existing bug)
+
+- **Phase 3** — Extract session/tree/tab interactions:
+  - `TreeInteractionState` POCO + `MainWindow.TreeInteractions.cs` partial (session TreeView drag-drop, filter box, inline rename)
+  - `TabInteractionState` POCO + `MainWindow.TabInteractions.cs` partial (tab drag-to-reorder, drag-to-detach, drop target resolution, hover tracking)
+  - `SessionTabContextMenuFactory` + `ISessionTabContextCallbacks` (335-LOC menu builder, 19 conditional items)
+  - `SessionSplitService` (detach/split/merge/unsplit orchestration, `SplitPaletteRequested` event)
+  - New `ServerListViewModel.MoveServerToGroupAsync` for the tree drag-drop write path
+
+**`MainViewModel.cs`: 1,917 → 628 LOC (−67%)**
+
+- **Phase 4** — `MainViewModel` decomposition into 4 sub-VMs (constructor-composed, not DI-registered; `IDisposable` for event-subscription cleanup):
+  - `CommandPaletteViewModel` (14 methods: fuzzy search ranking, tool-command parsing, ad-hoc `user@host:port` parsing with protocol inference, connect/split flows, `SplitLayoutMemory` pairing)
+  - `TunnelsViewModel` (tunnel panel + tab, `ResolveRoute(sessionId)` for session header display)
+  - `ScheduledTasksViewModel` (`TaskSchedulerService` ownership, idempotent `_started` flag)
+  - `SessionCoordinator` (8 external wire-ups — 5 `Split.*` providers/setters + 3 `EmbeddedSessionManager` callbacks; broadcast cluster; `OnSessionReady` / `OnReconnectRequestedAsync` / `AutoOpenSftpAsync`; `RestoreWorkspaceAsync`)
+
+### Refactor — Declarative i18n migration (Phase 5, in progress)
+
+- **Phase 5A** — Navigation + toolbar imperative labels → `{loc:Translate}` (58 sites). `ApplyNavigationLocalization` / `ApplyToolbarLocalization` now empty stubs pending Phase 5D cleanup
+- **Phase 5B** — Accessibility pass → `AutomationProperties.Name="{loc:Translate}"` (39 sites). `ApplyAccessibilityLocalization` deleted entirely
+- Phase 5C (Tunnel/Scheduled/Settings/About apply helpers) and Phase 5D (format-args + computed properties + composite strings) pending
+
+### Refactor — Command Library ViewModel extraction
+
+- `CommandLibraryViewModel` extracted from `CommandLibraryView` code-behind with XAML bindings migration (fuzzy filter, platform/category/risk filters, parameter editor, favorites, history, Git Sync). View code-behind now limited to WebView2 and dispatcher-bound glue
+
+### Fixed
+
+- Ctrl+K Command Palette no longer closes immediately on open (dead `OnWindowDeactivated` handler removed; pre-existing bug)
+- Filter box `TextChanged` handler no longer duplicates on locale switch (`Mw_FilterBox.TextChanged` subscription moved from `ApplyLocalization` to the `MainWindow` constructor)
+- `App.OnExit` service provider disposal now routes through `IAsyncDisposable.DisposeAsync` to properly dispose async-only services (`FileShareService`)
+- `MainViewModel` no longer leaks `CollectionChanged` + `PropertyChanged` handlers on session-tab teardown
+
+### Housekeeping
+
+- Tests: **1,775 passing** (unchanged) + 6 skipped (WPF `Application` context gating)
+- Build: clean, 0 warnings, 0 errors
+- i18n: 4,855 keys (EN/FR parity maintained, no changes this round)
+
+---
+
+### Post-v2026.041301 audit follow-up (2026-04-13) — code-behind split, observability, assets diet
 
 #### Code organization — MainWindow code-behind split (Chantier 1)
 - **`MainWindow.xaml.cs` shrunk from 4,895 → 3,490 lines** (−1,405 lines, −29%) via three structural extractions. Zero behavior change — pure file splits verified by build + full test suite
