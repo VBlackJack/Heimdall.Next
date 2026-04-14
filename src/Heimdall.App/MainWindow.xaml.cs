@@ -59,6 +59,7 @@ public partial class MainWindow : Window, IContextMenuCallbacks
     private readonly Services.ThemeService _themeService;
     private readonly ContextMenuFactory _contextMenuFactory;
     private readonly FileShareService _fileShareService;
+    private readonly WindowUIState _uiState = new();
     private readonly ToolsTabPopulationService _toolsTabPopulation;
     private bool _sidebarTabRestored;
     private bool _closeConfirmed;
@@ -687,7 +688,7 @@ public partial class MainWindow : Window, IContextMenuCallbacks
                 e.Handled = true;
                 break;
 
-            case Key.Escape when _isFullscreen:
+            case Key.Escape when _uiState.IsFullscreen:
                 ToggleFullscreen();
                 e.Handled = true;
                 break;
@@ -1987,49 +1988,6 @@ public partial class MainWindow : Window, IContextMenuCallbacks
         }
     }
 
-    /// <summary>
-    /// Walks the visual tree of the given element to find a child <see cref="ScrollViewer"/>.
-    /// </summary>
-    private static ScrollViewer? FindScrollViewer(DependencyObject parent)
-    {
-        for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
-        {
-            var child = VisualTreeHelper.GetChild(parent, i);
-            if (child is ScrollViewer sv)
-                return sv;
-            var result = FindScrollViewer(child);
-            if (result is not null)
-                return result;
-        }
-        return null;
-    }
-
-    private void SaveTreeViewScrollPosition()
-    {
-        var sv = FindScrollViewer(SessionTreeView);
-        if (sv is not null)
-        {
-            _treeScrollVerticalOffset = sv.VerticalOffset;
-            _treeScrollHorizontalOffset = sv.HorizontalOffset;
-        }
-    }
-
-    private void RestoreTreeViewScrollPosition()
-    {
-        // Defer to allow the TreeView to re-render before restoring scroll position
-        Dispatcher.BeginInvoke(
-            System.Windows.Threading.DispatcherPriority.Loaded,
-            new Action(() =>
-            {
-                var sv = FindScrollViewer(SessionTreeView);
-                if (sv is not null)
-                {
-                    sv.ScrollToVerticalOffset(_treeScrollVerticalOffset);
-                    sv.ScrollToHorizontalOffset(_treeScrollHorizontalOffset);
-                }
-            }));
-    }
-
     // ── Tab drag & drop reordering ───────────────────────────────────
 
     private System.Windows.Point _tabDragStartPoint;
@@ -2743,73 +2701,6 @@ public partial class MainWindow : Window, IContextMenuCallbacks
         rdpView.UpdateAspectRatio(ratioName);
     }
 
-    private bool _isFullscreen;
-
-    private void OnToggleFullscreenClick(object sender, RoutedEventArgs e)
-    {
-        ToggleFullscreen();
-    }
-
-    private WindowState _preFullscreenState;
-    private double _preFullscreenWidth;
-    private double _preFullscreenHeight;
-
-    private void ToggleFullscreen()
-    {
-        if (DataContext is not MainViewModel vm) return;
-
-        if (_isFullscreen)
-        {
-            // Exit fullscreen
-            _isFullscreen = false;
-            FullscreenBar.Visibility = Visibility.Collapsed;
-            NotifyEmbeddedViewsFullscreen(false);
-
-            // Show toolbar, TreeView, status bar
-            ToolbarRow.Height = new GridLength(48);
-            StatusBarRow.Height = new GridLength(28);
-            SessionTreeColumn.Width = new GridLength(260);
-            SessionTreeColumn.MinWidth = 180;
-            SessionTreeColumn.MaxWidth = 500;
-            SplitterColumn.Width = GridLength.Auto;
-
-            WindowStyle = WindowStyle.SingleBorderWindow;
-            WindowState = _preFullscreenState;
-            if (_preFullscreenState == WindowState.Normal)
-            {
-                Width = _preFullscreenWidth;
-                Height = _preFullscreenHeight;
-            }
-        }
-        else
-        {
-            // Enter fullscreen
-            _isFullscreen = true;
-            _preFullscreenState = WindowState;
-            _preFullscreenWidth = ActualWidth;
-            _preFullscreenHeight = ActualHeight;
-
-            // Hide toolbar, TreeView, status bar
-            ToolbarRow.Height = new GridLength(0);
-            StatusBarRow.Height = new GridLength(0);
-            SessionTreeColumn.MinWidth = 0;
-            SessionTreeColumn.MaxWidth = 0;
-            SessionTreeColumn.Width = new GridLength(0);
-            SplitterColumn.Width = new GridLength(0);
-
-            WindowStyle = WindowStyle.None;
-            WindowState = WindowState.Maximized;
-            FullscreenBar.Visibility = Visibility.Visible;
-
-            // Hide session tab headers in fullscreen (session fills the screen)
-            SessionTabControl.Padding = new Thickness(0);
-            SessionTabControl.Margin = new Thickness(0);
-
-            // Hide the session header bar inside embedded views
-            NotifyEmbeddedViewsFullscreen(true);
-        }
-    }
-
     /// <summary>
     /// When switching to Tunnels/Scheduled/Settings while sessions are active,
     /// the Sessions Grid must stay visible (for sessions) but TreeView hides.
@@ -2821,122 +2712,31 @@ public partial class MainWindow : Window, IContextMenuCallbacks
         var hasSessions = vm.Connection.HasActiveSessions;
 
         Heimdall.Core.Logging.FileLogger.Info(
-            $"UpdateTabVisibility: selectedTab={vm.SelectedTab}, isSessions={isSessions}, hasSessions={hasSessions}, sidebarHidden={_sidebarHidden}");
+            $"UpdateTabVisibility: selectedTab={vm.SelectedTab}, isSessions={isSessions}, hasSessions={hasSessions}, sidebarHidden={_uiState.IsSidebarHidden}");
 
         // If not on Sessions but sessions active, show sessions full-width
         if (!isSessions && hasSessions)
         {
             // Hide TreeView temporarily
-            if (!_sidebarHidden)
+            if (!_uiState.IsSidebarHidden)
             {
-                _savedSidebarWidth = SessionTreeColumn.ActualWidth;
+                _uiState.SavedSidebarWidth = SessionTreeColumn.ActualWidth;
                 SessionTreeColumn.MinWidth = 0;
                 SessionTreeColumn.MaxWidth = 0;
                 SessionTreeColumn.Width = new GridLength(0);
                 SplitterColumn.Width = new GridLength(0);
             }
         }
-        else if (isSessions && !_sidebarHidden)
+        else if (isSessions && !_uiState.IsSidebarHidden)
         {
             // Restore TreeView
-            SessionTreeColumn.MinWidth = 180;
-            SessionTreeColumn.MaxWidth = 500;
-            SessionTreeColumn.Width = new GridLength(_savedSidebarWidth > 0 ? _savedSidebarWidth : 260);
+            SessionTreeColumn.MinWidth = WindowUIState.MinSidebarWidth;
+            SessionTreeColumn.MaxWidth = WindowUIState.MaxSidebarWidth;
+            SessionTreeColumn.Width = new GridLength(_uiState.SavedSidebarWidth > 0
+                ? _uiState.SavedSidebarWidth
+                : WindowUIState.DefaultSidebarWidth);
             SplitterColumn.Width = GridLength.Auto;
         }
-    }
-
-    private bool _sidebarHidden;
-    private double _savedSidebarWidth = 260;
-    private double _treeScrollVerticalOffset;
-    private double _treeScrollHorizontalOffset;
-
-    private void OnExpandAllClick(object sender, RoutedEventArgs e)
-    {
-        SetAllFoldersExpanded(true);
-    }
-
-    private void OnCollapseAllClick(object sender, RoutedEventArgs e)
-    {
-        SetAllFoldersExpanded(false);
-    }
-
-    private void SetAllFoldersExpanded(bool expanded)
-    {
-        if (DataContext is not ViewModels.MainViewModel vm) return;
-
-        foreach (var folder in vm.ServerList.GroupedServers)
-        {
-            SetFolderExpandedRecursive(folder, expanded);
-        }
-    }
-
-    private static void SetFolderExpandedRecursive(ViewModels.FolderViewModel folder, bool expanded)
-    {
-        folder.IsExpanded = expanded;
-        foreach (var sub in folder.SubFolders)
-        {
-            SetFolderExpandedRecursive(sub, expanded);
-        }
-    }
-
-    private void OnToggleSidebarClick(object sender, RoutedEventArgs e) => ToggleSidebar();
-
-    private void ToggleSidebar()
-    {
-        if (_sidebarHidden)
-        {
-            _sidebarHidden = false;
-            SessionTreeColumn.MinWidth = 180;
-            SessionTreeColumn.MaxWidth = 500;
-            SessionTreeColumn.Width = new GridLength(_savedSidebarWidth);
-            SplitterColumn.Width = GridLength.Auto;
-            ShowSidebarButton.Visibility = Visibility.Collapsed;
-        }
-        else
-        {
-            _sidebarHidden = true;
-            _savedSidebarWidth = SessionTreeColumn.ActualWidth;
-            SessionTreeColumn.MinWidth = 0;
-            SessionTreeColumn.MaxWidth = 0;
-            SessionTreeColumn.Width = new GridLength(0);
-            SplitterColumn.Width = new GridLength(0);
-            ShowSidebarButton.Visibility = Visibility.Visible;
-        }
-    }
-
-    private void NotifyEmbeddedViewsFullscreen(bool isFullscreen)
-    {
-        if (DataContext is not MainViewModel vm) return;
-        foreach (var session in vm.Connection.ActiveSessions)
-        {
-            if (session.HostControl is Views.EmbeddedRdpView rdpView)
-                rdpView.SetFullscreen(isFullscreen);
-            else if (session.HostControl is Views.EmbeddedSshView sshView)
-                sshView.Visibility = Visibility.Visible; // SSH always visible
-        }
-
-        // Hide/show entire tab strip by collapsing the TabPanel
-        // Single session fullscreen = no tab bar needed
-        if (isFullscreen && vm.Connection.ActiveSessions.Count <= 1)
-        {
-            SessionTabControl.Tag = "fullscreen-notabs";
-            // Use a style that hides the header panel
-            SessionTabControl.SetValue(System.Windows.Controls.Control.PaddingProperty, new Thickness(0));
-            // Walk the visual tree to find and hide the TabPanel
-            HideTabStripPanel(SessionTabControl, true);
-        }
-        else
-        {
-            SessionTabControl.Tag = null;
-            HideTabStripPanel(SessionTabControl, false);
-        }
-    }
-
-    private void OnExitFullscreenClick(object sender, RoutedEventArgs e)
-    {
-        FullscreenBar.Visibility = Visibility.Collapsed;
-        if (_isFullscreen) ToggleFullscreen();
     }
 
     // --- Command Palette event handlers ---
