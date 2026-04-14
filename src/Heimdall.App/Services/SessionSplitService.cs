@@ -131,7 +131,7 @@ public sealed class SessionSplitService
         ArgumentNullException.ThrowIfNull(session);
         ArgumentNullException.ThrowIfNull(vm);
 
-        vm.OpenSplitPalette(session, orientation);
+        vm.CommandPalette.OpenSplit(session, orientation);
         SplitPaletteRequested?.Invoke(this, EventArgs.Empty);
     }
 

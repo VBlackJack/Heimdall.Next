@@ -380,9 +380,9 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
         }
 
         // Close the Command Palette when switching tabs
-        if (vm.IsCommandPaletteOpen)
+        if (vm.CommandPalette.IsOpen)
         {
-            vm.CloseCommandPaletteCommand.Execute(null);
+            vm.CommandPalette.CloseCommand.Execute(null);
         }
 
         // Save TreeView scroll position when leaving Sessions tab
@@ -615,7 +615,7 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
         {
             if (GetMainVm() is { } vm)
             {
-                vm.OpenCommandPaletteCommand.Execute(null);
+                vm.CommandPalette.OpenCommand.Execute(null);
                 BeginFocusCommandPalette();
             }
         }, canExecute: () => !IsTerminalFocusedContext());
@@ -1667,11 +1667,11 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
 
         System.Windows.Automation.AutomationProperties.SetName(
             PaletteInput,
-            string.IsNullOrWhiteSpace(vm.PalettePlaceholder)
+            string.IsNullOrWhiteSpace(vm.CommandPalette.Placeholder)
                 ? vm.Localize("PaletteSearchPlaceholder")
-                : vm.PalettePlaceholder);
+                : vm.CommandPalette.Placeholder);
 
-        if (vm.IsPaletteInSplitMode)
+        if (vm.CommandPalette.IsInSplitMode)
         {
             PaletteModeLabel.Text = vm.Localize("PaletteModeSplit");
             PaletteModeLabel.Visibility = Visibility.Visible;
@@ -1715,20 +1715,20 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
 
         if (e.Key == Key.Escape)
         {
-            vm.CloseCommandPaletteCommand.Execute(null);
+            vm.CommandPalette.CloseCommand.Execute(null);
             e.Handled = true;
         }
         else if (e.Key == Key.Enter && Keyboard.Modifiers == ModifierKeys.Control)
         {
             // Ctrl+Enter = connect in split pane
-            var target = vm.SelectedPaletteItem ?? vm.PaletteResults.FirstOrDefault();
-            _ = vm.ConnectSplitFromPaletteCommand.ExecuteAsync(target);
+            var target = vm.CommandPalette.SelectedItem ?? vm.CommandPalette.Results.FirstOrDefault();
+            _ = vm.CommandPalette.ConnectSplitFromPaletteCommand.ExecuteAsync(target);
             e.Handled = true;
         }
         else if (e.Key == Key.Enter)
         {
-            _ = vm.ConnectFromPaletteCommand.ExecuteAsync(
-                vm.SelectedPaletteItem ?? vm.PaletteResults.FirstOrDefault());
+            _ = vm.CommandPalette.ConnectFromPaletteCommand.ExecuteAsync(
+                vm.CommandPalette.SelectedItem ?? vm.CommandPalette.Results.FirstOrDefault());
             e.Handled = true;
         }
         else if (e.Key == Key.Down)
@@ -1758,9 +1758,9 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
     /// </summary>
     private void OnWindowPreviewMouseDown(object sender, MouseButtonEventArgs e)
     {
-        if (DataContext is MainViewModel { IsCommandPaletteOpen: true } vm)
+        if (DataContext is MainViewModel vm && vm.CommandPalette.IsOpen)
         {
-            vm.CloseCommandPaletteCommand.Execute(null);
+            vm.CommandPalette.CloseCommand.Execute(null);
         }
     }
 
@@ -1788,14 +1788,14 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
         }
 
         e.Handled = true;
-        vm.ExecutePaletteSelection(item);
+        vm.CommandPalette.ExecuteSelection(item);
     }
 
     private void OnQuickConnectButtonClick(object sender, RoutedEventArgs e)
     {
         if (DataContext is MainViewModel vm)
         {
-            vm.OpenCommandPaletteCommand.Execute(null);
+            vm.CommandPalette.OpenCommand.Execute(null);
             BeginFocusCommandPalette();
         }
     }
