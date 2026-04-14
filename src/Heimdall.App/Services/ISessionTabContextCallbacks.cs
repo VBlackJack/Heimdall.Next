@@ -1,0 +1,69 @@
+/*
+ * Copyright 2026 Julien Bombled
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+using System.Windows;
+using Heimdall.App.ViewModels;
+using Heimdall.Core.Models;
+
+namespace Heimdall.App.Services;
+
+/// <summary>
+/// Callbacks surfaced by the window layer to
+/// <see cref="SessionTabContextMenuFactory"/>. These actions require access
+/// to <see cref="MainWindow"/> state (window fullscreen state, floating
+/// window creation, split session orchestration) and therefore cannot be
+/// inlined into the factory.
+/// </summary>
+public interface ISessionTabContextCallbacks
+{
+    /// <summary>
+    /// Handles aspect-ratio menu item clicks. The event sender's
+    /// <see cref="FrameworkElement.Tag"/> carries the ratio identifier
+    /// (<c>"Stretch"</c>, <c>"Auto"</c>, <c>"Ratio16x9"</c>,
+    /// <c>"Ratio4x3"</c>, <c>"Ratio21x9"</c>). Signature preserves the
+    /// existing MainWindow handler so the factory can wire it as a
+    /// <see cref="RoutedEventHandler"/> directly.
+    /// </summary>
+    void OnAspectRatioClick(object sender, RoutedEventArgs e);
+
+    /// <summary>Toggles fullscreen mode on the main window.</summary>
+    void ToggleFullscreen();
+
+    /// <summary>
+    /// Detaches the given session tab to a new floating window. Used by the
+    /// non-split "Detach" menu item and by the tab drag-drop fallback path.
+    /// </summary>
+    void DetachSessionToFloatingWindow(SessionTabViewModel session);
+
+    /// <summary>
+    /// Detaches the secondary pane of a split session to its own floating
+    /// window. Only valid when <see cref="SessionTabViewModel.IsSplit"/>
+    /// is <c>true</c>.
+    /// </summary>
+    void DetachSecondaryToFloatingWindow(SessionTabViewModel session);
+
+    /// <summary>
+    /// Opens the Command Palette in split mode so the user can pick a
+    /// session to split with, using the given orientation.
+    /// </summary>
+    void RequestSplitSession(SessionTabViewModel session, SplitOrientation orientation);
+
+    /// <summary>
+    /// Unsplits a split session, detaching the secondary pane back into a
+    /// standalone tab.
+    /// </summary>
+    void UnsplitSession(SessionTabViewModel session);
+}
