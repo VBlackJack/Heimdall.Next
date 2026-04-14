@@ -2258,7 +2258,7 @@
         <!-- Quick Connect Command Palette (Ctrl+K) — uses a Popup so it gets its own
              HWND and renders above WindowsFormsHost / ActiveX surfaces (airspace fix). -->
         <Popup x:Name="CommandPalettePopup"
-               IsOpen="{Binding IsCommandPaletteOpen}"
+               IsOpen="{Binding CommandPalette.IsOpen}"
                StaysOpen="True"
                AllowsTransparency="True"
                Placement="Center"
@@ -2283,8 +2283,8 @@
                                Visibility="Collapsed"
                                Margin="14,8,14,0"/>
                     <TextBox x:Name="PaletteInput"
-                             Text="{Binding PaletteSearchText, UpdateSourceTrigger=PropertyChanged}"
-                             Tag="{Binding PalettePlaceholder}"
+                             Text="{Binding CommandPalette.SearchText, UpdateSourceTrigger=PropertyChanged}"
+                             Tag="{Binding CommandPalette.Placeholder}"
                              Style="{StaticResource SearchTextBoxStyle}"
                              FontSize="{StaticResource FontSizeSubtitle}" Padding="14,10"
                              BorderThickness="0"
@@ -2292,8 +2292,8 @@
                              Foreground="{DynamicResource TextPrimaryBrush}"/>
                     <Border Height="1" Background="{DynamicResource BorderBrush}"/>
                     <ListBox x:Name="PaletteResultsList"
-                             ItemsSource="{Binding PaletteResults}"
-                             SelectedItem="{Binding SelectedPaletteItem}"
+                             ItemsSource="{Binding CommandPalette.Results}"
+                             SelectedItem="{Binding CommandPalette.SelectedItem}"
                              MaxHeight="450"
                              Background="Transparent"
                              BorderThickness="0"
@@ -2432,7 +2432,7 @@
                                FontSize="{StaticResource FontSizeBody}" Padding="14,10"
                                Foreground="{DynamicResource TextSecondaryBrush}"
                                HorizontalAlignment="Center"
-                               Visibility="{Binding HasNoPaletteResults, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                               Visibility="{Binding CommandPalette.HasNoResults, Converter={StaticResource BoolToVisibilityConverter}}"/>
                     <TextBlock x:Name="Mw_PaletteHints" Text=""
                                FontSize="{StaticResource FontSizeCaption}" Padding="14,6"
                                Foreground="{DynamicResource TextSecondaryBrush}"/>

@@ -1,0 +1,530 @@
+/*
+ * Copyright 2026 Julien Bombled
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+using System.Collections.ObjectModel;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using Heimdall.App.Services;
+using Heimdall.Core.Configuration;
+using Heimdall.Core.Localization;
+using Heimdall.Core.Logging;
+using Heimdall.Core.Models;
+
+namespace Heimdall.App.ViewModels.CommandPalette;
+
+/// <summary>
+/// View-model backing the Ctrl+K Command Palette popup in
+/// <c>MainWindow</c>: fuzzy search across servers + tools + external tools,
+/// ad-hoc SSH/RDP parsing, and dispatch of the selected item to either a
+/// normal connection, a tool tab, or a split-session merge.
+/// </summary>
+/// <remarks>
+/// <para>
+/// Composition: instantiated inside <see cref="MainViewModel"/>'s
+/// constructor (<see cref="MainViewModel.CommandPalette"/>) — there is no
+/// DI registration. Matches the sidebar / tools-tab / onboarding sub-VM
+/// pattern established in earlier phases.
+/// </para>
+/// <para>
+/// Split palette state (<see cref="SessionTabViewModel"/> being split,
+/// orientation, optional pane id) is held in private fields that are reset
+/// by <see cref="Open"/>, <see cref="Close"/> and
+/// <see cref="ExecuteSelection"/> to avoid stale captures when the popup
+/// closes.
+/// </para>
+/// </remarks>
+public sealed partial class CommandPaletteViewModel : ObservableObject
+{
+    private readonly MainViewModel _main;
+    private readonly LocalizationManager _localizer;
+    private readonly ToolRegistry _toolRegistry;
+    private readonly ConfigManager _configManager;
+    private readonly EmbeddedSessionManager _embeddedSessionManager;
+
+    /// <summary>
+    /// When non-null, the palette is in "split mode": selecting a server
+    /// will split the captured session instead of opening a new tab.
+    /// </summary>
+    private SessionTabViewModel? _splitPaletteSession;
+    private SplitOrientation _splitPaletteOrientation;
+    private string? _splitPalettePaneId;
+
+    /// <summary>
+    /// Creates a new Command Palette VM bound to the given host.
+    /// </summary>
+    public CommandPaletteViewModel(
+        MainViewModel main,
+        LocalizationManager localizer,
+        ToolRegistry toolRegistry,
+        ConfigManager configManager,
+        EmbeddedSessionManager embeddedSessionManager)
+    {
+        _main = main;
+        _localizer = localizer;
+        _toolRegistry = toolRegistry;
+        _configManager = configManager;
+        _embeddedSessionManager = embeddedSessionManager;
+    }
+
+    // ── Observable state ─────────────────────────────────────────────
+
+    /// <summary>Localized placeholder text shown inside the search TextBox.</summary>
+    [ObservableProperty]
+    private string _placeholder = string.Empty;
+
+    /// <summary>True while the palette popup is currently open.</summary>
+    [ObservableProperty]
+    private bool _isOpen;
+
+    /// <summary>Current search text (two-way bound to the palette TextBox).</summary>
+    [ObservableProperty]
+    private string _searchText = string.Empty;
+
+    /// <summary>Result set shown in the palette ListBox.</summary>
+    [ObservableProperty]
+    private ObservableCollection<ServerItemViewModel> _results = new();
+
+    /// <summary>Currently selected palette result (driven by arrow keys / click).</summary>
+    [ObservableProperty]
+    private ServerItemViewModel? _selectedItem;
+
+    /// <summary>
+    /// True when the palette is in "split mode" (was opened via
+    /// <see cref="OpenSplit"/> rather than <see cref="Open"/>).
+    /// </summary>
+    public bool IsInSplitMode => _splitPaletteSession is not null;
+
+    /// <summary>True when the current result set is empty.</summary>
+    public bool HasNoResults => Results.Count == 0;
+
+    /// <summary>
+    /// Generated partial: refreshes the <see cref="HasNoResults"/>
+    /// notification whenever the result collection is replaced.
+    /// </summary>
+    partial void OnResultsChanged(ObservableCollection<ServerItemViewModel> value)
+    {
+        OnPropertyChanged(nameof(HasNoResults));
+    }
+
+    // ── Open / Close / OpenSplit ─────────────────────────────────────
+
+    /// <summary>
+    /// Opens the palette in normal mode (Ctrl+K or Quick Connect button).
+    /// Clears any previous split mode state.
+    /// </summary>
+    [RelayCommand]
+    private void Open()
+    {
+        _splitPaletteSession = null;
+        Placeholder = _localizer["PaletteSearchPlaceholder"];
+        SearchText = string.Empty;
+        IsOpen = true;
+        OnSearchTextChanged(string.Empty);
+        SelectedItem = Results.FirstOrDefault();
+    }
+
+    /// <summary>
+    /// Opens the palette in "split mode": selecting a server will split
+    /// the given session instead of opening a new tab. Replaces the legacy
+    /// context-menu picker that did not scale past ~20 servers.
+    /// </summary>
+    public void OpenSplit(SessionTabViewModel session, SplitOrientation orientation, string? paneId = null)
+    {
+        _splitPaletteSession = session;
+        _splitPaletteOrientation = orientation;
+        _splitPalettePaneId = paneId;
+        Placeholder = _localizer["SplitPaletteHint"];
+        SearchText = string.Empty;
+        IsOpen = true;
+        OnSearchTextChanged(string.Empty);
+        SelectedItem = Results.FirstOrDefault();
+    }
+
+    /// <summary>Closes the palette and clears any split mode state.</summary>
+    [RelayCommand]
+    private void Close()
+    {
+        _splitPaletteSession = null;
+        IsOpen = false;
+    }
+
+    // ── Selection dispatch ───────────────────────────────────────────
+
+    /// <summary>
+    /// Synchronous entry point for palette item selection (used by mouse
+    /// double-click handler). Captures split state immediately to avoid
+    /// race conditions with popup deactivation that would otherwise null
+    /// out <c>_splitPaletteSession</c> before the async command runs.
+    /// </summary>
+    public void ExecuteSelection(ServerItemViewModel item)
+    {
+        var splitSession = _splitPaletteSession;
+        var splitOrientation = _splitPaletteOrientation;
+        var splitPaneId = _splitPalettePaneId;
+        _splitPaletteSession = null;
+        _splitPalettePaneId = null;
+        IsOpen = false;
+
+        if (splitSession is not null)
+        {
+            // Check if this is an active session merge (prefix "session-")
+            if (item.Id.StartsWith("session-", StringComparison.Ordinal))
+            {
+                var sourceSessionId = item.Id["session-".Length..];
+                _main.MergeExistingSession(splitSession, sourceSessionId, splitOrientation, splitPaneId);
+                return;
+            }
+
+            // Built-in tool selected in split mode — dock tool in split pane
+            if (item.Id.StartsWith("tool-", StringComparison.Ordinal))
+            {
+                SplitSessionWithTool(splitSession, item.Id["tool-".Length..], splitOrientation, splitPaneId);
+                return;
+            }
+
+            if (!item.Id.StartsWith("adhoc-", StringComparison.Ordinal))
+            {
+                _ = SafeFireAndForgetAsync(
+                    _main.SplitSessionWithServerAsync(splitSession, item.Id, splitOrientation, splitPaneId));
+                return;
+            }
+        }
+
+        // Fall through to normal palette behavior
+        _ = SafeFireAndForgetAsync(ConnectInternalAsync(item));
+    }
+
+    /// <summary>
+    /// Async command fired when the user presses Enter on the palette.
+    /// Handles split mode dispatch first, then falls through to the normal
+    /// connection / tool / ad-hoc routing.
+    /// </summary>
+    [RelayCommand]
+    private async Task ConnectFromPaletteAsync(ServerItemViewModel? server)
+    {
+        if (server is null) return;
+
+        var splitSession = _splitPaletteSession;
+        var splitOrientation = _splitPaletteOrientation;
+        var splitPaneId = _splitPalettePaneId;
+        _splitPaletteSession = null;
+        _splitPalettePaneId = null;
+        IsOpen = false;
+
+        // If the palette was opened in split mode, route to split logic
+        if (splitSession is not null && !server.Id.StartsWith("adhoc-", StringComparison.Ordinal))
+        {
+            // Check if this is an active session merge
+            if (server.Id.StartsWith("session-", StringComparison.Ordinal))
+            {
+                var sourceSessionId = server.Id["session-".Length..];
+                _main.MergeExistingSession(splitSession, sourceSessionId, splitOrientation, splitPaneId);
+                return;
+            }
+
+            // Built-in tool selected in split mode
+            if (server.Id.StartsWith("tool-", StringComparison.Ordinal))
+            {
+                SplitSessionWithTool(splitSession, server.Id["tool-".Length..], splitOrientation, splitPaneId);
+                return;
+            }
+
+            await _main.SplitSessionWithServerAsync(splitSession, server.Id, splitOrientation, splitPaneId);
+            return;
+        }
+
+        if (server.Id.StartsWith("tool-", StringComparison.Ordinal))
+        {
+            await OpenToolFromPaletteAsync(server);
+        }
+        else if (server.Id.StartsWith("ext-tool-", StringComparison.Ordinal))
+        {
+            LaunchExternalToolFromPalette(server);
+        }
+        else if (server.Id.StartsWith("adhoc-", StringComparison.Ordinal))
+        {
+            await ConnectAdHocAsync(server);
+        }
+        else
+        {
+            _main.ServerList.ConnectCommand.Execute(server);
+        }
+    }
+
+    /// <summary>
+    /// Normal (non-split) palette action — extracted so
+    /// <see cref="ExecuteSelection"/> can call it after the split check
+    /// without duplicating the routing logic.
+    /// </summary>
+    private async Task ConnectInternalAsync(ServerItemViewModel server)
+    {
+        if (server.Id.StartsWith("tool-", StringComparison.Ordinal))
+        {
+            await OpenToolFromPaletteAsync(server);
+        }
+        else if (server.Id.StartsWith("ext-tool-", StringComparison.Ordinal))
+        {
+            LaunchExternalToolFromPalette(server);
+        }
+        else if (server.Id.StartsWith("adhoc-", StringComparison.Ordinal))
+        {
+            await ConnectAdHocAsync(server);
+        }
+        else
+        {
+            _main.ServerList.ConnectCommand.Execute(server);
+        }
+    }
+
+    /// <summary>
+    /// Async command fired when the user presses Ctrl+Enter on the palette:
+    /// always splits with the currently-active session (or falls back to a
+    /// normal connection when no active session exists).
+    /// </summary>
+    [RelayCommand]
+    private async Task ConnectSplitFromPaletteAsync(ServerItemViewModel? server)
+    {
+        if (server is null) return;
+        IsOpen = false;
+
+        if (server.Id.StartsWith("tool-", StringComparison.Ordinal))
+        {
+            var activeForTool = _main.Connection.ActiveSession;
+            if (activeForTool is not null)
+            {
+                SplitSessionWithTool(activeForTool, server.Id["tool-".Length..], SplitOrientation.Vertical);
+                return;
+            }
+
+            await OpenToolFromPaletteAsync(server);
+            return;
+        }
+
+        if (server.Id.StartsWith("ext-tool-", StringComparison.Ordinal))
+        {
+            LaunchExternalToolFromPalette(server);
+            return;
+        }
+
+        var activeSession = _main.Connection.ActiveSession;
+        if (activeSession is not null && !server.Id.StartsWith("adhoc-", StringComparison.Ordinal))
+        {
+            await _main.SplitSessionWithServerAsync(activeSession, server.Id, SplitOrientation.Vertical);
+        }
+        else if (server.Id.StartsWith("adhoc-", StringComparison.Ordinal))
+        {
+            await ConnectAdHocAsync(server);
+        }
+        else
+        {
+            _main.ServerList.ConnectCommand.Execute(server);
+        }
+    }
+
+    // ── Connection helpers ───────────────────────────────────────────
+
+    /// <summary>
+    /// Connects an ad-hoc server (SSH or RDP) by building a temporary DTO
+    /// from the palette item and calling the shared ConnectionService
+    /// directly. Supports <c>user@host:port</c> style input for SSH.
+    /// </summary>
+    private async Task ConnectAdHocAsync(ServerItemViewModel server)
+    {
+        var connType = server.ConnectionType?.ToUpperInvariant() ?? "SSH";
+
+        var dto = new ServerProfileDto
+        {
+            Id = server.Id,
+            DisplayName = server.DisplayName,
+            RemoteServer = server.RemoteServer ?? "",
+            ConnectionType = connType,
+        };
+
+        if (connType == "SSH")
+        {
+            dto.SshPort = 22;
+            dto.SshUsername = server.DisplayName.Contains('@')
+                ? server.DisplayName.Split('@')[0]
+                : "";
+
+            // Parse port from display name if present (user@host:port)
+            var parts = server.DisplayName.Split(':');
+            if (parts.Length == 2 && int.TryParse(parts[1], out var port))
+            {
+                dto.SshPort = port;
+                dto.RemoteServer = parts[0].Contains('@')
+                    ? parts[0].Split('@')[1]
+                    : parts[0];
+            }
+        }
+        else if (connType == "RDP")
+        {
+            dto.RemotePort = 3389;
+        }
+
+        var settings = await _configManager.LoadSettingsAsync();
+        ConnectionResult result;
+
+        if (connType == "RDP")
+        {
+            result = await _main.ServerList.ConnectionService.ConnectRdpAsync(dto, settings);
+        }
+        else
+        {
+            result = await _main.ServerList.ConnectionService.ConnectSshAsync(dto, settings);
+        }
+
+        if (result.Success && result.Session is not null)
+        {
+            var tab = _main.Connection.AddSession(dto.Id, dto.DisplayName, connType);
+            tab.HostControl = _embeddedSessionManager.CreateHostControl(
+                tab, dto.DisplayName, connType, result.Session, settings);
+            tab.Status = _localizer["StatusConnected"];
+            _main.StatusText = _localizer.Format("StatusConnected",
+                !string.IsNullOrWhiteSpace(dto.DisplayName) ? dto.DisplayName : dto.RemoteServer);
+        }
+        else if (result.Success)
+        {
+            // External mode: process launched, no embedded tab needed
+            _main.StatusText = _localizer.Format("StatusConnected",
+                !string.IsNullOrWhiteSpace(dto.DisplayName) ? dto.DisplayName : dto.RemoteServer);
+        }
+        else
+        {
+            _main.StatusText = result.ErrorMessage ?? _localizer["ErrorConnectionFailed"];
+        }
+    }
+
+    /// <summary>
+    /// Opens a tool tab from a palette item whose Id starts with
+    /// <c>"tool-"</c>. Extracts the tool ID and optional argument from the
+    /// encoded Id, tracks the tool as recently used, and opens it via
+    /// <see cref="MainViewModel.OpenToolTabAsync"/>.
+    /// </summary>
+    private async Task OpenToolFromPaletteAsync(ServerItemViewModel item)
+    {
+        // Id format: "tool-<toolid>|<argument>"
+        var payload = item.Id["tool-".Length..];
+        var pipeIndex = payload.IndexOf('|');
+        var toolId = pipeIndex >= 0 ? payload[..pipeIndex] : payload;
+        var argument = pipeIndex >= 0 ? payload[(pipeIndex + 1)..] : null;
+
+        var context = !string.IsNullOrEmpty(argument) ? new ToolContext(Argument: argument) : null;
+        _main.TrackRecentTool(toolId.ToUpperInvariant());
+        await _main.OpenToolTabAsync(toolId, item.DisplayName, context);
+    }
+
+    /// <summary>
+    /// Launches an external tool from a palette item whose Id starts with
+    /// <c>"ext-tool-"</c>. Matches the tool name back to the configured
+    /// <see cref="ExternalToolDefinition"/> and starts the process. When a
+    /// server is selected in the tree, placeholders are resolved against it.
+    /// </summary>
+    private void LaunchExternalToolFromPalette(ServerItemViewModel item)
+    {
+        var toolName = item.Id["ext-tool-".Length..];
+        var extTool = _main.CurrentSettings?.ExternalTools
+            .FirstOrDefault(t => string.Equals(t.Name, toolName, StringComparison.Ordinal));
+
+        if (extTool is null) return;
+
+        try
+        {
+            // Resolve placeholders against the currently selected server when available.
+            var selectedServer = _main.ServerList.SelectedServer;
+            var arguments = selectedServer is not null
+                ? extTool.ResolveArguments(
+                    selectedServer.RemoteServer,
+                    selectedServer.EffectivePort,
+                    selectedServer.Username,
+                    serverName: selectedServer.DisplayName,
+                    protocol: selectedServer.ConnectionType,
+                    keyFile: selectedServer.SshKeyPath,
+                    project: selectedServer.ProjectName,
+                    gateway: selectedServer.GatewayName)
+                : extTool.Arguments;
+
+            if (Heimdall.Core.Security.InputValidator.IsShellTarget(extTool.ExecutablePath))
+            {
+                FileLogger.Warn(
+                    $"Blocked external tool '{toolName}': executable is a shell target ({extTool.ExecutablePath}).");
+                return;
+            }
+
+            var needsElevation = extTool.RunAsAdministrator;
+            var psi = new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = extTool.ExecutablePath,
+                Arguments = arguments,
+                UseShellExecute = needsElevation
+            };
+
+            if (!string.IsNullOrWhiteSpace(extTool.WorkingDirectory))
+            {
+                psi.WorkingDirectory = extTool.WorkingDirectory;
+            }
+
+            if (needsElevation)
+            {
+                psi.Verb = "runas";
+            }
+
+            if (extTool.RunHidden)
+            {
+                psi.WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden;
+                psi.CreateNoWindow = true;
+            }
+
+            System.Diagnostics.Process.Start(psi);
+        }
+        catch (Exception ex)
+        {
+            FileLogger.Warn($"Failed to launch external tool '{toolName}': {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Splits the given session with a built-in tool pane and tracks the
+    /// tool as recently used. Delegates the actual split to
+    /// <see cref="SplitService.SplitSessionWithTool"/>.
+    /// </summary>
+    private void SplitSessionWithTool(
+        SessionTabViewModel session,
+        string paletteToolPayload,
+        SplitOrientation orientation,
+        string? paneId = null)
+    {
+        _main.Split.SplitSessionWithTool(session, paletteToolPayload, orientation, paneId);
+        // Parse tool ID for recent tracking
+        var pipeIndex = paletteToolPayload.IndexOf('|');
+        var toolId = pipeIndex >= 0 ? paletteToolPayload[..pipeIndex] : paletteToolPayload;
+        _main.TrackRecentTool(toolId.ToUpperInvariant());
+    }
+
+    // ── Fire-and-forget helper (duplicated from MainViewModel) ───────
+
+    private static async Task SafeFireAndForgetAsync(Task task)
+    {
+        try
+        {
+            await task.ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            FileLogger.Error($"Fire-and-forget task failed: {ex.Message}", ex);
+        }
+    }
+}
