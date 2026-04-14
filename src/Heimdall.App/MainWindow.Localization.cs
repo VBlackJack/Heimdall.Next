@@ -45,7 +45,6 @@ public partial class MainWindow
         ApplyScheduledLocalization(vm);
         ApplySettingsLocalization(vm);
         ApplyAboutLocalization(vm);
-        ApplyAccessibilityLocalization(vm);
 
         // Tools tab labels and rendered cards: VM-driven, just trigger refresh.
         vm.ToolsTab.RefreshHeaderText();
@@ -336,67 +335,6 @@ public partial class MainWindow
         Mw_AboutFeature4.Text = "\u2022 " + vm.Localize("AboutFeatureSftp");
         Mw_AboutFeature5.Text = "\u2022 " + vm.Localize("AboutFeatureBilingual");
         Mw_AboutFeature6.Text = "\u2022 " + vm.Localize("AboutFeatureTheme");
-    }
-
-    private void ApplyAccessibilityLocalization(MainViewModel vm)
-    {
-        System.Windows.Automation.AutomationProperties.SetName(TabSessions, vm.Localize("NavTabSessions"));
-        System.Windows.Automation.AutomationProperties.SetName(TabTunnels, vm.Localize("NavTabTunnels"));
-        System.Windows.Automation.AutomationProperties.SetName(TabScheduled, vm.Localize("NavTabScheduled"));
-        System.Windows.Automation.AutomationProperties.SetName(TabSettings, vm.Localize("NavTabSettings"));
-        System.Windows.Automation.AutomationProperties.SetName(TabAbout, vm.Localize("NavTabAbout"));
-        System.Windows.Automation.AutomationProperties.SetName(ToggleSidebarButton, vm.Localize("TooltipHideSidebar"));
-        System.Windows.Automation.AutomationProperties.SetName(ShowSidebarButton, vm.Localize("TooltipShowSidebar"));
-        System.Windows.Automation.AutomationProperties.SetName(ExpandAllButton, vm.Localize("TooltipExpandAll"));
-        System.Windows.Automation.AutomationProperties.SetName(CollapseAllButton, vm.Localize("TooltipCollapseAll"));
-        System.Windows.Automation.AutomationProperties.SetName(AddButton, vm.Localize("TooltipAddMenu"));
-        System.Windows.Automation.AutomationProperties.SetName(SessionTabControl, vm.Localize("NavTabSessions"));
-        System.Windows.Automation.AutomationProperties.SetName(QuickConnectButton, vm.Localize("QuickConnectShortcut"));
-
-        // DataTemplate relay: session tab close button and busy indicator bind to ancestor Tag
-        SessionTabControl.Tag = vm.Localize("A11yCloseSessionTab");
-        Mw_SessionsGrid.Tag = vm.Localize("A11yOperationInProgress");
-
-        // Server detail and empty state buttons
-        System.Windows.Automation.AutomationProperties.SetName(Mw_DetailConnectBtn, vm.Localize("AccessDetailConnect"));
-        System.Windows.Automation.AutomationProperties.SetName(Mw_ToolDetailOpenBtn, vm.Localize("AccessDetailOpen"));
-        System.Windows.Automation.AutomationProperties.SetName(Mw_DetailEditBtn, vm.Localize("BtnEdit"));
-        System.Windows.Automation.AutomationProperties.SetName(Mw_DetailDeleteBtn, vm.Localize("BtnDelete"));
-        System.Windows.Automation.AutomationProperties.SetName(Mw_EmptyBtnAddSession, vm.Localize("AccessEmptyAddServer"));
-        System.Windows.Automation.AutomationProperties.SetName(Mw_EmptyBtnImport, vm.Localize("AccessEmptyImport"));
-        System.Windows.Automation.AutomationProperties.SetName(Mw_EmptyBtnExploreTools, vm.Localize("AccessEmptyExploreTools"));
-
-        // Tunnel panel icon buttons
-        Mw_TunnelPanelCollapseBtn.ToolTip = vm.Localize("TooltipCollapseTunnelPanel");
-
-        // Tunnel tab buttons
-        System.Windows.Automation.AutomationProperties.SetName(Mw_TunnelsCloseSelectedBtn, vm.Localize("AccessTunnelsCloseSelected"));
-        System.Windows.Automation.AutomationProperties.SetName(Mw_TunnelsCloseAllBtn, vm.Localize("AccessTunnelsCloseAll"));
-
-        // Manage gateways link
-        System.Windows.Automation.AutomationProperties.SetName(Mw_TunnelsManageGatewaysLink, vm.Localize("TunnelsManageGatewaysLink"));
-
-        // Scheduled task buttons
-        System.Windows.Automation.AutomationProperties.SetName(Mw_ScheduledAddBtn, vm.Localize("AccessScheduledAdd"));
-        System.Windows.Automation.AutomationProperties.SetName(Mw_ScheduledEditBtn, vm.Localize("AccessScheduledEdit"));
-        System.Windows.Automation.AutomationProperties.SetName(Mw_ScheduledDeleteBtn, vm.Localize("AccessScheduledDelete"));
-        System.Windows.Automation.AutomationProperties.SetName(Mw_ScheduledCreateBtn, vm.Localize("AccessScheduledCreate"));
-
-        // Settings action buttons
-        System.Windows.Automation.AutomationProperties.SetName(Mw_SettingsSaveBtn, vm.Localize("AccessSettingsSave"));
-        System.Windows.Automation.AutomationProperties.SetName(Mw_SettingsResetBtn, vm.Localize("AccessSettingsReset"));
-        System.Windows.Automation.AutomationProperties.SetName(Mw_SettingsExportBtn, vm.Localize("AccessSettingsExport"));
-        System.Windows.Automation.AutomationProperties.SetName(Mw_SettingsImportBtn, vm.Localize("AccessSettingsImport"));
-        System.Windows.Automation.AutomationProperties.SetName(Mw_SettingsCitrixBtn, vm.Localize("AccessSettingsCitrix"));
-
-        // Settings gateway sub-panel buttons
-        System.Windows.Automation.AutomationProperties.SetName(Mw_SettingsGatewaysAddBtn, vm.Localize("AccessSettingsGatewaysAdd"));
-        System.Windows.Automation.AutomationProperties.SetName(Mw_SettingsGatewaysEditBtn, vm.Localize("AccessSettingsGatewaysEdit"));
-        System.Windows.Automation.AutomationProperties.SetName(Mw_SettingsGatewaysDeleteBtn, vm.Localize("AccessSettingsGatewaysDelete"));
-
-        // External tools management buttons
-        System.Windows.Automation.AutomationProperties.SetName(Mw_SettingsExtToolsAddBtn, vm.Localize("AccessSettingsExtToolsAdd"));
-        System.Windows.Automation.AutomationProperties.SetName(Mw_SettingsExtToolsRemoveBtn, vm.Localize("AccessSettingsExtToolsRemove"));
     }
 
     private void UpdateExtToolPreview()
