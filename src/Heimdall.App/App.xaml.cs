@@ -295,6 +295,7 @@ public partial class App : System.Windows.Application
         services.AddTransient<ServerListViewModel>();
         services.AddTransient<ConnectionViewModel>();
         services.AddTransient<SettingsViewModel>();
+        services.AddTransient<CommandLibraryViewModel>();
 
         // Windows
         services.AddTransient<MainWindow>();

@@ -2,6 +2,11 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:loc="clr-namespace:Heimdall.App.Localization"
+             xmlns:vm="clr-namespace:Heimdall.App.ViewModels"
+             d:DataContext="{d:DesignInstance Type=vm:CommandLibraryViewModel}"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
              Background="{DynamicResource BackgroundBrush}">
     <Grid>
         <Grid.RowDefinitions>
@@ -21,61 +26,75 @@
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,0,0,1">
             <DockPanel>
-                <Button x:Name="BtnHelp" DockPanel.Dock="Right"
-                        Content="?" Click="OnHelpClick"
+                <Button DockPanel.Dock="Right"
+                        Content="?"
+                        Command="{Binding ToggleHelpCommand}"
+                        ToolTip="{loc:Translate ToolHelpTooltip}"
+                        AutomationProperties.Name="{loc:Translate ToolHelpTooltip}"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}"
                         FontSize="{StaticResource FontSizeBody}"
                         FontWeight="Bold" Width="24" Height="24"
                         Margin="{StaticResource MarginInlineControl}"
                         TabIndex="15"/>
-                <Button x:Name="BtnHistory" DockPanel.Dock="Right"
+                <Button DockPanel.Dock="Right"
                         Content="&#xE81C;" FontFamily="Segoe MDL2 Assets"
-                        Click="OnHistoryToggle"
+                        Command="{Binding ToggleHistoryCommand}"
+                        ToolTip="{loc:Translate ToolCmdLibBtnHistory}"
+                        AutomationProperties.Name="{loc:Translate ToolCmdLibBtnHistory}"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
                         FontSize="14" MinWidth="28" Height="28"
                         Padding="4"
                         Margin="{StaticResource MarginInlineControl}"
                         TabIndex="14"/>
-                <Button x:Name="BtnSync" DockPanel.Dock="Right"
+                <Button DockPanel.Dock="Right"
                         Content="&#xE895;" FontFamily="Segoe MDL2 Assets"
-                        Click="OnSyncClick"
+                        Command="{Binding SyncCommand}"
+                        ToolTip="{loc:Translate ToolCmdLibBtnSync}"
+                        AutomationProperties.Name="{loc:Translate ToolCmdLibBtnSync}"
+                        IsEnabled="{Binding IsSyncing, Converter={StaticResource InvertBoolConverter}}"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
                         FontSize="14" MinWidth="28" Height="28"
                         Padding="4"
                         Margin="{StaticResource MarginInlineControl}"
                         TabIndex="13"/>
-                <Button x:Name="BtnImport" DockPanel.Dock="Right"
+                <Button DockPanel.Dock="Right"
                         Content="&#xE8B5;" FontFamily="Segoe MDL2 Assets"
-                        Click="OnImportClick"
+                        Command="{Binding ImportCommand}"
+                        ToolTip="{loc:Translate ToolCmdLibBtnImport}"
+                        AutomationProperties.Name="{loc:Translate ToolCmdLibBtnImport}"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
                         FontSize="14" MinWidth="28" Height="28"
                         Padding="4"
                         Margin="{StaticResource MarginInlineControl}"
                         TabIndex="12"/>
-                <Button x:Name="BtnExport" DockPanel.Dock="Right"
+                <Button DockPanel.Dock="Right"
                         Content="&#xEDE1;" FontFamily="Segoe MDL2 Assets"
-                        Click="OnExportClick"
+                        Command="{Binding ExportCommand}"
+                        ToolTip="{loc:Translate ToolCmdLibBtnExport}"
+                        AutomationProperties.Name="{loc:Translate ToolCmdLibBtnExport}"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
                         FontSize="14" MinWidth="28" Height="28"
                         Padding="4"
                         Margin="{StaticResource MarginInlineControl}"
                         TabIndex="11"/>
-                <Button x:Name="BtnAdd" DockPanel.Dock="Right"
+                <Button DockPanel.Dock="Right"
                         Content="&#xE710;" FontFamily="Segoe MDL2 Assets"
-                        Click="OnAddClick"
+                        Command="{Binding AddActionCommand}"
+                        ToolTip="{loc:Translate ToolCmdLibBtnAdd}"
+                        AutomationProperties.Name="{loc:Translate ToolCmdLibBtnAdd}"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
                         FontSize="14" MinWidth="28" Height="28"
                         Padding="4"
                         Margin="{StaticResource MarginInlineControl}"
                         TabIndex="10"/>
-                <TextBlock x:Name="TxtTitle"
+                <TextBlock Text="{loc:Translate ToolCmdLibTitle}"
                            FontSize="{StaticResource FontSizeSubtitle}"
                            FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
                            VerticalAlignment="Center"/>
-                <TextBlock x:Name="TxtSyncStatus"
-                           Visibility="Collapsed"
+                <TextBlock Text="{Binding SyncStatusMessage}"
+                           Visibility="{Binding IsSyncing, Converter={StaticResource BoolToVisibilityConverter}}"
                            FontSize="{StaticResource FontSizeCaption}"
                            Foreground="{DynamicResource TextSecondaryBrush}"
                            VerticalAlignment="Center"
@@ -84,18 +103,20 @@
         </Border>
 
         <!-- ═══════════ ROW 1 — HELP PANEL ═══════════ -->
-        <Border x:Name="HelpPanel" Grid.Row="1"
-                Style="{StaticResource ToolHelpPanelStyle}">
+        <Border Grid.Row="1"
+                Style="{StaticResource ToolHelpPanelStyle}"
+                Visibility="{Binding IsHelpVisible, Converter={StaticResource BoolToVisibilityConverter}}">
             <DockPanel>
-                <Button x:Name="BtnCloseHelp" DockPanel.Dock="Right"
+                <Button DockPanel.Dock="Right"
                         Content="&#xE711;" FontFamily="Segoe MDL2 Assets"
                         FontSize="{StaticResource FontSizeBody}"
-                        Click="OnCloseHelpClick"
+                        Command="{Binding ToggleHelpCommand}"
+                        AutomationProperties.Name="{loc:Translate BtnClose}"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
                         VerticalAlignment="Top" Width="24" Height="24"
                         TabIndex="16"/>
                 <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
-                    <TextBlock x:Name="TxtHelpContent" TextWrapping="Wrap"
+                    <TextBlock Text="{Binding HelpContentText}" TextWrapping="Wrap"
                                FontSize="{StaticResource FontSizeBody}"
                                Foreground="{DynamicResource TextSecondaryBrush}"
                                LineHeight="20"/>
@@ -117,64 +138,79 @@
 
                 <!-- Search bar — always full width -->
                 <Grid Grid.Row="0">
-                    <TextBox x:Name="TxtSearch"
-                             Style="{StaticResource WatermarkTextBoxStyle}"
+                    <TextBox Style="{StaticResource WatermarkTextBoxStyle}"
+                             Tag="{loc:Translate ToolCmdLibSearchPlaceholder}"
+                             Text="{Binding SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                             AutomationProperties.Name="{loc:Translate ToolCmdLibSearchPlaceholder}"
                              FontSize="{StaticResource FontSizeBodyLarge}"
                              Padding="8,6,28,6"
                              Background="{DynamicResource CardBrush}"
                              Foreground="{DynamicResource TextPrimaryBrush}"
                              BorderBrush="{DynamicResource BorderBrush}"
-                             TextChanged="OnSearchTextChanged" TabIndex="0"/>
-                    <Button x:Name="BtnClearSearch"
-                            Content="&#xE711;" FontFamily="Segoe MDL2 Assets"
+                             TabIndex="0"/>
+                    <Button Content="&#xE711;" FontFamily="Segoe MDL2 Assets"
                             FontSize="{StaticResource FontSizeSmallCaption}"
                             HorizontalAlignment="Right" VerticalAlignment="Center"
                             Margin="{StaticResource MarginInlineXs}" Padding="4"
                             Style="{DynamicResource ToolbarGhostButtonStyle}" MinHeight="0"
-                            Click="OnClearSearchClick" Visibility="Collapsed"/>
+                            Command="{Binding ClearSearchCommand}"
+                            AutomationProperties.Name="{loc:Translate A11yClearSearch}"
+                            Visibility="{Binding HasSearchText, Converter={StaticResource BoolToVisibilityConverter}}"/>
                 </Grid>
 
                 <!-- Filter controls — wrappable -->
                 <WrapPanel Grid.Row="1" Margin="0,6,0,0" VerticalAlignment="Center">
-                    <TextBlock x:Name="TxtResultCount"
+                    <TextBlock Text="{Binding ResultCountText}"
                                FontSize="{StaticResource FontSizeCaption}"
                                Foreground="{DynamicResource TextSecondaryBrush}"
                                VerticalAlignment="Center" Margin="0,2,8,2"
                                MinWidth="65"/>
-                    <Button x:Name="BtnFavoriteFilter"
-                            Content="&#x2605;" Click="OnFavoriteFilterClick"
+                    <Button Content="&#x2605;"
+                            Command="{Binding ToggleFavoritesFilterCommand}"
+                            ToolTip="{loc:Translate ToolCmdLibFilterFavorites}"
+                            AutomationProperties.Name="{loc:Translate ToolCmdLibFilterFavorites}"
                             Style="{DynamicResource ToolbarGhostButtonStyle}"
                             FontSize="14" MinWidth="28" Height="28" Padding="4"
                             Margin="0,2,8,2"
-                            Foreground="{DynamicResource TextSecondaryBrush}"/>
-                    <ComboBox x:Name="CmbCategory"
-                              Width="180" Margin="0,2,8,2"
+                            Foreground="{Binding FavoritesFilterBrushKey, Converter={StaticResource ResourceKeyToBrushConverter}}"/>
+                    <ComboBox Width="180" Margin="0,2,8,2"
                               FontSize="{StaticResource FontSizeBody}"
+                              ItemsSource="{Binding CategoryFilterItems}"
+                              SelectedIndex="{Binding CategoryFilterIndex, Mode=TwoWay}"
                               ToolTip="{loc:Translate ToolCmdLibDialogLblCategory}"
-                              SelectionChanged="OnFilterChanged" TabIndex="1"/>
-                    <ComboBox x:Name="CmbPlatform"
-                              Width="130" Margin="0,2,8,2"
+                              AutomationProperties.Name="{loc:Translate ToolCmdLibDialogLblCategory}"
+                              TabIndex="1"/>
+                    <ComboBox Width="130" Margin="0,2,8,2"
                               FontSize="{StaticResource FontSizeBody}"
-                              SelectionChanged="OnFilterChanged" TabIndex="2"
-                              ToolTip="{loc:Translate ToolCmdLibDialogLblPlatform}"/>
-                    <ComboBox x:Name="CmbRisk"
-                              Width="120" Margin="0,2,0,2"
+                              ItemsSource="{Binding PlatformFilterItems}"
+                              SelectedIndex="{Binding PlatformFilterIndex, Mode=TwoWay}"
+                              ToolTip="{loc:Translate ToolCmdLibDialogLblPlatform}"
+                              AutomationProperties.Name="{loc:Translate ToolCmdLibDialogLblPlatform}"
+                              TabIndex="2"/>
+                    <ComboBox Width="120" Margin="0,2,0,2"
                               FontSize="{StaticResource FontSizeBody}"
-                              SelectionChanged="OnFilterChanged" TabIndex="3"
-                              ToolTip="{loc:Translate ToolCmdLibDialogLblRisk}"/>
+                              ItemsSource="{Binding RiskFilterItems}"
+                              SelectedIndex="{Binding RiskFilterIndex, Mode=TwoWay}"
+                              ToolTip="{loc:Translate ToolCmdLibDialogLblRisk}"
+                              AutomationProperties.Name="{loc:Translate ToolCmdLibDialogLblRisk}"
+                              TabIndex="3"/>
                 </WrapPanel>
             </Grid>
         </Border>
 
         <!-- Loading indicator -->
-        <ProgressBar x:Name="LoadingBar" Grid.Row="3"
-                     Style="{StaticResource ToolLoadingBarStyle}"/>
+        <ProgressBar Grid.Row="3"
+                     Style="{StaticResource ToolLoadingBarStyle}"
+                     Visibility="{Binding IsBusy, Converter={StaticResource BoolToVisibilityConverter}}"/>
 
         <!-- ═══════════ ROW 4 — ACTION LIST ═══════════ -->
-        <ListView x:Name="ActionList" Grid.Row="4"
+        <ListView Grid.Row="4"
                   Background="Transparent" BorderThickness="0"
                   ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                  SelectionChanged="OnActionSelected" TabIndex="4">
+                  ItemsSource="{Binding ActionsView}"
+                  SelectedItem="{Binding SelectedEntry, Mode=TwoWay}"
+                  AutomationProperties.Name="{loc:Translate ToolCmdLibTitle}"
+                  TabIndex="4">
             <ListView.ItemContainerStyle>
                 <Style TargetType="ListViewItem">
                     <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
@@ -230,8 +266,8 @@
                         <!-- Favorite toggle -->
                         <Button DockPanel.Dock="Right"
                                 Content="{Binding FavoriteIcon}"
-                                Click="OnFavoriteToggle"
-                                Tag="{Binding}"
+                                Command="{Binding DataContext.ToggleFavoriteByIdCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                CommandParameter="{Binding Source.Id}"
                                 ToolTip="{Binding FavoriteTooltip}"
                                 Style="{DynamicResource ToolbarGhostButtonStyle}"
                                 FontSize="14" Width="24" Height="24"
@@ -272,26 +308,28 @@
         </ListView>
 
         <!-- No results -->
-        <TextBlock x:Name="TxtNoResults" Grid.Row="4"
-                   Visibility="Collapsed"
+        <TextBlock Grid.Row="4"
+                   Text="{loc:Translate ToolCmdLibNoResults}"
+                   Visibility="{Binding IsNoResultsVisible, Converter={StaticResource BoolToVisibilityConverter}}"
                    Style="{StaticResource ToolEmptyStateTextStyle}"
                    HorizontalAlignment="Center" VerticalAlignment="Center"/>
 
         <!-- Empty state -->
-        <Border x:Name="EmptyState" Grid.Row="4"
-                Style="{StaticResource ToolEmptyStateStyle}">
+        <Border Grid.Row="4"
+                Style="{StaticResource ToolEmptyStateStyle}"
+                Visibility="{Binding IsEmptyStateVisible, Converter={StaticResource BoolToVisibilityConverter}}">
             <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
                 <TextBlock Text="&#xE8F1;" FontFamily="Segoe MDL2 Assets"
                            Style="{StaticResource ToolEmptyStateIconStyle}"
                            Focusable="False"/>
-                <TextBlock x:Name="TxtEmptyState"
+                <TextBlock Text="{Binding EmptyStateMessage}"
                            Style="{StaticResource ToolEmptyStateTextStyle}"/>
             </StackPanel>
         </Border>
 
         <!-- ═══════════ ROW 5 — GENERATOR PANEL ═══════════ -->
-        <Border x:Name="GeneratorPanel" Grid.Row="5"
-                Visibility="Collapsed"
+        <Border Grid.Row="5"
+                Visibility="{Binding IsGeneratorVisible, Converter={StaticResource BoolToVisibilityConverter}}"
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,1,0,0"
@@ -305,29 +343,33 @@
                 <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto">
                     <StackPanel Margin="12,12,12,8">
                         <DockPanel Margin="{StaticResource MarginStackItem}">
-                            <StackPanel x:Name="TemplateSwitcher" DockPanel.Dock="Right"
-                                        Orientation="Horizontal" Visibility="Collapsed">
-                                <RadioButton x:Name="RbWindows"
+                            <StackPanel DockPanel.Dock="Right"
+                                        Orientation="Horizontal"
+                                        Visibility="{Binding HasMultipleTemplates, Converter={StaticResource BoolToVisibilityConverter}}">
+                                <RadioButton Content="{loc:Translate ToolCmdLibPlatformWindows}"
                                              GroupName="TemplatePlatform"
-                                             Checked="OnTemplatePlatformChanged"
+                                             IsChecked="{Binding UseWindowsTemplate, Mode=TwoWay}"
+                                             AutomationProperties.Name="{loc:Translate ToolCmdLibPlatformWindows}"
                                              FontSize="{StaticResource FontSizeCaption}"
                                              Foreground="{DynamicResource TextPrimaryBrush}"
                                              VerticalAlignment="Center" Margin="{StaticResource MarginInlineSm}"/>
-                                <RadioButton x:Name="RbLinux"
+                                <RadioButton Content="{loc:Translate ToolCmdLibPlatformLinux}"
                                              GroupName="TemplatePlatform"
-                                             Checked="OnTemplatePlatformChanged"
+                                             IsChecked="{Binding UseLinuxTemplate, Mode=TwoWay}"
+                                             AutomationProperties.Name="{loc:Translate ToolCmdLibPlatformLinux}"
                                              FontSize="{StaticResource FontSizeCaption}"
                                              Foreground="{DynamicResource TextPrimaryBrush}"
                                              VerticalAlignment="Center"/>
                             </StackPanel>
-                            <TextBlock x:Name="TxtTemplateName"
+                            <TextBlock Text="{Binding ActiveTemplateName}"
                                        FontSize="{StaticResource FontSizeBody}"
                                        FontWeight="SemiBold"
                                        Foreground="{DynamicResource TextPrimaryBrush}"
                                        VerticalAlignment="Center"/>
                         </DockPanel>
 
-                        <ItemsControl x:Name="ParametersList" Margin="{StaticResource MarginLabelBottom}">
+                        <ItemsControl ItemsSource="{Binding Parameters}"
+                                      Margin="{StaticResource MarginLabelBottom}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
                                     <DockPanel Margin="{StaticResource MarginLabelBottom}"
@@ -337,28 +379,27 @@
                                                    FontSize="{StaticResource FontSizeBody}"
                                                    Foreground="{DynamicResource TextSecondaryBrush}"
                                                    VerticalAlignment="Center"/>
-                                        <TextBox Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}"
+                                        <TextBox Text="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                                  ToolTip="{Binding DisplayTooltip}"
                                                  FontSize="{StaticResource FontSizeBody}"
                                                  FontFamily="Consolas"
                                                  Padding="{StaticResource PaddingInput}"
                                                  Background="{DynamicResource CardBrush}"
                                                  Foreground="{DynamicResource TextPrimaryBrush}"
-                                                 BorderBrush="{DynamicResource BorderBrush}"
-                                                 TextChanged="OnParameterChanged"/>
+                                                 BorderBrush="{DynamicResource BorderBrush}"/>
                                     </DockPanel>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
 
                         <!-- Validation errors (shown when parameters are invalid) -->
-                        <TextBlock x:Name="TxtValidationError"
-                                   Visibility="Collapsed"
+                        <TextBlock Text="{Binding ValidationError}"
+                                   Visibility="{Binding HasValidationError, Converter={StaticResource BoolToVisibilityConverter}}"
                                    FontSize="{StaticResource FontSizeCaption}"
                                    Foreground="{DynamicResource ErrorBrush}"
                                    TextWrapping="Wrap" Margin="{StaticResource MarginLabelBottom}"/>
 
-                        <TextBox x:Name="TxtGenerated"
+                        <TextBox Text="{Binding GeneratedCommand, Mode=OneWay}"
                                  IsReadOnly="True" TextWrapping="NoWrap"
                                  HorizontalScrollBarVisibility="Auto"
                                  FontFamily="Consolas"
@@ -370,24 +411,31 @@
                                  Margin="{StaticResource MarginStackItem}"/>
 
                         <!-- Notes / Examples / Links (collapsed when empty) -->
-                        <StackPanel x:Name="DetailPanel" Visibility="Collapsed" Margin="{StaticResource MarginLabelBottom}">
-                            <TextBlock x:Name="TxtNotes" TextWrapping="Wrap"
+                        <StackPanel Visibility="{Binding HasDetailContent, Converter={StaticResource BoolToVisibilityConverter}}"
+                                    Margin="{StaticResource MarginLabelBottom}">
+                            <TextBlock Text="{Binding SelectedActionNotes}"
+                                       Visibility="{Binding HasSelectedNotes, Converter={StaticResource BoolToVisibilityConverter}}"
+                                       TextWrapping="Wrap"
                                        FontSize="{StaticResource FontSizeCaption}"
                                        Foreground="{DynamicResource TextSecondaryBrush}"
                                        Margin="{StaticResource MarginLabelBottom}"/>
-                            <ItemsControl x:Name="ExamplesList">
+                            <ItemsControl ItemsSource="{Binding SelectedActionExamples}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
                                         <Border Padding="6,3" Margin="0,2,0,0"
                                                 Background="{DynamicResource BackgroundBrush}"
                                                 CornerRadius="{StaticResource CornerRadiusSm}" Cursor="Hand"
-                                                MouseLeftButtonUp="OnExampleClick"
                                                 Tag="{Binding Command}">
+                                            <Border.InputBindings>
+                                                <MouseBinding MouseAction="LeftClick"
+                                                              Command="{Binding DataContext.ApplyExampleCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                              CommandParameter="{Binding Command}"/>
+                                            </Border.InputBindings>
                                             <DockPanel>
                                                 <Button DockPanel.Dock="Right"
                                                         Content="&#xE8C8;" FontFamily="Segoe MDL2 Assets"
-                                                        Click="OnExampleCopyClick"
-                                                        Tag="{Binding Command}"
+                                                        Command="{Binding DataContext.CopyExampleCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                        CommandParameter="{Binding Command}"
                                                         Style="{DynamicResource ToolbarGhostButtonStyle}"
                                                         FontSize="11" Width="22" Height="22"
                                                         Padding="2" VerticalAlignment="Top"
@@ -408,7 +456,7 @@
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
-                            <ItemsControl x:Name="LinksList" Margin="0,4,0,0">
+                            <ItemsControl ItemsSource="{Binding SelectedActionLinks}" Margin="0,4,0,0">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
                                         <TextBlock FontSize="{StaticResource FontSizeCaption}">
@@ -428,14 +476,20 @@
                 <!-- Action buttons — always visible below scroll area -->
                 <DockPanel Grid.Row="1" Margin="12,0,12,12">
                     <StackPanel DockPanel.Dock="Left" Orientation="Horizontal">
-                        <Button x:Name="BtnEdit" Click="OnEditClick"
+                        <Button Command="{Binding EditSelectedCommand}"
                                 Content="&#xE70F;" FontFamily="Segoe MDL2 Assets"
+                                Visibility="{Binding CanEditSelected, Converter={StaticResource BoolToVisibilityConverter}}"
+                                ToolTip="{loc:Translate ToolCmdLibBtnEdit}"
+                                AutomationProperties.Name="{loc:Translate ToolCmdLibBtnEdit}"
                                 Style="{DynamicResource ToolbarGhostButtonStyle}"
                                 FontSize="14" MinWidth="28" Height="28"
                                 Padding="4"
                                 Margin="{StaticResource MarginInlineXs}" TabIndex="7"/>
-                        <Button x:Name="BtnDelete" Click="OnDeleteClick"
+                        <Button Command="{Binding DeleteSelectedCommand}"
                                 Content="&#xE74D;" FontFamily="Segoe MDL2 Assets"
+                                Visibility="{Binding CanEditSelected, Converter={StaticResource BoolToVisibilityConverter}}"
+                                ToolTip="{loc:Translate ToolCmdLibBtnDelete}"
+                                AutomationProperties.Name="{loc:Translate ToolCmdLibBtnDelete}"
                                 Style="{DynamicResource ToolbarGhostButtonStyle}"
                                 FontSize="14" MinWidth="28" Height="28"
                                 Padding="4"
@@ -443,12 +497,21 @@
                     </StackPanel>
                     <StackPanel DockPanel.Dock="Right" Orientation="Horizontal"
                                 HorizontalAlignment="Right">
-                        <Button x:Name="BtnCopy" Click="OnCopyClick"
+                        <Button x:Name="BtnCopy"
+                                Command="{Binding CopyCommand}"
+                                IsEnabled="{Binding IsCommandValid}"
+                                Content="{loc:Translate ToolCmdLibBtnCopy}"
+                                AutomationProperties.Name="{loc:Translate ToolCmdLibBtnCopy}"
                                 Style="{DynamicResource SecondaryButtonStyle}"
                                 Padding="{StaticResource PaddingButtonCopy}"
                                 FontSize="{StaticResource FontSizeBody}"
                                 Margin="{StaticResource MarginInlineSm}" TabIndex="5"/>
-                        <Button x:Name="BtnSend" Click="OnSendClick"
+                        <Button x:Name="BtnSend"
+                                Command="{Binding SendCommand}"
+                                IsEnabled="{Binding IsSendEnabled}"
+                                Visibility="{Binding IsSendVisible, Converter={StaticResource BoolToVisibilityConverter}}"
+                                Content="{loc:Translate ToolCmdLibBtnSend}"
+                                AutomationProperties.Name="{loc:Translate ToolCmdLibBtnSend}"
                                 Style="{DynamicResource PrimaryButtonStyle}"
                                 Padding="{StaticResource PaddingButtonPrimary}"
                                 FontSize="{StaticResource FontSizeBody}"
@@ -459,35 +522,36 @@
         </Border>
 
         <!-- ═══════════ ROW 6 — HISTORY PANEL ═══════════ -->
-        <Border x:Name="HistoryPanel" Grid.Row="6"
-                Visibility="Collapsed"
+        <Border Grid.Row="6"
+                Visibility="{Binding IsHistoryVisible, Converter={StaticResource BoolToVisibilityConverter}}"
                 Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,1,0,0"
                 MaxHeight="300">
             <DockPanel>
                 <DockPanel DockPanel.Dock="Top" Margin="12,8,12,4">
-                    <Button x:Name="BtnClearHistory" DockPanel.Dock="Right"
+                    <Button DockPanel.Dock="Right"
                             Content="&#xE74D;" FontFamily="Segoe MDL2 Assets"
-                            Click="OnClearHistory"
+                            Command="{Binding ClearHistoryCommand}"
+                            ToolTip="{loc:Translate ToolCmdLibHistoryClear}"
+                            AutomationProperties.Name="{loc:Translate ToolCmdLibHistoryClear}"
                             Style="{DynamicResource ToolbarGhostButtonStyle}"
                             FontSize="14" MinWidth="28" Height="28"
                             Padding="4"/>
-                    <TextBlock x:Name="TxtHistoryTitle"
+                    <TextBlock Text="{loc:Translate ToolCmdLibHistoryTitle}"
                                FontSize="{StaticResource FontSizeBody}"
                                FontWeight="SemiBold"
                                Foreground="{DynamicResource TextPrimaryBrush}"
                                VerticalAlignment="Center"/>
-                    <TextBlock x:Name="TxtHistoryCopied"
-                               Visibility="Collapsed"
+                    <TextBlock Text="{loc:Translate ToolCmdLibCopied}"
+                               Visibility="{Binding IsHistoryCopyFeedbackVisible, Converter={StaticResource BoolToVisibilityConverter}}"
                                FontSize="{StaticResource FontSizeCaption}"
                                Foreground="{DynamicResource SuccessBrush}"
                                VerticalAlignment="Center"
                                Margin="{StaticResource MarginInlineControl}"/>
                 </DockPanel>
-                <ListView x:Name="HistoryList"
+                <ListView ItemsSource="{Binding HistoryEntries}"
                           Background="Transparent" BorderThickness="0"
-                          MouseDoubleClick="OnHistoryItemDoubleClick"
                           ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                     <ListView.ItemContainerStyle>
                         <Style TargetType="ListViewItem">
@@ -504,6 +568,11 @@
                                                 Background="{TemplateBinding Background}"
                                                 BorderBrush="{DynamicResource BorderBrush}"
                                                 BorderThickness="0,0,0,1">
+                                            <Border.InputBindings>
+                                                <MouseBinding MouseAction="LeftDoubleClick"
+                                                              Command="{Binding DataContext.CopyHistoryEntryCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                              CommandParameter="{Binding GeneratedCommand}"/>
+                                            </Border.InputBindings>
                                             <ContentPresenter/>
                                         </Border>
                                         <ControlTemplate.Triggers>
@@ -526,8 +595,8 @@
                             <DockPanel>
                                 <Button DockPanel.Dock="Right"
                                         Content="&#xE8C8;" FontFamily="Segoe MDL2 Assets"
-                                        Click="OnHistoryCopyClick"
-                                        Tag="{Binding GeneratedCommand}"
+                                        Command="{Binding DataContext.CopyHistoryEntryCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                        CommandParameter="{Binding GeneratedCommand}"
                                         ToolTip="{loc:Translate ToolCmdLibBtnCopy}"
                                         Style="{DynamicResource ToolbarGhostButtonStyle}"
                                         FontSize="11" Width="22" Height="22"
@@ -557,7 +626,8 @@
                         </DataTemplate>
                     </ListView.ItemTemplate>
                 </ListView>
-                <TextBlock x:Name="TxtHistoryEmpty" Visibility="Collapsed"
+                <TextBlock Text="{loc:Translate ToolCmdLibHistoryEmpty}"
+                           Visibility="{Binding IsHistoryEmpty, Converter={StaticResource BoolToVisibilityConverter}}"
                            Style="{StaticResource ToolEmptyStateTextStyle}"
                            HorizontalAlignment="Center" VerticalAlignment="Center"
                            Margin="0,8,0,8"/>
