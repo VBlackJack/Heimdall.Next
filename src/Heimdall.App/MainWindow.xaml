@@ -1256,15 +1256,15 @@
                                Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                         <Button x:Name="Mw_ScheduledAddBtn" Content=""
-                                Command="{Binding AddScheduledTaskCommand}"
+                                Command="{Binding Scheduled.AddTaskCommand}"
                                 Style="{DynamicResource PrimaryButtonStyle}"
                                 Padding="8,3" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,4,0"/>
                         <Button x:Name="Mw_ScheduledEditBtn" Content=""
-                                Command="{Binding EditScheduledTaskCommand}"
+                                Command="{Binding Scheduled.EditTaskCommand}"
                                 Style="{DynamicResource SecondaryButtonStyle}"
                                 Padding="8,3" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,4,0"/>
                         <Button x:Name="Mw_ScheduledDeleteBtn" Content=""
-                                Command="{Binding DeleteScheduledTaskCommand}"
+                                Command="{Binding Scheduled.DeleteTaskCommand}"
                                 Style="{DynamicResource SecondaryButtonStyle}"
                                 Padding="8,3" FontSize="{StaticResource FontSizeCaption}"/>
                     </StackPanel>
@@ -1272,8 +1272,8 @@
 
                 <Grid>
                     <!-- Scheduled tasks DataGrid -->
-                    <DataGrid ItemsSource="{Binding ScheduledTasks}"
-                              SelectedItem="{Binding SelectedScheduledTask}"
+                    <DataGrid ItemsSource="{Binding Scheduled.Tasks}"
+                              SelectedItem="{Binding Scheduled.SelectedTask}"
                               AutoGenerateColumns="False"
                               SelectionMode="Single"
                               Margin="16,0,16,8"
@@ -1294,13 +1294,13 @@
 
                     <!-- Empty state -->
                     <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center"
-                                Visibility="{Binding HasNoScheduledTasks, Converter={StaticResource BoolToVisibilityConverter}}">
+                                Visibility="{Binding Scheduled.HasNoTasks, Converter={StaticResource BoolToVisibilityConverter}}">
                         <TextBlock x:Name="Mw_ScheduledEmpty" Text=""
                                    FontSize="{StaticResource FontSizeBodyLarge}"
                                    Foreground="{DynamicResource TextSecondaryBrush}"
                                    HorizontalAlignment="Center" Margin="0,0,0,8"/>
                         <Button x:Name="Mw_ScheduledCreateBtn" Content=""
-                                Command="{Binding AddScheduledTaskCommand}"
+                                Command="{Binding Scheduled.AddTaskCommand}"
                                 Style="{DynamicResource PrimaryButtonStyle}"
                                 Padding="12,6" FontSize="{StaticResource FontSizeBody}"
                                 HorizontalAlignment="Center"/>

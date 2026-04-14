@@ -419,9 +419,9 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
 
     private void OnScheduledTaskDoubleClick(object sender, MouseButtonEventArgs e)
     {
-        if (DataContext is ViewModels.MainViewModel vm && vm.SelectedScheduledTask is not null)
+        if (DataContext is ViewModels.MainViewModel vm && vm.Scheduled.SelectedTask is not null)
         {
-            vm.EditScheduledTaskCommand.Execute(null);
+            vm.Scheduled.EditTaskCommand.Execute(null);
         }
     }
 
