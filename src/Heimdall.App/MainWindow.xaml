@@ -60,21 +60,21 @@
                                  Focusable="True"
                                  Style="{DynamicResource ToolbarTabStyle}"
                                  Margin="0,0,4,0"
-                                 AutomationProperties.Name="{loc:Translate A11ySessionsTab}"/>
+                                 AutomationProperties.Name="{loc:Translate NavTabSessions}"/>
                     <RadioButton x:Name="TabTunnels"
                                  Content="{loc:Translate NavTabTunnels}"
                                  GroupName="NavTabs"
                                  Focusable="True"
                                  Style="{DynamicResource ToolbarTabStyle}"
                                  Margin="0,0,4,0"
-                                 AutomationProperties.Name="{loc:Translate A11yTunnelsTab}"/>
+                                 AutomationProperties.Name="{loc:Translate NavTabTunnels}"/>
                     <RadioButton x:Name="TabScheduled"
                                  Content="{loc:Translate NavTabScheduled}"
                                  GroupName="NavTabs"
                                  Focusable="True"
                                  Style="{DynamicResource ToolbarTabStyle}"
                                  Margin="0,0,4,0"
-                                 AutomationProperties.Name="{loc:Translate A11yScheduledTab}"/>
+                                 AutomationProperties.Name="{loc:Translate NavTabScheduled}"/>
                     <RadioButton x:Name="TabTools"
                                  Content="{loc:Translate NavTabTools}"
                                  GroupName="NavTabs"
@@ -87,7 +87,7 @@
                                  Focusable="True"
                                  Style="{DynamicResource ToolbarTabStyle}"
                                  Margin="0,0,4,0"
-                                 AutomationProperties.Name="{loc:Translate A11ySettingsTab}">
+                                 AutomationProperties.Name="{loc:Translate NavTabSettings}">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock x:Name="Mw_TabSettingsText" Text="{loc:Translate NavTabSettings}"/>
                             <Ellipse x:Name="Mw_SettingsUnsavedDot"
@@ -104,7 +104,7 @@
                                  GroupName="NavTabs"
                                  Focusable="True"
                                  Style="{DynamicResource ToolbarTabStyle}"
-                                 AutomationProperties.Name="{loc:Translate A11yAboutTab}"/>
+                                 AutomationProperties.Name="{loc:Translate NavTabAbout}"/>
                 </StackPanel>
 
                 <!-- Right: Search box + Share Folder -->
@@ -133,7 +133,8 @@
                             Padding="8,4" FontSize="{StaticResource FontSizeCaption}"
                             Margin="0,0,8,0"
                             VerticalAlignment="Center"
-                            ToolTip="{loc:Translate QuickConnectShortcut}">
+                            ToolTip="{loc:Translate QuickConnectShortcut}"
+                            AutomationProperties.Name="{loc:Translate QuickConnectShortcut}">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="&#xE71E;" FontFamily="Segoe MDL2 Assets"
                                        FontSize="{StaticResource FontSizeBody}" VerticalAlignment="Center" Margin="0,0,6,0"
@@ -194,7 +195,8 @@
                                     Padding="6,6" FontSize="{StaticResource FontSizeBody}"
                                     Width="32" Height="32"
                                     Margin="4,0,0,0"
-                                    ToolTip="{loc:Translate TooltipHideSidebar}"/>
+                                    ToolTip="{loc:Translate TooltipHideSidebar}"
+                                    AutomationProperties.Name="{loc:Translate TooltipHideSidebar}"/>
                             <UniformGrid Columns="2">
                                 <RadioButton x:Name="SidebarTabSessions"
                                              GroupName="SidebarTabs"
@@ -233,7 +235,8 @@
                                             Padding="6,6" FontSize="{StaticResource FontSizeCaption}"
                                             Width="32" Height="32"
                                             Margin="2,0,0,0"
-                                            ToolTip="{loc:Translate TooltipCollapseAll}"/>
+                                            ToolTip="{loc:Translate TooltipCollapseAll}"
+                                            AutomationProperties.Name="{loc:Translate TooltipCollapseAll}"/>
                                     <Button x:Name="ExpandAllButton"
                                             DockPanel.Dock="Right"
                                             Content="&#xE70E;"
@@ -243,7 +246,8 @@
                                             Padding="6,6" FontSize="{StaticResource FontSizeCaption}"
                                             Width="32" Height="32"
                                             Margin="2,0,0,0"
-                                            ToolTip="{loc:Translate TooltipExpandAll}"/>
+                                            ToolTip="{loc:Translate TooltipExpandAll}"
+                                            AutomationProperties.Name="{loc:Translate TooltipExpandAll}"/>
                                     <Button x:Name="AddButton"
                                             DockPanel.Dock="Right"
                                             Click="OnAddButtonClick"
@@ -251,7 +255,8 @@
                                             Padding="6,6" FontSize="{StaticResource FontSizeBody}"
                                             Width="32" Height="32"
                                             Margin="4,0,0,0"
-                                            ToolTip="{loc:Translate TooltipAddMenu}">
+                                            ToolTip="{loc:Translate TooltipAddMenu}"
+                                            AutomationProperties.Name="{loc:Translate TooltipAddMenu}">
                                         <TextBlock Text="&#xE710;" FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeBody}"
                                                    AutomationProperties.Name=""/>
                                         <Button.ContextMenu>
@@ -560,11 +565,13 @@
                         Margin="4,8,0,0"
                         Panel.ZIndex="10"
                         Visibility="Collapsed"
-                        ToolTip="{loc:Translate TooltipShowSidebar}"/>
+                        ToolTip="{loc:Translate TooltipShowSidebar}"
+                        AutomationProperties.Name="{loc:Translate TooltipShowSidebar}"/>
 
                 <!-- RIGHT PANEL: sessions + tunnel bottom panel -->
                 <Grid x:Name="Mw_SessionsGrid" Grid.Column="2"
-                      ClipToBounds="True">
+                      ClipToBounds="True"
+                      Tag="{loc:Translate A11yOperationInProgress}">
                     <Grid.RowDefinitions>
                         <!-- Row 0: Sessions / server details -->
                         <RowDefinition Height="*"/>
@@ -590,6 +597,8 @@
                                 DragOver="OnTabDragOver"
                                 Drop="OnTabDrop"
                                 AllowDrop="True"
+                                Tag="{loc:Translate A11yCloseSessionTab}"
+                                AutomationProperties.Name="{loc:Translate NavTabSessions}"
                                 ItemContainerStyle="{DynamicResource ThemedTabItemStyle}">
                         <TabControl.ItemTemplate>
                             <DataTemplate DataType="{x:Type vm:SessionTabViewModel}">
@@ -894,13 +903,15 @@
                                         CommandParameter="{Binding ServerList.SelectedServer}"
                                         Style="{DynamicResource PrimaryButtonStyle}"
                                         Width="120" HorizontalAlignment="Left"
-                                        Margin="0,20,0,0"/>
+                                        Margin="0,20,0,0"
+                                        AutomationProperties.Name="{loc:Translate AccessDetailConnect}"/>
                                 <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
                                     <Button x:Name="Mw_DetailEditBtn" Content="{loc:Translate BtnEdit}"
                                             Command="{Binding ServerList.EditServerCommand}"
                                             CommandParameter="{Binding ServerList.SelectedServer}"
                                             Style="{DynamicResource SecondaryButtonStyle}"
                                             ToolTip="{loc:Translate TooltipEdit}"
+                                            AutomationProperties.Name="{loc:Translate BtnEdit}"
                                             Padding="12,6" Margin="0,0,8,0"/>
                                     <Button x:Name="Mw_DetailDeleteBtn" Content="{loc:Translate BtnDelete}"
                                             Command="{Binding ServerList.DeleteServerCommand}"
@@ -908,6 +919,7 @@
                                             Style="{DynamicResource SecondaryButtonStyle}"
                                             Foreground="{DynamicResource ErrorTextBrush}"
                                             ToolTip="{loc:Translate TooltipDelete}"
+                                            AutomationProperties.Name="{loc:Translate BtnDelete}"
                                             Padding="12,6"/>
                                 </StackPanel>
                                 <!-- Subtle shortcut hints for detail panel actions -->
@@ -947,7 +959,8 @@
                                         CommandParameter="{Binding ServerList.SelectedServer}"
                                         Style="{DynamicResource PrimaryButtonStyle}"
                                         Width="140" HorizontalAlignment="Left"
-                                        Margin="0,20,0,0"/>
+                                        Margin="0,20,0,0"
+                                        AutomationProperties.Name="{loc:Translate AccessDetailOpen}"/>
                             </StackPanel>
                         </Border>
 
@@ -977,18 +990,21 @@
                                     <Button x:Name="Mw_EmptyBtnAddSession" Content="{loc:Translate EmptyStateBtnAddSession}"
                                             Command="{Binding ServerList.AddServerCommand}"
                                             Style="{DynamicResource PrimaryButtonStyle}"
-                                            Padding="16,8" FontSize="{StaticResource FontSizeBodyLarge}"/>
+                                            Padding="16,8" FontSize="{StaticResource FontSizeBodyLarge}"
+                                            AutomationProperties.Name="{loc:Translate AccessEmptyAddServer}"/>
                                     <Button x:Name="Mw_EmptyBtnImport" Content="{loc:Translate EmptyStateBtnImport}"
                                             Command="{Binding Settings.ImportConfigCommand}"
                                             Style="{DynamicResource SecondaryButtonStyle}"
                                             ToolTip="{loc:Translate TooltipImport}"
                                             Padding="16,8" FontSize="{StaticResource FontSizeBodyLarge}"
-                                            Margin="12,0,0,0"/>
+                                            Margin="12,0,0,0"
+                                            AutomationProperties.Name="{loc:Translate AccessEmptyImport}"/>
                                     <Button x:Name="Mw_EmptyBtnExploreTools" Content="{loc:Translate EmptyStateBtnExploreTools}"
                                             Style="{DynamicResource SecondaryButtonStyle}"
                                             Padding="16,8" FontSize="{StaticResource FontSizeBodyLarge}"
                                             Margin="12,0,0,0"
-                                            Click="OnEmptyExploreToolsClick"/>
+                                            Click="OnEmptyExploreToolsClick"
+                                            AutomationProperties.Name="{loc:Translate AccessEmptyExploreTools}"/>
                                 </StackPanel>
                                 <!-- Keyboard shortcut hints for discoverability -->
                                 <TextBlock x:Name="Mw_EmptyStateShortcutHints" Text="{loc:Translate EmptyStateShortcutHints}"
@@ -1059,6 +1075,7 @@
                                             Command="{Binding Tunnels.TogglePanelCommand}"
                                             Style="{DynamicResource ToolbarGhostButtonStyle}"
                                             Padding="6,2" Margin="4,0,0,0"
+                                            ToolTip="{loc:Translate TooltipCollapseTunnelPanel}"
                                             AutomationProperties.Name="{loc:Translate A11yCollapseTunnelPanel}"/>
                                     <Button x:Name="Mw_TunnelPanelCloseAllBtn" DockPanel.Dock="Right"
                                             Content=""
@@ -1184,12 +1201,14 @@
                                 Command="{Binding Tunnels.CloseCommand}"
                                 CommandParameter="{Binding Tunnels.SelectedItem}"
                                 Style="{DynamicResource SecondaryButtonStyle}"
-                                Padding="8,3" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,4,0"/>
+                                Padding="8,3" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,4,0"
+                                AutomationProperties.Name="{loc:Translate AccessTunnelsCloseSelected}"/>
                         <Button x:Name="Mw_TunnelsCloseAllBtn" Content=""
                                 Command="{Binding Tunnels.CloseAllCommand}"
                                 Style="{DynamicResource SecondaryButtonStyle}"
                                 Foreground="{DynamicResource ErrorTextBrush}"
-                                Padding="8,3" FontSize="{StaticResource FontSizeCaption}"/>
+                                Padding="8,3" FontSize="{StaticResource FontSizeCaption}"
+                                AutomationProperties.Name="{loc:Translate AccessTunnelsCloseAll}"/>
                     </StackPanel>
                 </DockPanel>
 
@@ -1201,7 +1220,8 @@
                         Foreground="{DynamicResource AccentBrush}"
                         HorizontalAlignment="Center"
                         Margin="0,8,0,8"
-                        Click="OnNavigateToGatewaySettings"/>
+                        Click="OnNavigateToGatewaySettings"
+                        AutomationProperties.Name="{loc:Translate TunnelsManageGatewaysLink}"/>
 
                 <Grid>
                     <!-- Tunnel DataGrid -->
@@ -1266,15 +1286,18 @@
                         <Button x:Name="Mw_ScheduledAddBtn" Content=""
                                 Command="{Binding Scheduled.AddTaskCommand}"
                                 Style="{DynamicResource PrimaryButtonStyle}"
-                                Padding="8,3" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,4,0"/>
+                                Padding="8,3" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,4,0"
+                                AutomationProperties.Name="{loc:Translate AccessScheduledAdd}"/>
                         <Button x:Name="Mw_ScheduledEditBtn" Content=""
                                 Command="{Binding Scheduled.EditTaskCommand}"
                                 Style="{DynamicResource SecondaryButtonStyle}"
-                                Padding="8,3" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,4,0"/>
+                                Padding="8,3" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,4,0"
+                                AutomationProperties.Name="{loc:Translate AccessScheduledEdit}"/>
                         <Button x:Name="Mw_ScheduledDeleteBtn" Content=""
                                 Command="{Binding Scheduled.DeleteTaskCommand}"
                                 Style="{DynamicResource SecondaryButtonStyle}"
-                                Padding="8,3" FontSize="{StaticResource FontSizeCaption}"/>
+                                Padding="8,3" FontSize="{StaticResource FontSizeCaption}"
+                                AutomationProperties.Name="{loc:Translate AccessScheduledDelete}"/>
                     </StackPanel>
                 </DockPanel>
 
@@ -1311,7 +1334,8 @@
                                 Command="{Binding Scheduled.AddTaskCommand}"
                                 Style="{DynamicResource PrimaryButtonStyle}"
                                 Padding="12,6" FontSize="{StaticResource FontSizeBody}"
-                                HorizontalAlignment="Center"/>
+                                HorizontalAlignment="Center"
+                                AutomationProperties.Name="{loc:Translate AccessScheduledCreate}"/>
                     </StackPanel>
                 </Grid>
             </DockPanel>
@@ -1408,15 +1432,20 @@
                         </Grid>
                         <WrapPanel Orientation="Horizontal">
                             <Button x:Name="Mw_SettingsSaveBtn" Content="" Command="{Binding Settings.SaveCommand}"
-                                    Style="{DynamicResource PrimaryButtonStyle}" MinWidth="130" Margin="0,0,16,4"/>
+                                    Style="{DynamicResource PrimaryButtonStyle}" MinWidth="130" Margin="0,0,16,4"
+                                    AutomationProperties.Name="{loc:Translate AccessSettingsSave}"/>
                             <Button x:Name="Mw_SettingsResetBtn" Content="" Command="{Binding Settings.ResetToDefaultsCommand}"
-                                    Style="{DynamicResource SecondaryButtonStyle}" MinWidth="130" Margin="0,0,8,4"/>
+                                    Style="{DynamicResource SecondaryButtonStyle}" MinWidth="130" Margin="0,0,8,4"
+                                    AutomationProperties.Name="{loc:Translate AccessSettingsReset}"/>
                             <Button x:Name="Mw_SettingsExportBtn" Content="" Command="{Binding Settings.ExportConfigCommand}"
-                                    Style="{DynamicResource SecondaryButtonStyle}" MinWidth="130" Margin="0,0,8,4"/>
+                                    Style="{DynamicResource SecondaryButtonStyle}" MinWidth="130" Margin="0,0,8,4"
+                                    AutomationProperties.Name="{loc:Translate AccessSettingsExport}"/>
                             <Button x:Name="Mw_SettingsImportBtn" Content="" Command="{Binding Settings.ImportConfigCommand}"
-                                    Style="{DynamicResource SecondaryButtonStyle}" MinWidth="130" Margin="0,0,8,4"/>
+                                    Style="{DynamicResource SecondaryButtonStyle}" MinWidth="130" Margin="0,0,8,4"
+                                    AutomationProperties.Name="{loc:Translate AccessSettingsImport}"/>
                             <Button x:Name="Mw_SettingsCitrixBtn" Content="" Command="{Binding Settings.ImportCitrixAppsCommand}"
-                                    Style="{DynamicResource SecondaryButtonStyle}" MinWidth="160" Margin="0,0,8,4"/>
+                                    Style="{DynamicResource SecondaryButtonStyle}" MinWidth="160" Margin="0,0,8,4"
+                                    AutomationProperties.Name="{loc:Translate AccessSettingsCitrix}"/>
                         </WrapPanel>
                     </DockPanel>
                 </Border>
@@ -1647,9 +1676,9 @@
                                         <DockPanel Margin="0,0,0,12">
                                             <TextBlock x:Name="Mw_SettingsGatewaysTitle" Text="" FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
                                             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right">
-                                                <Button x:Name="Mw_SettingsGatewaysAddBtn" Content="" Command="{Binding Settings.AddGatewayCommand}" Style="{DynamicResource PrimaryButtonStyle}" Padding="8,3" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,4,0"/>
-                                                <Button x:Name="Mw_SettingsGatewaysEditBtn" Content="" Command="{Binding Settings.EditGatewayCommand}" Style="{DynamicResource SecondaryButtonStyle}" Padding="8,3" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,4,0"/>
-                                                <Button x:Name="Mw_SettingsGatewaysDeleteBtn" Content="" Command="{Binding Settings.DeleteGatewayCommand}" Style="{DynamicResource SecondaryButtonStyle}" Padding="8,3" FontSize="{StaticResource FontSizeCaption}"/>
+                                                <Button x:Name="Mw_SettingsGatewaysAddBtn" Content="" Command="{Binding Settings.AddGatewayCommand}" Style="{DynamicResource PrimaryButtonStyle}" Padding="8,3" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,4,0" AutomationProperties.Name="{loc:Translate AccessSettingsGatewaysAdd}"/>
+                                                <Button x:Name="Mw_SettingsGatewaysEditBtn" Content="" Command="{Binding Settings.EditGatewayCommand}" Style="{DynamicResource SecondaryButtonStyle}" Padding="8,3" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,4,0" AutomationProperties.Name="{loc:Translate AccessSettingsGatewaysEdit}"/>
+                                                <Button x:Name="Mw_SettingsGatewaysDeleteBtn" Content="" Command="{Binding Settings.DeleteGatewayCommand}" Style="{DynamicResource SecondaryButtonStyle}" Padding="8,3" FontSize="{StaticResource FontSizeCaption}" AutomationProperties.Name="{loc:Translate AccessSettingsGatewaysDelete}"/>
                                             </StackPanel>
                                         </DockPanel>
                                         <ListBox ItemsSource="{Binding Settings.Gateways}" SelectedItem="{Binding Settings.SelectedGateway}" MinHeight="80" MaxHeight="200" Background="{DynamicResource BackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
@@ -1943,8 +1972,8 @@
                                         <DockPanel Margin="0,0,0,12">
                                             <TextBlock x:Name="Mw_SettingsExtToolsTitle" Text="" FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
                                             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right">
-                                                <Button x:Name="Mw_SettingsExtToolsAddBtn" Content="" Command="{Binding Settings.AddExternalToolCommand}" Style="{DynamicResource PrimaryButtonStyle}" Padding="8,3" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,4,0"/>
-                                                <Button x:Name="Mw_SettingsExtToolsRemoveBtn" Content="" Command="{Binding Settings.RemoveExternalToolCommand}" Style="{DynamicResource SecondaryButtonStyle}" Padding="8,3" FontSize="{StaticResource FontSizeCaption}"/>
+                                                <Button x:Name="Mw_SettingsExtToolsAddBtn" Content="" Command="{Binding Settings.AddExternalToolCommand}" Style="{DynamicResource PrimaryButtonStyle}" Padding="8,3" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,4,0" AutomationProperties.Name="{loc:Translate AccessSettingsExtToolsAdd}"/>
+                                                <Button x:Name="Mw_SettingsExtToolsRemoveBtn" Content="" Command="{Binding Settings.RemoveExternalToolCommand}" Style="{DynamicResource SecondaryButtonStyle}" Padding="8,3" FontSize="{StaticResource FontSizeCaption}" AutomationProperties.Name="{loc:Translate AccessSettingsExtToolsRemove}"/>
                                             </StackPanel>
                                         </DockPanel>
                                         <ListBox ItemsSource="{Binding Settings.ExternalTools}" SelectedItem="{Binding Settings.SelectedExternalTool}" MinHeight="60" MaxHeight="120" Background="{DynamicResource BackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
