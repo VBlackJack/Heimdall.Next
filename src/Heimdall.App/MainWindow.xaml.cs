@@ -59,7 +59,9 @@ public partial class MainWindow : Window, IContextMenuCallbacks
     private readonly Services.ThemeService _themeService;
     private readonly ContextMenuFactory _contextMenuFactory;
     private readonly FileShareService _fileShareService;
+    private readonly KeyboardShortcutService _keyboardShortcutService;
     private readonly WindowUIState _uiState = new();
+    private object? _lastKeyEventSource;
     private readonly ToolsTabPopulationService _toolsTabPopulation;
     private bool _sidebarTabRestored;
     private bool _closeConfirmed;
@@ -78,7 +80,8 @@ public partial class MainWindow : Window, IContextMenuCallbacks
         Services.ThemeService themeService,
         ContextMenuFactory contextMenuFactory,
         ToolsTabPopulationService toolsTabPopulation,
-        FileShareService fileShareService)
+        FileShareService fileShareService,
+        KeyboardShortcutService keyboardShortcutService)
     {
         InitializeComponent();
         WindowThemeHelper.ApplyCurrentTheme(this);
@@ -87,6 +90,8 @@ public partial class MainWindow : Window, IContextMenuCallbacks
         _contextMenuFactory = contextMenuFactory;
         _toolsTabPopulation = toolsTabPopulation;
         _fileShareService = fileShareService;
+        _keyboardShortcutService = keyboardShortcutService;
+        RegisterKeyboardShortcuts();
         _fileShareService.SharingStarted += OnFileShareSharingStarted;
         _fileShareService.SharingStopped += OnFileShareSharingStopped;
         _fileShareService.FileServed += OnFileShareFileServed;
@@ -559,146 +564,161 @@ public partial class MainWindow : Window, IContextMenuCallbacks
 
     private void OnKeyDown(object sender, KeyEventArgs e)
     {
-        if (DataContext is not MainViewModel vm)
+        _lastKeyEventSource = e.OriginalSource;
+        if (_keyboardShortcutService.TryHandle(e))
         {
-            return;
+            e.Handled = true;
         }
+    }
 
-        // When a terminal has focus, only intercept Ctrl+Shift combos and F-keys;
-        // let single-Ctrl shortcuts (Ctrl+B/F/K) pass through to the remote session.
-        // The OriginalSource check catches WebView2 AcceleratorKeyPressed events that
-        // WPF's stale Keyboard.FocusedElement misses (known HwndHost focus gap).
-        var terminalHasFocus = IsEmbeddedContentFocused()
-            || e.OriginalSource is Microsoft.Web.WebView2.Wpf.WebView2;
-
-        switch (e.Key)
+    /// <summary>
+    /// Wires every Heimdall keyboard shortcut into the
+    /// <see cref="KeyboardShortcutService"/>. Called once from the
+    /// constructor after the service is resolved from DI.
+    /// </summary>
+    private void RegisterKeyboardShortcuts()
+    {
+        // ── Server list ──────────────────────────────────────────────
+        // Ctrl+N: add server (always — never gated by terminal focus, matches legacy)
+        _keyboardShortcutService.Register(Key.N, ModifierKeys.Control, () =>
         {
-            case Key.N when Keyboard.Modifiers == ModifierKeys.Control:
-                if (vm.ServerList.AddServerCommand.CanExecute(null))
-                {
-                    vm.ServerList.AddServerCommand.Execute(null);
-                }
-                e.Handled = true;
-                break;
+            if (GetMainVm() is { } vm)
+                TryExecute(vm.ServerList.AddServerCommand);
+        });
 
-            case Key.Delete:
-                if (terminalHasFocus) break;
-                if (vm.ServerList.SelectedServer is not null &&
-                    vm.ServerList.DeleteServerCommand.CanExecute(vm.ServerList.SelectedServer))
-                {
-                    vm.ServerList.DeleteServerCommand.Execute(vm.ServerList.SelectedServer);
-                }
-                e.Handled = true;
-                break;
+        // Delete: delete selected server (single-key, modifier-laxist, terminal-gated)
+        _keyboardShortcutService.Register(Key.Delete, ModifierKeys.None, () =>
+        {
+            if (GetMainVm() is { } vm && vm.ServerList.SelectedServer is { } selected)
+                TryExecute(vm.ServerList.DeleteServerCommand, selected);
+        }, canExecute: () => !IsTerminalFocusedContext());
 
-            case Key.E when Keyboard.Modifiers == ModifierKeys.Control:
-                if (terminalHasFocus) break;
-                if (vm.ServerList.SelectedServer is not null &&
-                    vm.ServerList.EditServerCommand.CanExecute(vm.ServerList.SelectedServer))
-                {
-                    vm.ServerList.EditServerCommand.Execute(vm.ServerList.SelectedServer);
-                }
-                e.Handled = true;
-                break;
+        // Ctrl+E: edit selected server (terminal-gated)
+        _keyboardShortcutService.Register(Key.E, ModifierKeys.Control, () =>
+        {
+            if (GetMainVm() is { } vm && vm.ServerList.SelectedServer is { } selected)
+                TryExecute(vm.ServerList.EditServerCommand, selected);
+        }, canExecute: () => !IsTerminalFocusedContext());
 
-            case Key.F when Keyboard.Modifiers == ModifierKeys.Control:
-                if (terminalHasFocus) break;
-                Mw_FilterBox.Focus();
-                Mw_FilterBox.SelectAll();
-                e.Handled = true;
-                break;
+        // ── Sidebar / filter / palette (terminal-gated) ──────────────
+        // Ctrl+F: focus filter box
+        _keyboardShortcutService.Register(Key.F, ModifierKeys.Control, () =>
+        {
+            Mw_FilterBox.Focus();
+            Mw_FilterBox.SelectAll();
+        }, canExecute: () => !IsTerminalFocusedContext());
 
-            case Key.B when Keyboard.Modifiers == ModifierKeys.Control:
-                if (terminalHasFocus) break;
-                ToggleSidebar();
-                e.Handled = true;
-                break;
+        // Ctrl+B: toggle sidebar
+        _keyboardShortcutService.Register(Key.B, ModifierKeys.Control,
+            ToggleSidebar,
+            canExecute: () => !IsTerminalFocusedContext());
 
-            case Key.K when Keyboard.Modifiers == ModifierKeys.Control:
-                if (terminalHasFocus) break;
+        // Ctrl+K: open command palette
+        _keyboardShortcutService.Register(Key.K, ModifierKeys.Control, () =>
+        {
+            if (GetMainVm() is { } vm)
+            {
                 vm.OpenCommandPaletteCommand.Execute(null);
                 BeginFocusCommandPalette();
-                e.Handled = true;
-                break;
+            }
+        }, canExecute: () => !IsTerminalFocusedContext());
 
-            case Key.S when Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift):
+        // ── Ctrl+Shift combos (NOT terminal-gated) ───────────────────
+        // Ctrl+Shift+S: screenshot active session
+        _keyboardShortcutService.Register(Key.S, ModifierKeys.Control | ModifierKeys.Shift, () =>
+        {
+            if (GetMainVm() is { } vm)
                 CaptureActiveSessionScreenshot(vm);
-                e.Handled = true;
-                break;
+        });
 
-            case Key.N when Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift):
+        // Ctrl+Shift+N: launch network scanner
+        _keyboardShortcutService.Register(Key.N, ModifierKeys.Control | ModifierKeys.Shift, () =>
+        {
+            if (GetMainVm() is { } vm)
                 _ = LaunchNetworkScannerAsync(vm);
-                e.Handled = true;
-                break;
+        });
 
-            case Key.T when Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift):
-                ToggleSidebarTab();
-                e.Handled = true;
-                break;
+        // Ctrl+Shift+T: toggle sidebar tab (Sessions ↔ Tools)
+        _keyboardShortcutService.Register(Key.T, ModifierKeys.Control | ModifierKeys.Shift,
+            ToggleSidebarTab);
 
-            case Key.O when Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift):
-                if (vm.Connection.ActiveSession is { IsSplit: true } splitSession)
-                {
-                    vm.ToggleSplitOrientation(splitSession);
-                }
-                e.Handled = true;
-                break;
+        // Ctrl+Shift+O: toggle split orientation on the active split session
+        _keyboardShortcutService.Register(Key.O, ModifierKeys.Control | ModifierKeys.Shift, () =>
+        {
+            if (GetMainVm() is { Connection.ActiveSession: { IsSplit: true } splitSession } vm)
+                vm.ToggleSplitOrientation(splitSession);
+        });
 
-            case Key.W when Keyboard.Modifiers == ModifierKeys.Control:
-                if (terminalHasFocus) break;
-                if (vm.Connection.ActiveSession is not null &&
-                    vm.Connection.CloseSessionCommand.CanExecute(vm.Connection.ActiveSession))
-                {
-                    vm.Connection.CloseSessionCommand.Execute(vm.Connection.ActiveSession);
-                }
-                e.Handled = true;
-                break;
+        // ── Session lifecycle ────────────────────────────────────────
+        // Ctrl+W: close active session (terminal-gated)
+        _keyboardShortcutService.Register(Key.W, ModifierKeys.Control, () =>
+        {
+            if (GetMainVm() is { Connection.ActiveSession: { } active } vm)
+                TryExecute(vm.Connection.CloseSessionCommand, active);
+        }, canExecute: () => !IsTerminalFocusedContext());
 
-            case Key.Tab when Keyboard.Modifiers == ModifierKeys.Control:
-                {
-                    var sessions = vm.Connection.ActiveSessions;
-                    if (sessions.Count > 1 && vm.Connection.ActiveSession is not null)
-                    {
-                        var idx = sessions.IndexOf(vm.Connection.ActiveSession);
-                        vm.Connection.ActiveSession = sessions[(idx + 1) % sessions.Count];
-                    }
-                    e.Handled = true;
-                    break;
-                }
+        // Ctrl+Tab: cycle to next session
+        _keyboardShortcutService.Register(Key.Tab, ModifierKeys.Control, () =>
+        {
+            if (GetMainVm() is not { } vm) return;
+            var sessions = vm.Connection.ActiveSessions;
+            if (sessions.Count > 1 && vm.Connection.ActiveSession is not null)
+            {
+                var idx = sessions.IndexOf(vm.Connection.ActiveSession);
+                vm.Connection.ActiveSession = sessions[(idx + 1) % sessions.Count];
+            }
+        });
 
-            case Key.Tab when Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift):
-                {
-                    var sessions = vm.Connection.ActiveSessions;
-                    if (sessions.Count > 1 && vm.Connection.ActiveSession is not null)
-                    {
-                        var idx = sessions.IndexOf(vm.Connection.ActiveSession);
-                        vm.Connection.ActiveSession = sessions[(idx - 1 + sessions.Count) % sessions.Count];
-                    }
-                    e.Handled = true;
-                    break;
-                }
+        // Ctrl+Shift+Tab: cycle to previous session
+        _keyboardShortcutService.Register(Key.Tab, ModifierKeys.Control | ModifierKeys.Shift, () =>
+        {
+            if (GetMainVm() is not { } vm) return;
+            var sessions = vm.Connection.ActiveSessions;
+            if (sessions.Count > 1 && vm.Connection.ActiveSession is not null)
+            {
+                var idx = sessions.IndexOf(vm.Connection.ActiveSession);
+                vm.Connection.ActiveSession = sessions[(idx - 1 + sessions.Count) % sessions.Count];
+            }
+        });
 
-            case Key.F1:
-                ShowKeyboardShortcutHelp();
-                e.Handled = true;
-                break;
+        // ── Modifier-laxist function keys (legacy: fire regardless of modifiers) ──
+        // F1: show keyboard shortcut help
+        _keyboardShortcutService.Register(Key.F1, ModifierKeys.None, ShowKeyboardShortcutHelp);
 
-            case Key.F11:
-                ToggleFullscreen();
-                e.Handled = true;
-                break;
+        // F11: toggle fullscreen
+        _keyboardShortcutService.Register(Key.F11, ModifierKeys.None, ToggleFullscreen);
 
-            case Key.Escape when _uiState.IsFullscreen:
-                ToggleFullscreen();
-                e.Handled = true;
-                break;
+        // Escape: exit fullscreen (only when fullscreen)
+        _keyboardShortcutService.Register(Key.Escape, ModifierKeys.None,
+            ToggleFullscreen,
+            canExecute: () => _uiState.IsFullscreen);
 
-            case Key.Apps:
-            case Key.F10 when Keyboard.Modifiers == ModifierKeys.Shift:
-                if (terminalHasFocus) break;
+        // ── TreeView context menu ────────────────────────────────────
+        // Apps key: open context menu (terminal-gated, modifier-laxist)
+        _keyboardShortcutService.Register(Key.Apps, ModifierKeys.None, () =>
+        {
+            if (GetMainVm() is { } vm)
                 OpenTreeViewKeyboardContextMenu(vm);
-                e.Handled = true;
-                break;
+        }, canExecute: () => !IsTerminalFocusedContext());
+
+        // Shift+F10: open context menu (strict modifier, terminal-gated)
+        _keyboardShortcutService.Register(Key.F10, ModifierKeys.Shift, () =>
+        {
+            if (GetMainVm() is { } vm)
+                OpenTreeViewKeyboardContextMenu(vm);
+        }, canExecute: () => !IsTerminalFocusedContext());
+    }
+
+    private MainViewModel? GetMainVm() => DataContext as MainViewModel;
+
+    private bool IsTerminalFocusedContext()
+        => KeyboardShortcutService.IsTerminalFocused(_lastKeyEventSource ?? new object(), IsEmbeddedContentFocused);
+
+    private static void TryExecute(System.Windows.Input.ICommand? command, object? parameter = null)
+    {
+        if (command is not null && command.CanExecute(parameter))
+        {
+            command.Execute(parameter);
         }
     }
 
