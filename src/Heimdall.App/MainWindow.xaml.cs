@@ -36,7 +36,7 @@ namespace Heimdall.App;
 /// Main application window. All logic lives in <see cref="MainViewModel"/>.
 /// Code-behind is limited to keyboard shortcut routing, TreeView interaction, and window lifecycle.
 /// </summary>
-public partial class MainWindow : Window, IContextMenuCallbacks
+public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabContextCallbacks
 {
     [DllImport("user32.dll")]
     private static extern bool SetForegroundWindow(IntPtr hWnd);
@@ -57,6 +57,7 @@ public partial class MainWindow : Window, IContextMenuCallbacks
     private readonly TabInteractionState _tabState = new();
     private readonly Services.ThemeService _themeService;
     private readonly ContextMenuFactory _contextMenuFactory;
+    private readonly SessionTabContextMenuFactory _sessionTabContextMenuFactory;
     private readonly FileShareService _fileShareService;
     private readonly KeyboardShortcutService _keyboardShortcutService;
     private readonly WindowUIState _uiState = new();
@@ -77,6 +78,7 @@ public partial class MainWindow : Window, IContextMenuCallbacks
         MainViewModel viewModel,
         Services.ThemeService themeService,
         ContextMenuFactory contextMenuFactory,
+        SessionTabContextMenuFactory sessionTabContextMenuFactory,
         ToolsTabPopulationService toolsTabPopulation,
         FileShareService fileShareService,
         KeyboardShortcutService keyboardShortcutService)
@@ -86,6 +88,7 @@ public partial class MainWindow : Window, IContextMenuCallbacks
         DataContext = viewModel;
         _themeService = themeService;
         _contextMenuFactory = contextMenuFactory;
+        _sessionTabContextMenuFactory = sessionTabContextMenuFactory;
         _toolsTabPopulation = toolsTabPopulation;
         _fileShareService = fileShareService;
         _keyboardShortcutService = keyboardShortcutService;
@@ -1675,277 +1678,7 @@ public partial class MainWindow : Window, IContextMenuCallbacks
             }
         }
 
-        var menu = new System.Windows.Controls.ContextMenu();
-
-        var isToolTab = session.ConnectionType?.StartsWith("TOOL:", StringComparison.OrdinalIgnoreCase) == true;
-
-        // Close tab — "Close" for tools, "Disconnect" for connections
-        var closeItem = new System.Windows.Controls.MenuItem
-        {
-            Header = vm.Localize(isToolTab ? "SessionCloseTab" : "SessionDisconnect")
-        };
-        closeItem.Click += (_, _) => vm.Connection.CloseSessionCommand.Execute(session);
-        menu.Items.Add(closeItem);
-
-        // Connection-specific actions (not shown for tools)
-        if (!isToolTab)
-        {
-            menu.Items.Add(new System.Windows.Controls.Separator());
-
-            var aspectMenu = new System.Windows.Controls.MenuItem { Header = vm.Localize("SessionAspectRatio") };
-            foreach (var (label, tag) in new[] { ("Stretch", "Stretch"), ("Auto", "Auto"), ("16:9", "Ratio16x9"), ("4:3", "Ratio4x3"), ("21:9", "Ratio21x9") })
-            {
-                var item = new System.Windows.Controls.MenuItem { Header = label, Tag = tag };
-                item.Click += OnAspectRatioClick;
-                aspectMenu.Items.Add(item);
-            }
-            menu.Items.Add(aspectMenu);
-
-            menu.Items.Add(new System.Windows.Controls.Separator());
-
-            var fullscreenItem = new System.Windows.Controls.MenuItem { Header = vm.Localize("SessionFullscreen") };
-            fullscreenItem.Click += OnToggleFullscreenClick;
-            menu.Items.Add(fullscreenItem);
-
-            // Duplicate tab (reconnect same server in new tab)
-            var duplicateItem = new System.Windows.Controls.MenuItem { Header = vm.Localize("SessionDuplicateTab") };
-            duplicateItem.Click += async (_, _) =>
-            {
-                var lookupId = !string.IsNullOrEmpty(session.OriginalServerId)
-                    ? session.OriginalServerId
-                    : session.ServerId;
-
-                if (!string.IsNullOrEmpty(lookupId) && vm.ServerList.ConnectCommand is not null)
-                {
-                    var serverVm = vm.ServerList.Servers.FirstOrDefault(
-                        s => string.Equals(s.Id, lookupId, StringComparison.Ordinal));
-                    if (serverVm is not null)
-                    {
-                        vm.ServerList.ConnectCommand.Execute(serverVm);
-                    }
-                }
-            };
-            menu.Items.Add(duplicateItem);
-        }
-
-        // Detach to floating window (works for both tools and connections)
-        if (!session.IsSplit)
-        {
-            var detachItem = new System.Windows.Controls.MenuItem { Header = vm.Localize("SessionCtxDetach") };
-            detachItem.Click += (_, _) => DetachSessionToFloatingWindow(session);
-            menu.Items.Add(detachItem);
-        }
-        else
-        {
-            // Detach secondary pane to its own floating window (disabled while secondary is loading)
-            var detachSecondaryItem = new System.Windows.Controls.MenuItem
-            {
-                Header = vm.Localize("SplitDetachSecondary"),
-                IsEnabled = session.SecondaryHostControl is not null
-            };
-            detachSecondaryItem.Click += (_, _) => DetachSecondaryToFloatingWindow(session);
-            menu.Items.Add(detachSecondaryItem);
-        }
-
-        // Transcript toggle for SSH sessions
-        if (session.HostControl is Views.EmbeddedSshView sshView)
-        {
-            var isRecording = sshView.IsTranscriptActive;
-            var transcriptItem = new System.Windows.Controls.MenuItem
-            {
-                Header = isRecording
-                    ? vm.Localize("SessionStopTranscript")
-                    : vm.Localize("SessionStartTranscript")
-            };
-            transcriptItem.Click += (_, _) =>
-            {
-                if (sshView.IsTranscriptActive)
-                {
-                    sshView.StopTranscript();
-                    vm.StatusText = vm.Localize("SessionTranscriptStopped");
-                }
-                else
-                {
-                    var logDir = vm.CurrentSettings?.SessionLogDirectory ?? @"logs\sessions";
-                    if (!System.IO.Path.IsPathRooted(logDir))
-                    {
-                        logDir = System.IO.Path.Combine(AppContext.BaseDirectory, logDir);
-                    }
-
-                    var invalidChars = System.IO.Path.GetInvalidFileNameChars();
-                    var serverName = string.Concat(
-                        session.Title.Select(c => Array.IndexOf(invalidChars, c) >= 0 ? '_' : c));
-                    var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
-                    var logFile = System.IO.Path.Combine(logDir, $"transcript_{serverName}_{timestamp}.log");
-
-                    sshView.StartTranscript(logFile);
-                    vm.StatusText = string.Format(vm.Localize("SessionTranscriptStarted"), logFile);
-                }
-            };
-            menu.Items.Add(transcriptItem);
-
-            // Macro recording toggle
-            var isMacroRecording = sshView.IsRecordingMacro;
-            var macroRecordItem = new System.Windows.Controls.MenuItem
-            {
-                Header = isMacroRecording
-                    ? vm.Localize("MacroStopRecording")
-                    : vm.Localize("MacroStartRecording")
-            };
-            macroRecordItem.Click += async (_, _) =>
-            {
-                if (sshView.IsRecordingMacro)
-                {
-                    var entries = sshView.StopRecording();
-                    if (entries.Count > 0)
-                    {
-                        var name = await vm.DialogService.ShowInputAsync(
-                            vm.Localize("MacroNameTitle"),
-                            vm.Localize("MacroNamePrompt"));
-
-                        if (!string.IsNullOrWhiteSpace(name))
-                        {
-                            var macro = new Heimdall.Core.Models.TerminalMacro
-                            {
-                                Name = name,
-                                Entries = entries
-                            };
-                            await Services.MacroService.SaveMacroAsync(macro);
-                            vm.StatusText = string.Format(vm.Localize("MacroRecordingStopped"), name);
-                        }
-                    }
-                }
-                else
-                {
-                    sshView.StartRecording();
-                    vm.StatusText = vm.Localize("MacroRecordingStarted");
-                }
-            };
-            menu.Items.Add(macroRecordItem);
-
-            // Play macro submenu
-            var playMenu = new System.Windows.Controls.MenuItem
-            {
-                Header = vm.Localize("MacroPlaySubmenu")
-            };
-
-            var macros = Services.MacroService.LoadMacros();
-            if (macros.Count == 0)
-            {
-                var emptyItem = new System.Windows.Controls.MenuItem
-                {
-                    Header = vm.Localize("MacroNoMacros"),
-                    IsEnabled = false
-                };
-                playMenu.Items.Add(emptyItem);
-            }
-            else
-            {
-                foreach (var macro in macros)
-                {
-                    var macroItem = new System.Windows.Controls.MenuItem { Header = macro.Name, Tag = macro };
-                    macroItem.Click += async (s, _) =>
-                    {
-                        if (s is System.Windows.Controls.MenuItem { Tag: Heimdall.Core.Models.TerminalMacro m })
-                        {
-                            vm.StatusText = string.Format(vm.Localize("MacroPlaying"), m.Name);
-                            try
-                            {
-                                await sshView.PlayMacro(m, CancellationToken.None);
-                            }
-                            catch (Exception ex)
-                            {
-                                Heimdall.Core.Logging.FileLogger.Warn(
-                                    $"Macro playback failed: {ex.Message}");
-                            }
-                        }
-                    };
-                    playMenu.Items.Add(macroItem);
-                }
-            }
-            menu.Items.Add(playMenu);
-        }
-
-        var closeAllItem = new System.Windows.Controls.MenuItem { Header = vm.Localize("SessionCloseSession") };
-        closeAllItem.Click += (_, _) => vm.Connection.CloseSessionCommand.Execute(session);
-        menu.Items.Add(closeAllItem);
-
-        menu.Items.Add(new System.Windows.Controls.Separator());
-
-        if (!session.IsSplit)
-        {
-            // "Split..." submenu with orientation sub-items (mirrors "Merge with..." pattern)
-            var splitMenu = new System.Windows.Controls.MenuItem { Header = vm.Localize("SplitMenu") };
-
-            var splitH = new System.Windows.Controls.MenuItem { Header = vm.Localize("OrientationHorizontal") };
-            splitH.Click += (_, _) => RequestSplitSession(session, Heimdall.Core.Models.SplitOrientation.Horizontal);
-            splitMenu.Items.Add(splitH);
-
-            var splitV = new System.Windows.Controls.MenuItem { Header = vm.Localize("OrientationVertical") };
-            splitV.Click += (_, _) => RequestSplitSession(session, Heimdall.Core.Models.SplitOrientation.Vertical);
-            splitMenu.Items.Add(splitV);
-
-            menu.Items.Add(splitMenu);
-
-            // "Merge with..." submenu — nested per session with orientation sub-items
-            var otherSessions = vm.Connection.ActiveSessions
-                .Where(s => s != session
-                    && s.HostControl is not null)
-                .ToList();
-
-            if (otherSessions.Count > 0)
-            {
-                var mergeMenu = new System.Windows.Controls.MenuItem { Header = vm.Localize("SplitMergeWith") };
-
-                foreach (var other in otherSessions)
-                {
-                    var sourceTab = other;
-                    var sessionMenu = new System.Windows.Controls.MenuItem { Header = sourceTab.Title };
-
-                    // Use OriginalServerId as stable lookup key (ServerId may be empty during connection)
-                    var mergeId = !string.IsNullOrEmpty(sourceTab.OriginalServerId)
-                        ? sourceTab.OriginalServerId
-                        : sourceTab.ServerId;
-
-                    var mergeH = new System.Windows.Controls.MenuItem { Header = vm.Localize("OrientationHorizontal") };
-                    mergeH.Click += (_, _) => vm.MergeExistingSession(
-                        session, mergeId, Heimdall.Core.Models.SplitOrientation.Horizontal);
-                    sessionMenu.Items.Add(mergeH);
-
-                    var mergeV = new System.Windows.Controls.MenuItem { Header = vm.Localize("OrientationVertical") };
-                    mergeV.Click += (_, _) => vm.MergeExistingSession(
-                        session, mergeId, Heimdall.Core.Models.SplitOrientation.Vertical);
-                    sessionMenu.Items.Add(mergeV);
-
-                    mergeMenu.Items.Add(sessionMenu);
-                }
-
-                menu.Items.Add(mergeMenu);
-            }
-        }
-        else
-        {
-            var unsplit = new System.Windows.Controls.MenuItem { Header = vm.Localize("SplitUnsplit") };
-            unsplit.Click += (_, _) => UnsplitSession(session);
-            menu.Items.Add(unsplit);
-
-            var swapItem = new System.Windows.Controls.MenuItem { Header = vm.Localize("SplitSwapPanes") };
-            swapItem.Click += async (_, _) => await vm.SwapSplitPanesAsync(session);
-            menu.Items.Add(swapItem);
-
-            var toggleItem = new System.Windows.Controls.MenuItem
-            {
-                Header = vm.Localize("SplitToggleOrientation"),
-                InputGestureText = "Ctrl+Shift+O"
-            };
-            toggleItem.Click += (_, _) => vm.ToggleSplitOrientation(session);
-            menu.Items.Add(toggleItem);
-
-            var closeSecItem = new System.Windows.Controls.MenuItem { Header = vm.Localize("SplitCloseSecondary") };
-            closeSecItem.Click += (_, _) => vm.CloseSecondaryPaneCommand.Execute(session);
-            menu.Items.Add(closeSecItem);
-        }
-
+        var menu = _sessionTabContextMenuFactory.CreateMenu(session, vm, this);
         menu.PlacementTarget = SessionTabControl;
         menu.Placement = System.Windows.Controls.Primitives.PlacementMode.MousePoint;
         menu.IsOpen = true;
@@ -2300,6 +2033,39 @@ public partial class MainWindow : Window, IContextMenuCallbacks
         if (DataContext is not MainViewModel vm) return;
         _ = ShowAddToolPickerAsync(vm, group);
     }
+
+    // ── ISessionTabContextCallbacks ───────────────────────────────────
+    // Forward to the existing private MainWindow methods. Phase 3C will
+    // move the implementations of DetachSessionToFloatingWindow,
+    // DetachSecondaryToFloatingWindow, RequestSplitSession and
+    // UnsplitSession to SessionSplitService; at that point these
+    // forwarding stubs become thin delegations to the service.
+
+    /// <inheritdoc />
+    void ISessionTabContextCallbacks.OnAspectRatioClick(object sender, RoutedEventArgs e)
+        => OnAspectRatioClick(sender, e);
+
+    /// <inheritdoc />
+    void ISessionTabContextCallbacks.ToggleFullscreen()
+        => ToggleFullscreen();
+
+    /// <inheritdoc />
+    void ISessionTabContextCallbacks.DetachSessionToFloatingWindow(SessionTabViewModel session)
+        => DetachSessionToFloatingWindow(session);
+
+    /// <inheritdoc />
+    void ISessionTabContextCallbacks.DetachSecondaryToFloatingWindow(SessionTabViewModel session)
+        => DetachSecondaryToFloatingWindow(session);
+
+    /// <inheritdoc />
+    void ISessionTabContextCallbacks.RequestSplitSession(
+        SessionTabViewModel session,
+        Heimdall.Core.Models.SplitOrientation orientation)
+        => RequestSplitSession(session, orientation);
+
+    /// <inheritdoc />
+    void ISessionTabContextCallbacks.UnsplitSession(SessionTabViewModel session)
+        => UnsplitSession(session);
 
     private void OnFileShareSharingStarted(object? sender, FileShareStartedEventArgs e)
     {
