@@ -1028,14 +1028,14 @@
                                   VerticalAlignment="Center"
                                   Background="{DynamicResource CardBrush}"
                                   ShowsPreview="True"
-                                  Visibility="{Binding IsTunnelPanelOpen, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                                  Visibility="{Binding Tunnels.IsPanelOpen, Converter={StaticResource BoolToVisibilityConverter}}"/>
 
                     <Border Grid.Row="2"
                             MinHeight="120" MaxHeight="300"
                             Background="{DynamicResource SurfaceBrush}"
                             BorderBrush="{DynamicResource BorderBrush}"
                             BorderThickness="0,1,0,0"
-                            Visibility="{Binding IsTunnelPanelOpen, Converter={StaticResource BoolToVisibilityConverter}}">
+                            Visibility="{Binding Tunnels.IsPanelOpen, Converter={StaticResource BoolToVisibilityConverter}}">
                         <DockPanel>
                             <!-- Header: "Tunnels (N)" + collapse button -->
                             <Border DockPanel.Dock="Top"
@@ -1048,13 +1048,13 @@
                                             Content="&#xE70D;"
                                             FontFamily="Segoe MDL2 Assets"
                                             FontSize="{StaticResource FontSizeCaption}"
-                                            Command="{Binding ToggleTunnelPanelCommand}"
+                                            Command="{Binding Tunnels.TogglePanelCommand}"
                                             Style="{DynamicResource ToolbarGhostButtonStyle}"
                                             Padding="6,2" Margin="4,0,0,0"
                                             AutomationProperties.Name="{loc:Translate A11yCollapseTunnelPanel}"/>
                                     <Button x:Name="Mw_TunnelPanelCloseAllBtn" DockPanel.Dock="Right"
                                             Content=""
-                                            Command="{Binding CloseAllTunnelsCommand}"
+                                            Command="{Binding Tunnels.CloseAllCommand}"
                                             Style="{DynamicResource SecondaryButtonStyle}"
                                             Foreground="{DynamicResource ErrorTextBrush}"
                                             Padding="6,2" FontSize="{StaticResource FontSizeCaption}" Margin="4,0,0,0"
@@ -1069,7 +1069,7 @@
                                                    Foreground="{DynamicResource TextPrimaryBrush}"
                                                    VerticalAlignment="Center">
                                             <Run x:Name="Mw_TunnelPanelHeaderPrefix" Text=""/>
-                                            <Run Text="{Binding TunnelCount, Mode=OneWay}"/>
+                                            <Run Text="{Binding Tunnels.Count, Mode=OneWay}"/>
                                             <Run x:Name="Mw_TunnelPanelHeaderSuffix" Text=""/>
                                         </TextBlock>
                                     </StackPanel>
@@ -1079,8 +1079,8 @@
                             <!-- Content: compact tunnel DataGrid -->
                             <Grid>
                                 <DataGrid x:Name="Mw_TunnelPanelGrid"
-                                          ItemsSource="{Binding TunnelList}"
-                                          SelectedItem="{Binding SelectedTunnel}"
+                                          ItemsSource="{Binding Tunnels.List}"
+                                          SelectedItem="{Binding Tunnels.SelectedItem}"
                                           AutoGenerateColumns="False"
                                           IsReadOnly="True"
                                           SelectionMode="Single"
@@ -1096,14 +1096,14 @@
                                     <DataGrid.ContextMenu>
                                         <ContextMenu>
                                             <MenuItem x:Name="Mw_TpCtxClose"
-                                                      Command="{Binding CloseTunnelCommand}"
-                                                      CommandParameter="{Binding SelectedTunnel}"/>
+                                                      Command="{Binding Tunnels.CloseCommand}"
+                                                      CommandParameter="{Binding Tunnels.SelectedItem}"/>
                                             <MenuItem x:Name="Mw_TpCtxCopyPort"
-                                                      Command="{Binding CopyTunnelPortCommand}"
-                                                      CommandParameter="{Binding SelectedTunnel}"/>
+                                                      Command="{Binding Tunnels.CopyPortCommand}"
+                                                      CommandParameter="{Binding Tunnels.SelectedItem}"/>
                                             <Separator/>
                                             <MenuItem x:Name="Mw_TpCtxCloseAll"
-                                                      Command="{Binding CloseAllTunnelsCommand}"/>
+                                                      Command="{Binding Tunnels.CloseAllCommand}"/>
                                         </ContextMenu>
                                     </DataGrid.ContextMenu>
                                     <DataGrid.Columns>
@@ -1137,7 +1137,7 @@
                                                     <Button Content="&#xE711;"
                                                             FontFamily="Segoe MDL2 Assets"
                                                             FontSize="{StaticResource FontSizeCaption}"
-                                                            Command="{Binding DataContext.CloseTunnelCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                            Command="{Binding DataContext.Tunnels.CloseCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
                                                             CommandParameter="{Binding}"
                                                             Style="{DynamicResource ToolbarGhostButtonStyle}"
                                                             Padding="2" Margin="0"
@@ -1157,7 +1157,7 @@
                                            Foreground="{DynamicResource TextSecondaryBrush}"
                                            HorizontalAlignment="Center"
                                            VerticalAlignment="Center"
-                                           Visibility="{Binding HasNoTunnels, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                                           Visibility="{Binding Tunnels.HasNoTunnels, Converter={StaticResource BoolToVisibilityConverter}}"/>
                             </Grid>
                         </DockPanel>
                     </Border>
@@ -1173,12 +1173,12 @@
                                Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                         <Button x:Name="Mw_TunnelsCloseSelectedBtn" Content=""
-                                Command="{Binding CloseTunnelCommand}"
-                                CommandParameter="{Binding SelectedTunnel}"
+                                Command="{Binding Tunnels.CloseCommand}"
+                                CommandParameter="{Binding Tunnels.SelectedItem}"
                                 Style="{DynamicResource SecondaryButtonStyle}"
                                 Padding="8,3" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,4,0"/>
                         <Button x:Name="Mw_TunnelsCloseAllBtn" Content=""
-                                Command="{Binding CloseAllTunnelsCommand}"
+                                Command="{Binding Tunnels.CloseAllCommand}"
                                 Style="{DynamicResource SecondaryButtonStyle}"
                                 Foreground="{DynamicResource ErrorTextBrush}"
                                 Padding="8,3" FontSize="{StaticResource FontSizeCaption}"/>
@@ -1197,8 +1197,8 @@
 
                 <Grid>
                     <!-- Tunnel DataGrid -->
-                    <DataGrid ItemsSource="{Binding TunnelList}"
-                              SelectedItem="{Binding SelectedTunnel}"
+                    <DataGrid ItemsSource="{Binding Tunnels.List}"
+                              SelectedItem="{Binding Tunnels.SelectedItem}"
                               AutoGenerateColumns="False"
                               IsReadOnly="True"
                               SelectionMode="Single"
@@ -1242,7 +1242,7 @@
                                Foreground="{DynamicResource TextSecondaryBrush}"
                                HorizontalAlignment="Center"
                                VerticalAlignment="Center"
-                               Visibility="{Binding HasNoTunnels, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                               Visibility="{Binding Tunnels.HasNoTunnels, Converter={StaticResource BoolToVisibilityConverter}}"/>
                 </Grid>
             </DockPanel>
 
@@ -2203,7 +2203,7 @@
                                Foreground="{DynamicResource SuccessTextBrush}"
                                Visibility="Collapsed"/>
                     <!-- Tunnel panel toggle badge -->
-                    <Button x:Name="Mw_StatusTunnelToggle" Command="{Binding ToggleTunnelPanelCommand}"
+                    <Button x:Name="Mw_StatusTunnelToggle" Command="{Binding Tunnels.TogglePanelCommand}"
                             Padding="4,2" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,8,0"
                             VerticalAlignment="Center"
                             Style="{DynamicResource ToolbarGhostButtonStyle}"
@@ -2214,7 +2214,7 @@
                                            FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center" Margin="0,0,3,0"
                                            AutomationProperties.Name=""/>
                                 <TextBlock VerticalAlignment="Center">
-                                    <Run Text="{Binding TunnelCount, Mode=OneWay}"/>
+                                    <Run Text="{Binding Tunnels.Count, Mode=OneWay}"/>
                                 </TextBlock>
                             </StackPanel>
                         </Button.Content>
@@ -2249,7 +2249,7 @@
                                Foreground="{DynamicResource TextSecondaryBrush}">
                         <Run Text="{Binding ServerCount, Mode=OneWay}"/>
                         <Run x:Name="Mw_StatusBarServersLabel" Text=""/>
-                        <Run Text="{Binding TunnelCount, Mode=OneWay}"/>
+                        <Run Text="{Binding Tunnels.Count, Mode=OneWay}"/>
                         <Run x:Name="Mw_StatusBarTunnelsLabel" Text=""/>
                     </TextBlock>
                 </StackPanel>

@@ -22,6 +22,7 @@ using Heimdall.App.ViewModels.Dialogs;
 using Heimdall.App.ViewModels.CommandPalette;
 using Heimdall.App.ViewModels.Sidebar;
 using Heimdall.App.ViewModels.ToolsTab;
+using Heimdall.App.ViewModels.Tunnels;
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Models;
@@ -39,9 +40,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
 {
     private readonly ConfigManager _configManager;
     private readonly LocalizationManager _localizer;
-    private readonly ConnectionStateMachine _connectionSm;
     private readonly ApplicationStatusMachine _appStatus;
-    private readonly TunnelManager _tunnelManager;
     private readonly HostKeyStore _hostKeyStore;
     private readonly IDialogService _dialogService;
     private readonly EmbeddedSessionManager _embeddedSessionManager;
@@ -74,9 +73,6 @@ public partial class MainViewModel : ObservableObject, IDisposable
     private int _serverCount;
 
     [ObservableProperty]
-    private int _tunnelCount;
-
-    [ObservableProperty]
     private bool _isBusy;
 
     [ObservableProperty]
@@ -97,30 +93,12 @@ public partial class MainViewModel : ObservableObject, IDisposable
     private string _previousTab = "Sessions";
     private bool _suppressTabChangeGuard;
 
-    // --- Retractable Tunnel Panel ---
-
-    [ObservableProperty]
-    private bool _isTunnelPanelOpen;
-
-    [RelayCommand]
-    private void ToggleTunnelPanel() => IsTunnelPanelOpen = !IsTunnelPanelOpen;
-
-    /// <summary>Active tunnel snapshots for the Tunnels tab.</summary>
-    [ObservableProperty]
-    private ObservableCollection<TunnelInfo> _tunnelList = [];
-
-    [ObservableProperty]
-    private TunnelInfo? _selectedTunnel;
-
     /// <summary>Scheduled task entries for the Scheduled tab.</summary>
     [ObservableProperty]
     private ObservableCollection<ScheduledTaskDto> _scheduledTasks = [];
 
     [ObservableProperty]
     private ScheduledTaskDto? _selectedScheduledTask;
-
-    /// <summary>True when there are no active tunnels.</summary>
-    public bool HasNoTunnels => TunnelList.Count == 0;
 
     /// <summary>True when there are no scheduled tasks.</summary>
     public bool HasNoScheduledTasks => ScheduledTasks.Count == 0;
@@ -142,11 +120,6 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
     /// <summary>True when the About tab is selected.</summary>
     public bool IsAboutTabSelected => string.Equals(SelectedTab, "About", StringComparison.Ordinal);
-
-    partial void OnTunnelListChanged(ObservableCollection<TunnelInfo> value)
-    {
-        OnPropertyChanged(nameof(HasNoTunnels));
-    }
 
     partial void OnScheduledTasksChanged(ObservableCollection<ScheduledTaskDto> value)
     {
@@ -229,7 +202,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         // Refresh tunnel list when switching to Tunnels tab
         if (IsTunnelsTabSelected)
         {
-            RefreshTunnelList();
+            Tunnels.RefreshList();
         }
 
         // Reload scheduled tasks when switching to Scheduled tab
@@ -265,6 +238,9 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
     /// <summary>Ctrl+K Command Palette state, commands and fuzzy search.</summary>
     public CommandPaletteViewModel CommandPalette { get; }
+
+    /// <summary>Active tunnels list + retractable panel state + route resolver.</summary>
+    public TunnelsViewModel Tunnels { get; }
 
     /// <summary>Recently used tool IDs (most recent first, max 5).</summary>
     private readonly List<string> _recentToolIds = new();
@@ -307,9 +283,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
     {
         _configManager = configManager;
         _localizer = localizer;
-        _connectionSm = connectionSm;
         _appStatus = appStatus;
-        _tunnelManager = tunnelManager;
         _hostKeyStore = hostKeyStore;
         _dialogService = dialogService;
         _embeddedSessionManager = embeddedSessionManager;
@@ -323,6 +297,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         ToolsTab = new ToolsTabViewModel(this, localizer, toolsTabPopulation);
         CommandPalette = new CommandPaletteViewModel(
             this, localizer, toolRegistry, configManager, embeddedSessionManager);
+        Tunnels = new TunnelsViewModel(this, localizer, tunnelManager, connectionSm);
 
         _taskScheduler = new TaskSchedulerService
         {
@@ -340,8 +315,6 @@ public partial class MainViewModel : ObservableObject, IDisposable
         ServerList.ConnectionService.SetStatusText = s => StatusText = s;
 
         _appStatus.StatusChanged += OnApplicationStatusChanged;
-        _tunnelManager.TunnelOpened += OnTunnelOpened;
-        _tunnelManager.TunnelClosed += OnTunnelClosed;
 
         // Keep _currentSettings in sync when settings are saved elsewhere
         _configManager.SettingsChanged += OnSettingsChanged;
@@ -402,7 +375,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
             var servers = await _configManager.LoadServersAsync();
 
             ServerCount = servers.Count;
-            TunnelCount = _tunnelManager.GetActiveTunnels().Count;
+            Tunnels.RefreshList();
 
             // Load host keys from gateway configurations into the TOFU store
             var hostKeyEntries = settings.SshGateways
@@ -511,7 +484,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
         // Resolve tunnel chain route for visual display in session header
         // (uses sessionId — correct for state machine lookup)
-        tab.TunnelRoute = ResolveTunnelRoute(sessionId);
+        tab.TunnelRoute = Tunnels.ResolveRoute(sessionId);
 
         StatusText = string.Equals(connectionType, "RDP", StringComparison.OrdinalIgnoreCase)
             ? _localizer.Format("StatusEmbeddedRdpOpening", displayName)
@@ -669,69 +642,6 @@ public partial class MainViewModel : ObservableObject, IDisposable
     private void OnThemeServiceThemeChanged(string themeName)
     {
         ThemeRevision = _themeService.ThemeRevision;
-    }
-
-    private void OnTunnelOpened(TunnelInfo info)
-    {
-        TunnelCount = _tunnelManager.GetActiveTunnels().Count;
-        RefreshTunnelList();
-        IsTunnelPanelOpen = true;
-    }
-
-    private void OnTunnelClosed(int localPort, string? error)
-    {
-        TunnelCount = _tunnelManager.GetActiveTunnels().Count;
-        RefreshTunnelList();
-
-        if (!string.IsNullOrEmpty(error))
-        {
-            StatusText = _localizer.Format("StatusTunnelClosed", localPort) + $" ({error})";
-        }
-    }
-
-    private void RefreshTunnelList()
-    {
-        var tunnels = _tunnelManager.GetActiveTunnels();
-        TunnelList = new ObservableCollection<TunnelInfo>(tunnels);
-    }
-
-    [RelayCommand]
-    private void CloseTunnel(TunnelInfo? tunnel)
-    {
-        if (tunnel is null)
-        {
-            return;
-        }
-
-        _tunnelManager.ForceCloseTunnel(tunnel.LocalPort);
-        TunnelCount = _tunnelManager.GetActiveTunnels().Count;
-        RefreshTunnelList();
-        StatusText = _localizer.Format("StatusTunnelClosed", tunnel.LocalPort);
-    }
-
-    [RelayCommand]
-    private void CloseAllTunnels()
-    {
-        _tunnelManager.CloseAllTunnels();
-        TunnelCount = 0;
-        RefreshTunnelList();
-        StatusText = _localizer["StatusAllTunnelsClosed"];
-    }
-
-    [RelayCommand]
-    private void CopyTunnelPort(TunnelInfo? tunnel)
-    {
-        if (tunnel is null)
-        {
-            return;
-        }
-
-        try
-        {
-            System.Windows.Clipboard.SetText(tunnel.LocalPort.ToString());
-            StatusText = _localizer.Format("StatusPortCopied", tunnel.LocalPort);
-        }
-        catch (Exception ex) { Core.Logging.FileLogger.Warn($"[MainViewModel] clipboard copy: {ex.Message}"); }
     }
 
     [RelayCommand]
@@ -901,8 +811,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         _disposed = true;
 
         _appStatus.StatusChanged -= OnApplicationStatusChanged;
-        _tunnelManager.TunnelOpened -= OnTunnelOpened;
-        _tunnelManager.TunnelClosed -= OnTunnelClosed;
+        Tunnels.Dispose();
         _configManager.SettingsChanged -= OnSettingsChanged;
         Settings.ConfigurationChanged -= _onConfigurationChanged;
         Settings.ThemeChanged -= OnSettingsThemePreview;
@@ -1033,47 +942,6 @@ public partial class MainViewModel : ObservableObject, IDisposable
     /// to resolve i18n keys outside the view model (e.g., floating windows).
     /// </summary>
     public LocalizationManager GetLocalizer() => _localizer;
-
-    /// <summary>
-    /// Resolves the tunnel chain route for a server, returning a display string
-    /// like "via GatewayA" or "via GatewayA → GatewayB" for chained tunnels.
-    /// Returns empty string for direct connections.
-    /// </summary>
-    private string ResolveTunnelRoute(string serverId)
-    {
-        if (_currentSettings is null) return "";
-
-        var stateData = _connectionSm.GetStateData(serverId);
-        if (stateData?.TunnelLocalPort is null) return "";
-
-        // Find which gateway hosts this tunnel by matching the tunnel's ServerName
-        var tunnels = _tunnelManager.GetActiveTunnels();
-        var tunnel = tunnels.FirstOrDefault(t => t.LocalPort == stateData.TunnelLocalPort);
-        if (tunnel is null) return "";
-
-        var gatewayId = _currentSettings.SshGateways
-            .FirstOrDefault(g => string.Equals(g.Host, tunnel.ServerName, StringComparison.OrdinalIgnoreCase))?.Id;
-
-        if (string.IsNullOrEmpty(gatewayId))
-            return $"via {tunnel.ServerName}";
-
-        // Walk the gateway chain to build the full route
-        var names = new List<string>();
-        var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-        while (!string.IsNullOrEmpty(gatewayId) && visited.Add(gatewayId))
-        {
-            var gw = _currentSettings.SshGateways.FirstOrDefault(
-                g => string.Equals(g.Id, gatewayId, StringComparison.OrdinalIgnoreCase));
-            if (gw is null) break;
-            names.Add(string.IsNullOrWhiteSpace(gw.Name) ? gw.Host : gw.Name);
-            gatewayId = gw.ParentGatewayId;
-        }
-
-        if (names.Count == 0) return "";
-        names.Reverse();
-        return "via " + string.Join(" \u2192 ", names);
-    }
 
     // --- Broadcast mode ---
 
