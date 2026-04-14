@@ -286,6 +286,7 @@ public partial class App : System.Windows.Application
         services.AddSingleton<SplitService>();
         services.AddSingleton<ContextMenuFactory>();
         services.AddSingleton<SessionTabContextMenuFactory>();
+        services.AddSingleton<SessionSplitService>();
         services.AddSingleton<FileShareService>();
         services.AddSingleton<KeyboardShortcutService>();
         services.AddSingleton<ToolsTabPopulationService>();
