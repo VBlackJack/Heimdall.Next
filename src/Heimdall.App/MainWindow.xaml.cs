@@ -186,7 +186,6 @@ public partial class MainWindow : Window, IContextMenuCallbacks
 
         KeyDown += OnKeyDown;
         PreviewMouseDown += OnWindowPreviewMouseDown;
-        Deactivated += OnWindowDeactivated;
     }
 
     /// <summary>
@@ -2867,19 +2866,6 @@ public partial class MainWindow : Window, IContextMenuCallbacks
     /// window surface never reach it — we intercept them here instead.
     /// </summary>
     private void OnWindowPreviewMouseDown(object sender, MouseButtonEventArgs e)
-    {
-        if (DataContext is MainViewModel { IsCommandPaletteOpen: true } vm)
-        {
-            vm.CloseCommandPaletteCommand.Execute(null);
-        }
-    }
-
-    /// <summary>
-    /// Dismiss the command palette when the window loses focus (e.g., the user
-    /// switches to another application). StaysOpen="True" is required for
-    /// WindowsFormsHost airspace compatibility, so we handle deactivation manually.
-    /// </summary>
-    private void OnWindowDeactivated(object? sender, EventArgs e)
     {
         if (DataContext is MainViewModel { IsCommandPaletteOpen: true } vm)
         {
