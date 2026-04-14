@@ -90,7 +90,7 @@ public partial class MainWindow
         Mw_AddMenuGateway.Header = vm.Localize("AddMenuGateway");
         Mw_AddMenuFolder.Header = vm.Localize("AddMenuFolder");
 
-        Mw_ShareFolderLabel.Text = vm.Localize("ToolsShareFolder");
+        Mw_ShareFolderLabel.Text = vm.Localize(_fileShareService.IsSharing ? "ToolsStopSharing" : "ToolsShareFolder");
         Mw_QuickConnectLabel.Text = vm.Localize("QuickConnectShortcut");
 
         Mw_DetailGroupLabel.Text = vm.Localize("DetailLabelGroup");

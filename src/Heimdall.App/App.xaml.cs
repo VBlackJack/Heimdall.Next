@@ -285,6 +285,7 @@ public partial class App : System.Windows.Application
         services.AddSingleton<EmbeddedSessionManager>();
         services.AddSingleton<SplitService>();
         services.AddSingleton<ContextMenuFactory>();
+        services.AddSingleton<FileShareService>();
         services.AddSingleton<ToolsTabPopulationService>();
         services.AddSingleton<IDialogService, WpfDialogService>();
 
@@ -499,7 +500,7 @@ public partial class App : System.Windows.Application
         }
     }
 
-    protected override void OnExit(ExitEventArgs e)
+    protected override async void OnExit(ExitEventArgs e)
     {
         if (_serviceProvider is not null)
         {
@@ -541,7 +542,17 @@ public partial class App : System.Windows.Application
             catch (Exception ex) { Core.Logging.FileLogger.Warn($"[App] sleep prevention cleanup: {ex.Message}"); }
         }
 
-        _serviceProvider?.Dispose();
+        // ServiceProvider must be disposed asynchronously because some registered services
+        // (e.g. FileShareService) only implement IAsyncDisposable. A sync Dispose() on the
+        // container would throw "type only implements IAsyncDisposable. Use DisposeAsync".
+        if (_serviceProvider is IAsyncDisposable asyncProvider)
+        {
+            await asyncProvider.DisposeAsync();
+        }
+        else
+        {
+            _serviceProvider?.Dispose();
+        }
 
         Core.Logging.FileLogger.Info("Heimdall.Next shutdown complete");
         Core.Logging.FileLogger.Flush();

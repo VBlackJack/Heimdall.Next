@@ -56,10 +56,9 @@ public partial class MainWindow : Window, IContextMenuCallbacks
     private object? _treeContextTarget;
     private bool _treeContextTargetFromPointer;
     private bool _treeContextPointerHitEmptyArea;
-    private EphemeralFileServer? _fileServer;
-    private string? _fileServerBaseUrl;
     private readonly Services.ThemeService _themeService;
     private readonly ContextMenuFactory _contextMenuFactory;
+    private readonly FileShareService _fileShareService;
     private readonly ToolsTabPopulationService _toolsTabPopulation;
     private bool _sidebarTabRestored;
     private bool _closeConfirmed;
@@ -77,7 +76,8 @@ public partial class MainWindow : Window, IContextMenuCallbacks
         MainViewModel viewModel,
         Services.ThemeService themeService,
         ContextMenuFactory contextMenuFactory,
-        ToolsTabPopulationService toolsTabPopulation)
+        ToolsTabPopulationService toolsTabPopulation,
+        FileShareService fileShareService)
     {
         InitializeComponent();
         WindowThemeHelper.ApplyCurrentTheme(this);
@@ -85,6 +85,10 @@ public partial class MainWindow : Window, IContextMenuCallbacks
         _themeService = themeService;
         _contextMenuFactory = contextMenuFactory;
         _toolsTabPopulation = toolsTabPopulation;
+        _fileShareService = fileShareService;
+        _fileShareService.SharingStarted += OnFileShareSharingStarted;
+        _fileShareService.SharingStopped += OnFileShareSharingStopped;
+        _fileShareService.FileServed += OnFileShareFileServed;
         _themeService.ThemeChanged += OnThemeServiceThemeChanged;
         ApplyLocalization();
 
@@ -3099,15 +3103,15 @@ public partial class MainWindow : Window, IContextMenuCallbacks
         }
     }
 
-    // ── Ephemeral File Server ─────────────────────────────────────────
+    // ── Quick File Server (FileShareService bridge) ──────────────────
 
     private async void OnShareFolderClick(object sender, RoutedEventArgs e)
     {
         if (DataContext is not MainViewModel vm) return;
 
-        if (_fileServer is { IsHttpRunning: true } or { IsTftpRunning: true })
+        if (_fileShareService.IsSharing)
         {
-            StopFileServer();
+            await _fileShareService.StopAsync();
             return;
         }
 
@@ -3118,71 +3122,7 @@ public partial class MainWindow : Window, IContextMenuCallbacks
 
         if (dialog.ShowDialog() != System.Windows.Forms.DialogResult.OK) return;
 
-        var directory = dialog.SelectedPath;
-        var settings = (DataContext as MainViewModel)?.CurrentSettings;
-        _fileServer = new EphemeralFileServer
-        {
-            ShutdownTimeoutMs = settings?.ServerShutdownTimeoutMs ?? 2000
-        };
-
-        var httpPort = settings?.EphemeralHttpPort ?? 8080;
-        var tftpPort = settings?.EphemeralTftpPort ?? 69;
-
-        try
-        {
-            await _fileServer.StartHttpServerAsync(directory, httpPort);
-        }
-        catch (Exception ex)
-        {
-            Core.Logging.FileLogger.Error($"Failed to start HTTP server: {ex.Message}");
-        }
-
-        try
-        {
-            await _fileServer.StartTftpServerAsync(directory, tftpPort);
-        }
-        catch (Exception ex)
-        {
-            Core.Logging.FileLogger.Error($"Failed to start TFTP server: {ex.Message}");
-        }
-
-        if (!_fileServer.IsHttpRunning && !_fileServer.IsTftpRunning)
-        {
-            _fileServer.Dispose();
-            _fileServer = null;
-            return;
-        }
-
-        // Update UI to show Stop Sharing state
-        Mw_ShareFolderLabel.Text = vm.Localize("ToolsStopSharing");
-
-        var localIp = EphemeralFileServer.GetLocalIpAddress();
-        var folderName = System.IO.Path.GetFileName(directory);
-        var baseUrl = $"http://{localIp}:{httpPort}";
-
-        Mw_SharingStatus.Text = baseUrl;
-        Mw_SharingStatus.Visibility = Visibility.Visible;
-
-        // Show a helper dialog with ready-to-use commands
-        var wgetCmd = $"wget {baseUrl}/<filename>";
-        var curlCmd = $"curl -O {baseUrl}/<filename>";
-        var tftpCmd = $"tftp {localIp} -c get <filename>";
-
-        // Copy the base URL to clipboard for convenience
-        try { Clipboard.SetText(baseUrl); } catch { /* clipboard may fail in some RDP sessions */ }
-
-        var helpMessage = string.Format(vm.Localize("ToolsSharingHelp"),
-            folderName, baseUrl, wgetCmd, curlCmd, tftpCmd);
-
-        vm.StatusText = string.Format(vm.Localize("ToolsSharingReady"), baseUrl);
-
-        MessageBox.Show(helpMessage,
-            vm.Localize("ToolsSharingHelpTitle"),
-            MessageBoxButton.OK,
-            MessageBoxImage.Information);
-
-        _fileServerBaseUrl = baseUrl;
-        _fileServer.FileServed += OnFileServed;
+        await _fileShareService.StartAsync(dialog.SelectedPath, vm.CurrentSettings);
     }
 
     // ── IContextMenuCallbacks ─────────────────────────────────────────
@@ -3234,31 +3174,30 @@ public partial class MainWindow : Window, IContextMenuCallbacks
         _ = ShowAddToolPickerAsync(vm, group);
     }
 
-    /// <summary>
-    /// Updates the status bar when the ephemeral file server serves a file.
-    /// Named handler (rather than an anonymous lambda) so that
-    /// <see cref="StopFileServer"/> can detach symmetrically before disposal.
-    /// </summary>
-    private void OnFileServed(string fileName)
+    private void OnFileShareSharingStarted(object? sender, FileShareStartedEventArgs e)
     {
-        Dispatcher.Invoke(() =>
-        {
-            if (DataContext is MainViewModel mvm)
-                mvm.StatusText = string.Format(
-                    mvm.Localize("ToolsSharingServed"), fileName, _fileServerBaseUrl);
-        });
+        if (DataContext is not MainViewModel vm) return;
+
+        Mw_ShareFolderLabel.Text = vm.Localize("ToolsStopSharing");
+        Mw_SharingStatus.Text = e.BaseUrl;
+        Mw_SharingStatus.Visibility = Visibility.Visible;
+
+        try { Clipboard.SetText(e.BaseUrl); }
+        catch { /* clipboard may fail in some RDP sessions */ }
+
+        var helpMessage = string.Format(vm.Localize("ToolsSharingHelp"),
+            e.FolderName, e.BaseUrl, e.WgetCommand, e.CurlCommand, e.TftpCommand);
+
+        vm.StatusText = string.Format(vm.Localize("ToolsSharingReady"), e.BaseUrl);
+
+        MessageBox.Show(helpMessage,
+            vm.Localize("ToolsSharingHelpTitle"),
+            MessageBoxButton.OK,
+            MessageBoxImage.Information);
     }
 
-    private async void StopFileServer()
+    private void OnFileShareSharingStopped(object? sender, EventArgs e)
     {
-        if (_fileServer is not null)
-        {
-            _fileServer.FileServed -= OnFileServed;
-            await _fileServer.DisposeAsync();
-            _fileServer = null;
-        }
-
-        _fileServerBaseUrl = null;
         Mw_SharingStatus.Visibility = Visibility.Collapsed;
         Mw_SharingStatus.Text = string.Empty;
 
@@ -3267,6 +3206,18 @@ public partial class MainWindow : Window, IContextMenuCallbacks
             Mw_ShareFolderLabel.Text = vm.Localize("ToolsShareFolder");
             vm.StatusText = vm.Localize("ToolsSharingStopped");
         }
+    }
+
+    private void OnFileShareFileServed(object? sender, string fileName)
+    {
+        Dispatcher.Invoke(() =>
+        {
+            if (DataContext is not MainViewModel vm) return;
+            vm.StatusText = string.Format(
+                vm.Localize("ToolsSharingServed"),
+                fileName,
+                _fileShareService.BaseUrl);
+        });
     }
 
     private void RestoreWindowBounds(Heimdall.Core.Configuration.AppSettings settings)
@@ -3400,7 +3351,10 @@ public partial class MainWindow : Window, IContextMenuCallbacks
                 vm.GetLocalizer().LocaleChanged -= _localeChangedHandler;
         }
 
-        StopFileServer();
+        _fileShareService.SharingStarted -= OnFileShareSharingStarted;
+        _fileShareService.SharingStopped -= OnFileShareSharingStopped;
+        _fileShareService.FileServed -= OnFileShareFileServed;
+        _ = _fileShareService.DisposeAsync();
         base.OnClosed(e);
     }
 
