@@ -58,6 +58,7 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
     private readonly Services.ThemeService _themeService;
     private readonly ContextMenuFactory _contextMenuFactory;
     private readonly SessionTabContextMenuFactory _sessionTabContextMenuFactory;
+    private readonly SessionSplitService _splitService;
     private readonly FileShareService _fileShareService;
     private readonly KeyboardShortcutService _keyboardShortcutService;
     private readonly WindowUIState _uiState = new();
@@ -79,6 +80,7 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
         Services.ThemeService themeService,
         ContextMenuFactory contextMenuFactory,
         SessionTabContextMenuFactory sessionTabContextMenuFactory,
+        SessionSplitService splitService,
         ToolsTabPopulationService toolsTabPopulation,
         FileShareService fileShareService,
         KeyboardShortcutService keyboardShortcutService)
@@ -89,6 +91,8 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
         _themeService = themeService;
         _contextMenuFactory = contextMenuFactory;
         _sessionTabContextMenuFactory = sessionTabContextMenuFactory;
+        _splitService = splitService;
+        _splitService.SplitPaletteRequested += OnSplitPaletteRequested;
         _toolsTabPopulation = toolsTabPopulation;
         _fileShareService = fileShareService;
         _keyboardShortcutService = keyboardShortcutService;
@@ -179,19 +183,18 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
     }
 
     /// <summary>
-    /// Handles split requests from embedded view header buttons by showing the
-    /// split picker context menu with a default vertical orientation.
+    /// Handles split requests from embedded view header buttons by delegating
+    /// to <see cref="SessionSplitService.HandleEmbeddedSplitRequest"/>.
     /// </summary>
     private void OnEmbeddedSplitRequested(SessionTabViewModel session)
     {
-        if (session.IsSplit)
-        {
-            UnsplitSession(session);
-        }
-        else
-        {
-            RequestSplitSession(session, Heimdall.Core.Models.SplitOrientation.Vertical);
-        }
+        if (DataContext is not MainViewModel vm) return;
+        _splitService.HandleEmbeddedSplitRequest(session, vm);
+    }
+
+    private void OnSplitPaletteRequested(object? sender, EventArgs e)
+    {
+        BeginFocusCommandPalette();
     }
 
     private void PopulateAboutSection()
@@ -1527,95 +1530,6 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
 
     // ── Tab detachment ─────────────────────────────────────────────────
 
-    /// <summary>
-    /// Detaches a session tab from the main window into a standalone floating window.
-    /// The host control is removed from the TabControl and re-parented to the new window.
-    /// </summary>
-    private void DetachSessionToFloatingWindow(SessionTabViewModel session)
-    {
-        if (DataContext is not MainViewModel vm) return;
-        if (!vm.Connection.ActiveSessions.Contains(session)) return;
-
-        // Detach the host control from the tab (UIElement single-parent rule)
-        var hostControl = session.HostControl;
-        session.HostControl = null;
-
-        // Remove the session from the main window's collection
-        vm.Connection.ActiveSessions.Remove(session);
-        if (vm.Connection.ActiveSession == session)
-        {
-            vm.Connection.ActiveSession = vm.Connection.ActiveSessions.LastOrDefault();
-        }
-        vm.Connection.HasActiveSessions = vm.Connection.ActiveSessions.Count > 0;
-
-        // Re-assign the host control so the floating window can pick it up
-        session.HostControl = hostControl;
-
-        // Spawn the floating window
-        var localizer = vm.GetLocalizer();
-        var floatingWindow = new Views.FloatingSessionWindow(session, localizer)
-        {
-            Owner = null // Independent top-level window
-        };
-        floatingWindow.Show();
-
-        Heimdall.Core.Logging.FileLogger.Info(
-            string.Format(localizer["LogSessionDetached"], session.Title));
-    }
-
-    /// <summary>
-    /// Detaches the secondary pane from a split session into its own floating window.
-    /// Legacy entry point — delegates to <see cref="DetachPaneToFloatingWindow"/>.
-    /// </summary>
-    private void DetachSecondaryToFloatingWindow(SessionTabViewModel session)
-    {
-        if (!session.IsSplit) return;
-        if (session.RootContent is not Heimdall.Core.Models.SplitContainerModel rootContainer) return;
-
-        var secondaryPane = Heimdall.Core.Models.SplitTreeHelper.FirstLeaf(rootContainer.Second);
-        if (secondaryPane is not null && secondaryPane.HostControl is not null)
-        {
-            DetachPaneToFloatingWindow(session, secondaryPane.PaneId);
-        }
-    }
-
-    /// <summary>
-    /// Detaches a specific pane from the split tree into a floating window.
-    /// The pane is extracted to a new tab and then detached.
-    /// </summary>
-    private void DetachPaneToFloatingWindow(SessionTabViewModel session, string paneId)
-    {
-        if (DataContext is not MainViewModel vm) return;
-
-        var pane = Heimdall.Core.Models.SplitTreeHelper.FindPane(session.RootContent, paneId);
-        if (pane is null || pane.HostControl is null) return;
-
-        // Capture pane metadata
-        var hostControl = pane.HostControl;
-        var serverId = pane.ServerId;
-        var originalServerId = pane.OriginalServerId;
-        var connType = pane.ConnectionType;
-        var title = pane.Title;
-        var status = pane.Status;
-        var tunnelRoute = pane.TunnelRoute;
-        var envColor = pane.EnvironmentColor;
-
-        // Detach host control and remove pane from tree
-        pane.HostControl = null;
-        var newRoot = Heimdall.Core.Models.SplitTreeHelper.RemovePane(session.RootContent, paneId);
-        session.RootContent = newRoot ?? new Heimdall.Core.Models.SessionPaneModel();
-
-        // Create a new independent tab and detach it
-        var newTab = vm.Connection.AddSession(serverId, title, connType);
-        newTab.OriginalServerId = originalServerId;
-        newTab.HostControl = hostControl;
-        newTab.Status = !string.IsNullOrEmpty(status) ? status : "Connected";
-        newTab.TunnelRoute = tunnelRoute;
-        newTab.EnvironmentColor = envColor;
-
-        DetachSessionToFloatingWindow(newTab);
-    }
-
     // ── Session tab context menu handlers ──────────────────────────────
 
     private void OnSessionTabRightClick(object sender, MouseButtonEventArgs e)
@@ -1683,83 +1597,6 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
         menu.Placement = System.Windows.Controls.Primitives.PlacementMode.MousePoint;
         menu.IsOpen = true;
         e.Handled = true;
-    }
-
-    private void RequestSplitSession(
-        SessionTabViewModel session,
-        Heimdall.Core.Models.SplitOrientation orientation)
-    {
-        if (DataContext is not MainViewModel vm) return;
-
-        // Open the Command Palette in split mode — the palette provides fuzzy search
-        // which scales to any number of servers (replaces the old ContextMenu approach
-        // that became unusable with 100+ servers).
-        vm.OpenSplitPalette(session, orientation);
-        BeginFocusCommandPalette();
-    }
-
-    /// <summary>
-    /// Legacy unsplit: detaches the root's second child to a new tab.
-    /// </summary>
-    private void UnsplitSession(SessionTabViewModel session)
-    {
-        if (!session.IsSplit) return;
-        if (session.RootContent is not Heimdall.Core.Models.SplitContainerModel rootContainer) return;
-
-        var secondaryPane = Heimdall.Core.Models.SplitTreeHelper.FirstLeaf(rootContainer.Second);
-        if (secondaryPane is not null)
-        {
-            DetachPaneToTab(session, secondaryPane.PaneId);
-        }
-    }
-
-    /// <summary>
-    /// Detaches a specific pane from the split tree into its own independent tab.
-    /// </summary>
-    private void DetachPaneToTab(SessionTabViewModel session, string paneId)
-    {
-        if (DataContext is not MainViewModel vm) return;
-
-        var pane = Heimdall.Core.Models.SplitTreeHelper.FindPane(session.RootContent, paneId);
-        if (pane is null) return;
-
-        // Capture metadata
-        var hostControl = pane.HostControl;
-        var serverId = pane.ServerId;
-        var originalServerId = pane.OriginalServerId;
-        var connType = pane.ConnectionType;
-        var title = pane.Title;
-        var status = pane.Status;
-        var tunnelRoute = pane.TunnelRoute;
-        var envColor = pane.EnvironmentColor;
-
-        // Detach host control (UIElement single-parent rule)
-        pane.HostControl = null;
-
-        // Remove pane from tree
-        var newRoot = Heimdall.Core.Models.SplitTreeHelper.RemovePane(session.RootContent, paneId);
-        session.RootContent = newRoot ?? new Heimdall.Core.Models.SessionPaneModel();
-
-        // If the pane was still connecting (no host control), clean up state and abort
-        if (hostControl is null)
-        {
-            vm.CleanupOrphanedPane(serverId);
-            Core.Logging.FileLogger.Info(
-                $"Detach cancelled connecting pane '{title}'.");
-            return;
-        }
-
-        // Restore as independent tab with original metadata
-        if (!string.IsNullOrEmpty(serverId))
-        {
-            var displayTitle = !string.IsNullOrEmpty(title) ? title : serverId;
-            var restoredTab = vm.Connection.AddSession(serverId, displayTitle, connType);
-            restoredTab.OriginalServerId = originalServerId;
-            restoredTab.HostControl = hostControl;
-            restoredTab.Status = !string.IsNullOrEmpty(status) ? status : "Connected";
-            restoredTab.TunnelRoute = tunnelRoute;
-            restoredTab.EnvironmentColor = envColor;
-        }
     }
 
     private void OnAspectRatioClick(object sender, RoutedEventArgs e)
@@ -2035,11 +1872,10 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
     }
 
     // ── ISessionTabContextCallbacks ───────────────────────────────────
-    // Forward to the existing private MainWindow methods. Phase 3C will
-    // move the implementations of DetachSessionToFloatingWindow,
-    // DetachSecondaryToFloatingWindow, RequestSplitSession and
-    // UnsplitSession to SessionSplitService; at that point these
-    // forwarding stubs become thin delegations to the service.
+    // OnAspectRatioClick and ToggleFullscreen stay in MainWindow (aspect
+    // ratio touches the active RDP view, fullscreen touches named XAML
+    // elements via MainWindow.WindowUI.cs). All split/merge/detach
+    // operations delegate to SessionSplitService.
 
     /// <inheritdoc />
     void ISessionTabContextCallbacks.OnAspectRatioClick(object sender, RoutedEventArgs e)
@@ -2051,21 +1887,33 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
 
     /// <inheritdoc />
     void ISessionTabContextCallbacks.DetachSessionToFloatingWindow(SessionTabViewModel session)
-        => DetachSessionToFloatingWindow(session);
+    {
+        if (DataContext is not MainViewModel vm) return;
+        _splitService.DetachSessionToFloatingWindow(session, vm);
+    }
 
     /// <inheritdoc />
     void ISessionTabContextCallbacks.DetachSecondaryToFloatingWindow(SessionTabViewModel session)
-        => DetachSecondaryToFloatingWindow(session);
+    {
+        if (DataContext is not MainViewModel vm) return;
+        _splitService.DetachSecondaryToFloatingWindow(session, vm);
+    }
 
     /// <inheritdoc />
     void ISessionTabContextCallbacks.RequestSplitSession(
         SessionTabViewModel session,
         Heimdall.Core.Models.SplitOrientation orientation)
-        => RequestSplitSession(session, orientation);
+    {
+        if (DataContext is not MainViewModel vm) return;
+        _splitService.RequestSplitSession(session, orientation, vm);
+    }
 
     /// <inheritdoc />
     void ISessionTabContextCallbacks.UnsplitSession(SessionTabViewModel session)
-        => UnsplitSession(session);
+    {
+        if (DataContext is not MainViewModel vm) return;
+        _splitService.UnsplitSession(session, vm);
+    }
 
     private void OnFileShareSharingStarted(object? sender, FileShareStartedEventArgs e)
     {
@@ -2248,6 +2096,7 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
         _fileShareService.SharingStarted -= OnFileShareSharingStarted;
         _fileShareService.SharingStopped -= OnFileShareSharingStopped;
         _fileShareService.FileServed -= OnFileShareFileServed;
+        _splitService.SplitPaletteRequested -= OnSplitPaletteRequested;
         _ = _fileShareService.DisposeAsync();
         base.OnClosed(e);
     }

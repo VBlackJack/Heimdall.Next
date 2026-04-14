@@ -67,9 +67,11 @@ public partial class MainWindow
 
             // If the drop landed outside the TabControl (no target accepted it),
             // detach the tab to a floating window
-            if (result == System.Windows.DragDropEffects.None && draggedSession is not null)
+            if (result == System.Windows.DragDropEffects.None
+                && draggedSession is not null
+                && DataContext is MainViewModel detachVm)
             {
-                DetachSessionToFloatingWindow(draggedSession);
+                _splitService.DetachSessionToFloatingWindow(draggedSession, detachVm);
             }
         }
     }
