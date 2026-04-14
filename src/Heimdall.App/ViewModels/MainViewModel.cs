@@ -20,6 +20,7 @@ using CommunityToolkit.Mvvm.Input;
 using Heimdall.App.Services;
 using Heimdall.App.ViewModels.Dialogs;
 using Heimdall.App.ViewModels.CommandPalette;
+using Heimdall.App.ViewModels.Scheduled;
 using Heimdall.App.ViewModels.Sidebar;
 using Heimdall.App.ViewModels.ToolsTab;
 using Heimdall.App.ViewModels.Tunnels;
@@ -45,7 +46,6 @@ public partial class MainViewModel : ObservableObject, IDisposable
     private readonly IDialogService _dialogService;
     private readonly EmbeddedSessionManager _embeddedSessionManager;
     private readonly ThemeService _themeService;
-    private readonly TaskSchedulerService _taskScheduler;
 
     private bool _disposed;
     private Action? _onConfigurationChanged;
@@ -93,16 +93,6 @@ public partial class MainViewModel : ObservableObject, IDisposable
     private string _previousTab = "Sessions";
     private bool _suppressTabChangeGuard;
 
-    /// <summary>Scheduled task entries for the Scheduled tab.</summary>
-    [ObservableProperty]
-    private ObservableCollection<ScheduledTaskDto> _scheduledTasks = [];
-
-    [ObservableProperty]
-    private ScheduledTaskDto? _selectedScheduledTask;
-
-    /// <summary>True when there are no scheduled tasks.</summary>
-    public bool HasNoScheduledTasks => ScheduledTasks.Count == 0;
-
     /// <summary>True when the Sessions tab is selected.</summary>
     public bool IsSessionsTabSelected => string.Equals(SelectedTab, "Sessions", StringComparison.Ordinal);
 
@@ -120,11 +110,6 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
     /// <summary>True when the About tab is selected.</summary>
     public bool IsAboutTabSelected => string.Equals(SelectedTab, "About", StringComparison.Ordinal);
-
-    partial void OnScheduledTasksChanged(ObservableCollection<ScheduledTaskDto> value)
-    {
-        OnPropertyChanged(nameof(HasNoScheduledTasks));
-    }
 
     partial void OnSelectedTabChanged(string value)
     {
@@ -208,7 +193,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         // Reload scheduled tasks when switching to Scheduled tab
         if (IsScheduledTabSelected && _currentSettings is not null)
         {
-            LoadScheduledTasks(_currentSettings);
+            Scheduled.Load(_currentSettings);
         }
     }
 
@@ -241,6 +226,9 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
     /// <summary>Active tunnels list + retractable panel state + route resolver.</summary>
     public TunnelsViewModel Tunnels { get; }
+
+    /// <summary>Scheduled tasks list + scheduler lifecycle + add/edit/delete commands.</summary>
+    public ScheduledTasksViewModel Scheduled { get; }
 
     /// <summary>Recently used tool IDs (most recent first, max 5).</summary>
     private readonly List<string> _recentToolIds = new();
@@ -298,13 +286,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         CommandPalette = new CommandPaletteViewModel(
             this, localizer, toolRegistry, configManager, embeddedSessionManager);
         Tunnels = new TunnelsViewModel(this, localizer, tunnelManager, connectionSm);
-
-        _taskScheduler = new TaskSchedulerService
-        {
-            TasksProvider = () => ScheduledTasks.ToList(),
-            TaskDueCallback = OnScheduledTaskDueAsync,
-            PersistCallback = SaveScheduledTasksAsync
-        };
+        Scheduled = new ScheduledTasksViewModel(this, localizer, dialogService, configManager);
 
         // Wire SplitService callbacks for access to session tab state
         Split.ActiveSessionsProvider = () => Connection.ActiveSessions;
@@ -387,19 +369,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
             _currentSettings = settings;
             ServerList.LoadServers(servers, settings);
             Settings.LoadFromSettings(settings);
-            LoadScheduledTasks(settings);
-
-            // Compute NextRun for any tasks that lack it (e.g., migrated from old format)
-            var now = DateTime.Now;
-            foreach (var task in ScheduledTasks)
-            {
-                if (task.NextRun is null && task.Enabled)
-                {
-                    TaskSchedulerService.ComputeNextRun(task, now);
-                }
-            }
-
-            _taskScheduler.Start();
+            Scheduled.Load(settings);
 
             // Restore previous workspace if session persistence is enabled
             if (settings.EnableSessionPersistence)
@@ -644,166 +614,12 @@ public partial class MainViewModel : ObservableObject, IDisposable
         ThemeRevision = _themeService.ThemeRevision;
     }
 
-    [RelayCommand]
-    private async Task AddScheduledTaskAsync(CancellationToken cancellationToken)
-    {
-        var vm = new ScheduledTaskDialogViewModel
-        {
-            DialogTitle = _localizer["ScheduledTaskDialogTitleAdd"]
-        };
-
-        await PopulateScheduledTaskServersAsync(vm);
-
-        var result = await _dialogService.ShowScheduledTaskDialogAsync(vm);
-        if (result is null)
-        {
-            return;
-        }
-
-        TaskSchedulerService.ComputeNextRun(result.Task, DateTime.Now);
-        ScheduledTasks.Add(result.Task);
-        OnPropertyChanged(nameof(HasNoScheduledTasks));
-        await SaveScheduledTasksAsync();
-        StatusText = _localizer.Format("StatusScheduledTaskAdded", result.Task.ServerName);
-    }
-
-    [RelayCommand]
-    private async Task EditScheduledTaskAsync(CancellationToken cancellationToken)
-    {
-        if (SelectedScheduledTask is null)
-        {
-            return;
-        }
-
-        var vm = ScheduledTaskDialogViewModel.FromDto(SelectedScheduledTask);
-        vm.DialogTitle = _localizer["ScheduledTaskDialogTitleEdit"];
-        await PopulateScheduledTaskServersAsync(vm);
-        vm.SelectServerById(SelectedScheduledTask.ServerId);
-
-        var result = await _dialogService.ShowScheduledTaskDialogAsync(vm);
-        if (result is null)
-        {
-            return;
-        }
-
-        // Replace the existing task in the collection
-        var index = ScheduledTasks.IndexOf(SelectedScheduledTask);
-        if (index >= 0)
-        {
-            TaskSchedulerService.ComputeNextRun(result.Task, DateTime.Now);
-            ScheduledTasks[index] = result.Task;
-            SelectedScheduledTask = result.Task;
-        }
-
-        await SaveScheduledTasksAsync();
-        StatusText = _localizer.Format("StatusScheduledTaskUpdated", result.Task.ServerName);
-    }
-
     /// <summary>
-    /// Populates the server options list in the scheduled task dialog ViewModel
-    /// from the current server inventory.
+    /// Stops the scheduler. Called by <c>App.OnExit</c> during application
+    /// shutdown. Thin forwarder to <see cref="ScheduledTasksViewModel.Dispose"/>
+    /// so the existing external call site does not need to change.
     /// </summary>
-    private async Task PopulateScheduledTaskServersAsync(ScheduledTaskDialogViewModel vm)
-    {
-        var servers = await _configManager.LoadServersAsync();
-        var options = servers
-            .OrderBy(s => s.DisplayName, StringComparer.OrdinalIgnoreCase)
-            .Select(s => new Dialogs.ServerOption(
-                s.Id,
-                s.DisplayName,
-                $"{s.DisplayName} ({s.ConnectionType})",
-                s.ConnectionType ?? "SSH"))
-            .ToList();
-
-        vm.AvailableServers = new System.Collections.ObjectModel.ObservableCollection<Dialogs.ServerOption>(options);
-    }
-
-    [RelayCommand]
-    private async Task DeleteScheduledTaskAsync(CancellationToken cancellationToken)
-    {
-        if (SelectedScheduledTask is null)
-        {
-            return;
-        }
-
-        var taskName = SelectedScheduledTask.ServerName;
-        var confirmed = await _dialogService.ShowConfirmAsync(
-            _localizer["ConfirmDeleteScheduledTaskTitle"],
-            _localizer.Format("ConfirmDeleteScheduledTaskMessage", taskName),
-            "danger");
-
-        if (!confirmed)
-        {
-            return;
-        }
-
-        ScheduledTasks.Remove(SelectedScheduledTask);
-        OnPropertyChanged(nameof(HasNoScheduledTasks));
-        await SaveScheduledTasksAsync();
-        StatusText = _localizer.Format("StatusScheduledTaskDeleted", taskName);
-    }
-
-    private void LoadScheduledTasks(AppSettings settings)
-    {
-        ScheduledTasks = new ObservableCollection<ScheduledTaskDto>(settings.ScheduledTasks);
-    }
-
-    private async Task SaveScheduledTasksAsync()
-    {
-        var settings = await _configManager.LoadSettingsAsync();
-        settings.ScheduledTasks = [.. ScheduledTasks];
-        await _configManager.SaveSettingsAsync(settings);
-    }
-
-    /// <summary>
-    /// Called by <see cref="TaskSchedulerService"/> when a scheduled task is due.
-    /// Resolves the target server and triggers the standard connection flow.
-    /// </summary>
-    private async Task OnScheduledTaskDueAsync(ScheduledTaskDto task)
-    {
-        Core.Logging.FileLogger.Info(
-            $"Executing scheduled task '{task.ServerName}' (serverId={task.ServerId}, type={task.ConnectionType}).");
-
-        StatusText = _localizer.Format("StatusScheduledTaskTriggered", task.ServerName, task.ConnectionType);
-
-        // Find the server in the current server list by ID or name fallback
-        var server = ServerList.Servers.FirstOrDefault(
-            s => !string.IsNullOrEmpty(task.ServerId)
-                 && string.Equals(s.Id, task.ServerId, StringComparison.Ordinal))
-            ?? ServerList.Servers.FirstOrDefault(
-                s => string.Equals(s.DisplayName, task.ServerName, StringComparison.OrdinalIgnoreCase));
-
-        if (server is null)
-        {
-            Core.Logging.FileLogger.Warn(
-                $"Scheduled task '{task.ServerName}': server not found in inventory. Skipping.");
-            StatusText = _localizer.Format("ErrorScheduledTaskFailed",
-                $"Server '{task.ServerName}' not found");
-            return;
-        }
-
-        try
-        {
-            ServerList.ConnectCommand.Execute(server);
-        }
-        catch (Exception ex)
-        {
-            Core.Logging.FileLogger.Error(
-                $"Scheduled task '{task.ServerName}' connection failed: {ex.Message}");
-            StatusText = _localizer.Format("ErrorScheduledTaskFailed", ex.Message);
-        }
-
-        await Task.CompletedTask;
-    }
-
-    /// <summary>
-    /// Stops the scheduler. Called during application shutdown.
-    /// </summary>
-    public void StopScheduler()
-    {
-        _taskScheduler.Stop();
-        _taskScheduler.Dispose();
-    }
+    public void StopScheduler() => Scheduled.Dispose();
 
     public void Dispose()
     {
@@ -812,6 +628,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
         _appStatus.StatusChanged -= OnApplicationStatusChanged;
         Tunnels.Dispose();
+        Scheduled.Dispose();
         _configManager.SettingsChanged -= OnSettingsChanged;
         Settings.ConfigurationChanged -= _onConfigurationChanged;
         Settings.ThemeChanged -= OnSettingsThemePreview;
@@ -1024,7 +841,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         ServerCount = currentServers.Count;
         ServerList.LoadServers(currentServers, settings);
         Settings.LoadFromSettings(settings);
-        LoadScheduledTasks(settings);
+        Scheduled.Load(settings);
         WindowTitle = _localizer.Format("WindowTitle", ServerCount);
     }
 
