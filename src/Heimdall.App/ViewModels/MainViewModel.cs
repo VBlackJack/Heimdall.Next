@@ -19,6 +19,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Heimdall.App.Services;
 using Heimdall.App.ViewModels.Dialogs;
+using Heimdall.App.ViewModels.Sidebar;
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Models;
@@ -293,6 +294,9 @@ public partial class MainViewModel : ObservableObject, IDisposable
     /// <summary>Centralized tool registry shared with MainWindow for menus.</summary>
     public ToolRegistry ToolRegistry { get; }
 
+    /// <summary>Sidebar (Sessions / Tools tabs) state and commands.</summary>
+    public SidebarViewModel Sidebar { get; }
+
     /// <summary>Recently used tool IDs (most recent first, max 5).</summary>
     private readonly List<string> _recentToolIds = new();
     private const int MaxRecentTools = 5;
@@ -327,6 +331,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         ThemeService themeService,
         ToolRegistry toolRegistry,
         SplitService splitService,
+        ToolsTabPopulationService toolsTabPopulation,
         ServerListViewModel serverList,
         ConnectionViewModel connection,
         SettingsViewModel settings)
@@ -345,6 +350,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         ServerList = serverList;
         Connection = connection;
         Settings = settings;
+        Sidebar = new SidebarViewModel(this, localizer, configManager, toolsTabPopulation);
 
         _taskScheduler = new TaskSchedulerService
         {

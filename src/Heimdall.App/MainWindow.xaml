@@ -197,7 +197,7 @@
                             <UniformGrid Columns="2">
                                 <RadioButton x:Name="SidebarTabSessions"
                                              GroupName="SidebarTabs"
-                                             IsChecked="True"
+                                             IsChecked="{Binding Sidebar.IsToolsTabActive, Converter={StaticResource InvertBoolConverter}, Mode=OneWay, FallbackValue=True}"
                                              Content="{loc:Translate SidebarTabSessions}"
                                              Style="{DynamicResource SidebarTabStyle}"
                                              KeyboardNavigation.TabIndex="0"
@@ -205,6 +205,7 @@
                                              AutomationProperties.Name="{loc:Translate A11ySidebarTabSessions}"/>
                                 <RadioButton x:Name="SidebarTabTools"
                                              GroupName="SidebarTabs"
+                                             IsChecked="{Binding Sidebar.IsToolsTabActive, Mode=OneWay}"
                                              Content="{loc:Translate SidebarTabTools}"
                                              Style="{DynamicResource SidebarTabStyle}"
                                              KeyboardNavigation.TabIndex="1"
@@ -393,7 +394,7 @@
                                              Style="{DynamicResource SearchTextBoxStyle}"
                                              Tag=""
                                              Padding="10,6,28,6"
-                                             TextChanged="OnSidebarToolsFilterChanged"
+                                             Text="{Binding Sidebar.FilterText, UpdateSourceTrigger=PropertyChanged}"
                                              AutomationProperties.Name="{loc:Translate A11ySidebarTabTools}"/>
                                 </Grid>
                                 <TextBlock x:Name="Mw_SidebarToolsContextText"
@@ -401,19 +402,23 @@
                                            Margin="10,2,10,4"
                                            FontSize="{StaticResource FontSizeSmallCaption}"
                                            Foreground="{DynamicResource TextSecondaryBrush}"
-                                           TextTrimming="CharacterEllipsis"/>
+                                           TextTrimming="CharacterEllipsis"
+                                           Text="{Binding Sidebar.ContextLabel}"
+                                           ToolTip="{Binding Sidebar.ContextTooltip}"/>
                                 <TextBlock x:Name="Mw_SidebarToolsNoResults"
                                            DockPanel.Dock="Top"
                                            Margin="10,16,10,0"
                                            FontSize="{StaticResource FontSizeCaption}"
                                            Foreground="{DynamicResource TextDisabledBrush}"
                                            HorizontalAlignment="Center"
-                                           Visibility="Collapsed"/>
+                                           Text="{Binding Sidebar.NoResultsText}"
+                                           Visibility="{Binding Sidebar.HasNoResults, Converter={StaticResource BoolToVisibilityConverter}}"/>
                                 <TreeView x:Name="SidebarToolsTreeView"
                                           Style="{DynamicResource ThemedTreeViewStyle}"
                                           Padding="0,2,0,0"
                                           BorderThickness="0"
                                           Background="Transparent"
+                                          ItemsSource="{Binding Sidebar.ToolsCategories}"
                                           SelectedItemChanged="OnSidebarToolsSelectedItemChanged"
                                           MouseDoubleClick="OnSidebarToolsDoubleClick"
                                           ScrollViewer.HorizontalScrollBarVisibility="Disabled"
