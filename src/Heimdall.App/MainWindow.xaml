@@ -1324,32 +1324,36 @@
                         BorderThickness="0,0,0,1">
                     <StackPanel>
                         <DockPanel>
-                            <TextBlock x:Name="Mw_ToolsTabTitle" Text=""
+                            <TextBlock x:Name="Mw_ToolsTabTitle"
+                                       Text="{Binding ToolsTab.HeaderTitle}"
                                        FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                                        Foreground="{DynamicResource TextPrimaryBrush}"
                                        VerticalAlignment="Center" DockPanel.Dock="Left"
                                        Margin="0,0,16,0"/>
-                            <TextBlock x:Name="Mw_ToolsTabCount" Text=""
+                            <TextBlock x:Name="Mw_ToolsTabCount"
+                                       Text="{Binding ToolsTab.CountLabel}"
                                        FontSize="{StaticResource FontSizeCaption}"
                                        Foreground="{DynamicResource TextSecondaryBrush}"
                                        VerticalAlignment="Center" DockPanel.Dock="Right"
                                        HorizontalAlignment="Right"/>
                             <TextBox x:Name="Mw_ToolsTabSearch"
                                      Style="{StaticResource WatermarkTextBoxStyle}"
-                                     Tag=""
+                                     Tag="{Binding ToolsTab.SearchPlaceholder}"
+                                     Text="{Binding ToolsTab.SearchText, UpdateSourceTrigger=PropertyChanged}"
                                      FontSize="{StaticResource FontSizeBody}"
                                      Padding="{StaticResource PaddingInput}"
                                      Background="{DynamicResource CardBrush}"
                                      Foreground="{DynamicResource TextPrimaryBrush}"
                                      BorderBrush="{DynamicResource BorderBrush}"
                                      MaxWidth="400" HorizontalAlignment="Left"
-                                     TextChanged="OnToolsTabSearchChanged"
                                      AutomationProperties.Name="{loc:Translate ToolsTabSearchPlaceholder}"/>
                         </DockPanel>
-                        <TextBlock x:Name="Mw_ToolsTabContextText" Text=""
+                        <TextBlock x:Name="Mw_ToolsTabContextText"
+                                   Text="{Binding ToolsTab.ContextLabel}"
+                                   ToolTip="{Binding ToolsTab.ContextTooltip}"
+                                   Foreground="{Binding ToolsTab.ContextBrushKey, Converter={StaticResource ResourceKeyToBrushConverter}}"
                                    Margin="0,8,0,0"
                                    FontSize="{StaticResource FontSizeCaption}"
-                                   Foreground="{DynamicResource TextSecondaryBrush}"
                                    TextTrimming="CharacterEllipsis"/>
                     </StackPanel>
                 </Border>
