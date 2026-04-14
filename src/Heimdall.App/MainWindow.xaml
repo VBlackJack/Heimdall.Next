@@ -2437,9 +2437,13 @@
         <Border x:Name="OnboardingOverlay"
                 Grid.Row="0" Grid.RowSpan="3"
                 Panel.ZIndex="500"
-                Visibility="Collapsed"
+                Focusable="True"
+                Visibility="{Binding IsVisible, Converter={StaticResource BoolToVisibilityConverter}, FallbackValue=Collapsed}"
                 Background="{DynamicResource OverlayBackground}"
                 AutomationProperties.Name="{loc:Translate A11yOnboardingOverlay}">
+            <Border.InputBindings>
+                <KeyBinding Key="Escape" Command="{Binding EscapeCommand}"/>
+            </Border.InputBindings>
             <Border HorizontalAlignment="Center" VerticalAlignment="Center"
                     MinWidth="480" MaxWidth="560"
                     Background="{DynamicResource SurfaceBrush}"
@@ -2452,16 +2456,38 @@
                 </Border.Effect>
                 <StackPanel>
                     <!-- Step indicator dots -->
-                    <StackPanel x:Name="OnboardingDots" Orientation="Horizontal"
-                                HorizontalAlignment="Center" Margin="0,0,0,20"/>
+                    <ItemsControl ItemsSource="{Binding StepIndicatorStates}"
+                                  HorizontalAlignment="Center" Margin="0,0,0,20">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Orientation="Horizontal"/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Ellipse Width="8" Height="8" Margin="4,0">
+                                    <Ellipse.Style>
+                                        <Style TargetType="Ellipse">
+                                            <Setter Property="Fill" Value="{DynamicResource TextDisabledBrush}"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding}" Value="True">
+                                                    <Setter Property="Fill" Value="{DynamicResource AccentBrush}"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Ellipse.Style>
+                                </Ellipse>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
 
-                    <!-- Step content (swapped programmatically) -->
-                    <TextBlock x:Name="OnboardingTitle" Text=""
+                    <!-- Step content (swapped via VM) -->
+                    <TextBlock Text="{Binding TitleText}"
                                FontSize="{StaticResource FontSizeHeadline}" FontWeight="Bold"
                                Foreground="{DynamicResource TextPrimaryBrush}"
                                HorizontalAlignment="Center" TextAlignment="Center"
                                Margin="0,0,0,8"/>
-                    <TextBlock x:Name="OnboardingSubtitle" Text=""
+                    <TextBlock Text="{Binding SubtitleText}"
                                FontSize="{StaticResource FontSizeBodyLarge}"
                                Foreground="{DynamicResource TextSecondaryBrush}"
                                HorizontalAlignment="Center" TextAlignment="Center"
@@ -2471,14 +2497,17 @@
                     <!-- Navigation buttons -->
                     <DockPanel HorizontalAlignment="Stretch"
                                KeyboardNavigation.TabNavigation="Cycle">
-                        <Button x:Name="OnboardingSkipBtn" Content=""
-                                Click="OnOnboardingSkip"
+                        <Button Content="{Binding SkipLabel}"
+                                Command="{Binding SkipCommand}"
+                                AutomationProperties.Name="{Binding SkipLabel}"
                                 Style="{DynamicResource ToolbarGhostButtonStyle}"
                                 Padding="12,6" FontSize="{StaticResource FontSizeBody}"
                                 DockPanel.Dock="Left"
                                 Foreground="{DynamicResource TextSecondaryBrush}"/>
-                        <Button x:Name="OnboardingNextBtn" Content=""
-                                Click="OnOnboardingNext"
+                        <Button x:Name="OnboardingNextBtn"
+                                Content="{Binding NextLabel}"
+                                Command="{Binding NextCommand}"
+                                AutomationProperties.Name="{Binding NextLabel}"
                                 Style="{DynamicResource PrimaryButtonStyle}"
                                 Padding="20,8" FontSize="{StaticResource FontSizeBody}"
                                 HorizontalAlignment="Right"/>

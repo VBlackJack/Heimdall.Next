@@ -27,6 +27,8 @@ using System.Windows.Media.Imaging;
 using Heimdall.App.Services;
 using Heimdall.App.Theming;
 using Heimdall.App.ViewModels;
+using Heimdall.App.ViewModels.Onboarding;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Heimdall.App;
 
@@ -61,6 +63,7 @@ public partial class MainWindow : Window, IContextMenuCallbacks
     private readonly ToolsTabPopulationService _toolsTabPopulation;
     private bool _sidebarTabRestored;
     private bool _closeConfirmed;
+    private OnboardingFlowViewModel? _onboardingVm;
 
     // Stored delegate references so the long-lived service/ViewModel events
     // wired in the constructor can be unsubscribed in OnClosed. Without this,
@@ -160,7 +163,7 @@ public partial class MainWindow : Window, IContextMenuCallbacks
             // Show onboarding overlay on first launch
             if (viewModel.CurrentSettings is not null && !viewModel.CurrentSettings.OnboardingCompleted)
             {
-                ShowOnboarding(viewModel);
+                ShowOnboardingOverlay(viewModel.CurrentSettings);
             }
         };
 
@@ -1488,115 +1491,50 @@ public partial class MainWindow : Window, IContextMenuCallbacks
 
     // ── Onboarding overlay ───────────────────────────────────────────
 
-    private int _onboardingStep;
-    private const int OnboardingStepCount = 3;
-
-    private void ShowOnboarding(MainViewModel vm)
+    private void ShowOnboardingOverlay(Heimdall.Core.Configuration.AppSettings settings)
     {
-        _onboardingStep = 0;
-        OnboardingOverlay.Visibility = Visibility.Visible;
-        OnboardingOverlay.KeyDown += OnOnboardingKeyDown;
-        UpdateOnboardingStep(vm);
+        var services = ((App)Application.Current).Services
+            ?? throw new InvalidOperationException("Application service provider is not initialized.");
+
+        _onboardingVm = services.GetRequiredService<OnboardingFlowViewModel>();
+        _onboardingVm.Attach(settings);
+        _onboardingVm.StepCompleted += OnOnboardingStepCompleted;
+        _onboardingVm.Completed += OnOnboardingCompleted;
+        OnboardingOverlay.DataContext = _onboardingVm;
+        _onboardingVm.Start();
         Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Input,
             () => OnboardingNextBtn.Focus());
     }
 
-    private void UpdateOnboardingStep(MainViewModel vm)
+    private void OnOnboardingStepCompleted(object? sender, int stepIndex)
     {
-        // Step indicator dots
-        OnboardingDots.Children.Clear();
-        for (var i = 0; i < OnboardingStepCount; i++)
+        switch (stepIndex)
         {
-            OnboardingDots.Children.Add(new System.Windows.Shapes.Ellipse
-            {
-                Width = 8,
-                Height = 8,
-                Fill = i == _onboardingStep
-                    ? (Brush)FindResource("AccentBrush")
-                    : (Brush)FindResource("TextDisabledBrush"),
-                Margin = new Thickness(4, 0, 4, 0)
-            });
-        }
-
-        // Content per step
-        switch (_onboardingStep)
-        {
-            case 0:
-                OnboardingTitle.Text = vm.Localize("OnboardingStep1Title");
-                OnboardingSubtitle.Text = vm.Localize("OnboardingStep1Desc");
+            case 0: // Step 1 done → navigate to Sessions tab
+                TabSessions.IsChecked = true;
+                SwitchToTab("Sessions");
                 break;
-            case 1:
-                OnboardingTitle.Text = vm.Localize("OnboardingStep2Title");
-                OnboardingSubtitle.Text = vm.Localize("OnboardingStep2Desc");
+            case 1: // Step 2 done → navigate to Settings tab
+                TabSettings.IsChecked = true;
+                SwitchToTab("Settings");
                 break;
-            case 2:
-                OnboardingTitle.Text = vm.Localize("OnboardingStep3Title");
-                OnboardingSubtitle.Text = vm.Localize("OnboardingStep3Desc");
-                break;
+            // Step 3 (index 2): sidebar switch happens in OnOnboardingCompleted
+            // once persistence has succeeded.
         }
-
-        OnboardingSkipBtn.Content = vm.Localize("OnboardingBtnSkip");
-        System.Windows.Automation.AutomationProperties.SetName(OnboardingSkipBtn, vm.Localize("OnboardingBtnSkip"));
-        var nextKey = _onboardingStep < OnboardingStepCount - 1
-            ? "OnboardingBtnNext"
-            : "OnboardingBtnGetStarted";
-        OnboardingNextBtn.Content = vm.Localize(nextKey);
-        System.Windows.Automation.AutomationProperties.SetName(OnboardingNextBtn, vm.Localize(nextKey));
     }
 
-    private async void OnOnboardingSkip(object sender, RoutedEventArgs e)
+    private void OnOnboardingCompleted(object? sender, EventArgs e)
     {
-        await CompleteOnboardingAsync();
-    }
+        // The RadioButton Checked event routes through OnSidebarTabToolsChecked
+        // which calls PersistSidebarTabChoice(true) to save ShowToolsPanel.
+        SidebarTabTools.IsChecked = true;
 
-    private async void OnOnboardingNext(object sender, RoutedEventArgs e)
-    {
-        if (DataContext is not MainViewModel vm) return;
-
-        if (_onboardingStep < OnboardingStepCount - 1)
+        if (_onboardingVm is not null)
         {
-            // Perform action for the completed step
-            switch (_onboardingStep)
-            {
-                case 0: // Step 1 done → navigate to Sessions tab
-                    TabSessions.IsChecked = true;
-                    SwitchToTab("Sessions");
-                    break;
-                case 1: // Step 2 done → navigate to Settings tab
-                    TabSettings.IsChecked = true;
-                    SwitchToTab("Settings");
-                    break;
-            }
-
-            _onboardingStep++;
-            UpdateOnboardingStep(vm);
+            _onboardingVm.StepCompleted -= OnOnboardingStepCompleted;
+            _onboardingVm.Completed -= OnOnboardingCompleted;
+            _onboardingVm = null;
         }
-        else
-        {
-            // Step 3 done → switch sidebar to the Tools tab and complete onboarding.
-            // The RadioButton Checked event routes through OnSidebarTabToolsChecked
-            // which calls PersistSidebarTabChoice(true) to save ShowToolsPanel.
-            SidebarTabTools.IsChecked = true;
-            await CompleteOnboardingAsync();
-        }
-    }
-
-    private void OnOnboardingKeyDown(object sender, KeyEventArgs e)
-    {
-        if (e.Key == Key.Escape)
-        {
-            e.Handled = true;
-            _ = CompleteOnboardingAsync();
-        }
-    }
-
-    private async Task CompleteOnboardingAsync()
-    {
-        OnboardingOverlay.KeyDown -= OnOnboardingKeyDown;
-        OnboardingOverlay.Visibility = Visibility.Collapsed;
-        if (DataContext is not MainViewModel vm || vm.CurrentSettings is null) return;
-        vm.CurrentSettings.OnboardingCompleted = true;
-        await vm.ConfigManager.MergeSettingAsync(s => s.OnboardingCompleted = true);
     }
 
     private async void OnToolsPanelItemClick(object sender, RoutedEventArgs e)

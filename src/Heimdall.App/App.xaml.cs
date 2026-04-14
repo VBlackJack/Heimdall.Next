@@ -19,6 +19,7 @@ using System.Windows;
 using Heimdall.App.Localization;
 using Heimdall.App.Services;
 using Heimdall.App.ViewModels;
+using Heimdall.App.ViewModels.Onboarding;
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Security;
@@ -296,6 +297,7 @@ public partial class App : System.Windows.Application
         services.AddTransient<ConnectionViewModel>();
         services.AddTransient<SettingsViewModel>();
         services.AddTransient<CommandLibraryViewModel>();
+        services.AddTransient<OnboardingFlowViewModel>();
 
         // Windows
         services.AddTransient<MainWindow>();
