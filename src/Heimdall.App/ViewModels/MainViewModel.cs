@@ -21,6 +21,7 @@ using Heimdall.App.Services;
 using Heimdall.App.ViewModels.Dialogs;
 using Heimdall.App.ViewModels.CommandPalette;
 using Heimdall.App.ViewModels.Scheduled;
+using Heimdall.App.ViewModels.Session;
 using Heimdall.App.ViewModels.Sidebar;
 using Heimdall.App.ViewModels.ToolsTab;
 using Heimdall.App.ViewModels.Tunnels;
@@ -74,9 +75,6 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
     [ObservableProperty]
     private bool _isBusy;
-
-    [ObservableProperty]
-    private bool _isBroadcastMode;
 
     /// <summary>
     /// Monotonic counter bumped after every theme swap. Bound as a trigger value
@@ -230,6 +228,9 @@ public partial class MainViewModel : ObservableObject, IDisposable
     /// <summary>Scheduled tasks list + scheduler lifecycle + add/edit/delete commands.</summary>
     public ScheduledTasksViewModel Scheduled { get; }
 
+    /// <summary>Session lifecycle hub: broadcast, reconnect, SFTP auto-open, workspace restore.</summary>
+    public SessionCoordinator Session { get; }
+
     /// <summary>Recently used tool IDs (most recent first, max 5).</summary>
     private readonly List<string> _recentToolIds = new();
     private const int MaxRecentTools = 5;
@@ -287,14 +288,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
             this, localizer, toolRegistry, configManager, embeddedSessionManager);
         Tunnels = new TunnelsViewModel(this, localizer, tunnelManager, connectionSm);
         Scheduled = new ScheduledTasksViewModel(this, localizer, dialogService, configManager);
-
-        // Wire SplitService callbacks for access to session tab state
-        Split.ActiveSessionsProvider = () => Connection.ActiveSessions;
-        Split.ActiveSessionProvider = () => Connection.ActiveSession;
-        Split.SetActiveSession = s => Connection.ActiveSession = s;
-        Split.SetHasActiveSessions = v => Connection.HasActiveSessions = v;
-        Split.SetStatusText = s => StatusText = s;
-        ServerList.ConnectionService.SetStatusText = s => StatusText = s;
+        Session = new SessionCoordinator(this, localizer, configManager, embeddedSessionManager);
 
         _appStatus.StatusChanged += OnApplicationStatusChanged;
 
@@ -305,13 +299,6 @@ public partial class MainViewModel : ObservableObject, IDisposable
         _onConfigurationChanged = async () =>
             await ReloadConfigurationAsync(await _configManager.LoadSettingsAsync());
         Settings.ConfigurationChanged += _onConfigurationChanged;
-
-        // Wire broadcast relay so terminal views can fan out input
-        _embeddedSessionManager.BroadcastCallback = BroadcastToAllTerminals;
-        _embeddedSessionManager.IsBroadcastActive = () => IsBroadcastMode;
-
-        // Wire SSH reconnect: close the old session tab and re-connect from scratch
-        _embeddedSessionManager.ReconnectRequestedCallback = OnReconnectRequested;
 
         // Wire cross-tool navigation so tools can open other tool tabs
         _embeddedSessionManager.OpenToolCallback = (toolId, title, ctx) =>
@@ -327,8 +314,8 @@ public partial class MainViewModel : ObservableObject, IDisposable
         _themeService.ThemeChanged += OnThemeServiceThemeChanged;
         ThemeRevision = _themeService.ThemeRevision;
 
-        // Wire server list session events to the connection tab manager
-        ServerList.SessionReady += OnSessionReady;
+        // Wire server list tool navigation events to the connection tab manager
+        // (SessionReady is handled by SessionCoordinator, not here)
         _onToolSessionRequested = (toolId, title, ctx) =>
         {
             TrackRecentTool(toolId.ToUpperInvariant());
@@ -374,31 +361,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
             // Restore previous workspace if session persistence is enabled
             if (settings.EnableSessionPersistence)
             {
-                var workspace = await WorkspaceService.LoadAsync().ConfigureAwait(false);
-                if (workspace?.Sessions.Count > 0)
-                {
-                    StatusText = _localizer["WorkspaceRestoring"];
-                    int restored = 0;
-                    foreach (var session in workspace.Sessions)
-                    {
-                        var server = ServerList.Servers.FirstOrDefault(
-                            s => string.Equals(s.Id, session.ServerId,
-                                 StringComparison.OrdinalIgnoreCase));
-                        if (server is null) continue;
-                        try
-                        {
-                            ServerList.ConnectCommand.Execute(server);
-                            restored++;
-                        }
-                        catch (Exception ex)
-                        {
-                            Core.Logging.FileLogger.Error(
-                                $"Workspace restore failed for {session.ServerName}: {ex.Message}");
-                        }
-                    }
-                    Core.Logging.FileLogger.Info(
-                        _localizer.Format("LogWorkspaceRestored", restored));
-                }
+                await Session.RestoreWorkspaceAsync(ServerList.Servers);
             }
 
             // OperationScope.Dispose() handles the Ready transition
@@ -424,162 +387,6 @@ public partial class MainViewModel : ObservableObject, IDisposable
                 ServerName = t.Title ?? t.OriginalServerId,
                 Protocol = t.ConnectionType ?? ""
             });
-    }
-
-    /// <summary>
-    /// Handles the session-ready event from ServerListViewModel by creating
-    /// a session tab in the ConnectionViewModel.
-    /// </summary>
-    private void OnSessionReady(string sessionId, string originalServerId, string displayName, string connectionType, Core.Models.ISessionResult? session)
-    {
-        Core.Logging.ConnectionHistory.RecordConnect(originalServerId, displayName, connectionType);
-
-        if (session is null)
-        {
-            StatusText = _localizer.Format("StatusConnected", displayName);
-            return;
-        }
-
-        var tab = Connection.AddSession(sessionId, displayName, connectionType);
-        tab.OriginalServerId = originalServerId;
-        tab.HostControl = _embeddedSessionManager.CreateHostControl(
-            tab,
-            displayName,
-            connectionType,
-            session,
-            _currentSettings);
-        tab.Status = string.Equals(connectionType, "RDP", StringComparison.OrdinalIgnoreCase)
-            ? _localizer["StatusConnectingProgress"]
-            : _localizer["StatusConnected"];
-
-        // Resolve tunnel chain route for visual display in session header
-        // (uses sessionId — correct for state machine lookup)
-        tab.TunnelRoute = Tunnels.ResolveRoute(sessionId);
-
-        StatusText = string.Equals(connectionType, "RDP", StringComparison.OrdinalIgnoreCase)
-            ? _localizer.Format("StatusEmbeddedRdpOpening", displayName)
-            : _localizer.Format("StatusConnected", displayName);
-
-        // Auto-open SFTP alongside SSH — use original server ID for inventory lookup
-        if (string.Equals(connectionType, "SSH", StringComparison.OrdinalIgnoreCase)
-            && _currentSettings?.SftpAutoOpenOnSsh == true)
-        {
-            _ = SafeFireAndForgetAsync(AutoOpenSftpAsync(tab, originalServerId, Split.GetSessionToken(tab)));
-        }
-    }
-
-    /// <summary>
-    /// Closes the disconnected session tab and starts a fresh connection to
-    /// the same server, reusing the standard connection flow.
-    /// </summary>
-    private void OnReconnectRequested(SessionTabViewModel tab, string serverId, string connectionType)
-    {
-        _ = SafeFireAndForgetAsync(OnReconnectRequestedAsync(tab, serverId, connectionType));
-    }
-
-    private async Task OnReconnectRequestedAsync(SessionTabViewModel tab, string serverId, string connectionType)
-    {
-        if (string.IsNullOrEmpty(serverId))
-        {
-            return;
-        }
-
-        try
-        {
-            // Close the old tab (disposes the dead session)
-            Connection.CloseSessionCommand.Execute(tab);
-
-            // Re-connect through the server list's standard connection path
-            var servers = await _configManager.LoadServersAsync();
-            var serverDto = servers.FirstOrDefault(
-                s => string.Equals(s.Id, serverId, StringComparison.Ordinal));
-
-            if (serverDto is null)
-            {
-                StatusText = _localizer["ErrorServerNotFound"];
-                return;
-            }
-
-            // Trigger the same flow as double-clicking the server in the tree
-            var serverVm = ServerList.Servers.FirstOrDefault(
-                s => string.Equals(s.Id, serverId, StringComparison.Ordinal));
-
-            if (serverVm is not null)
-            {
-                ServerList.ConnectCommand.Execute(serverVm);
-            }
-        }
-        catch (Exception ex)
-        {
-            Core.Logging.FileLogger.Error($"Reconnect failed for {serverId}", ex);
-            StatusText = _localizer.Format("StatusReconnectFailed", ex.Message);
-        }
-    }
-
-    /// <summary>
-    /// Automatically connects an SFTP session and attaches it as the secondary
-    /// split pane of an existing SSH session tab.
-    /// </summary>
-    private async Task AutoOpenSftpAsync(SessionTabViewModel tab, string serverId, CancellationToken ct = default)
-    {
-        try
-        {
-            var servers = await _configManager.LoadServersAsync();
-            var server = servers.FirstOrDefault(
-                s => string.Equals(s.Id, serverId, StringComparison.Ordinal));
-
-            if (server is null || string.IsNullOrEmpty(server.SshUsername))
-            {
-                Core.Logging.FileLogger.Info(
-                    $"SFTP auto-open skipped for {serverId}: server not found or no SSH username.");
-                return;
-            }
-
-            var sftpResult = await ServerList.ConnectionService
-                .ConnectSftpAsync(server, _currentSettings!, ct)
-                .ConfigureAwait(false);
-
-            if (!sftpResult.Success || sftpResult.Session is null)
-            {
-                Core.Logging.FileLogger.Warn(
-                    $"SFTP auto-open failed for {serverId}: {sftpResult.ErrorMessage}");
-                System.Windows.Application.Current.Dispatcher.Invoke(() =>
-                    StatusText = _localizer.Format("StatusSftpAutoOpenFailed", sftpResult.ErrorMessage ?? ""));
-                return;
-            }
-
-            // Create the SFTP host control on the UI thread and wrap root in a split container
-            System.Windows.Application.Current.Dispatcher.Invoke(() =>
-            {
-                var sftpPane = new Core.Models.SessionPaneModel
-                {
-                    ServerId = serverId,
-                    OriginalServerId = tab.OriginalServerId,
-                    ConnectionType = "SFTP",
-                    Title = tab.Title,
-                    Status = "Connected"
-                };
-                sftpPane.HostControl = _embeddedSessionManager.CreateHostControl(
-                    tab, tab.Title, "SFTP", sftpResult.Session, _currentSettings);
-
-                var currentRoot = tab.RootContent;
-                tab.RootContent = new Core.Models.SplitContainerModel
-                {
-                    First = currentRoot,
-                    Second = sftpPane,
-                    Orientation = Core.Models.SplitOrientation.Vertical,
-                    SplitRatio = 0.5
-                };
-            });
-
-            Core.Logging.FileLogger.Info(
-                $"SFTP auto-open succeeded for {serverId}.");
-        }
-        catch (Exception ex)
-        {
-            Core.Logging.FileLogger.Warn(
-                $"SFTP auto-open error for {serverId}: {ex.Message}");
-        }
     }
 
     private void OnSettingsChanged(AppSettings settings)
@@ -629,11 +436,11 @@ public partial class MainViewModel : ObservableObject, IDisposable
         _appStatus.StatusChanged -= OnApplicationStatusChanged;
         Tunnels.Dispose();
         Scheduled.Dispose();
+        Session.Dispose();
         _configManager.SettingsChanged -= OnSettingsChanged;
         Settings.ConfigurationChanged -= _onConfigurationChanged;
         Settings.ThemeChanged -= OnSettingsThemePreview;
         _themeService.ThemeChanged -= OnThemeServiceThemeChanged;
-        ServerList.SessionReady -= OnSessionReady;
         ServerList.ToolSessionRequested -= _onToolSessionRequested;
         ServerList.StatusMessageRequested -= _onStatusMessageRequested;
     }
@@ -759,79 +566,6 @@ public partial class MainViewModel : ObservableObject, IDisposable
     /// to resolve i18n keys outside the view model (e.g., floating windows).
     /// </summary>
     public LocalizationManager GetLocalizer() => _localizer;
-
-    // --- Broadcast mode ---
-
-    public string BroadcastToggleTooltip => IsBroadcastMode
-        ? _localizer["BroadcastModeOn"]
-        : _localizer["TooltipToggleBroadcast"];
-
-    partial void OnIsBroadcastModeChanged(bool value)
-    {
-        UpdateBroadcastIndicators(value);
-        OnPropertyChanged(nameof(BroadcastToggleTooltip));
-    }
-
-    [RelayCommand]
-    private void ToggleBroadcast()
-    {
-        IsBroadcastMode = !IsBroadcastMode;
-        StatusText = IsBroadcastMode
-            ? _localizer["BroadcastModeOn"]
-            : _localizer["BroadcastModeOff"];
-    }
-
-    /// <summary>
-    /// Updates the broadcast badge on all active SSH/Local terminal views.
-    /// </summary>
-    private void UpdateBroadcastIndicators(bool active)
-    {
-        foreach (var session in Connection.ActiveSessions)
-        {
-            foreach (var pane in Core.Models.SplitTreeHelper.EnumerateLeaves(session.RootContent))
-            {
-                if (pane.HostControl is Views.EmbeddedSshView sshView)
-                {
-                    sshView.SetBroadcastIndicator(active);
-                }
-            }
-        }
-    }
-
-    /// <summary>
-    /// Sends raw byte input to all active terminal sessions except the originating view.
-    /// Called by <see cref="Views.EmbeddedSshView"/> when broadcast mode is enabled.
-    /// </summary>
-    public void BroadcastToAllTerminals(byte[] data, object? sender)
-    {
-        if (!IsBroadcastMode)
-        {
-            return;
-        }
-
-        foreach (var session in Connection.ActiveSessions)
-        {
-            foreach (var pane in Core.Models.SplitTreeHelper.EnumerateLeaves(session.RootContent))
-            {
-                BroadcastToHostControl(pane.HostControl, data, sender);
-            }
-        }
-    }
-
-    private static void BroadcastToHostControl(object? hostControl, byte[] data, object? sender)
-    {
-        if (hostControl is Views.EmbeddedSshView sshView && sshView != sender)
-        {
-            try
-            {
-                sshView.WriteBytes(data);
-            }
-            catch (ObjectDisposedException)
-            {
-                // Session already closed; skip.
-            }
-        }
-    }
 
     internal async Task ReloadConfigurationAsync(AppSettings settings, List<ServerProfileDto>? servers = null)
     {
