@@ -180,6 +180,7 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
 
         KeyDown += OnKeyDown;
         PreviewMouseDown += OnWindowPreviewMouseDown;
+        Mw_FilterBox.TextChanged += OnFilterBoxTextChanged;
     }
 
     /// <summary>
