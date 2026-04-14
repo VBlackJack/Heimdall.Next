@@ -55,73 +55,24 @@ public partial class MainWindow
 
     private void ApplyNavigationLocalization(MainViewModel vm)
     {
-        Mw_AppTitle.Text = vm.Localize("AppName");
-
-        TabSessions.Content = vm.Localize("NavTabSessions");
-        TabTunnels.Content = vm.Localize("NavTabTunnels");
-        TabScheduled.Content = vm.Localize("NavTabScheduled");
-        TabTools.Content = vm.Localize("NavTabTools");
-        Mw_TabSettingsText.Text = vm.Localize("NavTabSettings");
-        Mw_SettingsUnsavedDot.ToolTip = vm.Localize("SettingsUnsavedChanges");
-        TabAbout.Content = vm.Localize("NavTabAbout");
-
-        Mw_FilterBox.Tag = vm.Localize("SearchPlaceholder");
-        Mw_FilterBox.TextChanged += OnFilterBoxTextChanged;
-
-        FullscreenBar.ToolTip = vm.Localize("TooltipExitFullscreenEsc");
-
-        Mw_StatusTunnelToggle.ToolTip = vm.Localize("TunnelPanelToggle");
-        Mw_BroadcastLabel.Text = vm.Localize("BroadcastBadgeLabel");
+        // TODO(Phase 5D): migrate these two status-bar composite strings. They
+        // concatenate literal whitespace with 2 (or more) localization keys, so
+        // they cannot be expressed as a single {loc:Translate} markup. The
+        // clean fix is either (a) bundling into single new keys in the locale
+        // JSON — forbidden in Phase 5A scope, or (b) splitting into multiple
+        // <Run> elements in XAML with their own {loc:Translate} bindings.
         Mw_StatusBarServersLabel.Text = " " + vm.Localize("StatusBarSessions") + " " + vm.Localize("StatusBarSeparator");
         Mw_StatusBarTunnelsLabel.Text = " " + vm.Localize("StatusBarTunnels");
-        Mw_StatusBarShortcutHint.Text = vm.Localize("StatusBarShortcutHint");
-
-        Mw_PaletteNoResults.Text = vm.Localize("QuickConnectNoResults");
-        Mw_PaletteHints.Text = vm.Localize("QuickConnectHints");
-        System.Windows.Automation.AutomationProperties.SetName(PaletteInput, vm.Localize("PaletteSearchPlaceholder"));
     }
 
     private void ApplyToolbarLocalization(MainViewModel vm)
     {
-        ToggleSidebarButton.ToolTip = vm.Localize("TooltipHideSidebar");
-        ShowSidebarButton.ToolTip = vm.Localize("TooltipShowSidebar");
-        AddButton.ToolTip = vm.Localize("TooltipAddMenu");
-        ExpandAllButton.ToolTip = vm.Localize("TooltipExpandAll");
-        CollapseAllButton.ToolTip = vm.Localize("TooltipCollapseAll");
-
-        Mw_AddMenuSession.Header = vm.Localize("AddMenuSession");
-        Mw_AddMenuTool.Header = vm.Localize("AddMenuTool");
-        Mw_AddMenuGateway.Header = vm.Localize("AddMenuGateway");
-        Mw_AddMenuFolder.Header = vm.Localize("AddMenuFolder");
-
+        // TODO(Phase 5D): the share-folder label toggles between two keys based
+        // on _fileShareService.IsSharing. The clean fix is a computed observable
+        // on FileShareService (or a sub-VM) so the XAML can bind a single key.
+        // Also triggered from FileShareService event handlers in MainWindow —
+        // see Mw_ShareFolderLabel.Text writes in OnFileShareSharingStarted/Stopped.
         Mw_ShareFolderLabel.Text = vm.Localize(_fileShareService.IsSharing ? "ToolsStopSharing" : "ToolsShareFolder");
-        Mw_QuickConnectLabel.Text = vm.Localize("QuickConnectShortcut");
-
-        Mw_DetailGroupLabel.Text = vm.Localize("DetailLabelGroup");
-        Mw_DetailEnvLabel.Text = vm.Localize("DetailLabelEnvironment");
-        Mw_DetailProjectLabel.Text = vm.Localize("DetailLabelProject");
-        Mw_DetailUsernameLabel.Text = vm.Localize("DetailLabelUsername");
-        Mw_DetailGatewayLabel.Text = vm.Localize("DetailLabelGateway");
-        Mw_DetailAuthLabel.Text = vm.Localize("DetailLabelAuth");
-        Mw_DetailTagsLabel.Text = vm.Localize("DetailLabelTags");
-        Mw_DetailFavoriteLabel.Text = vm.Localize("DetailLabelFavorite");
-        Mw_DetailConnectBtn.Content = vm.Localize("DetailBtnConnect");
-        Mw_DetailEditBtn.Content = vm.Localize("BtnEdit");
-        Mw_DetailEditBtn.ToolTip = vm.Localize("TooltipEdit");
-        Mw_DetailDeleteBtn.Content = vm.Localize("BtnDelete");
-        Mw_DetailDeleteBtn.ToolTip = vm.Localize("TooltipDelete");
-        QuickConnectButton.ToolTip = vm.Localize("QuickConnectShortcut");
-
-        Mw_EmptyStateTitle.Text = vm.Localize("EmptyStateTitle");
-        Mw_EmptyStateSubtitle.Text = vm.Localize("EmptyStateSubtitle");
-        Mw_EmptyBtnAddSession.Content = vm.Localize("EmptyStateBtnAddSession");
-        Mw_EmptyBtnImport.Content = vm.Localize("EmptyStateBtnImport");
-        Mw_EmptyBtnImport.ToolTip = vm.Localize("TooltipImport");
-        Mw_EmptyBtnExploreTools.Content = vm.Localize("EmptyStateBtnExploreTools");
-        Mw_EmptySelectSession.Text = vm.Localize("EmptyStateSelectSession");
-        Mw_EmptyQuickConnectHint.Text = vm.Localize("HintQuickConnect");
-        Mw_EmptyStateShortcutHints.Text = vm.Localize("EmptyStateShortcutHints");
-        Mw_DetailActionHints.Text = vm.Localize("DetailActionHints");
     }
 
     private void ApplyTunnelLocalization(MainViewModel vm)

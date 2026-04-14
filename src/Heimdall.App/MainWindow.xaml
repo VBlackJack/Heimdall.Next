@@ -47,14 +47,14 @@
             <DockPanel Margin="8,0">
                 <!-- Left: App title + navigation tabs -->
                 <StackPanel Orientation="Horizontal" DockPanel.Dock="Left" VerticalAlignment="Center">
-                    <TextBlock x:Name="Mw_AppTitle" Text=""
+                    <TextBlock x:Name="Mw_AppTitle" Text="{loc:Translate AppName}"
                                FontSize="{StaticResource FontSizeLarge}" FontWeight="Bold"
                                Foreground="{DynamicResource AccentBrush}"
                                VerticalAlignment="Center"
                                Margin="0,0,24,0"/>
 
                     <RadioButton x:Name="TabSessions"
-                                 Content=""
+                                 Content="{loc:Translate NavTabSessions}"
                                  GroupName="NavTabs"
                                  IsChecked="True"
                                  Focusable="True"
@@ -62,21 +62,21 @@
                                  Margin="0,0,4,0"
                                  AutomationProperties.Name="{loc:Translate A11ySessionsTab}"/>
                     <RadioButton x:Name="TabTunnels"
-                                 Content=""
+                                 Content="{loc:Translate NavTabTunnels}"
                                  GroupName="NavTabs"
                                  Focusable="True"
                                  Style="{DynamicResource ToolbarTabStyle}"
                                  Margin="0,0,4,0"
                                  AutomationProperties.Name="{loc:Translate A11yTunnelsTab}"/>
                     <RadioButton x:Name="TabScheduled"
-                                 Content=""
+                                 Content="{loc:Translate NavTabScheduled}"
                                  GroupName="NavTabs"
                                  Focusable="True"
                                  Style="{DynamicResource ToolbarTabStyle}"
                                  Margin="0,0,4,0"
                                  AutomationProperties.Name="{loc:Translate A11yScheduledTab}"/>
                     <RadioButton x:Name="TabTools"
-                                 Content=""
+                                 Content="{loc:Translate NavTabTools}"
                                  GroupName="NavTabs"
                                  Focusable="True"
                                  Style="{DynamicResource ToolbarTabStyle}"
@@ -89,18 +89,18 @@
                                  Margin="0,0,4,0"
                                  AutomationProperties.Name="{loc:Translate A11ySettingsTab}">
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock x:Name="Mw_TabSettingsText" Text=""/>
+                            <TextBlock x:Name="Mw_TabSettingsText" Text="{loc:Translate NavTabSettings}"/>
                             <Ellipse x:Name="Mw_SettingsUnsavedDot"
                                      Width="8" Height="8"
                                      Fill="{DynamicResource WarningBrush}"
                                      Margin="6,0,0,0"
                                      VerticalAlignment="Center"
                                      Visibility="{Binding Settings.IsDirty, Converter={StaticResource BoolToVisibilityConverter}}"
-                                     ToolTip=""/>
+                                     ToolTip="{loc:Translate SettingsUnsavedChanges}"/>
                         </StackPanel>
                     </RadioButton>
                     <RadioButton x:Name="TabAbout"
-                                 Content=""
+                                 Content="{loc:Translate NavTabAbout}"
                                  GroupName="NavTabs"
                                  Focusable="True"
                                  Style="{DynamicResource ToolbarTabStyle}"
@@ -133,12 +133,12 @@
                             Padding="8,4" FontSize="{StaticResource FontSizeCaption}"
                             Margin="0,0,8,0"
                             VerticalAlignment="Center"
-                            >
+                            ToolTip="{loc:Translate QuickConnectShortcut}">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="&#xE71E;" FontFamily="Segoe MDL2 Assets"
                                        FontSize="{StaticResource FontSizeBody}" VerticalAlignment="Center" Margin="0,0,6,0"
                                        AutomationProperties.Name=""/>
-                            <TextBlock x:Name="Mw_QuickConnectLabel" Text=""
+                            <TextBlock x:Name="Mw_QuickConnectLabel" Text="{loc:Translate QuickConnectShortcut}"
                                        FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center"
                                        Foreground="{DynamicResource TextSecondaryBrush}"/>
                         </StackPanel>
@@ -193,7 +193,8 @@
                                     Style="{DynamicResource SecondaryButtonStyle}"
                                     Padding="6,6" FontSize="{StaticResource FontSizeBody}"
                                     Width="32" Height="32"
-                                    Margin="4,0,0,0"/>
+                                    Margin="4,0,0,0"
+                                    ToolTip="{loc:Translate TooltipHideSidebar}"/>
                             <UniformGrid Columns="2">
                                 <RadioButton x:Name="SidebarTabSessions"
                                              GroupName="SidebarTabs"
@@ -231,7 +232,8 @@
                                             Style="{DynamicResource ToolbarGhostButtonStyle}"
                                             Padding="6,6" FontSize="{StaticResource FontSizeCaption}"
                                             Width="32" Height="32"
-                                            Margin="2,0,0,0"/>
+                                            Margin="2,0,0,0"
+                                            ToolTip="{loc:Translate TooltipCollapseAll}"/>
                                     <Button x:Name="ExpandAllButton"
                                             DockPanel.Dock="Right"
                                             Content="&#xE70E;"
@@ -240,31 +242,33 @@
                                             Style="{DynamicResource ToolbarGhostButtonStyle}"
                                             Padding="6,6" FontSize="{StaticResource FontSizeCaption}"
                                             Width="32" Height="32"
-                                            Margin="2,0,0,0"/>
+                                            Margin="2,0,0,0"
+                                            ToolTip="{loc:Translate TooltipExpandAll}"/>
                                     <Button x:Name="AddButton"
                                             DockPanel.Dock="Right"
                                             Click="OnAddButtonClick"
                                             Style="{DynamicResource ToolbarGhostButtonStyle}"
                                             Padding="6,6" FontSize="{StaticResource FontSizeBody}"
                                             Width="32" Height="32"
-                                            Margin="4,0,0,0">
+                                            Margin="4,0,0,0"
+                                            ToolTip="{loc:Translate TooltipAddMenu}">
                                         <TextBlock Text="&#xE710;" FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeBody}"
                                                    AutomationProperties.Name=""/>
                                         <Button.ContextMenu>
                                             <ContextMenu x:Name="AddMenu"
                                                          DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
-                                                <MenuItem x:Name="Mw_AddMenuSession" Header="" Command="{Binding ServerList.AddServerCommand}"/>
-                                                <MenuItem x:Name="Mw_AddMenuTool" Header="" Click="OnAddToolMenuClick"/>
+                                                <MenuItem x:Name="Mw_AddMenuSession" Header="{loc:Translate AddMenuSession}" Command="{Binding ServerList.AddServerCommand}"/>
+                                                <MenuItem x:Name="Mw_AddMenuTool" Header="{loc:Translate AddMenuTool}" Click="OnAddToolMenuClick"/>
                                                 <Separator/>
-                                                <MenuItem x:Name="Mw_AddMenuGateway" Header="" Command="{Binding Settings.AddGatewayCommand}"/>
-                                                <MenuItem x:Name="Mw_AddMenuFolder" Header="" Click="OnAddFolderFromMenu"/>
+                                                <MenuItem x:Name="Mw_AddMenuGateway" Header="{loc:Translate AddMenuGateway}" Command="{Binding Settings.AddGatewayCommand}"/>
+                                                <MenuItem x:Name="Mw_AddMenuFolder" Header="{loc:Translate AddMenuFolder}" Click="OnAddFolderFromMenu"/>
                                             </ContextMenu>
                                         </Button.ContextMenu>
                                     </Button>
                                     <Grid>
                                         <TextBox x:Name="Mw_FilterBox" Text="{Binding ServerList.SearchText, UpdateSourceTrigger=PropertyChanged}"
                                                  Style="{DynamicResource SearchTextBoxStyle}"
-                                                 Tag="" Padding="10,6,28,6"
+                                                 Tag="{loc:Translate SearchPlaceholder}" Padding="10,6,28,6"
                                                  AutomationProperties.Name="{loc:Translate A11ySearchAndFilter}"/>
                                         <Button x:Name="Mw_FilterClearBtn"
                                                 Content="&#xE711;"
@@ -555,7 +559,8 @@
                         Padding="4,6" FontSize="{StaticResource FontSizeCaption}"
                         Margin="4,8,0,0"
                         Panel.ZIndex="10"
-                        Visibility="Collapsed"/>
+                        Visibility="Collapsed"
+                        ToolTip="{loc:Translate TooltipShowSidebar}"/>
 
                 <!-- RIGHT PANEL: sessions + tunnel bottom panel -->
                 <Grid x:Name="Mw_SessionsGrid" Grid.Column="2"
@@ -768,14 +773,14 @@
                                 <TextBlock Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,4,0,0"
                                            FontSize="{StaticResource FontSizeBody}"
                                            Visibility="{Binding ServerList.SelectedServer.Group, Converter={StaticResource NullToVisibilityConverter}}">
-                                    <Run x:Name="Mw_DetailGroupLabel" Text=""/>
+                                    <Run x:Name="Mw_DetailGroupLabel" Text="{loc:Translate DetailLabelGroup}"/>
                                     <Run Text="{Binding ServerList.SelectedServer.Group, Mode=OneWay}"/>
                                 </TextBlock>
 
                                 <TextBlock Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,4,0,0"
                                            FontSize="{StaticResource FontSizeBody}"
                                            Visibility="{Binding ServerList.SelectedServer.Environment, Converter={StaticResource NullToVisibilityConverter}}">
-                                    <Run x:Name="Mw_DetailEnvLabel" Text=""/>
+                                    <Run x:Name="Mw_DetailEnvLabel" Text="{loc:Translate DetailLabelEnvironment}"/>
                                     <Run Text="{Binding ServerList.SelectedServer.Environment, Mode=OneWay}"/>
                                 </TextBlock>
 
@@ -801,7 +806,7 @@
 
                                         <!-- Project -->
                                         <TextBlock x:Name="Mw_DetailProjectLabel" Grid.Row="0" Grid.Column="0"
-                                                   Text="" FontSize="{StaticResource FontSizeCaption}"
+                                                   Text="{loc:Translate DetailLabelProject}" FontSize="{StaticResource FontSizeCaption}"
                                                    Foreground="{DynamicResource TextSecondaryBrush}"
                                                    Margin="0,2,12,2" VerticalAlignment="Center"
                                                    Visibility="{Binding ServerList.SelectedServer.ProjectName, Converter={StaticResource NullToVisibilityConverter}}"/>
@@ -817,7 +822,7 @@
 
                                         <!-- Username -->
                                         <TextBlock x:Name="Mw_DetailUsernameLabel" Grid.Row="1" Grid.Column="0"
-                                                   Text="" FontSize="{StaticResource FontSizeCaption}"
+                                                   Text="{loc:Translate DetailLabelUsername}" FontSize="{StaticResource FontSizeCaption}"
                                                    Foreground="{DynamicResource TextSecondaryBrush}"
                                                    Margin="0,2,12,2" VerticalAlignment="Center"
                                                    Visibility="{Binding ServerList.SelectedServer.Username, Converter={StaticResource NullToVisibilityConverter}}"/>
@@ -830,7 +835,7 @@
 
                                         <!-- Gateway -->
                                         <TextBlock x:Name="Mw_DetailGatewayLabel" Grid.Row="2" Grid.Column="0"
-                                                   Text="" FontSize="{StaticResource FontSizeCaption}"
+                                                   Text="{loc:Translate DetailLabelGateway}" FontSize="{StaticResource FontSizeCaption}"
                                                    Foreground="{DynamicResource TextSecondaryBrush}"
                                                    Margin="0,2,12,2" VerticalAlignment="Center"
                                                    Visibility="{Binding ServerList.SelectedServer.GatewayName, Converter={StaticResource NullToVisibilityConverter}}"/>
@@ -844,7 +849,7 @@
 
                                         <!-- Authentication -->
                                         <TextBlock x:Name="Mw_DetailAuthLabel" Grid.Row="3" Grid.Column="0"
-                                                   Text="" FontSize="{StaticResource FontSizeCaption}"
+                                                   Text="{loc:Translate DetailLabelAuth}" FontSize="{StaticResource FontSizeCaption}"
                                                    Foreground="{DynamicResource TextSecondaryBrush}"
                                                    Margin="0,2,12,2" VerticalAlignment="Center"
                                                    Visibility="{Binding ServerList.SelectedServer.AuthSummary, Converter={StaticResource NullToVisibilityConverter}}"/>
@@ -857,7 +862,7 @@
 
                                         <!-- Tags -->
                                         <TextBlock x:Name="Mw_DetailTagsLabel" Grid.Row="4" Grid.Column="0"
-                                                   Text="" FontSize="{StaticResource FontSizeCaption}"
+                                                   Text="{loc:Translate DetailLabelTags}" FontSize="{StaticResource FontSizeCaption}"
                                                    Foreground="{DynamicResource TextSecondaryBrush}"
                                                    Margin="0,2,12,2" VerticalAlignment="Center"
                                                    Visibility="{Binding ServerList.SelectedServer.Tags, Converter={StaticResource NullToVisibilityConverter}}"/>
@@ -870,7 +875,7 @@
 
                                         <!-- Favorite -->
                                         <TextBlock x:Name="Mw_DetailFavoriteLabel" Grid.Row="5" Grid.Column="0"
-                                                   Text="" FontSize="{StaticResource FontSizeCaption}"
+                                                   Text="{loc:Translate DetailLabelFavorite}" FontSize="{StaticResource FontSizeCaption}"
                                                    Foreground="{DynamicResource TextSecondaryBrush}"
                                                    Margin="0,2,12,2" VerticalAlignment="Center"
                                                    Visibility="{Binding ServerList.SelectedServer.IsFavorite, Converter={StaticResource BoolToVisibilityConverter}}"/>
@@ -884,27 +889,29 @@
                                     </Grid>
                                 </Border>
 
-                                <Button x:Name="Mw_DetailConnectBtn" Content=""
+                                <Button x:Name="Mw_DetailConnectBtn" Content="{loc:Translate DetailBtnConnect}"
                                         Command="{Binding ServerList.ConnectCommand}"
                                         CommandParameter="{Binding ServerList.SelectedServer}"
                                         Style="{DynamicResource PrimaryButtonStyle}"
                                         Width="120" HorizontalAlignment="Left"
                                         Margin="0,20,0,0"/>
                                 <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                                    <Button x:Name="Mw_DetailEditBtn" Content=""
+                                    <Button x:Name="Mw_DetailEditBtn" Content="{loc:Translate BtnEdit}"
                                             Command="{Binding ServerList.EditServerCommand}"
                                             CommandParameter="{Binding ServerList.SelectedServer}"
                                             Style="{DynamicResource SecondaryButtonStyle}"
+                                            ToolTip="{loc:Translate TooltipEdit}"
                                             Padding="12,6" Margin="0,0,8,0"/>
-                                    <Button x:Name="Mw_DetailDeleteBtn" Content=""
+                                    <Button x:Name="Mw_DetailDeleteBtn" Content="{loc:Translate BtnDelete}"
                                             Command="{Binding ServerList.DeleteServerCommand}"
                                             CommandParameter="{Binding ServerList.SelectedServer}"
                                             Style="{DynamicResource SecondaryButtonStyle}"
                                             Foreground="{DynamicResource ErrorTextBrush}"
+                                            ToolTip="{loc:Translate TooltipDelete}"
                                             Padding="12,6"/>
                                 </StackPanel>
                                 <!-- Subtle shortcut hints for detail panel actions -->
-                                <TextBlock x:Name="Mw_DetailActionHints" Text=""
+                                <TextBlock x:Name="Mw_DetailActionHints" Text="{loc:Translate DetailActionHints}"
                                            FontSize="{StaticResource FontSizeSmallCaption}"
                                            Foreground="{DynamicResource TextDisabledBrush}"
                                            Margin="0,8,0,0"/>
@@ -956,34 +963,35 @@
                                            HorizontalAlignment="Center" Opacity="0.5"
                                            Margin="0,0,0,16"
                                            AutomationProperties.Name=""/>
-                                <TextBlock x:Name="Mw_EmptyStateTitle" Text="" FontSize="{StaticResource FontSizeHeadline}"
+                                <TextBlock x:Name="Mw_EmptyStateTitle" Text="{loc:Translate EmptyStateTitle}" FontSize="{StaticResource FontSizeHeadline}"
                                            FontWeight="SemiBold"
                                            Foreground="{DynamicResource TextPrimaryBrush}"
                                            HorizontalAlignment="Center"/>
-                                <TextBlock x:Name="Mw_EmptyStateSubtitle" Text=""
+                                <TextBlock x:Name="Mw_EmptyStateSubtitle" Text="{loc:Translate EmptyStateSubtitle}"
                                            FontSize="{StaticResource FontSizeBodyLarge}"
                                            Foreground="{DynamicResource TextSecondaryBrush}"
                                            HorizontalAlignment="Center" Margin="0,8,0,24"
                                            TextWrapping="Wrap" MaxWidth="400"
                                            TextAlignment="Center"/>
                                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                    <Button x:Name="Mw_EmptyBtnAddSession" Content=""
+                                    <Button x:Name="Mw_EmptyBtnAddSession" Content="{loc:Translate EmptyStateBtnAddSession}"
                                             Command="{Binding ServerList.AddServerCommand}"
                                             Style="{DynamicResource PrimaryButtonStyle}"
                                             Padding="16,8" FontSize="{StaticResource FontSizeBodyLarge}"/>
-                                    <Button x:Name="Mw_EmptyBtnImport" Content=""
+                                    <Button x:Name="Mw_EmptyBtnImport" Content="{loc:Translate EmptyStateBtnImport}"
                                             Command="{Binding Settings.ImportConfigCommand}"
                                             Style="{DynamicResource SecondaryButtonStyle}"
+                                            ToolTip="{loc:Translate TooltipImport}"
                                             Padding="16,8" FontSize="{StaticResource FontSizeBodyLarge}"
                                             Margin="12,0,0,0"/>
-                                    <Button x:Name="Mw_EmptyBtnExploreTools" Content=""
+                                    <Button x:Name="Mw_EmptyBtnExploreTools" Content="{loc:Translate EmptyStateBtnExploreTools}"
                                             Style="{DynamicResource SecondaryButtonStyle}"
                                             Padding="16,8" FontSize="{StaticResource FontSizeBodyLarge}"
                                             Margin="12,0,0,0"
                                             Click="OnEmptyExploreToolsClick"/>
                                 </StackPanel>
                                 <!-- Keyboard shortcut hints for discoverability -->
-                                <TextBlock x:Name="Mw_EmptyStateShortcutHints" Text=""
+                                <TextBlock x:Name="Mw_EmptyStateShortcutHints" Text="{loc:Translate EmptyStateShortcutHints}"
                                            FontSize="{StaticResource FontSizeSmallCaption}"
                                            Foreground="{DynamicResource TextDisabledBrush}"
                                            HorizontalAlignment="Center" Margin="0,16,0,0"
@@ -1003,14 +1011,14 @@
                                                Opacity="0.5"
                                                Margin="0,0,0,12"
                                                AutomationProperties.Name=""/>
-                                    <TextBlock x:Name="Mw_EmptySelectSession" Text=""
+                                    <TextBlock x:Name="Mw_EmptySelectSession" Text="{loc:Translate EmptyStateSelectSession}"
                                                HorizontalAlignment="Center"
                                                Foreground="{DynamicResource TextSecondaryBrush}"
                                                FontSize="{StaticResource FontSizeSubtitle}"
                                                TextAlignment="Center"
                                                TextWrapping="Wrap"
                                                Margin="0,0,0,4"/>
-                                    <TextBlock x:Name="Mw_EmptyQuickConnectHint" Text=""
+                                    <TextBlock x:Name="Mw_EmptyQuickConnectHint" Text="{loc:Translate HintQuickConnect}"
                                                HorizontalAlignment="Center"
                                                Foreground="{DynamicResource TextSecondaryBrush}"
                                                FontSize="{StaticResource FontSizeCaption}"
@@ -2149,6 +2157,7 @@
                 Panel.ZIndex="999"
                 Opacity="0.6"
                 Cursor="Hand"
+                ToolTip="{loc:Translate TooltipExitFullscreenEsc}"
                 AutomationProperties.Name="{loc:Translate A11yExitFullscreen}">
             <Button.Style>
                 <Style TargetType="Button">
@@ -2187,7 +2196,7 @@
                            VerticalAlignment="Center" FontSize="{StaticResource FontSizeCaption}"
                            AutomationProperties.LiveSetting="Polite"/>
                 <!-- Subtle F1 shortcut hint — visible when status shows default ready text -->
-                <TextBlock x:Name="Mw_StatusBarShortcutHint" Text=""
+                <TextBlock x:Name="Mw_StatusBarShortcutHint" Text="{loc:Translate StatusBarShortcutHint}"
                            FontSize="{StaticResource FontSizeSmallCaption}"
                            Foreground="{DynamicResource TextDisabledBrush}"
                            VerticalAlignment="Center"
@@ -2207,6 +2216,7 @@
                             Padding="4,2" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,8,0"
                             VerticalAlignment="Center"
                             Style="{DynamicResource ToolbarGhostButtonStyle}"
+                            ToolTip="{loc:Translate TunnelPanelToggle}"
                             AutomationProperties.Name="{loc:Translate A11yToggleTunnelPanel}">
                         <Button.Content>
                             <StackPanel Orientation="Horizontal">
@@ -2230,7 +2240,7 @@
                                 <TextBlock Text="&#xE704;" FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeCaption}"
                                            VerticalAlignment="Center" Margin="0,0,3,0"
                                            AutomationProperties.Name=""/>
-                                <TextBlock x:Name="Mw_BroadcastLabel" Text="" FontWeight="SemiBold" FontSize="{StaticResource FontSizeCaption}"
+                                <TextBlock x:Name="Mw_BroadcastLabel" Text="{loc:Translate BroadcastBadgeLabel}" FontWeight="SemiBold" FontSize="{StaticResource FontSizeCaption}"
                                            VerticalAlignment="Center"/>
                             </StackPanel>
                         </Button.Content>
@@ -2289,7 +2299,8 @@
                              FontSize="{StaticResource FontSizeSubtitle}" Padding="14,10"
                              BorderThickness="0"
                              Background="Transparent"
-                             Foreground="{DynamicResource TextPrimaryBrush}"/>
+                             Foreground="{DynamicResource TextPrimaryBrush}"
+                             AutomationProperties.Name="{loc:Translate PaletteSearchPlaceholder}"/>
                     <Border Height="1" Background="{DynamicResource BorderBrush}"/>
                     <ListBox x:Name="PaletteResultsList"
                              ItemsSource="{Binding CommandPalette.Results}"
@@ -2428,12 +2439,12 @@
                             </Style>
                         </ListBox.ItemContainerStyle>
                     </ListBox>
-                    <TextBlock x:Name="Mw_PaletteNoResults" Text=""
+                    <TextBlock x:Name="Mw_PaletteNoResults" Text="{loc:Translate QuickConnectNoResults}"
                                FontSize="{StaticResource FontSizeBody}" Padding="14,10"
                                Foreground="{DynamicResource TextSecondaryBrush}"
                                HorizontalAlignment="Center"
                                Visibility="{Binding CommandPalette.HasNoResults, Converter={StaticResource BoolToVisibilityConverter}}"/>
-                    <TextBlock x:Name="Mw_PaletteHints" Text=""
+                    <TextBlock x:Name="Mw_PaletteHints" Text="{loc:Translate QuickConnectHints}"
                                FontSize="{StaticResource FontSizeCaption}" Padding="14,6"
                                Foreground="{DynamicResource TextSecondaryBrush}"/>
                 </StackPanel>
