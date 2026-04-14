@@ -63,7 +63,6 @@ public partial class MainWindow : Window, IContextMenuCallbacks
     private readonly WindowUIState _uiState = new();
     private object? _lastKeyEventSource;
     private readonly ToolsTabPopulationService _toolsTabPopulation;
-    private bool _sidebarTabRestored;
     private bool _closeConfirmed;
     private OnboardingFlowViewModel? _onboardingVm;
 
@@ -132,16 +131,9 @@ public partial class MainWindow : Window, IContextMenuCallbacks
                 _toolsTabPopulated = false;
                 PopulateToolsTab();
 
-                // Invalidate the sidebar Tools cache too; rebuild if it is the
-                // currently active sidebar tab, otherwise lazy-rebuild on next switch.
-                _sidebarToolsPopulated = false;
-                if (SidebarTabTools.IsChecked == true)
-                {
-                    BuildSidebarToolsData();
-                }
+                viewModel.Sidebar.OnExternalToolsChanged();
 
-                if (DataContext is MainViewModel vm)
-                    UpdateExternalToolProviderStatus(vm);
+                UpdateExternalToolProviderStatus(viewModel);
             });
         };
         viewModel.ToolRegistry.ExternalToolsChanged += _externalToolsChangedHandler;
@@ -164,11 +156,9 @@ public partial class MainWindow : Window, IContextMenuCallbacks
 
             // Restore the active sidebar tab (Servers / Tools) from persisted setting.
             // ShowToolsPanel is reused as a bool flag: true = Tools tab, false = Servers tab.
-            if (viewModel.Settings.ShowToolsPanel)
-            {
-                SidebarTabTools.IsChecked = true;
-            }
-            _sidebarTabRestored = true;
+            // The OneWay binding picks up the VM state change and drives both RadioButtons.
+            viewModel.Sidebar.SetActiveTab(viewModel.Settings.ShowToolsPanel);
+            viewModel.Sidebar.EnablePersistence();
 
             // Show onboarding overlay on first launch
             if (viewModel.CurrentSettings is not null && !viewModel.CurrentSettings.OnboardingCompleted)
@@ -638,8 +628,11 @@ public partial class MainWindow : Window, IContextMenuCallbacks
         });
 
         // Ctrl+Shift+T: toggle sidebar tab (Sessions ↔ Tools)
-        _keyboardShortcutService.Register(Key.T, ModifierKeys.Control | ModifierKeys.Shift,
-            ToggleSidebarTab);
+        _keyboardShortcutService.Register(Key.T, ModifierKeys.Control | ModifierKeys.Shift, () =>
+        {
+            if (GetMainVm() is { } vm)
+                vm.Sidebar.ToggleTabCommand.Execute(null);
+        });
 
         // Ctrl+Shift+O: toggle split orientation on the active split session
         _keyboardShortcutService.Register(Key.O, ModifierKeys.Control | ModifierKeys.Shift, () =>
@@ -1231,192 +1224,51 @@ public partial class MainWindow : Window, IContextMenuCallbacks
         return System.Text.RegularExpressions.Regex.Replace(value, @"[;&|`$<>()!""'\r\n%^]", "");
     }
 
-    /// <summary>
-    /// Launches an external tool in a visible console window with variable placeholders resolved.
-    /// </summary>
     // ── Sidebar Tab Selector (Servers / Tools) ──────────────────────────
 
     /// <summary>
-    /// Toggles the sidebar between the Servers tab and the Tools tab.
-    /// Bound to Ctrl+Shift+T. Setting <c>IsChecked=false</c> on a grouped
-    /// <see cref="RadioButton"/> leaves BOTH buttons unchecked — the sibling
-    /// is not auto-selected. We therefore explicitly check the target button.
+    /// Switches the sidebar to the Tools tab. Wired from the empty-state
+    /// "Explore tools" link button.
     /// </summary>
-    private void ToggleSidebarTab()
-    {
-        if (SidebarTabTools.IsChecked == true)
-        {
-            SidebarTabSessions.IsChecked = true;
-        }
-        else
-        {
-            SidebarTabTools.IsChecked = true;
-        }
-    }
-
     private void OnEmptyExploreToolsClick(object sender, RoutedEventArgs e)
     {
-        SidebarTabTools.IsChecked = true;
+        (DataContext as MainViewModel)?.Sidebar.SetActiveTab(isTools: true);
     }
 
-    // ── Sidebar Tools tab ───────────────────────────────────────────────
+    // ── Sidebar Tools tab — view-layer glue (state lives in SidebarViewModel) ──
 
-    private bool _sidebarToolsPopulated;
-    private System.Collections.ObjectModel.ObservableCollection<ViewModels.SidebarToolCategoryViewModel>? _sidebarToolsCategories;
-
-    /// <summary>
-    /// Builds the category/tool hierarchy via
-    /// <see cref="ToolsTabPopulationService.BuildSidebarToolsData"/> and attaches
-    /// it to the sidebar Tools <see cref="TreeView"/>. Lazy: only invoked the
-    /// first time the user switches to the Tools tab, and re-run when external
-    /// tools are discovered (the External category changes).
-    /// </summary>
-    private void BuildSidebarToolsData()
-    {
-        if (DataContext is not MainViewModel vm)
-        {
-            return;
-        }
-
-        _sidebarToolsCategories = _toolsTabPopulation.BuildSidebarToolsData(vm);
-        SidebarToolsTreeView.ItemsSource = _sidebarToolsCategories;
-        _sidebarToolsPopulated = true;
-
-        UpdateSidebarToolsContextLabel();
-    }
-
-    /// <summary>
-    /// Populates the sidebar Tools tab the first time the user switches to it.
-    /// Wired from the <c>SidebarTabTools</c> <see cref="RadioButton"/> Checked event.
-    /// </summary>
     private void OnSidebarTabToolsChecked(object sender, RoutedEventArgs e)
     {
-        if (!_sidebarToolsPopulated)
-        {
-            BuildSidebarToolsData();
-        }
-        else
-        {
-            // Data already built — refresh context label in case the selected
-            // server changed while the Tools tab was hidden.
-            UpdateSidebarToolsContextLabel();
-        }
-
-        PersistSidebarTabChoice(isTools: true);
+        (DataContext as MainViewModel)?.Sidebar.SetActiveTab(isTools: true);
     }
 
     private void OnSidebarTabSessionsChecked(object sender, RoutedEventArgs e)
     {
-        PersistSidebarTabChoice(isTools: false);
+        (DataContext as MainViewModel)?.Sidebar.SetActiveTab(isTools: false);
     }
 
-    /// <summary>
-    /// Persists the active sidebar tab (Servers or Tools) so the choice is
-    /// restored on next launch. Reuses <see cref="Heimdall.Core.Configuration.AppSettings.ShowToolsPanel"/>.
-    /// Guarded by <see cref="_sidebarTabRestored"/> to avoid overwriting the saved
-    /// value during XAML initialization, when the default <c>IsChecked="True"</c>
-    /// on <c>SidebarTabSessions</c> would otherwise fire before the Loaded handler
-    /// has restored the persisted state.
-    /// </summary>
-    private async void PersistSidebarTabChoice(bool isTools)
+    private async void OnSidebarToolsSelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
     {
-        if (!_sidebarTabRestored) return;
+        if (e.NewValue is not ViewModels.SidebarToolItemViewModel item) return;
         if (DataContext is not MainViewModel vm) return;
-        if (vm.CurrentSettings is null) return;
-        if (vm.CurrentSettings.ShowToolsPanel == isTools) return;
 
-        vm.CurrentSettings.ShowToolsPanel = isTools;
-        await vm.ConfigManager.MergeSettingAsync(s => s.ShowToolsPanel = isTools);
+        // Match the full-page Tools tab: make sure the session panel is visible
+        // before opening the tool tab. Tab-strip navigation stays in the view.
+        TabSessions.IsChecked = true;
+        SwitchToTab("Sessions");
+
+        await vm.Sidebar.LaunchToolAsync(item);
     }
 
-    private void UpdateSidebarToolsContextLabel()
+    private async void OnSidebarToolsDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
     {
-        if (DataContext is not MainViewModel vm)
-        {
-            return;
-        }
+        if (SidebarToolsTreeView.SelectedItem is not ViewModels.SidebarToolItemViewModel item) return;
+        if (DataContext is not MainViewModel vm) return;
 
-        var host = ToolsTabPopulationService.GetInheritedToolTargetHost(vm);
-        var hasTarget = !string.IsNullOrEmpty(host);
-        var text = hasTarget
-            ? vm.Localize("ToolsNetworkContextWith").Replace("{0}", host)
-            : vm.Localize("ToolsNetworkContextNone");
-
-        Mw_SidebarToolsContextText.Text = text;
-        Mw_SidebarToolsContextText.ToolTip = text;
-    }
-
-    private void OnSidebarToolsFilterChanged(object sender, TextChangedEventArgs e)
-    {
-        if (_sidebarToolsCategories is null)
-        {
-            return;
-        }
-
-        var filter = Mw_SidebarToolsFilter.Text;
-        var anyVisibleTool = _toolsTabPopulation.FilterSidebarTools(_sidebarToolsCategories, filter);
-        var hasFilter = !string.IsNullOrWhiteSpace(filter);
-
-        if (DataContext is MainViewModel vm)
-        {
-            Mw_SidebarToolsNoResults.Text = vm.Localize("ToolsNoResults");
-        }
-        Mw_SidebarToolsNoResults.Visibility = hasFilter && !anyVisibleTool
-            ? Visibility.Visible
-            : Visibility.Collapsed;
-    }
-
-    private void OnSidebarToolsSelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
-    {
-        if (e.NewValue is ViewModels.SidebarToolItemViewModel item)
-        {
-            LaunchSidebarTool(item);
-        }
-    }
-
-    private void OnSidebarToolsDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
-    {
-        if (SidebarToolsTreeView.SelectedItem is ViewModels.SidebarToolItemViewModel item)
-        {
-            LaunchSidebarTool(item);
-            e.Handled = true;
-        }
-    }
-
-    private async void LaunchSidebarTool(ViewModels.SidebarToolItemViewModel item)
-    {
-        if (DataContext is not MainViewModel vm)
-        {
-            return;
-        }
-
-        var descriptor = ToolRegistry.All.FirstOrDefault(
-            d => string.Equals(d.Id, item.Id, StringComparison.OrdinalIgnoreCase));
-        if (descriptor is null)
-        {
-            return;
-        }
-
-        try
-        {
-            var context = ToolsTabPopulationService.CreateInheritedToolContext(descriptor, vm);
-
-            // Match the full-page Tools tab: make sure the session panel is visible
-            // before opening the tool tab.
-            TabSessions.IsChecked = true;
-            SwitchToTab("Sessions");
-
-            await vm.OpenToolTabAsync(
-                descriptor.Id,
-                ToolsTabPopulationService.ResolveToolTabTitle(descriptor, context, vm),
-                context);
-            vm.TrackRecentTool(descriptor.Id);
-        }
-        catch (Exception ex)
-        {
-            Core.Logging.FileLogger.Error($"Sidebar tool launch failed: {descriptor.Id}", ex);
-            vm.StatusText = $"Tool launch failed: {descriptor.Id} — {ex.Message}";
-        }
+        e.Handled = true;
+        TabSessions.IsChecked = true;
+        SwitchToTab("Sessions");
+        await vm.Sidebar.LaunchToolAsync(item);
     }
 
     // ── Tools Tab (dedicated full-page browser) ──────────────────────
@@ -1473,7 +1325,7 @@ public partial class MainWindow : Window, IContextMenuCallbacks
         Mw_ToolsTabContextText.ToolTip = text;
 
         // Mirror the same context line in the sidebar Tools tab.
-        UpdateSidebarToolsContextLabel();
+        vm.Sidebar.RefreshContextLabel();
     }
 
     private async void OnToolPinClickInternal(string toolId)
@@ -1549,9 +1401,10 @@ public partial class MainWindow : Window, IContextMenuCallbacks
 
     private void OnOnboardingCompleted(object? sender, EventArgs e)
     {
-        // The RadioButton Checked event routes through OnSidebarTabToolsChecked
-        // which calls PersistSidebarTabChoice(true) to save ShowToolsPanel.
-        SidebarTabTools.IsChecked = true;
+        // Switch to Tools tab via the VM. The OneWay binding propagates the
+        // change back to the RadioButton group and the VM persists the choice.
+        if (DataContext is MainViewModel vm)
+            vm.Sidebar.SetActiveTab(isTools: true);
 
         if (_onboardingVm is not null)
         {
