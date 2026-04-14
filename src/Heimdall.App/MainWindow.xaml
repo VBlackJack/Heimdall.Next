@@ -2220,8 +2220,8 @@
                         </Button.Content>
                     </Button>
                     <!-- Broadcast mode toggle -->
-                    <Button x:Name="Mw_BroadcastToggleBtn" Command="{Binding ToggleBroadcastCommand}"
-                            ToolTip="{Binding BroadcastToggleTooltip}"
+                    <Button x:Name="Mw_BroadcastToggleBtn" Command="{Binding Session.ToggleBroadcastCommand}"
+                            ToolTip="{Binding Session.BroadcastToggleTooltip}"
                             Padding="4,2" FontSize="{StaticResource FontSizeSubtitle}" Margin="0,0,8,0"
                             VerticalAlignment="Center"
                             AutomationProperties.Name="{loc:Translate A11yToggleBroadcast}">
@@ -2237,7 +2237,7 @@
                         <Button.Style>
                             <Style TargetType="Button" BasedOn="{StaticResource ToolbarGhostButtonStyle}">
                                 <Style.Triggers>
-                                    <DataTrigger Binding="{Binding IsBroadcastMode}" Value="True">
+                                    <DataTrigger Binding="{Binding Session.IsBroadcastMode}" Value="True">
                                         <Setter Property="Background" Value="{DynamicResource BroadcastActiveBrush}"/>
                                         <Setter Property="Foreground" Value="{DynamicResource ErrorTextBrush}"/>
                                     </DataTrigger>

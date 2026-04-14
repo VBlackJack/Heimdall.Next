@@ -1,0 +1,428 @@
+/*
+ * Copyright 2026 Julien Bombled
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using Heimdall.App.Services;
+using Heimdall.App.Views;
+using Heimdall.Core.Configuration;
+using Heimdall.Core.Localization;
+using Heimdall.Core.Logging;
+using Heimdall.Core.Models;
+
+namespace Heimdall.App.ViewModels.Session;
+
+/// <summary>
+/// Session-lifecycle coordinator. Owns the wire-up of SplitService +
+/// EmbeddedSessionManager + ServerList.SessionReady, the broadcast-mode
+/// cluster (toggle + fan-out + per-view indicators), and the async
+/// handlers that materialize new session tabs
+/// (<see cref="OnSessionReady"/>), auto-open SFTP companion panes
+/// (<see cref="AutoOpenSftpAsync"/>) and reconnect stale sessions
+/// (<see cref="OnReconnectRequestedAsync"/>).
+/// </summary>
+/// <remarks>
+/// <para>
+/// Composition: instantiated inside <see cref="MainViewModel"/>'s
+/// constructor (<see cref="MainViewModel.Session"/>) — no DI registration.
+/// Follows the same pattern as <c>TunnelsViewModel</c> and
+/// <c>ScheduledTasksViewModel</c>: takes <see cref="MainViewModel"/> as
+/// first ctor parameter and reaches other sub-VMs
+/// (<c>ServerList</c>, <c>Connection</c>, <c>Split</c>, <c>Tunnels</c>)
+/// through <c>_main.X</c>.
+/// </para>
+/// <para>
+/// The coordinator wires 8 external callbacks in its constructor:
+/// 5 <c>Split.*</c> providers/setters and 3 <see cref="EmbeddedSessionManager"/>
+/// callbacks (<c>BroadcastCallback</c>, <c>IsBroadcastActive</c>,
+/// <c>ReconnectRequestedCallback</c>). The <c>OpenToolCallback</c> stays
+/// on <see cref="MainViewModel"/> because <c>OpenToolTabAsync</c> is a
+/// shell concern shared with the sidebar/tools-tab/palette consumers.
+/// </para>
+/// </remarks>
+public sealed partial class SessionCoordinator : ObservableObject, IDisposable
+{
+    private readonly MainViewModel _main;
+    private readonly LocalizationManager _localizer;
+    private readonly ConfigManager _configManager;
+    private readonly EmbeddedSessionManager _embeddedSessionManager;
+    private bool _disposed;
+
+    /// <summary>
+    /// Creates a new session coordinator and installs the 8 external
+    /// wire-ups + the <see cref="ServerList.SessionReady"/> event handler.
+    /// </summary>
+    public SessionCoordinator(
+        MainViewModel main,
+        LocalizationManager localizer,
+        ConfigManager configManager,
+        EmbeddedSessionManager embeddedSessionManager)
+    {
+        _main = main;
+        _localizer = localizer;
+        _configManager = configManager;
+        _embeddedSessionManager = embeddedSessionManager;
+
+        // Wire SplitService callbacks for access to session tab state
+        _main.Split.ActiveSessionsProvider = () => _main.Connection.ActiveSessions;
+        _main.Split.ActiveSessionProvider = () => _main.Connection.ActiveSession;
+        _main.Split.SetActiveSession = s => _main.Connection.ActiveSession = s;
+        _main.Split.SetHasActiveSessions = v => _main.Connection.HasActiveSessions = v;
+        _main.Split.SetStatusText = s => _main.StatusText = s;
+
+        // Wire ConnectionService status-text relay
+        _main.ServerList.ConnectionService.SetStatusText = s => _main.StatusText = s;
+
+        // Wire broadcast relay so terminal views can fan out input
+        _embeddedSessionManager.BroadcastCallback = BroadcastToAllTerminals;
+        _embeddedSessionManager.IsBroadcastActive = () => IsBroadcastMode;
+
+        // Wire SSH reconnect: close the old session tab and re-connect from scratch
+        _embeddedSessionManager.ReconnectRequestedCallback = OnReconnectRequested;
+
+        // Subscribe to ServerList.SessionReady to materialize the session tab
+        _main.ServerList.SessionReady += OnSessionReady;
+    }
+
+    // ── Broadcast mode ───────────────────────────────────────────────
+
+    /// <summary>
+    /// True while broadcast mode is active: keystrokes typed in one
+    /// terminal view fan out to every other terminal session.
+    /// </summary>
+    [ObservableProperty]
+    private bool _isBroadcastMode;
+
+    /// <summary>Localized tooltip for the broadcast toggle button.</summary>
+    public string BroadcastToggleTooltip => IsBroadcastMode
+        ? _localizer["BroadcastModeOn"]
+        : _localizer["TooltipToggleBroadcast"];
+
+    /// <summary>
+    /// Generated partial: updates the per-view broadcast indicators and
+    /// refreshes the tooltip whenever <see cref="IsBroadcastMode"/> flips.
+    /// </summary>
+    partial void OnIsBroadcastModeChanged(bool value)
+    {
+        UpdateBroadcastIndicators(value);
+        OnPropertyChanged(nameof(BroadcastToggleTooltip));
+    }
+
+    /// <summary>
+    /// Toggles <see cref="IsBroadcastMode"/> and reports the transition in
+    /// the shell status bar.
+    /// </summary>
+    [RelayCommand]
+    private void ToggleBroadcast()
+    {
+        IsBroadcastMode = !IsBroadcastMode;
+        _main.StatusText = IsBroadcastMode
+            ? _localizer["BroadcastModeOn"]
+            : _localizer["BroadcastModeOff"];
+    }
+
+    /// <summary>
+    /// Updates the broadcast badge on all active SSH/Local terminal views.
+    /// </summary>
+    private void UpdateBroadcastIndicators(bool active)
+    {
+        foreach (var session in _main.Connection.ActiveSessions)
+        {
+            foreach (var pane in SplitTreeHelper.EnumerateLeaves(session.RootContent))
+            {
+                if (pane.HostControl is EmbeddedSshView sshView)
+                {
+                    sshView.SetBroadcastIndicator(active);
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Sends raw byte input to all active terminal sessions except the
+    /// originating view. Called by <see cref="EmbeddedSshView"/> when
+    /// broadcast mode is enabled.
+    /// </summary>
+    public void BroadcastToAllTerminals(byte[] data, object? sender)
+    {
+        if (!IsBroadcastMode)
+        {
+            return;
+        }
+
+        foreach (var session in _main.Connection.ActiveSessions)
+        {
+            foreach (var pane in SplitTreeHelper.EnumerateLeaves(session.RootContent))
+            {
+                BroadcastToHostControl(pane.HostControl, data, sender);
+            }
+        }
+    }
+
+    private static void BroadcastToHostControl(object? hostControl, byte[] data, object? sender)
+    {
+        if (hostControl is EmbeddedSshView sshView && sshView != sender)
+        {
+            try
+            {
+                sshView.WriteBytes(data);
+            }
+            catch (ObjectDisposedException)
+            {
+                // Session already closed; skip.
+            }
+        }
+    }
+
+    // ── Session lifecycle handlers ───────────────────────────────────
+
+    /// <summary>
+    /// Handles the session-ready event from <see cref="ServerListViewModel"/>
+    /// by creating a session tab in <see cref="ConnectionViewModel"/>,
+    /// recording the connect in the history log, resolving the tunnel
+    /// route for the header display, and optionally auto-opening an SFTP
+    /// companion pane for SSH connections when
+    /// <see cref="AppSettings.SftpAutoOpenOnSsh"/> is enabled.
+    /// </summary>
+    private void OnSessionReady(string sessionId, string originalServerId, string displayName, string connectionType, ISessionResult? session)
+    {
+        ConnectionHistory.RecordConnect(originalServerId, displayName, connectionType);
+
+        if (session is null)
+        {
+            _main.StatusText = _localizer.Format("StatusConnected", displayName);
+            return;
+        }
+
+        var tab = _main.Connection.AddSession(sessionId, displayName, connectionType);
+        tab.OriginalServerId = originalServerId;
+        tab.HostControl = _embeddedSessionManager.CreateHostControl(
+            tab,
+            displayName,
+            connectionType,
+            session,
+            _main.CurrentSettings);
+        tab.Status = string.Equals(connectionType, "RDP", StringComparison.OrdinalIgnoreCase)
+            ? _localizer["StatusConnectingProgress"]
+            : _localizer["StatusConnected"];
+
+        // Resolve tunnel chain route for visual display in session header
+        // (uses sessionId - correct for state machine lookup)
+        tab.TunnelRoute = _main.Tunnels.ResolveRoute(sessionId);
+
+        _main.StatusText = string.Equals(connectionType, "RDP", StringComparison.OrdinalIgnoreCase)
+            ? _localizer.Format("StatusEmbeddedRdpOpening", displayName)
+            : _localizer.Format("StatusConnected", displayName);
+
+        // Auto-open SFTP alongside SSH - use original server ID for inventory lookup
+        if (string.Equals(connectionType, "SSH", StringComparison.OrdinalIgnoreCase)
+            && _main.CurrentSettings?.SftpAutoOpenOnSsh == true)
+        {
+            _ = SafeFireAndForgetAsync(
+                AutoOpenSftpAsync(tab, originalServerId, _main.Split.GetSessionToken(tab)));
+        }
+    }
+
+    /// <summary>
+    /// Closes the disconnected session tab and starts a fresh connection
+    /// to the same server, reusing the standard connection flow. Sync
+    /// entry point wired as the <see cref="EmbeddedSessionManager"/>
+    /// callback; delegates to <see cref="OnReconnectRequestedAsync"/>.
+    /// </summary>
+    private void OnReconnectRequested(SessionTabViewModel tab, string serverId, string connectionType)
+    {
+        _ = SafeFireAndForgetAsync(OnReconnectRequestedAsync(tab, serverId, connectionType));
+    }
+
+    private async Task OnReconnectRequestedAsync(SessionTabViewModel tab, string serverId, string connectionType)
+    {
+        if (string.IsNullOrEmpty(serverId))
+        {
+            return;
+        }
+
+        try
+        {
+            // Close the old tab (disposes the dead session)
+            _main.Connection.CloseSessionCommand.Execute(tab);
+
+            // Re-connect through the server list's standard connection path
+            var servers = await _configManager.LoadServersAsync();
+            var serverDto = servers.FirstOrDefault(
+                s => string.Equals(s.Id, serverId, StringComparison.Ordinal));
+
+            if (serverDto is null)
+            {
+                _main.StatusText = _localizer["ErrorServerNotFound"];
+                return;
+            }
+
+            // Trigger the same flow as double-clicking the server in the tree
+            var serverVm = _main.ServerList.Servers.FirstOrDefault(
+                s => string.Equals(s.Id, serverId, StringComparison.Ordinal));
+
+            if (serverVm is not null)
+            {
+                _main.ServerList.ConnectCommand.Execute(serverVm);
+            }
+        }
+        catch (Exception ex)
+        {
+            FileLogger.Error($"Reconnect failed for {serverId}", ex);
+            _main.StatusText = _localizer.Format("StatusReconnectFailed", ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// Automatically connects an SFTP session and attaches it as the
+    /// secondary split pane of an existing SSH session tab. UI work is
+    /// marshaled to the dispatcher because
+    /// <see cref="ServerListViewModel.ConnectionService.ConnectSftpAsync"/>
+    /// runs on a background thread.
+    /// </summary>
+    private async Task AutoOpenSftpAsync(SessionTabViewModel tab, string serverId, CancellationToken ct = default)
+    {
+        try
+        {
+            var servers = await _configManager.LoadServersAsync();
+            var server = servers.FirstOrDefault(
+                s => string.Equals(s.Id, serverId, StringComparison.Ordinal));
+
+            if (server is null || string.IsNullOrEmpty(server.SshUsername))
+            {
+                FileLogger.Info(
+                    $"SFTP auto-open skipped for {serverId}: server not found or no SSH username.");
+                return;
+            }
+
+            var sftpResult = await _main.ServerList.ConnectionService
+                .ConnectSftpAsync(server, _main.CurrentSettings!, ct)
+                .ConfigureAwait(false);
+
+            if (!sftpResult.Success || sftpResult.Session is null)
+            {
+                FileLogger.Warn(
+                    $"SFTP auto-open failed for {serverId}: {sftpResult.ErrorMessage}");
+                System.Windows.Application.Current.Dispatcher.Invoke(() =>
+                    _main.StatusText = _localizer.Format("StatusSftpAutoOpenFailed", sftpResult.ErrorMessage ?? ""));
+                return;
+            }
+
+            // Create the SFTP host control on the UI thread and wrap root in a split container
+            System.Windows.Application.Current.Dispatcher.Invoke(() =>
+            {
+                var sftpPane = new SessionPaneModel
+                {
+                    ServerId = serverId,
+                    OriginalServerId = tab.OriginalServerId,
+                    ConnectionType = "SFTP",
+                    Title = tab.Title,
+                    Status = "Connected"
+                };
+                sftpPane.HostControl = _embeddedSessionManager.CreateHostControl(
+                    tab, tab.Title, "SFTP", sftpResult.Session, _main.CurrentSettings);
+
+                var currentRoot = tab.RootContent;
+                tab.RootContent = new SplitContainerModel
+                {
+                    First = currentRoot,
+                    Second = sftpPane,
+                    Orientation = SplitOrientation.Vertical,
+                    SplitRatio = 0.5
+                };
+            });
+
+            FileLogger.Info($"SFTP auto-open succeeded for {serverId}.");
+        }
+        catch (Exception ex)
+        {
+            FileLogger.Warn($"SFTP auto-open error for {serverId}: {ex.Message}");
+        }
+    }
+
+    // ── Public startup helper ────────────────────────────────────────
+
+    /// <summary>
+    /// Restores the previously persisted workspace by reconnecting each
+    /// session whose server still exists in the current inventory. Called
+    /// by <see cref="MainViewModel.LoadAsync"/> when
+    /// <see cref="AppSettings.EnableSessionPersistence"/> is enabled.
+    /// </summary>
+    public async Task RestoreWorkspaceAsync(IEnumerable<ServerItemViewModel> currentServers)
+    {
+        ArgumentNullException.ThrowIfNull(currentServers);
+
+        var workspace = await WorkspaceService.LoadAsync().ConfigureAwait(false);
+        if (workspace?.Sessions.Count is not > 0)
+        {
+            return;
+        }
+
+        _main.StatusText = _localizer["WorkspaceRestoring"];
+        var serverList = currentServers as IList<ServerItemViewModel>
+            ?? currentServers.ToList();
+        int restored = 0;
+
+        foreach (var session in workspace.Sessions)
+        {
+            var server = serverList.FirstOrDefault(
+                s => string.Equals(s.Id, session.ServerId, StringComparison.OrdinalIgnoreCase));
+            if (server is null) continue;
+            try
+            {
+                _main.ServerList.ConnectCommand.Execute(server);
+                restored++;
+            }
+            catch (Exception ex)
+            {
+                FileLogger.Error(
+                    $"Workspace restore failed for {session.ServerName}: {ex.Message}");
+            }
+        }
+
+        FileLogger.Info(_localizer.Format("LogWorkspaceRestored", restored));
+    }
+
+    // ── Fire-and-forget helper (duplicated from MainViewModel) ───────
+
+    private static async Task SafeFireAndForgetAsync(Task task)
+    {
+        try
+        {
+            await task.ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            FileLogger.Error($"Fire-and-forget task failed: {ex.Message}", ex);
+        }
+    }
+
+    // ── IDisposable ──────────────────────────────────────────────────
+
+    /// <inheritdoc />
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _disposed = true;
+
+        _main.ServerList.SessionReady -= OnSessionReady;
+        // The 8 provider/callback wire-ups on Split + EmbeddedSessionManager
+        // + ConnectionService are owned by external services and are left
+        // in place on shutdown — clearing them could break other teardown
+        // paths that still reference them. No harm in leaving the delegate
+        // references since the owning services are themselves disposed.
+    }
+}
