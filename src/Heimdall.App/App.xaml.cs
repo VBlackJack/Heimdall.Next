@@ -291,6 +291,9 @@ public partial class App : System.Windows.Application
         services.AddSingleton<KeyboardShortcutService>();
         services.AddSingleton<IForegroundWatchService, ForegroundWatchService>();
         services.AddSingleton<IToolContextProvider, ToolContextProvider>();
+        services.AddSingleton<CredentialProviderPresetService>();
+        services.AddSingleton<CommandLibrarySettingsService>();
+        services.AddSingleton<ExternalToolSettingsService>();
         services.AddSingleton<ToolsTabPopulationService>();
         services.AddSingleton<IDialogService, WpfDialogService>();
 

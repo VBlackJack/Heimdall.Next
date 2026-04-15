@@ -63,6 +63,9 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
     private readonly KeyboardShortcutService _keyboardShortcutService;
     private readonly IForegroundWatchService _foregroundWatchService;
     private readonly IToolContextProvider _toolContext;
+    private readonly CredentialProviderPresetService _credentialProviderPresetService;
+    private readonly CommandLibrarySettingsService _commandLibrarySettingsService;
+    private readonly ExternalToolSettingsService _externalToolSettingsService;
     private readonly WindowUIState _uiState = new();
     private object? _lastKeyEventSource;
     private readonly ToolsTabPopulationService _toolsTabPopulation;
@@ -76,8 +79,11 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
     // the captured-`this` lambdas would keep the window alive past Close().
     private System.ComponentModel.PropertyChangedEventHandler? _connectionPropertyChangedHandler;
     private System.ComponentModel.PropertyChangedEventHandler? _serverListPropertyChangedHandler;
+    private System.ComponentModel.PropertyChangedEventHandler? _settingsPropertyChangedHandler;
+    private System.ComponentModel.PropertyChangedEventHandler? _selectedExternalToolPropertyChangedHandler;
     private Action? _externalToolsChangedHandler;
     private Action<string>? _localeChangedHandler;
+    private ExternalToolItemViewModel? _trackedExternalToolForPreview;
 
     public MainWindow(
         MainViewModel viewModel,
@@ -89,11 +95,17 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
         FileShareService fileShareService,
         KeyboardShortcutService keyboardShortcutService,
         IForegroundWatchService foregroundWatchService,
-        IToolContextProvider toolContext)
+        IToolContextProvider toolContext,
+        CredentialProviderPresetService credentialProviderPresetService,
+        CommandLibrarySettingsService commandLibrarySettingsService,
+        ExternalToolSettingsService externalToolSettingsService)
     {
         _fileShareService = fileShareService;
         _foregroundWatchService = foregroundWatchService;
         _toolContext = toolContext;
+        _credentialProviderPresetService = credentialProviderPresetService;
+        _commandLibrarySettingsService = commandLibrarySettingsService;
+        _externalToolSettingsService = externalToolSettingsService;
         InitializeComponent();
         WindowThemeHelper.ApplyCurrentTheme(this);
         DataContext = viewModel;
@@ -135,11 +147,31 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
         {
             if (string.Equals(e.PropertyName, nameof(ServerListViewModel.SelectedServer), StringComparison.Ordinal))
             {
-                Dispatcher.Invoke(() => _toolContext.SetSelectedServer(viewModel.ServerList.SelectedServer));
+                Dispatcher.Invoke(() =>
+                {
+                    _toolContext.SetSelectedServer(viewModel.ServerList.SelectedServer);
+                    RefreshExternalToolSettingsUi(viewModel);
+                });
             }
         };
         viewModel.ServerList.PropertyChanged += _serverListPropertyChangedHandler;
         _toolContext.SetSelectedServer(viewModel.ServerList.SelectedServer);
+
+        _selectedExternalToolPropertyChangedHandler = (_, _) =>
+        {
+            Dispatcher.BeginInvoke(() => RefreshExternalToolSettingsUi(viewModel));
+        };
+
+        _settingsPropertyChangedHandler = (_, e) =>
+        {
+            if (string.Equals(e.PropertyName, nameof(SettingsViewModel.SelectedExternalTool), StringComparison.Ordinal))
+            {
+                AttachSelectedExternalToolPreviewTracking(viewModel.Settings.SelectedExternalTool);
+                Dispatcher.BeginInvoke(() => RefreshExternalToolSettingsUi(viewModel));
+            }
+        };
+        viewModel.Settings.PropertyChanged += _settingsPropertyChangedHandler;
+        AttachSelectedExternalToolPreviewTracking(viewModel.Settings.SelectedExternalTool);
 
         // Refresh Tools tab and Settings status when background scan discovers external tools
         _externalToolsChangedHandler = () =>
@@ -148,7 +180,7 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
             {
                 viewModel.ToolsTab.OnExternalToolsChanged();
                 viewModel.Sidebar.OnExternalToolsChanged();
-                UpdateExternalToolProviderStatus(viewModel);
+                Mw_SettingsExtProvStatus.Text = _externalToolSettingsService.BuildDetectedToolsStatus();
             });
         };
         viewModel.ToolRegistry.ExternalToolsChanged += _externalToolsChangedHandler;
@@ -221,6 +253,88 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
     {
         vm.ToolsTab.RefreshHeaderText();
         vm.ToolsTab.InvalidateSections();
+    }
+
+    /// <summary>
+    /// Re-applies transient localized Settings UI content that is not represented by direct XAML bindings.
+    /// </summary>
+    private void ApplyLocalization()
+    {
+        if (DataContext is not MainViewModel vm)
+        {
+            return;
+        }
+
+        ApplySettingsLocalization(vm);
+    }
+
+    private void ApplySettingsLocalization(MainViewModel vm)
+    {
+        PopulateCredentialProviderPresets();
+        _ = RefreshCommandLibraryTokenStatusAsync();
+        RefreshExternalToolSettingsUi(vm);
+    }
+
+    private void PopulateCredentialProviderPresets()
+    {
+        Mw_SettingsCredProvPreset.Items.Clear();
+
+        foreach (var label in _credentialProviderPresetService.GetPresetLabels())
+        {
+            Mw_SettingsCredProvPreset.Items.Add(label);
+        }
+
+        Mw_SettingsCredProvPreset.SelectedIndex = 0;
+    }
+
+    private async Task RefreshCommandLibraryTokenStatusAsync()
+    {
+        var hasToken = await _commandLibrarySettingsService.HasSavedTokenAsync().ConfigureAwait(true);
+        ApplyCommandLibraryTokenStatus(hasToken);
+    }
+
+    private void ApplyCommandLibraryTokenStatus(bool hasToken)
+    {
+        var status = _commandLibrarySettingsService.GetTokenStatus(hasToken);
+        Mw_SettingsCmdLibSyncTokenStatus.Text = status.StatusText;
+        Mw_SettingsCmdLibSyncTokenClear.Visibility = status.ClearButtonVisibility;
+    }
+
+    private void RefreshExternalToolSettingsUi(MainViewModel vm)
+    {
+        Mw_SettingsExtProvStatus.Text = _externalToolSettingsService.BuildDetectedToolsStatus();
+        PopulateExternalToolPlaceholderList();
+        Mw_ExtToolPreview.Text = _externalToolSettingsService.BuildPreview(
+            vm.Settings.SelectedExternalTool,
+            vm.ServerList.SelectedServer);
+    }
+
+    private void AttachSelectedExternalToolPreviewTracking(ExternalToolItemViewModel? tool)
+    {
+        if (_trackedExternalToolForPreview is not null
+            && _selectedExternalToolPropertyChangedHandler is not null)
+        {
+            _trackedExternalToolForPreview.PropertyChanged -= _selectedExternalToolPropertyChangedHandler;
+        }
+
+        _trackedExternalToolForPreview = tool;
+
+        if (_trackedExternalToolForPreview is not null
+            && _selectedExternalToolPropertyChangedHandler is not null)
+        {
+            _trackedExternalToolForPreview.PropertyChanged += _selectedExternalToolPropertyChangedHandler;
+        }
+    }
+
+    private void PopulateExternalToolPlaceholderList()
+    {
+        Mw_ExtToolPlaceholderList.Items.Clear();
+
+        var captionFontSize = (double)FindResource("FontSizeCaption");
+        foreach (var item in _externalToolSettingsService.BuildPlaceholderItems(captionFontSize))
+        {
+            Mw_ExtToolPlaceholderList.Items.Add(item);
+        }
     }
 
     private void PopulateAboutSection()
@@ -1161,34 +1275,22 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
         }
     }
 
-    private static readonly (string Label, string Command)[] CredProvPresets =
-    [
-        ("Custom", ""),
-        ("KeePassXC", "keepassxc-cli show -s -a Password \"{Database}\" \"{Title}\""),
-        ("Bitwarden CLI", "bw get password \"{Title}\""),
-        ("1Password CLI", "op read \"op://{Title}/password\""),
-        ("pass (GPG)", "pass show \"{Title}\""),
-    ];
-
     private void OnCredProvPresetChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
     {
-        if (Mw_SettingsCredProvPreset.SelectedIndex < 1) return; // skip "Custom"
-        if (DataContext is not MainViewModel vm) return;
+        if (DataContext is not MainViewModel vm)
+        {
+            return;
+        }
 
-        var (_, command) = CredProvPresets[Mw_SettingsCredProvPreset.SelectedIndex];
+        if (!_credentialProviderPresetService.TryGetCommand(
+                Mw_SettingsCredProvPreset.SelectedIndex,
+                out var command))
+        {
+            return;
+        }
+
         vm.Settings.CredentialProviderCommand = command;
         vm.Settings.IsDirty = true;
-    }
-
-    private void UpdateExternalToolProviderStatus(MainViewModel vm)
-    {
-        var service = (System.Windows.Application.Current as App)?.Services?
-            .GetService(typeof(Services.ExternalToolProviderService)) as Services.ExternalToolProviderService;
-        var count = service?.DetectedTools.Count ?? 0;
-        Mw_SettingsExtProvStatus.Text = count > 0
-            ? string.Format(System.Globalization.CultureInfo.InvariantCulture,
-                vm.Localize("ExtToolStatusDetected"), count)
-            : vm.Localize("ExtToolStatusNone");
     }
 
     private void OnCmdLibSyncTokenChanged(object sender, RoutedEventArgs e)
@@ -1203,7 +1305,7 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
 
         var encrypted = Core.Security.DpapiProvider.Protect(password);
         _ = configManager.MergeSettingAsync(s => s.CmdLibGitSyncToken = encrypted);
-        UpdateTokenStatus(true);
+        ApplyCommandLibraryTokenStatus(true);
     }
 
     private void OnCmdLibSyncTokenClear(object sender, RoutedEventArgs e)
@@ -1215,16 +1317,7 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
 
         _ = configManager.MergeSettingAsync(s => s.CmdLibGitSyncToken = null);
         Mw_SettingsCmdLibSyncToken.Password = "";
-        UpdateTokenStatus(false);
-    }
-
-    private void UpdateTokenStatus(bool hasToken)
-    {
-        if (DataContext is not MainViewModel vm) return;
-        Mw_SettingsCmdLibSyncTokenStatus.Text = hasToken
-            ? vm.Localize("SettingsCmdLibSyncTokenSaved") : "";
-        Mw_SettingsCmdLibSyncTokenClear.Visibility = hasToken
-            ? Visibility.Visible : Visibility.Collapsed;
+        ApplyCommandLibraryTokenStatus(false);
     }
 
     private async void OnCmdLibSyncTestClick(object sender, RoutedEventArgs e)
@@ -1289,7 +1382,7 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
         });
 
         Mw_SettingsBtnRescan.IsEnabled = true;
-        UpdateExternalToolProviderStatus(vm);
+        Mw_SettingsExtProvStatus.Text = _externalToolSettingsService.BuildDetectedToolsStatus();
 
         // Refresh tools tab to show newly detected tools
         vm.ToolsTab.OnExternalToolsChanged();
@@ -2189,6 +2282,13 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
                 vm.Connection.PropertyChanged -= _connectionPropertyChangedHandler;
             if (_serverListPropertyChangedHandler is not null)
                 vm.ServerList.PropertyChanged -= _serverListPropertyChangedHandler;
+            if (_settingsPropertyChangedHandler is not null)
+                vm.Settings.PropertyChanged -= _settingsPropertyChangedHandler;
+            if (_trackedExternalToolForPreview is not null
+                && _selectedExternalToolPropertyChangedHandler is not null)
+            {
+                _trackedExternalToolForPreview.PropertyChanged -= _selectedExternalToolPropertyChangedHandler;
+            }
             if (_externalToolsChangedHandler is not null)
                 vm.ToolRegistry.ExternalToolsChanged -= _externalToolsChangedHandler;
             if (_localeChangedHandler is not null)
