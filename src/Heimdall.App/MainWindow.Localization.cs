@@ -39,28 +39,14 @@ public partial class MainWindow
     {
         if (DataContext is not MainViewModel vm) return;
 
-        ApplyNavigationLocalization(vm);
         ApplyToolbarLocalization(vm);
         ApplyTunnelLocalization(vm);
         ApplySettingsLocalization(vm);
-        ApplyAboutLocalization(vm);
 
         // Tools tab labels and rendered cards: VM-driven, just trigger refresh.
         vm.ToolsTab.RefreshHeaderText();
         vm.ToolsTab.RefreshContextLabel();
         vm.ToolsTab.InvalidateSections();
-    }
-
-    private void ApplyNavigationLocalization(MainViewModel vm)
-    {
-        // TODO(Phase 5D): migrate these two status-bar composite strings. They
-        // concatenate literal whitespace with 2 (or more) localization keys, so
-        // they cannot be expressed as a single {loc:Translate} markup. The
-        // clean fix is either (a) bundling into single new keys in the locale
-        // JSON — forbidden in Phase 5A scope, or (b) splitting into multiple
-        // <Run> elements in XAML with their own {loc:Translate} bindings.
-        Mw_StatusBarServersLabel.Text = " " + vm.Localize("StatusBarSessions") + " " + vm.Localize("StatusBarSeparator");
-        Mw_StatusBarTunnelsLabel.Text = " " + vm.Localize("StatusBarTunnels");
     }
 
     private void ApplyToolbarLocalization(MainViewModel vm)
@@ -108,18 +94,6 @@ public partial class MainWindow
         UpdateExternalToolProviderStatus(vm);
         PopulateExtToolPlaceholderList(vm);
         UpdateExtToolPreview();
-    }
-
-    private void ApplyAboutLocalization(MainViewModel vm)
-    {
-        // TODO(Phase 5D): migrate these bullet composite strings. They
-        // concatenate a literal bullet prefix with localized feature text.
-        Mw_AboutFeature1.Text = "\u2022 " + vm.Localize("AboutFeatureEmbedded");
-        Mw_AboutFeature2.Text = "\u2022 " + vm.Localize("AboutFeatureDpapi");
-        Mw_AboutFeature3.Text = "\u2022 " + vm.Localize("AboutFeatureTunneling");
-        Mw_AboutFeature4.Text = "\u2022 " + vm.Localize("AboutFeatureSftp");
-        Mw_AboutFeature5.Text = "\u2022 " + vm.Localize("AboutFeatureBilingual");
-        Mw_AboutFeature6.Text = "\u2022 " + vm.Localize("AboutFeatureTheme");
     }
 
     private void UpdateExtToolPreview()
