@@ -14,7 +14,9 @@
  * limitations under the License.
  */
 
+using System.ComponentModel;
 using System.IO;
+using System.Runtime.CompilerServices;
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Logging;
 
@@ -29,7 +31,7 @@ namespace Heimdall.App.Services;
 /// <see cref="SharingStopped"/> and <see cref="FileServed"/> to drive the
 /// view from the payloads provided.
 /// </summary>
-public sealed class FileShareService : IAsyncDisposable
+public sealed class FileShareService : IAsyncDisposable, INotifyPropertyChanged
 {
     private EphemeralFileServer? _server;
     private bool _disposed;
@@ -59,6 +61,9 @@ public sealed class FileShareService : IAsyncDisposable
     /// (e.g. <c>"HTTP: foo.txt"</c> or <c>"TFTP: bar.bin"</c>).
     /// </summary>
     public event EventHandler<string>? FileServed;
+
+    /// <inheritdoc />
+    public event PropertyChangedEventHandler? PropertyChanged;
 
     /// <summary>
     /// Brings up the HTTP and TFTP listeners over <paramref name="directory"/>
@@ -123,6 +128,7 @@ public sealed class FileShareService : IAsyncDisposable
         _server = server;
         CurrentDirectory = directory;
         BaseUrl = baseUrl;
+        NotifyShareStateChanged();
 
         FileLogger.Info($"[FileShareService] Sharing {directory} at {baseUrl}");
 
@@ -157,6 +163,7 @@ public sealed class FileShareService : IAsyncDisposable
         _server = null;
         BaseUrl = null;
         CurrentDirectory = null;
+        NotifyShareStateChanged();
 
         server.FileServed -= OnInnerFileServed;
         await server.DisposeAsync().ConfigureAwait(true);
@@ -180,6 +187,18 @@ public sealed class FileShareService : IAsyncDisposable
     private void OnInnerFileServed(string payload)
     {
         FileServed?.Invoke(this, payload);
+    }
+
+    private void NotifyShareStateChanged()
+    {
+        OnPropertyChanged(nameof(IsSharing));
+        OnPropertyChanged(nameof(BaseUrl));
+        OnPropertyChanged(nameof(CurrentDirectory));
+    }
+
+    private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+    {
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }
 }
 

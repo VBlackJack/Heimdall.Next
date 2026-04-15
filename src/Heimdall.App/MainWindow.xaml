@@ -122,8 +122,19 @@
                             <TextBlock Text="&#xE72D;" FontFamily="Segoe MDL2 Assets"
                                        FontSize="{StaticResource FontSizeBodyLarge}" VerticalAlignment="Center" Margin="0,0,4,0"
                                        AutomationProperties.Name=""/>
-                            <TextBlock x:Name="Mw_ShareFolderLabel" Text="" FontSize="{StaticResource FontSizeBody}"
-                                       VerticalAlignment="Center"/>
+                            <TextBlock x:Name="Mw_ShareFolderLabel" FontSize="{StaticResource FontSizeBody}"
+                                       VerticalAlignment="Center">
+                                <TextBlock.Text>
+                                    <MultiBinding Converter="{StaticResource ShareFolderLabelConverter}">
+                                        <Binding Path="FileShareService.IsSharing"
+                                                 RelativeSource="{RelativeSource AncestorType=Window}"/>
+                                        <Binding Source="{x:Static loc:LocalizationSource.Instance}"
+                                                 Path="[ToolsShareFolder]"/>
+                                        <Binding Source="{x:Static loc:LocalizationSource.Instance}"
+                                                 Path="[ToolsStopSharing]"/>
+                                    </MultiBinding>
+                                </TextBlock.Text>
+                            </TextBlock>
                         </StackPanel>
                     </Button>
                     <!-- Quick Connect shortcut button -->
