@@ -42,7 +42,6 @@ public partial class MainWindow
         ApplyNavigationLocalization(vm);
         ApplyToolbarLocalization(vm);
         ApplyTunnelLocalization(vm);
-        ApplyScheduledLocalization(vm);
         ApplySettingsLocalization(vm);
         ApplyAboutLocalization(vm);
 
@@ -76,11 +75,9 @@ public partial class MainWindow
 
     private void ApplyTunnelLocalization(MainViewModel vm)
     {
-        Mw_TunnelPanelCloseAllBtn.Content = vm.Localize("TunnelsBtnCloseAll");
-        Mw_TunnelPanelEmpty.Text = vm.Localize("TunnelsEmptyState");
-
-        Mw_TunnelPanelGrid.Tag = vm.Localize("TooltipCloseTunnel");
-
+        // TODO(Phase 5D): migrate the tunnel panel header composite split on
+        // the {0} placeholder. The current XAML uses separate Run elements for
+        // the localized prefix/suffix around the live tunnel count.
         var tunnelHeader = vm.Localize("TunnelPanelHeader");
         var placeholderIdx = tunnelHeader.IndexOf("{0}", StringComparison.Ordinal);
         if (placeholderIdx >= 0)
@@ -92,44 +89,6 @@ public partial class MainWindow
         {
             Mw_TunnelPanelHeaderPrefix.Text = tunnelHeader;
         }
-
-        Mw_TpColGateway.Header = vm.Localize("TunnelsColGateway");
-        Mw_TpColLocal.Header = vm.Localize("TunnelPanelColLocal");
-        Mw_TpColRemote.Header = vm.Localize("TunnelPanelColRemote");
-        Mw_TpColPort.Header = vm.Localize("TunnelPanelColPort");
-
-        Mw_TpCtxClose.Header = vm.Localize("TunnelCtxClose");
-        Mw_TpCtxCopyPort.Header = vm.Localize("TunnelCtxCopyPort");
-        Mw_TpCtxCloseAll.Header = vm.Localize("TunnelCtxCloseAll");
-
-        Mw_TunnelsTitle.Text = vm.Localize("TunnelsSectionTitle");
-        Mw_TunnelsCloseSelectedBtn.Content = vm.Localize("TunnelsBtnCloseSelected");
-        Mw_TunnelsCloseAllBtn.Content = vm.Localize("TunnelsBtnCloseAll");
-        Mw_TunnelsEmpty.Text = vm.Localize("TunnelsEmptyState");
-
-        Mw_TunnelsColGateway.Header = vm.Localize("TunnelsColGateway");
-        Mw_TunnelsColLocalPort.Header = vm.Localize("TunnelsColLocalPort");
-        Mw_TunnelsColRemoteHost.Header = vm.Localize("TunnelsColRemoteHost");
-        Mw_TunnelsColRemotePort.Header = vm.Localize("TunnelsColRemotePort");
-        Mw_TunnelsColStarted.Header = vm.Localize("TunnelsColStarted");
-        Mw_TunnelsManageGatewaysLink.Content = vm.Localize("TunnelsManageGatewaysLink");
-    }
-
-    private void ApplyScheduledLocalization(MainViewModel vm)
-    {
-        Mw_ScheduledTitle.Text = vm.Localize("ScheduledSectionTitle");
-        Mw_ScheduledAddBtn.Content = vm.Localize("ScheduledBtnAdd");
-        Mw_ScheduledEditBtn.Content = vm.Localize("ScheduledBtnEdit");
-        Mw_ScheduledDeleteBtn.Content = vm.Localize("ScheduledBtnDelete");
-        Mw_ScheduledEmpty.Text = vm.Localize("ScheduledEmptyState");
-        Mw_ScheduledCreateBtn.Content = vm.Localize("ScheduledEmptyAddButton");
-
-        Mw_ScheduledColEnabled.Header = vm.Localize("ScheduledColEnabled");
-        Mw_ScheduledColServer.Header = vm.Localize("ScheduledColServer");
-        Mw_ScheduledColType.Header = vm.Localize("ScheduledColType");
-        Mw_ScheduledColSchedule.Header = vm.Localize("ScheduledColSchedule");
-        Mw_ScheduledColLastRun.Header = vm.Localize("ScheduledColLastRun");
-        Mw_ScheduledColNextRun.Header = vm.Localize("ScheduledColNextRun");
     }
 
     private void ApplySettingsLocalization(MainViewModel vm)
@@ -321,14 +280,8 @@ public partial class MainWindow
 
     private void ApplyAboutLocalization(MainViewModel vm)
     {
-        Mw_AboutAppName.Text = vm.Localize("AppName");
-        Mw_AboutTagline.Text = vm.Localize("AboutTagline");
-        Mw_AboutAuthorLabel.Text = vm.Localize("AboutLabelAuthor");
-        Mw_AboutLicenseLabel.Text = vm.Localize("AboutLabelLicense");
-        Mw_AboutLicenseValue.Text = vm.Localize("AboutLicenseValue");
-        Mw_AboutRuntimeLabel.Text = vm.Localize("AboutLabelRuntime");
-        Mw_AboutPlatformLabel.Text = vm.Localize("AboutLabelPlatform");
-        Mw_AboutFeaturesTitle.Text = vm.Localize("AboutLabelFeatures");
+        // TODO(Phase 5D): migrate these bullet composite strings. They
+        // concatenate a literal bullet prefix with localized feature text.
         Mw_AboutFeature1.Text = "\u2022 " + vm.Localize("AboutFeatureEmbedded");
         Mw_AboutFeature2.Text = "\u2022 " + vm.Localize("AboutFeatureDpapi");
         Mw_AboutFeature3.Text = "\u2022 " + vm.Localize("AboutFeatureTunneling");
