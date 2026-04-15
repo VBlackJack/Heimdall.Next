@@ -1078,7 +1078,7 @@
                                             ToolTip="{loc:Translate TooltipCollapseTunnelPanel}"
                                             AutomationProperties.Name="{loc:Translate A11yCollapseTunnelPanel}"/>
                                     <Button x:Name="Mw_TunnelPanelCloseAllBtn" DockPanel.Dock="Right"
-                                            Content=""
+                                            Content="{loc:Translate TunnelsBtnCloseAll}"
                                             Command="{Binding Tunnels.CloseAllCommand}"
                                             Style="{DynamicResource SecondaryButtonStyle}"
                                             Foreground="{DynamicResource ErrorTextBrush}"
@@ -1104,6 +1104,7 @@
                             <!-- Content: compact tunnel DataGrid -->
                             <Grid>
                                 <DataGrid x:Name="Mw_TunnelPanelGrid"
+                                          Tag="{loc:Translate TooltipCloseTunnel}"
                                           ItemsSource="{Binding Tunnels.List}"
                                           SelectedItem="{Binding Tunnels.SelectedItem}"
                                           AutoGenerateColumns="False"
@@ -1121,13 +1122,16 @@
                                     <DataGrid.ContextMenu>
                                         <ContextMenu>
                                             <MenuItem x:Name="Mw_TpCtxClose"
+                                                      Header="{loc:Translate TunnelCtxClose}"
                                                       Command="{Binding Tunnels.CloseCommand}"
                                                       CommandParameter="{Binding Tunnels.SelectedItem}"/>
                                             <MenuItem x:Name="Mw_TpCtxCopyPort"
+                                                      Header="{loc:Translate TunnelCtxCopyPort}"
                                                       Command="{Binding Tunnels.CopyPortCommand}"
                                                       CommandParameter="{Binding Tunnels.SelectedItem}"/>
                                             <Separator/>
                                             <MenuItem x:Name="Mw_TpCtxCloseAll"
+                                                      Header="{loc:Translate TunnelCtxCloseAll}"
                                                       Command="{Binding Tunnels.CloseAllCommand}"/>
                                         </ContextMenu>
                                     </DataGrid.ContextMenu>
@@ -1152,10 +1156,10 @@
                                                 </DataTemplate>
                                             </DataGridTemplateColumn.CellTemplate>
                                         </DataGridTemplateColumn>
-                                        <DataGridTextColumn x:Name="Mw_TpColGateway" Header="" Binding="{Binding ServerName}" Width="*"/>
-                                        <DataGridTextColumn x:Name="Mw_TpColLocal" Header="" Binding="{Binding LocalPort}" Width="60"/>
-                                        <DataGridTextColumn x:Name="Mw_TpColRemote" Header="" Binding="{Binding RemoteHost}" Width="*"/>
-                                        <DataGridTextColumn x:Name="Mw_TpColPort" Header="" Binding="{Binding RemotePort}" Width="50"/>
+                                        <DataGridTextColumn x:Name="Mw_TpColGateway" Header="{loc:Translate TunnelsColGateway}" Binding="{Binding ServerName}" Width="*"/>
+                                        <DataGridTextColumn x:Name="Mw_TpColLocal" Header="{loc:Translate TunnelPanelColLocal}" Binding="{Binding LocalPort}" Width="60"/>
+                                        <DataGridTextColumn x:Name="Mw_TpColRemote" Header="{loc:Translate TunnelPanelColRemote}" Binding="{Binding RemoteHost}" Width="*"/>
+                                        <DataGridTextColumn x:Name="Mw_TpColPort" Header="{loc:Translate TunnelPanelColPort}" Binding="{Binding RemotePort}" Width="50"/>
                                         <DataGridTemplateColumn Header="" Width="28">
                                             <DataGridTemplateColumn.CellTemplate>
                                                 <DataTemplate>
@@ -1177,7 +1181,7 @@
                                 </DataGrid>
 
                                 <!-- Empty state -->
-                                <TextBlock x:Name="Mw_TunnelPanelEmpty" Text=""
+                                <TextBlock x:Name="Mw_TunnelPanelEmpty" Text="{loc:Translate TunnelsEmptyState}"
                                            FontSize="{StaticResource FontSizeCaption}"
                                            Foreground="{DynamicResource TextSecondaryBrush}"
                                            HorizontalAlignment="Center"
@@ -1194,16 +1198,16 @@
             <!-- ============================================================ -->
             <DockPanel Visibility="{Binding IsTunnelsTabSelected, Converter={StaticResource BoolToVisibilityConverter}}">
                 <DockPanel DockPanel.Dock="Top" Margin="16,12,16,8">
-                    <TextBlock x:Name="Mw_TunnelsTitle" Text="" FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
+                    <TextBlock x:Name="Mw_TunnelsTitle" Text="{loc:Translate TunnelsSectionTitle}" FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                                Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                        <Button x:Name="Mw_TunnelsCloseSelectedBtn" Content=""
+                        <Button x:Name="Mw_TunnelsCloseSelectedBtn" Content="{loc:Translate TunnelsBtnCloseSelected}"
                                 Command="{Binding Tunnels.CloseCommand}"
                                 CommandParameter="{Binding Tunnels.SelectedItem}"
                                 Style="{DynamicResource SecondaryButtonStyle}"
                                 Padding="8,3" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,4,0"
                                 AutomationProperties.Name="{loc:Translate AccessTunnelsCloseSelected}"/>
-                        <Button x:Name="Mw_TunnelsCloseAllBtn" Content=""
+                        <Button x:Name="Mw_TunnelsCloseAllBtn" Content="{loc:Translate TunnelsBtnCloseAll}"
                                 Command="{Binding Tunnels.CloseAllCommand}"
                                 Style="{DynamicResource SecondaryButtonStyle}"
                                 Foreground="{DynamicResource ErrorTextBrush}"
@@ -1214,7 +1218,7 @@
 
                 <!-- Manage gateways link -->
                 <Button x:Name="Mw_TunnelsManageGatewaysLink" DockPanel.Dock="Bottom"
-                        Content=""
+                        Content="{loc:Translate TunnelsManageGatewaysLink}"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
                         FontSize="{StaticResource FontSizeCaption}"
                         Foreground="{DynamicResource AccentBrush}"
@@ -1256,16 +1260,16 @@
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
-                            <DataGridTextColumn x:Name="Mw_TunnelsColGateway" Header="" Binding="{Binding ServerName}" Width="*"/>
-                            <DataGridTextColumn x:Name="Mw_TunnelsColLocalPort" Header="" Binding="{Binding LocalPort}" Width="90"/>
-                            <DataGridTextColumn x:Name="Mw_TunnelsColRemoteHost" Header="" Binding="{Binding RemoteHost}" Width="*"/>
-                            <DataGridTextColumn x:Name="Mw_TunnelsColRemotePort" Header="" Binding="{Binding RemotePort}" Width="90"/>
-                            <DataGridTextColumn x:Name="Mw_TunnelsColStarted" Header="" Binding="{Binding StartedAt, StringFormat=HH:mm:ss}" Width="80"/>
+                            <DataGridTextColumn x:Name="Mw_TunnelsColGateway" Header="{loc:Translate TunnelsColGateway}" Binding="{Binding ServerName}" Width="*"/>
+                            <DataGridTextColumn x:Name="Mw_TunnelsColLocalPort" Header="{loc:Translate TunnelsColLocalPort}" Binding="{Binding LocalPort}" Width="90"/>
+                            <DataGridTextColumn x:Name="Mw_TunnelsColRemoteHost" Header="{loc:Translate TunnelsColRemoteHost}" Binding="{Binding RemoteHost}" Width="*"/>
+                            <DataGridTextColumn x:Name="Mw_TunnelsColRemotePort" Header="{loc:Translate TunnelsColRemotePort}" Binding="{Binding RemotePort}" Width="90"/>
+                            <DataGridTextColumn x:Name="Mw_TunnelsColStarted" Header="{loc:Translate TunnelsColStarted}" Binding="{Binding StartedAt, StringFormat=HH:mm:ss}" Width="80"/>
                         </DataGrid.Columns>
                     </DataGrid>
 
                     <!-- Empty state -->
-                    <TextBlock x:Name="Mw_TunnelsEmpty" Text=""
+                    <TextBlock x:Name="Mw_TunnelsEmpty" Text="{loc:Translate TunnelsEmptyState}"
                                FontSize="{StaticResource FontSizeBodyLarge}"
                                Foreground="{DynamicResource TextSecondaryBrush}"
                                HorizontalAlignment="Center"
@@ -1280,20 +1284,20 @@
             <DockPanel Visibility="{Binding IsScheduledTabSelected, Converter={StaticResource BoolToVisibilityConverter}}">
                 <!-- Header bar -->
                 <DockPanel DockPanel.Dock="Top" Margin="16,12,16,8">
-                    <TextBlock x:Name="Mw_ScheduledTitle" Text="" FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
+                    <TextBlock x:Name="Mw_ScheduledTitle" Text="{loc:Translate ScheduledSectionTitle}" FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                                Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                        <Button x:Name="Mw_ScheduledAddBtn" Content=""
+                        <Button x:Name="Mw_ScheduledAddBtn" Content="{loc:Translate ScheduledBtnAdd}"
                                 Command="{Binding Scheduled.AddTaskCommand}"
                                 Style="{DynamicResource PrimaryButtonStyle}"
                                 Padding="8,3" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,4,0"
                                 AutomationProperties.Name="{loc:Translate AccessScheduledAdd}"/>
-                        <Button x:Name="Mw_ScheduledEditBtn" Content=""
+                        <Button x:Name="Mw_ScheduledEditBtn" Content="{loc:Translate ScheduledBtnEdit}"
                                 Command="{Binding Scheduled.EditTaskCommand}"
                                 Style="{DynamicResource SecondaryButtonStyle}"
                                 Padding="8,3" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,4,0"
                                 AutomationProperties.Name="{loc:Translate AccessScheduledEdit}"/>
-                        <Button x:Name="Mw_ScheduledDeleteBtn" Content=""
+                        <Button x:Name="Mw_ScheduledDeleteBtn" Content="{loc:Translate ScheduledBtnDelete}"
                                 Command="{Binding Scheduled.DeleteTaskCommand}"
                                 Style="{DynamicResource SecondaryButtonStyle}"
                                 Padding="8,3" FontSize="{StaticResource FontSizeCaption}"
@@ -1314,23 +1318,23 @@
                               CellStyle="{DynamicResource ThemedDataGridCellStyle}"
                               RowStyle="{DynamicResource ThemedDataGridRowStyle}">
                         <DataGrid.Columns>
-                            <DataGridCheckBoxColumn x:Name="Mw_ScheduledColEnabled" Header="" Binding="{Binding Enabled, UpdateSourceTrigger=PropertyChanged}" Width="40"/>
-                            <DataGridTextColumn x:Name="Mw_ScheduledColServer" Header="" Binding="{Binding ServerName}" Width="*" IsReadOnly="True"/>
-                            <DataGridTextColumn x:Name="Mw_ScheduledColType" Header="" Binding="{Binding ConnectionType}" Width="70" IsReadOnly="True"/>
-                            <DataGridTextColumn x:Name="Mw_ScheduledColSchedule" Header="" Binding="{Binding Schedule}" Width="*" IsReadOnly="True"/>
-                            <DataGridTextColumn x:Name="Mw_ScheduledColLastRun" Header="" Binding="{Binding LastRun, StringFormat=yyyy-MM-dd HH:mm}" Width="130" IsReadOnly="True"/>
-                            <DataGridTextColumn x:Name="Mw_ScheduledColNextRun" Header="" Binding="{Binding NextRun, StringFormat=yyyy-MM-dd HH:mm}" Width="130" IsReadOnly="True"/>
+                            <DataGridCheckBoxColumn x:Name="Mw_ScheduledColEnabled" Header="{loc:Translate ScheduledColEnabled}" Binding="{Binding Enabled, UpdateSourceTrigger=PropertyChanged}" Width="40"/>
+                            <DataGridTextColumn x:Name="Mw_ScheduledColServer" Header="{loc:Translate ScheduledColServer}" Binding="{Binding ServerName}" Width="*" IsReadOnly="True"/>
+                            <DataGridTextColumn x:Name="Mw_ScheduledColType" Header="{loc:Translate ScheduledColType}" Binding="{Binding ConnectionType}" Width="70" IsReadOnly="True"/>
+                            <DataGridTextColumn x:Name="Mw_ScheduledColSchedule" Header="{loc:Translate ScheduledColSchedule}" Binding="{Binding Schedule}" Width="*" IsReadOnly="True"/>
+                            <DataGridTextColumn x:Name="Mw_ScheduledColLastRun" Header="{loc:Translate ScheduledColLastRun}" Binding="{Binding LastRun, StringFormat=yyyy-MM-dd HH:mm}" Width="130" IsReadOnly="True"/>
+                            <DataGridTextColumn x:Name="Mw_ScheduledColNextRun" Header="{loc:Translate ScheduledColNextRun}" Binding="{Binding NextRun, StringFormat=yyyy-MM-dd HH:mm}" Width="130" IsReadOnly="True"/>
                         </DataGrid.Columns>
                     </DataGrid>
 
                     <!-- Empty state -->
                     <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center"
                                 Visibility="{Binding Scheduled.HasNoTasks, Converter={StaticResource BoolToVisibilityConverter}}">
-                        <TextBlock x:Name="Mw_ScheduledEmpty" Text=""
+                        <TextBlock x:Name="Mw_ScheduledEmpty" Text="{loc:Translate ScheduledEmptyState}"
                                    FontSize="{StaticResource FontSizeBodyLarge}"
                                    Foreground="{DynamicResource TextSecondaryBrush}"
                                    HorizontalAlignment="Center" Margin="0,0,0,8"/>
-                        <Button x:Name="Mw_ScheduledCreateBtn" Content=""
+                        <Button x:Name="Mw_ScheduledCreateBtn" Content="{loc:Translate ScheduledEmptyAddButton}"
                                 Command="{Binding Scheduled.AddTaskCommand}"
                                 Style="{DynamicResource PrimaryButtonStyle}"
                                 Padding="12,6" FontSize="{StaticResource FontSizeBody}"
@@ -2095,7 +2099,7 @@
                                            HorizontalAlignment="Center"
                                            Margin="0,0,0,10"
                                            AutomationProperties.Name=""/>
-                                <TextBlock x:Name="Mw_AboutAppName" Text=""
+                                <TextBlock x:Name="Mw_AboutAppName" Text="{loc:Translate AppName}"
                                            FontSize="{StaticResource FontSizeHeadline}" FontWeight="Bold"
                                            Foreground="{DynamicResource TextPrimaryBrush}"
                                            HorizontalAlignment="Center"/>
@@ -2104,7 +2108,7 @@
                                            Foreground="{DynamicResource TextSecondaryBrush}"
                                            HorizontalAlignment="Center"
                                            Margin="0,4,0,0"/>
-                                <TextBlock x:Name="Mw_AboutTagline" Text=""
+                                <TextBlock x:Name="Mw_AboutTagline" Text="{loc:Translate AboutTagline}"
                                            FontSize="{StaticResource FontSizeBody}"
                                            Foreground="{DynamicResource TextSecondaryBrush}"
                                            HorizontalAlignment="Center"
@@ -2125,20 +2129,20 @@
                                     <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="Auto"/>
                                 </Grid.RowDefinitions>
-                                <TextBlock x:Name="Mw_AboutAuthorLabel" Grid.Row="0" Grid.Column="0" Text=""
+                                <TextBlock x:Name="Mw_AboutAuthorLabel" Grid.Row="0" Grid.Column="0" Text="{loc:Translate AboutLabelAuthor}"
                                            FontSize="{StaticResource FontSizeBody}" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,6"/>
                                 <TextBlock Grid.Row="0" Grid.Column="1" Text="Julien Bombled"
                                            FontSize="{StaticResource FontSizeBody}" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,6"/>
-                                <TextBlock x:Name="Mw_AboutLicenseLabel" Grid.Row="1" Grid.Column="0" Text=""
+                                <TextBlock x:Name="Mw_AboutLicenseLabel" Grid.Row="1" Grid.Column="0" Text="{loc:Translate AboutLabelLicense}"
                                            FontSize="{StaticResource FontSizeBody}" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,6"/>
-                                <TextBlock x:Name="Mw_AboutLicenseValue" Grid.Row="1" Grid.Column="1" Text=""
+                                <TextBlock x:Name="Mw_AboutLicenseValue" Grid.Row="1" Grid.Column="1" Text="{loc:Translate AboutLicenseValue}"
                                            FontSize="{StaticResource FontSizeBody}" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,6"/>
-                                <TextBlock x:Name="Mw_AboutRuntimeLabel" Grid.Row="2" Grid.Column="0" Text=""
+                                <TextBlock x:Name="Mw_AboutRuntimeLabel" Grid.Row="2" Grid.Column="0" Text="{loc:Translate AboutLabelRuntime}"
                                            FontSize="{StaticResource FontSizeBody}" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,6"/>
                                 <TextBlock x:Name="AboutRuntimeText"
                                            Grid.Row="2" Grid.Column="1"
                                            FontSize="{StaticResource FontSizeBody}" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,6"/>
-                                <TextBlock x:Name="Mw_AboutPlatformLabel" Grid.Row="3" Grid.Column="0" Text=""
+                                <TextBlock x:Name="Mw_AboutPlatformLabel" Grid.Row="3" Grid.Column="0" Text="{loc:Translate AboutLabelPlatform}"
                                            FontSize="{StaticResource FontSizeBody}" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,6"/>
                                 <TextBlock x:Name="AboutPlatformText"
                                            Grid.Row="3" Grid.Column="1"
@@ -2148,7 +2152,7 @@
                             <Border Height="1" Background="{DynamicResource BorderBrush}" Margin="0,16,0,16"/>
 
                             <!-- Features -->
-                            <TextBlock x:Name="Mw_AboutFeaturesTitle" Text="" FontSize="{StaticResource FontSizeBodyLarge}" FontWeight="SemiBold"
+                            <TextBlock x:Name="Mw_AboutFeaturesTitle" Text="{loc:Translate AboutLabelFeatures}" FontSize="{StaticResource FontSizeBodyLarge}" FontWeight="SemiBold"
                                        Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,8"/>
                             <StackPanel Margin="8,0,0,0">
                                 <TextBlock x:Name="Mw_AboutFeature1" FontSize="{StaticResource FontSizeBody}" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,3"
