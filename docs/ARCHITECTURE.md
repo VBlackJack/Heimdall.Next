@@ -421,6 +421,35 @@ Two additional shell-layer sub-VMs were extracted during Phase 2 to mirror the X
 
 **Result**: `MainViewModel.cs` dropped from **1,917 → 628 lines (−67%)**. The shell class now orchestrates sub-VM instantiation, shared settings, the single `OpenToolCallback`, and the composed `LoadAsync` pipeline. Each sub-VM is independently navigable, testable in isolation (sub-VMs that don't touch `Application.Current.Dispatcher` run cleanly in xUnit), and owns its own event-subscription lifecycle via `IDisposable`.
 
+### 28. Declarative i18n Migration (Phase 5)
+
+**Problem**: before Phase 5, `MainWindow.Localization.cs` owned localization as an imperative 523-line code-behind pass. `ApplyLocalization()` ran at startup and on every `LocalizationManager.LocaleChanged` notification, dispatching to 7 `Apply*Localization` methods (Navigation, Toolbar, Tunnel, Scheduled, Settings, About, Accessibility) that touched 300+ named XAML elements with assignments such as `Mw_X.Text = vm.Localize("Key")`, `AutomationProperties.SetName(Mw_X, vm.Localize("Key"))`, `Mw_X.Tag = vm.Localize("Key")`, and tooltip/header equivalents. Every locale switch re-ran the full pass and rewrote labels, tooltips, accessibility names, and watermarks by name.
+
+**Solution**: Phase 5 moved approximately 307 imperative localization sites to declarative XAML using the existing `{loc:Translate Key}` markup extension. `TranslateExtension` and `LocalizationSource` were intentionally unchanged: the extension creates a WPF `Binding` to `LocalizationSource.Instance[Key]`, and `LocalizationSource` raises `PropertyChanged("Item[]")` when the locale changes so bound DependencyProperties refresh without a code-behind render pass.
+
+Migration was split by UI pattern:
+
+- **5A — Navigation + Toolbar labels (58 sites)**: tab strip headers, toolbar button content/tooltips, Quick Connect / Quick File Server, broadcast toggle label, status-bar ready text, and shortcuts hint. Straight mappings used the mechanical pattern `Mw_X.Text = vm.Localize("Key")` → `Text="{loc:Translate Key}"`.
+- **5B — Accessibility attributes (39 sites)**: all imperative `AutomationProperties.SetName(Mw_X, vm.Localize("Key"))` calls moved to `AutomationProperties.Name="{loc:Translate Key}"` on the owning XAML element. `ApplyAccessibilityLocalization` was deleted entirely.
+- **5C.1 — Tunnel + Scheduled + About (40 sites)**: tunnel/scheduled DataGrid column headers, context-menu headers, action buttons, and field labels moved 1-for-1 to XAML. `ApplyScheduledLocalization` had no residual work and was deleted.
+- **5C.2 — Settings tab (160 sites)**: the densest pass covered 6 settings sub-tabs with radios, checkboxes, labels, watermarks, tooltips, and option groups. It included 24 `Content` + `AutomationProperties.Name` twin migrations spanning theme variants, session persistence, transport modes, RDP display/audio options, gateway actions, apply-mode buttons, and credential-provider actions. `ApplySettingsLocalization` remains only as a residual runtime UI population stub.
+- **5D.1 — Composites via inline `<Run>` (8 sites)**: status-bar composites (`" " + key + " " + key`) and About feature bullets (`"\u2022 " + key`) were split into anonymous inline `Run` elements containing literal text plus `{loc:Translate Key}` bindings. `ApplyNavigationLocalization` and `ApplyAboutLocalization` were deleted.
+- **5D.2 — Logic-heavy cases (2 sites + helper extraction)**: the share-folder conditional label moved out of `ApplyToolbarLocalization` into `UpdateShareFolderLabel()` on `MainWindow`, called from `SharingStarted`, `SharingStopped`, the locale handler, and startup while `FileShareService` remains non-INPC. The tunnel-panel header `{0}` split moved to `TunnelsViewModel.TunnelPanelHeaderPrefix` / `TunnelPanelHeaderSuffix`, with `Mode=OneWay` inline `Run` bindings and `LocalizationManager.LocaleChanged` re-notification. `ApplyToolbarLocalization` and `ApplyTunnelLocalization` were deleted.
+
+**Result**: `MainWindow.Localization.cs` dropped from **523 → 122 lines (−77%)**. Its remaining responsibilities are deliberately not pure XAML label localization:
+
+- `ApplyLocalization()` — now a one-call dispatcher to `ApplySettingsLocalization(vm)`.
+- `ApplySettingsLocalization()` — residual runtime UI population: `PopulateCredProvPresets`, `PopulateExtToolPlaceholderList`, `UpdateExtToolPreview`, `UpdateExternalToolProviderStatus`, and the async token-status check. These helpers generate or update dynamic UI from runtime state, so they stay imperative until a dedicated settings-helper extraction.
+- `RefreshVmDrivenLocalization(vm)` — helper called from the constructor and locale change handler to refresh VM-driven ToolsTab labels that were previously cascaded through `ApplyLocalization()`. This preserves sub-VM refresh behavior after the dispatcher was reduced to its single settings call.
+
+The Phase 5 final smoke test also surfaced a latent Command Palette regression from the Phase 2A/4A refactor path: single-click inside the palette closed the popup before double-click could fire. `OnWindowPreviewMouseDown` now guards clicks originating inside `CommandPalettePopup.Child` with fallback `IsMouseOver` and bounds checks, preserving outside-click dismissal while allowing normal ListBox selection and double-click execution.
+
+**Future work**:
+
+- `FileShareService` can implement `INotifyPropertyChanged` so `Mw_ShareFolderLabel` becomes a pure binding and `UpdateShareFolderLabel()` disappears.
+- Eight accessibility keys (five navigation tabs from Phase 5B and three gateway buttons from Phase 5C.2) currently preserve imperative behavior over the more descriptive `Access*` variants. If NVDA testing flags phrasing issues, this is a small XAML-only key swap.
+- The 5 residual settings helpers can move into dedicated CredProv / external-tool helper services, eliminating `MainWindow.Localization.cs` entirely. That is an architectural cleanup, not an i18n migration requirement.
+
 ## Design System (CommonControls.xaml — 1,880+ lines, 45 tokens, WCAG AA)
 
 The application uses a centralized Design System defined in `CommonControls.xaml` with full WCAG AA contrast compliance across all **7 Dracula theme variants** (DraculaPro, Alucard, Blade, Buffy, Lincoln, Morbius, VanHelsing). Theme swapping is owned by the centralized `ThemeService` (singleton DI) — see `docs/TROUBLESHOOTING.md` ("Theme Switching — Stale Colors After Swap") for the reactivity patterns.
