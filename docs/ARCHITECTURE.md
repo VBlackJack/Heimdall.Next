@@ -636,6 +636,10 @@ Build editions:
 
 `Build.ps1 -Variant Both` (default) produces both variants + Inno Setup installers. `Build.ps1 -Mode Release -Publish` creates a GitHub release with all artifacts. `Build.ps1 -DryRun` simulates the release without touching git/GitHub. Batch shortcuts: `Run.bat`, `Test.bat`, `Build.bat`, `Release.bat`.
 
+### Test baseline
+
+`dotnet test Heimdall.slnx --no-build` discovers 1781 tests across the three test projects (`Heimdall.App.Tests`, `Heimdall.Core.Tests`, `Heimdall.Ssh.Tests`): 1775 passing and 6 known skipped `ThemeServiceTests` that require a live WPF Application context. Partial per-project TRX files can report smaller counts and be mistaken for a regression — always run the aggregated command for a correct baseline.
+
 ## Tool Architecture
 
 ### ToolRegistry (Single Source of Truth)
