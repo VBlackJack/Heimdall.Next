@@ -90,21 +90,21 @@
                                  Focusable="True"
                                  Style="{DynamicResource ToolbarTabStyle}"
                                  Margin="0,0,4,0"
-                                 AutomationProperties.Name="{loc:Translate NavTabSessions}"/>
+                                 AutomationProperties.Name="{loc:Translate A11ySessionsTab}"/>
                     <RadioButton x:Name="TabTunnels"
                                  Content="{loc:Translate NavTabTunnels}"
                                  GroupName="NavTabs"
                                  Focusable="True"
                                  Style="{DynamicResource ToolbarTabStyle}"
                                  Margin="0,0,4,0"
-                                 AutomationProperties.Name="{loc:Translate NavTabTunnels}"/>
+                                 AutomationProperties.Name="{loc:Translate A11yTunnelsTab}"/>
                     <RadioButton x:Name="TabScheduled"
                                  Content="{loc:Translate NavTabScheduled}"
                                  GroupName="NavTabs"
                                  Focusable="True"
                                  Style="{DynamicResource ToolbarTabStyle}"
                                  Margin="0,0,4,0"
-                                 AutomationProperties.Name="{loc:Translate NavTabScheduled}"/>
+                                 AutomationProperties.Name="{loc:Translate A11yScheduledTab}"/>
                     <RadioButton x:Name="TabTools"
                                  Content="{loc:Translate NavTabTools}"
                                  GroupName="NavTabs"
@@ -117,7 +117,7 @@
                                  Focusable="True"
                                  Style="{DynamicResource ToolbarTabStyle}"
                                  Margin="0,0,4,0"
-                                 AutomationProperties.Name="{loc:Translate NavTabSettings}">
+                                 AutomationProperties.Name="{loc:Translate A11ySettingsTab}">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock x:Name="Mw_TabSettingsText" Text="{loc:Translate NavTabSettings}"/>
                             <Ellipse x:Name="Mw_SettingsUnsavedDot"
@@ -134,7 +134,7 @@
                                  GroupName="NavTabs"
                                  Focusable="True"
                                  Style="{DynamicResource ToolbarTabStyle}"
-                                 AutomationProperties.Name="{loc:Translate NavTabAbout}"/>
+                                 AutomationProperties.Name="{loc:Translate A11yAboutTab}"/>
                 </StackPanel>
 
                 <!-- Right: Search box + Share Folder -->
@@ -1727,9 +1727,9 @@
                                         <DockPanel Margin="0,0,0,12">
                                             <TextBlock x:Name="Mw_SettingsGatewaysTitle" Text="{loc:Translate GatewaysSectionTitle}" FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
                                             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right">
-                                                <Button x:Name="Mw_SettingsGatewaysAddBtn" Content="{loc:Translate GatewaysBtnAdd}" Command="{Binding Settings.AddGatewayCommand}" Style="{DynamicResource PrimaryButtonStyle}" Padding="8,3" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,4,0" AutomationProperties.Name="{loc:Translate GatewaysBtnAdd}"/>
-                                                <Button x:Name="Mw_SettingsGatewaysEditBtn" Content="{loc:Translate GatewaysBtnEdit}" Command="{Binding Settings.EditGatewayCommand}" Style="{DynamicResource SecondaryButtonStyle}" Padding="8,3" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,4,0" AutomationProperties.Name="{loc:Translate GatewaysBtnEdit}"/>
-                                                <Button x:Name="Mw_SettingsGatewaysDeleteBtn" Content="{loc:Translate GatewaysBtnDelete}" Command="{Binding Settings.DeleteGatewayCommand}" Style="{DynamicResource SecondaryButtonStyle}" Padding="8,3" FontSize="{StaticResource FontSizeCaption}" AutomationProperties.Name="{loc:Translate GatewaysBtnDelete}"/>
+                                                <Button x:Name="Mw_SettingsGatewaysAddBtn" Content="{loc:Translate GatewaysBtnAdd}" Command="{Binding Settings.AddGatewayCommand}" Style="{DynamicResource PrimaryButtonStyle}" Padding="8,3" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,4,0" AutomationProperties.Name="{loc:Translate AccessGatewaysAdd}"/>
+                                                <Button x:Name="Mw_SettingsGatewaysEditBtn" Content="{loc:Translate GatewaysBtnEdit}" Command="{Binding Settings.EditGatewayCommand}" Style="{DynamicResource SecondaryButtonStyle}" Padding="8,3" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,4,0" AutomationProperties.Name="{loc:Translate AccessGatewaysEdit}"/>
+                                                <Button x:Name="Mw_SettingsGatewaysDeleteBtn" Content="{loc:Translate GatewaysBtnDelete}" Command="{Binding Settings.DeleteGatewayCommand}" Style="{DynamicResource SecondaryButtonStyle}" Padding="8,3" FontSize="{StaticResource FontSizeCaption}" AutomationProperties.Name="{loc:Translate AccessGatewaysDelete}"/>
                                             </StackPanel>
                                         </DockPanel>
                                         <ListBox ItemsSource="{Binding Settings.Gateways}" SelectedItem="{Binding Settings.SelectedGateway}" MinHeight="80" MaxHeight="200" Background="{DynamicResource BackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
