@@ -26,6 +26,36 @@
         <DataTemplate DataType="{x:Type models:SplitContainerModel}">
             <views:SplitContainerControl/>
         </DataTemplate>
+        <DataTemplate x:Key="SessionTabContentTemplate">
+            <Grid>
+                <ContentPresenter Content="{Binding RootContent}" ClipToBounds="True"/>
+                <!-- Loading overlay (visible while HostControl is null during connection) -->
+                <Border x:Name="SessionLoadingOverlay"
+                        Style="{StaticResource FadeInPanelStyle}"
+                        Background="{DynamicResource OverlayBackground}"
+                        Visibility="Collapsed">
+                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <ProgressBar IsIndeterminate="True"
+                                     Width="200" Height="3"
+                                     Margin="0,0,0,12"/>
+                        <TextBlock Text="{Binding Status}"
+                                   FontSize="{StaticResource FontSizeBodyLarge}"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                   HorizontalAlignment="Center"/>
+                        <TextBlock Text="{Binding TunnelRoute}"
+                                   FontSize="{StaticResource FontSizeCaption}"
+                                   Foreground="{DynamicResource TextDisabledBrush}"
+                                   HorizontalAlignment="Center"
+                                   Margin="0,4,0,0"/>
+                    </StackPanel>
+                </Border>
+            </Grid>
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding HostControl}" Value="{x:Null}">
+                    <Setter TargetName="SessionLoadingOverlay" Property="Visibility" Value="Visible"/>
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
     </Window.Resources>
 
     <Grid>
@@ -593,152 +623,148 @@
                     </Grid.RowDefinitions>
 
                     <!-- SESSIONS (visible when active) -->
-                    <TabControl x:Name="SessionTabControl"
-                                Grid.Row="0"
-                                ItemsSource="{Binding Connection.ActiveSessions}"
-                                SelectedItem="{Binding Connection.ActiveSession}"
-                                Visibility="{Binding Connection.HasActiveSessions, Converter={StaticResource BoolToVisibilityConverter}}"
-                                Background="{DynamicResource BackgroundBrush}"
-                                BorderThickness="0"
-                                ClipToBounds="True"
-                                Style="{DynamicResource ThemedTabControlStyle}"
-                                PreviewMouseRightButtonDown="OnSessionTabRightClick"
-                                PreviewMouseLeftButtonDown="OnTabDragStart"
-                                PreviewMouseMove="OnTabDragMove"
-                                DragOver="OnTabDragOver"
-                                Drop="OnTabDrop"
-                                AllowDrop="True"
-                                Tag="{loc:Translate A11yCloseSessionTab}"
-                                AutomationProperties.Name="{loc:Translate NavTabSessions}"
-                                ItemContainerStyle="{DynamicResource ThemedTabItemStyle}">
-                        <TabControl.ItemTemplate>
-                            <DataTemplate DataType="{x:Type vm:SessionTabViewModel}">
-                                <Border x:Name="TabHeaderBorder" Padding="10,6" Background="Transparent"
-                                        ToolTip="{Binding HeaderToolTip}">
-                                    <DockPanel LastChildFill="True">
-                                        <!-- Close button always occupies layout space (Hidden, not Collapsed)
-                                             so the tab width stays constant on hover. Only opacity toggles.
-                                             IsHitTestVisible stays True; the Border's Background="Transparent"
-                                             ensures IsMouseOver persists when hovering over child elements. -->
-                                        <Button x:Name="TabCloseButton" DockPanel.Dock="Right"
-                                                Width="20" Height="20" Margin="6,0,0,0" Padding="2"
-                                                Focusable="False" Content="&#xE711;"
-                                                FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeSmallCaption}"
-                                                Opacity="0.3" IsHitTestVisible="True"
-                                                Command="{Binding DataContext.Connection.CloseSessionCommand, RelativeSource={RelativeSource AncestorType=TabControl}}"
-                                                CommandParameter="{Binding}"
-                                                AutomationProperties.Name="{Binding Tag, RelativeSource={RelativeSource AncestorType=TabControl}}"
-                                                Style="{DynamicResource SecondaryButtonStyle}"/>
-                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                            <Path Data="{Binding ConnectionType, Converter={StaticResource TypeToGeoConverter}}"
-                                                  Style="{StaticResource GeoIconSmall}"
-                                                  VerticalAlignment="Center" Margin="0,0,5,0">
-                                                <Path.Fill>
-                                                    <MultiBinding Converter="{StaticResource TypeToColorConverter}">
-                                                        <Binding Path="ConnectionType"/>
-                                                        <Binding Path="DataContext.ThemeRevision" ElementName="MainWindowRoot"/>
-                                                    </MultiBinding>
-                                                </Path.Fill>
-                                            </Path>
-                                            <TextBlock Text="{Binding Title}" FontSize="{StaticResource FontSizeBody}" FontWeight="SemiBold"
-                                                       Foreground="{DynamicResource TextPrimaryBrush}"
-                                                       VerticalAlignment="Center"
-                                                       ToolTip="{Binding HeaderToolTip}"
-                                                       TextTrimming="CharacterEllipsis" MaxWidth="160"/>
-                                            <TextBlock x:Name="BusyIndicator" Text="&#x25CF;" FontSize="8"
-                                                       Foreground="{DynamicResource AccentBrush}"
-                                                       VerticalAlignment="Center" Margin="5,0,0,0"
-                                                       Visibility="Collapsed"
-                                                       AutomationProperties.Name="{Binding Tag, RelativeSource={RelativeSource AncestorType=Grid, AncestorLevel=2}}">
-                                                <TextBlock.Style>
-                                                    <Style TargetType="TextBlock">
-                                                        <Style.Resources>
-                                                            <Storyboard x:Key="PulseAnimation">
-                                                                <DoubleAnimation Storyboard.TargetProperty="Opacity"
-                                                                                 From="1" To="0.2" Duration="0:0:0.6"
-                                                                                 AutoReverse="True" RepeatBehavior="Forever"/>
-                                                            </Storyboard>
-                                                        </Style.Resources>
-                                                        <Style.Triggers>
-                                                            <Trigger Property="Visibility" Value="Visible">
-                                                                <Trigger.EnterActions>
-                                                                    <BeginStoryboard Name="PulseStoryboard" Storyboard="{StaticResource PulseAnimation}"/>
-                                                                </Trigger.EnterActions>
-                                                                <Trigger.ExitActions>
-                                                                    <StopStoryboard BeginStoryboardName="PulseStoryboard"/>
-                                                                </Trigger.ExitActions>
-                                                            </Trigger>
-                                                        </Style.Triggers>
-                                                    </Style>
-                                                </TextBlock.Style>
-                                            </TextBlock>
-                                        </StackPanel>
-                                    </DockPanel>
-                                </Border>
-                                <DataTemplate.Triggers>
-                                    <!-- Show close button at full opacity on hover or active tab -->
-                                    <Trigger SourceName="TabHeaderBorder" Property="IsMouseOver" Value="True">
-                                        <Setter TargetName="TabCloseButton" Property="Opacity" Value="1"/>
-                                    </Trigger>
-                                    <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=TabItem}}" Value="True">
-                                        <Setter TargetName="TabCloseButton" Property="Opacity" Value="1"/>
-                                    </DataTrigger>
-                                    <DataTrigger Binding="{Binding IsBusy}" Value="True">
-                                        <Setter TargetName="BusyIndicator" Property="Visibility" Value="Visible"/>
-                                    </DataTrigger>
-                                </DataTemplate.Triggers>
-                            </DataTemplate>
-                        </TabControl.ItemTemplate>
-                        <TabControl.ContentTemplate>
-                            <DataTemplate DataType="{x:Type vm:SessionTabViewModel}">
-                                <Grid>
-                                    <ContentPresenter Content="{Binding RootContent}" ClipToBounds="True"/>
-                                    <!-- Loading overlay (visible while HostControl is null during connection) -->
-                                    <Border x:Name="SessionLoadingOverlay"
-                                            Style="{StaticResource FadeInPanelStyle}"
-                                            Background="{DynamicResource OverlayBackground}"
-                                            Visibility="Collapsed">
-                                        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                                            <ProgressBar IsIndeterminate="True"
-                                                         Width="200" Height="3"
-                                                         Margin="0,0,0,12"/>
-                                            <TextBlock Text="{Binding Status}"
-                                                       FontSize="{StaticResource FontSizeBodyLarge}"
-                                                       Foreground="{DynamicResource TextSecondaryBrush}"
-                                                       HorizontalAlignment="Center"/>
-                                            <TextBlock Text="{Binding TunnelRoute}"
-                                                       FontSize="{StaticResource FontSizeCaption}"
-                                                       Foreground="{DynamicResource TextDisabledBrush}"
-                                                       HorizontalAlignment="Center"
-                                                       Margin="0,4,0,0"/>
-                                        </StackPanel>
-                                    </Border>
-                                </Grid>
-                                <DataTemplate.Triggers>
-                                    <DataTrigger Binding="{Binding HostControl}" Value="{x:Null}">
-                                        <Setter TargetName="SessionLoadingOverlay" Property="Visibility" Value="Visible"/>
-                                    </DataTrigger>
-                                </DataTemplate.Triggers>
-                            </DataTemplate>
-                        </TabControl.ContentTemplate>
-                    </TabControl>
+                    <Grid x:Name="SessionDragDropHost"
+                          Grid.Row="0"
+                          Visibility="{Binding Connection.HasActiveSessions, Converter={StaticResource BoolToVisibilityConverter}}">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
 
-                    <!-- Drop zone overlay for drag-to-split (shown during tab drag over content area) -->
-                    <Border x:Name="ContentDropZone" Grid.Row="0"
-                            Visibility="Collapsed"
-                            Background="{DynamicResource DragDropOverlayBackground}"
-                            BorderBrush="{DynamicResource AccentBrush}"
-                            BorderThickness="2"
-                            CornerRadius="4"
-                            IsHitTestVisible="False"
-                            Margin="0,32,0,0">
-                        <TextBlock Text="{Binding DataContext.DropToMergeText, RelativeSource={RelativeSource AncestorType=Window}, FallbackValue='Drop to split'}"
-                                   FontSize="{StaticResource FontSizeSubtitle}"
-                                   Foreground="{DynamicResource AccentBrush}"
-                                   HorizontalAlignment="Center"
-                                   VerticalAlignment="Center"
-                                   Opacity="0.8"/>
-                    </Border>
+                        <TabControl x:Name="SessionTabControl"
+                                    Grid.Row="0"
+                                    ItemsSource="{Binding Connection.ActiveSessions}"
+                                    SelectedItem="{Binding Connection.ActiveSession}"
+                                    AllowDrop="True"
+                                    Background="{DynamicResource BackgroundBrush}"
+                                    BorderThickness="0"
+                                    ClipToBounds="True"
+                                    PreviewDragOver="OnTabDragOver"
+                                    PreviewDrop="OnTabDrop"
+                                    DragOver="OnTabDragOver"
+                                    Drop="OnTabDrop"
+                                    Style="{DynamicResource HeaderOnlyTabControlStyle}"
+                                    PreviewMouseRightButtonDown="OnSessionTabRightClick"
+                                    PreviewMouseLeftButtonDown="OnTabDragStart"
+                                    PreviewMouseMove="OnTabDragMove"
+                                    QueryContinueDrag="OnTabQueryContinueDrag"
+                                    Tag="{loc:Translate A11yCloseSessionTab}"
+                                    AutomationProperties.Name="{loc:Translate NavTabSessions}"
+                                    ItemContainerStyle="{DynamicResource ThemedTabItemStyle}">
+                            <TabControl.ItemTemplate>
+                                <DataTemplate DataType="{x:Type vm:SessionTabViewModel}">
+                                    <Border x:Name="TabHeaderBorder" Padding="10,6" Background="Transparent"
+                                            ToolTip="{Binding HeaderToolTip}">
+                                        <DockPanel LastChildFill="True">
+                                            <!-- Close button always occupies layout space (Hidden, not Collapsed)
+                                                 so the tab width stays constant on hover. Only opacity toggles.
+                                                 IsHitTestVisible stays True; the Border's Background="Transparent"
+                                                 ensures IsMouseOver persists when hovering over child elements. -->
+                                            <Button x:Name="TabCloseButton" DockPanel.Dock="Right"
+                                                    Width="20" Height="20" Margin="6,0,0,0" Padding="2"
+                                                    Focusable="False" Content="&#xE711;"
+                                                    FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeSmallCaption}"
+                                                    Opacity="0.3" IsHitTestVisible="True"
+                                                    Command="{Binding DataContext.Connection.CloseSessionCommand, RelativeSource={RelativeSource AncestorType=TabControl}}"
+                                                    CommandParameter="{Binding}"
+                                                    AutomationProperties.Name="{Binding Tag, RelativeSource={RelativeSource AncestorType=TabControl}}"
+                                                    Style="{DynamicResource SecondaryButtonStyle}"/>
+                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                <Path Data="{Binding ConnectionType, Converter={StaticResource TypeToGeoConverter}}"
+                                                      Style="{StaticResource GeoIconSmall}"
+                                                      VerticalAlignment="Center" Margin="0,0,5,0">
+                                                    <Path.Fill>
+                                                        <MultiBinding Converter="{StaticResource TypeToColorConverter}">
+                                                            <Binding Path="ConnectionType"/>
+                                                            <Binding Path="DataContext.ThemeRevision" ElementName="MainWindowRoot"/>
+                                                        </MultiBinding>
+                                                    </Path.Fill>
+                                                </Path>
+                                                <TextBlock Text="{Binding Title}" FontSize="{StaticResource FontSizeBody}" FontWeight="SemiBold"
+                                                           Foreground="{DynamicResource TextPrimaryBrush}"
+                                                           VerticalAlignment="Center"
+                                                           ToolTip="{Binding HeaderToolTip}"
+                                                           TextTrimming="CharacterEllipsis" MaxWidth="160"/>
+                                                <TextBlock x:Name="BusyIndicator" Text="&#x25CF;" FontSize="8"
+                                                           Foreground="{DynamicResource AccentBrush}"
+                                                           VerticalAlignment="Center" Margin="5,0,0,0"
+                                                           Visibility="Collapsed"
+                                                           AutomationProperties.Name="{Binding Tag, RelativeSource={RelativeSource AncestorType=Grid, AncestorLevel=2}}">
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock">
+                                                            <Style.Resources>
+                                                                <Storyboard x:Key="PulseAnimation">
+                                                                    <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                                                                     From="1" To="0.2" Duration="0:0:0.6"
+                                                                                     AutoReverse="True" RepeatBehavior="Forever"/>
+                                                                </Storyboard>
+                                                            </Style.Resources>
+                                                            <Style.Triggers>
+                                                                <Trigger Property="Visibility" Value="Visible">
+                                                                    <Trigger.EnterActions>
+                                                                        <BeginStoryboard Name="PulseStoryboard" Storyboard="{StaticResource PulseAnimation}"/>
+                                                                    </Trigger.EnterActions>
+                                                                    <Trigger.ExitActions>
+                                                                        <StopStoryboard BeginStoryboardName="PulseStoryboard"/>
+                                                                    </Trigger.ExitActions>
+                                                                </Trigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+                                            </StackPanel>
+                                        </DockPanel>
+                                    </Border>
+                                    <DataTemplate.Triggers>
+                                        <!-- Show close button at full opacity on hover or active tab -->
+                                        <Trigger SourceName="TabHeaderBorder" Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="TabCloseButton" Property="Opacity" Value="1"/>
+                                        </Trigger>
+                                        <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=TabItem}}" Value="True">
+                                            <Setter TargetName="TabCloseButton" Property="Opacity" Value="1"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding IsBusy}" Value="True">
+                                            <Setter TargetName="BusyIndicator" Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </DataTemplate.Triggers>
+                                </DataTemplate>
+                            </TabControl.ItemTemplate>
+                        </TabControl>
+
+                        <Grid x:Name="SessionContentHost"
+                              Grid.Row="1"
+                              Background="Transparent"
+                              ClipToBounds="True"
+                              AllowDrop="True"
+                              PreviewDragOver="OnTabDragOver"
+                              PreviewDrop="OnTabDrop"
+                              DragOver="OnTabDragOver"
+                              Drop="OnTabDrop">
+                            <Border Background="{DynamicResource CardBrush}"
+                                    CornerRadius="0,0,12,12"
+                                    Padding="12">
+                                <ContentControl Content="{Binding DisplayedSession}"
+                                                ContentTemplate="{StaticResource SessionTabContentTemplate}"
+                                                ClipToBounds="True"/>
+                            </Border>
+
+                            <!-- Drop zone overlay for drag-to-split (shown during tab drag over content area) -->
+                            <Border x:Name="ContentDropZone"
+                                    Visibility="Collapsed"
+                                    Background="{DynamicResource DragDropOverlayBackground}"
+                                    BorderBrush="{DynamicResource AccentBrush}"
+                                    BorderThickness="2"
+                                    CornerRadius="4"
+                                    IsHitTestVisible="False">
+                                <TextBlock Text="{Binding DataContext.DropToMergeText, RelativeSource={RelativeSource AncestorType=Window}, FallbackValue='Drop to split'}"
+                                           FontSize="{StaticResource FontSizeSubtitle}"
+                                           Foreground="{DynamicResource AccentBrush}"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center"
+                                           Opacity="0.8"/>
+                            </Border>
+                        </Grid>
+                    </Grid>
 
                     <!-- SERVER DETAILS (visible when no sessions) -->
                     <Grid Grid.Row="0"
