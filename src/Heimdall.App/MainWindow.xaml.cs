@@ -1539,6 +1539,21 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
         return null;
     }
 
+    private static bool IsSelfOrDescendantOf(DependencyObject? current, DependencyObject ancestor)
+    {
+        while (current is not null)
+        {
+            if (ReferenceEquals(current, ancestor))
+            {
+                return true;
+            }
+
+            current = GetParentObject(current);
+        }
+
+        return false;
+    }
+
     private static DependencyObject? GetParentObject(DependencyObject current)
     {
         if (current is FrameworkContentElement frameworkContentElement)
@@ -1789,16 +1804,52 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
     /// </summary>
     private void OnWindowPreviewMouseDown(object sender, MouseButtonEventArgs e)
     {
+        // Some Popup configurations still route clicks through Window.PreviewMouseDown.
+        // Guard against dismissing the palette when the click originates in its popup child.
+        if (IsCommandPalettePopupClick(e.OriginalSource as DependencyObject))
+        {
+            return;
+        }
+
         if (DataContext is MainViewModel vm && vm.CommandPalette.IsOpen)
         {
             vm.CommandPalette.CloseCommand.Execute(null);
         }
     }
 
+    private bool IsCommandPalettePopupClick(DependencyObject? source)
+    {
+        if (!CommandPalettePopup.IsOpen || CommandPalettePopup.Child is not DependencyObject child)
+        {
+            return false;
+        }
+
+        if (source is not null && IsSelfOrDescendantOf(source, child))
+        {
+            return true;
+        }
+
+        if (child is UIElement { IsMouseOver: true })
+        {
+            return true;
+        }
+
+        if (child is FrameworkElement element)
+        {
+            var point = Mouse.GetPosition(element);
+            return point.X >= 0
+                   && point.Y >= 0
+                   && point.X <= element.ActualWidth
+                   && point.Y <= element.ActualHeight;
+        }
+
+        return false;
+    }
+
     private void OnPaletteBorderClick(object sender, MouseButtonEventArgs e)
     {
-        // No-op: the Popup is a separate HWND, so clicks inside it never
-        // reach the Window's PreviewMouseDown handler. Kept for XAML binding.
+        // No-op kept for XAML binding. Palette dismissal is centralized in
+        // OnWindowPreviewMouseDown, which filters clicks inside this popup.
     }
 
     /// <summary>
