@@ -266,6 +266,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         ToolRegistry toolRegistry,
         SplitService splitService,
         ToolsTabPopulationService toolsTabPopulation,
+        IToolContextProvider toolContextProvider,
         ServerListViewModel serverList,
         ConnectionViewModel connection,
         SettingsViewModel settings)
@@ -282,8 +283,8 @@ public partial class MainViewModel : ObservableObject, IDisposable
         ServerList = serverList;
         Connection = connection;
         Settings = settings;
-        Sidebar = new SidebarViewModel(this, localizer, configManager, toolsTabPopulation);
-        ToolsTab = new ToolsTabViewModel(this, localizer, toolsTabPopulation);
+        Sidebar = new SidebarViewModel(this, localizer, configManager, toolsTabPopulation, toolContextProvider);
+        ToolsTab = new ToolsTabViewModel(this, localizer, toolContextProvider);
         CommandPalette = new CommandPaletteViewModel(
             this, localizer, toolRegistry, configManager, embeddedSessionManager);
         Tunnels = new TunnelsViewModel(this, localizer, tunnelManager, connectionSm);
@@ -434,6 +435,8 @@ public partial class MainViewModel : ObservableObject, IDisposable
         _disposed = true;
 
         _appStatus.StatusChanged -= OnApplicationStatusChanged;
+        Sidebar.Dispose();
+        ToolsTab.Dispose();
         Tunnels.Dispose();
         Scheduled.Dispose();
         Session.Dispose();
