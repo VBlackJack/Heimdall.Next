@@ -2111,6 +2111,7 @@
                                                 <DockPanel Grid.Row="6" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,8,0,0">
                                                     <Button x:Name="Mw_ExtToolTestBtn" DockPanel.Dock="Right" Content="{loc:Translate ExtToolBtnTest}" Click="OnExtToolTestClick" Style="{DynamicResource SecondaryButtonStyle}" Padding="8,3" FontSize="{StaticResource FontSizeCaption}" Margin="4,0,0,0"/>
                                                     <TextBlock x:Name="Mw_ExtToolPreview" Text="" FontFamily="Consolas" FontSize="{StaticResource FontSizeSmallCaption}" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                                                               AutomationProperties.Name="{Binding Text, RelativeSource={RelativeSource Self}}"
                                                                ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}"/>
                                                 </DockPanel>
                                             </Grid>
