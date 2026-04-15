@@ -18,8 +18,8 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
-using System.Windows.Media;
 using Heimdall.App.Services;
+using Heimdall.App.Theming;
 using Heimdall.App.ViewModels;
 
 namespace Heimdall.App;
@@ -252,8 +252,7 @@ public partial class MainWindow
     {
         if (_treeState.LastDropHighlight is not null)
         {
-            _treeState.LastDropHighlight.BorderThickness = new Thickness(0);
-            _treeState.LastDropHighlight.BorderBrush = null;
+            DropTargetVisualState.SetIsDropTarget(_treeState.LastDropHighlight, false);
             _treeState.LastDropHighlight = null;
         }
     }
@@ -275,8 +274,7 @@ public partial class MainWindow
         if (target?.DataContext is FolderViewModel)
         {
             e.Effects = System.Windows.DragDropEffects.Move;
-            target.BorderThickness = new Thickness(1);
-            target.BorderBrush = TryFindResource("AccentBrush") as Brush ?? Brushes.DodgerBlue;
+            DropTargetVisualState.SetIsDropTarget(target, true);
             _treeState.LastDropHighlight = target;
         }
 
