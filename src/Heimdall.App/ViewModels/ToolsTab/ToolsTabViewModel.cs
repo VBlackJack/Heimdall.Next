@@ -42,11 +42,12 @@ namespace Heimdall.App.ViewModels.ToolsTab;
 /// as separate post-refactor tech debt.
 /// </para>
 /// </remarks>
-public sealed partial class ToolsTabViewModel : ObservableObject
+public sealed partial class ToolsTabViewModel : ObservableObject, IDisposable
 {
     private readonly MainViewModel _main;
     private readonly LocalizationManager _localizer;
-    private readonly ToolsTabPopulationService _toolsTabPopulation;
+    private readonly IToolContextProvider _toolContext;
+    private bool _disposed;
 
     /// <summary>
     /// Creates a new full-page Tools tab VM bound to the given host.
@@ -54,11 +55,12 @@ public sealed partial class ToolsTabViewModel : ObservableObject
     public ToolsTabViewModel(
         MainViewModel main,
         LocalizationManager localizer,
-        ToolsTabPopulationService toolsTabPopulation)
+        IToolContextProvider toolContext)
     {
         _main = main;
         _localizer = localizer;
-        _toolsTabPopulation = toolsTabPopulation;
+        _toolContext = toolContext;
+        _toolContext.PropertyChanged += OnToolContextPropertyChanged;
     }
 
     /// <summary>Current search text (two-way bound to the page's search TextBox).</summary>
@@ -78,12 +80,10 @@ public sealed partial class ToolsTabViewModel : ObservableObject
     private string _countLabel = string.Empty;
 
     /// <summary>Localized "Network context: &lt;host&gt;" line shown above the cards.</summary>
-    [ObservableProperty]
-    private string _contextLabel = string.Empty;
+    public string ContextLabel => _toolContext.ContextLabel;
 
     /// <summary>Same text as <see cref="ContextLabel"/>, used for the truncation tooltip.</summary>
-    [ObservableProperty]
-    private string _contextTooltip = string.Empty;
+    public string ContextTooltip => _toolContext.ContextTooltip;
 
     /// <summary>
     /// Resource key resolved into a <see cref="System.Windows.Media.Brush"/>
@@ -92,8 +92,7 @@ public sealed partial class ToolsTabViewModel : ObservableObject
     /// <c>"TextDisabledBrush"</c> (no target host) to mirror the previous
     /// imperative <c>SetResourceReference</c> behavior.
     /// </summary>
-    [ObservableProperty]
-    private string _contextBrushKey = "TextDisabledBrush";
+    public string ContextBrushKey => _toolContext.ContextBrushKey;
 
     /// <summary>
     /// Raised whenever the rendered card layout needs a full re-render. The
@@ -122,29 +121,6 @@ public sealed partial class ToolsTabViewModel : ObservableObject
     }
 
     /// <summary>
-    /// Rebuilds <see cref="ContextLabel"/>, <see cref="ContextTooltip"/> and
-    /// <see cref="ContextBrushKey"/> from the host's currently inherited
-    /// tool target host. Also propagates the refresh to the sidebar VM so
-    /// the sidebar's mirrored context line stays in sync (preserves the
-    /// pre-refactor cascade behavior).
-    /// </summary>
-    public void RefreshContextLabel()
-    {
-        var host = ToolsTabPopulationService.GetInheritedToolTargetHost(_main);
-        var hasTarget = !string.IsNullOrEmpty(host);
-        var text = hasTarget
-            ? _localizer["ToolsNetworkContextWith"].Replace("{0}", host)
-            : _localizer["ToolsNetworkContextNone"];
-
-        ContextLabel = text;
-        ContextTooltip = text;
-        ContextBrushKey = hasTarget ? "AccentBrush" : "TextDisabledBrush";
-
-        // Mirror the same context line in the sidebar Tools tab.
-        _main.Sidebar.RefreshContextLabel();
-    }
-
-    /// <summary>
     /// Raises <see cref="SectionsInvalidated"/>. Callers in the host window
     /// re-render the cards in response.
     /// </summary>
@@ -169,5 +145,33 @@ public sealed partial class ToolsTabViewModel : ObservableObject
     partial void OnSearchTextChanged(string value)
     {
         InvalidateSections();
+    }
+
+    private void OnToolContextPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (string.Equals(e.PropertyName, nameof(IToolContextProvider.ContextLabel), StringComparison.Ordinal))
+        {
+            OnPropertyChanged(nameof(ContextLabel));
+        }
+        else if (string.Equals(e.PropertyName, nameof(IToolContextProvider.ContextTooltip), StringComparison.Ordinal))
+        {
+            OnPropertyChanged(nameof(ContextTooltip));
+        }
+        else if (string.Equals(e.PropertyName, nameof(IToolContextProvider.ContextBrushKey), StringComparison.Ordinal))
+        {
+            OnPropertyChanged(nameof(ContextBrushKey));
+        }
+    }
+
+    /// <inheritdoc />
+    public void Dispose()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _disposed = true;
+        _toolContext.PropertyChanged -= OnToolContextPropertyChanged;
     }
 }

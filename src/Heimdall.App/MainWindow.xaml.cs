@@ -62,6 +62,7 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
     private readonly FileShareService _fileShareService;
     private readonly KeyboardShortcutService _keyboardShortcutService;
     private readonly IForegroundWatchService _foregroundWatchService;
+    private readonly IToolContextProvider _toolContext;
     private readonly WindowUIState _uiState = new();
     private object? _lastKeyEventSource;
     private readonly ToolsTabPopulationService _toolsTabPopulation;
@@ -87,10 +88,12 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
         ToolsTabPopulationService toolsTabPopulation,
         FileShareService fileShareService,
         KeyboardShortcutService keyboardShortcutService,
-        IForegroundWatchService foregroundWatchService)
+        IForegroundWatchService foregroundWatchService,
+        IToolContextProvider toolContext)
     {
         _fileShareService = fileShareService;
         _foregroundWatchService = foregroundWatchService;
+        _toolContext = toolContext;
         InitializeComponent();
         WindowThemeHelper.ApplyCurrentTheme(this);
         DataContext = viewModel;
@@ -132,10 +135,11 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
         {
             if (string.Equals(e.PropertyName, nameof(ServerListViewModel.SelectedServer), StringComparison.Ordinal))
             {
-                Dispatcher.Invoke(() => viewModel.ToolsTab.RefreshContextLabel());
+                Dispatcher.Invoke(() => _toolContext.SetSelectedServer(viewModel.ServerList.SelectedServer));
             }
         };
         viewModel.ServerList.PropertyChanged += _serverListPropertyChangedHandler;
+        _toolContext.SetSelectedServer(viewModel.ServerList.SelectedServer);
 
         // Refresh Tools tab and Settings status when background scan discovers external tools
         _externalToolsChangedHandler = () =>
@@ -216,7 +220,6 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
     private static void RefreshVmDrivenLocalization(MainViewModel vm)
     {
         vm.ToolsTab.RefreshHeaderText();
-        vm.ToolsTab.RefreshContextLabel();
         vm.ToolsTab.InvalidateSections();
     }
 
@@ -383,7 +386,6 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
             if (DataContext is MainViewModel vm)
             {
                 vm.ToolsTab.RefreshHeaderText();
-                vm.ToolsTab.RefreshContextLabel();
                 vm.ToolsTab.InvalidateSections();
             }
         }

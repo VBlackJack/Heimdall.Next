@@ -44,16 +44,18 @@ namespace Heimdall.App.ViewModels.Sidebar;
 /// <see cref="AppSettings.ShowToolsPanel"/>.
 /// </para>
 /// </remarks>
-public sealed partial class SidebarViewModel : ObservableObject
+public sealed partial class SidebarViewModel : ObservableObject, IDisposable
 {
     private readonly MainViewModel _main;
     private readonly LocalizationManager _localizer;
     private readonly ConfigManager _configManager;
     private readonly ToolsTabPopulationService _toolsTabPopulation;
+    private readonly IToolContextProvider _toolContext;
 
     private bool _isToolsPopulated;
     private bool _persistenceEnabled;
     private bool _suppressCategoryExpansionPersistence;
+    private bool _disposed;
 
     /// <summary>
     /// Creates a new sidebar VM bound to the given host.
@@ -62,12 +64,15 @@ public sealed partial class SidebarViewModel : ObservableObject
         MainViewModel main,
         LocalizationManager localizer,
         ConfigManager configManager,
-        ToolsTabPopulationService toolsTabPopulation)
+        ToolsTabPopulationService toolsTabPopulation,
+        IToolContextProvider toolContext)
     {
         _main = main;
         _localizer = localizer;
         _configManager = configManager;
         _toolsTabPopulation = toolsTabPopulation;
+        _toolContext = toolContext;
+        _toolContext.PropertyChanged += OnToolContextPropertyChanged;
     }
 
     /// <summary>
@@ -83,15 +88,13 @@ public sealed partial class SidebarViewModel : ObservableObject
     private string _filterText = string.Empty;
 
     /// <summary>Localized "Network context: &lt;host&gt;" label shown above the Tools tree.</summary>
-    [ObservableProperty]
-    private string _contextLabel = string.Empty;
+    public string ContextLabel => _toolContext.ContextLabel;
 
     /// <summary>
     /// Same text as <see cref="ContextLabel"/>, exposed separately so the
     /// truncated TextBlock's ToolTip stays in sync.
     /// </summary>
-    [ObservableProperty]
-    private string _contextTooltip = string.Empty;
+    public string ContextTooltip => _toolContext.ContextTooltip;
 
     /// <summary>True when the active filter hides every tool — drives the "no results" hint.</summary>
     [ObservableProperty]
@@ -121,7 +124,6 @@ public sealed partial class SidebarViewModel : ObservableObject
         if (isTools)
         {
             EnsurePopulated();
-            RefreshContextLabel();
         }
 
         PersistTabChoice(isTools);
@@ -134,23 +136,6 @@ public sealed partial class SidebarViewModel : ObservableObject
     /// <see cref="AppSettings.ShowToolsPanel"/>.
     /// </summary>
     public void EnablePersistence() => _persistenceEnabled = true;
-
-    /// <summary>
-    /// Rebuilds <see cref="ContextLabel"/> and <see cref="ContextTooltip"/>
-    /// from the host's currently inherited tool target host. Safe to call
-    /// any time the selected server changes.
-    /// </summary>
-    public void RefreshContextLabel()
-    {
-        var host = ToolsTabPopulationService.GetInheritedToolTargetHost(_main);
-        var hasTarget = !string.IsNullOrEmpty(host);
-        var text = hasTarget
-            ? _localizer["ToolsNetworkContextWith"].Replace("{0}", host)
-            : _localizer["ToolsNetworkContextNone"];
-
-        ContextLabel = text;
-        ContextTooltip = text;
-    }
 
     /// <summary>
     /// Launches a sidebar tool: resolves the descriptor in
@@ -305,6 +290,18 @@ public sealed partial class SidebarViewModel : ObservableObject
             settings => settings.SidebarExpandedCategories[categoryKey] = isExpanded).ConfigureAwait(true);
     }
 
+    private void OnToolContextPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (string.Equals(e.PropertyName, nameof(IToolContextProvider.ContextLabel), StringComparison.Ordinal))
+        {
+            OnPropertyChanged(nameof(ContextLabel));
+        }
+        else if (string.Equals(e.PropertyName, nameof(IToolContextProvider.ContextTooltip), StringComparison.Ordinal))
+        {
+            OnPropertyChanged(nameof(ContextTooltip));
+        }
+    }
+
     private void RestoreCategoryExpansionState()
     {
         var persisted = _main.CurrentSettings?.SidebarExpandedCategories;
@@ -322,5 +319,18 @@ public sealed partial class SidebarViewModel : ObservableObject
         {
             category.PropertyChanged -= OnCategoryPropertyChanged;
         }
+    }
+
+    /// <inheritdoc />
+    public void Dispose()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _disposed = true;
+        _toolContext.PropertyChanged -= OnToolContextPropertyChanged;
+        UnsubscribeCategoryExpansionHandlers();
     }
 }
