@@ -649,8 +649,14 @@
                                     PreviewMouseMove="OnTabDragMove"
                                     QueryContinueDrag="OnTabQueryContinueDrag"
                                     Tag="{loc:Translate A11yCloseSessionTab}"
-                                    AutomationProperties.Name="{loc:Translate NavTabSessions}"
-                                    ItemContainerStyle="{DynamicResource ThemedTabItemStyle}">
+                                    AutomationProperties.Name="{loc:Translate NavTabSessions}">
+                            <TabControl.ItemContainerStyle>
+                                <Style TargetType="{x:Type TabItem}"
+                                       BasedOn="{StaticResource ThemedTabItemStyle}">
+                                    <Setter Property="AutomationProperties.Name"
+                                            Value="{Binding Title}"/>
+                                </Style>
+                            </TabControl.ItemContainerStyle>
                             <TabControl.ItemTemplate>
                                 <DataTemplate DataType="{x:Type vm:SessionTabViewModel}">
                                     <Border x:Name="TabHeaderBorder" Padding="10,6" Background="Transparent"
