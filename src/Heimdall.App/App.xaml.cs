@@ -289,6 +289,7 @@ public partial class App : System.Windows.Application
         services.AddSingleton<SessionSplitService>();
         services.AddSingleton<FileShareService>();
         services.AddSingleton<KeyboardShortcutService>();
+        services.AddSingleton<IForegroundWatchService, ForegroundWatchService>();
         services.AddSingleton<ToolsTabPopulationService>();
         services.AddSingleton<IDialogService, WpfDialogService>();
 

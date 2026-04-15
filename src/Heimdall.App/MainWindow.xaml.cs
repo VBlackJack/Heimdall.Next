@@ -61,6 +61,7 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
     private readonly SessionSplitService _splitService;
     private readonly FileShareService _fileShareService;
     private readonly KeyboardShortcutService _keyboardShortcutService;
+    private readonly IForegroundWatchService _foregroundWatchService;
     private readonly WindowUIState _uiState = new();
     private object? _lastKeyEventSource;
     private readonly ToolsTabPopulationService _toolsTabPopulation;
@@ -85,9 +86,11 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
         SessionSplitService splitService,
         ToolsTabPopulationService toolsTabPopulation,
         FileShareService fileShareService,
-        KeyboardShortcutService keyboardShortcutService)
+        KeyboardShortcutService keyboardShortcutService,
+        IForegroundWatchService foregroundWatchService)
     {
         _fileShareService = fileShareService;
+        _foregroundWatchService = foregroundWatchService;
         InitializeComponent();
         WindowThemeHelper.ApplyCurrentTheme(this);
         DataContext = viewModel;
@@ -99,6 +102,7 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
         _toolsTabPopulation = toolsTabPopulation;
         _keyboardShortcutService = keyboardShortcutService;
         RegisterKeyboardShortcuts();
+        _foregroundWatchService.ForegroundChanged += OnForegroundChangedOutsideProcess;
         _fileShareService.SharingStarted += OnFileShareSharingStarted;
         _fileShareService.SharingStopped += OnFileShareSharingStopped;
         _fileShareService.FileServed += OnFileShareFileServed;
@@ -190,6 +194,7 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
 
         KeyDown += OnKeyDown;
         PreviewMouseDown += OnWindowPreviewMouseDown;
+        CommandPalettePopup.Closed += OnCommandPaletteClosed;
         Mw_FilterBox.TextChanged += OnFilterBoxTextChanged;
     }
 
@@ -1737,9 +1742,38 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
             _ = SetFocus(source.Handle);
         }
 
+        _foregroundWatchService.Start();
         Keyboard.Focus(PaletteInput);
         PaletteInput.Focus();
         PaletteInput.SelectAll();
+    }
+
+    private void OnCommandPaletteClosed(object? sender, EventArgs e)
+    {
+        _foregroundWatchService.Stop();
+    }
+
+    private void OnForegroundChangedOutsideProcess(object? sender, IntPtr foregroundHwnd)
+    {
+        if (Dispatcher.HasShutdownStarted || Dispatcher.HasShutdownFinished)
+        {
+            return;
+        }
+
+        _ = Dispatcher.BeginInvoke(
+            System.Windows.Threading.DispatcherPriority.Normal,
+            new Action(CloseCommandPaletteFromForegroundChange));
+    }
+
+    private void CloseCommandPaletteFromForegroundChange()
+    {
+        if (DataContext is not MainViewModel vm || !vm.CommandPalette.IsOpen)
+        {
+            return;
+        }
+
+        _foregroundWatchService.Stop();
+        vm.CommandPalette.CloseCommand.Execute(null);
     }
 
     private void OnPaletteKeyDown(object sender, KeyEventArgs e)
@@ -2163,7 +2197,10 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
         _fileShareService.SharingStarted -= OnFileShareSharingStarted;
         _fileShareService.SharingStopped -= OnFileShareSharingStopped;
         _fileShareService.FileServed -= OnFileShareFileServed;
+        _foregroundWatchService.ForegroundChanged -= OnForegroundChangedOutsideProcess;
+        _foregroundWatchService.Stop();
         _splitService.SplitPaletteRequested -= OnSplitPaletteRequested;
+        CommandPalettePopup.Closed -= OnCommandPaletteClosed;
         _ = _fileShareService.DisposeAsync();
         base.OnClosed(e);
     }
