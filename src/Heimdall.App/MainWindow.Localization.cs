@@ -93,150 +93,8 @@ public partial class MainWindow
 
     private void ApplySettingsLocalization(MainViewModel vm)
     {
-        Mw_SettingsTabGeneral.Header = vm.Localize("SettingsTabGeneral");
-        Mw_SettingsTabTerminal.Header = vm.Localize("SettingsTabTerminal");
-        Mw_SettingsTabSsh.Header = vm.Localize("SettingsTabSshSftp");
-        Mw_SettingsTabRdp.Header = vm.Localize("SettingsTabRdp");
-        Mw_SettingsTabSecurity.Header = vm.Localize("SettingsTabSecurity");
-        Mw_SettingsTabAdvanced.Header = vm.Localize("SettingsTabAdvanced");
-        Mw_SettingsSearchBox.Tag = vm.Localize("SettingsSearchPlaceholder");
-
-        Mw_SettingsAppearanceTitle.Text = vm.Localize("SettingsSectionAppearance");
-        Mw_SettingsLanguageLabel.Text = vm.Localize("SettingsLabelLanguage");
-        Mw_SettingsThemeLabel.Text = vm.Localize("SettingsLabelTheme");
-        Mw_ThemeDraculaPro.Content = vm.Localize("ThemeDraculaPro");
-        Mw_ThemeAlucard.Content = vm.Localize("ThemeAlucard");
-        Mw_ThemeBlade.Content = vm.Localize("ThemeBlade");
-        Mw_ThemeBuffy.Content = vm.Localize("ThemeBuffy");
-        Mw_ThemeLincoln.Content = vm.Localize("ThemeLincoln");
-        Mw_ThemeMorbius.Content = vm.Localize("ThemeMorbius");
-        Mw_ThemeVanHelsing.Content = vm.Localize("ThemeVanHelsing");
-        System.Windows.Automation.AutomationProperties.SetName(Mw_ThemeDraculaPro, vm.Localize("ThemeDraculaPro"));
-        System.Windows.Automation.AutomationProperties.SetName(Mw_ThemeAlucard, vm.Localize("ThemeAlucard"));
-        System.Windows.Automation.AutomationProperties.SetName(Mw_ThemeBlade, vm.Localize("ThemeBlade"));
-        System.Windows.Automation.AutomationProperties.SetName(Mw_ThemeBuffy, vm.Localize("ThemeBuffy"));
-        System.Windows.Automation.AutomationProperties.SetName(Mw_ThemeLincoln, vm.Localize("ThemeLincoln"));
-        System.Windows.Automation.AutomationProperties.SetName(Mw_ThemeMorbius, vm.Localize("ThemeMorbius"));
-        System.Windows.Automation.AutomationProperties.SetName(Mw_ThemeVanHelsing, vm.Localize("ThemeVanHelsing"));
-        Mw_SettingsMaxSessionsLabel.Text = vm.Localize("SettingsLabelMaxEmbeddedSessions");
-        Mw_SettingsPreventSleep.Content = vm.Localize("SettingsLabelPreventSleep");
-        Mw_SettingsEnableSessionPersistence.Content = vm.Localize("SettingsWorkspaceRestore");
-        System.Windows.Automation.AutomationProperties.SetName(Mw_SettingsEnableSessionPersistence, vm.Localize("SettingsWorkspaceRestore"));
-        Mw_SettingsEditorPathLabel.Text = vm.Localize("SettingsLabelEditorPath");
-
-        Mw_SettingsTerminalTitle.Text = vm.Localize("SettingsSectionTerminal");
-        Mw_SettingsTerminalFontLabel.Text = vm.Localize("SettingsLabelTerminalFont");
-        Mw_SettingsTerminalFontSizeLabel.Text = vm.Localize("SettingsLabelTerminalFontSize");
-        Mw_SettingsTerminalColorSchemeLabel.Text = vm.Localize("SettingsLabelTerminalColorScheme");
-        Mw_SchemeDefault.Content = vm.Localize("TerminalSchemeDefault");
-        Mw_SchemeDracula.Content = vm.Localize("TerminalSchemeDracula");
-        Mw_SchemeSolarized.Content = vm.Localize("TerminalSchemeSolarizedDark");
-        Mw_SchemeMonokai.Content = vm.Localize("TerminalSchemeMonokai");
-        Mw_SchemeNord.Content = vm.Localize("TerminalSchemeNord");
-        Mw_SettingsPsPolicyLabel.Text = vm.Localize("SettingsPsExecutionPolicy");
-        Mw_PsDefault.Content = vm.Localize("PsPolicyDefault");
-        Mw_PsBypass.Content = vm.Localize("PsPolicyBypass");
-        Mw_PsRemoteSigned.Content = vm.Localize("PsPolicyRemoteSigned");
-        Mw_PsUnrestricted.Content = vm.Localize("PsPolicyUnrestricted");
-        Mw_PsAllSigned.Content = vm.Localize("PsPolicyAllSigned");
-        Mw_SettingsPsPolicyHint.Text = vm.Localize("SettingsPsExecutionPolicyHint");
-
-        Mw_SettingsSshTitle.Text = vm.Localize("SettingsSectionSshDefaults");
-        Mw_SettingsPlinkPathLabel.Text = vm.Localize("SettingsLabelPlinkPath");
-        Mw_SettingsPlinkPathHint.Text = vm.Localize("SettingsPlinkPathHint");
-        Mw_SettingsPuttyPathLabel.Text = vm.Localize("SettingsLabelPuttyPath");
-        Mw_SettingsPuttyPathHint.Text = vm.Localize("SettingsPuttyPathHint");
-        Mw_SettingsSshModeLabel.Text = vm.Localize("SettingsLabelSshMode");
-        Mw_SshModeEmbedded.Content = vm.Localize("SettingsSshModeEmbedded");
-        System.Windows.Automation.AutomationProperties.SetName(Mw_SshModeEmbedded, vm.Localize("SettingsSshModeEmbedded"));
-        Mw_SshModeExternal.Content = vm.Localize("SettingsSshModeExternal");
-        System.Windows.Automation.AutomationProperties.SetName(Mw_SshModeExternal, vm.Localize("SettingsSshModeExternal"));
-        Mw_SettingsSshModeHint.Text = vm.Localize("SettingsSshModeHint");
-        Mw_SettingsAntiIdleLabel.Text = vm.Localize("SettingsLabelAntiIdleInterval");
-        Mw_SettingsSshTmoutLabel.Text = vm.Localize("SettingsLabelSshTmoutReset");
-        Mw_SettingsAutoOpenSftp.Content = vm.Localize("SettingsLabelAutoOpenSftp");
-        Mw_SettingsX11PathLabel.Text = vm.Localize("SettingsLabelX11ServerPath");
-        Mw_SettingsX11AutoStart.Content = vm.Localize("SettingsLabelX11AutoStart");
-        Mw_SettingsGatewaysTitle.Text = vm.Localize("GatewaysSectionTitle");
-        Mw_SettingsGatewaysAddBtn.Content = vm.Localize("GatewaysBtnAdd");
-        System.Windows.Automation.AutomationProperties.SetName(Mw_SettingsGatewaysAddBtn, vm.Localize("GatewaysBtnAdd"));
-        Mw_SettingsGatewaysEditBtn.Content = vm.Localize("GatewaysBtnEdit");
-        System.Windows.Automation.AutomationProperties.SetName(Mw_SettingsGatewaysEditBtn, vm.Localize("GatewaysBtnEdit"));
-        Mw_SettingsGatewaysDeleteBtn.Content = vm.Localize("GatewaysBtnDelete");
-        System.Windows.Automation.AutomationProperties.SetName(Mw_SettingsGatewaysDeleteBtn, vm.Localize("GatewaysBtnDelete"));
-
-        Mw_ApplySshModeAll.Content = vm.Localize("SettingsApplyModeToAll");
-        Mw_ApplySshModeAll.ToolTip = vm.Localize("TooltipApplyModeToAll");
-        System.Windows.Automation.AutomationProperties.SetName(Mw_ApplySshModeAll, vm.Localize("SettingsApplyModeToAll"));
-
-        Mw_SettingsRdpDefaultsTitle.Text = vm.Localize("SettingsSectionRdpDefaults");
-        Mw_SettingsRdpModeLabel.Text = vm.Localize("SettingsLabelRdpMode");
-        Mw_RdpModeEmbedded.Content = vm.Localize("SettingsRdpModeEmbedded");
-        System.Windows.Automation.AutomationProperties.SetName(Mw_RdpModeEmbedded, vm.Localize("SettingsRdpModeEmbedded"));
-        Mw_RdpModeExternal.Content = vm.Localize("SettingsRdpModeExternal");
-        System.Windows.Automation.AutomationProperties.SetName(Mw_RdpModeExternal, vm.Localize("SettingsRdpModeExternal"));
-        Mw_SettingsRdpModeHint.Text = vm.Localize("SettingsRdpModeHint");
-        Mw_ApplyRdpModeAll.Content = vm.Localize("SettingsApplyModeToAll");
-        Mw_ApplyRdpModeAll.ToolTip = vm.Localize("TooltipApplyModeToAll");
-        System.Windows.Automation.AutomationProperties.SetName(Mw_ApplyRdpModeAll, vm.Localize("SettingsApplyModeToAll"));
-        Mw_SettingsRdpWidthLabel.Text = vm.Localize("SettingsLabelRdpWidth");
-        Mw_SettingsRdpHeightLabel.Text = vm.Localize("SettingsLabelRdpHeight");
-        Mw_SettingsRdpColorDepthLabel.Text = vm.Localize("SettingsLabelRdpColorDepth");
-        Mw_ColorDepth16.Content = vm.Localize("SettingsColorDepth16");
-        System.Windows.Automation.AutomationProperties.SetName(Mw_ColorDepth16, vm.Localize("SettingsColorDepth16"));
-        Mw_ColorDepth24.Content = vm.Localize("SettingsColorDepth24");
-        System.Windows.Automation.AutomationProperties.SetName(Mw_ColorDepth24, vm.Localize("SettingsColorDepth24"));
-        Mw_ColorDepth32.Content = vm.Localize("SettingsColorDepth32");
-        System.Windows.Automation.AutomationProperties.SetName(Mw_ColorDepth32, vm.Localize("SettingsColorDepth32"));
-        Mw_SettingsRdpAudioLabel.Text = vm.Localize("SettingsLabelRdpAudio");
-        Mw_SettingsRdpAudioDisabled.Content = vm.Localize("ServerDialogAudioDisabled");
-        System.Windows.Automation.AutomationProperties.SetName(Mw_SettingsRdpAudioDisabled, vm.Localize("ServerDialogAudioDisabled"));
-        Mw_SettingsRdpAudioLocal.Content = vm.Localize("ServerDialogAudioLocal");
-        System.Windows.Automation.AutomationProperties.SetName(Mw_SettingsRdpAudioLocal, vm.Localize("ServerDialogAudioLocal"));
-        Mw_SettingsRdpAudioRemote.Content = vm.Localize("ServerDialogAudioRemote");
-        System.Windows.Automation.AutomationProperties.SetName(Mw_SettingsRdpAudioRemote, vm.Localize("ServerDialogAudioRemote"));
-        Mw_SettingsRdpNla.Content = vm.Localize("SettingsLabelRdpNla");
-        Mw_SettingsRdpDynRes.Content = vm.Localize("SettingsLabelRdpDynamicRes");
-        Mw_SettingsRdpMultiMon.Content = vm.Localize("SettingsLabelRdpMultiMonitor");
-        Mw_SettingsRdpAutoReconnect.Content = vm.Localize("SettingsLabelRdpAutoReconnect");
-        Mw_SettingsRdpBitmapCache.Content = vm.Localize("SettingsLabelRdpBitmapCache");
-        Mw_SettingsRdpCompression.Content = vm.Localize("SettingsLabelRdpCompression");
-        Mw_SettingsRdpRedirTitle.Text = vm.Localize("SettingsLabelRdpRedirection");
-        Mw_SettingsRdpClipboard.Content = vm.Localize("ServerDialogRedirectClipboard");
-        Mw_SettingsRdpDrives.Content = vm.Localize("ServerDialogRedirectDrives");
-        Mw_SettingsRdpPrinters.Content = vm.Localize("ServerDialogRedirectPrinters");
-
-        Mw_SettingsCredProviderTitle.Text = vm.Localize("SettingsSectionCredentialProvider");
-        Mw_SettingsCredProviderEnabled.Content = vm.Localize("SettingsLabelCredProviderEnabled");
-        Mw_SettingsCredProvPresetLabel.Text = vm.Localize("CredProvPresetLabel");
         PopulateCredProvPresets(vm);
-        Mw_SettingsCredProviderCmdLabel.Text = vm.Localize("SettingsLabelCredProviderCommand");
-        Mw_SettingsCredProvCmd.Tag = vm.Localize("SettingsCredProvCmdPlaceholder");
-        Mw_SettingsCredProvCmdHint.Text = vm.Localize("CredProvCmdHint");
-        Mw_SettingsCredProviderDbLabel.Text = vm.Localize("SettingsLabelCredProviderDatabase");
-        Mw_SettingsCredProvTestBtn.Content = vm.Localize("CredProvBtnTest");
-        System.Windows.Automation.AutomationProperties.SetName(Mw_SettingsCredProvTestBtn, vm.Localize("CredProvBtnTest"));
-        Mw_SettingsCredGuard.Content = vm.Localize("SettingsLabelCredentialGuard");
 
-        Mw_SettingsSessionLoggingTitle.Text = vm.Localize("SettingsSectionSessionLogging");
-        Mw_SettingsEnableLogging.Content = vm.Localize("SettingsLabelEnableLogging");
-        Mw_SettingsSessionLoggingEnabled.Content = vm.Localize("SettingsLabelSessionLoggingEnabled");
-        Mw_SettingsSessionLogDirLabel.Text = vm.Localize("SettingsLabelSessionLogDirectory");
-        Mw_SettingsTimeoutsTitle.Text = vm.Localize("SettingsSectionTimeouts");
-        Mw_SettingsTunnelDelayLabel.Text = vm.Localize("SettingsLabelTunnelDelay");
-        Mw_SettingsRdpTimeoutLabel.Text = vm.Localize("SettingsLabelRdpTimeout");
-        Mw_SettingsExtToolTimeoutLabel.Text = vm.Localize("SettingsLabelExtToolTimeout");
-        // Command Library Git Sync
-        Mw_SettingsCmdLibSyncTitle.Text = vm.Localize("SettingsCmdLibSyncTitle");
-        Mw_SettingsCmdLibSyncEnable.Content = vm.Localize("SettingsCmdLibSyncEnable");
-        Mw_SettingsCmdLibSyncLblUrl.Text = vm.Localize("SettingsCmdLibSyncUrl");
-        Mw_SettingsCmdLibSyncLblBranch.Text = vm.Localize("SettingsCmdLibSyncBranch");
-        Mw_SettingsCmdLibSyncLblToken.Text = vm.Localize("SettingsCmdLibSyncToken");
-        Mw_SettingsCmdLibSyncLblAuthor.Text = vm.Localize("SettingsCmdLibSyncAuthor");
-        Mw_SettingsCmdLibSyncOnStartup.Content = vm.Localize("SettingsCmdLibSyncOnStartup");
-        Mw_SettingsCmdLibSyncAutoPush.Content = vm.Localize("SettingsCmdLibSyncAutoPush");
-        Mw_SettingsCmdLibSyncTestBtn.Content = vm.Localize("SettingsCmdLibSyncTestConnection");
-        Mw_SettingsCmdLibSyncTokenClear.ToolTip = vm.Localize("SettingsCmdLibSyncTokenClear");
         // Check if a token is already stored (asynchronously loaded from settings)
         _ = Task.Run(async () =>
         {
@@ -247,35 +105,9 @@ public partial class MainWindow
             Dispatcher.Invoke(() => UpdateTokenStatus(!string.IsNullOrEmpty(s.CmdLibGitSyncToken)));
         });
 
-        Mw_SettingsExtProvTitle.Text = vm.Localize("SettingsSectionExternalToolProviders");
-        Mw_SettingsExtProvDesc.Text = vm.Localize("SettingsExternalToolProvidersDesc");
-        Mw_SettingsLblSysintPath.Text = vm.Localize("SettingsLblSysinternalsPath");
-        Mw_SettingsLblNirSoftPath.Text = vm.Localize("SettingsLblNirSoftPath");
-        Mw_SettingsLblNanaRunPath.Text = vm.Localize("SettingsLblNanaRunPath");
-        Mw_SettingsBtnRescan.Content = vm.Localize("ExtToolBtnRescan");
         UpdateExternalToolProviderStatus(vm);
-        Mw_SettingsExtToolsTitle.Text = vm.Localize("SettingsSectionExternalToolsList");
-        Mw_SidebarToolsFilter.Tag = vm.Localize("ToolsPanelFilterPlaceholder");
-        Mw_SettingsExtToolsAddBtn.Content = vm.Localize("BtnAdd");
-        Mw_SettingsExtToolsRemoveBtn.Content = vm.Localize("BtnRemove");
-        Mw_ExtToolLblName.Text = vm.Localize("ExternalToolLabelName");
-        Mw_ExtToolLblPath.Text = vm.Localize("ExternalToolLabelPath");
-        Mw_ExtToolLblArgs.Text = vm.Localize("ExternalToolLabelArguments");
-        Mw_ExtToolLblWorkDir.Text = vm.Localize("ExternalToolLabelWorkDir");
-        Mw_ExtToolChkAdmin.Content = vm.Localize("ExternalToolRunAsAdmin");
-        Mw_ExtToolChkHidden.Content = vm.Localize("ExternalToolRunHidden");
-        Mw_ExtToolTestBtn.Content = vm.Localize("ExtToolBtnTest");
         PopulateExtToolPlaceholderList(vm);
         UpdateExtToolPreview();
-
-        Mw_SettingsSaveBtn.Content = vm.Localize("SettingsBtnSaveSettings");
-        Mw_SettingsResetBtn.Content = vm.Localize("SettingsBtnResetDefaults");
-        Mw_SettingsExportBtn.Content = vm.Localize("SettingsBtnExportServers");
-        Mw_SettingsExportBtn.ToolTip = vm.Localize("TooltipExport");
-        Mw_SettingsImportBtn.Content = vm.Localize("SettingsBtnImportServers");
-        Mw_SettingsImportBtn.ToolTip = vm.Localize("TooltipImport");
-        Mw_SettingsCitrixBtn.Content = vm.Localize("BtnImportCitrix");
-        Mw_SettingsCitrixBtn.ToolTip = vm.Localize("TooltipImportCitrix");
     }
 
     private void ApplyAboutLocalization(MainViewModel vm)
