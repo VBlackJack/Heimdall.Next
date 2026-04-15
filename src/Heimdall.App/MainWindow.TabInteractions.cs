@@ -17,7 +17,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
-using System.Windows.Media;
+using Heimdall.App.Theming;
 using Heimdall.App.ViewModels;
 
 namespace Heimdall.App;
@@ -80,8 +80,7 @@ public partial class MainWindow
     {
         if (_tabState.LastDropHighlight is not null)
         {
-            _tabState.LastDropHighlight.BorderThickness = new Thickness(0);
-            _tabState.LastDropHighlight.BorderBrush = null;
+            DropTargetVisualState.SetIsDropTarget(_tabState.LastDropHighlight, false);
             _tabState.LastDropHighlight = null;
         }
     }
@@ -97,8 +96,7 @@ public partial class MainWindow
             var targetTab = FindAncestor<TabItem>(e.OriginalSource as DependencyObject);
             if (targetTab is not null && targetTab.DataContext != _tabState.DragItem)
             {
-                targetTab.BorderThickness = new Thickness(2, 0, 0, 0);
-                targetTab.BorderBrush = TryFindResource("AccentBrush") as Brush ?? Brushes.DodgerBlue;
+                DropTargetVisualState.SetIsDropTarget(targetTab, true);
                 _tabState.LastDropHighlight = targetTab;
                 ContentDropZone.Visibility = Visibility.Collapsed;
             }
