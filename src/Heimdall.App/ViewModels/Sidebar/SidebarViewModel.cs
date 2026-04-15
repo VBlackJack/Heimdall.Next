@@ -15,6 +15,7 @@
  */
 
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Heimdall.App.Services;
 using Heimdall.Core.Configuration;
@@ -52,6 +53,7 @@ public sealed partial class SidebarViewModel : ObservableObject
 
     private bool _isToolsPopulated;
     private bool _persistenceEnabled;
+    private bool _suppressCategoryExpansionPersistence;
 
     /// <summary>
     /// Creates a new sidebar VM bound to the given host.
@@ -212,8 +214,25 @@ public sealed partial class SidebarViewModel : ObservableObject
             return;
         }
 
-        var anyVisibleTool = _toolsTabPopulation.FilterSidebarTools(ToolsCategories, FilterText);
         var hasFilter = !string.IsNullOrWhiteSpace(FilterText);
+
+        // The filter transiently expands/collapses categories; those UI-only
+        // mutations must not overwrite the user's saved expansion choices.
+        _suppressCategoryExpansionPersistence = true;
+        bool anyVisibleTool;
+        try
+        {
+            anyVisibleTool = _toolsTabPopulation.FilterSidebarTools(ToolsCategories, FilterText);
+            if (!hasFilter)
+            {
+                RestoreCategoryExpansionState();
+            }
+        }
+        finally
+        {
+            _suppressCategoryExpansionPersistence = false;
+        }
+
         NoResultsText = _localizer["ToolsNoResults"];
         HasNoResults = hasFilter && !anyVisibleTool;
     }
@@ -236,9 +255,11 @@ public sealed partial class SidebarViewModel : ObservableObject
         }
 
         var built = _toolsTabPopulation.BuildSidebarToolsData(_main);
+        UnsubscribeCategoryExpansionHandlers();
         ToolsCategories.Clear();
         foreach (var category in built)
         {
+            category.PropertyChanged += OnCategoryPropertyChanged;
             ToolsCategories.Add(category);
         }
 
@@ -257,5 +278,49 @@ public sealed partial class SidebarViewModel : ObservableObject
 
         _main.CurrentSettings.ShowToolsPanel = isTools;
         await _configManager.MergeSettingAsync(s => s.ShowToolsPanel = isTools).ConfigureAwait(true);
+    }
+
+    private async void OnCategoryPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (!string.Equals(e.PropertyName, nameof(SidebarToolCategoryViewModel.IsExpanded), StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        if (_suppressCategoryExpansionPersistence) return;
+        if (!_persistenceEnabled) return;
+        if (_main.CurrentSettings is null) return;
+        if (sender is not SidebarToolCategoryViewModel category) return;
+
+        var categoryKey = category.CategoryKey;
+        var isExpanded = category.IsExpanded;
+        if (_main.CurrentSettings.SidebarExpandedCategories.TryGetValue(categoryKey, out var current)
+            && current == isExpanded)
+        {
+            return;
+        }
+
+        _main.CurrentSettings.SidebarExpandedCategories[categoryKey] = isExpanded;
+        await _configManager.MergeSettingAsync(
+            settings => settings.SidebarExpandedCategories[categoryKey] = isExpanded).ConfigureAwait(true);
+    }
+
+    private void RestoreCategoryExpansionState()
+    {
+        var persisted = _main.CurrentSettings?.SidebarExpandedCategories;
+        foreach (var category in ToolsCategories)
+        {
+            category.IsExpanded = persisted?.TryGetValue(category.CategoryKey, out var expanded) == true
+                ? expanded
+                : true;
+        }
+    }
+
+    private void UnsubscribeCategoryExpansionHandlers()
+    {
+        foreach (var category in ToolsCategories)
+        {
+            category.PropertyChanged -= OnCategoryPropertyChanged;
+        }
     }
 }
