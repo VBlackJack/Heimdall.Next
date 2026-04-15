@@ -39,42 +39,7 @@ public partial class MainWindow
     {
         if (DataContext is not MainViewModel vm) return;
 
-        ApplyToolbarLocalization(vm);
-        ApplyTunnelLocalization(vm);
         ApplySettingsLocalization(vm);
-
-        // Tools tab labels and rendered cards: VM-driven, just trigger refresh.
-        vm.ToolsTab.RefreshHeaderText();
-        vm.ToolsTab.RefreshContextLabel();
-        vm.ToolsTab.InvalidateSections();
-    }
-
-    private void ApplyToolbarLocalization(MainViewModel vm)
-    {
-        // TODO(Phase 5D): the share-folder label toggles between two keys based
-        // on _fileShareService.IsSharing. The clean fix is a computed observable
-        // on FileShareService (or a sub-VM) so the XAML can bind a single key.
-        // Also triggered from FileShareService event handlers in MainWindow —
-        // see Mw_ShareFolderLabel.Text writes in OnFileShareSharingStarted/Stopped.
-        Mw_ShareFolderLabel.Text = vm.Localize(_fileShareService.IsSharing ? "ToolsStopSharing" : "ToolsShareFolder");
-    }
-
-    private void ApplyTunnelLocalization(MainViewModel vm)
-    {
-        // TODO(Phase 5D): migrate the tunnel panel header composite split on
-        // the {0} placeholder. The current XAML uses separate Run elements for
-        // the localized prefix/suffix around the live tunnel count.
-        var tunnelHeader = vm.Localize("TunnelPanelHeader");
-        var placeholderIdx = tunnelHeader.IndexOf("{0}", StringComparison.Ordinal);
-        if (placeholderIdx >= 0)
-        {
-            Mw_TunnelPanelHeaderPrefix.Text = tunnelHeader[..placeholderIdx];
-            Mw_TunnelPanelHeaderSuffix.Text = tunnelHeader[(placeholderIdx + 3)..];
-        }
-        else
-        {
-            Mw_TunnelPanelHeaderPrefix.Text = tunnelHeader;
-        }
     }
 
     private void ApplySettingsLocalization(MainViewModel vm)

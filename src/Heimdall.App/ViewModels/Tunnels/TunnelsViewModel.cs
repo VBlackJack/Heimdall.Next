@@ -62,6 +62,7 @@ public sealed partial class TunnelsViewModel : ObservableObject, IDisposable
 
         _tunnelManager.TunnelOpened += OnTunnelOpened;
         _tunnelManager.TunnelClosed += OnTunnelClosed;
+        _localizer.LocaleChanged += OnLocaleChanged;
     }
 
     // ── Observable state ─────────────────────────────────────────────
@@ -88,6 +89,28 @@ public sealed partial class TunnelsViewModel : ObservableObject, IDisposable
 
     /// <summary>True when there are no active tunnels.</summary>
     public bool HasNoTunnels => List.Count == 0;
+
+    /// <summary>Localized tunnel panel header text before the live count.</summary>
+    public string TunnelPanelHeaderPrefix
+    {
+        get
+        {
+            var header = _localizer["TunnelPanelHeader"];
+            var idx = header.IndexOf("{0}", StringComparison.Ordinal);
+            return idx >= 0 ? header[..idx] : header;
+        }
+    }
+
+    /// <summary>Localized tunnel panel header text after the live count.</summary>
+    public string TunnelPanelHeaderSuffix
+    {
+        get
+        {
+            var header = _localizer["TunnelPanelHeader"];
+            var idx = header.IndexOf("{0}", StringComparison.Ordinal);
+            return idx >= 0 ? header[(idx + 3)..] : string.Empty;
+        }
+    }
 
     /// <summary>
     /// Generated partial: refreshes the <see cref="HasNoTunnels"/>
@@ -236,6 +259,12 @@ public sealed partial class TunnelsViewModel : ObservableObject, IDisposable
         }
     }
 
+    private void OnLocaleChanged(string _)
+    {
+        OnPropertyChanged(nameof(TunnelPanelHeaderPrefix));
+        OnPropertyChanged(nameof(TunnelPanelHeaderSuffix));
+    }
+
     // ── IDisposable ──────────────────────────────────────────────────
 
     /// <inheritdoc />
@@ -246,5 +275,6 @@ public sealed partial class TunnelsViewModel : ObservableObject, IDisposable
 
         _tunnelManager.TunnelOpened -= OnTunnelOpened;
         _tunnelManager.TunnelClosed -= OnTunnelClosed;
+        _localizer.LocaleChanged -= OnLocaleChanged;
     }
 }

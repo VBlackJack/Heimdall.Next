@@ -103,6 +103,8 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
         _themeService.ThemeChanged += OnThemeServiceThemeChanged;
         viewModel.ToolsTab.SectionsInvalidated += OnToolsTabSectionsInvalidated;
         ApplyLocalization();
+        RefreshVmDrivenLocalization(viewModel);
+        UpdateShareFolderLabel();
 
         TabSessions.Checked += OnSessionsTabChecked;
         TabTunnels.Checked += OnTunnelsTabChecked;
@@ -174,7 +176,15 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
         // Re-apply all localized strings when the user switches language at runtime
         _localeChangedHandler = (_) =>
         {
-            Dispatcher.Invoke(() => ApplyLocalization());
+            Dispatcher.Invoke(() =>
+            {
+                ApplyLocalization();
+                if (DataContext is MainViewModel vm)
+                {
+                    RefreshVmDrivenLocalization(vm);
+                }
+                UpdateShareFolderLabel();
+            });
         };
         viewModel.GetLocalizer().LocaleChanged += _localeChangedHandler;
 
@@ -196,6 +206,26 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
     private void OnSplitPaletteRequested(object? sender, EventArgs e)
     {
         BeginFocusCommandPalette();
+    }
+
+    private static void RefreshVmDrivenLocalization(MainViewModel vm)
+    {
+        vm.ToolsTab.RefreshHeaderText();
+        vm.ToolsTab.RefreshContextLabel();
+        vm.ToolsTab.InvalidateSections();
+    }
+
+    /// <summary>
+    /// Updates the Mw_ShareFolderLabel based on current sharing state. Called
+    /// from FileShareService event handlers (SharingStarted/Stopped) and from
+    /// the locale change handler. Stays imperative because FileShareService
+    /// does not implement INotifyPropertyChanged — see Phase 5D.2 notes.
+    /// </summary>
+    private void UpdateShareFolderLabel()
+    {
+        if (DataContext is not MainViewModel vm) return;
+        Mw_ShareFolderLabel.Text = vm.Localize(
+            _fileShareService.IsSharing ? "ToolsStopSharing" : "ToolsShareFolder");
     }
 
     private void PopulateAboutSection()
@@ -1920,7 +1950,7 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
     {
         if (DataContext is not MainViewModel vm) return;
 
-        Mw_ShareFolderLabel.Text = vm.Localize("ToolsStopSharing");
+        UpdateShareFolderLabel();
         Mw_SharingStatus.Text = e.BaseUrl;
         Mw_SharingStatus.Visibility = Visibility.Visible;
 
@@ -1945,7 +1975,7 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
 
         if (DataContext is MainViewModel vm)
         {
-            Mw_ShareFolderLabel.Text = vm.Localize("ToolsShareFolder");
+            UpdateShareFolderLabel();
             vm.StatusText = vm.Localize("ToolsSharingStopped");
         }
     }

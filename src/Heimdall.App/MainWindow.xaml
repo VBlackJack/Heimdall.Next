@@ -1093,9 +1093,9 @@
                                         <TextBlock FontSize="{StaticResource FontSizeBody}" FontWeight="SemiBold"
                                                    Foreground="{DynamicResource TextPrimaryBrush}"
                                                    VerticalAlignment="Center">
-                                            <Run x:Name="Mw_TunnelPanelHeaderPrefix" Text=""/>
+                                            <Run Text="{Binding Tunnels.TunnelPanelHeaderPrefix, Mode=OneWay}"/>
                                             <Run Text="{Binding Tunnels.Count, Mode=OneWay}"/>
-                                            <Run x:Name="Mw_TunnelPanelHeaderSuffix" Text=""/>
+                                            <Run Text="{Binding Tunnels.TunnelPanelHeaderSuffix, Mode=OneWay}"/>
                                         </TextBlock>
                                     </StackPanel>
                                 </DockPanel>
