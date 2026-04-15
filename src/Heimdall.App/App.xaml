@@ -26,6 +26,9 @@
             <converters:StringToBrushConverter x:Key="StringToBrushConverter"/>
             <converters:ResourceKeyToBrushConverter x:Key="ResourceKeyToBrushConverter"/>
             <converters:ResourceKeyToGeometryConverter x:Key="ResourceKeyToGeometryConverter"/>
+            <converters:BoolToLocalizedKeyConverter x:Key="ShareFolderLabelConverter"
+                                                    FalseKey="ToolsShareFolder"
+                                                    TrueKey="ToolsStopSharing"/>
 
             <!-- Toolbar navigation tab style (RadioButton as flat tab) -->
             <Style x:Key="ToolbarTabStyle" TargetType="RadioButton">
