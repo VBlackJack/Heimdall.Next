@@ -95,14 +95,22 @@ public sealed class ToolsTabPopulationService
                 });
             }
 
-            var categoryName = vm.Localize(group.First().CategoryLabelKey);
+            var categoryKey = group.First().CategoryLabelKey;
+            var categoryName = vm.Localize(categoryKey);
+            var isExpanded = vm.CurrentSettings?.SidebarExpandedCategories.TryGetValue(
+                categoryKey,
+                out var persistedExpanded) == true
+                    ? persistedExpanded
+                    : true;
+
             categories.Add(new SidebarToolCategoryViewModel
             {
+                CategoryKey = categoryKey,
                 CategoryName = categoryName,
                 BrushKey = brushKey,
                 Tools = tools,
                 VisibleCount = tools.Count,
-                IsExpanded = false
+                IsExpanded = isExpanded
             });
         }
 
@@ -142,8 +150,10 @@ public sealed class ToolsTabPopulationService
 
             category.VisibleCount = hasFilter ? visibleInCategory : category.Tools.Count;
             category.IsVisible = !hasFilter || visibleInCategory > 0;
-            // Auto-expand matching categories when filtering; collapse when cleared.
-            category.IsExpanded = hasFilter && visibleInCategory > 0;
+            if (hasFilter)
+            {
+                category.IsExpanded = visibleInCategory > 0;
+            }
 
             if (category.IsVisible)
             {

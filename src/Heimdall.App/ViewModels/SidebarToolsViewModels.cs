@@ -23,10 +23,13 @@ namespace Heimdall.App.ViewModels;
 /// Lightweight view-model for a tool category header in the sidebar Tools tab.
 /// Backs a <see cref="System.Windows.Controls.HierarchicalDataTemplate"/> that
 /// shows [accent dot] [category name] [count badge] and nests the child tool
-/// items. Expansion state is persisted per-instance so filters can drive it.
+/// items. User-driven expansion state is persisted by stable category key.
 /// </summary>
 public sealed partial class SidebarToolCategoryViewModel : ObservableObject
 {
+    /// <summary>Stable i18n category key used to persist expansion state.</summary>
+    public required string CategoryKey { get; init; }
+
     /// <summary>Localized category display name (e.g. "Network").</summary>
     public required string CategoryName { get; init; }
 

@@ -122,6 +122,7 @@ public sealed class AppSettings
     public bool SidebarCollapsed { get; set; }
     public int SidebarWidth { get; set; } = 220;
     public bool ShowToolsPanel { get; set; }
+    public Dictionary<string, bool> SidebarExpandedCategories { get; set; } = new();
     public List<string> FavoriteToolIds { get; set; } = new();
     public bool OnboardingCompleted { get; set; }
     public double WindowWidth { get; set; }
