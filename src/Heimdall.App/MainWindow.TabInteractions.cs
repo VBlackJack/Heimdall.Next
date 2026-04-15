@@ -37,6 +37,7 @@ public partial class MainWindow
     private void OnTabDragStart(object sender, MouseButtonEventArgs e)
     {
         _tabState.DragItem = null;
+        _tabState.DragDisplayCandidate = null;
 
         // Do not initiate drag when clicking the close button
         if (FindAncestor<Button>(e.OriginalSource as DependencyObject) is not null)
@@ -45,12 +46,25 @@ public partial class MainWindow
         _tabState.DragStartPoint = e.GetPosition(SessionTabControl);
         var tabItem = FindAncestor<TabItem>(e.OriginalSource as DependencyObject);
         _tabState.DragItem = tabItem?.DataContext as SessionTabViewModel;
+        if (DataContext is MainViewModel vm)
+        {
+            _tabState.DragDisplayCandidate = vm.Connection.ActiveSession;
+        }
     }
 
     private void OnTabDragMove(object sender, System.Windows.Input.MouseEventArgs e)
     {
-        if (_tabState.DragItem is null || e.LeftButton != MouseButtonState.Pressed)
+        if (_tabState.DragItem is null)
+        {
+            _tabState.DragDisplayCandidate = null;
             return;
+        }
+
+        if (e.LeftButton != MouseButtonState.Pressed)
+        {
+            _tabState.DragDisplayCandidate = null;
+            return;
+        }
 
         var currentPos = e.GetPosition(SessionTabControl);
         var diff = _tabState.DragStartPoint - currentPos;
@@ -60,19 +74,52 @@ public partial class MainWindow
         {
             var draggedSession = _tabState.DragItem;
             var data = new System.Windows.DataObject("SessionTab", draggedSession);
-            var result = DragDrop.DoDragDrop(SessionTabControl, data, System.Windows.DragDropEffects.Move);
-            _tabState.DragItem = null;
-            ClearTabDropHighlight();
-            ContentDropZone.Visibility = Visibility.Collapsed;
+            var detachVm = DataContext as MainViewModel;
+            var result = System.Windows.DragDropEffects.None;
+            _tabState.DragWasCancelled = false;
 
-            // If the drop landed outside the TabControl (no target accepted it),
-            // detach the tab to a floating window
+            if (detachVm is not null)
+            {
+                detachVm.DragDisplaySession = _tabState.DragDisplayCandidate;
+            }
+
+            try
+            {
+                result = DragDrop.DoDragDrop(SessionTabControl, data, System.Windows.DragDropEffects.Move);
+            }
+            finally
+            {
+                if (detachVm is not null)
+                {
+                    detachVm.DragDisplaySession = null;
+                }
+
+                _tabState.DragDisplayCandidate = null;
+                _tabState.DragItem = null;
+                ClearTabDropHighlight();
+                ContentDropZone.Visibility = Visibility.Collapsed;
+            }
+
+            // If the drop landed outside the drag-drop host (no target accepted it),
+            // detach the tab to a floating window. Explicit user cancel (Escape)
+            // also yields DragDropEffects.None and must not detach.
             if (result == System.Windows.DragDropEffects.None
+                && !_tabState.DragWasCancelled
                 && draggedSession is not null
-                && DataContext is MainViewModel detachVm)
+                && detachVm is not null)
             {
                 _splitService.DetachSessionToFloatingWindow(draggedSession, detachVm);
             }
+
+            _tabState.DragWasCancelled = false;
+        }
+    }
+
+    private void OnTabQueryContinueDrag(object sender, System.Windows.QueryContinueDragEventArgs e)
+    {
+        if (e.EscapePressed)
+        {
+            _tabState.DragWasCancelled = true;
         }
     }
 
@@ -85,6 +132,40 @@ public partial class MainWindow
         }
     }
 
+    private TabItem? ResolveDropTargetTab(System.Windows.DragEventArgs e)
+    {
+        var targetTab = FindAncestor<TabItem>(e.OriginalSource as DependencyObject);
+        if (targetTab is not null)
+        {
+            return targetTab;
+        }
+
+        var hit = SessionTabControl.InputHitTest(e.GetPosition(SessionTabControl)) as DependencyObject;
+        targetTab = FindAncestor<TabItem>(hit);
+        if (targetTab is not null)
+        {
+            return targetTab;
+        }
+
+        var position = e.GetPosition(SessionTabControl);
+        foreach (var item in SessionTabControl.Items)
+        {
+            if (SessionTabControl.ItemContainerGenerator.ContainerFromItem(item) is not TabItem container)
+            {
+                continue;
+            }
+
+            var topLeft = container.TranslatePoint(new System.Windows.Point(0, 0), SessionTabControl);
+            var bounds = new Rect(topLeft, new System.Windows.Size(container.ActualWidth, container.ActualHeight));
+            if (bounds.Contains(position))
+            {
+                return container;
+            }
+        }
+
+        return null;
+    }
+
     private void OnTabDragOver(object sender, System.Windows.DragEventArgs e)
     {
         ClearTabDropHighlight();
@@ -93,7 +174,7 @@ public partial class MainWindow
         {
             e.Effects = System.Windows.DragDropEffects.Move;
 
-            var targetTab = FindAncestor<TabItem>(e.OriginalSource as DependencyObject);
+            var targetTab = ResolveDropTargetTab(e);
             if (targetTab is not null && targetTab.DataContext != _tabState.DragItem)
             {
                 DropTargetVisualState.SetIsDropTarget(targetTab, true);
@@ -105,8 +186,8 @@ public partial class MainWindow
                 // Dragging over the content area — show split drop zone
                 // Allow merging into already-split sessions (N-pane support)
                 if (DataContext is MainViewModel vm
-                    && vm.Connection.ActiveSession is not null
-                    && vm.Connection.ActiveSession != _tabState.DragItem)
+                    && vm.DragDisplaySession is not null
+                    && vm.DragDisplaySession != _tabState.DragItem)
                 {
                     ContentDropZone.Visibility = Visibility.Visible;
                 }
@@ -131,7 +212,7 @@ public partial class MainWindow
         if (draggedItem is null) return;
 
         // Find the drop target tab
-        var dropTarget = FindAncestor<TabItem>(e.OriginalSource as DependencyObject);
+        var dropTarget = ResolveDropTargetTab(e);
         var targetItem = dropTarget?.DataContext as SessionTabViewModel;
 
         if (targetItem is not null && targetItem != draggedItem)
@@ -145,31 +226,39 @@ public partial class MainWindow
             {
                 sessions.Move(oldIndex, newIndex);
             }
+
+            e.Handled = true;
+            return;
         }
         else if (targetItem is null)
         {
-            // Drop on content area → merge with active session as split
-            var activeSession = vm.Connection.ActiveSession;
-            if (activeSession is not null && activeSession != draggedItem)
+            // Drop on content area → merge with the frozen target session, not
+            // the live selected tab that WPF may have switched during the drag.
+            var targetSession = vm.DragDisplaySession;
+            if (targetSession is null || targetSession == draggedItem)
             {
-                // Determine orientation based on drop position relative to content area
-                var pos = e.GetPosition(SessionTabControl);
-                var width = SessionTabControl.ActualWidth;
-                var height = SessionTabControl.ActualHeight;
-
-                // If aspect ratio favors horizontal proximity, split horizontal
-                var relY = (height > 0) ? pos.Y / height : 0.5;
-                var relX = (width > 0) ? pos.X / width : 0.5;
-                var distFromHEdge = Math.Min(relY, 1 - relY);
-                var distFromVEdge = Math.Min(relX, 1 - relX);
-                var orientation = distFromHEdge < distFromVEdge
-                    ? Heimdall.Core.Models.SplitOrientation.Horizontal
-                    : Heimdall.Core.Models.SplitOrientation.Vertical;
-
-                vm.MergeExistingSession(activeSession, draggedItem.ServerId, orientation);
                 e.Handled = true;
-                return; // Prevent detach-to-floating-window fallback
+                return;
             }
+
+            // Determine orientation based on drop position relative to the
+            // content host, not the header-only tab strip.
+            var pos = e.GetPosition(SessionContentHost);
+            var width = SessionContentHost.ActualWidth;
+            var height = SessionContentHost.ActualHeight;
+
+            // If aspect ratio favors horizontal proximity, split horizontal
+            var relY = (height > 0) ? pos.Y / height : 0.5;
+            var relX = (width > 0) ? pos.X / width : 0.5;
+            var distFromHEdge = Math.Min(relY, 1 - relY);
+            var distFromVEdge = Math.Min(relX, 1 - relX);
+            var orientation = distFromHEdge < distFromVEdge
+                ? Heimdall.Core.Models.SplitOrientation.Horizontal
+                : Heimdall.Core.Models.SplitOrientation.Vertical;
+
+            vm.MergeExistingSession(targetSession, draggedItem.ServerId, orientation);
+            e.Handled = true;
+            return; // Prevent detach-to-floating-window fallback
         }
     }
 }

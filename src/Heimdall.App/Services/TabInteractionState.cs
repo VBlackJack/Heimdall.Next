@@ -41,6 +41,22 @@ public sealed class TabInteractionState
     public SessionTabViewModel? DragItem { get; set; }
 
     /// <summary>
+    /// Snapshot of the session that should stay visible if the pending press
+    /// turns into a drag. Captured on mouse-down before WPF can switch the
+    /// selected tab, then promoted to the observable freeze state only once
+    /// the drag threshold is crossed.
+    /// </summary>
+    public SessionTabViewModel? DragDisplayCandidate { get; set; }
+
+    /// <summary>
+    /// True when the current drag was explicitly cancelled by the user
+    /// (for example with Escape). Used to avoid treating cancel as an
+    /// outside-drop detach, since <c>DoDragDrop</c> returns
+    /// <see cref="DragDropEffects.None"/> for both cases.
+    /// </summary>
+    public bool DragWasCancelled { get; set; }
+
+    /// <summary>
     /// Last <see cref="TabItem"/> rendered with the drop-target border
     /// highlight. Cleared whenever the cursor moves to a new candidate or
     /// the drop completes / the cursor leaves the strip.

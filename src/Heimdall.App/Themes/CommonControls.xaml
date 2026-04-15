@@ -867,6 +867,39 @@
         </Setter>
     </Style>
 
+    <Style x:Key="HeaderOnlyTabControlStyle"
+           TargetType="{x:Type TabControl}"
+           BasedOn="{StaticResource ThemedTabControlStyle}">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type TabControl}">
+                    <Border Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="{StaticResource CornerRadiusXl}"
+                            SnapsToDevicePixels="True">
+                        <!-- Header-only variant used by the session drag host.
+                             The selected content is rendered by an external ContentControl
+                             so the visible content can freeze independently during drag. -->
+                        <Border Background="{DynamicResource SurfaceBrush}"
+                                BorderBrush="{DynamicResource BorderBrush}"
+                                BorderThickness="0,0,0,1"
+                                CornerRadius="12,12,0,0"
+                                Padding="8,8,8,0">
+                            <ScrollViewer HorizontalScrollBarVisibility="Auto"
+                                          VerticalScrollBarVisibility="Disabled"
+                                          CanContentScroll="True">
+                                <TabPanel x:Name="HeaderPanel"
+                                          IsItemsHost="True"
+                                          Background="Transparent"/>
+                            </ScrollViewer>
+                        </Border>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <Style TargetType="{x:Type TabControl}" BasedOn="{StaticResource ThemedTabControlStyle}"/>
 
     <Style x:Key="ThemedTabItemStyle" TargetType="{x:Type TabItem}">

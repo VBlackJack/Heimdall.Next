@@ -52,6 +52,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
     private Action? _onConfigurationChanged;
     private Action<string, string, Core.Models.ToolContext>? _onToolSessionRequested;
     private Action<string>? _onStatusMessageRequested;
+    private System.ComponentModel.PropertyChangedEventHandler? _connectionPropertyChangedHandler;
 
     private AppSettings? _currentSettings;
 
@@ -88,11 +89,21 @@ public partial class MainViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     private string _selectedTab = "Sessions";
 
+    [ObservableProperty]
+    private SessionTabViewModel? _dragDisplaySession;
+
     private string _previousTab = "Sessions";
     private bool _suppressTabChangeGuard;
 
     /// <summary>True when the Sessions tab is selected.</summary>
     public bool IsSessionsTabSelected => string.Equals(SelectedTab, "Sessions", StringComparison.Ordinal);
+
+    /// <summary>
+    /// Session currently rendered in the main content area. During a tab drag,
+    /// this freezes on the original merge target so the visible content does
+    /// not follow WPF's transient tab selection changes.
+    /// </summary>
+    public SessionTabViewModel? DisplayedSession => DragDisplaySession ?? Connection.ActiveSession;
 
     /// <summary>True when the Tunnels tab is selected.</summary>
     public bool IsTunnelsTabSelected => string.Equals(SelectedTab, "Tunnels", StringComparison.Ordinal);
@@ -130,6 +141,11 @@ public partial class MainViewModel : ObservableObject, IDisposable
         }
 
         ApplyTabChange(value);
+    }
+
+    partial void OnDragDisplaySessionChanged(SessionTabViewModel? value)
+    {
+        OnPropertyChanged(nameof(DisplayedSession));
     }
 
     /// <summary>
@@ -326,6 +342,15 @@ public partial class MainViewModel : ObservableObject, IDisposable
         _onStatusMessageRequested = message => StatusText = message;
         ServerList.StatusMessageRequested += _onStatusMessageRequested;
 
+        _connectionPropertyChangedHandler = (_, e) =>
+        {
+            if (string.Equals(e.PropertyName, nameof(ConnectionViewModel.ActiveSession), StringComparison.Ordinal))
+            {
+                OnPropertyChanged(nameof(DisplayedSession));
+            }
+        };
+        Connection.PropertyChanged += _connectionPropertyChangedHandler;
+
         StatusText = _localizer["StatusReady"];
     }
 
@@ -446,6 +471,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         _themeService.ThemeChanged -= OnThemeServiceThemeChanged;
         ServerList.ToolSessionRequested -= _onToolSessionRequested;
         ServerList.StatusMessageRequested -= _onStatusMessageRequested;
+        Connection.PropertyChanged -= _connectionPropertyChangedHandler;
     }
 
     private static async Task SafeFireAndForgetAsync(Task task)
