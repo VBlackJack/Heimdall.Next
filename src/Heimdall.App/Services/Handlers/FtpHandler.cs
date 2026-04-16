@@ -15,22 +15,38 @@
  */
 
 using Heimdall.Core.Configuration;
+using Heimdall.Core.Localization;
 using Heimdall.Core.Models;
+using Heimdall.Core.StateMachine;
 using Heimdall.Sftp;
 
-namespace Heimdall.App.Services;
+namespace Heimdall.App.Services.Handlers;
 
-public partial class ConnectionService
+/// <summary>
+/// Handles FTP connection logic.
+/// </summary>
+internal sealed class FtpHandler : IProtocolHandler
 {
+    private readonly ConnectionStateMachine _connectionSm;
+    private readonly LocalizationManager _localizer;
+
+    public FtpHandler(
+        ConnectionStateMachine connectionSm,
+        LocalizationManager localizer)
+    {
+        _connectionSm = connectionSm;
+        _localizer = localizer;
+    }
+
+    public string Protocol => "FTP";
+
     /// <summary>
     /// Establishes an FTP browser session using .NET's built-in FtpWebRequest.
-    /// Returns a connected <see cref="FtpBrowser"/> wrapped in an
-    /// <see cref="FtpSessionBundle"/> on success.
     /// </summary>
-    public async Task<ConnectionResult> ConnectFtpAsync(
+    public async Task<ConnectionResult> ConnectAsync(
         ServerProfileDto server,
         AppSettings settings,
-        CancellationToken ct = default)
+        CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(server);
         ArgumentNullException.ThrowIfNull(settings);
@@ -46,24 +62,29 @@ public partial class ConnectionService
 
         _connectionSm.TryTransition(server.Id, ConnectionState.LaunchingFtp);
 
-        string host = server.RemoteServer;
-        int port = server.FtpPort > 0 ? server.FtpPort : DefaultPorts.Ftp;
-        string? username = server.FtpUsername;
-        string? password = DecryptPassword(server.FtpPasswordEncrypted);
+        var host = server.RemoteServer;
+        var port = server.FtpPort > 0 ? server.FtpPort : DefaultPorts.Ftp;
+        var username = server.FtpUsername;
+        var password = ConnectionHelpers.DecryptPassword(server.FtpPasswordEncrypted);
 
         var browser = new FtpBrowser();
 
         try
         {
-            await browser.ConnectAsync(host, port, username, password,
-                    server.FtpPassiveMode, server.FtpUseSsl, ct)
+            await browser.ConnectAsync(
+                    host,
+                    port,
+                    username,
+                    password,
+                    server.FtpPassiveMode,
+                    server.FtpUseSsl,
+                    ct)
                 .ConfigureAwait(false);
         }
         catch (Exception ex)
         {
             browser.Dispose();
-            Core.Logging.FileLogger.Warn(
-                $"FTP connect failed: {ex.Message}");
+            Core.Logging.FileLogger.Warn($"FTP connect failed: {ex.Message}");
             var userMsg = _localizer.Format("ErrorFtpConnectionFailed", ex.Message);
             _connectionSm.SetError(server.Id, userMsg);
             return new ConnectionResult(false, userMsg, null);
@@ -73,8 +94,3 @@ public partial class ConnectionService
         return new ConnectionResult(true, null, new FtpSessionBundle(browser));
     }
 }
-
-/// <summary>
-/// Bundles an FTP browser session for use by the embedded SFTP/FTP view.
-/// </summary>
-public sealed record FtpSessionBundle(FtpBrowser Browser) : ISessionResult;

@@ -17,19 +17,38 @@
 using System.Diagnostics;
 using System.IO;
 using Heimdall.Core.Configuration;
+using Heimdall.Core.Localization;
 using Heimdall.Core.Models;
 using Heimdall.Core.Security;
+using Heimdall.Core.StateMachine;
 
-namespace Heimdall.App.Services;
+namespace Heimdall.App.Services.Handlers;
 
-public partial class ConnectionService
+/// <summary>
+/// Handles Citrix session launch logic.
+/// </summary>
+internal sealed class CitrixHandler : IProtocolHandler
 {
+    private readonly ConnectionStateMachine _connectionSm;
+    private readonly LocalizationManager _localizer;
+
+    public CitrixHandler(
+        ConnectionStateMachine connectionSm,
+        LocalizationManager localizer)
+    {
+        _connectionSm = connectionSm;
+        _localizer = localizer;
+    }
+
+    public string Protocol => "CITRIX";
+
     /// <summary>
     /// Launches a Citrix session via storebrowse.exe, SelfService.exe, or a direct .ica file.
-    /// The Citrix Workspace App renders the session natively; Heimdall manages the lifecycle.
     /// </summary>
-    public async Task<ConnectionResult> ConnectCitrixAsync(
-        ServerProfileDto server, AppSettings settings, CancellationToken ct = default)
+    public Task<ConnectionResult> ConnectAsync(
+        ServerProfileDto server,
+        AppSettings settings,
+        CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(server);
 
@@ -44,22 +63,20 @@ public partial class ConnectionService
         {
             if (!string.IsNullOrWhiteSpace(server.CitrixLaunchCommandLine))
             {
-                // Validate launch command against shell metacharacters (CWE-78)
                 if (server.CitrixLaunchCommandLine.AsSpan().IndexOfAny(
                     ['|', '&', ';', '`', '$', '\n', '\r']) >= 0)
                 {
                     var msg = _localizer["CitrixNoConnectionConfigured"];
                     _connectionSm.SetError(server.Id, msg);
-                    return new ConnectionResult(false, msg, null);
+                    return Task.FromResult(new ConnectionResult(false, msg, null));
                 }
 
-                // Launch via SelfService.exe with pre-authenticated cache arguments
                 var selfServicePath = ResolveSelfServicePath();
                 if (selfServicePath is null)
                 {
                     var msg = _localizer["CitrixWorkspaceNotFound"];
                     _connectionSm.SetError(server.Id, msg);
-                    return new ConnectionResult(false, msg, null);
+                    return Task.FromResult(new ConnectionResult(false, msg, null));
                 }
 
                 Core.Logging.FileLogger.Info(
@@ -73,40 +90,39 @@ public partial class ConnectionService
                     CreateNoWindow = true
                 });
             }
-            else if (!string.IsNullOrWhiteSpace(server.CitrixIcaFilePath)
-                && File.Exists(server.CitrixIcaFilePath))
+            else if (!string.IsNullOrWhiteSpace(server.CitrixIcaFilePath) &&
+                     File.Exists(server.CitrixIcaFilePath))
             {
-                // Direct .ica file launch
                 process = Process.Start(new ProcessStartInfo
                 {
                     FileName = server.CitrixIcaFilePath,
                     UseShellExecute = true
                 });
             }
-            else if (!string.IsNullOrWhiteSpace(server.CitrixStoreFrontUrl)
-                     && !string.IsNullOrWhiteSpace(server.CitrixAppName))
+            else if (!string.IsNullOrWhiteSpace(server.CitrixStoreFrontUrl) &&
+                     !string.IsNullOrWhiteSpace(server.CitrixAppName))
             {
                 var launcher = ResolveCitrixLauncher();
                 if (launcher is null)
                 {
                     var msg = _localizer["CitrixWorkspaceNotFound"];
                     _connectionSm.SetError(server.Id, msg);
-                    return new ConnectionResult(false, msg, null);
+                    return Task.FromResult(new ConnectionResult(false, msg, null));
                 }
 
-                // Sanitize user-configurable fields against shell metacharacters (CWE-78).
-                if (server.CitrixAppName.AsSpan().IndexOfAny(['|', '&', ';', '`', '$', '\n', '\r']) >= 0
-                    || server.CitrixStoreFrontUrl.AsSpan().IndexOfAny(['|', '&', ';', '`', '$', '\n', '\r']) >= 0)
+                if (server.CitrixAppName.AsSpan().IndexOfAny(['|', '&', ';', '`', '$', '\n', '\r']) >= 0 ||
+                    server.CitrixStoreFrontUrl.AsSpan().IndexOfAny(['|', '&', ';', '`', '$', '\n', '\r']) >= 0)
                 {
                     var msg = _localizer["CitrixNoConnectionConfigured"];
                     _connectionSm.SetError(server.Id, msg);
-                    return new ConnectionResult(false, msg, null);
+                    return Task.FromResult(new ConnectionResult(false, msg, null));
                 }
 
-                // Launch via storebrowse
                 var argParts = new List<string> { "-L" };
                 if (server.CitrixUseSso)
+                {
                     argParts.Add("-S");
+                }
                 argParts.Add($"\"{server.CitrixAppName}\"");
                 argParts.Add($"\"{server.CitrixStoreFrontUrl}\"");
                 var args = string.Join(' ', argParts);
@@ -124,26 +140,26 @@ public partial class ConnectionService
             {
                 var msg = _localizer["CitrixNoConnectionConfigured"];
                 _connectionSm.SetError(server.Id, msg);
-                return new ConnectionResult(false, msg, null);
+                return Task.FromResult(new ConnectionResult(false, msg, null));
             }
 
             _connectionSm.TryTransition(server.Id, ConnectionState.Connected);
-            return new ConnectionResult(true, null, new CitrixSessionResult(
-                process, server.CitrixStoreFrontUrl, server.CitrixAppName));
+            return Task.FromResult(new ConnectionResult(
+                true,
+                null,
+                new CitrixSessionResult(process, server.CitrixStoreFrontUrl, server.CitrixAppName)));
         }
         catch (Exception ex)
         {
             process?.Dispose();
             var userMsg = _localizer.Format("ErrorCitrixLaunchFailed", ex.Message);
             _connectionSm.SetError(server.Id, userMsg);
-            return new ConnectionResult(false, userMsg, null);
+            return Task.FromResult(new ConnectionResult(false, userMsg, null));
         }
     }
 
     /// <summary>
     /// Resolves the Citrix Workspace launcher executable.
-    /// Checks standard installation paths for storebrowse.exe and SelfService.exe,
-    /// then falls back to PATH resolution.
     /// </summary>
     private static string? ResolveCitrixLauncher()
     {
@@ -168,7 +184,8 @@ public partial class ConnectionService
             }
         }
 
-        return FindInPath("storebrowse.exe") ?? FindInPath("SelfService.exe");
+        return ConnectionHelpers.FindInPath("storebrowse.exe") ??
+               ConnectionHelpers.FindInPath("SelfService.exe");
     }
 
     /// <summary>
@@ -197,14 +214,6 @@ public partial class ConnectionService
             }
         }
 
-        return FindInPath("SelfService.exe");
+        return ConnectionHelpers.FindInPath("SelfService.exe");
     }
 }
-
-/// <summary>
-/// Wraps a Citrix Workspace process handle for session lifecycle management.
-/// </summary>
-public sealed record CitrixSessionResult(
-    Process? Process,
-    string? StoreFrontUrl = null,
-    string? AppName = null) : ISessionResult;
