@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+using Heimdall.Core.Models;
+
 namespace Heimdall.Core.Configuration;
 
 /// <summary>
@@ -54,7 +56,7 @@ public static class RdpFileImporter
 
         // Parse host:port from full address
         var host = fullAddress;
-        var port = 3389;
+        var port = DefaultPorts.Rdp;
         var colonIdx = fullAddress.LastIndexOf(':');
         if (colonIdx > 0 && int.TryParse(fullAddress[(colonIdx + 1)..], out var parsedPort))
         {

@@ -26,10 +26,10 @@ namespace Heimdall.App.Services;
 /// WPF implementation of <see cref="IDialogService"/>.
 /// Creates and shows modal dialog windows, transferring results back to callers.
 /// </summary>
-public sealed class WpfDialogService(LocalizationManager localizer, ConfigManager configManager) : IDialogService
+public sealed class WpfDialogService(LocalizationManager localizer, IConfigManager configManager) : IDialogService
 {
     private readonly LocalizationManager _localizer = localizer;
-    private readonly ConfigManager _configManager = configManager;
+    private readonly IConfigManager _configManager = configManager;
 
     /// <inheritdoc/>
     public Task<bool> ShowConfirmAsync(string title, string message, string severity = "info")

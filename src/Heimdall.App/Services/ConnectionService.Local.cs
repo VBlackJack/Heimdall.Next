@@ -213,8 +213,8 @@ public partial class ConnectionService
     /// </summary>
     private static string? ResolveElevationWrapper()
     {
-        // 1. Bundled gsudo (shipped with Heimdall in Assets/Tools/)
-        var bundledPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Tools", "gsudo.exe");
+        // 1. Bundled gsudo shipped with the application
+        var bundledPath = Path.Combine(AppContext.BaseDirectory, AppConstants.EmbeddedToolsSubdir, "gsudo.exe");
         if (File.Exists(bundledPath))
         {
             return bundledPath;

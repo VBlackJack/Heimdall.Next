@@ -39,6 +39,7 @@
                 <!-- Title -->
                 <TextBlock x:Name="LblTitle" Style="{StaticResource DialogLabelStyle}"/>
                 <TextBox Text="{Binding Title, UpdateSourceTrigger=PropertyChanged}"
+                         AutomationProperties.Name="{Binding Text, ElementName=LblTitle}"
                          Style="{StaticResource DialogFormTextBoxStyle}"
                          MaxLength="200" x:Name="TxtTitle" TabIndex="0"/>
                 <TextBlock Text="{Binding TitleError}"
@@ -48,6 +49,7 @@
                 <!-- Category (editable ComboBox) -->
                 <TextBlock x:Name="LblCategory" Style="{StaticResource DialogLabelStyle}" Margin="0,12,0,4"/>
                 <ComboBox ItemsSource="{Binding AvailableCategories}"
+                          AutomationProperties.Name="{Binding Text, ElementName=LblCategory}"
                           Text="{Binding Category, UpdateSourceTrigger=PropertyChanged}"
                           IsEditable="True"
                           Style="{StaticResource DialogFormComboBoxStyle}"
@@ -67,6 +69,7 @@
                     <StackPanel Grid.Column="0">
                         <TextBlock x:Name="LblPlatform" Style="{StaticResource DialogLabelStyle}"/>
                         <ComboBox x:Name="CmbPlatform"
+                                  AutomationProperties.Name="{Binding Text, ElementName=LblPlatform}"
                                   SelectedIndex="{Binding Platform}"
                                   Style="{StaticResource DialogFormComboBoxStyle}" TabIndex="2">
                             <ComboBoxItem x:Name="PlatformWindows"/>
@@ -78,6 +81,7 @@
                     <StackPanel Grid.Column="2">
                         <TextBlock x:Name="LblRisk" Style="{StaticResource DialogLabelStyle}"/>
                         <ComboBox x:Name="CmbRisk"
+                                  AutomationProperties.Name="{Binding Text, ElementName=LblRisk}"
                                   SelectedIndex="{Binding Level}"
                                   Style="{StaticResource DialogFormComboBoxStyle}" TabIndex="3">
                             <ComboBoxItem x:Name="RiskInfo"/>
@@ -90,6 +94,7 @@
                 <!-- Description -->
                 <TextBlock x:Name="LblDescription" Style="{StaticResource DialogLabelStyle}" Margin="0,12,0,4"/>
                 <TextBox Text="{Binding Description, UpdateSourceTrigger=PropertyChanged}"
+                         AutomationProperties.Name="{Binding Text, ElementName=LblDescription}"
                          Style="{StaticResource DialogFormTextBoxStyle}"
                          TextWrapping="Wrap" AcceptsReturn="True"
                          Height="60" VerticalContentAlignment="Top"
@@ -105,11 +110,13 @@
 
                 <TextBlock x:Name="LblWinPattern" Style="{StaticResource DialogLabelStyle}"/>
                 <TextBox Text="{Binding WindowsPattern, UpdateSourceTrigger=PropertyChanged}"
+                         AutomationProperties.Name="{Binding Text, ElementName=LblWinPattern}"
                          Style="{StaticResource DialogFormTextBoxStyle}"
                          FontFamily="Consolas" TabIndex="5"/>
 
                 <TextBlock x:Name="LblWinName" Style="{StaticResource DialogLabelStyle}" Margin="0,4,0,4"/>
                 <TextBox Text="{Binding WindowsTemplateName, UpdateSourceTrigger=PropertyChanged}"
+                         AutomationProperties.Name="{Binding Text, ElementName=LblWinName}"
                          Style="{StaticResource DialogFormTextBoxStyle}" TabIndex="6"/>
 
                 <!-- Windows parameters -->
@@ -134,22 +141,26 @@
                                         <ColumnDefinition Width="24"/>
                                     </Grid.ColumnDefinitions>
                                     <TextBox Grid.Column="0" Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}"
+                                             AutomationProperties.Name="{loc:Translate ToolCmdLibDialogParamName}"
                                              FontFamily="Consolas" Margin="0,0,4,0" Padding="4,3"
                                              FontSize="{StaticResource FontSizeCaption}"
                                              Background="{DynamicResource CardBrush}"
                                              Foreground="{DynamicResource TextPrimaryBrush}"
                                              BorderBrush="{DynamicResource BorderBrush}"/>
                                     <TextBox Grid.Column="1" Text="{Binding Label, UpdateSourceTrigger=PropertyChanged}"
+                                             AutomationProperties.Name="{loc:Translate ToolCmdLibDialogParamLabel}"
                                              Margin="0,0,4,0" Padding="4,3"
                                              FontSize="{StaticResource FontSizeCaption}"
                                              Background="{DynamicResource CardBrush}"
                                              Foreground="{DynamicResource TextPrimaryBrush}"
                                              BorderBrush="{DynamicResource BorderBrush}"/>
                                     <ComboBox Grid.Column="2" ItemsSource="{x:Static vm:ParameterEntryVm.AvailableTypes}"
+                                              AutomationProperties.Name="{loc:Translate ToolCmdLibDialogParamType}"
                                               SelectedValue="{Binding Type}" Margin="0,0,4,0"
                                               FontSize="{StaticResource FontSizeCaption}"/>
                                     <Button Grid.Column="3" Content="&#xE711;" FontFamily="Segoe MDL2 Assets"
                                             FontSize="10" Width="20" Height="20"
+                                        AutomationProperties.Name="{loc:Translate ToolCmdLibBtnDelete}"
                                         Command="{Binding DataContext.RemoveWindowsParameterCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                         CommandParameter="{Binding}"
                                         ToolTip="{loc:Translate ToolCmdLibBtnDelete}"
@@ -161,6 +172,7 @@
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
                                     <TextBox Grid.Column="0" Text="{Binding DefaultValue, UpdateSourceTrigger=PropertyChanged}"
+                                             AutomationProperties.Name="{loc:Translate ToolCmdLibDialogParamDefault}"
                                              Style="{StaticResource WatermarkTextBoxStyle}"
                                              Margin="0,0,4,0" Padding="4,3"
                                              Tag="{loc:Translate ToolCmdLibDialogParamDefault}"
@@ -169,6 +181,7 @@
                                              Foreground="{DynamicResource TextSecondaryBrush}"
                                              BorderBrush="{DynamicResource BorderBrush}"/>
                                     <CheckBox Grid.Column="1" IsChecked="{Binding Required}"
+                                              AutomationProperties.Name="{loc:Translate ToolCmdLibDialogParamRequired}"
                                               Content="{loc:Translate ToolCmdLibDialogParamRequired}"
                                               FontSize="{StaticResource FontSizeSmallCaption}"
                                               Foreground="{DynamicResource TextSecondaryBrush}"
@@ -180,6 +193,7 @@
                 </ItemsControl>
                 <Button x:Name="BtnAddWinParam" Content="{loc:Translate ToolCmdLibDialogBtnAddParam}"
                         Command="{Binding AddWindowsParameterCommand}"
+                        AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         FontSize="{StaticResource FontSizeCaption}"
                         Padding="8,2" HorizontalAlignment="Left" Margin="0,4,0,0" TabIndex="7"/>
@@ -194,11 +208,13 @@
 
                 <TextBlock x:Name="LblLinuxPattern" Style="{StaticResource DialogLabelStyle}"/>
                 <TextBox Text="{Binding LinuxPattern, UpdateSourceTrigger=PropertyChanged}"
+                         AutomationProperties.Name="{Binding Text, ElementName=LblLinuxPattern}"
                          Style="{StaticResource DialogFormTextBoxStyle}"
                          FontFamily="Consolas" TabIndex="8"/>
 
                 <TextBlock x:Name="LblLinuxName" Style="{StaticResource DialogLabelStyle}" Margin="0,4,0,4"/>
                 <TextBox Text="{Binding LinuxTemplateName, UpdateSourceTrigger=PropertyChanged}"
+                         AutomationProperties.Name="{Binding Text, ElementName=LblLinuxName}"
                          Style="{StaticResource DialogFormTextBoxStyle}" TabIndex="9"/>
 
                 <!-- Linux parameters -->
@@ -223,22 +239,26 @@
                                         <ColumnDefinition Width="24"/>
                                     </Grid.ColumnDefinitions>
                                     <TextBox Grid.Column="0" Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}"
+                                             AutomationProperties.Name="{loc:Translate ToolCmdLibDialogParamName}"
                                              FontFamily="Consolas" Margin="0,0,4,0" Padding="4,3"
                                              FontSize="{StaticResource FontSizeCaption}"
                                              Background="{DynamicResource CardBrush}"
                                              Foreground="{DynamicResource TextPrimaryBrush}"
                                              BorderBrush="{DynamicResource BorderBrush}"/>
                                     <TextBox Grid.Column="1" Text="{Binding Label, UpdateSourceTrigger=PropertyChanged}"
+                                             AutomationProperties.Name="{loc:Translate ToolCmdLibDialogParamLabel}"
                                              Margin="0,0,4,0" Padding="4,3"
                                              FontSize="{StaticResource FontSizeCaption}"
                                              Background="{DynamicResource CardBrush}"
                                              Foreground="{DynamicResource TextPrimaryBrush}"
                                              BorderBrush="{DynamicResource BorderBrush}"/>
                                     <ComboBox Grid.Column="2" ItemsSource="{x:Static vm:ParameterEntryVm.AvailableTypes}"
+                                              AutomationProperties.Name="{loc:Translate ToolCmdLibDialogParamType}"
                                               SelectedValue="{Binding Type}" Margin="0,0,4,0"
                                               FontSize="{StaticResource FontSizeCaption}"/>
                                     <Button Grid.Column="3" Content="&#xE711;" FontFamily="Segoe MDL2 Assets"
                                             FontSize="10" Width="20" Height="20"
+                                        AutomationProperties.Name="{loc:Translate ToolCmdLibBtnDelete}"
                                         Command="{Binding DataContext.RemoveLinuxParameterCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                         CommandParameter="{Binding}"
                                         ToolTip="{loc:Translate ToolCmdLibBtnDelete}"
@@ -250,6 +270,7 @@
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
                                     <TextBox Grid.Column="0" Text="{Binding DefaultValue, UpdateSourceTrigger=PropertyChanged}"
+                                             AutomationProperties.Name="{loc:Translate ToolCmdLibDialogParamDefault}"
                                              Style="{StaticResource WatermarkTextBoxStyle}"
                                              Margin="0,0,4,0" Padding="4,3"
                                              Tag="{loc:Translate ToolCmdLibDialogParamDefault}"
@@ -258,6 +279,7 @@
                                              Foreground="{DynamicResource TextSecondaryBrush}"
                                              BorderBrush="{DynamicResource BorderBrush}"/>
                                     <CheckBox Grid.Column="1" IsChecked="{Binding Required}"
+                                              AutomationProperties.Name="{loc:Translate ToolCmdLibDialogParamRequired}"
                                               Content="{loc:Translate ToolCmdLibDialogParamRequired}"
                                               FontSize="{StaticResource FontSizeSmallCaption}"
                                               Foreground="{DynamicResource TextSecondaryBrush}"
@@ -269,6 +291,7 @@
                 </ItemsControl>
                 <Button x:Name="BtnAddLinuxParam" Content="{loc:Translate ToolCmdLibDialogBtnAddParam}"
                         Command="{Binding AddLinuxParameterCommand}"
+                        AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         FontSize="{StaticResource FontSizeCaption}"
                         Padding="8,2" HorizontalAlignment="Left" Margin="0,4,0,0" TabIndex="10"/>
@@ -278,11 +301,13 @@
                 <!-- Tags -->
                 <TextBlock x:Name="LblTags" Style="{StaticResource DialogLabelStyle}" Margin="0,12,0,4"/>
                 <TextBox Text="{Binding Tags, UpdateSourceTrigger=PropertyChanged}"
+                         AutomationProperties.Name="{Binding Text, ElementName=LblTags}"
                          Style="{StaticResource DialogFormTextBoxStyle}" TabIndex="11"/>
 
                 <!-- Notes -->
                 <TextBlock x:Name="LblNotes" Style="{StaticResource DialogLabelStyle}" Margin="0,12,0,4"/>
                 <TextBox Text="{Binding Notes, UpdateSourceTrigger=PropertyChanged}"
+                         AutomationProperties.Name="{Binding Text, ElementName=LblNotes}"
                          Style="{StaticResource DialogFormTextBoxStyle}"
                          TextWrapping="Wrap" AcceptsReturn="True"
                          Height="50" VerticalContentAlignment="Top"
@@ -302,9 +327,11 @@
         <StackPanel Grid.Row="2" Orientation="Horizontal"
                     HorizontalAlignment="Right" Margin="0,16,0,0">
             <Button x:Name="CancelBtn" IsCancel="True" MinWidth="80"
+                    AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}"
                     Margin="0,0,8,0"
                     Style="{DynamicResource SecondaryButtonStyle}"/>
             <Button x:Name="SaveBtn" IsDefault="True" MinWidth="80"
+                    AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}"
                     Click="OnSaveClick"
                     Style="{DynamicResource PrimaryButtonStyle}"/>
         </StackPanel>

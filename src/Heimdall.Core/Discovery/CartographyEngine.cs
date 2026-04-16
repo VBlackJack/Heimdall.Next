@@ -24,6 +24,7 @@ using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Text.RegularExpressions;
+using Heimdall.Core.Models;
 
 namespace Heimdall.Core.Discovery;
 
@@ -67,15 +68,21 @@ public sealed class CartographyEngine
 
     /// <summary>Top ports for quick reconnaissance.</summary>
     public static readonly int[] QuickPorts =
-        [22, 80, 443, 3389, 8080, 53, 25, 3306, 5432, 445, 139, 88, 389, 161, 21, 554, 631, 5900, 8443, 1433,
+        [DefaultPorts.Ssh, DefaultPorts.HttpStd, DefaultPorts.HttpsStd, DefaultPorts.Rdp, DefaultPorts.Http,
+         DefaultPorts.Dns, DefaultPorts.Smtp, DefaultPorts.MySql, DefaultPorts.PostgreSql, 445, 139, 88, 389,
+         DefaultPorts.Snmp, DefaultPorts.Ftp, 554, 631, DefaultPorts.Vnc, DefaultPorts.HttpsAlt, DefaultPorts.Mssql,
          9100, 27017, 6379];
 
     /// <summary>~70 ports covering the most common enterprise services.</summary>
     public static readonly int[] StandardPorts =
-        [21, 22, 23, 25, 53, 67, 80, 88, 110, 111, 135, 139, 143, 161, 162, 389, 443, 445, 464, 465,
-         514, 554, 587, 623, 631, 636, 902, 993, 995, 1433, 1434, 1521, 1883, 1900, 2049, 2375, 2376,
-         3000, 3128, 3260, 3268, 3306, 3389, 5000, 5038, 5060, 5432, 5665, 5900, 5901, 5985, 5986,
-         6379, 6443, 6514, 8006, 8008, 8080, 8123, 8291, 8443, 8899, 9090, 9100, 9200, 9300, 9443,
+        [DefaultPorts.Ftp, DefaultPorts.Ssh, DefaultPorts.Telnet, DefaultPorts.Smtp, DefaultPorts.Dns, 67,
+         DefaultPorts.HttpStd, 88, 110, 111, 135, 139, 143, DefaultPorts.Snmp, 162, 389, DefaultPorts.HttpsStd,
+         445, 464, DefaultPorts.Smtps, 514, 554, DefaultPorts.SmtpSubmission, 623, 631, DefaultPorts.Ldaps, 902,
+         DefaultPorts.Imaps, DefaultPorts.Pop3s, DefaultPorts.Mssql, 1434, DefaultPorts.OracleDb, 1883, 1900,
+         2049, 2375, 2376, 3000, 3128, 3260, 3268, DefaultPorts.MySql, DefaultPorts.Rdp, 5000, 5038, 5060,
+         DefaultPorts.PostgreSql, 5665, DefaultPorts.Vnc, DefaultPorts.VncAlt, 5985, 5986, DefaultPorts.Redis,
+         6443, 6514, 8006, 8008, DefaultPorts.Http, 8123, 8291, DefaultPorts.HttpsAlt, 8899, DefaultPorts.Prometheus,
+         9100, 9200, 9300, 9443,
          10050, 10051, 10250, 27017, 33060, 62078];
 
     /// <summary>Fires during the ICMP ping sweep phase.</summary>
@@ -384,10 +391,11 @@ public sealed class CartographyEngine
     /// <summary>
     /// Secondary discovery for IPs that didn't respond to ICMP ping.
     /// Runs three probes in parallel: reverse DNS, NetBIOS Name Service, and
-    /// TCP connect on a handful of high-value ports (22, 80, 443, 445, 3389).
+    /// TCP connect on a handful of high-value ports (SSH, HTTP, HTTPS, SMB, RDP).
     /// Returns the set of IPs where at least one probe succeeded.
     /// </summary>
-    private static readonly int[] DiscoveryPorts = [22, 80, 443, 445, 3389];
+    private static readonly int[] DiscoveryPorts =
+        [DefaultPorts.Ssh, DefaultPorts.HttpStd, DefaultPorts.HttpsStd, 445, DefaultPorts.Rdp];
 
     private async Task<HashSet<string>> MultiProbeDiscoveryAsync(
         List<string> ips, ScanProfile profile, CancellationToken ct)

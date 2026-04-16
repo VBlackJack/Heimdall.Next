@@ -1,6 +1,7 @@
 <Window x:Class="Heimdall.App.Views.Dialogs.ToolPickerDialog"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:loc="clr-namespace:Heimdall.App.Localization"
         Title=""
         Width="860"
         Height="580"
@@ -34,6 +35,7 @@
 
             <TextBox x:Name="SearchTextBox"
                      Grid.Row="1"
+                     AutomationProperties.Name="{Binding Tag, RelativeSource={RelativeSource Self}}"
                      Style="{StaticResource WatermarkTextBoxStyle}"
                      Tag=""
                      Padding="{StaticResource PaddingInput}"
@@ -58,6 +60,7 @@
                         CornerRadius="{StaticResource CornerRadiusLg}">
                     <Grid>
                         <ListBox x:Name="ToolListBox"
+                                 AutomationProperties.Name="{loc:Translate A11yLstTools}"
                                  Background="Transparent"
                                  BorderThickness="0"
                                  SelectionChanged="OnToolSelectionChanged"
@@ -216,6 +219,7 @@
                                    FontSize="{StaticResource FontSizeCaption}"
                                    Foreground="{DynamicResource TextSecondaryBrush}"/>
                         <TextBox x:Name="DisplayNameTextBox"
+                                 AutomationProperties.Name="{Binding Text, ElementName=DisplayNameLabelText}"
                                  Margin="0,4,0,0"
                                  Padding="{StaticResource PaddingInput}"
                                  FontSize="{StaticResource FontSizeBody}"
@@ -231,6 +235,7 @@
                                        FontSize="{StaticResource FontSizeCaption}"
                                        Foreground="{DynamicResource TextSecondaryBrush}"/>
                             <TextBox x:Name="HostTextBox"
+                                     AutomationProperties.Name="{Binding Text, ElementName=HostLabelText}"
                                      Margin="0,4,0,0"
                                      Style="{StaticResource WatermarkTextBoxStyle}"
                                      Tag=""
@@ -255,11 +260,13 @@
                         Margin="0,16,0,0">
                 <Button x:Name="CancelBtn"
                         IsCancel="True"
+                        AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}"
                         MinWidth="80"
                         Margin="0,0,8,0"
                         Style="{DynamicResource SecondaryButtonStyle}"/>
                 <Button x:Name="AddBtn"
                         IsDefault="True"
+                        AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}"
                         MinWidth="80"
                         Click="OnAddClick"
                         Style="{DynamicResource PrimaryButtonStyle}"/>

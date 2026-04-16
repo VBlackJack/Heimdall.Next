@@ -19,7 +19,7 @@ using WpfControl = System.Windows.Controls.Control;
 using WpfProgressBar = System.Windows.Controls.ProgressBar;
 using WpfTextBlock = System.Windows.Controls.TextBlock;
 
-namespace Heimdall.App.Views.Tools;
+namespace Heimdall.App.Services;
 
 /// <summary>
 /// Small controller that keeps async tool shell states consistent:

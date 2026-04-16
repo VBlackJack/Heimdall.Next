@@ -28,6 +28,8 @@ using Heimdall.Core.Models;
 using Heimdall.Core.Security;
 using Heimdall.Ssh;
 
+using Heimdall.App.Services;
+
 namespace Heimdall.App.Views.Tools;
 
 /// <summary>

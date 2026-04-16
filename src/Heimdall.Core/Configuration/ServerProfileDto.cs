@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+using Heimdall.Core.Models;
+
 namespace Heimdall.Core.Configuration;
 
 /// <summary>
@@ -26,8 +28,8 @@ public sealed class ServerProfileDto
     public string Id { get; set; } = string.Empty;
     public string DisplayName { get; set; } = string.Empty;
     public string RemoteServer { get; set; } = string.Empty;
-    public int RemotePort { get; set; } = 3389;
-    public int LocalPort { get; set; } = 33890;
+    public int RemotePort { get; set; } = DefaultPorts.Rdp;
+    public int LocalPort { get; set; } = DefaultPorts.RdpTunnel;
     public string? Group { get; set; }
     public string? SshGatewayId { get; set; }
     public string? RdpUsername { get; set; }
@@ -38,7 +40,7 @@ public sealed class ServerProfileDto
 
     // SSH settings
     public string? SshUsername { get; set; }
-    public int SshPort { get; set; } = 22;
+    public int SshPort { get; set; } = DefaultPorts.Ssh;
     public string SshMode { get; set; } = "Embedded";
     public bool SshAgentForwarding { get; set; }
     public string? SshKeyPath { get; set; }
@@ -114,12 +116,12 @@ public sealed class ServerProfileDto
     public string? CitrixLaunchCommandLine { get; set; }
 
     // FTP settings
-    public int FtpPort { get; set; } = 21;
+    public int FtpPort { get; set; } = DefaultPorts.Ftp;
     public string? FtpUsername { get; set; }
     public string? FtpPasswordEncrypted { get; set; }
 
     // VNC settings
-    public int VncPort { get; set; } = 5900;
+    public int VncPort { get; set; } = DefaultPorts.Vnc;
     public string? VncPassword { get; set; }
 
     // FTP options
@@ -130,7 +132,7 @@ public sealed class ServerProfileDto
     public bool VncViewOnly { get; set; }
 
     // Telnet settings
-    public int TelnetPort { get; set; } = 23;
+    public int TelnetPort { get; set; } = DefaultPorts.Telnet;
     public string? TelnetUsername { get; set; }
     public string? TelnetPasswordEncrypted { get; set; }
 }

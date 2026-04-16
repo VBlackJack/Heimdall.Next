@@ -19,6 +19,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Windows.Threading;
 using CommunityToolkit.Mvvm.Input;
+using Heimdall.Core.Configuration;
 using Heimdall.App.ViewModels.CommandLibrary;
 using Heimdall.App.ViewModels.Dialogs;
 using Microsoft.Extensions.DependencyInjection;
@@ -381,7 +382,7 @@ public sealed partial class CommandLibraryViewModel
         try
         {
             var fileInfo = new FileInfo(path);
-            if (fileInfo.Length > MaxImportFileSizeBytes)
+            if (fileInfo.Length > AppConstants.MaxImportFileSizeBytes)
             {
                 _dialogService.ShowError(
                     LocalizeKey("ToolCmdLibImportError"),

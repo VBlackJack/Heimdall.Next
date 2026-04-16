@@ -37,6 +37,7 @@
             <!-- Server selection -->
             <TextBlock x:Name="LblServer" Style="{StaticResource DialogLabelStyle}"/>
             <ComboBox ItemsSource="{Binding AvailableServers}"
+                      AutomationProperties.Name="{Binding Text, ElementName=LblServer}"
                       SelectedItem="{Binding SelectedServer}"
                       DisplayMemberPath="DisplayText"
                       Style="{StaticResource DialogFormComboBoxStyle}"
@@ -45,6 +46,7 @@
             <!-- Schedule type -->
             <TextBlock x:Name="LblScheduleType" Style="{StaticResource DialogLabelStyle}" Margin="0,12,0,4"/>
             <ComboBox x:Name="CmbScheduleType"
+                      AutomationProperties.Name="{Binding Text, ElementName=LblScheduleType}"
                       SelectedValue="{Binding ScheduleType}"
                       SelectedValuePath="Tag"
                       Style="{StaticResource DialogFormComboBoxStyle}"
@@ -57,6 +59,7 @@
             <StackPanel Visibility="{Binding IsDailySchedule, Converter={StaticResource BoolToVisibility}}">
                 <TextBlock x:Name="LblTimeOfDay" Style="{StaticResource DialogLabelStyle}" Margin="0,12,0,4"/>
                 <TextBox Text="{Binding TimeOfDay, UpdateSourceTrigger=PropertyChanged}"
+                         AutomationProperties.Name="{Binding Text, ElementName=LblTimeOfDay}"
                          Style="{StaticResource DialogFormTextBoxStyle}"
                          Width="120" HorizontalAlignment="Left"
                          MaxLength="5"
@@ -78,6 +81,7 @@
                                FontSize="{StaticResource FontSizeBody}"
                                Foreground="{DynamicResource TextSecondaryBrush}"/>
                     <TextBox Text="{Binding IntervalMinutes, UpdateSourceTrigger=PropertyChanged}"
+                             AutomationProperties.Name="{Binding Text, ElementName=LblInterval}"
                              Style="{StaticResource DialogFormTextBoxStyle}"
                              Width="100" HorizontalAlignment="Left"
                              MaxLength="5"
@@ -87,6 +91,7 @@
 
             <!-- Enabled checkbox -->
             <CheckBox x:Name="ChkEnabled"
+                      AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}"
                       IsChecked="{Binding IsEnabled}"
                       Margin="0,16,0,0"
                       TabIndex="4"/>
@@ -115,11 +120,13 @@
                     Margin="0,16,0,0">
             <Button x:Name="CancelBtn"
                     IsCancel="True"
+                    AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}"
                     MinWidth="80"
                     Margin="0,0,8,0"
                     Style="{DynamicResource SecondaryButtonStyle}"/>
             <Button x:Name="SaveBtn"
                     IsDefault="True"
+                    AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}"
                     MinWidth="80"
                     Click="OnSaveClick"
                     Style="{DynamicResource PrimaryButtonStyle}"/>

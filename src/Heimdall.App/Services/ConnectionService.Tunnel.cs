@@ -40,7 +40,7 @@ public partial class ConnectionService
         int remoteBindPort = 0,
         int remoteLocalPort = 0)
     {
-        Core.Logging.FileLogger.Info($"EstablishTunnelAsync: serverId={serverId} gatewayId={gatewayId} target={remoteHost}:{remotePort} requestedPort={localPort}");
+        Core.Logging.FileLogger.Info($"Establish tunnel: serverId={serverId} gatewayId={gatewayId} target={remoteHost}:{remotePort} requestedPort={localPort}");
 
         // Reuse existing tunnel if one is already active for the same remote target
         var existingTunnels = _tunnelManager.GetActiveTunnels();
@@ -141,6 +141,44 @@ public partial class ConnectionService
         }
 
         return result;
+    }
+
+    /// <summary>
+    /// Checks whether the server requires a tunnel and establishes it if needed.
+    /// Returns the resolved host and port to connect to.
+    /// </summary>
+    private async Task<(bool Success, bool UsesTunnel, string Host, int Port, string? ErrorMessage)>
+        SetupTunnelIfNeededAsync(
+            ServerProfileDto server,
+            int remotePort,
+            AppSettings settings,
+            CancellationToken ct)
+    {
+        if (server.UseDirectConnection || string.IsNullOrEmpty(server.SshGatewayId))
+        {
+            return (true, false, server.RemoteServer, remotePort, null);
+        }
+
+        var tunnelResult = await EstablishTunnelAsync(
+                server.Id,
+                server.SshGatewayId,
+                server.RemoteServer,
+                remotePort,
+                server.LocalPort,
+                settings,
+                ct,
+                server.SocksProxyPort,
+                server.RemoteBindPort,
+                server.RemoteLocalPort)
+            .ConfigureAwait(false);
+
+        if (!tunnelResult.Success)
+        {
+            return (false, false, string.Empty, 0, tunnelResult.ErrorMessage);
+        }
+
+        var localPort = tunnelResult.Tunnel?.LocalPort ?? server.LocalPort;
+        return (true, true, "127.0.0.1", localPort, null);
     }
 
     private async Task<TunnelResult> EstablishPlinkTunnelAsync(

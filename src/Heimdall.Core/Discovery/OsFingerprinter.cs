@@ -15,6 +15,7 @@
  */
 
 using System.Text.RegularExpressions;
+using Heimdall.Core.Models;
 
 namespace Heimdall.Core.Discovery;
 
@@ -144,7 +145,7 @@ public static class OsFingerprinter
             return new OsFingerprint("Windows", "Ports", 65);
 
         // RDP → Windows
-        if (portSet.Contains(3389))
+        if (portSet.Contains(DefaultPorts.Rdp))
             return new OsFingerprint("Windows", "Ports", 60);
 
         // SMB + RPC → Windows (Linux Samba possible but less likely)
@@ -152,7 +153,7 @@ public static class OsFingerprinter
             return new OsFingerprint("Windows", "Ports", 55);
 
         // SSH-only with no Windows ports → Linux (low confidence)
-        if (portSet.Contains(22) && !portSet.Contains(3389) &&
+        if (portSet.Contains(DefaultPorts.Ssh) && !portSet.Contains(DefaultPorts.Rdp) &&
             !portSet.Contains(445) && !portSet.Contains(135) &&
             !portSet.Contains(5985))
             return new OsFingerprint("Linux", "Ports", 40);

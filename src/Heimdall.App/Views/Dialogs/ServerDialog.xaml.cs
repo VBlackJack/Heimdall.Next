@@ -30,9 +30,9 @@ namespace Heimdall.App.Views.Dialogs;
 public partial class ServerDialog : Window
 {
     private readonly LocalizationManager? _localizer;
-    private readonly ConfigManager? _configManager;
+    private readonly IConfigManager? _configManager;
 
-    public ServerDialog(LocalizationManager localizer, ConfigManager configManager)
+    public ServerDialog(LocalizationManager localizer, IConfigManager configManager)
     {
         _localizer = localizer;
         _configManager = configManager;
@@ -65,7 +65,7 @@ public partial class ServerDialog : Window
 
     private void LoadAdvancedModePreference()
     {
-        // Always defer to Loaded so DataContext and ConfigManager are available.
+        // Always defer to Loaded so DataContext and the config service are available.
         Loaded += OnLoadedApplyAdvancedMode;
     }
 

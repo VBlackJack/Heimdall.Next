@@ -18,6 +18,7 @@ using System.IO;
 using System.Security.AccessControl;
 using System.Security.Principal;
 using System.Text;
+using Heimdall.Core.Models;
 
 namespace Heimdall.Rdp;
 
@@ -247,8 +248,8 @@ public sealed class RdpFileOptions
     /// <summary>Target host address.</summary>
     public required string Host { get; init; }
 
-    /// <summary>RDP port (default 3389).</summary>
-    public int Port { get; init; } = 3389;
+    /// <summary>RDP port (default remote desktop port).</summary>
+    public int Port { get; init; } = DefaultPorts.Rdp;
 
     /// <summary>Pre-filled username.</summary>
     public string? Username { get; init; }

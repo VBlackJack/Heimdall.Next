@@ -16,7 +16,7 @@
 
 using Heimdall.Core.Models;
 
-namespace Heimdall.App.Views.Tools;
+namespace Heimdall.App.Services;
 
 /// <summary>
 /// Shared preset catalog for the default credential scanner.

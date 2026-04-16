@@ -51,7 +51,7 @@ public sealed partial class SidebarViewModel : ObservableObject, IDisposable
 
     private readonly MainViewModel _main;
     private readonly LocalizationManager _localizer;
-    private readonly ConfigManager _configManager;
+    private readonly IConfigManager _configManager;
     private readonly ToolsTabPopulationService _toolsTabPopulation;
     private readonly IToolContextProvider _toolContext;
 
@@ -66,7 +66,7 @@ public sealed partial class SidebarViewModel : ObservableObject, IDisposable
     public SidebarViewModel(
         MainViewModel main,
         LocalizationManager localizer,
-        ConfigManager configManager,
+        IConfigManager configManager,
         ToolsTabPopulationService toolsTabPopulation,
         IToolContextProvider toolContext)
     {
@@ -170,7 +170,7 @@ public sealed partial class SidebarViewModel : ObservableObject, IDisposable
         catch (Exception ex)
         {
             FileLogger.Error($"Sidebar tool launch failed: {descriptor.Id}", ex);
-            _main.StatusText = $"Tool launch failed: {descriptor.Id} — {ex.Message}";
+            _main.StatusText = string.Format(_main.Localize("ErrorToolLaunchFailed"), descriptor.Id, ex.Message);
         }
     }
 

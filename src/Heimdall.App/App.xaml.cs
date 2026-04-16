@@ -108,7 +108,7 @@ public partial class App : System.Windows.Application
         _serviceProvider = services.BuildServiceProvider();
 
         // Initialize core services
-        var configManager = _serviceProvider.GetRequiredService<ConfigManager>();
+        var configManager = _serviceProvider.GetRequiredService<IConfigManager>();
         await configManager.InitializeAsync();
 
         var localization = _serviceProvider.GetRequiredService<LocalizationManager>();
@@ -265,8 +265,10 @@ public partial class App : System.Windows.Application
     private static void ConfigureServices(IServiceCollection services)
     {
         // Core services
-        services.AddSingleton<ConfigManager>(_ => new ConfigManager(
+        services.AddSingleton<IConfigManager>(_ => new ConfigManager(
             AppDomain.CurrentDomain.BaseDirectory));
+        services.AddSingleton<ConfigManager>(sp =>
+            (ConfigManager)sp.GetRequiredService<IConfigManager>());
         services.AddSingleton<LocalizationManager>();
         services.AddSingleton<ConnectionStateMachine>();
         services.AddSingleton<ApplicationStatusMachine>();
@@ -281,9 +283,15 @@ public partial class App : System.Windows.Application
         services.AddSingleton<ExternalToolProviderService>();
         services.AddSingleton<ToolRegistry>();
         services.AddSingleton<ThemeService>();
-        services.AddSingleton<ConnectionService>();
-        services.AddSingleton<EmbeddedSessionManager>();
-        services.AddSingleton<SplitService>();
+        services.AddSingleton<IConnectionService, ConnectionService>();
+        services.AddSingleton<ConnectionService>(sp =>
+            (ConnectionService)sp.GetRequiredService<IConnectionService>());
+        services.AddSingleton<IEmbeddedSessionManager, EmbeddedSessionManager>();
+        services.AddSingleton<EmbeddedSessionManager>(sp =>
+            (EmbeddedSessionManager)sp.GetRequiredService<IEmbeddedSessionManager>());
+        services.AddSingleton<ISplitService, SplitService>();
+        services.AddSingleton<SplitService>(sp =>
+            (SplitService)sp.GetRequiredService<ISplitService>());
         services.AddSingleton<ContextMenuFactory>();
         services.AddSingleton<SessionTabContextMenuFactory>();
         services.AddSingleton<SessionSplitService>();
@@ -389,7 +397,7 @@ public partial class App : System.Windows.Application
     /// Generates a new key on first run.
     /// </summary>
     private static async Task InitializeHmacKeyAsync(
-        ConfigManager configManager, AppSettings settings)
+        IConfigManager configManager, AppSettings settings)
     {
         if (string.IsNullOrWhiteSpace(settings.HmacKey))
         {
@@ -416,11 +424,11 @@ public partial class App : System.Windows.Application
 
     /// <summary>
     /// Detects a legacy Heimdall (PowerShell) installation by searching
-    /// for an RDPManager sibling directory up the directory tree.
+    /// for the legacy app folder up the directory tree.
     /// Only prompts on first run (when servers.json does not yet contain data).
     /// </summary>
     private static async Task TryMigrateLegacyAsync(
-        ConfigManager configManager, LocalizationManager localization)
+        IConfigManager configManager, LocalizationManager localization)
     {
         // Only offer migration when servers.json is empty or missing (first run)
         var existingServers = await configManager.LoadServersAsync();
@@ -429,20 +437,20 @@ public partial class App : System.Windows.Application
             return;
         }
 
-        // Walk up from the base directory looking for a sibling RDPManager folder
+        // Walk up from the base directory looking for the legacy app folder
         var searchDir = new DirectoryInfo(AppDomain.CurrentDomain.BaseDirectory);
         string? legacyPath = null;
 
         while (searchDir?.Parent != null)
         {
-            var candidate = Path.Combine(searchDir.Parent.FullName, "RDPManager");
+            var candidate = Path.Combine(searchDir.Parent.FullName, AppConstants.LegacyAppFolderName);
             if (MigrationService.DetectLegacyInstallation(candidate))
             {
                 legacyPath = candidate;
                 break;
             }
 
-            candidate = Path.Combine(searchDir.FullName, "RDPManager");
+            candidate = Path.Combine(searchDir.FullName, AppConstants.LegacyAppFolderName);
             if (MigrationService.DetectLegacyInstallation(candidate))
             {
                 legacyPath = candidate;

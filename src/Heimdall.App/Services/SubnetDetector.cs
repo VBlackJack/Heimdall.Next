@@ -15,10 +15,9 @@
  */
 
 using System.Text.RegularExpressions;
-using Heimdall.App.Services;
 using Heimdall.Core.Configuration;
 
-namespace Heimdall.App.Views.Tools;
+namespace Heimdall.App.Services;
 
 /// <summary>
 /// Shared subnet detection utilities for network tools. Detects the local

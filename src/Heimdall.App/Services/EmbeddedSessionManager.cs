@@ -32,7 +32,7 @@ namespace Heimdall.App.Services;
 /// Creates visual hosts for connection sessions so the shell can render
 /// embedded protocol surfaces without teaching the ViewModel layer about WPF.
 /// </summary>
-public sealed class EmbeddedSessionManager
+public sealed class EmbeddedSessionManager : IEmbeddedSessionManager
 {
     private readonly LocalizationManager _localizer;
     private readonly IDialogService _dialogService;

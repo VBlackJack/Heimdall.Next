@@ -2,6 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:converters="clr-namespace:Heimdall.App.Converters"
+        xmlns:loc="clr-namespace:Heimdall.App.Localization"
         xmlns:vm="clr-namespace:Heimdall.App.ViewModels.Dialogs"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -255,6 +256,7 @@
 
                         <!-- RDP -->
                         <Button x:Name="ProtocolCard_Rdp" Command="{Binding SelectProtocolCommand}" CommandParameter="RDP"
+                                AutomationProperties.Name="{loc:Translate ServerDialogProtocolRdpName}"
                                 Style="{StaticResource ProtocolCardButtonStyle}">
                             <StackPanel HorizontalAlignment="Center">
                                 <Path Data="{StaticResource Geo.Protocol.Rdp}"
@@ -274,6 +276,7 @@
 
                         <!-- SSH -->
                         <Button x:Name="ProtocolCard_Ssh" Command="{Binding SelectProtocolCommand}" CommandParameter="SSH"
+                                AutomationProperties.Name="{loc:Translate ServerDialogProtocolSshName}"
                                 Style="{StaticResource ProtocolCardButtonStyle}">
                             <StackPanel HorizontalAlignment="Center">
                                 <Path Data="{StaticResource Geo.Protocol.Ssh}"
@@ -293,6 +296,7 @@
 
                         <!-- SFTP -->
                         <Button x:Name="ProtocolCard_Sftp" Command="{Binding SelectProtocolCommand}" CommandParameter="SFTP"
+                                AutomationProperties.Name="{loc:Translate ServerDialogProtocolSftpName}"
                                 Style="{StaticResource ProtocolCardButtonStyle}">
                             <StackPanel HorizontalAlignment="Center">
                                 <Path Data="{StaticResource Geo.Protocol.Sftp}"
@@ -312,6 +316,7 @@
 
                         <!-- VNC -->
                         <Button x:Name="ProtocolCard_Vnc" Command="{Binding SelectProtocolCommand}" CommandParameter="VNC"
+                                AutomationProperties.Name="{loc:Translate ServerDialogProtocolVncName}"
                                 Style="{StaticResource ProtocolCardButtonStyle}">
                             <StackPanel HorizontalAlignment="Center">
                                 <Path Data="{StaticResource Geo.Protocol.Vnc}"
@@ -331,6 +336,7 @@
 
                         <!-- Telnet -->
                         <Button x:Name="ProtocolCard_Telnet" Command="{Binding SelectProtocolCommand}" CommandParameter="Telnet"
+                                AutomationProperties.Name="{loc:Translate ServerDialogProtocolTelnetName}"
                                 Style="{StaticResource ProtocolCardButtonStyle}">
                             <StackPanel HorizontalAlignment="Center">
                                 <Path Data="{StaticResource Geo.Protocol.Telnet}"
@@ -350,6 +356,7 @@
 
                         <!-- FTP -->
                         <Button x:Name="ProtocolCard_Ftp" Command="{Binding SelectProtocolCommand}" CommandParameter="FTP"
+                                AutomationProperties.Name="{loc:Translate ServerDialogProtocolFtpName}"
                                 Style="{StaticResource ProtocolCardButtonStyle}">
                             <StackPanel HorizontalAlignment="Center">
                                 <Path Data="{StaticResource Geo.Protocol.Ftp}"
@@ -369,6 +376,7 @@
 
                         <!-- Citrix -->
                         <Button x:Name="ProtocolCard_Citrix" Command="{Binding SelectProtocolCommand}" CommandParameter="Citrix"
+                                AutomationProperties.Name="{loc:Translate ServerDialogProtocolCitrixName}"
                                 Style="{StaticResource ProtocolCardButtonStyle}">
                             <StackPanel HorizontalAlignment="Center">
                                 <Path Data="{StaticResource Geo.Protocol.Citrix}"
@@ -388,6 +396,7 @@
 
                         <!-- Local Shell -->
                         <Button x:Name="ProtocolCard_Local" Command="{Binding SelectProtocolCommand}" CommandParameter="Local"
+                                AutomationProperties.Name="{loc:Translate ServerDialogProtocolLocalName}"
                                 Style="{StaticResource ProtocolCardButtonStyle}">
                             <StackPanel HorizontalAlignment="Center">
                                 <Path Data="{StaticResource Geo.Protocol.LocalShell}"
@@ -446,6 +455,7 @@
                 <!-- Back button (add mode only, after protocol selection) -->
                 <Button x:Name="DlgSrv_BackBtn" Margin="0,0,0,12"
                         Command="{Binding BackToProtocolSelectorCommand}"
+                        AutomationProperties.Name="{loc:Translate ServerDialogBtnBack}"
                         MinWidth="80" HorizontalAlignment="Left"
                         TabIndex="0">
                     <Button.Style>
@@ -482,6 +492,7 @@
                             <TextBlock x:Name="DlgSrv_DisplayNameLabel" Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" Style="{StaticResource LabelStyle}"/>
                             <TextBox x:Name="DlgSrv_DisplayNameBox" Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
                                      TabIndex="0"
+                                     AutomationProperties.Name="{Binding Text, ElementName=DlgSrv_DisplayNameLabel}"
                                      Text="{Binding DisplayName, UpdateSourceTrigger=PropertyChanged}"
                                      Style="{StaticResource DialogFormTextBoxStyle}"/>
                             <!-- Inline validation: Display Name -->
@@ -520,6 +531,7 @@
                             </TextBlock>
                             <TextBox x:Name="DlgSrv_RemoteServerBox" Grid.Row="4" Grid.Column="0"
                                      TabIndex="2"
+                                     AutomationProperties.Name="{Binding Text, ElementName=DlgSrv_ServerLabel}"
                                      Text="{Binding RemoteServer, UpdateSourceTrigger=PropertyChanged}">
                                 <TextBox.Style>
                                     <Style TargetType="TextBox" BasedOn="{StaticResource DialogFormTextBoxStyle}">
@@ -536,6 +548,7 @@
                             </TextBox>
                             <TextBox x:Name="DlgSrv_EndpointPortBox" Grid.Row="4" Grid.Column="1"
                                      TabIndex="3"
+                                     AutomationProperties.Name="{Binding EndpointPortLabel}"
                                      Margin="12,0,0,0"
                                      Width="120"
                                      HorizontalAlignment="Left"
@@ -587,6 +600,7 @@
                     <StackPanel>
                         <TextBlock x:Name="DlgSrv_ProjectLabel" Style="{StaticResource LabelStyle}"/>
                         <ComboBox x:Name="DlgSrv_ProjectCmb" TabIndex="4"
+                                  AutomationProperties.Name="{loc:Translate ServerDialogLabelProject}"
                                   ItemsSource="{Binding AvailableProjects}"
                                   SelectedValue="{Binding SelectedProjectId}"
                                   SelectedValuePath="Id"
@@ -600,12 +614,14 @@
                                        Style="{StaticResource DialogSectionDescriptionStyle}"/>
                             <CheckBox x:Name="DlgSrv_DirectConnectCb"
                                       TabIndex="5"
+                                      AutomationProperties.Name="{loc:Translate A11yUseDirectConnection}"
                                       IsChecked="{Binding DirectConnection}"
                                       Style="{StaticResource DialogFormCheckBoxStyle}"
                                       Margin="0,14,0,0"/>
                             <Grid Margin="0,12,0,0">
                                 <ComboBox x:Name="DlgSrv_GatewayCmb"
                                           TabIndex="6"
+                                          AutomationProperties.Name="{loc:Translate ServerFieldGateway}"
                                           ItemsSource="{Binding AvailableGateways}"
                                           SelectedValue="{Binding SelectedGatewayId}"
                                           SelectedValuePath="Id"
@@ -641,10 +657,13 @@
                                    Style="{StaticResource DialogSectionDescriptionStyle}"/>
                         <TextBlock x:Name="DlgSrv_BasicRdpUsernameLabel" Style="{StaticResource LabelStyle}" Margin="0,14,0,4"/>
                         <TextBox x:Name="DlgSrv_BasicRdpUsernameBox" TabIndex="10"
+                                 AutomationProperties.Name="{loc:Translate ServerDialogLabelUsername}"
                                  Text="{Binding RdpUsername, UpdateSourceTrigger=PropertyChanged}"
                                  Style="{StaticResource DialogFormTextBoxStyle}"/>
                         <TextBlock x:Name="DlgSrv_BasicRdpPasswordLabel" Style="{StaticResource LabelStyle}" Margin="0,12,0,4"/>
-                        <PasswordBox x:Name="RdpPasswordBox" TabIndex="11" Style="{StaticResource DialogFormPasswordBoxStyle}"/>
+                        <PasswordBox x:Name="RdpPasswordBox" TabIndex="11"
+                                     AutomationProperties.Name="{loc:Translate ServerDialogLabelPassword}"
+                                     Style="{StaticResource DialogFormPasswordBoxStyle}"/>
                     </StackPanel>
                 </Border>
 
@@ -669,20 +688,27 @@
                                    Style="{StaticResource DialogSectionDescriptionStyle}"/>
                         <TextBlock x:Name="DlgSrv_BasicSshUsernameLabel" Style="{StaticResource LabelStyle}" Margin="0,14,0,4"/>
                         <TextBox x:Name="DlgSrv_BasicSshUsernameBox" TabIndex="10"
+                                 AutomationProperties.Name="{loc:Translate ServerDialogLabelUsername}"
                                  Text="{Binding SshUsername, UpdateSourceTrigger=PropertyChanged}"
                                  Style="{StaticResource DialogFormTextBoxStyle}"/>
                         <TextBlock x:Name="DlgSrv_BasicSshKeyLabel" Style="{StaticResource LabelStyle}" Margin="0,12,0,4"/>
                         <DockPanel>
                             <Button x:Name="DlgSrv_BasicBrowseBtn"
                                     DockPanel.Dock="Right"
+                                    AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}"
                                     Command="{Binding BrowseSshKeyCommand}"
                                     Style="{DynamicResource SecondaryButtonStyle}"
                                     Margin="8,0,0,0"
                                     Click="OnBrowseSshKeyClick"/>
-                            <TextBox x:Name="DlgSrv_SshKeyPathBox" TabIndex="11" Text="{Binding SshKeyPath, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource DialogFormTextBoxStyle}"/>
+                            <TextBox x:Name="DlgSrv_SshKeyPathBox" TabIndex="11"
+                                     AutomationProperties.Name="{Binding Text, ElementName=DlgSrv_BasicSshKeyLabel}"
+                                     Text="{Binding SshKeyPath, UpdateSourceTrigger=PropertyChanged}"
+                                     Style="{StaticResource DialogFormTextBoxStyle}"/>
                         </DockPanel>
                         <TextBlock x:Name="DlgSrv_BasicPassphraseLabel" Text="{Binding SshPasswordLabel}" Style="{StaticResource LabelStyle}" Margin="0,12,0,4"/>
-                        <PasswordBox x:Name="SshPasswordBox" TabIndex="12" Style="{StaticResource DialogFormPasswordBoxStyle}"/>
+                        <PasswordBox x:Name="SshPasswordBox" TabIndex="12"
+                                     AutomationProperties.Name="{Binding Text, ElementName=DlgSrv_BasicPassphraseLabel}"
+                                     Style="{StaticResource DialogFormPasswordBoxStyle}"/>
                         <TextBlock x:Name="DlgSrv_BasicSshAuthHint" Text="{Binding SshAuthHint}"
                                    Style="{StaticResource DialogHintTextStyle}" Margin="0,8,0,0"
                                    TextWrapping="Wrap"/>
@@ -706,7 +732,9 @@
                         <TextBlock x:Name="DlgSrv_BasicVncCredentialsDesc"
                                    Style="{StaticResource DialogSectionDescriptionStyle}"/>
                         <TextBlock x:Name="DlgSrv_BasicVncPasswordLabel" Style="{StaticResource LabelStyle}" Margin="0,14,0,4"/>
-                        <PasswordBox x:Name="VncPasswordBox" TabIndex="10" Style="{StaticResource DialogFormPasswordBoxStyle}"/>
+                        <PasswordBox x:Name="VncPasswordBox" TabIndex="10"
+                                     AutomationProperties.Name="{loc:Translate ServerDialogLabelPassword}"
+                                     Style="{StaticResource DialogFormPasswordBoxStyle}"/>
                     </StackPanel>
                 </Border>
 
@@ -727,9 +755,14 @@
                         <TextBlock x:Name="DlgSrv_BasicFtpCredentialsDesc"
                                    Style="{StaticResource DialogSectionDescriptionStyle}"/>
                         <TextBlock x:Name="DlgSrv_BasicFtpUsernameLabel" Style="{StaticResource LabelStyle}" Margin="0,14,0,4"/>
-                        <TextBox x:Name="DlgSrv_FtpUsernameBox" TabIndex="10" Text="{Binding FtpUsername, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource DialogFormTextBoxStyle}"/>
+                        <TextBox x:Name="DlgSrv_FtpUsernameBox" TabIndex="10"
+                                 AutomationProperties.Name="{loc:Translate ServerDialogLabelUsername}"
+                                 Text="{Binding FtpUsername, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{StaticResource DialogFormTextBoxStyle}"/>
                         <TextBlock x:Name="DlgSrv_BasicFtpPasswordLabel" Style="{StaticResource LabelStyle}" Margin="0,12,0,4"/>
-                        <PasswordBox x:Name="FtpPasswordBox" TabIndex="11" Style="{StaticResource DialogFormPasswordBoxStyle}"/>
+                        <PasswordBox x:Name="FtpPasswordBox" TabIndex="11"
+                                     AutomationProperties.Name="{loc:Translate ServerDialogLabelPassword}"
+                                     Style="{StaticResource DialogFormPasswordBoxStyle}"/>
                     </StackPanel>
                 </Border>
 
@@ -750,9 +783,14 @@
                         <TextBlock x:Name="DlgSrv_BasicTelnetCredentialsDesc"
                                    Style="{StaticResource DialogSectionDescriptionStyle}"/>
                         <TextBlock x:Name="DlgSrv_BasicTelnetUsernameLabel" Style="{StaticResource LabelStyle}" Margin="0,14,0,4"/>
-                        <TextBox x:Name="DlgSrv_TelnetUsernameBox" TabIndex="10" Text="{Binding TelnetUsername, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource DialogFormTextBoxStyle}"/>
+                        <TextBox x:Name="DlgSrv_TelnetUsernameBox" TabIndex="10"
+                                 AutomationProperties.Name="{loc:Translate ServerDialogLabelUsername}"
+                                 Text="{Binding TelnetUsername, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{StaticResource DialogFormTextBoxStyle}"/>
                         <TextBlock x:Name="DlgSrv_BasicTelnetPasswordLabel" Style="{StaticResource LabelStyle}" Margin="0,12,0,4"/>
-                        <PasswordBox x:Name="TelnetPasswordBox" TabIndex="11" Style="{StaticResource DialogFormPasswordBoxStyle}"/>
+                        <PasswordBox x:Name="TelnetPasswordBox" TabIndex="11"
+                                     AutomationProperties.Name="{loc:Translate ServerDialogLabelPassword}"
+                                     Style="{StaticResource DialogFormPasswordBoxStyle}"/>
                     </StackPanel>
                 </Border>
 
@@ -775,6 +813,7 @@
                         <TextBlock x:Name="DlgSrv_BasicExecutableLabel" Style="{StaticResource LabelStyle}" Margin="0,14,0,4"/>
                         <ComboBox x:Name="DlgSrv_BasicShellCombo"
                                   TabIndex="10"
+                                  AutomationProperties.Name="{loc:Translate ServerDialogLabelExecutable}"
                                   IsEditable="True"
                                   TextSearch.TextPath="Tag"
                                   Text="{Binding LocalShellExecutable, UpdateSourceTrigger=PropertyChanged}"
@@ -787,6 +826,7 @@
                         </ComboBox>
                         <TextBlock x:Name="DlgSrv_BasicArgumentsLabel" Style="{StaticResource LabelStyle}" Margin="0,12,0,4"/>
                         <TextBox x:Name="DlgSrv_ShellArgsBox" TabIndex="11"
+                                 AutomationProperties.Name="{loc:Translate ServerDialogLabelArguments}"
                                  Text="{Binding LocalShellArguments, UpdateSourceTrigger=PropertyChanged}"
                                  Style="{StaticResource DialogFormTextBoxStyle}"/>
                     </StackPanel>
@@ -810,10 +850,12 @@
                                    Style="{StaticResource DialogSectionDescriptionStyle}"/>
                         <TextBlock x:Name="DlgSrv_BasicStoreFrontLabel" Style="{StaticResource LabelStyle}" Margin="0,14,0,4"/>
                         <TextBox x:Name="DlgSrv_StoreFrontBox" TabIndex="10"
+                                 AutomationProperties.Name="{loc:Translate ServerDialogLabelStoreFrontUrl}"
                                  Text="{Binding CitrixStoreFrontUrl, UpdateSourceTrigger=PropertyChanged}"
                                  Style="{StaticResource DialogFormTextBoxStyle}"/>
                         <TextBlock x:Name="DlgSrv_BasicAppNameLabel" Style="{StaticResource LabelStyle}" Margin="0,12,0,4"/>
                         <TextBox x:Name="DlgSrv_CitrixAppNameBox" TabIndex="11"
+                                 AutomationProperties.Name="{loc:Translate ServerDialogLabelAppName}"
                                  Text="{Binding CitrixAppName, UpdateSourceTrigger=PropertyChanged}"
                                  Style="{StaticResource DialogFormTextBoxStyle}"/>
                     </StackPanel>
@@ -825,6 +867,7 @@
 
                 <ToggleButton x:Name="DlgSrv_AdvancedToggle"
                               IsChecked="{Binding IsAdvancedMode}"
+                              AutomationProperties.Name="{loc:Translate ServerDialogAdvancedSettings}"
                               Style="{StaticResource AdvancedToggleStyle}"
                               Margin="0,0,0,12"/>
 
@@ -882,12 +925,16 @@
                         </Style>
                     </Border.Style>
 
-                    <TabControl x:Name="MainTabControl" Style="{DynamicResource ThemedTabControlStyle}">
+                    <TabControl x:Name="MainTabControl"
+                                AutomationProperties.Name="{loc:Translate A11yServerDialogTabs}"
+                                Style="{DynamicResource ThemedTabControlStyle}">
 
                         <!-- ============================================ -->
                         <!-- Tab: Connection details (path diagram)       -->
                         <!-- ============================================ -->
-                        <TabItem x:Name="DlgSrv_TabConnection" Style="{DynamicResource ThemedTabItemStyle}">
+                        <TabItem x:Name="DlgSrv_TabConnection"
+                                 AutomationProperties.Name="{loc:Translate ServerDialogTabConnection}"
+                                 Style="{DynamicResource ThemedTabItemStyle}">
                             <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                                 <StackPanel Margin="{StaticResource SpacingSm}">
                                     <!-- Gateway detail card (visible only when gateway selected) -->
@@ -983,6 +1030,7 @@
                         <!-- Tab: Tunneling                               -->
                         <!-- ============================================ -->
                         <TabItem x:Name="DlgSrv_TabTunneling"
+                                 AutomationProperties.Name="{loc:Translate ServerDialogTabTunneling}"
                                  ToolTipService.ShowOnDisabled="True">
                             <TabItem.Header>
                                 <StackPanel Orientation="Horizontal">
@@ -1068,6 +1116,7 @@
                                                        Style="{StaticResource DialogSectionDescriptionStyle}"/>
                                             <CheckBox x:Name="DlgSrv_AutoTunnelPortCb"
                                                       TabIndex="20"
+                                                      AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}"
                                                       IsChecked="{Binding UseAutomaticTunnelPort}"
                                                       Style="{StaticResource DialogFormCheckBoxStyle}"
                                                       Margin="0,14,0,0"/>
@@ -1080,6 +1129,7 @@
                                                 <TextBlock x:Name="DlgSrv_ManualPortLabel" Grid.Column="0" Style="{StaticResource LabelStyle}" Margin="0,6,0,0"/>
                                                 <TextBox x:Name="DlgSrv_LocalPortBox" Grid.Column="1"
                                                          TabIndex="21"
+                                                         AutomationProperties.Name="{loc:Translate A11yLocalTunnelPort}"
                                                          Width="140"
                                                          HorizontalAlignment="Left"
                                                          Text="{Binding LocalPort, UpdateSourceTrigger=PropertyChanged}"
@@ -1116,6 +1166,7 @@
                                                 <TextBlock x:Name="DlgSrv_SocksPortLabel" Grid.Column="0" Style="{StaticResource LabelStyle}" Margin="0,6,0,0"/>
                                                 <TextBox x:Name="DlgSrv_SocksPortBox" Grid.Column="1"
                                                          TabIndex="22"
+                                                         AutomationProperties.Name="{Binding Text, ElementName=DlgSrv_SocksPortLabel}"
                                                          Width="140"
                                                          HorizontalAlignment="Left"
                                                          Text="{Binding SocksProxyPort, UpdateSourceTrigger=PropertyChanged}"
@@ -1149,6 +1200,7 @@
                                                 <TextBlock x:Name="DlgSrv_RemoteBindPortLabel" Grid.Column="0" Style="{StaticResource LabelStyle}" Margin="0,6,0,0"/>
                                                 <TextBox x:Name="DlgSrv_RemoteBindPortBox" Grid.Column="1"
                                                          TabIndex="23"
+                                                         AutomationProperties.Name="{Binding Text, ElementName=DlgSrv_RemoteBindPortLabel}"
                                                          Width="140"
                                                          HorizontalAlignment="Left"
                                                          MaxLength="5"
@@ -1163,6 +1215,7 @@
                                                 <TextBlock x:Name="DlgSrv_RemoteLocalPortLabel" Grid.Column="0" Style="{StaticResource LabelStyle}" Margin="0,6,0,0"/>
                                                 <TextBox x:Name="DlgSrv_RemoteLocalPortBox" Grid.Column="1"
                                                          TabIndex="24"
+                                                         AutomationProperties.Name="{Binding Text, ElementName=DlgSrv_RemoteLocalPortLabel}"
                                                          Width="140"
                                                          HorizontalAlignment="Left"
                                                          MaxLength="5"
@@ -1215,6 +1268,7 @@
                         <!-- Tab: Gateway Authentication                  -->
                         <!-- ============================================ -->
                         <TabItem x:Name="DlgSrv_TabAuthentication"
+                                 AutomationProperties.Name="{loc:Translate ServerDialogTabAuthentication}"
                                  ToolTipService.ShowOnDisabled="True">
                             <TabItem.Style>
                                 <Style TargetType="TabItem" BasedOn="{StaticResource ThemedTabItemStyle}">
@@ -1238,6 +1292,7 @@
                                             <TextBlock Text="{Binding SelectedGatewayEndpoint}" Style="{StaticResource DialogHintTextStyle}" Margin="0,4,0,0"/>
                                             <Button x:Name="DlgSrv_EditGatewayBtn"
                                                     Click="OnEditGatewayClick"
+                                                    AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}"
                                                     Style="{DynamicResource SecondaryButtonStyle}"
                                                     Margin="0,14,0,0"
                                                     HorizontalAlignment="Left"/>
@@ -1250,7 +1305,9 @@
                         <!-- ============================================ -->
                         <!-- Tab: Options                                 -->
                         <!-- ============================================ -->
-                        <TabItem x:Name="DlgSrv_TabOptions" Style="{DynamicResource ThemedTabItemStyle}">
+                        <TabItem x:Name="DlgSrv_TabOptions"
+                                 AutomationProperties.Name="{loc:Translate ServerDialogTabOptions}"
+                                 Style="{DynamicResource ThemedTabItemStyle}">
                             <TabItem.Header>
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock x:Name="DlgSrv_TabOptionsText"/>
@@ -1299,6 +1356,7 @@
                                                 <TextBlock x:Name="DlgSrv_SessionModeLabel" Grid.Row="0" Grid.Column="0" Style="{StaticResource LabelStyle}" Margin="0,0,0,4"/>
                                                 <TextBlock x:Name="DlgSrv_AspectRatioLabel" Grid.Row="0" Grid.Column="1" Style="{StaticResource LabelStyle}" Margin="12,0,0,4"/>
                                                 <ComboBox Grid.Row="1" Grid.Column="0"
+                                                          AutomationProperties.Name="{Binding Text, ElementName=DlgSrv_SessionModeLabel}"
                                                           TabIndex="60"
                                                           SelectedValue="{Binding RdpMode}"
                                                           SelectedValuePath="Tag"
@@ -1307,6 +1365,7 @@
                                                     <ComboBoxItem x:Name="DlgSrv_RdpModeExternal" Content="" Tag="External"/>
                                                 </ComboBox>
                                                 <ComboBox Grid.Row="1" Grid.Column="1"
+                                                          AutomationProperties.Name="{Binding Text, ElementName=DlgSrv_AspectRatioLabel}"
                                                           TabIndex="61"
                                                           Margin="12,0,0,0"
                                                           SelectedValue="{Binding RdpAspectRatio}"
@@ -1319,6 +1378,7 @@
                                                 <TextBlock x:Name="DlgSrv_ColorDepthLabel" Grid.Row="2" Grid.Column="1" Style="{StaticResource LabelStyle}" Margin="12,14,0,4"/>
                                                 <ComboBox x:Name="DlgSrv_RdpAudioModeCombo" Grid.Row="3" Grid.Column="0"
                                                           TabIndex="62"
+                                                          AutomationProperties.Name="{Binding Text, ElementName=DlgSrv_AudioModeLabel}"
                                                           SelectedValue="{Binding RdpAudioMode}"
                                                           SelectedValuePath="Tag"
                                                           Style="{StaticResource DialogFormComboBoxStyle}">
@@ -1328,6 +1388,7 @@
                                                 </ComboBox>
                                                 <ComboBox x:Name="DlgSrv_RdpColorDepthCombo" Grid.Row="3" Grid.Column="1"
                                                           TabIndex="63"
+                                                          AutomationProperties.Name="{loc:Translate A11yServerRdpColorDepth}"
                                                           Margin="12,0,0,0"
                                                           SelectedValue="{Binding RdpColorDepth}"
                                                           SelectedValuePath="Tag"
@@ -1348,10 +1409,10 @@
                                                            Visibility="{Binding ColorDepthError, Converter={StaticResource NullToVisibilityConverter}}"/>
                                             </Grid>
                                             <StackPanel Margin="0,14,0,0">
-                                                <CheckBox x:Name="DlgSrv_NlaCb" TabIndex="64" IsChecked="{Binding RdpNla}" Style="{StaticResource DialogFormCheckBoxStyle}"/>
-                                                <CheckBox x:Name="DlgSrv_MultiMonitorCb" TabIndex="65" IsChecked="{Binding RdpMultiMonitor}" Style="{StaticResource DialogFormCheckBoxStyle}" Margin="0,6,0,0"/>
-                                                <CheckBox x:Name="DlgSrv_DynamicResCb" TabIndex="66" IsChecked="{Binding RdpDynamicResolution}" Style="{StaticResource DialogFormCheckBoxStyle}" Margin="0,6,0,0"/>
-                                                <CheckBox x:Name="DlgSrv_AudioCaptureCb" TabIndex="67" IsChecked="{Binding RdpAudioCapture}" Style="{StaticResource DialogFormCheckBoxStyle}" Margin="0,6,0,0"/>
+                                                <CheckBox x:Name="DlgSrv_NlaCb" TabIndex="64" AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}" IsChecked="{Binding RdpNla}" Style="{StaticResource DialogFormCheckBoxStyle}"/>
+                                                <CheckBox x:Name="DlgSrv_MultiMonitorCb" TabIndex="65" AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}" IsChecked="{Binding RdpMultiMonitor}" Style="{StaticResource DialogFormCheckBoxStyle}" Margin="0,6,0,0"/>
+                                                <CheckBox x:Name="DlgSrv_DynamicResCb" TabIndex="66" AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}" IsChecked="{Binding RdpDynamicResolution}" Style="{StaticResource DialogFormCheckBoxStyle}" Margin="0,6,0,0"/>
+                                                <CheckBox x:Name="DlgSrv_AudioCaptureCb" TabIndex="67" AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}" IsChecked="{Binding RdpAudioCapture}" Style="{StaticResource DialogFormCheckBoxStyle}" Margin="0,6,0,0"/>
                                             </StackPanel>
                                         </StackPanel>
                                     </Border>
@@ -1369,13 +1430,13 @@
                                             </Style>
                                         </Expander.Style>
                                         <StackPanel Margin="0,12,0,0">
-                                            <CheckBox x:Name="DlgSrv_RedirClipboardCb" TabIndex="68" IsChecked="{Binding RedirectClipboard}" Style="{StaticResource DialogFormCheckBoxStyle}"/>
-                                            <CheckBox x:Name="DlgSrv_RedirDrivesCb" TabIndex="69" IsChecked="{Binding RedirectDrives}" Style="{StaticResource DialogFormCheckBoxStyle}" Margin="0,6,0,0"/>
-                                            <CheckBox x:Name="DlgSrv_RedirPrintersCb" TabIndex="70" IsChecked="{Binding RedirectPrinters}" Style="{StaticResource DialogFormCheckBoxStyle}" Margin="0,6,0,0"/>
-                                            <CheckBox x:Name="DlgSrv_RedirComPortsCb" TabIndex="71" IsChecked="{Binding RdpRedirectComPorts}" Style="{StaticResource DialogFormCheckBoxStyle}" Margin="0,6,0,0"/>
-                                            <CheckBox x:Name="DlgSrv_RedirSmartCardsCb" TabIndex="72" IsChecked="{Binding RdpRedirectSmartCards}" Style="{StaticResource DialogFormCheckBoxStyle}" Margin="0,6,0,0"/>
-                                            <CheckBox x:Name="DlgSrv_RedirWebcamCb" TabIndex="73" IsChecked="{Binding RdpRedirectWebcam}" Style="{StaticResource DialogFormCheckBoxStyle}" Margin="0,6,0,0"/>
-                                            <CheckBox x:Name="DlgSrv_RedirUsbCb" TabIndex="74" IsChecked="{Binding RdpRedirectUsb}" Style="{StaticResource DialogFormCheckBoxStyle}" Margin="0,6,0,0"/>
+                                            <CheckBox x:Name="DlgSrv_RedirClipboardCb" TabIndex="68" AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}" IsChecked="{Binding RedirectClipboard}" Style="{StaticResource DialogFormCheckBoxStyle}"/>
+                                            <CheckBox x:Name="DlgSrv_RedirDrivesCb" TabIndex="69" AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}" IsChecked="{Binding RedirectDrives}" Style="{StaticResource DialogFormCheckBoxStyle}" Margin="0,6,0,0"/>
+                                            <CheckBox x:Name="DlgSrv_RedirPrintersCb" TabIndex="70" AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}" IsChecked="{Binding RedirectPrinters}" Style="{StaticResource DialogFormCheckBoxStyle}" Margin="0,6,0,0"/>
+                                            <CheckBox x:Name="DlgSrv_RedirComPortsCb" TabIndex="71" AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}" IsChecked="{Binding RdpRedirectComPorts}" Style="{StaticResource DialogFormCheckBoxStyle}" Margin="0,6,0,0"/>
+                                            <CheckBox x:Name="DlgSrv_RedirSmartCardsCb" TabIndex="72" AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}" IsChecked="{Binding RdpRedirectSmartCards}" Style="{StaticResource DialogFormCheckBoxStyle}" Margin="0,6,0,0"/>
+                                            <CheckBox x:Name="DlgSrv_RedirWebcamCb" TabIndex="73" AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}" IsChecked="{Binding RdpRedirectWebcam}" Style="{StaticResource DialogFormCheckBoxStyle}" Margin="0,6,0,0"/>
+                                            <CheckBox x:Name="DlgSrv_RedirUsbCb" TabIndex="74" AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}" IsChecked="{Binding RdpRedirectUsb}" Style="{StaticResource DialogFormCheckBoxStyle}" Margin="0,6,0,0"/>
                                         </StackPanel>
                                     </Expander>
 
@@ -1392,11 +1453,11 @@
                                             </Style>
                                         </Expander.Style>
                                         <StackPanel Margin="0,12,0,0">
-                                            <CheckBox x:Name="DlgSrv_GlobalDefaultsCb" TabIndex="75" IsChecked="{Binding RdpUseGlobalDefaults}" Style="{StaticResource DialogFormCheckBoxStyle}"/>
-                                            <CheckBox x:Name="DlgSrv_AntiIdleCb" TabIndex="76" IsChecked="{Binding RdpAntiIdle}" Style="{StaticResource DialogFormCheckBoxStyle}" Margin="0,6,0,0"/>
-                                            <CheckBox x:Name="DlgSrv_BitmapCacheCb" TabIndex="77" IsChecked="{Binding RdpBitmapCaching}" Style="{StaticResource DialogFormCheckBoxStyle}" Margin="0,6,0,0"/>
-                                            <CheckBox x:Name="DlgSrv_RdpCompressionCb" TabIndex="78" IsChecked="{Binding RdpCompression}" Style="{StaticResource DialogFormCheckBoxStyle}" Margin="0,6,0,0"/>
-                                            <CheckBox x:Name="DlgSrv_AutoReconnectCb" TabIndex="79" IsChecked="{Binding RdpAutoReconnect}" Style="{StaticResource DialogFormCheckBoxStyle}" Margin="0,6,0,0"/>
+                                            <CheckBox x:Name="DlgSrv_GlobalDefaultsCb" TabIndex="75" AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}" IsChecked="{Binding RdpUseGlobalDefaults}" Style="{StaticResource DialogFormCheckBoxStyle}"/>
+                                            <CheckBox x:Name="DlgSrv_AntiIdleCb" TabIndex="76" AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}" IsChecked="{Binding RdpAntiIdle}" Style="{StaticResource DialogFormCheckBoxStyle}" Margin="0,6,0,0"/>
+                                            <CheckBox x:Name="DlgSrv_BitmapCacheCb" TabIndex="77" AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}" IsChecked="{Binding RdpBitmapCaching}" Style="{StaticResource DialogFormCheckBoxStyle}" Margin="0,6,0,0"/>
+                                            <CheckBox x:Name="DlgSrv_RdpCompressionCb" TabIndex="78" AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}" IsChecked="{Binding RdpCompression}" Style="{StaticResource DialogFormCheckBoxStyle}" Margin="0,6,0,0"/>
+                                            <CheckBox x:Name="DlgSrv_AutoReconnectCb" TabIndex="79" AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}" IsChecked="{Binding RdpAutoReconnect}" Style="{StaticResource DialogFormCheckBoxStyle}" Margin="0,6,0,0"/>
                                         </StackPanel>
                                     </Expander>
 
@@ -1413,14 +1474,14 @@
                                             </Style>
                                         </Expander.Style>
                                         <StackPanel Margin="0,12,0,0">
-                                            <CheckBox x:Name="DlgSrv_PerfDisableWallpaperCb" TabIndex="80" Style="{StaticResource DialogFormCheckBoxStyle}"/>
-                                            <CheckBox x:Name="DlgSrv_PerfDisableThemesCb" TabIndex="81" Style="{StaticResource DialogFormCheckBoxStyle}" Margin="0,6,0,0"/>
-                                            <CheckBox x:Name="DlgSrv_PerfDisableAnimationsCb" TabIndex="82" Style="{StaticResource DialogFormCheckBoxStyle}" Margin="0,6,0,0"/>
-                                            <CheckBox x:Name="DlgSrv_PerfDisableDragCb" TabIndex="83" Style="{StaticResource DialogFormCheckBoxStyle}" Margin="0,6,0,0"/>
-                                            <CheckBox x:Name="DlgSrv_PerfDisableCursorShadowCb" TabIndex="84" Style="{StaticResource DialogFormCheckBoxStyle}" Margin="0,6,0,0"/>
-                                            <CheckBox x:Name="DlgSrv_PerfEnableFontSmoothingCb" TabIndex="85" Style="{StaticResource DialogFormCheckBoxStyle}" Margin="0,6,0,0"/>
-                                            <CheckBox x:Name="DlgSrv_PerfEnableCompositionCb" TabIndex="86" Style="{StaticResource DialogFormCheckBoxStyle}" Margin="0,6,0,0"/>
-                                            <CheckBox x:Name="DlgSrv_DisableUdpCb" TabIndex="87" IsChecked="{Binding RdpDisableUdp}" Style="{StaticResource DialogFormCheckBoxStyle}" Margin="0,12,0,0"/>
+                                            <CheckBox x:Name="DlgSrv_PerfDisableWallpaperCb" TabIndex="80" AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}" Style="{StaticResource DialogFormCheckBoxStyle}"/>
+                                            <CheckBox x:Name="DlgSrv_PerfDisableThemesCb" TabIndex="81" AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}" Style="{StaticResource DialogFormCheckBoxStyle}" Margin="0,6,0,0"/>
+                                            <CheckBox x:Name="DlgSrv_PerfDisableAnimationsCb" TabIndex="82" AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}" Style="{StaticResource DialogFormCheckBoxStyle}" Margin="0,6,0,0"/>
+                                            <CheckBox x:Name="DlgSrv_PerfDisableDragCb" TabIndex="83" AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}" Style="{StaticResource DialogFormCheckBoxStyle}" Margin="0,6,0,0"/>
+                                            <CheckBox x:Name="DlgSrv_PerfDisableCursorShadowCb" TabIndex="84" AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}" Style="{StaticResource DialogFormCheckBoxStyle}" Margin="0,6,0,0"/>
+                                            <CheckBox x:Name="DlgSrv_PerfEnableFontSmoothingCb" TabIndex="85" AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}" Style="{StaticResource DialogFormCheckBoxStyle}" Margin="0,6,0,0"/>
+                                            <CheckBox x:Name="DlgSrv_PerfEnableCompositionCb" TabIndex="86" AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}" Style="{StaticResource DialogFormCheckBoxStyle}" Margin="0,6,0,0"/>
+                                            <CheckBox x:Name="DlgSrv_DisableUdpCb" TabIndex="87" AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}" IsChecked="{Binding RdpDisableUdp}" Style="{StaticResource DialogFormCheckBoxStyle}" Margin="0,12,0,0"/>
                                         </StackPanel>
                                     </Expander>
 
@@ -1460,6 +1521,7 @@
                                                 </Grid.ColumnDefinitions>
                                                 <TextBlock x:Name="DlgSrv_SshModeLabel" Grid.Column="0" Style="{StaticResource LabelStyle}" Margin="0,6,0,0"/>
                                                 <ComboBox Grid.Column="1"
+                                                          AutomationProperties.Name="{Binding Text, ElementName=DlgSrv_SshModeLabel}"
                                                           TabIndex="80"
                                                           SelectedValue="{Binding SshMode}"
                                                           SelectedValuePath="Tag"
@@ -1469,10 +1531,11 @@
                                                 </ComboBox>
                                             </Grid>
                                             <StackPanel Margin="0,14,0,0">
-                                                <CheckBox x:Name="DlgSrv_SshCompressionCb" TabIndex="81" IsChecked="{Binding SshCompression}" Style="{StaticResource DialogFormCheckBoxStyle}"/>
-                                                <CheckBox x:Name="DlgSrv_SshAgentFwdCb" TabIndex="82" IsChecked="{Binding SshAgentForwarding}" Style="{StaticResource DialogFormCheckBoxStyle}" Margin="0,6,0,0"/>
+                                                <CheckBox x:Name="DlgSrv_SshCompressionCb" TabIndex="81" AutomationProperties.Name="{loc:Translate A11yServerSshCompression}" IsChecked="{Binding SshCompression}" Style="{StaticResource DialogFormCheckBoxStyle}"/>
+                                                <CheckBox x:Name="DlgSrv_SshAgentFwdCb" TabIndex="82" AutomationProperties.Name="{loc:Translate A11yServerSshAgentForwarding}" IsChecked="{Binding SshAgentForwarding}" Style="{StaticResource DialogFormCheckBoxStyle}" Margin="0,6,0,0"/>
                                                 <CheckBox x:Name="DlgSrv_SshX11Cb"
                                                           TabIndex="83"
+                                                          AutomationProperties.Name="{loc:Translate A11yServerSshX11Forwarding}"
                                                           IsChecked="{Binding SshX11Forwarding}"
                                                           Margin="0,6,0,0">
                                                     <CheckBox.Style>
@@ -1500,6 +1563,7 @@
                                                 </StackPanel.Style>
                                                 <TextBlock x:Name="DlgSrv_PostConnectLabel" Style="{StaticResource LabelStyle}" Margin="0,0,0,4"/>
                                                 <TextBox x:Name="DlgSrv_PostConnectBox"
+                                                         AutomationProperties.Name="{Binding Text, ElementName=DlgSrv_PostConnectLabel}"
                                                          Text="{Binding PostConnectCommand, UpdateSourceTrigger=PropertyChanged}"
                                                          Style="{StaticResource DialogFormTextBoxStyle}"
                                                          AcceptsReturn="True"
@@ -1524,6 +1588,7 @@
                                                                Margin="0,0,8,0"/>
                                                     <TextBox Grid.Column="1"
                                                              x:Name="DlgSrv_PostConnectDelayBox"
+                                                             AutomationProperties.Name="{Binding Text, ElementName=DlgSrv_PostConnectDelayLabel}"
                                                              Text="{Binding PostConnectDelayMs, UpdateSourceTrigger=PropertyChanged}"
                                                              Style="{StaticResource DialogFormTextBoxStyle}"
                                                              MaxLength="5"
@@ -1557,6 +1622,7 @@
                                                        Style="{StaticResource DialogSectionDescriptionStyle}"/>
                                             <TextBlock x:Name="DlgSrv_WorkingDirLabel" Style="{StaticResource LabelStyle}" Margin="0,14,0,4"/>
                                             <TextBox x:Name="DlgSrv_WorkingDirBox" TabIndex="84"
+                                                     AutomationProperties.Name="{loc:Translate ServerDialogLabelWorkingDir}"
                                                      Text="{Binding LocalShellWorkingDirectory, UpdateSourceTrigger=PropertyChanged}"
                                                      Style="{StaticResource DialogFormTextBoxStyle}"/>
                                             <DockPanel Margin="0,12,0,0">
@@ -1565,6 +1631,7 @@
                                                            VerticalAlignment="Center" Margin="0,0,8,0"/>
                                                 <ComboBox x:Name="DlgSrv_ElevationModeCmb"
                                                           TabIndex="85" Width="200"
+                                                          AutomationProperties.Name="{Binding Text, ElementName=DlgSrv_ElevationModeLabel}"
                                                           Background="{DynamicResource CardBrush}"
                                                           Foreground="{DynamicResource TextPrimaryBrush}"
                                                           BorderBrush="{DynamicResource BorderBrush}"
@@ -1591,17 +1658,20 @@
                                                        Style="{StaticResource DialogSectionDescriptionStyle}"/>
                                             <TextBlock x:Name="DlgSrv_IcaFileLabel" Style="{StaticResource LabelStyle}" Margin="0,14,0,4"/>
                                             <TextBox x:Name="DlgSrv_IcaFileBox" TabIndex="86"
+                                                     AutomationProperties.Name="{loc:Translate ServerDialogLabelIcaFilePath}"
                                                      Text="{Binding CitrixIcaFilePath, UpdateSourceTrigger=PropertyChanged}"
                                                      Style="{StaticResource DialogFormTextBoxStyle}"/>
                                             <TextBlock x:Name="DlgSrv_CitrixHint"
                                                        Style="{StaticResource DialogHintTextStyle}" Margin="0,8,0,0"/>
                                             <CheckBox x:Name="DlgSrv_SeamlessCb"
                                                       TabIndex="87"
+                                                      AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}"
                                                       IsChecked="{Binding CitrixSeamlessMode}"
                                                       Foreground="{DynamicResource TextPrimaryBrush}"
                                                       Margin="0,12,0,0"/>
                                             <CheckBox x:Name="DlgSrv_SsoCb"
                                                       TabIndex="88"
+                                                      AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}"
                                                       IsChecked="{Binding CitrixUseSso}"
                                                       Foreground="{DynamicResource TextPrimaryBrush}"
                                                       Margin="0,8,0,0"/>
@@ -1626,11 +1696,13 @@
                                                        Style="{StaticResource DialogSectionDescriptionStyle}"/>
                                             <CheckBox x:Name="DlgSrv_FtpPassiveCb"
                                                       TabIndex="93"
+                                                      AutomationProperties.Name="{loc:Translate ServerDialogFtpPassiveMode}"
                                                       IsChecked="{Binding FtpPassiveMode}"
                                                       Foreground="{DynamicResource TextPrimaryBrush}"
                                                       Margin="0,14,0,0"/>
                                             <CheckBox x:Name="DlgSrv_FtpSslCb"
                                                       TabIndex="94"
+                                                      AutomationProperties.Name="{loc:Translate ServerDialogFtpSsl}"
                                                       IsChecked="{Binding FtpUseSsl}"
                                                       Foreground="{DynamicResource TextPrimaryBrush}"
                                                       Margin="0,8,0,0"/>
@@ -1655,6 +1727,7 @@
                                                        Style="{StaticResource DialogSectionDescriptionStyle}"/>
                                             <CheckBox x:Name="DlgSrv_VncViewOnlyCb"
                                                       TabIndex="95"
+                                                      AutomationProperties.Name="{loc:Translate ServerDialogVncViewOnly}"
                                                       IsChecked="{Binding VncViewOnly}"
                                                       Foreground="{DynamicResource TextPrimaryBrush}"
                                                       Margin="0,14,0,0"/>
@@ -1690,7 +1763,9 @@
                         <!-- ============================================ -->
                         <!-- Tab: Info (organization + metadata)          -->
                         <!-- ============================================ -->
-                        <TabItem x:Name="DlgSrv_TabInfo" Style="{DynamicResource ThemedTabItemStyle}">
+                        <TabItem x:Name="DlgSrv_TabInfo"
+                                 AutomationProperties.Name="{loc:Translate ServerDialogTabInfo}"
+                                 Style="{DynamicResource ThemedTabItemStyle}">
                             <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                                 <StackPanel Margin="{StaticResource SpacingSm}">
                                     <Border Style="{StaticResource DialogSectionCardStyle}">
@@ -1712,12 +1787,14 @@
                                                 <TextBlock x:Name="DlgSrv_FolderLabel" Grid.Row="0" Grid.Column="0" Style="{StaticResource LabelStyle}"/>
                                                 <TextBox x:Name="DlgSrv_FolderBox" Grid.Row="1" Grid.Column="0"
                                                          TabIndex="100"
+                                                         AutomationProperties.Name="{loc:Translate ServerDialogLabelFolder}"
                                                          Text="{Binding Group, UpdateSourceTrigger=PropertyChanged}"
                                                          Style="{StaticResource DialogFormTextBoxStyle}"/>
                                                 <TextBlock x:Name="DlgSrv_EnvironmentLabel" Grid.Row="2" Grid.Column="0" Style="{StaticResource LabelStyle}" Margin="0,14,0,4"/>
                                                 <TextBlock x:Name="DlgSrv_FavoriteLabel" Grid.Row="2" Grid.Column="1" Style="{StaticResource LabelStyle}" Margin="12,14,0,4"/>
                                                 <ComboBox x:Name="DlgSrv_EnvironmentCmb" Grid.Row="3" Grid.Column="0"
                                                           TabIndex="101"
+                                                          AutomationProperties.Name="{loc:Translate ServerDialogLabelEnvironment}"
                                                           SelectedValue="{Binding Environment}"
                                                           SelectedValuePath="Tag"
                                                           Style="{StaticResource DialogFormComboBoxStyle}">
@@ -1731,6 +1808,7 @@
                                                           Margin="12,2,0,0"
                                                           x:Name="DlgSrv_MarkFavoriteCb"
                                                           TabIndex="102"
+                                                          AutomationProperties.Name="{loc:Translate ServerDialogMarkFavorite}"
                                                           IsChecked="{Binding IsFavorite}"
                                                           Style="{StaticResource DialogFormCheckBoxStyle}"/>
                                             </Grid>
@@ -1743,9 +1821,15 @@
                                             <TextBlock x:Name="DlgSrv_MetadataDesc"
                                                        Style="{StaticResource DialogSectionDescriptionStyle}"/>
                                             <TextBlock x:Name="DlgSrv_TagsLabel" Style="{StaticResource LabelStyle}" Margin="0,14,0,4"/>
-                                            <TextBox x:Name="DlgSrv_TagsBox" TabIndex="103" Text="{Binding Tags, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource DialogFormTextBoxStyle}"/>
+                                            <TextBox x:Name="DlgSrv_TagsBox" TabIndex="103"
+                                                     AutomationProperties.Name="{loc:Translate ServerDialogLabelTags}"
+                                                     Text="{Binding Tags, UpdateSourceTrigger=PropertyChanged}"
+                                                     Style="{StaticResource DialogFormTextBoxStyle}"/>
                                             <TextBlock x:Name="DlgSrv_MacAddressLabel" Style="{StaticResource LabelStyle}" Margin="0,12,0,4"/>
-                                            <TextBox x:Name="DlgSrv_MacAddressBox" TabIndex="104" Text="{Binding MacAddress, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource DialogFormTextBoxStyle}"/>
+                                            <TextBox x:Name="DlgSrv_MacAddressBox" TabIndex="104"
+                                                     AutomationProperties.Name="{loc:Translate ServerDialogLabelMacAddress}"
+                                                     Text="{Binding MacAddress, UpdateSourceTrigger=PropertyChanged}"
+                                                     Style="{StaticResource DialogFormTextBoxStyle}"/>
                                         </StackPanel>
                                     </Border>
                                 </StackPanel>
@@ -1775,11 +1859,13 @@
                     Margin="0,16,0,0">
             <Button x:Name="DlgSrv_CancelBtn"
                     IsCancel="True"
+                    AutomationProperties.Name="{loc:Translate ServerDialogBtnCancel}"
                     MinWidth="80"
                     Margin="0,0,8,0"
                     Style="{DynamicResource SecondaryButtonStyle}"/>
             <Button x:Name="DlgSrv_SaveBtn"
                     IsDefault="True"
+                    AutomationProperties.Name="{loc:Translate ServerDialogBtnSave}"
                     MinWidth="80"
                     Click="OnSaveClick"
                     Style="{DynamicResource PrimaryButtonStyle}"/>

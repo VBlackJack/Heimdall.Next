@@ -19,7 +19,7 @@ using Heimdall.Core.Security;
 using Heimdall.Ssh;
 using Renci.SshNet;
 
-namespace Heimdall.App.Views.Tools;
+namespace Heimdall.App.Services;
 
 /// <summary>
 /// Shared helper for connecting to an SSH gateway from network tools.

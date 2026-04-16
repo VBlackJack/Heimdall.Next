@@ -46,7 +46,7 @@ public sealed partial class OnboardingFlowViewModel : ObservableObject
     public const int StepCount = 3;
 
     private readonly LocalizationManager _localizer;
-    private readonly ConfigManager _configManager;
+    private readonly IConfigManager _configManager;
     private AppSettings? _settings;
 
     /// <summary>
@@ -54,7 +54,7 @@ public sealed partial class OnboardingFlowViewModel : ObservableObject
     /// the live <see cref="AppSettings"/> instance before invoking
     /// <see cref="Start"/>.
     /// </summary>
-    public OnboardingFlowViewModel(LocalizationManager localizer, ConfigManager configManager)
+    public OnboardingFlowViewModel(LocalizationManager localizer, IConfigManager configManager)
     {
         _localizer = localizer;
         _configManager = configManager;

@@ -16,16 +16,19 @@
 
 using Heimdall.Core.Models;
 
-namespace Heimdall.App.Views.Tools;
+namespace Heimdall.App.Services;
 
 /// <summary>
 /// Shared presets and labels used by multiple network tools.
 /// </summary>
 public static class NetworkToolPresets
 {
-    public const string BannerGrabberDefaultPorts = "22,80,443,8080";
-    public const string FirewallTesterDefaultPorts = "22,80,443,3389";
-    public const string PortScannerDefaultPorts = "22,80,443,3389,5900";
+    public static readonly string BannerGrabberDefaultPorts = string.Join(',',
+        DefaultPorts.Ssh, DefaultPorts.HttpStd, DefaultPorts.HttpsStd, DefaultPorts.Http);
+    public static readonly string FirewallTesterDefaultPorts = string.Join(',',
+        DefaultPorts.Ssh, DefaultPorts.HttpStd, DefaultPorts.HttpsStd, DefaultPorts.Rdp);
+    public static readonly string PortScannerDefaultPorts = string.Join(',',
+        DefaultPorts.Ssh, DefaultPorts.HttpStd, DefaultPorts.HttpsStd, DefaultPorts.Rdp, DefaultPorts.Vnc);
     public const string SnmpDefaultCommunity = "public";
     public const string SnmpDefaultOid = "1.3.6.1.2.1.1";
 

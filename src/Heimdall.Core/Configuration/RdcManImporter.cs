@@ -15,6 +15,7 @@
  */
 
 using System.Xml.Linq;
+using Heimdall.Core.Models;
 
 namespace Heimdall.Core.Configuration;
 
@@ -103,7 +104,7 @@ public static class RdcManImporter
             Id = Guid.NewGuid().ToString(),
             DisplayName = name,
             RemoteServer = host,
-            RemotePort = 3389,
+            RemotePort = DefaultPorts.Rdp,
             ConnectionType = "RDP",
             RdpMode = "Embedded",
             UseDirectConnection = true,

@@ -98,7 +98,7 @@ public static class ToolContextMenuHelper
         {
             AddSeparator(items);
             var httpPort = openPorts.First(p => p is 443 or 8443 or 80 or 8080 or 8006 or 5000 or 3000 or 9090);
-            var scheme = httpPort is 443 or 8443 ? "https" : "http";
+            var scheme = httpPort is DefaultPorts.HttpsStd or DefaultPorts.HttpsAlt ? "https" : "http";
             var url = $"{scheme}://{ip}:{httpPort}";
             var browser = new MenuItem { Header = string.Format(L(localizer, "ToolCtxOpenBrowser"), url) };
             browser.Click += (_, _) =>
@@ -119,11 +119,11 @@ public static class ToolContextMenuHelper
         {
             // Determine best protocol from open ports
             string connType = "SSH";
-            int port = 22;
-            if (openPorts?.Contains(3389) == true) { connType = "RDP"; port = 3389; }
-            else if (openPorts?.Contains(22) == true) { connType = "SSH"; port = 22; }
-            else if (openPorts?.Contains(5900) == true) { connType = "VNC"; port = 5900; }
-            else if (openPorts?.Contains(23) == true) { connType = "Telnet"; port = 23; }
+            int port = DefaultPorts.Ssh;
+            if (openPorts?.Contains(DefaultPorts.Rdp) == true) { connType = "RDP"; port = DefaultPorts.Rdp; }
+            else if (openPorts?.Contains(DefaultPorts.Ssh) == true) { connType = "SSH"; port = DefaultPorts.Ssh; }
+            else if (openPorts?.Contains(DefaultPorts.Vnc) == true) { connType = "VNC"; port = DefaultPorts.Vnc; }
+            else if (openPorts?.Contains(DefaultPorts.Telnet) == true) { connType = "Telnet"; port = DefaultPorts.Telnet; }
 
             openToolCallback("__ADD_SERVER__", connType,
                 new ToolContext(TargetHost: ip, TargetPort: port,

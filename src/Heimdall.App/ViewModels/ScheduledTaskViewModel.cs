@@ -28,7 +28,7 @@ namespace Heimdall.App.ViewModels;
 /// </summary>
 public partial class ScheduledTaskListViewModel : ObservableObject
 {
-    private readonly ConfigManager _configManager;
+    private readonly IConfigManager _configManager;
     private readonly IDialogService _dialogService;
     private readonly LocalizationManager _localizer;
 
@@ -39,7 +39,7 @@ public partial class ScheduledTaskListViewModel : ObservableObject
     private bool _hasNoTasks = true;
 
     public ScheduledTaskListViewModel(
-        ConfigManager configManager,
+        IConfigManager configManager,
         IDialogService dialogService,
         LocalizationManager localizer)
     {

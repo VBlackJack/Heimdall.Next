@@ -51,8 +51,8 @@ public sealed partial class CommandPaletteViewModel : ObservableObject
     private readonly MainViewModel _main;
     private readonly LocalizationManager _localizer;
     private readonly ToolRegistry _toolRegistry;
-    private readonly ConfigManager _configManager;
-    private readonly EmbeddedSessionManager _embeddedSessionManager;
+    private readonly IConfigManager _configManager;
+    private readonly IEmbeddedSessionManager _embeddedSessionManager;
 
     /// <summary>
     /// When non-null, the palette is in "split mode": selecting a server
@@ -69,8 +69,8 @@ public sealed partial class CommandPaletteViewModel : ObservableObject
         MainViewModel main,
         LocalizationManager localizer,
         ToolRegistry toolRegistry,
-        ConfigManager configManager,
-        EmbeddedSessionManager embeddedSessionManager)
+        IConfigManager configManager,
+        IEmbeddedSessionManager embeddedSessionManager)
     {
         _main = main;
         _localizer = localizer;
@@ -372,7 +372,7 @@ public sealed partial class CommandPaletteViewModel : ObservableObject
         }
         else if (connType == "RDP")
         {
-            dto.RemotePort = 3389;
+            dto.RemotePort = DefaultPorts.Rdp;
         }
 
         var settings = await _configManager.LoadSettingsAsync();

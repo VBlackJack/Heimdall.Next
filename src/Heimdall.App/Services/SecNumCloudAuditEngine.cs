@@ -22,6 +22,7 @@ using System.Security.Authentication;
 using System.Text;
 using System.Text.RegularExpressions;
 using Heimdall.Core.Discovery;
+using Heimdall.Core.Models;
 using Heimdall.Core.Security;
 
 namespace Heimdall.App.Services;
@@ -66,7 +67,8 @@ public sealed class SecNumCloudAuditEngine
     private const int MaxConcurrency = 20;
 
     /// <summary>Ports considered standard/expected in a secure enterprise environment.</summary>
-    private static readonly HashSet<int> StandardPorts = [22, 80, 443, 3389];
+    private static readonly HashSet<int> StandardPorts =
+        [DefaultPorts.Ssh, DefaultPorts.HttpStd, DefaultPorts.HttpsStd, DefaultPorts.Rdp];
 
     /// <summary>Ports that typically serve TLS-encrypted traffic.</summary>
     private static readonly HashSet<int> TlsPorts = [443, 8443, 636, 993, 995, 465, 990, 3269, 9443];
@@ -413,9 +415,9 @@ public sealed class SecNumCloudAuditEngine
         995 => "pop3s",
         1433 => "mssql",
         3306 => "mysql",
-        3389 => "rdp",
+        DefaultPorts.Rdp => "rdp",
         5432 => "postgresql",
-        5900 => "vnc",
+        DefaultPorts.Vnc => "vnc",
         8080 => "http-proxy",
         8443 => "https-alt",
         _ => null,

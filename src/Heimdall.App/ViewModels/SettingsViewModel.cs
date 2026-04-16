@@ -32,7 +32,7 @@ namespace Heimdall.App.ViewModels;
 
 /// <summary>
 /// ViewModel for the application settings tab.
-/// Tracks dirty state and delegates persistence to <see cref="ConfigManager"/>.
+/// Tracks dirty state and delegates persistence to <see cref="IConfigManager"/>.
 /// </summary>
 public partial class SettingsViewModel : ObservableValidator
 {
@@ -51,7 +51,7 @@ public partial class SettingsViewModel : ObservableValidator
         PropertyNameCaseInsensitive = true
     };
 
-    private readonly ConfigManager _configManager;
+    private readonly IConfigManager _configManager;
     private readonly LocalizationManager _localizer;
     private readonly IDialogService _dialogService;
 
@@ -307,7 +307,7 @@ public partial class SettingsViewModel : ObservableValidator
     public event Action<string>? ThemeChanged;
 
     public SettingsViewModel(
-        ConfigManager configManager,
+        IConfigManager configManager,
         LocalizationManager localizer,
         IDialogService dialogService)
     {
@@ -864,14 +864,6 @@ public partial class SettingsViewModel : ObservableValidator
 
         var rdcResult = RdcManImporter.Parse(content);
         return (rdcResult.Servers, rdcResult.Warnings);
-    }
-
-    private async Task<(List<ServerProfileDto> Servers, List<string>? Warnings)> ImportMRemoteNgAsync(
-        string filePath, CancellationToken cancellationToken)
-    {
-        var content = await File.ReadAllTextAsync(filePath, cancellationToken);
-        var mrnResult = MRemoteNgImporter.Parse(content);
-        return (mrnResult.Servers, mrnResult.Warnings);
     }
 
     private async Task<(List<ServerProfileDto> Servers, List<string>? Warnings)> ImportJsonAsync(

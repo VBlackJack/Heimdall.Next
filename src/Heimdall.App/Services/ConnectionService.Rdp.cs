@@ -36,26 +36,16 @@ public partial class ConnectionService
         ArgumentNullException.ThrowIfNull(server);
         ArgumentNullException.ThrowIfNull(settings);
 
-        Core.Logging.FileLogger.Info($"ConnectRdpAsync: {server.DisplayName} ({server.RemoteServer}:{server.RemotePort}) Gateway={server.SshGatewayId ?? "none"} Direct={server.UseDirectConnection}");
+        Core.Logging.FileLogger.Info($"ConnectRdpAsync: {server.DisplayName} ({server.RemoteServer}:{server.RemotePort}) Gateway={server.SshGatewayId ?? "none"}");
         _connectionSm.TryTransition(server.Id, Core.Models.ConnectionState.ValidatingConfig);
 
-        // Resolve tunnel if gateway is configured and not a direct connection
-        int tunnelLocalPort = server.LocalPort;
-        if (!server.UseDirectConnection && !string.IsNullOrEmpty(server.SshGatewayId))
-        {
-            var tunnelResult = await EstablishTunnelAsync(
-                server.Id, server.SshGatewayId, server.RemoteServer,
-                server.RemotePort, server.LocalPort, settings, ct,
-                server.SocksProxyPort, server.RemoteBindPort, server.RemoteLocalPort)
+        var (tunnelOk, usesTunnel, targetHost, targetPort, tunnelError) =
+            await SetupTunnelIfNeededAsync(server, server.RemotePort, settings, ct)
                 .ConfigureAwait(false);
 
-            if (!tunnelResult.Success)
-            {
-                return new ConnectionResult(false, tunnelResult.ErrorMessage, null);
-            }
-
-            // Use the dynamically allocated port (may differ from server.LocalPort)
-            tunnelLocalPort = tunnelResult.Tunnel?.LocalPort ?? server.LocalPort;
+        if (!tunnelOk)
+        {
+            return new ConnectionResult(false, tunnelError, null);
         }
 
         _connectionSm.TryTransition(server.Id, Core.Models.ConnectionState.LaunchingRdp);
@@ -67,9 +57,7 @@ public partial class ConnectionService
         {
             // Embedded RDP will be handled by the View layer (ActiveX in WindowsFormsHost).
             // Pass the dynamically allocated tunnel port so the view connects to the correct port.
-            int? effectiveTunnelPort = (!server.UseDirectConnection && !string.IsNullOrEmpty(server.SshGatewayId))
-                ? tunnelLocalPort
-                : null;
+            int? effectiveTunnelPort = usesTunnel ? targetPort : null;
             return new ConnectionResult(true, null, new RdpSessionResult(server, effectiveTunnelPort));
         }
 
@@ -77,8 +65,8 @@ public partial class ConnectionService
         string? rdpPassword = null;
         try
         {
-            var rdpHost = server.UseDirectConnection ? server.RemoteServer : "127.0.0.1";
-            var rdpPort = server.UseDirectConnection ? server.RemotePort : tunnelLocalPort;
+            var rdpHost = targetHost;
+            var rdpPort = targetPort;
 
             // Store credentials in Windows Credential Manager for mstsc auto-login
             if (!string.IsNullOrEmpty(server.RdpUsername) && !string.IsNullOrEmpty(server.RdpPasswordEncrypted))

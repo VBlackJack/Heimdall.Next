@@ -26,7 +26,7 @@ namespace Heimdall.Core.Configuration;
 /// Manages application configuration files (settings.json, servers.json).
 /// Handles first-run initialization, loading, saving, and file ACL protection.
 /// </summary>
-public sealed class ConfigManager
+public sealed class ConfigManager : IConfigManager
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
     {

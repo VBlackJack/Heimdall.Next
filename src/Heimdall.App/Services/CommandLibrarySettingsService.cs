@@ -25,11 +25,11 @@ namespace Heimdall.App.Services;
 /// </summary>
 public sealed class CommandLibrarySettingsService
 {
-    private readonly ConfigManager _configManager;
+    private readonly IConfigManager _configManager;
     private readonly LocalizationManager _localizer;
 
     public CommandLibrarySettingsService(
-        ConfigManager configManager,
+        IConfigManager configManager,
         LocalizationManager localizer)
     {
         _configManager = configManager;

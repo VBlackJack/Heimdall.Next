@@ -49,13 +49,13 @@ public sealed class X11ServerManager : IDisposable
         @"C:\cygwin\bin\XWin.exe"
     ];
 
-    private readonly ConfigManager _configManager;
+    private readonly IConfigManager _configManager;
     private readonly LocalizationManager _localizer;
 
     private Process? _managedProcess;
     private readonly object _lock = new();
 
-    public X11ServerManager(ConfigManager configManager, LocalizationManager localizer)
+    public X11ServerManager(IConfigManager configManager, LocalizationManager localizer)
     {
         _configManager = configManager ?? throw new ArgumentNullException(nameof(configManager));
         _localizer = localizer ?? throw new ArgumentNullException(nameof(localizer));

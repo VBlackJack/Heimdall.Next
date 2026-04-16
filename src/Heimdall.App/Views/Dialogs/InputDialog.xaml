@@ -35,6 +35,7 @@
         <TextBox x:Name="InputTextBox"
                  Grid.Row="1"
                  TabIndex="0"
+                 AutomationProperties.Name="{Binding Text, ElementName=PromptText}"
                  FontSize="{StaticResource FontSizeBodyLarge}"
                  Padding="8,6"
                  Background="{DynamicResource CardBrush}"
@@ -51,12 +52,14 @@
             <Button x:Name="CancelBtn"
                     IsCancel="True"
                     TabIndex="2"
+                    AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}"
                     MinWidth="80"
                     Margin="0,0,8,0"
                     Style="{DynamicResource SecondaryButtonStyle}"/>
             <Button x:Name="OkBtn"
                     IsDefault="True"
                     TabIndex="1"
+                    AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}"
                     MinWidth="80"
                     Click="OnOkClick"
                     Style="{DynamicResource PrimaryButtonStyle}"/>

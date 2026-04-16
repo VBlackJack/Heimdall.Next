@@ -46,6 +46,7 @@
                     HorizontalAlignment="Right">
             <Button x:Name="BtnTertiary"
                     Click="OnTertiaryClick"
+                    AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}"
                     Style="{DynamicResource SecondaryButtonStyle}"
                     MinWidth="80" Padding="16,6" FontSize="{StaticResource FontSizeBody}"
                     Visibility="Collapsed"
@@ -53,12 +54,14 @@
                     Margin="0,0,8,0"/>
             <Button x:Name="BtnSecondary"
                     Click="OnSecondaryClick"
+                    AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}"
                     Style="{DynamicResource SecondaryButtonStyle}"
                     MinWidth="80" Padding="16,6" FontSize="{StaticResource FontSizeBody}"
                     Visibility="Collapsed"
                     Margin="0,0,8,0"/>
             <Button x:Name="BtnPrimary"
                     Click="OnPrimaryClick"
+                    AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}"
                     Style="{DynamicResource PrimaryButtonStyle}"
                     MinWidth="80" Padding="16,6" FontSize="{StaticResource FontSizeBody}"
                     IsDefault="True"/>

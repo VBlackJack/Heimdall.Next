@@ -45,7 +45,7 @@ public partial class HackerSimulatorView
     private const int VintageFlickerIntervalMs = 130;
 
     private readonly Random _uiRng = new();
-    private ConfigManager? _configManager;
+    private IConfigManager? _configManager;
     private readonly List<TranscriptSection> _transcriptSections = [];
     private TranscriptSection? _activeTranscriptSection;
     private int? _typingTranscriptLineIndex;
@@ -56,7 +56,7 @@ public partial class HackerSimulatorView
 
     private void LoadSimulatorPreferences()
     {
-        _configManager = (Application.Current as App)?.Services?.GetService<ConfigManager>();
+        _configManager = (Application.Current as App)?.Services?.GetService<IConfigManager>();
         if (_configManager is null)
             return;
 
