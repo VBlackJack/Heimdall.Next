@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+using Heimdall.Core.Models;
+
 namespace Heimdall.Rdp;
 
 /// <summary>
@@ -45,7 +47,7 @@ public interface IRdpSession : IDisposable
     bool IsConnected { get; }
 
     /// <summary>Configure the target server host and port.</summary>
-    void SetServer(string host, int port = 3389);
+    void SetServer(string host, int port = DefaultPorts.Rdp);
 
     /// <summary>Configure connection credentials. Password is injected via IMsTscNonScriptable.</summary>
     void SetCredentials(string username, string? password = null, string? domain = null);

@@ -62,14 +62,8 @@ namespace Heimdall.App.ViewModels;
 /// </remarks>
 public sealed partial class CommandLibraryViewModel : ObservableObject, IDisposable
 {
-    /// <summary>
-    /// Maximum bytes accepted by the import path. Mirrors the original
-    /// code-behind constant so import behavior is unchanged.
-    /// </summary>
-    public const long MaxImportFileSizeBytes = 50 * 1024 * 1024;
-
     private readonly IServiceProvider _serviceProvider;
-    private readonly ConfigManager _configManager;
+    private readonly IConfigManager _configManager;
     private readonly LocalizationManager _localizer;
     private readonly IDialogService _dialogService;
     private readonly IGitSyncService _gitSyncService;
@@ -110,7 +104,7 @@ public sealed partial class CommandLibraryViewModel : ObservableObject, IDisposa
     /// </summary>
     public CommandLibraryViewModel(
         IServiceProvider serviceProvider,
-        ConfigManager configManager,
+        IConfigManager configManager,
         LocalizationManager localizer,
         IDialogService dialogService,
         IGitSyncService gitSyncService)

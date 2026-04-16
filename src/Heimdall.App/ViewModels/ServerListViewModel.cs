@@ -32,7 +32,7 @@ namespace Heimdall.App.ViewModels;
 /// </summary>
 public partial class ServerListViewModel : ObservableObject, IDisposable
 {
-    private readonly ConfigManager _configManager;
+    private readonly IConfigManager _configManager;
     private readonly LocalizationManager _localizer;
     private readonly ConnectionStateMachine _connectionSm;
     private readonly ConnectionService _connectionService;
@@ -106,7 +106,7 @@ public partial class ServerListViewModel : ObservableObject, IDisposable
     public event Action<string>? StatusMessageRequested;
 
     public ServerListViewModel(
-        ConfigManager configManager,
+        IConfigManager configManager,
         LocalizationManager localizer,
         ConnectionStateMachine connectionSm,
         ConnectionService connectionService,

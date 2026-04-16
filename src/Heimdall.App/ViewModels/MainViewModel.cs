@@ -40,12 +40,12 @@ namespace Heimdall.App.ViewModels;
 /// </summary>
 public partial class MainViewModel : ObservableObject, IDisposable
 {
-    private readonly ConfigManager _configManager;
+    private readonly IConfigManager _configManager;
     private readonly LocalizationManager _localizer;
     private readonly ApplicationStatusMachine _appStatus;
     private readonly HostKeyStore _hostKeyStore;
     private readonly IDialogService _dialogService;
-    private readonly EmbeddedSessionManager _embeddedSessionManager;
+    private readonly IEmbeddedSessionManager _embeddedSessionManager;
     private readonly ThemeService _themeService;
 
     private bool _disposed;
@@ -60,9 +60,9 @@ public partial class MainViewModel : ObservableObject, IDisposable
     public SplitService Split { get; }
 
     // Exposed for split pane session creation and context menu building from code-behind
-    internal ConfigManager ConfigManager => _configManager;
+    internal IConfigManager ConfigManager => _configManager;
     internal IDialogService DialogService => _dialogService;
-    internal EmbeddedSessionManager EmbeddedSessionManager => _embeddedSessionManager;
+    internal IEmbeddedSessionManager EmbeddedSessionManager => _embeddedSessionManager;
     internal AppSettings? CurrentSettings => _currentSettings;
 
     [ObservableProperty]
@@ -284,14 +284,14 @@ public partial class MainViewModel : ObservableObject, IDisposable
     }
 
     public MainViewModel(
-        ConfigManager configManager,
+        IConfigManager configManager,
         LocalizationManager localizer,
         ConnectionStateMachine connectionSm,
         ApplicationStatusMachine appStatus,
         TunnelManager tunnelManager,
         HostKeyStore hostKeyStore,
         IDialogService dialogService,
-        EmbeddedSessionManager embeddedSessionManager,
+        IEmbeddedSessionManager embeddedSessionManager,
         ThemeService themeService,
         ToolRegistry toolRegistry,
         SplitService splitService,
@@ -336,7 +336,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
             OpenToolTabAsync(toolId, title, ctx);
 
         // Instant theme preview when the user changes the Settings combo.
-        // Actual persistence triggers a second ApplyTheme via ConfigManager.SettingsChanged,
+        // Actual persistence triggers a second ApplyTheme via IConfigManager.SettingsChanged,
         // which is a no-op because ThemeService is idempotent.
         Settings.ThemeChanged += OnSettingsThemePreview;
 

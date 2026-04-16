@@ -42,10 +42,10 @@ public sealed class ThemeService
         ["VanHelsing"] = new Uri("Themes/VanHelsingTheme.xaml", UriKind.Relative),
     };
 
-    private readonly ConfigManager _configManager;
+    private readonly IConfigManager _configManager;
     private int _themeRevision;
 
-    public ThemeService(ConfigManager configManager)
+    public ThemeService(IConfigManager configManager)
     {
         _configManager = configManager;
         CurrentTheme = DefaultTheme;

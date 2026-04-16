@@ -29,16 +29,16 @@ namespace Heimdall.App.Services;
 /// Manages split/merge operations for session tabs. Handles tree mutations,
 /// per-session cancellation, tunnel lifecycle, and layout persistence.
 /// </summary>
-public sealed class SplitService
+public sealed class SplitService : ISplitService
 {
     public const int MaxPanesPerTab = 8;
 
-    private readonly ConfigManager _configManager;
+    private readonly IConfigManager _configManager;
     private readonly LocalizationManager _localizer;
     private readonly ConnectionStateMachine _connectionSm;
     private readonly TunnelManager _tunnelManager;
-    private readonly EmbeddedSessionManager _sessionManager;
-    private readonly ConnectionService _connectionService;
+    private readonly IEmbeddedSessionManager _sessionManager;
+    private readonly IConnectionService _connectionService;
     private readonly ToolRegistry _toolRegistry;
 
     /// <summary>
@@ -60,12 +60,12 @@ public sealed class SplitService
     internal Action<string>? SetStatusText { get; set; }
 
     public SplitService(
-        ConfigManager configManager,
+        IConfigManager configManager,
         LocalizationManager localizer,
         ConnectionStateMachine connectionSm,
         TunnelManager tunnelManager,
-        EmbeddedSessionManager sessionManager,
-        ConnectionService connectionService,
+        IEmbeddedSessionManager sessionManager,
+        IConnectionService connectionService,
         ToolRegistry toolRegistry)
     {
         _configManager = configManager;

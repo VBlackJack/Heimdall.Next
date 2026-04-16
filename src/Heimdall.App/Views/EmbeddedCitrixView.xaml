@@ -4,6 +4,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:wfi="clr-namespace:System.Windows.Forms.Integration;assembly=WindowsFormsIntegration"
+             xmlns:loc="clr-namespace:Heimdall.App.Localization"
              mc:Ignorable="d"
              d:DesignHeight="400"
              d:DesignWidth="600"
@@ -28,7 +29,7 @@
                         Padding="8,2"
                         FontSize="{StaticResource FontSizeCaption}"
                         Margin="8,0,0,0"
-                        AutomationProperties.Name=""/>
+                        AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}"/>
                 <Button x:Name="BringToFrontButton"
                         DockPanel.Dock="Right"
                         Click="OnBringToFrontClick"
@@ -37,7 +38,7 @@
                         FontSize="{StaticResource FontSizeCaption}"
                         Margin="4,0,0,0"
                         Visibility="Collapsed"
-                        AutomationProperties.Name=""/>
+                        AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}"/>
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <TextBlock x:Name="SessionTitleText"
                                FontSize="{StaticResource FontSizeBody}"
@@ -81,8 +82,7 @@
                            FontSize="{StaticResource IconSizeXLarge}"
                            Foreground="{DynamicResource InfoBrush}"
                            HorizontalAlignment="Center"
-                           Margin="0,0,0,16"
-                           AutomationProperties.Name=""/>
+                           Margin="0,0,0,16"/>
                 <TextBlock x:Name="TitleText"
                            FontSize="{StaticResource FontSizeDisplay}"
                            FontWeight="SemiBold"

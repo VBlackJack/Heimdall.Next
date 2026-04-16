@@ -29,10 +29,10 @@ namespace Heimdall.App.Services;
 /// </summary>
 public sealed class MigrationService
 {
-    private readonly ConfigManager _configManager;
+    private readonly IConfigManager _configManager;
     private readonly LocalizationManager _localizer;
 
-    public MigrationService(ConfigManager configManager, LocalizationManager localizer)
+    public MigrationService(IConfigManager configManager, LocalizationManager localizer)
     {
         ArgumentNullException.ThrowIfNull(configManager);
         ArgumentNullException.ThrowIfNull(localizer);

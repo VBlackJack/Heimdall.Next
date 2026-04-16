@@ -37,6 +37,7 @@
             <StackPanel Margin="0,0,8,0">
                 <TextBlock x:Name="LblName" Style="{StaticResource DialogLabelStyle}" Margin="0,0,0,4"/>
                 <TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}"
+                         AutomationProperties.Name="{Binding Text, ElementName=LblName}"
                          Style="{StaticResource DialogFormTextBoxStyle}"
                          x:Name="TxtName" TabIndex="0"/>
                 <TextBlock Text="{Binding NameError}"
@@ -45,6 +46,7 @@
 
                 <TextBlock x:Name="LblHost" Style="{StaticResource DialogLabelStyle}" Margin="0,12,0,4"/>
                 <TextBox Text="{Binding Host, UpdateSourceTrigger=PropertyChanged}"
+                         AutomationProperties.Name="{Binding Text, ElementName=LblHost}"
                          Style="{StaticResource DialogFormTextBoxStyle}"
                          x:Name="TxtHost" TabIndex="1"/>
                 <TextBlock Text="{Binding HostError}"
@@ -53,6 +55,7 @@
 
                 <TextBlock x:Name="LblPort" Style="{StaticResource DialogLabelStyle}" Margin="0,12,0,4"/>
                 <TextBox Text="{Binding Port}"
+                         AutomationProperties.Name="{Binding Text, ElementName=LblPort}"
                          Style="{StaticResource DialogFormTextBoxStyle}"
                          Width="100" HorizontalAlignment="Left"
                          MaxLength="5"
@@ -63,6 +66,7 @@
 
                 <TextBlock x:Name="LblUsername" Style="{StaticResource DialogLabelStyle}" Margin="0,12,0,4"/>
                 <TextBox Text="{Binding User, UpdateSourceTrigger=PropertyChanged}"
+                         AutomationProperties.Name="{Binding Text, ElementName=LblUsername}"
                          Style="{StaticResource DialogFormTextBoxStyle}"
                          x:Name="TxtUsername" TabIndex="3"/>
                 <TextBlock Text="{Binding UserError}"
@@ -74,18 +78,21 @@
                     <Button x:Name="BtnBrowse"
                             DockPanel.Dock="Right"
                             Command="{Binding BrowseKeyCommand}"
+                            AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}"
                             Style="{DynamicResource SecondaryButtonStyle}"
                             Margin="4,0,0,0"
                             ToolTip=""
                             TabIndex="5"
                             Click="OnBrowseKeyClick"/>
                     <TextBox Text="{Binding KeyPath}"
+                             AutomationProperties.Name="{Binding Text, ElementName=LblKeyPath}"
                              Style="{StaticResource DialogFormTextBoxStyle}"
                              x:Name="TxtKeyPath" TabIndex="4"/>
                 </DockPanel>
 
                 <TextBlock x:Name="LblPassword" Text="{Binding GatewayPasswordLabel}" Style="{StaticResource DialogLabelStyle}" Margin="0,12,0,4"/>
                 <PasswordBox x:Name="PasswordBox"
+                             AutomationProperties.Name="{Binding Text, ElementName=LblPassword}"
                              Style="{StaticResource DialogFormPasswordBoxStyle}"
                              TabIndex="6"/>
                 <TextBlock Text="{Binding GatewayAuthHint}"
@@ -95,6 +102,7 @@
 
                 <TextBlock x:Name="LblParentGateway" Style="{StaticResource DialogLabelStyle}" Margin="0,12,0,4"/>
                 <ComboBox ItemsSource="{Binding AvailableParents}"
+                          AutomationProperties.Name="{Binding Text, ElementName=LblParentGateway}"
                           SelectedValue="{Binding SelectedParentGatewayId}"
                           SelectedValuePath="Id"
                           DisplayMemberPath="DisplayText"
@@ -106,6 +114,7 @@
 
                 <TextBlock x:Name="LblHostKeyFingerprint" Style="{StaticResource DialogLabelStyle}" Margin="0,12,0,4"/>
                 <TextBox Text="{Binding HostKeyFingerprint, Mode=OneWay}"
+                         AutomationProperties.Name="{Binding Text, ElementName=LblHostKeyFingerprint}"
                          Style="{StaticResource DialogFormTextBoxStyle}"
                          IsReadOnly="True"
                          x:Name="TxtHostKeyFingerprint"
@@ -133,11 +142,13 @@
                     Margin="0,16,0,0">
             <Button x:Name="CancelBtn"
                     IsCancel="True"
+                    AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}"
                     MinWidth="80"
                     Margin="0,0,8,0"
                     Style="{DynamicResource SecondaryButtonStyle}"/>
             <Button x:Name="SaveBtn"
                     IsDefault="True"
+                    AutomationProperties.Name="{Binding Content, RelativeSource={RelativeSource Self}}"
                     MinWidth="80"
                     Click="OnSaveClick"
                     Style="{DynamicResource PrimaryButtonStyle}"/>

@@ -17,6 +17,7 @@
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
+using Heimdall.Core.Models;
 
 namespace Heimdall.Core.Security;
 
@@ -28,7 +29,8 @@ public static class NetworkScanner
 {
     private static readonly int PingTimeoutMs = 1000;
     private static readonly int PortProbeTimeoutMs = 500;
-    private static readonly int[] CommonPorts = [22, 3389, 80, 443, 5900];
+    private static readonly int[] CommonPorts =
+        [DefaultPorts.Ssh, DefaultPorts.Rdp, DefaultPorts.HttpStd, DefaultPorts.HttpsStd, DefaultPorts.Vnc];
 
     /// <summary>
     /// Result of scanning a single host.

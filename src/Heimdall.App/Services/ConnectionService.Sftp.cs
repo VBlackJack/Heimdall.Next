@@ -37,25 +37,13 @@ public partial class ConnectionService
 
         _connectionSm.TryTransition(server.Id, Core.Models.ConnectionState.ValidatingConfig);
 
-        string targetHost = server.RemoteServer;
-        int targetPort = server.SshPort;
-
-        // Tunnel through gateway if configured
-        if (!server.UseDirectConnection && !string.IsNullOrEmpty(server.SshGatewayId))
-        {
-            var tunnelResult = await EstablishTunnelAsync(
-                server.Id, server.SshGatewayId, server.RemoteServer,
-                server.SshPort, server.LocalPort, settings, ct,
-                server.SocksProxyPort, server.RemoteBindPort, server.RemoteLocalPort)
+        var (tunnelOk, _, targetHost, targetPort, tunnelError) =
+            await SetupTunnelIfNeededAsync(server, server.SshPort, settings, ct)
                 .ConfigureAwait(false);
 
-            if (!tunnelResult.Success)
-            {
-                return new ConnectionResult(false, tunnelResult.ErrorMessage, null);
-            }
-
-            targetHost = "127.0.0.1";
-            targetPort = tunnelResult.Tunnel?.LocalPort ?? server.LocalPort;
+        if (!tunnelOk)
+        {
+            return new ConnectionResult(false, tunnelError, null);
         }
 
         _connectionSm.TryTransition(server.Id, Core.Models.ConnectionState.LaunchingSftp);

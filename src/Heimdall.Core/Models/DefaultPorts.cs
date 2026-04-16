@@ -42,10 +42,12 @@ public static class DefaultPorts
     public const int OracleDb = 1521;
     public const int MySql = 3306;
     public const int Rdp = 3389;
+    public const int RdpTunnel = 33890;
     public const int PostgreSql = 5432;
     public const int Vnc = 5900;
     public const int VncAlt = 5901;
     public const int Redis = 6379;
+    public const int SshTunnel = 2222;
     public const int Http = 8080;
     public const int HttpsAlt = 8443;
     public const int Prometheus = 9090;

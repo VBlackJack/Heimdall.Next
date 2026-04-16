@@ -47,7 +47,7 @@ public sealed partial class ScheduledTasksViewModel : ObservableObject, IDisposa
     private readonly MainViewModel _main;
     private readonly LocalizationManager _localizer;
     private readonly IDialogService _dialogService;
-    private readonly ConfigManager _configManager;
+    private readonly IConfigManager _configManager;
     private readonly TaskSchedulerService _taskScheduler;
     private bool _started;
     private bool _disposed;
@@ -62,7 +62,7 @@ public sealed partial class ScheduledTasksViewModel : ObservableObject, IDisposa
         MainViewModel main,
         LocalizationManager localizer,
         IDialogService dialogService,
-        ConfigManager configManager)
+        IConfigManager configManager)
     {
         _main = main;
         _localizer = localizer;

@@ -30,6 +30,8 @@ using System.Windows.Threading;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Models;
 
+using Heimdall.App.Services;
+
 namespace Heimdall.App.Views.Tools;
 
 /// <summary>

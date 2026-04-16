@@ -30,6 +30,8 @@ using Heimdall.Core.Localization;
 using Heimdall.Core.Models;
 using Heimdall.Core.Security;
 
+using Heimdall.App.Services;
+
 namespace Heimdall.App.Views.Tools;
 
 /// <summary>

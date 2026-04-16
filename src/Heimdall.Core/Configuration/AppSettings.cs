@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+using Heimdall.Core.Models;
+
 namespace Heimdall.Core.Configuration;
 
 /// <summary>
@@ -56,8 +58,8 @@ public sealed class AppSettings
     public int ServerShutdownTimeoutMs { get; set; } = 2000;
     public int SleepPreventionIntervalSeconds { get; set; } = 60;
     public int FileLoggerFlushIntervalMs { get; set; } = 2000;
-    public int DefaultRdpTunnelPort { get; set; } = 33890;
-    public int DefaultSshTunnelPort { get; set; } = 2222;
+    public int DefaultRdpTunnelPort { get; set; } = DefaultPorts.RdpTunnel;
+    public int DefaultSshTunnelPort { get; set; } = DefaultPorts.SshTunnel;
     public int EphemeralHttpPort { get; set; } = 8080;
     public int EphemeralTftpPort { get; set; } = 69;
 

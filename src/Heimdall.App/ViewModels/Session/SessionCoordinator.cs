@@ -46,7 +46,7 @@ namespace Heimdall.App.ViewModels.Session;
 /// </para>
 /// <para>
 /// The coordinator wires 8 external callbacks in its constructor:
-/// 5 <c>Split.*</c> providers/setters and 3 <see cref="EmbeddedSessionManager"/>
+/// 5 <c>Split.*</c> providers/setters and 3 <see cref="IEmbeddedSessionManager"/>
 /// callbacks (<c>BroadcastCallback</c>, <c>IsBroadcastActive</c>,
 /// <c>ReconnectRequestedCallback</c>). The <c>OpenToolCallback</c> stays
 /// on <see cref="MainViewModel"/> because <c>OpenToolTabAsync</c> is a
@@ -57,8 +57,8 @@ public sealed partial class SessionCoordinator : ObservableObject, IDisposable
 {
     private readonly MainViewModel _main;
     private readonly LocalizationManager _localizer;
-    private readonly ConfigManager _configManager;
-    private readonly EmbeddedSessionManager _embeddedSessionManager;
+    private readonly IConfigManager _configManager;
+    private readonly IEmbeddedSessionManager _embeddedSessionManager;
     private bool _disposed;
 
     /// <summary>
@@ -68,8 +68,8 @@ public sealed partial class SessionCoordinator : ObservableObject, IDisposable
     public SessionCoordinator(
         MainViewModel main,
         LocalizationManager localizer,
-        ConfigManager configManager,
-        EmbeddedSessionManager embeddedSessionManager)
+        IConfigManager configManager,
+        IEmbeddedSessionManager embeddedSessionManager)
     {
         _main = main;
         _localizer = localizer;
@@ -239,7 +239,7 @@ public sealed partial class SessionCoordinator : ObservableObject, IDisposable
     /// <summary>
     /// Closes the disconnected session tab and starts a fresh connection
     /// to the same server, reusing the standard connection flow. Sync
-    /// entry point wired as the <see cref="EmbeddedSessionManager"/>
+    /// entry point wired as the <see cref="IEmbeddedSessionManager"/>
     /// callback; delegates to <see cref="OnReconnectRequestedAsync"/>.
     /// </summary>
     private void OnReconnectRequested(SessionTabViewModel tab, string serverId, string connectionType)

@@ -29,7 +29,7 @@ public partial class ConnectionViewModel : ObservableObject
 {
     private readonly LocalizationManager _localizer;
     private readonly IDialogService _dialogService;
-    private readonly SplitService _splitService;
+    private readonly ISplitService _splitService;
 
     [ObservableProperty]
     private ObservableCollection<SessionTabViewModel> _activeSessions = [];
@@ -43,7 +43,7 @@ public partial class ConnectionViewModel : ObservableObject
     public ConnectionViewModel(
         LocalizationManager localizer,
         IDialogService dialogService,
-        SplitService splitService)
+        ISplitService splitService)
     {
         _localizer = localizer;
         _dialogService = dialogService;
@@ -99,7 +99,7 @@ public partial class ConnectionViewModel : ObservableObject
     /// <summary>
     /// Closes a session without showing a confirmation dialog.
     /// Used by <see cref="CloseAllSessions"/> to avoid multiple prompts.
-    /// Delegates per-pane cleanup to <see cref="SplitService.CloseAllPanes"/>.
+    /// Delegates per-pane cleanup to <see cref="ISplitService.CloseAllPanes"/>.
     /// </summary>
     private void CloseSessionInternal(SessionTabViewModel session)
     {

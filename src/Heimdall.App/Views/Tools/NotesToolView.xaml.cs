@@ -940,7 +940,7 @@ public partial class NotesToolView : UserControl, IToolView
         try
         {
             var configManager = (Application.Current as App)?
-                .Services?.GetService<ConfigManager>();
+                .Services?.GetService<IConfigManager>();
             if (configManager is null)
             {
                 return;

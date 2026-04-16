@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+using Heimdall.Core.Models;
+
 namespace Heimdall.Core.Discovery;
 
 /// <summary>
@@ -45,9 +47,9 @@ public static class RoleClassifier
         new("Syslog Server", [6514], [22], 65),
         new("HTTP Proxy", [3128], [8080, 80, 443], 70),
         new("SSH Server", [22], [], 50),
-        new("Windows Server", [3389, 445], [135, 139, 5985, 5986, 80, 443], 80),
-        new("Windows RDP", [3389], [445, 135, 139, 5985], 70),
-        new("VNC Server", [5900], [5901, 5902], 65),
+        new("Windows Server", [DefaultPorts.Rdp, 445], [135, 139, 5985, 5986, DefaultPorts.HttpStd, DefaultPorts.HttpsStd], 80),
+        new("Windows RDP", [DefaultPorts.Rdp], [445, 135, 139, 5985], 70),
+        new("VNC Server", [DefaultPorts.Vnc], [DefaultPorts.VncAlt, 5902], 65),
         new("Proxy/Load Balancer", [8080], [8443, 3128, 80, 443], 55),
         // Syslog (514/udp) and DHCP (67-68/udp) are UDP-only — detected via
         // banner fingerprints or SNMP, not TCP port scan.
@@ -95,7 +97,7 @@ public static class RoleClassifier
         // ── Virtualization ─────────────────────────────────────────────
         new("VMware ESXi", [443, 902], [80, 22], 80),
         new("Proxmox VE", [8006], [22, 3128], 80),
-        new("Hyper-V Host", [3389, 445], [135, 139, 5985, 5986], 60),
+        new("Hyper-V Host", [DefaultPorts.Rdp, 445], [135, 139, 5985, 5986], 60),
 
         // ── Server Management ─────────────────────────────────────────
         new("Server Management (IPMI)", [623], [443, 80, 22], 80),
@@ -878,8 +880,8 @@ public static class RoleClassifier
             SuppressRoles(matches, ["SSH Server"], 20, "conflict: LDAP suppresses generic SSH");
         }
 
-        // Windows Server (3389+445) present → suppress generic Windows RDP
-        if (portSet.Contains(3389) && portSet.Contains(445))
+        // Windows Server (RDP + SMB) present → suppress generic Windows RDP
+        if (portSet.Contains(DefaultPorts.Rdp) && portSet.Contains(445))
         {
             SuppressRoles(matches, ["Windows RDP"], 15, "conflict: Windows Server suppresses generic RDP");
         }
@@ -984,9 +986,9 @@ public static class RoleClassifier
         3268 => "Global-Catalog",
         3269 => "GC-SSL",
         3306 => "MySQL",
-        3389 => "RDP",
+        DefaultPorts.Rdp => "RDP",
         5432 => "PostgreSQL",
-        5900 => "VNC",
+        DefaultPorts.Vnc => "VNC",
         6379 => "Redis",
         6443 => "K8s-API",
         6514 => "Syslog-TLS",

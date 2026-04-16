@@ -17,6 +17,7 @@
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
+using Heimdall.Core.Models;
 
 namespace Heimdall.Rdp.ActiveX;
 
@@ -46,7 +47,7 @@ public sealed class RdpActiveXHost : AxHost, IRdpSession
 
     // Pending configuration applied before the ActiveX handle is created
     private string _pendingHost = string.Empty;
-    private int _pendingPort = 3389;
+    private int _pendingPort = DefaultPorts.Rdp;
     private string _pendingUsername = string.Empty;
     private string? _pendingPassword;
     private string? _pendingDomain;
@@ -125,7 +126,7 @@ public sealed class RdpActiveXHost : AxHost, IRdpSession
     }
 
     /// <inheritdoc />
-    public void SetServer(string host, int port = 3389)
+    public void SetServer(string host, int port = DefaultPorts.Rdp)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(host);
         _pendingHost = host;

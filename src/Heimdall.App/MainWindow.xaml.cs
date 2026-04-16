@@ -26,10 +26,12 @@ using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
+using Heimdall.App.Localization;
 using Heimdall.App.Services;
 using Heimdall.App.Theming;
 using Heimdall.App.ViewModels;
 using Heimdall.App.ViewModels.Onboarding;
+using Heimdall.Core.Models;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Heimdall.App;
@@ -345,12 +347,26 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
         var asm = System.Reflection.Assembly.GetExecutingAssembly();
         var infoVersion = System.Reflection.CustomAttributeExtensions.GetCustomAttribute<System.Reflection.AssemblyInformationalVersionAttribute>(asm)
             ?.InformationalVersion ?? "unknown";
-        if (DataContext is MainViewModel aboutVm)
-            AboutVersionText.Text = string.Format(aboutVm.Localize("AboutVersion"), infoVersion);
-        else
-            AboutVersionText.Text = string.Format("Version {0}", infoVersion);
+        AboutVersionText.Text = string.Format(LocalizeWindowString("AboutVersion"), infoVersion);
         AboutRuntimeText.Text = System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription;
         AboutPlatformText.Text = $"{System.Runtime.InteropServices.RuntimeInformation.OSDescription} ({System.Runtime.InteropServices.RuntimeInformation.OSArchitecture})";
+    }
+
+    private string LocalizeWindowString(string key)
+    {
+        if (DataContext is MainViewModel vm)
+        {
+            return vm.Localize(key);
+        }
+
+        return LocalizationSource.Instance[key];
+    }
+
+    private string BuildFileDialogFilter(string primaryLabelKey, string patterns)
+    {
+        var primaryLabel = LocalizeWindowString(primaryLabelKey);
+        var allFilesLabel = LocalizeWindowString("FilterAllFiles");
+        return $"{primaryLabel} ({patterns})|{patterns}|{allFilesLabel} (*.*)|*.*";
     }
 
     private async void OnSessionsTabChecked(object sender, RoutedEventArgs e)
@@ -956,15 +972,15 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
 
                 foreach (var result in results)
                 {
-                    var connType = result.OpenPorts.Contains(3389) ? "RDP"
-                        : result.OpenPorts.Contains(22) ? "SSH"
-                        : result.OpenPorts.Contains(5900) ? "VNC"
+                    var connType = result.OpenPorts.Contains(DefaultPorts.Rdp) ? "RDP"
+                        : result.OpenPorts.Contains(DefaultPorts.Ssh) ? "SSH"
+                        : result.OpenPorts.Contains(DefaultPorts.Vnc) ? "VNC"
                         : "SSH";
                     var port = connType switch
                     {
-                        "RDP" => 3389,
-                        "VNC" => 5900,
-                        _ => 22
+                        "RDP" => DefaultPorts.Rdp,
+                        "VNC" => DefaultPorts.Vnc,
+                        _ => DefaultPorts.Ssh
                     };
 
                     existingServers.Add(new Core.Configuration.ServerProfileDto
@@ -1249,7 +1265,7 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
         catch (Exception ex)
         {
             Core.Logging.FileLogger.Error($"Tool panel launch failed: {descriptor.Id}", ex);
-            vm.StatusText = $"Tool launch failed: {descriptor.Id} — {ex.Message}";
+            vm.StatusText = string.Format(vm.Localize("ErrorToolLaunchFailed"), descriptor.Id, ex.Message);
         }
     }
 
@@ -1257,7 +1273,7 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
     {
         var dialog = new Microsoft.Win32.OpenFileDialog
         {
-            Filter = "Executables (*.exe;*.bat;*.cmd;*.ps1)|*.exe;*.bat;*.cmd;*.ps1|All files (*.*)|*.*"
+            Filter = BuildFileDialogFilter("FilterExecutables", "*.exe;*.bat;*.cmd;*.ps1")
         };
 
         if (dialog.ShowDialog(this) == true && DataContext is MainViewModel vm
@@ -1320,7 +1336,7 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
     {
         var dialog = new Microsoft.Win32.OpenFileDialog
         {
-            Filter = "Database files (*.kdbx;*.db;*.gpg)|*.kdbx;*.db;*.gpg|All files (*.*)|*.*"
+            Filter = BuildFileDialogFilter("FilterDatabaseFiles", "*.kdbx;*.db;*.gpg")
         };
 
         if (dialog.ShowDialog(this) == true && DataContext is MainViewModel vm)
@@ -1354,8 +1370,7 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
         if (string.IsNullOrEmpty(password)) return;
 
         var app = System.Windows.Application.Current as App;
-        var configManager = app?.Services?
-            .GetService(typeof(Core.Configuration.ConfigManager)) as Core.Configuration.ConfigManager;
+        var configManager = app?.Services?.GetService<Core.Configuration.IConfigManager>();
         if (configManager is null) return;
 
         var encrypted = Core.Security.DpapiProvider.Protect(password);
@@ -1366,8 +1381,7 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
     private void OnCmdLibSyncTokenClear(object sender, RoutedEventArgs e)
     {
         var app = System.Windows.Application.Current as App;
-        var configManager = app?.Services?
-            .GetService(typeof(Core.Configuration.ConfigManager)) as Core.Configuration.ConfigManager;
+        var configManager = app?.Services?.GetService<Core.Configuration.IConfigManager>();
         if (configManager is null) return;
 
         _ = configManager.MergeSettingAsync(s => s.CmdLibGitSyncToken = null);
@@ -1415,8 +1429,7 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
             .GetService(typeof(Services.ExternalToolProviderService)) as Services.ExternalToolProviderService;
         var toolRegistry = app?.Services?
             .GetService(typeof(Services.ToolRegistry)) as Services.ToolRegistry;
-        var configManager = app?.Services?
-            .GetService(typeof(Core.Configuration.ConfigManager)) as Core.Configuration.ConfigManager;
+        var configManager = app?.Services?.GetService<Core.Configuration.IConfigManager>();
 
         if (providerService is null || toolRegistry is null || configManager is null) return;
 

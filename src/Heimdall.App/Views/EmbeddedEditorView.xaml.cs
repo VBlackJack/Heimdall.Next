@@ -154,9 +154,6 @@ public partial class EmbeddedEditorView : UserControl
         UpdateCursorPosition();
     }
 
-    /// <summary>Returns the current editor content.</summary>
-    public string GetContent() => Editor.Text;
-
     private void OnSaveClick(object sender, RoutedEventArgs e)
     {
         if (string.IsNullOrEmpty(_filePath))

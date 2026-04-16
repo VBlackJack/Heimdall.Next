@@ -79,7 +79,7 @@ internal static class TwinShellBootstrapper
         // Settings bridge for GitSyncService
         services.AddSingleton<ISettingsService>(sp =>
         {
-            var configManager = sp.GetRequiredService<Heimdall.Core.Configuration.ConfigManager>();
+            var configManager = sp.GetRequiredService<Heimdall.Core.Configuration.IConfigManager>();
             return new HeimdallSettingsBridge(configManager);
         });
 
@@ -209,15 +209,15 @@ internal static class TwinShellBootstrapper
     }
 
     /// <summary>
-    /// Bridges Heimdall's <see cref="Heimdall.Core.Configuration.ConfigManager"/>
+    /// Bridges Heimdall's <see cref="Heimdall.Core.Configuration.IConfigManager"/>
     /// to TwinShell's <see cref="ISettingsService"/> interface for GitSyncService.
     /// </summary>
     private sealed class HeimdallSettingsBridge : ISettingsService
     {
-        private readonly Heimdall.Core.Configuration.ConfigManager _configManager;
+        private readonly Heimdall.Core.Configuration.IConfigManager _configManager;
         private UserSettings _cached = new();
 
-        public HeimdallSettingsBridge(Heimdall.Core.Configuration.ConfigManager configManager)
+        public HeimdallSettingsBridge(Heimdall.Core.Configuration.IConfigManager configManager)
         {
             _configManager = configManager;
             _ = RefreshAsync();

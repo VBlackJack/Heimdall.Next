@@ -30,13 +30,13 @@ namespace Heimdall.App.Services;
 /// Resolves gateway chains, opens tunnels, performs preflight checks, and
 /// delegates to the appropriate session engine.
 /// </summary>
-public partial class ConnectionService : IDisposable
+public partial class ConnectionService : IConnectionService
 {
     private bool _disposed;
     private TimeSpan HostKeyProbeTimeout =>
         TimeSpan.FromMilliseconds(_currentSettings?.HostKeyProbeTimeoutMs ?? 8000);
 
-    private readonly ConfigManager _configManager;
+    private readonly IConfigManager _configManager;
     private readonly TunnelManager _tunnelManager;
     private readonly HostKeyStore _hostKeyStore;
     private readonly ConnectionStateMachine _connectionSm;
@@ -45,7 +45,7 @@ public partial class ConnectionService : IDisposable
 
     /// <summary>
     /// Cached snapshot of the current application settings, kept up-to-date
-    /// by subscribing to <see cref="ConfigManager.SettingsChanged"/>.
+    /// by subscribing to <see cref="IConfigManager.SettingsChanged"/>.
     /// May be null until the first settings load completes.
     /// </summary>
     private AppSettings? _currentSettings;
@@ -64,7 +64,7 @@ public partial class ConnectionService : IDisposable
     internal Action<string>? SetStatusText { get; set; }
 
     public ConnectionService(
-        ConfigManager configManager,
+        IConfigManager configManager,
         TunnelManager tunnelManager,
         HostKeyStore hostKeyStore,
         ConnectionStateMachine connectionSm,
@@ -151,7 +151,7 @@ public partial class ConnectionService : IDisposable
 
     /// <summary>
     /// Resolves the path to plink.exe: uses the user-configured path if valid,
-    /// otherwise falls back to the embedded copy in Assets/Tools/.
+    /// otherwise falls back to the embedded tool copy.
     /// </summary>
     private static string? ResolvePlinkPath(string? settingsPath)
     {
@@ -162,7 +162,7 @@ public partial class ConnectionService : IDisposable
         }
 
         // Embedded plink.exe shipped with the application
-        var embeddedPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Tools", "plink.exe");
+        var embeddedPath = Path.Combine(AppContext.BaseDirectory, AppConstants.EmbeddedToolsSubdir, "plink.exe");
         if (File.Exists(embeddedPath))
         {
             Core.Logging.FileLogger.Info($"Using embedded plink: {embeddedPath}");
@@ -175,7 +175,7 @@ public partial class ConnectionService : IDisposable
     /// <summary>
     /// Resolves the path to putty.exe: uses the user-configured path if valid,
     /// falls back to the directory containing plink.exe, then the embedded
-    /// copy in Assets/Tools/.
+    /// tool copy.
     /// </summary>
     private static string? ResolvePuttyPath(string? settingsPath, string? plinkPath)
     {
@@ -201,7 +201,7 @@ public partial class ConnectionService : IDisposable
         }
 
         // Embedded putty.exe shipped with the application
-        var embeddedPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Tools", "putty.exe");
+        var embeddedPath = Path.Combine(AppContext.BaseDirectory, AppConstants.EmbeddedToolsSubdir, "putty.exe");
         if (File.Exists(embeddedPath))
         {
             Core.Logging.FileLogger.Info($"Using embedded PuTTY: {embeddedPath}");

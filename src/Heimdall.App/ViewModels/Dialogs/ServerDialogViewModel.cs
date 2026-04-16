@@ -21,6 +21,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Localization;
+using Heimdall.Core.Models;
 
 namespace Heimdall.App.ViewModels.Dialogs;
 
@@ -31,11 +32,8 @@ namespace Heimdall.App.ViewModels.Dialogs;
 /// </summary>
 public partial class ServerDialogViewModel : ObservableValidator
 {
-    private const int DefaultRdpPort = 3389;
-    private const int DefaultSshPort = 22;
-    private const int DefaultTelnetPort = 23;
-    private int _defaultRdpTunnelPort = 33890;
-    private int _defaultSshTunnelPort = 2222;
+    private int _defaultRdpTunnelPort = DefaultPorts.RdpTunnel;
+    private int _defaultSshTunnelPort = DefaultPorts.SshTunnel;
 
     /// <summary>
     /// Localizer for translating validation error messages. Set by the dialog service.
@@ -136,12 +134,12 @@ public partial class ServerDialogViewModel : ObservableValidator
     [ObservableProperty]
     [NotifyDataErrorInfo]
     [Range(1, 65535, ErrorMessage = "Port must be between 1 and 65535.")]
-    private int _remotePort = DefaultRdpPort;
+    private int _remotePort = DefaultPorts.Rdp;
 
     [ObservableProperty]
     [NotifyDataErrorInfo]
     [Range(1, 65535, ErrorMessage = "Local tunnel port must be between 1 and 65535.")]
-    private int _localPort = 33890;
+    private int _localPort = DefaultPorts.RdpTunnel;
 
     [ObservableProperty]
     private bool _useAutomaticTunnelPort = true;
@@ -186,7 +184,7 @@ public partial class ServerDialogViewModel : ObservableValidator
     [ObservableProperty]
     [NotifyDataErrorInfo]
     [Range(1, 65535, ErrorMessage = "SSH port must be between 1 and 65535.")]
-    private int _sshPort = DefaultSshPort;
+    private int _sshPort = DefaultPorts.Ssh;
 
     [ObservableProperty]
     private string _sshKeyPath = "";
@@ -311,7 +309,7 @@ public partial class ServerDialogViewModel : ObservableValidator
     [ObservableProperty]
     [NotifyDataErrorInfo]
     [Range(1, 65535, ErrorMessage = "VNC port must be between 1 and 65535.")]
-    private int _vncPort = 5900;
+    private int _vncPort = DefaultPorts.Vnc;
 
     [ObservableProperty]
     private string _vncPassword = "";
@@ -851,7 +849,8 @@ public partial class ServerDialogViewModel : ObservableValidator
 
         var connectionType = string.IsNullOrWhiteSpace(dto.ConnectionType) ? "RDP" : dto.ConnectionType;
         var suggestedTunnelPort = string.Equals(connectionType, "RDP", StringComparison.OrdinalIgnoreCase)
-            ? 33890 : 2222;
+            ? DefaultPorts.RdpTunnel
+            : DefaultPorts.SshTunnel;
         var storedLocalPort = dto.LocalPort <= 0 ? suggestedTunnelPort : dto.LocalPort;
 
         var vm = new ServerDialogViewModel { _isInitializing = true };
@@ -860,7 +859,7 @@ public partial class ServerDialogViewModel : ObservableValidator
         vm.DisplayName = dto.DisplayName;
         vm.RemoteServer = dto.RemoteServer;
         vm.RemotePort = string.Equals(connectionType, "Telnet", StringComparison.OrdinalIgnoreCase)
-            ? (dto.TelnetPort > 0 ? dto.TelnetPort : DefaultTelnetPort)
+            ? (dto.TelnetPort > 0 ? dto.TelnetPort : DefaultPorts.Telnet)
             : dto.RemotePort;
         vm.LocalPort = storedLocalPort;
         vm.UseAutomaticTunnelPort = dto.LocalPort <= 0 || dto.LocalPort == suggestedTunnelPort;
@@ -888,12 +887,12 @@ public partial class ServerDialogViewModel : ObservableValidator
         vm.CitrixIcaFilePath = dto.CitrixIcaFilePath ?? "";
         vm.CitrixSeamlessMode = dto.CitrixSeamlessMode;
         vm.CitrixUseSso = dto.CitrixUseSso;
-        vm.FtpPort = dto.FtpPort > 0 ? dto.FtpPort : 21;
+        vm.FtpPort = dto.FtpPort > 0 ? dto.FtpPort : DefaultPorts.Ftp;
         vm.FtpUsername = dto.FtpUsername ?? "";
         vm.ExistingFtpPasswordEncrypted = dto.FtpPasswordEncrypted;
         vm.FtpPassiveMode = dto.FtpPassiveMode;
         vm.FtpUseSsl = dto.FtpUseSsl;
-        vm.VncPort = dto.VncPort > 0 ? dto.VncPort : 5900;
+        vm.VncPort = dto.VncPort > 0 ? dto.VncPort : DefaultPorts.Vnc;
         vm.VncViewOnly = dto.VncViewOnly;
         vm.ExistingVncPasswordEncrypted = dto.VncPassword;
         vm.TelnetUsername = dto.TelnetUsername ?? "";
@@ -1063,14 +1062,14 @@ public partial class ServerDialogViewModel : ObservableValidator
     private static int GetDefaultEndpointPort(string connectionType)
     {
         if (string.Equals(connectionType, "RDP", StringComparison.OrdinalIgnoreCase))
-            return DefaultRdpPort;
+            return DefaultPorts.Rdp;
         if (string.Equals(connectionType, "VNC", StringComparison.OrdinalIgnoreCase))
-            return 5900;
+            return DefaultPorts.Vnc;
         if (string.Equals(connectionType, "FTP", StringComparison.OrdinalIgnoreCase))
-            return 21;
+            return DefaultPorts.Ftp;
         if (string.Equals(connectionType, "Telnet", StringComparison.OrdinalIgnoreCase))
-            return DefaultTelnetPort;
-        return DefaultSshPort;
+            return DefaultPorts.Telnet;
+        return DefaultPorts.Ssh;
     }
 
     private int GetSuggestedTunnelPort(string connectionType)
