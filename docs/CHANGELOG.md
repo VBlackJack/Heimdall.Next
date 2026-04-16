@@ -14,6 +14,15 @@ All notable changes to Heimdall.Next are documented in this file.
 
 ## [Unreleased] - 2026-04-14
 
+### UX — session-tree move-to-group parity + sidebar favorites
+
+- **Session tree move-to-group unified**: context-menu and drag-drop now converge on a single `ServerListViewModel` core move path, preserving in-memory expansion state by avoiding the previous `LoadServers` rebuild after drag-drop
+- **Drag/drop destination policy aligned**: drag-over and drop validate against the same project-scoped target set as the context menu, and the session tree now exposes an explicit no-group drop zone for drag-to-root parity
+- **Sidebar Favorites section added**: the sidebar Tools tree now shows an always-present localized Favorites category at index 0, populated from `AppSettings.FavoriteToolIds` and sorted alphabetically by localized display name
+- **Cross-surface favorite sync**: `MainViewModel.ToggleFavoriteToolAsync` now raises `FavoritesChanged`, and `SidebarViewModel` applies targeted add/remove mutation so the sidebar stays in sync with both the sidebar ContextMenu and the full-page Tools tab pin button
+- **Right-click no longer launches sidebar tools**: a `_suppressSidebarLaunch` guard blocks the `SelectedItemChanged` launch path during right-click targeting, and the redundant sidebar double-click launcher was removed to avoid duplicate tabs on context/network tools
+- **Durable UIA smoke added**: `scripts/smoke/move-to-group-smoke.ps1` and `scripts/smoke/sidebar-favorites-smoke.ps1` were added to the repo harness, with WPF ContextMenu-specific gaps explicitly marked as skipped and delegated to human smoke
+
 ### Refactor — MainWindow + MainViewModel decomposition (Phases 1–4)
 
 **`MainWindow.xaml.cs`: 3,490 → 2,123 LOC (−39%)**
@@ -34,7 +43,7 @@ All notable changes to Heimdall.Next are documented in this file.
   - `TabInteractionState` POCO + `MainWindow.TabInteractions.cs` partial (tab drag-to-reorder, drag-to-detach, drop target resolution, hover tracking)
   - `SessionTabContextMenuFactory` + `ISessionTabContextCallbacks` (335-LOC menu builder, 19 conditional items)
   - `SessionSplitService` (detach/split/merge/unsplit orchestration, `SplitPaletteRequested` event)
-  - New `ServerListViewModel.MoveServerToGroupAsync` for the tree drag-drop write path
+  - Initial `ServerListViewModel.MoveServerToGroupAsync` extraction for the tree drag-drop write path (later unified with the context-menu path in the move-to-group parity pass)
 
 **`MainViewModel.cs`: 1,917 → 628 LOC (−67%)**
 
