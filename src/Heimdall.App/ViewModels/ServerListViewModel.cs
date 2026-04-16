@@ -770,36 +770,15 @@ public partial class ServerListViewModel : ObservableObject, IDisposable
             return;
         }
 
-        var normalizedGroupName = request.GroupName ?? string.Empty;
-        if (string.Equals(request.Server.Group, normalizedGroupName, StringComparison.OrdinalIgnoreCase))
-        {
-            return;
-        }
-
-        var servers = await _configManager.LoadServersAsync();
-        var serverDto = servers.FirstOrDefault(
-            s => string.Equals(s.Id, request.Server.Id, StringComparison.Ordinal));
-
-        if (serverDto is null)
-        {
-            return;
-        }
-
-        serverDto.Group = string.IsNullOrWhiteSpace(request.GroupName) ? null : request.GroupName;
-        await _configManager.SaveServersAsync(servers);
-
-        request.Server.Group = normalizedGroupName;
-        RefreshLookupCollections(await _configManager.LoadSettingsAsync());
-        ApplyFilter(request.Server.Id);
+        await MoveServerToGroupCoreAsync(request.Server, request.GroupName, cancellationToken);
     }
 
     /// <summary>
     /// Moves a server to the specified group (folder path), persists the change,
-    /// and rebuilds the folder hierarchy via <see cref="LoadServers"/>. Used by
-    /// the TreeView drag-drop path which depends on a full re-load to reshuffle
-    /// nested folders correctly. No-op when the server is already in the target
-    /// group (case-insensitive). The caller is responsible for any status text
-    /// surfaced after a successful move.
+    /// and refreshes the filtered tree in place without rebuilding the backing
+    /// <see cref="ServerItemViewModel"/> instances. No-op when the server is
+    /// already in the target group (case-insensitive). The caller is responsible
+    /// for any status text surfaced after a successful move.
     /// </summary>
     /// <param name="server">The server view model being moved.</param>
     /// <param name="targetGroup">Destination folder path (null or whitespace = root).</param>
@@ -810,31 +789,7 @@ public partial class ServerListViewModel : ObservableObject, IDisposable
         string? targetGroup,
         CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(server);
-
-        var normalizedTarget = string.IsNullOrWhiteSpace(targetGroup) ? null : targetGroup;
-        var currentGroup = string.IsNullOrWhiteSpace(server.Group) ? null : server.Group;
-        if (string.Equals(currentGroup, normalizedTarget, StringComparison.OrdinalIgnoreCase))
-        {
-            return false;
-        }
-
-        var servers = await _configManager.LoadServersAsync();
-        var dto = servers.FirstOrDefault(
-            s => string.Equals(s.Id, server.Id, StringComparison.Ordinal));
-
-        if (dto is null)
-        {
-            return false;
-        }
-
-        dto.Group = normalizedTarget;
-        await _configManager.SaveServersAsync(servers);
-
-        var settings = await _configManager.LoadSettingsAsync();
-        LoadServers(servers, settings);
-
-        return true;
+        return await MoveServerToGroupCoreAsync(server, targetGroup, cancellationToken);
     }
 
     [RelayCommand]
@@ -861,6 +816,60 @@ public partial class ServerListViewModel : ObservableObject, IDisposable
         Clipboard.SetText(server.Username);
         StatusMessageRequested?.Invoke(
             _localizer.Format("StatusCopiedToClipboard", server.Username));
+    }
+
+    /// <summary>
+    /// Single implementation for moving a server between groups from the tree UX.
+    /// Persists the DTO update once, mutates the existing view-model instance in
+    /// place, then rebuilds the filtered projections without calling <see cref="LoadServers"/>.
+    /// </summary>
+    private async Task<bool> MoveServerToGroupCoreAsync(
+        ServerItemViewModel server,
+        string? targetGroup,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(server);
+
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var normalizedTarget = NormalizeGroupForPersistence(targetGroup);
+        var currentGroup = NormalizeGroupForPersistence(server.Group);
+        if (string.Equals(currentGroup, normalizedTarget, StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        var servers = await _configManager.LoadServersAsync();
+        var dto = servers.FirstOrDefault(
+            candidate => string.Equals(candidate.Id, server.Id, StringComparison.Ordinal));
+
+        if (dto is null)
+        {
+            Core.Logging.FileLogger.Warn(
+                $"MoveServerToGroupCoreAsync could not find server DTO for id={server.Id}.");
+            return false;
+        }
+
+        dto.Group = normalizedTarget;
+        await _configManager.SaveServersAsync(servers);
+
+        server.Group = normalizedTarget ?? string.Empty;
+
+        var settings = await _configManager.LoadSettingsAsync();
+        _currentSettings = settings;
+        RefreshLookupCollections(settings);
+        ApplyFilter(server.Id);
+        SelectedServer = Servers.Contains(server) ? server : null;
+
+        Core.Logging.FileLogger.Info(
+            $"MoveServerToGroupCoreAsync moved {server.DisplayName} ({server.Id}) to '{normalizedTarget ?? "<root>"}'.");
+
+        return true;
+    }
+
+    private static string? NormalizeGroupForPersistence(string? groupName)
+    {
+        return string.IsNullOrWhiteSpace(groupName) ? null : groupName;
     }
 
     [RelayCommand]
