@@ -28,11 +28,12 @@ namespace Heimdall.App;
 /// Partial of <see cref="MainWindow"/> hosting the session
 /// <see cref="TreeView"/> interaction handlers: selection, double-click,
 /// right-click pre-selection, keyboard context menu, and drag-drop between
-/// folders. All transient state lives in the <c>_treeState</c> field
+/// folders or to the no-group root target. All transient state lives in the <c>_treeState</c> field
 /// (<see cref="TreeInteractionState"/>); this file only contains the WPF
 /// event handlers that mutate that state and poke the named XAML elements
-/// (<c>SessionTreeView</c>, <c>SessionDetailPanel</c>, <c>ToolDetailPanel</c>,
-/// <c>Mw_Detail*</c>, <c>Mw_ToolDetail*</c>).
+/// (<c>SessionTreeView</c>, <c>SessionTreeNoGroupDropZone</c>,
+/// <c>SessionDetailPanel</c>, <c>ToolDetailPanel</c>, <c>Mw_Detail*</c>,
+/// <c>Mw_ToolDetail*</c>).
 /// </summary>
 public partial class MainWindow
 {
@@ -261,21 +262,30 @@ public partial class MainWindow
     {
         e.Effects = System.Windows.DragDropEffects.None;
 
-        if (!e.Data.GetDataPresent("HeimdallServer"))
+        if (!e.Data.GetDataPresent("HeimdallServer")
+            || e.Data.GetData("HeimdallServer") is not ServerItemViewModel serverItem
+            || DataContext is not MainViewModel vm)
         {
             ClearDropHighlight();
             e.Handled = true;
             return;
         }
 
-        var target = FindAncestor<TreeViewItem>(e.OriginalSource as DependencyObject);
         ClearDropHighlight();
 
-        if (target?.DataContext is FolderViewModel)
+        if (!TryResolveTreeGroupDropTarget(sender, e, vm, out var targetContainer, out var targetGroup, out _)
+            || !IsAllowedTreeGroupDrop(vm.ServerList, serverItem, targetGroup))
         {
-            e.Effects = System.Windows.DragDropEffects.Move;
-            DropTargetVisualState.SetIsDropTarget(target, true);
-            _treeState.LastDropHighlight = target;
+            e.Handled = true;
+            return;
+        }
+
+        e.Effects = System.Windows.DragDropEffects.Move;
+
+        if (targetContainer is not null)
+        {
+            DropTargetVisualState.SetIsDropTarget(targetContainer, true);
+            _treeState.LastDropHighlight = targetContainer;
         }
 
         e.Handled = true;
@@ -301,19 +311,75 @@ public partial class MainWindow
             return;
         }
 
-        var target = FindAncestor<TreeViewItem>(e.OriginalSource as DependencyObject);
-        if (target?.DataContext is not FolderViewModel folder)
+        if (!TryResolveTreeGroupDropTarget(sender, e, vm, out _, out var targetGroup, out var targetDisplayName)
+            || !IsAllowedTreeGroupDrop(vm.ServerList, serverItem, targetGroup))
         {
             return;
         }
 
-        var moved = await vm.ServerList.MoveServerToGroupAsync(serverItem, folder.FullPath);
+        var moved = await vm.ServerList.MoveServerToGroupAsync(serverItem, targetGroup);
         if (moved)
         {
             vm.StatusText = string.Format(
                 vm.Localize("StatusMovedToGroup"),
                 serverItem.DisplayName,
-                folder.Name);
+                targetDisplayName);
         }
+    }
+
+    private bool TryResolveTreeGroupDropTarget(
+        object sender,
+        System.Windows.DragEventArgs e,
+        MainViewModel vm,
+        out TreeViewItem? targetContainer,
+        out string? targetGroup,
+        out string targetDisplayName)
+    {
+        targetContainer = null;
+        targetGroup = null;
+        targetDisplayName = vm.Localize("TreeNodeNoGroup");
+
+        var target = FindAncestor<TreeViewItem>(e.OriginalSource as DependencyObject);
+        if (target?.DataContext is FolderViewModel folder)
+        {
+            targetContainer = target;
+            targetGroup = folder.FullPath;
+            targetDisplayName = folder.Name;
+            return true;
+        }
+
+        if (ReferenceEquals(sender, SessionTreeNoGroupDropZone))
+        {
+            return true;
+        }
+
+        return ReferenceEquals(sender, SessionTreeView) && target is null;
+    }
+
+    private static bool IsAllowedTreeGroupDrop(
+        ServerListViewModel serverList,
+        ServerItemViewModel server,
+        string? targetGroup)
+    {
+        var normalizedTarget = NormalizeGroupTargetKey(targetGroup);
+        var normalizedCurrent = NormalizeGroupTargetKey(server.Group);
+        if (string.Equals(normalizedCurrent, normalizedTarget, StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        return serverList
+            .GetGroupTargets(server.ProjectId, includeNoGroup: true)
+            .Any(group => string.Equals(
+                NormalizeGroupTargetKey(group.GroupName),
+                normalizedTarget,
+                StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static string NormalizeGroupTargetKey(string? groupPath)
+    {
+        return string.IsNullOrWhiteSpace(groupPath)
+            ? string.Empty
+            : groupPath.Replace('\\', '/');
     }
 }
