@@ -68,53 +68,102 @@ public sealed class ToolsTabPopulationService
             .OrderBy(g => g.Key);
 
         var categories = new ObservableCollection<SidebarToolCategoryViewModel>();
+        categories.Add(CreateSidebarFavoritesCategory(vm));
 
         foreach (var group in grouped)
         {
-            var brushKey = GetCategoryBrushKey(group.Key);
-            var tools = new ObservableCollection<SidebarToolItemViewModel>();
-
-            var sortedTools = group
-                .Select(d => new
-                {
-                    Descriptor = d,
-                    Name = vm.Localize(d.LabelKey)
-                })
-                .OrderBy(x => x.Name, StringComparer.OrdinalIgnoreCase);
-
-            foreach (var tool in sortedTools)
-            {
-                var aliases = string.Join(' ', tool.Descriptor.CommandPrefixes);
-                tools.Add(new SidebarToolItemViewModel
-                {
-                    Id = tool.Descriptor.Id,
-                    Name = tool.Name,
-                    BrushKey = brushKey,
-                    IconGeometryKey = tool.Descriptor.IconResourceKey,
-                    Searchable = $"{tool.Name} {aliases}".ToLowerInvariant()
-                });
-            }
-
             var categoryKey = group.First().CategoryLabelKey;
             var categoryName = vm.Localize(categoryKey);
-            var isExpanded = vm.CurrentSettings?.SidebarExpandedCategories.TryGetValue(
-                categoryKey,
-                out var persistedExpanded) == true
-                    ? persistedExpanded
-                    : true;
+            var brushKey = GetCategoryBrushKey(group.Key);
+            var tools = new ObservableCollection<SidebarToolItemViewModel>(
+                group.Select(descriptor => CreateSidebarToolItem(vm, descriptor))
+                    .OrderBy(tool => tool.Name, StringComparer.OrdinalIgnoreCase));
 
-            categories.Add(new SidebarToolCategoryViewModel
-            {
-                CategoryKey = categoryKey,
-                CategoryName = categoryName,
-                BrushKey = brushKey,
-                Tools = tools,
-                VisibleCount = tools.Count,
-                IsExpanded = isExpanded
-            });
+            categories.Add(CreateSidebarCategory(vm, categoryKey, categoryName, brushKey, tools));
         }
 
         return categories;
+    }
+
+    /// <summary>
+    /// Builds the dedicated Favorites category for the sidebar Tools tree.
+    /// Favorite items keep their original tool brush/icon while the category
+    /// header uses the warning accent to stand out at the top of the tree.
+    /// </summary>
+    public SidebarToolCategoryViewModel CreateSidebarFavoritesCategory(MainViewModel vm)
+    {
+        var favoriteTools = vm.FavoriteToolIds
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Select(toolId => CreateSidebarToolItem(vm, toolId))
+            .Where(tool => tool is not null)
+            .Cast<SidebarToolItemViewModel>()
+            .OrderBy(tool => tool.Name, StringComparer.OrdinalIgnoreCase);
+
+        return CreateSidebarCategory(
+            vm,
+            categoryKey: "ToolsFavoritesHeader",
+            categoryName: vm.Localize("ToolsFavoritesHeader"),
+            brushKey: "WarningBrush",
+            tools: new ObservableCollection<SidebarToolItemViewModel>(favoriteTools));
+    }
+
+    /// <summary>
+    /// Creates a sidebar tool leaf from a registry descriptor. Reused by the
+    /// initial tree build and the targeted favorites refresh path.
+    /// </summary>
+    public SidebarToolItemViewModel CreateSidebarToolItem(MainViewModel vm, ToolDescriptor descriptor)
+    {
+        ArgumentNullException.ThrowIfNull(vm);
+        ArgumentNullException.ThrowIfNull(descriptor);
+
+        var name = vm.Localize(descriptor.LabelKey);
+        var aliases = string.Join(' ', descriptor.CommandPrefixes);
+        return new SidebarToolItemViewModel
+        {
+            Id = descriptor.Id,
+            Name = name,
+            BrushKey = GetCategoryBrushKey(descriptor.Category),
+            IconGeometryKey = descriptor.IconResourceKey,
+            Searchable = $"{name} {aliases}".ToLowerInvariant()
+        };
+    }
+
+    /// <summary>
+    /// Resolves a tool descriptor by ID and builds the corresponding sidebar leaf.
+    /// Returns <c>null</c> when the tool no longer exists in the registry.
+    /// </summary>
+    public SidebarToolItemViewModel? CreateSidebarToolItem(MainViewModel vm, string toolId)
+    {
+        ArgumentNullException.ThrowIfNull(vm);
+        ArgumentException.ThrowIfNullOrWhiteSpace(toolId);
+
+        var descriptor = _toolRegistry.All.FirstOrDefault(
+            d => string.Equals(d.Id, toolId, StringComparison.OrdinalIgnoreCase));
+        return descriptor is null ? null : CreateSidebarToolItem(vm, descriptor);
+    }
+
+    private static SidebarToolCategoryViewModel CreateSidebarCategory(
+        MainViewModel vm,
+        string categoryKey,
+        string categoryName,
+        string brushKey,
+        ObservableCollection<SidebarToolItemViewModel> tools)
+    {
+        var isExpanded = vm.CurrentSettings?.SidebarExpandedCategories.TryGetValue(
+            categoryKey,
+            out var persistedExpanded) == true
+                ? persistedExpanded
+                : true;
+
+        return new SidebarToolCategoryViewModel
+        {
+            CategoryKey = categoryKey,
+            CategoryName = categoryName,
+            BrushKey = brushKey,
+            Tools = tools,
+            VisibleCount = tools.Count,
+            IsExpanded = isExpanded
+        };
     }
 
     /// <summary>

@@ -499,7 +499,7 @@
                                           Background="Transparent"
                                           ItemsSource="{Binding Sidebar.ToolsCategories}"
                                           SelectedItemChanged="OnSidebarToolsSelectedItemChanged"
-                                          MouseDoubleClick="OnSidebarToolsDoubleClick"
+                                          PreviewMouseRightButtonDown="OnSidebarToolsRightButtonDown"
                                           ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                                           VirtualizingPanel.IsVirtualizing="True"
                                           VirtualizingPanel.VirtualizationMode="Recycling">

@@ -257,16 +257,30 @@ public partial class MainViewModel : ObservableObject, IDisposable
     /// <summary>Returns the favorite tool IDs from persisted settings.</summary>
     internal List<string> FavoriteToolIds => _currentSettings?.FavoriteToolIds ?? [];
 
+    /// <summary>
+    /// Raised after a tool favorite toggle is persisted. Carries the normalized tool ID.
+    /// </summary>
+    internal event Action<string>? FavoritesChanged;
+
     /// <summary>Toggles a tool's favorite status and persists the change.</summary>
     internal async Task ToggleFavoriteToolAsync(string toolId)
     {
         if (_currentSettings is null) return;
+
         var id = toolId.ToUpperInvariant();
-        if (_currentSettings.FavoriteToolIds.Contains(id))
-            _currentSettings.FavoriteToolIds.Remove(id);
-        else
+        var removed = _currentSettings.FavoriteToolIds.RemoveAll(
+            favoriteId => string.Equals(favoriteId, id, StringComparison.OrdinalIgnoreCase)) > 0;
+        if (!removed)
+        {
             _currentSettings.FavoriteToolIds.Add(id);
-        await _configManager.MergeSettingAsync(s => s.FavoriteToolIds = _currentSettings.FavoriteToolIds);
+        }
+
+        await _configManager.MergeSettingAsync(
+            s => s.FavoriteToolIds = new List<string>(_currentSettings.FavoriteToolIds));
+
+        Heimdall.Core.Logging.FileLogger.Debug(
+            $"Favorite tools updated: {id} => {(removed ? "removed" : "added")}");
+        FavoritesChanged?.Invoke(id);
     }
 
     public MainViewModel(
