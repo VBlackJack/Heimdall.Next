@@ -18,6 +18,7 @@ using System.IO;
 using System.Windows;
 using Heimdall.App.Localization;
 using Heimdall.App.Services;
+using Heimdall.App.Services.Handlers;
 using Heimdall.App.ViewModels;
 using Heimdall.App.ViewModels.Onboarding;
 using Heimdall.Core.Configuration;
@@ -277,6 +278,7 @@ public partial class App : System.Windows.Application
 
         // SSH/Tunnel services
         services.AddSingleton<TunnelManager>();
+        services.AddSingleton<ITunnelService, TunnelService>();
 
         // Application services
         services.AddSingleton<X11ServerManager>();
@@ -286,6 +288,14 @@ public partial class App : System.Windows.Application
         services.AddSingleton<IConnectionService, ConnectionService>();
         services.AddSingleton<ConnectionService>(sp =>
             (ConnectionService)sp.GetRequiredService<IConnectionService>());
+        services.AddSingleton<IProtocolHandler, RdpHandler>();
+        services.AddSingleton<IProtocolHandler, SshHandler>();
+        services.AddSingleton<IProtocolHandler, SftpHandler>();
+        services.AddSingleton<IProtocolHandler, VncHandler>();
+        services.AddSingleton<IProtocolHandler, TelnetHandler>();
+        services.AddSingleton<IProtocolHandler, FtpHandler>();
+        services.AddSingleton<IProtocolHandler, CitrixHandler>();
+        services.AddSingleton<IProtocolHandler, LocalShellHandler>();
         services.AddSingleton<IEmbeddedSessionManager, EmbeddedSessionManager>();
         services.AddSingleton<EmbeddedSessionManager>(sp =>
             (EmbeddedSessionManager)sp.GetRequiredService<IEmbeddedSessionManager>());

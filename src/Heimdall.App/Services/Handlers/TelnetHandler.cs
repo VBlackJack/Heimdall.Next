@@ -15,20 +15,37 @@
  */
 
 using Heimdall.Core.Configuration;
+using Heimdall.Core.Localization;
 using Heimdall.Core.Models;
+using Heimdall.Core.StateMachine;
 
-namespace Heimdall.App.Services;
+namespace Heimdall.App.Services.Handlers;
 
-public partial class ConnectionService
+/// <summary>
+/// Handles Telnet connection logic.
+/// </summary>
+internal sealed class TelnetHandler : IProtocolHandler
 {
+    private readonly ConnectionStateMachine _connectionSm;
+    private readonly LocalizationManager _localizer;
+
+    public TelnetHandler(
+        ConnectionStateMachine connectionSm,
+        LocalizationManager localizer)
+    {
+        _connectionSm = connectionSm;
+        _localizer = localizer;
+    }
+
+    public string Protocol => "TELNET";
+
     /// <summary>
     /// Opens a raw TCP (Telnet) connection to the specified host and port.
-    /// Returns a <see cref="TerminalSessionResult"/> wrapping the
-    /// <see cref="Terminal.TelnetSession"/> so it renders in the standard
-    /// WebView2 + xterm.js terminal view.
     /// </summary>
-    public async Task<ConnectionResult> ConnectTelnetAsync(
-        ServerProfileDto server, AppSettings settings, CancellationToken ct = default)
+    public async Task<ConnectionResult> ConnectAsync(
+        ServerProfileDto server,
+        AppSettings settings,
+        CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(server);
 
@@ -45,18 +62,16 @@ public partial class ConnectionService
 
         _connectionSm.TryTransition(server.Id, ConnectionState.LaunchingTelnet);
 
-        Core.Logging.FileLogger.Info(
-            $"Launching Telnet session: {server.RemoteServer}:{port}");
+        Core.Logging.FileLogger.Info($"Launching Telnet session: {server.RemoteServer}:{port}");
 
-        var telnetTimeout = _currentSettings?.TelnetConnectTimeoutMs ?? 15000;
-        var session = new Terminal.TelnetSession(server.RemoteServer, port, telnetTimeout);
+        var session = new Terminal.TelnetSession(
+            server.RemoteServer,
+            port,
+            settings.TelnetConnectTimeoutMs);
 
         try
         {
-            // Host and port are baked into the TelnetSession constructor;
-            // StartAsync signature matches ITerminalSession but ignores
-            // executable/arguments.
-            await session.StartAsync(string.Empty, string.Empty);
+            await session.StartAsync(string.Empty, string.Empty).ConfigureAwait(false);
         }
         catch (Exception ex)
         {

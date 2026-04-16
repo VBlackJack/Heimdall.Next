@@ -15,20 +15,34 @@
  */
 
 using Heimdall.Core.Configuration;
+using Heimdall.Core.Localization;
 using Heimdall.Core.Models;
+using Heimdall.Core.StateMachine;
 
-namespace Heimdall.App.Services;
+namespace Heimdall.App.Services.Handlers;
 
-public partial class ConnectionService
+/// <summary>
+/// Handles VNC connection validation and session result creation.
+/// </summary>
+internal sealed class VncHandler : IProtocolHandler
 {
-    /// <summary>
-    /// Validates VNC connection parameters and returns a session result
-    /// containing the target host, port, and optional password.
-    /// The actual VNC connection is established by the WebSocket proxy
-    /// and noVNC client in the embedded view.
-    /// </summary>
-    public Task<ConnectionResult> ConnectVncAsync(
-        ServerProfileDto server, AppSettings settings, CancellationToken ct = default)
+    private readonly ConnectionStateMachine _connectionSm;
+    private readonly LocalizationManager _localizer;
+
+    public VncHandler(
+        ConnectionStateMachine connectionSm,
+        LocalizationManager localizer)
+    {
+        _connectionSm = connectionSm;
+        _localizer = localizer;
+    }
+
+    public string Protocol => "VNC";
+
+    public Task<ConnectionResult> ConnectAsync(
+        ServerProfileDto server,
+        AppSettings settings,
+        CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(server);
 
@@ -48,25 +62,15 @@ public partial class ConnectionService
         string? password = null;
         if (!string.IsNullOrEmpty(server.VncPassword))
         {
-            password = DecryptPassword(server.VncPassword);
+            password = ConnectionHelpers.DecryptPassword(server.VncPassword);
         }
 
-        // Do NOT transition to Connected here — the actual VNC connection is established
-        // asynchronously by the WebSocket proxy + noVNC in EmbeddedVncView.
-        // The view will report connection success/failure via SessionConnected/SessionError events.
-
-        var session = new VncSessionResult(server.Id, server.RemoteServer, vncPort, password, server.VncViewOnly);
+        var session = new VncSessionResult(
+            server.Id,
+            server.RemoteServer,
+            vncPort,
+            password,
+            server.VncViewOnly);
         return Task.FromResult(new ConnectionResult(true, null, session));
     }
 }
-
-/// <summary>
-/// Holds VNC connection parameters for the embedded noVNC view.
-/// The proxy and WebView2 rendering are managed by <see cref="Views.EmbeddedVncView"/>.
-/// </summary>
-public sealed record VncSessionResult(
-    string ServerId,
-    string Host,
-    int Port,
-    string? Password = null,
-    bool ViewOnly = false) : ISessionResult;

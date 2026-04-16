@@ -14,79 +14,74 @@
  * limitations under the License.
  */
 
-using System.IO;
+using Heimdall.App.Services.Handlers;
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Models;
-using Heimdall.Core.Security;
-using Heimdall.Core.StateMachine;
-using Heimdall.Sftp;
 using Heimdall.Ssh;
 
 namespace Heimdall.App.Services;
 
 /// <summary>
-/// Orchestrates the full connection lifecycle for RDP, SSH, and SFTP sessions.
-/// Resolves gateway chains, opens tunnels, performs preflight checks, and
-/// delegates to the appropriate session engine.
+/// Thin router over protocol-specific connection handlers.
+/// Maintains shared settings state and preflight checks while delegating
+/// per-protocol connection work to handler implementations.
 /// </summary>
-public partial class ConnectionService : IConnectionService
+public sealed class ConnectionService : IConnectionService
 {
     private bool _disposed;
-    private TimeSpan HostKeyProbeTimeout =>
-        TimeSpan.FromMilliseconds(_currentSettings?.HostKeyProbeTimeoutMs ?? 8000);
 
     private readonly IConfigManager _configManager;
-    private readonly TunnelManager _tunnelManager;
-    private readonly HostKeyStore _hostKeyStore;
-    private readonly ConnectionStateMachine _connectionSm;
     private readonly LocalizationManager _localizer;
-    private readonly X11ServerManager _x11ServerManager;
+    private readonly ITunnelService _tunnelService;
+    private readonly Dictionary<string, IProtocolHandler> _handlers;
+    private Action<string>? _setStatusText;
 
-    /// <summary>
-    /// Cached snapshot of the current application settings, kept up-to-date
-    /// by subscribing to <see cref="IConfigManager.SettingsChanged"/>.
-    /// May be null until the first settings load completes.
-    /// </summary>
+    /// <summary>Cached snapshot of the latest application settings.</summary>
     private AppSettings? _currentSettings;
 
-    /// <summary>
-    /// Returns the latest cached settings snapshot, or null if settings
-    /// have not been loaded yet.
-    /// </summary>
+    /// <summary>Returns the latest cached settings snapshot, if any.</summary>
     public AppSettings? CurrentSettings => _currentSettings;
 
-    /// <summary>
-    /// Delegate wired by the shell to surface transient status messages
-    /// (e.g., "retrying via Plink…") in the global status bar.
-    /// Same pattern as <see cref="SplitService.SetStatusText"/>.
-    /// </summary>
-    internal Action<string>? SetStatusText { get; set; }
+    /// <summary>Relay wired by the shell to surface transient status messages.</summary>
+    internal Action<string>? SetStatusText
+    {
+        get => _setStatusText;
+        set
+        {
+            _setStatusText = value;
+            if (_handlers.TryGetValue("SSH", out var handler) && handler is SshHandler sshHandler)
+            {
+                sshHandler.SetStatusText = value;
+            }
+        }
+    }
 
     public ConnectionService(
         IConfigManager configManager,
-        TunnelManager tunnelManager,
-        HostKeyStore hostKeyStore,
-        ConnectionStateMachine connectionSm,
         LocalizationManager localizer,
-        X11ServerManager x11ServerManager)
+        ITunnelService tunnelService,
+        IEnumerable<IProtocolHandler> handlers)
     {
         _configManager = configManager;
-        _tunnelManager = tunnelManager;
-        _hostKeyStore = hostKeyStore;
-        _connectionSm = connectionSm;
         _localizer = localizer;
-        _x11ServerManager = x11ServerManager;
+        _tunnelService = tunnelService;
+        _handlers = handlers.ToDictionary(h => h.Protocol, StringComparer.OrdinalIgnoreCase);
+
+        if (_handlers.TryGetValue("SSH", out var handler) && handler is SshHandler sshHandler)
+        {
+            sshHandler.SetStatusText = _setStatusText;
+        }
 
         _configManager.SettingsChanged += OnSettingsChanged;
+        Core.Logging.FileLogger.Info($"ConnectionService: registered {_handlers.Count} protocol handler skeleton(s)");
     }
 
-    /// <summary>
-    /// Updates the cached settings when the configuration is saved.
-    /// </summary>
+    /// <summary>Updates the cached settings when the configuration is saved.</summary>
     private void OnSettingsChanged(AppSettings newSettings)
     {
         _currentSettings = newSettings;
+        _tunnelService.UpdateSettings(newSettings);
         Core.Logging.FileLogger.Info("ConnectionService: settings refreshed at runtime");
     }
 
@@ -97,12 +92,7 @@ public partial class ConnectionService : IConnectionService
         _configManager.SettingsChanged -= OnSettingsChanged;
     }
 
-    /// <summary>
-    /// Runs authentication preflight checks for a server's gateway.
-    /// </summary>
-    /// <param name="server">The server DTO to check.</param>
-    /// <param name="settings">Current application settings containing gateway definitions.</param>
-    /// <returns>A preflight result indicating pass or fail.</returns>
+    /// <summary>Runs authentication preflight checks for a server's gateway.</summary>
     public PreflightResult RunPreflight(ServerProfileDto server, AppSettings settings)
     {
         ArgumentNullException.ThrowIfNull(server);
@@ -123,148 +113,77 @@ public partial class ConnectionService : IConnectionService
                 _localizer.Format("ErrorGatewayNotFound", server.SshGatewayId));
         }
 
-        var connParams = BuildGatewayParams(gateway);
+        var connParams = ConnectionHelpers.CreateGatewayConnectionParams(gateway);
         bool isTunnel = server.ConnectionType?.Equals("RDP", StringComparison.OrdinalIgnoreCase) == true;
         return AuthPreflightChecker.Check(connParams, isTunnelMode: isTunnel);
     }
 
-    /// <summary>
-    /// Converts a gateway DTO to SSH connection parameters, decrypting the password if present.
-    /// </summary>
-    private static SshConnectionParams BuildGatewayParams(SshGatewayDto gateway)
+    // --- Protocol dispatch -------------------------------------------------
+
+    public Task<ConnectionResult> ConnectRdpAsync(
+        ServerProfileDto server,
+        AppSettings settings,
+        CancellationToken ct = default)
+        => DispatchAsync("RDP", server, settings, ct);
+
+    public Task<ConnectionResult> ConnectSshAsync(
+        ServerProfileDto server,
+        AppSettings settings,
+        CancellationToken ct = default)
+        => DispatchAsync("SSH", server, settings, ct);
+
+    public Task<ConnectionResult> ConnectSftpAsync(
+        ServerProfileDto server,
+        AppSettings settings,
+        CancellationToken ct = default)
+        => DispatchAsync("SFTP", server, settings, ct);
+
+    public Task<ConnectionResult> ConnectVncAsync(
+        ServerProfileDto server,
+        AppSettings settings,
+        CancellationToken ct = default)
+        => DispatchAsync("VNC", server, settings, ct);
+
+    public Task<ConnectionResult> ConnectTelnetAsync(
+        ServerProfileDto server,
+        AppSettings settings,
+        CancellationToken ct = default)
+        => DispatchAsync("TELNET", server, settings, ct);
+
+    public Task<ConnectionResult> ConnectFtpAsync(
+        ServerProfileDto server,
+        AppSettings settings,
+        CancellationToken ct = default)
+        => DispatchAsync("FTP", server, settings, ct);
+
+    public Task<ConnectionResult> ConnectCitrixAsync(
+        ServerProfileDto server,
+        AppSettings settings,
+        CancellationToken ct = default)
+        => DispatchAsync("CITRIX", server, settings, ct);
+
+    public Task<ConnectionResult> ConnectLocalShellAsync(
+        ServerProfileDto server,
+        AppSettings settings,
+        CancellationToken ct = default)
+        => DispatchAsync("LOCAL", server, settings, ct);
+
+    private Task<ConnectionResult> DispatchAsync(
+        string protocol,
+        ServerProfileDto server,
+        AppSettings settings,
+        CancellationToken ct)
     {
-        string? password = null;
-        if (!string.IsNullOrEmpty(gateway.SshPasswordEncrypted))
+        ArgumentNullException.ThrowIfNull(server);
+        ArgumentNullException.ThrowIfNull(settings);
+
+        if (_handlers.TryGetValue(protocol, out var handler))
         {
-            password = DecryptPassword(gateway.SshPasswordEncrypted);
+            return handler.ConnectAsync(server, settings, ct);
         }
 
-        return new SshConnectionParams
-        {
-            Host = gateway.Host,
-            Port = gateway.Port,
-            Username = gateway.User,
-            KeyPath = string.IsNullOrWhiteSpace(gateway.KeyPath) ? null : gateway.KeyPath,
-            Password = password
-        };
+        var message = _localizer.Format("ErrorUnsupportedConnectionType", protocol);
+        Core.Logging.FileLogger.Error(message);
+        return Task.FromResult(new ConnectionResult(false, message, null));
     }
-
-    /// <summary>
-    /// Resolves the path to plink.exe: uses the user-configured path if valid,
-    /// otherwise falls back to the embedded tool copy.
-    /// </summary>
-    private static string? ResolvePlinkPath(string? settingsPath)
-    {
-        // User-configured path takes priority
-        if (!string.IsNullOrWhiteSpace(settingsPath) && File.Exists(settingsPath))
-        {
-            return settingsPath;
-        }
-
-        // Embedded plink.exe shipped with the application
-        var embeddedPath = Path.Combine(AppContext.BaseDirectory, AppConstants.EmbeddedToolsSubdir, "plink.exe");
-        if (File.Exists(embeddedPath))
-        {
-            Core.Logging.FileLogger.Info($"Using embedded plink: {embeddedPath}");
-            return embeddedPath;
-        }
-
-        return null;
-    }
-
-    /// <summary>
-    /// Resolves the path to putty.exe: uses the user-configured path if valid,
-    /// falls back to the directory containing plink.exe, then the embedded
-    /// tool copy.
-    /// </summary>
-    private static string? ResolvePuttyPath(string? settingsPath, string? plinkPath)
-    {
-        // User-configured PuTTY path takes priority
-        if (!string.IsNullOrWhiteSpace(settingsPath) && File.Exists(settingsPath))
-        {
-            return settingsPath;
-        }
-
-        // Try to find putty.exe next to plink.exe
-        if (!string.IsNullOrWhiteSpace(plinkPath))
-        {
-            var plinkDir = Path.GetDirectoryName(plinkPath);
-            if (!string.IsNullOrEmpty(plinkDir))
-            {
-                var candidate = Path.Combine(plinkDir, "putty.exe");
-                if (File.Exists(candidate))
-                {
-                    Core.Logging.FileLogger.Info($"Using PuTTY found next to Plink: {candidate}");
-                    return candidate;
-                }
-            }
-        }
-
-        // Embedded putty.exe shipped with the application
-        var embeddedPath = Path.Combine(AppContext.BaseDirectory, AppConstants.EmbeddedToolsSubdir, "putty.exe");
-        if (File.Exists(embeddedPath))
-        {
-            Core.Logging.FileLogger.Info($"Using embedded PuTTY: {embeddedPath}");
-            return embeddedPath;
-        }
-
-        return null;
-    }
-
-    /// <summary>
-    /// Decrypts a credential string. Supports both HMAC-protected and
-    /// legacy DPAPI-only formats via <see cref="CredentialProtector"/>.
-    /// </summary>
-    private static string? DecryptPassword(string? encryptedValue)
-    {
-        return CredentialProtector.Unprotect(encryptedValue);
-    }
-
-    [System.Runtime.InteropServices.DllImport("user32.dll")]
-    private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
-}
-
-/// <summary>
-/// Immutable result of a connection attempt.
-/// </summary>
-/// <param name="Success">Whether the connection was established.</param>
-/// <param name="ErrorMessage">Error description on failure; null on success.</param>
-/// <param name="Session">
-/// The typed session result on success. Null on failure.
-/// Concrete types: <see cref="RdpSessionResult"/>, <see cref="SshSessionResult"/>,
-/// <see cref="TerminalSessionResult"/>, <see cref="SftpSessionBundle"/>,
-/// <see cref="LocalShellBundle"/>.
-/// </param>
-public sealed record ConnectionResult(bool Success, string? ErrorMessage, Heimdall.Core.Models.ISessionResult? Session);
-
-/// <summary>Wraps a <see cref="ServerProfileDto"/> for embedded RDP sessions.</summary>
-/// <param name="Server">Server profile DTO.</param>
-/// <param name="TunnelPort">Dynamically allocated tunnel port, or null for direct connections.</param>
-public sealed record RdpSessionResult(ServerProfileDto Server, int? TunnelPort = null) : Heimdall.Core.Models.ISessionResult;
-
-/// <summary>Wraps an SSH.NET shell session.</summary>
-public sealed record SshSessionResult(Heimdall.Ssh.SshShellSession Session) : Heimdall.Core.Models.ISessionResult;
-
-/// <summary>Wraps a terminal session (Plink pipe mode or ConPTY).</summary>
-public sealed record TerminalSessionResult(Heimdall.Terminal.ITerminalSession Session) : Heimdall.Core.Models.ISessionResult;
-
-/// <summary>
-/// Bundles an SFTP browser session with the SSH connection parameters needed for
-/// sudo operations (edit files owned by root via <c>sudo cat</c> / <c>sudo tee</c>).
-/// </summary>
-public sealed record SftpSessionBundle(SftpBrowser Browser, SshConnectionParams SshParams) : Heimdall.Core.Models.ISessionResult;
-
-/// <summary>
-/// Bundles a local shell terminal session with the resolved working directory
-/// so the file browser panel can start at the same path as the shell.
-/// </summary>
-public sealed record LocalShellBundle(
-    Heimdall.Terminal.ITerminalSession? Session,
-    string WorkingDirectory,
-    string ShellExecutable,
-    bool IsElevated = false,
-    int? ExternalProcessId = null) : Heimdall.Core.Models.ISessionResult
-{
-    /// <summary>True when the shell was launched in a separate elevated window (no embedded terminal).</summary>
-    public bool IsExternal => Session is null && ExternalProcessId is not null;
 }

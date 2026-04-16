@@ -16,15 +16,83 @@
 
 using System.IO;
 using Heimdall.Core.Configuration;
+using Heimdall.Core.Localization;
 using Heimdall.Core.Models;
+using Heimdall.Core.StateMachine;
 using Heimdall.Ssh;
 using Heimdall.Ssh.Pageant;
 using Heimdall.Ssh.Plink;
 
 namespace Heimdall.App.Services;
 
-public partial class ConnectionService
+/// <summary>
+/// Resolves SSH gateway chains and establishes reusable tunnels for protocol handlers.
+/// </summary>
+public sealed class TunnelService : ITunnelService
 {
+    private readonly TunnelManager _tunnelManager;
+    private readonly HostKeyStore _hostKeyStore;
+    private readonly ConnectionStateMachine _connectionSm;
+    private readonly LocalizationManager _localizer;
+
+    private AppSettings? _currentSettings;
+
+    public TunnelService(
+        TunnelManager tunnelManager,
+        HostKeyStore hostKeyStore,
+        ConnectionStateMachine connectionSm,
+        LocalizationManager localizer)
+    {
+        _tunnelManager = tunnelManager;
+        _hostKeyStore = hostKeyStore;
+        _connectionSm = connectionSm;
+        _localizer = localizer;
+    }
+
+    public void UpdateSettings(AppSettings settings)
+    {
+        ArgumentNullException.ThrowIfNull(settings);
+        _currentSettings = settings;
+    }
+
+    /// <summary>
+    /// Checks whether the server requires a tunnel and establishes it if needed.
+    /// Returns the resolved host and port to connect to.
+    /// </summary>
+    public async Task<(bool Success, bool UsesTunnel, string Host, int Port, string? ErrorMessage)>
+        SetupTunnelIfNeededAsync(
+            ServerProfileDto server,
+            int remotePort,
+            AppSettings settings,
+            CancellationToken ct)
+    {
+        if (server.UseDirectConnection || string.IsNullOrEmpty(server.SshGatewayId))
+        {
+            return (true, false, server.RemoteServer, remotePort, null);
+        }
+
+        var tunnelResult = await EstablishTunnelAsync(
+                server.Id,
+                server.SshGatewayId,
+                server.RemoteServer,
+                remotePort,
+                server.LocalPort,
+                settings,
+                ct,
+                server.SocksProxyPort,
+                server.RemoteBindPort,
+                server.RemoteLocalPort)
+            .ConfigureAwait(false);
+
+        if (!tunnelResult.Success)
+        {
+            return (false, false, string.Empty, 0, tunnelResult.ErrorMessage);
+        }
+
+        var localPort = tunnelResult.Tunnel?.LocalPort ?? server.LocalPort;
+        return (true, true, "127.0.0.1", localPort, null);
+    }
+
     /// <summary>
     /// Resolves the gateway chain, performs preflight, and opens a tunnel.
     /// </summary>
@@ -40,9 +108,9 @@ public partial class ConnectionService
         int remoteBindPort = 0,
         int remoteLocalPort = 0)
     {
-        Core.Logging.FileLogger.Info($"Establish tunnel: serverId={serverId} gatewayId={gatewayId} target={remoteHost}:{remotePort} requestedPort={localPort}");
+        Core.Logging.FileLogger.Info(
+            $"Establish tunnel: serverId={serverId} gatewayId={gatewayId} target={remoteHost}:{remotePort} requestedPort={localPort}");
 
-        // Reuse existing tunnel if one is already active for the same remote target
         var existingTunnels = _tunnelManager.GetActiveTunnels();
         var existing = existingTunnels.FirstOrDefault(t =>
             t.RemoteHost == remoteHost &&
@@ -62,7 +130,6 @@ public partial class ConnectionService
 
         _connectionSm.TryTransition(serverId, Core.Models.ConnectionState.EstablishingTunnel);
 
-        // Dynamic port allocation: use the preferred port if free, otherwise find an available one
         localPort = _tunnelManager.AllocatePort(localPort);
         Core.Logging.FileLogger.Info($"Allocated tunnel port: {localPort}");
 
@@ -71,7 +138,9 @@ public partial class ConnectionService
         try
         {
             chain = GatewayChainResolver.ResolveChain(
-                gatewayId, settings.SshGateways, DecryptPassword);
+                gatewayId,
+                settings.SshGateways,
+                ConnectionHelpers.DecryptPassword);
         }
         catch (Exception ex)
         {
@@ -79,7 +148,6 @@ public partial class ConnectionService
             return new TunnelResult(false, null, ex.Message, SshFailureCode.Unknown);
         }
 
-        // Preflight check on the root gateway
         var preflight = AuthPreflightChecker.Check(chain[0], isTunnelMode: true);
         if (!preflight.Success)
         {
@@ -88,24 +156,35 @@ public partial class ConnectionService
             return new TunnelResult(false, null, msg, preflight.FailureCode);
         }
 
-        // SSH.NET handles Pageant auth via PageantKeyWrapper — no plink pre-emption needed.
-        // Plink is only used as a fallback if SSH.NET auth fails (see below).
-
-        // Open tunnel (single-hop or chained)
         TunnelResult result;
         if (chain.Count == 1)
         {
             var keepAlive = _currentSettings?.SshKeepAliveIntervalSeconds ?? 30;
             result = await _tunnelManager.OpenTunnelAsync(
-                chain[0], remoteHost, remotePort, localPort, ct, _hostKeyStore, keepAlive,
-                socksProxyPort, remoteBindPort, remoteLocalPort)
+                    chain[0],
+                    remoteHost,
+                    remotePort,
+                    localPort,
+                    ct,
+                    _hostKeyStore,
+                    keepAlive,
+                    socksProxyPort,
+                    remoteBindPort,
+                    remoteLocalPort)
                 .ConfigureAwait(false);
         }
         else
         {
             result = await _tunnelManager.OpenChainedTunnelAsync(
-                chain, remoteHost, remotePort, localPort, ct, _hostKeyStore,
-                socksProxyPort, remoteBindPort, remoteLocalPort)
+                    chain,
+                    remoteHost,
+                    remotePort,
+                    localPort,
+                    ct,
+                    _hostKeyStore,
+                    socksProxyPort,
+                    remoteBindPort,
+                    remoteLocalPort)
                 .ConfigureAwait(false);
         }
 
@@ -143,44 +222,6 @@ public partial class ConnectionService
         return result;
     }
 
-    /// <summary>
-    /// Checks whether the server requires a tunnel and establishes it if needed.
-    /// Returns the resolved host and port to connect to.
-    /// </summary>
-    private async Task<(bool Success, bool UsesTunnel, string Host, int Port, string? ErrorMessage)>
-        SetupTunnelIfNeededAsync(
-            ServerProfileDto server,
-            int remotePort,
-            AppSettings settings,
-            CancellationToken ct)
-    {
-        if (server.UseDirectConnection || string.IsNullOrEmpty(server.SshGatewayId))
-        {
-            return (true, false, server.RemoteServer, remotePort, null);
-        }
-
-        var tunnelResult = await EstablishTunnelAsync(
-                server.Id,
-                server.SshGatewayId,
-                server.RemoteServer,
-                remotePort,
-                server.LocalPort,
-                settings,
-                ct,
-                server.SocksProxyPort,
-                server.RemoteBindPort,
-                server.RemoteLocalPort)
-            .ConfigureAwait(false);
-
-        if (!tunnelResult.Success)
-        {
-            return (false, false, string.Empty, 0, tunnelResult.ErrorMessage);
-        }
-
-        var localPort = tunnelResult.Tunnel?.LocalPort ?? server.LocalPort;
-        return (true, true, "127.0.0.1", localPort, null);
-    }
-
     private async Task<TunnelResult> EstablishPlinkTunnelAsync(
         string serverId,
         SshConnectionParams gatewayParams,
@@ -190,7 +231,7 @@ public partial class ConnectionService
         AppSettings settings,
         CancellationToken ct)
     {
-        var plinkPath = ResolvePlinkPath(settings.PlinkPath);
+        var plinkPath = ConnectionHelpers.ResolvePlinkPath(settings.PlinkPath);
         if (string.IsNullOrWhiteSpace(plinkPath) || !File.Exists(plinkPath))
         {
             var message = _localizer["ErrorPlinkNotConfigured"];
@@ -198,8 +239,7 @@ public partial class ConnectionService
             return new TunnelResult(false, null, message, SshFailureCode.Unknown);
         }
 
-        // Look up TOFU host key for deterministic verification (no interactive prompt)
-        var fingerprint = _hostKeyStore?.GetFingerprint(gatewayParams.Host, gatewayParams.Port);
+        var fingerprint = _hostKeyStore.GetFingerprint(gatewayParams.Host, gatewayParams.Port);
 
         var runner = new PlinkTunnelRunner(
             _currentSettings?.PlinkPortCheckIntervalMs ?? 2000,

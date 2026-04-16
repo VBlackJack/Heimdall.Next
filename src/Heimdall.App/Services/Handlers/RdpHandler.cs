@@ -17,30 +17,47 @@
 using System.IO;
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Models;
-using Heimdall.Core.Security;
+using Heimdall.Core.StateMachine;
 
-namespace Heimdall.App.Services;
+namespace Heimdall.App.Services.Handlers;
 
-public partial class ConnectionService
+/// <summary>
+/// Handles RDP connection logic.
+/// </summary>
+internal sealed class RdpHandler : IProtocolHandler
 {
+    private readonly ITunnelService _tunnelService;
+    private readonly ConnectionStateMachine _connectionSm;
+
+    public RdpHandler(
+        ITunnelService tunnelService,
+        ConnectionStateMachine connectionSm)
+    {
+        _tunnelService = tunnelService;
+        _connectionSm = connectionSm;
+    }
+
+    public string Protocol => "RDP";
+
     /// <summary>
     /// Establishes an RDP connection, optionally through an SSH tunnel.
     /// Returns a result containing the tunnel local port (for embedded RDP)
     /// or null on failure.
     /// </summary>
-    public async Task<ConnectionResult> ConnectRdpAsync(
+    public async Task<ConnectionResult> ConnectAsync(
         ServerProfileDto server,
         AppSettings settings,
-        CancellationToken ct = default)
+        CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(server);
         ArgumentNullException.ThrowIfNull(settings);
 
-        Core.Logging.FileLogger.Info($"ConnectRdpAsync: {server.DisplayName} ({server.RemoteServer}:{server.RemotePort}) Gateway={server.SshGatewayId ?? "none"}");
-        _connectionSm.TryTransition(server.Id, Core.Models.ConnectionState.ValidatingConfig);
+        Core.Logging.FileLogger.Info(
+            $"ConnectRdpAsync: {server.DisplayName} ({server.RemoteServer}:{server.RemotePort}) Gateway={server.SshGatewayId ?? "none"}");
+        _connectionSm.TryTransition(server.Id, ConnectionState.ValidatingConfig);
 
         var (tunnelOk, usesTunnel, targetHost, targetPort, tunnelError) =
-            await SetupTunnelIfNeededAsync(server, server.RemotePort, settings, ct)
+            await _tunnelService.SetupTunnelIfNeededAsync(server, server.RemotePort, settings, ct)
                 .ConfigureAwait(false);
 
         if (!tunnelOk)
@@ -48,36 +65,40 @@ public partial class ConnectionService
             return new ConnectionResult(false, tunnelError, null);
         }
 
-        _connectionSm.TryTransition(server.Id, Core.Models.ConnectionState.LaunchingRdp);
+        _connectionSm.TryTransition(server.Id, ConnectionState.LaunchingRdp);
 
         var rdpMode = server.RdpMode ?? "Embedded";
         Core.Logging.FileLogger.Info($"RDP mode: {rdpMode}");
 
         if (string.Equals(rdpMode, "Embedded", StringComparison.OrdinalIgnoreCase))
         {
-            // Embedded RDP will be handled by the View layer (ActiveX in WindowsFormsHost).
-            // Pass the dynamically allocated tunnel port so the view connects to the correct port.
             int? effectiveTunnelPort = usesTunnel ? targetPort : null;
             return new ConnectionResult(true, null, new RdpSessionResult(server, effectiveTunnelPort));
         }
 
-        // External mode: launch mstsc.exe
         string? rdpPassword = null;
         try
         {
             var rdpHost = targetHost;
             var rdpPort = targetPort;
 
-            // Store credentials in Windows Credential Manager for mstsc auto-login
-            if (!string.IsNullOrEmpty(server.RdpUsername) && !string.IsNullOrEmpty(server.RdpPasswordEncrypted))
+            if (!string.IsNullOrEmpty(server.RdpUsername) &&
+                !string.IsNullOrEmpty(server.RdpPasswordEncrypted))
             {
                 try
                 {
-                    rdpPassword = CredentialProtector.Unprotect(server.RdpPasswordEncrypted);
+                    rdpPassword = ConnectionHelpers.DecryptPassword(server.RdpPasswordEncrypted);
                     if (rdpPassword is null)
+                    {
                         throw new InvalidOperationException("Failed to decrypt RDP password.");
+                    }
+
                     var credTarget = $"TERMSRV/{rdpHost}";
-                    Heimdall.Rdp.CredentialManagerHelper.WriteDomainCredential(credTarget, server.RdpUsername, rdpPassword, out _);
+                    Heimdall.Rdp.CredentialManagerHelper.WriteDomainCredential(
+                        credTarget,
+                        server.RdpUsername,
+                        rdpPassword,
+                        out _);
                     Core.Logging.FileLogger.Info($"RDP credentials stored for {credTarget}");
                 }
                 catch (Exception credEx)
@@ -86,7 +107,6 @@ public partial class ConnectionService
                 }
             }
 
-            // Generate and launch .rdp file with restrictive ACL
             var rdpFile = Path.Combine(Path.GetTempPath(), $"heimdall_{server.Id}_{Guid.NewGuid():N}.rdp");
             var rdpContent = Heimdall.Rdp.RdpFileGenerator.Generate(new Heimdall.Rdp.RdpFileOptions
             {
@@ -118,9 +138,7 @@ public partial class ConnectionService
                     DisableUdp = server.RdpDisableUdp
                 }
             });
-            // Create .rdp file with restrictive ACL from the start (no TOCTOU window).
-            // Falls back to standard write + post-hoc ACL on non-Windows or if atomic
-            // creation fails.
+
             if (OperatingSystem.IsWindows())
             {
                 try
@@ -129,12 +147,17 @@ public partial class ConnectionService
                 }
                 catch (Exception swEx)
                 {
-                    Core.Logging.FileLogger.Error($"Atomic ACL write failed for .rdp file, falling back to unprotected write: {swEx.Message}");
+                    Core.Logging.FileLogger.Error(
+                        $"Atomic ACL write failed for .rdp file, falling back to unprotected write: {swEx.Message}");
                     await File.WriteAllTextAsync(rdpFile, rdpContent, ct).ConfigureAwait(false);
-                    try { AclEnforcer.SetFileAcl(rdpFile); }
+                    try
+                    {
+                        Heimdall.Core.Security.AclEnforcer.SetFileAcl(rdpFile);
+                    }
                     catch (Exception aclEx)
                     {
-                        Core.Logging.FileLogger.Error($"Failed to set ACL on .rdp file — file has inherited permissions: {aclEx.Message}");
+                        Core.Logging.FileLogger.Error(
+                            $"Failed to set ACL on .rdp file — file has inherited permissions: {aclEx.Message}");
                     }
                 }
             }
@@ -151,10 +174,10 @@ public partial class ConnectionService
             });
 
             var mstscPid = mstscProcess?.Id ?? 0;
-            Core.Logging.FileLogger.Info($"Launched mstsc.exe PID={mstscPid} for {server.DisplayName} ({rdpHost}:{rdpPort})");
-            _connectionSm.TryTransition(server.Id, Core.Models.ConnectionState.Connected);
+            Core.Logging.FileLogger.Info(
+                $"Launched mstsc.exe PID={mstscPid} for {server.DisplayName} ({rdpHost}:{rdpPort})");
+            _connectionSm.TryTransition(server.Id, ConnectionState.Connected);
 
-            // Start CredUI autofill watcher for the external mstsc process
             if (!string.IsNullOrEmpty(rdpPassword) && mstscPid > 0)
             {
                 var autofillPassword = rdpPassword;
@@ -162,17 +185,22 @@ public partial class ConnectionService
                 {
                     try
                     {
-                        var autofillTimeout = TimeSpan.FromMilliseconds(
-                            _currentSettings?.RdpCredentialAutofillTimeoutMs ?? 90000);
+                        var autofillTimeout = TimeSpan.FromMilliseconds(settings.RdpCredentialAutofillTimeoutMs);
                         var filled = await Heimdall.Rdp.CredentialAutofill.WaitAndFillAsync(
-                            mstscPid, rdpHost, autofillPassword,
-                            autofillTimeout, ct).ConfigureAwait(false);
+                                mstscPid,
+                                rdpHost,
+                                autofillPassword,
+                                autofillTimeout,
+                                ct)
+                            .ConfigureAwait(false);
                         if (!filled)
-                            Core.Logging.FileLogger.Warn($"External RDP CredUI autofill timed out for {server.DisplayName}");
+                        {
+                            Core.Logging.FileLogger.Warn(
+                                $"External RDP CredUI autofill timed out for {server.DisplayName}");
+                        }
                     }
                     catch (OperationCanceledException)
                     {
-                        // Expected when connection is cancelled during autofill wait
                     }
                     catch (Exception ex)
                     {
@@ -181,14 +209,21 @@ public partial class ConnectionService
                 }, ct);
             }
 
-            // Clean up .rdp file and CredMan entry after delay
-            var credCleanupTarget = !string.IsNullOrEmpty(server.RdpUsername) && !string.IsNullOrEmpty(server.RdpPasswordEncrypted)
-                ? $"TERMSRV/{rdpHost}" : null;
-            var cleanupDelay = TimeSpan.FromMilliseconds(_currentSettings?.RdpArtifactCleanupDelayMs ?? 10000);
+            var credCleanupTarget = !string.IsNullOrEmpty(server.RdpUsername) &&
+                                    !string.IsNullOrEmpty(server.RdpPasswordEncrypted)
+                ? $"TERMSRV/{rdpHost}"
+                : null;
+            var cleanupDelay = TimeSpan.FromMilliseconds(settings.RdpArtifactCleanupDelayMs);
             _ = Task.Run(async () =>
             {
-                try { await CleanupRdpArtifactsAsync(rdpFile, credCleanupTarget, cleanupDelay, ct); }
-                catch (Exception ex) { Core.Logging.FileLogger.Warn($"RDP cleanup failed: {ex.Message}"); }
+                try
+                {
+                    await CleanupRdpArtifactsAsync(rdpFile, credCleanupTarget, cleanupDelay, ct);
+                }
+                catch (Exception ex)
+                {
+                    Core.Logging.FileLogger.Warn($"RDP cleanup failed: {ex.Message}");
+                }
             }, CancellationToken.None);
 
             return new ConnectionResult(true, null, null);
@@ -200,8 +235,6 @@ public partial class ConnectionService
         }
         finally
         {
-            // Remove reference to plaintext password (the immutable string remains on
-            // the managed heap until GC; .NET strings cannot be zeroed in place).
             rdpPassword = null;
         }
     }
@@ -210,7 +243,10 @@ public partial class ConnectionService
     /// Cleans up the temporary .rdp file and CredMan entry after a delay.
     /// </summary>
     private static async Task CleanupRdpArtifactsAsync(
-        string rdpFile, string? credCleanupTarget, TimeSpan cleanupDelay, CancellationToken ct)
+        string rdpFile,
+        string? credCleanupTarget,
+        TimeSpan cleanupDelay,
+        CancellationToken ct)
     {
         try
         {
@@ -218,11 +254,15 @@ public partial class ConnectionService
         }
         catch (OperationCanceledException)
         {
-            // Proceed with cleanup even if cancelled
         }
 
-        try { File.Delete(rdpFile); }
-        catch (IOException) { /* Best-effort cleanup */ }
+        try
+        {
+            File.Delete(rdpFile);
+        }
+        catch (IOException)
+        {
+        }
 
         if (credCleanupTarget is not null)
         {
