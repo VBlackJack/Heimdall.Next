@@ -16,6 +16,7 @@
 
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Heimdall.App.Services;
 using Heimdall.Core.Configuration;
@@ -46,6 +47,8 @@ namespace Heimdall.App.ViewModels.Sidebar;
 /// </remarks>
 public sealed partial class SidebarViewModel : ObservableObject, IDisposable
 {
+    private const string FavoritesCategoryKey = "ToolsFavoritesHeader";
+
     private readonly MainViewModel _main;
     private readonly LocalizationManager _localizer;
     private readonly ConfigManager _configManager;
@@ -73,6 +76,7 @@ public sealed partial class SidebarViewModel : ObservableObject, IDisposable
         _toolsTabPopulation = toolsTabPopulation;
         _toolContext = toolContext;
         _toolContext.PropertyChanged += OnToolContextPropertyChanged;
+        _main.FavoritesChanged += OnFavoritesChanged;
     }
 
     /// <summary>
@@ -255,6 +259,39 @@ public sealed partial class SidebarViewModel : ObservableObject, IDisposable
         InvalidateFilter();
     }
 
+    private void OnFavoritesChanged(string toolId)
+    {
+        var dispatcher = Application.Current?.Dispatcher;
+        if (dispatcher is not null && !dispatcher.CheckAccess())
+        {
+            _ = dispatcher.InvokeAsync(() => OnFavoritesChanged(toolId));
+            return;
+        }
+
+        if (!_isToolsPopulated)
+        {
+            return;
+        }
+
+        var isFavorited = _main.FavoriteToolIds.Contains(toolId, StringComparer.OrdinalIgnoreCase);
+        var favoritesCategory = isFavorited ? EnsureFavoritesCategory() : FindFavoritesCategory();
+        if (favoritesCategory is null)
+        {
+            return;
+        }
+
+        if (isFavorited)
+        {
+            AddFavoriteTool(favoritesCategory, toolId);
+        }
+        else
+        {
+            RemoveFavoriteTool(favoritesCategory, toolId);
+        }
+
+        InvalidateFilter();
+    }
+
     private async void PersistTabChoice(bool isTools)
     {
         if (!_persistenceEnabled) return;
@@ -321,6 +358,64 @@ public sealed partial class SidebarViewModel : ObservableObject, IDisposable
         }
     }
 
+    private SidebarToolCategoryViewModel EnsureFavoritesCategory()
+    {
+        var existing = FindFavoritesCategory();
+        if (existing is not null)
+        {
+            return existing;
+        }
+
+        var category = _toolsTabPopulation.CreateSidebarFavoritesCategory(_main);
+        category.PropertyChanged += OnCategoryPropertyChanged;
+        ToolsCategories.Insert(0, category);
+        return category;
+    }
+
+    private SidebarToolCategoryViewModel? FindFavoritesCategory()
+    {
+        return ToolsCategories.FirstOrDefault(
+            category => string.Equals(category.CategoryKey, FavoritesCategoryKey, StringComparison.Ordinal));
+    }
+
+    private void AddFavoriteTool(SidebarToolCategoryViewModel favoritesCategory, string toolId)
+    {
+        if (favoritesCategory.Tools.Any(
+            tool => string.Equals(tool.Id, toolId, StringComparison.OrdinalIgnoreCase)))
+        {
+            return;
+        }
+
+        var toolItem = _toolsTabPopulation.CreateSidebarToolItem(_main, toolId);
+        if (toolItem is null)
+        {
+            return;
+        }
+
+        var insertIndex = 0;
+        while (insertIndex < favoritesCategory.Tools.Count
+               && StringComparer.OrdinalIgnoreCase.Compare(
+                   favoritesCategory.Tools[insertIndex].Name,
+                   toolItem.Name) < 0)
+        {
+            insertIndex++;
+        }
+
+        favoritesCategory.Tools.Insert(insertIndex, toolItem);
+    }
+
+    private static void RemoveFavoriteTool(
+        SidebarToolCategoryViewModel favoritesCategory,
+        string toolId)
+    {
+        var existing = favoritesCategory.Tools.FirstOrDefault(
+            tool => string.Equals(tool.Id, toolId, StringComparison.OrdinalIgnoreCase));
+        if (existing is not null)
+        {
+            favoritesCategory.Tools.Remove(existing);
+        }
+    }
+
     /// <inheritdoc />
     public void Dispose()
     {
@@ -330,6 +425,7 @@ public sealed partial class SidebarViewModel : ObservableObject, IDisposable
         }
 
         _disposed = true;
+        _main.FavoritesChanged -= OnFavoritesChanged;
         _toolContext.PropertyChanged -= OnToolContextPropertyChanged;
         UnsubscribeCategoryExpansionHandlers();
     }

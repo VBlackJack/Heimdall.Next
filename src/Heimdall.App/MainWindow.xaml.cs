@@ -17,6 +17,7 @@
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
+using System.Windows.Automation;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
@@ -24,6 +25,7 @@ using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using System.Windows.Threading;
 using Heimdall.App.Services;
 using Heimdall.App.Theming;
 using Heimdall.App.ViewModels;
@@ -70,6 +72,7 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
     private object? _lastKeyEventSource;
     private readonly ToolsTabPopulationService _toolsTabPopulation;
     private bool _closeConfirmed;
+    private bool _suppressSidebarLaunch;
     private OnboardingFlowViewModel? _onboardingVm;
 
     public FileShareService FileShareService => _fileShareService;
@@ -1066,8 +1069,57 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
         (DataContext as MainViewModel)?.Sidebar.SetActiveTab(isTools: false);
     }
 
+    private void OnSidebarToolsRightButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        var treeViewItem = FindAncestor<TreeViewItem>(e.OriginalSource as DependencyObject);
+        if (treeViewItem?.DataContext is not ViewModels.SidebarToolItemViewModel toolItem
+            || DataContext is not MainViewModel vm)
+        {
+            _suppressSidebarLaunch = false;
+            return;
+        }
+
+        _suppressSidebarLaunch = true;
+        treeViewItem.IsSelected = true;
+        treeViewItem.Focus();
+        e.Handled = true;
+
+        var menuItem = new MenuItem
+        {
+            Tag = toolItem.Id,
+            Header = vm.Localize(
+                vm.FavoriteToolIds.Contains(toolItem.Id, StringComparer.OrdinalIgnoreCase)
+                    ? "TreeCtxRemoveFavorite"
+                    : "TreeCtxAddFavorite")
+        };
+        AutomationProperties.SetName(
+            menuItem,
+            vm.Localize(
+                vm.FavoriteToolIds.Contains(toolItem.Id, StringComparer.OrdinalIgnoreCase)
+                    ? "A11yUnpinTool"
+                    : "A11yPinTool"));
+        menuItem.Click += OnSidebarToolContextMenuClick;
+
+        var contextMenu = new ContextMenu
+        {
+            PlacementTarget = treeViewItem,
+            Placement = PlacementMode.MousePoint
+        };
+        contextMenu.Closed += (_, _) => _suppressSidebarLaunch = false;
+        contextMenu.Items.Add(menuItem);
+        Dispatcher.BeginInvoke(
+            DispatcherPriority.Input,
+            new Action(() => contextMenu.IsOpen = true));
+    }
+
     private async void OnSidebarToolsSelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
     {
+        if (_suppressSidebarLaunch)
+        {
+            _suppressSidebarLaunch = false;
+            return;
+        }
+
         if (e.NewValue is not ViewModels.SidebarToolItemViewModel item) return;
         if (DataContext is not MainViewModel vm) return;
 
@@ -1079,15 +1131,18 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
         await vm.Sidebar.LaunchToolAsync(item);
     }
 
-    private async void OnSidebarToolsDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    private async void OnSidebarToolContextMenuClick(object sender, RoutedEventArgs e)
     {
-        if (SidebarToolsTreeView.SelectedItem is not ViewModels.SidebarToolItemViewModel item) return;
-        if (DataContext is not MainViewModel vm) return;
+        if (sender is not MenuItem menuItem
+            || menuItem.Tag is not string toolId
+            || DataContext is not MainViewModel vm)
+        {
+            return;
+        }
 
         e.Handled = true;
-        TabSessions.IsChecked = true;
-        SwitchToTab("Sessions");
-        await vm.Sidebar.LaunchToolAsync(item);
+        _suppressSidebarLaunch = false;
+        await vm.ToggleFavoriteToolAsync(toolId);
     }
 
     // ── Tools Tab (dedicated full-page browser) ──────────────────────
