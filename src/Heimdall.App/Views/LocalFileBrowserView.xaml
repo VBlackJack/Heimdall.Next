@@ -9,6 +9,7 @@
         <conv:FileSizeConverter x:Key="FileSizeConverter"/>
         <conv:FileIconConverter x:Key="FileIconConverter"/>
         <conv:FileIconColorConverter x:Key="FileIconColorConverter"/>
+        <conv:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
     </UserControl.Resources>
 
     <Grid>
@@ -33,29 +34,34 @@
                      FontSize="{StaticResource FontSizeCaption}"
                      VerticalContentAlignment="Center"
                      Margin="8,0,0,0"
-                      TextChanged="OnFilterTextChanged"
+                     Text="{Binding FilterText, UpdateSourceTrigger=PropertyChanged}"
                       AutomationProperties.Name="{loc:Translate A11yTxtSearchFiles}"/>
             <StackPanel Orientation="Horizontal">
                 <Button Content="&#xE72B;" FontFamily="Segoe MDL2 Assets"
                         x:Name="BtnBack" Click="OnBackClick"
+                        ToolTip="{loc:Translate TooltipNavigateBack}"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
-                        Padding="6,2" FontSize="{StaticResource FontSizeCaption}" IsEnabled="False"
-                        AutomationProperties.Name="{loc:Translate SftpTooltipBack}"/>
+                        Padding="6,2" FontSize="{StaticResource FontSizeCaption}"
+                        IsEnabled="{Binding CanGoBack}"
+                        AutomationProperties.Name="{loc:Translate A11yNavigateBack}"/>
                 <Button x:Name="BtnUp" Content="&#xE74A;" FontFamily="Segoe MDL2 Assets"
                         Click="OnUpClick"
+                        ToolTip="{loc:Translate TooltipNavigateUp}"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
                         Padding="6,2" FontSize="{StaticResource FontSizeCaption}" Margin="3,0,0,0"
-                        AutomationProperties.Name="{loc:Translate SftpTooltipUp}"/>
+                        AutomationProperties.Name="{loc:Translate A11yNavigateUp}"/>
                 <Button x:Name="BtnHome" Content="&#xE80F;" FontFamily="Segoe MDL2 Assets"
                         Click="OnHomeClick"
+                        ToolTip="{loc:Translate TooltipNavigateHome}"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
                         Padding="6,2" FontSize="{StaticResource FontSizeCaption}" Margin="3,0,0,0"
-                        AutomationProperties.Name="{loc:Translate SftpTooltipHome}"/>
+                        AutomationProperties.Name="{loc:Translate A11yNavigateHome}"/>
                 <Button x:Name="BtnRefresh" Content="&#xE72C;" FontFamily="Segoe MDL2 Assets"
                         Click="OnRefreshClick"
+                        ToolTip="{loc:Translate TooltipRefreshDirectory}"
                         Style="{DynamicResource ToolbarGhostButtonStyle}"
                         Padding="6,2" FontSize="{StaticResource FontSizeCaption}" Margin="3,0,0,0"
-                        AutomationProperties.Name="{loc:Translate SftpTooltipRefresh}"/>
+                        AutomationProperties.Name="{loc:Translate A11yRefreshDirectory}"/>
             </StackPanel>
             </DockPanel>
         </Border>
@@ -69,6 +75,7 @@
                      Style="{DynamicResource ThemedTextBoxStyle}"
                      FontSize="{StaticResource FontSizeCaption}" FontFamily="{StaticResource FontFamilyMonospace}"
                      VerticalContentAlignment="Center"
+                     Text="{Binding CurrentPath, Mode=OneWay}"
                      KeyDown="OnPathKeyDown"
                      AutomationProperties.Name="{loc:Translate A11yTxtPath}"/>
         </Border>
@@ -79,6 +86,7 @@
                   Background="{DynamicResource BackgroundBrush}"
                   Foreground="{DynamicResource TextPrimaryBrush}"
                   BorderThickness="0"
+                  ItemsSource="{Binding Files}"
                   SelectionMode="Extended"
                   AlternationCount="2"
                   MouseDoubleClick="OnFileDoubleClick"
@@ -226,7 +234,7 @@
                      Background="Transparent"
                      BorderThickness="0"
                      IsHitTestVisible="False"
-                     Visibility="Collapsed"/>
+                     Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibilityConverter}}"/>
 
         <!-- Row 2 overlay: Empty directory message -->
         <TextBlock x:Name="EmptyDirectoryText"
@@ -236,7 +244,8 @@
                    FontSize="{StaticResource FontSizeBodyLarge}"
                    Foreground="{DynamicResource TextSecondaryBrush}"
                    IsHitTestVisible="False"
-                   Visibility="Collapsed"/>
+                   Text="{Binding EmptyFolderText}"
+                   Visibility="{Binding ShowEmptyFolder, Converter={StaticResource BoolToVisibilityConverter}}"/>
 
         <!-- Status bar -->
         <Border Grid.Row="3" Padding="{StaticResource SessionHeaderPadding}"
@@ -244,6 +253,7 @@
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,1,0,0">
             <TextBlock x:Name="StatusBarText"
+                       Text="{Binding StatusText}"
                        FontSize="{StaticResource FontSizeCaption}"
                        Foreground="{DynamicResource TextSecondaryBrush}"/>
         </Border>

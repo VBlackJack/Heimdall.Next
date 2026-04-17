@@ -1,0 +1,638 @@
+/*
+ * Copyright 2026 Julien Bombled
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+using System.Collections.ObjectModel;
+using System.IO;
+using System.Linq;
+using System.Text;
+using CommunityToolkit.Mvvm.ComponentModel;
+using Heimdall.App.Services;
+using Heimdall.Core.Localization;
+using Heimdall.Core.Utilities;
+
+namespace Heimdall.App.ViewModels;
+
+/// <summary>
+/// ViewModel for the local filesystem browser panel. Manages directory state,
+/// navigation history, file listing, filtering, and file operations while
+/// delegating user prompts and notifications to <see cref="IDialogService"/>.
+/// </summary>
+public sealed partial class LocalFileBrowserViewModel : ObservableObject
+{
+    private static readonly HashSet<string> RunnableExtensions = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ".ps1", ".bat", ".cmd", ".sh"
+    };
+
+    private static readonly HashSet<string> TextExtensions = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ".txt", ".log", ".md", ".json", ".xml", ".yaml", ".yml", ".conf", ".cfg", ".ini",
+        ".ps1", ".bat", ".cmd", ".sh", ".bash", ".py", ".rb", ".js", ".ts", ".css", ".html",
+        ".htm", ".cs", ".java", ".c", ".cpp", ".h", ".hpp", ".sql", ".csv", ".env",
+        ".toml", ".properties", ".service", ".timer", ".socket", ".gitignore", ".editorconfig"
+    };
+
+    private readonly Stack<string> _history = new();
+    private readonly List<LocalFileEntry> _allFiles = [];
+    private readonly LocalizationManager? _localizer;
+    private IDialogService? _dialogService;
+
+    [ObservableProperty]
+    private string _currentPath = "";
+
+    [ObservableProperty]
+    private bool _canGoBack;
+
+    [ObservableProperty]
+    private bool _isLoading;
+
+    [ObservableProperty]
+    private string _statusText = "";
+
+    [ObservableProperty]
+    private string _filterText = "";
+
+    [ObservableProperty]
+    private string _emptyFolderText = "";
+
+    [ObservableProperty]
+    private bool _showEmptyFolder;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="LocalFileBrowserViewModel"/> class.
+    /// </summary>
+    /// <param name="startPath">The initial directory path for the browser.</param>
+    /// <param name="localizer">Optional localization manager for UI strings.</param>
+    /// <param name="editorPath">Optional external editor path used by the view.</param>
+    public LocalFileBrowserViewModel(
+        string startPath,
+        LocalizationManager? localizer = null,
+        string? editorPath = null)
+    {
+        _localizer = localizer;
+
+        var validatedPath = Directory.Exists(startPath)
+            ? startPath
+            : Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+
+        SessionRoot = validatedPath;
+        EditorPath = editorPath;
+        Files = [];
+        CurrentPath = validatedPath;
+
+        LoadDirectoryCore(validatedPath, pushToHistory: false);
+    }
+
+    /// <summary>
+    /// Gets the currently displayed files and directories after filtering.
+    /// </summary>
+    public ObservableCollection<LocalFileEntry> Files { get; }
+
+    /// <summary>
+    /// Gets the root directory associated with the local shell session.
+    /// </summary>
+    public string SessionRoot { get; }
+
+    /// <summary>
+    /// Gets the configured external editor path, if any.
+    /// </summary>
+    public string? EditorPath { get; }
+
+    /// <summary>
+    /// Raised when the user requests navigation to a directory path in the terminal.
+    /// </summary>
+    public event Action<string>? NavigateToPathRequested;
+
+    /// <summary>
+    /// Raised when the user requests execution of a script file in the terminal.
+    /// </summary>
+    public event Action<string>? RunInShellRequested;
+
+    /// <summary>
+    /// Raised when the user wants to edit a file in the embedded editor.
+    /// </summary>
+    public event Action<string>? EditInEditorRequested;
+
+    /// <summary>
+    /// Loads a directory and refreshes the unfiltered file cache.
+    /// </summary>
+    /// <param name="path">The directory path to load.</param>
+    public void LoadDirectory(string path)
+    {
+        LoadDirectoryCore(path, pushToHistory: true);
+    }
+
+    /// <summary>
+    /// Navigates to the previous directory in the back stack when available.
+    /// </summary>
+    public void NavigateBack()
+    {
+        if (_history.TryPop(out var previousPath))
+        {
+            LoadDirectoryCore(previousPath, pushToHistory: false);
+        }
+    }
+
+    /// <summary>
+    /// Navigates to the parent directory of the current path.
+    /// </summary>
+    public void NavigateUp()
+    {
+        var parent = Directory.GetParent(CurrentPath);
+        if (parent is not null)
+        {
+            LoadDirectory(parent.FullName);
+        }
+    }
+
+    /// <summary>
+    /// Navigates back to the session root directory.
+    /// </summary>
+    public void NavigateHome()
+    {
+        LoadDirectory(SessionRoot);
+    }
+
+    /// <summary>
+    /// Reloads the current directory contents without modifying history.
+    /// </summary>
+    public void Refresh()
+    {
+        LoadDirectory(CurrentPath);
+    }
+
+    /// <summary>
+    /// Navigates to a user-entered path when it points to an existing directory.
+    /// </summary>
+    /// <param name="path">The requested directory path.</param>
+    public void NavigateToPath(string? path)
+    {
+        if (!string.IsNullOrWhiteSpace(path) && Directory.Exists(path))
+        {
+            LoadDirectory(path);
+        }
+    }
+
+    /// <summary>
+    /// Handles the logical part of a double-click action.
+    /// Returns <see langword="true"/> when the action was handled inside the ViewModel.
+    /// </summary>
+    /// <param name="entry">The selected file system entry.</param>
+    /// <returns><see langword="true"/> if handled; otherwise <see langword="false"/>.</returns>
+    public bool HandleFileDoubleClick(LocalFileEntry entry)
+    {
+        if (entry.IsDirectory)
+        {
+            LoadDirectory(entry.FullPath);
+            return true;
+        }
+
+        if (IsTextFile(entry.Name) && EditInEditorRequested is not null)
+        {
+            EditInEditorRequested.Invoke(entry.FullPath);
+            return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Raises the terminal navigation request for the supplied path.
+    /// </summary>
+    /// <param name="path">The path that should become the shell working directory.</param>
+    public void InvokeNavigateToPath(string path)
+    {
+        NavigateToPathRequested?.Invoke(path);
+    }
+
+    /// <summary>
+    /// Raises the run-in-shell request for the supplied file path.
+    /// </summary>
+    /// <param name="path">The file path to execute in the terminal.</param>
+    public void InvokeRunInShell(string path)
+    {
+        RunInShellRequested?.Invoke(path);
+    }
+
+    /// <summary>
+    /// Determines whether the supplied file should open in the embedded text editor.
+    /// </summary>
+    /// <param name="fileName">The file name to inspect.</param>
+    /// <returns><see langword="true"/> for known text extensions; otherwise <see langword="false"/>.</returns>
+    public bool IsTextFile(string fileName)
+    {
+        var extension = Path.GetExtension(fileName);
+        return !string.IsNullOrEmpty(extension) && TextExtensions.Contains(extension);
+    }
+
+    /// <summary>
+    /// Determines whether the supplied file can be run directly in the shell.
+    /// </summary>
+    /// <param name="fileName">The file name to inspect.</param>
+    /// <returns><see langword="true"/> for runnable extensions; otherwise <see langword="false"/>.</returns>
+    public bool IsRunnableFile(string fileName)
+    {
+        var extension = Path.GetExtension(fileName);
+        return !string.IsNullOrEmpty(extension) && RunnableExtensions.Contains(extension);
+    }
+
+    /// <summary>
+    /// Updates the dialog service after construction when the view resolves it lazily from DI.
+    /// </summary>
+    /// <param name="dialogService">The dialog service used for prompts and notifications.</param>
+    internal void SetDialogService(IDialogService? dialogService)
+    {
+        _dialogService = dialogService;
+    }
+
+    /// <summary>
+    /// Deletes the provided entries after user confirmation and refreshes the current directory.
+    /// </summary>
+    /// <param name="entries">The selected file system entries to delete.</param>
+    public async Task DeleteEntriesAsync(IReadOnlyList<LocalFileEntry> entries)
+    {
+        if (entries.Count == 0 || !TryGetDialogService(out var dialogService))
+        {
+            return;
+        }
+
+        var title = L10n("FileBrowserConfirmDeleteTitle");
+
+        foreach (var entry in entries)
+        {
+            var message = string.Format(L10n("FileBrowserConfirmDeleteMessage"), entry.Name);
+            var confirmed = await dialogService.ShowConfirmAsync(title, message, "warning");
+            if (!confirmed)
+            {
+                continue;
+            }
+
+            try
+            {
+                if (entry.IsDirectory)
+                {
+                    Directory.Delete(entry.FullPath, recursive: true);
+                }
+                else
+                {
+                    File.Delete(entry.FullPath);
+                }
+            }
+            catch (Exception ex)
+            {
+                var errorMessage = string.Format(L10n("FileBrowserDeleteError"), entry.Name, ex.Message);
+                dialogService.ShowError(title, errorMessage);
+            }
+        }
+
+        Refresh();
+    }
+
+    /// <summary>
+    /// Prompts the user for a new name and renames the selected entry.
+    /// </summary>
+    /// <param name="entry">The selected file system entry to rename.</param>
+    public async Task RenameEntryAsync(LocalFileEntry entry)
+    {
+        if (!TryGetDialogService(out var dialogService))
+        {
+            return;
+        }
+
+        var title = L10n("FileBrowserRenameTitle");
+        var prompt = L10n("FileBrowserRenamePrompt");
+        var newName = (await dialogService.ShowInputAsync(title, prompt, entry.Name))?.Trim();
+
+        if (string.IsNullOrWhiteSpace(newName) || newName == entry.Name)
+        {
+            return;
+        }
+
+        if (newName.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0 || newName.Contains("..", StringComparison.Ordinal))
+        {
+            dialogService.ShowWarning(title, L10n("ErrorInvalidFileName"));
+            return;
+        }
+
+        try
+        {
+            var parentDir = Path.GetDirectoryName(entry.FullPath)!;
+            var newPath = Path.GetFullPath(Path.Combine(parentDir, newName));
+            if (!newPath.StartsWith(parentDir, StringComparison.OrdinalIgnoreCase))
+            {
+                dialogService.ShowWarning(title, L10n("ErrorInvalidFileName"));
+                return;
+            }
+
+            if (entry.IsDirectory)
+            {
+                Directory.Move(entry.FullPath, newPath);
+            }
+            else
+            {
+                File.Move(entry.FullPath, newPath);
+            }
+
+            Refresh();
+        }
+        catch (Exception ex)
+        {
+            var errorMessage = string.Format(L10n("FileBrowserRenameError"), entry.Name, ex.Message);
+            dialogService.ShowError(title, errorMessage);
+        }
+    }
+
+    /// <summary>
+    /// Prompts the user for a folder name and creates it in the current directory.
+    /// </summary>
+    public async Task CreateFolderAsync()
+    {
+        if (!TryGetDialogService(out var dialogService))
+        {
+            return;
+        }
+
+        var title = L10n("FileBrowserNewFolderTitle");
+        var prompt = L10n("FileBrowserNewFolderPrompt");
+        var folderName = (await dialogService.ShowInputAsync(title, prompt))?.Trim();
+
+        if (string.IsNullOrWhiteSpace(folderName))
+        {
+            return;
+        }
+
+        if (folderName.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0 || folderName.Contains("..", StringComparison.Ordinal))
+        {
+            dialogService.ShowWarning(title, L10n("ErrorInvalidFileName"));
+            return;
+        }
+
+        try
+        {
+            var newPath = Path.GetFullPath(Path.Combine(CurrentPath, folderName));
+            if (!newPath.StartsWith(CurrentPath, StringComparison.OrdinalIgnoreCase))
+            {
+                dialogService.ShowWarning(title, L10n("ErrorInvalidFileName"));
+                return;
+            }
+
+            Directory.CreateDirectory(newPath);
+            Refresh();
+        }
+        catch (Exception ex)
+        {
+            var errorMessage = string.Format(L10n("FileBrowserNewFolderError"), ex.Message);
+            dialogService.ShowError(title, errorMessage);
+        }
+    }
+
+    /// <summary>
+    /// Pastes files and directories from the supplied source paths into the current directory.
+    /// </summary>
+    /// <param name="sourcePaths">The clipboard file paths provided by the view.</param>
+    public async Task PasteFilesAsync(IReadOnlyList<string> sourcePaths)
+    {
+        if (sourcePaths.Count == 0 || !TryGetDialogService(out var dialogService))
+        {
+            return;
+        }
+
+        var title = L10n("FileBrowserPasteOverwriteTitle");
+
+        foreach (var sourcePath in sourcePaths)
+        {
+            if (string.IsNullOrWhiteSpace(sourcePath))
+            {
+                continue;
+            }
+
+            try
+            {
+                var name = Path.GetFileName(sourcePath);
+                var destinationPath = Path.Combine(CurrentPath, name);
+
+                if (File.Exists(sourcePath))
+                {
+                    if (File.Exists(destinationPath))
+                    {
+                        var overwriteMessage = string.Format(L10n("FileBrowserPasteOverwriteMessage"), name);
+                        var overwrite = await dialogService.ShowConfirmAsync(title, overwriteMessage, "warning");
+                        if (!overwrite)
+                        {
+                            continue;
+                        }
+                    }
+
+                    File.Copy(sourcePath, destinationPath, overwrite: true);
+                }
+                else if (Directory.Exists(sourcePath))
+                {
+                    CopyDirectoryRecursive(sourcePath, destinationPath);
+                }
+            }
+            catch (Exception ex)
+            {
+                var errorMessage = string.Format(L10n("FileBrowserPasteError"), Path.GetFileName(sourcePath), ex.Message);
+                dialogService.ShowError(title, errorMessage);
+            }
+        }
+
+        Refresh();
+    }
+
+    /// <summary>
+    /// Builds and shows the properties dialog for the selected entry.
+    /// </summary>
+    /// <param name="entry">The selected file system entry.</param>
+    public void ShowProperties(LocalFileEntry entry)
+    {
+        if (!TryGetDialogService(out var dialogService))
+        {
+            return;
+        }
+
+        try
+        {
+            dialogService.ShowInfo(L10n("FileBrowserPropertiesTitle"), BuildPropertiesText(entry));
+        }
+        catch (Exception ex)
+        {
+            Heimdall.Core.Logging.FileLogger.Warn($"Properties read failed: {ex.Message}");
+        }
+    }
+
+    partial void OnFilterTextChanged(string value)
+    {
+        _ = value;
+        ApplyFilter();
+        UpdateStatusText();
+    }
+
+    private void LoadDirectoryCore(string path, bool pushToHistory)
+    {
+        try
+        {
+            IsLoading = true;
+
+            var entries = new List<LocalFileEntry>();
+
+            foreach (var directoryPath in Directory.EnumerateDirectories(path))
+            {
+                try
+                {
+                    var info = new DirectoryInfo(directoryPath);
+                    entries.Add(new LocalFileEntry(info.Name, info.FullName, true, 0, info.LastWriteTime));
+                }
+                catch (Exception ex)
+                {
+                    Heimdall.Core.Logging.FileLogger.Warn($"[LocalFileBrowser] skip inaccessible directory: {ex.Message}");
+                }
+            }
+
+            foreach (var filePath in Directory.EnumerateFiles(path))
+            {
+                try
+                {
+                    var info = new FileInfo(filePath);
+                    entries.Add(new LocalFileEntry(info.Name, info.FullName, false, info.Length, info.LastWriteTime));
+                }
+                catch (Exception ex)
+                {
+                    Heimdall.Core.Logging.FileLogger.Warn($"[LocalFileBrowser] skip inaccessible file: {ex.Message}");
+                }
+            }
+
+            if (pushToHistory && !string.Equals(path, CurrentPath, StringComparison.OrdinalIgnoreCase))
+            {
+                _history.Push(CurrentPath);
+            }
+
+            CurrentPath = path;
+            _allFiles.Clear();
+            _allFiles.AddRange(entries
+                .OrderByDescending(entry => entry.IsDirectory)
+                .ThenBy(entry => entry.Name, StringComparer.OrdinalIgnoreCase));
+
+            ApplyFilter();
+            CanGoBack = _history.Count > 0;
+            UpdateStatusText();
+        }
+        catch (Exception ex)
+        {
+            Heimdall.Core.Logging.FileLogger.Warn($"LocalFileBrowser load failed: {ex.Message}");
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private void ApplyFilter()
+    {
+        var filter = FilterText.Trim();
+
+        Files.Clear();
+
+        var source = string.IsNullOrEmpty(filter)
+            ? _allFiles
+            : _allFiles.Where(entry => entry.Name.Contains(filter, StringComparison.OrdinalIgnoreCase));
+
+        foreach (var entry in source)
+        {
+            Files.Add(entry);
+        }
+
+        ShowEmptyFolder = Files.Count == 0;
+        EmptyFolderText = ShowEmptyFolder ? L10n("FileBrowserEmptyFolder") : string.Empty;
+    }
+
+    private void UpdateStatusText()
+    {
+        var template = L10n("FileBrowserStatusItems");
+        StatusText = string.Format(template, Files.Count);
+    }
+
+    private string BuildPropertiesText(LocalFileEntry entry)
+    {
+        var builder = new StringBuilder();
+
+        builder.AppendLine($"{L10n("FileBrowserPropertiesName")}: {entry.Name}");
+        builder.AppendLine($"{L10n("FileBrowserPropertiesPath")}: {entry.FullPath}");
+
+        if (entry.IsDirectory)
+        {
+            var dirInfo = new DirectoryInfo(entry.FullPath);
+            builder.AppendLine($"{L10n("FileBrowserPropertiesType")}: {L10n("FileBrowserPropertiesTypeFolder")}");
+            builder.AppendLine($"{L10n("FileBrowserPropertiesCreated")}: {dirInfo.CreationTime:yyyy-MM-dd HH:mm:ss}");
+            builder.AppendLine($"{L10n("FileBrowserPropertiesModified")}: {dirInfo.LastWriteTime:yyyy-MM-dd HH:mm:ss}");
+            builder.AppendLine($"{L10n("FileBrowserPropertiesAttributes")}: {dirInfo.Attributes}");
+        }
+        else
+        {
+            var fileInfo = new FileInfo(entry.FullPath);
+            builder.AppendLine($"{L10n("FileBrowserPropertiesType")}: {fileInfo.Extension}");
+            builder.AppendLine($"{L10n("FileBrowserPropertiesSize")}: {FileSize.Format(fileInfo.Length)}");
+            builder.AppendLine($"{L10n("FileBrowserPropertiesCreated")}: {fileInfo.CreationTime:yyyy-MM-dd HH:mm:ss}");
+            builder.AppendLine($"{L10n("FileBrowserPropertiesModified")}: {fileInfo.LastWriteTime:yyyy-MM-dd HH:mm:ss}");
+            builder.AppendLine($"{L10n("FileBrowserPropertiesAccessed")}: {fileInfo.LastAccessTime:yyyy-MM-dd HH:mm:ss}");
+            builder.AppendLine($"{L10n("FileBrowserPropertiesAttributes")}: {fileInfo.Attributes}");
+        }
+
+        return builder.ToString();
+    }
+
+    private static void CopyDirectoryRecursive(string sourceDir, string destDir)
+    {
+        Directory.CreateDirectory(destDir);
+
+        foreach (var file in Directory.EnumerateFiles(sourceDir))
+        {
+            var destFile = Path.Combine(destDir, Path.GetFileName(file));
+            File.Copy(file, destFile, overwrite: true);
+        }
+
+        foreach (var dir in Directory.EnumerateDirectories(sourceDir))
+        {
+            var destSubDir = Path.Combine(destDir, Path.GetFileName(dir));
+            CopyDirectoryRecursive(dir, destSubDir);
+        }
+    }
+
+    private bool TryGetDialogService(out IDialogService dialogService)
+    {
+        if (_dialogService is not null)
+        {
+            dialogService = _dialogService;
+            return true;
+        }
+
+        Heimdall.Core.Logging.FileLogger.Warn("[LocalFileBrowser] dialog service unavailable.");
+        dialogService = null!;
+        return false;
+    }
+
+    private string L10n(string key) => _localizer?.GetString(key) ?? key;
+}
+
+/// <summary>
+/// Represents a local filesystem entry displayed by the file browser ListView.
+/// </summary>
+public sealed record LocalFileEntry(
+    string Name,
+    string FullPath,
+    bool IsDirectory,
+    long Size,
+    DateTime LastModified);
