@@ -80,6 +80,7 @@
                     <TextBlock Text=" - " Foreground="{DynamicResource TextSecondaryBrush}"
                                FontSize="{StaticResource FontSizeCaption}" VerticalAlignment="Center"/>
                     <TextBlock x:Name="StatusTextBlock"
+                               Text="{Binding StatusText}"
                                FontSize="{StaticResource FontSizeCaption}"
                                Foreground="{DynamicResource TextPrimaryBrush}"
                                VerticalAlignment="Center"/>
@@ -103,7 +104,7 @@
                              FontSize="{StaticResource FontSizeCaption}"
                              VerticalContentAlignment="Center"
                              Margin="8,0,0,0"
-                             TextChanged="OnFilterTextChanged"
+                             Text="{Binding FilterText, UpdateSourceTrigger=PropertyChanged}"
                              AutomationProperties.Name="{loc:Translate A11yTxtSearchFiles}"/>
                     <CheckBox x:Name="ToggleHiddenCheckBox"
                               Content=".*"
@@ -111,10 +112,9 @@
                               Foreground="{DynamicResource TextSecondaryBrush}"
                               FontSize="{StaticResource FontSizeCaption}"
                               Margin="8,0,0,0"
-                              IsChecked="True"
-                              Checked="OnToggleHiddenChanged"
+                              IsChecked="{Binding ShowHidden}"
                               AutomationProperties.Name="{loc:Translate SftpTooltipHidden}"
-                              Unchecked="OnToggleHiddenChanged"/>
+                              />
                 </StackPanel>
 
                 <!-- Left side: navigation + actions (Segoe MDL2 Assets icons) -->
@@ -244,6 +244,7 @@
                          FontSize="{StaticResource FontSizeBody}"
                          FontFamily="{StaticResource FontFamilyMonospace}"
                          VerticalContentAlignment="Center"
+                         Text="{Binding CurrentPath, Mode=OneWay}"
                          KeyDown="OnPathKeyDown"
                          AutomationProperties.Name="{loc:Translate A11yTxtPath}"/>
             </DockPanel>
@@ -256,6 +257,7 @@
                   Background="{DynamicResource BackgroundBrush}"
                   Foreground="{DynamicResource TextPrimaryBrush}"
                   BorderThickness="0"
+                  ItemsSource="{Binding Files}"
                   SelectionMode="Extended"
                   AlternationCount="2"
                   MouseDoubleClick="OnFileDoubleClick"
@@ -439,7 +441,7 @@
                      Background="Transparent"
                      BorderThickness="0"
                      IsHitTestVisible="False"
-                     Visibility="Collapsed"/>
+                     Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibilityConverter}}"/>
 
         <!-- Row 3 overlay: Empty directory message -->
         <TextBlock x:Name="EmptyDirectoryText"
@@ -449,7 +451,7 @@
                    FontSize="{StaticResource FontSizeBodyLarge}"
                    Foreground="{DynamicResource TextSecondaryBrush}"
                    IsHitTestVisible="False"
-                   Visibility="Collapsed"/>
+                   Visibility="{Binding ShowEmptyDirectory, Converter={StaticResource BoolToVisibilityConverter}}"/>
 
         <!-- Row 3 overlay: Drag-drop feedback -->
         <Border x:Name="DragOverlay"
@@ -508,10 +510,12 @@
             <DockPanel>
                 <TextBlock x:Name="ItemCountText"
                            DockPanel.Dock="Right"
+                           Text="{Binding ItemCountText}"
                            FontSize="{StaticResource FontSizeCaption}"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
                 <TextBlock x:Name="SelectionInfoText"
                            DockPanel.Dock="Right"
+                           Text="{Binding SelectionInfoText}"
                            FontSize="{StaticResource FontSizeCaption}"
                            Margin="0,0,12,0"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
@@ -522,6 +526,7 @@
                          Fill="{DynamicResource SuccessBrush}"
                          VerticalAlignment="Center"/>
                 <TextBlock x:Name="StatusBarText"
+                           Text="{Binding StatusText}"
                            FontSize="{StaticResource FontSizeCaption}"
                            Foreground="{DynamicResource TextSecondaryBrush}"
                            TextTrimming="CharacterEllipsis"/>

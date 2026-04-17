@@ -1,6 +1,7 @@
 <UserControl x:Class="Heimdall.App.Views.EmbeddedEditorView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:loc="clr-namespace:Heimdall.App.Localization"
              xmlns:avalon="http://icsharpcode.net/sharpdevelop/avalonedit"
              Background="{DynamicResource BackgroundBrush}">
     <Grid>
@@ -18,13 +19,17 @@
             <DockPanel>
                 <Button x:Name="BtnSave" DockPanel.Dock="Right"
                         Click="OnSaveClick"
+                        Content="{loc:Translate EditorBtnSave}"
+                        AutomationProperties.Name="{loc:Translate EditorBtnSave}"
                         Style="{DynamicResource PrimaryButtonStyle}"
                         Padding="12,3" FontSize="{StaticResource FontSizeCaption}" Margin="4,0,0,0"/>
                 <Button x:Name="BtnClose" DockPanel.Dock="Right"
                         Click="OnCloseClick"
+                        Content="{loc:Translate EditorBtnClose}"
+                        AutomationProperties.Name="{loc:Translate EditorBtnClose}"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="8,3" FontSize="{StaticResource FontSizeCaption}" Margin="4,0,0,0"/>
-                <TextBlock x:Name="FileNameText"
+                <TextBlock Text="{Binding DisplayTitle}"
                            FontSize="{StaticResource FontSizeBody}" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
                            VerticalAlignment="Center"
@@ -48,11 +53,11 @@
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,1,0,0">
             <DockPanel>
-                <TextBlock x:Name="CursorPositionText"
+                <TextBlock Text="{Binding CursorPositionText}"
                            DockPanel.Dock="Right"
                            FontSize="{StaticResource FontSizeCaption}"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
-                <TextBlock x:Name="SyntaxLabel"
+                <TextBlock Text="{Binding SyntaxName}"
                            FontSize="{StaticResource FontSizeCaption}"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
             </DockPanel>
