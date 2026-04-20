@@ -38,7 +38,7 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
 
-    <!-- Draw.io assets: Release only (~48 MB / 2258 files â€” skipped in Debug
+    <!-- Draw.io assets: Release only (~48 MB / 2258 files ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â skipped in Debug
          to keep iterative dev builds fast. The Diagram tool falls back to a
          localized "Release-only" message when the directory is missing.) -->
     <Content Include="Assets\drawio\**" Condition="'$(Configuration)' != 'Debug'">
@@ -82,8 +82,8 @@
     <UseWindowsForms>true</UseWindowsForms>
     <AssemblyName>Heimdall.Next</AssemblyName>
     <RootNamespace>Heimdall.App</RootNamespace>
-    <Version>1.0.0413.1</Version>
-    <InformationalVersion>2026.041301</InformationalVersion>
+    <Version>1.0.0420.1</Version>
+    <InformationalVersion>2026.042001</InformationalVersion>
     <Authors>Julien Bombled</Authors>
     <Product>Heimdall.Next</Product>
     <Description>Secure Connection Manager - RDP, SSH, SFTP</Description>
