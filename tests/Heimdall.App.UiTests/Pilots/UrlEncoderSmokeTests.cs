@@ -127,7 +127,4 @@ public sealed class UrlEncoderSmokeTests : UiTestBase<UrlEncoderView>
             () => IsCollapsed(session.TryFindByAutomationId("UrlEncoder.CloseHelpButton")),
             "url encoder help panel collapsed");
     }
-
-    private static bool IsCollapsed(AutomationElement? element)
-        => element is null || element.Properties.IsOffscreen.ValueOrDefault;
 }

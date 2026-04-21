@@ -164,7 +164,4 @@ public sealed class TextDiffSmokeTests : UiTestBase<TextDiffView>
             WpfTestHost.Translate("ToolDiffBtnCompare"),
             "text diff compare button in fr");
     }
-
-    private static bool IsCollapsed(AutomationElement? element)
-        => element is null || element.Properties.IsOffscreen.ValueOrDefault;
 }

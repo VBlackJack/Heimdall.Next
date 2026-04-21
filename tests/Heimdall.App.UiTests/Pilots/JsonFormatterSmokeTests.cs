@@ -123,7 +123,4 @@ public sealed class JsonFormatterSmokeTests : UiTestBase<JsonFormatterView>
             () => IsCollapsed(session.TryFindByAutomationId("JsonFormatter.CloseHelpButton")),
             "json formatter help panel collapsed");
     }
-
-    private static bool IsCollapsed(AutomationElement? element)
-        => element is null || element.Properties.IsOffscreen.ValueOrDefault;
 }

@@ -110,7 +110,4 @@ public sealed class RegexTesterSmokeTests : UiTestBase<RegexTesterView>
             WpfTestHost.Translate("ToolRegexIgnoreCase"),
             "regex ignore-case name in fr");
     }
-
-    private static bool IsCollapsed(AutomationElement? element)
-        => element is null || element.Properties.IsOffscreen.ValueOrDefault;
 }

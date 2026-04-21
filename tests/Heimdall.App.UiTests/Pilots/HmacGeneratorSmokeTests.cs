@@ -147,7 +147,4 @@ public sealed class HmacGeneratorSmokeTests : UiTestBase<HmacGeneratorView>
         session.FindByAutomationId("HmacGenerator.KeyVisibleInput").AsTextBox().Text = key;
         session.FindByAutomationId("HmacGenerator.MessageInput").AsTextBox().Text = message;
     }
-
-    private static bool IsCollapsed(AutomationElement? element)
-        => element is null || element.Properties.IsOffscreen.ValueOrDefault;
 }
