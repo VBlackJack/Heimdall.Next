@@ -78,7 +78,7 @@
                         VerticalAlignment="Center"
                         TabIndex="0"/>
                 <Button x:Name="BtnScanNow" Content=""
-                        Click="OnScanNowClick"
+                        Command="{Binding RefreshCommand}"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonCopy}" Margin="{StaticResource MarginInlineControl}"
                         VerticalAlignment="Center"
@@ -131,7 +131,8 @@
         <ProgressBar x:Name="LoadingBar" Grid.Row="4"
                      Style="{StaticResource ToolLoadingBarStyle}"/>
 
-        <TextBlock x:Name="TxtError" Grid.Row="4" Text=""
+        <TextBlock x:Name="TxtError" Grid.Row="4"
+                   Text="{Binding ErrorMessage}"
                    Style="{StaticResource ToolInlineErrorTextStyle}"
                    Margin="12,8,12,0"
                    VerticalAlignment="Top"/>
@@ -144,7 +145,8 @@
                 <TextBlock Text="&#xE968;"
                            Style="{StaticResource ToolEmptyStateIconStyle}"
                            Focusable="False"/>
-                <TextBlock x:Name="TxtEmptyState" Text=""
+                <TextBlock x:Name="TxtEmptyState"
+                           Text="{Binding EmptyStateText}"
                            Style="{StaticResource ToolEmptyStateTextStyle}"/>
             </StackPanel>
         </Border>
@@ -155,6 +157,7 @@
                 Margin="{StaticResource SpacingSm}"
                 Padding="0">
             <DataGrid x:Name="ArpGrid"
+                      ItemsSource="{Binding Entries}"
                       AutoGenerateColumns="False"
                       IsReadOnly="True"
                       HeadersVisibility="Column"
@@ -208,11 +211,13 @@
                         VerticalAlignment="Center"
                         TabIndex="5"/>
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <TextBlock x:Name="TxtTotal" Text="" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
+                    <TextBlock x:Name="TxtTotal" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
+                               Text="{Binding TotalText}"
                                Foreground="{DynamicResource TextSecondaryBrush}"/>
                     <TextBlock Text="  |  " FontSize="{StaticResource FontSizeBody}"
                                Foreground="{DynamicResource BorderBrush}"/>
-                    <TextBlock x:Name="TxtLastRefresh" Text="" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
+                    <TextBlock x:Name="TxtLastRefresh" FontSize="{StaticResource FontSizeBody}" FontFamily="Consolas"
+                               Text="{Binding LastRefreshText}"
                                Foreground="{DynamicResource TextSecondaryBrush}"/>
                 </StackPanel>
             </DockPanel>

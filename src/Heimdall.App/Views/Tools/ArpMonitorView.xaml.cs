@@ -14,14 +14,13 @@
  * limitations under the License.
  */
 
-using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.ComponentModel;
 using System.Text;
 using System.Windows;
 using System.Windows.Automation;
 using System.Windows.Controls;
 using System.Windows.Media;
-using System.Windows.Threading;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Models;
 using Heimdall.App.Services;
@@ -37,21 +36,19 @@ public partial class ArpMonitorView : UserControl, IToolView
 {
     private LocalizationManager? _localizer;
     private Action<bool>? _setBusy;
-    private DispatcherTimer? _refreshTimer;
-    private bool _isRunning;
-    private bool _isRefreshing;
     private bool _disposed;
     private readonly ToolAsyncStateController _viewState;
-    private readonly IArpTableReader _reader;
-
-    private readonly ObservableCollection<ArpEntry> _entries = [];
-    private readonly Dictionary<string, ArpEntry> _knownEntries = new(StringComparer.OrdinalIgnoreCase);
+    private readonly ArpMonitorViewModel _vm;
 
     public ArpMonitorView()
     {
         InitializeComponent();
-        _reader = (Application.Current as App)?.Services?.GetService<IArpTableReader>()
+        var reader = (Application.Current as App)?.Services?.GetService<IArpTableReader>()
             ?? new DefaultArpTableReader();
+        _vm = new ArpMonitorViewModel(reader);
+        _vm.PropertyChanged += OnViewModelPropertyChanged;
+        _vm.MacChangedDetected += OnMacChangedDetected;
+        DataContext = _vm;
         _viewState = new ToolAsyncStateController(
             null,
             LoadingBar,
@@ -59,7 +56,6 @@ public partial class ArpMonitorView : UserControl, IToolView
             EmptyStatePanel,
             GridPanel,
             null);
-        ArpGrid.ItemsSource = _entries;
         PreviewKeyDown += (s, e) => { if (e.Key == System.Windows.Input.Key.Enter && !e.Handled) { OnToggleClick(s, e); e.Handled = true; } };
     }
 
@@ -70,17 +66,17 @@ public partial class ArpMonitorView : UserControl, IToolView
     {
         _localizer = localizer;
         _setBusy = context?.SetBusyAction;
+        _vm.Initialize(localizer);
         ApplyLocalization();
+        SyncViewShell();
     }
 
     private void ApplyLocalization()
     {
         HeaderTitle.Text = L("ToolArpTitle");
-        BtnToggle.Content = L("ToolArpBtnStart");
         BtnScanNow.Content = L("ToolArpBtnScanNow");
         LblInterval.Text = L("ToolArpInterval");
         BtnCopy.Content = L("ToolArpBtnCopy");
-        UpdateEmptyStateText();
 
         Interval5s.Content = L("ToolArpInterval5");
         Interval10s.Content = L("ToolArpInterval10");
@@ -94,10 +90,6 @@ public partial class ArpMonitorView : UserControl, IToolView
         ColFirstSeen.Header = L("ToolArpColFirstSeen");
         ColLastSeen.Header = L("ToolArpColLastSeen");
 
-        TxtTotal.Text = string.Format(L("ToolArpTotal"), 0);
-        TxtLastRefresh.Text = "";
-
-        AutomationProperties.SetName(BtnToggle, L("ToolArpBtnStart"));
         AutomationProperties.SetName(BtnScanNow, L("ToolArpBtnScanNow"));
         AutomationProperties.SetName(BtnCopy, L("ToolArpBtnCopy"));
         AutomationProperties.SetName(CmbInterval, L("ToolArpInterval"));
@@ -108,194 +100,19 @@ public partial class ArpMonitorView : UserControl, IToolView
         AutomationProperties.SetName(BtnCloseHelp, L("BtnClose"));
         AutomationProperties.SetName(LoadingBar, L("ToolArpA11yLoading"));
         BtnCopy.ToolTip = L("ToolBtnCopyToClipboard");
+        UpdateMonitoringUi();
     }
 
     private void OnToggleClick(object sender, RoutedEventArgs e)
     {
-        if (_isRunning)
+        if (_vm.IsRunning)
         {
-            StopMonitoring();
+            _vm.Stop();
         }
         else
         {
-            StartMonitoring();
+            _ = _vm.StartAsync(GetSelectedIntervalMs());
         }
-    }
-
-    private void OnScanNowClick(object sender, RoutedEventArgs e)
-    {
-        _ = RefreshArpAsync();
-    }
-
-    private void StartMonitoring()
-    {
-        _isRunning = true;
-        _setBusy?.Invoke(true);
-
-        BtnToggle.Content = L("ToolArpBtnStop");
-        BtnToggle.Foreground = (Brush)FindResource("ErrorBrush");
-        BtnToggle.Style = (Style)FindResource("SecondaryButtonStyle");
-        AutomationProperties.SetName(BtnToggle, L("ToolArpBtnStop"));
-
-        BtnScanNow.IsEnabled = true;
-        CmbInterval.IsEnabled = false;
-        UpdateEmptyStateText();
-
-        var intervalMs = GetSelectedIntervalMs();
-        _refreshTimer = new DispatcherTimer
-        {
-            Interval = TimeSpan.FromMilliseconds(intervalMs)
-        };
-        _refreshTimer.Tick += OnTimerTick;
-        _refreshTimer.Start();
-
-        // Fire first scan immediately
-        _ = RefreshArpAsync();
-    }
-
-    private void StopMonitoring()
-    {
-        _refreshTimer?.Stop();
-        _refreshTimer = null;
-        _isRunning = false;
-        _setBusy?.Invoke(false);
-
-        BtnToggle.Content = L("ToolArpBtnStart");
-        BtnToggle.Foreground = (Brush)FindResource("TextPrimaryBrush");
-        BtnToggle.Style = (Style)FindResource("PrimaryButtonStyle");
-        AutomationProperties.SetName(BtnToggle, L("ToolArpBtnStart"));
-
-        BtnScanNow.IsEnabled = false;
-        CmbInterval.IsEnabled = true;
-        UpdateEmptyStateText();
-    }
-
-    private async void OnTimerTick(object? sender, EventArgs e)
-    {
-        if (_disposed) return;
-        await RefreshArpAsync();
-    }
-
-    private async Task RefreshArpAsync()
-    {
-        if (_disposed || _isRefreshing)
-        {
-            return;
-        }
-
-        _isRefreshing = true;
-        _viewState.Begin();
-        BtnScanNow.IsEnabled = false;
-
-        try
-        {
-            var current = await _reader.ReadAsync(CancellationToken.None);
-
-            var now = DateTime.Now.ToString("HH:mm:ss");
-            var successBrush = (Brush)FindResource("SuccessBrush");
-            var stableBrush = (Brush)FindResource("TextSecondaryBrush");
-            var warningBrush = (Brush)FindResource("WarningBrush");
-            var errorBrush = (Brush)FindResource("ErrorBrush");
-
-            // Track which known entries are still present
-            var seenIps = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-            foreach (var (ip, mac) in current)
-            {
-                seenIps.Add(ip);
-
-                if (_knownEntries.TryGetValue(ip, out var existing))
-                {
-                    if (!string.Equals(existing.Mac, mac, StringComparison.OrdinalIgnoreCase))
-                    {
-                        // MAC changed — potential ARP spoofing
-                        existing.PreviousMac = existing.Mac;
-                        existing.Mac = mac;
-                        existing.Vendor = LookupVendor(mac);
-                        existing.Status = "changed";
-                        existing.StatusDisplay = L("ToolArpStatusChanged");
-                        existing.StatusBrush = warningBrush;
-                        existing.LastSeen = now;
-                        ShowAlert(ip, existing.PreviousMac, mac);
-                    }
-                    else
-                    {
-                        if (existing.Status != "stable")
-                        {
-                            existing.Status = "stable";
-                            existing.StatusDisplay = L("ToolArpStatusStable");
-                            existing.StatusBrush = stableBrush;
-                        }
-                        existing.LastSeen = now;
-                    }
-                }
-                else
-                {
-                    // New entry
-                    var entry = new ArpEntry
-                    {
-                        Ip = ip,
-                        Mac = mac,
-                        Vendor = LookupVendor(mac),
-                        Status = "new",
-                        StatusDisplay = L("ToolArpStatusNew"),
-                        StatusBrush = successBrush,
-                        FirstSeen = now,
-                        LastSeen = now,
-                        PreviousMac = ""
-                    };
-                    _knownEntries[ip] = entry;
-                    _entries.Add(entry);
-                }
-            }
-
-            // Mark gone entries
-            foreach (var known in _knownEntries.Values)
-            {
-                if (!seenIps.Contains(known.Ip) && known.Status != "gone")
-                {
-                    known.Status = "gone";
-                    known.StatusDisplay = L("ToolArpStatusGone");
-                    known.StatusBrush = errorBrush;
-                }
-            }
-
-            UpdateEmptyStateText();
-            if (_entries.Count == 0)
-            {
-                _viewState.Reset();
-            }
-            else
-            {
-                _viewState.ShowResults();
-            }
-
-            TxtTotal.Text = string.Format(L("ToolArpTotal"), _entries.Count);
-            TxtLastRefresh.Text = string.Format(L("ToolArpLastRefresh"), now);
-        }
-        catch (Exception ex)
-        {
-            Core.Logging.FileLogger.Warn($"ArpMonitor: failed to read ARP table: {ex.Message}");
-            UpdateEmptyStateText();
-            _viewState.ShowError(
-                L("ToolArpErrorReadFailed"),
-                showEmptyState: _entries.Count == 0,
-                keepResultsVisible: _entries.Count > 0);
-        }
-        finally
-        {
-            _isRefreshing = false;
-            _viewState.End();
-            BtnScanNow.IsEnabled = _isRunning;
-            CmbInterval.IsEnabled = !_isRunning;
-        }
-    }
-
-    private void UpdateEmptyStateText()
-    {
-        TxtEmptyState.Text = _isRunning
-            ? L("ToolArpEmptyStateRunning")
-            : L("ToolArpEmptyState");
     }
 
     private void ShowAlert(string ip, string oldMac, string newMac)
@@ -312,7 +129,7 @@ public partial class ArpMonitorView : UserControl, IToolView
 
     private void OnCopyClick(object sender, RoutedEventArgs e)
     {
-        if (_entries.Count == 0)
+        if (_vm.Entries.Count == 0)
         {
             return;
         }
@@ -322,13 +139,13 @@ public partial class ArpMonitorView : UserControl, IToolView
             var sb = new StringBuilder();
             sb.AppendLine($"{L("ToolArpColIp")}\t{L("ToolArpColMac")}\t{L("ToolArpColVendor")}\t{L("ToolArpColStatus")}\t{L("ToolArpColFirstSeen")}\t{L("ToolArpColLastSeen")}");
 
-            foreach (var entry in _entries)
+            foreach (var entry in _vm.Entries)
             {
                 sb.AppendLine($"{entry.Ip}\t{entry.Mac}\t{entry.Vendor}\t{entry.StatusDisplay}\t{entry.FirstSeen}\t{entry.LastSeen}");
             }
 
             sb.AppendLine();
-            sb.AppendLine(string.Format(L("ToolArpTotal"), _entries.Count));
+            sb.AppendLine(string.Format(L("ToolArpTotal"), _vm.Entries.Count));
 
             Clipboard.SetText(sb.ToString());
             CopyFeedbackHelper.ShowCopyFeedback(sender as Button);
@@ -353,6 +170,86 @@ public partial class ArpMonitorView : UserControl, IToolView
     private void OnCloseHelpClick(object sender, RoutedEventArgs e)
     {
         HelpPanel.Visibility = Visibility.Collapsed;
+    }
+
+    private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        if (e.PropertyName is nameof(ArpMonitorViewModel.IsRunning) or nameof(ArpMonitorViewModel.IsRefreshing))
+        {
+            UpdateMonitoringUi();
+        }
+
+        if (e.PropertyName is nameof(ArpMonitorViewModel.IsRefreshing)
+            or nameof(ArpMonitorViewModel.HasError)
+            or nameof(ArpMonitorViewModel.HasResults))
+        {
+            SyncViewShell();
+        }
+
+        if (e.PropertyName == nameof(ArpMonitorViewModel.IsRefreshing) && !_vm.IsRefreshing && !_vm.HasError)
+        {
+            RefreshEntryVendors();
+        }
+    }
+
+    private void OnMacChangedDetected(object? sender, ArpMacChangedEventArgs e)
+    {
+        ShowAlert(e.Ip, e.PreviousMac, e.NewMac);
+    }
+
+    private void UpdateMonitoringUi()
+    {
+        var toggleKey = _vm.IsRunning ? "ToolArpBtnStop" : "ToolArpBtnStart";
+        BtnToggle.Content = L(toggleKey);
+        BtnToggle.Foreground = (Brush)FindResource(_vm.IsRunning ? "ErrorBrush" : "TextPrimaryBrush");
+        BtnToggle.Style = (Style)FindResource(_vm.IsRunning ? "SecondaryButtonStyle" : "PrimaryButtonStyle");
+        AutomationProperties.SetName(BtnToggle, L(toggleKey));
+
+        BtnScanNow.IsEnabled = _vm.IsRunning && !_vm.IsRefreshing;
+        CmbInterval.IsEnabled = !_vm.IsRunning;
+        _setBusy?.Invoke(_vm.IsRunning);
+    }
+
+    private void SyncViewShell()
+    {
+        if (_vm.IsRefreshing)
+        {
+            _viewState.Begin();
+            return;
+        }
+
+        _viewState.End();
+
+        if (_vm.HasError)
+        {
+            _viewState.ShowError(
+                _vm.ErrorMessage,
+                showEmptyState: !_vm.HasResults,
+                keepResultsVisible: _vm.HasResults);
+            return;
+        }
+
+        if (_vm.HasResults)
+        {
+            _viewState.ShowResults();
+        }
+        else
+        {
+            _viewState.Reset();
+        }
+    }
+
+    private void RefreshEntryVendors()
+    {
+        foreach (var entry in _vm.Entries)
+        {
+            entry.Vendor = LookupVendor(entry.Mac);
+        }
     }
 
     /// <summary>
@@ -502,7 +399,7 @@ public partial class ArpMonitorView : UserControl, IToolView
 
     private string L(string key) => _localizer?[key] ?? key;
 
-    public bool CanClose() => !_isRunning;
+    public bool CanClose() => !_vm.IsRunning;
 
     public void Dispose()
     {
@@ -512,9 +409,9 @@ public partial class ArpMonitorView : UserControl, IToolView
         }
 
         _disposed = true;
-        if (_refreshTimer is not null)
-            _refreshTimer.Tick -= OnTimerTick;
-        StopMonitoring();
+        _vm.PropertyChanged -= OnViewModelPropertyChanged;
+        _vm.MacChangedDetected -= OnMacChangedDetected;
+        _vm.Dispose();
         GC.SuppressFinalize(this);
     }
 }
