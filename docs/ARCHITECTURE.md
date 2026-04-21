@@ -687,7 +687,7 @@ Build editions:
 
 ### Test baseline
 
-`dotnet test Heimdall.slnx --no-build` discovers 1781 tests across the three test projects (`Heimdall.App.Tests`, `Heimdall.Core.Tests`, `Heimdall.Ssh.Tests`): 1775 passing and 6 known skipped `ThemeServiceTests` that require a live WPF Application context. Partial per-project TRX files can report smaller counts and be mistaken for a regression — always run the aggregated command for a correct baseline.
+`dotnet test Heimdall.slnx --no-build` discovers 4162 tests across the four test projects (`Heimdall.App.Tests`, `Heimdall.App.UiTests`, `Heimdall.Core.Tests`, `Heimdall.Ssh.Tests`): 4156 passing and 6 known skipped `ThemeServiceTests` that require a live WPF Application context. Partial per-project TRX files can report smaller counts and be mistaken for a regression — always run the aggregated command for a correct baseline.
 
 ## Tool Architecture
 

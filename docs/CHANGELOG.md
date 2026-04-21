@@ -11,6 +11,18 @@
 # Changelog
 
 All notable changes to Heimdall.Next are documented in this file.
+## 2026-04-21 — release 2026.042102 — ARP Monitor refactor + locale/parser fixes
+- Version bump from 2026.042101 to 2026.042102 (`InformationalVersion`).
+- Fixes the JWT Parser locale-switch crash by marshaling `OnLocaleChanged` back to the WPF dispatcher when locale changes originate from a non-UI thread.
+- Aligns the UI test harness locale-switch path with the production `LocalizationSource` bridge, restoring clone-clean UI smoke stability (`93/93` on repeated runs).
+- Fixes the French `netsh wlan` parser ambiguity between `Type de réseau` and `Type de radio`, so `RadioType` is now populated correctly on FR output.
+- Refactors ARP Monitor in three phases without behavior drift:
+  - extracts `ArpTableParser` into `Heimdall.Core.Network` with dedicated Windows/Linux/macOS parser tests,
+  - introduces `IArpTableReader` + `ArpMonitorViewModel` + extracted `ArpEntry`,
+  - migrates ARP alerting, vendor lookup, and TSV copy payload generation into the ViewModel while leaving only non-bindable UI effects in the view.
+- Closes the `#52` audit follow-up by centralizing the duplicated `IsCollapsed(AutomationElement?)` helper into `UiTestBase`.
+- Housekeeping: tests now stand at **4156 passing + 6 skipped** (`4162` discovered), with clean local build/test gates before release.
+
 ## 2026-04-21 — release 2026.042101 — Remote access audit package
 - Version bump from 2026.042003 to 2026.042101 (`InformationalVersion`).
 - Consolidates batches 55.1, 58, and 59 (see entries below dated 2026-04-19).
