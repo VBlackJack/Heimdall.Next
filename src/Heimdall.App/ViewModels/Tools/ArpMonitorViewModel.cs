@@ -15,12 +15,13 @@
  */
 
 using System.Collections.ObjectModel;
+using System.Text;
+using System.Windows;
+using System.Windows.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Heimdall.App.Services;
 using Heimdall.Core.Localization;
-using System.Windows;
-using System.Windows.Media;
 
 namespace Heimdall.App.ViewModels.Tools;
 
@@ -42,10 +43,13 @@ internal sealed partial class ArpMonitorViewModel : ObservableObject, IDisposabl
     [ObservableProperty] private string _lastRefreshText = string.Empty;
     [ObservableProperty] private string _totalText = string.Empty;
     [ObservableProperty] private string _emptyStateText = string.Empty;
+    [ObservableProperty] private bool _isAlertVisible;
+    [ObservableProperty] private string _alertTitle = string.Empty;
+    [ObservableProperty] private string _alertMessage = string.Empty;
 
     public ObservableCollection<ArpEntry> Entries { get; } = [];
 
-    public event EventHandler<ArpMacChangedEventArgs>? MacChangedDetected;
+    public event EventHandler<string>? CopyResultsRequested;
 
     public ArpMonitorViewModel(IArpTableReader? reader = null)
     {
@@ -102,6 +106,23 @@ internal sealed partial class ArpMonitorViewModel : ObservableObject, IDisposabl
 
     [RelayCommand]
     private Task RefreshAsync() => RefreshCoreAsync();
+
+    [RelayCommand]
+    private void DismissAlert()
+    {
+        IsAlertVisible = false;
+    }
+
+    [RelayCommand]
+    private void CopyAll()
+    {
+        if (Entries.Count == 0)
+        {
+            return;
+        }
+
+        CopyResultsRequested?.Invoke(this, BuildClipboardText());
+    }
 
     partial void OnIsRunningChanged(bool value)
     {
@@ -185,6 +206,9 @@ internal sealed partial class ArpMonitorViewModel : ObservableObject, IDisposabl
         var stableBrush = ResolveBrush("TextSecondaryBrush", Brushes.Gray);
         var warningBrush = ResolveBrush("WarningBrush", Brushes.Orange);
         var errorBrush = ResolveBrush("ErrorBrush", Brushes.Red);
+        string? alertIp = null;
+        string? alertPreviousMac = null;
+        string? alertNewMac = null;
 
         foreach (var (ip, mac) in current)
         {
@@ -197,11 +221,14 @@ internal sealed partial class ArpMonitorViewModel : ObservableObject, IDisposabl
                     var previousMac = existing.Mac;
                     existing.PreviousMac = previousMac;
                     existing.Mac = mac;
+                    existing.Vendor = ArpOuiLookup.Lookup(mac);
                     existing.Status = "changed";
                     existing.StatusDisplay = L("ToolArpStatusChanged");
                     existing.StatusBrush = warningBrush;
                     existing.LastSeen = now;
-                    MacChangedDetected?.Invoke(this, new ArpMacChangedEventArgs(ip, previousMac, mac));
+                    alertIp = ip;
+                    alertPreviousMac = previousMac;
+                    alertNewMac = mac;
                 }
                 else
                 {
@@ -217,6 +244,7 @@ internal sealed partial class ArpMonitorViewModel : ObservableObject, IDisposabl
                 {
                     Ip = ip,
                     Mac = mac,
+                    Vendor = ArpOuiLookup.Lookup(mac),
                     Status = "new",
                     StatusDisplay = L("ToolArpStatusNew"),
                     StatusBrush = successBrush,
@@ -244,6 +272,13 @@ internal sealed partial class ArpMonitorViewModel : ObservableObject, IDisposabl
         HasError = false;
         ErrorMessage = string.Empty;
         RebuildLocalizedState();
+
+        if (!string.IsNullOrEmpty(alertIp) && alertPreviousMac is not null && alertNewMac is not null)
+        {
+            AlertTitle = L("ToolArpAlertTitle");
+            AlertMessage = string.Format(L("ToolArpAlertMacChanged"), alertIp, alertPreviousMac, alertNewMac);
+            IsAlertVisible = true;
+        }
     }
 
     private void RebuildLocalizedState()
@@ -285,6 +320,21 @@ internal sealed partial class ArpMonitorViewModel : ObservableObject, IDisposabl
         }
     }
 
+    private string BuildClipboardText()
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine($"{L("ToolArpColIp")}\t{L("ToolArpColMac")}\t{L("ToolArpColVendor")}\t{L("ToolArpColStatus")}\t{L("ToolArpColFirstSeen")}\t{L("ToolArpColLastSeen")}");
+
+        foreach (var entry in Entries)
+        {
+            sb.AppendLine($"{entry.Ip}\t{entry.Mac}\t{entry.Vendor}\t{entry.StatusDisplay}\t{entry.FirstSeen}\t{entry.LastSeen}");
+        }
+
+        sb.AppendLine();
+        sb.AppendLine(string.Format(L("ToolArpTotal"), Entries.Count));
+        return sb.ToString();
+    }
+
     private static Brush ResolveBrush(string resourceKey, Brush fallback)
         => Application.Current?.TryFindResource(resourceKey) as Brush ?? fallback;
 
@@ -302,5 +352,3 @@ internal sealed partial class ArpMonitorViewModel : ObservableObject, IDisposabl
 
     private string L(string key) => _localizer?[key] ?? key;
 }
-
-internal sealed record ArpMacChangedEventArgs(string Ip, string PreviousMac, string NewMac);

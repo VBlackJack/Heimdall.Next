@@ -102,25 +102,26 @@
             </StackPanel>
         </Border>
 
-        <!-- Alert banner (hidden by default) -->
-        <Border x:Name="AlertBanner" Grid.Row="3" Visibility="Collapsed"
+        <!-- Alert banner -->
+        <Border x:Name="AlertBanner" Grid.Row="3"
+                Visibility="{Binding IsAlertVisible, Converter={StaticResource BoolToVisibilityConverter}}"
                 Padding="{StaticResource PaddingAlertBanner}" Margin="8,8,8,0"
                 Background="{DynamicResource WarningBrush}"
                 CornerRadius="{StaticResource CornerRadiusSm}">
             <DockPanel>
                 <Button x:Name="BtnDismissAlert" DockPanel.Dock="Right"
                         Content="&#xE711;" FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeCaption}"
-                        Click="OnDismissAlertClick"
+                        Command="{Binding DismissAlertCommand}"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" Margin="{StaticResource MarginInlineControl}"
                         Background="Transparent" BorderThickness="0"
                         VerticalAlignment="Center"
                         TabIndex="3"/>
                 <StackPanel>
-                    <TextBlock x:Name="TxtAlertTitle" Text=""
+                    <TextBlock x:Name="TxtAlertTitle" Text="{Binding AlertTitle}"
                                FontSize="{StaticResource FontSizeBody}" FontWeight="SemiBold"
                                Foreground="{DynamicResource BackgroundBrush}"/>
-                    <TextBlock x:Name="TxtAlertMessage" Text=""
+                    <TextBlock x:Name="TxtAlertMessage" Text="{Binding AlertMessage}"
                                FontSize="{StaticResource FontSizeBody}" TextWrapping="Wrap"
                                Foreground="{DynamicResource BackgroundBrush}"
                                AutomationProperties.LiveSetting="Assertive"/>
@@ -139,8 +140,7 @@
 
         <!-- Empty state -->
         <Border x:Name="EmptyStatePanel" Grid.Row="5"
-                Style="{StaticResource ToolEmptyStateStyle}"
-               >
+                Style="{StaticResource ToolEmptyStateStyle}">
             <StackPanel HorizontalAlignment="Center">
                 <TextBlock Text="&#xE968;"
                            Style="{StaticResource ToolEmptyStateIconStyle}"
@@ -205,7 +205,7 @@
                 BorderThickness="0,1,0,0">
             <DockPanel>
                 <Button x:Name="BtnCopy" Content=""
-                        Click="OnCopyClick"
+                        Command="{Binding CopyAllCommand}"
                         Style="{DynamicResource SecondaryButtonStyle}"
                         Padding="{StaticResource PaddingButtonCopy}" DockPanel.Dock="Right"
                         VerticalAlignment="Center"
