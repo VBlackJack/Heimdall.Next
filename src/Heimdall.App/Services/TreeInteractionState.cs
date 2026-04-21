@@ -36,6 +36,13 @@ public sealed class TreeInteractionState
     public bool DragInProgress { get; set; }
 
     /// <summary>
+    /// True when the next TreeView SelectedItemChanged notification should not
+    /// resynchronize the ViewModel selection because a Ctrl/Shift gesture
+    /// already updated the multi-selection explicitly.
+    /// </summary>
+    public bool SuppressSelectedItemSync { get; set; }
+
+    /// <summary>
     /// Last <see cref="TreeViewItem"/> visually highlighted as a drop target.
     /// Cleared whenever the cursor leaves the candidate or the drop completes.
     /// </summary>

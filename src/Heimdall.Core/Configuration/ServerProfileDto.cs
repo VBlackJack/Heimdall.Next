@@ -27,6 +27,11 @@ public sealed class ServerProfileDto
 {
     public string Id { get; set; } = string.Empty;
     public string DisplayName { get; set; } = string.Empty;
+    /// <summary>
+    /// Provenance tag. Profiles serialized before b63 omit this field and therefore
+    /// deserialize to <see cref="ProfileOrigin.Manual"/> (value 0).
+    /// </summary>
+    public ProfileOrigin Origin { get; set; } = ProfileOrigin.Manual;
     public string RemoteServer { get; set; } = string.Empty;
     public int RemotePort { get; set; } = DefaultPorts.Rdp;
     public int LocalPort { get; set; } = DefaultPorts.RdpTunnel;
@@ -50,6 +55,7 @@ public sealed class ServerProfileDto
     public int SocksProxyPort { get; set; }
     public int RemoteBindPort { get; set; }
     public int RemoteLocalPort { get; set; }
+    public List<PostConnectStep> PostConnectSteps { get; set; } = [];
     public string PostConnectCommand { get; set; } = "";
     public int PostConnectDelayMs { get; set; } = 800;
 

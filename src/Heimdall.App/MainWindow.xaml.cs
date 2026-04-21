@@ -15,6 +15,7 @@
  */
 
 using System.Linq;
+using System.IO;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.Windows.Automation;
@@ -33,6 +34,7 @@ using Heimdall.App.ViewModels;
 using Heimdall.App.ViewModels.Onboarding;
 using Heimdall.Core.Models;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Win32;
 
 namespace Heimdall.App;
 
@@ -70,11 +72,14 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
     private readonly CredentialProviderPresetService _credentialProviderPresetService;
     private readonly CommandLibrarySettingsService _commandLibrarySettingsService;
     private readonly ExternalToolSettingsService _externalToolSettingsService;
+    private readonly ExternalToolLaunchService _externalToolLaunchService;
+    private readonly NetworkScannerService _networkScannerService;
     private readonly WindowUIState _uiState = new();
     private object? _lastKeyEventSource;
     private readonly ToolsTabPopulationService _toolsTabPopulation;
     private bool _closeConfirmed;
     private bool _suppressSidebarLaunch;
+    private bool _isRdpImportDragActive;
     private OnboardingFlowViewModel? _onboardingVm;
 
     public FileShareService FileShareService => _fileShareService;
@@ -103,7 +108,9 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
         IToolContextProvider toolContext,
         CredentialProviderPresetService credentialProviderPresetService,
         CommandLibrarySettingsService commandLibrarySettingsService,
-        ExternalToolSettingsService externalToolSettingsService)
+        ExternalToolSettingsService externalToolSettingsService,
+        ExternalToolLaunchService externalToolLaunchService,
+        NetworkScannerService networkScannerService)
     {
         _fileShareService = fileShareService;
         _foregroundWatchService = foregroundWatchService;
@@ -111,6 +118,8 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
         _credentialProviderPresetService = credentialProviderPresetService;
         _commandLibrarySettingsService = commandLibrarySettingsService;
         _externalToolSettingsService = externalToolSettingsService;
+        _externalToolLaunchService = externalToolLaunchService;
+        _networkScannerService = networkScannerService;
         InitializeComponent();
         WindowThemeHelper.ApplyCurrentTheme(this);
         DataContext = viewModel;
@@ -575,6 +584,86 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
         }
     }
 
+    private void OnImportButtonClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button btn && btn.ContextMenu != null)
+        {
+            btn.ContextMenu.PlacementTarget = btn;
+            btn.ContextMenu.Placement = PlacementMode.Bottom;
+            btn.ContextMenu.IsOpen = true;
+        }
+    }
+
+    private async void OnImportRdpClick(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is not MainViewModel vm)
+        {
+            return;
+        }
+
+        var dialog = new OpenFileDialog
+        {
+            Filter = BuildFileDialogFilter("ExportFormatRdp", "*.rdp"),
+            DefaultExt = ".rdp",
+            Multiselect = true,
+            CheckFileExists = true,
+            CheckPathExists = true,
+            Title = LocalizeWindowString("DialogImportRdpTitle")
+        };
+
+        if (dialog.ShowDialog(this) != true || dialog.FileNames.Length == 0)
+        {
+            return;
+        }
+
+        await vm.ServerList.ImportRdpFilesAsync(dialog.FileNames);
+    }
+
+    private async void OnImportOpenSshConfigClick(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is not MainViewModel vm)
+        {
+            return;
+        }
+
+        var userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        var sshDirectory = string.IsNullOrWhiteSpace(userProfile)
+            ? string.Empty
+            : System.IO.Path.Combine(userProfile, ".ssh");
+
+        var dialog = new OpenFileDialog
+        {
+            Filter = "All files (*.*)|*.*",
+            CheckFileExists = true,
+            CheckPathExists = true,
+            Multiselect = false,
+            Title = LocalizeWindowString("DialogTitleImportOpenSshConfig"),
+            FileName = "config"
+        };
+
+        if (!string.IsNullOrWhiteSpace(sshDirectory) && Directory.Exists(sshDirectory))
+        {
+            dialog.InitialDirectory = sshDirectory;
+        }
+
+        if (dialog.ShowDialog(this) != true || string.IsNullOrWhiteSpace(dialog.FileName))
+        {
+            return;
+        }
+
+        await vm.ServerList.ImportOpenSshConfigAsync(dialog.FileName);
+    }
+
+    private async void OnImportPuttySessionsClick(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is not MainViewModel vm)
+        {
+            return;
+        }
+
+        await vm.ServerList.ImportPuttySessionsAsync();
+    }
+
     private void OnScheduledTaskDoubleClick(object sender, MouseButtonEventArgs e)
     {
         if (DataContext is ViewModels.MainViewModel vm && vm.Scheduled.SelectedTask is not null)
@@ -607,6 +696,79 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
                 Mw_FilterResultCount.Visibility = Visibility.Collapsed;
             }
         }
+    }
+
+    private void OnWindowPreviewDragOver(object sender, System.Windows.DragEventArgs e)
+    {
+        if (e.Data.GetDataPresent("HeimdallServer"))
+        {
+            return;
+        }
+
+        var files = TryGetRdpFiles(e.Data);
+        if (files.Length == 0)
+        {
+            SetRdpImportOverlayVisible(false);
+            return;
+        }
+
+        e.Effects = System.Windows.DragDropEffects.Copy;
+        e.Handled = true;
+        SetRdpImportOverlayVisible(true);
+    }
+
+    private void OnWindowPreviewDragLeave(object sender, System.Windows.DragEventArgs e)
+    {
+        if (e.Data.GetDataPresent("HeimdallServer"))
+        {
+            return;
+        }
+
+        SetRdpImportOverlayVisible(false);
+    }
+
+    private async void OnWindowPreviewDrop(object sender, System.Windows.DragEventArgs e)
+    {
+        if (e.Data.GetDataPresent("HeimdallServer"))
+        {
+            return;
+        }
+
+        var files = TryGetRdpFiles(e.Data);
+        SetRdpImportOverlayVisible(false);
+
+        if (files.Length == 0 || DataContext is not MainViewModel vm)
+        {
+            return;
+        }
+
+        e.Effects = System.Windows.DragDropEffects.Copy;
+        e.Handled = true;
+        await vm.ServerList.ImportRdpFilesAsync(files);
+    }
+
+    private static string[] TryGetRdpFiles(System.Windows.IDataObject data)
+    {
+        if (!data.GetDataPresent(System.Windows.DataFormats.FileDrop) ||
+            data.GetData(System.Windows.DataFormats.FileDrop) is not string[] files)
+        {
+            return [];
+        }
+
+        return files
+            .Where(path => string.Equals(System.IO.Path.GetExtension(path), ".rdp", StringComparison.OrdinalIgnoreCase))
+            .ToArray();
+    }
+
+    private void SetRdpImportOverlayVisible(bool isVisible)
+    {
+        if (_isRdpImportDragActive == isVisible)
+        {
+            return;
+        }
+
+        _isRdpImportDragActive = isVisible;
+        RdpImportDropOverlay.Visibility = isVisible ? Visibility.Visible : Visibility.Collapsed;
     }
 
     // Settings search: keyword map for each sub-tab (English keywords, always match)
@@ -928,138 +1090,24 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
 
     private async Task LaunchNetworkScannerAsync(MainViewModel vm)
     {
-        var cidr = await vm.DialogService.ShowInputAsync(
-            vm.Localize("NetworkScannerTitle"),
-            vm.Localize("NetworkScannerCidrPrompt"),
-            "192.168.1.0/24");
+        var progress = new Progress<(int Done, int Total, string Cidr)>(p =>
+            vm.StatusText = string.Format(
+                vm.Localize("NetworkScannerScanning"),
+                p.Cidr,
+                p.Done,
+                p.Total));
 
-        if (string.IsNullOrWhiteSpace(cidr)) return;
+        var result = await _networkScannerService.ScanAndPromptAsync(vm.Localize, progress);
 
-        vm.StatusText = string.Format(vm.Localize("NetworkScannerScanning"), cidr, 0, "...");
-
-        try
+        if (!string.IsNullOrWhiteSpace(result.StatusMessage))
         {
-            var results = await Core.Security.NetworkScanner.ScanSubnetAsync(
-                cidr,
-                (done, total) => Dispatcher.InvokeAsync(() =>
-                    vm.StatusText = string.Format(
-                        vm.Localize("NetworkScannerScanning"), cidr, done, total)));
-
-            if (results.Count == 0)
-            {
-                vm.StatusText = string.Format(vm.Localize("NetworkScannerNoHosts"), cidr);
-                return;
-            }
-
-            vm.StatusText = string.Format(vm.Localize("NetworkScannerComplete"), results.Count);
-
-            // Build a summary and offer to add discovered hosts
-            var summary = string.Join("\n", results.Select(r =>
-            {
-                var ports = r.OpenPorts.Count > 0 ? string.Join(", ", r.OpenPorts) : "-";
-                var host = r.Hostname ?? r.IpAddress;
-                return $"{r.IpAddress}  {host}  [{ports}]  {r.RoundtripMs}ms";
-            }));
-
-            var addServers = await vm.DialogService.ShowConfirmAsync(
-                string.Format(vm.Localize("NetworkScannerComplete"), results.Count),
-                summary + "\n\n" + vm.Localize("NetworkScannerAddServer"),
-                "info");
-
-            if (addServers)
-            {
-                var existingServers = await vm.ConfigManager.LoadServersAsync();
-
-                foreach (var result in results)
-                {
-                    var connType = result.OpenPorts.Contains(DefaultPorts.Rdp) ? "RDP"
-                        : result.OpenPorts.Contains(DefaultPorts.Ssh) ? "SSH"
-                        : result.OpenPorts.Contains(DefaultPorts.Vnc) ? "VNC"
-                        : "SSH";
-                    var port = connType switch
-                    {
-                        "RDP" => DefaultPorts.Rdp,
-                        "VNC" => DefaultPorts.Vnc,
-                        _ => DefaultPorts.Ssh
-                    };
-
-                    existingServers.Add(new Core.Configuration.ServerProfileDto
-                    {
-                        Id = Guid.NewGuid().ToString(),
-                        DisplayName = result.Hostname ?? result.IpAddress,
-                        RemoteServer = result.IpAddress,
-                        RemotePort = port,
-                        ConnectionType = connType,
-                        Group = "Discovered"
-                    });
-                }
-
-                await vm.ConfigManager.SaveServersAsync(existingServers);
-                // Reload the full configuration to refresh the TreeView
-                await vm.ReloadConfigurationAsync(await vm.ConfigManager.LoadSettingsAsync());
-            }
+            vm.StatusText = result.StatusMessage;
         }
-        catch (Exception ex)
+
+        if (result.AddedToInventory)
         {
-            vm.StatusText = string.Format(vm.Localize("NetworkScannerError"), ex.Message);
+            await vm.ReloadConfigurationAsync(await vm.ConfigManager.LoadSettingsAsync());
         }
-    }
-
-    /// <summary>
-    /// Launches an auto-detected third-party tool with server context placeholders resolved.
-    /// Handles elevation (UAC) for tools that require it.
-    /// </summary>
-    private static void LaunchDetectedTool(
-        MainViewModel vm,
-        Core.Configuration.ExternalToolInfo tool,
-        ServerItemViewModel server)
-    {
-        try
-        {
-            // Resolve placeholders in arguments template
-            var arguments = tool.Arguments
-                .Replace("{Host}", SanitizeToolArgument(server.RemoteServer), StringComparison.OrdinalIgnoreCase)
-                .Replace("{Port}", server.EffectivePort.ToString(System.Globalization.CultureInfo.InvariantCulture), StringComparison.OrdinalIgnoreCase)
-                .Replace("{User}", SanitizeToolArgument(server.Username), StringComparison.OrdinalIgnoreCase);
-
-            var psi = new System.Diagnostics.ProcessStartInfo
-            {
-                FileName = tool.ExecutablePath,
-                Arguments = arguments,
-                UseShellExecute = true
-            };
-
-            if (tool.RequiresElevation)
-                psi.Verb = "runas";
-
-            System.Diagnostics.Process.Start(psi)?.Dispose();
-
-            Core.Logging.FileLogger.Info(
-                $"Detected tool launched: {tool.ProviderName}/{tool.Name} → {tool.ExecutablePath} {arguments}");
-        }
-        catch (System.ComponentModel.Win32Exception ex) when (ex.NativeErrorCode == 1223)
-        {
-            // ERROR_CANCELLED — user declined UAC prompt; not an error
-            Core.Logging.FileLogger.Info($"UAC cancelled for {tool.Name}");
-        }
-        catch (Exception ex)
-        {
-            Core.Logging.FileLogger.Error($"Detected tool launch failed: {tool.Name}", ex);
-            MessageBox.Show(
-                string.Format(vm.Localize("ExternalToolLaunchError"), tool.Name, ex.Message),
-                vm.Localize("AppName"),
-                MessageBoxButton.OK,
-                MessageBoxImage.Warning);
-        }
-    }
-
-    /// <summary>
-    /// Strips shell metacharacters from a tool argument value to prevent injection.
-    /// </summary>
-    private static string SanitizeToolArgument(string value)
-    {
-        if (string.IsNullOrEmpty(value)) return string.Empty;
-        return System.Text.RegularExpressions.Regex.Replace(value, @"[;&|`$<>()!""'\r\n%^]", "");
     }
 
     // ── Sidebar Tab Selector (Servers / Tools) ──────────────────────────
@@ -1303,33 +1351,18 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
         var tool = vm.Settings.SelectedExternalTool;
         if (string.IsNullOrWhiteSpace(tool.ExecutablePath)) return;
 
-        try
-        {
-            var psi = new System.Diagnostics.ProcessStartInfo
+        _externalToolLaunchService.LaunchConfigured(
+            new Core.Configuration.ExternalToolDefinition
             {
-                FileName = tool.ExecutablePath,
+                Name = tool.Name,
+                ExecutablePath = tool.ExecutablePath,
                 Arguments = tool.Arguments,
-                UseShellExecute = true
-            };
-            if (!string.IsNullOrWhiteSpace(tool.WorkingDirectory))
-                psi.WorkingDirectory = tool.WorkingDirectory;
-            if (tool.RunAsAdministrator)
-                psi.Verb = "runas";
-            if (tool.RunHidden)
-            {
-                psi.WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden;
-                psi.CreateNoWindow = true;
-            }
-
-            System.Diagnostics.Process.Start(psi)?.Dispose();
-        }
-        catch (Exception ex)
-        {
-            Core.Logging.FileLogger.Warn($"External tool test failed: {ex.Message}");
-            MessageBox.Show(
-                string.Format(vm.Localize("ExternalToolLaunchError"), tool.Name, ex.Message),
-                vm.Localize("AppName"), MessageBoxButton.OK, MessageBoxImage.Warning);
-        }
+                WorkingDirectory = tool.WorkingDirectory,
+                RunAsAdministrator = tool.RunAsAdministrator,
+                RunHidden = tool.RunHidden
+            },
+            null,
+            vm.Localize);
     }
 
     private void OnCredProvDbBrowseClick(object sender, RoutedEventArgs e)
@@ -1597,62 +1630,6 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
         }
         if (dlg.ShowDialog() == System.Windows.Forms.DialogResult.OK)
             vm.Settings.SessionLogDirectory = dlg.SelectedPath;
-    }
-
-    private static void LaunchExternalTool(
-        MainViewModel vm,
-        Core.Configuration.ExternalToolDefinition tool,
-        ServerItemViewModel server)
-    {
-        try
-        {
-            var arguments = tool.ResolveArguments(
-                server.RemoteServer,
-                server.EffectivePort,
-                server.Username,
-                serverName: server.DisplayName,
-                protocol: server.ConnectionType,
-                keyFile: server.SshKeyPath,
-                project: server.ProjectName,
-                gateway: server.GatewayName);
-
-            var psi = new System.Diagnostics.ProcessStartInfo
-            {
-                FileName = tool.ExecutablePath,
-                Arguments = arguments,
-                UseShellExecute = true
-            };
-
-            if (!string.IsNullOrWhiteSpace(tool.WorkingDirectory))
-            {
-                psi.WorkingDirectory = tool.WorkingDirectory;
-            }
-
-            if (tool.RunAsAdministrator)
-            {
-                psi.Verb = "runas";
-            }
-
-            if (tool.RunHidden)
-            {
-                psi.WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden;
-                psi.CreateNoWindow = true;
-            }
-
-            System.Diagnostics.Process.Start(psi)?.Dispose();
-
-            Core.Logging.FileLogger.Info(
-                $"External tool launched: {tool.ExecutablePath} {arguments}");
-        }
-        catch (Exception ex)
-        {
-            Core.Logging.FileLogger.Error($"External tool launch failed: {tool.Name}", ex);
-            MessageBox.Show(
-                string.Format(vm.Localize("ExternalToolLaunchError"), tool.Name, ex.Message),
-                vm.Localize("AppName"),
-                MessageBoxButton.OK,
-                MessageBoxImage.Warning);
-        }
     }
 
     private static void HideTabStripPanel(System.Windows.Controls.TabControl tabControl, bool hide)
@@ -2118,7 +2095,7 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
         Core.Configuration.ExternalToolDefinition tool)
     {
         if (DataContext is not MainViewModel vm) return;
-        LaunchExternalTool(vm, tool, server);
+        _externalToolLaunchService.LaunchConfigured(tool, server, vm.Localize);
     }
 
     /// <inheritdoc />
@@ -2127,7 +2104,7 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
         Core.Configuration.ExternalToolInfo tool)
     {
         if (DataContext is not MainViewModel vm) return;
-        LaunchDetectedTool(vm, tool, server);
+        _externalToolLaunchService.LaunchDetected(tool, server, vm.Localize);
     }
 
     /// <inheritdoc />
@@ -2291,12 +2268,6 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
         if (DataContext is not MainViewModel vm) return;
 
         SaveWindowBounds(vm);
-
-        if (vm.Settings.EnableSessionPersistence)
-        {
-            var sessions = vm.GetOpenSessions();
-            _ = Services.WorkspaceService.SaveAsync(sessions);
-        }
 
         if (vm.Settings.IsDirty && !_closeConfirmed)
         {

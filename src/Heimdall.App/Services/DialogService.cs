@@ -14,7 +14,11 @@
  * limitations under the License.
  */
 
+using Heimdall.App.Services.Import;
+using Heimdall.App.Services.PostConnect;
+using Heimdall.Core.Import;
 using Heimdall.App.ViewModels.Dialogs;
+using Heimdall.Core.Ssh;
 
 namespace Heimdall.App.Services;
 
@@ -82,6 +86,58 @@ public interface IDialogService
     /// </summary>
     /// <param name="viewModel">The PIN dialog ViewModel managing verification state.</param>
     Task ShowPinDialogAsync(PinDialogViewModel viewModel);
+
+    /// <summary>
+    /// Shows the startup restore dialog for a previously saved session snapshot.
+    /// Returns <c>null</c> when the user dismisses the dialog via the window close button.
+    /// </summary>
+    Task<SnapshotRestoreDialogResult?> ShowSnapshotRestoreDialogAsync(SnapshotRestoreDialogViewModel viewModel);
+
+    /// <summary>
+    /// Shows the .rdp import preview dialog and returns the user's selection,
+    /// or <c>null</c> when the dialog is cancelled.
+    /// </summary>
+    Task<RdpImportSelection?> ShowRdpImportDialogAsync(RdpImportDialogViewModel viewModel);
+
+    /// <summary>
+    /// Shows the OpenSSH config import preview dialog and returns the import outcome,
+    /// or <c>null</c> when the dialog is cancelled.
+    /// </summary>
+    Task<ImportOutcome?> ShowImportOpenSshConfigAsync(OpenSshParseResult parseResult);
+
+    /// <summary>
+    /// Shows the PuTTY sessions import preview dialog and returns the import outcome,
+    /// or <c>null</c> when the dialog is cancelled.
+    /// </summary>
+    Task<ImportOutcome?> ShowImportPuttySessionsAsync(PuttySessionParseResult parseResult);
+
+    /// <summary>
+    /// Shows the known_hosts import preview dialog and returns the import outcome,
+    /// or <c>null</c> when the dialog is cancelled.
+    /// </summary>
+    Task<KnownHostsImportOutcome?> ShowImportKnownHostsAsync(KnownHostsImportPreview preview);
+
+    /// <summary>
+    /// Shows the Command Library picker dialog and returns the selected action,
+    /// or <c>null</c> when the dialog is cancelled.
+    /// </summary>
+    Task<CommandLibraryPickerResult?> ShowCommandLibraryPickerAsync(
+        CommandLibraryPickerDialogViewModel viewModel,
+        AutoPrefillContext? prefillContext = null,
+        string? existingActionId = null,
+        IReadOnlyDictionary<string, string>? existingValues = null);
+
+    /// <summary>
+    /// Shows the bulk port edit dialog and returns the validated port value,
+    /// or <c>null</c> when the dialog is cancelled.
+    /// </summary>
+    Task<int?> ShowBulkEditPortAsync(int count, int? initialPort, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Shows the bulk username edit dialog and returns the validated username value,
+    /// or <c>null</c> when the dialog is cancelled.
+    /// </summary>
+    Task<string?> ShowBulkEditUsernameAsync(int count, string? initialUsername, CancellationToken cancellationToken);
 
     /// <summary>
     /// Shows a non-blocking error notification.

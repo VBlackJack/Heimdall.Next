@@ -59,6 +59,7 @@ public sealed class ContextMenuFactory
     {
         return target switch
         {
+            BulkSelectionContext bulk => CreateBulkSelectionContextMenu(vm, bulk),
             ServerItemViewModel server when server.ConnectionType?.StartsWith(
                 "TOOL:", StringComparison.OrdinalIgnoreCase) == true
                 => CreateToolContextMenu(vm, server, callbacks),
@@ -145,6 +146,50 @@ public sealed class ContextMenuFactory
             vm.ServerList.DeleteServerCommand,
             server,
             inputGestureText: "Ctrl+Del");
+        deleteItem.Foreground = Application.Current.TryFindResource("ErrorBrush") as Brush
+            ?? new SolidColorBrush(Colors.Red);
+        menu.Items.Add(deleteItem);
+
+        return menu;
+    }
+
+    /// <summary>
+    /// Builds the reduced bulk-actions context menu shown when right-clicking
+    /// an item already participating in a multi-selection.
+    /// </summary>
+    private static ContextMenu CreateBulkSelectionContextMenu(
+        MainViewModel vm,
+        BulkSelectionContext bulkContext)
+    {
+        var menu = CreateContextMenu();
+        var selectionCount = bulkContext.Items.Count;
+        var connectableCount = vm.ServerList.GetBulkConnectTargetCount(bulkContext.Items);
+
+        var headerItem = new MenuItem
+        {
+            Header = string.Format(vm.Localize("TreeCtxItemsSelected"), selectionCount),
+            IsEnabled = false,
+            FontStyle = FontStyles.Italic
+        };
+        menu.Items.Add(headerItem);
+        menu.Items.Add(new Separator());
+        menu.Items.Add(CreateMenuItem(
+            string.Format(vm.Localize("TreeCtxConnectSelected"), connectableCount),
+            vm.ServerList.ConnectSelectedCommand,
+            isEnabled: connectableCount > 0));
+        menu.Items.Add(CreateMenuItem(
+            vm.Localize("TreeCtxBulkDuplicate"),
+            vm.ServerList.DuplicateSelectedCommand));
+        menu.Items.Add(CreateBulkEditMenu(vm, bulkContext));
+        menu.Items.Add(new Separator());
+        menu.Items.Add(CreateBulkMoveToProjectMenu(vm, bulkContext));
+        menu.Items.Add(CreateBulkMoveToGroupMenu(vm, bulkContext));
+        menu.Items.Add(new Separator());
+
+        var deleteItem = CreateMenuItem(
+            string.Format(vm.Localize("TreeCtxDeleteSelected"), selectionCount),
+            vm.ServerList.DeleteSelectedCommand,
+            inputGestureText: "Del");
         deleteItem.Foreground = Application.Current.TryFindResource("ErrorBrush") as Brush
             ?? new SolidColorBrush(Colors.Red);
         menu.Items.Add(deleteItem);
@@ -320,37 +365,28 @@ public sealed class ContextMenuFactory
 
         // Connect all servers in this folder (recursively)
         var allServers = GetAllServersRecursive(folder);
+        var connectableCount = vm.ServerList.GetBulkConnectTargetCount(allServers);
         var connectAllItem = new MenuItem
         {
-            Header = string.Format(vm.Localize("TreeCtxConnectAllCount"), allServers.Count),
-            IsEnabled = allServers.Count > 0
+            Header = string.Format(vm.Localize("TreeCtxConnectAllCount"), connectableCount),
+            IsEnabled = connectableCount > 0
         };
         connectAllItem.Click += async (_, _) =>
         {
+            var plan = await vm.ServerList.PrepareBulkConnectPlanAsync(allServers, CancellationToken.None);
+            if (plan.ConnectableCount <= 0)
+            {
+                vm.StatusText = vm.Localize("StatusBulkConnectNothingToConnect");
+                return;
+            }
+
             var confirmed = await vm.DialogService.ShowConfirmAsync(
                 vm.Localize("ConfirmConnectAllTitle"),
-                string.Format(vm.Localize("ConfirmConnectAllMessage"), allServers.Count));
+                string.Format(vm.Localize("ConfirmConnectAllMessage"), plan.ConnectableCount));
 
             if (!confirmed) return;
 
-            for (int i = 0; i < allServers.Count; i++)
-            {
-                var server = allServers[i];
-                vm.StatusText = string.Format(
-                    vm.Localize("StatusConnectAllProgress"),
-                    i + 1, allServers.Count, server.DisplayName);
-
-                if (vm.ServerList.ConnectCommand.CanExecute(server))
-                {
-                    vm.ServerList.ConnectCommand.Execute(server);
-                    if (i < allServers.Count - 1)
-                    {
-                        await Task.Delay(500);
-                    }
-                }
-            }
-            vm.StatusText = string.Format(
-                vm.Localize("StatusConnectedAllCount"), allServers.Count);
+            await vm.ServerList.ConnectServersBulkCoreAsync(plan, CancellationToken.None);
         };
         menu.Items.Add(connectAllItem);
 
@@ -597,6 +633,104 @@ public sealed class ContextMenuFactory
 
             item.Items.Add(child);
         }
+
+        return item;
+    }
+
+    /// <summary>
+    /// Builds the bulk "Move to Project" submenu from the full list of project
+    /// targets, disabling entries only when every selected item is already in the
+    /// requested project.
+    /// </summary>
+    private static MenuItem CreateBulkMoveToProjectMenu(
+        MainViewModel vm,
+        BulkSelectionContext bulkContext)
+    {
+        var item = new MenuItem
+        {
+            Header = vm.Localize("TreeCtxBulkMoveToProject")
+        };
+
+        var enabledChildren = 0;
+        foreach (var project in vm.ServerList.GetProjectTargets(includeNoProject: true))
+        {
+            var targetProjectId = string.IsNullOrWhiteSpace(project.Id) ? null : project.Id;
+            var isEnabled = vm.ServerList.IsBulkMoveProjectTargetEnabled(bulkContext.Items, targetProjectId);
+            if (isEnabled)
+            {
+                enabledChildren++;
+            }
+
+            var child = CreateMenuItem(
+                project.Name,
+                vm.ServerList.MoveSelectedToProjectCommand,
+                new BulkMoveToProjectRequest(targetProjectId),
+                isEnabled);
+
+            item.Items.Add(child);
+        }
+
+        item.IsEnabled = enabledChildren > 0;
+        return item;
+    }
+
+    /// <summary>
+    /// Builds the bulk "Move to Group" submenu from the union of group targets
+    /// across the currently selected projects.
+    /// </summary>
+    private static MenuItem CreateBulkMoveToGroupMenu(
+        MainViewModel vm,
+        BulkSelectionContext bulkContext)
+    {
+        var item = new MenuItem
+        {
+            Header = vm.Localize("TreeCtxMoveToGroup")
+        };
+
+        var enabledChildren = 0;
+        foreach (var group in vm.ServerList.GetBulkGroupTargets(bulkContext.Items, includeNoGroup: true))
+        {
+            var targetGroupName = string.IsNullOrWhiteSpace(group.GroupName) ? null : group.GroupName;
+            var isEnabled = vm.ServerList.IsBulkMoveTargetEnabled(bulkContext.Items, targetGroupName);
+            if (isEnabled)
+            {
+                enabledChildren++;
+            }
+
+            var child = CreateMenuItem(
+                group.DisplayName,
+                vm.ServerList.MoveSelectedToGroupCommand,
+                new BulkMoveToGroupRequest(targetGroupName),
+                isEnabled);
+
+            item.Items.Add(child);
+        }
+
+        item.IsEnabled = enabledChildren > 0;
+        return item;
+    }
+
+    private static MenuItem CreateBulkEditMenu(
+        MainViewModel vm,
+        BulkSelectionContext bulkContext)
+    {
+        var item = new MenuItem
+        {
+            Header = vm.Localize("TreeCtxBulkEditMenu")
+        };
+
+        item.Items.Add(CreateMenuItem(
+            vm.Localize("TreeCtxBulkEditPort"),
+            vm.ServerList.BulkEditPortCommand,
+            bulkContext.Items));
+
+        item.Items.Add(CreateMenuItem(
+            string.Format(
+                System.Globalization.CultureInfo.CurrentCulture,
+                vm.Localize("TreeCtxBulkEditUsername"),
+                bulkContext.Items.Count),
+            vm.ServerList.BulkEditUsernameCommand,
+            bulkContext.Items));
 
         return item;
     }

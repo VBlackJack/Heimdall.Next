@@ -103,6 +103,7 @@ public static class RdcManImporter
         {
             Id = Guid.NewGuid().ToString(),
             DisplayName = name,
+            Origin = ProfileOrigin.ImportRdcMan,
             RemoteServer = host,
             RemotePort = DefaultPorts.Rdp,
             ConnectionType = "RDP",

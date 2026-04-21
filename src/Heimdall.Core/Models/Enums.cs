@@ -125,3 +125,25 @@ public enum ElevationMode
     /// <summary>Use ShellExecute runas verb (compatible with AdminByRequest, CyberArk, etc.).</summary>
     Runas
 }
+
+/// <summary>
+/// Provenance tag for a server profile.
+/// Numeric ordering is permanent because the values are persisted in servers.json.
+/// </summary>
+public enum ProfileOrigin
+{
+    /// <summary>Created manually, or deserialized from a pre-b63 profile without an origin.</summary>
+    Manual = 0,
+    /// <summary>Imported from a .rdp file.</summary>
+    ImportRdp = 1,
+    /// <summary>Imported from an OpenSSH config file.</summary>
+    ImportOpenSsh = 2,
+    /// <summary>Imported from PuTTY sessions.</summary>
+    ImportPutty = 3,
+    /// <summary>Imported from mRemoteNG.</summary>
+    ImportMRemoteNg = 4,
+    /// <summary>Imported from MobaXterm.</summary>
+    ImportMobaXterm = 5,
+    /// <summary>Imported from RDCMan.</summary>
+    ImportRdcMan = 6
+}

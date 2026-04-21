@@ -72,6 +72,7 @@ public static class RdpFileImporter
         {
             Id = Guid.NewGuid().ToString(),
             DisplayName = displayName,
+            Origin = ProfileOrigin.ImportRdp,
             RemoteServer = host,
             RemotePort = port,
             ConnectionType = "RDP",

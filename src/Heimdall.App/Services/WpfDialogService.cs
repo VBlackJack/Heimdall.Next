@@ -15,10 +15,16 @@
  */
 
 using System.Windows;
+using Heimdall.App.Services.Import;
+using Heimdall.App.Services.PostConnect;
+using Heimdall.App.ViewModels;
 using Heimdall.App.ViewModels.Dialogs;
 using Heimdall.App.Views.Dialogs;
 using Heimdall.Core.Configuration;
+using Heimdall.Core.Import;
 using Heimdall.Core.Localization;
+using Heimdall.Core.Ssh;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Heimdall.App.Services;
 
@@ -26,10 +32,14 @@ namespace Heimdall.App.Services;
 /// WPF implementation of <see cref="IDialogService"/>.
 /// Creates and shows modal dialog windows, transferring results back to callers.
 /// </summary>
-public sealed class WpfDialogService(LocalizationManager localizer, IConfigManager configManager) : IDialogService
+public sealed class WpfDialogService(
+    LocalizationManager localizer,
+    IConfigManager configManager,
+    IServiceScopeFactory scopeFactory) : IDialogService
 {
     private readonly LocalizationManager _localizer = localizer;
     private readonly IConfigManager _configManager = configManager;
+    private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
 
     /// <inheritdoc/>
     public Task<bool> ShowConfirmAsync(string title, string message, string severity = "info")
@@ -70,10 +80,45 @@ public sealed class WpfDialogService(LocalizationManager localizer, IConfigManag
     }
 
     /// <inheritdoc/>
-    public Task<ServerDialogResult?> ShowServerDialogAsync(ServerDialogViewModel? editVm = null)
+    public Task<int?> ShowBulkEditPortAsync(int count, int? initialPort, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var vm = new ServerBulkEditViewModel(_localizer, count, initialPort);
+        var dialog = new ServerBulkEditDialog
+        {
+            DataContext = vm,
+            Owner = GetOwnerWindow()
+        };
+
+        int? result = dialog.ShowDialog() == true ? vm.ResolvedPort : null;
+        return Task.FromResult(result);
+    }
+
+    /// <inheritdoc/>
+    public Task<string?> ShowBulkEditUsernameAsync(int count, string? initialUsername, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var vm = new ServerBulkEditUsernameViewModel(_localizer, count, initialUsername);
+        var dialog = new ServerBulkEditUsernameDialog
+        {
+            DataContext = vm,
+            Owner = GetOwnerWindow()
+        };
+
+        string? result = dialog.ShowDialog() == true ? vm.ResolvedUsername : null;
+        return Task.FromResult(result);
+    }
+
+    /// <inheritdoc/>
+    public async Task<ServerDialogResult?> ShowServerDialogAsync(ServerDialogViewModel? editVm = null)
     {
         var vm = editVm ?? new ServerDialogViewModel();
         vm.Localizer ??= _localizer;
+        vm.DialogService ??= this;
+        vm.ServiceScopeFactory ??= _scopeFactory;
+        await vm.InitializePostConnectLinksAsync().ConfigureAwait(true);
         var dialog = new ServerDialog(_localizer, _configManager)
         {
             DataContext = vm,
@@ -84,7 +129,7 @@ public sealed class WpfDialogService(LocalizationManager localizer, IConfigManag
             ? new ServerDialogResult(vm.ToDto(), true)
             : null;
 
-        return Task.FromResult(result);
+        return result;
     }
 
     /// <inheritdoc/>
@@ -154,6 +199,136 @@ public sealed class WpfDialogService(LocalizationManager localizer, IConfigManag
 
         dialog.ShowDialog();
         return Task.CompletedTask;
+    }
+
+    /// <inheritdoc/>
+    public Task<SnapshotRestoreDialogResult?> ShowSnapshotRestoreDialogAsync(SnapshotRestoreDialogViewModel viewModel)
+    {
+        ArgumentNullException.ThrowIfNull(viewModel);
+
+        var dialog = new SnapshotRestoreDialog
+        {
+            DataContext = viewModel,
+            Owner = GetOwnerWindow()
+        };
+
+        SnapshotRestoreDialogResult? result = dialog.ShowDialog() == true
+            ? viewModel.Result
+            : null;
+
+        return Task.FromResult(result);
+    }
+
+    /// <inheritdoc/>
+    public Task<RdpImportSelection?> ShowRdpImportDialogAsync(RdpImportDialogViewModel viewModel)
+    {
+        ArgumentNullException.ThrowIfNull(viewModel);
+
+        var dialog = new RdpImportDialog
+        {
+            DataContext = viewModel,
+            Owner = GetOwnerWindow()
+        };
+
+        RdpImportSelection? result = dialog.ShowDialog() == true
+            ? viewModel.Result
+            : null;
+
+        return Task.FromResult(result);
+    }
+
+    /// <inheritdoc/>
+    public async Task<ImportOutcome?> ShowImportOpenSshConfigAsync(OpenSshParseResult parseResult)
+    {
+        ArgumentNullException.ThrowIfNull(parseResult);
+
+        using var scope = _scopeFactory.CreateScope();
+        var viewModel = scope.ServiceProvider.GetRequiredService<ImportOpenSshConfigDialogViewModel>();
+        await viewModel.InitializeAsync(parseResult).ConfigureAwait(true);
+
+        var dialog = new ImportSessionsPreviewDialog
+        {
+            DataContext = viewModel,
+            Owner = GetOwnerWindow()
+        };
+
+        var confirmed = dialog.ShowDialog() == true;
+        return confirmed ? viewModel.Result : null;
+    }
+
+    /// <inheritdoc/>
+    public async Task<ImportOutcome?> ShowImportPuttySessionsAsync(PuttySessionParseResult parseResult)
+    {
+        ArgumentNullException.ThrowIfNull(parseResult);
+
+        using var scope = _scopeFactory.CreateScope();
+        var viewModel = scope.ServiceProvider.GetRequiredService<ImportPuttySessionsDialogViewModel>();
+        await viewModel.InitializeAsync(parseResult).ConfigureAwait(true);
+
+        var dialog = new ImportSessionsPreviewDialog
+        {
+            DataContext = viewModel,
+            Owner = GetOwnerWindow()
+        };
+
+        var confirmed = dialog.ShowDialog() == true;
+        return confirmed ? viewModel.Result : null;
+    }
+
+    /// <inheritdoc/>
+    public async Task<KnownHostsImportOutcome?> ShowImportKnownHostsAsync(KnownHostsImportPreview preview)
+    {
+        ArgumentNullException.ThrowIfNull(preview);
+
+        using var scope = _scopeFactory.CreateScope();
+        var viewModel = scope.ServiceProvider.GetRequiredService<ImportKnownHostsDialogViewModel>();
+        await viewModel.InitializeAsync(preview).ConfigureAwait(true);
+
+        var dialog = new ImportKnownHostsDialog
+        {
+            DataContext = viewModel,
+            Owner = GetOwnerWindow()
+        };
+
+        var confirmed = dialog.ShowDialog() == true;
+        return confirmed ? viewModel.Result : null;
+    }
+
+    /// <inheritdoc/>
+    public async Task<CommandLibraryPickerResult?> ShowCommandLibraryPickerAsync(
+        CommandLibraryPickerDialogViewModel viewModel,
+        AutoPrefillContext? prefillContext = null,
+        string? existingActionId = null,
+        IReadOnlyDictionary<string, string>? existingValues = null)
+    {
+        ArgumentNullException.ThrowIfNull(viewModel);
+
+        if (!string.IsNullOrWhiteSpace(existingActionId))
+        {
+            await viewModel.InitializeForChangeAsync(
+                prefillContext ?? new AutoPrefillContext(null, null, null, null),
+                existingActionId,
+                existingValues ?? new Dictionary<string, string>(StringComparer.Ordinal)).ConfigureAwait(true);
+        }
+        else
+        {
+            await viewModel.InitializeAsync(prefillContext).ConfigureAwait(true);
+        }
+
+        var dialog = new CommandLibraryPickerDialog
+        {
+            DataContext = viewModel,
+            Owner = GetOwnerWindow()
+        };
+
+        CommandLibraryPickerResult? result = dialog.ShowDialog() == true && viewModel.ResultActionId is not null
+            ? new CommandLibraryPickerResult(
+                viewModel.ResultActionId,
+                viewModel.ResultActionTitle ?? viewModel.ResultActionId,
+                viewModel.ResultParams ?? [])
+            : null;
+
+        return result;
     }
 
     /// <inheritdoc/>

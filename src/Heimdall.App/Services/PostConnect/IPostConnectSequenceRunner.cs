@@ -14,23 +14,16 @@
  * limitations under the License.
  */
 
-namespace Heimdall.Core.Configuration;
+using Heimdall.Core.Models;
 
-/// <summary>
-/// Persisted workspace state: the list of open sessions at the time the application closed.
-/// </summary>
-public sealed class WorkspaceDto
-{
-    public List<WorkspaceSessionDto> Sessions { get; set; } = new();
-    public DateTime SavedAt { get; set; }
-}
+namespace Heimdall.App.Services.PostConnect;
 
-/// <summary>
-/// A single session entry within a persisted workspace.
-/// </summary>
-public sealed class WorkspaceSessionDto
+public interface IPostConnectSequenceRunner
 {
-    public string ServerId { get; set; } = "";
-    public string ServerName { get; set; } = "";
-    public string Protocol { get; set; } = "";
+    Task<PostConnectRunResult> RunAsync(
+        IReadOnlyList<PostConnectStep> steps,
+        Action<string> writeCallback,
+        IProgress<PostConnectRunProgress>? progress,
+        CancellationToken ct,
+        IPostConnectStepResolver? resolver = null);
 }

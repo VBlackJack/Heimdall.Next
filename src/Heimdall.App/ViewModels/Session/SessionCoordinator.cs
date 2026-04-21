@@ -17,6 +17,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Heimdall.App.Services;
+using Heimdall.App.Services.PostConnect;
 using Heimdall.App.Views;
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Localization;
@@ -59,6 +60,8 @@ public sealed partial class SessionCoordinator : ObservableObject, IDisposable
     private readonly LocalizationManager _localizer;
     private readonly IConfigManager _configManager;
     private readonly IEmbeddedSessionManager _embeddedSessionManager;
+    private readonly IPostConnectSequenceRunner _postConnectSequenceRunner;
+    private readonly IPostConnectStepResolver _postConnectStepResolver;
     private bool _disposed;
 
     /// <summary>
@@ -69,12 +72,16 @@ public sealed partial class SessionCoordinator : ObservableObject, IDisposable
         MainViewModel main,
         LocalizationManager localizer,
         IConfigManager configManager,
-        IEmbeddedSessionManager embeddedSessionManager)
+        IEmbeddedSessionManager embeddedSessionManager,
+        IPostConnectSequenceRunner postConnectSequenceRunner,
+        IPostConnectStepResolver postConnectStepResolver)
     {
         _main = main;
         _localizer = localizer;
         _configManager = configManager;
         _embeddedSessionManager = embeddedSessionManager;
+        _postConnectSequenceRunner = postConnectSequenceRunner;
+        _postConnectStepResolver = postConnectStepResolver;
 
         // Wire SplitService callbacks for access to session tab state
         _main.Split.ActiveSessionsProvider = () => _main.Connection.ActiveSessions;
@@ -234,6 +241,13 @@ public sealed partial class SessionCoordinator : ObservableObject, IDisposable
             _ = SafeFireAndForgetAsync(
                 AutoOpenSftpAsync(tab, originalServerId, _main.Split.GetSessionToken(tab)));
         }
+
+        if (string.Equals(connectionType, "SSH", StringComparison.OrdinalIgnoreCase)
+            && session is SshSessionResult sshSession)
+        {
+            _ = SafeFireAndForgetAsync(
+                RunPostConnectSequenceAsync(tab, originalServerId, displayName, sshSession, _main.Split.GetSessionToken(tab)));
+        }
     }
 
     /// <summary>
@@ -353,47 +367,89 @@ public sealed partial class SessionCoordinator : ObservableObject, IDisposable
         }
     }
 
-    // ── Public startup helper ────────────────────────────────────────
-
-    /// <summary>
-    /// Restores the previously persisted workspace by reconnecting each
-    /// session whose server still exists in the current inventory. Called
-    /// by <see cref="MainViewModel.LoadAsync"/> when
-    /// <see cref="AppSettings.EnableSessionPersistence"/> is enabled.
-    /// </summary>
-    public async Task RestoreWorkspaceAsync(IEnumerable<ServerItemViewModel> currentServers)
+    private async Task RunPostConnectSequenceAsync(
+        SessionTabViewModel tab,
+        string serverId,
+        string displayName,
+        SshSessionResult sshSession,
+        CancellationToken sessionToken)
     {
-        ArgumentNullException.ThrowIfNull(currentServers);
-
-        var workspace = await WorkspaceService.LoadAsync().ConfigureAwait(false);
-        if (workspace?.Sessions.Count is not > 0)
+        try
         {
-            return;
+            var servers = await _configManager.LoadServersAsync().ConfigureAwait(false);
+            var server = servers.FirstOrDefault(s => string.Equals(s.Id, serverId, StringComparison.Ordinal));
+            if (server is null || server.PostConnectSteps.Count == 0)
+            {
+                return;
+            }
+
+            using var userCancelCts = new CancellationTokenSource();
+            using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(sessionToken, userCancelCts.Token);
+            var progress = new Progress<PostConnectRunProgress>(update =>
+            {
+                var current = Math.Min(update.CurrentStepIndex + 1, update.TotalSteps);
+                var progressText = $"{current}/{update.TotalSteps}";
+                var tooltip = _localizer.Format(
+                    "PostConnectProgressTooltip",
+                    progressText,
+                    LocalizePostConnectStatus(update.Status),
+                    update.CurrentStepDisplayText);
+                tab.SetPostConnectState(true, progressText, tooltip, userCancelCts.Cancel);
+            });
+
+            var runnableSteps = server.PostConnectSteps.Count(step =>
+                step.Enabled
+                && (!string.IsNullOrWhiteSpace(step.Input) || !string.IsNullOrWhiteSpace(step.CommandLibraryId)));
+            if (runnableSteps == 0)
+            {
+                return;
+            }
+
+            tab.SetPostConnectState(
+                true,
+                $"0/{server.PostConnectSteps.Count}",
+                _localizer["PostConnectProgressStarting"],
+                userCancelCts.Cancel);
+
+            FileLogger.Info($"Post-connect: starting {runnableSteps} command(s) for {displayName}.");
+            var result = await _postConnectSequenceRunner.RunAsync(
+                server.PostConnectSteps,
+                input => sshSession.Session.Write(input + "\n"),
+                progress,
+                linkedCts.Token,
+                _postConnectStepResolver).ConfigureAwait(false);
+            FileLogger.Info(
+                $"Post-connect: {displayName} executed={result.StepsExecuted}, " +
+                $"skipped={result.StepsSkippedDisabled}, failed={result.StepsFailed}, broken={result.StepsBroken}, " +
+                $"cancelled={result.WasCancelled}, stopped={result.WasStoppedByFailurePolicy}.");
         }
-
-        _main.StatusText = _localizer["WorkspaceRestoring"];
-        var serverList = currentServers as IList<ServerItemViewModel>
-            ?? currentServers.ToList();
-        int restored = 0;
-
-        foreach (var session in workspace.Sessions)
+        catch (OperationCanceledException)
         {
-            var server = serverList.FirstOrDefault(
-                s => string.Equals(s.Id, session.ServerId, StringComparison.OrdinalIgnoreCase));
-            if (server is null) continue;
-            try
-            {
-                _main.ServerList.ConnectCommand.Execute(server);
-                restored++;
-            }
-            catch (Exception ex)
-            {
-                FileLogger.Error(
-                    $"Workspace restore failed for {session.ServerName}: {ex.Message}");
-            }
+            // Session closed or user cancelled; state cleanup happens in finally.
         }
+        catch (Exception ex)
+        {
+            FileLogger.Error($"Post-connect run failed for {displayName}: {ex.Message}", ex);
+        }
+        finally
+        {
+            System.Windows.Application.Current.Dispatcher.Invoke(tab.ClearPostConnectState);
+        }
+    }
 
-        FileLogger.Info(_localizer.Format("LogWorkspaceRestored", restored));
+    private string LocalizePostConnectStatus(PostConnectStepStatus status)
+    {
+        return status switch
+        {
+            PostConnectStepStatus.Pending => _localizer["PostConnectProgressPending"],
+            PostConnectStepStatus.Running => _localizer["PostConnectProgressRunning"],
+            PostConnectStepStatus.Completed => _localizer["PostConnectProgressCompleted"],
+            PostConnectStepStatus.Failed => _localizer["PostConnectProgressFailed"],
+            PostConnectStepStatus.Skipped => _localizer["PostConnectProgressSkipped"],
+            PostConnectStepStatus.Cancelled => _localizer["PostConnectProgressCancelled"],
+            PostConnectStepStatus.Broken => _localizer["StatusPostConnectBroken"],
+            _ => status.ToString()
+        };
     }
 
     // ── Fire-and-forget helper (duplicated from MainViewModel) ───────
