@@ -149,7 +149,6 @@ function Write-SmokeSettings {
     $settings.OnboardingCompleted = $true
     $settings.SidebarCollapsed = $false
     $settings.ShowToolsPanel = $true
-    $settings.EnableSessionPersistence = $false
     $settings.FavoriteToolIds = @($FavoriteToolIds)
     $settings.SidebarExpandedCategories = @{}
     Write-HeimdallSettingsJson -Settings $settings
