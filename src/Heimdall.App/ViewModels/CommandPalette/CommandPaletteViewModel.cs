@@ -53,6 +53,7 @@ public sealed partial class CommandPaletteViewModel : ObservableObject
     private readonly ToolRegistry _toolRegistry;
     private readonly IConfigManager _configManager;
     private readonly IEmbeddedSessionManager _embeddedSessionManager;
+    private readonly ExternalToolLaunchService _externalToolLaunchService;
 
     /// <summary>
     /// When non-null, the palette is in "split mode": selecting a server
@@ -70,13 +71,15 @@ public sealed partial class CommandPaletteViewModel : ObservableObject
         LocalizationManager localizer,
         ToolRegistry toolRegistry,
         IConfigManager configManager,
-        IEmbeddedSessionManager embeddedSessionManager)
+        IEmbeddedSessionManager embeddedSessionManager,
+        ExternalToolLaunchService externalToolLaunchService)
     {
         _main = main;
         _localizer = localizer;
         _toolRegistry = toolRegistry;
         _configManager = configManager;
         _embeddedSessionManager = embeddedSessionManager;
+        _externalToolLaunchService = externalToolLaunchService;
     }
 
     // ── Observable state ─────────────────────────────────────────────
@@ -441,59 +444,7 @@ public sealed partial class CommandPaletteViewModel : ObservableObject
 
         if (extTool is null) return;
 
-        try
-        {
-            // Resolve placeholders against the currently selected server when available.
-            var selectedServer = _main.ServerList.SelectedServer;
-            var arguments = selectedServer is not null
-                ? extTool.ResolveArguments(
-                    selectedServer.RemoteServer,
-                    selectedServer.EffectivePort,
-                    selectedServer.Username,
-                    serverName: selectedServer.DisplayName,
-                    protocol: selectedServer.ConnectionType,
-                    keyFile: selectedServer.SshKeyPath,
-                    project: selectedServer.ProjectName,
-                    gateway: selectedServer.GatewayName)
-                : extTool.Arguments;
-
-            if (Heimdall.Core.Security.InputValidator.IsShellTarget(extTool.ExecutablePath))
-            {
-                FileLogger.Warn(
-                    $"Blocked external tool '{toolName}': executable is a shell target ({extTool.ExecutablePath}).");
-                return;
-            }
-
-            var needsElevation = extTool.RunAsAdministrator;
-            var psi = new System.Diagnostics.ProcessStartInfo
-            {
-                FileName = extTool.ExecutablePath,
-                Arguments = arguments,
-                UseShellExecute = needsElevation
-            };
-
-            if (!string.IsNullOrWhiteSpace(extTool.WorkingDirectory))
-            {
-                psi.WorkingDirectory = extTool.WorkingDirectory;
-            }
-
-            if (needsElevation)
-            {
-                psi.Verb = "runas";
-            }
-
-            if (extTool.RunHidden)
-            {
-                psi.WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden;
-                psi.CreateNoWindow = true;
-            }
-
-            System.Diagnostics.Process.Start(psi);
-        }
-        catch (Exception ex)
-        {
-            FileLogger.Warn($"Failed to launch external tool '{toolName}': {ex.Message}");
-        }
+        _externalToolLaunchService.LaunchConfigured(extTool, _main.ServerList.SelectedServer, _main.Localize);
     }
 
     /// <summary>
