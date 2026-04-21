@@ -11,6 +11,50 @@
 # Changelog
 
 All notable changes to Heimdall.Next are documented in this file.
+## 2026-04-21 — release 2026.042101 — Remote access audit package
+- Version bump from 2026.042003 to 2026.042101 (`InformationalVersion`).
+- Consolidates batches 55.1, 58, and 59 (see entries below dated 2026-04-19).
+- Adds the remote-access audit package:
+  - `docs/audit-connection-sequences-2026-04-19.md`
+  - `docs/audit-gap-rdp-2026-04-19.md`
+  - `docs/audit-gap-ssh-terminal-sftp-2026-04-19.md`
+  - `docs/audit-roadmap-remote-access-2026-04-19.md`
+- No new runtime feature in this release.
+
+## 2026-04-19 — batch 55.1 — Remove legacy workspace path
+
+- Deleted `WorkspaceService` + `WorkspaceDto`/`WorkspaceSessionDto`.
+- Deleted the orphan `SessionCoordinator.RestoreWorkspaceAsync` method.
+- Retired the `EnableSessionPersistence` UI toggle; session snapshot save/restore
+  (b55) is now unconditional. The property stays on `AppSettings` for backward
+  deserialization compatibility but has no runtime effect.
+- Removed four locale keys (`WorkspaceRestoring`, `LogWorkspaceRestored`,
+  `SettingsWorkspaceRestore`, `A11ySettingsWorkspaceRestore`) from `en.json`/`fr.json`.
+- Removed the legacy `EnableSessionPersistence = $false` line from the
+  sidebar-favorites smoke script.
+
+## 2026-04-19 — batch 58 — Post-connect Command Library linkage
+
+- Extended `PostConnectStep` with optional `CommandLibraryId` and
+  `CommandLibraryParams` so SSH embedded sessions can resolve Command Library
+  actions at run time while preserving the dormant literal `Input` for unlink.
+- Added `CommandLibraryStepResolver` and the `Broken` post-connect status so
+  missing actions, Windows-only templates, and invalid parameters surface as
+  configuration errors instead of silent fallbacks or runtime failures.
+- Added a modal `CommandLibraryPickerDialog` to `ServerDialog` so operators can
+  link or unlink post-connect steps without editing the Command Library itself.
+- Kept the scope SSH-embedded only; Plink, Telnet, and Local Shell post-connect
+  flows remain unchanged in this batch.
+
+## 2026-04-19 — batch 59 — Post-connect parameter auto-prefill
+
+- Added one-shot auto-prefill for linked Command Library parameters in the
+  picker, using server-profile host/port/user aliases captured at open time.
+- Added a `Change...` path for already linked steps so operators can re-open the
+  picker with their existing values preserved.
+- Kept prefill snapshot-only, with no live binding back to the server fields.
+- Structurally blacklisted secrets (`password`, `token`, `secret`, etc.) from
+  any auto-prefill path.
 
 ## [Unreleased] - 2026-04-14
 
@@ -51,7 +95,7 @@ All notable changes to Heimdall.Next are documented in this file.
   - `CommandPaletteViewModel` (14 methods: fuzzy search ranking, tool-command parsing, ad-hoc `user@host:port` parsing with protocol inference, connect/split flows, `SplitLayoutMemory` pairing)
   - `TunnelsViewModel` (tunnel panel + tab, `ResolveRoute(sessionId)` for session header display)
   - `ScheduledTasksViewModel` (`TaskSchedulerService` ownership, idempotent `_started` flag)
-  - `SessionCoordinator` (8 external wire-ups — 5 `Split.*` providers/setters + 3 `EmbeddedSessionManager` callbacks; broadcast cluster; `OnSessionReady` / `OnReconnectRequestedAsync` / `AutoOpenSftpAsync`; `RestoreWorkspaceAsync`)
+  - `SessionCoordinator` (8 external wire-ups — 5 `Split.*` providers/setters + 3 `EmbeddedSessionManager` callbacks; broadcast cluster; `OnSessionReady` / `OnReconnectRequestedAsync` / `AutoOpenSftpAsync`)
 
 ### Refactor — Declarative i18n migration (Phase 5, in progress)
 
