@@ -213,6 +213,110 @@ public class CartographyEngineTests
         Assert.Equal(enCols, frCols);
     }
 
+    [Fact]
+    public void BuildCsvExport_EmptySnapshot_ReturnsHeaderOnly()
+    {
+        var snapshot = new NetworkScanSnapshot(
+            "empty",
+            DateTime.UtcNow,
+            new ScanProfile("10.0.0.0/24", ScanDepth.Quick, null, 50, 2000, false, false),
+            null,
+            TimeSpan.Zero,
+            []);
+
+        var csv = CartographyEngine.BuildCsvExport(snapshot, key => key);
+        var lines = csv.TrimEnd().Split(Environment.NewLine);
+
+        Assert.Single(lines);
+        Assert.Equal("ToolNetMapExportHeader", lines[0]);
+    }
+
+    [Fact]
+    public void BuildCsvExport_SingleHost_FormatsCsvCorrectly()
+    {
+        var snapshot = new NetworkScanSnapshot(
+            "single",
+            DateTime.UtcNow,
+            new ScanProfile("10.0.0.0/24", ScanDepth.Quick, null, 50, 2000, false, false),
+            null,
+            TimeSpan.Zero,
+            [CreateDetailedHost("10.0.0.10")]);
+
+        var csv = CartographyEngine.BuildCsvExport(snapshot, key => key);
+
+        Assert.Contains("\"10.0.0.10\"", csv);
+        Assert.Contains("\"web.local\"", csv);
+        Assert.Contains("\"22, 443\"", csv);
+        Assert.Contains("\"HTTPS, SSH\"", csv);
+        Assert.Contains("\"TLS 1.3 (ToolNetMapCertValid 2030-01-01)\"", csv);
+    }
+
+    [Fact]
+    public void BuildCsvExport_SanitizesCsvInjection()
+    {
+        var host = CreateDetailedHost("10.0.0.20") with { Hostname = "=cmd()" };
+        var snapshot = new NetworkScanSnapshot(
+            "inject",
+            DateTime.UtcNow,
+            new ScanProfile("10.0.0.0/24", ScanDepth.Quick, null, 50, 2000, false, false),
+            null,
+            TimeSpan.Zero,
+            [host]);
+
+        var csv = CartographyEngine.BuildCsvExport(snapshot, key => key);
+
+        Assert.DoesNotContain("\"=cmd()\"", csv);
+        Assert.Contains("\"'=cmd()\"", csv);
+    }
+
+    [Fact]
+    public void BuildCsvExport_WithLocalizedHeader_UsesLocalizedHeader()
+    {
+        var snapshot = new NetworkScanSnapshot(
+            "localized",
+            DateTime.UtcNow,
+            new ScanProfile("10.0.0.0/24", ScanDepth.Quick, null, 50, 2000, false, false),
+            null,
+            TimeSpan.Zero,
+            []);
+
+        var csv = CartographyEngine.BuildCsvExport(snapshot, key => key == "ToolNetMapExportHeader" ? "HEADER" : key);
+
+        Assert.StartsWith("HEADER", csv, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void BuildCsvExport_WithVlans_IncludesVlanColumn()
+    {
+        var snapshot = new NetworkScanSnapshot(
+            "vlans",
+            DateTime.UtcNow,
+            new ScanProfile("10.0.0.0/24", ScanDepth.Quick, null, 50, 2000, false, false),
+            null,
+            TimeSpan.Zero,
+            [CreateDetailedHost("10.0.0.30")],
+            [new VlanInfo(12, "Servers", "10.0.0.0/24", "10.0.0.1", ["10.0.0.30"])]);
+
+        var csv = CartographyEngine.BuildCsvExport(snapshot, key => key);
+
+        Assert.Contains("\"VLAN 12 (10.0.0.0/24)\"", csv);
+    }
+
+    [Fact]
+    public void FormatSsdpSummary_WithAllFields_FormatsCorrectly()
+    {
+        var ssdp = new SsdpInfo(
+            DeviceType: "urn:schemas-upnp-org:device:MediaServer:1",
+            FriendlyName: "Living Room TV",
+            Manufacturer: "Contoso",
+            ModelName: "Screen9000",
+            Server: "UPnP/1.0");
+
+        var summary = CartographyEngine.FormatSsdpSummary(ssdp);
+
+        Assert.Equal("Living Room TV | Contoso | UPnP/1.0", summary);
+    }
+
     private static string FindLocaleFile(string locale)
     {
         // Walk up from test binary directory to find locales/
@@ -247,5 +351,42 @@ public class CartographyEngineTests
             "test", DateTime.UtcNow,
             new ScanProfile("192.168.1.0/24", ScanDepth.Quick, null, 50, 2000, false, false),
             null, TimeSpan.Zero, hosts);
+    }
+
+    private static HostScanResult CreateDetailedHost(string ipAddress)
+    {
+        return new HostScanResult(
+            ipAddress,
+            "web.local",
+            true,
+            15,
+            [
+                new ServiceResult(22, true, "SSH", null, null, 5),
+                new ServiceResult(443, true, "HTTPS", null, null, 10, new CertificateInfo(
+                    "CN=web.local",
+                    "CN=Root",
+                    new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+                    new DateTime(2030, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+                    false,
+                    false,
+                    "RSA 2048",
+                    "sha256RSA",
+                    ["web.local"],
+                    "TLS 1.3",
+                    "ABCDEF"))
+            ],
+            new RoleMatch("Web Server", 88, ["HTTPS"]),
+            [new RoleMatch("Web Server", 88, ["HTTPS"])],
+            MacAddress: "AA-BB-CC-DD-EE-FF",
+            Manufacturer: "Contoso",
+            OsFingerprint: new OsFingerprint("Linux", "TTL", 70),
+            NetBiosName: "WEB01",
+            NetBiosDomain: "LAB",
+            SnmpInfo: new SnmpInfo("Linux Server", "web.local", "DC1", "1.3.6.1.4.1"),
+            MdnsServices: ["_http._tcp.local"],
+            SsdpInfo: new SsdpInfo("device", "Living Room TV", "Contoso", "Screen9000", "UPnP/1.0"),
+            NtlmInfo: new NtlmInfo(null, null, "web.local", "lab.local", null, "20348"),
+            SshHashFingerprint: "deadbeefcafebabe",
+            FaviconHash: 12345);
     }
 }
