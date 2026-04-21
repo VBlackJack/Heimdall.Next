@@ -19,6 +19,14 @@ using Heimdall.Core.Logging;
 namespace Heimdall.Core.Tests;
 
 /// <summary>
+/// Dedicated collection definition for FileLogger tests. FileLogger is a
+/// process-wide singleton, so these tests must not run in parallel with any
+/// other test collection that may emit log entries through production code.
+/// </summary>
+[CollectionDefinition("FileLogger", DisableParallelization = true)]
+public sealed class FileLoggerCollectionDefinition;
+
+/// <summary>
 /// Tests for <see cref="FileLogger"/>. Because FileLogger uses a static singleton,
 /// tests must run sequentially to avoid cross-contamination.
 /// </summary>
