@@ -145,7 +145,4 @@ public sealed class ChmodCalculatorSmokeTests : UiTestBase<ChmodCalculatorView>
             $"{WpfTestHost.Translate("ToolChmodOwner")} {WpfTestHost.Translate("ToolChmodRead")}",
             "chmod owner read name in en");
     }
-
-    private static bool IsCollapsed(AutomationElement? element)
-        => element is null || element.Properties.IsOffscreen.ValueOrDefault;
 }

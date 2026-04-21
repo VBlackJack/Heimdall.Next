@@ -40,6 +40,12 @@ public abstract class UiTestBase<TControl> where TControl : FrameworkElement, IT
         return HostedToolWindow<TControl>.Create(context);
     }
 
+    /// <summary>
+    /// Returns true when the UIA element is missing or reported as off-screen.
+    /// </summary>
+    protected static bool IsCollapsed(AutomationElement? element)
+        => element is null || element.Properties.IsOffscreen.ValueOrDefault;
+
     protected static string ReadText(AutomationElement element)
     {
         ArgumentNullException.ThrowIfNull(element);

@@ -143,7 +143,4 @@ public sealed class JwtParserSmokeTests : UiTestBase<JwtParserView>
             WpfTestHost.Translate("ToolJwtBtnVerify"),
             "jwt verify button in fr");
     }
-
-    private static bool IsCollapsed(AutomationElement? element)
-        => element is null || element.Properties.IsOffscreen.ValueOrDefault;
 }

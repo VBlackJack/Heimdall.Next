@@ -122,7 +122,4 @@ public sealed class TextCaseConverterSmokeTests : UiTestBase<TextCaseConverterVi
             () => IsCollapsed(session.TryFindByAutomationId("TextCase.CloseHelpButton")),
             "text case help panel collapsed");
     }
-
-    private static bool IsCollapsed(AutomationElement? element)
-        => element is null || element.Properties.IsOffscreen.ValueOrDefault;
 }

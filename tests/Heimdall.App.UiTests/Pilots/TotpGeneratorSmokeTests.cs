@@ -117,7 +117,4 @@ public sealed class TotpGeneratorSmokeTests : UiTestBase<TotpGeneratorView>
             () => IsCollapsed(session.TryFindByAutomationId("TotpGenerator.CloseHelpButton")),
             "totp help panel collapsed");
     }
-
-    private static bool IsCollapsed(AutomationElement? element)
-        => element is null || element.Properties.IsOffscreen.ValueOrDefault;
 }

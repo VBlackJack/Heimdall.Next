@@ -114,7 +114,4 @@ public sealed class DateTimeConverterSmokeTests : UiTestBase<DateTimeConverterVi
             WpfTestHost.Translate("ToolDateTimeBtnNow"),
             "date-time now button in fr");
     }
-
-    private static bool IsCollapsed(AutomationElement? element)
-        => element is null || element.Properties.IsOffscreen.ValueOrDefault;
 }

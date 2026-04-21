@@ -134,7 +134,4 @@ public sealed class IpConverterSmokeTests : UiTestBase<IpConverterView>
             () => IsCollapsed(session.TryFindByAutomationId("IpConverter.CloseHelpButton")),
             "ip converter help panel collapsed");
     }
-
-    private static bool IsCollapsed(AutomationElement? element)
-        => element is null || element.Properties.IsOffscreen.ValueOrDefault;
 }

@@ -104,7 +104,4 @@ public sealed class ServiceStatusSmokeTests : UiTestBase<ServiceStatusView>
             "service status initial refresh",
             TimeSpan.FromSeconds(5));
     }
-
-    private static bool IsCollapsed(AutomationElement? element)
-        => element is null || element.Properties.IsOffscreen.ValueOrDefault;
 }

@@ -104,7 +104,4 @@ public sealed class CertificateGeneratorSmokeTests : UiTestBase<CertificateGener
             () => IsCollapsed(session.TryFindByAutomationId("CertificateGenerator.CloseHelpButton")),
             "certificate help panel collapsed");
     }
-
-    private static bool IsCollapsed(AutomationElement? element)
-        => element is null || element.Properties.IsOffscreen.ValueOrDefault;
 }
