@@ -230,6 +230,50 @@ public sealed class ConfigManager : IConfigManager
     }
 
     /// <summary>
+    /// Atomically merges a batch of trusted host keys into settings.json.
+    /// Existing entries are preserved and never overwritten.
+    /// </summary>
+    public async Task<int> MergeTrustedHostKeysAsync(IEnumerable<KeyValuePair<string, string>> entries)
+    {
+        ArgumentNullException.ThrowIfNull(entries);
+
+        await _writeLock.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            var settings = await LoadSettingsInternalAsync().ConfigureAwait(false);
+            var added = 0;
+            foreach (var entry in entries)
+            {
+                if (string.IsNullOrWhiteSpace(entry.Key) || string.IsNullOrWhiteSpace(entry.Value))
+                {
+                    continue;
+                }
+
+                if (settings.TrustedHostKeys.ContainsKey(entry.Key))
+                {
+                    continue;
+                }
+
+                settings.TrustedHostKeys[entry.Key] = entry.Value;
+                added++;
+            }
+
+            if (added > 0)
+            {
+                var json = JsonSerializer.Serialize(settings, JsonOptions);
+                await WriteTextAsync(_settingsPath, json).ConfigureAwait(false);
+                ApplyFileAcl(_settingsPath);
+            }
+
+            return added;
+        }
+        finally
+        {
+            _writeLock.Release();
+        }
+    }
+
+    /// <summary>
     /// Atomically loads settings, applies a mutation, and saves back under the write lock.
     /// Use this for any targeted property update that must not race with other settings writers.
     /// </summary>
@@ -283,7 +327,17 @@ public sealed class ConfigManager : IConfigManager
             .ConfigureAwait(false);
         var servers = JsonSerializer.Deserialize<List<ServerProfileDto>>(json, ReadOptions);
 
-        return servers ?? new List<ServerProfileDto>();
+        if (servers is null)
+        {
+            return new List<ServerProfileDto>();
+        }
+
+        foreach (var server in servers)
+        {
+            PostConnectMigration.Migrate(server);
+        }
+
+        return servers;
     }
 
     /// <summary>
@@ -296,6 +350,11 @@ public sealed class ConfigManager : IConfigManager
         await _writeLock.WaitAsync().ConfigureAwait(false);
         try
         {
+            foreach (var server in servers)
+            {
+                PostConnectMigration.PrepareForSave(server);
+            }
+
             var json = JsonSerializer.Serialize(servers, JsonOptions);
             await WriteTextAsync(_serversPath, json).ConfigureAwait(false);
             ApplyFileAcl(_serversPath);

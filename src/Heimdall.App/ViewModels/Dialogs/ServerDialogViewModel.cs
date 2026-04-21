@@ -466,6 +466,14 @@ public partial class ServerDialogViewModel : ObservableValidator
         nameof(FirstInvalidField),
         nameof(AvailableGateways),
         nameof(AvailableProjects),
+        nameof(SelectedPostConnectStep),
+        nameof(PostConnectFailureOptions),
+        nameof(HasLegacyPostConnectCommand),
+        nameof(LegacyPostConnectCommandText),
+        nameof(LegacyPostConnectDelayText),
+        nameof(CanRemoveSelectedPostConnectStep),
+        nameof(CanMoveSelectedPostConnectStepUp),
+        nameof(CanMoveSelectedPostConnectStepDown),
     };
 
     protected override void OnPropertyChanged(System.ComponentModel.PropertyChangedEventArgs e)
@@ -756,6 +764,7 @@ public partial class ServerDialogViewModel : ObservableValidator
         return new ServerProfileDto
         {
             DisplayName = DisplayName,
+            Origin = Origin,
             RemoteServer = RemoteServer,
             RemotePort = RemotePort,
             LocalPort = LocalPort,
@@ -774,6 +783,7 @@ public partial class ServerDialogViewModel : ObservableValidator
             RemoteBindPort = RemoteBindPort,
             RemoteLocalPort = RemoteLocalPort,
             SshMode = SshMode,
+            PostConnectSteps = [.. PostConnectSteps.Select(step => step.ToModel())],
             PostConnectCommand = PostConnectCommand,
             PostConnectDelayMs = PostConnectDelayMs,
             LocalShellExecutable = string.IsNullOrWhiteSpace(LocalShellExecutable) ? null : LocalShellExecutable,
@@ -846,6 +856,7 @@ public partial class ServerDialogViewModel : ObservableValidator
     public static ServerDialogViewModel FromDto(ServerProfileDto dto)
     {
         ArgumentNullException.ThrowIfNull(dto);
+        PostConnectMigration.Migrate(dto);
 
         var connectionType = string.IsNullOrWhiteSpace(dto.ConnectionType) ? "RDP" : dto.ConnectionType;
         var suggestedTunnelPort = string.Equals(connectionType, "RDP", StringComparison.OrdinalIgnoreCase)
@@ -857,6 +868,7 @@ public partial class ServerDialogViewModel : ObservableValidator
         vm.IsEditMode = true;
         vm.IsProtocolSelected = true;
         vm.DisplayName = dto.DisplayName;
+        vm.Origin = dto.Origin;
         vm.RemoteServer = dto.RemoteServer;
         vm.RemotePort = string.Equals(connectionType, "Telnet", StringComparison.OrdinalIgnoreCase)
             ? (dto.TelnetPort > 0 ? dto.TelnetPort : DefaultPorts.Telnet)
@@ -877,6 +889,7 @@ public partial class ServerDialogViewModel : ObservableValidator
         vm.SshMode = dto.SshMode;
         vm.PostConnectCommand = dto.PostConnectCommand;
         vm.PostConnectDelayMs = dto.PostConnectDelayMs;
+        vm.LoadPostConnectSteps(dto.PostConnectSteps);
         vm.LocalShellExecutable = dto.LocalShellExecutable ?? "powershell.exe";
         vm.LocalShellArguments = dto.LocalShellArguments ?? "";
         vm.LocalShellWorkingDirectory = dto.LocalShellWorkingDirectory ?? "";

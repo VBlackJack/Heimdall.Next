@@ -18,8 +18,12 @@ using System.IO;
 using System.Windows;
 using Heimdall.App.Localization;
 using Heimdall.App.Services;
+using Heimdall.App.Services.SessionSnapshot;
 using Heimdall.App.Services.Handlers;
+using Heimdall.App.Services.Import;
+using Heimdall.App.Services.PostConnect;
 using Heimdall.App.ViewModels;
+using Heimdall.App.ViewModels.Dialogs;
 using Heimdall.App.ViewModels.Onboarding;
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Localization;
@@ -312,7 +316,33 @@ public partial class App : System.Windows.Application
         services.AddSingleton<CredentialProviderPresetService>();
         services.AddSingleton<CommandLibrarySettingsService>();
         services.AddSingleton<ExternalToolSettingsService>();
+        services.AddSingleton<ExternalToolLaunchService>();
+        services.AddSingleton<NetworkScannerService>();
         services.AddSingleton<ToolsTabPopulationService>();
+        services.AddSingleton<ICertificateGeneratorService, CertificateGeneratorService>();
+        services.AddSingleton<IBase64ToolService, Base64ToolService>();
+        services.AddSingleton<IUrlEncoderToolService, UrlEncoderToolService>();
+        services.AddSingleton<ITextCaseConverterService, TextCaseConverterService>();
+        services.AddSingleton<IIpConverterToolService, IpConverterToolService>();
+        services.AddSingleton<IJsonFormatterToolService, JsonFormatterToolService>();
+        services.AddSingleton<IRegexTesterToolService, RegexTesterToolService>();
+        services.AddSingleton<ITextDiffToolService, TextDiffToolService>();
+        services.AddSingleton<IUuidGeneratorToolService, UuidGeneratorToolService>();
+        services.AddSingleton<IUlidGeneratorToolService, UlidGeneratorToolService>();
+        services.AddSingleton<IDateTimeConverterToolService, DateTimeConverterToolService>();
+        services.AddSingleton<IChmodCalculatorToolService, ChmodCalculatorToolService>();
+        services.AddSingleton<IJwtParserToolService, JwtParserToolService>();
+        services.AddSingleton<IHashGeneratorService, HashGeneratorService>();
+        services.AddSingleton<IHmacGeneratorService, HmacGeneratorService>();
+        services.AddSingleton<IOtpGeneratorService, OtpGeneratorService>();
+        services.AddSingleton<ISessionSnapshotService, SessionSnapshotService>();
+        services.AddSingleton<IRdpImportService, RdpImportService>();
+        services.AddSingleton<IPuttySessionRegistrySource, WindowsPuttyRegistrySource>();
+        services.AddTransient<OpenSshConfigImporter>();
+        services.AddTransient<PuttySessionImporter>();
+        services.AddTransient<KnownHostsImporter>();
+        services.AddSingleton<IPostConnectSequenceRunner, PostConnectSequenceRunner>();
+        services.AddSingleton<IPostConnectStepResolver, CommandLibraryStepResolver>();
         services.AddSingleton<IDialogService, WpfDialogService>();
 
         // TwinShell command library
@@ -324,6 +354,9 @@ public partial class App : System.Windows.Application
         services.AddTransient<ConnectionViewModel>();
         services.AddTransient<SettingsViewModel>();
         services.AddTransient<CommandLibraryViewModel>();
+        services.AddTransient<ImportOpenSshConfigDialogViewModel>();
+        services.AddTransient<ImportPuttySessionsDialogViewModel>();
+        services.AddTransient<ImportKnownHostsDialogViewModel>();
         services.AddTransient<OnboardingFlowViewModel>();
 
         // Windows
@@ -530,6 +563,33 @@ public partial class App : System.Windows.Application
     {
         if (_serviceProvider is not null)
         {
+            try
+            {
+                var snapshotService = _serviceProvider.GetService<ISessionSnapshotService>();
+                if (snapshotService is not null)
+                {
+                    using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+                    _mainViewModel!.StatusText = _mainViewModel.Localize("StatusSnapshotSaving");
+                    var sessions = _mainViewModel.GetSessionSnapshotEntries();
+                    if (sessions.Count > 0)
+                    {
+                        await snapshotService.SaveAsync(sessions, cts.Token);
+                    }
+                    else
+                    {
+                        await snapshotService.ClearAsync(cts.Token);
+                    }
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                Core.Logging.FileLogger.Warn("[App] session snapshot save timed out during shutdown.");
+            }
+            catch (Exception ex)
+            {
+                Core.Logging.FileLogger.Warn($"[App] session snapshot save failed: {ex.Message}");
+            }
+
             // Close all active sessions (SSH, SFTP, RDP, Local — disposes host controls + kills processes)
             try
             {

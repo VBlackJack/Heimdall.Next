@@ -1,0 +1,1919 @@
+/*
+ * Copyright 2026 Julien Bombled
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+using System.IO;
+using Heimdall.App.Services;
+using Heimdall.App.Services.Import;
+using Heimdall.App.Services.Handlers;
+using Heimdall.App.Services.PostConnect;
+using Heimdall.App.ViewModels;
+using Heimdall.App.ViewModels.Dialogs;
+using Heimdall.Core.Configuration;
+using Heimdall.Core.Import;
+using Heimdall.Core.Localization;
+using Heimdall.Core.Models;
+using Heimdall.Core.Ssh;
+using Heimdall.Core.StateMachine;
+using Heimdall.Ssh;
+
+namespace Heimdall.App.Tests;
+
+public sealed class ServerListBulkActionTests
+{
+    [Fact]
+    public async Task DeleteSelectedAsync_WhenConfirmed_RemovesSelectedAndClearsSelection()
+    {
+        await using var fixture = await ServerListBulkFixture.CreateAsync(confirmResult: true);
+        await fixture.LoadServersAsync(
+            fixture.ExpandGroups("ops"),
+            CreateServer("alpha", "Alpha", "ops"),
+            CreateServer("beta", "Beta", "ops"),
+            CreateServer("gamma", "Gamma", "ops"));
+
+        fixture.ViewModel.SelectSingle(fixture.ServerById("alpha"));
+        fixture.ViewModel.ToggleSelection(fixture.ServerById("beta"));
+
+        await fixture.ViewModel.DeleteSelectedCommand.ExecuteAsync(null);
+
+        Assert.Equal(["gamma"], fixture.VisibleIds());
+        Assert.Empty(fixture.ViewModel.SelectedItems);
+        Assert.Null(fixture.ViewModel.SelectedServer);
+
+        var persistedIds = (await fixture.ConfigManager.LoadServersAsync())
+            .Select(server => server.Id)
+            .OrderBy(id => id, StringComparer.Ordinal)
+            .ToArray();
+        Assert.Equal(["gamma"], persistedIds);
+    }
+
+    [Fact]
+    public async Task DeleteSelectedAsync_WhenCancelled_DoesNothing()
+    {
+        await using var fixture = await ServerListBulkFixture.CreateAsync(confirmResult: false);
+        await fixture.LoadServersAsync(
+            fixture.ExpandGroups("ops"),
+            CreateServer("alpha", "Alpha", "ops"),
+            CreateServer("beta", "Beta", "ops"));
+
+        fixture.ViewModel.SelectSingle(fixture.ServerById("alpha"));
+        fixture.ViewModel.ToggleSelection(fixture.ServerById("beta"));
+
+        await fixture.ViewModel.DeleteSelectedCommand.ExecuteAsync(null);
+
+        Assert.Equal(["alpha", "beta"], fixture.VisibleIds());
+        AssertSelection(fixture.ViewModel, "alpha", "beta");
+        Assert.Equal("Delete Selected Items", fixture.DialogService.LastConfirmTitle);
+    }
+
+    [Fact]
+    public async Task DeleteSelectedAsync_ForSmallSelection_ListsNamesInConfirmation()
+    {
+        await using var fixture = await ServerListBulkFixture.CreateAsync(confirmResult: false);
+        await fixture.LoadServersAsync(
+            fixture.ExpandGroups("ops"),
+            CreateServer("alpha", "Alpha", "ops"),
+            CreateServer("beta", "Beta", "ops"));
+
+        fixture.ViewModel.SelectSingle(fixture.ServerById("alpha"));
+        fixture.ViewModel.ToggleSelection(fixture.ServerById("beta"));
+
+        await fixture.ViewModel.DeleteSelectedCommand.ExecuteAsync(null);
+
+        Assert.Contains("- Alpha", fixture.DialogService.LastConfirmMessage);
+        Assert.Contains("- Beta", fixture.DialogService.LastConfirmMessage);
+    }
+
+    [Fact]
+    public async Task DeleteSelectedAsync_DeletesToolEntriesToo()
+    {
+        await using var fixture = await ServerListBulkFixture.CreateAsync(confirmResult: true);
+        await fixture.LoadServersAsync(
+            fixture.ExpandGroups("ops"),
+            CreateServer("alpha", "Alpha", "ops"),
+            CreateTool("chmod", "Chmod Tool", "ops"));
+
+        fixture.ViewModel.SelectSingle(fixture.ServerById("alpha"));
+        fixture.ViewModel.ToggleSelection(fixture.ServerById("chmod"));
+
+        await fixture.ViewModel.DeleteSelectedCommand.ExecuteAsync(null);
+
+        Assert.Empty(fixture.VisibleIds());
+        Assert.Empty(await fixture.ConfigManager.LoadServersAsync());
+    }
+
+    [Fact]
+    public async Task DeleteSelectedAsync_WhenSaveFails_DoesNotMutateViewModelOrPersistedState()
+    {
+        var configManager = new FailingSaveConfigManager();
+        await using var fixture = await ServerListBulkFixture.CreateAsync(confirmResult: true, configManager: configManager);
+        await fixture.LoadServersAsync(
+            fixture.ExpandGroups("ops"),
+            CreateServer("alpha", "Alpha", "ops"),
+            CreateServer("beta", "Beta", "ops"),
+            CreateServer("gamma", "Gamma", "ops"));
+        configManager.FailOnSaveServers = true;
+
+        fixture.ViewModel.SelectSingle(fixture.ServerById("alpha"));
+        fixture.ViewModel.ToggleSelection(fixture.ServerById("beta"));
+
+        await Assert.ThrowsAsync<IOException>(() => fixture.ViewModel.DeleteSelectedCommand.ExecuteAsync(null));
+
+        Assert.Equal(["alpha", "beta", "gamma"], fixture.VisibleIds());
+        AssertSelection(fixture.ViewModel, "alpha", "beta");
+        Assert.Equal("beta", fixture.ViewModel.SelectedServer?.Id);
+
+        var persistedIds = (await fixture.ConfigManager.LoadServersAsync())
+            .Select(server => server.Id)
+            .OrderBy(id => id, StringComparer.Ordinal)
+            .ToArray();
+        Assert.Equal(["alpha", "beta", "gamma"], persistedIds);
+    }
+
+    [Fact]
+    public async Task MoveSelectedToGroupAsync_MovesAllSelectedAndPreservesSelection()
+    {
+        await using var fixture = await ServerListBulkFixture.CreateAsync(confirmResult: true);
+        await fixture.LoadServersAsync(
+            fixture.ExpandGroups("ops", "ops/source", "ops/target"),
+            CreateServer("alpha", "Alpha", "ops/source"),
+            CreateServer("beta", "Beta", "ops/source"),
+            CreateServer("gamma", "Gamma", "ops/other"));
+
+        fixture.ViewModel.SelectSingle(fixture.ServerById("alpha"));
+        fixture.ViewModel.ToggleSelection(fixture.ServerById("beta"));
+
+        await fixture.ViewModel.MoveSelectedToGroupCommand.ExecuteAsync(new BulkMoveToGroupRequest("ops/target"));
+
+        AssertSelection(fixture.ViewModel, "alpha", "beta");
+        Assert.Equal("beta", fixture.ViewModel.SelectedServer?.Id);
+        Assert.Equal("ops/target", fixture.ServerById("alpha").Group);
+        Assert.Equal("ops/target", fixture.ServerById("beta").Group);
+
+        var persistedGroups = (await fixture.ConfigManager.LoadServersAsync())
+            .Where(server => server.Id is "alpha" or "beta")
+            .OrderBy(server => server.Id, StringComparer.Ordinal)
+            .Select(server => server.Group)
+            .ToArray();
+        Assert.Collection(
+            persistedGroups,
+            group => Assert.Equal("ops/target", group),
+            group => Assert.Equal("ops/target", group));
+    }
+
+    [Fact]
+    public async Task MoveSelectedToGroupAsync_NoOpWhenSelectionAlreadyInTarget()
+    {
+        await using var fixture = await ServerListBulkFixture.CreateAsync(confirmResult: true);
+        await fixture.LoadServersAsync(
+            fixture.ExpandGroups("ops", "ops/target"),
+            CreateServer("alpha", "Alpha", "ops/target"),
+            CreateServer("beta", "Beta", "ops/target"));
+
+        fixture.ViewModel.SelectSingle(fixture.ServerById("alpha"));
+        fixture.ViewModel.ToggleSelection(fixture.ServerById("beta"));
+
+        await fixture.ViewModel.MoveSelectedToGroupCommand.ExecuteAsync(new BulkMoveToGroupRequest("ops/target"));
+
+        AssertSelection(fixture.ViewModel, "alpha", "beta");
+        Assert.Equal(["alpha", "beta"], fixture.VisibleIds());
+    }
+
+    [Fact]
+    public async Task MoveSelectedToGroupAsync_WhenSaveFails_DoesNotMutateViewModelOrPersistedState()
+    {
+        var configManager = new FailingSaveConfigManager();
+        await using var fixture = await ServerListBulkFixture.CreateAsync(confirmResult: true, configManager: configManager);
+        await fixture.LoadServersAsync(
+            fixture.ExpandGroups("ops", "ops/source", "ops/target"),
+            CreateServer("alpha", "Alpha", "ops/source"),
+            CreateServer("beta", "Beta", "ops/source"),
+            CreateServer("gamma", "Gamma", "ops/other"));
+        configManager.FailOnSaveServers = true;
+
+        fixture.ViewModel.SelectSingle(fixture.ServerById("alpha"));
+        fixture.ViewModel.ToggleSelection(fixture.ServerById("beta"));
+
+        await Assert.ThrowsAsync<IOException>(() => fixture.ViewModel.MoveSelectedToGroupCommand.ExecuteAsync(new BulkMoveToGroupRequest("ops/target")));
+
+        AssertSelection(fixture.ViewModel, "alpha", "beta");
+        Assert.Equal("beta", fixture.ViewModel.SelectedServer?.Id);
+        Assert.Equal("ops/source", fixture.ServerById("alpha").Group);
+        Assert.Equal("ops/source", fixture.ServerById("beta").Group);
+
+        var persistedGroups = (await fixture.ConfigManager.LoadServersAsync())
+            .Where(server => server.Id is "alpha" or "beta")
+            .OrderBy(server => server.Id, StringComparer.Ordinal)
+            .Select(server => server.Group)
+            .ToArray();
+        Assert.Collection(
+            persistedGroups,
+            group => Assert.Equal("ops/source", group),
+            group => Assert.Equal("ops/source", group));
+    }
+
+    [Fact]
+    public async Task MoveSelectedToGroupAsync_MovesToolEntriesToo()
+    {
+        await using var fixture = await ServerListBulkFixture.CreateAsync(confirmResult: true);
+        await fixture.LoadServersAsync(
+            fixture.ExpandGroups("ops", "ops/source", "ops/target"),
+            CreateServer("alpha", "Alpha", "ops/source"),
+            CreateTool("chmod", "Chmod Tool", "ops/source"));
+
+        fixture.ViewModel.SelectSingle(fixture.ServerById("alpha"));
+        fixture.ViewModel.ToggleSelection(fixture.ServerById("chmod"));
+
+        await fixture.ViewModel.MoveSelectedToGroupCommand.ExecuteAsync(new BulkMoveToGroupRequest("ops/target"));
+
+        AssertSelection(fixture.ViewModel, "alpha", "chmod");
+        Assert.Equal("ops/target", fixture.ServerById("alpha").Group);
+        Assert.Equal("ops/target", fixture.ServerById("chmod").Group);
+
+        var persistedGroups = (await fixture.ConfigManager.LoadServersAsync())
+            .Where(server => server.Id is "alpha" or "chmod")
+            .OrderBy(server => server.Id, StringComparer.Ordinal)
+            .Select(server => server.Group)
+            .ToArray();
+        Assert.Collection(
+            persistedGroups,
+            group => Assert.Equal("ops/target", group),
+            group => Assert.Equal("ops/target", group));
+    }
+
+    [Fact]
+    public async Task MoveSelectedToProjectAsync_MovesAllSelectedAndPreservesSelection()
+    {
+        await using var fixture = await ServerListBulkFixture.CreateAsync(confirmResult: true);
+        var settings = fixture.ExpandGroups("ops", "ops/source");
+        AddProjects(settings, ("project-a", "Project A"), ("project-b", "Project B"));
+        await fixture.LoadServersAsync(
+            settings,
+            CreateServer("alpha", "Alpha", "ops/source", projectId: "project-a"),
+            CreateServer("beta", "Beta", "ops/source", projectId: "project-a"),
+            CreateServer("gamma", "Gamma", "ops/source", projectId: "project-a"));
+
+        fixture.ViewModel.SelectSingle(fixture.ServerById("alpha"));
+        fixture.ViewModel.ToggleSelection(fixture.ServerById("beta"));
+
+        await fixture.ViewModel.MoveSelectedToProjectCommand.ExecuteAsync(new BulkMoveToProjectRequest("project-b"));
+
+        AssertSelection(fixture.ViewModel, "alpha", "beta");
+        Assert.Equal("beta", fixture.ViewModel.SelectedServer?.Id);
+        Assert.Equal("project-b", fixture.ServerById("alpha").ProjectId);
+        Assert.Equal("project-b", fixture.ServerById("beta").ProjectId);
+        Assert.Equal("Project B", fixture.ServerById("alpha").ProjectName);
+        Assert.Equal("Project B", fixture.ServerById("beta").ProjectName);
+        Assert.Equal("ops/source", fixture.ServerById("alpha").Group);
+        Assert.Equal("ops/source", fixture.ServerById("beta").Group);
+        Assert.Equal("Moved 2 item(s) to project \"Project B\".", fixture.LastStatusMessage);
+
+        var persistedProjects = (await fixture.ConfigManager.LoadServersAsync())
+            .Where(server => server.Id is "alpha" or "beta")
+            .OrderBy(server => server.Id, StringComparer.Ordinal)
+            .Select(server => server.ProjectId)
+            .ToArray();
+        Assert.Collection(
+            persistedProjects,
+            projectId => Assert.Equal("project-b", projectId),
+            projectId => Assert.Equal("project-b", projectId));
+    }
+
+    [Fact]
+    public async Task MoveSelectedToProjectAsync_NoOpWhenSelectionAlreadyInTargetProject()
+    {
+        await using var fixture = await ServerListBulkFixture.CreateAsync(confirmResult: true);
+        var settings = fixture.ExpandGroups("ops", "ops/source");
+        AddProjects(settings, ("project-b", "Project B"));
+        await fixture.LoadServersAsync(
+            settings,
+            CreateServer("alpha", "Alpha", "ops/source", projectId: "project-b"),
+            CreateServer("beta", "Beta", "ops/source", projectId: "project-b"));
+
+        fixture.ViewModel.SelectSingle(fixture.ServerById("alpha"));
+        fixture.ViewModel.ToggleSelection(fixture.ServerById("beta"));
+
+        await fixture.ViewModel.MoveSelectedToProjectCommand.ExecuteAsync(new BulkMoveToProjectRequest("project-b"));
+
+        AssertSelection(fixture.ViewModel, "alpha", "beta");
+        Assert.Equal("project-b", fixture.ServerById("alpha").ProjectId);
+        Assert.Equal("project-b", fixture.ServerById("beta").ProjectId);
+        Assert.Null(fixture.LastStatusMessage);
+    }
+
+    [Fact]
+    public async Task MoveSelectedToProjectAsync_MovesCrossProjectSelection()
+    {
+        await using var fixture = await ServerListBulkFixture.CreateAsync(confirmResult: true);
+        var settings = fixture.ExpandGroups("ops", "ops/source");
+        AddProjects(settings, ("project-a", "Project A"), ("project-b", "Project B"), ("project-c", "Project C"));
+        await fixture.LoadServersAsync(
+            settings,
+            CreateServer("alpha", "Alpha", "ops/source", projectId: "project-a"),
+            CreateServer("beta", "Beta", "ops/source", projectId: "project-c"),
+            CreateServer("gamma", "Gamma", "ops/source", projectId: "project-c"));
+
+        fixture.ViewModel.SelectSingle(fixture.ServerById("alpha"));
+        fixture.ViewModel.ToggleSelection(fixture.ServerById("beta"));
+
+        await fixture.ViewModel.MoveSelectedToProjectCommand.ExecuteAsync(new BulkMoveToProjectRequest("project-b"));
+
+        Assert.Equal("project-b", fixture.ServerById("alpha").ProjectId);
+        Assert.Equal("project-b", fixture.ServerById("beta").ProjectId);
+        Assert.Equal("project-c", fixture.ServerById("gamma").ProjectId);
+    }
+
+    [Fact]
+    public async Task MoveSelectedToProjectAsync_WhenSaveFails_DoesNotMutateViewModelOrPersistedState()
+    {
+        var configManager = new FailingSaveConfigManager();
+        await using var fixture = await ServerListBulkFixture.CreateAsync(confirmResult: true, configManager: configManager);
+        var settings = fixture.ExpandGroups("ops", "ops/source");
+        AddProjects(settings, ("project-a", "Project A"), ("project-b", "Project B"));
+        await fixture.LoadServersAsync(
+            settings,
+            CreateServer("alpha", "Alpha", "ops/source", projectId: "project-a"),
+            CreateServer("beta", "Beta", "ops/source", projectId: "project-a"),
+            CreateServer("gamma", "Gamma", "ops/source", projectId: "project-a"));
+        configManager.FailOnSaveServers = true;
+
+        fixture.ViewModel.SelectSingle(fixture.ServerById("alpha"));
+        fixture.ViewModel.ToggleSelection(fixture.ServerById("beta"));
+
+        await Assert.ThrowsAsync<IOException>(() => fixture.ViewModel.MoveSelectedToProjectCommand.ExecuteAsync(new BulkMoveToProjectRequest("project-b")));
+
+        AssertSelection(fixture.ViewModel, "alpha", "beta");
+        Assert.Equal("beta", fixture.ViewModel.SelectedServer?.Id);
+        Assert.Equal("project-a", fixture.ServerById("alpha").ProjectId);
+        Assert.Equal("project-a", fixture.ServerById("beta").ProjectId);
+        Assert.Equal("ops/source", fixture.ServerById("alpha").Group);
+        Assert.Equal("ops/source", fixture.ServerById("beta").Group);
+        Assert.Null(fixture.LastStatusMessage);
+
+        var persistedProjects = (await fixture.ConfigManager.LoadServersAsync())
+            .Where(server => server.Id is "alpha" or "beta")
+            .OrderBy(server => server.Id, StringComparer.Ordinal)
+            .Select(server => server.ProjectId)
+            .ToArray();
+        Assert.Collection(
+            persistedProjects,
+            projectId => Assert.Equal("project-a", projectId),
+            projectId => Assert.Equal("project-a", projectId));
+    }
+
+    [Fact]
+    public async Task MoveSelectedToProjectAsync_MovesToolEntriesToo()
+    {
+        await using var fixture = await ServerListBulkFixture.CreateAsync(confirmResult: true);
+        var settings = fixture.ExpandGroups("ops", "ops/source");
+        AddProjects(settings, ("project-a", "Project A"), ("project-b", "Project B"));
+        await fixture.LoadServersAsync(
+            settings,
+            CreateServer("alpha", "Alpha", "ops/source", projectId: "project-a"),
+            CreateTool("chmod", "Chmod Tool", "ops/source", projectId: "project-a"));
+
+        fixture.ViewModel.SelectSingle(fixture.ServerById("alpha"));
+        fixture.ViewModel.ToggleSelection(fixture.ServerById("chmod"));
+
+        await fixture.ViewModel.MoveSelectedToProjectCommand.ExecuteAsync(new BulkMoveToProjectRequest("project-b"));
+
+        AssertSelection(fixture.ViewModel, "alpha", "chmod");
+        Assert.Equal("project-b", fixture.ServerById("alpha").ProjectId);
+        Assert.Equal("project-b", fixture.ServerById("chmod").ProjectId);
+    }
+
+    [Fact]
+    public async Task MoveToProjectAsync_SingleServerPreservesGroup()
+    {
+        await using var fixture = await ServerListBulkFixture.CreateAsync(confirmResult: true);
+        var settings = fixture.ExpandGroups("ops", "ops/source");
+        AddProjects(settings, ("project-a", "Project A"), ("project-b", "Project B"));
+        await fixture.LoadServersAsync(
+            settings,
+            CreateServer("alpha", "Alpha", "ops/source", projectId: "project-a"));
+
+        var alpha = fixture.ServerById("alpha");
+
+        await fixture.ViewModel.MoveToProjectCommand.ExecuteAsync(new ServerMoveToProjectRequest(alpha, "project-b"));
+
+        Assert.Equal("project-b", alpha.ProjectId);
+        Assert.Equal("ops/source", alpha.Group);
+        Assert.Equal("Project B", alpha.ProjectName);
+        Assert.Null(fixture.LastStatusMessage);
+
+        var persisted = Assert.Single(await fixture.ConfigManager.LoadServersAsync());
+        Assert.Equal("project-b", persisted.ProjectId);
+        Assert.Equal("ops/source", persisted.Group);
+    }
+
+    [Fact]
+    public async Task MoveSelectedToProjectAsync_PreservesGroupsWhenProjectChanges()
+    {
+        await using var fixture = await ServerListBulkFixture.CreateAsync(confirmResult: true);
+        var settings = fixture.ExpandGroups("ops", "ops/source", "ops/other");
+        AddProjects(settings, ("project-a", "Project A"), ("project-b", "Project B"));
+        await fixture.LoadServersAsync(
+            settings,
+            CreateServer("alpha", "Alpha", "ops/source", projectId: "project-a"),
+            CreateServer("beta", "Beta", "ops/other", projectId: "project-a"));
+
+        fixture.ViewModel.SelectSingle(fixture.ServerById("alpha"));
+        fixture.ViewModel.ToggleSelection(fixture.ServerById("beta"));
+
+        await fixture.ViewModel.MoveSelectedToProjectCommand.ExecuteAsync(new BulkMoveToProjectRequest("project-b"));
+
+        Assert.Equal("ops/source", fixture.ServerById("alpha").Group);
+        Assert.Equal("ops/other", fixture.ServerById("beta").Group);
+
+        var persisted = (await fixture.ConfigManager.LoadServersAsync())
+            .Where(server => server.Id is "alpha" or "beta")
+            .OrderBy(server => server.Id, StringComparer.Ordinal)
+            .Select(server => server.Group)
+            .ToArray();
+        Assert.Collection(
+            persisted,
+            group => Assert.Equal("ops/source", group),
+            group => Assert.Equal("ops/other", group));
+    }
+
+    [Fact]
+    public async Task MoveSelectedToProjectAsync_MovesToNoProjectAndUsesDedicatedStatus()
+    {
+        await using var fixture = await ServerListBulkFixture.CreateAsync(confirmResult: true);
+        var settings = fixture.ExpandGroups("ops", "ops/source");
+        AddProjects(settings, ("project-a", "Project A"));
+        await fixture.LoadServersAsync(
+            settings,
+            CreateServer("alpha", "Alpha", "ops/source", projectId: "project-a"),
+            CreateServer("beta", "Beta", "ops/source", projectId: "project-a"));
+
+        fixture.ViewModel.SelectSingle(fixture.ServerById("alpha"));
+        fixture.ViewModel.ToggleSelection(fixture.ServerById("beta"));
+
+        await fixture.ViewModel.MoveSelectedToProjectCommand.ExecuteAsync(new BulkMoveToProjectRequest(null));
+
+        AssertSelection(fixture.ViewModel, "alpha", "beta");
+        Assert.Equal(string.Empty, fixture.ServerById("alpha").ProjectId);
+        Assert.Equal(string.Empty, fixture.ServerById("beta").ProjectId);
+        Assert.Equal(string.Empty, fixture.ServerById("alpha").ProjectName);
+        Assert.Equal(string.Empty, fixture.ServerById("beta").ProjectName);
+        Assert.Equal("Moved 2 item(s) to no project.", fixture.LastStatusMessage);
+    }
+
+    [Fact]
+    public async Task GetBulkGroupTargets_UnionsProjectsAndIncludesRoot()
+    {
+        await using var fixture = await ServerListBulkFixture.CreateAsync(confirmResult: true);
+        await fixture.LoadServersAsync(
+            fixture.ExpandGroups("ops", "ops/red", "ops/blue"),
+            CreateServer("alpha", "Alpha", "ops/red", projectId: "project-a"),
+            CreateServer("beta", "Beta", "ops/blue", projectId: "project-b"),
+            CreateServer("gamma", "Gamma", "ops/shared", projectId: "project-b"));
+
+        fixture.ViewModel.SelectSingle(fixture.ServerById("alpha"));
+        fixture.ViewModel.ToggleSelection(fixture.ServerById("beta"));
+
+        var targets = fixture.ViewModel.GetBulkGroupTargets(fixture.ViewModel.SelectedItems.ToList(), includeNoGroup: true);
+
+        Assert.Contains(targets, target => target.IsVirtualGroup && string.IsNullOrEmpty(target.GroupName));
+        Assert.Contains(targets, target => string.Equals(target.GroupName, "ops/red", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(targets, target => string.Equals(target.GroupName, "ops/blue", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(targets, target => string.Equals(target.GroupName, "ops/shared", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public async Task ShouldOpenBulkContextMenu_RequiresClickedItemInCurrentMultiSelection()
+    {
+        await using var fixture = await ServerListBulkFixture.CreateAsync(confirmResult: true);
+        await fixture.LoadServersAsync(
+            fixture.ExpandGroups("ops"),
+            CreateServer("alpha", "Alpha", "ops"),
+            CreateServer("beta", "Beta", "ops"),
+            CreateServer("gamma", "Gamma", "ops"));
+
+        fixture.ViewModel.SelectSingle(fixture.ServerById("alpha"));
+        fixture.ViewModel.ToggleSelection(fixture.ServerById("beta"));
+
+        Assert.True(fixture.ViewModel.ShouldOpenBulkContextMenu(fixture.ServerById("alpha")));
+        Assert.False(fixture.ViewModel.ShouldOpenBulkContextMenu(fixture.ServerById("gamma")));
+    }
+
+    [Fact]
+    public async Task DeleteSelectedAsync_ForLargeSelection_UsesSummaryMessage()
+    {
+        await using var fixture = await ServerListBulkFixture.CreateAsync(confirmResult: false);
+        var servers = Enumerable.Range(1, 11)
+            .Select(index => CreateServer($"server-{index:00}", $"Server {index:00}", "ops"))
+            .ToArray();
+        await fixture.LoadServersAsync(
+            fixture.ExpandGroups("ops"),
+            servers);
+
+        fixture.ViewModel.SelectSingle(fixture.ServerById("server-01"));
+        foreach (var server in servers.Skip(1))
+        {
+            fixture.ViewModel.ToggleSelection(fixture.ServerById(server.Id));
+        }
+
+        await fixture.ViewModel.DeleteSelectedCommand.ExecuteAsync(null);
+
+        Assert.Equal("Are you sure you want to delete 11 selected item(s)?", fixture.DialogService.LastConfirmMessage);
+        Assert.DoesNotContain("- Server", fixture.DialogService.LastConfirmMessage, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ConnectSelected_AllSucceed_ReportsSummary()
+    {
+        await using var fixture = await ServerListBulkFixture.CreateAsync(
+            confirmResult: true,
+            protocolHandlers: [new ScriptedProtocolHandler("SSH", Success(), Success(), Success())]);
+        await fixture.LoadServersAsync(
+            fixture.ExpandGroups("ops"),
+            CreateServer("alpha", "Alpha", "ops"),
+            CreateServer("beta", "Beta", "ops"),
+            CreateServer("gamma", "Gamma", "ops"));
+
+        fixture.ViewModel.SelectSingle(fixture.ServerById("alpha"));
+        fixture.ViewModel.ToggleSelection(fixture.ServerById("beta"));
+        fixture.ViewModel.ToggleSelection(fixture.ServerById("gamma"));
+
+        await fixture.ViewModel.ConnectSelectedCommand.ExecuteAsync(null);
+
+        Assert.Equal(
+            [
+                "Connecting 1/3: Alpha...",
+                "Connecting 2/3: Beta...",
+                "Connecting 3/3: Gamma...",
+                "Connected 3, failed 0, skipped 0."
+            ],
+            fixture.StatusMessages);
+        Assert.Equal(0, fixture.DialogService.ErrorCallCount);
+    }
+
+    [Fact]
+    public async Task ConnectSelected_FiltersToolItems()
+    {
+        await using var fixture = await ServerListBulkFixture.CreateAsync(
+            confirmResult: true,
+            protocolHandlers: [new ScriptedProtocolHandler("SSH", Success(), Success())]);
+        await fixture.LoadServersAsync(
+            fixture.ExpandGroups("ops"),
+            CreateServer("alpha", "Alpha", "ops"),
+            CreateTool("chmod", "Chmod Tool", "ops"),
+            CreateServer("beta", "Beta", "ops"));
+
+        fixture.ViewModel.SelectSingle(fixture.ServerById("alpha"));
+        fixture.ViewModel.ToggleSelection(fixture.ServerById("chmod"));
+        fixture.ViewModel.ToggleSelection(fixture.ServerById("beta"));
+
+        await fixture.ViewModel.ConnectSelectedCommand.ExecuteAsync(null);
+
+        Assert.Equal("Connect to all 2 sessions in this group?", fixture.DialogService.LastConfirmMessage);
+        Assert.Equal("Connected 2, failed 0, skipped 1.", fixture.LastStatusMessage);
+    }
+
+    [Fact]
+    public async Task ConnectSelected_ConfirmationDeclined_NoOp()
+    {
+        var handler = new ScriptedProtocolHandler("SSH", Success());
+        await using var fixture = await ServerListBulkFixture.CreateAsync(
+            confirmResult: false,
+            protocolHandlers: [handler]);
+        await fixture.LoadServersAsync(
+            fixture.ExpandGroups("ops"),
+            CreateServer("alpha", "Alpha", "ops"),
+            CreateServer("beta", "Beta", "ops"));
+
+        fixture.ViewModel.SelectSingle(fixture.ServerById("alpha"));
+        fixture.ViewModel.ToggleSelection(fixture.ServerById("beta"));
+
+        await fixture.ViewModel.ConnectSelectedCommand.ExecuteAsync(null);
+
+        Assert.Empty(handler.ConnectedServerIds);
+        Assert.Empty(fixture.StatusMessages);
+        Assert.Equal(1, fixture.DialogService.ConfirmCallCount);
+    }
+
+    [Fact]
+    public async Task ConnectSelected_PreflightFailureSilent_ContinuesSequence()
+    {
+        await using var fixture = await ServerListBulkFixture.CreateAsync(
+            confirmResult: true,
+            protocolHandlers: [new ScriptedProtocolHandler("SSH", Success(), Success())]);
+        var beta = CreateServer("beta", "Beta", "ops");
+        beta.SshGatewayId = "missing-gateway";
+        await fixture.LoadServersAsync(
+            fixture.ExpandGroups("ops"),
+            CreateServer("alpha", "Alpha", "ops"),
+            beta,
+            CreateServer("gamma", "Gamma", "ops"));
+
+        fixture.ViewModel.SelectSingle(fixture.ServerById("alpha"));
+        fixture.ViewModel.ToggleSelection(fixture.ServerById("beta"));
+        fixture.ViewModel.ToggleSelection(fixture.ServerById("gamma"));
+
+        await fixture.ViewModel.ConnectSelectedCommand.ExecuteAsync(null);
+
+        Assert.Equal("Connected 2, failed 1, skipped 0.", fixture.LastStatusMessage);
+        Assert.Equal(0, fixture.DialogService.ErrorCallCount);
+    }
+
+    [Fact]
+    public async Task ConnectSelected_ConnectionFailureSilent_ContinuesSequence()
+    {
+        await using var fixture = await ServerListBulkFixture.CreateAsync(
+            confirmResult: true,
+            protocolHandlers: [new ScriptedProtocolHandler("SSH", Success(), Fail("boom"), Success())]);
+        await fixture.LoadServersAsync(
+            fixture.ExpandGroups("ops"),
+            CreateServer("alpha", "Alpha", "ops"),
+            CreateServer("beta", "Beta", "ops"),
+            CreateServer("gamma", "Gamma", "ops"));
+
+        fixture.ViewModel.SelectSingle(fixture.ServerById("alpha"));
+        fixture.ViewModel.ToggleSelection(fixture.ServerById("beta"));
+        fixture.ViewModel.ToggleSelection(fixture.ServerById("gamma"));
+
+        await fixture.ViewModel.ConnectSelectedCommand.ExecuteAsync(null);
+
+        Assert.Equal("Connected 2, failed 1, skipped 0.", fixture.LastStatusMessage);
+        Assert.Equal(0, fixture.DialogService.ErrorCallCount);
+    }
+
+    [Fact]
+    public async Task ConnectSelected_MissingCredentials_Skipped()
+    {
+        await using var fixture = await ServerListBulkFixture.CreateAsync(
+            confirmResult: true,
+            protocolHandlers: [new ScriptedProtocolHandler("SSH", Success(), Success())]);
+        var settings = fixture.ExpandGroups("ops");
+        settings.UseExternalCredentialProvider = true;
+        settings.CredentialProviderCommand = "cmd.exe /c exit 1";
+
+        var alpha = CreateServer("alpha", "Alpha", "ops");
+        alpha.SshPasswordEncrypted = "pw-alpha";
+        var beta = CreateServer("beta", "Beta", "ops");
+        var gamma = CreateServer("gamma", "Gamma", "ops");
+        gamma.SshPasswordEncrypted = "pw-gamma";
+        await fixture.LoadServersAsync(settings, alpha, beta, gamma);
+
+        fixture.ViewModel.SelectSingle(fixture.ServerById("alpha"));
+        fixture.ViewModel.ToggleSelection(fixture.ServerById("beta"));
+        fixture.ViewModel.ToggleSelection(fixture.ServerById("gamma"));
+
+        await fixture.ViewModel.ConnectSelectedCommand.ExecuteAsync(null);
+
+        Assert.Equal("Connect to all 2 sessions in this group?", fixture.DialogService.LastConfirmMessage);
+        Assert.Equal("Connected 2, failed 0, skipped 1.", fixture.LastStatusMessage);
+        Assert.Equal(0, fixture.DialogService.WarningCallCount);
+        Assert.Equal(0, fixture.DialogService.ErrorCallCount);
+    }
+
+    [Fact]
+    public async Task ConnectSelected_CancellationDuringLoop_StopsAndSummarizes()
+    {
+        using var cts = new CancellationTokenSource();
+        await using var fixture = await ServerListBulkFixture.CreateAsync(
+            confirmResult: true,
+            protocolHandlers:
+            [
+                new ScriptedProtocolHandler(
+                    "SSH",
+                    Success(server =>
+                    {
+                        if (server.Id.StartsWith("alpha_", StringComparison.Ordinal))
+                        {
+                            cts.Cancel();
+                        }
+                    }),
+                    Success(),
+                    Success())
+            ]);
+        await fixture.LoadServersAsync(
+            fixture.ExpandGroups("ops"),
+            CreateServer("alpha", "Alpha", "ops"),
+            CreateServer("beta", "Beta", "ops"),
+            CreateServer("gamma", "Gamma", "ops"));
+
+        await fixture.ViewModel.ConnectServersBulkCoreAsync(
+            fixture.ViewModel.Servers.ToList(),
+            cts.Token);
+
+        Assert.Equal(
+            [
+                "Connecting 1/3: Alpha...",
+                "Connected 1, failed 0, skipped 0."
+            ],
+            fixture.StatusMessages);
+    }
+
+    [Fact]
+    public async Task ConnectSelected_AllToolItems_ShowsNothingToConnectStatus()
+    {
+        await using var fixture = await ServerListBulkFixture.CreateAsync(confirmResult: true);
+        await fixture.LoadServersAsync(
+            fixture.ExpandGroups("ops"),
+            CreateTool("chmod-1", "Chmod Tool 1", "ops"),
+            CreateTool("chmod-2", "Chmod Tool 2", "ops"),
+            CreateTool("chmod-3", "Chmod Tool 3", "ops"));
+
+        fixture.ViewModel.SelectSingle(fixture.ServerById("chmod-1"));
+        fixture.ViewModel.ToggleSelection(fixture.ServerById("chmod-2"));
+        fixture.ViewModel.ToggleSelection(fixture.ServerById("chmod-3"));
+
+        await fixture.ViewModel.ConnectSelectedCommand.ExecuteAsync(null);
+
+        Assert.Equal("Nothing to connect.", fixture.LastStatusMessage);
+        Assert.Equal(0, fixture.DialogService.ConfirmCallCount);
+    }
+
+    [Fact]
+    public async Task DuplicateSelectedAsync_DuplicatesSelectedAndSelectsClones()
+    {
+        await using var fixture = await ServerListBulkFixture.CreateAsync(confirmResult: true);
+        await fixture.LoadServersAsync(
+            fixture.ExpandGroups("ops"),
+            CreateServer("alpha", "Alpha", "ops"),
+            CreateServer("beta", "Beta", "ops"),
+            CreateServer("gamma", "Gamma", "ops"));
+
+        fixture.ViewModel.SelectSingle(fixture.ServerById("alpha"));
+        fixture.ViewModel.ToggleSelection(fixture.ServerById("beta"));
+
+        await fixture.ViewModel.DuplicateSelectedCommand.ExecuteAsync(null);
+
+        Assert.Equal(2, fixture.ViewModel.SelectedItems.Count);
+        Assert.All(
+            fixture.ViewModel.SelectedItems,
+            item => Assert.False(new[] { "alpha", "beta", "gamma" }.Contains(item.Id, StringComparer.Ordinal)));
+        Assert.Equal(
+            ["Alpha (copy)", "Beta (copy)"],
+            fixture.ViewModel.SelectedItems.Select(item => item.DisplayName).ToArray());
+        Assert.Equal(
+            fixture.ViewModel.SelectedItems.Last().Id,
+            fixture.ViewModel.SelectedServer?.Id);
+        Assert.Equal("Duplicated 2 item(s).", fixture.LastStatusMessage);
+
+        var persistedNames = (await fixture.ConfigManager.LoadServersAsync())
+            .Select(server => server.DisplayName)
+            .OrderBy(name => name, StringComparer.Ordinal)
+            .ToArray();
+        Assert.Equal(
+            ["Alpha", "Alpha (copy)", "Beta", "Beta (copy)", "Gamma"],
+            persistedNames);
+    }
+
+    [Fact]
+    public async Task DuplicateSelectedAsync_UsesGloballyUniqueNamesAcrossBatch()
+    {
+        await using var fixture = await ServerListBulkFixture.CreateAsync(confirmResult: true);
+        await fixture.LoadServersAsync(
+            fixture.ExpandGroups("ops"),
+            CreateServer("alpha-1", "Alpha", "ops"),
+            CreateServer("alpha-2", "Alpha", "ops"),
+            CreateServer("alpha-copy", "Alpha (copy)", "ops"));
+
+        fixture.ViewModel.SelectSingle(fixture.ServerById("alpha-1"));
+        fixture.ViewModel.ToggleSelection(fixture.ServerById("alpha-2"));
+
+        await fixture.ViewModel.DuplicateSelectedCommand.ExecuteAsync(null);
+
+        Assert.Equal(
+            ["Alpha (copy) 2", "Alpha (copy) 3"],
+            fixture.ViewModel.SelectedItems.Select(item => item.DisplayName).ToArray());
+
+        var persistedNames = (await fixture.ConfigManager.LoadServersAsync())
+            .Select(server => server.DisplayName)
+            .OrderBy(name => name, StringComparer.Ordinal)
+            .ToArray();
+        Assert.Equal(
+            ["Alpha", "Alpha", "Alpha (copy)", "Alpha (copy) 2", "Alpha (copy) 3"],
+            persistedNames);
+    }
+
+    [Fact]
+    public async Task DuplicateServerAsync_SingleServerUsesSharedUniqueNaming()
+    {
+        await using var fixture = await ServerListBulkFixture.CreateAsync(confirmResult: true);
+        await fixture.LoadServersAsync(
+            fixture.ExpandGroups("ops"),
+            CreateServer("alpha", "Alpha", "ops"),
+            CreateServer("alpha-copy", "Alpha (copy)", "ops"));
+
+        await fixture.ViewModel.DuplicateServerCommand.ExecuteAsync(fixture.ServerById("alpha"));
+
+        Assert.Single(fixture.ViewModel.SelectedItems);
+        Assert.Equal("Alpha (copy) 2", fixture.ViewModel.SelectedServer?.DisplayName);
+        Assert.Equal("Alpha (copy) 2", fixture.ViewModel.SelectedItems.Single().DisplayName);
+        Assert.Null(fixture.LastStatusMessage);
+    }
+
+    [Fact]
+    public async Task DuplicateSelectedAsync_ClearsOnlyRdpPasswordAndPreservesOtherSecrets()
+    {
+        await using var fixture = await ServerListBulkFixture.CreateAsync(confirmResult: true);
+        var sensitiveServer = new ServerProfileDto
+        {
+            Id = "alpha",
+            DisplayName = "Alpha",
+            RemoteServer = "alpha.example.com",
+            ConnectionType = "SSH",
+            Group = "ops",
+            Origin = ProfileOrigin.Manual,
+            RdpPasswordEncrypted = "rdp-secret",
+            SshPasswordEncrypted = "ssh-secret",
+            FtpPasswordEncrypted = "ftp-secret"
+        };
+
+        await fixture.LoadServersAsync(
+            fixture.ExpandGroups("ops"),
+            sensitiveServer,
+            CreateServer("beta", "Beta", "ops"));
+
+        fixture.ViewModel.SelectSingle(fixture.ServerById("alpha"));
+        fixture.ViewModel.ToggleSelection(fixture.ServerById("beta"));
+
+        await fixture.ViewModel.DuplicateSelectedCommand.ExecuteAsync(null);
+
+        var clones = (await fixture.ConfigManager.LoadServersAsync())
+            .Where(server => server.Id is not "alpha" and not "beta")
+            .OrderBy(server => server.DisplayName, StringComparer.Ordinal)
+            .ToList();
+        var alphaClone = Assert.Single(clones, server => server.DisplayName == "Alpha (copy)");
+
+        Assert.Null(alphaClone.RdpPasswordEncrypted);
+        Assert.Equal("ssh-secret", alphaClone.SshPasswordEncrypted);
+        Assert.Equal("ftp-secret", alphaClone.FtpPasswordEncrypted);
+    }
+
+    [Fact]
+    public async Task DuplicateSelectedAsync_PreservesGroupAndProjectOnClones()
+    {
+        await using var fixture = await ServerListBulkFixture.CreateAsync(confirmResult: true);
+        var settings = fixture.ExpandGroups("ops", "ops/source");
+        AddProjects(settings, ("project-a", "Project A"));
+        await fixture.LoadServersAsync(
+            settings,
+            CreateServer("alpha", "Alpha", "ops/source", projectId: "project-a"),
+            CreateServer("beta", "Beta", "ops/other", projectId: "project-a"));
+
+        fixture.ViewModel.SelectSingle(fixture.ServerById("alpha"));
+        fixture.ViewModel.ToggleSelection(fixture.ServerById("beta"));
+
+        await fixture.ViewModel.DuplicateSelectedCommand.ExecuteAsync(null);
+
+        var alphaClone = Assert.Single(fixture.ViewModel.SelectedItems, item => item.DisplayName == "Alpha (copy)");
+        var betaClone = Assert.Single(fixture.ViewModel.SelectedItems, item => item.DisplayName == "Beta (copy)");
+
+        Assert.Equal("ops/source", alphaClone.Group);
+        Assert.Equal("ops/other", betaClone.Group);
+        Assert.Equal("project-a", alphaClone.ProjectId);
+        Assert.Equal("project-a", betaClone.ProjectId);
+        Assert.Equal("Project A", alphaClone.ProjectName);
+        Assert.Equal("Project A", betaClone.ProjectName);
+    }
+
+    [Fact]
+    public async Task DuplicateSelectedAsync_DuplicatesToolEntriesToo()
+    {
+        await using var fixture = await ServerListBulkFixture.CreateAsync(confirmResult: true);
+        await fixture.LoadServersAsync(
+            fixture.ExpandGroups("ops"),
+            CreateServer("alpha", "Alpha", "ops"),
+            CreateTool("chmod", "Chmod Tool", "ops"));
+
+        fixture.ViewModel.SelectSingle(fixture.ServerById("alpha"));
+        fixture.ViewModel.ToggleSelection(fixture.ServerById("chmod"));
+
+        await fixture.ViewModel.DuplicateSelectedCommand.ExecuteAsync(null);
+
+        Assert.Equal(
+            ["Alpha (copy)", "Chmod Tool (copy)"],
+            fixture.ViewModel.SelectedItems.Select(item => item.DisplayName).ToArray());
+        Assert.Equal(
+            ["SSH", "TOOL:CHMOD"],
+            fixture.ViewModel.SelectedItems.Select(item => item.ConnectionType).OrderBy(value => value, StringComparer.Ordinal).ToArray());
+    }
+
+    [Fact]
+    public async Task DuplicateSelectedAsync_WhenSaveFails_DoesNotMutateViewModelOrPersistedState()
+    {
+        var configManager = new FailingSaveConfigManager();
+        await using var fixture = await ServerListBulkFixture.CreateAsync(confirmResult: true, configManager: configManager);
+        await fixture.LoadServersAsync(
+            fixture.ExpandGroups("ops"),
+            CreateServer("alpha", "Alpha", "ops"),
+            CreateServer("beta", "Beta", "ops"),
+            CreateServer("gamma", "Gamma", "ops"));
+        configManager.FailOnSaveServers = true;
+
+        fixture.ViewModel.SelectSingle(fixture.ServerById("alpha"));
+        fixture.ViewModel.ToggleSelection(fixture.ServerById("beta"));
+
+        await Assert.ThrowsAsync<IOException>(() => fixture.ViewModel.DuplicateSelectedCommand.ExecuteAsync(null));
+
+        Assert.Equal(["alpha", "beta", "gamma"], fixture.VisibleIds());
+        AssertSelection(fixture.ViewModel, "alpha", "beta");
+        Assert.Equal("beta", fixture.ViewModel.SelectedServer?.Id);
+        Assert.Null(fixture.LastStatusMessage);
+
+        var persistedIds = (await fixture.ConfigManager.LoadServersAsync())
+            .Select(server => server.Id)
+            .OrderBy(id => id, StringComparer.Ordinal)
+            .ToArray();
+        Assert.Equal(["alpha", "beta", "gamma"], persistedIds);
+    }
+
+    [Fact]
+    public async Task DuplicateSelectedAsync_AssignsDistinctIdsToAllClones()
+    {
+        await using var fixture = await ServerListBulkFixture.CreateAsync(confirmResult: true);
+        await fixture.LoadServersAsync(
+            fixture.ExpandGroups("ops"),
+            CreateServer("alpha", "Alpha", "ops"),
+            CreateServer("beta", "Beta", "ops"),
+            CreateServer("gamma", "Gamma", "ops"));
+
+        fixture.ViewModel.SelectSingle(fixture.ServerById("alpha"));
+        fixture.ViewModel.ToggleSelection(fixture.ServerById("beta"));
+        fixture.ViewModel.ToggleSelection(fixture.ServerById("gamma"));
+
+        await fixture.ViewModel.DuplicateSelectedCommand.ExecuteAsync(null);
+
+        var cloneIds = fixture.ViewModel.SelectedItems.Select(item => item.Id).ToArray();
+        Assert.Equal(3, cloneIds.Length);
+        Assert.Equal(3, cloneIds.Distinct(StringComparer.Ordinal).Count());
+        Assert.DoesNotContain("alpha", cloneIds);
+        Assert.DoesNotContain("beta", cloneIds);
+        Assert.DoesNotContain("gamma", cloneIds);
+    }
+
+    [Fact]
+    public async Task ServerBulkEditViewModel_ValidatesMixedAndPrefilledStates()
+    {
+        var localizer = new LocalizationManager();
+        await localizer.LoadAsync(Path.Combine(AppContext.BaseDirectory, "locales"), "en");
+
+        var mixedVm = new ServerBulkEditViewModel(localizer, 3, null);
+        Assert.True(mixedVm.ShowMixedValuesHint);
+        Assert.False(mixedVm.IsApplyEnabled);
+
+        mixedVm.Input = "70000";
+        Assert.Equal("Port must be between 1 and 65535.", mixedVm.ValidationError);
+        Assert.False(mixedVm.IsApplyEnabled);
+
+        mixedVm.Input = "2022";
+        Assert.Null(mixedVm.ValidationError);
+        Assert.Equal(2022, mixedVm.ResolvedPort);
+        Assert.True(mixedVm.IsApplyEnabled);
+
+        var prefilledVm = new ServerBulkEditViewModel(localizer, 2, 22);
+        Assert.Equal("22", prefilledVm.Input);
+        Assert.False(prefilledVm.IsApplyEnabled);
+
+        prefilledVm.Input = "2222";
+        Assert.True(prefilledVm.IsApplyEnabled);
+        Assert.Equal(2222, prefilledVm.ResolvedPort);
+    }
+
+    [Fact]
+    public async Task BulkEditPortAsync_WhenAllSelectedAlreadyMatch_ShowsNoOpWithoutSaving()
+    {
+        var configManager = new FailingSaveConfigManager();
+        await using var fixture = await ServerListBulkFixture.CreateAsync(confirmResult: true, configManager: configManager);
+        var alpha = CreateServer("alpha", "Alpha", "ops");
+        alpha.SshPort = 2222;
+        alpha.RemotePort = 2222;
+        var beta = CreateServer("beta", "Beta", "ops");
+        beta.SshPort = 2222;
+        beta.RemotePort = 2222;
+
+        await fixture.LoadServersAsync(
+            fixture.ExpandGroups("ops"),
+            alpha,
+            beta);
+        configManager.FailOnSaveServers = true;
+        fixture.DialogService.NextBulkEditPortResult = 2222;
+
+        fixture.ViewModel.SelectSingle(fixture.ServerById("alpha"));
+        fixture.ViewModel.ToggleSelection(fixture.ServerById("beta"));
+
+        await fixture.ViewModel.BulkEditPortCommand.ExecuteAsync(fixture.ViewModel.SelectedItems.ToList());
+
+        Assert.Equal(1, fixture.DialogService.BulkEditPortCallCount);
+        Assert.Equal(2, fixture.DialogService.LastBulkEditPortCount);
+        Assert.Equal(2222, fixture.DialogService.LastBulkEditPortInitialPort);
+        Assert.Equal("No port changes were applied.", fixture.LastStatusMessage);
+        AssertSelection(fixture.ViewModel, "alpha", "beta");
+        Assert.Equal("beta", fixture.ViewModel.SelectedServer?.Id);
+    }
+
+    [Fact]
+    public async Task BulkEditPortAsync_UpdatesOnlyDirtyItemsAndPreservesSelection()
+    {
+        await using var fixture = await ServerListBulkFixture.CreateAsync(confirmResult: true);
+        var alpha = CreateServer("alpha", "Alpha", "ops");
+        var beta = CreateServer("beta", "Beta", "ops");
+        beta.SshPort = 2022;
+        beta.RemotePort = 2022;
+        var gamma = CreateServer("gamma", "Gamma", "ops");
+
+        await fixture.LoadServersAsync(
+            fixture.ExpandGroups("ops"),
+            alpha,
+            beta,
+            gamma);
+        fixture.DialogService.NextBulkEditPortResult = 2022;
+
+        fixture.ViewModel.SelectSingle(fixture.ServerById("alpha"));
+        fixture.ViewModel.ToggleSelection(fixture.ServerById("beta"));
+        fixture.ViewModel.ToggleSelection(fixture.ServerById("gamma"));
+
+        await fixture.ViewModel.BulkEditPortCommand.ExecuteAsync(fixture.ViewModel.SelectedItems.ToList());
+
+        AssertSelection(fixture.ViewModel, "alpha", "beta", "gamma");
+        Assert.Equal("gamma", fixture.ViewModel.SelectedServer?.Id);
+        Assert.Equal(2022, fixture.ServerById("alpha").EffectivePort);
+        Assert.Equal(2022, fixture.ServerById("beta").EffectivePort);
+        Assert.Equal(2022, fixture.ServerById("gamma").EffectivePort);
+        Assert.Equal("Updated port on 2 item(s).", fixture.LastStatusMessage);
+
+        var storedPorts = (await fixture.ConfigManager.LoadServersAsync())
+            .Where(server => server.Id is "alpha" or "beta" or "gamma")
+            .OrderBy(server => server.Id, StringComparer.Ordinal)
+            .Select(GetStoredEditablePort)
+            .ToArray();
+        Assert.Equal([2022, 2022, 2022], storedPorts);
+    }
+
+    [Fact]
+    public async Task BulkEditPortAsync_IncludesToolEntries()
+    {
+        await using var fixture = await ServerListBulkFixture.CreateAsync(confirmResult: true);
+        await fixture.LoadServersAsync(
+            fixture.ExpandGroups("ops"),
+            CreateServer("alpha", "Alpha", "ops"),
+            CreateTool("chmod", "Chmod Tool", "ops"));
+        fixture.DialogService.NextBulkEditPortResult = 2200;
+
+        fixture.ViewModel.SelectSingle(fixture.ServerById("alpha"));
+        fixture.ViewModel.ToggleSelection(fixture.ServerById("chmod"));
+
+        await fixture.ViewModel.BulkEditPortCommand.ExecuteAsync(fixture.ViewModel.SelectedItems.ToList());
+
+        AssertSelection(fixture.ViewModel, "alpha", "chmod");
+        Assert.Equal(2200, fixture.ServerById("alpha").EffectivePort);
+        Assert.Equal(2200, fixture.ServerById("chmod").EffectivePort);
+        Assert.Equal("Updated port on 2 item(s).", fixture.LastStatusMessage);
+
+        var storedPorts = (await fixture.ConfigManager.LoadServersAsync())
+            .Where(server => server.Id is "alpha" or "chmod")
+            .OrderBy(server => server.Id, StringComparer.Ordinal)
+            .Select(GetStoredEditablePort)
+            .ToArray();
+        Assert.Equal([2200, 2200], storedPorts);
+    }
+
+    [Fact]
+    public async Task BulkEditPortAsync_WhenSaveFails_DoesNotMutateViewModelOrPersistedState()
+    {
+        var configManager = new FailingSaveConfigManager();
+        await using var fixture = await ServerListBulkFixture.CreateAsync(confirmResult: true, configManager: configManager);
+        await fixture.LoadServersAsync(
+            fixture.ExpandGroups("ops"),
+            CreateServer("alpha", "Alpha", "ops"),
+            CreateTool("chmod", "Chmod Tool", "ops"));
+        fixture.DialogService.NextBulkEditPortResult = 2022;
+        configManager.FailOnSaveServers = true;
+
+        fixture.ViewModel.SelectSingle(fixture.ServerById("alpha"));
+        fixture.ViewModel.ToggleSelection(fixture.ServerById("chmod"));
+
+        await Assert.ThrowsAsync<IOException>(() =>
+            fixture.ViewModel.BulkEditPortCommand.ExecuteAsync(fixture.ViewModel.SelectedItems.ToList()));
+
+        AssertSelection(fixture.ViewModel, "alpha", "chmod");
+        Assert.Equal("chmod", fixture.ViewModel.SelectedServer?.Id);
+        Assert.Equal(22, fixture.ServerById("alpha").EffectivePort);
+        Assert.Equal(DefaultPorts.Rdp, fixture.ServerById("chmod").EffectivePort);
+        Assert.Null(fixture.LastStatusMessage);
+
+        var storedPorts = (await fixture.ConfigManager.LoadServersAsync())
+            .Where(server => server.Id is "alpha" or "chmod")
+            .OrderBy(server => server.Id, StringComparer.Ordinal)
+            .Select(GetStoredEditablePort)
+            .ToArray();
+        Assert.Equal([22, DefaultPorts.Rdp], storedPorts);
+    }
+
+    [Fact]
+    public async Task ServerBulkEditUsernameViewModel_ValidatesMixedPrefilledTrimAndControlCharacterStates()
+    {
+        var localizer = new LocalizationManager();
+        await localizer.LoadAsync(Path.Combine(AppContext.BaseDirectory, "locales"), "en");
+
+        var mixedVm = new ServerBulkEditUsernameViewModel(localizer, 3, null);
+        Assert.True(mixedVm.ShowMixedValuesHint);
+        Assert.False(mixedVm.IsApplyEnabled);
+
+        mixedVm.Input = "   ";
+        Assert.Null(mixedVm.ValidationError);
+        Assert.Null(mixedVm.ResolvedUsername);
+        Assert.False(mixedVm.IsApplyEnabled);
+
+        mixedVm.Input = "ops\nadmin";
+        Assert.Equal(
+            "Username cannot be empty and cannot contain control characters (including line breaks and tabs).",
+            mixedVm.ValidationError);
+        Assert.False(mixedVm.IsApplyEnabled);
+
+        mixedVm.Input = "  ops  ";
+        Assert.Null(mixedVm.ValidationError);
+        Assert.Equal("ops", mixedVm.ResolvedUsername);
+        Assert.True(mixedVm.IsApplyEnabled);
+
+        var prefilledVm = new ServerBulkEditUsernameViewModel(localizer, 2, "admin");
+        Assert.Equal("admin", prefilledVm.Input);
+        Assert.False(prefilledVm.IsApplyEnabled);
+
+        prefilledVm.Input = "Admin";
+        Assert.Equal("Admin", prefilledVm.ResolvedUsername);
+        Assert.True(prefilledVm.IsApplyEnabled);
+    }
+
+    [Fact]
+    public async Task ServerBulkEditUsername_BasicBulkUpdate_AllUsernamesUpdated()
+    {
+        var configManager = new UsernameAwareConfigManager();
+        await using var fixture = await ServerListBulkFixture.CreateAsync(confirmResult: true, configManager: configManager);
+        var alpha = CreateServer("alpha", "Alpha", "ops");
+        alpha.SshUsername = "root";
+        var beta = CreateServer("beta", "Beta", "ops");
+        beta.SshUsername = "admin";
+        var gamma = CreateServer("gamma", "Gamma", "ops");
+        gamma.SshUsername = "user1";
+
+        await fixture.LoadServersAsync(fixture.ExpandGroups("ops"), alpha, beta, gamma);
+        configManager.SaveServersCallCount = 0;
+        fixture.DialogService.NextBulkEditUsernameResult = "ops";
+
+        fixture.ViewModel.SelectSingle(fixture.ServerById("alpha"));
+        fixture.ViewModel.ToggleSelection(fixture.ServerById("beta"));
+        fixture.ViewModel.ToggleSelection(fixture.ServerById("gamma"));
+
+        await fixture.ViewModel.BulkEditUsernameCommand.ExecuteAsync(fixture.ViewModel.SelectedItems.ToList());
+
+        Assert.Equal(1, fixture.DialogService.BulkEditUsernameCallCount);
+        Assert.Equal(3, fixture.DialogService.LastBulkEditUsernameCount);
+        Assert.Null(fixture.DialogService.LastBulkEditUsernameInitialUsername);
+        Assert.Equal(1, configManager.SaveServersCallCount);
+        AssertSelection(fixture.ViewModel, "alpha", "beta", "gamma");
+        Assert.Equal("gamma", fixture.ViewModel.SelectedServer?.Id);
+        Assert.Equal("ops", fixture.ServerById("alpha").Username);
+        Assert.Equal("ops", fixture.ServerById("beta").Username);
+        Assert.Equal("ops", fixture.ServerById("gamma").Username);
+        Assert.Equal("Username updated on 3 server(s).", fixture.LastStatusMessage);
+
+        var storedUsernames = (await fixture.ConfigManager.LoadServersAsync())
+            .Where(server => server.Id is "alpha" or "beta" or "gamma")
+            .OrderBy(server => server.Id, StringComparer.Ordinal)
+            .Select(GetStoredEditableUsername)
+            .ToArray();
+        Assert.Equal(["ops", "ops", "ops"], storedUsernames);
+    }
+
+    [Fact]
+    public async Task ServerBulkEditUsername_NoOp_AllAlreadyAtTarget_NoSave()
+    {
+        var configManager = new UsernameAwareConfigManager();
+        await using var fixture = await ServerListBulkFixture.CreateAsync(confirmResult: true, configManager: configManager);
+        var alpha = CreateServer("alpha", "Alpha", "ops");
+        alpha.SshUsername = "admin";
+        var beta = CreateServer("beta", "Beta", "ops");
+        beta.SshUsername = "admin";
+        var gamma = CreateServer("gamma", "Gamma", "ops");
+        gamma.SshUsername = "admin";
+
+        await fixture.LoadServersAsync(fixture.ExpandGroups("ops"), alpha, beta, gamma);
+        configManager.SaveServersCallCount = 0;
+        fixture.DialogService.NextBulkEditUsernameResult = "admin";
+
+        fixture.ViewModel.SelectSingle(fixture.ServerById("alpha"));
+        fixture.ViewModel.ToggleSelection(fixture.ServerById("beta"));
+        fixture.ViewModel.ToggleSelection(fixture.ServerById("gamma"));
+
+        await fixture.ViewModel.BulkEditUsernameCommand.ExecuteAsync(fixture.ViewModel.SelectedItems.ToList());
+
+        Assert.Equal(1, fixture.DialogService.BulkEditUsernameCallCount);
+        Assert.Equal(3, fixture.DialogService.LastBulkEditUsernameCount);
+        Assert.Equal("admin", fixture.DialogService.LastBulkEditUsernameInitialUsername);
+        Assert.Equal(0, configManager.SaveServersCallCount);
+        AssertSelection(fixture.ViewModel, "alpha", "beta", "gamma");
+        Assert.Equal("gamma", fixture.ViewModel.SelectedServer?.Id);
+        Assert.Equal("No changes applied — every selected server already uses this username.", fixture.LastStatusMessage);
+
+        var storedUsernames = (await fixture.ConfigManager.LoadServersAsync())
+            .Where(server => server.Id is "alpha" or "beta" or "gamma")
+            .OrderBy(server => server.Id, StringComparer.Ordinal)
+            .Select(GetStoredEditableUsername)
+            .ToArray();
+        Assert.Equal(["admin", "admin", "admin"], storedUsernames);
+    }
+
+    [Fact]
+    public async Task ServerBulkEditUsername_CaseSensitiveDelta_IsNotNoOp()
+    {
+        var configManager = new UsernameAwareConfigManager();
+        await using var fixture = await ServerListBulkFixture.CreateAsync(confirmResult: true, configManager: configManager);
+        var alpha = CreateServer("alpha", "Alpha", "ops");
+        alpha.SshUsername = "admin";
+        var beta = CreateServer("beta", "Beta", "ops");
+        beta.SshUsername = "admin";
+        var gamma = CreateServer("gamma", "Gamma", "ops");
+        gamma.SshUsername = "admin";
+
+        await fixture.LoadServersAsync(fixture.ExpandGroups("ops"), alpha, beta, gamma);
+        configManager.SaveServersCallCount = 0;
+        fixture.DialogService.NextBulkEditUsernameResult = "Admin";
+
+        fixture.ViewModel.SelectSingle(fixture.ServerById("alpha"));
+        fixture.ViewModel.ToggleSelection(fixture.ServerById("beta"));
+        fixture.ViewModel.ToggleSelection(fixture.ServerById("gamma"));
+
+        await fixture.ViewModel.BulkEditUsernameCommand.ExecuteAsync(fixture.ViewModel.SelectedItems.ToList());
+
+        Assert.Equal(1, configManager.SaveServersCallCount);
+        Assert.Equal("Username updated on 3 server(s).", fixture.LastStatusMessage);
+
+        var storedUsernames = (await fixture.ConfigManager.LoadServersAsync())
+            .Where(server => server.Id is "alpha" or "beta" or "gamma")
+            .OrderBy(server => server.Id, StringComparer.Ordinal)
+            .Select(GetStoredEditableUsername)
+            .ToArray();
+        Assert.Equal(["Admin", "Admin", "Admin"], storedUsernames);
+    }
+
+    [Fact]
+    public async Task ServerBulkEditUsername_RdpDispatch_UsesRdpUsername_AndPreservesLegacySshUsername()
+    {
+        var configManager = new UsernameAwareConfigManager();
+        await using var fixture = await ServerListBulkFixture.CreateAsync(confirmResult: true, configManager: configManager);
+        var alpha = CreateServer("alpha", "Alpha", "ops");
+        alpha.ConnectionType = "RDP";
+        alpha.SshUsername = "legacy-ssh";
+        alpha.RdpUsername = "old-rdp";
+        var beta = CreateServer("beta", "Beta", "ops");
+        beta.ConnectionType = "RDP";
+        beta.RdpUsername = "beta-rdp";
+
+        await fixture.LoadServersAsync(fixture.ExpandGroups("ops"), alpha, beta);
+        configManager.SaveServersCallCount = 0;
+        fixture.DialogService.NextBulkEditUsernameResult = "newuser";
+
+        fixture.ViewModel.SelectSingle(fixture.ServerById("alpha"));
+        fixture.ViewModel.ToggleSelection(fixture.ServerById("beta"));
+
+        await fixture.ViewModel.BulkEditUsernameCommand.ExecuteAsync(fixture.ViewModel.SelectedItems.ToList());
+
+        Assert.Equal(1, configManager.SaveServersCallCount);
+
+        var storedServers = (await fixture.ConfigManager.LoadServersAsync())
+            .Where(server => server.Id is "alpha" or "beta")
+            .OrderBy(server => server.Id, StringComparer.Ordinal)
+            .ToArray();
+
+        Assert.Equal("legacy-ssh", storedServers[0].SshUsername);
+        Assert.Equal("newuser", storedServers[0].RdpUsername);
+        Assert.Equal("newuser", storedServers[1].RdpUsername);
+    }
+
+    [Theory]
+    [InlineData("SSH", "alpha")]
+    [InlineData("SFTP", "alpha")]
+    [InlineData("FTP", "alpha")]
+    [InlineData("TELNET", "alpha")]
+    [InlineData("RDP", "alpha")]
+    public async Task ServerBulkEditUsername_DispatchesByConnectionType_OnlyExpectedUsernameFieldChanges(
+        string connectionType,
+        string newUsername)
+    {
+        var configManager = new UsernameAwareConfigManager();
+        await using var fixture = await ServerListBulkFixture.CreateAsync(confirmResult: true, configManager: configManager);
+        var server = CreateServer("alpha", "Alpha", "ops");
+        server.ConnectionType = connectionType;
+
+        switch (connectionType)
+        {
+            case "SSH":
+            case "SFTP":
+                server.SshUsername = "old";
+                break;
+            case "FTP":
+                server.FtpUsername = "old";
+                break;
+            case "TELNET":
+                server.TelnetUsername = "old";
+                break;
+            default:
+                server.RdpUsername = "old";
+                break;
+        }
+
+        await fixture.LoadServersAsync(fixture.ExpandGroups("ops"), server, CreateServer("beta", "Beta", "ops"));
+        configManager.SaveServersCallCount = 0;
+        fixture.DialogService.NextBulkEditUsernameResult = newUsername;
+
+        fixture.ViewModel.SelectSingle(fixture.ServerById("alpha"));
+        fixture.ViewModel.ToggleSelection(fixture.ServerById("beta"));
+
+        await fixture.ViewModel.BulkEditUsernameCommand.ExecuteAsync(fixture.ViewModel.SelectedItems.ToList());
+
+        var stored = (await fixture.ConfigManager.LoadServersAsync())
+            .Single(dto => dto.Id == "alpha");
+
+        switch (connectionType)
+        {
+            case "SSH":
+            case "SFTP":
+                Assert.Equal(newUsername, stored.SshUsername);
+                Assert.True(string.IsNullOrEmpty(stored.RdpUsername));
+                Assert.True(string.IsNullOrEmpty(stored.FtpUsername));
+                Assert.True(string.IsNullOrEmpty(stored.TelnetUsername));
+                break;
+            case "FTP":
+                Assert.Equal(newUsername, stored.FtpUsername);
+                Assert.True(string.IsNullOrEmpty(stored.SshUsername));
+                Assert.True(string.IsNullOrEmpty(stored.RdpUsername));
+                Assert.True(string.IsNullOrEmpty(stored.TelnetUsername));
+                break;
+            case "TELNET":
+                Assert.Equal(newUsername, stored.TelnetUsername);
+                Assert.True(string.IsNullOrEmpty(stored.SshUsername));
+                Assert.True(string.IsNullOrEmpty(stored.RdpUsername));
+                Assert.True(string.IsNullOrEmpty(stored.FtpUsername));
+                break;
+            default:
+                Assert.Equal(newUsername, stored.RdpUsername);
+                Assert.True(string.IsNullOrEmpty(stored.SshUsername));
+                Assert.True(string.IsNullOrEmpty(stored.FtpUsername));
+                Assert.True(string.IsNullOrEmpty(stored.TelnetUsername));
+                break;
+        }
+    }
+
+    [Fact]
+    public async Task ServerBulkEditUsername_SavePersistFails_RollsBackInMemory()
+    {
+        var configManager = new UsernameAwareConfigManager
+        {
+            FailOnSaveServers = true
+        };
+        await using var fixture = await ServerListBulkFixture.CreateAsync(confirmResult: true, configManager: configManager);
+        var alpha = CreateServer("alpha", "Alpha", "ops");
+        alpha.SshUsername = "root";
+        var beta = CreateServer("beta", "Beta", "ops");
+        beta.SshUsername = "admin";
+        var gamma = CreateServer("gamma", "Gamma", "ops");
+        gamma.SshUsername = "user1";
+
+        configManager.FailOnSaveServers = false;
+        await fixture.LoadServersAsync(fixture.ExpandGroups("ops"), alpha, beta, gamma);
+        configManager.SaveServersCallCount = 0;
+        configManager.FailOnSaveServers = true;
+        fixture.DialogService.NextBulkEditUsernameResult = "ops";
+
+        fixture.ViewModel.SelectSingle(fixture.ServerById("alpha"));
+        fixture.ViewModel.ToggleSelection(fixture.ServerById("beta"));
+        fixture.ViewModel.ToggleSelection(fixture.ServerById("gamma"));
+
+        await Assert.ThrowsAsync<IOException>(() =>
+            fixture.ViewModel.BulkEditUsernameCommand.ExecuteAsync(fixture.ViewModel.SelectedItems.ToList()));
+
+        AssertSelection(fixture.ViewModel, "alpha", "beta", "gamma");
+        Assert.Equal("gamma", fixture.ViewModel.SelectedServer?.Id);
+        Assert.Equal("root", fixture.ServerById("alpha").Username);
+        Assert.Equal("admin", fixture.ServerById("beta").Username);
+        Assert.Equal("user1", fixture.ServerById("gamma").Username);
+        Assert.Null(fixture.LastStatusMessage);
+    }
+
+    private static ServerProfileDto CreateServer(
+        string id,
+        string displayName,
+        string group,
+        string? projectId = null) =>
+        new()
+        {
+            Id = id,
+            DisplayName = displayName,
+            RemoteServer = $"{id}.example.com",
+            ConnectionType = "SSH",
+            Group = group,
+            ProjectId = projectId,
+            Origin = ProfileOrigin.Manual
+        };
+
+    private static int GetStoredEditablePort(ServerProfileDto server) =>
+        server.ConnectionType?.ToUpperInvariant() switch
+        {
+            "SSH" or "SFTP" => server.SshPort,
+            "FTP" => server.FtpPort,
+            "VNC" => server.VncPort,
+            "TELNET" => server.TelnetPort,
+            _ => server.RemotePort
+        };
+
+    private static string GetStoredEditableUsername(ServerProfileDto server)
+    {
+        if (!string.IsNullOrWhiteSpace(server.SshUsername)) return server.SshUsername;
+        if (!string.IsNullOrWhiteSpace(server.RdpUsername)) return server.RdpUsername;
+        if (!string.IsNullOrWhiteSpace(server.FtpUsername)) return server.FtpUsername;
+        if (!string.IsNullOrWhiteSpace(server.TelnetUsername)) return server.TelnetUsername;
+        return string.Empty;
+    }
+
+    private static ServerProfileDto CreateTool(
+        string id,
+        string displayName,
+        string group,
+        string? projectId = null) =>
+        new()
+        {
+            Id = id,
+            DisplayName = displayName,
+            RemoteServer = id,
+            ConnectionType = "TOOL:CHMOD",
+            Group = group,
+            ProjectId = projectId,
+            Origin = ProfileOrigin.Manual
+        };
+
+    private static void AddProjects(AppSettings settings, params (string Id, string Name)[] projects)
+    {
+        foreach (var (id, name) in projects)
+        {
+            settings.Projects.Add(new ProjectDto
+            {
+                Id = id,
+                Name = name,
+                Color = string.Empty
+            });
+        }
+    }
+
+    private static void AssertSelection(ServerListViewModel viewModel, params string[] expectedIds)
+    {
+        var actualIds = viewModel.SelectedItems
+            .Select(item => item.Id)
+            .OrderBy(id => id, StringComparer.Ordinal)
+            .ToArray();
+        var sortedExpected = expectedIds
+            .OrderBy(id => id, StringComparer.Ordinal)
+            .ToArray();
+
+        Assert.Equal(sortedExpected, actualIds);
+        Assert.All(viewModel.SelectedItems, item => Assert.True(item.IsSelected));
+    }
+
+    private sealed class ServerListBulkFixture : IAsyncDisposable
+    {
+        private readonly string? _rootPath;
+
+        private ServerListBulkFixture(
+            string? rootPath,
+            IConfigManager configManager,
+            ServerListViewModel viewModel,
+            TrackingDialogService dialogService)
+        {
+            _rootPath = rootPath;
+            ConfigManager = configManager;
+            ViewModel = viewModel;
+            DialogService = dialogService;
+        }
+
+        public IConfigManager ConfigManager { get; }
+
+        public ServerListViewModel ViewModel { get; }
+
+        public TrackingDialogService DialogService { get; }
+
+        public string? LastStatusMessage { get; private set; }
+
+        public List<string> StatusMessages { get; } = [];
+
+        public static async Task<ServerListBulkFixture> CreateAsync(
+            bool confirmResult,
+            IConfigManager? configManager = null,
+            IEnumerable<IProtocolHandler>? protocolHandlers = null)
+        {
+            var rootPath = configManager is null
+                ? Path.Combine(Path.GetTempPath(), "heimdall-b66-bulk", Guid.NewGuid().ToString("N"))
+                : null;
+            configManager ??= new ConfigManager(rootPath!);
+            await configManager.InitializeAsync();
+
+            var localizer = new LocalizationManager();
+            await localizer.LoadAsync(Path.Combine(AppContext.BaseDirectory, "locales"), "en");
+
+            var stateMachine = new ConnectionStateMachine();
+            var connectionService = new ConnectionService(
+                configManager,
+                localizer,
+                new NullTunnelService(),
+                protocolHandlers ?? Array.Empty<IProtocolHandler>());
+            var dialogService = new TrackingDialogService(confirmResult);
+            var puttyImporter = new PuttySessionImporter(new FakePuttySessionRegistrySource([]), configManager);
+            var knownHostsImporter = new KnownHostsImporter(configManager, new HostKeyStore());
+
+            var viewModel = new ServerListViewModel(
+                configManager,
+                localizer,
+                stateMachine,
+                connectionService,
+                dialogService,
+                new NullRdpImportService(),
+                puttyImporter,
+                knownHostsImporter);
+            var fixture = new ServerListBulkFixture(rootPath, configManager, viewModel, dialogService);
+            viewModel.StatusMessageRequested += fixture.HandleStatusMessage;
+
+            return fixture;
+        }
+
+        public AppSettings ExpandGroups(params string[] groups)
+        {
+            var settings = new AppSettings();
+            foreach (var group in groups)
+            {
+                settings.TreeExpandedNodes.Add(group);
+            }
+
+            return settings;
+        }
+
+        public async Task LoadServersAsync(AppSettings settings, params ServerProfileDto[] servers)
+        {
+            await ConfigManager.SaveSettingsAsync(settings);
+            await ConfigManager.SaveServersAsync(servers.ToList());
+            ViewModel.LoadServers(servers.ToList(), settings);
+        }
+
+        public ServerItemViewModel ServerById(string id) =>
+            Assert.Single(ViewModel.Servers, server => string.Equals(server.Id, id, StringComparison.Ordinal));
+
+        public string[] VisibleIds() =>
+            ViewModel.Servers
+                .Select(server => server.Id)
+                .OrderBy(id => id, StringComparer.Ordinal)
+                .ToArray();
+
+        public ValueTask DisposeAsync()
+        {
+            ViewModel.Dispose();
+
+            try
+            {
+                if (_rootPath is not null && Directory.Exists(_rootPath))
+                {
+                    Directory.Delete(_rootPath, recursive: true);
+                }
+            }
+            catch (DirectoryNotFoundException)
+            {
+            }
+
+            return ValueTask.CompletedTask;
+        }
+
+        private void HandleStatusMessage(string message)
+        {
+            LastStatusMessage = message;
+            StatusMessages.Add(message);
+        }
+    }
+
+    private sealed class TrackingDialogService(bool confirmResult) : IDialogService
+    {
+        public string LastConfirmTitle { get; private set; } = string.Empty;
+
+        public string LastConfirmMessage { get; private set; } = string.Empty;
+
+        public int ConfirmCallCount { get; private set; }
+
+        public int ErrorCallCount { get; private set; }
+
+        public int WarningCallCount { get; private set; }
+
+        public int InfoCallCount { get; private set; }
+
+        public int BulkEditPortCallCount { get; private set; }
+
+        public int LastBulkEditPortCount { get; private set; }
+
+        public int? LastBulkEditPortInitialPort { get; private set; }
+
+        public int? NextBulkEditPortResult { get; set; }
+
+        public int BulkEditUsernameCallCount { get; private set; }
+
+        public int LastBulkEditUsernameCount { get; private set; }
+
+        public string? LastBulkEditUsernameInitialUsername { get; private set; }
+
+        public string? NextBulkEditUsernameResult { get; set; }
+
+        public Task<bool> ShowConfirmAsync(string title, string message, string severity = "info")
+        {
+            LastConfirmTitle = title;
+            LastConfirmMessage = message;
+            ConfirmCallCount++;
+            return Task.FromResult(confirmResult);
+        }
+
+        public Task<bool?> ShowSaveDiscardCancelAsync(string title, string message) => Task.FromResult<bool?>(null);
+
+        public Task<string?> ShowInputAsync(string title, string prompt, string? defaultValue = null) => Task.FromResult<string?>(null);
+
+        public Task<int?> ShowBulkEditPortAsync(int count, int? initialPort, CancellationToken cancellationToken)
+        {
+            LastBulkEditPortCount = count;
+            LastBulkEditPortInitialPort = initialPort;
+            BulkEditPortCallCount++;
+            return Task.FromResult(NextBulkEditPortResult);
+        }
+
+        public Task<string?> ShowBulkEditUsernameAsync(int count, string? initialUsername, CancellationToken cancellationToken)
+        {
+            LastBulkEditUsernameCount = count;
+            LastBulkEditUsernameInitialUsername = initialUsername;
+            BulkEditUsernameCallCount++;
+            return Task.FromResult(NextBulkEditUsernameResult);
+        }
+
+        public Task<ServerDialogResult?> ShowServerDialogAsync(ServerDialogViewModel? editVm = null) => Task.FromResult<ServerDialogResult?>(null);
+
+        public Task<GatewayDialogResult?> ShowGatewayDialogAsync(GatewayDialogViewModel? editVm = null) => Task.FromResult<GatewayDialogResult?>(null);
+
+        public Task<ProjectDialogResult?> ShowProjectDialogAsync(ProjectDialogViewModel? editVm = null) => Task.FromResult<ProjectDialogResult?>(null);
+
+        public Task<ScheduledTaskDialogResult?> ShowScheduledTaskDialogAsync(ScheduledTaskDialogViewModel? editVm = null) => Task.FromResult<ScheduledTaskDialogResult?>(null);
+
+        public Task ShowPinDialogAsync(PinDialogViewModel viewModel) => Task.CompletedTask;
+
+        public Task<SnapshotRestoreDialogResult?> ShowSnapshotRestoreDialogAsync(SnapshotRestoreDialogViewModel viewModel) => Task.FromResult<SnapshotRestoreDialogResult?>(null);
+
+        public Task<RdpImportSelection?> ShowRdpImportDialogAsync(RdpImportDialogViewModel viewModel) => Task.FromResult<RdpImportSelection?>(null);
+
+        public Task<ImportOutcome?> ShowImportOpenSshConfigAsync(OpenSshParseResult parseResult) => Task.FromResult<ImportOutcome?>(null);
+
+        public Task<ImportOutcome?> ShowImportPuttySessionsAsync(PuttySessionParseResult parseResult) => Task.FromResult<ImportOutcome?>(null);
+
+        public Task<KnownHostsImportOutcome?> ShowImportKnownHostsAsync(KnownHostsImportPreview preview) => Task.FromResult<KnownHostsImportOutcome?>(null);
+
+        public Task<CommandLibraryPickerResult?> ShowCommandLibraryPickerAsync(
+            CommandLibraryPickerDialogViewModel viewModel,
+            AutoPrefillContext? prefillContext = null,
+            string? existingActionId = null,
+            IReadOnlyDictionary<string, string>? existingValues = null)
+            => Task.FromResult<CommandLibraryPickerResult?>(null);
+
+        public void ShowError(string title, string message)
+        {
+            ErrorCallCount++;
+        }
+
+        public void ShowInfo(string title, string message)
+        {
+            InfoCallCount++;
+        }
+
+        public void ShowWarning(string title, string message)
+        {
+            WarningCallCount++;
+        }
+    }
+
+    private sealed class NullTunnelService : ITunnelService
+    {
+        public Task<(bool Success, bool UsesTunnel, string Host, int Port, string? ErrorMessage)> SetupTunnelIfNeededAsync(
+            ServerProfileDto server,
+            int remotePort,
+            AppSettings settings,
+            CancellationToken ct)
+        {
+            return Task.FromResult((true, false, server.RemoteServer, remotePort, (string?)null));
+        }
+
+        public void UpdateSettings(AppSettings settings)
+        {
+        }
+    }
+
+    private sealed class NullRdpImportService : IRdpImportService
+    {
+        public Task<RdpImportPreview> PreviewAsync(string[] filePaths, CancellationToken ct) =>
+            Task.FromResult(new RdpImportPreview
+            {
+                Entries = [],
+                FilesNotFound = [],
+                FilesUnreadable = []
+            });
+
+        public Task<RdpImportResult> ApplyAsync(RdpImportPreview preview, RdpImportSelection selection, CancellationToken ct) =>
+            Task.FromResult(new RdpImportResult());
+    }
+
+    private sealed class ScriptedProtocolHandler(
+        string protocol,
+        params Func<ServerProfileDto, CancellationToken, Task<ConnectionResult>>[] behaviors) : IProtocolHandler
+    {
+        private readonly Queue<Func<ServerProfileDto, CancellationToken, Task<ConnectionResult>>> _behaviors =
+            new(behaviors);
+
+        public string Protocol { get; } = protocol;
+
+        public List<string> ConnectedServerIds { get; } = [];
+
+        public async Task<ConnectionResult> ConnectAsync(
+            ServerProfileDto server,
+            AppSettings settings,
+            CancellationToken ct)
+        {
+            ConnectedServerIds.Add(server.Id);
+            var behavior = _behaviors.Count > 0
+                ? _behaviors.Dequeue()
+                : Success();
+            return await behavior(server, ct);
+        }
+    }
+
+    private sealed class FailingSaveConfigManager : IConfigManager
+    {
+        private AppSettings _settings = new();
+        private List<ServerProfileDto> _servers = [];
+
+        public bool FailOnSaveServers { get; set; }
+
+        public string ConfigPath => "mem://config";
+
+        public string SettingsPath => "mem://settings.json";
+
+        public string ServersPath => "mem://servers.json";
+
+        public event Action<AppSettings>? SettingsChanged;
+
+        public Task InitializeAsync() => Task.CompletedTask;
+
+        public Task<AppSettings> LoadSettingsAsync() => Task.FromResult(CloneSettings(_settings));
+
+        public Task SaveSettingsAsync(AppSettings settings)
+        {
+            _settings = CloneSettings(settings);
+            SettingsChanged?.Invoke(CloneSettings(_settings));
+            return Task.CompletedTask;
+        }
+
+        public Task<bool> MergeHostKeyAsync(string hostPortKey, string fingerprint) => Task.FromResult(false);
+
+        public Task<int> MergeTrustedHostKeysAsync(IEnumerable<KeyValuePair<string, string>> entries) => Task.FromResult(0);
+
+        public Task MergeSettingAsync(Action<AppSettings> mutate)
+        {
+            mutate(_settings);
+            return Task.CompletedTask;
+        }
+
+        public Task<List<ServerProfileDto>> LoadServersAsync() => Task.FromResult(_servers.Select(CloneServer).ToList());
+
+        public Task SaveServersAsync(List<ServerProfileDto> servers)
+        {
+            if (FailOnSaveServers)
+            {
+                throw new IOException("Simulated SaveServersAsync failure");
+            }
+
+            _servers = servers.Select(CloneServer).ToList();
+            return Task.CompletedTask;
+        }
+    }
+
+    private sealed class UsernameAwareConfigManager : IConfigManager
+    {
+        private AppSettings _settings = new();
+        private List<ServerProfileDto> _servers = [];
+
+        public bool FailOnSaveServers { get; set; }
+
+        public int SaveServersCallCount { get; set; }
+
+        public string ConfigPath => "mem://config";
+
+        public string SettingsPath => "mem://settings.json";
+
+        public string ServersPath => "mem://servers.json";
+
+        public event Action<AppSettings>? SettingsChanged;
+
+        public Task InitializeAsync() => Task.CompletedTask;
+
+        public Task<AppSettings> LoadSettingsAsync() => Task.FromResult(CloneSettings(_settings));
+
+        public Task SaveSettingsAsync(AppSettings settings)
+        {
+            _settings = CloneSettings(settings);
+            SettingsChanged?.Invoke(CloneSettings(_settings));
+            return Task.CompletedTask;
+        }
+
+        public Task<bool> MergeHostKeyAsync(string hostPortKey, string fingerprint) => Task.FromResult(false);
+
+        public Task<int> MergeTrustedHostKeysAsync(IEnumerable<KeyValuePair<string, string>> entries) => Task.FromResult(0);
+
+        public Task MergeSettingAsync(Action<AppSettings> mutate)
+        {
+            mutate(_settings);
+            return Task.CompletedTask;
+        }
+
+        public Task<List<ServerProfileDto>> LoadServersAsync() =>
+            Task.FromResult(_servers.Select(CloneUsernameServer).ToList());
+
+        public Task SaveServersAsync(List<ServerProfileDto> servers)
+        {
+            if (FailOnSaveServers)
+            {
+                throw new IOException("Simulated SaveServersAsync failure");
+            }
+
+            SaveServersCallCount++;
+            _servers = servers.Select(CloneUsernameServer).ToList();
+            return Task.CompletedTask;
+        }
+    }
+
+    private static AppSettings CloneSettings(AppSettings settings)
+    {
+        return new AppSettings
+        {
+            TreeExpandedNodes = [.. settings.TreeExpandedNodes],
+            TrustedHostKeys = new Dictionary<string, string>(settings.TrustedHostKeys, StringComparer.Ordinal)
+        };
+    }
+
+    private static ServerProfileDto CloneServer(ServerProfileDto server)
+    {
+        return new ServerProfileDto
+        {
+            Id = server.Id,
+            DisplayName = server.DisplayName,
+            Origin = server.Origin,
+            ConnectionType = server.ConnectionType,
+            RemoteServer = server.RemoteServer,
+            RemotePort = server.RemotePort,
+            Group = server.Group,
+            ProjectId = server.ProjectId,
+            Environment = server.Environment,
+            MacAddress = server.MacAddress,
+            SshGatewayId = server.SshGatewayId,
+            SshPort = server.SshPort,
+            RdpPasswordEncrypted = server.RdpPasswordEncrypted,
+            SshPasswordEncrypted = server.SshPasswordEncrypted,
+            FtpPasswordEncrypted = server.FtpPasswordEncrypted,
+            TelnetPasswordEncrypted = server.TelnetPasswordEncrypted
+        };
+    }
+
+    private static Func<ServerProfileDto, CancellationToken, Task<ConnectionResult>> Success(
+        Action<ServerProfileDto>? afterConnect = null)
+    {
+        return (server, _) =>
+        {
+            afterConnect?.Invoke(server);
+            return Task.FromResult(new ConnectionResult(true, null, null));
+        };
+    }
+
+    private static Func<ServerProfileDto, CancellationToken, Task<ConnectionResult>> Fail(string message)
+    {
+        return (_, _) => Task.FromResult(new ConnectionResult(false, message, null));
+    }
+
+    private static ServerProfileDto CloneUsernameServer(ServerProfileDto server)
+    {
+        var json = System.Text.Json.JsonSerializer.Serialize(server);
+        return System.Text.Json.JsonSerializer.Deserialize<ServerProfileDto>(json)
+            ?? throw new InvalidOperationException("Server clone failed.");
+    }
+}

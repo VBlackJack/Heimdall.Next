@@ -155,6 +155,7 @@ public static partial class MobaXtermImporter
         {
             Id = Guid.NewGuid().ToString(),
             DisplayName = sessionName.Trim(),
+            Origin = Models.ProfileOrigin.ImportMobaXterm,
             RemoteServer = host,
             ConnectionType = connectionType,
             UseDirectConnection = true,

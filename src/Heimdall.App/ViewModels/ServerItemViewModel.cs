@@ -16,6 +16,7 @@
 
 using CommunityToolkit.Mvvm.ComponentModel;
 using Heimdall.Core.Configuration;
+using Heimdall.Core.Localization;
 
 namespace Heimdall.App.ViewModels;
 
@@ -132,13 +133,16 @@ public partial class ServerItemViewModel : ObservableObject
         ServerProfileDto dto,
         ProjectDto? project = null,
         string connectionState = "Disconnected",
-        IReadOnlyDictionary<string, SshGatewayDto>? gatewayMap = null)
+        IReadOnlyDictionary<string, SshGatewayDto>? gatewayMap = null,
+        LocalizationManager? localizer = null)
     {
         return new ServerItemViewModel
         {
             _sourceDto = dto,
+            _localizer = localizer,
             Id = dto.Id,
             DisplayName = dto.DisplayName,
+            Origin = dto.Origin,
             RemoteServer = dto.RemoteServer,
             RemotePort = dto.RemotePort,
             Group = dto.Group ?? "",
@@ -165,10 +169,13 @@ public partial class ServerItemViewModel : ObservableObject
     public void UpdateFromDto(
         ServerProfileDto dto,
         ProjectDto? project = null,
-        IReadOnlyDictionary<string, SshGatewayDto>? gatewayMap = null)
+        IReadOnlyDictionary<string, SshGatewayDto>? gatewayMap = null,
+        LocalizationManager? localizer = null)
     {
         _sourceDto = dto;
+        _localizer = localizer ?? _localizer;
         DisplayName = dto.DisplayName;
+        Origin = dto.Origin;
         RemoteServer = dto.RemoteServer;
         RemotePort = dto.RemotePort;
         Group = dto.Group ?? "";
@@ -185,6 +192,7 @@ public partial class ServerItemViewModel : ObservableObject
         MacAddress = dto.MacAddress ?? "";
         GatewayName = ResolveGatewayName(dto.SshGatewayId, gatewayMap);
         AuthSummary = BuildAuthSummary(dto);
+        OnPropertyChanged(nameof(OriginDisplayName));
     }
 
     partial void OnConnectionTypeChanged(string value)

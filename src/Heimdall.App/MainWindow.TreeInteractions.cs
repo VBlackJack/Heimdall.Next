@@ -50,11 +50,14 @@ public partial class MainWindow
             return;
         }
 
-        var target = SessionTreeView.SelectedItem;
+        var target = vm.ServerList.CreateBulkSelectionContext() ?? SessionTreeView.SelectedItem;
         var menu = _contextMenuFactory.CreateTreeContextMenu(target, vm, this);
 
         // Try to position the menu at the selected item's location
-        var container = TreeInteractionState.FindTreeViewItemContainer(SessionTreeView, target);
+        var placementTarget = target is BulkSelectionContext bulkContext
+            ? (object?)bulkContext.Primary ?? vm.ServerList.SelectedServer
+            : target;
+        var container = TreeInteractionState.FindTreeViewItemContainer(SessionTreeView, placementTarget);
         if (container is not null)
         {
             menu.PlacementTarget = container;
@@ -83,37 +86,42 @@ public partial class MainWindow
             return;
         }
 
+        var preserveMultiSelection = _treeState.SuppressSelectedItemSync
+            || (Keyboard.Modifiers & (ModifierKeys.Control | ModifierKeys.Shift)) != ModifierKeys.None;
+        _treeState.SuppressSelectedItemSync = false;
+
+        if (preserveMultiSelection)
+        {
+            if (sender is TreeView treeView && e.NewValue is FolderViewModel folder)
+            {
+                var container = TreeInteractionState.FindTreeViewItemContainer(treeView, folder);
+                if (container is not null)
+                {
+                    container.IsSelected = false;
+                }
+            }
+
+            ShowTreeSelection(vm, vm.ServerList.SelectedServer);
+            return;
+        }
+
         if (e.NewValue is ServerItemViewModel server)
         {
-            vm.ServerList.SelectedServer = server;
-
-            // Pre-resolve DNS to warm the OS cache before the user clicks Connect
-            if (!string.IsNullOrWhiteSpace(server.RemoteServer))
-            {
-                _ = System.Net.Dns.GetHostEntryAsync(server.RemoteServer)
-                    .ContinueWith(_ => { }, System.Threading.Tasks.TaskContinuationOptions.OnlyOnFaulted);
-            }
-
-            var isTool = server.ConnectionType?.StartsWith("TOOL:", StringComparison.OrdinalIgnoreCase) == true;
-            if (isTool)
-            {
-                SessionDetailPanel.Visibility = Visibility.Collapsed;
-                ToolDetailPanel.Visibility = Visibility.Visible;
-                UpdateToolDetailPanel(vm, server.ConnectionType!);
-            }
-            else
-            {
-                SessionDetailPanel.Visibility = Visibility.Visible;
-                ToolDetailPanel.Visibility = Visibility.Collapsed;
-                Mw_DetailConnectBtn.Content = vm.Localize("DetailBtnConnect");
-                Mw_DetailHostPort.Visibility = Visibility.Visible;
-            }
+            vm.ServerList.SelectSingle(server);
+            ShowTreeSelection(vm, server);
         }
         else
         {
-            vm.ServerList.SelectedServer = null;
-            SessionDetailPanel.Visibility = Visibility.Collapsed;
-            ToolDetailPanel.Visibility = Visibility.Collapsed;
+            if (sender is TreeView treeView && e.NewValue is FolderViewModel folder)
+            {
+                var container = TreeInteractionState.FindTreeViewItemContainer(treeView, folder);
+                if (container is not null)
+                {
+                    container.IsSelected = false;
+                }
+            }
+
+            ShowTreeSelection(vm, vm.ServerList.SelectedServer);
         }
     }
 
@@ -149,7 +157,8 @@ public partial class MainWindow
             return;
         }
 
-        var server = vm.ServerList.SelectedServer;
+        var server = FindAncestor<TreeViewItem>(e.OriginalSource as DependencyObject)?.DataContext as ServerItemViewModel
+            ?? vm.ServerList.SelectedServer;
         if (server is null) return;
 
         if (server.ConnectionType?.StartsWith("TOOL:", StringComparison.OrdinalIgnoreCase) == true)
@@ -168,6 +177,43 @@ public partial class MainWindow
         }
     }
 
+    private void OnSessionTreeViewItemPreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (DataContext is not MainViewModel vm || sender is not TreeViewItem treeViewItem)
+        {
+            return;
+        }
+
+        if (treeViewItem.DataContext is not ServerItemViewModel server)
+        {
+            return;
+        }
+
+        var modifiers = Keyboard.Modifiers;
+        if ((modifiers & ModifierKeys.Control) == ModifierKeys.Control)
+        {
+            _treeState.SuppressSelectedItemSync = true;
+            vm.ServerList.ToggleSelection(server);
+            treeViewItem.Focus();
+            ShowTreeSelection(vm, vm.ServerList.SelectedServer);
+            e.Handled = true;
+            return;
+        }
+
+        if ((modifiers & ModifierKeys.Shift) == ModifierKeys.Shift)
+        {
+            _treeState.SuppressSelectedItemSync = true;
+            vm.ServerList.ExtendSelectionTo(server);
+            treeViewItem.Focus();
+            ShowTreeSelection(vm, vm.ServerList.SelectedServer);
+            e.Handled = true;
+            return;
+        }
+
+        _treeState.SuppressSelectedItemSync = false;
+        vm.ServerList.SelectSingle(server);
+    }
+
     // ── Right-click pre-selection + context menu opening ─────────────
 
     private void OnTreeViewPreviewMouseRightButtonDown(object sender, MouseButtonEventArgs e)
@@ -180,8 +226,21 @@ public partial class MainWindow
 
         if (treeViewItem is not null)
         {
-            treeViewItem.IsSelected = true;
             treeViewItem.Focus();
+
+            if (treeViewItem.DataContext is ServerItemViewModel server && DataContext is MainViewModel vm)
+            {
+                if (vm.ServerList.ShouldOpenBulkContextMenu(server))
+                {
+                    _treeState.ContextTarget = vm.ServerList.CreateBulkSelectionContext() ?? (object)server;
+                    ShowTreeSelection(vm, vm.ServerList.SelectedServer);
+                    return;
+                }
+
+                vm.ServerList.SelectSingle(server);
+                _treeState.ContextTarget = server;
+                ShowTreeSelection(vm, server);
+            }
         }
     }
 
@@ -199,7 +258,7 @@ public partial class MainWindow
         }
         else
         {
-            target = treeView.SelectedItem;
+            target = vm.ServerList.CreateBulkSelectionContext() ?? treeView.SelectedItem;
         }
 
         _treeState.ContextTargetFromPointer = false;
@@ -212,17 +271,40 @@ public partial class MainWindow
         treeView.ContextMenu = menu;
     }
 
+    private async void OnSessionTreeViewPreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Delete
+            || Keyboard.Modifiers != ModifierKeys.None
+            || DataContext is not MainViewModel vm
+            || vm.ServerList.SelectionCount <= 1
+            || !vm.ServerList.DeleteSelectedCommand.CanExecute(null))
+        {
+            return;
+        }
+
+        e.Handled = true;
+        await vm.ServerList.DeleteSelectedCommand.ExecuteAsync(null);
+    }
+
     // ── TreeView drag-drop: move servers between groups/projects ─────
 
     private void OnTreeViewDragStart(object sender, MouseButtonEventArgs e)
     {
+        if ((Keyboard.Modifiers & (ModifierKeys.Control | ModifierKeys.Shift)) != ModifierKeys.None)
+        {
+            _treeState.DragInProgress = false;
+            return;
+        }
+
         _treeState.DragStartPoint = e.GetPosition(null);
         _treeState.DragInProgress = false;
     }
 
     private void OnTreeViewDragMove(object sender, System.Windows.Input.MouseEventArgs e)
     {
-        if (e.LeftButton != MouseButtonState.Pressed || _treeState.DragInProgress)
+        if (e.LeftButton != MouseButtonState.Pressed
+            || _treeState.DragInProgress
+            || (Keyboard.Modifiers & (ModifierKeys.Control | ModifierKeys.Shift)) != ModifierKeys.None)
         {
             return;
         }
@@ -238,6 +320,7 @@ public partial class MainWindow
 
         // Find the ServerItemViewModel being dragged
         var treeViewItem = FindAncestor<TreeViewItem>(e.OriginalSource as DependencyObject);
+
         if (treeViewItem?.DataContext is not ServerItemViewModel serverItem)
         {
             return;
@@ -247,6 +330,43 @@ public partial class MainWindow
         var data = new System.Windows.DataObject("HeimdallServer", serverItem);
         DragDrop.DoDragDrop(treeViewItem, data, System.Windows.DragDropEffects.Move);
         _treeState.DragInProgress = false;
+    }
+
+    private void ShowTreeSelection(MainViewModel vm, ServerItemViewModel? server)
+    {
+        if (server is null)
+        {
+            SessionDetailPanel.Visibility = Visibility.Collapsed;
+            ToolDetailPanel.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        WarmDns(server);
+
+        var isTool = server.ConnectionType?.StartsWith("TOOL:", StringComparison.OrdinalIgnoreCase) == true;
+        if (isTool)
+        {
+            SessionDetailPanel.Visibility = Visibility.Collapsed;
+            ToolDetailPanel.Visibility = Visibility.Visible;
+            UpdateToolDetailPanel(vm, server.ConnectionType!);
+            return;
+        }
+
+        SessionDetailPanel.Visibility = Visibility.Visible;
+        ToolDetailPanel.Visibility = Visibility.Collapsed;
+        Mw_DetailConnectBtn.Content = vm.Localize("DetailBtnConnect");
+        Mw_DetailHostPort.Visibility = Visibility.Visible;
+    }
+
+    private static void WarmDns(ServerItemViewModel server)
+    {
+        if (string.IsNullOrWhiteSpace(server.RemoteServer))
+        {
+            return;
+        }
+
+        _ = System.Net.Dns.GetHostEntryAsync(server.RemoteServer)
+            .ContinueWith(_ => { }, System.Threading.Tasks.TaskContinuationOptions.OnlyOnFaulted);
     }
 
     private void ClearDropHighlight()
@@ -273,8 +393,10 @@ public partial class MainWindow
 
         ClearDropHighlight();
 
-        if (!TryResolveTreeGroupDropTarget(sender, e, vm, out var targetContainer, out var targetGroup, out _)
-            || !IsAllowedTreeGroupDrop(vm.ServerList, serverItem, targetGroup))
+        var resolved = TryResolveTreeGroupDropTarget(sender, e, vm, out var targetContainer, out var targetGroup, out _);
+        var allowed = resolved && IsAllowedTreeGroupDrop(vm.ServerList, serverItem, targetGroup);
+
+        if (!resolved || !allowed)
         {
             e.Handled = true;
             return;
@@ -311,8 +433,10 @@ public partial class MainWindow
             return;
         }
 
-        if (!TryResolveTreeGroupDropTarget(sender, e, vm, out _, out var targetGroup, out var targetDisplayName)
-            || !IsAllowedTreeGroupDrop(vm.ServerList, serverItem, targetGroup))
+        var resolved = TryResolveTreeGroupDropTarget(sender, e, vm, out _, out var targetGroup, out var targetDisplayName);
+        var allowed = resolved && IsAllowedTreeGroupDrop(vm.ServerList, serverItem, targetGroup);
+
+        if (!resolved || !allowed)
         {
             return;
         }
@@ -339,7 +463,7 @@ public partial class MainWindow
         targetGroup = null;
         targetDisplayName = vm.Localize("TreeNodeNoGroup");
 
-        var target = FindAncestor<TreeViewItem>(e.OriginalSource as DependencyObject);
+        var target = FindAncestorFolderTreeViewItem(e.OriginalSource as DependencyObject);
         if (target?.DataContext is FolderViewModel folder)
         {
             targetContainer = target;
@@ -353,7 +477,8 @@ public partial class MainWindow
             return true;
         }
 
-        return ReferenceEquals(sender, SessionTreeView) && target is null;
+        return ReferenceEquals(sender, SessionTreeView)
+            && FindAncestor<TreeViewItem>(e.OriginalSource as DependencyObject) is null;
     }
 
     private static bool IsAllowedTreeGroupDrop(
@@ -363,17 +488,7 @@ public partial class MainWindow
     {
         var normalizedTarget = NormalizeGroupTargetKey(targetGroup);
         var normalizedCurrent = NormalizeGroupTargetKey(server.Group);
-        if (string.Equals(normalizedCurrent, normalizedTarget, StringComparison.OrdinalIgnoreCase))
-        {
-            return false;
-        }
-
-        return serverList
-            .GetGroupTargets(server.ProjectId, includeNoGroup: true)
-            .Any(group => string.Equals(
-                NormalizeGroupTargetKey(group.GroupName),
-                normalizedTarget,
-                StringComparison.OrdinalIgnoreCase));
+        return !string.Equals(normalizedCurrent, normalizedTarget, StringComparison.OrdinalIgnoreCase);
     }
 
     private static string NormalizeGroupTargetKey(string? groupPath)
@@ -381,5 +496,20 @@ public partial class MainWindow
         return string.IsNullOrWhiteSpace(groupPath)
             ? string.Empty
             : groupPath.Replace('\\', '/');
+    }
+
+    private static TreeViewItem? FindAncestorFolderTreeViewItem(DependencyObject? current)
+    {
+        while (current is not null)
+        {
+            if (current is TreeViewItem item && item.DataContext is FolderViewModel)
+            {
+                return item;
+            }
+
+            current = GetParentObject(current);
+        }
+
+        return null;
     }
 }

@@ -579,11 +579,6 @@ public partial class ServerDialog : Window
         DlgSrv_SshCompressionCb.Content = _localizer["ServerDialogSshCompression"];
         DlgSrv_SshAgentFwdCb.Content = _localizer["ServerDialogSshAgentForward"];
         DlgSrv_SshX11Cb.Content = _localizer["ServerDialogSshX11"];
-        DlgSrv_PostConnectLabel.Text = _localizer["ServerDialogPostConnectLabel"];
-        DlgSrv_PostConnectHint.Text = _localizer["ServerDialogPostConnectHint"];
-        DlgSrv_PostConnectDelayLabel.Text = _localizer["ServerDialogPostConnectDelayLabel"];
-        System.Windows.Automation.AutomationProperties.SetName(DlgSrv_PostConnectBox, _localizer["ServerDialogPostConnectLabel"]);
-        System.Windows.Automation.AutomationProperties.SetName(DlgSrv_PostConnectDelayBox, _localizer["ServerDialogPostConnectDelayLabel"]);
 
         // Local shell advanced options
         DlgSrv_LocalShellTitle.Text = _localizer["ServerDialogLocalShellAdvanced"];

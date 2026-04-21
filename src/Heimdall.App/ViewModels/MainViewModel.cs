@@ -18,6 +18,8 @@ using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Heimdall.App.Services;
+using Heimdall.App.Services.PostConnect;
+using Heimdall.App.Services.SessionSnapshot;
 using Heimdall.App.ViewModels.Dialogs;
 using Heimdall.App.ViewModels.CommandPalette;
 using Heimdall.App.ViewModels.Scheduled;
@@ -47,6 +49,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
     private readonly IDialogService _dialogService;
     private readonly IEmbeddedSessionManager _embeddedSessionManager;
     private readonly ThemeService _themeService;
+    private readonly ISessionSnapshotService _sessionSnapshotService;
 
     private bool _disposed;
     private Action? _onConfigurationChanged;
@@ -293,8 +296,12 @@ public partial class MainViewModel : ObservableObject, IDisposable
         IDialogService dialogService,
         IEmbeddedSessionManager embeddedSessionManager,
         ThemeService themeService,
+        ISessionSnapshotService sessionSnapshotService,
+        IPostConnectSequenceRunner postConnectSequenceRunner,
+        IPostConnectStepResolver postConnectStepResolver,
         ToolRegistry toolRegistry,
         SplitService splitService,
+        ExternalToolLaunchService externalToolLaunchService,
         ToolsTabPopulationService toolsTabPopulation,
         IToolContextProvider toolContextProvider,
         ServerListViewModel serverList,
@@ -308,6 +315,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         _dialogService = dialogService;
         _embeddedSessionManager = embeddedSessionManager;
         _themeService = themeService;
+        _sessionSnapshotService = sessionSnapshotService;
         ToolRegistry = toolRegistry;
         Split = splitService;
         ServerList = serverList;
@@ -316,10 +324,10 @@ public partial class MainViewModel : ObservableObject, IDisposable
         Sidebar = new SidebarViewModel(this, localizer, configManager, toolsTabPopulation, toolContextProvider);
         ToolsTab = new ToolsTabViewModel(this, localizer, toolContextProvider);
         CommandPalette = new CommandPaletteViewModel(
-            this, localizer, toolRegistry, configManager, embeddedSessionManager);
+            this, localizer, toolRegistry, configManager, embeddedSessionManager, externalToolLaunchService);
         Tunnels = new TunnelsViewModel(this, localizer, tunnelManager, connectionSm);
         Scheduled = new ScheduledTasksViewModel(this, localizer, dialogService, configManager);
-        Session = new SessionCoordinator(this, localizer, configManager, embeddedSessionManager);
+        Session = new SessionCoordinator(this, localizer, configManager, embeddedSessionManager, postConnectSequenceRunner, postConnectStepResolver);
 
         _appStatus.StatusChanged += OnApplicationStatusChanged;
 
@@ -398,11 +406,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
             Settings.LoadFromSettings(settings);
             Scheduled.Load(settings);
 
-            // Restore previous workspace if session persistence is enabled
-            if (settings.EnableSessionPersistence)
-            {
-                await Session.RestoreWorkspaceAsync(ServerList.Servers);
-            }
+            await RestoreSessionSnapshotAsync(cancellationToken);
 
             // OperationScope.Dispose() handles the Ready transition
             StatusText = _localizer["StatusReady"];
@@ -415,18 +419,95 @@ public partial class MainViewModel : ObservableObject, IDisposable
     }
 
     /// <summary>
-    /// Collects the currently open session tabs for workspace persistence.
+    /// Collects the currently open top-level remote sessions for restore-on-launch.
+    /// Tool tabs are intentionally excluded.
     /// </summary>
-    public IEnumerable<WorkspaceSessionDto> GetOpenSessions()
+    public IReadOnlyList<SessionSnapshotEntry> GetSessionSnapshotEntries()
     {
         return Connection.ActiveSessions
-            .Where(t => !string.IsNullOrWhiteSpace(t.OriginalServerId))
-            .Select(t => new WorkspaceSessionDto
+            .Where(session => !string.IsNullOrWhiteSpace(session.OriginalServerId))
+            .Where(session => !string.IsNullOrWhiteSpace(session.ConnectionType))
+            .Where(session => !session.ConnectionType.StartsWith("TOOL:", StringComparison.OrdinalIgnoreCase))
+            .Select((session, order) => new SessionSnapshotEntry
             {
-                ServerId = t.OriginalServerId,
-                ServerName = t.Title ?? t.OriginalServerId,
-                Protocol = t.ConnectionType ?? ""
-            });
+                ServerId = session.OriginalServerId,
+                ConnectionType = session.ConnectionType,
+                Order = order
+            })
+            .ToList();
+    }
+
+    private async Task RestoreSessionSnapshotAsync(CancellationToken cancellationToken)
+    {
+        var snapshot = await _sessionSnapshotService.LoadAsync(cancellationToken);
+        if (snapshot?.Sessions.Count is not > 0)
+        {
+            return;
+        }
+
+        SnapshotRestoreDialogResult? dialogResult;
+        try
+        {
+            var dialogVm = new SnapshotRestoreDialogViewModel(
+                _localizer,
+                snapshot,
+                ServerList.Servers);
+            dialogResult = await _dialogService.ShowSnapshotRestoreDialogAsync(dialogVm);
+        }
+        catch (Exception ex)
+        {
+            Core.Logging.FileLogger.Error("Snapshot restore dialog failed.", ex);
+            _dialogService.ShowError(
+                _localizer["DialogSnapshotRestoreTitle"],
+                _localizer.Format("ErrorSnapshotRestoreFailed", ex.Message));
+            return;
+        }
+
+        if (dialogResult is null)
+        {
+            return;
+        }
+
+        if (dialogResult.Action == SnapshotRestoreDialogAction.DontRestore)
+        {
+            await _sessionSnapshotService.ClearAsync(cancellationToken);
+            return;
+        }
+
+        var restoredCount = 0;
+        var selectedSessions = dialogResult.Sessions
+            .OrderBy(session => session.Order)
+            .ToList();
+
+        foreach (var session in selectedSessions)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            try
+            {
+                if (await ServerList.RestoreServerAsync(session.ServerId, cancellationToken))
+                {
+                    restoredCount++;
+                }
+            }
+            catch (Exception ex)
+            {
+                Core.Logging.FileLogger.Error(
+                    $"Session snapshot restore failed for {session.ServerId}.", ex);
+            }
+        }
+
+        await _sessionSnapshotService.ClearAsync(cancellationToken);
+
+        if (restoredCount < selectedSessions.Count)
+        {
+            _dialogService.ShowWarning(
+                _localizer["DialogSnapshotRestoreTitle"],
+                _localizer.Format(
+                    "WarningSnapshotRestorePartial",
+                    restoredCount,
+                    selectedSessions.Count));
+        }
     }
 
     private void OnSettingsChanged(AppSettings settings)

@@ -15,7 +15,7 @@
  */
 
 using System.Collections.Concurrent;
-using System.Security.Cryptography;
+using Heimdall.Core.Ssh;
 
 namespace Heimdall.Ssh;
 
@@ -61,7 +61,7 @@ public sealed class HostKeyStore
         ArgumentNullException.ThrowIfNull(host);
         ArgumentNullException.ThrowIfNull(hostKey);
 
-        var key = MakeKey(host, port);
+        var key = HostKeyFormats.MakeKey(host, port);
         var fingerprint = ComputeFingerprint(hostKey);
 
         if (_trustedKeys.TryGetValue(key, out var stored))
@@ -89,7 +89,7 @@ public sealed class HostKeyStore
         {
             if (!string.IsNullOrWhiteSpace(fingerprint))
             {
-                _trustedKeys[MakeKey(host, port)] = fingerprint;
+                _trustedKeys[HostKeyFormats.MakeKey(host, port)] = fingerprint;
             }
         }
     }
@@ -100,7 +100,7 @@ public sealed class HostKeyStore
     public string? GetFingerprint(string host, int port)
     {
         ArgumentNullException.ThrowIfNull(host);
-        return _trustedKeys.TryGetValue(MakeKey(host, port), out var fp) ? fp : null;
+        return _trustedKeys.TryGetValue(HostKeyFormats.MakeKey(host, port), out var fp) ? fp : null;
     }
 
     /// <summary>
@@ -110,7 +110,7 @@ public sealed class HostKeyStore
     {
         ArgumentNullException.ThrowIfNull(host);
         ArgumentNullException.ThrowIfNull(fingerprint);
-        _trustedKeys[MakeKey(host, port)] = fingerprint;
+        _trustedKeys[HostKeyFormats.MakeKey(host, port)] = fingerprint;
     }
 
     /// <summary>
@@ -119,7 +119,7 @@ public sealed class HostKeyStore
     public bool Remove(string host, int port)
     {
         ArgumentNullException.ThrowIfNull(host);
-        return _trustedKeys.TryRemove(MakeKey(host, port), out _);
+        return _trustedKeys.TryRemove(HostKeyFormats.MakeKey(host, port), out _);
     }
 
     /// <summary>
@@ -128,17 +128,12 @@ public sealed class HostKeyStore
     public IReadOnlyDictionary<string, string> GetAllTrusted()
         => _trustedKeys;
 
-    private static string MakeKey(string host, int port)
-        => host.Contains(':') ? $"[{host}]:{port}" : $"{host}:{port}";
-
     /// <summary>
     /// Compute a SHA256 fingerprint from raw host key bytes.
     /// Format: "SHA256:&lt;base64-no-padding&gt;" (matches OpenSSH convention).
     /// </summary>
     internal static string ComputeFingerprint(byte[] hostKey)
     {
-        var hash = SHA256.HashData(hostKey);
-        var base64 = Convert.ToBase64String(hash).TrimEnd('=');
-        return $"SHA256:{base64}";
+        return HostKeyFormats.ComputeSha256Fingerprint(hostKey);
     }
 }

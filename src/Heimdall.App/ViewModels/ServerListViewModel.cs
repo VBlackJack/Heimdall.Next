@@ -15,15 +15,20 @@
  */
 
 using System.Collections.ObjectModel;
+using System.IO;
 using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Heimdall.App.Services;
+using Heimdall.App.Services.Import;
 using Heimdall.App.ViewModels.Dialogs;
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Security;
+using Heimdall.Core.Ssh;
 using Heimdall.Core.StateMachine;
+using Heimdall.Core.Models;
+using Microsoft.Win32;
 
 namespace Heimdall.App.ViewModels;
 
@@ -36,6 +41,9 @@ public partial class ServerListViewModel : ObservableObject, IDisposable
     private readonly LocalizationManager _localizer;
     private readonly ConnectionStateMachine _connectionSm;
     private readonly ConnectionService _connectionService;
+    private readonly IRdpImportService _rdpImportService;
+    private readonly PuttySessionImporter _puttySessionImporter;
+    private readonly KnownHostsImporter _knownHostsImporter;
 
     internal ConnectionService ConnectionService => _connectionService;
     private readonly IDialogService _dialogService;
@@ -86,7 +94,7 @@ public partial class ServerListViewModel : ObservableObject, IDisposable
     /// <summary>
     /// True when a server is selected in the TreeView, used to toggle the detail panel.
     /// </summary>
-    public bool HasSelection => SelectedServer is not null;
+    public bool HasSelection => SelectionCount > 0;
 
     /// <summary>
     /// Raised when a connection result is ready and a session tab should be created.
@@ -110,14 +118,21 @@ public partial class ServerListViewModel : ObservableObject, IDisposable
         LocalizationManager localizer,
         ConnectionStateMachine connectionSm,
         ConnectionService connectionService,
-        IDialogService dialogService)
+        IDialogService dialogService,
+        IRdpImportService rdpImportService,
+        PuttySessionImporter puttySessionImporter,
+        KnownHostsImporter knownHostsImporter)
     {
         _configManager = configManager;
         _localizer = localizer;
         _connectionSm = connectionSm;
         _connectionService = connectionService;
         _dialogService = dialogService;
+        _rdpImportService = rdpImportService;
+        _puttySessionImporter = puttySessionImporter;
+        _knownHostsImporter = knownHostsImporter;
 
+        InitializeSelectionModel();
         _connectionSm.StateChanged += OnConnectionStateChanged;
     }
 
@@ -170,7 +185,8 @@ public partial class ServerListViewModel : ObservableObject, IDisposable
                 dto,
                 ResolveProject(projectMap, dto.ProjectId),
                 _connectionSm.GetState(dto.Id).ToString(),
-                gatewayMap))
+                gatewayMap,
+                _localizer))
             .ToList();
 
         RefreshLookupCollections(settings);
@@ -234,6 +250,234 @@ public partial class ServerListViewModel : ObservableObject, IDisposable
         return targets;
     }
 
+    public async Task ImportRdpFilesAsync(IEnumerable<string> filePaths, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(filePaths);
+
+        var paths = filePaths
+            .Where(path => !string.IsNullOrWhiteSpace(path))
+            .ToArray();
+
+        if (paths.Length == 0)
+        {
+            return;
+        }
+
+        var preview = await _rdpImportService.PreviewAsync(paths, cancellationToken);
+        if (preview.Entries.Count == 0)
+        {
+            _dialogService.ShowWarning(
+                _localizer["DialogImportRdpTitle"],
+                _localizer["WarningImportRdpNoValidFiles"]);
+            return;
+        }
+
+        var dialogVm = new RdpImportDialogViewModel(_localizer, preview);
+        var selection = await _dialogService.ShowRdpImportDialogAsync(dialogVm);
+        if (selection is null)
+        {
+            return;
+        }
+
+        var result = await _rdpImportService.ApplyAsync(preview, selection, cancellationToken);
+        var settings = await _configManager.LoadSettingsAsync();
+        var servers = await _configManager.LoadServersAsync();
+        LoadServers(servers, settings);
+
+        var summary = _localizer.Format(
+            "StatusImportRdpSummary",
+            result.ImportedCount,
+            result.ReplacedCount,
+            result.RenamedCount,
+            result.SkippedCount,
+            result.PasswordsIgnoredCount);
+
+        if (result.ImportedCount > 0 || result.ReplacedCount > 0)
+        {
+            _dialogService.ShowInfo(_localizer["DialogImportRdpTitle"], summary);
+            StatusMessageRequested?.Invoke(summary);
+        }
+        else
+        {
+            _dialogService.ShowWarning(_localizer["DialogImportRdpTitle"], summary);
+        }
+    }
+
+    public async Task ImportOpenSshConfigAsync(string filePath, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
+
+        string contents;
+        try
+        {
+            contents = await File.ReadAllTextAsync(filePath, cancellationToken);
+        }
+        catch (UnauthorizedAccessException)
+        {
+            _dialogService.ShowError(
+                _localizer["DialogTitleImportOpenSshConfig"],
+                _localizer.Format("ErrorImportOpenSshConfigFileUnreadable", filePath));
+            return;
+        }
+        catch (IOException)
+        {
+            _dialogService.ShowError(
+                _localizer["DialogTitleImportOpenSshConfig"],
+                _localizer.Format("ErrorImportOpenSshConfigFileUnreadable", filePath));
+            return;
+        }
+
+        var parseResult = OpenSshConfigParser.Parse(contents);
+        if (parseResult.Candidates.Count == 0 && parseResult.Diagnostics.Count == 0)
+        {
+            _dialogService.ShowInfo(
+                _localizer["DialogTitleImportOpenSshConfig"],
+                _localizer["ErrorImportOpenSshConfigEmpty"]);
+            return;
+        }
+
+        var outcome = await _dialogService.ShowImportOpenSshConfigAsync(parseResult);
+        if (outcome is null)
+        {
+            return;
+        }
+
+        var settings = await _configManager.LoadSettingsAsync();
+        var servers = await _configManager.LoadServersAsync();
+        LoadServers(servers, settings);
+
+        var summary = _localizer.Format(
+            "ToastImportOpenSshResult",
+            outcome.ImportedCount,
+            outcome.SkippedDuplicates,
+            outcome.WarningCount);
+
+        if (outcome.ImportedCount > 0)
+        {
+            _dialogService.ShowInfo(_localizer["DialogTitleImportOpenSshConfig"], summary);
+            StatusMessageRequested?.Invoke(summary);
+        }
+        else
+        {
+            _dialogService.ShowWarning(_localizer["DialogTitleImportOpenSshConfig"], summary);
+        }
+    }
+
+    public async Task ImportPuttySessionsAsync(CancellationToken cancellationToken = default)
+    {
+        var parseResult = await _puttySessionImporter.ReadAndParseAsync(cancellationToken);
+        if (parseResult.Candidates.Count == 0)
+        {
+            _dialogService.ShowInfo(
+                _localizer["DialogTitleImportPuttySessions"],
+                _localizer["InfoImportPuttyNoSessionsFound"]);
+            return;
+        }
+
+        var outcome = await _dialogService.ShowImportPuttySessionsAsync(parseResult);
+        if (outcome is null)
+        {
+            return;
+        }
+
+        var settings = await _configManager.LoadSettingsAsync();
+        var servers = await _configManager.LoadServersAsync();
+        LoadServers(servers, settings);
+
+        var summary = _localizer.Format(
+            "ToastImportPuttyResult",
+            outcome.ImportedCount,
+            outcome.SkippedDuplicates,
+            outcome.SkippedInvalid,
+            outcome.WarningCount);
+
+        if (outcome.ImportedCount > 0)
+        {
+            _dialogService.ShowInfo(_localizer["DialogTitleImportPuttySessions"], summary);
+            StatusMessageRequested?.Invoke(summary);
+        }
+        else
+        {
+            _dialogService.ShowWarning(_localizer["DialogTitleImportPuttySessions"], summary);
+        }
+    }
+
+    [RelayCommand]
+    private async Task ImportKnownHostsAsync(CancellationToken cancellationToken)
+    {
+        var userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        var sshDirectory = string.IsNullOrWhiteSpace(userProfile)
+            ? string.Empty
+            : Path.Combine(userProfile, ".ssh");
+        var dialog = new OpenFileDialog
+        {
+            Title = _localizer["DialogTitlePickKnownHostsFile"],
+            Filter = "known_hosts (known_hosts)|known_hosts|All files (*.*)|*.*",
+            CheckFileExists = true,
+            CheckPathExists = true,
+            Multiselect = false,
+            FileName = "known_hosts"
+        };
+
+        if (!string.IsNullOrWhiteSpace(sshDirectory) && Directory.Exists(sshDirectory))
+        {
+            dialog.InitialDirectory = sshDirectory;
+        }
+        else if (!string.IsNullOrWhiteSpace(userProfile) && Directory.Exists(userProfile))
+        {
+            dialog.InitialDirectory = userProfile;
+        }
+
+        if (dialog.ShowDialog() != true || string.IsNullOrWhiteSpace(dialog.FileName))
+        {
+            return;
+        }
+
+        KnownHostsParseResult parsed;
+        try
+        {
+            parsed = await _knownHostsImporter.ParseFileAsync(dialog.FileName, cancellationToken);
+        }
+        catch (UnauthorizedAccessException)
+        {
+            _dialogService.ShowError(
+                _localizer["DialogTitleImportKnownHosts"],
+                _localizer.Format("ErrorImportKnownHostsReadFailed", Path.GetFileName(dialog.FileName)));
+            return;
+        }
+        catch (IOException)
+        {
+            _dialogService.ShowError(
+                _localizer["DialogTitleImportKnownHosts"],
+                _localizer.Format("ErrorImportKnownHostsReadFailed", Path.GetFileName(dialog.FileName)));
+            return;
+        }
+
+        if (parsed.Entries.Count == 0 && parsed.Diagnostics.Count == 0)
+        {
+            _dialogService.ShowInfo(
+                _localizer["DialogTitleImportKnownHosts"],
+                _localizer["ErrorImportKnownHostsNoEntries"]);
+            return;
+        }
+
+        var preview = await _knownHostsImporter.BuildPreviewAsync(parsed, cancellationToken);
+        var outcome = await _dialogService.ShowImportKnownHostsAsync(preview);
+        if (outcome is null)
+        {
+            return;
+        }
+
+        var warningCount = preview.Diagnostics.Count(diagnostic => diagnostic.Level == KnownHostsDiagnosticLevel.Warning);
+        var summary = _localizer.Format(
+            "ToastImportKnownHostsResult",
+            outcome.Imported,
+            outcome.SkippedExisting,
+            outcome.SkippedConflict,
+            warningCount);
+        StatusMessageRequested?.Invoke(summary);
+    }
+
     private readonly HashSet<string> _connectingServerIds = new(StringComparer.Ordinal);
 
     [RelayCommand]
@@ -244,10 +488,36 @@ public partial class ServerListViewModel : ObservableObject, IDisposable
             return;
         }
 
+        await ConnectCoreAsync(server, cancellationToken);
+    }
+
+    /// <summary>
+    /// Restores a server session by stable inventory ID using the standard connection pipeline.
+    /// Returns false when the server no longer exists or the connection fails.
+    /// </summary>
+    internal async Task<bool> RestoreServerAsync(string originalServerId, CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(originalServerId);
+
+        var server = Servers.FirstOrDefault(
+            candidate => string.Equals(candidate.Id, originalServerId, StringComparison.OrdinalIgnoreCase));
+
+        if (server is null)
+        {
+            Core.Logging.FileLogger.Warn(
+                $"RestoreServerAsync could not find server with id={originalServerId}.");
+            return false;
+        }
+
+        return await ConnectCoreAsync(server, cancellationToken);
+    }
+
+    private async Task<bool> ConnectCoreAsync(ServerItemViewModel server, CancellationToken cancellationToken)
+    {
         // Prevent duplicate connections from rapid double-clicks
         if (!_connectingServerIds.Add(server.Id))
         {
-            return;
+            return false;
         }
 
         try
@@ -259,7 +529,7 @@ public partial class ServerListViewModel : ObservableObject, IDisposable
 
             if (serverDto is null)
             {
-                return;
+                return false;
             }
 
             var settings = await _configManager.LoadSettingsAsync();
@@ -277,17 +547,11 @@ public partial class ServerListViewModel : ObservableObject, IDisposable
             // has no stored password. The retrieved password is DPAPI-encrypted into
             // the DTO so all downstream code (ConnectionService, EmbeddedRdpView) works
             // without modification.
-            await TryResolveExternalCredentialsAsync(serverDto, settings, cancellationToken);
-
-            var preflight = _connectionService.RunPreflight(serverDto, settings);
-            if (!preflight.Success)
-            {
-                server.ConnectionState = "Error";
-                _dialogService.ShowError(
-                    _localizer["ErrorPreflightTitle"],
-                    preflight.Message ?? _localizer["ErrorPreflightFailed"]);
-                return;
-            }
+            _ = await TryResolveExternalCredentialsAsync(
+                serverDto,
+                settings,
+                cancellationToken,
+                skipOnFailure: false);
 
             // Generate a unique session ID so duplicate connections to the same server
             // get independent state tracking (tunnel lifecycle, error recovery)
@@ -316,98 +580,148 @@ public partial class ServerListViewModel : ObservableObject, IDisposable
                 ToolSessionRequested?.Invoke(toolId, server.DisplayName, context);
                 serverDto.Id = originalId;
                 _connectionSm.Reset(sessionId);
-                return;
+                return true;
             }
 
-            try
+            var outcome = await RunConnectionPipelineAsync(
+                serverDto,
+                settings,
+                sessionId,
+                originalId,
+                server,
+                cancellationToken);
+
+            return outcome.Status switch
             {
-                ConnectionResult result;
-
-                switch (serverDto.ConnectionType?.ToUpperInvariant())
-                {
-                    case "RDP":
-                        result = await _connectionService.ConnectRdpAsync(
-                            serverDto, settings, cancellationToken);
-                        break;
-
-                    case "SSH":
-                        result = await _connectionService.ConnectSshAsync(
-                            serverDto, settings, cancellationToken);
-                        break;
-
-                    case "SFTP":
-                        result = await _connectionService.ConnectSftpAsync(
-                            serverDto, settings, cancellationToken);
-                        break;
-
-                    case "FTP":
-                        result = await _connectionService.ConnectFtpAsync(
-                            serverDto, settings, cancellationToken);
-                        break;
-
-                    case "LOCAL":
-                        result = await _connectionService.ConnectLocalShellAsync(
-                            serverDto, settings, cancellationToken);
-                        break;
-
-                    case "CITRIX":
-                        result = await _connectionService.ConnectCitrixAsync(
-                            serverDto, settings, cancellationToken);
-                        break;
-
-                    case "VNC":
-                        result = await _connectionService.ConnectVncAsync(
-                            serverDto, settings, cancellationToken);
-                        break;
-
-                    case "TELNET":
-                        result = await _connectionService.ConnectTelnetAsync(
-                            serverDto, settings, cancellationToken);
-                        break;
-
-                    default:
-                        _connectionSm.SetError(sessionId,
-                            _localizer.Format("ErrorUnsupportedConnectionType", serverDto.ConnectionType ?? ""));
-                        server.ConnectionState = "Error";
-                        serverDto.Id = originalId;
-                        return;
-                }
-
-                if (result.Success)
-                {
-                    SessionReady?.Invoke(
-                        sessionId, originalId, server.DisplayName,
-                        serverDto.ConnectionType, result.Session);
-                }
-                else
-                {
-                    server.ConnectionState = "Error";
-                    _dialogService.ShowError(
-                        _localizer["ErrorConnectionTitle"],
-                        result.ErrorMessage ?? _localizer["ErrorConnectionFailed"]);
-                }
-            }
-            catch (OperationCanceledException)
-            {
-                _connectionSm.Reset(sessionId);
-            }
-            catch (Exception ex)
-            {
-                var failure = Ssh.FailureClassifier.Classify(ex);
-                _connectionSm.SetError(sessionId, failure.Message);
-                server.ConnectionState = "Error";
-                _dialogService.ShowError(
-                    _localizer["ErrorConnectionTitle"], failure.Message);
-            }
-            finally
-            {
-                serverDto.Id = originalId;
-            }
-
+                BulkConnectOutcomeStatus.Success => true,
+                BulkConnectOutcomeStatus.PreflightFailed => ShowConnectionError(
+                    _localizer["ErrorPreflightTitle"],
+                    outcome.ErrorMessage ?? _localizer["ErrorPreflightFailed"]),
+                BulkConnectOutcomeStatus.ConnectionFailed => ShowConnectionError(
+                    _localizer["ErrorConnectionTitle"],
+                    outcome.ErrorMessage ?? _localizer["ErrorConnectionFailed"]),
+                BulkConnectOutcomeStatus.Cancelled => false,
+                BulkConnectOutcomeStatus.UnsupportedType => false,
+                BulkConnectOutcomeStatus.Skipped => false,
+                _ => false
+            };
         }
         finally
         {
             _connectingServerIds.Remove(server.Id);
+        }
+    }
+
+    internal async Task<BulkConnectOutcome> RunConnectionPipelineAsync(
+        ServerProfileDto serverDto,
+        AppSettings settings,
+        string sessionId,
+        string originalId,
+        ServerItemViewModel server,
+        CancellationToken cancellationToken)
+    {
+        var preflight = _connectionService.RunPreflight(serverDto, settings);
+        if (!preflight.Success)
+        {
+            server.ConnectionState = "Error";
+            return new BulkConnectOutcome(
+                BulkConnectOutcomeStatus.PreflightFailed,
+                preflight.Message ?? _localizer["ErrorPreflightFailed"]);
+        }
+
+        serverDto.Id = sessionId;
+        _connectionSm.TryTransition(sessionId, Core.Models.ConnectionState.Initializing);
+
+        try
+        {
+            ConnectionResult result;
+
+            switch (serverDto.ConnectionType?.ToUpperInvariant())
+            {
+                case "RDP":
+                    result = await _connectionService.ConnectRdpAsync(
+                        serverDto, settings, cancellationToken);
+                    break;
+
+                case "SSH":
+                    result = await _connectionService.ConnectSshAsync(
+                        serverDto, settings, cancellationToken);
+                    break;
+
+                case "SFTP":
+                    result = await _connectionService.ConnectSftpAsync(
+                        serverDto, settings, cancellationToken);
+                    break;
+
+                case "FTP":
+                    result = await _connectionService.ConnectFtpAsync(
+                        serverDto, settings, cancellationToken);
+                    break;
+
+                case "LOCAL":
+                    result = await _connectionService.ConnectLocalShellAsync(
+                        serverDto, settings, cancellationToken);
+                    break;
+
+                case "CITRIX":
+                    result = await _connectionService.ConnectCitrixAsync(
+                        serverDto, settings, cancellationToken);
+                    break;
+
+                case "VNC":
+                    result = await _connectionService.ConnectVncAsync(
+                        serverDto, settings, cancellationToken);
+                    break;
+
+                case "TELNET":
+                    result = await _connectionService.ConnectTelnetAsync(
+                        serverDto, settings, cancellationToken);
+                    break;
+
+                default:
+                    var unsupportedMessage = _localizer.Format(
+                        "ErrorUnsupportedConnectionType",
+                        serverDto.ConnectionType ?? "");
+                    _connectionSm.SetError(sessionId, unsupportedMessage);
+                    server.ConnectionState = "Error";
+                    return new BulkConnectOutcome(
+                        BulkConnectOutcomeStatus.UnsupportedType,
+                        unsupportedMessage);
+            }
+
+            if (result.Success)
+            {
+                SessionReady?.Invoke(
+                    sessionId,
+                    originalId,
+                    server.DisplayName,
+                    serverDto.ConnectionType,
+                    result.Session);
+                return new BulkConnectOutcome(BulkConnectOutcomeStatus.Success, null);
+            }
+
+            server.ConnectionState = "Error";
+            return new BulkConnectOutcome(
+                BulkConnectOutcomeStatus.ConnectionFailed,
+                result.ErrorMessage ?? _localizer["ErrorConnectionFailed"]);
+        }
+        catch (OperationCanceledException)
+        {
+            _connectionSm.Reset(sessionId);
+            return new BulkConnectOutcome(BulkConnectOutcomeStatus.Cancelled, null);
+        }
+        catch (Exception ex)
+        {
+            var failure = Ssh.FailureClassifier.Classify(ex);
+            _connectionSm.SetError(sessionId, failure.Message);
+            server.ConnectionState = "Error";
+            return new BulkConnectOutcome(
+                BulkConnectOutcomeStatus.ConnectionFailed,
+                failure.Message);
+        }
+        finally
+        {
+            serverDto.Id = originalId;
         }
     }
 
@@ -454,12 +768,15 @@ public partial class ServerListViewModel : ObservableObject, IDisposable
     /// the password and injects it (DPAPI-encrypted) into the DTO. This allows all
     /// downstream code to work unchanged.
     /// </summary>
-    private async Task TryResolveExternalCredentialsAsync(
-        ServerProfileDto serverDto, AppSettings settings, CancellationToken ct)
+    private async Task<bool> TryResolveExternalCredentialsAsync(
+        ServerProfileDto serverDto,
+        AppSettings settings,
+        CancellationToken ct,
+        bool skipOnFailure)
     {
         if (!settings.UseExternalCredentialProvider)
         {
-            return;
+            return false;
         }
 
         var provider = new Core.Security.CommandCredentialProvider(
@@ -468,13 +785,13 @@ public partial class ServerListViewModel : ObservableObject, IDisposable
 
         if (!provider.IsAvailable)
         {
-            return;
+            return false;
         }
 
         var credTarget = GetCredentialTarget(serverDto);
         if (credTarget is null)
         {
-            return;
+            return false;
         }
 
         try
@@ -487,10 +804,15 @@ public partial class ServerListViewModel : ObservableObject, IDisposable
             {
                 Core.Logging.FileLogger.Warn(
                     $"External credential provider returned no result for {serverDto.DisplayName}");
+                if (skipOnFailure)
+                {
+                    return true;
+                }
+
                 _dialogService.ShowWarning(
                     _localizer["ErrorConnectionTitle"],
                     _localizer.Format("WarnCredentialProviderNoResult", serverDto.DisplayName));
-                return;
+                return false;
             }
 
             var encrypted = CredentialProtector.Protect(credential.Password);
@@ -503,6 +825,7 @@ public partial class ServerListViewModel : ObservableObject, IDisposable
 
             Core.Logging.FileLogger.Info(
                 $"External credential provider resolved password for {serverDto.DisplayName}");
+            return false;
         }
         catch (OperationCanceledException)
         {
@@ -513,10 +836,22 @@ public partial class ServerListViewModel : ObservableObject, IDisposable
         {
             Core.Logging.FileLogger.Warn(
                 $"External credential provider failed for {serverDto.DisplayName}: {ex.Message}");
+            if (skipOnFailure)
+            {
+                return true;
+            }
+
             _dialogService.ShowError(
                 _localizer["ErrorConnectionTitle"],
                 _localizer.Format("ErrorCredentialProviderFailed", ex.Message));
+            return false;
         }
+    }
+
+    private bool ShowConnectionError(string title, string message)
+    {
+        _dialogService.ShowError(title, message);
+        return false;
     }
 
     [RelayCommand]
@@ -552,6 +887,7 @@ public partial class ServerListViewModel : ObservableObject, IDisposable
 
         var servers = await _configManager.LoadServersAsync();
         result.Server.Id = Guid.NewGuid().ToString();
+        result.Server.Origin = ProfileOrigin.Manual;
         servers.Add(result.Server);
         await _configManager.SaveServersAsync(servers);
 
@@ -559,7 +895,8 @@ public partial class ServerListViewModel : ObservableObject, IDisposable
             result.Server,
             ResolveProject(BuildProjectMap(settings), result.Server.ProjectId),
             _connectionSm.GetState(result.Server.Id).ToString(),
-            BuildGatewayMap(settings)));
+            BuildGatewayMap(settings),
+            _localizer));
 
         RefreshLookupCollections(settings);
         ApplyFilter(result.Server.Id);
@@ -644,7 +981,8 @@ public partial class ServerListViewModel : ObservableObject, IDisposable
         server.UpdateFromDto(
             result.Server,
             ResolveProject(BuildProjectMap(settings), result.Server.ProjectId),
-            BuildGatewayMap(settings));
+            BuildGatewayMap(settings),
+            _localizer);
 
         RefreshLookupCollections(settings);
         ApplyFilter(server.Id);
@@ -668,19 +1006,7 @@ public partial class ServerListViewModel : ObservableObject, IDisposable
             return;
         }
 
-        var servers = await _configManager.LoadServersAsync();
-        servers.RemoveAll(
-            s => string.Equals(s.Id, server.Id, StringComparison.Ordinal));
-        await _configManager.SaveServersAsync(servers);
-
-        _allServers.RemoveAll(
-            s => string.Equals(s.Id, server.Id, StringComparison.Ordinal));
-
-        _connectionSm.Remove(server.Id);
-        RefreshLookupCollections(await _configManager.LoadSettingsAsync());
-        ApplyFilter();
-        OnPropertyChanged(nameof(Servers));
-        OnPropertyChanged(nameof(IsEmpty));
+        await DeleteServersCoreAsync([server], cancellationToken);
     }
 
     [RelayCommand]
@@ -691,41 +1017,7 @@ public partial class ServerListViewModel : ObservableObject, IDisposable
             return;
         }
 
-        var servers = await _configManager.LoadServersAsync();
-        var sourceDto = servers.FirstOrDefault(
-            s => string.Equals(s.Id, server.Id, StringComparison.Ordinal));
-
-        if (sourceDto is null)
-        {
-            return;
-        }
-
-        var settings = await _configManager.LoadSettingsAsync();
-        var json = System.Text.Json.JsonSerializer.Serialize(sourceDto);
-        var clone = System.Text.Json.JsonSerializer.Deserialize<ServerProfileDto>(json);
-
-        if (clone is null)
-        {
-            return;
-        }
-
-        clone.Id = Guid.NewGuid().ToString();
-        clone.DisplayName = sourceDto.DisplayName + _localizer["ServerDuplicateSuffix"];
-        clone.RdpPasswordEncrypted = null;
-
-        servers.Add(clone);
-        await _configManager.SaveServersAsync(servers);
-
-        _allServers.Add(ServerItemViewModel.FromDto(
-            clone,
-            ResolveProject(BuildProjectMap(settings), clone.ProjectId),
-            _connectionSm.GetState(clone.Id).ToString(),
-            BuildGatewayMap(settings)));
-
-        RefreshLookupCollections(settings);
-        ApplyFilter(clone.Id);
-        OnPropertyChanged(nameof(Servers));
-        OnPropertyChanged(nameof(IsEmpty));
+        await DuplicateServersCoreAsync([server], cancellationToken);
     }
 
     [RelayCommand]
@@ -736,30 +1028,7 @@ public partial class ServerListViewModel : ObservableObject, IDisposable
             return;
         }
 
-        var normalizedProjectId = request.ProjectId ?? string.Empty;
-        if (string.Equals(request.Server.ProjectId, normalizedProjectId, StringComparison.Ordinal))
-        {
-            return;
-        }
-
-        var servers = await _configManager.LoadServersAsync();
-        var serverDto = servers.FirstOrDefault(
-            s => string.Equals(s.Id, request.Server.Id, StringComparison.Ordinal));
-
-        if (serverDto is null)
-        {
-            return;
-        }
-
-        serverDto.ProjectId = string.IsNullOrWhiteSpace(request.ProjectId) ? null : request.ProjectId;
-        await _configManager.SaveServersAsync(servers);
-
-        var settings = await _configManager.LoadSettingsAsync();
-        request.Server.ProjectId = normalizedProjectId;
-        ApplyProjectMetadata(request.Server, ResolveProject(BuildProjectMap(settings), request.ProjectId));
-
-        RefreshLookupCollections(settings);
-        ApplyFilter(request.Server.Id);
+        await MoveServerToProjectCoreAsync(request.Server, request.ProjectId, cancellationToken);
     }
 
     [RelayCommand]
@@ -771,6 +1040,24 @@ public partial class ServerListViewModel : ObservableObject, IDisposable
         }
 
         await MoveServerToGroupCoreAsync(request.Server, request.GroupName, cancellationToken);
+    }
+
+    /// <summary>
+    /// Moves a server to the specified project, persists the change, and refreshes
+    /// the filtered tree in place without rebuilding the backing view-model
+    /// instances. No-op when the server is already in the target project. The
+    /// caller is responsible for any status text surfaced after a successful move.
+    /// </summary>
+    /// <param name="server">The server view model being moved.</param>
+    /// <param name="targetProjectId">Destination project identifier (null or whitespace = no project).</param>
+    /// <param name="cancellationToken">Optional cancellation token.</param>
+    /// <returns><c>true</c> if the server was moved and the model rebuilt; <c>false</c> otherwise.</returns>
+    public async Task<bool> MoveServerToProjectAsync(
+        ServerItemViewModel server,
+        string? targetProjectId,
+        CancellationToken cancellationToken = default)
+    {
+        return await MoveServerToProjectCoreAsync(server, targetProjectId, cancellationToken);
     }
 
     /// <summary>
@@ -829,42 +1116,16 @@ public partial class ServerListViewModel : ObservableObject, IDisposable
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(server);
+        return await MoveServersToGroupCoreAsync([server], targetGroup, cancellationToken);
+    }
 
-        cancellationToken.ThrowIfCancellationRequested();
-
-        var normalizedTarget = NormalizeGroupForPersistence(targetGroup);
-        var currentGroup = NormalizeGroupForPersistence(server.Group);
-        if (string.Equals(currentGroup, normalizedTarget, StringComparison.OrdinalIgnoreCase))
-        {
-            return false;
-        }
-
-        var servers = await _configManager.LoadServersAsync();
-        var dto = servers.FirstOrDefault(
-            candidate => string.Equals(candidate.Id, server.Id, StringComparison.Ordinal));
-
-        if (dto is null)
-        {
-            Core.Logging.FileLogger.Warn(
-                $"MoveServerToGroupCoreAsync could not find server DTO for id={server.Id}.");
-            return false;
-        }
-
-        dto.Group = normalizedTarget;
-        await _configManager.SaveServersAsync(servers);
-
-        server.Group = normalizedTarget ?? string.Empty;
-
-        var settings = await _configManager.LoadSettingsAsync();
-        _currentSettings = settings;
-        RefreshLookupCollections(settings);
-        ApplyFilter(server.Id);
-        SelectedServer = Servers.Contains(server) ? server : null;
-
-        Core.Logging.FileLogger.Info(
-            $"MoveServerToGroupCoreAsync moved {server.DisplayName} ({server.Id}) to '{normalizedTarget ?? "<root>"}'.");
-
-        return true;
+    private async Task<bool> MoveServerToProjectCoreAsync(
+        ServerItemViewModel server,
+        string? targetProjectId,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(server);
+        return await MoveServersToProjectCoreAsync([server], targetProjectId, cancellationToken) > 0;
     }
 
     private static string? NormalizeGroupForPersistence(string? groupName)
@@ -1243,15 +1504,36 @@ public partial class ServerListViewModel : ObservableObject, IDisposable
 
     private void SynchronizeSelection(string? preferredSelectedServerId)
     {
-        var targetId = preferredSelectedServerId ?? SelectedServer?.Id;
-        if (string.IsNullOrWhiteSpace(targetId))
+        if (!string.IsNullOrWhiteSpace(preferredSelectedServerId))
         {
-            SelectedServer = null;
+            var preferred = Servers.FirstOrDefault(
+                server => string.Equals(server.Id, preferredSelectedServerId, StringComparison.Ordinal));
+
+            if (preferred is not null)
+            {
+                SelectSingle(preferred);
+                return;
+            }
+        }
+
+        var visibleSelection = SelectedItems
+            .Where(Servers.Contains)
+            .ToList();
+
+        if (visibleSelection.Count == 0)
+        {
+            ClearSelection();
             return;
         }
 
-        SelectedServer = Servers.FirstOrDefault(
-            server => string.Equals(server.Id, targetId, StringComparison.Ordinal));
+        var primary = SelectedServer is not null && visibleSelection.Contains(SelectedServer)
+            ? SelectedServer
+            : visibleSelection.LastOrDefault();
+        var anchor = _selectionAnchor is not null && visibleSelection.Contains(_selectionAnchor)
+            ? _selectionAnchor
+            : primary;
+
+        ApplySelection(visibleSelection, primary, anchor, updateSelectedServer: true);
     }
 
     private static Dictionary<string, ProjectDto> BuildProjectMap(AppSettings settings)
@@ -1399,3 +1681,17 @@ public sealed record GroupTarget(
     string GroupName,
     string DisplayName,
     bool IsVirtualGroup = false);
+
+internal enum BulkConnectOutcomeStatus
+{
+    Success,
+    PreflightFailed,
+    ConnectionFailed,
+    Cancelled,
+    Skipped,
+    UnsupportedType
+}
+
+internal readonly record struct BulkConnectOutcome(
+    BulkConnectOutcomeStatus Status,
+    string? ErrorMessage);

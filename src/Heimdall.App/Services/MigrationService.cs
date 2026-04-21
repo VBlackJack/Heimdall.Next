@@ -196,7 +196,6 @@ public sealed class MigrationService
         MapBool(legacy, "RdpDefaultAutoReconnect", v => target.RdpDefaultAutoReconnect = v);
 
         // Session
-        MapBool(legacy, "EnableSessionPersistence", v => target.EnableSessionPersistence = v);
         MapInt(legacy, "MaxEmbeddedSessions", v => target.MaxEmbeddedSessions = v);
         MapInt(legacy, "EmbeddedRdpTimeoutMs", v => target.EmbeddedRdpTimeoutMs = v);
         MapInt(legacy, "EmbeddedIdleTimeoutMs", v => target.EmbeddedIdleTimeoutMs = v);

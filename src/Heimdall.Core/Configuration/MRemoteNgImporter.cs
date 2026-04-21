@@ -125,6 +125,7 @@ public static class MRemoteNgImporter
         {
             Id = Guid.NewGuid().ToString(),
             DisplayName = name ?? hostname!,
+            Origin = Models.ProfileOrigin.ImportMRemoteNg,
             RemoteServer = hostname ?? name!,
             ConnectionType = connectionType,
             UseDirectConnection = true,

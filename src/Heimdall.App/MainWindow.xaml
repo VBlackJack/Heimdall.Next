@@ -8,6 +8,7 @@
         xmlns:views="clr-namespace:Heimdall.App.Views"
         xmlns:models="clr-namespace:Heimdall.Core.Models;assembly=Heimdall.Core"
         xmlns:loc="clr-namespace:Heimdall.App.Localization"
+        xmlns:theming="clr-namespace:Heimdall.App.Theming"
         mc:Ignorable="d"
         d:DataContext="{d:DesignInstance Type=vm:MainViewModel}"
         Title="{Binding WindowTitle}"
@@ -16,7 +17,11 @@
         WindowStartupLocation="CenterScreen"
         FontFamily="Segoe UI"
         TextOptions.TextFormattingMode="Display"
-        Background="{DynamicResource BackgroundBrush}">
+        Background="{DynamicResource BackgroundBrush}"
+        AllowDrop="True"
+        PreviewDragOver="OnWindowPreviewDragOver"
+        PreviewDragLeave="OnWindowPreviewDragLeave"
+        PreviewDrop="OnWindowPreviewDrop">
 
     <Window.Resources>
         <!-- Implicit DataTemplates for recursive split pane tree rendering -->
@@ -308,6 +313,37 @@
                                             </ContextMenu>
                                         </Button.ContextMenu>
                                     </Button>
+                                    <Button x:Name="ImportButton"
+                                            DockPanel.Dock="Right"
+                                            Click="OnImportButtonClick"
+                                            Style="{DynamicResource ToolbarGhostButtonStyle}"
+                                            Padding="8,6"
+                                            Margin="4,0,0,0"
+                                            ToolTip="{loc:Translate A11yImportMenu}"
+                                            AutomationProperties.Name="{loc:Translate A11yImportMenu}">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="&#xE8B7;" FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeBody}" Margin="0,0,6,0"/>
+                                            <TextBlock Text="{loc:Translate BtnImport}" FontSize="{StaticResource FontSizeBody}" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                        <Button.ContextMenu>
+                                            <ContextMenu x:Name="ImportMenu"
+                                                         DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
+                                                <MenuItem Header="{loc:Translate MenuImportRdp}"
+                                                          Click="OnImportRdpClick"
+                                                          AutomationProperties.Name="{loc:Translate A11yImportRdp}"/>
+                                                <MenuItem Header="{loc:Translate MenuImportOpenSshConfig}"
+                                                          Click="OnImportOpenSshConfigClick"
+                                                          AutomationProperties.Name="{loc:Translate A11yImportOpenSshConfig}"/>
+                                                <MenuItem Header="{loc:Translate MenuImportPuttySessions}"
+                                                          Click="OnImportPuttySessionsClick"
+                                                          AutomationProperties.Name="{loc:Translate A11yImportPuttySessions}"/>
+                                                <Separator/>
+                                                <MenuItem Header="{loc:Translate MenuImportKnownHosts}"
+                                                          Command="{Binding ServerList.ImportKnownHostsCommand}"
+                                                          AutomationProperties.Name="{loc:Translate A11yImportKnownHosts}"/>
+                                            </ContextMenu>
+                                        </Button.ContextMenu>
+                                    </Button>
                                     <Grid>
                                         <TextBox x:Name="Mw_FilterBox" Text="{Binding ServerList.SearchText, UpdateSourceTrigger=PropertyChanged}"
                                                  Style="{DynamicResource SearchTextBoxStyle}"
@@ -377,6 +413,7 @@
                                   DragLeave="OnTreeViewDragLeave"
                                   Drop="OnTreeViewDrop"
                                   PreviewMouseRightButtonDown="OnTreeViewPreviewMouseRightButtonDown"
+                                  PreviewKeyDown="OnSessionTreeViewPreviewKeyDown"
                                   ContextMenuOpening="OnTreeViewContextMenuOpening"
                                   ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                                   ScrollViewer.CanContentScroll="True"
@@ -415,37 +452,66 @@
 
                                 <!-- Server leaf node template -->
                                 <DataTemplate DataType="{x:Type vm:ServerItemViewModel}">
-                                    <StackPanel Orientation="Horizontal" Margin="0,1"
-                                                ToolTip="{Binding DisplayName}">
-                                        <!-- Protocol / tool vector icon (resolved by converters).
-                                             The ThemeRevision trigger forces re-evaluation on runtime theme swap. -->
-                                        <Path Data="{Binding ConnectionType, Converter={StaticResource TypeToGeoConverter}}"
-                                              Style="{StaticResource GeoIconSmall}"
-                                              VerticalAlignment="Center" Margin="0,0,4,0">
-                                            <Path.Fill>
-                                                <MultiBinding Converter="{StaticResource TypeToColorConverter}">
-                                                    <Binding Path="ConnectionType"/>
-                                                    <Binding Path="DataContext.ThemeRevision" ElementName="MainWindowRoot"/>
-                                                </MultiBinding>
-                                            </Path.Fill>
-                                        </Path>
-                                        <!-- Status dot -->
-                                        <Ellipse Width="7" Height="7" Margin="2,0,8,0"
-                                                 VerticalAlignment="Center">
-                                            <Ellipse.Fill>
-                                                <MultiBinding Converter="{StaticResource ServerStatusToColorConverter}">
-                                                    <Binding Path="ConnectionType"/>
-                                                    <Binding Path="ConnectionState"/>
-                                                    <Binding Path="DataContext.ThemeRevision" ElementName="MainWindowRoot"/>
-                                                </MultiBinding>
-                                            </Ellipse.Fill>
-                                        </Ellipse>
-                                        <!-- Server name -->
-                                        <TextBlock Text="{Binding DisplayName}" FontSize="{StaticResource FontSizeBody}"
-                                                   Foreground="{DynamicResource TextPrimaryBrush}"
-                                                   VerticalAlignment="Center"
-                                                   TextTrimming="CharacterEllipsis"/>
-                                    </StackPanel>
+                                    <Border x:Name="ServerSelectionChrome"
+                                            Margin="0,1"
+                                            HorizontalAlignment="Stretch"
+                                            Padding="2,1"
+                                            CornerRadius="0"
+                                            BorderThickness="3,0,0,0"
+                                            BorderBrush="Transparent"
+                                            Background="Transparent"
+                                            ToolTip="{Binding DisplayName}">
+                                        <StackPanel Orientation="Horizontal">
+                                            <!-- Protocol / tool vector icon (resolved by converters).
+                                                 The ThemeRevision trigger forces re-evaluation on runtime theme swap. -->
+                                            <Path Data="{Binding ConnectionType, Converter={StaticResource TypeToGeoConverter}}"
+                                                  Style="{StaticResource GeoIconSmall}"
+                                                  VerticalAlignment="Center" Margin="0,0,4,0">
+                                                <Path.Fill>
+                                                    <MultiBinding Converter="{StaticResource TypeToColorConverter}">
+                                                        <Binding Path="ConnectionType"/>
+                                                        <Binding Path="DataContext.ThemeRevision" ElementName="MainWindowRoot"/>
+                                                    </MultiBinding>
+                                                </Path.Fill>
+                                            </Path>
+                                            <!-- Status dot -->
+                                            <Ellipse Width="7" Height="7" Margin="2,0,8,0"
+                                                     VerticalAlignment="Center">
+                                                <Ellipse.Fill>
+                                                    <MultiBinding Converter="{StaticResource ServerStatusToColorConverter}">
+                                                        <Binding Path="ConnectionType"/>
+                                                        <Binding Path="ConnectionState"/>
+                                                        <Binding Path="DataContext.ThemeRevision" ElementName="MainWindowRoot"/>
+                                                    </MultiBinding>
+                                                </Ellipse.Fill>
+                                            </Ellipse>
+                                            <!-- Server name -->
+                                            <TextBlock Text="{Binding DisplayName}" FontSize="{StaticResource FontSizeBody}"
+                                                       Foreground="{DynamicResource TextPrimaryBrush}"
+                                                       VerticalAlignment="Center"
+                                                       TextTrimming="CharacterEllipsis"/>
+                                            <Border Background="{DynamicResource CardBrush}"
+                                                    BorderBrush="{DynamicResource BorderBrush}"
+                                                    BorderThickness="1"
+                                                    CornerRadius="3"
+                                                    Padding="4,0"
+                                                    Margin="6,0,0,0"
+                                                    VerticalAlignment="Center"
+                                                    ToolTip="{Binding OriginDisplayName}"
+                                                    Visibility="{Binding IsOriginBadgeVisible, Converter={StaticResource BoolToVisibilityConverter}}">
+                                                <TextBlock Text="{Binding OriginBadgeCode}"
+                                                           FontSize="{StaticResource FontSizeSmallCaption}"
+                                                           FontWeight="SemiBold"
+                                                           Foreground="{DynamicResource TextSecondaryBrush}"
+                                                           VerticalAlignment="Center"/>
+                                            </Border>
+                                        </StackPanel>
+                                    </Border>
+                                    <DataTemplate.Triggers>
+                                        <DataTrigger Binding="{Binding IsSelected, FallbackValue=False}" Value="True">
+                                            <Setter TargetName="ServerSelectionChrome" Property="Background" Value="{DynamicResource HighlightBrush}"/>
+                                        </DataTrigger>
+                                    </DataTemplate.Triggers>
                                 </DataTemplate>
                             </TreeView.Resources>
 
@@ -456,6 +522,79 @@
                                     <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}"/>
                                     <Setter Property="Padding" Value="1,1"/>
                                     <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                    <EventSetter Event="PreviewMouseLeftButtonDown"
+                                                 Handler="OnSessionTreeViewItemPreviewMouseLeftButtonDown"/>
+                                    <Style.Triggers>
+                                        <Trigger Property="HasItems" Value="False">
+                                            <Setter Property="Template">
+                                                <Setter.Value>
+                                                    <ControlTemplate TargetType="{x:Type TreeViewItem}">
+                                                        <Grid SnapsToDevicePixels="True">
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="Auto"/>
+                                                                <ColumnDefinition Width="*"/>
+                                                            </Grid.ColumnDefinitions>
+                                                            <Grid.RowDefinitions>
+                                                                <RowDefinition Height="Auto"/>
+                                                                <RowDefinition Height="Auto"/>
+                                                            </Grid.RowDefinitions>
+                                                            <ToggleButton x:Name="Expander"
+                                                                          Grid.Row="0"
+                                                                          Grid.Column="0"
+                                                                          Margin="0,2,2,0"
+                                                                          Style="{StaticResource TreeViewExpanderToggleButtonStyle}"
+                                                                          IsChecked="{Binding IsExpanded, RelativeSource={RelativeSource TemplatedParent}}"
+                                                                          ClickMode="Press"/>
+                                                            <Border x:Name="SelectionBorder"
+                                                                    Grid.Row="0"
+                                                                    Grid.Column="1"
+                                                                    Margin="0,1,0,1"
+                                                                    Padding="{TemplateBinding Padding}"
+                                                                    Background="Transparent"
+                                                                    BorderBrush="Transparent"
+                                                                    BorderThickness="3,0,0,0"
+                                                                    CornerRadius="0">
+                                                                <ContentPresenter x:Name="HeaderHost"
+                                                                                  ContentSource="Header"
+                                                                                  HorizontalAlignment="Stretch"/>
+                                                            </Border>
+                                                            <ItemsPresenter x:Name="ItemsHost"
+                                                                            Grid.Row="1"
+                                                                            Grid.Column="1"
+                                                                            Grid.ColumnSpan="2"
+                                                                            Margin="2,1,0,0"/>
+                                                        </Grid>
+                                                        <ControlTemplate.Triggers>
+                                                            <Trigger Property="HasItems" Value="False">
+                                                                <Setter TargetName="Expander" Property="Visibility" Value="Hidden"/>
+                                                            </Trigger>
+                                                            <Trigger Property="IsExpanded" Value="False">
+                                                                <Setter TargetName="ItemsHost" Property="Visibility" Value="Collapsed"/>
+                                                            </Trigger>
+                                                            <Trigger Property="IsMouseOver" Value="True">
+                                                                <Setter TargetName="SelectionBorder" Property="Background" Value="{DynamicResource HighlightBrush}"/>
+                                                            </Trigger>
+                                                            <Trigger Property="IsSelected" Value="True">
+                                                                <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+                                                                <Setter TargetName="SelectionBorder" Property="Background" Value="{DynamicResource CardBrush}"/>
+                                                                <Setter TargetName="SelectionBorder" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                                                            </Trigger>
+                                                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                                                <Setter TargetName="SelectionBorder" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                                                            </Trigger>
+                                                            <Trigger Property="theming:DropTargetVisualState.IsDropTarget" Value="True">
+                                                                <Setter TargetName="SelectionBorder" Property="Background" Value="{DynamicResource HighlightBrush}"/>
+                                                                <Setter TargetName="SelectionBorder" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                                                            </Trigger>
+                                                            <Trigger Property="IsEnabled" Value="False">
+                                                                <Setter TargetName="SelectionBorder" Property="Opacity" Value="{StaticResource OpacityDisabled}"/>
+                                                            </Trigger>
+                                                        </ControlTemplate.Triggers>
+                                                    </ControlTemplate>
+                                                </Setter.Value>
+                                            </Setter>
+                                        </Trigger>
+                                    </Style.Triggers>
                                 </Style>
                             </TreeView.ItemContainerStyle>
 
@@ -741,8 +880,25 @@
                                                                 </Trigger>
                                                             </Style.Triggers>
                                                         </Style>
-                                                    </TextBlock.Style>
+                                                        </TextBlock.Style>
                                                 </TextBlock>
+                                                <Button x:Name="PostConnectIndicator"
+                                                        Margin="6,0,0,0"
+                                                        Padding="4,1"
+                                                        MinWidth="34"
+                                                        Height="20"
+                                                        VerticalAlignment="Center"
+                                                        Command="{Binding CancelPostConnectCommand}"
+                                                        ToolTip="{Binding PostConnectTooltip}"
+                                                        Visibility="Collapsed"
+                                                        AutomationProperties.Name="{Binding PostConnectTooltip}"
+                                                        Style="{DynamicResource SecondaryButtonStyle}">
+                                                    <TextBlock Text="{Binding PostConnectProgressText}"
+                                                               FontSize="{StaticResource FontSizeSmallCaption}"
+                                                               Foreground="{DynamicResource AccentBrush}"
+                                                               FontWeight="SemiBold"
+                                                               VerticalAlignment="Center"/>
+                                                </Button>
                                             </StackPanel>
                                         </DockPanel>
                                     </Border>
@@ -756,6 +912,9 @@
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding IsBusy}" Value="True">
                                             <Setter TargetName="BusyIndicator" Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding IsPostConnectRunning}" Value="True">
+                                            <Setter TargetName="PostConnectIndicator" Property="Visibility" Value="Visible"/>
                                         </DataTrigger>
                                     </DataTemplate.Triggers>
                                 </DataTemplate>
@@ -1570,7 +1729,6 @@
                                             <TextBox Text="{Binding Settings.MaxEmbeddedSessions}" Width="100" HorizontalAlignment="Left"/>
                                         </StackPanel>
                                         <CheckBox x:Name="Mw_SettingsPreventSleep" Content="{loc:Translate SettingsLabelPreventSleep}" IsChecked="{Binding Settings.PreventSleepDuringSession}" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,12,0,0"/>
-                                        <CheckBox x:Name="Mw_SettingsEnableSessionPersistence" Content="{loc:Translate SettingsWorkspaceRestore}" IsChecked="{Binding Settings.EnableSessionPersistence}" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,6,0,0" AutomationProperties.Name="{loc:Translate SettingsWorkspaceRestore}"/>
                                         <StackPanel Margin="0,12,0,0">
                                             <TextBlock x:Name="Mw_SettingsEditorPathLabel" Text="{loc:Translate SettingsLabelEditorPath}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeCaption}" Margin="0,0,0,4"/>
                                             <DockPanel>
@@ -2298,6 +2456,32 @@
                 </Style>
             </Button.Style>
         </Button>
+
+        <Border x:Name="RdpImportDropOverlay"
+                Grid.Row="1"
+                Panel.ZIndex="200"
+                Margin="24"
+                CornerRadius="12"
+                Background="#AA1E1F29"
+                BorderBrush="{DynamicResource AccentBrush}"
+                BorderThickness="2"
+                Visibility="Collapsed"
+                IsHitTestVisible="False">
+            <StackPanel HorizontalAlignment="Center"
+                        VerticalAlignment="Center">
+                <TextBlock Text="&#xE8B7;"
+                           FontFamily="Segoe MDL2 Assets"
+                           FontSize="40"
+                           Foreground="{DynamicResource AccentBrush}"
+                           HorizontalAlignment="Center"/>
+                <TextBlock Margin="0,12,0,0"
+                           Text="{loc:Translate DialogImportRdpDropOverlay}"
+                           Foreground="{DynamicResource TextPrimaryBrush}"
+                           FontSize="{StaticResource FontSizeBodyLarge}"
+                           FontWeight="SemiBold"
+                           HorizontalAlignment="Center"/>
+            </StackPanel>
+        </Border>
 
         <!-- STATUS BAR -->
         <Border Grid.Row="2"

@@ -73,6 +73,13 @@ public interface IConfigManager
     Task<bool> MergeHostKeyAsync(string hostPortKey, string fingerprint);
 
     /// <summary>
+    /// Atomically merges a batch of trusted host keys into settings.json.
+    /// Existing entries are preserved and never overwritten.
+    /// </summary>
+    /// <returns>The number of entries actually added to settings.</returns>
+    Task<int> MergeTrustedHostKeysAsync(IEnumerable<KeyValuePair<string, string>> entries);
+
+    /// <summary>
     /// Atomically loads settings, applies a mutation, and saves back under the write lock.
     /// Use this for any targeted property update that must not race with other settings writers.
     /// </summary>
