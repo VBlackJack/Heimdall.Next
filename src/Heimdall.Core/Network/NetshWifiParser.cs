@@ -68,7 +68,7 @@ public static class NetshWifiParser
                 continue;
             }
 
-            if (StartsWithAny(line, "Network type", "Type de r"))
+            if (StartsWithAny(line, "Network type", "Type de réseau"))
             {
                 continue;
             }

@@ -91,7 +91,38 @@ SSID 1 : Bureau
         Assert.Equal("74%", results[0].Signal);
         Assert.Equal(74, results[0].SignalValue);
         Assert.Equal("44", results[0].Channel);
-        Assert.Equal(string.Empty, results[0].RadioType);
+        Assert.Equal("802.11ac", results[0].RadioType);
+    }
+
+    [Fact]
+    public void Parse_French_DistinguishesNetworkTypeFromRadioType()
+    {
+        var input = """
+SSID 1 : Bureau
+    Type de réseau          : Infrastructure
+    Authentification        : WPA2-Personnel
+    Chiffrement             : CCMP
+    BSSID 1                 : aa:bb:cc:dd:ee:ff
+         Signal             : 74%
+         Type de radio      : 802.11ac
+         Canal              : 44
+""";
+
+        var entries = NetshWifiParser.Parse(input);
+        var entry = Assert.Single(entries);
+        var parsedFields = new[]
+        {
+            entry.Ssid,
+            entry.Bssid,
+            entry.Signal,
+            entry.Channel,
+            entry.Auth,
+            entry.Encryption,
+            entry.RadioType,
+        };
+
+        Assert.Equal("802.11ac", entry.RadioType);
+        Assert.DoesNotContain("Infrastructure", parsedFields);
     }
 
     [Fact]
